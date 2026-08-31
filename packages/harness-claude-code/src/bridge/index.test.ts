@@ -5,6 +5,16 @@ type QueryArgs = {
   options: Record<string, unknown>;
 };
 
+type ToolHandler = (
+  ...args: [
+    input: Record<string, unknown>,
+    extra: {
+      requestId: string | number;
+      _meta?: Record<string, unknown>;
+    },
+  ]
+) => Promise<unknown>;
+
 const TEST_ENV_KEYS = [
   'CLAUDE_CODE_BRIDGE_INHERITED_TEST',
   'CLAUDE_CODE_BRIDGE_OVERRIDE_TEST',
@@ -27,6 +37,7 @@ const state = vi.hoisted(() => ({
   steering: false,
   acceptedUserMessages: [] as string[],
   queryInputs: [] as unknown[],
+  toolHandlers: new Map<string, ToolHandler>(),
   /** Per-test query factory; falls back to the `state.messages` generator. */
   createQuery: undefined as ((args: QueryArgs) => unknown) | undefined,
   /** Per-test turn abort controller; defaults to a fresh, never-aborted one. */
@@ -69,6 +80,34 @@ vi.mock('@anthropic-ai/claude-agent-sdk', () => ({
         return;
       }
       for (const message of state.messages) {
+        if (message.type === 'invoke-host-tools') {
+          const calls = message.calls as Array<{
+            toolName: string;
+            toolCallId: string;
+            input: Record<string, unknown>;
+          }>;
+          await Promise.all(
+            calls.map(call => {
+              const handler = state.toolHandlers.get(call.toolName);
+              if (handler == null) {
+                throw new Error(
+                  `Missing host tool handler for '${call.toolName}'.`,
+                );
+              }
+              const handlerArgs: Parameters<ToolHandler> = [
+                call.input,
+                {
+                  requestId: call.toolCallId,
+                  _meta: {
+                    'claudecode/toolUseId': call.toolCallId,
+                  },
+                },
+              ];
+              return handler(...handlerArgs);
+            }),
+          );
+          continue;
+        }
         yield message;
       }
     })();
@@ -76,7 +115,13 @@ vi.mock('@anthropic-ai/claude-agent-sdk', () => ({
 }));
 
 vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => ({
-  McpServer: class {},
+  McpServer: class {
+    tool(...args: [string, string, unknown, ToolHandler]): void {
+      const name = args[0];
+      const handler = args[3];
+      state.toolHandlers.set(name, handler);
+    }
+  },
 }));
 
 vi.mock('@ai-sdk/harness/bridge', () => ({
@@ -144,6 +189,7 @@ describe('Claude Code bridge configuration', () => {
     state.steering = false;
     state.acceptedUserMessages = [];
     state.queryInputs = [];
+    state.toolHandlers = new Map();
     state.originalArgv = [...process.argv];
     state.originalEnv = Object.fromEntries(
       TEST_ENV_KEYS.map(key => [key, process.env[key]]),
@@ -308,6 +354,157 @@ describe('Claude Code bridge configuration', () => {
     expect(state.queryArgs[0]?.options).toMatchObject({
       outputFormat: { type: 'json_schema', schema },
     });
+  });
+
+  test('uses callback metadata to correlate identical parallel host tool calls', async () => {
+    state.start = {
+      ...state.start,
+      tools: [
+        {
+          name: 'weather',
+          description: 'Get the weather',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              city: { type: 'string' },
+              unit: { type: 'string' },
+            },
+            required: ['city', 'unit'],
+          },
+        },
+      ],
+    };
+    state.messages = [
+      {
+        type: 'stream_event',
+        event: {
+          type: 'content_block_start',
+          index: 0,
+          content_block: {
+            type: 'tool_use',
+            id: 'host-tool-1',
+            name: 'mcp__harness-tools__weather',
+          },
+        },
+      },
+      {
+        type: 'stream_event',
+        event: {
+          type: 'content_block_delta',
+          index: 0,
+          delta: {
+            type: 'input_json_delta',
+            partial_json: '{"unit":"C","city":"Chicago"}',
+          },
+        },
+      },
+      {
+        type: 'stream_event',
+        event: { type: 'content_block_stop', index: 0 },
+      },
+      {
+        type: 'stream_event',
+        event: {
+          type: 'content_block_start',
+          index: 1,
+          content_block: {
+            type: 'tool_use',
+            id: 'host-tool-2',
+            name: 'mcp__harness-tools__weather',
+          },
+        },
+      },
+      {
+        type: 'stream_event',
+        event: {
+          type: 'content_block_delta',
+          index: 1,
+          delta: {
+            type: 'input_json_delta',
+            partial_json: '{"unit":"C","city":"Chicago"}',
+          },
+        },
+      },
+      {
+        type: 'stream_event',
+        event: { type: 'content_block_stop', index: 1 },
+      },
+      {
+        type: 'assistant',
+        message: {
+          content: [
+            {
+              type: 'tool_use',
+              id: 'host-tool-1',
+              name: 'mcp__harness-tools__weather',
+              input: { city: 'Chicago', unit: 'C' },
+            },
+            {
+              type: 'tool_use',
+              id: 'host-tool-2',
+              name: 'mcp__harness-tools__weather',
+              input: { city: 'Chicago', unit: 'C' },
+            },
+          ],
+        },
+      },
+      {
+        type: 'invoke-host-tools',
+        calls: [
+          {
+            toolName: 'weather',
+            toolCallId: 'host-tool-2',
+            input: { city: 'Chicago', unit: 'C' },
+          },
+          {
+            toolName: 'weather',
+            toolCallId: 'host-tool-1',
+            input: { city: 'Chicago', unit: 'C' },
+          },
+        ],
+      },
+      {
+        type: 'user',
+        message: {
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'host-tool-1',
+              content: '{}',
+            },
+            {
+              type: 'tool_result',
+              tool_use_id: 'host-tool-2',
+              content: '{}',
+            },
+          ],
+        },
+      },
+      {
+        type: 'result',
+        subtype: 'success',
+        result: 'done',
+      },
+    ];
+
+    await import('./index');
+
+    expect(state.emitted.filter(event => event.type === 'tool-call')).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'host-tool-2',
+        toolName: 'weather',
+        input: '{"city":"Chicago","unit":"C"}',
+        providerExecuted: false,
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'host-tool-1',
+        toolName: 'weather',
+        input: '{"city":"Chicago","unit":"C"}',
+        providerExecuted: false,
+      },
+    ]);
   });
 
   test('reports only the final model call usage for the final step', async () => {

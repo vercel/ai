@@ -5,6 +5,7 @@ import {
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import type * as NodeFsPromises from 'node:fs/promises';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { resolveBridgeAssetUrl } from './opencode-bootstrap';
 import { createOpenCode } from './opencode-harness';
 
 const webSocketMocks = vi.hoisted(() => {
@@ -696,7 +697,6 @@ describe('createOpenCode adapter', () => {
       mcpServers,
     });
     const session = await harness.doStart({
-      model: 'anthropic/agent-model',
       sessionId: 's1',
       sandboxSession,
       sessionWorkDir: '/workspace/project',
@@ -719,6 +719,7 @@ describe('createOpenCode adapter', () => {
     await compaction;
 
     const firstTurn = await session.doPromptTurn({
+      model: 'anthropic/agent-model',
       skills: [],
       tools: [],
       prompt: 'think',
@@ -737,7 +738,6 @@ describe('createOpenCode adapter', () => {
       mcpServers,
       resumeSessionId: 'opencode-session',
     });
-    expect(session.modelId).toBe('anthropic/agent-model');
     channel.emit('finish', { type: 'finish' });
     await firstTurn.done;
 
@@ -856,6 +856,27 @@ describe('createOpenCode adapter', () => {
   });
 
   describe('getBootstrap', () => {
+    it('resolves bridge assets from source and bundled module layouts', () => {
+      const sourceModuleUrl = new URL(
+        './opencode-bootstrap.ts',
+        import.meta.url,
+      );
+      const bundledModuleUrl = new URL('../dist/index.js', import.meta.url);
+
+      expect(
+        resolveBridgeAssetUrl({
+          name: 'package.json',
+          moduleUrl: sourceModuleUrl,
+        }),
+      ).toEqual(new URL('./bridge/package.json', import.meta.url));
+      expect(
+        resolveBridgeAssetUrl({
+          name: 'package.json',
+          moduleUrl: bundledModuleUrl,
+        }),
+      ).toEqual(new URL('../dist/bridge/package.json', import.meta.url));
+    });
+
     it('returns a recipe with the expected harnessId and bootstrapDir', async () => {
       const harness = createOpenCode();
       expect(harness.getBootstrap).toBeDefined();

@@ -167,7 +167,6 @@ export function createCline(
     supportsBuiltinToolFiltering: true,
     lifecycleStateSchema: clineResumeStateSchema,
     doStart: async startOpts => {
-      const modelId = startOpts.model ?? settings.modelId;
       const authEnv = resolveClineEnv({ auth: settings.auth });
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const resumeData = lifecycleState?.data as
@@ -184,7 +183,7 @@ export function createCline(
             isHarnessAuthenticationEnvironment(settings.auth),
           ...(settings.mcpServers ? { mcpServers: settings.mcpServers } : {}),
           ...(settings.providerId ? { providerId: settings.providerId } : {}),
-          ...(modelId == null ? {} : { modelId }),
+          ...(settings.modelId == null ? {} : { modelId: settings.modelId }),
           ...(settings.apiKey ? { apiKey: settings.apiKey } : {}),
           ...(settings.baseUrl ? { baseUrl: settings.baseUrl } : {}),
           ...(settings.headers ? { headers: settings.headers } : {}),

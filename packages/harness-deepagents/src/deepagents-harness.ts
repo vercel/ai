@@ -1,4 +1,3 @@
-import { randomBytes } from 'node:crypto';
 import { posix } from 'node:path';
 import {
   commonTool,
@@ -21,6 +20,7 @@ import {
 } from '@ai-sdk/harness';
 import {
   applyCredentialForwarding,
+  createBridgeToken,
   createSandboxCredentialEnvironment,
   markBridgeStarting,
   createBridgeErrorHandler,
@@ -34,6 +34,7 @@ import {
   shellQuote,
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
+  withBridgeToken,
   writeSkills as writeHarnessSkills,
   type WriteSkillsResult,
 } from '@ai-sdk/harness/utils';
@@ -222,7 +223,6 @@ export function createDeepAgents(
     lifecycleStateSchema: deepAgentsResumeStateSchema,
     getBootstrap: getDeepAgentsBootstrap,
     doStart: async startOpts => {
-      const model = startOpts.model ?? settings.model;
       const permissionMode = startOpts.permissionMode;
       const sandboxSession = startOpts.sandboxSession;
       const toolSafeSandboxSession =
@@ -355,7 +355,7 @@ export function createDeepAgents(
             sessionId: startOpts.sessionId,
             channel: attachChannel,
             proc: undefined,
-            model,
+            model: settings.model,
             thinking: settings.thinking,
             effort: settings.effort,
             bridgePort: coords.port,
@@ -382,7 +382,7 @@ export function createDeepAgents(
       });
       const token =
         settings.mintBridgeToken == null
-          ? randomBytes(32).toString('hex')
+          ? createBridgeToken()
           : settings.mintBridgeToken(sandboxId!);
 
       const forwardedAuthEnvironment = credentialsBrokered
@@ -470,7 +470,7 @@ export function createDeepAgents(
         sessionId: startOpts.sessionId,
         channel,
         proc,
-        model,
+        model: settings.model,
         thinking: settings.thinking,
         effort: settings.effort,
         bridgePort: boundPort,
@@ -604,18 +604,6 @@ function openWebSocket({
     ws.once('open', onOpen);
     ws.once('error', onError);
   });
-}
-
-function withBridgeToken({
-  endpoint,
-  token,
-}: {
-  endpoint: HarnessV1PortEndpoint;
-  token: string;
-}): HarnessV1PortEndpoint {
-  const bridgeUrl = new URL(endpoint.url);
-  bridgeUrl.searchParams.set('agent_bridge_token', token);
-  return { ...endpoint, url: bridgeUrl.toString() };
 }
 
 function createSession({
@@ -785,7 +773,6 @@ function createSession({
   return {
     sessionId,
     isResume,
-    modelId: model,
     doPromptTurn: async promptOpts => {
       if (
         promptOpts.responseFormat?.type === 'json' &&
@@ -822,7 +809,9 @@ function createSession({
         ...(promptOpts.responseFormat == null
           ? {}
           : { responseFormat: promptOpts.responseFormat }),
-        ...(model ? { model } : {}),
+        ...((promptOpts.model ?? model)
+          ? { model: promptOpts.model ?? model }
+          : {}),
         ...(thinking ? { thinking } : {}),
         ...(effort ? { effort } : {}),
         ...(skillsPaths?.length ? { skillsPaths } : {}),

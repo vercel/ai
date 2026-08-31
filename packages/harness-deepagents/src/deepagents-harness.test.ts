@@ -5,6 +5,7 @@ import type {
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import type * as NodeFsPromises from 'node:fs/promises';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { resolveBridgeAssetUrl } from './deepagents-bootstrap';
 import { createDeepAgents } from './deepagents-harness';
 
 // Captures the wireTurn `onClose` handler so tests can fire a close with a chosen reason.
@@ -195,6 +196,27 @@ describe('createDeepAgents', () => {
     expect(harness.supportsBuiltinToolFiltering).toBeUndefined();
   });
 
+  it('resolves bridge assets from source and bundled module layouts', () => {
+    const sourceModuleUrl = new URL(
+      './deepagents-bootstrap.ts',
+      import.meta.url,
+    );
+    const bundledModuleUrl = new URL('../dist/index.js', import.meta.url);
+
+    expect(
+      resolveBridgeAssetUrl({
+        name: 'package.json',
+        moduleUrl: sourceModuleUrl,
+      }),
+    ).toEqual(new URL('./bridge/package.json', import.meta.url));
+    expect(
+      resolveBridgeAssetUrl({
+        name: 'package.json',
+        moduleUrl: bundledModuleUrl,
+      }),
+    ).toEqual(new URL('../dist/bridge/package.json', import.meta.url));
+  });
+
   it('ships the node bridge files and a pnpm install command in its bootstrap', async () => {
     const harness = createDeepAgents();
     const bootstrap = await harness.getBootstrap!();
@@ -237,7 +259,6 @@ describe('createDeepAgents', () => {
     const spawns: string[] = [];
     const harness = createDeepAgents({ model: 'legacy-model' });
     const session = await harness.doStart({
-      model: 'agent-model',
       sessionId: 'test-session',
       sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
       sandboxSession: fakeSandboxSession({ spawnEnvs, spawns }),
@@ -253,7 +274,18 @@ describe('createDeepAgents', () => {
     expect(spawns.at(0)).toContain(
       "--bootstrap-dir '/vercel/sandbox/.harness-bootstrap/deepagents'",
     );
-    expect(session.modelId).toBe('agent-model');
+    const control = await session.doPromptTurn({
+      model: 'agent-model',
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+    expect(sentMessages.at(-1)).toMatchObject({
+      type: 'start',
+      model: 'agent-model',
+    });
 
     await session.doDestroy();
   });

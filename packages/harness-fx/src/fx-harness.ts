@@ -589,9 +589,10 @@ export function createFx(
     },
     executable: 'fx',
     args: ['acp'],
-    resolveModel: ({ model }) => ({
-      args: ['acp', '--model', model],
-    }),
+    modelMapping: {
+      type: 'session-config-option',
+      path: 'model',
+    },
     credentialEnv: ['VERCEL_OIDC_TOKEN', 'AI_GATEWAY_API_KEY'],
     credentialBrokering: ({ env, sandboxEnv }) => {
       const environmentVariableName = suppliedAuthenticationEnvironment

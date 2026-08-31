@@ -118,7 +118,7 @@ function getAnthropicStreamErrorMetadata(type: string): {
   }
 }
 
-function createCitationSource(
+export function createCitationSource(
   citation: Citation,
   citationDocuments: Array<{
     title: string;
@@ -133,7 +133,7 @@ function createCitationSource(
       sourceType: 'url' as const,
       id: generateId(),
       url: citation.url,
-      title: citation.title,
+      title: citation.title ?? undefined,
       providerMetadata: {
         anthropic: {
           citedText: citation.cited_text,
@@ -226,7 +226,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
   readonly modelId: AnthropicModelId;
 
   protected readonly config: AnthropicLanguageModelConfig;
-  private readonly generateId: () => string;
+  protected readonly generateId: () => string;
 
   static [WORKFLOW_SERIALIZE](model: AnthropicLanguageModel) {
     return serializeModelOptions({
@@ -599,6 +599,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       }),
       ...(anthropicOptions?.speed && {
         speed: anthropicOptions.speed,
+      }),
+      ...(anthropicOptions?.serviceTier && {
+        service_tier: anthropicOptions.serviceTier,
       }),
       ...(anthropicOptions?.inferenceGeo && {
         inference_geo: anthropicOptions.inferenceGeo,
@@ -1104,6 +1107,14 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           });
           break;
         }
+        case 'container_upload': {
+          content.push({
+            type: 'custom',
+            kind: 'anthropic.container_upload',
+            providerMetadata: { anthropic: { fileId: part.file_id } },
+          });
+          break;
+        }
         case 'compaction': {
           content.push({
             type: 'text',
@@ -1301,7 +1312,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               toolName: toolNameMapping.toCustomToolName('web_search'),
               result: part.content.map(result => ({
                 url: result.url,
-                title: result.title,
+                ...(result.title != null ? { title: result.title } : {}),
                 pageAge: result.page_age ?? null,
                 encryptedContent: result.encrypted_content,
                 type: result.type,
@@ -1315,7 +1326,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 sourceType: 'url',
                 id: this.generateId(),
                 url: result.url,
-                title: result.title,
+                ...(result.title != null ? { title: result.title } : {}),
                 providerMetadata: {
                   anthropic: {
                     pageAge: result.page_age ?? null,
@@ -2011,7 +2022,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       toolName: toolNameMapping.toCustomToolName('web_search'),
                       result: part.content.map(result => ({
                         url: result.url,
-                        title: result.title,
+                        ...(result.title != null
+                          ? { title: result.title }
+                          : {}),
                         pageAge: result.page_age ?? null,
                         encryptedContent: result.encrypted_content,
                         type: result.type,
@@ -2025,7 +2038,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                         sourceType: 'url',
                         id: generateId(),
                         url: result.url,
-                        title: result.title,
+                        ...(result.title != null
+                          ? { title: result.title }
+                          : {}),
                         providerMetadata: {
                           anthropic: {
                             pageAge: result.page_age ?? null,
@@ -2921,7 +2936,7 @@ export function getModelCapabilities(modelId: string): {
   }
 }
 
-function hasWebTool20260209WithoutCodeExecution(
+export function hasWebTool20260209WithoutCodeExecution(
   tools: AnthropicTool[] | undefined,
 ): boolean {
   if (!tools) {
@@ -2938,7 +2953,12 @@ function hasWebTool20260209WithoutCodeExecution(
       hasWebTool20260209 = true;
       continue;
     }
-    if (tool.name === 'code_execution') {
+    if (
+      'type' in tool &&
+      (tool.type === 'code_execution_20250522' ||
+        tool.type === 'code_execution_20250825' ||
+        tool.type === 'code_execution_20260120')
+    ) {
       hasCodeExecutionTool = true;
       break;
     }

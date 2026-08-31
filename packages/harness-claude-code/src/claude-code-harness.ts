@@ -1,4 +1,3 @@
-import { randomBytes } from 'node:crypto';
 import { posix } from 'node:path';
 import {
   commonTool,
@@ -24,6 +23,7 @@ import {
   applyCredentialForwarding,
   classifyDiskLog,
   createSandboxCredentialEnvironment,
+  createBridgeToken,
   experimental_createBridgeUserMessageSubmitter,
   createBridgeErrorHandler,
   createBridgeStartupError,
@@ -37,6 +37,7 @@ import {
   shellQuote,
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
+  withBridgeToken,
   writeSkills as writeHarnessSkills,
 } from '@ai-sdk/harness/utils';
 import {
@@ -842,7 +843,6 @@ export function createClaudeCode(
     lifecycleStateSchema: claudeCodeResumeStateSchema,
     getBootstrap: getClaudeCodeBootstrap,
     doStart: async startOpts => {
-      const model = startOpts.model ?? settings.model;
       const sandboxSession = startOpts.sandboxSession;
       const toolSafeSandboxSession =
         getRestrictedSandboxSession(sandboxSession);
@@ -1015,7 +1015,7 @@ export function createClaudeCode(
             // process handle. The session lifecycle method decides whether the
             // sandbox is left running, stopped, or destroyed.
             proc: undefined,
-            model,
+            model: settings.model,
             maxTurns: settings.maxTurns,
             env: sandboxClaudeEnvironment,
             thinking,
@@ -1070,7 +1070,7 @@ export function createClaudeCode(
       });
       const token =
         settings.mintBridgeToken == null
-          ? randomBytes(32).toString('hex')
+          ? createBridgeToken()
           : settings.mintBridgeToken(sandboxId!);
       const env = {
         BRIDGE_CHANNEL_TOKEN: token,
@@ -1166,7 +1166,7 @@ export function createClaudeCode(
         sessionId: startOpts.sessionId,
         channel,
         proc,
-        model,
+        model: settings.model,
         maxTurns: settings.maxTurns,
         env: sandboxClaudeEnvironment,
         thinking,
@@ -1469,18 +1469,6 @@ function webSocketMessageToString(raw: unknown): string {
   return String(raw);
 }
 
-function withBridgeToken({
-  endpoint,
-  token,
-}: {
-  endpoint: HarnessV1PortEndpoint;
-  token: string;
-}): HarnessV1PortEndpoint {
-  const bridgeUrl = new URL(endpoint.url);
-  bridgeUrl.searchParams.set('agent_bridge_token', token);
-  return { ...endpoint, url: bridgeUrl.toString() };
-}
-
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => {
     const timer = setTimeout(resolve, ms);
@@ -1622,6 +1610,9 @@ function createSession({
       'reasoning-start',
       'reasoning-delta',
       'reasoning-end',
+      'tool-input-start',
+      'tool-input-delta',
+      'tool-input-end',
       'tool-call',
       'tool-approval-request',
       'tool-result',
@@ -1725,7 +1716,6 @@ function createSession({
   return {
     sessionId,
     isResume,
-    modelId: model,
     doPromptTurn: async promptOpts => {
       if (
         promptOpts.responseFormat?.type === 'json' &&
@@ -1772,7 +1762,7 @@ function createSession({
         ...(promptOpts.instructions
           ? { instructions: promptOpts.instructions }
           : {}),
-        model,
+        model: promptOpts.model ?? model,
         maxTurns,
         ...(env !== undefined ? { env } : {}),
         thinking,
@@ -1855,7 +1845,7 @@ function createSession({
           ...(continueOpts.instructions
             ? { instructions: continueOpts.instructions }
             : {}),
-          model,
+          model: continueOpts.model ?? model,
           maxTurns,
           ...(env !== undefined ? { env } : {}),
           thinking,

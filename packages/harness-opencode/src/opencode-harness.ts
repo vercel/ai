@@ -1,4 +1,3 @@
-import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 import {
   commonTool,
@@ -24,6 +23,7 @@ import {
   applyCredentialForwarding,
   classifyDiskLog,
   createSandboxCredentialEnvironment,
+  createBridgeToken,
   experimental_createBridgeUserMessageSubmitter,
   createBridgeErrorHandler,
   createBridgeStartupError,
@@ -37,6 +37,7 @@ import {
   shellQuote,
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
+  withBridgeToken,
   writeSkills as writeHarnessSkills,
   type WriteSkillsResult,
 } from '@ai-sdk/harness/utils';
@@ -256,7 +257,7 @@ export function createOpenCode(
     lifecycleStateSchema: openCodeResumeStateSchema,
     getBootstrap: getOpenCodeBootstrap,
     doStart: async startOpts => {
-      const configuredModel = startOpts.model ?? settings.model;
+      const configuredModel = settings.model;
       const sandboxSession = startOpts.sandboxSession;
       const toolSafeSandboxSession =
         getRestrictedSandboxSession(sandboxSession);
@@ -446,7 +447,7 @@ export function createOpenCode(
       });
       const token =
         settings.mintBridgeToken == null
-          ? randomBytes(32).toString('hex')
+          ? createBridgeToken()
           : settings.mintBridgeToken(sandboxId!);
       const forwardedAuthEnvironment = credentialsBrokered
         ? sandboxAuthEnvironment
@@ -764,18 +765,6 @@ function webSocketMessageToString(raw: unknown): string {
   return String(raw);
 }
 
-function withBridgeToken({
-  endpoint,
-  token,
-}: {
-  endpoint: HarnessV1PortEndpoint;
-  token: string;
-}): HarnessV1PortEndpoint {
-  const bridgeUrl = new URL(endpoint.url);
-  bridgeUrl.searchParams.set('agent_bridge_token', token);
-  return { ...endpoint, url: bridgeUrl.toString() };
-}
-
 function createSession({
   sessionId,
   channel,
@@ -829,6 +818,7 @@ function createSession({
   let pendingResumeSessionId = seedResumeSessionOnFirstPrompt
     ? openCodeSessionId
     : undefined;
+  let selectedModel = model;
   let activeTurn = false;
   const pendingCompactionParts: HarnessV1StreamPart[] = [];
 
@@ -979,8 +969,8 @@ function createSession({
     };
   };
 
-  const startBase = () => ({
-    model,
+  const startBase = (turnModel: string | undefined) => ({
+    model: turnModel,
     provider,
     ...(reasoningVariant ? { variant: reasoningVariant } : {}),
     ...(openCodeConfig == null ? {} : { openCodeConfig }),
@@ -998,7 +988,6 @@ function createSession({
   return {
     sessionId,
     isResume,
-    modelId: model,
     doPromptTurn: async promptOpts => {
       if (
         promptOpts.responseFormat?.type === 'json' &&
@@ -1020,6 +1009,8 @@ function createSession({
         emit: promptOpts.emit,
         abortSignal: promptOpts.abortSignal,
       });
+      const turnModel = promptOpts.model ?? selectedModel;
+      if (turnModel) selectedModel = turnModel;
       channel.send({
         type: 'start',
         operation: 'prompt',
@@ -1036,7 +1027,7 @@ function createSession({
           ? { instructions: promptOpts.instructions }
           : {}),
         skillsChanged: skillWriteResult.changed,
-        ...startBase(),
+        ...startBase(turnModel),
       });
       pendingResumeSessionId = undefined;
       return control;
@@ -1063,6 +1054,8 @@ function createSession({
         abortSignal: continueOpts.abortSignal,
       });
       if (rerunContinue) {
+        const turnModel = continueOpts.model ?? selectedModel;
+        if (turnModel) selectedModel = turnModel;
         channel.send({
           type: 'start',
           operation: 'prompt',
@@ -1079,7 +1072,7 @@ function createSession({
             ? { instructions: continueOpts.instructions }
             : {}),
           skillsChanged: skillWriteResult.changed,
-          ...startBase(),
+          ...startBase(turnModel),
         });
         pendingResumeSessionId = undefined;
       }
@@ -1102,7 +1095,7 @@ function createSession({
       }
       await runCompactOperation({
         channel,
-        model,
+        model: selectedModel,
         provider,
         permissionMode,
         debug,

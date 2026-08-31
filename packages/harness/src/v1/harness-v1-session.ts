@@ -22,12 +22,6 @@ import type { HarnessV1BuiltinToolFiltering } from './harness-v1-tool-filtering'
  */
 export type HarnessV1StartOptions = {
   /**
-   * Model identifier selected by the consumer. Adapters interpret this value
-   * according to the underlying harness runtime.
-   */
-  readonly model?: string;
-
-  /**
    * Stable identifier for this harness session. Used as the underlying
    * resource name where the adapter has a notion of a named session
    * (sandbox name, native session id, …).
@@ -170,14 +164,6 @@ export type HarnessV1Session = {
    * sessions report `false`; resumed sessions report `true`.
    */
   readonly isResume: boolean;
-
-  /**
-   * The model id the underlying runtime is configured to use, if the adapter
-   * knows it (e.g. from its settings). Surfaced into telemetry as
-   * `gen_ai.request.model` and the trace span labels. Omitted when the adapter
-   * defers to the runtime's own default and has no concrete id.
-   */
-  readonly modelId?: string;
 
   /**
    * Run one prompt turn. Returns a control handle the host uses to feed

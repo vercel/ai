@@ -40,6 +40,7 @@ export {
   type WaitForBridgeReadyOptions,
   type WaitForBridgeReadyResult,
 } from './bridge-ready';
+export { createBridgeToken, withBridgeToken } from './bridge-token';
 export {
   createBridgeErrorHandler,
   createBridgeStartupError,

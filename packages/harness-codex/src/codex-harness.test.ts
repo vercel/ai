@@ -5,6 +5,7 @@ import {
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import type * as NodeFsPromises from 'node:fs/promises';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { resolveBridgeAssetUrl } from './codex-bootstrap';
 import { createCodex } from './codex-harness';
 
 const sentMessages: unknown[] = [];
@@ -380,14 +381,12 @@ describe('createCodex adapter', () => {
       'ai-sdk/harness-codex/0.0.0-test',
     );
     expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
-    expect(session.modelId).toBe('gpt-5.5');
     await session.doDestroy();
   });
 
-  it('prefers the HarnessAgent model over the deprecated adapter model', async () => {
+  it('prefers the per-turn model over the deprecated adapter model', async () => {
     const harness = createCodex({ model: 'legacy-model' });
     const session = await harness.doStart({
-      model: 'agent-model',
       sessionId: 's1',
       sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
         bridgePortUrl: 'ws://127.0.0.1:1',
@@ -397,8 +396,21 @@ describe('createCodex adapter', () => {
       }),
       sessionWorkDir: '/vercel/sandbox/codex-s1',
     });
+    const control = await session.doPromptTurn({
+      model: 'agent-model',
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
 
-    expect(session.modelId).toBe('agent-model');
+    await vi.waitFor(() => {
+      expect(sentMessages.at(-1)).toMatchObject({
+        type: 'start',
+        model: 'agent-model',
+      });
+    });
     await session.doDestroy();
   });
 
@@ -691,6 +703,24 @@ describe('createCodex adapter', () => {
   });
 
   describe('getBootstrap', () => {
+    it('resolves bridge assets from source and bundled module layouts', () => {
+      const sourceModuleUrl = new URL('./codex-bootstrap.ts', import.meta.url);
+      const bundledModuleUrl = new URL('../dist/index.js', import.meta.url);
+
+      expect(
+        resolveBridgeAssetUrl({
+          name: 'package.json',
+          moduleUrl: sourceModuleUrl,
+        }),
+      ).toEqual(new URL('./bridge/package.json', import.meta.url));
+      expect(
+        resolveBridgeAssetUrl({
+          name: 'package.json',
+          moduleUrl: bundledModuleUrl,
+        }),
+      ).toEqual(new URL('../dist/bridge/package.json', import.meta.url));
+    });
+
     it('returns a recipe with the expected harnessId and bootstrapDir', async () => {
       const harness = createCodex();
       expect(harness.getBootstrap).toBeDefined();

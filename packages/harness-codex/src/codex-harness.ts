@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import {
   commonTool,
@@ -22,6 +22,7 @@ import {
 import {
   applyCredentialForwarding,
   classifyDiskLog,
+  createBridgeToken,
   createSandboxCredentialEnvironment,
   createBridgeErrorHandler,
   createBridgeStartupError,
@@ -35,6 +36,7 @@ import {
   shellQuote,
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
+  withBridgeToken,
   writeSkills as writeHarnessSkills,
   type WriteSkillsResult,
 } from '@ai-sdk/harness/utils';
@@ -205,7 +207,7 @@ export function createCodex(
     lifecycleStateSchema: codexResumeStateSchema,
     getBootstrap: getCodexBootstrap,
     doStart: async startOpts => {
-      const model = startOpts.model ?? settings.model ?? DEFAULT_CODEX_MODEL;
+      const model = settings.model ?? DEFAULT_CODEX_MODEL;
       if (startOpts.builtinToolFiltering != null) {
         throw new HarnessCapabilityUnsupportedError({
           message:
@@ -434,7 +436,7 @@ export function createCodex(
       });
       const token =
         settings.mintBridgeToken == null
-          ? randomBytes(32).toString('hex')
+          ? createBridgeToken()
           : settings.mintBridgeToken(sandboxId!);
       const forwardedAuthEnvironment = credentialsBrokered
         ? sandboxAuthEnvironment
@@ -665,18 +667,6 @@ function openWebSocket({
     ws.once('open', onOpen);
     ws.once('error', onError);
   });
-}
-
-function withBridgeToken({
-  endpoint,
-  token,
-}: {
-  endpoint: HarnessV1PortEndpoint;
-  token: string;
-}): HarnessV1PortEndpoint {
-  const bridgeUrl = new URL(endpoint.url);
-  bridgeUrl.searchParams.set('agent_bridge_token', token);
-  return { ...endpoint, url: bridgeUrl.toString() };
 }
 
 function createSession({
@@ -958,7 +948,6 @@ function createSession({
   return {
     sessionId,
     isResume,
-    modelId: model,
     doPromptTurn: async promptOpts => {
       if (
         promptOpts.responseFormat?.type === 'json' &&
@@ -1011,7 +1000,7 @@ function createSession({
         ...(promptOpts.instructions
           ? { instructions: promptOpts.instructions }
           : {}),
-        model,
+        model: promptOpts.model ?? model,
         reasoningEffort,
         webSearch,
         ...(codexConfig == null ? {} : { codexConfig }),
@@ -1088,7 +1077,7 @@ function createSession({
             ...(continueOpts.instructions
               ? { instructions: continueOpts.instructions }
               : {}),
-            model,
+            model: continueOpts.model ?? model,
             reasoningEffort,
             webSearch,
             ...(codexConfig == null ? {} : { codexConfig }),

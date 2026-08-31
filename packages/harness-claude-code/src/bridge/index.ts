@@ -300,8 +300,18 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         tool.name,
         tool.description ?? '',
         shape,
-        async (input: Record<string, unknown>) => {
-          const toolCallId = randomUUID();
+        async (
+          ...handlerArgs: [
+            Record<string, unknown>,
+            { requestId: string | number; _meta?: Record<string, unknown> },
+          ]
+        ) => {
+          const [input, extra] = handlerArgs;
+          const metadataToolCallId = extra._meta?.['claudecode/toolUseId'];
+          const toolCallId =
+            typeof metadataToolCallId === 'string'
+              ? metadataToolCallId
+              : randomUUID();
           emit({
             type: 'tool-call',
             toolCallId,
