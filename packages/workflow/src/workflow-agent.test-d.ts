@@ -92,6 +92,24 @@ describe('WorkflowAgent types', () => {
     expectTypeOf(result.output).toEqualTypeOf<{ score: number }>();
   });
 
+  it('accepts constructor output with the original public generic arguments', async () => {
+    const options = {
+      model,
+      runtimeContext: { userId: 'user-123' },
+      output: Output.object({
+        schema: z.object({ answer: z.string() }),
+      }),
+    } satisfies WorkflowAgentOptions<Record<string, never>, { userId: string }>;
+
+    const agent: WorkflowAgent<
+      Record<string, never>,
+      { userId: string }
+    > = new WorkflowAgent<Record<string, never>, { userId: string }>(options);
+    const result = await agent.stream({ prompt: 'answer' });
+
+    expectTypeOf(result.output).toEqualTypeOf<never>();
+  });
+
   it('preserves tool and runtime context types in stop conditions', () => {
     const tools = {
       lookup: tool({

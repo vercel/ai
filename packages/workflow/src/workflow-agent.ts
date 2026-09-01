@@ -125,6 +125,8 @@ export interface OutputSpecification<OUTPUT, PARTIAL> {
   ): Promise<OUTPUT>;
 }
 
+type DefaultWorkflowAgentOutput<OUTPUT> = 0 extends 1 & OUTPUT ? never : OUTPUT;
+
 /**
  * Provider-specific options type. This is equivalent to SharedV4ProviderOptions from @ai-sdk/provider.
  */
@@ -452,8 +454,8 @@ export type PrepareCallCallback<
 export type WorkflowAgentOptions<
   TTools extends ToolSet = ToolSet,
   TRuntimeContext extends Context = Context,
-  OUTPUT = never,
-  PARTIAL_OUTPUT = never,
+  OUTPUT = any,
+  PARTIAL_OUTPUT = any,
 > = GenerationSettings &
   WorkflowAgentToolsContextParameter<TTools> & {
     /**
@@ -1320,8 +1322,8 @@ export interface WorkflowAgentStreamResult<
 export class WorkflowAgent<
   TBaseTools extends ToolSet = ToolSet,
   TRuntimeContext extends Context = Context,
-  OUTPUT = never,
-  PARTIAL_OUTPUT = never,
+  OUTPUT = any,
+  PARTIAL_OUTPUT = any,
 > {
   /**
    * The id of the agent.
@@ -1432,8 +1434,8 @@ export class WorkflowAgent<
 
   async stream<
     TTools extends TBaseTools = TBaseTools,
-    TOutput = OUTPUT,
-    TPartialOutput = PARTIAL_OUTPUT,
+    TOutput = DefaultWorkflowAgentOutput<OUTPUT>,
+    TPartialOutput = DefaultWorkflowAgentOutput<PARTIAL_OUTPUT>,
   >(
     options: WorkflowAgentStreamOptions<
       TTools,
