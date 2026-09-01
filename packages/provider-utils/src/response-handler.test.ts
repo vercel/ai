@@ -5,6 +5,7 @@ import { DEFAULT_MAX_DOWNLOAD_SIZE } from './read-response-with-size-limit';
 import {
   createJsonErrorResponseHandler,
   createBinaryResponseHandler,
+  createBinaryStreamResponseHandler,
   createEventSourceResponseHandler,
   createJsonLinesResponseHandler,
   createJsonResponseHandler,
@@ -295,6 +296,39 @@ describe('createBinaryResponseHandler', () => {
         response,
       }),
     ).rejects.toThrow('Response body is empty');
+  });
+});
+
+describe('createBinaryStreamResponseHandler', () => {
+  it('should pass the response body through as a stream', async () => {
+    const binaryData = new Uint8Array([1, 2, 3, 4]);
+    const response = new Response(binaryData);
+    const handler = createBinaryStreamResponseHandler();
+
+    const result = await handler({
+      url: 'test-url',
+      requestBodyValues: {},
+      response,
+    });
+
+    expect(result.value).toBeInstanceOf(ReadableStream);
+    const collected = new Uint8Array(
+      await new Response(result.value).arrayBuffer(),
+    );
+    expect(collected).toEqual(binaryData);
+  });
+
+  it('should throw EmptyResponseBodyError when response body is null', async () => {
+    const response = new Response(null);
+    const handler = createBinaryStreamResponseHandler();
+
+    await expect(
+      handler({
+        url: 'test-url',
+        requestBodyValues: {},
+        response,
+      }),
+    ).rejects.toThrow('Empty response body');
   });
 });
 
