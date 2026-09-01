@@ -20,18 +20,17 @@ async function main() {
           'Sunlight contains many colors, which interact differently with the atmosphere.',
       },
       {
+        role: 'user',
+        content: 'What is Rayleigh scattering?',
+      },
+      {
         role: 'system',
         content: 'For this turn only, answer in one short sentence.',
         providerOptions: {
           anthropic: {
             clearAt: 'next_user_message',
-            effort: 'low',
           } satisfies AnthropicSystemMessageProviderOptions,
         },
-      },
-      {
-        role: 'user',
-        content: 'What is Rayleigh scattering?',
       },
     ],
   });

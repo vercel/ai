@@ -590,6 +590,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       betas.add('effort-2025-11-24');
     }
 
+    if (thinkingDisplay === 'updates') {
+      betas.add('thinking-display-updates-2026-08-18');
+    }
+
     if (thinkingBlockBinding != null) {
       betas.add('thinking-binding-controls-2026-08-01');
     }
