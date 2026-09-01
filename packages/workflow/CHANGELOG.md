@@ -1,5 +1,11 @@
 # @ai-sdk/workflow
 
+## 2.0.20
+
+### Patch Changes
+
+- 85d2081: fix(workflow): preserve configured tool and runtime context types in stop conditions
+
 ## 2.0.19
 
 ### Patch Changes
