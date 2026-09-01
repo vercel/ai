@@ -515,6 +515,8 @@ export type WorkflowAgentOptions<
      * any of the conditions can be met to stop the generation.
      *
      * Per-stream `stopWhen` values passed to `stream()` override this default.
+     * To preserve the previous unlimited behavior when upgrading, explicitly
+     * set `stopWhen: isLoopFinished()`.
      *
      * @default isStepCount(20)
      */
@@ -941,6 +943,8 @@ export type WorkflowAgentStreamOptions<
     /**
      * Condition for stopping the generation when there are tool results in the last step.
      * When the condition is an array, any of the conditions can be met to stop the generation.
+     * To preserve the previous unlimited behavior when upgrading, explicitly
+     * set `stopWhen: isLoopFinished()`.
      *
      * @default isStepCount(20)
      */
@@ -2169,14 +2173,9 @@ export class WorkflowAgent<
       prompt: modelPrompt,
       initialInstructions: effectiveInstructions,
       initialMessages: prompt.messages,
-<<<<<<< HEAD
-      stopConditions: effectiveStopWhen,
-=======
-      stopConditions: effectiveStopWhenFromPrepare as
+      stopConditions: effectiveStopWhen as
         | ModelStopCondition
-        | ModelStopCondition[]
-        | undefined,
->>>>>>> origin/main
+        | ModelStopCondition[],
       onStepEnd: mergedOnStepEnd as any,
       onStepStart: mergedOnStepStart as any,
       prepareStep: (options.prepareStep ??
