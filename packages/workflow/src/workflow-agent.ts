@@ -1946,7 +1946,7 @@ export class WorkflowAgent<
     // Filter tools if activeTools is specified (stream-level overrides constructor default)
     const effectiveActiveTools = effectiveActiveToolsFromPrepare;
     const effectiveTools =
-      effectiveActiveTools && effectiveActiveTools.length > 0
+      effectiveActiveTools !== undefined
         ? (filterActiveTools({
             tools: this.tools,
             activeTools: effectiveActiveTools,

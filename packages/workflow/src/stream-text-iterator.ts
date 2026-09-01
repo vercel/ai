@@ -297,7 +297,7 @@ export async function* streamTextIterator({
     try {
       // Filter tools if activeTools is specified
       const effectiveTools =
-        currentActiveTools && currentActiveTools.length > 0
+        currentActiveTools !== undefined
           ? (filterActiveTools({
               tools,
               activeTools: currentActiveTools,
