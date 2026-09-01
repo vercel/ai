@@ -2,11 +2,14 @@ import {
   InvalidArgumentError,
   InvalidResponseDataError,
   UnsupportedFunctionalityError,
-  type Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
+  type Experimental_BatchV4 as BatchV4,
   type Experimental_BatchV4ItemResult as BatchV4ItemResult,
   type Experimental_BatchV4OperationOptions as BatchV4OperationOptions,
   type Experimental_BatchV4StartResult as BatchV4StartResult,
   type Experimental_BatchV4Status as BatchV4Status,
+  type Experimental_LanguageModelV4BatchRequest as LanguageModelV4BatchRequest,
+  type Experimental_TextBatchV4ItemResult as TextBatchV4ItemResult,
+  type Experimental_TextBatchV4StartOptions as TextBatchV4StartOptions,
   type JSONObject,
   type LanguageModelV4GenerateResult,
   type SharedV4ProviderMetadata,
@@ -16,6 +19,7 @@ import {
   convertAsyncIteratorToReadableStream,
   createJsonLinesResponseHandler,
   createJsonResponseHandler,
+  generateId,
   getFromApi,
   isRecord,
   lazySchema,
@@ -25,8 +29,6 @@ import {
   postJsonToApi,
   resolve,
   safeValidateTypes,
-  WORKFLOW_DESERIALIZE,
-  WORKFLOW_SERIALIZE,
   zodSchema,
   type InferSchema,
 } from '@ai-sdk/provider-utils';
@@ -60,9 +62,7 @@ const anthropicBatchProviderOptionsSchema = anthropicLanguageModelOptions.pick({
   anthropicBeta: true,
 });
 
-type AnthropicBatchRequest = Parameters<
-  BatchLanguageModelV4['experimental_doStartBatch']
->[0]['requests'][number];
+type AnthropicBatchRequest = LanguageModelV4BatchRequest<AnthropicModelId>;
 
 const anthropicBatchResponseSchema = lazySchema(() =>
   zodSchema(
@@ -148,26 +148,24 @@ type AnthropicBatchResultLine = InferSchema<
 
 type AnthropicResponse = InferSchema<typeof anthropicResponseSchema>;
 
-export class AnthropicMessagesBatchLanguageModel
-  extends AnthropicLanguageModel
-  implements BatchLanguageModelV4
-{
-  static [WORKFLOW_SERIALIZE](model: AnthropicMessagesBatchLanguageModel) {
-    return AnthropicLanguageModel[WORKFLOW_SERIALIZE](model);
-  }
+export class AnthropicBatch implements BatchV4<{
+  readonly text: AnthropicModelId;
+}> {
+  readonly specificationVersion = 'v4' as const;
+  readonly provider: string;
+  readonly supportedUrls: Record<string, RegExp[]>;
+  private readonly generateId: () => string;
 
-  static [WORKFLOW_DESERIALIZE](options: {
-    modelId: AnthropicModelId;
-    config: AnthropicLanguageModelConfig;
-  }) {
-    return new AnthropicMessagesBatchLanguageModel(
-      options.modelId,
-      options.config,
-    );
-  }
-
-  constructor(modelId: AnthropicModelId, config: AnthropicLanguageModelConfig) {
-    super(modelId, config);
+  constructor(
+    private readonly options: {
+      provider: string;
+      config: AnthropicLanguageModelConfig;
+      supportedUrls: Record<string, RegExp[]>;
+    },
+  ) {
+    this.provider = options.provider;
+    this.supportedUrls = options.supportedUrls;
+    this.generateId = options.config.generateId ?? generateId;
   }
 
   async experimental_doStartBatch({
@@ -176,14 +174,12 @@ export class AnthropicMessagesBatchLanguageModel
     headers,
     abortSignal,
     webhookUrl,
-  }: Parameters<
-    BatchLanguageModelV4['experimental_doStartBatch']
-  >[0]): Promise<BatchV4StartResult> {
+  }: TextBatchV4StartOptions<AnthropicModelId>): Promise<BatchV4StartResult> {
     validateRequestIds(requests);
 
     const explicitBatchBetas = new Set(
       await getAnthropicBatchProviderBetas({
-        provider: this.config.provider,
+        provider: this.options.config.provider,
         providerOptions,
       }),
     );
@@ -208,7 +204,7 @@ export class AnthropicMessagesBatchLanguageModel
 
     for (const request of requests) {
       const requestBetas = await getAnthropicBatchProviderBetas({
-        provider: this.config.provider,
+        provider: this.options.config.provider,
         providerOptions: request.options.providerOptions,
       });
       if (requestBetas.length > 0) {
@@ -221,10 +217,14 @@ export class AnthropicMessagesBatchLanguageModel
         });
       }
 
-      const prepared = await this.getArgs({
-        ...request.options,
-        stream: false,
-        userSuppliedBetas: new Set(explicitBatchBetas),
+      const prepared = await AnthropicLanguageModel.prepareRequest({
+        modelId: request.modelId,
+        config: this.options.config,
+        options: {
+          ...request.options,
+          stream: false,
+          userSuppliedBetas: new Set(explicitBatchBetas),
+        },
       });
       if (prepared.usesJsonResponseTool) {
         throw new UnsupportedFunctionalityError({
@@ -249,7 +249,11 @@ export class AnthropicMessagesBatchLanguageModel
             `(request "${request.id}"). Use the provider's canonical tool name.`,
         });
       }
-      const body = this.transformRequestBody(prepared.args, prepared.betas);
+      const body =
+        this.options.config.transformRequestBody?.(
+          prepared.args,
+          prepared.betas,
+        ) ?? prepared.args;
       validateAnthropicBatchBody({
         body,
         requestId: request.id,
@@ -273,7 +277,7 @@ export class AnthropicMessagesBatchLanguageModel
         anthropicBatchResponseSchema,
       ),
       abortSignal,
-      fetch: this.config.fetch,
+      fetch: this.options.config.fetch,
     });
 
     return {
@@ -291,7 +295,7 @@ export class AnthropicMessagesBatchLanguageModel
 
   async experimental_doGetBatchResults(
     options: BatchV4OperationOptions,
-  ): Promise<ReadableStream<BatchV4ItemResult<LanguageModelV4GenerateResult>>> {
+  ): Promise<ReadableStream<BatchV4ItemResult>> {
     const batch = await this.retrieveBatch(options);
 
     if (convertAnthropicBatchStatus(batch).status === 'pending') {
@@ -318,15 +322,15 @@ export class AnthropicMessagesBatchLanguageModel
     const { value: lines } = await getFromApi({
       url: batch.results_url,
       validateUrl: true,
-      credentialedOrigin: this.config.baseURL,
-      trustedOrigin: this.config.baseURL,
+      credentialedOrigin: this.options.config.baseURL,
+      trustedOrigin: this.options.config.baseURL,
       headers: await this.getBatchHeaders(options.headers),
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonLinesResponseHandler(
         anthropicBatchResultLineSchema,
       ),
       abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
+      fetch: this.options.config.fetch,
     });
 
     return convertAsyncIteratorToReadableStream(
@@ -346,7 +350,7 @@ export class AnthropicMessagesBatchLanguageModel
         anthropicBatchResponseSchema,
       ),
       abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
+      fetch: this.options.config.fetch,
     });
 
     return batch;
@@ -354,14 +358,14 @@ export class AnthropicMessagesBatchLanguageModel
 
   private async *iterateBatchResults(
     lines: AsyncIterable<AnthropicBatchResultLine>,
-  ): AsyncGenerator<BatchV4ItemResult<LanguageModelV4GenerateResult>> {
+  ): AsyncGenerator<BatchV4ItemResult> {
     for await (const line of lines) {
       yield await convertAnthropicBatchResult(line, this.generateId);
     }
   }
 
   private getBatchUrl(path: string) {
-    return `${this.config.baseURL}/messages/batches${path}`;
+    return `${this.options.config.baseURL}/messages/batches${path}`;
   }
 
   private async getStartBatchHeaders({
@@ -384,7 +388,9 @@ export class AnthropicMessagesBatchLanguageModel
     headers: Record<string, string | undefined> | undefined,
   ) {
     return combineHeaders(
-      this.config.headers ? await resolve(this.config.headers) : undefined,
+      this.options.config.headers
+        ? await resolve(this.options.config.headers)
+        : undefined,
       headers,
     );
   }
@@ -533,7 +539,7 @@ function convertAnthropicRequestCounts(
 async function convertAnthropicBatchResult(
   line: AnthropicBatchResultLine,
   generateId: () => string,
-): Promise<BatchV4ItemResult<LanguageModelV4GenerateResult>> {
+): Promise<TextBatchV4ItemResult> {
   const resultValidation = await safeValidateTypes({
     value: line.result,
     schema: anthropicBatchResultSchema,
@@ -547,12 +553,13 @@ async function convertAnthropicBatchResult(
 
   switch (result.type) {
     case 'canceled':
-      return { id: line.custom_id, status: 'cancelled' };
+      return { type: 'text', id: line.custom_id, status: 'cancelled' };
     case 'expired':
-      return { id: line.custom_id, status: 'expired' };
+      return { type: 'text', id: line.custom_id, status: 'expired' };
     case 'errored': {
       const requestId = result.error.request_id;
       return {
+        type: 'text',
         id: line.custom_id,
         status: 'failed',
         error: {
@@ -576,6 +583,7 @@ async function convertAnthropicBatchResult(
       }
 
       return {
+        type: 'text',
         id: line.custom_id,
         status: 'succeeded',
         result: convertAnthropicBatchResponse(response, generateId),
@@ -584,10 +592,9 @@ async function convertAnthropicBatchResult(
   }
 }
 
-function invalidAnthropicBatchResult(
-  id: string,
-): BatchV4ItemResult<LanguageModelV4GenerateResult> {
+function invalidAnthropicBatchResult(id: string): TextBatchV4ItemResult {
   return {
+    type: 'text',
     id,
     status: 'failed',
     error: {

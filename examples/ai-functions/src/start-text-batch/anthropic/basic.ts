@@ -38,7 +38,7 @@ run(async () => {
       break;
     }
 
-    await setTimeout(60_000);
+    await setTimeout(10_000);
   }
 
   for await (const item of getBatchResults({ provider, batch })) {
