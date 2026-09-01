@@ -5,6 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
+  shell-quote: 1.10.0
   tinyexec: 1.0.2
   oxlint: 1.56.0
   tar: 7.5.19
@@ -3967,8 +3968,8 @@ importers:
         specifier: workspace:*
         version: link:../ai
       jsondiffpatch:
-        specifier: 0.7.3
-        version: 0.7.3
+        specifier: 0.7.6
+        version: 0.7.6
     devDependencies:
       '@testing-library/jest-dom':
         specifier: ^6.9.1
@@ -19131,8 +19132,8 @@ packages:
   jsonc-parser@3.3.1:
     resolution: {integrity: sha512-HUgH65KyejrUFPvHFPbqOY0rsFip3Bo5wb4ngvdi1EpCYWUQDC5V+Y7mZws+DLkr4M//zQJoanu1SP+87Dv1oQ==}
 
-  jsondiffpatch@0.7.3:
-    resolution: {integrity: sha512-zd4dqFiXSYyant2WgSXAZ9+yYqilNVvragVNkNRn2IFZKgjyULNrKRznqN4Zon0MkLueCg+3QaPVCnDAVP20OQ==}
+  jsondiffpatch@0.7.6:
+    resolution: {integrity: sha512-zE9+AXFq+MkTolDor2Cw1nJzLC0aleqPkYf52Kb4Kn4mJcka/gFHpGI2JBVEJCfWOvBl0OoxZS+wuLdislQcqg==}
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
 
@@ -22532,10 +22533,6 @@ packages:
 
   shell-quote@1.10.0:
     resolution: {integrity: sha512-w1aiOKwKuRgtwAReIIj89puqg+I7GvX4IbLrvmhXbzQsj1+Zwi4VO3+fa6ZF91TWSjIxoEkKnMeHcLEODK5ZXA==}
-    engines: {node: '>= 0.4'}
-
-  shell-quote@1.8.3:
-    resolution: {integrity: sha512-ObmnIF4hXNg1BqhnHmgbDETF8dLPCggZWBjkQfhZpbszZnYur5DUljTcCHii5LC3J5E0yeO/1LIMyH+UvHQgyw==}
     engines: {node: '>= 0.4'}
 
   shiki@3.23.0:
@@ -40139,7 +40136,7 @@ snapshots:
     dependencies:
       chalk: 4.1.2
       rxjs: 7.8.2
-      shell-quote: 1.8.3
+      shell-quote: 1.10.0
       supports-color: 8.1.1
       tree-kill: 1.2.2
       yargs: 17.7.2
@@ -44086,7 +44083,7 @@ snapshots:
 
   jsonc-parser@3.3.1: {}
 
-  jsondiffpatch@0.7.3:
+  jsondiffpatch@0.7.6:
     dependencies:
       '@dmsnell/diff-match-patch': 1.1.0
 
@@ -46210,7 +46207,7 @@ snapshots:
       picomatch: 4.0.5
       pidtree: 0.6.0
       read-package-json-fast: 4.0.0
-      shell-quote: 1.8.3
+      shell-quote: 1.10.0
       which: 5.0.0
 
   npm-run-path@4.0.1:
@@ -49232,8 +49229,6 @@ snapshots:
   shebang-regex@3.0.0: {}
 
   shell-quote@1.10.0: {}
-
-  shell-quote@1.8.3: {}
 
   shiki@3.23.0:
     dependencies:

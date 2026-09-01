@@ -18,7 +18,7 @@ import {
   jsonSchema,
   type Tool,
 } from '@ai-sdk/provider-utils';
-import { tool, type ToolSet } from 'ai';
+import { dynamicTool, tool, type ToolSet } from 'ai';
 import Ajv from 'ajv';
 
 /**
@@ -35,11 +35,15 @@ export type SerializableToolDef = {
   inputExamples?: Array<{ input: unknown }>;
   /** Provider-specific options attached to the tool definition. */
   providerOptions?: Tool['providerOptions'];
+<<<<<<< HEAD
   /** Input lifecycle callbacks that must be invoked outside the step. */
   hasOnInputStart?: boolean;
   hasOnInputDelta?: boolean;
   hasOnInputAvailable?: boolean;
   /** Present on dynamic and provider tools. */
+=======
+  /** Present on provider tools (e.g. anthropic.tools.webSearch). */
+>>>>>>> origin/main
   type?: 'dynamic' | 'provider';
   /** Provider tool is executed by the provider. */
   isProviderExecuted?: boolean;
@@ -86,6 +90,7 @@ export function serializeToolSet<TOOLS extends ToolSet>(
       if (t.type === 'dynamic') {
         def.type = 'dynamic';
       }
+<<<<<<< HEAD
       if (t.onInputStart != null) {
         def.hasOnInputStart = true;
       }
@@ -95,6 +100,8 @@ export function serializeToolSet<TOOLS extends ToolSet>(
       if (t.onInputAvailable != null) {
         def.hasOnInputAvailable = true;
       }
+=======
+>>>>>>> origin/main
 
       // Preserve provider tool identity so the Gateway can recognize
       // them as provider-executed tools (e.g. anthropic webSearch).
@@ -171,6 +178,30 @@ export function resolveSerializableTools(
                 ...providerTool,
                 isProviderExecuted: false,
               }),
+        ];
+      }
+
+      if (t.type === 'dynamic') {
+        const validateFn = ajv.compile(t.inputSchema);
+
+        return [
+          name,
+          dynamicTool({
+            description: t.description,
+            inputExamples: t.inputExamples,
+            providerOptions: t.providerOptions,
+            inputSchema: jsonSchema(t.inputSchema, {
+              validate: value => {
+                if (validateFn(value)) {
+                  return { success: true, value };
+                }
+                return {
+                  success: false,
+                  error: new Error(ajv.errorsText(validateFn.errors)),
+                };
+              },
+            }),
+          }),
         ];
       }
 

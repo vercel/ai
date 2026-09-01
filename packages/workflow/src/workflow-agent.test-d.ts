@@ -10,6 +10,7 @@ import {
 } from 'ai';
 import type { ModelCallStreamPart } from './do-stream-step.js';
 import {
+  Output,
   WorkflowAgent,
   type InferWorkflowAgentUIMessage,
   type WorkflowAgentOptions,
@@ -58,6 +59,55 @@ describe('WorkflowAgent types', () => {
         expectTypeOf(runtimeContext).toMatchObjectType<{ userId: string }>();
       },
     });
+  });
+
+  it('infers constructor output in stream results', async () => {
+    const agent = new WorkflowAgent({
+      model,
+      output: Output.object({
+        schema: z.object({ answer: z.string() }),
+      }),
+    });
+
+    const result = await agent.stream({ prompt: 'answer' });
+
+    expectTypeOf(result.output).toEqualTypeOf<{ answer: string }>();
+  });
+
+  it('infers stream output when overriding constructor output', async () => {
+    const agent = new WorkflowAgent({
+      model,
+      output: Output.object({
+        schema: z.object({ answer: z.string() }),
+      }),
+    });
+
+    const result = await agent.stream({
+      prompt: 'rate the answer',
+      output: Output.object({
+        schema: z.object({ score: z.number() }),
+      }),
+    });
+
+    expectTypeOf(result.output).toEqualTypeOf<{ score: number }>();
+  });
+
+  it('accepts constructor output with the original public generic arguments', async () => {
+    const options = {
+      model,
+      runtimeContext: { userId: 'user-123' },
+      output: Output.object({
+        schema: z.object({ answer: z.string() }),
+      }),
+    } satisfies WorkflowAgentOptions<Record<string, never>, { userId: string }>;
+
+    const agent: WorkflowAgent<
+      Record<string, never>,
+      { userId: string }
+    > = new WorkflowAgent<Record<string, never>, { userId: string }>(options);
+    const result = await agent.stream({ prompt: 'answer' });
+
+    expectTypeOf(result.output).toEqualTypeOf<never>();
   });
 
   it('preserves tool and runtime context types in stop conditions', () => {

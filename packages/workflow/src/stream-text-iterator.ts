@@ -644,10 +644,10 @@ function normalizeStepForTelemetry(step: StepResult<any, any>) {
 /**
  * Reconstruct a full `StepResult` from the minimal aggregates returned by
  * `doStreamStep`. Runs outside the step boundary so StepResult's redundant
- * fields (duplicate tool-call lists, `text`, `files`, `sources`,
- * `reasoningText`, and the always-empty `*ToolResults` arrays) and the
- * per-chunk snapshot don't cross it. The shape matches what the AI SDK's
- * `streamText` exposes to callers.
+ * fields (duplicate tool-call lists, `text`, `files`, `sources`, and
+ * `reasoningText`) and the per-chunk snapshot don't cross it. Tool-result
+ * arrays are initialized here and populated after execution. The shape matches
+ * what the AI SDK's `streamText` exposes to callers.
  */
 function buildStepResult(
   raw: DoStreamStepRawResult,
@@ -686,6 +686,7 @@ function buildStepResult(
                   ? { toolMetadata: tc.toolMetadata }
                   : {}),
                 ...(tc.dynamic ? { dynamic: true as const } : {}),
+                ...(tc.providerExecuted ? { providerExecuted: true } : {}),
                 ...(tc.providerMetadata != null
                   ? { providerMetadata: tc.providerMetadata }
                   : {}),
@@ -763,7 +764,7 @@ function buildStepResult(
     files,
     sources,
     toolCalls: validToolCalls,
-    staticToolCalls: [],
+    staticToolCalls: validToolCalls.filter(tc => tc.dynamic !== true),
     dynamicToolCalls: validToolCalls.filter(tc => tc.dynamic),
     toolResults: [],
     staticToolResults: [],
