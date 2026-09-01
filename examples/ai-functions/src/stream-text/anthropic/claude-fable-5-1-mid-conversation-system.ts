@@ -18,19 +18,18 @@ run(async () => {
         content: 'First, inventory the public API and current test coverage.',
       },
       {
+        role: 'user',
+        content: 'Continue with the complete plan.',
+      },
+      {
         role: 'system',
         content:
           'For the next turn only, inspect edge cases with xhigh effort.',
         providerOptions: {
           anthropic: {
             clearAt: 'next_user_message',
-            effort: 'xhigh',
           },
         },
-      },
-      {
-        role: 'user',
-        content: 'Continue with the complete plan.',
       },
     ],
   });
