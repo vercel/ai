@@ -1,5 +1,4 @@
 import type {
-  JSONValue,
   LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
   LanguageModelV4StreamPart,
@@ -7,7 +6,10 @@ import type {
   SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import {
+  getErrorMessage,
+  isAbortError,
   validateTypes,
+  withUserAgentSuffix,
   type Context,
   type HasRequiredKey,
   type InferToolSetContext,
@@ -18,28 +20,35 @@ import {
   type FinishReason,
   type LanguageModelResponseMetadata,
   type LanguageModelUsage,
-  type Experimental_LanguageModelStreamPart as ModelCallStreamPart,
   type ModelMessage,
   type StepResult,
   type StopCondition,
-  type GenerateTextOnStepFinishCallback,
+  type GenerateTextOnStepEndCallback,
   type ActiveTools,
   type ToolCallRepairFunction,
   type ToolChoice,
   type ToolSet,
+  type InferUITools,
   type UIMessage,
   type LanguageModel,
   type Prompt,
   type TelemetryOptions as CoreTelemetryOptions,
   type Instructions,
+  type Experimental_SandboxSession as SandboxSession,
+  InvalidToolApprovalSignatureError,
 } from 'ai';
 import {
   createRestrictedTelemetryDispatcher,
+  collectToolApprovals,
   convertToLanguageModelPrompt,
-  mergeAbortSignals,
   mergeCallbacks,
+  signToolApproval,
   standardizePrompt,
+  validateApprovedToolApprovals,
+  verifyToolApprovalSignature,
 } from 'ai/internal';
+import { createLanguageModelToolResultOutput } from './create-language-model-tool-result-output.js';
+import type { ModelCallStreamPart } from './do-stream-step.js';
 import { streamTextIterator } from './stream-text-iterator.js';
 
 // Re-export for consumers
@@ -47,13 +56,24 @@ export type { CompatibleLanguageModel } from './types.js';
 
 /**
  * Callback function to be called after each step completes.
- * Alias for the AI SDK's GenerateTextOnStepFinishCallback, using
+ * Alias for the AI SDK's GenerateTextOnStepEndCallback, using
  * WorkflowAgent-consistent naming.
+ */
+export type WorkflowAgentOnStepEndCallback<
+  TTools extends ToolSet = ToolSet,
+  TRuntimeContext extends Context = Context,
+> = GenerateTextOnStepEndCallback<TTools, TRuntimeContext>;
+
+/**
+ * Callback function to be called after each step completes.
+ * Deprecated alias for `WorkflowAgentOnStepEndCallback`.
+ *
+ * @deprecated Use `WorkflowAgentOnStepEndCallback` instead.
  */
 export type WorkflowAgentOnStepFinishCallback<
   TTools extends ToolSet = ToolSet,
   TRuntimeContext extends Context = Context,
-> = GenerateTextOnStepFinishCallback<TTools, TRuntimeContext>;
+> = WorkflowAgentOnStepEndCallback<TTools, TRuntimeContext>;
 
 /**
  * Infer the type of the tools of a workflow agent.
@@ -65,9 +85,13 @@ export type InferWorkflowAgentTools<WORKFLOW_AGENT> =
  * Infer the UI message type of a workflow agent.
  */
 export type InferWorkflowAgentUIMessage<
-  _WORKFLOW_AGENT,
+  WORKFLOW_AGENT,
   MESSAGE_METADATA = unknown,
-> = UIMessage<MESSAGE_METADATA>;
+> = UIMessage<
+  MESSAGE_METADATA,
+  never,
+  InferUITools<InferWorkflowAgentTools<WORKFLOW_AGENT>>
+>;
 
 /**
  * Re-export the Output helper for structured output specifications.
@@ -99,6 +123,17 @@ export interface OutputSpecification<OUTPUT, PARTIAL> {
  * Provider-specific options type. This is equivalent to SharedV4ProviderOptions from @ai-sdk/provider.
  */
 export type ProviderOptions = SharedV4ProviderOptions;
+
+/**
+ * Workflow-safe reference to the environment variable that contains the
+ * secret used to sign and verify tool approvals.
+ */
+export type WorkflowToolApprovalSecret = {
+  /**
+   * Name of an environment variable containing a high-entropy secret.
+   */
+  environmentVariable: string;
+};
 
 type WorkflowAgentToolsContextParameter<TTools extends ToolSet> =
   HasRequiredKey<InferToolSetContext<TTools>> extends true
@@ -196,8 +231,7 @@ export interface GenerationSettings {
   seed?: number;
 
   /**
-   * Maximum number of retries. Set to 0 to disable retries.
-   * Note: In workflow context, retries are typically handled by the workflow step mechanism.
+   * Maximum number of retries for retryable model call failures. Set to 0 to disable retries.
    * @default 2
    */
   maxRetries?: number;
@@ -212,6 +246,12 @@ export interface GenerationSettings {
    * Only applicable for HTTP-based providers.
    */
   headers?: Record<string, string | undefined>;
+
+  /**
+   * Reasoning effort level for the model. Controls how much reasoning
+   * the model performs before generating a response.
+   */
+  reasoning?: LanguageModelV4CallOptions['reasoning'];
 
   /**
    * Additional provider-specific options. They are passed through
@@ -233,6 +273,16 @@ export interface PrepareStepInfo<
    * The function should return a LanguageModelV4 instance.
    */
   model: LanguageModel;
+
+  /**
+   * The initial instructions passed to the stream.
+   */
+  initialInstructions: Instructions | undefined;
+
+  /**
+   * The initial messages passed to the stream.
+   */
+  initialMessages: Array<ModelMessage>;
 
   /**
    * The current step number (0-indexed).
@@ -264,6 +314,11 @@ export interface PrepareStepInfo<
    * `prepareStep` to update it for the current and subsequent steps.
    */
   toolsContext: InferToolSetContext<TTools>;
+
+  /**
+   * The sandbox environment that the step is operating in.
+   */
+  experimental_sandbox?: SandboxSession;
 }
 
 /**
@@ -312,6 +367,11 @@ export interface PrepareStepResult<
    * Returning a value replaces the agent's tools context.
    */
   toolsContext?: InferToolSetContext<TTools>;
+
+  /**
+   * Override the sandbox environment for this step.
+   */
+  experimental_sandbox?: SandboxSession;
 }
 
 /**
@@ -339,6 +399,11 @@ export interface PrepareCallOptions<
   tools: TTools;
   instructions?: Instructions;
   toolChoice?: ToolChoice<TTools>;
+  stopWhen?:
+    | StopCondition<NoInfer<ToolSet>, any>
+    | Array<StopCondition<NoInfer<ToolSet>, any>>;
+  activeTools?: ActiveTools<NoInfer<TTools>>;
+  experimental_download?: DownloadFunction;
   telemetry?: TelemetryOptions<TRuntimeContext, TTools>;
   /**
    * Runtime context that flows through the agent loop.
@@ -469,7 +534,16 @@ export type WorkflowAgentOptions<
     /**
      * Default function that attempts to repair a tool call that failed to parse.
      *
-     * Per-stream `experimental_repairToolCall` values passed to `stream()` override this default.
+     * Per-stream `repairToolCall` values passed to `stream()` override this default.
+     */
+    repairToolCall?: ToolCallRepairFunction<TTools>;
+
+    /**
+     * Default function that attempts to repair a tool call that failed to parse.
+     *
+     * Per-stream `repairToolCall` values passed to `stream()` override this default.
+     *
+     * @deprecated Use `repairToolCall` instead.
      */
     experimental_repairToolCall?: ToolCallRepairFunction<TTools>;
 
@@ -479,6 +553,26 @@ export type WorkflowAgentOptions<
      * Per-stream `experimental_download` values passed to `stream()` override this default.
      */
     experimental_download?: DownloadFunction;
+
+    /**
+     * Default sandbox environment passed through to tool execution as
+     * `experimental_sandbox`.
+     *
+     * Per-stream `experimental_sandbox` values passed to `stream()` override this default.
+     */
+    experimental_sandbox?: SandboxSession;
+
+    /**
+     * Workflow-safe reference to the environment variable containing the
+     * secret for HMAC-signing tool approval requests. When set, the agent signs
+     * each approval request and verifies the signature before executing an
+     * approved tool replayed from client-supplied message history.
+     *
+     * Only the environment variable name crosses workflow boundaries. The
+     * secret value is read inside signing and verification steps and is never
+     * serialized. Per-stream values override this default.
+     */
+    experimental_toolApprovalSecret?: WorkflowToolApprovalSecret;
 
     /**
      * Default callback function called before each step in the agent loop.
@@ -492,10 +586,24 @@ export type WorkflowAgentOptions<
     /**
      * Callback function to be called after each step completes.
      */
+    onStepEnd?: WorkflowAgentOnStepEndCallback<TTools, TRuntimeContext>;
+
+    /**
+     * Callback function to be called after each step completes.
+     *
+     * @deprecated Use `onStepEnd` instead.
+     */
     onStepFinish?: WorkflowAgentOnStepFinishCallback<TTools, TRuntimeContext>;
 
     /**
      * Callback that is called when the LLM response and all request tool executions are finished.
+     */
+    onEnd?: WorkflowAgentOnEndCallback<TTools, TRuntimeContext>;
+
+    /**
+     * Callback that is called when the LLM response and all request tool executions are finished.
+     *
+     * @deprecated Use `onEnd` instead.
      */
     onFinish?: WorkflowAgentOnFinishCallback<TTools, TRuntimeContext>;
 
@@ -531,12 +639,22 @@ export type WorkflowAgentOptions<
      * model, tools, instructions, or other settings based on runtime context.
      */
     prepareCall?: PrepareCallCallback<TTools, TRuntimeContext>;
+
+    /**
+     * Whether to allow system messages inside the `prompt` or `messages` fields.
+     * When `false` (the default), system messages in `prompt` or `messages` are
+     * rejected to prevent prompt-injection attacks. Set to `true` only when you
+     * intentionally interleave system messages with user messages.
+     *
+     * @default false
+     */
+    allowSystemInMessages?: boolean;
   };
 
 /**
  * Callback that is called when the LLM response and all request tool executions are finished.
  */
-export type WorkflowAgentOnFinishCallback<
+export type WorkflowAgentOnEndCallback<
   TTools extends ToolSet = ToolSet,
   TRuntimeContext extends Context = Context,
   OUTPUT = never,
@@ -564,6 +682,11 @@ export type WorkflowAgentOnFinishCallback<
   /**
    * The total token usage across all steps.
    */
+  readonly usage: LanguageModelUsage;
+
+  /**
+   * The total token usage across all steps.
+   */
   readonly totalUsage: LanguageModelUsage;
 
   /**
@@ -582,6 +705,17 @@ export type WorkflowAgentOnFinishCallback<
    */
   readonly output: OUTPUT;
 }) => PromiseLike<void> | void;
+
+/**
+ * Callback that is called when the LLM response and all request tool executions are finished.
+ *
+ * @deprecated Use `WorkflowAgentOnEndCallback` instead.
+ */
+export type WorkflowAgentOnFinishCallback<
+  TTools extends ToolSet = ToolSet,
+  TRuntimeContext extends Context = Context,
+  OUTPUT = never,
+> = WorkflowAgentOnEndCallback<TTools, TRuntimeContext, OUTPUT>;
 
 /**
  * Callback that is invoked when an error occurs during streaming.
@@ -748,7 +882,14 @@ export type WorkflowAgentStreamOptions<
       }
   ) & {
     /**
-     * Optional system prompt override. If provided, overrides the system prompt from the constructor.
+     * Instructions override for this stream call.
+     */
+    instructions?: Instructions;
+
+    /**
+     * Optional system prompt override.
+     *
+     * @deprecated Use `instructions` instead.
      */
     system?: string;
 
@@ -862,6 +1003,13 @@ export type WorkflowAgentStreamOptions<
     /**
      * A function that attempts to repair a tool call that failed to parse.
      */
+    repairToolCall?: ToolCallRepairFunction<TTools>;
+
+    /**
+     * A function that attempts to repair a tool call that failed to parse.
+     *
+     * @deprecated Use `repairToolCall` instead.
+     */
     experimental_repairToolCall?: ToolCallRepairFunction<TTools>;
 
     /**
@@ -880,7 +1028,32 @@ export type WorkflowAgentStreamOptions<
     experimental_download?: DownloadFunction;
 
     /**
+     * Sandbox environment passed through to tool execution as
+     * `experimental_sandbox`. Overrides the constructor-level value if provided.
+     */
+    experimental_sandbox?: SandboxSession;
+
+    /**
+     * Workflow-safe reference to the environment variable containing the
+     * secret for HMAC-signing tool approval requests. When set, the agent signs
+     * each approval request and verifies the signature before executing an
+     * approved tool replayed from client-supplied message history.
+     *
+     * Only the environment variable name crosses workflow boundaries. The
+     * secret value is read inside signing and verification steps and is never
+     * serialized. Overrides the constructor-level value if provided.
+     */
+    experimental_toolApprovalSecret?: WorkflowToolApprovalSecret;
+
+    /**
      * Callback function to be called after each step completes.
+     */
+    onStepEnd?: WorkflowAgentOnStepEndCallback<TTools, TRuntimeContext>;
+
+    /**
+     * Callback function to be called after each step completes.
+     *
+     * @deprecated Use `onStepEnd` instead.
      */
     onStepFinish?: WorkflowAgentOnStepFinishCallback<TTools, TRuntimeContext>;
 
@@ -893,6 +1066,14 @@ export type WorkflowAgentStreamOptions<
     /**
      * Callback that is called when the LLM response and all request tool executions
      * (for tools that have an `execute` function) are finished.
+     */
+    onEnd?: WorkflowAgentOnEndCallback<TTools, TRuntimeContext, OUTPUT>;
+
+    /**
+     * Callback that is called when the LLM response and all request tool executions
+     * (for tools that have an `execute` function) are finished.
+     *
+     * @deprecated Use `onEnd` instead.
      */
     onFinish?: WorkflowAgentOnFinishCallback<TTools, TRuntimeContext, OUTPUT>;
 
@@ -997,6 +1178,12 @@ export interface ToolResult {
   output: unknown;
 }
 
+type WorkflowToolExecutionResult = {
+  modelResult: LanguageModelV4ToolResultPart;
+  rawOutput: unknown;
+  isError: boolean;
+};
+
 /**
  * Result of the WorkflowAgent.stream method.
  */
@@ -1040,6 +1227,25 @@ export interface WorkflowAgentStreamResult<
    * This matches the AI SDK's `GenerateTextResult.toolResults` behavior.
    */
   toolResults: ToolResult[];
+
+  /**
+   * The finish reason from the last step.
+   */
+  finishReason: FinishReason;
+
+  /**
+   * The original value from a model stream error part.
+   *
+   * This property is present when the model emitted an error part, including
+   * when the supplied value is `undefined`. Check with `'error' in result` to
+   * distinguish that case from a result without a model stream error.
+   */
+  error?: unknown;
+
+  /**
+   * The total token usage across all steps.
+   */
+  totalUsage: LanguageModelUsage;
 
   /**
    * The generated structured output. It uses the `output` specification.
@@ -1100,14 +1306,17 @@ export class WorkflowAgent<
     | Array<StopCondition<ToolSet, any>>;
   private activeTools?: ActiveTools<TBaseTools>;
   private output?: OutputSpecification<any, any>;
-  private experimentalRepairToolCall?: ToolCallRepairFunction<TBaseTools>;
+  private repairToolCall?: ToolCallRepairFunction<TBaseTools>;
   private experimentalDownload?: DownloadFunction;
+  private experimentalSandbox?: SandboxSession;
+  private experimentalToolApprovalSecret?: WorkflowToolApprovalSecret;
   private prepareStep?: PrepareStepCallback<TBaseTools, TRuntimeContext>;
-  private constructorOnStepFinish?: WorkflowAgentOnStepFinishCallback<
+  private allowSystemInMessages: boolean;
+  private constructorOnStepEnd?: WorkflowAgentOnStepEndCallback<
     TBaseTools,
     TRuntimeContext
   >;
-  private constructorOnFinish?: WorkflowAgentOnFinishCallback<
+  private constructorOnEnd?: WorkflowAgentOnEndCallback<
     TBaseTools,
     TRuntimeContext
   >;
@@ -1136,16 +1345,22 @@ export class WorkflowAgent<
     this.stopWhen = options.stopWhen;
     this.activeTools = options.activeTools;
     this.output = options.output;
-    this.experimentalRepairToolCall = options.experimental_repairToolCall;
+    this.repairToolCall =
+      options.repairToolCall ?? options.experimental_repairToolCall;
     this.experimentalDownload = options.experimental_download;
+    this.experimentalSandbox = options.experimental_sandbox;
+    this.experimentalToolApprovalSecret =
+      options.experimental_toolApprovalSecret;
     this.prepareStep = options.prepareStep;
-    this.constructorOnStepFinish = options.onStepFinish;
-    this.constructorOnFinish = options.onFinish;
+    this.constructorOnStepEnd = options.onStepEnd ?? options.onStepFinish;
+    const { onFinish, onEnd = onFinish } = options;
+    this.constructorOnEnd = onEnd;
     this.constructorOnStart = options.experimental_onStart;
     this.constructorOnStepStart = options.experimental_onStepStart;
     this.constructorOnToolExecutionStart = options.onToolExecutionStart;
     this.constructorOnToolExecutionEnd = options.onToolExecutionEnd;
     this.prepareCall = options.prepareCall;
+    this.allowSystemInMessages = options.allowSystemInMessages ?? false;
 
     // Extract generation settings
     this.generationSettings = {
@@ -1160,6 +1375,7 @@ export class WorkflowAgent<
       maxRetries: options.maxRetries,
       abortSignal: options.abortSignal,
       headers: options.headers,
+      reasoning: options.reasoning,
       providerOptions: options.providerOptions,
     };
   }
@@ -1180,9 +1396,12 @@ export class WorkflowAgent<
       PARTIAL_OUTPUT
     >,
   ): Promise<WorkflowAgentStreamResult<TTools, OUTPUT>> {
+    const { onFinish, onEnd = onFinish } = options;
+
     // Call prepareCall to transform parameters before the agent loop
     let effectiveModel: LanguageModel = this.model;
-    let effectiveInstructions = options.system ?? this.instructions;
+    let effectiveInstructions =
+      options.instructions ?? options.system ?? this.instructions;
     let effectivePrompt: string | Array<ModelMessage> | undefined =
       options.prompt;
     let effectiveMessages: Array<ModelMessage> | undefined = options.messages;
@@ -1196,6 +1415,14 @@ export class WorkflowAgent<
         Context | undefined
       >;
     let effectiveToolChoiceFromPrepare = options.toolChoice ?? this.toolChoice;
+    let effectiveStopWhenFromPrepare = options.stopWhen ?? this.stopWhen;
+    let effectiveActiveToolsFromPrepare =
+      options.activeTools ?? this.activeTools;
+    let effectiveDownloadFromPrepare =
+      options.experimental_download ?? this.experimentalDownload;
+    const effectiveToolApprovalSecret =
+      options.experimental_toolApprovalSecret ??
+      this.experimentalToolApprovalSecret;
     let effectiveTelemetryFromPrepare = options.telemetry ?? this.telemetry;
 
     // Resolve messages for prepareCall: use messages directly, or convert prompt
@@ -1212,6 +1439,9 @@ export class WorkflowAgent<
         tools: this.tools,
         instructions: effectiveInstructions,
         toolChoice: effectiveToolChoiceFromPrepare as ToolChoice<TBaseTools>,
+        stopWhen: effectiveStopWhenFromPrepare,
+        activeTools: effectiveActiveToolsFromPrepare,
+        experimental_download: effectiveDownloadFromPrepare,
         telemetry: effectiveTelemetryFromPrepare,
         runtimeContext: effectiveRuntimeContext,
         toolsContext: effectiveToolsContext as InferToolSetContext<TBaseTools>,
@@ -1236,6 +1466,12 @@ export class WorkflowAgent<
       if (prepared.toolChoice !== undefined)
         effectiveToolChoiceFromPrepare =
           prepared.toolChoice as ToolChoice<TBaseTools>;
+      if (prepared.stopWhen !== undefined)
+        effectiveStopWhenFromPrepare = prepared.stopWhen;
+      if (prepared.activeTools !== undefined)
+        effectiveActiveToolsFromPrepare = prepared.activeTools;
+      if (prepared.experimental_download !== undefined)
+        effectiveDownloadFromPrepare = prepared.experimental_download;
       if (prepared.telemetry !== undefined)
         effectiveTelemetryFromPrepare = prepared.telemetry;
       if (prepared.maxOutputTokens !== undefined)
@@ -1255,8 +1491,14 @@ export class WorkflowAgent<
         effectiveGenerationSettings.stopSequences = prepared.stopSequences;
       if (prepared.seed !== undefined)
         effectiveGenerationSettings.seed = prepared.seed;
+      if (prepared.maxRetries !== undefined)
+        effectiveGenerationSettings.maxRetries = prepared.maxRetries;
+      if (prepared.abortSignal !== undefined)
+        effectiveGenerationSettings.abortSignal = prepared.abortSignal;
       if (prepared.headers !== undefined)
         effectiveGenerationSettings.headers = prepared.headers;
+      if (prepared.reasoning !== undefined)
+        effectiveGenerationSettings.reasoning = prepared.reasoning;
       if (prepared.providerOptions !== undefined)
         effectiveGenerationSettings.providerOptions = prepared.providerOptions;
     }
@@ -1274,35 +1516,158 @@ export class WorkflowAgent<
 
     const prompt = await standardizePrompt({
       system: effectiveInstructions,
-      allowSystemInMessages: true, // TODO: consider exposing this as a parameter
+      allowSystemInMessages: this.allowSystemInMessages,
       ...(effectivePrompt != null
         ? { prompt: effectivePrompt }
         : { messages: effectiveMessages! }),
     } as Prompt);
+    const download = effectiveDownloadFromPrepare;
+    const sandbox = options.experimental_sandbox ?? this.experimentalSandbox;
 
     // Process tool approval responses before starting the agent loop.
     // This mirrors how stream-text.ts handles tool-approval-response parts:
     // approved tools are executed, denied tools get denial results, and
     // approval parts are stripped from the messages.
-    const { approvedToolApprovals, deniedToolApprovals } =
-      collectToolApprovalsFromMessages(prompt.messages);
+    // Use the AI SDK core collector so this path cannot drift from the
+    // hardened generateText/streamText implementation. The collected approvals
+    // are mapped to the flat shape used below; the original (nested) approval
+    // is carried on `collected` for re-validation.
+    const collectedApprovals = collectToolApprovals<ToolSet>({
+      messages: prompt.messages,
+    });
+    const approvedToolApprovals = collectedApprovals.approvedToolApprovals.map(
+      collected => ({
+        toolCallId: collected.toolCall.toolCallId,
+        toolName: collected.toolCall.toolName,
+        input: collected.toolCall.input,
+        reason: collected.approvalResponse.reason,
+        providerExecuted: collected.toolCall.providerExecuted === true,
+        collected,
+      }),
+    );
+    const deniedToolApprovals = collectedApprovals.deniedToolApprovals.map(
+      collected => ({
+        toolCallId: collected.toolCall.toolCallId,
+        toolName: collected.toolCall.toolName,
+        input: collected.toolCall.input,
+        reason: collected.approvalResponse.reason,
+        providerExecuted: collected.toolCall.providerExecuted === true,
+      }),
+    );
+
+    // Approval ids of provider-executed tool calls. Provider-executed tools
+    // (e.g. MCP via the Responses API) cannot be resolved locally — the
+    // provider owns execution. We therefore skip them from local execution
+    // and preserve their approval responses in the messages so the provider
+    // receives the approval on the next call. The discriminator is sourced
+    // from the original `tool-call` part (matching how core's stream-text.ts
+    // decides), not from the response part which may be missing the flag.
+    const providerExecutedApprovalIds = new Set<string>(
+      [
+        ...collectedApprovals.approvedToolApprovals,
+        ...collectedApprovals.deniedToolApprovals,
+      ]
+        .filter(collected => collected.toolCall.providerExecuted === true)
+        .map(collected => collected.approvalResponse.approvalId),
+    );
 
     if (approvedToolApprovals.length > 0 || deniedToolApprovals.length > 0) {
       const _toolResultMessages: ModelMessage[] = [];
-      const toolResultContent: Array<{
-        type: 'tool-result';
+      const toolResultContent: LanguageModelV4ToolResultPart[] = [];
+      const approvedRawResults: Array<{
         toolCallId: string;
         toolName: string;
-        output:
-          | { type: 'text'; value: string }
-          | { type: 'json'; value: JSONValue }
-          | { type: 'execution-denied'; reason: string | undefined };
+        input: unknown;
+        output: unknown;
       }> = [];
 
       // Execute approved tools
       for (const approval of approvedToolApprovals) {
+        // Provider-executed approvals are forwarded to the provider via the
+        // preserved approval response below, not executed locally.
+        if (approval.providerExecuted) {
+          continue;
+        }
         const tool = (this.tools as ToolSet)[approval.toolName];
         if (tool && typeof tool.execute === 'function') {
+          if (!tool.needsApproval) {
+            const reason = `Tool "${approval.toolName}" does not require approval`;
+            toolResultContent.push({
+              type: 'tool-result' as const,
+              toolCallId: approval.toolCallId,
+              toolName: approval.toolName,
+              output: await createLanguageModelToolResultOutput({
+                toolCallId: approval.toolCallId,
+                toolName: approval.toolName,
+                input: approval.input,
+                output: reason,
+                tool,
+                errorMode: 'text',
+                supportedUrls: {},
+                download,
+              }),
+            });
+            continue;
+          }
+
+          // Re-validate through the shared core implementation: input schema,
+          // approval signature (when configured), and approval policy.
+          // Convert invalid input, denial, or signature errors to a tool error
+          // result so the agent loop can continue gracefully.
+          let revalidationReason: string | undefined;
+          try {
+            await validateWorkflowToolApprovalSignature({
+              secret: effectiveToolApprovalSecret,
+              approvalId: approval.collected.approvalRequest.approvalId,
+              toolCallId: approval.toolCallId,
+              toolName: approval.toolName,
+              input: approval.input,
+              signature: approval.collected.approvalRequest.signature,
+            });
+
+            const { deniedToolApprovals: policyDenied, invalidToolApprovals } =
+              await validateApprovedToolApprovals({
+                approvedToolApprovals: [approval.collected],
+                tools: this.tools as ToolSet,
+                toolApproval: undefined,
+                messages: prompt.messages,
+                toolsContext:
+                  effectiveToolsContext as InferToolSetContext<ToolSet>,
+                runtimeContext: effectiveRuntimeContext,
+              });
+
+            if (invalidToolApprovals.length > 0) {
+              revalidationReason = getErrorMessage(
+                invalidToolApprovals[0].error,
+              );
+            } else if (policyDenied.length > 0) {
+              revalidationReason =
+                policyDenied[0].approvalResponse.reason ??
+                'Tool approval denied';
+            }
+          } catch (error) {
+            revalidationReason = getErrorMessage(error);
+          }
+
+          if (revalidationReason != null) {
+            toolResultContent.push({
+              type: 'tool-result' as const,
+              toolCallId: approval.toolCallId,
+              toolName: approval.toolName,
+              output: await createLanguageModelToolResultOutput({
+                toolCallId: approval.toolCallId,
+                toolName: approval.toolName,
+                input: approval.input,
+                output: revalidationReason,
+                tool,
+                errorMode: 'text',
+                supportedUrls: {},
+                download,
+              }),
+            });
+            continue;
+          }
+
           try {
             const { execute } = tool;
             const resolvedContext = await resolveToolContext({
@@ -1329,6 +1694,7 @@ export class WorkflowAgent<
                 toolCallId: approval.toolCallId,
                 messages: [],
                 context: resolvedContext,
+                experimental_sandbox: sandbox,
               });
             const toolResult =
               telemetryDispatcher.executeTool != null
@@ -1351,12 +1717,25 @@ export class WorkflowAgent<
               type: 'tool-result' as const,
               toolCallId: approval.toolCallId,
               toolName: approval.toolName,
-              output:
-                typeof toolResult === 'string'
-                  ? { type: 'text' as const, value: toolResult }
-                  : { type: 'json' as const, value: toolResult },
+              output: await createLanguageModelToolResultOutput({
+                toolCallId: approval.toolCallId,
+                toolName: approval.toolName,
+                input: approval.input,
+                output: toolResult,
+                tool,
+                errorMode: 'none',
+                supportedUrls: {},
+                download,
+              }),
+            });
+            approvedRawResults.push({
+              toolCallId: approval.toolCallId,
+              toolName: approval.toolName,
+              input: approval.input,
+              output: toolResult,
             });
           } catch (error) {
+            const errorMessage = getErrorMessage(error);
             await telemetryDispatcher.onToolExecutionEnd?.({
               toolCall: {
                 type: 'tool-call',
@@ -1375,10 +1754,22 @@ export class WorkflowAgent<
               type: 'tool-result' as const,
               toolCallId: approval.toolCallId,
               toolName: approval.toolName,
-              output: {
-                type: 'text' as const,
-                value: getErrorMessage(error),
-              },
+              output: await createLanguageModelToolResultOutput({
+                toolCallId: approval.toolCallId,
+                toolName: approval.toolName,
+                input: approval.input,
+                output: errorMessage,
+                tool,
+                errorMode: 'text',
+                supportedUrls: {},
+                download,
+              }),
+            });
+            approvedRawResults.push({
+              toolCallId: approval.toolCallId,
+              toolName: approval.toolName,
+              input: approval.input,
+              output: errorMessage,
             });
           }
         }
@@ -1386,6 +1777,11 @@ export class WorkflowAgent<
 
       // Create denial results for denied tools
       for (const denial of deniedToolApprovals) {
+        // Provider-executed denials are forwarded to the provider via the
+        // preserved approval response below, not turned into a local result.
+        if (denial.providerExecuted) {
+          continue;
+        }
         toolResultContent.push({
           type: 'tool-result' as const,
           toolCallId: denial.toolCallId,
@@ -1397,20 +1793,33 @@ export class WorkflowAgent<
         });
       }
 
-      // Strip approval parts from messages and inject tool results
+      // Strip approval parts that we resolved locally and inject tool results.
+      // Provider-executed approval parts are preserved so the next call to
+      // `convertToLanguageModelPrompt` forwards the approval response to the
+      // provider (it only forwards responses flagged `providerExecuted`).
       const cleanedMessages: ModelMessage[] = [];
       for (const msg of prompt.messages) {
         if (msg.role === 'assistant' && Array.isArray(msg.content)) {
           const filtered = (msg.content as any[]).filter(
-            (p: any) => p.type !== 'tool-approval-request',
+            (p: any) =>
+              p.type !== 'tool-approval-request' ||
+              providerExecutedApprovalIds.has(p.approvalId),
           );
           if (filtered.length > 0) {
             cleanedMessages.push({ ...msg, content: filtered });
           }
         } else if (msg.role === 'tool') {
-          const filtered = (msg.content as any[]).filter(
-            (p: any) => p.type !== 'tool-approval-response',
-          );
+          const filtered = (msg.content as any[]).flatMap((p: any) => {
+            if (p.type !== 'tool-approval-response') {
+              return [p];
+            }
+            if (!providerExecutedApprovalIds.has(p.approvalId)) {
+              return [];
+            }
+            // Re-stamp `providerExecuted` so the conversion layer forwards the
+            // response even if the client omitted the flag on the response part.
+            return [{ ...p, providerExecuted: true }];
+          });
           if (filtered.length > 0) {
             cleanedMessages.push({ ...msg, content: filtered });
           }
@@ -1433,22 +1842,12 @@ export class WorkflowAgent<
       // can transition approved/denied tool parts to the correct state
       // and properly separate them from the subsequent model step.
       if (options.writable && toolResultContent.length > 0) {
-        const approvedResults = toolResultContent
-          .filter(r => r.output.type !== 'execution-denied')
-          .map(r => ({
-            toolCallId: r.toolCallId,
-            toolName: r.toolName,
-            input: approvedToolApprovals.find(
-              a => a.toolCallId === r.toolCallId,
-            )?.input,
-            output: 'value' in r.output ? r.output.value : undefined,
-          }));
         const deniedResults = toolResultContent
           .filter(r => r.output.type === 'execution-denied')
           .map(r => ({ toolCallId: r.toolCallId }));
         await writeApprovalToolResults(
           options.writable,
-          approvedResults,
+          approvedRawResults,
           deniedResults,
         );
       }
@@ -1457,13 +1856,13 @@ export class WorkflowAgent<
     const modelPrompt = await convertToLanguageModelPrompt({
       prompt,
       supportedUrls: {},
-      download: options.experimental_download ?? this.experimentalDownload,
+      download,
     });
 
-    const effectiveAbortSignal = mergeAbortSignals(
-      options.abortSignal ?? effectiveGenerationSettings.abortSignal,
-      options.timeout,
-    );
+    const effectiveAbortSignal =
+      options.abortSignal ?? effectiveGenerationSettings.abortSignal;
+    const timeoutAt =
+      options.timeout == null ? undefined : Date.now() + options.timeout;
 
     // Merge generation settings: constructor defaults < prepareCall < stream options
     const mergedGenerationSettings: GenerationSettings = {
@@ -1493,23 +1892,32 @@ export class WorkflowAgent<
         abortSignal: effectiveAbortSignal,
       }),
       ...(options.headers !== undefined && { headers: options.headers }),
+      ...(options.reasoning !== undefined && { reasoning: options.reasoning }),
       ...(options.providerOptions !== undefined && {
         providerOptions: options.providerOptions,
       }),
     };
 
-    // Merge constructor + stream callbacks (constructor first, then stream)
-    const mergedOnStepFinish = mergeCallbacks(
-      this.constructorOnStepFinish as
-        | WorkflowAgentOnStepFinishCallback<TTools, TRuntimeContext>
-        | undefined,
-      options.onStepFinish,
+    // tag the outgoing request so usage can be attributed to WorkflowAgent.
+    // chains with the `ai/<version>` and `ai-sdk/<provider>/<version>` suffixes
+    // added downstream by the model run and the provider.
+    mergedGenerationSettings.headers = withUserAgentSuffix(
+      mergedGenerationSettings.headers ?? {},
+      'ai-sdk-agent/workflow',
     );
-    const mergedOnFinish = mergeCallbacks(
-      this.constructorOnFinish as
-        | WorkflowAgentOnFinishCallback<TTools, TRuntimeContext, OUTPUT>
+
+    // Merge constructor + stream callbacks (constructor first, then stream)
+    const mergedOnStepEnd = mergeCallbacks(
+      this.constructorOnStepEnd as
+        | WorkflowAgentOnStepEndCallback<TTools, TRuntimeContext>
         | undefined,
-      options.onFinish,
+      options.onStepEnd ?? options.onStepFinish,
+    );
+    const mergedOnEnd = mergeCallbacks(
+      this.constructorOnEnd as
+        | WorkflowAgentOnEndCallback<TTools, TRuntimeContext, OUTPUT>
+        | undefined,
+      onEnd,
     );
     const mergedOnStart = mergeCallbacks(
       this.constructorOnStart as
@@ -1536,7 +1944,7 @@ export class WorkflowAgent<
     const effectiveToolChoice = effectiveToolChoiceFromPrepare;
 
     // Filter tools if activeTools is specified (stream-level overrides constructor default)
-    const effectiveActiveTools = options.activeTools ?? this.activeTools;
+    const effectiveActiveTools = effectiveActiveToolsFromPrepare;
     const effectiveTools =
       effectiveActiveTools && effectiveActiveTools.length > 0
         ? (filterActiveTools({
@@ -1587,6 +1995,7 @@ export class WorkflowAgent<
       maxRetries: mergedGenerationSettings.maxRetries ?? 2,
       timeout: undefined,
       headers: mergedGenerationSettings.headers,
+      reasoning: mergedGenerationSettings.reasoning,
       providerOptions: mergedGenerationSettings.providerOptions,
       output: (options.output ?? this.output) as never,
       runtimeContext,
@@ -1600,7 +2009,8 @@ export class WorkflowAgent<
       messages: LanguageModelV4Prompt,
       perToolContexts: Record<string, Context | undefined>,
       currentStepNumber: number = 0,
-    ): Promise<LanguageModelV4ToolResultPart> => {
+      stepSandbox?: SandboxSession,
+    ): Promise<WorkflowToolExecutionResult> => {
       const toolCallEvent: ToolCall = {
         type: 'tool-call',
         toolCallId: toolCall.toolCallId,
@@ -1638,10 +2048,17 @@ export class WorkflowAgent<
       });
 
       const startTime = Date.now();
-      let result: LanguageModelV4ToolResultPart;
+      let result: WorkflowToolExecutionResult;
       try {
         const execute = () =>
-          executeTool(toolCall, tools, messages, resolvedContext);
+          executeTool(
+            toolCall,
+            tools,
+            messages,
+            resolvedContext,
+            download,
+            stepSandbox,
+          );
         result =
           telemetryDispatcher.executeTool != null
             ? await telemetryDispatcher.executeTool({
@@ -1681,12 +2098,7 @@ export class WorkflowAgent<
 
       const durationMs = Date.now() - startTime;
       if (mergedOnToolExecutionEnd) {
-        const isError =
-          result.output &&
-          'type' in result.output &&
-          (result.output.type === 'error-text' ||
-            result.output.type === 'error-json');
-        if (isError) {
+        if (result.isError) {
           await mergedOnToolExecutionEnd({
             toolCall: toolCallEvent,
             stepNumber: currentStepNumber,
@@ -1696,7 +2108,7 @@ export class WorkflowAgent<
               | InferToolSetContext<TTools>[keyof InferToolSetContext<TTools>]
               | undefined,
             success: false,
-            error: 'value' in result.output ? result.output.value : undefined,
+            error: result.rawOutput,
           });
         } else {
           await mergedOnToolExecutionEnd({
@@ -1708,19 +2120,11 @@ export class WorkflowAgent<
               | InferToolSetContext<TTools>[keyof InferToolSetContext<TTools>]
               | undefined,
             success: true,
-            output:
-              result.output && 'value' in result.output
-                ? result.output.value
-                : undefined,
+            output: result.rawOutput,
           });
         }
       }
-      if (
-        result.output &&
-        'type' in result.output &&
-        (result.output.type === 'error-text' ||
-          result.output.type === 'error-json')
-      ) {
+      if (result.isError) {
         await telemetryDispatcher.onToolExecutionEnd?.({
           toolCall: toolCallEvent,
           stepNumber: currentStepNumber,
@@ -1730,7 +2134,7 @@ export class WorkflowAgent<
             | InferToolSetContext<TTools>[keyof InferToolSetContext<TTools>]
             | undefined,
           success: false,
-          error: 'value' in result.output ? result.output.value : undefined,
+          error: result.rawOutput,
         });
       } else {
         await telemetryDispatcher.onToolExecutionEnd?.({
@@ -1742,10 +2146,7 @@ export class WorkflowAgent<
             | InferToolSetContext<TTools>[keyof InferToolSetContext<TTools>]
             | undefined,
           success: true,
-          output:
-            result.output && 'value' in result.output
-              ? result.output.value
-              : undefined,
+          output: result.rawOutput,
         });
       }
       return result;
@@ -1753,7 +2154,7 @@ export class WorkflowAgent<
 
     const recordProviderExecutedToolTelemetry = async (
       toolCall: { toolCallId: string; toolName: string; input: unknown },
-      result: LanguageModelV4ToolResultPart,
+      result: WorkflowToolExecutionResult,
       messages: LanguageModelV4Prompt,
       currentStepNumber: number,
     ) => {
@@ -1772,32 +2173,20 @@ export class WorkflowAgent<
         toolContext: undefined,
       });
 
-      const isError =
-        result.output &&
-        'type' in result.output &&
-        (result.output.type === 'error-text' ||
-          result.output.type === 'error-json');
-
       await telemetryDispatcher.onToolExecutionEnd?.({
         toolCall: toolCallEvent,
         stepNumber: currentStepNumber,
         durationMs: 0,
         messages: modelMessages,
         toolContext: undefined,
-        ...(isError
+        ...(result.isError
           ? {
               success: false as const,
-              error:
-                result.output && 'value' in result.output
-                  ? result.output.value
-                  : undefined,
+              error: result.rawOutput,
             }
           : {
               success: true as const,
-              output:
-                result.output && 'value' in result.output
-                  ? result.output.value
-                  : undefined,
+              output: result.rawOutput,
             }),
       });
     };
@@ -1812,6 +2201,8 @@ export class WorkflowAgent<
         steps,
         toolCalls: [],
         toolResults: [],
+        finishReason: 'other',
+        totalUsage: aggregateUsage(steps),
         output: undefined as OUTPUT,
       };
     }
@@ -1821,11 +2212,11 @@ export class WorkflowAgent<
       tools: effectiveTools as ToolSet,
       writable: options.writable,
       prompt: modelPrompt,
-      stopConditions: options.stopWhen ?? this.stopWhen,
-
-      onStepFinish: mergedOnStepFinish as any,
+      initialInstructions: effectiveInstructions,
+      initialMessages: prompt.messages,
+      stopConditions: effectiveStopWhenFromPrepare,
+      onStepEnd: mergedOnStepEnd as any,
       onStepStart: mergedOnStepStart as any,
-      onError: options.onError,
       prepareStep: (options.prepareStep ??
         (this.prepareStep as
           | PrepareStepCallback<ToolSet, TRuntimeContext>
@@ -1836,17 +2227,21 @@ export class WorkflowAgent<
       toolsContext,
       telemetry: effectiveTelemetry,
       includeRawChunks: options.includeRawChunks ?? false,
-      repairToolCall: (options.experimental_repairToolCall ??
-        this.experimentalRepairToolCall) as
-        | ToolCallRepairFunction<ToolSet>
-        | undefined,
+      timeoutAt,
+      repairToolCall: (options.repairToolCall ??
+        options.experimental_repairToolCall ??
+        this.repairToolCall) as ToolCallRepairFunction<ToolSet> | undefined,
       responseFormat: await (options.output ?? this.output)?.responseFormat,
+      experimental_sandbox: sandbox,
     });
 
     // Track the final conversation messages from the iterator
     let finalMessages: LanguageModelV4Prompt | undefined;
     let encounteredError: unknown;
+    let hasEncounteredError = false;
     let wasAborted = false;
+    let terminalError: unknown;
+    let hasTerminalError = false;
 
     try {
       let result = await iterator.next();
@@ -1866,8 +2261,10 @@ export class WorkflowAgent<
           step,
           runtimeContext: yieldedRuntimeContext,
           toolsContext: yieldedToolsContext,
+          experimental_sandbox: stepSandbox,
           providerExecutedToolResults,
         } = result.value;
+        const toolExecutionSandbox = stepSandbox ?? sandbox;
         // Capture current step number before pushing (0-based)
         const currentStepNumber = steps.length;
         if (step) {
@@ -1941,23 +2338,28 @@ export class WorkflowAgent<
             // Execute any executable tools that were also called in this step
             const executableResults = await Promise.all(
               executableToolCalls.map(
-                (toolCall): Promise<LanguageModelV4ToolResultPart> =>
+                (toolCall): Promise<WorkflowToolExecutionResult> =>
                   executeToolWithCallbacks(
                     toolCall,
                     effectiveTools as ToolSet,
                     iterMessages,
                     toolsContext,
                     currentStepNumber,
+                    toolExecutionSandbox,
                   ),
               ),
             );
 
             // Collect provider tool results
-            const providerResults: LanguageModelV4ToolResultPart[] =
-              providerToolCalls.map(toolCall =>
-                resolveProviderToolResult(
-                  toolCall,
-                  providerExecutedToolResults,
+            const providerResults: WorkflowToolExecutionResult[] =
+              await Promise.all(
+                providerToolCalls.map(toolCall =>
+                  resolveProviderToolResult(
+                    toolCall,
+                    providerExecutedToolResults,
+                    effectiveTools as ToolSet,
+                    download,
+                  ),
                 ),
               );
             await Promise.all(
@@ -1974,9 +2376,9 @@ export class WorkflowAgent<
             const continuationInvalidResults = invalidToolCalls.map(
               createInvalidToolResult,
             );
-            const resolvedResults = [
-              ...executableResults,
-              ...providerResults,
+            const resolvedResults: LanguageModelV4ToolResultPart[] = [
+              ...executableResults.map(result => result.modelResult),
+              ...providerResults.map(result => result.modelResult),
               ...continuationInvalidResults,
             ];
             const executedResults = [...executableResults, ...providerResults];
@@ -1990,11 +2392,12 @@ export class WorkflowAgent<
 
             const allToolResults: ToolResult[] = executedResults.map(r => ({
               type: 'tool-result' as const,
-              toolCallId: r.toolCallId,
-              toolName: r.toolName,
-              input: toolCalls.find(tc => tc.toolCallId === r.toolCallId)
-                ?.input,
-              output: 'value' in r.output ? r.output.value : undefined,
+              toolCallId: r.modelResult.toolCallId,
+              toolName: r.modelResult.toolName,
+              input: toolCalls.find(
+                tc => tc.toolCallId === r.modelResult.toolCallId,
+              )?.input,
+              output: r.rawOutput,
             }));
 
             if (resolvedResults.length > 0) {
@@ -2005,15 +2408,18 @@ export class WorkflowAgent<
             }
 
             const messages = iterMessages as unknown as ModelMessage[];
+            const lastStep = steps[steps.length - 1];
+            const totalUsage = aggregateUsage(steps);
+            const finishReason = lastStep?.finishReason ?? 'other';
 
-            if (mergedOnFinish && !wasAborted) {
-              const lastStep = steps[steps.length - 1];
-              await mergedOnFinish({
+            if (mergedOnEnd && !wasAborted) {
+              await mergedOnEnd({
                 steps,
                 messages,
                 text: lastStep?.text ?? '',
-                finishReason: lastStep?.finishReason ?? 'other',
-                totalUsage: aggregateUsage(steps),
+                finishReason,
+                usage: totalUsage,
+                totalUsage,
                 runtimeContext,
                 toolsContext:
                   toolsContext as unknown as InferToolSetContext<TTools>,
@@ -2022,17 +2428,23 @@ export class WorkflowAgent<
             }
             if (!wasAborted && steps.length > 0) {
               const telemetrySteps = steps.map(normalizeStepForTelemetry);
-              const lastStep = telemetrySteps[telemetrySteps.length - 1];
+              const lastTelemetryStep =
+                telemetrySteps[telemetrySteps.length - 1];
               await telemetryDispatcher.onEnd?.({
-                ...lastStep,
+                ...lastTelemetryStep,
                 steps: telemetrySteps,
-                totalUsage: aggregateUsage(steps),
+                usage: totalUsage,
+                totalUsage,
               });
             }
 
             // Emit tool-approval-request chunks for tools that need approval
             // so useChat can show the approval UI
             if (options.writable) {
+              if (allToolResults.length > 0) {
+                await writeToolResults(options.writable, allToolResults);
+              }
+
               const approvalToolCalls = pausedToolCalls.filter((_, i) => {
                 const tcIndex = nonProviderToolCalls.indexOf(
                   pausedToolCalls[i],
@@ -2040,13 +2452,31 @@ export class WorkflowAgent<
                 return approvalNeeded[tcIndex];
               });
               if (approvalToolCalls.length > 0) {
-                await writeApprovalRequests(
-                  options.writable,
-                  approvalToolCalls.map(tc => ({
-                    toolCallId: tc.toolCallId,
-                    toolName: tc.toolName,
-                  })),
+                // The signing step receives only a non-secret environment
+                // variable reference. It resolves the secret inside the step,
+                // and only the resulting signature is persisted in the stream.
+                const approvalRequests = await Promise.all(
+                  approvalToolCalls.map(async tc => {
+                    const approvalId = `approval-${tc.toolCallId}`;
+                    const signature =
+                      effectiveToolApprovalSecret == null
+                        ? undefined
+                        : await signWorkflowToolApproval({
+                            secret: effectiveToolApprovalSecret,
+                            approvalId,
+                            toolCallId: tc.toolCallId,
+                            toolName: tc.toolName,
+                            input: tc.input,
+                          });
+
+                    return {
+                      approvalId,
+                      toolCallId: tc.toolCallId,
+                      ...(signature != null ? { signature } : {}),
+                    };
+                  }),
                 );
+                await writeApprovalRequests(options.writable, approvalRequests);
               }
             }
 
@@ -2064,6 +2494,8 @@ export class WorkflowAgent<
               steps,
               toolCalls: allToolCalls,
               toolResults: allToolResults,
+              finishReason,
+              totalUsage,
               output: undefined as OUTPUT,
             };
           }
@@ -2071,21 +2503,29 @@ export class WorkflowAgent<
           // Execute client tools (all have execute functions at this point)
           const clientToolResults = await Promise.all(
             nonProviderToolCalls.map(
-              (toolCall): Promise<LanguageModelV4ToolResultPart> =>
+              (toolCall): Promise<WorkflowToolExecutionResult> =>
                 executeToolWithCallbacks(
                   toolCall,
                   effectiveTools as ToolSet,
                   iterMessages,
                   toolsContext,
                   currentStepNumber,
+                  toolExecutionSandbox,
                 ),
             ),
           );
 
           // For provider-executed tools, use the results from the stream
-          const providerToolResults: LanguageModelV4ToolResultPart[] =
-            providerToolCalls.map(toolCall =>
-              resolveProviderToolResult(toolCall, providerExecutedToolResults),
+          const providerToolResults: WorkflowToolExecutionResult[] =
+            await Promise.all(
+              providerToolCalls.map(toolCall =>
+                resolveProviderToolResult(
+                  toolCall,
+                  providerExecutedToolResults,
+                  effectiveTools as ToolSet,
+                  download,
+                ),
+              ),
             );
           await Promise.all(
             providerToolCalls.map((toolCall, index) =>
@@ -2104,39 +2544,44 @@ export class WorkflowAgent<
           // Combine executable/provider results in the original order,
           // while preserving invalid tool calls as error results for the
           // next model step without emitting them as synthetic UI success.
+          const executedToolResults = toolCalls.flatMap(tc => {
+            const clientResult = clientToolResults.find(
+              r => r.modelResult.toolCallId === tc.toolCallId,
+            );
+            if (clientResult) return [clientResult];
+            const providerResult = providerToolResults.find(
+              r => r.modelResult.toolCallId === tc.toolCallId,
+            );
+            if (providerResult) return [providerResult];
+            return [];
+          });
           const continuationToolResults = toolCalls.flatMap(tc => {
             const invalidResult = continuationInvalidToolResults.find(
               r => r.toolCallId === tc.toolCallId,
             );
             if (invalidResult) return [invalidResult];
-            const clientResult = clientToolResults.find(
-              r => r.toolCallId === tc.toolCallId,
+            const executedResult = executedToolResults.find(
+              r => r.modelResult.toolCallId === tc.toolCallId,
             );
-            if (clientResult) return [clientResult];
-            const providerResult = providerToolResults.find(
-              r => r.toolCallId === tc.toolCallId,
-            );
-            if (providerResult) return [providerResult];
+            if (executedResult) return [executedResult.modelResult];
             return [];
           });
-          const executedToolResults = continuationToolResults.filter(
-            result =>
-              !invalidToolCalls.some(tc => tc.toolCallId === result.toolCallId),
-          );
 
           // Write tool results and step boundaries to the stream so the
           // UI can transition tool parts to output-available state and
           // properly separate multi-step model calls in the message history.
           if (options.writable) {
-            await writeToolResultsWithStepBoundary(
+            await writeToolResults(
               options.writable,
               executedToolResults.map(r => ({
-                toolCallId: r.toolCallId,
-                toolName: r.toolName,
-                input: toolCalls.find(tc => tc.toolCallId === r.toolCallId)
-                  ?.input,
-                output: 'value' in r.output ? r.output.value : undefined,
+                toolCallId: r.modelResult.toolCallId,
+                toolName: r.modelResult.toolName,
+                input: toolCalls.find(
+                  tc => tc.toolCallId === r.modelResult.toolCallId,
+                )?.input,
+                output: r.rawOutput,
               })),
+              true,
             );
           }
 
@@ -2149,10 +2594,12 @@ export class WorkflowAgent<
           }));
           lastStepToolResults = executedToolResults.map(r => ({
             type: 'tool-result' as const,
-            toolCallId: r.toolCallId,
-            toolName: r.toolName,
-            input: toolCalls.find(tc => tc.toolCallId === r.toolCallId)?.input,
-            output: 'value' in r.output ? r.output.value : undefined,
+            toolCallId: r.modelResult.toolCallId,
+            toolName: r.modelResult.toolName,
+            input: toolCalls.find(
+              tc => tc.toolCallId === r.modelResult.toolCallId,
+            )?.input,
+            output: r.rawOutput,
           }));
 
           result = await iterator.next(continuationToolResults);
@@ -2164,14 +2611,29 @@ export class WorkflowAgent<
         }
       }
 
-      // When the iterator completes normally, result.value contains the final conversation prompt
+      // When the iterator completes normally, result.value contains the final
+      // conversation prompt. Aborts inside the retryable model step are
+      // returned as data so the workflow runtime does not retry them.
       if (result.done) {
-        finalMessages = result.value;
+        if (Array.isArray(result.value)) {
+          finalMessages = result.value;
+        } else if ('error' in result.value) {
+          finalMessages = result.value.messages;
+          terminalError = result.value.error;
+          hasTerminalError = true;
+        } else {
+          finalMessages = result.value.messages;
+          wasAborted = true;
+          if (options.onAbort) {
+            await options.onAbort({ steps });
+          }
+        }
       }
     } catch (error) {
       encounteredError = error;
+      hasEncounteredError = true;
       // Check if this is an abort error
-      if (error instanceof Error && error.name === 'AbortError') {
+      if (isAbortError(error)) {
         wasAborted = true;
         if (options.onAbort) {
           await options.onAbort({ steps });
@@ -2181,7 +2643,14 @@ export class WorkflowAgent<
         await options.onError({ error });
       }
       await telemetryDispatcher.onError?.(error);
-      // Don't throw yet - we want to call onFinish first
+      // Don't throw yet - we want to call onEnd first
+    }
+
+    if (hasTerminalError) {
+      if (options.onError) {
+        await options.onError({ error: terminalError });
+      }
+      await telemetryDispatcher.onError?.(terminalError);
     }
 
     // Use the final messages from the iterator, or fall back to standardized messages
@@ -2207,22 +2676,27 @@ export class WorkflowAgent<
         } catch (parseError) {
           // If there's already an error, don't override it
           // If not, set this as the error
-          if (!encounteredError) {
+          if (!hasEncounteredError) {
             encounteredError = parseError;
+            hasEncounteredError = true;
           }
         }
       }
     }
 
-    // Call onFinish callback if provided (always call, even on errors, but not on abort)
-    if (mergedOnFinish && !wasAborted) {
-      const lastStep = steps[steps.length - 1];
-      await mergedOnFinish({
+    const lastStep = steps[steps.length - 1];
+    const totalUsage = aggregateUsage(steps);
+    const finishReason = lastStep?.finishReason ?? 'other';
+
+    // Call onEnd callback if provided (always call, even on errors, but not on abort)
+    if (mergedOnEnd && !wasAborted) {
+      await mergedOnEnd({
         steps,
         messages: messages as ModelMessage[],
         text: lastStep?.text ?? '',
-        finishReason: lastStep?.finishReason ?? 'other',
-        totalUsage: aggregateUsage(steps),
+        finishReason,
+        usage: totalUsage,
+        totalUsage,
         runtimeContext,
         toolsContext: toolsContext as unknown as InferToolSetContext<TTools>,
         output: experimentalOutput,
@@ -2230,16 +2704,17 @@ export class WorkflowAgent<
     }
     if (!wasAborted && steps.length > 0) {
       const telemetrySteps = steps.map(normalizeStepForTelemetry);
-      const lastStep = telemetrySteps[telemetrySteps.length - 1];
+      const lastTelemetryStep = telemetrySteps[telemetrySteps.length - 1];
       await telemetryDispatcher.onEnd?.({
-        ...lastStep,
+        ...lastTelemetryStep,
         steps: telemetrySteps,
-        totalUsage: aggregateUsage(steps),
+        usage: totalUsage,
+        totalUsage,
       });
     }
 
     // Re-throw any error that occurred
-    if (encounteredError) {
+    if (hasEncounteredError) {
       // Close the stream before throwing
       if (options.writable) {
         const sendFinish = options.sendFinish ?? true;
@@ -2265,7 +2740,10 @@ export class WorkflowAgent<
       steps,
       toolCalls: lastStepToolCalls,
       toolResults: lastStepToolResults,
+      finishReason,
+      totalUsage,
       output: experimentalOutput,
+      ...(hasTerminalError ? { error: terminalError } : {}),
     };
   }
 }
@@ -2325,16 +2803,21 @@ async function closeStream(
  */
 async function writeApprovalRequests(
   writable: WritableStream<any>,
-  toolCalls: Array<{ toolCallId: string; toolName: string }>,
+  approvalRequests: Array<{
+    approvalId: string;
+    toolCallId: string;
+    signature?: string;
+  }>,
 ) {
   'use step';
   const writer = writable.getWriter();
   try {
-    for (const tc of toolCalls) {
+    for (const request of approvalRequests) {
       await writer.write({
         type: 'tool-approval-request',
-        approvalId: `approval-${tc.toolCallId}`,
-        toolCallId: tc.toolCallId,
+        approvalId: request.approvalId,
+        toolCallId: request.toolCallId,
+        ...(request.signature != null ? { signature: request.signature } : {}),
       });
     }
   } finally {
@@ -2342,7 +2825,117 @@ async function writeApprovalRequests(
   }
 }
 
-async function writeToolResultsWithStepBoundary(
+async function signWorkflowToolApproval({
+  secret,
+  approvalId,
+  toolCallId,
+  toolName,
+  input,
+}: {
+  secret: WorkflowToolApprovalSecret;
+  approvalId: string;
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+}): Promise<string> {
+  'use step';
+
+  return signToolApproval({
+    secret: getWorkflowToolApprovalSecret(secret),
+    approvalId,
+    toolCallId,
+    toolName,
+    input,
+  });
+}
+
+async function verifyWorkflowToolApprovalSignature({
+  secret,
+  signature,
+  approvalId,
+  toolCallId,
+  toolName,
+  input,
+}: {
+  secret: WorkflowToolApprovalSecret;
+  signature: string;
+  approvalId: string;
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+}): Promise<boolean> {
+  'use step';
+
+  return verifyToolApprovalSignature({
+    secret: getWorkflowToolApprovalSecret(secret),
+    signature,
+    approvalId,
+    toolCallId,
+    toolName,
+    input,
+  });
+}
+
+async function validateWorkflowToolApprovalSignature({
+  secret,
+  signature,
+  approvalId,
+  toolCallId,
+  toolName,
+  input,
+}: {
+  secret: WorkflowToolApprovalSecret | undefined;
+  signature: string | undefined;
+  approvalId: string;
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+}): Promise<void> {
+  if (secret == null) {
+    return;
+  }
+
+  if (signature == null) {
+    throw new InvalidToolApprovalSignatureError({
+      approvalId,
+      toolCallId,
+      reason: 'missing signature',
+    });
+  }
+
+  const valid = await verifyWorkflowToolApprovalSignature({
+    secret,
+    signature,
+    approvalId,
+    toolCallId,
+    toolName,
+    input,
+  });
+
+  if (!valid) {
+    throw new InvalidToolApprovalSignatureError({
+      approvalId,
+      toolCallId,
+      reason: 'invalid signature',
+    });
+  }
+}
+
+function getWorkflowToolApprovalSecret({
+  environmentVariable,
+}: WorkflowToolApprovalSecret): string {
+  const secret = process.env[environmentVariable];
+
+  if (secret == null) {
+    throw new Error(
+      `Tool approval secret environment variable "${environmentVariable}" is not set`,
+    );
+  }
+
+  return secret;
+}
+
+async function writeToolResults(
   writable: WritableStream<any>,
   results: Array<{
     toolCallId: string;
@@ -2350,6 +2943,7 @@ async function writeToolResultsWithStepBoundary(
     input: unknown;
     output: unknown;
   }>,
+  writeStepBoundary = false,
 ) {
   'use step';
   const writer = writable.getWriter();
@@ -2363,12 +2957,14 @@ async function writeToolResultsWithStepBoundary(
         output: r.output,
       });
     }
-    // Emit step boundaries so the UI message history properly separates
-    // the tool call step from the subsequent text step. This ensures
-    // convertToModelMessages creates separate assistant messages for
-    // tool calls and text responses.
-    await writer.write({ type: 'finish-step' });
-    await writer.write({ type: 'start-step' });
+    if (writeStepBoundary) {
+      // Emit step boundaries so the UI message history properly separates
+      // the tool call step from the subsequent text step. This ensures
+      // convertToModelMessages creates separate assistant messages for
+      // tool calls and text responses.
+      await writer.write({ type: 'finish-step' });
+      await writer.write({ type: 'start-step' });
+    }
   } finally {
     writer.releaseLock();
   }
@@ -2450,30 +3046,15 @@ function aggregateUsage(steps: StepResult<any, any>[]): LanguageModelUsage {
   } as LanguageModelUsage;
 }
 
-// Matches AI SDK's getErrorMessage from @ai-sdk/provider-utils
-function getErrorMessage(error: unknown): string {
-  if (error == null) {
-    return 'unknown error';
-  }
-
-  if (typeof error === 'string') {
-    return error;
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return JSON.stringify(error);
-}
-
-function resolveProviderToolResult(
-  toolCall: { toolCallId: string; toolName: string },
+async function resolveProviderToolResult(
+  toolCall: { toolCallId: string; toolName: string; input: unknown },
   providerExecutedToolResults?: Map<
     string,
     { toolCallId: string; toolName: string; result: unknown; isError?: boolean }
   >,
-): LanguageModelV4ToolResultPart {
+  tools?: ToolSet,
+  download?: DownloadFunction,
+): Promise<WorkflowToolExecutionResult> {
   const streamResult = providerExecutedToolResults?.get(toolCall.toolCallId);
   if (!streamResult) {
     console.warn(
@@ -2481,36 +3062,45 @@ function resolveProviderToolResult(
         `did not receive a result from the stream. This may indicate a provider issue.`,
     );
     return {
-      type: 'tool-result' as const,
-      toolCallId: toolCall.toolCallId,
-      toolName: toolCall.toolName,
-      output: {
-        type: 'text' as const,
-        value: '',
+      modelResult: {
+        type: 'tool-result' as const,
+        toolCallId: toolCall.toolCallId,
+        toolName: toolCall.toolName,
+        output: {
+          type: 'text' as const,
+          value: '',
+        },
       },
+      rawOutput: '',
+      isError: false,
     };
   }
 
   const result = streamResult.result;
-  const isString = typeof result === 'string';
+  const errorMode = streamResult.isError
+    ? typeof result === 'string'
+      ? 'text'
+      : 'json'
+    : 'none';
 
   return {
-    type: 'tool-result' as const,
-    toolCallId: toolCall.toolCallId,
-    toolName: toolCall.toolName,
-    output: isString
-      ? streamResult.isError
-        ? { type: 'error-text' as const, value: result }
-        : { type: 'text' as const, value: result }
-      : streamResult.isError
-        ? {
-            type: 'error-json' as const,
-            value: result as JSONValue,
-          }
-        : {
-            type: 'json' as const,
-            value: result as JSONValue,
-          },
+    modelResult: {
+      type: 'tool-result' as const,
+      toolCallId: toolCall.toolCallId,
+      toolName: toolCall.toolName,
+      output: await createLanguageModelToolResultOutput({
+        toolCallId: toolCall.toolCallId,
+        toolName: toolCall.toolName,
+        input: toolCall.input,
+        output: result,
+        tool: tools?.[toolCall.toolName],
+        errorMode,
+        supportedUrls: {},
+        download,
+      }),
+    },
+    rawOutput: result,
+    isError: streamResult.isError === true,
   };
 }
 
@@ -2543,7 +3133,9 @@ async function executeTool(
   tools: ToolSet,
   messages: LanguageModelV4Prompt,
   context?: unknown,
-): Promise<LanguageModelV4ToolResultPart> {
+  download?: DownloadFunction,
+  sandbox?: SandboxSession,
+): Promise<WorkflowToolExecutionResult> {
   const tool = tools[toolCall.toolName];
   if (!tool) throw new Error(`Tool "${toolCall.toolName}" not found`);
   if (typeof tool.execute !== 'function') {
@@ -2554,6 +3146,7 @@ async function executeTool(
   }
   // Input is already parsed and validated by streamModelCall's parseToolCall
   const parsedInput = toolCall.input;
+  let toolResult: unknown;
 
   try {
     // Extract execute function to avoid binding `this` to the tool object.
@@ -2562,149 +3155,57 @@ async function executeTool(
     // When the execute function is a workflow step (marked with 'use step'),
     // the step system captures `this` for serialization, causing failures.
     const { execute } = tool;
-    const toolResult = await execute(parsedInput, {
+    toolResult = await execute(parsedInput, {
       toolCallId: toolCall.toolCallId,
       // Pass the conversation messages to the tool so it has context about the conversation
       messages,
       // Pass per-tool context to the tool (resolved from `toolsContext`)
       context,
+      experimental_sandbox: sandbox,
     });
-
-    // Use the appropriate output type based on the result
-    // AI SDK supports 'text' for strings and 'json' for objects
-    const output =
-      typeof toolResult === 'string'
-        ? { type: 'text' as const, value: toolResult }
-        : { type: 'json' as const, value: toolResult };
-
-    return {
-      type: 'tool-result' as const,
-      toolCallId: toolCall.toolCallId,
-      toolName: toolCall.toolName,
-      output,
-    };
   } catch (error) {
     // Convert tool errors to error-text results sent back to the model,
     // allowing the agent to recover rather than killing the entire stream.
     // This aligns with AI SDK's streamText behavior for individual tool failures.
+    const errorMessage = getErrorMessage(error);
     return {
-      type: 'tool-result',
+      modelResult: {
+        type: 'tool-result',
+        toolCallId: toolCall.toolCallId,
+        toolName: toolCall.toolName,
+        output: await createLanguageModelToolResultOutput({
+          toolCallId: toolCall.toolCallId,
+          toolName: toolCall.toolName,
+          input: parsedInput,
+          output: errorMessage,
+          tool,
+          errorMode: 'text',
+          supportedUrls: {},
+          download,
+        }),
+      },
+      rawOutput: errorMessage,
+      isError: true,
+    };
+  }
+
+  return {
+    modelResult: {
+      type: 'tool-result' as const,
       toolCallId: toolCall.toolCallId,
       toolName: toolCall.toolName,
-      output: {
-        type: 'error-text',
-        value: getErrorMessage(error),
-      },
-    };
-  }
-}
-
-/**
- * Collected tool approval information for a single tool call.
- */
-interface CollectedApproval {
-  toolCallId: string;
-  toolName: string;
-  input: unknown;
-  approvalId: string;
-  reason?: string;
-}
-
-/**
- * Collect tool approval responses from model messages.
- * Mirrors the logic from `collectToolApprovals` in the AI SDK core
- * (`packages/ai/src/generate-text/collect-tool-approvals.ts`).
- *
- * Scans the last tool message for `tool-approval-response` parts,
- * matches them with `tool-approval-request` parts in assistant messages
- * and the corresponding `tool-call` parts.
- */
-function collectToolApprovalsFromMessages(messages: ModelMessage[]): {
-  approvedToolApprovals: CollectedApproval[];
-  deniedToolApprovals: CollectedApproval[];
-} {
-  const lastMessage = messages.at(-1);
-
-  if (lastMessage?.role !== 'tool') {
-    return { approvedToolApprovals: [], deniedToolApprovals: [] };
-  }
-
-  // Gather tool calls from assistant messages
-  const toolCallsByToolCallId: Record<
-    string,
-    { toolName: string; input: unknown }
-  > = {};
-  for (const message of messages) {
-    if (message.role === 'assistant' && Array.isArray(message.content)) {
-      for (const part of message.content as any[]) {
-        if (part.type === 'tool-call') {
-          toolCallsByToolCallId[part.toolCallId] = {
-            toolName: part.toolName,
-            input: part.input ?? part.args,
-          };
-        }
-      }
-    }
-  }
-
-  // Gather approval requests from assistant messages
-  const approvalRequestsByApprovalId: Record<
-    string,
-    { approvalId: string; toolCallId: string }
-  > = {};
-  for (const message of messages) {
-    if (message.role === 'assistant' && Array.isArray(message.content)) {
-      for (const part of message.content as any[]) {
-        if (part.type === 'tool-approval-request') {
-          approvalRequestsByApprovalId[part.approvalId] = {
-            approvalId: part.approvalId,
-            toolCallId: part.toolCallId,
-          };
-        }
-      }
-    }
-  }
-
-  // Gather existing tool results to avoid re-executing
-  const existingToolResults = new Set<string>();
-  for (const part of lastMessage.content as any[]) {
-    if (part.type === 'tool-result') {
-      existingToolResults.add(part.toolCallId);
-    }
-  }
-
-  const approvedToolApprovals: CollectedApproval[] = [];
-  const deniedToolApprovals: CollectedApproval[] = [];
-
-  // Collect approval responses from the last tool message
-  const approvalResponses = (lastMessage.content as any[]).filter(
-    (part: any) => part.type === 'tool-approval-response',
-  );
-
-  for (const response of approvalResponses) {
-    const approvalRequest = approvalRequestsByApprovalId[response.approvalId];
-    if (approvalRequest == null) continue;
-
-    // Skip if there's already a tool result for this tool call
-    if (existingToolResults.has(approvalRequest.toolCallId)) continue;
-
-    const toolCall = toolCallsByToolCallId[approvalRequest.toolCallId];
-    if (toolCall == null) continue;
-
-    const approval: CollectedApproval = {
-      toolCallId: approvalRequest.toolCallId,
-      toolName: toolCall.toolName,
-      input: toolCall.input,
-      approvalId: response.approvalId,
-      reason: response.reason,
-    };
-
-    if (response.approved) {
-      approvedToolApprovals.push(approval);
-    } else {
-      deniedToolApprovals.push(approval);
-    }
-  }
-
-  return { approvedToolApprovals, deniedToolApprovals };
+      output: await createLanguageModelToolResultOutput({
+        toolCallId: toolCall.toolCallId,
+        toolName: toolCall.toolName,
+        input: parsedInput,
+        output: toolResult,
+        tool,
+        errorMode: 'none',
+        supportedUrls: {},
+        download,
+      }),
+    },
+    rawOutput: toolResult,
+    isError: false,
+  };
 }

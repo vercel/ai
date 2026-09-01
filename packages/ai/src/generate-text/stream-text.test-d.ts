@@ -1,20 +1,213 @@
 import type { JSONValue } from '@ai-sdk/provider';
 import {
+  experimental_toolCaller,
   tool,
   type Context,
   type ModelMessage,
   type Tool,
 } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
-import { z } from 'zod';
-import { Output, streamText } from '../generate-text';
+import { z } from 'zod/v4';
+import {
+  Output,
+  streamText,
+  type StreamTextEndEvent,
+  type StreamTextOnEndCallback,
+} from '../generate-text';
 import type { Instructions } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import type { ProviderMetadata } from '../types';
+import type { UIMessage } from '../ui';
+import type {
+  UIMessageStreamOnEndCallback,
+  UIMessageStreamOnFinishCallback,
+} from '../ui-message-stream';
 import type { AsyncIterableStream } from '../util';
 import type { DeepPartial } from '../util/deep-partial';
+import type { GenerateTextEndEvent } from './generate-text-events';
 import type { ResponseMessage } from './response-message';
+import type { StepResult } from './step-result';
 
 describe('streamText types', () => {
+  describe('onLanguageModelCallEnd', () => {
+    it('should expose provider metadata', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onLanguageModelCallEnd: event => {
+          expectTypeOf(event.providerMetadata).toEqualTypeOf<
+            ProviderMetadata | undefined
+          >();
+        },
+      });
+    });
+  });
+
+  describe('experimental_toolCallers', () => {
+    it('should accept caller-capable tool names', () => {
+      const codeMode = experimental_toolCaller(
+        tool({
+          inputSchema: z.object({}),
+          execute: async () => undefined,
+        }),
+        {
+          type: 'local',
+          bind: () =>
+            tool({
+              inputSchema: z.object({}),
+              execute: async () => undefined,
+            }),
+        },
+      );
+
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        tools: {
+          code_mode: codeMode,
+          getInventory: tool({
+            inputSchema: z.object({ sku: z.string() }),
+            execute: async ({ sku }) => ({ sku }),
+          }),
+        },
+        experimental_toolCallers: {
+          getInventory: ['AI_SDK_DIRECT_TOOL_CALL', 'code_mode'],
+        },
+      });
+    });
+  });
+
+  describe('timeout', () => {
+    it('should accept a first chunk timeout', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        timeout: { firstChunkMs: 1000 },
+      });
+    });
+  });
+
+  describe('onEnd', () => {
+    it('should expose end event properties', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onEnd: event => {
+          expectTypeOf(event).toMatchTypeOf<GenerateTextEndEvent>();
+          expectTypeOf(event.totalUsage).toEqualTypeOf<
+            GenerateTextEndEvent['usage']
+          >();
+          expectTypeOf(event.reasoning).toEqualTypeOf<
+            StepResult<any>['reasoning']
+          >();
+          expectTypeOf(event.reasoningText).toEqualTypeOf<string | undefined>();
+          expectTypeOf(event.request).toEqualTypeOf<
+            StepResult<any>['request']
+          >();
+          expectTypeOf(event.response).toEqualTypeOf<
+            StepResult<any>['response']
+          >();
+          expectTypeOf(event.providerMetadata).toEqualTypeOf<
+            StepResult<any>['providerMetadata']
+          >();
+        },
+      });
+    });
+
+    it('should infer structured output for reusable callbacks', () => {
+      const output = Output.object({
+        schema: z.object({ value: z.string() }),
+      });
+      const onEnd: StreamTextOnEndCallback<
+        {},
+        Context,
+        typeof output
+      > = event => {
+        expectTypeOf(event).toEqualTypeOf<
+          StreamTextEndEvent<{}, Context, typeof output>
+        >();
+        expectTypeOf(event.output).toEqualTypeOf<
+          { value: string } | undefined
+        >();
+      };
+
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        output,
+        onEnd,
+      });
+    });
+  });
+
+  describe('onFinish compatibility', () => {
+    it('should expose deprecated AI SDK 6 properties', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onFinish: event => {
+          expectTypeOf(event).toMatchTypeOf<GenerateTextEndEvent>();
+          expectTypeOf(event.totalUsage).toEqualTypeOf<
+            GenerateTextEndEvent['usage']
+          >();
+          expectTypeOf(event.reasoning).toEqualTypeOf<
+            StepResult<any>['reasoning']
+          >();
+          expectTypeOf(event.reasoningText).toEqualTypeOf<string | undefined>();
+          expectTypeOf(event.request).toEqualTypeOf<
+            StepResult<any>['request']
+          >();
+          expectTypeOf(event.response).toEqualTypeOf<
+            StepResult<any>['response']
+          >();
+          expectTypeOf(event.providerMetadata).toEqualTypeOf<
+            StepResult<any>['providerMetadata']
+          >();
+        },
+      });
+    });
+
+    it('should infer structured output', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        output: Output.object({
+          schema: z.object({ value: z.string() }),
+        }),
+        onFinish: event => {
+          expectTypeOf(event.output).toEqualTypeOf<
+            { value: string } | undefined
+          >();
+        },
+      });
+    });
+  });
+
+  describe('toUIMessageStream options', () => {
+    it('should support onEnd and deprecated onFinish', () => {
+      const result = streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+      });
+
+      result.toUIMessageStream({
+        onEnd: event => {
+          expectTypeOf(event).toMatchTypeOf<
+            Parameters<UIMessageStreamOnEndCallback<UIMessage>>[0]
+          >();
+        },
+      });
+
+      result.toUIMessageStream({
+        onFinish: event => {
+          expectTypeOf(event).toMatchTypeOf<
+            Parameters<UIMessageStreamOnFinishCallback<UIMessage>>[0]
+          >();
+        },
+      });
+    });
+  });
+
   describe('output', () => {
     it('should infer text output type (default)', async () => {
       const result = streamText({
@@ -153,6 +346,21 @@ describe('streamText types', () => {
 
       expectTypeOf<typeof result.partialOutputStream>().toEqualTypeOf<
         AsyncIterableStream<JSONValue>
+      >();
+    });
+  });
+
+  describe('stream', () => {
+    it('should infer stream part type', () => {
+      const result = streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello, world!',
+      });
+
+      const stream: AsyncIterableStream<unknown> = result.stream;
+
+      expectTypeOf<typeof stream>().toEqualTypeOf<
+        AsyncIterableStream<unknown>
       >();
     });
   });
@@ -392,19 +600,19 @@ describe('streamText types', () => {
         telemetry: {
           includeRuntimeContext: { userId: true },
         },
-        experimental_onStart: ({ runtimeContext }) => {
+        onStart: ({ runtimeContext }) => {
           expectTypeOf(runtimeContext).toEqualTypeOf<{
             userId: string;
             requestId: string;
           }>();
         },
-        experimental_onStepStart: ({ runtimeContext }) => {
+        onStepStart: ({ runtimeContext }) => {
           expectTypeOf(runtimeContext).toEqualTypeOf<{
             userId: string;
             requestId: string;
           }>();
         },
-        onStepFinish: ({ runtimeContext }) => {
+        onStepEnd: ({ runtimeContext }) => {
           expectTypeOf(runtimeContext).toEqualTypeOf<{
             userId: string;
             requestId: string;
@@ -517,12 +725,46 @@ describe('streamText types', () => {
           prepareStep: () => ({
             experimental_sandbox: {
               description: 'test sandbox',
-              runCommand: async () => ({
+              run: async () => ({
                 exitCode: 0,
                 stdout: 'ok',
                 stderr: '',
               }),
+              readFile: async () => null,
+              readBinaryFile: async () => null,
+              readTextFile: async () => null,
+              writeFile: async () => {},
+              writeBinaryFile: async () => {},
+              writeTextFile: async () => {},
+              spawn: async () => ({
+                stdout: new ReadableStream<Uint8Array>({
+                  start: c => c.close(),
+                }),
+                stderr: new ReadableStream<Uint8Array>({
+                  start: c => c.close(),
+                }),
+                wait: async () => ({ exitCode: 0 }),
+                kill: async () => {},
+              }),
             },
+          }),
+        });
+      });
+
+      it('should accept model call setting overrides', async () => {
+        streamText({
+          model: new MockLanguageModelV4(),
+          prompt: 'Hello',
+          prepareStep: () => ({
+            maxOutputTokens: 100,
+            temperature: 0,
+            topP: 0.9,
+            topK: 40,
+            presencePenalty: 0,
+            frequencyPenalty: 0,
+            stopSequences: ['stop'],
+            seed: 0,
+            reasoning: 'high',
           }),
         });
       });

@@ -32,6 +32,10 @@ export type GoogleInteractionsModelId =
   | 'gemini-3.1-flash-image-preview'
   | 'gemini-3.1-flash-lite-preview'
   | 'gemini-3.1-flash-tts-preview'
+  | 'gemini-3.5-flash'
+  | 'gemini-3.5-flash-lite'
+  | 'gemini-3.6-flash'
+  | 'gemini-3.7-flash'
   | 'lyria-3-clip-preview'
   | 'lyria-3-pro-preview'
   | (string & {});
@@ -71,8 +75,8 @@ export const googleInteractionsLanguageModelOptions = lazySchema(() =>
 
       /**
        * Output-format entries that map directly to the API's `response_format`
-       * array. Use this to request image, audio, or non-JSON text outputs
-       * with full control over `mime_type`, `aspect_ratio`, and `image_size`.
+       * array. Use this to request image, audio, video, or non-JSON text
+       * outputs with modality-specific controls.
        *
        * Entries are sent in order. The AI SDK call-level `responseFormat: {
        * type: 'json', schema }` still drives JSON-mode and adds a matching
@@ -117,6 +121,16 @@ export const googleInteractionsLanguageModelOptions = lazySchema(() =>
               .object({
                 type: z.literal('audio'),
                 mimeType: z.string().nullish(),
+              })
+              .loose(),
+            z
+              .object({
+                type: z.literal('video'),
+                aspectRatio: z.enum(['16:9', '9:16']).nullish(),
+                resolution: z.enum(['360p', '720p', '1080p', '4k']).nullish(),
+                duration: z.string().nullish(),
+                delivery: z.enum(['inline', 'uri']).nullish(),
+                gcsUri: z.string().nullish(),
               })
               .loose(),
           ]),
@@ -188,6 +202,70 @@ export const googleInteractionsLanguageModelOptions = lazySchema(() =>
        * such as deep research can take tens of minutes — increase if needed.
        */
       pollingTimeoutMs: z.number().int().positive().nullish(),
+
+      /**
+       * Run the interaction in the background. Required for agents whose
+       * server-side workflow cannot complete within a single request/response.
+       * When `true`, the POST returns with a non-terminal status and the SDK
+       * polls `GET /interactions/{id}` until the work completes. Some agents
+       * reject `true`; see the agent's documentation for which mode it
+       * requires.
+       */
+      background: z.boolean().nullish(),
+
+      /**
+       * Environment configuration for the agent sandbox. Only applies to agent
+       * calls (`google.interactions({ agent })`); ignored on model-id calls.
+       *
+       *   - `"remote"`: provision a fresh sandbox for this call.
+       *   - any other string: an existing `environment_id` to reuse.
+       *   - object: provision a fresh sandbox and optionally preload `sources`
+       *     and/or constrain outbound traffic via `network`.
+       */
+      environment: z
+        .union([
+          z.string(),
+          z.object({
+            type: z.literal('remote'),
+            sources: z
+              .array(
+                z.union([
+                  z.object({
+                    type: z.literal('gcs'),
+                    source: z.string(),
+                    target: z.string().nullish(),
+                  }),
+                  z.object({
+                    type: z.literal('repository'),
+                    source: z.string(),
+                    target: z.string().nullish(),
+                  }),
+                  z.object({
+                    type: z.literal('inline'),
+                    content: z.string(),
+                    target: z.string(),
+                  }),
+                ]),
+              )
+              .nullish(),
+            network: z
+              .union([
+                z.literal('disabled'),
+                z.object({
+                  allowlist: z.array(
+                    z.object({
+                      domain: z.string(),
+                      transform: z
+                        .array(z.record(z.string(), z.string()))
+                        .nullish(),
+                    }),
+                  ),
+                }),
+              ])
+              .nullish(),
+          }),
+        ])
+        .nullish(),
     }),
   ),
 );

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { OpenAICompatibleImageModel } from './openai-compatible-image-model';
+import type { OpenAICompatibleImageModelOptions } from './openai-compatible-image-model-options';
 import { z } from 'zod/v4';
 import type { ProviderErrorStructure } from '../openai-compatible-error';
 import type { ImageModelV4CallOptions } from '@ai-sdk/provider';
@@ -96,7 +97,11 @@ describe('OpenAICompatibleImageModel', () => {
       await model.doGenerate(
         createDefaultGenerateParams({
           n: 2,
-          providerOptions: { openaiCompatible: { quality: 'hd' } },
+          providerOptions: {
+            openaiCompatible: {
+              quality: 'hd',
+            } satisfies OpenAICompatibleImageModelOptions,
+          },
         }),
       );
 
@@ -106,7 +111,6 @@ describe('OpenAICompatibleImageModel', () => {
         n: 2,
         size: '1024x1024',
         quality: 'hd',
-        response_format: 'b64_json',
       });
     });
 
@@ -120,7 +124,11 @@ describe('OpenAICompatibleImageModel', () => {
       await recraftModel.doGenerate(
         createDefaultGenerateParams({
           prompt: 'A beautiful sunset',
-          providerOptions: { recraft: { style: 'vector_illustration' } },
+          providerOptions: {
+            recraft: {
+              style: 'vector_illustration',
+            } satisfies OpenAICompatibleImageModelOptions,
+          },
         }),
       );
 
@@ -130,7 +138,35 @@ describe('OpenAICompatibleImageModel', () => {
         n: 1,
         size: '1024x1024',
         style: 'vector_illustration',
-        response_format: 'b64_json',
+      });
+    });
+
+    it('should pass typed image output options', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate(
+        createDefaultGenerateParams({
+          providerOptions: {
+            openaiCompatible: {
+              size: 'auto',
+              quality: 'high',
+              output_format: 'jpeg',
+              output_compression: 80,
+              background: 'opaque',
+            } satisfies OpenAICompatibleImageModelOptions,
+          },
+        }),
+      );
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'dall-e-3',
+        prompt,
+        n: 1,
+        size: 'auto',
+        quality: 'high',
+        output_format: 'jpeg',
+        output_compression: 80,
+        background: 'opaque',
       });
     });
 
@@ -306,6 +342,91 @@ describe('OpenAICompatibleImageModel', () => {
       expect(result.images[1]).toBe('test5678');
     });
 
+    describe('usage', () => {
+      it('should map the usage object reported by the provider', async () => {
+        server.urls[
+          'https://api.example.com/dall-e-3/images/generations'
+        ].response = {
+          type: 'json-value',
+          body: {
+            data: [{ b64_json: 'test1234' }],
+            usage: {
+              input_tokens: 12,
+              output_tokens: 4,
+              total_tokens: 16,
+            },
+          },
+        };
+
+        const model = createBasicModel();
+        const result = await model.doGenerate(createDefaultGenerateParams());
+
+        expect(result.usage).toStrictEqual({
+          inputTokens: 12,
+          outputTokens: 4,
+          totalTokens: 16,
+        });
+      });
+
+      it('should return undefined usage when the provider omits it', async () => {
+        const model = createBasicModel();
+        const result = await model.doGenerate(createDefaultGenerateParams());
+
+        expect(result.usage).toBeUndefined();
+      });
+
+      it('should map null usage fields to undefined', async () => {
+        server.urls[
+          'https://api.example.com/dall-e-3/images/generations'
+        ].response = {
+          type: 'json-value',
+          body: {
+            data: [{ b64_json: 'test1234' }],
+            usage: {
+              input_tokens: 7,
+              output_tokens: null,
+              total_tokens: null,
+            },
+          },
+        };
+
+        const model = createBasicModel();
+        const result = await model.doGenerate(createDefaultGenerateParams());
+
+        expect(result.usage).toStrictEqual({
+          inputTokens: 7,
+          outputTokens: undefined,
+          totalTokens: undefined,
+        });
+      });
+
+      it('should ignore unknown usage fields', async () => {
+        server.urls[
+          'https://api.example.com/dall-e-3/images/generations'
+        ].response = {
+          type: 'json-value',
+          body: {
+            data: [{ b64_json: 'test1234' }],
+            usage: {
+              input_tokens: 3,
+              output_tokens: 1,
+              total_tokens: 4,
+              input_tokens_details: { image_tokens: 2, text_tokens: 1 },
+            },
+          },
+        };
+
+        const model = createBasicModel();
+        const result = await model.doGenerate(createDefaultGenerateParams());
+
+        expect(result.usage).toStrictEqual({
+          inputTokens: 3,
+          outputTokens: 1,
+          totalTokens: 4,
+        });
+      });
+    });
+
     describe('response metadata', () => {
       it('should include timestamp, headers and modelId in response', async () => {
         const testDate = new Date('2024-01-01T00:00:00Z');
@@ -364,7 +485,6 @@ describe('OpenAICompatibleImageModel', () => {
         n: 1,
         size: '1024x1024',
         user: 'test-user-id',
-        response_format: 'b64_json',
       });
     });
 
@@ -385,7 +505,6 @@ describe('OpenAICompatibleImageModel', () => {
         prompt,
         n: 1,
         size: '1024x1024',
-        response_format: 'b64_json',
       });
       expect(requestBody).not.toHaveProperty('user');
     });
@@ -533,6 +652,64 @@ describe('OpenAICompatibleImageModel', () => {
         modelId: 'dall-e-3',
         headers: expect.any(Object),
       });
+    });
+
+    it('should map usage for edit requests', async () => {
+      editServer.urls[
+        'https://api.example.com/dall-e-3/images/edits'
+      ].response = {
+        type: 'json-value',
+        body: {
+          data: [{ b64_json: 'edited-image-base64' }],
+          usage: {
+            input_tokens: 20,
+            output_tokens: 5,
+            total_tokens: 25,
+          },
+        },
+      };
+
+      const model = createBasicModel();
+      const imageData = new Uint8Array([137, 80, 78, 71]);
+
+      const result = await model.doGenerate(
+        createDefaultGenerateParams({
+          prompt: 'Edit this image',
+          files: [
+            {
+              type: 'file',
+              data: imageData,
+              mediaType: 'image/png',
+            },
+          ],
+        }),
+      );
+
+      expect(result.usage).toStrictEqual({
+        inputTokens: 20,
+        outputTokens: 5,
+        totalTokens: 25,
+      });
+    });
+
+    it('should return undefined usage for edit requests when omitted', async () => {
+      const model = createBasicModel();
+      const imageData = new Uint8Array([137, 80, 78, 71]);
+
+      const result = await model.doGenerate(
+        createDefaultGenerateParams({
+          prompt: 'Edit this image',
+          files: [
+            {
+              type: 'file',
+              data: imageData,
+              mediaType: 'image/png',
+            },
+          ],
+        }),
+      );
+
+      expect(result.usage).toBeUndefined();
     });
   });
 });

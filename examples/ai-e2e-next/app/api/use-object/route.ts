@@ -1,4 +1,4 @@
-import { Output, streamText } from 'ai';
+import { createTextStreamResponse, Output, streamText, toTextStream } from 'ai';
 import { notificationSchema } from './schema';
 
 // Allow streaming responses up to 30 seconds
@@ -13,5 +13,7 @@ export async function POST(req: Request) {
     output: Output.object({ schema: notificationSchema }),
   });
 
-  return result.toTextStreamResponse();
+  return createTextStreamResponse({
+    stream: toTextStream({ stream: result.stream }),
+  });
 }

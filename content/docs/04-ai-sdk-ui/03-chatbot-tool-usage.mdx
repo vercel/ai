@@ -49,7 +49,13 @@ In this example, we'll use three tools:
 ### API route
 
 ```tsx filename='app/api/chat/route.ts'
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+  UIMessage,
+} from 'ai';
 __PROVIDER_IMPORT__;
 import { z } from 'zod';
 
@@ -90,7 +96,9 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -120,7 +128,12 @@ There are three things worth mentioning:
    It asks the user for confirmation and displays the result once the user confirms or denies the execution.
    The result is added to the chat using `addToolOutput` with the `tool` parameter for type safety.
 
-```tsx filename='app/page.tsx' highlight="2,6,10,14-20"
+Typed tool parts also include the `approval-requested`, `approval-responded`,
+and `output-denied` states. Include these states when handling `part.state`
+exhaustively, even when a tool does not require approval. See
+[Tool execution approval](#tool-execution-approval) for a complete approval UI.
+
+```tsx filename='app/page.tsx' highlight="6,11,16,19-23,25-26,28-33,51,66-70,77-81"
 'use client';
 
 import { useChat } from '@ai-sdk/react';
@@ -209,6 +222,10 @@ export default function Chat() {
                         </div>
                       </div>
                     );
+                  case 'approval-requested':
+                    return <div key={callId}>Approval requested.</div>;
+                  case 'approval-responded':
+                    return <div key={callId}>Approval response received.</div>;
                   case 'output-available':
                     return (
                       <div key={callId}>
@@ -217,6 +234,8 @@ export default function Chat() {
                     );
                   case 'output-error':
                     return <div key={callId}>Error: {part.errorText}</div>;
+                  case 'output-denied':
+                    return <div key={callId}>Tool call denied.</div>;
                 }
                 break;
               }
@@ -231,6 +250,10 @@ export default function Chat() {
                     );
                   case 'input-available':
                     return <div key={callId}>Getting location...</div>;
+                  case 'approval-requested':
+                    return <div key={callId}>Approval requested.</div>;
+                  case 'approval-responded':
+                    return <div key={callId}>Approval response received.</div>;
                   case 'output-available':
                     return <div key={callId}>Location: {part.output}</div>;
                   case 'output-error':
@@ -239,6 +262,8 @@ export default function Chat() {
                         Error getting location: {part.errorText}
                       </div>
                     );
+                  case 'output-denied':
+                    return <div key={callId}>Location request denied.</div>;
                 }
                 break;
               }
@@ -258,6 +283,10 @@ export default function Chat() {
                         Getting weather information for {part.input.city}...
                       </div>
                     );
+                  case 'approval-requested':
+                    return <div key={callId}>Approval requested.</div>;
+                  case 'approval-responded':
+                    return <div key={callId}>Approval response received.</div>;
                   case 'output-available':
                     return (
                       <div key={callId}>
@@ -271,6 +300,8 @@ export default function Chat() {
                         {part.errorText}
                       </div>
                     );
+                  case 'output-denied':
+                    return <div key={callId}>Weather request denied.</div>;
                 }
                 break;
               }
@@ -367,7 +398,12 @@ Enable approval with `toolApproval` on `streamText`. The older
 `needsApproval` property on tools is deprecated. See [Tool Execution Approval](/docs/ai-sdk-core/tools-and-tool-calling#tool-execution-approval) for configuration options including dynamic approval based on input.
 
 ```tsx filename='app/api/chat/route.ts'
-import { streamText, tool } from 'ai';
+import {
+  createUIMessageStreamResponse,
+  streamText,
+  tool,
+  toUIMessageStream,
+} from 'ai';
 __PROVIDER_IMPORT__;
 import { z } from 'zod';
 
@@ -394,7 +430,9 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -433,6 +471,9 @@ export default function Chat() {
                   return (
                     <div key={part.toolCallId}>
                       <p>Get weather for {part.input.city}?</p>
+                      {part.approval.requestReason && (
+                        <p>{part.approval.requestReason}</p>
+                      )}
                       <button
                         onClick={() =>
                           addToolApprovalResponse({
@@ -498,6 +539,32 @@ decisions already arrive in the UI stream as `approval-requested` and
 `approval-responded` states, and denied executions continue to `output-denied`.
 If you return a `reason` from an automatic approval or denial, it is available
 as `part.approval.reason`.
+For manual approval requests, the reason for requiring approval is available as
+`part.approval.requestReason`. It remains separate from an optional response
+reason supplied to `addToolApprovalResponse`.
+
+Approval request chunks can also include an `approvalDescriptor` with opaque
+application-specific metadata. UI message processing exposes it as
+`part.approval.descriptor` in the `approval-requested` state and preserves it in
+subsequent approval-bearing states, including `approval-responded`. This lets
+clients render or persist server-computed approval metadata without using it to
+determine whether the tool was approved.
+
+### Securing Approvals for Sensitive Tools
+
+In the `useChat` pattern, the client sends the full message history to the server each turn. Without additional protection, a modified client could fabricate an approval response. For tools that perform sensitive operations, add `experimental_toolApprovalSecret` to your `streamText` call so the server cryptographically verifies that it issued the approval:
+
+```tsx filename='app/api/chat/route.ts' highlight="6"
+const result = streamText({
+  model: __MODEL__,
+  messages,
+  tools: { deleteFile },
+  toolApproval: { deleteFile: 'user-approval' },
+  experimental_toolApprovalSecret: process.env.TOOL_APPROVAL_SECRET,
+});
+```
+
+See [Security Considerations](/docs/agents/tool-approvals#security-considerations) for setup details.
 
 ### Auto-Submit After Approval
 
@@ -572,7 +639,9 @@ export async function POST(req: Request) {
     // ...
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -598,10 +667,16 @@ export default function Chat() {
                     return <pre>{JSON.stringify(part.input, null, 2)}</pre>;
                   case 'input-available':
                     return <pre>{JSON.stringify(part.input, null, 2)}</pre>;
+                  case 'approval-requested':
+                    return <div>Approval requested.</div>;
+                  case 'approval-responded':
+                    return <div>Approval response received.</div>;
                   case 'output-available':
                     return <pre>{JSON.stringify(part.output, null, 2)}</pre>;
                   case 'output-error':
                     return <div>Error: {part.errorText}</div>;
+                  case 'output-denied':
+                    return <div>Tool call denied.</div>;
                 }
             }
           })}
@@ -645,8 +720,15 @@ message.parts.map((part, index) => {
 You can also use multi-step calls on the server-side with `streamText`.
 This works when all invoked tools have an `execute` function on the server side.
 
-```tsx filename='app/api/chat/route.ts' highlight="15-21,24"
-import { convertToModelMessages, streamText, UIMessage, isStepCount } from 'ai';
+```tsx filename='app/api/chat/route.ts' highlight="22-28,31"
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  isStepCount,
+  streamText,
+  toUIMessageStream,
+  UIMessage,
+} from 'ai';
 __PROVIDER_IMPORT__;
 import { z } from 'zod';
 
@@ -672,7 +754,9 @@ export async function POST(req: Request) {
     stopWhen: isStepCount(5),
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -706,8 +790,11 @@ const result = streamText({
   // ...
 });
 
-return result.toUIMessageStreamResponse({
-  onError: errorHandler,
+return createUIMessageStreamResponse({
+  stream: toUIMessageStream({
+    stream: result.stream,
+    onError: errorHandler,
+  }),
 });
 ```
 

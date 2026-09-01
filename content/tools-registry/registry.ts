@@ -355,33 +355,35 @@ console.log(text);`,
     slug: 'tako-search',
     name: 'Tako Search',
     description:
-      "Search Tako's knowledge base for data visualizations, insights, and well-sourced information with charts and analytics.",
+      "Tako gives AI agents real-time, well-sourced data and charts across finance, economics, sports, demographics, and more. Search Tako's curated knowledge graph and the live web, get citation-backed answers, and fetch the data behind any result.",
     packageName: '@takoviz/ai-sdk',
+    tags: ['search', 'web', 'data', 'visualization', 'analytics'],
+    apiKeyEnvName: 'TAKO_API_KEY',
     installCommand: {
       pnpm: 'pnpm install @takoviz/ai-sdk',
       npm: 'npm install @takoviz/ai-sdk',
       yarn: 'yarn add @takoviz/ai-sdk',
       bun: 'bun add @takoviz/ai-sdk',
     },
-    codeExample: `import { takoSearch } from '@takoviz/ai-sdk';
-import { generateText, isStepCount } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { takoSearch, takoAnswer, takoContents } from '@takoviz/ai-sdk';
 
 const { text } = await generateText({
   model: 'openai/gpt-5.2',
-  prompt: 'What is the stock price of Nvidia?',
+  prompt: 'How have Nvidia and AMD employee counts compared since 2013?',
   tools: {
     takoSearch: takoSearch(),
+    takoAnswer: takoAnswer(),
+    takoContents: takoContents(),
   },
   stopWhen: isStepCount(5),
 });
 
 console.log(text);`,
     docsUrl: 'https://github.com/TakoData/ai-sdk#readme',
-    npmUrl: 'https://www.npmjs.com/package/@takoviz/ai-sdk',
+    apiKeyUrl: 'https://developer.tako.com/console/api-keys',
     websiteUrl: 'https://tako.com',
-    apiKeyEnvName: 'TAKO_API_KEY',
-    apiKeyUrl: 'https://tako.com',
-    tags: ['search', 'data', 'visualization', 'analytics'],
+    npmUrl: 'https://www.npmjs.com/package/@takoviz/ai-sdk',
   },
   {
     slug: 'valyu',
@@ -550,5 +552,38 @@ console.log(text);`,
     apiKeyUrl: 'https://you.com/platform/api-keys',
     websiteUrl: 'https://you.com',
     npmUrl: 'https://www.npmjs.com/package/@youdotcom-oss/ai-sdk-plugin',
+  },
+  {
+    slug: 'nitrosend',
+    name: 'Nitrosend',
+    description:
+      'Nitrosend tools for Vercel AI SDK agents — send email and SMS, manage contacts and segments, build flows, run campaigns. Backed by the Nitrosend remote MCP server.',
+    packageName: '@nitrosend/ai-sdk',
+    tags: ['email', 'sms', 'marketing', 'mcp', 'automation', 'crm'],
+    apiKeyEnvName: 'NITROSEND_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @nitrosend/ai-sdk ai @ai-sdk/mcp zod @ai-sdk/openai',
+      npm: 'npm install @nitrosend/ai-sdk ai @ai-sdk/mcp zod @ai-sdk/openai',
+      yarn: 'yarn add @nitrosend/ai-sdk ai @ai-sdk/mcp zod @ai-sdk/openai',
+      bun: 'bun add @nitrosend/ai-sdk ai @ai-sdk/mcp zod @ai-sdk/openai',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { withNitrosendTools } from '@nitrosend/ai-sdk';
+
+const result = await withNitrosendTools({}, async ({ tools }) => {
+  return generateText({
+    model: openai('gpt-4o'),
+    tools,
+    stopWhen: isStepCount(5),
+    prompt: 'Send a welcome email to founder@acme.com from our team.',
+  });
+});
+
+console.log(result.text);`,
+    docsUrl: 'https://docs.nitrosend.com/integrations/vercel-ai-sdk',
+    apiKeyUrl: 'https://app.nitrosend.com/settings/api-keys',
+    websiteUrl: 'https://nitrosend.com',
+    npmUrl: 'https://www.npmjs.com/package/@nitrosend/ai-sdk',
   },
 ];

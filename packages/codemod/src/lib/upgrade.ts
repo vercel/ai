@@ -88,15 +88,48 @@ const bundle = [
   'v6/rename-vertex-provider-metadata-key',
   'v6/wrap-tomodeloutput-parameter',
   'v6/add-await-converttomodelmessages',
+  'v7/remove-experimental-custom-provider',
+  'v7/remove-experimental-generate-image',
+  'v7/replace-experimental-output-with-output',
+  'v7/remove-experimental-prepare-step',
+  'v7/replace-cached-input-tokens',
+  'v7/replace-reasoning-tokens',
+  'v7/remove-experimental-active-tools',
+  'v7/remove-tool-call-options-type',
+  'v7/remove-is-tool-or-dynamic-tool-uipart',
+  'v7/remove-media-content-part-type',
+  'v7/replace-anthropic-cache-creation-input-tokens',
+  'v7/rename-experimental-transcribe',
+  'v7/rename-experimental-generate-speech',
+  'v7/rename-call-settings-type',
+  'v7/rename-step-count-is',
+  'v7/rename-system-to-instructions',
+  'v7/rename-experimental-on-start-to-on-start',
+  'v7/rename-experimental-on-step-start-to-on-step-start',
+  'v7/rename-on-finish-to-on-end',
+  'v7/rename-on-step-finish-to-on-step-end',
+  'v7/rename-experimental-on-finish-to-on-end',
+  'v7/rename-experimental-telemetry-to-telemetry',
+  'v7/rename-on-rerank-finish-to-on-rerank-end',
+  'v7/rename-on-embed-finish-to-on-embed-end',
+  'v7/rename-full-stream-to-stream',
+  'v7/move-include-raw-chunks-to-include',
+  'v7/rename-experimental-include-to-include',
+  'v7/rename-experimental-on-tool-call-start-to-on-tool-execution-start',
+  'v7/rename-experimental-on-tool-call-finish-to-on-tool-execution-end',
+  'v7/rename-experimental-context-to-context',
+  'v7/rename-google-generative-ai-to-google',
+  'v7/replace-image-message-part-with-file',
 ];
 
 const log = debug('codemod:upgrade');
 const error = debug('codemod:upgrade:error');
 
-// Extract v4, v5, and v6 codemods from the bundle
+// Extract versioned codemods from the bundle
 const v4Bundle = bundle.filter(codemod => codemod.startsWith('v4/'));
 const v5Bundle = bundle.filter(codemod => codemod.startsWith('v5/'));
 const v6Bundle = bundle.filter(codemod => codemod.startsWith('v6/'));
+const v7Bundle = bundle.filter(codemod => codemod.startsWith('v7/'));
 
 function runCodemods(
   codemods: string[],
@@ -156,6 +189,10 @@ export function upgradeV5(options: TransformOptions) {
 
 export function upgradeV6(options: TransformOptions) {
   runCodemods(v6Bundle, options, 'v6');
+}
+
+export function upgradeV7(options: TransformOptions) {
+  runCodemods(v7Bundle, options, 'v7');
 }
 
 export function upgrade(options: TransformOptions) {

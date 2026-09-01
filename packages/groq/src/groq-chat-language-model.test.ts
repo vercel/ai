@@ -1,9 +1,6 @@
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import {
-  convertReadableStreamToArray,
-  isNodeVersion,
-} from '@ai-sdk/provider-utils/test';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import fs from 'node:fs';
 import { createGroq } from './groq-provider';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
@@ -137,8 +134,24 @@ describe('doGenerate', () => {
       );
     });
 
-    it('should not pass top-level reasoning none as reasoning_effort', async () => {
-      await model.doGenerate({
+    it('should map top-level reasoning none to reasoning_effort for Qwen 3.6', async () => {
+      const qwenModel = provider('qwen/qwen3.6-27b');
+
+      const result = await qwenModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'none',
+      );
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should omit unsupported top-level reasoning none and warn', async () => {
+      const gptOssModel = provider('openai/gpt-oss-120b');
+
+      const result = await gptOssModel.doGenerate({
         prompt: TEST_PROMPT,
         reasoning: 'none',
       });
@@ -146,10 +159,17 @@ describe('doGenerate', () => {
       expect(
         (await server.calls[0].requestBodyJson).reasoning_effort,
       ).toBeUndefined();
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'reasoning',
+        details: 'reasoning "none" is not supported by this model.',
+      });
     });
 
     it('should prefer providerOptions reasoningEffort over top-level reasoning', async () => {
-      await model.doGenerate({
+      const gptOssModel = provider('openai/gpt-oss-120b');
+
+      const result = await gptOssModel.doGenerate({
         prompt: TEST_PROMPT,
         reasoning: 'medium',
         providerOptions: {
@@ -160,6 +180,7 @@ describe('doGenerate', () => {
       expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
         'high',
       );
+      expect(result.warnings).toEqual([]);
     });
   });
 
@@ -289,9 +310,9 @@ describe('doGenerate', () => {
     expect(usage).toMatchInlineSnapshot(`
       {
         "inputTokens": {
-          "cacheRead": undefined,
+          "cacheRead": 15,
           "cacheWrite": undefined,
-          "noCache": 20,
+          "noCache": 5,
           "total": 20,
         },
         "outputTokens": {
@@ -1320,6 +1341,11 @@ describe('doStream', () => {
           "type": "tool-input-delta",
         },
         {
+          "delta": "",
+          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "type": "tool-input-delta",
+        },
+        {
           "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
           "type": "tool-input-end",
         },
@@ -1449,12 +1475,16 @@ describe('doStream', () => {
   });
 
   it('should handle error stream parts', async () => {
+    const data = {
+      error: {
+        message: 'Rate limit reached',
+        type: 'rate_limit_error',
+      },
+    };
+
     server.urls[CHAT_COMPLETIONS_URL].response = {
       type: 'stream-chunks',
-      chunks: [
-        `data: {"error":{"message": "The server had an error processing your request. Sorry about that!","type":"invalid_request_error"}}\n\n`,
-        'data: [DONE]\n\n',
-      ],
+      chunks: [`data: ${JSON.stringify(data)}\n\n`, 'data: [DONE]\n\n'],
     };
 
     const { stream } = await model.doStream({
@@ -1469,8 +1499,17 @@ describe('doStream', () => {
         },
         {
           "error": {
-            "message": "The server had an error processing your request. Sorry about that!",
-            "type": "invalid_request_error",
+            "code": undefined,
+            "data": {
+              "error": {
+                "message": "Rate limit reached",
+                "type": "rate_limit_error",
+              },
+            },
+            "isRetryable": true,
+            "message": "Rate limit reached",
+            "statusCode": 429,
+            "type": "rate_limit_error",
           },
           "type": "error",
         },
@@ -1499,19 +1538,17 @@ describe('doStream', () => {
     `);
   });
 
-  it.skipIf(isNodeVersion(20))(
-    'should handle unparsable stream parts',
-    async () => {
-      server.urls[CHAT_COMPLETIONS_URL].response = {
-        type: 'stream-chunks',
-        chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
-      };
+  it('should handle unparsable stream parts', async () => {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
+      type: 'stream-chunks',
+      chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
+    };
 
-      const { stream } = await model.doStream({
-        prompt: TEST_PROMPT,
-      });
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
 
-      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
         [
           {
             "type": "stream-start",
@@ -1545,8 +1582,7 @@ describe('doStream', () => {
           },
         ]
       `);
-    },
-  );
+  });
 
   it('should expose the raw response headers', async () => {
     prepareChunksFixtureResponse('groq-text', {

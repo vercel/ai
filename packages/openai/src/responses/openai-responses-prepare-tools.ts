@@ -1,6 +1,9 @@
 import {
   UnsupportedFunctionalityError,
+  type JSONSchema7,
+  type JSONObject,
   type LanguageModelV4CallOptions,
+  type LanguageModelV4FunctionTool,
   type SharedV4ProviderReference,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
@@ -18,7 +21,25 @@ import { shellArgsSchema } from '../tool/shell';
 import { toolSearchArgsSchema } from '../tool/tool-search';
 import { webSearchArgsSchema } from '../tool/web-search';
 import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
-import type { OpenAIResponsesTool } from './openai-responses-api';
+import type {
+  OpenAIResponsesAllowedTool,
+  OpenAIResponsesFunctionTool,
+  OpenAIResponsesTool,
+} from './openai-responses-api';
+
+type AllowedToolResolution =
+  | { supported: true; entry: OpenAIResponsesAllowedTool }
+  | { supported: false; reason: string };
+
+export type OpenAIToolOptions = {
+  allowedCallers?: Array<'direct' | 'programmatic'>;
+  deferLoading?: boolean;
+  outputSchema?: JSONObject;
+  namespace?: {
+    name: string;
+    description: string;
+  };
+};
 
 export async function prepareResponsesTools({
   tools,
@@ -26,6 +47,7 @@ export async function prepareResponsesTools({
   allowedTools,
   toolNameMapping,
   customProviderToolNames,
+  outputSchemaToolNames,
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice: LanguageModelV4CallOptions['toolChoice'] | undefined;
@@ -35,6 +57,7 @@ export async function prepareResponsesTools({
   };
   toolNameMapping?: ToolNameMapping;
   customProviderToolNames?: Set<string>;
+  outputSchemaToolNames?: Set<string>;
 }): Promise<{
   tools?: Array<OpenAIResponsesTool>;
   toolChoice?:
@@ -50,10 +73,12 @@ export async function prepareResponsesTools({
     | { type: 'mcp' }
     | { type: 'image_generation' }
     | { type: 'apply_patch' }
+    | { type: 'computer' }
+    | { type: 'programmatic_tool_calling' }
     | {
         type: 'allowed_tools';
         mode: 'auto' | 'required';
-        tools: Array<{ type: 'function'; name: string }>;
+        tools: Array<OpenAIResponsesAllowedTool>;
       };
   toolWarnings: SharedV4Warning[];
 }> {
@@ -67,28 +92,105 @@ export async function prepareResponsesTools({
   }
 
   const openaiTools: Array<OpenAIResponsesTool> = [];
+  const namespaceTools = new Map<
+    string,
+    Extract<OpenAIResponsesTool, { type: 'namespace' }>
+  >();
   const resolvedCustomProviderToolNames =
     customProviderToolNames ?? new Set<string>();
+
+  const allowedToolResolutions = new Map<string, AllowedToolResolution>();
+  const allowedToolAliases = new Map<
+    string,
+    AllowedToolResolution | 'ambiguous'
+  >();
+
+  const recordAllowedTool = (
+    toolName: string,
+    resolution: AllowedToolResolution,
+    canonicalName: string | undefined,
+  ) => {
+    allowedToolResolutions.set(toolName, resolution);
+
+    if (canonicalName == null || canonicalName === toolName) {
+      return;
+    }
+
+    const existingAlias = allowedToolAliases.get(canonicalName);
+
+    if (existingAlias == null) {
+      allowedToolAliases.set(canonicalName, resolution);
+    } else if (
+      existingAlias !== 'ambiguous' &&
+      !isSameAllowedTool(existingAlias, resolution)
+    ) {
+      allowedToolAliases.set(canonicalName, 'ambiguous');
+    }
+  };
 
   for (const tool of tools) {
     switch (tool.type) {
       case 'function': {
         const openaiOptions = tool.providerOptions?.openai as
-          | { deferLoading?: boolean }
+          | OpenAIToolOptions
           | undefined;
-        const deferLoading = openaiOptions?.deferLoading;
-
-        openaiTools.push({
-          type: 'function',
-          name: tool.name,
-          description: tool.description,
-          parameters: tool.inputSchema,
-          ...(tool.strict != null ? { strict: tool.strict } : {}),
-          ...(deferLoading != null ? { defer_loading: deferLoading } : {}),
+        if (openaiOptions?.outputSchema != null) {
+          outputSchemaToolNames?.add(tool.name);
+        }
+        const openaiFunctionTool = prepareFunctionTool({
+          tool,
+          options: openaiOptions,
         });
+        const namespace = openaiOptions?.namespace;
+
+        if (namespace == null) {
+          openaiTools.push(openaiFunctionTool);
+        } else {
+          let namespaceTool = namespaceTools.get(namespace.name);
+
+          if (namespaceTool == null) {
+            namespaceTool = {
+              type: 'namespace',
+              name: namespace.name,
+              description: namespace.description,
+              tools: [],
+            };
+            namespaceTools.set(namespace.name, namespaceTool);
+            openaiTools.push(namespaceTool);
+          } else if (namespaceTool.description !== namespace.description) {
+            throw new UnsupportedFunctionalityError({
+              functionality: `conflicting descriptions for OpenAI tool namespace "${namespace.name}"`,
+            });
+          }
+
+          namespaceTool.tools.push(openaiFunctionTool);
+        }
+
+        recordAllowedTool(
+          tool.name,
+          namespace != null
+            ? {
+                supported: false,
+                reason:
+                  'tools inside an OpenAI tool namespace are not visible to tool_choice.allowed_tools',
+              }
+            : openaiOptions?.deferLoading === true
+              ? {
+                  supported: false,
+                  reason:
+                    'deferred tools are not visible to tool_choice.allowed_tools',
+                }
+              : {
+                  supported: true,
+                  entry: { type: 'function', name: tool.name },
+                },
+          undefined,
+        );
         break;
       }
       case 'provider': {
+        const openaiToolCountBefore = openaiTools.length;
+
         switch (tool.id) {
           case 'openai.file_search': {
             const args = await validateTypes({
@@ -137,6 +239,12 @@ export async function prepareResponsesTools({
             });
             break;
           }
+          case 'openai.computer': {
+            openaiTools.push({
+              type: 'computer',
+            });
+            break;
+          }
           case 'openai.web_search_preview': {
             const args = await validateTypes({
               value: tool.args,
@@ -158,7 +266,10 @@ export async function prepareResponsesTools({
               type: 'web_search',
               filters:
                 args.filters != null
-                  ? { allowed_domains: args.filters.allowedDomains }
+                  ? {
+                      allowed_domains: args.filters.allowedDomains,
+                      blocked_domains: args.filters.blockedDomains,
+                    }
                   : undefined,
               external_web_access: args.externalWebAccess,
               search_context_size: args.searchContextSize,
@@ -271,6 +382,12 @@ export async function prepareResponsesTools({
             resolvedCustomProviderToolNames.add(tool.name);
             break;
           }
+          case 'openai.programmatic_tool_calling': {
+            openaiTools.push({
+              type: 'programmatic_tool_calling',
+            });
+            break;
+          }
           case 'openai.tool_search': {
             const args = await validateTypes({
               value: tool.args,
@@ -289,6 +406,16 @@ export async function prepareResponsesTools({
             break;
           }
         }
+
+        if (openaiTools.length > openaiToolCountBefore) {
+          const openaiTool = openaiTools[openaiToolCountBefore];
+
+          recordAllowedTool(
+            tool.name,
+            toAllowedToolResolution(openaiTool),
+            toolNameMapping?.toProviderToolName(tool.name),
+          );
+        }
         break;
       }
       default:
@@ -301,15 +428,74 @@ export async function prepareResponsesTools({
   }
 
   if (allowedTools != null) {
+    const allowedToolEntries: Array<OpenAIResponsesAllowedTool> = [];
+    const droppedToolNames: string[] = [];
+
+    for (const name of allowedTools.toolNames) {
+      const directResolution = allowedToolResolutions.get(name);
+      const resolution = directResolution ?? allowedToolAliases.get(name);
+
+      if (directResolution != null && allowedToolAliases.has(name)) {
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: `allowedTools entry "${name}"`,
+          details:
+            'this name is both a tool name and the provider tool name of another tool in this request; the tool with this name is allowed',
+        });
+      }
+
+      if (resolution === 'ambiguous') {
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: `allowedTools entry "${name}"`,
+          details:
+            'several tools in this request share this provider tool name; use the tool name from the tools for this request instead',
+        });
+        droppedToolNames.push(name);
+        continue;
+      }
+
+      if (resolution == null) {
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: `allowedTools entry "${name}"`,
+          details:
+            'the tool is not part of the tools for this request and is sent as a function tool',
+        });
+        allowedToolEntries.push({
+          type: 'function',
+          name: toolNameMapping?.toProviderToolName(name) ?? name,
+        });
+        continue;
+      }
+
+      if (!resolution.supported) {
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: `allowedTools entry "${name}"`,
+          details: `${resolution.reason}; the tool is removed from the allowed tools`,
+        });
+        droppedToolNames.push(name);
+        continue;
+      }
+
+      allowedToolEntries.push(resolution.entry);
+    }
+
+    if (allowedToolEntries.length === 0) {
+      throw new UnsupportedFunctionalityError({
+        functionality: `allowedTools with only tools that cannot be allow-listed (${droppedToolNames.join(
+          ', ',
+        )})`,
+      });
+    }
+
     return {
       tools: openaiTools,
       toolChoice: {
         type: 'allowed_tools',
         mode: allowedTools.mode ?? 'auto',
-        tools: allowedTools.toolNames.map(name => ({
-          type: 'function',
-          name: toolNameMapping?.toProviderToolName(name) ?? name,
-        })),
+        tools: allowedToolEntries,
       },
       toolWarnings,
     };
@@ -340,7 +526,9 @@ export async function prepareResponsesTools({
           resolvedToolName === 'web_search_preview' ||
           resolvedToolName === 'web_search' ||
           resolvedToolName === 'mcp' ||
-          resolvedToolName === 'apply_patch'
+          resolvedToolName === 'apply_patch' ||
+          resolvedToolName === 'computer' ||
+          resolvedToolName === 'programmatic_tool_calling'
             ? { type: resolvedToolName }
             : resolvedCustomProviderToolNames.has(resolvedToolName)
               ? { type: 'custom', name: resolvedToolName }
@@ -355,6 +543,88 @@ export async function prepareResponsesTools({
       });
     }
   }
+}
+
+function allowedToolKey(entry: OpenAIResponsesAllowedTool): string {
+  switch (entry.type) {
+    case 'mcp':
+      return `mcp:${entry.server_label}`;
+    case 'function':
+    case 'custom':
+      return `${entry.type}:${entry.name}`;
+    default:
+      return entry.type;
+  }
+}
+
+function isSameAllowedTool(
+  a: AllowedToolResolution,
+  b: AllowedToolResolution,
+): boolean {
+  if (a.supported && b.supported) {
+    return allowedToolKey(a.entry) === allowedToolKey(b.entry);
+  }
+
+  if (!a.supported && !b.supported) {
+    return a.reason === b.reason;
+  }
+
+  return false;
+}
+
+function toAllowedToolResolution(
+  tool: OpenAIResponsesTool,
+): AllowedToolResolution {
+  switch (tool.type) {
+    case 'custom':
+      return { supported: true, entry: { type: 'custom', name: tool.name } };
+    case 'mcp':
+      return {
+        supported: true,
+        entry: { type: 'mcp', server_label: tool.server_label },
+      };
+    case 'file_search':
+    case 'web_search':
+    case 'web_search_preview':
+    case 'image_generation':
+    case 'code_interpreter':
+    case 'computer':
+    case 'apply_patch':
+    case 'shell':
+    case 'local_shell':
+    case 'programmatic_tool_calling':
+      return { supported: true, entry: { type: tool.type } };
+    default:
+      return {
+        supported: false,
+        reason: `OpenAI does not support ${tool.type} tools in tool_choice.allowed_tools`,
+      };
+  }
+}
+
+function prepareFunctionTool({
+  tool,
+  options,
+}: {
+  tool: LanguageModelV4FunctionTool;
+  options: OpenAIToolOptions | undefined;
+}): OpenAIResponsesFunctionTool {
+  const deferLoading = options?.deferLoading;
+
+  return {
+    type: 'function',
+    name: tool.name,
+    description: tool.description,
+    parameters: tool.inputSchema,
+    ...(tool.strict != null ? { strict: tool.strict } : {}),
+    ...(deferLoading != null ? { defer_loading: deferLoading } : {}),
+    ...(options?.allowedCallers != null
+      ? { allowed_callers: options.allowedCallers }
+      : {}),
+    ...(options?.outputSchema != null
+      ? { output_schema: options.outputSchema as JSONSchema7 }
+      : {}),
+  };
 }
 
 function mapShellEnvironment(environment: {

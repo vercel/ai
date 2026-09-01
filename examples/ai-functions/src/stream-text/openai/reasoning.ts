@@ -8,7 +8,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai('gpt-5'),
+    model: openai('gpt-5.6'),
     prompt: 'How many "r"s are in the word "strawberry"?',
     reasoning: 'low',
     providerOptions: {
@@ -18,7 +18,7 @@ run(async () => {
     },
   });
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'reasoning-start':
         process.stdout.write('\x1b[34m');

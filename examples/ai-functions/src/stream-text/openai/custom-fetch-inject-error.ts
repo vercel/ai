@@ -50,7 +50,7 @@ run(async () => {
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     process.stdout.write(JSON.stringify(part));
   }
 

@@ -434,6 +434,10 @@ export type GoogleInteractionsImageSize = '1K' | '2K' | '4K' | '512';
  *
  *   { type: 'image', mime_type, aspect_ratio?, image_size? }
  *     -- image generation. `mime_type` defaults to `image/png`.
+ *
+ *   { type: 'video', aspect_ratio?, resolution?, duration?, delivery?,
+ *     gcs_uri? }
+ *     -- video generation and delivery configuration.
  */
 export type GoogleInteractionsResponseFormatTextEntry = {
   type: 'text';
@@ -453,14 +457,25 @@ export type GoogleInteractionsResponseFormatAudioEntry = {
   mime_type?: string;
 };
 
+export type GoogleInteractionsResponseFormatVideoEntry = {
+  type: 'video';
+  aspect_ratio?: '16:9' | '9:16';
+  resolution?: '360p' | '720p' | '1080p' | '4k';
+  duration?: string;
+  delivery?: 'inline' | 'uri';
+  gcs_uri?: string;
+};
+
 export type GoogleInteractionsResponseFormatEntry =
   | GoogleInteractionsResponseFormatTextEntry
   | GoogleInteractionsResponseFormatImageEntry
-  | GoogleInteractionsResponseFormatAudioEntry;
+  | GoogleInteractionsResponseFormatAudioEntry
+  | GoogleInteractionsResponseFormatVideoEntry;
 
 export type GoogleInteractionsGenerationConfig = {
   temperature?: number;
   top_p?: number;
+  top_k?: number;
   seed?: number;
   stop_sequences?: Array<string>;
   max_output_tokens?: number;
@@ -478,6 +493,55 @@ export type GoogleInteractionsAgentConfig =
       collaborative_planning?: boolean;
     };
 
+export type GoogleInteractionsGcsSource = {
+  type: 'gcs';
+  source: string;
+  target?: string;
+};
+
+export type GoogleInteractionsRepositorySource = {
+  type: 'repository';
+  source: string;
+  target?: string;
+};
+
+export type GoogleInteractionsInlineSource = {
+  type: 'inline';
+  content: string;
+  target: string;
+};
+
+export type GoogleInteractionsEnvironmentSource =
+  | GoogleInteractionsGcsSource
+  | GoogleInteractionsRepositorySource
+  | GoogleInteractionsInlineSource;
+
+export type GoogleInteractionsNetworkAllowlistEntry = {
+  domain: string;
+  transform?: Array<Record<string, string>>;
+};
+
+export type GoogleInteractionsNetworkConfig =
+  | 'disabled'
+  | { allowlist: Array<GoogleInteractionsNetworkAllowlistEntry> };
+
+/**
+ * Environment configuration for the agent sandbox.
+ *
+ *   - `"remote"`: provision a fresh sandbox for this call.
+ *   - any other string: an existing `environment_id` to reuse (forks the
+ *     previous sandbox so its filesystem and installed packages persist).
+ *   - object form: provision a fresh sandbox and preload it with `sources`
+ *     and/or constrain outbound traffic via `network`.
+ */
+export type GoogleInteractionsEnvironment =
+  | string
+  | {
+      type: 'remote';
+      sources?: Array<GoogleInteractionsEnvironmentSource>;
+      network?: GoogleInteractionsNetworkConfig;
+    };
+
 export type GoogleInteractionsRequestBody = {
   model?: string;
   agent?: string;
@@ -492,6 +556,7 @@ export type GoogleInteractionsRequestBody = {
   service_tier?: GoogleInteractionsServiceTier;
   store?: boolean;
   stream?: boolean;
+  environment?: GoogleInteractionsEnvironment;
   /**
    * Run the interaction in the background. The POST returns immediately with a
    * non-terminal status (`in_progress` / `requires_action`); the client must

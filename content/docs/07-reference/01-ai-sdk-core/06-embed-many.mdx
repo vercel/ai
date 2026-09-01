@@ -7,8 +7,12 @@ description: API Reference for embedMany.
 
 Embed several values using an embedding model.
 
-`embedMany` automatically splits large requests into smaller chunks if the model
-has a limit on how many embeddings can be generated in a single call.
+`embedMany` automatically splits large requests into smaller chunks when the
+model has a limit on either the number of embeddings or the UTF-8 input bytes
+that can be processed in a single call. Providers can use a conservative byte
+budget to keep requests below aggregate token limits without adding a tokenizer
+to the AI SDK core package. An individual value larger than the byte budget is
+sent in its own call because splitting it would change the resulting embedding.
 
 ```ts
 import { embedMany } from 'ai';
@@ -128,11 +132,11 @@ const { embeddings } = await embedMany({
       ],
     },
     {
-      name: 'experimental_onStart',
+      name: 'onStart',
       type: '(event: EmbedStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        'Callback that is called when the embedMany operation begins, before the embedding model is called. Errors thrown in this callback are silently caught and do not break the embedding flow. Experimental (can break in patch releases).',
+        'Callback that is called when the embedMany operation begins, before the embedding model is called. Errors thrown in this callback are silently caught and do not break the embedding flow.',
       properties: [
         {
           type: 'EmbedStartEvent',
@@ -183,11 +187,11 @@ const { embeddings } = await embedMany({
       ],
     },
     {
-      name: 'experimental_onEnd',
+      name: 'onEnd',
       type: '(event: EmbedEndEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        'Callback that is called when the embedMany operation completes, after all embedding model calls return. Errors thrown in this callback are silently caught and do not break the embedding flow. Experimental (can break in patch releases).',
+        'Callback that is called when the embedMany operation completes, after all embedding model calls return. Errors thrown in this callback are silently caught and do not break the embedding flow.',
       properties: [
         {
           type: 'EmbedEndEvent',

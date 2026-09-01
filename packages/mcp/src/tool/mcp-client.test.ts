@@ -1,4 +1,5 @@
 import type * as McpTransportModule from './mcp-transport';
+import type { MCPTransport } from './mcp-transport';
 import { z } from 'zod/v4';
 import { MCPClientError } from '../error/mcp-client-error';
 import { createMCPClient } from './mcp-client';
@@ -6,15 +7,19 @@ import { MockMCPTransport } from './mock-mcp-transport';
 import {
   ListToolsResult,
   ElicitationRequestSchema,
+  LATEST_LEGACY_PROTOCOL_VERSION,
+  LATEST_PROTOCOL_VERSION,
   type CallToolResult,
+  type CompleteResult,
   type ListResourceTemplatesResult,
   type ListResourcesResult,
   type ReadResourceResult,
   type ListPromptsResult,
   type GetPromptResult,
   type Configuration,
+  type InitializeResult,
 } from './types';
-import type { JSONRPCRequest } from './json-rpc-message';
+import type { JSONRPCMessage, JSONRPCRequest } from './json-rpc-message';
 import {
   beforeEach,
   afterEach,
@@ -26,6 +31,451 @@ import {
 } from 'vitest';
 
 const createMockTransport = vi.fn(config => new MockMCPTransport(config));
+
+class GetterOnlyProtocolVersionTransport implements MCPTransport {
+  private readonly transport: MockMCPTransport;
+  private negotiatedProtocolVersion?: string;
+
+  onmessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+
+  constructor(protocolVersion: string) {
+    this.transport = new MockMCPTransport({
+      initializeResult: {
+        protocolVersion,
+        serverInfo: { name: 'mock-mcp-server', version: '1.0.0' },
+        capabilities: { tools: {} },
+      },
+    });
+  }
+
+  get protocolVersion(): string | undefined {
+    return this.negotiatedProtocolVersion;
+  }
+
+  setProtocolVersion(version: string): void {
+    this.negotiatedProtocolVersion = version;
+  }
+
+  async start(): Promise<void> {
+    await this.transport.start();
+  }
+
+  async send(message: JSONRPCMessage): Promise<void> {
+    this.transport.onmessage = this.onmessage;
+    this.transport.onclose = this.onclose;
+    this.transport.onerror = this.onerror;
+    await this.transport.send(message);
+  }
+
+  async close(): Promise<void> {
+    await this.transport.close();
+  }
+}
+
+class ProtocolDiscoveryTransport implements MCPTransport {
+  readonly supportsProtocolVersionDiscovery = true;
+  readonly sentMessages: JSONRPCMessage[] = [];
+  protocolVersion?: string;
+
+  onmessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+
+  constructor(
+    private readonly discoveryBehavior:
+      | 'modern'
+      | 'legacy'
+      | 'unsupported' = 'modern',
+    private readonly includeToolListResultType = true,
+  ) {}
+
+  async start(): Promise<void> {}
+
+  async close(): Promise<void> {
+    this.onclose?.();
+  }
+
+  setProtocolVersion(version: string): void {
+    this.protocolVersion = version;
+  }
+
+  async send(message: JSONRPCMessage): Promise<void> {
+    this.sentMessages.push(message);
+
+    if (!('method' in message) || !('id' in message)) {
+      return;
+    }
+
+    if (message.method === 'server/discover') {
+      if (this.discoveryBehavior === 'legacy') {
+        this.onmessage?.({
+          jsonrpc: '2.0',
+          id: message.id,
+          error: { code: -32601, message: 'Method not found' },
+        });
+        return;
+      }
+
+      if (this.discoveryBehavior === 'unsupported') {
+        this.onmessage?.({
+          jsonrpc: '2.0',
+          id: message.id,
+          error: {
+            code: -32022,
+            message: 'Unsupported protocol version',
+            data: {
+              requested: LATEST_PROTOCOL_VERSION,
+              supported: ['2099-01-01'],
+            },
+          },
+        });
+        return;
+      }
+
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          resultType: 'complete',
+          supportedVersions: [LATEST_PROTOCOL_VERSION],
+          capabilities: { tools: {} },
+          _meta: {
+            'io.modelcontextprotocol/serverInfo': {
+              name: 'modern-test-server',
+              version: '1.0.0',
+            },
+          },
+        },
+      });
+      return;
+    }
+
+    if (message.method === 'initialize') {
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          protocolVersion: LATEST_LEGACY_PROTOCOL_VERSION,
+          serverInfo: { name: 'legacy-test-server', version: '1.0.0' },
+          capabilities: { tools: {} },
+        },
+      });
+      return;
+    }
+
+    if (message.method === 'tools/list') {
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          ...(this.includeToolListResultType ? { resultType: 'complete' } : {}),
+          tools: [],
+        },
+      });
+    }
+  }
+}
+
+class PaginatedToolsTransport implements MCPTransport {
+  readonly toolListCursors: Array<string | undefined> = [];
+
+  onmessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+
+  async start(): Promise<void> {}
+
+  async close(): Promise<void> {
+    this.onclose?.();
+  }
+
+  async send(message: JSONRPCMessage): Promise<void> {
+    if (!('method' in message) || !('id' in message)) {
+      return;
+    }
+
+    if (message.method === 'initialize') {
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          protocolVersion: LATEST_LEGACY_PROTOCOL_VERSION,
+          serverInfo: { name: 'paginated-tools-server', version: '1.0.0' },
+          capabilities: { tools: {} },
+        },
+      });
+      return;
+    }
+
+    if (message.method === 'tools/list') {
+      const cursor = message.params?.cursor as string | undefined;
+      this.toolListCursors.push(cursor);
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result:
+          cursor == null
+            ? {
+                tools: [
+                  {
+                    name: 'first-page-tool',
+                    inputSchema: { type: 'object' },
+                  },
+                ],
+                nextCursor: 'second-page',
+              }
+            : {
+                tools: [
+                  {
+                    name: 'second-page-tool',
+                    inputSchema: { type: 'object' },
+                  },
+                ],
+              },
+      });
+    }
+  }
+}
+
+class FailsFirstToolCallTransport implements MCPTransport {
+  toolCallAttempts = 0;
+
+  onmessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+
+  constructor(
+    private readonly failure:
+      | 'transient-http'
+      | 'unlisted-http'
+      | 'network'
+      | 'invalid-params'
+      | 'auth'
+      | 'tool-result-error',
+  ) {}
+
+  async start(): Promise<void> {}
+
+  async close(): Promise<void> {
+    this.onclose?.();
+  }
+
+  async send(message: JSONRPCMessage): Promise<void> {
+    if (!('method' in message) || !('id' in message)) {
+      return;
+    }
+
+    if (message.method === 'initialize') {
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          protocolVersion: LATEST_PROTOCOL_VERSION,
+          serverInfo: { name: 'retry-test-server', version: '1.0.0' },
+          capabilities: { tools: {} },
+        },
+      });
+      return;
+    }
+
+    if (message.method === 'tools/list') {
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          tools: [
+            {
+              name: 'retry-tool',
+              description: 'A retry test tool',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  value: { type: 'string' },
+                },
+              },
+            },
+          ],
+        },
+      });
+      return;
+    }
+
+    if (message.method === 'tools/call') {
+      this.toolCallAttempts += 1;
+
+      if (this.toolCallAttempts === 1) {
+        if (this.failure === 'transient-http') {
+          throw new MCPClientError({
+            message: 'temporary overload',
+            statusCode: 503,
+          });
+        }
+
+        if (this.failure === 'unlisted-http') {
+          throw new MCPClientError({
+            message: 'not retryable by default',
+            statusCode: 418,
+          });
+        }
+
+        if (this.failure === 'network') {
+          throw Object.assign(new Error('connection reset'), {
+            code: 'ECONNRESET',
+          });
+        }
+
+        if (this.failure === 'invalid-params') {
+          this.onmessage?.({
+            jsonrpc: '2.0',
+            id: message.id,
+            error: {
+              code: -32602,
+              message: 'Invalid params',
+            },
+          });
+          return;
+        }
+
+        if (this.failure === 'auth') {
+          throw new MCPClientError({
+            message: 'Unauthorized',
+            statusCode: 401,
+          });
+        }
+
+        this.onmessage?.({
+          jsonrpc: '2.0',
+          id: message.id,
+          result: {
+            content: [{ type: 'text', text: 'tool-level error' }],
+            isError: true,
+          },
+        });
+        return;
+      }
+
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          content: [{ type: 'text', text: 'retried successfully' }],
+          isError: false,
+        },
+      });
+    }
+  }
+}
+
+class HangingToolCallTransport implements MCPTransport {
+  sentMessages: JSONRPCMessage[] = [];
+
+  onmessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+
+  async start(): Promise<void> {}
+
+  async close(): Promise<void> {
+    this.onclose?.();
+  }
+
+  async send(message: JSONRPCMessage): Promise<void> {
+    this.sentMessages.push(message);
+
+    if (!('method' in message) || !('id' in message)) {
+      return;
+    }
+
+    if (message.method === 'initialize') {
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          protocolVersion: LATEST_PROTOCOL_VERSION,
+          serverInfo: { name: 'hanging-tool-call-server', version: '1.0.0' },
+          capabilities: { tools: {} },
+        },
+      });
+      return;
+    }
+
+    if (message.method === 'tools/call') {
+      // Intentionally never respond. This exercises aborting an in-flight
+      // request after it has been sent to a slow or hung MCP server.
+      return;
+    }
+  }
+}
+
+class SignalAwareHangingRequestTransport implements MCPTransport {
+  requestSignal?: AbortSignal;
+  requestAborted = false;
+
+  onmessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+
+  async start(): Promise<void> {}
+
+  async close(): Promise<void> {
+    this.onclose?.();
+  }
+
+  async send(
+    message: JSONRPCMessage,
+    options?: { signal?: AbortSignal },
+  ): Promise<void> {
+    if (!('method' in message) || !('id' in message)) {
+      return;
+    }
+
+    if (message.method === 'initialize') {
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          protocolVersion: LATEST_PROTOCOL_VERSION,
+          serverInfo: { name: 'signal-aware-server', version: '1.0.0' },
+          capabilities: { tools: {} },
+        },
+      });
+      return;
+    }
+
+    if (message.method === 'tools/list') {
+      this.requestSignal = options?.signal;
+      await new Promise<void>((_, reject) => {
+        options?.signal?.addEventListener(
+          'abort',
+          () => {
+            this.requestAborted = true;
+            reject(options.signal?.reason);
+          },
+          { once: true },
+        );
+      });
+    }
+  }
+}
+
+class HangingInitializationTransport implements MCPTransport {
+  closeCalled = false;
+
+  onmessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+
+  async start(): Promise<void> {}
+
+  async close(): Promise<void> {
+    this.closeCalled = true;
+    this.onclose?.();
+  }
+
+  async send(_message: JSONRPCMessage): Promise<void> {}
+}
 
 vi.mock('./mcp-transport.ts', async importOriginal => {
   const actual = await importOriginal<typeof McpTransportModule>();
@@ -46,6 +496,7 @@ describe('MCPClient', () => {
   });
 
   afterEach(async () => {
+    vi.useRealTimers();
     await client?.close();
   });
 
@@ -91,6 +542,16 @@ describe('MCPClient', () => {
         "isError": false,
       }
     `);
+  });
+
+  it('should return tools from all paginated tool list responses', async () => {
+    const transport = new PaginatedToolsTransport();
+    client = await createMCPClient({ transport });
+
+    const tools = await client.tools();
+
+    expect(Object.keys(tools)).toEqual(['first-page-tool', 'second-page-tool']);
+    expect(transport.toolListCursors).toEqual([undefined, 'second-page']);
   });
 
   it('should expose MCP tool metadata on dynamic tools', async () => {
@@ -700,6 +1161,101 @@ describe('MCPClient', () => {
     `);
   });
 
+  it('should request completions from the server', async () => {
+    const mockTransport = new MockMCPTransport({
+      completionResult: {
+        completion: {
+          values: ['auth', 'auth-staging'],
+          total: 2,
+          hasMore: false,
+        },
+      },
+    });
+    const sendSpy = vi.spyOn(mockTransport, 'send');
+
+    client = await createMCPClient({
+      transport: mockTransport,
+    });
+
+    const completion = await client.complete({
+      ref: {
+        type: 'ref/resource',
+        uri: 'kubernetes://namespaced/{plural}/{namespace}',
+      },
+      argument: {
+        name: 'namespace',
+        value: 'auth',
+      },
+      context: {
+        arguments: {
+          plural: 'deployments',
+        },
+      },
+    });
+
+    expectTypeOf(completion).toEqualTypeOf<CompleteResult>();
+
+    expect(completion).toMatchInlineSnapshot(`
+      {
+        "completion": {
+          "hasMore": false,
+          "total": 2,
+          "values": [
+            "auth",
+            "auth-staging",
+          ],
+        },
+      }
+    `);
+    expect(sendSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: 'completion/complete',
+        params: {
+          ref: {
+            type: 'ref/resource',
+            uri: 'kubernetes://namespaced/{plural}/{namespace}',
+          },
+          argument: {
+            name: 'namespace',
+            value: 'auth',
+          },
+          context: {
+            arguments: {
+              plural: 'deployments',
+            },
+          },
+        },
+      }),
+    );
+  });
+
+  it('should throw if the server does not support completions', async () => {
+    const mockTransport = new MockMCPTransport();
+    const sendSpy = vi.spyOn(mockTransport, 'send');
+
+    client = await createMCPClient({
+      transport: mockTransport,
+    });
+
+    await expect(
+      client.complete({
+        ref: {
+          type: 'ref/prompt',
+          name: 'code_review',
+        },
+        argument: {
+          name: 'language',
+          value: 'py',
+        },
+      }),
+    ).rejects.toThrow(MCPClientError);
+    expect(sendSpy).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: 'completion/complete',
+      }),
+    );
+  });
+
   it('should list prompts from the server', async () => {
     client = await createMCPClient({
       transport: { type: 'sse', url: 'https://example.com/sse' },
@@ -839,6 +1395,209 @@ describe('MCPClient', () => {
     });
 
     expect(tools).not.toHaveProperty('nonexistent-tool');
+  });
+
+  it('should not return server tools named after Object.prototype properties unless explicitly allowed', async () => {
+    const mockTransport = new MockMCPTransport({
+      overrideTools: [
+        {
+          name: 'allowed-tool',
+          description: 'An explicitly allowed tool',
+          inputSchema: {
+            type: 'object',
+            properties: { foo: { type: 'string' } },
+          },
+        },
+        {
+          name: 'constructor',
+          description: 'Tool named after an inherited prototype property',
+          inputSchema: { type: 'object' },
+        },
+        {
+          name: 'toString',
+          description: 'Tool named after an inherited prototype property',
+          inputSchema: { type: 'object' },
+        },
+        {
+          name: '__proto__',
+          description: 'Tool named after an inherited prototype property',
+          inputSchema: { type: 'object' },
+        },
+      ],
+    });
+
+    client = await createMCPClient({
+      transport: mockTransport,
+    });
+
+    const tools = await client.tools({
+      schemas: {
+        'allowed-tool': {
+          inputSchema: z.object({ foo: z.string() }),
+        },
+      },
+    });
+
+    expect(Object.keys(tools)).toEqual(['allowed-tool']);
+    expect(Object.prototype.hasOwnProperty.call(tools, 'constructor')).toBe(
+      false,
+    );
+    expect(Object.prototype.hasOwnProperty.call(tools, 'toString')).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(tools, '__proto__')).toBe(
+      false,
+    );
+  });
+
+  it('should not retry tool calls by default', async () => {
+    const transport = new FailsFirstToolCallTransport('transient-http');
+    client = await createMCPClient({
+      transport,
+    });
+
+    const tools = await client.tools();
+
+    await expect(
+      tools['retry-tool'].execute(
+        { value: 'test' },
+        { messages: [], toolCallId: '1', context: {} },
+      ),
+    ).rejects.toThrow(MCPClientError);
+    expect(transport.toolCallAttempts).toBe(1);
+  });
+
+  it('should retry transient HTTP tool call failures when maxRetries is configured', async () => {
+    vi.useFakeTimers();
+    const transport = new FailsFirstToolCallTransport('transient-http');
+    client = await createMCPClient({
+      transport,
+      maxRetries: 1,
+    });
+
+    const tools = await client.tools();
+
+    const result = tools['retry-tool'].execute(
+      { value: 'test' },
+      { messages: [], toolCallId: '1', context: {} },
+    );
+    await vi.advanceTimersByTimeAsync(2000);
+
+    await expect(result).resolves.toMatchInlineSnapshot(`
+      {
+        "content": [
+          {
+            "text": "retried successfully",
+            "type": "text",
+          },
+        ],
+        "isError": false,
+      }
+    `);
+    expect(transport.toolCallAttempts).toBe(2);
+  });
+
+  it('should retry network-style tool call failures when maxRetries is configured', async () => {
+    vi.useFakeTimers();
+    const transport = new FailsFirstToolCallTransport('network');
+    client = await createMCPClient({
+      transport,
+      maxRetries: 1,
+    });
+
+    const tools = await client.tools();
+
+    const result = tools['retry-tool'].execute(
+      { value: 'test' },
+      { messages: [], toolCallId: '1', context: {} },
+    );
+    await vi.advanceTimersByTimeAsync(2000);
+
+    await expect(result).resolves.toMatchObject({
+      content: [{ type: 'text', text: 'retried successfully' }],
+      isError: false,
+    });
+    expect(transport.toolCallAttempts).toBe(2);
+  });
+
+  it('should not retry HTTP status codes outside the default retry list', async () => {
+    const transport = new FailsFirstToolCallTransport('unlisted-http');
+    client = await createMCPClient({
+      transport,
+      maxRetries: 2,
+    });
+
+    const tools = await client.tools();
+
+    await expect(
+      tools['retry-tool'].execute(
+        { value: 'test' },
+        { messages: [], toolCallId: '1', context: {} },
+      ),
+    ).rejects.toMatchObject({ statusCode: 418 });
+    expect(transport.toolCallAttempts).toBe(1);
+  });
+
+  it('should not retry invalid argument JSON-RPC errors', async () => {
+    const transport = new FailsFirstToolCallTransport('invalid-params');
+    client = await createMCPClient({
+      transport,
+      maxRetries: 2,
+    });
+
+    const tools = await client.tools();
+
+    await expect(
+      tools['retry-tool'].execute(
+        { value: 'test' },
+        { messages: [], toolCallId: '1', context: {} },
+      ),
+    ).rejects.toMatchObject({ code: -32602 });
+    expect(transport.toolCallAttempts).toBe(1);
+  });
+
+  it('should not retry auth failures', async () => {
+    const transport = new FailsFirstToolCallTransport('auth');
+    client = await createMCPClient({
+      transport,
+      maxRetries: 2,
+    });
+
+    const tools = await client.tools();
+
+    await expect(
+      tools['retry-tool'].execute(
+        { value: 'test' },
+        { messages: [], toolCallId: '1', context: {} },
+      ),
+    ).rejects.toMatchObject({ statusCode: 401 });
+    expect(transport.toolCallAttempts).toBe(1);
+  });
+
+  it('should not retry successful MCP tool results with isError', async () => {
+    const transport = new FailsFirstToolCallTransport('tool-result-error');
+    client = await createMCPClient({
+      transport,
+      maxRetries: 2,
+    });
+
+    const tools = await client.tools();
+
+    await expect(
+      tools['retry-tool'].execute(
+        { value: 'test' },
+        { messages: [], toolCallId: '1', context: {} },
+      ),
+    ).resolves.toMatchInlineSnapshot(`
+      {
+        "content": [
+          {
+            "text": "tool-level error",
+            "type": "text",
+          },
+        ],
+        "isError": true,
+      }
+    `);
+    expect(transport.toolCallAttempts).toBe(1);
   });
 
   it('should error when calling tool with misconfigured parameters', async () => {
@@ -1019,6 +1778,62 @@ describe('MCPClient', () => {
     }
   });
 
+  it('should resume from an initial initialize result without reinitializing', async () => {
+    const sentMessages: JSONRPCMessage[] = [];
+    const initialInitializeResult: InitializeResult = {
+      protocolVersion: LATEST_PROTOCOL_VERSION,
+      serverInfo: {
+        name: 'resumed-server',
+        version: '1.0.0',
+      },
+      capabilities: {
+        tools: {},
+      },
+      instructions: 'Cached server instructions',
+    };
+    const transport: MCPTransport = {
+      start: vi.fn(async () => {}),
+      close: vi.fn(async () => {}),
+      send: vi.fn(async message => {
+        sentMessages.push(message);
+        if (
+          'method' in message &&
+          'id' in message &&
+          message.method === 'tools/list'
+        ) {
+          transport.onmessage?.({
+            jsonrpc: '2.0',
+            id: message.id,
+            result: {
+              tools: [],
+            },
+          });
+        }
+      }),
+    };
+
+    client = await createMCPClient({
+      transport,
+      initialInitializeResult,
+    });
+
+    expect(transport.start).toHaveBeenCalledTimes(1);
+    expect(sentMessages).toEqual([]);
+    expect(transport.protocolVersion).toBe(LATEST_PROTOCOL_VERSION);
+    expect(client.serverInfo).toEqual({
+      name: 'resumed-server',
+      version: '1.0.0',
+    });
+    expect(client.initializeResult).toEqual(initialInitializeResult);
+    expect(client.instructions).toBe('Cached server instructions');
+
+    await expect(client.listTools()).resolves.toEqual({ tools: [] });
+    expect(sentMessages).toHaveLength(1);
+    expect(sentMessages[0]).toMatchObject({
+      method: 'tools/list',
+    });
+  });
+
   it('should expose serverInfo from initialization', async () => {
     createMockTransport.mockImplementation(
       () =>
@@ -1106,6 +1921,91 @@ describe('MCPClient', () => {
     expect(closeSpy).toHaveBeenCalled();
   });
 
+  it('should time out initialization and close the transport', async () => {
+    vi.useFakeTimers();
+    const transport = new HangingInitializationTransport();
+    const clientPromise = createMCPClient({
+      transport,
+      initializationOptions: { timeout: 100 },
+    });
+    const rejection = expect(clientPromise).rejects.toSatisfy(
+      error =>
+        MCPClientError.isInstance(error) &&
+        error.message === 'MCP client initialization timed out after 100ms',
+    );
+
+    await vi.advanceTimersByTimeAsync(100);
+
+    await rejection;
+    expect(transport.closeCalled).toBe(true);
+  });
+
+  it('should abort initialization and close the transport', async () => {
+    const transport = new HangingInitializationTransport();
+    const abortController = new AbortController();
+    const abortReason = new Error('stop initialization');
+    const clientPromise = createMCPClient({
+      transport,
+      initializationOptions: { signal: abortController.signal },
+    });
+
+    abortController.abort(abortReason);
+
+    await expect(clientPromise).rejects.toSatisfy(
+      error =>
+        MCPClientError.isInstance(error) &&
+        error.message === 'MCP client initialization was aborted' &&
+        error.cause === abortReason,
+    );
+    expect(transport.closeCalled).toBe(true);
+  });
+
+  it.each([
+    ['timeout', { timeout: 100 }],
+    ['maximum total timeout', { maxTotalTimeout: 100 }],
+  ])('should reject a request at its %s', async (_, options) => {
+    vi.useFakeTimers();
+    const transport = new HangingToolCallTransport();
+    client = await createMCPClient({ transport });
+    const requestPromise = client.listTools({ options });
+    const rejection = expect(requestPromise).rejects.toSatisfy(
+      error =>
+        MCPClientError.isInstance(error) &&
+        error.message === 'Request timed out after 100ms',
+    );
+
+    await vi.advanceTimersByTimeAsync(100);
+
+    await rejection;
+    expect(
+      (
+        client as unknown as {
+          responseHandlers: Map<number, unknown>;
+        }
+      ).responseHandlers.size,
+    ).toBe(0);
+  });
+
+  it('should pass request deadline signals to custom transports', async () => {
+    vi.useFakeTimers();
+    const transport = new SignalAwareHangingRequestTransport();
+    client = await createMCPClient({ transport });
+    const requestPromise = client.listTools({ options: { timeout: 100 } });
+    const rejection = expect(requestPromise).rejects.toSatisfy(
+      error =>
+        MCPClientError.isInstance(error) &&
+        error.message === 'Request timed out after 100ms',
+    );
+
+    expect(transport.requestSignal).toBeDefined();
+
+    await vi.advanceTimersByTimeAsync(100);
+
+    await rejection;
+    expect(transport.requestSignal?.aborted).toBe(true);
+    expect(transport.requestAborted).toBe(true);
+  });
+
   it('should throw Abort Error if tool call request is aborted', async () => {
     client = await createMCPClient({
       transport: { type: 'sse', url: 'https://example.com/sse' },
@@ -1127,6 +2027,41 @@ describe('MCPClient', () => {
     ).rejects.toSatisfy(
       error => error instanceof Error && error.name === 'AbortError',
     );
+  });
+
+  it('should reject in-flight tool call request when aborted', async () => {
+    const transport = new HangingToolCallTransport();
+    client = await createMCPClient({ transport });
+
+    const abortController = new AbortController();
+    const abortReason = new Error('abort after send');
+    const toolCallPromise = client.callTool({
+      name: 'hanging-tool',
+      arguments: {},
+      options: { signal: abortController.signal },
+    });
+
+    expect(
+      transport.sentMessages.some(
+        message => 'method' in message && message.method === 'tools/call',
+      ),
+    ).toBe(true);
+
+    abortController.abort(abortReason);
+
+    await expect(toolCallPromise).rejects.toSatisfy(
+      error =>
+        MCPClientError.isInstance(error) &&
+        error.message === 'Request was aborted' &&
+        error.cause === abortReason,
+    );
+    expect(
+      (
+        client as unknown as {
+          responseHandlers: Map<number, unknown>;
+        }
+      ).responseHandlers.size,
+    ).toBe(0);
   });
 
   describe('elicitation support', () => {
@@ -1194,6 +2129,39 @@ describe('MCPClient', () => {
             name: 'octocat',
           },
         },
+      });
+    });
+  });
+
+  describe('ping support', () => {
+    it('should respond to ping requests with an empty result per MCP spec', async () => {
+      client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+      });
+
+      const transportInstance = createMockTransport.mock.results.at(-1)
+        ?.value as MockMCPTransport;
+      const sendSpy = vi.spyOn(transportInstance, 'send');
+
+      const pingRequest = {
+        jsonrpc: '2.0' as const,
+        id: 99,
+        method: 'ping' as const,
+      };
+
+      transportInstance.onmessage?.(pingRequest);
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const pingResponse = sendSpy.mock.calls.find(
+        ([message]) => 'id' in message && message.id === 99,
+      );
+
+      expect(pingResponse?.[0]).toMatchObject({
+        jsonrpc: '2.0',
+        id: 99,
+        result: {},
       });
     });
   });
@@ -2148,9 +3116,8 @@ describe('MCPClient', () => {
         transport: mockTransport,
       });
 
-      // The mock transport returns LATEST_PROTOCOL_VERSION by default
       expect(mockTransport.protocolVersion).toBe(
-        (await import('./types')).LATEST_PROTOCOL_VERSION,
+        LATEST_LEGACY_PROTOCOL_VERSION,
       );
     });
 
@@ -2168,6 +3135,104 @@ describe('MCPClient', () => {
       });
 
       expect(mockTransport.protocolVersion).toBe('2025-06-18');
+    });
+
+    it('should support transports with getter-only protocolVersion and setProtocolVersion', async () => {
+      const transport = new GetterOnlyProtocolVersionTransport('2025-06-18');
+
+      client = await createMCPClient({
+        transport,
+      });
+
+      expect(transport.protocolVersion).toBe('2025-06-18');
+    });
+
+    it('should discover a modern server and add metadata to requests', async () => {
+      const transport = new ProtocolDiscoveryTransport();
+
+      client = await createMCPClient({ transport });
+      await client.listTools();
+
+      expect(transport.protocolVersion).toBe(LATEST_PROTOCOL_VERSION);
+      expect(client.serverInfo).toEqual({
+        name: 'modern-test-server',
+        version: '1.0.0',
+      });
+      expect(
+        transport.sentMessages.map(message =>
+          'method' in message ? message.method : undefined,
+        ),
+      ).toEqual(['server/discover', 'tools/list']);
+
+      for (const message of transport.sentMessages) {
+        if (!('method' in message) || !('id' in message)) {
+          continue;
+        }
+
+        expect(message.params?._meta).toMatchObject({
+          'io.modelcontextprotocol/protocolVersion': LATEST_PROTOCOL_VERSION,
+          'io.modelcontextprotocol/clientCapabilities': {},
+          'io.modelcontextprotocol/clientInfo': {
+            name: 'ai-sdk-mcp-client',
+            version: '1.0.0',
+          },
+        });
+      }
+    });
+
+    it('should fall back to legacy initialization for a legacy server', async () => {
+      const transport = new ProtocolDiscoveryTransport('legacy');
+
+      client = await createMCPClient({ transport });
+      await client.listTools();
+
+      expect(transport.protocolVersion).toBe(LATEST_LEGACY_PROTOCOL_VERSION);
+      expect(
+        transport.sentMessages.map(message =>
+          'method' in message ? message.method : undefined,
+        ),
+      ).toEqual([
+        'server/discover',
+        'initialize',
+        'notifications/initialized',
+        'tools/list',
+      ]);
+
+      const toolListRequest = transport.sentMessages.find(
+        message => 'method' in message && message.method === 'tools/list',
+      );
+      expect(
+        toolListRequest != null && 'params' in toolListRequest
+          ? toolListRequest.params?._meta
+          : undefined,
+      ).toBeUndefined();
+    });
+
+    it('should not fall back for a recognized modern protocol error', async () => {
+      const transport = new ProtocolDiscoveryTransport('unsupported');
+
+      await expect(createMCPClient({ transport })).rejects.toMatchObject({
+        code: -32022,
+        data: {
+          requested: LATEST_PROTOCOL_VERSION,
+          supported: ['2099-01-01'],
+        },
+      });
+      expect(
+        transport.sentMessages.map(message =>
+          'method' in message ? message.method : undefined,
+        ),
+      ).toEqual(['server/discover']);
+    });
+
+    it('should require resultType from modern servers', async () => {
+      const transport = new ProtocolDiscoveryTransport('modern', false);
+
+      client = await createMCPClient({ transport });
+
+      await expect(client.listTools()).rejects.toThrow(
+        'Modern MCP result is missing resultType',
+      );
     });
   });
 });

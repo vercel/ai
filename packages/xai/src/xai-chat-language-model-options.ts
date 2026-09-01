@@ -5,6 +5,8 @@ export type XaiChatModelId =
   | 'grok-4.20-non-reasoning'
   | 'grok-4.20-reasoning'
   | 'grok-4.3'
+  | 'grok-4.5'
+  | 'grok-4.6'
   | 'grok-latest'
   | (string & {});
 
@@ -58,15 +60,20 @@ export const xaiLanguageModelChatOptions = z.object({
    * - `low` (default): Uses some reasoning tokens, but still fast.
    * - `medium`: More thinking for less-latency-sensitive applications.
    * - `high`: Uses more reasoning tokens for deeper thinking.
+   * - `xhigh`: Uses the most reasoning tokens (supported by `grok-4.6`).
    *
    * Note: Not every Grok model accepts every value. Refer to xAI's docs for
    * the values supported by your selected model.
    *
    * @see https://docs.x.ai/docs/guides/reasoning
    */
-  reasoningEffort: z.enum(['none', 'low', 'medium', 'high']).optional(),
+  reasoningEffort: z
+    .enum(['none', 'low', 'medium', 'high', 'xhigh'])
+    .optional(),
   logprobs: z.boolean().optional(),
   topLogprobs: z.number().int().min(0).max(8).optional(),
+
+  serviceTier: z.enum(['default', 'priority']).optional(),
 
   /**
    * Whether to enable parallel function calling during tool use.
@@ -76,6 +83,15 @@ export const xaiLanguageModelChatOptions = z.object({
    */
   parallel_function_calling: z.boolean().optional(),
 
+  /**
+   * @deprecated xAI has deprecated Live Search (`search_parameters`) in favor
+   * of the Agent Tools API. Requests using this option now return a "Live
+   * search is deprecated" error. Use the `web_search` / `x_search` tools
+   * instead (e.g. `xai.tools.webSearch()`, `xai.tools.xSearch()`) with
+   * `xai.responses(modelId)`.
+   *
+   * @see https://docs.x.ai/docs/guides/tools/overview
+   */
   searchParameters: z
     .object({
       /**

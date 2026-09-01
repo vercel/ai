@@ -1,10 +1,10 @@
 {
   "name": "@ai-sdk/workflow",
-  "version": "1.0.0-canary.59",
+  "version": "2.0.17",
+  "type": "module",
   "description": "WorkflowAgent for building AI agents with AI SDK",
   "license": "Apache-2.0",
   "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "source": "./src/index.ts",
   "files": [
@@ -33,30 +33,37 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./video": {
+      "types": "./dist/video.d.ts",
+      "import": "./dist/video.js",
+      "default": "./dist/video.js"
     }
   },
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
     "ai": "workspace:*",
-    "ajv": "^8.18.0"
+    "ajv": "^8.20.0"
   },
   "devDependencies": {
-    "@types/node": "20.17.24",
+    "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "@workflow/vitest": "4.0.1",
-    "tsup": "^8",
+    "@workflow/vitest": "5.0.0-beta.42",
+    "tsup": "^8.5.1",
     "typescript": "5.8.3",
-    "workflow": "4.2.4",
-    "zod": "3.25.76"
+    "vitest": "4.1.6",
+    "workflow": "5.0.0-beta.42",
+    "zod": "4.4.3"
   },
   "peerDependencies": {
+    "workflow": "^5.0.0-beta.42",
     "zod": "^3.25.76 || ^4.1.8"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "publishConfig": {
     "access": "public",

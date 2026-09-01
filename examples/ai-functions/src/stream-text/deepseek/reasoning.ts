@@ -4,14 +4,14 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: deepSeek('deepseek-reasoner'),
+    model: deepSeek('deepseek-v4-pro'),
     reasoning: 'medium',
     prompt: 'How many "r"s are in the word "strawberry"?',
   });
 
   let enteredReasoning = false;
   let enteredText = false;
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     if (part.type === 'reasoning-delta') {
       if (!enteredReasoning) {
         enteredReasoning = true;

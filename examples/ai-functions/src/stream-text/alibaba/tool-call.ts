@@ -30,7 +30,7 @@ run(async () => {
   });
 
   // Show tool calls and text as they happen
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'tool-call':
         console.log(`\nTool call: ${part.toolName}`);

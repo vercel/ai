@@ -2,7 +2,6 @@ import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
-  createJsonErrorResponseHandler,
   createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
   delay,
@@ -17,6 +16,10 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import {
+  bflFailedResponseHandler,
+  isTrustedUrl,
+} from './black-forest-labs-api';
 import { blackForestLabsImageModelOptionsSchema } from './black-forest-labs-image-model-options';
 import type {
   BlackForestLabsAspectRatio,
@@ -126,10 +129,12 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
       throw new Error('Black Forest Labs supports up to 10 input images.');
     }
 
+    const inputImageField =
+      this.modelId === 'flux-pro-1.0-fill' ? 'image' : 'input_image';
     const inputImagesObj: Record<string, string> = inputImages.reduce<
       Record<string, string>
     >((acc, img, index) => {
-      acc[`input_image${index === 0 ? '' : `_${index + 1}`}`] = img;
+      acc[`${inputImageField}${index === 0 ? '' : `_${index + 1}`}`] = img;
       return acc;
     }, {});
 
@@ -166,7 +171,7 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
       webhook_url: bflOptions?.webhookUrl,
     };
 
-    return { body, warnings };
+    return { body, warnings, bflOptions };
   }
 
   async doGenerate({
@@ -182,7 +187,7 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
   }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const { body, warnings } = await this.getArgs({
+    const { body, warnings, bflOptions } = await this.getArgs({
       prompt,
       files,
       mask,
@@ -194,12 +199,6 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
       headers,
       abortSignal,
     } as Parameters<ImageModelV4['doGenerate']>[0]);
-
-    const bflOptions = await parseProviderOptions({
-      provider: 'blackForestLabs',
-      providerOptions,
-      schema: blackForestLabsImageModelOptionsSchema,
-    });
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const combinedHeaders = combineHeaders(
@@ -239,7 +238,15 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
 
     const { value: imageBytes, responseHeaders } = await getFromApi({
       url: imageUrl,
-      headers: combinedHeaders,
+      // imageUrl comes from the provider response body; validate it.
+      validateUrl: true,
+      trustedOrigin: this.config.baseURL,
+      // Only send credentials if the response-supplied URL points back at the
+      // provider; the image is typically delivered from a CDN, so the API key
+      // must not travel to a foreign host.
+      headers: isTrustedUrl(imageUrl, this.config.baseURL)
+        ? combinedHeaders
+        : undefined,
       abortSignal,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),
@@ -318,7 +325,13 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
     for (let i = 0; i < maxPollAttempts; i++) {
       const { value } = await getFromApi({
         url: url.toString(),
-        headers,
+        // The polling URL comes from the provider response; validate it.
+        validateUrl: true,
+        trustedOrigin: this.config.baseURL,
+        // Only send credentials when it stays on a trusted provider host.
+        headers: isTrustedUrl(url.toString(), this.config.baseURL)
+          ? headers
+          : undefined,
         failedResponseHandler: bflFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(bflPollSchema),
         abortSignal,
@@ -418,29 +431,3 @@ const bflPollSchema = z
     status: (v.status ?? v.state)!,
     result: v.result,
   }));
-
-const bflErrorSchema = z.object({
-  message: z.string().optional(),
-  detail: z.any().optional(),
-});
-
-const bflFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: bflErrorSchema,
-  errorToMessage: error =>
-    bflErrorToMessage(error) ?? 'Unknown Black Forest Labs error',
-});
-
-function bflErrorToMessage(error: unknown): string | undefined {
-  const parsed = bflErrorSchema.safeParse(error);
-  if (!parsed.success) return undefined;
-  const { message, detail } = parsed.data;
-  if (typeof detail === 'string') return detail;
-  if (detail != null) {
-    try {
-      return JSON.stringify(detail);
-    } catch {
-      // ignore
-    }
-  }
-  return message;
-}

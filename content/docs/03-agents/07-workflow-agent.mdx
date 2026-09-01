@@ -36,10 +36,10 @@ For simpler use cases that don't need durability, use [`ToolLoopAgent`](/docs/ag
 ## Installation
 
 ```bash
-npm install @ai-sdk/workflow workflow
+npm install @ai-sdk/workflow workflow@beta
 ```
 
-`@ai-sdk/workflow` requires the `ai` package and `zod` as peer dependencies. The `workflow` package provides the Workflow DevKit runtime (`getWritable`, `'use workflow'`, `'use step'`).
+`@ai-sdk/workflow` requires Workflow 5, which is currently available under the `beta` tag, as well as the `ai` package and `zod` peer dependencies. The `workflow` package provides the Workflow DevKit runtime (`getWritable`, `'use workflow'`, `'use step'`).
 
 ## Creating a WorkflowAgent
 
@@ -185,6 +185,11 @@ return createUIMessageStreamResponse({
 });
 ```
 
+The transform also forwards `reset-step` events emitted by `WorkflowAgent` on
+retries.
+Clients remove partial parts from the failed model-call step before processing
+the retried output.
+
 ## Resumable Streaming with WorkflowChatTransport
 
 Workflow functions can time out or be interrupted by network failures. `WorkflowChatTransport` is a [`ChatTransport`](/docs/ai-sdk-ui/transport) implementation that handles these interruptions automatically — it detects when a stream ends without a `finish` event and reconnects to resume from where it left off.
@@ -202,7 +207,6 @@ export default function Chat() {
       new WorkflowChatTransport({
         api: '/api/chat',
         maxConsecutiveErrors: 5,
-        initialStartIndex: -50, // On page refresh, fetch last 50 chunks
       }),
     [],
   );
@@ -236,6 +240,7 @@ export async function POST(request: Request) {
 
 ```ts filename="app/api/chat/[runId]/stream/route.ts"
 import { createModelCallToUIChunkTransform } from '@ai-sdk/workflow';
+import { createUIMessageStreamResponse } from 'ai';
 import type { NextRequest } from 'next/server';
 import { getRun } from 'workflow/api';
 
@@ -247,22 +252,35 @@ export async function GET(
   const startIndex = Number(
     new URL(request.url).searchParams.get('startIndex') ?? '0',
   );
+  if (!Number.isSafeInteger(startIndex) || startIndex < 0) {
+    return Response.json(
+      { error: 'startIndex must be a non-negative safe integer' },
+      { status: 400 },
+    );
+  }
 
   const run = await getRun(runId);
   const readable = run
-    .getReadable({ startIndex })
-    .pipeThrough(createModelCallToUIChunkTransform());
+    .getReadable({ startIndex: 0 })
+    .pipeThrough(
+      createModelCallToUIChunkTransform({ uiStartIndex: startIndex }),
+    );
 
-  return new Response(readable, {
+  return createUIMessageStreamResponse({
+    stream: readable,
     headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
       'x-workflow-run-id': runId,
     },
   });
 }
 ```
+
+`WorkflowChatTransport` counts `UIMessageChunk` objects, while the durable
+`WorkflowAgent` stream stores raw `ModelCallStreamPart` objects. Replay the raw
+stream from index `0` and apply the non-negative UI cursor in
+`createModelCallToUIChunkTransform()` as shown above. Negative start indexes
+require a durable stream that already stores `UIMessageChunk` objects and
+cannot be used with this raw-to-UI conversion.
 
 For the full API reference, see [`WorkflowChatTransport`](/docs/reference/ai-sdk-workflow/workflow-chat-transport).
 
@@ -336,6 +354,49 @@ const agent = new WorkflowAgent({
 
 Because the workflow is durable, the approval request survives process restarts — the user can approve hours later and the agent will resume.
 
+### Signed Tool Approvals
+
+Client-supplied message history can be modified before it is replayed to the
+workflow. For tools that perform sensitive operations, configure
+`experimental_toolApprovalSecret` to authenticate approval requests:
+
+```ts highlight="4"
+const agent = new WorkflowAgent({
+  model: 'anthropic/claude-sonnet-4-6',
+  experimental_toolApprovalSecret: {
+    environmentVariable: 'TOOL_APPROVAL_SECRET',
+  },
+  tools: {
+    bookFlight: tool({
+      description: 'Book a flight',
+      inputSchema: z.object({ flightId: z.string() }),
+      needsApproval: true,
+      execute: bookFlightStep,
+    }),
+  },
+});
+```
+
+The agent HMAC-signs the approval ID, tool call ID, tool name, and validated
+input. When approved message history is replayed, a missing or invalid
+signature prevents the tool from executing. The signature is preserved through
+the durable model-call stream, `createModelCallToUIChunkTransform()`,
+`addToolApprovalResponse()`, and `convertToModelMessages()`.
+
+Use a high-entropy secret of at least 32 bytes and make the same secret
+available to every worker that can issue or resume an approval. Keep old keys
+available while approvals signed with them are pending; changing the secret
+invalidates those pending approvals.
+
+`WorkflowAgent` passes only the environment variable name into signing and
+verification steps. Each step reads the secret from its local environment, and
+the raw value is never included in step arguments, durable stream parts,
+callbacks, or telemetry events. Configure the environment variable on every
+worker, and do not put the secret value in `runtimeContext` or `toolsContext`.
+
+You can also provide `experimental_toolApprovalSecret` to `agent.stream()`.
+The stream-level value overrides the constructor default.
+
 ## Loop Control
 
 Control how many steps the agent can take:
@@ -393,7 +454,7 @@ console.log(result.output); // { sentiment: 'positive', summary: '...' }
 
 Pass server-side state through the agent loop without putting it into the prompt. Use these instead of the previous `experimental_context` option.
 
-- `runtimeContext` is shared agent state that flows through `prepareStep`, lifecycle callbacks, and `onFinish`. Treat it as immutable; return a new value from `prepareStep` to update it for the current and subsequent steps.
+- `runtimeContext` is shared agent state that flows through `prepareStep`, lifecycle callbacks, and `onEnd`. Treat it as immutable; return a new value from `prepareStep` to update it for the current and subsequent steps.
 - `toolsContext` is a per-tool map keyed by tool name. Each tool's `execute` only sees its own validated entry as `context`. Tools that declare a `contextSchema` validate their entry against the schema before execution.
 
 ```ts filename="workflow/agent-chat.ts"
@@ -417,7 +478,7 @@ const agent = new WorkflowAgent({
     }),
   },
 
-  // Shared agent state — available in `prepareStep`, lifecycle callbacks, and `onFinish`.
+  // Shared agent state — available in `prepareStep`, lifecycle callbacks, and `onEnd`.
   runtimeContext: {
     tenantId: 'tenant_123',
     requestId: 'req_abc',
@@ -444,6 +505,44 @@ Because `WorkflowAgent` runs inside the Workflow runtime, context values may be 
 
 This differs from `ToolLoopAgent`, which runs in memory and can carry richer JavaScript values for the lifetime of a single process. With `WorkflowAgent`, treating context as durable data keeps workflow replay and step execution reliable.
 
+### experimental_sandbox
+
+Pass a sandbox session when tools need an execution environment. The sandbox is
+available to tool descriptions and `execute` functions as
+`experimental_sandbox`, and to `prepareStep`, where you can override it for the
+current step:
+
+```ts
+const agent = new WorkflowAgent({
+  model: 'anthropic/claude-sonnet-4-6',
+  tools: {
+    shell: tool({
+      description: 'Run a shell command in the sandbox.',
+      inputSchema: z.object({ command: z.string() }),
+      execute: async ({ command }, { experimental_sandbox }) => {
+        if (!experimental_sandbox) {
+          throw new Error('Sandbox is not available');
+        }
+
+        return experimental_sandbox.run({ command });
+      },
+    }),
+  },
+  experimental_sandbox: sandbox,
+});
+
+await agent.stream({
+  messages,
+  writable: getWritable(),
+  experimental_sandbox: requestSandbox, // Overrides the constructor default.
+});
+```
+
+`experimental_sandbox` is a live runtime handle, not durable context. Do not
+store it in `runtimeContext` or `toolsContext`. If a tool runs as a separate
+workflow step, pass serializable sandbox identifiers or configuration and
+reattach inside that step.
+
 ### prepareCall
 
 Called once before the agent loop starts. Use it to transform model, instructions, or other settings based on runtime context:
@@ -466,9 +565,12 @@ Called before each step (LLM call). Use it to modify settings, manage context, o
 ```ts
 const agent = new WorkflowAgent({
   model: 'anthropic/claude-sonnet-4-6',
-  prepareStep: async ({ stepNumber, messages }) => {
+  prepareStep: async ({ stepNumber, experimental_sandbox }) => {
     if (stepNumber > 5) {
       return { toolChoice: 'none' }; // Force text response after 5 steps
+    }
+    if (experimental_sandbox) {
+      return { temperature: 0.2 };
     }
     return {};
   },
@@ -501,11 +603,11 @@ const agent = new WorkflowAgent({
     console.log(`Tool finished: ${toolCall.toolName}`);
   },
 
-  onStepFinish({ usage, finishReason }) {
+  onStepEnd({ usage, finishReason }) {
     console.log('Step done:', { finishReason });
   },
 
-  onFinish({ steps, totalUsage }) {
+  onEnd({ steps, totalUsage }) {
     console.log(`Completed in ${steps.length} steps`);
   },
 });
@@ -548,7 +650,7 @@ export type MyAgentUIMessage = InferWorkflowAgentUIMessage<typeof myAgent>;
 Install the new package alongside `workflow`:
 
 ```bash
-npm install @ai-sdk/workflow
+npm install @ai-sdk/workflow workflow@beta
 ```
 
 ### Write `ModelCallStreamPart`, not `UIMessageChunk`
@@ -627,7 +729,9 @@ whether approval is required (see [Tool Approval](#tool-approval) above).
 
 ### `uiMessages` / `collectUIMessages` is gone
 
-`DurableAgent.stream()` returned accumulated `uiMessages` when `collectUIMessages: true` was set. `WorkflowAgent.stream()` returns `ModelMessage[]` on `result.messages` instead — persist those and convert them at the edge with `convertToModelMessages` / `convertToUIMessages` as needed.
+`DurableAgent.stream()` returned accumulated `uiMessages` when `collectUIMessages: true` was set. `WorkflowAgent.stream()` returns `ModelMessage[]` on `result.messages` instead.
+
+For persistence, store `UIMessage[]` as your source of truth and call [`convertToModelMessages`](/docs/reference/ai-sdk-ui/convert-to-model-messages) before passing them to the agent — this is the pattern described in [Chatbot Message Persistence](/docs/ai-sdk-ui/chatbot-message-persistence). There is no built-in `ModelMessage` → `UIMessage` conversion, so avoid persisting `result.messages` as your only copy if you need to render the conversation in the UI later.
 
 ```diff
   const result = await agent.stream({
@@ -660,7 +764,7 @@ whether approval is required (see [Tool Approval](#tool-approval) above).
 
 ### Everything else
 
-Other options carry over with the same names: `prepareStep`, `onStepFinish`, `onFinish`, `onError`, `toolChoice`, `activeTools`, `timeout`, `experimental_repairToolCall`, and the usual generation settings (`temperature`, `maxOutputTokens`, `topP`, …). `WorkflowAgent` additionally adds `prepareCall` (runs once before the loop) and the `experimental_onStart` / `experimental_onStepStart` / `onToolExecutionStart` / `onToolExecutionEnd` lifecycle callbacks documented above.
+Other options carry over with the same names: `prepareStep`, `onStepEnd`, `onEnd`, `onError`, `toolChoice`, `activeTools`, `timeout`, `repairToolCall`, `experimental_sandbox`, and the usual generation settings (`temperature`, `maxOutputTokens`, `topP`, …). `WorkflowAgent` additionally adds `prepareCall` (runs once before the loop) and the `experimental_onStart` / `experimental_onStepStart` / `onToolExecutionStart` / `onToolExecutionEnd` lifecycle callbacks documented above.
 
 ## Next Steps
 

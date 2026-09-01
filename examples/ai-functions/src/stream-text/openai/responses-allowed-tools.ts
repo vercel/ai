@@ -6,16 +6,17 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai.responses('gpt-5.5'),
+    model: openai.responses('gpt-5.6'),
     tools: {
       weather: weatherTool,
       cityAttractions: tool({
         inputSchema: z.object({ city: z.string() }),
       }),
+      search: openai.tools.webSearch(),
     },
     providerOptions: {
       openai: {
-        allowedTools: { toolNames: ['weather'], mode: 'auto' },
+        allowedTools: { toolNames: ['weather', 'search'], mode: 'auto' },
       },
     },
     prompt:
@@ -25,7 +26,7 @@ run(async () => {
 
   const calledTools = new Set<string>();
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'text-delta': {
         process.stdout.write(chunk.text);
@@ -51,6 +52,7 @@ run(async () => {
           'cityAttractions blocked?',
           !calledTools.has('cityAttractions'),
         );
+        console.log('Warnings:', await result.warnings);
         console.log('Finish reason:', chunk.finishReason);
         console.log('Total Usage:', chunk.totalUsage);
         break;

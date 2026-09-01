@@ -1,4 +1,6 @@
 import { fail } from 'assert';
+import type { JSONSchema7 } from '@ai-sdk/provider';
+import { jsonSchema } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import { verifyNoObjectGeneratedError } from '../error/verify-no-object-generated-error';
@@ -310,6 +312,57 @@ describe('Output.array', () => {
         }
       `);
     });
+
+    it.each(['definitions', '$defs'] as const)(
+      'should preserve root-level %s when wrapping the element schema',
+      async keyword => {
+        const reference =
+          keyword === 'definitions' ? '#/definitions/Shared' : '#/$defs/Shared';
+        const arrayWithDefinitions = array({
+          element: jsonSchema({
+            type: 'object',
+            properties: {
+              shared: { $ref: reference },
+            },
+            required: ['shared'],
+            additionalProperties: false,
+            [keyword]: {
+              Shared: { type: 'string' },
+            },
+          } as JSONSchema7),
+        });
+
+        const result = await arrayWithDefinitions.responseFormat;
+
+        expect(result).toMatchObject({
+          schema: {
+            [keyword]: {
+              Shared: { type: 'string' },
+            },
+            properties: {
+              elements: {
+                items: {
+                  properties: {
+                    shared: { $ref: reference },
+                  },
+                },
+              },
+            },
+          },
+        });
+        const responseSchema = (
+          result as {
+            type: 'json';
+            schema: JSONSchema7;
+          }
+        ).schema;
+        const elementsSchema = responseSchema.properties
+          ?.elements as JSONSchema7;
+        const itemsSchema = elementsSchema.items as JSONSchema7;
+
+        expect(itemsSchema).not.toHaveProperty(keyword);
+      },
+    );
   });
 
   describe('parseCompleteOutput', () => {
@@ -351,6 +404,36 @@ describe('Output.array', () => {
           finishReason: context.finishReason,
         });
       }
+    });
+
+    it('should return schema-validated values (with transforms applied)', async () => {
+      const arrayWithTransform = array({
+        element: z
+          .object({ content: z.string() })
+          .transform(val => ({ ...val, extra: true })),
+      });
+
+      const result = await arrayWithTransform.parseCompleteOutput(
+        { text: `{ "elements": [{ "content": "hello" }] }` },
+        context,
+      );
+
+      expect(result).toStrictEqual([{ content: 'hello', extra: true }]);
+    });
+
+    it('should return validated values for multiple elements', async () => {
+      const result = await array1.parseCompleteOutput(
+        {
+          text: `{ "elements": [{ "content": "a" }, { "content": "b" }, { "content": "c" }] }`,
+        },
+        context,
+      );
+
+      expect(result).toStrictEqual([
+        { content: 'a' },
+        { content: 'b' },
+        { content: 'c' },
+      ]);
     });
   });
 
