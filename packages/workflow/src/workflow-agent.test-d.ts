@@ -168,4 +168,54 @@ describe('WorkflowAgent types', () => {
       tools,
     });
   });
+
+  it('correlates tool callback input, context, and output by tool name', () => {
+    const tools = {
+      weather: tool({
+        inputSchema: z.object({ city: z.string() }),
+        outputSchema: z.object({ temperature: z.number() }),
+        contextSchema: z.object({ units: z.enum(['c', 'f']) }),
+        execute: async () => ({ temperature: 20 }),
+      }),
+      stocks: tool({
+        inputSchema: z.object({ symbol: z.string() }),
+        outputSchema: z.object({ price: z.number() }),
+        contextSchema: z.object({
+          exchange: z.enum(['nasdaq', 'nyse']),
+        }),
+        execute: async () => ({ price: 100 }),
+      }),
+    };
+
+    new WorkflowAgent({
+      model,
+      tools,
+      toolsContext: {
+        weather: { units: 'c' },
+        stocks: { exchange: 'nasdaq' },
+      },
+      onToolExecutionStart: event => {
+        if (event.toolCall.toolName === 'weather') {
+          const city: string = event.toolCall.input.city;
+          const units: 'c' | 'f' = event.toolContext.units;
+          // @ts-expect-error weather input does not contain a stock symbol
+          event.toolCall.input.symbol;
+          expectTypeOf(city).toEqualTypeOf<string>();
+          expectTypeOf(units).toEqualTypeOf<'c' | 'f'>();
+        }
+      },
+      onToolExecutionEnd: event => {
+        if (event.toolCall.toolName === 'weather' && event.success) {
+          const city: string = event.toolCall.input.city;
+          const units: 'c' | 'f' = event.toolContext.units;
+          const temperature: number = event.output.temperature;
+          // @ts-expect-error weather input does not contain a stock symbol
+          event.toolCall.input.symbol;
+          expectTypeOf(city).toEqualTypeOf<string>();
+          expectTypeOf(units).toEqualTypeOf<'c' | 'f'>();
+          expectTypeOf(temperature).toEqualTypeOf<number>();
+        }
+      },
+    });
+  });
 });
