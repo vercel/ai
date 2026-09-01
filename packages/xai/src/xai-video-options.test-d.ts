@@ -48,12 +48,32 @@ describe('XaiVideoModelOptions type', () => {
     expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
   });
 
+  it('should allow reference-to-video mode with referenceVoiceIds', () => {
+    const options = {
+      mode: 'reference-to-video',
+      referenceImageUrls: ['https://example.com/ref.png'],
+      referenceVoiceIds: ['eve'],
+    } satisfies XaiVideoModelOptions;
+
+    expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
+  });
+
+  it('should allow referenceVoiceIds without mode for backward compatibility', () => {
+    const options = {
+      referenceImageUrls: ['https://example.com/ref.png'],
+      referenceVoiceIds: ['eve', 'leo', 'rex'],
+    } satisfies XaiVideoModelOptions;
+
+    expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
+  });
+
   // ── Plain generation + legacy no-mode compatibility ────────────────
 
   it('should allow generic video options without mode', () => {
     const options = {
       pollIntervalMs: 1000,
       resolution: '480p',
+      user: 'user-123',
     } satisfies XaiVideoModelOptions;
 
     expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
@@ -71,6 +91,7 @@ describe('XaiVideoModelOptions type', () => {
   it('should allow videoUrl without mode for backward compatibility', () => {
     const options = {
       videoUrl: 'https://example.com/video.mp4',
+      user: 'user-123',
     } satisfies XaiVideoModelOptions;
 
     expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
@@ -79,6 +100,7 @@ describe('XaiVideoModelOptions type', () => {
   it('should allow referenceImageUrls without mode for backward compatibility', () => {
     const options = {
       referenceImageUrls: ['https://example.com/ref.png'],
+      user: 'user-123',
     } satisfies XaiVideoModelOptions;
 
     expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
@@ -108,6 +130,43 @@ describe('XaiVideoModelOptions type', () => {
     expectTypeOf(referenceOptions).toMatchTypeOf<XaiVideoModelOptions>();
   });
 
+  it('should allow user for explicit generation and editing endpoint modes', () => {
+    const editOptions = {
+      mode: 'edit-video',
+      videoUrl: 'https://example.com/video.mp4',
+      user: 'user-123',
+    } satisfies XaiVideoModelOptions;
+
+    const referenceOptions = {
+      mode: 'reference-to-video',
+      referenceImageUrls: ['https://example.com/ref.png'],
+      user: 'user-123',
+    } satisfies XaiVideoModelOptions;
+
+    expectTypeOf(editOptions).toMatchTypeOf<XaiVideoModelOptions>();
+    expectTypeOf(referenceOptions).toMatchTypeOf<XaiVideoModelOptions>();
+  });
+
+  it('should not allow user for video extension', () => {
+    const options: XaiVideoModelOptions = {
+      mode: 'extend-video',
+      videoUrl: 'https://example.com/video.mp4',
+      // @ts-expect-error - the xAI extension endpoint does not support user
+      user: 'user-123',
+    };
+
+    options;
+  });
+
+  it('should require user to be a string', () => {
+    const options: XaiVideoModelOptions = {
+      // @ts-expect-error - user must be a string
+      user: 123,
+    };
+
+    options;
+  });
+
   // ── Discriminated union: illegal combos rejected ───────────────────
 
   it('should not allow referenceImageUrls with edit-video mode', () => {
@@ -127,6 +186,39 @@ describe('XaiVideoModelOptions type', () => {
       videoUrl: 'https://example.com/video.mp4',
       // @ts-expect-error - extend-video does not accept referenceImageUrls
       referenceImageUrls: ['https://example.com/ref.png'],
+    };
+
+    options;
+  });
+
+  it('should not allow referenceVoiceIds with edit-video mode', () => {
+    const options: XaiVideoModelOptions = {
+      mode: 'edit-video',
+      videoUrl: 'https://example.com/video.mp4',
+      // @ts-expect-error - edit-video does not accept referenceVoiceIds
+      referenceVoiceIds: ['eve'],
+    };
+
+    options;
+  });
+
+  it('should not allow referenceVoiceIds with extend-video mode', () => {
+    const options: XaiVideoModelOptions = {
+      mode: 'extend-video',
+      videoUrl: 'https://example.com/video.mp4',
+      // @ts-expect-error - extend-video does not accept referenceVoiceIds
+      referenceVoiceIds: ['eve'],
+    };
+
+    options;
+  });
+
+  it('should require referenceVoiceIds to be a string array', () => {
+    const options: XaiVideoModelOptions = {
+      mode: 'reference-to-video',
+      referenceImageUrls: ['https://example.com/ref.png'],
+      // @ts-expect-error - referenceVoiceIds must be a string array
+      referenceVoiceIds: 'eve',
     };
 
     options;

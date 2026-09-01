@@ -11,7 +11,7 @@ run(async () => {
     },
   });
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     console.log(`[CHUNK ${chunk.type}]`, chunk);
   }
 

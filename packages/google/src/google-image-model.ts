@@ -4,23 +4,15 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
-  combineHeaders,
   convertToBase64,
-  createJsonResponseHandler,
   generateId as defaultGenerateId,
-  lazySchema,
   parseProviderOptions,
-  postJsonToApi,
-  resolve,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
-  zodSchema,
   type FetchFunction,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
-import { googleFailedResponseHandler } from './google-error';
 import { googleImageModelOptionsSchema } from './google-image-model-options';
 import type {
   GoogleImageModelId,
@@ -61,12 +53,7 @@ export class GoogleImageModel implements ImageModelV4 {
     if (this.settings.maxImagesPerCall != null) {
       return this.settings.maxImagesPerCall;
     }
-    // https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models/gemini/2-5-flash-image
-    if (isGeminiModel(this.modelId)) {
-      return 10;
-    }
-    // https://ai.google.dev/gemini-api/docs/imagen#imagen-model
-    return 4;
+    return 10;
   }
 
   get provider(): string {
@@ -82,127 +69,12 @@ export class GoogleImageModel implements ImageModelV4 {
   async doGenerate(
     options: Parameters<ImageModelV4['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<ImageModelV4['doGenerate']>>> {
-    // Gemini image models use the language model API internally
-    if (isGeminiModel(this.modelId)) {
-      return this.doGenerateGemini(options);
-    }
-    return this.doGenerateImagen(options);
-  }
-
-  private async doGenerateImagen(
-    options: Parameters<ImageModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<ImageModelV4['doGenerate']>>> {
-    const {
-      prompt,
-      n = 1,
-      size,
-      aspectRatio = '1:1',
-      seed,
-      providerOptions,
-      headers,
-      abortSignal,
-      files,
-      mask,
-    } = options;
-    const warnings: Array<SharedV4Warning> = [];
-
-    // Imagen API endpoints do not support image editing
-    if (files != null && files.length > 0) {
+    if (!this.modelId.startsWith('gemini-')) {
       throw new Error(
-        'Google Gemini API does not support image editing with Imagen models. ' +
-          'Use Google Vertex AI (@ai-sdk/google-vertex) for image editing capabilities.',
+        'Google image models other than Gemini are no longer supported. Use a model ID that starts with `gemini-`.',
       );
     }
 
-    if (mask != null) {
-      throw new Error(
-        'Google Gemini API does not support image editing with masks. ' +
-          'Use Google Vertex AI (@ai-sdk/google-vertex) for image editing capabilities.',
-      );
-    }
-
-    if (size != null) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'size',
-        details:
-          'This model does not support the `size` option. Use `aspectRatio` instead.',
-      });
-    }
-
-    if (seed != null) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'seed',
-        details:
-          'This model does not support the `seed` option through this provider.',
-      });
-    }
-
-    const googleOptions = await parseProviderOptions({
-      provider: 'google',
-      providerOptions,
-      schema: googleImageModelOptionsSchema,
-    });
-
-    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-
-    const parameters: Record<string, unknown> = {
-      sampleCount: n,
-    };
-
-    if (aspectRatio != null) {
-      parameters.aspectRatio = aspectRatio;
-    }
-
-    if (googleOptions) {
-      Object.assign(parameters, googleOptions);
-    }
-
-    const body = {
-      instances: [{ prompt }],
-      parameters,
-    };
-
-    const { responseHeaders, value: response } = await postJsonToApi<{
-      predictions: Array<{ bytesBase64Encoded: string }>;
-    }>({
-      url: `${this.config.baseURL}/models/${this.modelId}:predict`,
-      headers: combineHeaders(
-        this.config.headers ? await resolve(this.config.headers) : undefined,
-        headers,
-      ),
-      body,
-      failedResponseHandler: googleFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        googleImageResponseSchema,
-      ),
-      abortSignal,
-      fetch: this.config.fetch,
-    });
-    return {
-      images: response.predictions.map(
-        (p: { bytesBase64Encoded: string }) => p.bytesBase64Encoded,
-      ),
-      warnings,
-      providerMetadata: {
-        google: {
-          images: response.predictions.map(() => ({
-            // Add any prediction-specific metadata here
-          })),
-        },
-      },
-      response: {
-        timestamp: currentDate,
-        modelId: this.modelId,
-        headers: responseHeaders,
-      },
-    };
-  }
-
-  private async doGenerateGemini(
-    options: Parameters<ImageModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<ImageModelV4['doGenerate']>>> {
     const {
       prompt,
       n,
@@ -283,6 +155,22 @@ export class GoogleImageModel implements ImageModelV4 {
       { role: 'user', content: userContent },
     ];
 
+    // Parse image-model-specific provider options so we can map them onto
+    // the underlying language-model call. `googleSearch` is the dedicated
+    // escape hatch for grounding (generateImage has no `tools` parameter).
+    const googleImageOptions = await parseProviderOptions({
+      provider: 'google',
+      providerOptions,
+      schema: googleImageModelOptionsSchema,
+    });
+
+    const {
+      googleSearch: _strippedGoogleSearch,
+      responseModalities: _strippedResponseModalities,
+      imageConfig: userImageConfig,
+      ...passthroughGoogleOptions
+    } = providerOptions?.google ?? {};
+
     // Instantiate language model
     const languageModel = new GoogleLanguageModel(this.modelId, {
       provider: this.config.provider,
@@ -298,20 +186,39 @@ export class GoogleImageModel implements ImageModelV4 {
       seed,
       providerOptions: {
         google: {
-          responseModalities: ['IMAGE'],
-          imageConfig: aspectRatio
-            ? {
-                aspectRatio: aspectRatio as NonNullable<
-                  GoogleLanguageModelOptions['imageConfig']
-                >['aspectRatio'],
-              }
-            : undefined,
-          ...((providerOptions?.google as Omit<
+          ...(passthroughGoogleOptions as Omit<
             GoogleLanguageModelOptions,
             'responseModalities' | 'imageConfig'
-          >) ?? {}),
+          >),
+          responseModalities: ['IMAGE'],
+          imageConfig:
+            aspectRatio != null || userImageConfig != null
+              ? {
+                  ...(userImageConfig as NonNullable<
+                    GoogleLanguageModelOptions['imageConfig']
+                  >),
+                  ...(aspectRatio != null
+                    ? {
+                        aspectRatio: aspectRatio as NonNullable<
+                          GoogleLanguageModelOptions['imageConfig']
+                        >['aspectRatio'],
+                      }
+                    : {}),
+                }
+              : undefined,
         } satisfies GoogleLanguageModelOptions,
       },
+      tools:
+        googleImageOptions?.googleSearch != null
+          ? [
+              {
+                type: 'provider',
+                id: 'google.google_search',
+                name: 'google_search',
+                args: googleImageOptions.googleSearch,
+              },
+            ]
+          : undefined,
       headers,
       abortSignal,
     });
@@ -329,11 +236,17 @@ export class GoogleImageModel implements ImageModelV4 {
       }
     }
 
+    const languageModelGoogleMetadata =
+      (result.providerMetadata?.google as
+        | Record<string, unknown>
+        | undefined) ?? {};
+
     return {
       images,
       warnings,
       providerMetadata: {
         google: {
+          ...languageModelGoogleMetadata,
           images: images.map(() => ({})),
         },
       },
@@ -354,18 +267,3 @@ export class GoogleImageModel implements ImageModelV4 {
     };
   }
 }
-
-function isGeminiModel(modelId: string): boolean {
-  return modelId.startsWith('gemini-');
-}
-
-// minimal version of the schema
-const googleImageResponseSchema = lazySchema(() =>
-  zodSchema(
-    z.object({
-      predictions: z
-        .array(z.object({ bytesBase64Encoded: z.string() }))
-        .default([]),
-    }),
-  ),
-);

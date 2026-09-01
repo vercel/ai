@@ -8,7 +8,7 @@ run(async () => {
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     console.log(JSON.stringify(part));
   }
 });

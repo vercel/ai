@@ -9,12 +9,11 @@ describe('GoogleInteractionsAgentName', () => {
     expectTypeOf<'deep-research-max-preview-04-2026'>().toExtend<GoogleInteractionsAgentName>();
   });
 
+  it('accepts antigravity-preview-05-2026', () => {
+    expectTypeOf<'antigravity-preview-05-2026'>().toExtend<GoogleInteractionsAgentName>();
+  });
+
   it('rejects arbitrary strings (compile-time error guard)', () => {
-    /*
-     * If the type is ever loosened to include `(string & {})` again, this line
-     * will silently start to compile. The negated `toExtend` keeps the strict
-     * union honest.
-     */
     expectTypeOf<'definitely-not-an-agent'>().not.toExtend<GoogleInteractionsAgentName>();
     expectTypeOf<string>().not.toExtend<GoogleInteractionsAgentName>();
   });
@@ -30,5 +29,9 @@ describe('google.interactions agent factory typing', () => {
   it('rejects an unknown agent name', () => {
     // @ts-expect-error - 'unknown-agent' is not a valid GoogleInteractionsAgentName
     google.interactions({ agent: 'unknown-agent' });
+  });
+
+  it('accepts an arbitrary managedAgent name', () => {
+    google.interactions({ managedAgent: 'my-custom-agent-name' });
   });
 });

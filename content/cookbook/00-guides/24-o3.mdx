@@ -20,9 +20,9 @@ o3-mini offers three reasoning effort levels:
 2. [**Medium**]: Balanced approach matching o1's performance levels
 3. [**High**]: Enhanced reasoning power exceeding o1 in many STEM domains
 
-| Model   | Streaming           | Tool Calling        | Structured Output   | Reasoning Effort    | Image Input         |
-| ------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| o3-mini | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| Model   | Streaming | Tool Calling | Structured Output | Reasoning Effort | Image Input |
+| ------- | --------- | ------------ | ----------------- | ---------------- | ----------- |
+| o3-mini | <Check /> | <Check />    | <Check />         | <Check />        | <Cross />   |
 
 ### Benchmarks
 
@@ -165,7 +165,13 @@ Then, create a route handler for the chat endpoint:
 
 ```tsx filename="app/api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+  UIMessage,
+} from 'ai';
 
 // Allow responses up to 5 minutes
 export const maxDuration = 300;
@@ -178,7 +184,9 @@ export async function POST(req: Request) {
     messages: await convertToModelMessages(messages),
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 

@@ -2,9 +2,11 @@ import { z } from 'zod/v4';
 import type { JSONObject } from '@ai-sdk/provider';
 import type { FlexibleSchema, Tool } from '@ai-sdk/provider-utils';
 
-export const LATEST_PROTOCOL_VERSION = '2025-11-25';
+export const LATEST_PROTOCOL_VERSION = '2026-07-28';
+export const LATEST_LEGACY_PROTOCOL_VERSION = '2025-11-25';
 export const SUPPORTED_PROTOCOL_VERSIONS = [
   LATEST_PROTOCOL_VERSION,
+  LATEST_LEGACY_PROTOCOL_VERSION,
   '2025-06-18',
   '2025-03-26',
   '2024-11-05',
@@ -73,7 +75,9 @@ export const BaseParamsSchema = z.looseObject({
   _meta: z.optional(z.object({}).loose()),
 });
 type BaseParams = z.infer<typeof BaseParamsSchema>;
-export const ResultSchema = BaseParamsSchema;
+export const ResultSchema = BaseParamsSchema.extend({
+  resultType: z.optional(z.string()),
+});
 
 export const RequestSchema = z.object({
   method: z.string(),
@@ -98,6 +102,7 @@ const ElicitationCapabilitySchema = z
 const ServerCapabilitiesSchema = z.looseObject({
   experimental: z.optional(z.object({}).loose()),
   logging: z.optional(z.object({}).loose()),
+  completions: z.optional(z.object({}).loose()),
   prompts: z.optional(
     z.looseObject({
       listChanged: z.optional(z.boolean()),
@@ -127,6 +132,15 @@ export const ClientCapabilitiesSchema = z
 export type ClientCapabilities = z.infer<typeof ClientCapabilitiesSchema>;
 export type ElicitationCapability = z.infer<typeof ElicitationCapabilitySchema>;
 
+export const DiscoverResultSchema = ResultSchema.extend({
+  supportedVersions: z.array(z.string()),
+  capabilities: ServerCapabilitiesSchema,
+  instructions: z.optional(z.string()),
+  ttlMs: z.optional(z.number()),
+  cacheScope: z.optional(z.union([z.literal('public'), z.literal('private')])),
+});
+export type DiscoverResult = z.infer<typeof DiscoverResultSchema>;
+
 export const InitializeResultSchema = ResultSchema.extend({
   protocolVersion: z.string(),
   capabilities: ServerCapabilitiesSchema,
@@ -153,12 +167,10 @@ const ToolSchema = z
      */
     title: z.optional(z.string()),
     description: z.optional(z.string()),
-    inputSchema: z
-      .object({
-        type: z.literal('object'),
-        properties: z.optional(z.object({}).loose()),
-      })
-      .loose(),
+    inputSchema: z.looseObject({
+      type: z.optional(z.unknown()),
+      properties: z.optional(z.object({}).loose()),
+    }),
     /**
      * @see https://modelcontextprotocol.io/specification/2025-06-18/server/tools#output-schema
      */
@@ -295,6 +307,52 @@ export const ReadResourceResultSchema = ResultSchema.extend({
   ),
 });
 export type ReadResourceResult = z.infer<typeof ReadResourceResultSchema>;
+
+// Completions
+const PromptReferenceSchema = z
+  .object({
+    type: z.literal('ref/prompt'),
+    name: z.string(),
+  })
+  .loose();
+
+const ResourceReferenceSchema = z
+  .object({
+    type: z.literal('ref/resource'),
+    uri: z.string(),
+  })
+  .loose();
+
+const CompletionArgumentSchema = z
+  .object({
+    name: z.string(),
+    value: z.string(),
+  })
+  .loose();
+
+export const CompleteRequestParamsSchema = BaseParamsSchema.extend({
+  ref: z.union([PromptReferenceSchema, ResourceReferenceSchema]),
+  argument: CompletionArgumentSchema,
+  context: z.optional(
+    z
+      .object({
+        arguments: z.record(z.string(), z.string()),
+      })
+      .loose(),
+  ),
+});
+export type CompleteRequestParams = z.infer<typeof CompleteRequestParamsSchema>;
+
+export const CompleteResultSchema = ResultSchema.extend({
+  completion: z
+    .object({
+      values: z.array(z.string()).max(100),
+      total: z.optional(z.number().int()),
+      hasMore: z.optional(z.boolean()),
+    })
+    .loose(),
+});
+export type CompleteResult = z.infer<typeof CompleteResultSchema>;
 
 // Prompts
 const PromptArgumentSchema = z

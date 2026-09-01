@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai('gpt-5.4'),
+    model: openai('gpt-5.6'),
     tools: {
       slowApi: tool({
         description: 'Fetch data from an API',
@@ -29,7 +29,7 @@ run(async () => {
     prompt: 'Search for "hello world"',
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     if (part.type === 'tool-call') {
       console.log(`tool-call: ${part.toolName}(${JSON.stringify(part.input)})`);
     }

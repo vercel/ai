@@ -4,6 +4,9 @@ on:
   repository_dispatch:
     types: [ai_provider_models]
 
+permissions:
+  contents: read
+
 jobs:
   create-issue:
     name: 'Create Issue for Provider Model Changes'

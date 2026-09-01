@@ -8,7 +8,7 @@ import {
   convertModelMessages,
 } from './adapter';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { ModelMessage, UIMessage } from 'ai';
+import { readUIMessageStream, type ModelMessage, type UIMessage } from 'ai';
 import {
   AIMessage,
   AIMessageChunk,
@@ -23,6 +23,125 @@ import {
 } from './__fixtures__/langgraph';
 
 describe('toUIMessageStream', () => {
+  describe.each([
+    {
+      name: 'direct model streams',
+      createInput: () =>
+        convertArrayToReadableStream([
+          new AIMessageChunk({ content: 'Hello', id: 'model-message' }),
+        ]),
+      convertedChunks: [
+        { type: 'text-start', id: 'model-message' },
+        { type: 'text-delta', delta: 'Hello', id: 'model-message' },
+        { type: 'text-end', id: 'model-message' },
+      ],
+    },
+    {
+      name: 'LangGraph streams',
+      createInput: () =>
+        convertArrayToReadableStream([
+          [
+            'messages',
+            [
+              new AIMessageChunk({
+                content: 'Hello',
+                id: 'langgraph-message',
+              }),
+              { langgraph_step: 0 },
+            ],
+          ],
+          ['values', {}],
+        ]),
+      convertedChunks: [
+        { type: 'start-step' },
+        { type: 'text-start', id: 'langgraph-message' },
+        { type: 'text-delta', delta: 'Hello', id: 'langgraph-message' },
+        { type: 'text-end', id: 'langgraph-message' },
+        { type: 'finish-step' },
+      ],
+    },
+    {
+      name: 'streamEvents streams',
+      createInput: () =>
+        convertArrayToReadableStream([
+          {
+            event: 'on_chat_model_stream',
+            data: {
+              chunk: {
+                id: 'stream-events-message',
+                content: 'Hello',
+              },
+            },
+          },
+        ]),
+      convertedChunks: [
+        { type: 'text-start', id: 'stream-events-message' },
+        {
+          type: 'text-delta',
+          delta: 'Hello',
+          id: 'stream-events-message',
+        },
+        { type: 'text-end', id: 'stream-events-message' },
+      ],
+    },
+  ])(
+    'lifecycle chunk options for $name',
+    ({ createInput, convertedChunks }) => {
+      it.each([
+        {
+          sendStart: undefined,
+          sendFinish: undefined,
+          expectedStart: true,
+          expectedFinish: true,
+        },
+        {
+          sendStart: false,
+          sendFinish: undefined,
+          expectedStart: false,
+          expectedFinish: true,
+        },
+        {
+          sendStart: undefined,
+          sendFinish: false,
+          expectedStart: true,
+          expectedFinish: false,
+        },
+        {
+          sendStart: false,
+          sendFinish: false,
+          expectedStart: false,
+          expectedFinish: false,
+        },
+      ])(
+        'emits the requested outer chunks with sendStart=$sendStart and sendFinish=$sendFinish',
+        async ({ sendStart, sendFinish, expectedStart, expectedFinish }) => {
+          const result = await convertReadableStreamToArray(
+            toUIMessageStream(createInput(), { sendStart, sendFinish }),
+          );
+
+          expect(result).toEqual([
+            ...(expectedStart ? [{ type: 'start' as const }] : []),
+            ...convertedChunks,
+            ...(expectedFinish ? [{ type: 'finish' as const }] : []),
+          ]);
+        },
+      );
+    },
+  );
+
+  it('can suppress both lifecycle chunks for a minimal LangGraph values stream', async () => {
+    const inputStream = convertArrayToReadableStream([['values', {}]]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream, {
+        sendStart: false,
+        sendFinish: false,
+      }),
+    );
+
+    expect(result).toEqual([]);
+  });
+
   it('should emit start event on stream initialization', async () => {
     const inputStream = convertArrayToReadableStream([['values', {}]]);
 
@@ -125,7 +244,7 @@ describe('toUIMessageStream', () => {
 
   it('should handle three-element arrays (with namespace)', async () => {
     const inputStream = convertArrayToReadableStream([
-      ['namespace', 'custom', { data: 'value' }],
+      [['namespace'], 'custom', { data: 'value' }],
       ['values', {}],
     ]);
 
@@ -151,6 +270,600 @@ describe('toUIMessageStream', () => {
         },
       ]
     `);
+  });
+
+  it('should preserve interleaved subgraph namespaces without splitting root reasoning', async () => {
+    const rootMessageId = 'root-message';
+    const subgraphMessageId = 'subgraph-message';
+    const inputStream = convertArrayToReadableStream([
+      [
+        [],
+        'messages',
+        [
+          new AIMessageChunk({
+            id: rootMessageId,
+            content: [{ type: 'reasoning', reasoning: 'root-before' }],
+          }),
+          { langgraph_step: 5 },
+        ],
+      ],
+      [
+        ['tools:subgraph-call'],
+        'messages',
+        [
+          new AIMessageChunk({
+            id: subgraphMessageId,
+            content: [{ type: 'reasoning', reasoning: 'subgraph' }],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        [],
+        'messages',
+        [
+          new AIMessageChunk({
+            id: rootMessageId,
+            content: [{ type: 'reasoning', reasoning: 'root-after' }],
+          }),
+          { langgraph_step: 5 },
+        ],
+      ],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toEqual([
+      { type: 'start' },
+      { type: 'start-step' },
+      {
+        type: 'reasoning-start',
+        id: rootMessageId,
+        providerMetadata: { langchain: { namespace: [] } },
+      },
+      {
+        type: 'reasoning-delta',
+        id: rootMessageId,
+        delta: 'root-before',
+        providerMetadata: { langchain: { namespace: [] } },
+      },
+      {
+        type: 'reasoning-start',
+        id: subgraphMessageId,
+        providerMetadata: {
+          langchain: { namespace: ['tools:subgraph-call'] },
+        },
+      },
+      {
+        type: 'reasoning-delta',
+        id: subgraphMessageId,
+        delta: 'subgraph',
+        providerMetadata: {
+          langchain: { namespace: ['tools:subgraph-call'] },
+        },
+      },
+      {
+        type: 'reasoning-delta',
+        id: rootMessageId,
+        delta: 'root-after',
+        providerMetadata: { langchain: { namespace: [] } },
+      },
+      {
+        type: 'reasoning-end',
+        id: rootMessageId,
+        providerMetadata: { langchain: { namespace: [] } },
+      },
+      {
+        type: 'reasoning-end',
+        id: subgraphMessageId,
+        providerMetadata: {
+          langchain: { namespace: ['tools:subgraph-call'] },
+        },
+      },
+      { type: 'finish-step' },
+      { type: 'finish' },
+    ]);
+  });
+
+  it('should keep child reasoning active when the root step advances', async () => {
+    const rootMessageId = 'root-step-message';
+    const nextRootMessageId = 'next-root-step-message';
+    const childMessageId = 'child-message';
+    const childNamespace = ['tools:child-call'];
+    const inputStream = convertArrayToReadableStream([
+      [
+        [],
+        'messages',
+        [
+          new AIMessageChunk({
+            id: rootMessageId,
+            content: [{ type: 'reasoning', reasoning: 'root step' }],
+          }),
+          { langgraph_step: 5 },
+        ],
+      ],
+      [
+        childNamespace,
+        'messages',
+        [
+          new AIMessageChunk({
+            id: childMessageId,
+            content: [{ type: 'reasoning', reasoning: 'child before' }],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        [],
+        'messages',
+        [
+          new AIMessageChunk({
+            id: nextRootMessageId,
+            content: 'next root step',
+          }),
+          { langgraph_step: 6 },
+        ],
+      ],
+      [
+        childNamespace,
+        'messages',
+        [
+          new AIMessageChunk({
+            id: childMessageId,
+            content: [{ type: 'reasoning', reasoning: ' child after' }],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(
+      result.filter(
+        chunk =>
+          chunk.type === 'reasoning-start' && chunk.id === childMessageId,
+      ),
+    ).toHaveLength(1);
+    expect(
+      result.filter(
+        chunk => chunk.type === 'reasoning-end' && chunk.id === childMessageId,
+      ),
+    ).toHaveLength(1);
+    expect(result.filter(chunk => chunk.type === 'start-step')).toHaveLength(2);
+    expect(result.filter(chunk => chunk.type === 'finish-step')).toHaveLength(
+      1,
+    );
+
+    const childReasoningChunks = result.filter(
+      chunk =>
+        'id' in chunk &&
+        chunk.id === childMessageId &&
+        (chunk.type === 'reasoning-start' ||
+          chunk.type === 'reasoning-delta' ||
+          chunk.type === 'reasoning-end'),
+    );
+    expect(childReasoningChunks).toEqual([
+      {
+        type: 'reasoning-start',
+        id: childMessageId,
+        providerMetadata: {
+          langchain: { namespace: childNamespace },
+        },
+      },
+      {
+        type: 'reasoning-delta',
+        id: childMessageId,
+        delta: 'child before',
+        providerMetadata: {
+          langchain: { namespace: childNamespace },
+        },
+      },
+      {
+        type: 'reasoning-delta',
+        id: childMessageId,
+        delta: ' child after',
+        providerMetadata: {
+          langchain: { namespace: childNamespace },
+        },
+      },
+      {
+        type: 'reasoning-end',
+        id: childMessageId,
+        providerMetadata: {
+          langchain: { namespace: childNamespace },
+        },
+      },
+    ]);
+  });
+
+  it('should preserve repeated root tool lifecycles while child reasoning remains active', async () => {
+    const childMessageId = 'child-message';
+    const childNamespace = ['tools:child-call'];
+    const inputStream = convertArrayToReadableStream([
+      [
+        [],
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'root-message-1',
+            content: '',
+            tool_call_chunks: [
+              {
+                id: 'call-reused',
+                name: 'write_column',
+                args: '{"column":"first"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        childNamespace,
+        'messages',
+        [
+          new AIMessageChunk({
+            id: childMessageId,
+            content: [{ type: 'reasoning', reasoning: 'child before' }],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        [],
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'root-message-2',
+            content: '',
+            tool_call_chunks: [
+              {
+                id: 'call-reused',
+                name: 'deploy_creatives',
+                args: '{"column":"second"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 2 },
+        ],
+      ],
+      [
+        childNamespace,
+        'messages',
+        [
+          new AIMessageChunk({
+            id: childMessageId,
+            content: [{ type: 'reasoning', reasoning: ' child after' }],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+    ]);
+
+    const [rawStream, messageStream] = toUIMessageStream(inputStream).tee();
+    const rawChunks = await convertReadableStreamToArray(rawStream);
+
+    let finalMessage: UIMessage | undefined;
+    for await (const message of readUIMessageStream({
+      stream: messageStream,
+    })) {
+      finalMessage = message;
+    }
+
+    expect(
+      rawChunks
+        .filter(chunk => chunk.type === 'tool-input-start')
+        .map(chunk => ({
+          toolCallId: chunk.toolCallId,
+          toolName: chunk.toolName,
+        })),
+    ).toEqual([
+      {
+        toolCallId: 'call-reused',
+        toolName: 'write_column',
+      },
+      {
+        toolCallId: 'call-reused',
+        toolName: 'deploy_creatives',
+      },
+    ]);
+    expect(
+      finalMessage?.parts
+        .filter(part => part.type === 'dynamic-tool')
+        .map(part => ({
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          input: part.input,
+        })),
+    ).toEqual([
+      {
+        toolCallId: 'call-reused',
+        toolName: 'write_column',
+        input: { column: 'first' },
+      },
+      {
+        toolCallId: 'call-reused',
+        toolName: 'deploy_creatives',
+        input: { column: 'second' },
+      },
+    ]);
+
+    expect(
+      rawChunks.filter(
+        chunk =>
+          'id' in chunk &&
+          chunk.id === childMessageId &&
+          (chunk.type === 'reasoning-start' ||
+            chunk.type === 'reasoning-delta' ||
+            chunk.type === 'reasoning-end'),
+      ),
+    ).toEqual([
+      {
+        type: 'reasoning-start',
+        id: childMessageId,
+        providerMetadata: {
+          langchain: { namespace: childNamespace },
+        },
+      },
+      {
+        type: 'reasoning-delta',
+        id: childMessageId,
+        delta: 'child before',
+        providerMetadata: {
+          langchain: { namespace: childNamespace },
+        },
+      },
+      {
+        type: 'reasoning-delta',
+        id: childMessageId,
+        delta: ' child after',
+        providerMetadata: {
+          langchain: { namespace: childNamespace },
+        },
+      },
+      {
+        type: 'reasoning-end',
+        id: childMessageId,
+        providerMetadata: {
+          langchain: { namespace: childNamespace },
+        },
+      },
+    ]);
+  });
+
+  it('should preserve repeated child tool lifecycles across child steps', async () => {
+    const rootMessageId = 'root-message';
+    const childNamespace = ['tools:child-call'];
+    const inputStream = convertArrayToReadableStream([
+      [
+        [],
+        'messages',
+        [
+          new AIMessageChunk({
+            id: rootMessageId,
+            content: [{ type: 'reasoning', reasoning: 'root before' }],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        childNamespace,
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'child-message-1',
+            content: '',
+            tool_call_chunks: [
+              {
+                id: 'call-reused',
+                name: 'write_column',
+                args: '{"column":"first"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        childNamespace,
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'child-message-2',
+            content: '',
+            tool_call_chunks: [
+              {
+                id: 'call-reused',
+                name: 'deploy_creatives',
+                args: '{"column":"second"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 2 },
+        ],
+      ],
+      [
+        [],
+        'messages',
+        [
+          new AIMessageChunk({
+            id: rootMessageId,
+            content: [{ type: 'reasoning', reasoning: ' root after' }],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+    ]);
+
+    const [rawStream, messageStream] = toUIMessageStream(inputStream).tee();
+    const rawChunks = await convertReadableStreamToArray(rawStream);
+
+    let finalMessage: UIMessage | undefined;
+    for await (const message of readUIMessageStream({
+      stream: messageStream,
+    })) {
+      finalMessage = message;
+    }
+
+    expect(
+      rawChunks
+        .filter(chunk => chunk.type === 'tool-input-start')
+        .map(chunk => ({
+          toolCallId: chunk.toolCallId,
+          toolName: chunk.toolName,
+          providerMetadata: chunk.providerMetadata,
+        })),
+    ).toEqual([
+      {
+        toolCallId: 'call-reused',
+        toolName: 'write_column',
+        providerMetadata: {
+          langchain: { namespace: childNamespace },
+        },
+      },
+      {
+        toolCallId: 'call-reused',
+        toolName: 'deploy_creatives',
+        providerMetadata: {
+          langchain: { namespace: childNamespace },
+        },
+      },
+    ]);
+    expect(
+      finalMessage?.parts
+        .filter(part => part.type === 'dynamic-tool')
+        .map(part => ({
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          input: part.input,
+        })),
+    ).toEqual([
+      {
+        toolCallId: 'call-reused',
+        toolName: 'write_column',
+        input: { column: 'first' },
+      },
+      {
+        toolCallId: 'call-reused',
+        toolName: 'deploy_creatives',
+        input: { column: 'second' },
+      },
+    ]);
+    expect(
+      rawChunks.filter(
+        chunk =>
+          'id' in chunk &&
+          chunk.id === rootMessageId &&
+          (chunk.type === 'reasoning-start' ||
+            chunk.type === 'reasoning-delta' ||
+            chunk.type === 'reasoning-end'),
+      ),
+    ).toEqual([
+      {
+        type: 'reasoning-start',
+        id: rootMessageId,
+        providerMetadata: { langchain: { namespace: [] } },
+      },
+      {
+        type: 'reasoning-delta',
+        id: rootMessageId,
+        delta: 'root before',
+        providerMetadata: { langchain: { namespace: [] } },
+      },
+      {
+        type: 'reasoning-delta',
+        id: rootMessageId,
+        delta: ' root after',
+        providerMetadata: { langchain: { namespace: [] } },
+      },
+      {
+        type: 'reasoning-end',
+        id: rootMessageId,
+        providerMetadata: { langchain: { namespace: [] } },
+      },
+    ]);
+  });
+
+  it('should emit step boundaries for a stream filtered to one subgraph', async () => {
+    const namespace = ['tools:child-call'];
+    const inputStream = convertArrayToReadableStream([
+      [
+        namespace,
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'child-step-1',
+            content: 'first child step',
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        namespace,
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'child-step-2',
+            content: 'second child step',
+          }),
+          { langgraph_step: 2 },
+        ],
+      ],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toEqual([
+      { type: 'start' },
+      { type: 'start-step' },
+      {
+        type: 'text-start',
+        id: 'child-step-1',
+        providerMetadata: { langchain: { namespace } },
+      },
+      {
+        type: 'text-delta',
+        id: 'child-step-1',
+        delta: 'first child step',
+        providerMetadata: { langchain: { namespace } },
+      },
+      {
+        type: 'text-end',
+        id: 'child-step-1',
+        providerMetadata: { langchain: { namespace } },
+      },
+      { type: 'finish-step' },
+      { type: 'start-step' },
+      {
+        type: 'text-start',
+        id: 'child-step-2',
+        providerMetadata: { langchain: { namespace } },
+      },
+      {
+        type: 'text-delta',
+        id: 'child-step-2',
+        delta: 'second child step',
+        providerMetadata: { langchain: { namespace } },
+      },
+      {
+        type: 'text-end',
+        id: 'child-step-2',
+        providerMetadata: { langchain: { namespace } },
+      },
+      { type: 'finish-step' },
+      { type: 'finish' },
+    ]);
   });
 
   it('should handle non-array events as model stream', async () => {
@@ -459,6 +1172,244 @@ describe('toUIMessageStream', () => {
     });
   });
 
+  it('should preserve tool lifecycles when tool call ids repeat across steps', async () => {
+    const inputStream = convertArrayToReadableStream([
+      [
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'message-1',
+            content: '',
+            tool_call_chunks: [
+              {
+                id: 'call-reused',
+                name: 'write_column',
+                args: '{"column":"first"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'message-2',
+            content: '',
+            tool_call_chunks: [
+              {
+                id: 'call-reused',
+                name: 'deploy_creatives',
+                args: '{"column":"second"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 2 },
+        ],
+      ],
+    ]);
+
+    const [rawStream, messageStream] = toUIMessageStream(inputStream).tee();
+    const rawChunks = await convertReadableStreamToArray(rawStream);
+
+    let finalMessage: UIMessage | undefined;
+    for await (const message of readUIMessageStream({
+      stream: messageStream,
+    })) {
+      finalMessage = message;
+    }
+
+    expect(
+      rawChunks.filter(chunk => chunk.type === 'tool-input-start'),
+    ).toMatchObject([
+      {
+        toolCallId: 'call-reused',
+        toolName: 'write_column',
+      },
+      {
+        toolCallId: 'call-reused',
+        toolName: 'deploy_creatives',
+      },
+    ]);
+    expect(
+      finalMessage?.parts
+        .filter(part => part.type === 'dynamic-tool')
+        .map(part => ({
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          input: part.input,
+        })),
+    ).toEqual([
+      {
+        toolCallId: 'call-reused',
+        toolName: 'write_column',
+        input: { column: 'first' },
+      },
+      {
+        toolCallId: 'call-reused',
+        toolName: 'deploy_creatives',
+        input: { column: 'second' },
+      },
+    ]);
+  });
+
+  it('should preserve values-recovered tool lifecycles when tool call ids repeat across steps', async () => {
+    const firstToolCall = {
+      id: 'call-reused',
+      name: 'write_column',
+      args: { column: 'first' },
+    };
+    const secondToolCall = {
+      id: 'call-reused',
+      name: 'deploy_creatives',
+      args: { column: 'second' },
+    };
+    const inputStream = convertArrayToReadableStream([
+      [
+        'messages',
+        [
+          {
+            id: 'message-1',
+            type: 'ai',
+            content: '',
+            tool_call_chunks: [
+              {
+                name: firstToolCall.name,
+                args: '{"column":"first"}',
+                index: 0,
+              },
+            ],
+          },
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        'values',
+        {
+          messages: [
+            {
+              id: 'message-1',
+              type: 'ai',
+              content: '',
+              tool_calls: [firstToolCall],
+            },
+          ],
+        },
+      ],
+      [
+        'messages',
+        [
+          {
+            id: 'message-2',
+            type: 'ai',
+            content: '',
+            tool_call_chunks: [
+              {
+                name: secondToolCall.name,
+                args: '{"column":"second"}',
+                index: 0,
+              },
+            ],
+          },
+          { langgraph_step: 2 },
+        ],
+      ],
+      [
+        'values',
+        {
+          messages: [
+            {
+              id: 'message-1',
+              type: 'ai',
+              content: '',
+              tool_calls: [firstToolCall],
+            },
+            {
+              id: 'tool-message-1',
+              type: 'tool',
+              content: 'done',
+              tool_call_id: 'call-reused',
+            },
+            {
+              id: 'message-2',
+              type: 'ai',
+              content: '',
+              tool_calls: [secondToolCall],
+            },
+          ],
+        },
+      ],
+    ]);
+
+    const [rawStream, messageStream] = toUIMessageStream(inputStream).tee();
+    const rawChunks = await convertReadableStreamToArray(rawStream);
+
+    let finalMessage: UIMessage | undefined;
+    for await (const message of readUIMessageStream({
+      stream: messageStream,
+    })) {
+      finalMessage = message;
+    }
+
+    expect(
+      rawChunks
+        .filter(
+          chunk =>
+            chunk.type === 'tool-input-start' ||
+            chunk.type === 'tool-input-available',
+        )
+        .map(chunk => ({
+          type: chunk.type,
+          toolCallId: chunk.toolCallId,
+          toolName: chunk.toolName,
+        })),
+    ).toEqual([
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-reused',
+        toolName: 'write_column',
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'call-reused',
+        toolName: 'write_column',
+      },
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-reused',
+        toolName: 'deploy_creatives',
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'call-reused',
+        toolName: 'deploy_creatives',
+      },
+    ]);
+    expect(
+      finalMessage?.parts
+        .filter(part => part.type === 'dynamic-tool')
+        .map(part => ({
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          input: part.input,
+        })),
+    ).toEqual([
+      {
+        toolCallId: 'call-reused',
+        toolName: 'write_column',
+        input: { column: 'first' },
+      },
+      {
+        toolCallId: 'call-reused',
+        toolName: 'deploy_creatives',
+        input: { column: 'second' },
+      },
+    ]);
+  });
+
   it('should skip tool call chunks without id and use values instead', async () => {
     // Simulate a case where streaming chunks don't have an id (common with RemoteGraph)
     // The tool call should only be emitted from values, not from streaming
@@ -715,7 +1666,7 @@ describe('toUIMessageStream', () => {
     expect(startIds.has('msg_test-002')).toBe(true);
   });
 
-  it('should handle reasoning followed by text content', async () => {
+  it('should close reasoning before starting text content', async () => {
     // Reasoning chunk
     const reasoningChunk = new AIMessageChunk({
       id: 'msg-1',
@@ -754,6 +1705,10 @@ describe('toUIMessageStream', () => {
         },
         {
           "id": "msg-1",
+          "type": "reasoning-end",
+        },
+        {
+          "id": "msg-1",
           "type": "text-start",
         },
         {
@@ -764,10 +1719,6 @@ describe('toUIMessageStream', () => {
         {
           "id": "msg-1",
           "type": "text-end",
-        },
-        {
-          "id": "msg-1",
-          "type": "reasoning-end",
         },
         {
           "type": "finish",
@@ -1005,8 +1956,8 @@ describe('convertModelMessages', () => {
     expect(result[0].content).toEqual([
       { type: 'text', text: 'What is in this image?' },
       {
-        type: 'image_url',
-        image_url: { url: 'https://example.com/image.jpg' },
+        type: 'image',
+        url: 'https://example.com/image.jpg',
       },
     ]);
   });
@@ -1033,8 +1984,9 @@ describe('convertModelMessages', () => {
     expect(result[0].content).toEqual([
       { type: 'text', text: 'What is in this image?' },
       {
-        type: 'image_url',
-        image_url: { url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAE' },
+        type: 'image',
+        data: 'iVBORw0KGgoAAAANSUhEUgAAAAE',
+        mimeType: 'image/png',
       },
     ]);
   });
@@ -1060,8 +2012,9 @@ describe('convertModelMessages', () => {
     expect(result[0].content).toEqual([
       { type: 'text', text: 'Describe this.' },
       {
-        type: 'image_url',
-        image_url: { url: 'data:image/png;base64,abc123' },
+        type: 'image',
+        data: 'abc123',
+        mimeType: 'image/png',
       },
     ]);
   });
@@ -1153,8 +2106,8 @@ describe('convertModelMessages', () => {
     expect(result[0].content).toEqual([
       { type: 'text', text: 'Compare these:' },
       {
-        type: 'image_url',
-        image_url: { url: 'https://example.com/image1.jpg' },
+        type: 'image',
+        url: 'https://example.com/image1.jpg',
       },
       { type: 'text', text: 'And this document:' },
       {
@@ -1187,13 +2140,13 @@ describe('convertModelMessages', () => {
     expect(result[0].content).toEqual([
       { type: 'text', text: 'What is this?' },
       {
-        type: 'image_url',
-        image_url: { url: 'https://example.com/image.png' },
+        type: 'image',
+        url: 'https://example.com/image.png',
       },
     ]);
   });
 
-  it('should convert image files (file type with image mediaType) using image_url format', () => {
+  it('should convert image files to canonical image blocks', () => {
     const modelMessages: ModelMessage[] = [
       {
         role: 'user',
@@ -1215,8 +2168,8 @@ describe('convertModelMessages', () => {
     expect(result[0].content).toEqual([
       { type: 'text', text: 'Describe this photo.' },
       {
-        type: 'image_url',
-        image_url: { url: 'https://example.com/photo.jpg' },
+        type: 'image',
+        url: 'https://example.com/photo.jpg',
       },
     ]);
   });
@@ -1382,12 +2335,12 @@ describe('toBaseMessages', () => {
 
     expect(result).toHaveLength(1);
     expect(result[0]).toBeInstanceOf(HumanMessage);
-    // Image files are converted to OpenAI's image_url format
     expect(result[0].content).toEqual([
       { type: 'text', text: 'What is in this image?' },
       {
-        type: 'image_url',
-        image_url: { url: 'data:image/png;base64,abc123' },
+        type: 'image',
+        data: 'abc123',
+        mimeType: 'image/png',
       },
     ]);
   });
@@ -1954,6 +2907,246 @@ describe('toUIMessageStream with streamEvents', () => {
       ]
     `);
   });
+
+  it('should emit source-url parts for citation annotations and dedupe them', async () => {
+    const inputStream = convertArrayToReadableStream([
+      {
+        event: 'on_chat_model_stream',
+        data: {
+          chunk: {
+            id: 'src-msg-1',
+            content: [
+              {
+                type: 'text',
+                text: 'Answer',
+                annotations: [
+                  {
+                    type: 'citation',
+                    url: 'https://example.com',
+                    title: 'Example',
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      },
+      {
+        event: 'on_chat_model_stream',
+        data: {
+          chunk: {
+            id: 'src-msg-1',
+            content: [
+              {
+                type: 'text',
+                text: ' continued',
+                annotations: [{ type: 'citation', url: 'https://example.com' }],
+              },
+            ],
+          },
+        },
+      },
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result.filter(c => c.type === 'source-url')).toEqual([
+      {
+        type: 'source-url',
+        sourceId: 'https://example.com',
+        url: 'https://example.com',
+        title: 'Example',
+      },
+    ]);
+  });
+});
+
+describe('toUIMessageStream with LangGraph tools stream mode', () => {
+  it('should handle full tools stream sequence', async () => {
+    const inputStream = convertArrayToReadableStream([
+      [
+        'tools',
+        {
+          event: 'on_tool_start',
+          toolCallId: 'call-weather',
+          name: 'get_weather',
+          input: { city: 'SF' },
+        },
+      ],
+      [
+        'tools',
+        {
+          event: 'on_tool_event',
+          toolCallId: 'call-weather',
+          name: 'get_weather',
+          data: { status: 'loading', message: 'Fetching weather' },
+        },
+      ],
+      [
+        'tools',
+        {
+          event: 'on_tool_end',
+          toolCallId: 'call-weather',
+          name: 'get_weather',
+          output: { temperature: 72, condition: 'sunny' },
+        },
+      ],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "start",
+        },
+        {
+          "dynamic": true,
+          "toolCallId": "call-weather",
+          "toolName": "get_weather",
+          "type": "tool-input-start",
+        },
+        {
+          "dynamic": true,
+          "input": {
+            "city": "SF",
+          },
+          "toolCallId": "call-weather",
+          "toolName": "get_weather",
+          "type": "tool-input-available",
+        },
+        {
+          "output": {
+            "message": "Fetching weather",
+            "status": "loading",
+          },
+          "preliminary": true,
+          "toolCallId": "call-weather",
+          "type": "tool-output-available",
+        },
+        {
+          "output": {
+            "condition": "sunny",
+            "temperature": 72,
+          },
+          "toolCallId": "call-weather",
+          "type": "tool-output-available",
+        },
+        {
+          "type": "finish",
+        },
+      ]
+    `);
+  });
+
+  it('should synthesize tool input lifecycle before output-only tools events', async () => {
+    const inputStream = convertArrayToReadableStream([
+      [
+        'tools',
+        {
+          event: 'on_tool_end',
+          toolCallId: 'call-weather',
+          name: 'get_weather',
+          output: { temperature: 72 },
+        },
+      ],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toEqual([
+      { type: 'start' },
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-weather',
+        toolName: 'get_weather',
+        dynamic: true,
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'call-weather',
+        toolName: 'get_weather',
+        input: undefined,
+        dynamic: true,
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'call-weather',
+        output: { temperature: 72 },
+      },
+      { type: 'finish' },
+    ]);
+  });
+
+  it('should dedupe tool-input-available across mixed messages, values, and tools events', async () => {
+    const streamedChunk = {
+      content: '',
+      id: 'ai-msg-1',
+      type: 'ai',
+      tool_call_chunks: [
+        {
+          id: 'call-weather',
+          name: 'get_weather',
+          args: '{"city":"SF"}',
+          index: 0,
+        },
+      ],
+    };
+
+    const valuesData = {
+      messages: [
+        {
+          content: '',
+          id: 'ai-msg-1',
+          type: 'ai',
+          tool_calls: [
+            {
+              id: 'call-weather',
+              name: 'get_weather',
+              args: { city: 'SF' },
+            },
+          ],
+        },
+      ],
+    };
+
+    const inputStream = convertArrayToReadableStream([
+      ['messages', [streamedChunk]],
+      [
+        'tools',
+        {
+          event: 'on_tool_start',
+          toolCallId: 'call-weather',
+          name: 'get_weather',
+          input: { city: 'SF' },
+        },
+      ],
+      ['values', valuesData],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+    const toolInputAvailableEvents = result.filter(
+      event => event.type === 'tool-input-available',
+    );
+
+    expect(toolInputAvailableEvents).toEqual([
+      {
+        type: 'tool-input-available',
+        toolCallId: 'call-weather',
+        toolName: 'get_weather',
+        input: { city: 'SF' },
+        dynamic: true,
+      },
+    ]);
+  });
 });
 
 describe('toUIMessageStream LangGraph finish events', () => {
@@ -2124,6 +3317,185 @@ describe('toUIMessageStream with LangGraph HITL fixture', () => {
     await expect(JSON.stringify(result, null, 2)).toMatchFileSnapshot(
       './__snapshots__/react-agent-tool-calling.json',
     );
+  });
+});
+
+describe('toUIMessageStream HITL interrupt key matching with dual streamMode', () => {
+  beforeEach(() => {
+    vi.spyOn(Date, 'now').mockReturnValue(1234567890);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should match interrupt to tool call emitted via messages mode', async () => {
+    // This test verifies the fix for HITL interrupt key matching when using
+    // streamMode: ["messages", "values"]. The tool call is first emitted via
+    // messages mode, then the values event contains the same tool call plus
+    // an __interrupt__. The interrupt handler must find the original tool call ID.
+    const originalToolCallId = 'call_abc123';
+
+    const inputStream = convertArrayToReadableStream([
+      // 1. messages mode: AI streams a tool call
+      [
+        'messages',
+        [
+          {
+            lc: 1,
+            type: 'constructor',
+            id: ['langchain_core', 'messages', 'AIMessageChunk'],
+            kwargs: {
+              id: 'ai-msg-1',
+              content: [],
+              tool_call_chunks: [
+                {
+                  id: originalToolCallId,
+                  name: 'delete_file',
+                  args: '{"filename":"report.pdf"}',
+                  index: 0,
+                },
+              ],
+              tool_calls: [],
+            },
+          },
+          {
+            tags: [],
+            langgraph_step: 1,
+            langgraph_node: 'agent',
+          },
+        ],
+      ],
+      // 2. values mode: full state with same tool call + __interrupt__
+      [
+        'values',
+        {
+          messages: [
+            {
+              type: 'constructor',
+              id: ['langchain_core', 'messages', 'HumanMessage'],
+              kwargs: { id: 'human-1', content: 'Delete report.pdf' },
+            },
+            {
+              type: 'constructor',
+              id: ['langchain_core', 'messages', 'AIMessage'],
+              kwargs: {
+                id: 'ai-msg-1',
+                content: '',
+                tool_calls: [
+                  {
+                    id: originalToolCallId,
+                    name: 'delete_file',
+                    args: { filename: 'report.pdf' },
+                    type: 'tool_call',
+                  },
+                ],
+              },
+            },
+          ],
+          __interrupt__: [
+            {
+              value: {
+                actionRequests: [
+                  {
+                    name: 'delete_file',
+                    args: { filename: 'report.pdf' },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    // Find the tool-approval-request event
+    const approvalEvents = result.filter(
+      (e: { type: string }) => e.type === 'tool-approval-request',
+    );
+
+    expect(approvalEvents).toHaveLength(1);
+    // The approval must reference the ORIGINAL tool call ID from messages mode,
+    // not a fallback-generated ID like "hitl-delete_file-1234567890"
+    expect(approvalEvents[0]).toMatchObject({
+      type: 'tool-approval-request',
+      approvalId: originalToolCallId,
+      toolCallId: originalToolCallId,
+    });
+
+    // The interrupt handler should NOT emit duplicate tool-input-start/available
+    // since the tool call was already emitted via messages mode
+    const toolInputStartEvents = result.filter(
+      (e: { type: string; toolCallId?: string }) =>
+        e.type === 'tool-input-start' && e.toolCallId !== originalToolCallId,
+    );
+    expect(toolInputStartEvents).toHaveLength(0);
+  });
+
+  it('should handle interrupt for tool call only emitted via values mode', async () => {
+    // When there's no prior messages event, the values handler should
+    // still register the key mapping correctly
+    const toolCallId = 'call_values_only';
+
+    const inputStream = convertArrayToReadableStream([
+      [
+        'values',
+        {
+          messages: [
+            {
+              type: 'constructor',
+              id: ['langchain_core', 'messages', 'HumanMessage'],
+              kwargs: { id: 'human-1', content: 'Delete report.pdf' },
+            },
+            {
+              type: 'constructor',
+              id: ['langchain_core', 'messages', 'AIMessage'],
+              kwargs: {
+                id: 'ai-msg-1',
+                content: '',
+                tool_calls: [
+                  {
+                    id: toolCallId,
+                    name: 'delete_file',
+                    args: { filename: 'report.pdf' },
+                    type: 'tool_call',
+                  },
+                ],
+              },
+            },
+          ],
+          __interrupt__: [
+            {
+              value: {
+                actionRequests: [
+                  {
+                    name: 'delete_file',
+                    args: { filename: 'report.pdf' },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    const approvalEvents = result.filter(
+      (e: { type: string }) => e.type === 'tool-approval-request',
+    );
+
+    expect(approvalEvents).toHaveLength(1);
+    expect(approvalEvents[0]).toMatchObject({
+      toolCallId: toolCallId,
+    });
   });
 });
 

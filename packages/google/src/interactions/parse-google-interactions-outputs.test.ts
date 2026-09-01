@@ -154,6 +154,28 @@ describe('parseGoogleInteractionsOutputs', () => {
     });
   });
 
+  describe('built-in tool steps', () => {
+    it('generates an ID when a built-in tool call ID is empty', () => {
+      const { content } = parseGoogleInteractionsOutputs({
+        steps: [
+          {
+            type: 'google_search_call',
+            id: '',
+            arguments: { query: 'weather' },
+          },
+        ] as Array<GoogleInteractionsStep>,
+        generateId,
+      });
+
+      expect(content[0]).toMatchObject({
+        type: 'tool-call',
+        toolCallId: 'gen-id',
+        toolName: 'google_search',
+        providerExecuted: true,
+      });
+    });
+  });
+
   describe('image content in model_output steps', () => {
     it('emits a file content part with mediaType + base64 data when an image block carries inline data', () => {
       const steps = [
@@ -224,6 +246,104 @@ describe('parseGoogleInteractionsOutputs', () => {
         {
           type: 'model_output',
           content: [{ type: 'image', mime_type: 'image/png' }],
+        },
+      ] as Array<GoogleInteractionsStep>;
+      const { content } = parseGoogleInteractionsOutputs({
+        steps,
+        generateId,
+      });
+      expect(content).toEqual([]);
+    });
+  });
+
+  describe('video content in model_output steps', () => {
+    it('emits a file content part with mediaType + base64 data when a video block carries inline data', () => {
+      const steps = [
+        {
+          type: 'model_output',
+          content: [
+            {
+              type: 'video',
+              mime_type: 'video/mp4',
+              data: 'AAAAIGZ0eXBpc29t',
+            },
+          ],
+        },
+      ] as Array<GoogleInteractionsStep>;
+      const { content } = parseGoogleInteractionsOutputs({
+        steps,
+        generateId,
+        interactionId: 'v1_video-out',
+      });
+      expect(content).toMatchInlineSnapshot(`
+        [
+          {
+            "data": {
+              "data": "AAAAIGZ0eXBpc29t",
+              "type": "data",
+            },
+            "mediaType": "video/mp4",
+            "providerMetadata": {
+              "google": {
+                "interactionId": "v1_video-out",
+              },
+            },
+            "type": "file",
+          },
+        ]
+      `);
+    });
+
+    it('defaults mediaType to video/mp4 when mime_type is absent', () => {
+      const steps = [
+        {
+          type: 'model_output',
+          content: [{ type: 'video', data: 'AAAAIGZ0eXBpc29t' }],
+        },
+      ] as Array<GoogleInteractionsStep>;
+      const { content } = parseGoogleInteractionsOutputs({
+        steps,
+        generateId,
+      });
+      expect(content[0]).toMatchObject({
+        type: 'file',
+        mediaType: 'video/mp4',
+        data: { type: 'data', data: 'AAAAIGZ0eXBpc29t' },
+      });
+    });
+
+    it('emits a file content part with a URL data variant when a video block carries a uri', () => {
+      const steps = [
+        {
+          type: 'model_output',
+          content: [
+            {
+              type: 'video',
+              mime_type: 'video/mp4',
+              uri: 'https://example.test/clip.mp4',
+            },
+          ],
+        },
+      ] as Array<GoogleInteractionsStep>;
+      const { content } = parseGoogleInteractionsOutputs({
+        steps,
+        generateId,
+      });
+      expect(content[0]).toMatchObject({
+        type: 'file',
+        mediaType: 'video/mp4',
+        data: { type: 'url' },
+      });
+      expect((content[0] as { data: { url: URL } }).data.url.toString()).toBe(
+        'https://example.test/clip.mp4',
+      );
+    });
+
+    it('skips a video block with neither data nor uri', () => {
+      const steps = [
+        {
+          type: 'model_output',
+          content: [{ type: 'video', mime_type: 'video/mp4' }],
         },
       ] as Array<GoogleInteractionsStep>;
       const { content } = parseGoogleInteractionsOutputs({
