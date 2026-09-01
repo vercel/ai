@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20076,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20076-workflow-agent-stop-when-types.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20076-workflow-agent-stop-when-types.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #20076: WorkflowAgent stopWhen erased configured tool and runtime-context types."
+  }
+}
