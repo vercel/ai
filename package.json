@@ -67,6 +67,7 @@
       "esbuild"
     ],
     "overrides": {
+      "shell-quote": "1.10.0",
       "tinyexec": "1.0.2",
       "tar": "7.5.19"
     }
