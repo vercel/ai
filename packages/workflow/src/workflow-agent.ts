@@ -1449,8 +1449,7 @@ export class WorkflowAgent<
         Context | undefined
       >;
     let effectiveToolChoiceFromPrepare = options.toolChoice ?? this.toolChoice;
-    let effectiveStopWhenFromPrepare =
-      options.stopWhen ?? this.stopWhen ?? isStepCount(20);
+    let effectiveStopWhenFromPrepare = options.stopWhen ?? this.stopWhen;
     let effectiveActiveToolsFromPrepare =
       options.activeTools ?? this.activeTools;
     let effectiveDownloadFromPrepare =
@@ -1538,6 +1537,7 @@ export class WorkflowAgent<
         effectiveGenerationSettings.providerOptions = prepared.providerOptions;
     }
 
+    const effectiveStopWhen = effectiveStopWhenFromPrepare ?? isStepCount(20);
     const effectiveTelemetry = effectiveTelemetryFromPrepare;
     const telemetryDispatcher = createRestrictedTelemetryDispatcher<
       any,
@@ -2163,7 +2163,7 @@ export class WorkflowAgent<
       prompt: modelPrompt,
       initialInstructions: effectiveInstructions,
       initialMessages: prompt.messages,
-      stopConditions: effectiveStopWhenFromPrepare,
+      stopConditions: effectiveStopWhen,
       onStepEnd: mergedOnStepEnd as any,
       onStepStart: mergedOnStepStart as any,
       prepareStep: (options.prepareStep ??

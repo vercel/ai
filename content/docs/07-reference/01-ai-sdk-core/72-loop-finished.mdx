@@ -7,7 +7,7 @@ description: API Reference for isLoopFinished.
 
 Creates a stop condition that never triggers, letting the agent loop run until it naturally finishes (i.e., the model stops making tool calls).
 
-By default, `ToolLoopAgent` uses `isStepCount(20)` as a safety measure to prevent runaway loops that could result in excessive API calls and costs. If you are confident that your agent will terminate naturally or you are less concerned about costs, `isLoopFinished()` removes that limit and lets the agent run until the model is truly done.
+By default, `ToolLoopAgent` and `WorkflowAgent` use `isStepCount(20)` as a safety measure to prevent runaway loops that could result in excessive API calls and costs. If you are confident that your agent will terminate naturally or you are less concerned about costs, `isLoopFinished()` removes that limit and lets the agent run until the model is truly done.
 
 ```ts
 import { ToolLoopAgent, isLoopFinished } from 'ai';

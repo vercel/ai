@@ -218,6 +218,33 @@ describe('WorkflowAgent', () => {
         }),
       );
     });
+
+    it('applies the default stop condition after prepareCall', async () => {
+      const prepareCall = vi.fn((options: PrepareCallOptions) => {
+        expect(options.stopWhen).toBeUndefined();
+        return {};
+      });
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      vi.mocked(streamTextIterator).mockReturnValue({
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      } as unknown as MockIterator);
+
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        prepareCall,
+      });
+
+      await agent.stream({
+        prompt: 'test',
+      });
+
+      expect(prepareCall).toHaveBeenCalledOnce();
+      expect(streamTextIterator).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stopConditions: expect.any(Function),
+        }),
+      );
+    });
   });
 
   describe('tool execution error handling', () => {
