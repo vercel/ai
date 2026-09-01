@@ -544,14 +544,10 @@ function normalizeStepForTelemetry(step: StepResult<any, any>) {
 /**
  * Reconstruct a full `StepResult` from the minimal aggregates returned by
  * `doStreamStep`. Runs outside the step boundary so StepResult's redundant
-<<<<<<< HEAD
- * fields (duplicate tool-call lists, `content`, and `reasoningText`) and the
-=======
- * fields (duplicate tool-call lists, `text`, `files`, `sources`,
- * `reasoningText`, and the always-empty `*ToolResults` arrays) and the
->>>>>>> origin/main
- * per-chunk snapshot don't cross it. The shape matches what the AI SDK's
- * `streamText` exposes to callers.
+ * fields (duplicate tool-call lists, `text`, `files`, `sources`, and
+ * `reasoningText`) and the per-chunk snapshot don't cross it. Tool-result
+ * arrays are initialized here and populated after execution. The shape matches
+ * what the AI SDK's `streamText` exposes to callers.
  */
 function buildStepResult(
   raw: DoStreamStepRawResult,
@@ -583,6 +579,7 @@ function buildStepResult(
                 toolName: tc.toolName,
                 input: tc.input,
                 ...(tc.dynamic ? { dynamic: true as const } : {}),
+                ...(tc.providerExecuted ? { providerExecuted: true } : {}),
                 ...(tc.providerMetadata != null
                   ? { providerMetadata: tc.providerMetadata }
                   : {}),
@@ -597,18 +594,6 @@ function buildStepResult(
   const sources: StepResult<ToolSet, any>['sources'] = [];
   let text = '';
 
-<<<<<<< HEAD
-  const validToolCalls = toolCalls
-    .filter(tc => !tc.invalid)
-    .map(tc => ({
-      type: 'tool-call' as const,
-      toolCallId: tc.toolCallId,
-      toolName: tc.toolName,
-      input: tc.input,
-      ...(tc.dynamic ? { dynamic: true as const } : {}),
-      ...(tc.providerExecuted ? { providerExecuted: true } : {}),
-    }));
-=======
   for (const part of rawContent) {
     switch (part.type) {
       case 'text':
@@ -650,7 +635,6 @@ function buildStepResult(
       }
     }
   }
->>>>>>> origin/main
 
   return {
     callId: 'workflow-agent',
