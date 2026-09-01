@@ -1,5 +1,8 @@
 import type * as AnthropicInternal from '@ai-sdk/anthropic/internal';
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type {
+  LanguageModelV4Prompt,
+  SharedV4ProviderOptions,
+} from '@ai-sdk/provider';
 import { safeValidateTypes } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
@@ -5875,6 +5878,233 @@ describe('doGenerate', () => {
     expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('json');
     expect(
       requestBody.additionalModelRequestFields?.output_config,
+    ).toBeUndefined();
+  });
+
+  it.each([
+    {
+      providerOptionsName: 'amazonBedrock',
+      providerOptions: {
+        amazonBedrock: { structuredOutputMode: 'jsonTool' },
+      } as SharedV4ProviderOptions,
+    },
+    {
+      providerOptionsName: 'legacy bedrock',
+      providerOptions: {
+        bedrock: { structuredOutputMode: 'jsonTool' },
+      } as SharedV4ProviderOptions,
+    },
+    {
+      providerOptionsName: 'anthropic',
+      providerOptions: {
+        anthropic: { structuredOutputMode: 'jsonTool' },
+      } as SharedV4ProviderOptions,
+    },
+  ] satisfies Array<{
+    providerOptionsName: string;
+    providerOptions: SharedV4ProviderOptions;
+  }>)(
+    'should force the json tool wire format with $providerOptionsName provider options',
+    async ({ providerOptions }) => {
+      server.urls[newerAnthropicGenerateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  toolUse: {
+                    toolUseId: 'json-tool-id',
+                    name: 'json',
+                    input: { name: 'Test' },
+                  },
+                },
+              ],
+            },
+          },
+          usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+          stopReason: 'tool_use',
+        },
+      };
+
+      const result = await newerAnthropicModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+            },
+            required: ['name'],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+
+      expect(requestBody.toolConfig.tools).toHaveLength(1);
+      expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('json');
+      expect(requestBody.toolConfig.toolChoice).toEqual({ any: {} });
+      expect(requestBody.structuredOutputMode).toBeUndefined();
+      expect(
+        requestBody.additionalModelRequestFields?.output_config?.format,
+      ).toBeUndefined();
+      expect(result.content).toEqual([
+        { type: 'text', text: '{"name":"Test"}' },
+      ]);
+      expect(result.finishReason.unified).toBe('stop');
+      expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(
+        true,
+      );
+    },
+  );
+
+  it('should remove a manually supplied output_config.format in jsonTool mode while preserving sibling fields', async () => {
+    server.urls[newerAnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'json-tool-id',
+                  name: 'json',
+                  input: { name: 'Test' },
+                },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'tool_use',
+      },
+    };
+
+    await newerAnthropicModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        amazonBedrock: {
+          structuredOutputMode: 'jsonTool',
+          additionalModelRequestFields: {
+            output_config: {
+              effort: 'medium',
+              format: { type: 'manually-supplied-format' },
+            },
+          },
+        },
+      },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+          required: ['name'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.additionalModelRequestFields?.output_config).toEqual({
+      effort: 'medium',
+    });
+  });
+
+  it('should force output_config.format for models that auto mode routes to the json tool', async () => {
+    server.urls[opus5AnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ text: '{"name":"Test"}' }],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'end_turn',
+      },
+    };
+
+    await opus5AnthropicModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        amazonBedrock: { structuredOutputMode: 'outputFormat' },
+      },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+          required: ['name'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeUndefined();
+    expect(
+      requestBody.additionalModelRequestFields?.output_config?.format,
+    ).toEqual({
+      type: 'json_schema',
+      schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: { name: { type: 'string' } },
+        required: ['name'],
+      },
+    });
+  });
+
+  it('should prefer amazonBedrock structuredOutputMode over anthropic structuredOutputMode', async () => {
+    server.urls[newerAnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'json-tool-id',
+                  name: 'json',
+                  input: { name: 'Test' },
+                },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'tool_use',
+      },
+    };
+
+    await newerAnthropicModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        amazonBedrock: { structuredOutputMode: 'jsonTool' },
+        anthropic: { structuredOutputMode: 'outputFormat' },
+      },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+          required: ['name'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig.toolChoice).toEqual({ any: {} });
+    expect(
+      requestBody.additionalModelRequestFields?.output_config?.format,
     ).toBeUndefined();
   });
 
