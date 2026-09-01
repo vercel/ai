@@ -1,5 +1,12 @@
 # @ai-sdk/google-vertex
 
+## 5.0.72
+
+### Patch Changes
+
+- Updated dependencies [e07b577]
+  - @ai-sdk/google@4.0.60
+
 ## 5.0.71
 
 ### Patch Changes

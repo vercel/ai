@@ -1,5 +1,12 @@
 # @ai-sdk/openai
 
+## 4.0.54
+
+### Patch Changes
+
+- f6fac50: fix(openai): handle null usage in responses
+- e07b577: feat: add tool calling support to batch
+
 ## 4.0.53
 
 ### Patch Changes
