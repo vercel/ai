@@ -168,7 +168,7 @@ export class AnthropicBatch implements BatchV4<{
     this.generateId = options.config.generateId ?? generateId;
   }
 
-  async experimental_doStartBatch({
+  async doStartBatch({
     requests,
     providerOptions,
     headers,
@@ -287,13 +287,13 @@ export class AnthropicBatch implements BatchV4<{
     };
   }
 
-  async experimental_doGetBatchStatus(
+  async doGetBatchStatus(
     options: BatchV4OperationOptions,
   ): Promise<BatchV4Status> {
     return convertAnthropicBatchStatus(await this.retrieveBatch(options));
   }
 
-  async experimental_doGetBatchResults(
+  async doGetBatchResults(
     options: BatchV4OperationOptions,
   ): Promise<ReadableStream<BatchV4ItemResult>> {
     const batch = await this.retrieveBatch(options);

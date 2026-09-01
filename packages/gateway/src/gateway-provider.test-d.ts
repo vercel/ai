@@ -12,7 +12,7 @@ import {
 } from './index';
 
 it('types batch support on the Gateway provider', () => {
-  expectTypeOf(gateway.batch()).toMatchTypeOf<
+  expectTypeOf(gateway.experimental_batch()).toMatchTypeOf<
     BatchV4<{ text: GatewayModelId }>
   >();
   expectTypeOf(

@@ -7,7 +7,7 @@ import { openai, type OpenAILanguageModelResponsesOptions } from './index';
 import type { OpenAIResponsesModelId } from './responses/openai-responses-language-model-options';
 
 it('types batch support on the OpenAI provider', () => {
-  expectTypeOf(openai.batch()).toMatchTypeOf<
+  expectTypeOf(openai.experimental_batch()).toMatchTypeOf<
     BatchV4<{ text: OpenAIResponsesModelId }>
   >();
   expectTypeOf(openai('gpt-5.6')).toEqualTypeOf<LanguageModelV4>();

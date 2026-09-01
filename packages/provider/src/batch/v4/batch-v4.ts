@@ -150,15 +150,15 @@ export type BatchV4<ModelIds extends BatchV4ModelIds = BatchV4ModelIds> = {
     | PromiseLike<Record<string, RegExp[]>>
     | Record<string, RegExp[]>;
 
-  experimental_doStartBatch(
+  doStartBatch(
     options: BatchV4StartOptions<ModelIds>,
   ): PromiseLike<BatchV4StartResult>;
 
-  experimental_doGetBatchStatus(
+  doGetBatchStatus(
     options: BatchV4OperationOptions,
   ): PromiseLike<BatchV4Status>;
 
-  experimental_doGetBatchResults(
+  doGetBatchResults(
     options: BatchV4OperationOptions,
   ): PromiseLike<ReadableStream<BatchV4ItemResult>>;
 };

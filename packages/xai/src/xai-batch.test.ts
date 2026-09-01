@@ -134,9 +134,9 @@ describe('xAI batch', () => {
     const batch = createXai({
       apiKey: 'test-api-key',
       headers: { 'Provider-Header': 'provider' },
-    }).batch();
+    }).experimental_batch();
 
-    const result = await batch.experimental_doStartBatch({
+    const result = await batch.doStartBatch({
       type: 'text',
       requests: [
         { id: 'france', ...request('What is the capital of France?') },
@@ -256,10 +256,10 @@ describe('xAI batch', () => {
         },
       }),
     };
-    const batch = createXai({ apiKey: 'test-api-key' }).batch();
+    const batch = createXai({ apiKey: 'test-api-key' }).experimental_batch();
 
     await expect(
-      batch.experimental_doGetBatchStatus({
+      batch.doGetBatchStatus({
         type: 'text',
         batchId: 'batch_123',
       }),
@@ -293,9 +293,9 @@ describe('xAI batch', () => {
         },
       }),
     };
-    const batch = createXai({ apiKey: 'test-api-key' }).batch();
+    const batch = createXai({ apiKey: 'test-api-key' }).experimental_batch();
 
-    const status = await batch.experimental_doGetBatchStatus({
+    const status = await batch.doGetBatchStatus({
       type: 'text',
       batchId: 'batch_123',
     });
@@ -317,10 +317,10 @@ describe('xAI batch', () => {
         },
       }),
     };
-    const batch = createXai({ apiKey: 'test-api-key' }).batch();
+    const batch = createXai({ apiKey: 'test-api-key' }).experimental_batch();
 
     await expect(
-      batch.experimental_doGetBatchResults({
+      batch.doGetBatchResults({
         type: 'text',
         batchId: 'batch_123',
       }),
@@ -366,9 +366,9 @@ describe('xAI batch', () => {
               pagination_token: null,
             },
           };
-    const batch = createXai({ apiKey: 'test-api-key' }).batch();
+    const batch = createXai({ apiKey: 'test-api-key' }).experimental_batch();
 
-    const stream = await batch.experimental_doGetBatchResults({
+    const stream = await batch.doGetBatchResults({
       type: 'text',
       batchId: 'batch_123',
     });
@@ -470,9 +470,9 @@ describe('xAI batch', () => {
         pagination_token: null,
       },
     };
-    const batch = createXai({ apiKey: 'test-api-key' }).batch();
+    const batch = createXai({ apiKey: 'test-api-key' }).experimental_batch();
 
-    const stream = await batch.experimental_doGetBatchResults({
+    const stream = await batch.doGetBatchResults({
       type: 'text',
       batchId: 'batch_123',
     });
@@ -636,9 +636,9 @@ describe('xAI batch', () => {
         pagination_token: null,
       },
     };
-    const batch = createXai({ apiKey: 'test-api-key' }).batch();
+    const batch = createXai({ apiKey: 'test-api-key' }).experimental_batch();
 
-    const stream = await batch.experimental_doGetBatchResults({
+    const stream = await batch.doGetBatchResults({
       type: 'text',
       batchId: 'batch_123',
     });
@@ -701,22 +701,21 @@ describe('xAI batch', () => {
 
   it('exposes batch support on the provider', () => {
     const provider = createXai({ apiKey: 'test-api-key' });
-    const batch = provider.batch();
+    const batch = provider.experimental_batch();
 
-    expect(batch.experimental_doStartBatch).toBeTypeOf('function');
-    expect(batch.experimental_doGetBatchStatus).toBeTypeOf('function');
-    expect(batch.experimental_doGetBatchResults).toBeTypeOf('function');
+    expect(batch.doStartBatch).toBeTypeOf('function');
+    expect(batch.doGetBatchStatus).toBeTypeOf('function');
+    expect(batch.doGetBatchResults).toBeTypeOf('function');
 
     for (const model of [
       provider('grok-4.3'),
       provider.responses('grok-4.3'),
       provider.chat('grok-4.3'),
     ]) {
-      expect((model as any).experimental_doStartBatch).toBeUndefined();
+      expect((model as any).doStartBatch).toBeUndefined();
     }
     expect(
-      (new XaiResponsesLanguageModel('grok-4.3', config) as any)
-        .experimental_doStartBatch,
+      (new XaiResponsesLanguageModel('grok-4.3', config) as any).doStartBatch,
     ).toBeUndefined();
   });
 });

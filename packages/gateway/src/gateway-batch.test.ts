@@ -76,10 +76,10 @@ describe('GatewayBatch', () => {
     };
   }
 
-  describe('experimental_doStartBatch', () => {
+  describe('doStartBatch', () => {
     it('should fail before sending a request when models are mixed', async () => {
       await expect(
-        createTestBatch().experimental_doStartBatch({
+        createTestBatch().doStartBatch({
           type: 'text',
           requests: [
             BATCH_PROMPT_REQUESTS[0]!,
@@ -101,7 +101,7 @@ describe('GatewayBatch', () => {
 
       await createTestBatch({
         o11yHeaders: { 'ai-o11y-deployment-id': 'dpl_123' },
-      }).experimental_doStartBatch({
+      }).doStartBatch({
         type: 'text',
         requests: BATCH_PROMPT_REQUESTS,
         headers: { 'Custom-Header': 'batch-value' },
@@ -120,7 +120,7 @@ describe('GatewayBatch', () => {
     it('should send the modality, per-request model ids, and provider options', async () => {
       prepareBatchStartResponse();
 
-      await createTestBatch().experimental_doStartBatch({
+      await createTestBatch().doStartBatch({
         type: 'text',
         requests: BATCH_PROMPT_REQUESTS,
         providerOptions: { gateway: { order: ['openai'] } },
@@ -166,7 +166,7 @@ describe('GatewayBatch', () => {
         },
       });
 
-      const result = await createTestBatch().experimental_doStartBatch({
+      const result = await createTestBatch().doStartBatch({
         type: 'text',
         requests: BATCH_PROMPT_REQUESTS,
       });
@@ -191,7 +191,7 @@ describe('GatewayBatch', () => {
     it('should send the idempotency-key header from providerOptions.gateway.idempotencyKey without forwarding it in the body', async () => {
       prepareBatchStartResponse();
 
-      await createTestBatch().experimental_doStartBatch({
+      await createTestBatch().doStartBatch({
         type: 'text',
         requests: BATCH_PROMPT_REQUESTS,
         providerOptions: { gateway: { idempotencyKey: 'idem-abc' } },
@@ -211,7 +211,7 @@ describe('GatewayBatch', () => {
     it('should keep other gateway provider options in the body while stripping the idempotency key', async () => {
       prepareBatchStartResponse();
 
-      await createTestBatch().experimental_doStartBatch({
+      await createTestBatch().doStartBatch({
         type: 'text',
         requests: BATCH_PROMPT_REQUESTS,
         providerOptions: {
@@ -243,7 +243,7 @@ describe('GatewayBatch', () => {
         },
       });
 
-      const result = await createTestBatch().experimental_doStartBatch({
+      const result = await createTestBatch().doStartBatch({
         type: 'text',
         requests: BATCH_PROMPT_REQUESTS,
         webhookUrl: 'https://example.com/batch-webhook',
@@ -269,7 +269,7 @@ describe('GatewayBatch', () => {
     it('should not send a callbackUrl body field when no webhookUrl is provided', async () => {
       prepareBatchStartResponse();
 
-      await createTestBatch().experimental_doStartBatch({
+      await createTestBatch().doStartBatch({
         type: 'text',
         requests: BATCH_PROMPT_REQUESTS,
       });
@@ -296,7 +296,7 @@ describe('GatewayBatch', () => {
         },
       ];
 
-      await createTestBatch().experimental_doStartBatch({
+      await createTestBatch().doStartBatch({
         type: 'text',
         requests: [
           { id: 'req-1', modelId: 'test-model-1', options: { prompt } },
@@ -319,7 +319,7 @@ describe('GatewayBatch', () => {
 
       await createTestBatch({
         fetch: mockFetch,
-      }).experimental_doStartBatch({
+      }).doStartBatch({
         type: 'text',
         requests: BATCH_PROMPT_REQUESTS,
         abortSignal: controller.signal,
@@ -340,7 +340,7 @@ describe('GatewayBatch', () => {
       await expect(
         createTestBatch({
           fetch: mockFetch,
-        }).experimental_doStartBatch({
+        }).doStartBatch({
           type: 'text',
           requests: BATCH_PROMPT_REQUESTS,
         }),
@@ -361,7 +361,7 @@ describe('GatewayBatch', () => {
       };
 
       try {
-        await createTestBatch().experimental_doStartBatch({
+        await createTestBatch().doStartBatch({
           type: 'text',
           requests: BATCH_PROMPT_REQUESTS,
         });
@@ -375,7 +375,7 @@ describe('GatewayBatch', () => {
     });
   });
 
-  describe('experimental_doGetBatchStatus', () => {
+  describe('doGetBatchStatus', () => {
     it('should post the batchId and map the status response', async () => {
       prepareBatchStatusResponse({
         batchId: 'job_123',
@@ -385,7 +385,7 @@ describe('GatewayBatch', () => {
         createdAt: '2026-08-18T00:00:00.000Z',
       });
 
-      const status = await createTestBatch().experimental_doGetBatchStatus({
+      const status = await createTestBatch().doGetBatchStatus({
         type: 'text',
         batchId: 'job_123',
       });
@@ -417,7 +417,7 @@ describe('GatewayBatch', () => {
         },
       });
 
-      const status = await createTestBatch().experimental_doGetBatchStatus({
+      const status = await createTestBatch().doGetBatchStatus({
         type: 'text',
         batchId: 'job_123',
       });
@@ -439,7 +439,7 @@ describe('GatewayBatch', () => {
         requestCounts: { total: 2 },
       });
 
-      const status = await createTestBatch().experimental_doGetBatchStatus({
+      const status = await createTestBatch().doGetBatchStatus({
         type: 'text',
         batchId: 'job_123',
       });
@@ -457,7 +457,7 @@ describe('GatewayBatch', () => {
       };
 
       try {
-        await createTestBatch().experimental_doGetBatchStatus({
+        await createTestBatch().doGetBatchStatus({
           type: 'text',
           batchId: 'missing-job',
         });
@@ -480,7 +480,7 @@ describe('GatewayBatch', () => {
       await expect(
         createTestBatch({
           fetch: mockFetch,
-        }).experimental_doGetBatchStatus({ type: 'text', batchId: 'job_123' }),
+        }).doGetBatchStatus({ type: 'text', batchId: 'job_123' }),
       ).rejects.toBe(abortError);
     });
 
@@ -491,7 +491,7 @@ describe('GatewayBatch', () => {
 
       await createTestBatch({
         fetch: mockFetch,
-      }).experimental_doGetBatchStatus({
+      }).doGetBatchStatus({
         type: 'text',
         batchId: 'job_123',
         abortSignal: controller.signal,
@@ -501,7 +501,7 @@ describe('GatewayBatch', () => {
     });
   });
 
-  describe('experimental_doGetBatchResults', () => {
+  describe('doGetBatchResults', () => {
     const succeededItem = {
       type: 'text',
       id: 'req-1',
@@ -546,7 +546,7 @@ describe('GatewayBatch', () => {
     it('should revive response.timestamp into a Date on succeeded items', async () => {
       prepareBatchResultsResponse([`${JSON.stringify(succeededItem)}\n`]);
 
-      const stream = await createTestBatch().experimental_doGetBatchResults({
+      const stream = await createTestBatch().doGetBatchResults({
         type: 'text',
         batchId: 'job_123',
       });
@@ -577,7 +577,7 @@ describe('GatewayBatch', () => {
       };
 
       try {
-        await createTestBatch().experimental_doGetBatchResults({
+        await createTestBatch().doGetBatchResults({
           type: 'text',
           batchId: 'missing-job',
         });
@@ -600,14 +600,14 @@ describe('GatewayBatch', () => {
       await expect(
         createTestBatch({
           fetch: mockFetch,
-        }).experimental_doGetBatchResults({ type: 'text', batchId: 'job_123' }),
+        }).doGetBatchResults({ type: 'text', batchId: 'job_123' }),
       ).rejects.toBe(abortError);
     });
 
     it('should post the batchId with the correct headers', async () => {
       prepareBatchResultsResponse([`${JSON.stringify(succeededItem)}\n`]);
 
-      const stream = await createTestBatch().experimental_doGetBatchResults({
+      const stream = await createTestBatch().doGetBatchResults({
         type: 'text',
         batchId: 'job_123',
       });
@@ -635,7 +635,7 @@ describe('GatewayBatch', () => {
         `${line2.slice(10)}\n${line3}`,
       ]);
 
-      const stream = await createTestBatch().experimental_doGetBatchResults({
+      const stream = await createTestBatch().doGetBatchResults({
         type: 'text',
         batchId: 'job_123',
       });
@@ -649,7 +649,7 @@ describe('GatewayBatch', () => {
         `${JSON.stringify(succeededItem)}\n\n${JSON.stringify(failedItem)}\n`,
       ]);
 
-      const stream = await createTestBatch().experimental_doGetBatchResults({
+      const stream = await createTestBatch().doGetBatchResults({
         type: 'text',
         batchId: 'job_123',
       });
@@ -671,7 +671,7 @@ describe('GatewayBatch', () => {
       };
 
       try {
-        await createTestBatch().experimental_doGetBatchResults({
+        await createTestBatch().doGetBatchResults({
           type: 'text',
           batchId: 'job_123',
         });
@@ -691,7 +691,7 @@ describe('GatewayBatch', () => {
 
       const stream = await createTestBatch({
         fetch: mockFetch,
-      }).experimental_doGetBatchResults({
+      }).doGetBatchResults({
         type: 'text',
         batchId: 'job_123',
         abortSignal: controller.signal,
@@ -705,8 +705,8 @@ describe('GatewayBatch', () => {
   it('should expose the three batch methods as functions (batch capability duck-type)', () => {
     const model = createTestBatch();
 
-    expect(typeof model.experimental_doStartBatch).toBe('function');
-    expect(typeof model.experimental_doGetBatchStatus).toBe('function');
-    expect(typeof model.experimental_doGetBatchResults).toBe('function');
+    expect(typeof model.doStartBatch).toBe('function');
+    expect(typeof model.doGetBatchStatus).toBe('function');
+    expect(typeof model.doGetBatchResults).toBe('function');
   });
 });

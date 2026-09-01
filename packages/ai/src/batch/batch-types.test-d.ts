@@ -155,17 +155,17 @@ it('defines batch support as a standalone provider service', () => {
     image: 'image-model';
   }
   type TestBatchApi = BatchV4<TestBatchModelIds>;
-  type TestProvider = ProviderV4 & { batch(): TestBatchApi };
+  type TestProvider = ProviderV4 & { experimental_batch(): TestBatchApi };
 
   expectTypeOf<TestBatchApi>().toMatchTypeOf<BatchProvider>();
   expectTypeOf<TestProvider>().toMatchTypeOf<BatchProvider>();
   expectTypeOf<LanguageModelV4>().not.toMatchTypeOf<BatchProvider>();
-  expectTypeOf<ProviderV4['batch']>().toEqualTypeOf<
+  expectTypeOf<ProviderV4['experimental_batch']>().toEqualTypeOf<
     (() => BatchV4) | undefined
   >();
   expectTypeOf<BatchV4OperationOptions['type']>().toEqualTypeOf<'text'>();
   expectTypeOf<
-    Parameters<TestBatchApi['experimental_doGetBatchResults']>[0]
+    Parameters<TestBatchApi['doGetBatchResults']>[0]
   >().toEqualTypeOf<BatchV4OperationOptions>();
   expectTypeOf<
     StartTextBatchOptions<ToolSet, TestProvider>['provider']
@@ -182,9 +182,9 @@ it('defines batch support as a standalone provider service', () => {
   expectTypeOf<BatchV4Status['status']>().toEqualTypeOf<
     'pending' | 'completed' | 'failed'
   >();
-  expectTypeOf<
-    ReturnType<TestBatchApi['experimental_doGetBatchResults']>
-  >().toEqualTypeOf<PromiseLike<ReadableStream<BatchV4ItemResult>>>();
+  expectTypeOf<ReturnType<TestBatchApi['doGetBatchResults']>>().toEqualTypeOf<
+    PromiseLike<ReadableStream<BatchV4ItemResult>>
+  >();
   expectTypeOf<BatchV4ItemResult>().toEqualTypeOf<TextBatchV4ItemResult>();
   expectTypeOf<
     Extract<TextBatchV4ItemResult, { status: 'succeeded' }>['result']
@@ -195,7 +195,7 @@ it('defines batch support as a standalone provider service', () => {
 
 it('infers default and per-request model IDs from the provider batch service', () => {
   type TestProvider = ProviderV4 & {
-    batch(): BatchV4<{
+    experimental_batch(): BatchV4<{
       text: 'model-a' | 'model-b';
       image: 'image-model';
     }>;
@@ -210,7 +210,7 @@ it('infers default and per-request model IDs from the provider batch service', (
 
   startTextBatch({
     provider,
-    // @ts-expect-error model ID is inferred from provider.batch()
+    // @ts-expect-error model ID is inferred from provider.experimental_batch()
     model: 'image-model',
     requests: [{ id: 'request-1', prompt: 'hello' }],
   });
@@ -221,7 +221,7 @@ it('infers default and per-request model IDs from the provider batch service', (
     requests: [
       {
         id: 'request-1',
-        // @ts-expect-error request model ID is inferred from provider.batch()
+        // @ts-expect-error request model ID is inferred from provider.experimental_batch()
         model: 'image-model',
         prompt: 'hello',
       },

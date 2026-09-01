@@ -45,24 +45,23 @@ function createMockBatchApi({
   doGetBatchStatus = async () => ({ status: 'pending' as const }),
   doGetBatchResults = async () => convertArrayToReadableStream([]),
 }: {
-  doStartBatch?: BatchV4['experimental_doStartBatch'];
-  doGetBatchStatus?: BatchV4['experimental_doGetBatchStatus'];
-  doGetBatchResults?: BatchV4['experimental_doGetBatchResults'];
+  doStartBatch?: BatchV4['doStartBatch'];
+  doGetBatchStatus?: BatchV4['doGetBatchStatus'];
+  doGetBatchResults?: BatchV4['doGetBatchResults'];
 } = {}): BatchV4 {
   return {
     specificationVersion: 'v4',
     provider: 'mock-provider',
     supportedUrls: {},
-    experimental_doStartBatch: doStartBatch,
-    experimental_doGetBatchStatus: doGetBatchStatus,
-    experimental_doGetBatchResults: doGetBatchResults,
+    doStartBatch: doStartBatch,
+    doGetBatchStatus: doGetBatchStatus,
+    doGetBatchResults: doGetBatchResults,
   };
 }
 
 describe('startTextBatch', () => {
   it('uses the global default provider when provider is omitted', async () => {
-    const calls: Array<Parameters<BatchV4['experimental_doStartBatch']>[0]> =
-      [];
+    const calls: Array<Parameters<BatchV4['doStartBatch']>[0]> = [];
     const batchApi = createMockBatchApi({
       doStartBatch: async options => {
         calls.push(options);
@@ -70,7 +69,7 @@ describe('startTextBatch', () => {
       },
     });
     globalThis.AI_SDK_DEFAULT_PROVIDER = Object.assign(new MockProviderV4(), {
-      batch: () => batchApi,
+      experimental_batch: () => batchApi,
     });
 
     try {
@@ -89,8 +88,7 @@ describe('startTextBatch', () => {
   });
 
   it('resolves the batch service from a provider and applies the default model', async () => {
-    const calls: Array<Parameters<BatchV4['experimental_doStartBatch']>[0]> =
-      [];
+    const calls: Array<Parameters<BatchV4['doStartBatch']>[0]> = [];
     const batchApi = createMockBatchApi({
       doStartBatch: async options => {
         calls.push(options);
@@ -98,7 +96,7 @@ describe('startTextBatch', () => {
       },
     });
     const provider = Object.assign(new MockProviderV4(), {
-      batch: () => batchApi,
+      experimental_batch: () => batchApi,
     });
 
     await startTextBatch({
@@ -114,8 +112,7 @@ describe('startTextBatch', () => {
   });
 
   it('normalizes requests and returns the acknowledged batch', async () => {
-    const calls: Array<Parameters<BatchV4['experimental_doStartBatch']>[0]> =
-      [];
+    const calls: Array<Parameters<BatchV4['doStartBatch']>[0]> = [];
     const batchApi = createMockBatchApi({
       doStartBatch: async options => {
         calls.push(options);
@@ -236,8 +233,7 @@ describe('startTextBatch', () => {
   });
 
   it('forwards the webhook URL to the batch service', async () => {
-    const calls: Array<Parameters<BatchV4['experimental_doStartBatch']>[0]> =
-      [];
+    const calls: Array<Parameters<BatchV4['doStartBatch']>[0]> = [];
     const batchApi = createMockBatchApi({
       doStartBatch: async options => {
         calls.push(options);
@@ -258,8 +254,7 @@ describe('startTextBatch', () => {
 
   it('forwards definition-only tools without executing them', async () => {
     const execute = vi.fn(async () => ({ temperature: 20 }));
-    const calls: Array<Parameters<BatchV4['experimental_doStartBatch']>[0]> =
-      [];
+    const calls: Array<Parameters<BatchV4['doStartBatch']>[0]> = [];
     const batchApi = createMockBatchApi({
       doStartBatch: async options => {
         calls.push(options);

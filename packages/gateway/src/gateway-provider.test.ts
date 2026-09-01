@@ -305,7 +305,7 @@ describe('GatewayProvider', () => {
         apiKey: 'test-api-key',
       });
 
-      provider.batch();
+      provider.experimental_batch();
 
       expect(GatewayBatch).toHaveBeenCalledWith(
         expect.objectContaining({

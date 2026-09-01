@@ -130,7 +130,7 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
     this.provider = options.provider;
   }
 
-  async experimental_doStartBatch(
+  async doStartBatch(
     options: TextBatchV4StartOptions<XaiResponsesModelId>,
   ): Promise<BatchV4StartResult> {
     const fileParts: string[] = [];
@@ -211,13 +211,13 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
     };
   }
 
-  async experimental_doGetBatchStatus(
+  async doGetBatchStatus(
     options: BatchV4OperationOptions,
   ): Promise<BatchV4Status> {
     return convertXaiBatchStatus(await this.retrieveBatch(options));
   }
 
-  async experimental_doGetBatchResults(
+  async doGetBatchResults(
     options: BatchV4OperationOptions,
   ): Promise<ReadableStream<BatchV4ItemResult>> {
     const batch = await this.retrieveBatch(options);

@@ -113,9 +113,9 @@ describe('Anthropic batch', () => {
         'Provider-Header': 'provider',
         'Anthropic-Beta': 'provider-header-beta',
       },
-    }).batch();
+    }).experimental_batch();
 
-    const result = await model.experimental_doStartBatch({
+    const result = await model.doStartBatch({
       type: 'text',
       requests: [
         {
@@ -245,10 +245,12 @@ describe('Anthropic batch', () => {
   });
 
   it('rejects per-request betas before making an API request', async () => {
-    const model = createAnthropic({ apiKey: 'test-api-key' }).batch();
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
     await expect(
-      model.experimental_doStartBatch({
+      model.doStartBatch({
         type: 'text',
         requests: [
           {
@@ -273,10 +275,12 @@ describe('Anthropic batch', () => {
   });
 
   it('rejects structured-output modes that require start-call context', async () => {
-    const model = createAnthropic({ apiKey: 'test-api-key' }).batch();
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
     await expect(
-      model.experimental_doStartBatch({
+      model.doStartBatch({
         type: 'text',
         requests: [
           {
@@ -301,10 +305,12 @@ describe('Anthropic batch', () => {
   });
 
   it('rejects aliased provider tool names that cannot be restored later', async () => {
-    const model = createAnthropic({ apiKey: 'test-api-key' }).batch();
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
     await expect(
-      model.experimental_doStartBatch({
+      model.doStartBatch({
         type: 'text',
         requests: [
           {
@@ -334,9 +340,11 @@ describe('Anthropic batch', () => {
       type: 'json-value',
       body: batchResponse({ processing_status: 'in_progress' }),
     };
-    const model = createAnthropic({ apiKey: 'test-api-key' }).batch();
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
-    await model.experimental_doStartBatch({
+    await model.doStartBatch({
       type: 'text',
       requests: [
         {
@@ -371,9 +379,11 @@ describe('Anthropic batch', () => {
       type: 'json-value',
       body: batchResponse({ processing_status: 'in_progress' }),
     };
-    const model = createAnthropic({ apiKey: 'test-api-key' }).batch();
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
-    await model.experimental_doStartBatch({
+    await model.doStartBatch({
       type: 'text',
       requests: [
         {
@@ -437,10 +447,12 @@ describe('Anthropic batch', () => {
         'Anthropic Message Batches do not support fallback speed (request "request-1").',
     },
   ])('rejects unsupported $feature', async ({ feature, options, message }) => {
-    const model = createAnthropic({ apiKey: 'test-api-key' }).batch();
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
     await expect(
-      model.experimental_doStartBatch({
+      model.doStartBatch({
         type: 'text',
         requests: [
           {
@@ -460,10 +472,12 @@ describe('Anthropic batch', () => {
   });
 
   it('rejects invalid request IDs before making an API request', async () => {
-    const model = createAnthropic({ apiKey: 'test-api-key' }).batch();
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
     await expect(
-      model.experimental_doStartBatch({
+      model.doStartBatch({
         type: 'text',
         requests: [{ id: 'invalid id', ...request('Hello') }],
       }),
@@ -474,7 +488,7 @@ describe('Anthropic batch', () => {
         'Anthropic batch request ID "invalid id" must match ^[A-Za-z0-9_-]{1,64}$.',
     });
     await expect(
-      model.experimental_doStartBatch({
+      model.doStartBatch({
         type: 'text',
         requests: [{ id: 'a'.repeat(65), ...request('Hello') }],
       }),
@@ -487,10 +501,12 @@ describe('Anthropic batch', () => {
   });
 
   it('rejects duplicate request IDs before making an API request', async () => {
-    const model = createAnthropic({ apiKey: 'test-api-key' }).batch();
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
     await expect(
-      model.experimental_doStartBatch({
+      model.doStartBatch({
         type: 'text',
         requests: [
           { id: 'duplicate', ...request('First') },
@@ -516,10 +532,12 @@ describe('Anthropic batch', () => {
       type: 'json-value',
       body: batchResponse({ processing_status: rawStatus }),
     };
-    const model = createAnthropic({ apiKey: 'test-api-key' }).batch();
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
     await expect(
-      model.experimental_doGetBatchStatus({
+      model.doGetBatchStatus({
         type: 'text',
         batchId: 'msgbatch_123',
       }),
@@ -539,10 +557,12 @@ describe('Anthropic batch', () => {
         },
       }),
     };
-    const model = createAnthropic({ apiKey: 'test-api-key' }).batch();
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
     await expect(
-      model.experimental_doGetBatchStatus({
+      model.doGetBatchStatus({
         type: 'text',
         batchId: 'msgbatch_123',
       }),
@@ -583,10 +603,12 @@ describe('Anthropic batch', () => {
         results_url: null,
       }),
     };
-    const model = createAnthropic({ apiKey: 'test-api-key' }).batch();
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
     await expect(
-      model.experimental_doGetBatchResults({
+      model.doGetBatchResults({
         type: 'text',
         batchId: 'msgbatch_123',
       }),
@@ -645,9 +667,11 @@ describe('Anthropic batch', () => {
         expired.slice(11),
       ],
     };
-    const model = createAnthropic({ apiKey: 'test-api-key' }).batch();
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       type: 'text',
       batchId: 'msgbatch_123',
     });
@@ -804,9 +828,9 @@ describe('Anthropic batch', () => {
     const model = createAnthropic({
       apiKey: 'test-api-key',
       generateId: () => 'source-1',
-    }).batch();
+    }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       type: 'text',
       batchId: 'msgbatch_123',
     });
@@ -968,9 +992,9 @@ describe('Anthropic batch', () => {
     const model = createAnthropic({
       apiKey: 'test-api-key',
       generateId: () => 'citation-source',
-    }).batch();
+    }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       type: 'text',
       batchId: 'msgbatch_123',
     });
@@ -1103,9 +1127,9 @@ describe('Anthropic batch', () => {
     const model = createAnthropic({
       apiKey: 'test-api-key',
       generateId: () => 'nullable-source',
-    }).batch();
+    }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       type: 'text',
       batchId: 'msgbatch_123',
     });
@@ -1233,9 +1257,11 @@ describe('Anthropic batch', () => {
         }),
       ],
     };
-    const model = createAnthropic({ apiKey: 'test-api-key' }).batch();
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       type: 'text',
       batchId: 'msgbatch_123',
     });
@@ -1306,9 +1332,11 @@ describe('Anthropic batch', () => {
         }),
       ],
     };
-    const model = createAnthropic({ apiKey: 'test-api-key' }).batch();
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       type: 'text',
       batchId: 'msgbatch_123',
     });
@@ -1351,9 +1379,11 @@ describe('Anthropic batch', () => {
         }),
       ],
     };
-    const model = createAnthropic({ apiKey: 'test-api-key' }).batch();
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       type: 'text',
       batchId: 'msgbatch_123',
     });
@@ -1408,9 +1438,11 @@ describe('Anthropic batch', () => {
         }),
       ],
     };
-    const model = createAnthropic({ apiKey: 'test-api-key' }).batch();
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       type: 'text',
       batchId: 'msgbatch_123',
     });
@@ -1460,9 +1492,9 @@ describe('Anthropic batch', () => {
         'Provider-Header': 'provider',
       },
       fetch: mockFetch,
-    }).batch();
+    }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       type: 'text',
       batchId: 'msgbatch_123',
       abortSignal: abortController.signal,
@@ -1485,11 +1517,11 @@ describe('Anthropic batch', () => {
 
   it('exposes batch support on the provider', () => {
     const provider = createAnthropic({ apiKey: 'test-api-key' });
-    const batch = provider.batch();
+    const batch = provider.experimental_batch();
 
-    expect(batch.experimental_doStartBatch).toBeTypeOf('function');
-    expect(batch.experimental_doGetBatchStatus).toBeTypeOf('function');
-    expect(batch.experimental_doGetBatchResults).toBeTypeOf('function');
+    expect(batch.doStartBatch).toBeTypeOf('function');
+    expect(batch.doGetBatchStatus).toBeTypeOf('function');
+    expect(batch.doGetBatchResults).toBeTypeOf('function');
 
     for (const model of [
       provider('claude-3-haiku-20240307'),
@@ -1497,12 +1529,12 @@ describe('Anthropic batch', () => {
       provider.chat('claude-3-haiku-20240307'),
       provider.messages('claude-3-haiku-20240307'),
     ]) {
-      expect((model as any).experimental_doStartBatch).toBeUndefined();
+      expect((model as any).doStartBatch).toBeUndefined();
     }
 
     expect(
       (new AnthropicLanguageModel('claude-3-haiku-20240307', config) as any)
-        .experimental_doStartBatch,
+        .doStartBatch,
     ).toBeUndefined();
   });
 
@@ -1522,10 +1554,12 @@ describe('Anthropic batch', () => {
           results_url: null,
         }),
       };
-      const model = createAnthropic({ apiKey: 'test-api-key' }).batch();
+      const model = createAnthropic({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
       await expect(
-        model.experimental_doGetBatchResults({
+        model.doGetBatchResults({
           type: 'text',
           batchId: 'msgbatch_123',
         }),
@@ -1560,9 +1594,11 @@ describe('Anthropic batch', () => {
           }),
         ],
       };
-      const model = createAnthropic({ apiKey: 'test-api-key' }).batch();
+      const model = createAnthropic({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
-      const stream = await model.experimental_doGetBatchResults({
+      const stream = await model.doGetBatchResults({
         type: 'text',
         batchId: 'msgbatch_123',
       });
@@ -1632,9 +1668,11 @@ describe('Anthropic batch', () => {
           }),
         ],
       };
-      const model = createAnthropic({ apiKey: 'test-api-key' }).batch();
+      const model = createAnthropic({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
-      const stream = await model.experimental_doGetBatchResults({
+      const stream = await model.doGetBatchResults({
         type: 'text',
         batchId: 'msgbatch_123',
       });
@@ -1681,9 +1719,11 @@ describe('Anthropic batch', () => {
           }),
         ],
       };
-      const model = createAnthropic({ apiKey: 'test-api-key' }).batch();
+      const model = createAnthropic({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
-      const stream = await model.experimental_doGetBatchResults({
+      const stream = await model.doGetBatchResults({
         type: 'text',
         batchId: 'msgbatch_123',
       });
@@ -1718,10 +1758,12 @@ describe('Anthropic batch', () => {
         type: 'json-value',
         body: batchResponse({ results_url: null }),
       };
-      const model = createAnthropic({ apiKey: 'test-api-key' }).batch();
+      const model = createAnthropic({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
       await expect(
-        model.experimental_doGetBatchResults({
+        model.doGetBatchResults({
           type: 'text',
           batchId: 'msgbatch_123',
         }),
@@ -1775,9 +1817,11 @@ describe('Anthropic batch', () => {
           }),
         ],
       };
-      const model = createAnthropic({ apiKey: 'test-api-key' }).batch();
+      const model = createAnthropic({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
-      const stream = await model.experimental_doGetBatchResults({
+      const stream = await model.doGetBatchResults({
         type: 'text',
         batchId: 'msgbatch_123',
       });

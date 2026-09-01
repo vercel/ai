@@ -7,7 +7,7 @@ import { xai } from './index';
 import type { XaiResponsesModelId } from './responses/xai-responses-language-model-options';
 
 it('types batch support on the provider', () => {
-  expectTypeOf(xai.batch()).toEqualTypeOf<
+  expectTypeOf(xai.experimental_batch()).toEqualTypeOf<
     BatchV4<{ text: XaiResponsesModelId }>
   >();
   expectTypeOf(xai('grok-4.6')).toEqualTypeOf<LanguageModelV4>();

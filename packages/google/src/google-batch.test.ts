@@ -154,10 +154,10 @@ function prepareOutput(lines: unknown[]) {
 
 describe('GoogleBatch', () => {
   it('rejects mixed models before creating a batch', async () => {
-    const batch = createGoogle({ apiKey: 'test-api-key' }).batch();
+    const batch = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
 
     await expect(
-      batch.experimental_doStartBatch({
+      batch.doStartBatch({
         type: 'text',
         requests: [
           request('flash', 'Hello'),
@@ -199,9 +199,9 @@ describe('GoogleBatch', () => {
       generateId: () => 'test-id',
       headers: { 'Provider-Header': 'provider' },
       fetch: mockFetch,
-    }).batch();
+    }).experimental_batch();
 
-    const result = await model.experimental_doStartBatch({
+    const result = await model.doStartBatch({
       type: 'text',
       requests: [
         {
@@ -376,9 +376,9 @@ describe('GoogleBatch', () => {
       generateId: () => 'test-id',
       headers: { 'Provider-Header': 'provider' },
       fetch: mockFetch,
-    }).batch();
+    }).experimental_batch();
 
-    const result = await model.experimental_doStartBatch({
+    const result = await model.doStartBatch({
       type: 'text',
       requests: [
         request('small-request', 'small'),
@@ -460,10 +460,10 @@ describe('GoogleBatch', () => {
       type: 'json-value',
       body: operation({ state: rawStatus }),
     };
-    const model = createGoogle({ apiKey: 'test-api-key' }).batch();
+    const model = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
 
     await expect(
-      model.experimental_doGetBatchStatus({
+      model.doGetBatchStatus({
         type: 'text',
         batchId: 'batches/batch-123',
       }),
@@ -485,10 +485,12 @@ describe('GoogleBatch', () => {
         type: 'json-value',
         body: operation({ state: undefined }, { done, error }),
       };
-      const model = createGoogle({ apiKey: 'test-api-key' }).batch();
+      const model = createGoogle({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
       await expect(
-        model.experimental_doGetBatchStatus({
+        model.doGetBatchStatus({
           type: 'text',
           batchId: 'batches/batch-123',
         }),
@@ -518,10 +520,10 @@ describe('GoogleBatch', () => {
         },
       ),
     };
-    const model = createGoogle({ apiKey: 'test-api-key' }).batch();
+    const model = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
 
     await expect(
-      model.experimental_doGetBatchStatus({
+      model.doGetBatchStatus({
         type: 'text',
         batchId: 'batches/batch-123',
       }),
@@ -574,10 +576,10 @@ describe('GoogleBatch', () => {
       type: 'json-value',
       body: operation({ batchStats }),
     };
-    const model = createGoogle({ apiKey: 'test-api-key' }).batch();
+    const model = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
 
     await expect(
-      model.experimental_doGetBatchStatus({
+      model.doGetBatchStatus({
         type: 'text',
         batchId: 'batches/batch-123',
       }),
@@ -610,9 +612,9 @@ describe('GoogleBatch', () => {
     const model = createGoogle({
       apiKey: 'test-api-key',
       generateId: () => 'test-id',
-    }).batch();
+    }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       type: 'text',
       batchId: 'batches/batch-123',
     });
@@ -702,9 +704,9 @@ describe('GoogleBatch', () => {
         },
       ),
     };
-    const model = createGoogle({ apiKey: 'test-api-key' }).batch();
+    const model = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       type: 'text',
       batchId: 'batches/batch-123',
     });
@@ -735,9 +737,9 @@ describe('GoogleBatch', () => {
         error: { code: 1, message: 'The request was cancelled.' },
       },
     ]);
-    const model = createGoogle({ apiKey: 'test-api-key' }).batch();
+    const model = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       type: 'text',
       batchId: 'batches/batch-123',
     });
@@ -775,9 +777,11 @@ describe('GoogleBatch', () => {
           },
         },
       ]);
-      const model = createGoogle({ apiKey: 'test-api-key' }).batch();
+      const model = createGoogle({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
-      const stream = await model.experimental_doGetBatchResults({
+      const stream = await model.doGetBatchResults({
         type: 'text',
         batchId: 'batches/batch-123',
       });
@@ -822,9 +826,9 @@ describe('GoogleBatch', () => {
         }),
       ],
     };
-    const model = createGoogle({ apiKey: 'test-api-key' }).batch();
+    const model = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       type: 'text',
       batchId: 'batches/batch-123',
     });
@@ -867,9 +871,9 @@ describe('GoogleBatch', () => {
     const model = createGoogle({
       apiKey: 'test-api-key',
       fetch: mockFetch,
-    }).batch();
+    }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       type: 'text',
       batchId: 'batches/batch-123',
     });
@@ -894,9 +898,9 @@ describe('GoogleBatch', () => {
         output: undefined,
       }),
     };
-    const model = createGoogle({ apiKey: 'test-api-key' }).batch();
+    const model = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       type: 'text',
       batchId: 'batches/batch-123',
     });
@@ -917,10 +921,10 @@ describe('GoogleBatch', () => {
         },
       }),
     };
-    const model = createGoogle({ apiKey: 'test-api-key' }).batch();
+    const model = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
 
     await expect(
-      model.experimental_doGetBatchStatus({
+      model.doGetBatchStatus({
         type: 'text',
         batchId: 'batches/batch-123',
       }),
@@ -944,10 +948,10 @@ describe('GoogleBatch', () => {
         },
       }),
     };
-    const model = createGoogle({ apiKey: 'test-api-key' }).batch();
+    const model = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
 
     await expect(
-      model.experimental_doStartBatch({
+      model.doStartBatch({
         type: 'text',
         requests: [request('france', 'What is the capital of France?')],
       }),
@@ -968,10 +972,12 @@ describe('GoogleBatch', () => {
           { done: false },
         ),
       };
-      const model = createGoogle({ apiKey: 'test-api-key' }).batch();
+      const model = createGoogle({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
       await expect(
-        model.experimental_doGetBatchResults({
+        model.doGetBatchResults({
           type: 'text',
           batchId: 'batches/batch-123',
         }),
@@ -1002,9 +1008,11 @@ describe('GoogleBatch', () => {
           response: googleResponse({ id: 'response-valid', text: 'Paris' }),
         },
       ]);
-      const model = createGoogle({ apiKey: 'test-api-key' }).batch();
+      const model = createGoogle({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
-      const stream = await model.experimental_doGetBatchResults({
+      const stream = await model.doGetBatchResults({
         type: 'text',
         batchId: 'batches/batch-123',
       });
@@ -1033,10 +1041,12 @@ describe('GoogleBatch', () => {
         type: 'json-value',
         body: operation({ output: undefined }),
       };
-      const model = createGoogle({ apiKey: 'test-api-key' }).batch();
+      const model = createGoogle({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
       await expect(
-        model.experimental_doGetBatchResults({
+        model.doGetBatchResults({
           type: 'text',
           batchId: 'batches/batch-123',
         }),
@@ -1099,9 +1109,11 @@ describe('GoogleBatch', () => {
           },
         },
       ]);
-      const model = createGoogle({ apiKey: 'test-api-key' }).batch();
+      const model = createGoogle({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
-      const stream = await model.experimental_doGetBatchResults({
+      const stream = await model.doGetBatchResults({
         type: 'text',
         batchId: 'batches/batch-123',
       });

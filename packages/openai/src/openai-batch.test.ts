@@ -129,9 +129,9 @@ describe('OpenAI batch service', () => {
     const batch = createOpenAI({
       apiKey: 'test-api-key',
       headers: { 'Provider-Header': 'provider' },
-    }).batch();
+    }).experimental_batch();
 
-    const result = await batch.experimental_doStartBatch({
+    const result = await batch.doStartBatch({
       type: 'text',
       requests: [
         { id: 'france', ...request('What is the capital of France?') },
@@ -230,10 +230,10 @@ describe('OpenAI batch service', () => {
     const batch = createOpenAI({
       apiKey: 'test-api-key',
       fetch: fetchMock,
-    }).batch();
+    }).experimental_batch();
 
     await expect(
-      batch.experimental_doStartBatch({
+      batch.doStartBatch({
         type: 'text',
         requests: [
           { id: 'first', ...request('First request') },
@@ -255,9 +255,9 @@ describe('OpenAI batch service', () => {
 
   it('warns when a provider tool can return unsupported batch output', async () => {
     prepareCreateResponse();
-    const batch = createOpenAI({ apiKey: 'test-api-key' }).batch();
+    const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
 
-    const result = await batch.experimental_doStartBatch({
+    const result = await batch.doStartBatch({
       type: 'text',
       requests: [
         {
@@ -293,9 +293,9 @@ describe('OpenAI batch service', () => {
     prepareCreateResponse();
     const batch = createOpenAI({
       apiKey: 'test-api-key',
-    }).batch();
+    }).experimental_batch();
 
-    await batch.experimental_doStartBatch({
+    await batch.doStartBatch({
       type: 'text',
       requests: [
         {
@@ -338,9 +338,9 @@ describe('OpenAI batch service', () => {
     const batch = createOpenAI({
       apiKey: 'test-api-key',
       fetch: mockFetch,
-    }).batch();
+    }).experimental_batch();
 
-    await batch.experimental_doStartBatch({
+    await batch.doStartBatch({
       type: 'text',
       requests: [
         { id: 'france', ...request('What is the capital of France?') },
@@ -368,10 +368,10 @@ describe('OpenAI batch service', () => {
       type: 'json-value',
       body: batchResponse({ status: rawStatus }),
     };
-    const batch = createOpenAI({ apiKey: 'test-api-key' }).batch();
+    const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
 
     await expect(
-      batch.experimental_doGetBatchStatus({
+      batch.doGetBatchStatus({
         type: 'text',
         batchId: 'batch_123',
       }),
@@ -389,10 +389,10 @@ describe('OpenAI batch service', () => {
         },
       }),
     };
-    const batch = createOpenAI({ apiKey: 'test-api-key' }).batch();
+    const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
 
     await expect(
-      batch.experimental_doGetBatchStatus({
+      batch.doGetBatchStatus({
         type: 'text',
         batchId: 'batch_123',
       }),
@@ -422,10 +422,10 @@ describe('OpenAI batch service', () => {
         errors: { data: [{ code: 'invalid_request' }] },
       }),
     };
-    const batch = createOpenAI({ apiKey: 'test-api-key' }).batch();
+    const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
 
     await expect(
-      batch.experimental_doGetBatchStatus({
+      batch.doGetBatchStatus({
         type: 'text',
         batchId: 'batch_123',
       }),
@@ -461,9 +461,9 @@ describe('OpenAI batch service', () => {
         second.slice(31),
       ],
     };
-    const batch = createOpenAI({ apiKey: 'test-api-key' }).batch();
+    const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
 
-    const stream = await batch.experimental_doGetBatchResults({
+    const stream = await batch.doGetBatchResults({
       type: 'text',
       batchId: 'batch_123',
     });
@@ -528,9 +528,9 @@ describe('OpenAI batch service', () => {
         }),
       ],
     };
-    const batch = createOpenAI({ apiKey: 'test-api-key' }).batch();
+    const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
 
-    const stream = await batch.experimental_doGetBatchResults({
+    const stream = await batch.doGetBatchResults({
       type: 'text',
       batchId: 'batch_123',
     });
@@ -577,9 +577,9 @@ describe('OpenAI batch service', () => {
     const batch = createOpenAI({
       apiKey: 'test-api-key',
       fetch: mockFetch,
-    }).batch();
+    }).experimental_batch();
 
-    const stream = await batch.experimental_doGetBatchResults({
+    const stream = await batch.doGetBatchResults({
       type: 'text',
       batchId: 'batch_123',
       abortSignal: abortController.signal,
@@ -606,9 +606,9 @@ describe('OpenAI batch service', () => {
         '{not json}\n',
       ],
     };
-    const batch = createOpenAI({ apiKey: 'test-api-key' }).batch();
+    const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
 
-    const stream = await batch.experimental_doGetBatchResults({
+    const stream = await batch.doGetBatchResults({
       type: 'text',
       batchId: 'batch_123',
     });
@@ -670,13 +670,13 @@ describe('OpenAI batch service', () => {
         }),
       ],
     };
-    const batch = createOpenAI({ apiKey: 'test-api-key' }).batch();
+    const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
 
-    await batch.experimental_doGetBatchStatus({
+    await batch.doGetBatchStatus({
       type: 'text',
       batchId: 'batch_123',
     });
-    const stream = await batch.experimental_doGetBatchResults({
+    const stream = await batch.doGetBatchResults({
       type: 'text',
       batchId: 'batch_123',
     });
@@ -724,23 +724,16 @@ describe('OpenAI batch service', () => {
   it('exposes batch support on the provider instead of its models', () => {
     const provider = createOpenAI({ apiKey: 'test-api-key' });
 
-    const batch = provider.batch();
-    expect(batch.experimental_doStartBatch).toBeTypeOf('function');
-    expect(batch.experimental_doGetBatchStatus).toBeTypeOf('function');
-    expect(batch.experimental_doGetBatchResults).toBeTypeOf('function');
+    const batch = provider.experimental_batch();
+    expect(batch.doStartBatch).toBeTypeOf('function');
+    expect(batch.doGetBatchStatus).toBeTypeOf('function');
+    expect(batch.doGetBatchResults).toBeTypeOf('function');
 
+    expect((provider('gpt-5.6') as any).doStartBatch).toBeUndefined();
+    expect((provider.responses('gpt-5.6') as any).doStartBatch).toBeUndefined();
+    expect((provider.chat('gpt-5.6') as any).doStartBatch).toBeUndefined();
     expect(
-      (provider('gpt-5.6') as any).experimental_doStartBatch,
-    ).toBeUndefined();
-    expect(
-      (provider.responses('gpt-5.6') as any).experimental_doStartBatch,
-    ).toBeUndefined();
-    expect(
-      (provider.chat('gpt-5.6') as any).experimental_doStartBatch,
-    ).toBeUndefined();
-    expect(
-      (provider.completion('gpt-3.5-turbo-instruct') as any)
-        .experimental_doStartBatch,
+      (provider.completion('gpt-3.5-turbo-instruct') as any).doStartBatch,
     ).toBeUndefined();
   });
 
@@ -753,10 +746,12 @@ describe('OpenAI batch service', () => {
           request_counts: { total: 2, completed: 1, failed: 0 },
         }),
       };
-      const batch = createOpenAI({ apiKey: 'test-api-key' }).batch();
+      const batch = createOpenAI({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
       await expect(
-        batch.experimental_doGetBatchResults({
+        batch.doGetBatchResults({
           type: 'text',
           batchId: 'batch_123',
         }),
@@ -779,9 +774,11 @@ describe('OpenAI batch service', () => {
           resultLine({ id: 'valid', body: responsesResultBody('Paris') }),
         ],
       };
-      const batch = createOpenAI({ apiKey: 'test-api-key' }).batch();
+      const batch = createOpenAI({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
-      const stream = await batch.experimental_doGetBatchResults({
+      const stream = await batch.doGetBatchResults({
         type: 'text',
         batchId: 'batch_123',
       });
@@ -810,10 +807,12 @@ describe('OpenAI batch service', () => {
         type: 'json-value',
         body: batchResponse(),
       };
-      const batch = createOpenAI({ apiKey: 'test-api-key' }).batch();
+      const batch = createOpenAI({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
       await expect(
-        batch.experimental_doGetBatchResults({
+        batch.doGetBatchResults({
           type: 'text',
           batchId: 'batch_123',
         }),
@@ -918,9 +917,11 @@ describe('OpenAI batch service', () => {
           resultLine({ id: 'valid', body: responsesResultBody('Paris') }),
         ],
       };
-      const batch = createOpenAI({ apiKey: 'test-api-key' }).batch();
+      const batch = createOpenAI({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
-      const stream = await batch.experimental_doGetBatchResults({
+      const stream = await batch.doGetBatchResults({
         type: 'text',
         batchId: 'batch_123',
       });

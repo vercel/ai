@@ -140,7 +140,7 @@ export interface OpenAIProvider extends ProviderV4 {
   /**
    * Returns the provider-owned durable batch service.
    */
-  batch(): BatchV4<{ text: OpenAIResponsesModelId }>;
+  experimental_batch(): BatchV4<{ text: OpenAIResponsesModelId }>;
 
   /**
    * OpenAI-specific tools.
@@ -392,7 +392,7 @@ export function createOpenAI(
   provider.speechModel = createSpeechModel;
   provider.files = createFiles;
   provider.skills = createSkills;
-  provider.batch = createBatch;
+  provider.experimental_batch = createBatch;
 
   provider.experimental_realtime = experimentalRealtimeFactory;
 

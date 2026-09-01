@@ -56,7 +56,7 @@ export interface XaiProvider extends ProviderV4 {
   /**
    * Returns the provider-owned durable batch service.
    */
-  batch(): BatchV4<{ text: XaiResponsesModelId }>;
+  experimental_batch(): BatchV4<{ text: XaiResponsesModelId }>;
 
   /**
    * Creates an Xai image model for image generation.
@@ -288,7 +288,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   provider.transcriptionModel = createTranscriptionModel;
   provider.transcription = createTranscriptionModel;
   provider.files = createFiles;
-  provider.batch = createBatch;
+  provider.experimental_batch = createBatch;
   provider.tools = xaiTools;
 
   return provider;

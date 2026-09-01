@@ -139,7 +139,7 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
     this.provider = options.provider;
   }
 
-  async experimental_doStartBatch(
+  async doStartBatch(
     options: TextBatchV4StartOptions<OpenAIResponsesModelId>,
   ): Promise<BatchV4StartResult> {
     validateSingleModel(options.requests);
@@ -258,14 +258,14 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
     };
   }
 
-  async experimental_doGetBatchStatus(
+  async doGetBatchStatus(
     options: BatchV4OperationOptions,
   ): Promise<BatchV4Status> {
     const batch = await this.retrieveBatch(options);
     return convertOpenAIBatchStatus(batch);
   }
 
-  async experimental_doGetBatchResults(
+  async doGetBatchResults(
     options: BatchV4OperationOptions,
   ): Promise<ReadableStream<BatchV4ItemResult>> {
     const batch = await this.retrieveBatch(options);

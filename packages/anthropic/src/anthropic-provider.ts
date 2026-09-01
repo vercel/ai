@@ -52,7 +52,7 @@ export interface AnthropicProvider extends ProviderV4 {
 
   messages(modelId: AnthropicModelId): LanguageModelV4;
 
-  batch(): BatchV4<{ text: AnthropicModelId }>;
+  experimental_batch(): BatchV4<{ text: AnthropicModelId }>;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -204,7 +204,7 @@ export function createAnthropic(
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.messages = createChatModel;
-  provider.batch = createBatch;
+  provider.experimental_batch = createBatch;
 
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });

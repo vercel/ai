@@ -7,7 +7,7 @@ import { google } from './google-provider';
 import type { GoogleModelId } from './google-language-model-options';
 
 it('types batch support on the provider', () => {
-  expectTypeOf(google.batch()).toEqualTypeOf<
+  expectTypeOf(google.experimental_batch()).toEqualTypeOf<
     BatchV4<{ text: GoogleModelId }>
   >();
   expectTypeOf(google('gemini-3.6-flash')).toEqualTypeOf<LanguageModelV4>();

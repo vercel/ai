@@ -100,7 +100,7 @@ export async function startTextBatch<
     `ai/${VERSION}`,
   );
   try {
-    const result = await batchApi.experimental_doStartBatch({
+    const result = await batchApi.doStartBatch({
       type: 'text',
       requests: normalizedRequests,
       providerOptions,
@@ -155,7 +155,7 @@ export async function getBatchStatus({
 
   try {
     const status = await retry(() =>
-      batchApi.experimental_doGetBatchStatus({
+      batchApi.doGetBatchStatus({
         type: batch.type,
         batchId: batch.id,
         providerOptions,
@@ -218,7 +218,7 @@ export function getBatchResults<TOOLS extends ToolSet>({
   void (async () => {
     try {
       const stream = await retry(() =>
-        batchApi.experimental_doGetBatchResults({
+        batchApi.doGetBatchResults({
           type: batch.type,
           batchId: batch.id,
           providerOptions,
@@ -245,23 +245,23 @@ function resolveBatchApi(provider?: BatchProvider): BatchV4 {
     return provider;
   }
 
-  if (typeof provider.batch !== 'function') {
+  if (typeof provider.experimental_batch !== 'function') {
     throw new UnsupportedFunctionalityError({
       functionality: 'batch processing',
       message:
-        'The provider does not support batch processing. Make sure it exposes a batch() method.',
+        'The provider does not support batch processing. Make sure it exposes an experimental_batch() method.',
     });
   }
 
-  return provider.batch();
+  return provider.experimental_batch();
 }
 
 function isBatchApi(provider: BatchProvider): provider is BatchV4 {
   const candidate = provider as Partial<BatchV4>;
   return (
-    typeof candidate.experimental_doStartBatch === 'function' &&
-    typeof candidate.experimental_doGetBatchStatus === 'function' &&
-    typeof candidate.experimental_doGetBatchResults === 'function'
+    typeof candidate.doStartBatch === 'function' &&
+    typeof candidate.doGetBatchStatus === 'function' &&
+    typeof candidate.doGetBatchResults === 'function'
   );
 }
 

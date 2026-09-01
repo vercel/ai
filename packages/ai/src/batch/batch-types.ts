@@ -26,7 +26,7 @@ export type BatchProvider = ProviderV4 | BatchV4;
 type InferBatchModelId<PROVIDER extends BatchProvider> =
   PROVIDER extends BatchV4<infer MODEL_IDS>
     ? MODEL_IDS['text']
-    : PROVIDER extends { batch(): BatchV4<infer MODEL_IDS> }
+    : PROVIDER extends { experimental_batch(): BatchV4<infer MODEL_IDS> }
       ? MODEL_IDS['text']
       : string;
 

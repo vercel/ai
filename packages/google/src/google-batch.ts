@@ -150,7 +150,7 @@ export class GoogleBatch implements BatchV4<{ readonly text: GoogleModelId }> {
     this.batchGenerateId = options.config.generateId ?? generateId;
   }
 
-  async experimental_doStartBatch(
+  async doStartBatch(
     options: TextBatchV4StartOptions<GoogleModelId>,
   ): Promise<BatchV4StartResult> {
     const modelId = getGoogleBatchModelId(options.requests);
@@ -337,13 +337,13 @@ export class GoogleBatch implements BatchV4<{ readonly text: GoogleModelId }> {
     };
   }
 
-  async experimental_doGetBatchStatus(
+  async doGetBatchStatus(
     options: BatchV4OperationOptions,
   ): Promise<BatchV4Status> {
     return convertGoogleBatchStatus(await this.retrieveBatch(options));
   }
 
-  async experimental_doGetBatchResults(
+  async doGetBatchResults(
     options: BatchV4OperationOptions,
   ): Promise<ReadableStream<BatchV4ItemResult>> {
     const operation = await this.retrieveBatch(options);

@@ -97,5 +97,5 @@ export interface ProviderV4 {
   /**
    * Returns the provider-owned durable batch service.
    */
-  batch?(): BatchV4;
+  experimental_batch?(): BatchV4;
 }

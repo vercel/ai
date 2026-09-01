@@ -7,7 +7,7 @@ import type { AnthropicModelId } from './anthropic-language-model-options';
 import { anthropic } from './anthropic-provider';
 
 it('types batch support on the provider', () => {
-  expectTypeOf(anthropic.batch()).toEqualTypeOf<
+  expectTypeOf(anthropic.experimental_batch()).toEqualTypeOf<
     BatchV4<{ text: AnthropicModelId }>
   >();
   expectTypeOf(

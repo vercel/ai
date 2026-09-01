@@ -43,7 +43,7 @@ export class GatewayBatch implements BatchV4<{ text: GatewayModelId }> {
    * server-side, so status and results always route back through the
    * Gateway job.
    */
-  async experimental_doStartBatch({
+  async doStartBatch({
     type,
     requests,
     providerOptions,
@@ -118,7 +118,7 @@ export class GatewayBatch implements BatchV4<{ text: GatewayModelId }> {
    * Retrieves the lifecycle status of a Gateway batch job
    * (`POST {baseURL}/batch/status`).
    */
-  async experimental_doGetBatchStatus({
+  async doGetBatchStatus({
     type,
     batchId,
     headers,
@@ -167,7 +167,7 @@ export class GatewayBatch implements BatchV4<{ text: GatewayModelId }> {
    * (id + status) and passed through — the Gateway sanitizes them
    * server-side. The route responds 400 while the batch is non-terminal.
    */
-  async experimental_doGetBatchResults({
+  async doGetBatchResults({
     type,
     batchId,
     headers,

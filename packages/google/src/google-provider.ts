@@ -61,7 +61,7 @@ export interface GoogleProvider extends ProviderV4 {
 
   chat(modelId: GoogleModelId): LanguageModelV4;
 
-  batch(): BatchV4<{ text: GoogleModelId }>;
+  experimental_batch(): BatchV4<{ text: GoogleModelId }>;
 
   /**
    * Creates a model for image generation.
@@ -422,7 +422,7 @@ export function createGoogle(
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.generativeAI = createChatModel;
-  provider.batch = createBatch;
+  provider.experimental_batch = createBatch;
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;

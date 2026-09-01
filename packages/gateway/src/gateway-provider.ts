@@ -82,7 +82,7 @@ export interface GatewayProvider extends ProviderV4 {
   languageModel(modelId: GatewayModelId): LanguageModelV4;
 
   /** Returns the Gateway durable batch service. */
-  batch(): BatchV4<{ text: GatewayModelId }>;
+  experimental_batch(): BatchV4<{ text: GatewayModelId }>;
 
   /**
    * Returns available providers and models for use with the remote provider.
@@ -536,7 +536,7 @@ export function createGateway(
     });
   };
   provider.languageModel = createLanguageModel;
-  provider.batch = createBatch;
+  provider.experimental_batch = createBatch;
   const createEmbeddingModel = (modelId: GatewayEmbeddingModelId) => {
     return new GatewayEmbeddingModel(modelId, {
       provider: 'gateway',
