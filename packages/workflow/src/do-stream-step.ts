@@ -99,10 +99,9 @@ export interface StreamFinish {
  * boundary. By returning only these fields (instead of a fully-populated
  * StepResult plus the raw `chunks[]` array), the durable event log doesn't
  * carry StepResult's redundant copies — `content`, the duplicate
- * `toolCalls`/`dynamicToolCalls` lists, `reasoningText`, the always-empty
- * `*ToolResults` arrays, and the per-chunk `chunks[]` snapshot the iterator
- * never reads. The caller reconstructs the full StepResult via
- * `buildStepResult`.
+ * `toolCalls`/`dynamicToolCalls` lists, `reasoningText`, and the per-chunk
+ * `chunks[]` snapshot the iterator never reads. The caller reconstructs the
+ * full StepResult via `buildStepResult`.
  */
 export interface DoStreamStepRawResult {
   text: string;

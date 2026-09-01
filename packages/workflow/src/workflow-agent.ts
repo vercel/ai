@@ -1184,6 +1184,50 @@ type WorkflowToolExecutionResult = {
   isError: boolean;
 };
 
+function addToolResultsToStep(
+  step: StepResult<ToolSet, any> | undefined,
+  executedResults: WorkflowToolExecutionResult[],
+) {
+  if (step == null || executedResults.length === 0) {
+    return;
+  }
+
+  const toolResults = executedResults.map(result => {
+    const toolCall = step.toolCalls.find(
+      toolCall => toolCall.toolCallId === result.modelResult.toolCallId,
+    );
+
+    return {
+      type: 'tool-result' as const,
+      toolCallId: result.modelResult.toolCallId,
+      toolName: result.modelResult.toolName,
+      input: toolCall?.input,
+      output: result.rawOutput,
+      ...(toolCall?.dynamic === true ? { dynamic: true as const } : {}),
+      ...(toolCall?.providerExecuted === true
+        ? { providerExecuted: true }
+        : {}),
+    };
+  });
+
+  step.content.push(...(toolResults as StepResult<ToolSet, any>['content']));
+  step.toolResults.push(
+    ...(toolResults as StepResult<ToolSet, any>['toolResults']),
+  );
+  step.staticToolResults.push(
+    ...(toolResults.filter(result => result.dynamic !== true) as StepResult<
+      ToolSet,
+      any
+    >['staticToolResults']),
+  );
+  step.dynamicToolResults.push(
+    ...(toolResults.filter(result => result.dynamic === true) as StepResult<
+      ToolSet,
+      any
+    >['dynamicToolResults']),
+  );
+}
+
 /**
  * Result of the WorkflowAgent.stream method.
  */
@@ -2400,6 +2444,8 @@ export class WorkflowAgent<
               output: r.rawOutput,
             }));
 
+            addToolResultsToStep(step, executedResults);
+
             if (resolvedResults.length > 0) {
               iterMessages.push({
                 role: 'tool',
@@ -2601,6 +2647,8 @@ export class WorkflowAgent<
             )?.input,
             output: r.rawOutput,
           }));
+
+          addToolResultsToStep(step, executedToolResults);
 
           result = await iterator.next(continuationToolResults);
         } else {
