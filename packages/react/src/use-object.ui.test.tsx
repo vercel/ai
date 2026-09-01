@@ -219,6 +219,26 @@ describe('text stream', () => {
       });
     });
 
+    describe('when the API returns an error with an empty body', () => {
+      it('should render the fallback error message', async () => {
+        server.urls['/api/use-object'].response = {
+          type: 'error',
+          status: 502,
+          body: '',
+        };
+
+        await userEvent.click(screen.getByTestId('submit-button'));
+
+        await waitFor(() => {
+          expect(onErrorResult?.message).toBe('Failed to fetch the response.');
+        });
+        expect(screen.getByTestId('error')).toHaveTextContent(
+          'Failed to fetch the response.',
+        );
+        expect(screen.getByTestId('loading')).toHaveTextContent('false');
+      });
+    });
+
     describe('onFinish', () => {
       it('should be called with an object when the stream finishes and the object matches the schema', async () => {
         server.urls['/api/use-object'].response = {
