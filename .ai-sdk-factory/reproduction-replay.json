@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20149,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20149-base64-oom.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20149-base64-oom.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE 20149 REPRODUCED: AI SDK base64 encoding OOMed for 14078689 bytes while native Buffer and the pre-encoded string workaround succeeded within a 128 MiB heap"
+  }
+}
