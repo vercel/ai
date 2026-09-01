@@ -95,6 +95,8 @@ function createMockDoStreamStepResult({
     raw: {
       text: '',
       reasoning: [],
+      files: [],
+      sources: [],
       responseMetadata: undefined,
       warnings: [],
       ...rawOverrides,
@@ -336,6 +338,79 @@ describe('streamTextIterator', () => {
           },
         ]
       `);
+    });
+
+    it('preserves generated files in the assistant message history', async () => {
+      vi.mocked(doStreamStep).mockResolvedValueOnce(
+        createMockDoStreamStepResult({
+          rawOverrides: {
+            text: 'Download the generated file.',
+            files: [
+              {
+                data: 'ZmlsZS1jb250ZW50',
+                mediaType: 'text/plain',
+              },
+            ],
+          },
+        }),
+      );
+
+      const iterator = streamTextIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {},
+        model: vi.fn() as any,
+      });
+
+      const result = await iterator.next();
+      const yielded = result.value as StreamTextIteratorYieldValue;
+
+      expect(yielded.step?.files).toHaveLength(1);
+      expect(yielded.step?.files[0]?.base64).toBe('ZmlsZS1jb250ZW50');
+      expect(yielded.messages.at(-1)).toEqual({
+        role: 'assistant',
+        content: [
+          { type: 'text', text: 'Download the generated file.' },
+          {
+            type: 'file',
+            data: { type: 'data', data: 'ZmlsZS1jb250ZW50' },
+            mediaType: 'text/plain',
+          },
+        ],
+      });
+    });
+
+    it('preserves sources in step results without adding them to message history', async () => {
+      const source = {
+        type: 'source' as const,
+        sourceType: 'url' as const,
+        id: 'source-1',
+        url: 'https://example.com/source',
+        title: 'Example source',
+      };
+      vi.mocked(doStreamStep).mockResolvedValueOnce(
+        createMockDoStreamStepResult({
+          rawOverrides: {
+            text: 'Answer with a source.',
+            sources: [source],
+          },
+        }),
+      );
+
+      const iterator = streamTextIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {},
+        model: vi.fn() as any,
+      });
+
+      const result = await iterator.next();
+      const yielded = result.value as StreamTextIteratorYieldValue;
+
+      expect(yielded.step?.content).toContainEqual(source);
+      expect(yielded.step?.sources).toEqual([source]);
+      expect(yielded.messages.at(-1)).toEqual({
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Answer with a source.' }],
+      });
     });
   });
 
