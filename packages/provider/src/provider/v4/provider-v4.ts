@@ -95,7 +95,10 @@ export interface ProviderV4 {
   skills?(): SkillsV4;
 
   /**
-   * Returns the provider-owned durable batch service.
+   * Returns the batch interface for processing batches with the provider.
+   * The returned interface can be passed to the batch functions.
+   *
+   * @returns {BatchV4} The batch interface for this provider.
    */
   experimental_batch?(): BatchV4;
 }

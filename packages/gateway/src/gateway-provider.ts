@@ -81,7 +81,7 @@ export interface GatewayProvider extends ProviderV4 {
    */
   languageModel(modelId: GatewayModelId): LanguageModelV4;
 
-  /** Returns the Gateway durable batch service. */
+  /** Returns a BatchV4 interface for processing batches with AI Gateway. */
   experimental_batch(): BatchV4<{ text: GatewayModelId }>;
 
   /**

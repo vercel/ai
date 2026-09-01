@@ -54,7 +54,7 @@ export interface XaiProvider extends ProviderV4 {
   responses: (modelId: XaiResponsesModelId) => LanguageModelV4;
 
   /**
-   * Returns the provider-owned durable batch service.
+   * Returns a BatchV4 interface for processing batches with xAI.
    */
   experimental_batch(): BatchV4<{ text: XaiResponsesModelId }>;
 

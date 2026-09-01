@@ -19,7 +19,7 @@ import type { ProviderMetadata } from '../types/provider-metadata';
 import type { LanguageModelUsage } from '../types/usage';
 
 /**
- * Provider or lower-level batch service used for durable batch processing.
+ * Provider or lower-level batch interface used for batch processing.
  */
 export type BatchProvider = ProviderV4 | BatchV4;
 

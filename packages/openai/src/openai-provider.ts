@@ -138,7 +138,7 @@ export interface OpenAIProvider extends ProviderV4 {
   skills(): SkillsV4;
 
   /**
-   * Returns the provider-owned durable batch service.
+   * Returns a BatchV4 interface for processing batches with OpenAI.
    */
   experimental_batch(): BatchV4<{ text: OpenAIResponsesModelId }>;
 

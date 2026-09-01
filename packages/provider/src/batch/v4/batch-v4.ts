@@ -130,11 +130,11 @@ export type TextBatchV4ItemResult = {
 export type BatchV4ItemResult = TextBatchV4ItemResult;
 
 /**
- * Specification for a provider-owned durable batch service.
+ * Specification for a batch processing interface that implements the batch interface version 4.
  */
 export type BatchV4<ModelIds extends BatchV4ModelIds = BatchV4ModelIds> = {
   /**
-   * The batch service must specify which interface version it implements.
+   * The batch interface must specify which batch interface version it implements.
    */
   readonly specificationVersion: 'v4';
 
@@ -144,7 +144,7 @@ export type BatchV4<ModelIds extends BatchV4ModelIds = BatchV4ModelIds> = {
   readonly provider: string;
 
   /**
-   * Supported URL patterns by media type for requests in this batch service.
+   * Supported URL patterns by media type for requests in this batch interface.
    */
   readonly supportedUrls:
     | PromiseLike<Record<string, RegExp[]>>
