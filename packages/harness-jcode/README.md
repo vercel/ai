@@ -6,22 +6,38 @@ Experimental Harness V1 adapter for [Jcode](https://github.com/1jehuang/jcode).
 import { createJcode } from '@ai-sdk/harness-jcode';
 
 const harness = createJcode({
-  // Temporary opt-in until the in-sandbox Jcode bridge is implemented.
-  experimentalHostExecution: true,
   model: 'openai-oauth:gpt-5.6-sol',
   reasoningEffort: 'high',
+  env: {
+    AI_GATEWAY_API_KEY: process.env.AI_GATEWAY_API_KEY!,
+  },
+});
+```
+
+By default, Jcode runs inside the supplied network sandbox. Install the recipe
+returned by `harness.getBootstrap()` in the sandbox before starting a session,
+and expose at least one TCP port. The adapter starts `dist`'s bootstrap bridge
+with a per-session work directory, bridge state directory, Jcode home, random
+authentication token, and exposed port. `env` is forwarded to that sandbox
+process for API-key or gateway authentication.
+
+For basic sandbox sessions without port discovery, configure both `port` and
+`portEndpoint`. `jcodeHome` can override the default durable per-session Jcode
+home.
+
+The adapter supports typed prompt, manual compaction, stop/resume, and destroy
+lifecycle operations. Host-defined tools, turn suspension, lossless turn
+continuation, live detach, JSON response formats, and mid-turn user messages are
+not supported yet and reject with `HarnessCapabilityUnsupportedError`.
+
+Host execution remains an explicit fallback for trusted local workspaces only:
+
+```ts
+const hostHarness = createJcode({
+  experimentalHostExecution: true,
   jcodeHome: '/durable/jcode-home',
 });
 ```
 
-The initial implementation launches Jcode through `@1jehuang/jcode-sdk` and
-streams text, reasoning, built-in tool lifecycle, usage, compaction, and raw
-events as typed Harness V1 stream parts. Host-defined tools and lossless
-cross-process turn continuation require future Jcode protocol additions.
-
-Host execution is deliberately opt-in because it does not enforce the supplied
-Harness sandbox boundary. Do not enable it for remote or untrusted workspaces.
-The production path is an in-sandbox bootstrap/bridge, which remains the next
-host-integration phase. The bridge runtime and deterministic bootstrap recipe
-are included in this package; wiring the host `SandboxChannel` startup path is
-still in progress.
+Host execution bypasses the supplied sandbox boundary. Do not enable it for
+remote or untrusted workspaces.

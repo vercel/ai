@@ -1,7 +1,7 @@
 import { z } from 'zod/v4';
 
 export const jcodeResumeDataSchema = z.object({
-  jcodeSessionId: z.string(),
+  jcodeSessionId: z.string().optional(),
   jcodeHome: z.string().optional(),
 });
 

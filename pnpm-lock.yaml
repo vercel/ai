@@ -3151,6 +3151,9 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+      ws:
+        specifier: 8.21.0
+        version: 8.21.0
     devDependencies:
       '@types/node':
         specifier: 22.19.19
@@ -3167,9 +3170,6 @@ importers:
       typescript:
         specifier: 5.8.3
         version: 5.8.3
-      ws:
-        specifier: 8.21.0
-        version: 8.21.0
       zod:
         specifier: 3.25.76
         version: 3.25.76

@@ -13,7 +13,12 @@ describe('createJcode', () => {
     });
   });
 
-  it('refuses to bypass the sandbox without explicit host opt-in', async () => {
+  it('exposes the deterministic sandbox bootstrap recipe', () => {
+    const harness = createJcode();
+    expect(harness.getBootstrap).toBeDefined();
+  });
+
+  it('requires bridge port settings for a basic sandbox', async () => {
     const harness = createJcode();
     await expect(
       harness.doStart({
@@ -21,6 +26,6 @@ describe('createJcode', () => {
         sandboxSession: {} as never,
         sessionWorkDir: '/workspace',
       }),
-    ).rejects.toThrow('experimentalHostExecution: true');
+    ).rejects.toThrow('explicit `port` and `portEndpoint`');
   });
 });
