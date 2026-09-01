@@ -4,13 +4,13 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: amazonBedrock('anthropic.claude-3-haiku-20240307-v1:0'),
+    model: amazonBedrock('us.anthropic.claude-haiku-4-5-20251001-v1:0'),
     prompt:
       'Invent a new fake holiday and describe its traditions. ' +
       'You are a comedian and should insult the audience as much as possible.',
 
     providerOptions: {
-      bedrock: {
+      amazonBedrock: {
         guardrailConfig: {
           guardrailIdentifier: '<your-guardrail-identifier>',
           guardrailVersion: '1',

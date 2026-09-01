@@ -261,23 +261,45 @@ const result = await generateText({
 
 ### Guardrails
 
-You can use the `bedrock` provider options to utilize [Amazon Bedrock Guardrails](https://aws.amazon.com/bedrock/guardrails/):
+You can use the `amazonBedrock` provider options to utilize [Amazon Bedrock Guardrails](https://aws.amazon.com/bedrock/guardrails/):
 
 ```ts
-import { type AmazonBedrockLanguageModelChatOptions } from '@ai-sdk/amazon-bedrock';
+import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
+import { generateText } from 'ai';
 
 const result = await generateText({
   model: amazonBedrock('anthropic.claude-3-sonnet-20240229-v1:0'),
   prompt: 'Write a story about space exploration.',
   providerOptions: {
-    bedrock: {
+    amazonBedrock: {
       guardrailConfig: {
         guardrailIdentifier: '1abcd2ef34gh',
         guardrailVersion: '1',
-        trace: 'enabled' as const,
+        trace: 'enabled',
+      },
+    },
+  },
+});
+```
+
+For streaming calls, you can also set the guardrail stream processing mode:
+
+```ts
+import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: amazonBedrock('anthropic.claude-3-sonnet-20240229-v1:0'),
+  prompt: 'Write a story about space exploration.',
+  providerOptions: {
+    amazonBedrock: {
+      guardrailConfig: {
+        guardrailIdentifier: '1abcd2ef34gh',
+        guardrailVersion: '1',
+        trace: 'enabled',
         streamProcessingMode: 'async',
       },
-    } satisfies AmazonBedrockLanguageModelChatOptions,
+    },
   },
 });
 ```
@@ -285,7 +307,7 @@ const result = await generateText({
 Tracing information will be returned in the provider metadata if you have tracing enabled.
 
 ```ts
-if (result.providerMetadata?.bedrock.trace) {
+if (result.providerMetadata?.amazonBedrock.trace) {
   // ...
 }
 ```
