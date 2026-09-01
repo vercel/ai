@@ -81,13 +81,9 @@ export interface ParsedToolCall {
   toolName: string;
   input: unknown;
   providerExecuted?: boolean;
-<<<<<<< HEAD
-  providerMetadata?: Record<string, unknown>;
+  providerMetadata?: SharedV4ProviderMetadata;
   title?: string;
   toolMetadata?: JSONObject;
-=======
-  providerMetadata?: SharedV4ProviderMetadata;
->>>>>>> origin/main
   dynamic?: boolean;
   invalid?: boolean;
   error?: unknown;
@@ -309,7 +305,6 @@ export async function doStreamStep(
 
     for await (const part of modelStream) {
       switch (part.type) {
-<<<<<<< HEAD
         case 'tool-input-start':
           ongoingToolCallToolNames.set(part.id, part.toolName);
           if (
@@ -330,7 +325,6 @@ export async function doStreamStep(
           }
           break;
         }
-=======
         case 'text-start':
           upsertTextContentPart({
             content,
@@ -339,7 +333,6 @@ export async function doStreamStep(
             providerMetadata: part.providerMetadata,
           });
           break;
->>>>>>> origin/main
         case 'text-delta':
           upsertTextContentPart({
             content,
@@ -377,7 +370,7 @@ export async function doStreamStep(
         case 'tool-call': {
           // parseToolCall adds dynamic/invalid/error at runtime
           const toolCallPart = part as typeof part & Partial<ParsedToolCall>;
-<<<<<<< HEAD
+          const toolCallIndex = toolCalls.length;
           const lifecycleToolName = ongoingToolCallToolNames.get(
             toolCallPart.toolCallId,
           );
@@ -391,24 +384,15 @@ export async function doStreamStep(
               toolCallPart.toolCallId,
             ]);
           }
-=======
-          const toolCallIndex = toolCalls.length;
->>>>>>> origin/main
           toolCalls.push({
             type: 'tool-call',
             toolCallId: toolCallPart.toolCallId,
             toolName: toolCallPart.toolName,
             input: toolCallPart.input,
             providerExecuted: toolCallPart.providerExecuted,
-<<<<<<< HEAD
-            providerMetadata: toolCallPart.providerMetadata as
-              | Record<string, unknown>
-              | undefined,
+            providerMetadata: toolCallPart.providerMetadata,
             title: toolCallPart.title,
             toolMetadata: toolCallPart.toolMetadata,
-=======
-            providerMetadata: toolCallPart.providerMetadata,
->>>>>>> origin/main
             dynamic: toolCallPart.dynamic,
             invalid: toolCallPart.invalid,
             error: toolCallPart.error,

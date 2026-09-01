@@ -437,34 +437,10 @@ export async function* streamTextIterator({
         conversationPrompt.push({
           role: 'assistant',
           content: [
-<<<<<<< HEAD
-            ...textContent,
-            ...toolCalls.map(toolCall => {
-              const sanitizedMetadata = sanitizeProviderMetadataForToolCall(
-                toolCall.providerMetadata,
-              );
-              return {
-                type: 'tool-call' as const,
-                toolCallId: toolCall.toolCallId,
-                toolName: toolCall.toolName,
-                input: toolCall.input,
-                ...(toolCall.providerExecuted != null
-                  ? { providerExecuted: toolCall.providerExecuted }
-                  : {}),
-                ...(sanitizedMetadata != null
-                  ? {
-                      providerOptions:
-                        sanitizedMetadata as SharedV4ProviderOptions,
-                    }
-                  : {}),
-              };
-            }),
-=======
             ...assistantContent,
             ...toolCalls
               .filter(toolCall => !includedToolCallIds.has(toolCall.toolCallId))
               .map(toAssistantToolCallContent),
->>>>>>> origin/main
           ],
         });
 
@@ -702,6 +678,13 @@ function buildStepResult(
                 toolCallId: tc.toolCallId,
                 toolName: tc.toolName,
                 input: tc.input,
+                ...(tc.providerExecuted != null
+                  ? { providerExecuted: tc.providerExecuted }
+                  : {}),
+                ...(tc.title != null ? { title: tc.title } : {}),
+                ...(tc.toolMetadata != null
+                  ? { toolMetadata: tc.toolMetadata }
+                  : {}),
                 ...(tc.dynamic ? { dynamic: true as const } : {}),
                 ...(tc.providerMetadata != null
                   ? { providerMetadata: tc.providerMetadata }
@@ -717,19 +700,6 @@ function buildStepResult(
   const sources: StepResult<ToolSet, any>['sources'] = [];
   let text = '';
 
-<<<<<<< HEAD
-  const validToolCalls = toolCalls
-    .filter(tc => !tc.invalid)
-    .map(tc => ({
-      type: 'tool-call' as const,
-      toolCallId: tc.toolCallId,
-      toolName: tc.toolName,
-      input: tc.input,
-      ...(tc.title != null ? { title: tc.title } : {}),
-      ...(tc.toolMetadata != null ? { toolMetadata: tc.toolMetadata } : {}),
-      ...(tc.dynamic ? { dynamic: true as const } : {}),
-    }));
-=======
   for (const part of rawContent) {
     switch (part.type) {
       case 'text':
@@ -771,7 +741,6 @@ function buildStepResult(
       }
     }
   }
->>>>>>> origin/main
 
   return {
     callId: 'workflow-agent',
@@ -883,6 +852,7 @@ function toAssistantToolCallContent(toolCall: {
   toolCallId: string;
   toolName: string;
   input: unknown;
+  providerExecuted?: boolean;
   providerMetadata?: unknown;
 }) {
   const sanitizedMetadata = sanitizeProviderMetadataForToolCall(
@@ -893,6 +863,9 @@ function toAssistantToolCallContent(toolCall: {
     toolCallId: toolCall.toolCallId,
     toolName: toolCall.toolName,
     input: toolCall.input,
+    ...(toolCall.providerExecuted != null
+      ? { providerExecuted: toolCall.providerExecuted }
+      : {}),
     ...(sanitizedMetadata != null
       ? {
           providerOptions: sanitizedMetadata as SharedV4ProviderOptions,
