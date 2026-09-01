@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 13199,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-13199-smooth-stream-tool-log-order.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-13199-smooth-stream-tool-log-order.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #13199: smoothStream emitted a tool log before the preceding assistant text finished."
+  }
+}
