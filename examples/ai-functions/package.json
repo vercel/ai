@@ -69,7 +69,7 @@
     "mathjs": "14.0.0",
     "sharp": "^0.33.5",
     "terminal-image": "^2.0.0",
-    "undici": "^7.21.0",
+    "undici": "^7.29.0",
     "valibot": "1.1.0",
     "zod": "3.25.76"
   },
