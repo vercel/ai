@@ -10,6 +10,7 @@ import {
 } from 'ai';
 import type { ModelCallStreamPart } from './do-stream-step.js';
 import {
+  Output,
   WorkflowAgent,
   type InferWorkflowAgentUIMessage,
   type WorkflowAgentOptions,
@@ -58,6 +59,37 @@ describe('WorkflowAgent types', () => {
         expectTypeOf(runtimeContext).toMatchObjectType<{ userId: string }>();
       },
     });
+  });
+
+  it('infers constructor output in stream results', async () => {
+    const agent = new WorkflowAgent({
+      model,
+      output: Output.object({
+        schema: z.object({ answer: z.string() }),
+      }),
+    });
+
+    const result = await agent.stream({ prompt: 'answer' });
+
+    expectTypeOf(result.output).toEqualTypeOf<{ answer: string }>();
+  });
+
+  it('infers stream output when overriding constructor output', async () => {
+    const agent = new WorkflowAgent({
+      model,
+      output: Output.object({
+        schema: z.object({ answer: z.string() }),
+      }),
+    });
+
+    const result = await agent.stream({
+      prompt: 'rate the answer',
+      output: Output.object({
+        schema: z.object({ score: z.number() }),
+      }),
+    });
+
+    expectTypeOf(result.output).toEqualTypeOf<{ score: number }>();
   });
 
   it('preserves tool and runtime context types in stop conditions', () => {
