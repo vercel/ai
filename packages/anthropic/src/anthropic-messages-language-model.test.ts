@@ -285,6 +285,9 @@ describe('AnthropicMessagesLanguageModel', () => {
             display: 'updates',
           },
         });
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+          'thinking-display-updates-2026-08-18',
+        );
       });
     });
 
@@ -6791,6 +6794,9 @@ describe('AnthropicMessagesLanguageModel', () => {
         thinking: { type: 'adaptive', display: 'updates' },
         stream: true,
       });
+      expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+        'thinking-display-updates-2026-08-18',
+      );
     });
 
     it('should stream redacted reasoning', async () => {

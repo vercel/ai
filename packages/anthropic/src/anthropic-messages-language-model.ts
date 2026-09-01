@@ -751,6 +751,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       betas.add('task-budgets-2026-03-13');
     }
 
+    if (thinkingDisplay === 'updates') {
+      betas.add('thinking-display-updates-2026-08-18');
+    }
+
     if (thinkingBlockBinding != null) {
       betas.add('thinking-binding-controls-2026-08-01');
     }

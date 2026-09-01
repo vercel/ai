@@ -13,6 +13,7 @@ run(async () => {
         role: 'assistant',
         content: 'We are excited to announce our new product.',
       },
+      { role: 'user', content: 'Include one concrete technical benefit.' },
       {
         role: 'system',
         content:
@@ -20,11 +21,9 @@ run(async () => {
         providerOptions: {
           anthropic: {
             clearAt: 'next_user_message',
-            effort: 'high',
           },
         },
       },
-      { role: 'user', content: 'Include one concrete technical benefit.' },
     ],
   });
 
