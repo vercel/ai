@@ -16,6 +16,7 @@ import {
   tool,
   type Experimental_SandboxSession as SandboxSession,
   type StepResult,
+  type StopCondition,
   type ToolSet,
 } from 'ai';
 import { signToolApproval } from 'ai/internal';
@@ -2382,6 +2383,38 @@ describe('WorkflowAgent', () => {
   });
 
   describe('constructor-level defaults for stream-only parameters', () => {
+    it('should stop after 20 steps when stopWhen is not specified', async () => {
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        tools: {},
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      vi.mocked(streamTextIterator).mockClear();
+      vi.mocked(streamTextIterator).mockReturnValue({
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      } as unknown as MockIterator);
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: new WritableStream({ write: vi.fn(), close: vi.fn() }),
+      });
+
+      const stopCondition = vi.mocked(streamTextIterator).mock.calls.at(-1)?.[0]
+        .stopConditions as StopCondition<ToolSet>;
+
+      expect(
+        await stopCondition({
+          steps: Array(19) as StepResult<ToolSet, any>[],
+        }),
+      ).toBe(false);
+      expect(
+        await stopCondition({
+          steps: Array(20) as StepResult<ToolSet, any>[],
+        }),
+      ).toBe(true);
+    });
+
     it('should use constructor stopWhen when not specified in stream()', async () => {
       const mockModel = createMockModel();
       const stopWhenFn = vi.fn(() => false);
