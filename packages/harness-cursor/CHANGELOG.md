@@ -1,5 +1,21 @@
 # @ai-sdk/harness-cursor
 
+## 1.0.11
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider-utils@5.0.35
+  - @ai-sdk/harness@1.0.98
+  - @ai-sdk/harness-acp@1.0.36
+
+## 1.0.10
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.97
+- @ai-sdk/harness-acp@1.0.35
+
 ## 1.0.9
 
 ### Patch Changes

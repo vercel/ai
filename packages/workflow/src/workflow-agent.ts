@@ -41,6 +41,7 @@ import {
   createRestrictedTelemetryDispatcher,
   collectToolApprovals,
   convertToLanguageModelPrompt,
+  mergeAbortSignals,
   mergeCallbacks,
   signToolApproval,
   standardizePrompt,
@@ -1596,6 +1597,20 @@ export class WorkflowAgent<
     } as Prompt);
     const download = effectiveDownloadFromPrepare;
     const sandbox = options.experimental_sandbox ?? this.experimentalSandbox;
+    const effectiveAbortSignal = mergeAbortSignals(
+      options.abortSignal ?? effectiveGenerationSettings.abortSignal,
+      options.timeout,
+    );
+    const timeoutAt =
+      options.timeout == null ? undefined : Date.now() + options.timeout;
+    const mergedOnToolExecutionStart = mergeCallbacks(
+      this.constructorOnToolExecutionStart,
+      options.onToolExecutionStart,
+    );
+    const mergedOnToolExecutionEnd = mergeCallbacks(
+      this.constructorOnToolExecutionEnd,
+      options.onToolExecutionEnd,
+    );
 
     // Process tool approval responses before starting the agent loop.
     // This mirrors how stream-text.ts handles tool-approval-response parts:
@@ -1741,110 +1756,25 @@ export class WorkflowAgent<
             continue;
           }
 
-          try {
-            const { execute } = tool;
-            const resolvedContext = await resolveToolContext({
-              toolName: approval.toolName,
-              tool,
-              toolsContext: effectiveToolsContext,
-            });
-            const toolCallEvent: ToolCall = {
-              type: 'tool-call',
+          const result = await executeToolWithCallbacks(
+            {
               toolCallId: approval.toolCallId,
               toolName: approval.toolName,
               input: approval.input,
-            };
-            const messages = prompt.messages as unknown as ModelMessage[];
-            await telemetryDispatcher.onToolExecutionStart?.({
-              toolCall: toolCallEvent,
-              stepNumber: 0,
-              messages,
-              toolContext: resolvedContext,
-            });
-            const startTime = Date.now();
-            const executeApprovedTool = () =>
-              execute(approval.input, {
-                toolCallId: approval.toolCallId,
-                messages: [],
-                context: resolvedContext,
-                experimental_sandbox: sandbox,
-              });
-            const toolResult =
-              telemetryDispatcher.executeTool != null
-                ? await telemetryDispatcher.executeTool({
-                    callId: 'workflow-agent',
-                    toolCallId: approval.toolCallId,
-                    execute: executeApprovedTool,
-                  })
-                : await executeApprovedTool();
-            await telemetryDispatcher.onToolExecutionEnd?.({
-              toolCall: toolCallEvent,
-              stepNumber: 0,
-              durationMs: Date.now() - startTime,
-              messages,
-              toolContext: resolvedContext,
-              success: true,
-              output: toolResult,
-            });
-            toolResultContent.push({
-              type: 'tool-result' as const,
-              toolCallId: approval.toolCallId,
-              toolName: approval.toolName,
-              output: await createLanguageModelToolResultOutput({
-                toolCallId: approval.toolCallId,
-                toolName: approval.toolName,
-                input: approval.input,
-                output: toolResult,
-                tool,
-                errorMode: 'none',
-                supportedUrls: {},
-                download,
-              }),
-            });
-            approvedRawResults.push({
-              toolCallId: approval.toolCallId,
-              toolName: approval.toolName,
-              input: approval.input,
-              output: toolResult,
-            });
-          } catch (error) {
-            const errorMessage = getErrorMessage(error);
-            await telemetryDispatcher.onToolExecutionEnd?.({
-              toolCall: {
-                type: 'tool-call',
-                toolCallId: approval.toolCallId,
-                toolName: approval.toolName,
-                input: approval.input,
-              },
-              stepNumber: 0,
-              durationMs: 0,
-              messages: prompt.messages as unknown as ModelMessage[],
-              toolContext: undefined,
-              success: false,
-              error,
-            });
-            toolResultContent.push({
-              type: 'tool-result' as const,
-              toolCallId: approval.toolCallId,
-              toolName: approval.toolName,
-              output: await createLanguageModelToolResultOutput({
-                toolCallId: approval.toolCallId,
-                toolName: approval.toolName,
-                input: approval.input,
-                output: errorMessage,
-                tool,
-                errorMode: 'text',
-                supportedUrls: {},
-                download,
-              }),
-            });
-            approvedRawResults.push({
-              toolCallId: approval.toolCallId,
-              toolName: approval.toolName,
-              input: approval.input,
-              output: errorMessage,
-            });
-          }
+            },
+            this.tools as ToolSet,
+            prompt.messages as unknown as LanguageModelV4Prompt,
+            effectiveToolsContext,
+            0,
+            sandbox,
+          );
+          toolResultContent.push(result.modelResult);
+          approvedRawResults.push({
+            toolCallId: approval.toolCallId,
+            toolName: approval.toolName,
+            input: approval.input,
+            output: result.rawOutput,
+          });
         }
       }
 
@@ -1932,11 +1862,6 @@ export class WorkflowAgent<
       download,
     });
 
-    const effectiveAbortSignal =
-      options.abortSignal ?? effectiveGenerationSettings.abortSignal;
-    const timeoutAt =
-      options.timeout == null ? undefined : Date.now() + options.timeout;
-
     // Merge generation settings: constructor defaults < prepareCall < stream options
     const mergedGenerationSettings: GenerationSettings = {
       ...effectiveGenerationSettings,
@@ -2004,22 +1929,13 @@ export class WorkflowAgent<
         | undefined,
       options.onStepStart ?? options.experimental_onStepStart,
     );
-    const mergedOnToolExecutionStart = mergeCallbacks(
-      this.constructorOnToolExecutionStart,
-      options.onToolExecutionStart,
-    );
-    const mergedOnToolExecutionEnd = mergeCallbacks(
-      this.constructorOnToolExecutionEnd,
-      options.onToolExecutionEnd,
-    );
-
     // Determine effective tool choice
     const effectiveToolChoice = effectiveToolChoiceFromPrepare;
 
     // Filter tools if activeTools is specified (stream-level overrides constructor default)
     const effectiveActiveTools = effectiveActiveToolsFromPrepare;
     const effectiveTools =
-      effectiveActiveTools && effectiveActiveTools.length > 0
+      effectiveActiveTools !== undefined
         ? (filterActiveTools({
             tools: this.tools,
             activeTools: effectiveActiveTools,
@@ -2076,14 +1992,14 @@ export class WorkflowAgent<
     });
 
     // Helper to wrap executeTool with onToolExecutionStart/onToolExecutionEnd callbacks
-    const executeToolWithCallbacks = async (
+    async function executeToolWithCallbacks(
       toolCall: { toolCallId: string; toolName: string; input: unknown },
       tools: ToolSet,
       messages: LanguageModelV4Prompt,
       perToolContexts: Record<string, Context | undefined>,
       currentStepNumber: number = 0,
       stepSandbox?: SandboxSession,
-    ): Promise<WorkflowToolExecutionResult> => {
+    ): Promise<WorkflowToolExecutionResult> {
       const toolCallEvent: ToolCall = {
         type: 'tool-call',
         toolCallId: toolCall.toolCallId,
@@ -2129,6 +2045,7 @@ export class WorkflowAgent<
             tools,
             messages,
             resolvedContext,
+            effectiveAbortSignal,
             download,
             stepSandbox,
           );
@@ -2223,7 +2140,7 @@ export class WorkflowAgent<
         });
       }
       return result;
-    };
+    }
 
     const recordProviderExecutedToolTelemetry = async (
       toolCall: { toolCallId: string; toolName: string; input: unknown },
@@ -2517,7 +2434,18 @@ export class WorkflowAgent<
             // so useChat can show the approval UI
             if (options.writable) {
               if (allToolResults.length > 0) {
-                await writeToolResults(options.writable, allToolResults);
+                await writeToolResults(
+                  options.writable,
+                  executedResults.map(r => ({
+                    toolCallId: r.modelResult.toolCallId,
+                    toolName: r.modelResult.toolName,
+                    input: toolCalls.find(
+                      tc => tc.toolCallId === r.modelResult.toolCallId,
+                    )?.input,
+                    output: r.rawOutput,
+                    isError: r.isError,
+                  })),
+                );
               }
 
               const approvalToolCalls = pausedToolCalls.filter((_, i) => {
@@ -2642,9 +2570,9 @@ export class WorkflowAgent<
             return [];
           });
 
-          // Write tool results and step boundaries to the stream so the
-          // UI can transition tool parts to output-available state and
-          // properly separate multi-step model calls in the message history.
+          // Write tool results and step boundaries to the stream so the UI can
+          // transition tool parts to the appropriate output state and properly
+          // separate multi-step model calls in the message history.
           if (options.writable) {
             await writeToolResults(
               options.writable,
@@ -2655,6 +2583,7 @@ export class WorkflowAgent<
                   tc => tc.toolCallId === r.modelResult.toolCallId,
                 )?.input,
                 output: r.rawOutput,
+                isError: r.isError,
               })),
               true,
             );
@@ -3019,6 +2948,7 @@ async function writeToolResults(
     toolName: string;
     input: unknown;
     output: unknown;
+    isError: boolean;
   }>,
   writeStepBoundary = false,
 ) {
@@ -3026,13 +2956,23 @@ async function writeToolResults(
   const writer = writable.getWriter();
   try {
     for (const r of results) {
-      await writer.write({
-        type: 'tool-result',
-        toolCallId: r.toolCallId,
-        toolName: r.toolName,
-        input: r.input,
-        output: r.output,
-      });
+      await writer.write(
+        r.isError
+          ? {
+              type: 'tool-error',
+              toolCallId: r.toolCallId,
+              toolName: r.toolName,
+              input: r.input,
+              error: r.output,
+            }
+          : {
+              type: 'tool-result',
+              toolCallId: r.toolCallId,
+              toolName: r.toolName,
+              input: r.input,
+              output: r.output,
+            },
+      );
     }
     if (writeStepBoundary) {
       // Emit step boundaries so the UI message history properly separates
@@ -3210,6 +3150,7 @@ async function executeTool(
   tools: ToolSet,
   messages: LanguageModelV4Prompt,
   context?: unknown,
+  abortSignal?: AbortSignal,
   download?: DownloadFunction,
   sandbox?: SandboxSession,
 ): Promise<WorkflowToolExecutionResult> {
@@ -3236,6 +3177,8 @@ async function executeTool(
       toolCallId: toolCall.toolCallId,
       // Pass the conversation messages to the tool so it has context about the conversation
       messages,
+      // Pass the effective agent signal so in-flight tool work can cooperatively cancel
+      abortSignal,
       // Pass per-tool context to the tool (resolved from `toolsContext`)
       context,
       experimental_sandbox: sandbox,
