@@ -4,7 +4,7 @@ import type { SharedV4ProviderReference } from '../../shared/v4/shared-v4-provid
 /**
  * Options for retrieving file metadata via the files interface.
  */
-export type FilesV4RetrieveFileCallOptions = {
+export type FilesV4GetFileMetadataCallOptions = {
   /**
    * The provider reference of the file, as returned by `uploadFile`.
    */
