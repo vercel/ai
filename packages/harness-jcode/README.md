@@ -22,4 +22,6 @@ cross-process turn continuation require future Jcode protocol additions.
 Host execution is deliberately opt-in because it does not enforce the supplied
 Harness sandbox boundary. Do not enable it for remote or untrusted workspaces.
 The production path is an in-sandbox bootstrap/bridge, which remains the next
-implementation phase.
+host-integration phase. The bridge runtime and deterministic bootstrap recipe
+are included in this package; wiring the host `SandboxChannel` startup path is
+still in progress.
