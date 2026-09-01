@@ -97,24 +97,15 @@ export interface StreamFinish {
   providerMetadata?: Record<string, unknown>;
 }
 
+/**
+ * Compact callback replay data. The start event establishes the tool name for
+ * a call, so delta events do not repeat it and available events reuse the
+ * parsed input already present in `toolCalls`.
+ */
 export type ToolInputLifecycleEvent =
-  | {
-      type: 'start';
-      toolName: string;
-      toolCallId: string;
-    }
-  | {
-      type: 'delta';
-      toolName: string;
-      toolCallId: string;
-      inputTextDelta: string;
-    }
-  | {
-      type: 'available';
-      toolName: string;
-      toolCallId: string;
-      input: unknown;
-    };
+  | ['start', toolCallId: string, toolName: string]
+  | ['delta', toolCallId: string, inputTextDelta: string]
+  | ['available', toolCallId: string];
 
 /**
  * Minimal aggregates needed to reconstruct a `StepResult` outside the step
@@ -141,7 +132,11 @@ export type DoStreamStepResult =
       finish: StreamFinish | undefined;
       raw: DoStreamStepRawResult;
       providerExecutedToolResults: Map<string, ProviderExecutedToolResult>;
-      toolInputLifecycleEvents: ToolInputLifecycleEvent[];
+      /**
+       * Optional for compatibility with model-step results persisted before
+       * tool input lifecycle callback replay was added.
+       */
+      toolInputLifecycleEvents?: ToolInputLifecycleEvent[];
       /** Present when the model stream emitted an error part. */
       terminalError?: unknown;
     };
@@ -291,12 +286,12 @@ export async function doStreamStep(
       switch (part.type) {
         case 'tool-input-start':
           ongoingToolCallToolNames.set(part.id, part.toolName);
-          if (serializedTools?.[part.toolName]?.hasOnInputStart) {
-            toolInputLifecycleEvents.push({
-              type: 'start',
-              toolName: part.toolName,
-              toolCallId: part.id,
-            });
+          if (
+            serializedTools?.[part.toolName]?.hasOnInputStart ||
+            serializedTools?.[part.toolName]?.hasOnInputDelta ||
+            serializedTools?.[part.toolName]?.hasOnInputAvailable
+          ) {
+            toolInputLifecycleEvents.push(['start', part.id, part.toolName]);
           }
           break;
         case 'tool-input-delta': {
@@ -305,12 +300,7 @@ export async function doStreamStep(
             toolName != null &&
             serializedTools?.[toolName]?.hasOnInputDelta
           ) {
-            toolInputLifecycleEvents.push({
-              type: 'delta',
-              toolName,
-              toolCallId: part.id,
-              inputTextDelta: part.delta,
-            });
+            toolInputLifecycleEvents.push(['delta', part.id, part.delta]);
           }
           break;
         }
@@ -331,12 +321,10 @@ export async function doStreamStep(
             lifecycleToolName != null &&
             serializedTools?.[lifecycleToolName]?.hasOnInputAvailable
           ) {
-            toolInputLifecycleEvents.push({
-              type: 'available',
-              toolName: lifecycleToolName,
-              toolCallId: toolCallPart.toolCallId,
-              input: toolCallPart.input,
-            });
+            toolInputLifecycleEvents.push([
+              'available',
+              toolCallPart.toolCallId,
+            ]);
           }
           toolCalls.push({
             type: 'tool-call',

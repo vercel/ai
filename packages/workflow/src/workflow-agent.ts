@@ -8,7 +8,6 @@ import type {
 import {
   getErrorMessage,
   isAbortError,
-  validateTypes,
   withUserAgentSuffix,
   type Context,
   type HasRequiredKey,
@@ -53,6 +52,7 @@ import type {
   ModelCallStreamPart,
   ModelStopCondition,
 } from './do-stream-step.js';
+import { resolveToolContext } from './resolve-tool-context.js';
 import { streamTextIterator } from './stream-text-iterator.js';
 
 // Re-export for consumers
@@ -2992,33 +2992,6 @@ async function writeApprovalToolResults(
   } finally {
     writer.releaseLock();
   }
-}
-
-/**
- * Resolve the per-tool context that gets passed into a tool's `execute`
- * (and `needsApproval`) function. When the tool declares a `contextSchema`,
- * the entry is validated against it.
- */
-async function resolveToolContext({
-  toolName,
-  tool,
-  toolsContext,
-}: {
-  toolName: string;
-  tool: ToolSet[string];
-  toolsContext: Record<string, Context | undefined> | undefined;
-}): Promise<unknown> {
-  const contextSchema = (tool as { contextSchema?: unknown }).contextSchema;
-  const entry = toolsContext?.[toolName];
-  if (contextSchema == null) {
-    return entry;
-  }
-
-  return await validateTypes({
-    value: entry,
-    schema: contextSchema as Parameters<typeof validateTypes>[0]['schema'],
-    context: { field: 'tool context', entityName: toolName },
-  });
 }
 
 function aggregateUsage(steps: StepResult<any, any>[]): LanguageModelUsage {

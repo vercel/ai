@@ -87,19 +87,9 @@ function createMockDoStreamStepResult({
 }: {
   toolCalls?: ParsedToolCall[];
   toolInputLifecycleEvents?: Array<
-    | { type: 'start'; toolName: string; toolCallId: string }
-    | {
-        type: 'delta';
-        toolName: string;
-        toolCallId: string;
-        inputTextDelta: string;
-      }
-    | {
-        type: 'available';
-        toolName: string;
-        toolCallId: string;
-        input: unknown;
-      }
+    | ['start', toolCallId: string, toolName: string]
+    | ['delta', toolCallId: string, inputTextDelta: string]
+    | ['available', toolCallId: string]
   >;
   finishReason?: 'stop' | 'tool-calls';
   finishRaw?: string;
@@ -128,10 +118,11 @@ describe('streamTextIterator', () => {
     vi.clearAllMocks();
   });
 
-  it('invokes original tool input callbacks from recorded step events', async () => {
+  it('replays tool input callbacks in order before advancing the agent step', async () => {
     const callbacks: string[] = [];
-    vi.mocked(doStreamStep).mockResolvedValue(
-      createMockDoStreamStepResult({
+    vi.mocked(doStreamStep).mockImplementation(async () => {
+      callbacks.push('model-step-finished');
+      return createMockDoStreamStepResult({
         finishReason: 'tool-calls',
         toolCalls: [
           {
@@ -142,22 +133,12 @@ describe('streamTextIterator', () => {
           },
         ],
         toolInputLifecycleEvents: [
-          { type: 'start', toolName: 'search', toolCallId: 'call-1' },
-          {
-            type: 'delta',
-            toolName: 'search',
-            toolCallId: 'call-1',
-            inputTextDelta: '{"query":"docs"}',
-          },
-          {
-            type: 'available',
-            toolName: 'search',
-            toolCallId: 'call-1',
-            input: { query: 'docs' },
-          },
+          ['start', 'call-1', 'search'],
+          ['delta', 'call-1', '{"query":"docs"}'],
+          ['available', 'call-1'],
         ],
-      }),
-    );
+      });
+    });
 
     const iterator = streamTextIterator({
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'search' }] }],
@@ -185,10 +166,101 @@ describe('streamTextIterator', () => {
     await iterator.next();
 
     expect(callbacks).toEqual([
+      'model-step-finished',
       'start:request-1',
       'delta:{"query":"docs"}',
       'available:{"query":"docs"}',
     ]);
+  });
+
+  it('validates and normalizes tool context before input callbacks', async () => {
+    const callback = vi.fn();
+    vi.mocked(doStreamStep).mockResolvedValue(
+      createMockDoStreamStepResult({
+        finishReason: 'tool-calls',
+        toolCalls: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'search',
+            input: { query: 'docs' },
+          },
+        ],
+        toolInputLifecycleEvents: [['start', 'call-1', 'search']],
+      }),
+    );
+
+    const iterator = streamTextIterator({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'search' }] }],
+      tools: {
+        search: tool({
+          inputSchema: z.object({ query: z.string() }),
+          contextSchema: z.object({
+            requestId: z.string().default('generated-request'),
+          }),
+          onInputStart: callback,
+        }),
+      },
+      toolsContext: { search: {} },
+      model: vi.fn() as any,
+    });
+
+    await iterator.next();
+
+    expect(callback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        context: { requestId: 'generated-request' },
+      }),
+    );
+  });
+
+  it('rejects invalid tool context before input callbacks run', async () => {
+    const callback = vi.fn();
+    vi.mocked(doStreamStep).mockResolvedValue(
+      createMockDoStreamStepResult({
+        finishReason: 'tool-calls',
+        toolCalls: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'search',
+            input: { query: 'docs' },
+          },
+        ],
+        toolInputLifecycleEvents: [['start', 'call-1', 'search']],
+      }),
+    );
+
+    const iterator = streamTextIterator({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'search' }] }],
+      tools: {
+        search: tool({
+          inputSchema: z.object({ query: z.string() }),
+          contextSchema: z.object({ requestId: z.string() }),
+          onInputStart: callback,
+        }),
+      },
+      toolsContext: { search: { requestId: 123 } as any },
+      model: vi.fn() as any,
+    });
+
+    await expect(iterator.next()).rejects.toThrow();
+    expect(callback).not.toHaveBeenCalled();
+  });
+
+  it('accepts persisted model-step results without callback replay data', async () => {
+    const persistedResult = createMockDoStreamStepResult();
+    delete (persistedResult as { toolInputLifecycleEvents?: unknown })
+      .toolInputLifecycleEvents;
+    vi.mocked(doStreamStep).mockResolvedValue(persistedResult);
+
+    const iterator = streamTextIterator({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+      tools: {},
+      model: vi.fn() as any,
+    });
+
+    await expect(iterator.next()).resolves.toMatchObject({ done: false });
   });
 
   describe('generation settings', () => {

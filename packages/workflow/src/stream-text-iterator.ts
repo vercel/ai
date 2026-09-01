@@ -29,6 +29,7 @@ import {
   type StreamFinish,
   type ToolInputLifecycleEvent,
 } from './do-stream-step.js';
+import { resolveToolContext } from './resolve-tool-context.js';
 import { serializeToolSet } from './serializable-schema.js';
 import type {
   GenerationSettings,
@@ -372,7 +373,8 @@ export async function* streamTextIterator({
         toolInputLifecycleEvents,
       } = streamStepResult;
       await invokeToolInputLifecycleCallbacks({
-        events: toolInputLifecycleEvents,
+        events: toolInputLifecycleEvents ?? [],
+        toolCalls,
         tools: effectiveTools,
         messages: stepInputMessages,
         abortSignal: currentGenerationSettings.abortSignal,
@@ -555,6 +557,7 @@ export async function* streamTextIterator({
 
 async function invokeToolInputLifecycleCallbacks({
   events,
+  toolCalls,
   tools,
   messages,
   abortSignal,
@@ -562,42 +565,75 @@ async function invokeToolInputLifecycleCallbacks({
   experimental_sandbox,
 }: {
   events: ToolInputLifecycleEvent[];
+  toolCalls: ParsedToolCall[];
   tools: ToolSet;
   messages: ModelMessage[];
   abortSignal?: AbortSignal;
   toolsContext: Record<string, Context | undefined>;
   experimental_sandbox?: SandboxSession;
 }) {
+  const toolNamesByCallId = new Map<string, string>();
+  const toolCallsById = new Map(
+    toolCalls.map(toolCall => [toolCall.toolCallId, toolCall]),
+  );
+  const resolvedContexts = new Map<string, Promise<unknown>>();
+
   for (const event of events) {
-    const tool = tools[event.toolName];
+    const [type, toolCallId, value] = event;
+    if (type === 'start') {
+      toolNamesByCallId.set(toolCallId, value);
+    }
+
+    const toolName =
+      type === 'start' ? value : toolNamesByCallId.get(toolCallId);
+    if (toolName == null) {
+      continue;
+    }
+
+    const tool = tools[toolName];
     if (tool == null) {
       continue;
     }
 
+    let resolvedContext = resolvedContexts.get(toolName);
+    if (resolvedContext == null) {
+      resolvedContext = resolveToolContext({
+        toolName,
+        tool,
+        toolsContext,
+      });
+      resolvedContexts.set(toolName, resolvedContext);
+    }
+
     const options = {
-      toolCallId: event.toolCallId,
+      toolCallId,
       messages,
       abortSignal,
-      context: toolsContext[event.toolName],
+      context: await resolvedContext,
       experimental_sandbox,
     };
 
-    switch (event.type) {
+    switch (type) {
       case 'start':
         await tool.onInputStart?.(options);
         break;
       case 'delta':
         await tool.onInputDelta?.({
           ...options,
-          inputTextDelta: event.inputTextDelta,
+          inputTextDelta: value,
         });
         break;
-      case 'available':
+      case 'available': {
+        const toolCall = toolCallsById.get(toolCallId);
+        if (toolCall == null) {
+          break;
+        }
         await tool.onInputAvailable?.({
           ...options,
-          input: event.input,
+          input: toolCall.input,
         });
         break;
+      }
     }
   }
 }

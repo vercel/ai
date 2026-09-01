@@ -357,20 +357,69 @@ describe('doStreamStep', () => {
 
     expect(result).toMatchObject({
       toolInputLifecycleEvents: [
-        { type: 'start', toolName: 'search', toolCallId: 'call-1' },
-        {
-          type: 'delta',
-          toolName: 'search',
-          toolCallId: 'call-1',
-          inputTextDelta: '{"query":"docs"}',
-        },
-        {
-          type: 'available',
-          toolName: 'search',
-          toolCallId: 'call-1',
-          input: { query: 'docs' },
-        },
+        ['start', 'call-1', 'search'],
+        ['delta', 'call-1', '{"query":"docs"}'],
+        ['available', 'call-1'],
       ],
     });
+  });
+
+  it('does not retain input deltas for tools without delta callbacks', async () => {
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start' as const, warnings: [] },
+          {
+            type: 'tool-input-start' as const,
+            id: 'call-1',
+            toolName: 'search',
+          },
+          ...Array.from({ length: 1000 }, () => ({
+            type: 'tool-input-delta' as const,
+            id: 'call-1',
+            delta: 'x',
+          })),
+          { type: 'tool-input-end' as const, id: 'call-1' },
+          {
+            type: 'tool-call' as const,
+            toolCallId: 'call-1',
+            toolName: 'search',
+            input: '{"query":"docs"}',
+          },
+          {
+            type: 'finish' as const,
+            finishReason: {
+              unified: 'tool-calls' as const,
+              raw: 'tool-calls',
+            },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: 1,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 1,
+                text: 1,
+                reasoning: undefined,
+              },
+            },
+          },
+        ]),
+      }),
+    });
+
+    const result = await doStreamStep(prompt, model, undefined, {
+      search: {
+        inputSchema: {
+          type: 'object',
+          properties: { query: { type: 'string' } },
+          required: ['query'],
+        },
+      },
+    });
+
+    expect(result).toMatchObject({ toolInputLifecycleEvents: [] });
   });
 });
