@@ -1,0 +1,9 @@
+{
+  "error": {
+    "message": "Model 'invalid-provider/invalid-model' not found",
+    "type": "model_not_found",
+    "param": {
+      "modelId": "invalid-provider/invalid-model"
+    }
+  }
+}
