@@ -418,13 +418,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         toolNameMapping,
       });
 
+    const thinking = anthropicOptions?.thinking;
+    const thinkingType =
+      thinking != null && 'type' in thinking ? thinking.type : undefined;
+
     // Newer models only allow disabling thinking at effort levels up to and
     // including `high`; at `xhigh` and `max` the API returns a 400. Lower
     // the effort to `high` to preserve the explicit request to run without
     // thinking.
     if (
       rejectsThinkingDisabledAboveHighEffort &&
-      anthropicOptions?.thinking?.type === 'disabled' &&
+      thinkingType === 'disabled' &&
       (anthropicOptions.effort === 'xhigh' || anthropicOptions.effort === 'max')
     ) {
       warnings.push({
@@ -437,7 +441,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       anthropicOptions.effort = 'high';
     }
 
-    const thinkingType = anthropicOptions?.thinking?.type;
     const isThinking =
       thinkingType === 'enabled' || thinkingType === 'adaptive';
     // `disabled` must still be forwarded to the API: some models (e.g. Sonnet 5)
@@ -445,13 +448,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     // consume the max_tokens budget.
     const sendThinking = isThinking || thinkingType === 'disabled';
     let thinkingBudget =
-      thinkingType === 'enabled'
-        ? anthropicOptions?.thinking?.budgetTokens
+      thinkingType === 'enabled' &&
+      thinking != null &&
+      'budgetTokens' in thinking
+        ? thinking.budgetTokens
         : undefined;
     const thinkingDisplay =
-      thinkingType === 'adaptive'
-        ? anthropicOptions?.thinking?.display
+      thinkingType === 'adaptive' && thinking != null && 'display' in thinking
+        ? thinking.display
         : undefined;
+    const thinkingBlockBinding =
+      thinking != null && 'blockBinding' in thinking
+        ? thinking.blockBinding
+        : undefined;
+    const sendThinkingConfig = sendThinking || thinkingBlockBinding != null;
 
     const maxTokens = maxOutputTokens ?? maxOutputTokensForModel;
 
@@ -467,11 +477,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       stop_sequences: stopSequences,
 
       // provider specific settings:
-      ...(sendThinking && {
+      ...(sendThinkingConfig && {
         thinking: {
-          type: thinkingType,
+          ...(thinkingType != null && { type: thinkingType }),
           ...(thinkingBudget != null && { budget_tokens: thinkingBudget }),
           ...(thinkingDisplay != null && { display: thinkingDisplay }),
+          ...(thinkingBlockBinding != null && {
+            block_binding: {
+              prefix_mismatch_behavior:
+                thinkingBlockBinding.prefixMismatchBehavior,
+            },
+          }),
         },
       }),
       ...((anthropicOptions?.effort ||
@@ -733,6 +749,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
     if (anthropicOptions?.taskBudget) {
       betas.add('task-budgets-2026-03-13');
+    }
+
+    if (thinkingDisplay === 'updates') {
+      betas.add('thinking-display-updates-2026-08-18');
+    }
+
+    if (thinkingBlockBinding != null) {
+      betas.add('thinking-binding-controls-2026-08-01');
     }
 
     if (anthropicOptions?.speed === 'fast') {

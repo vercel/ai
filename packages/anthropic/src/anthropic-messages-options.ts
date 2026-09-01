@@ -21,6 +21,7 @@ export type AnthropicMessagesModelId =
   | 'claude-opus-4-8'
   | 'claude-opus-5'
   | 'claude-fable-5'
+  | 'claude-fable-5-1'
   | 'claude-sonnet-5'
   | (string & {});
 
@@ -65,6 +66,23 @@ export type AnthropicFilePartProviderOptions = z.infer<
  */
 export const anthropicSystemMessageProviderOptions = z.object({
   /**
+   * Clears this mid-conversation system message after the current turn.
+   *
+   * Requires the `mid-conversation-system-clear-at-2026-08-21` beta,
+   * which is added automatically.
+   */
+  clearAt: z.literal('next_user_message').optional(),
+
+  /**
+   * Overrides the effort level for the turn following this
+   * mid-conversation system message.
+   *
+   * Requires the `mid-conversation-effort-2026-08-01` beta,
+   * which is added automatically.
+   */
+  effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
+
+  /**
    * Mid-conversation tool changes. Adds or removes tools from the
    * conversation's tool set between turns without invalidating the prompt
    * cache.
@@ -98,6 +116,10 @@ export type AnthropicSystemMessageProviderOptions = z.infer<
   typeof anthropicSystemMessageProviderOptions
 >;
 
+const anthropicThinkingBlockBinding = z.object({
+  prefixMismatchBehavior: z.literal('drop_block'),
+});
+
 export const anthropicLanguageModelOptions = z.object({
   /**
    * Whether to send reasoning to the model.
@@ -122,24 +144,41 @@ export const anthropicLanguageModelOptions = z.object({
    * Requires a minimum budget of 1,024 tokens and counts towards the `max_tokens` limit.
    */
   thinking: z
-    .discriminatedUnion('type', [
+    .union([
+      z.discriminatedUnion('type', [
+        z.object({
+          /** for Sonnet 4.6, Opus 4.6, and newer models */
+          type: z.literal('adaptive'),
+          /**
+           * Controls whether thinking content is included in the response.
+           * - `"omitted"`: Thinking blocks are present but text is empty (default for Opus 4.7+).
+           * - `"summarized"`: Thinking content is returned. Required to see reasoning output.
+           * - `"updates"`: Thinking updates are returned between tool calls.
+           */
+          display: z.enum(['omitted', 'summarized', 'updates']).optional(),
+          /**
+           * Controls how thinking blocks are bound to an assistant prefix.
+           *
+           * Requires the `thinking-binding-controls-2026-08-01` beta,
+           * which is added automatically.
+           */
+          blockBinding: anthropicThinkingBlockBinding.optional(),
+        }),
+        z.object({
+          /** for models before Opus 4.6, except Sonnet 4.6 still supports it */
+          type: z.literal('enabled'),
+          budgetTokens: z.number().optional(),
+        }),
+        z.object({
+          type: z.literal('disabled'),
+        }),
+      ]),
+      /**
+       * Configures prefix mismatch recovery without changing the model's
+       * default thinking mode.
+       */
       z.object({
-        /** for Sonnet 4.6, Opus 4.6, and newer models */
-        type: z.literal('adaptive'),
-        /**
-         * Controls whether thinking content is included in the response.
-         * - `"omitted"`: Thinking blocks are present but text is empty (default for Opus 4.7+).
-         * - `"summarized"`: Thinking content is returned. Required to see reasoning output.
-         */
-        display: z.enum(['omitted', 'summarized']).optional(),
-      }),
-      z.object({
-        /** for models before Opus 4.6, except Sonnet 4.6 still supports it */
-        type: z.literal('enabled'),
-        budgetTokens: z.number().optional(),
-      }),
-      z.object({
-        type: z.literal('disabled'),
+        blockBinding: anthropicThinkingBlockBinding,
       }),
     ])
     .optional(),

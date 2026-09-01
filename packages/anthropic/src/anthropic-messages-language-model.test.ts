@@ -238,6 +238,57 @@ describe('AnthropicMessagesLanguageModel', () => {
           reasoning: 139,
         });
       });
+
+      it('should serialize thinking binding controls and add the beta header', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-fable-5-1').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              thinking: {
+                blockBinding: {
+                  prefixMismatchBehavior: 'drop_block',
+                },
+              },
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          thinking: {
+            block_binding: {
+              prefix_mismatch_behavior: 'drop_block',
+            },
+          },
+        });
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
+          'thinking-binding-controls-2026-08-01',
+        );
+      });
+
+      it('should serialize the updates thinking display mode', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-fable-5-1').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              thinking: { type: 'adaptive', display: 'updates' },
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          thinking: {
+            type: 'adaptive',
+            display: 'updates',
+          },
+        });
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+          'thinking-display-updates-2026-08-18',
+        );
+      });
     });
 
     describe('reasoning (thinking disabled)', () => {
@@ -684,6 +735,38 @@ describe('AnthropicMessagesLanguageModel', () => {
           }
         `);
       });
+    });
+
+    it('should use native structured output instead of forced tool use for Fable 5.1', async () => {
+      prepareJsonFixtureResponse('anthropic-json-output-format.1');
+
+      await provider('claude-fable-5-1').doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { name: { type: 'string' } },
+            required: ['name'],
+            additionalProperties: false,
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.output_config).toEqual({
+        format: {
+          type: 'json_schema',
+          schema: {
+            type: 'object',
+            properties: { name: { type: 'string' } },
+            required: ['name'],
+            additionalProperties: false,
+          },
+        },
+      });
+      expect(requestBody.tool_choice).toBeUndefined();
+      expect(requestBody.tools).toBeUndefined();
     });
 
     it('should sanitize unsupported JSON schema keywords for output format', async () => {
@@ -6659,6 +6742,63 @@ describe('AnthropicMessagesLanguageModel', () => {
       `);
     });
 
+    it('should stream thinking updates between tool calls', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_updates","type":"message","role":"assistant","content":[],"model":"claude-fable-5-1","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"thinking","thinking":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"Before the tool"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"tool_1","name":"lookup","input":{}}}\n\n`,
+          `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{}"}}\n\n`,
+          `data: {"type":"content_block_stop","index":1}\n\n`,
+          `data: {"type":"content_block_start","index":2,"content_block":{"type":"thinking","thinking":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":2,"delta":{"type":"thinking_delta","thinking":"After the tool"}}\n\n`,
+          `data: {"type":"content_block_delta","index":2,"delta":{"type":"signature_delta","signature":"updates-signature"}}\n\n`,
+          `data: {"type":"content_block_stop","index":2}\n\n`,
+          `data: {"type":"content_block_start","index":3,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":"Done"}}\n\n`,
+          `data: {"type":"content_block_stop","index":3}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":20}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const { stream } = await provider('claude-fable-5-1').doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            thinking: { type: 'adaptive', display: 'updates' },
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+      expect(
+        result
+          .filter(part => part.type === 'reasoning-delta')
+          .map(part => ({ id: part.id, delta: part.delta })),
+      ).toEqual([
+        { id: '0', delta: 'Before the tool' },
+        { id: '2', delta: 'After the tool' },
+        { id: '2', delta: '' },
+      ]);
+      expect(result).toContainEqual({
+        type: 'tool-call',
+        toolCallId: 'tool_1',
+        toolName: 'lookup',
+        input: '{}',
+      });
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        thinking: { type: 'adaptive', display: 'updates' },
+        stream: true,
+      });
+      expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+        'thinking-display-updates-2026-08-18',
+      );
+    });
+
     it('should stream redacted reasoning', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
@@ -10400,6 +10540,53 @@ describe('mid-conversation tool changes', () => {
     });
     expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
       'mid-conversation-tool-changes-2026-07-01',
+    );
+  });
+});
+
+describe('mid-conversation system options', () => {
+  const server = createTestServer({
+    'https://api.anthropic.com/v1/messages': {},
+  });
+
+  const provider = createAnthropic({ apiKey: 'test-api-key' });
+
+  it('should send clear_at, per-turn effort, and both beta headers', async () => {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync('src/__fixtures__/anthropic-text.json', 'utf8'),
+      ),
+    };
+
+    await provider('claude-fable-5-1').doGenerate({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Draft a title.' }] },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            anthropic: {
+              clearAt: 'next_user_message',
+              effort: 'high',
+            },
+          },
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.messages).toContainEqual({
+      role: 'system',
+      content: [],
+      clear_at: 'next_user_message',
+      output_config: { effort: 'high' },
+    });
+    expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+      'mid-conversation-system-clear-at-2026-08-21',
+    );
+    expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+      'mid-conversation-effort-2026-08-01',
     );
   });
 });
