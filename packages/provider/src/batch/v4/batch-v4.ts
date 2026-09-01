@@ -3,6 +3,32 @@ import type {
   SharedV4ProviderOptions,
   SharedV4Warning,
 } from '../../shared';
+import type { LanguageModelV4GenerateResult } from '../../language-model/v4/language-model-v4-generate-result';
+import type { LanguageModelV4BatchRequest } from '../../language-model/v4/language-model-v4-batch';
+
+/**
+ * Model IDs accepted by each batch modality.
+ *
+ * Additional modality-specific model ID types can be added to this mapping.
+ */
+export type BatchV4ModelIds = {
+  readonly text: string;
+};
+
+type BatchV4CallOptions = {
+  readonly providerOptions?: SharedV4ProviderOptions;
+  readonly abortSignal?: AbortSignal;
+  readonly headers?: Record<string, string | undefined>;
+};
+
+type BatchV4StartCallOptions = BatchV4CallOptions & {
+  /**
+   * URL the provider notifies when the batch reaches a terminal state.
+   * Providers that do not support completion webhooks should return an
+   * unsupported warning.
+   */
+  readonly webhookUrl?: string;
+};
 
 /**
  * Serializable error information for a batch or batch item.
@@ -33,21 +59,22 @@ export type BatchV4Status = {
 };
 
 /**
- * Options for starting a batch.
+ * Options for starting a text batch.
  */
-export type BatchV4StartOptions<REQUEST> = {
-  readonly requests: ReadonlyArray<REQUEST>;
-  readonly providerOptions?: SharedV4ProviderOptions;
-  readonly abortSignal?: AbortSignal;
-  readonly headers?: Record<string, string | undefined>;
+export type TextBatchV4StartOptions<ModelId extends string = string> =
+  BatchV4StartCallOptions & {
+    readonly type: 'text';
+    readonly requests: ReadonlyArray<LanguageModelV4BatchRequest<ModelId>>;
+  };
 
-  /**
-   * URL the provider notifies when the batch reaches a terminal state.
-   * Providers that do not support completion webhooks should return an
-   * unsupported warning.
-   */
-  readonly webhookUrl?: string;
-};
+/**
+ * Options for starting a batch, discriminated by modality.
+ *
+ * Additional modality-specific options can be added to this union.
+ */
+export type BatchV4StartOptions<
+  ModelIds extends BatchV4ModelIds = BatchV4ModelIds,
+> = TextBatchV4StartOptions<ModelIds['text']>;
 
 /**
  * Result of starting a batch.
@@ -64,16 +91,11 @@ export type BatchV4StartResult = BatchV4Status & {
  * Options for a batch status or results operation.
  */
 export type BatchV4OperationOptions = {
+  readonly type: BatchV4StartOptions['type'];
   readonly batchId: string;
-  readonly providerOptions?: SharedV4ProviderOptions;
-  readonly abortSignal?: AbortSignal;
-  readonly headers?: Record<string, string | undefined>;
-};
+} & BatchV4CallOptions;
 
-/**
- * A complete terminal result for one request in a batch.
- */
-export type BatchV4ItemResult<RESULT> =
+type BatchV4ItemResultBase<RESULT> =
   | {
       readonly id: string;
       readonly status: 'succeeded';
@@ -93,12 +115,43 @@ export type BatchV4ItemResult<RESULT> =
     };
 
 /**
- * Experimental structural capability for models that support durable batch
- * processing.
+ * A complete terminal result for one request in a text batch.
  */
-export type BatchModelV4<REQUEST, RESULT> = {
+export type TextBatchV4ItemResult = {
+  readonly type: 'text';
+} & BatchV4ItemResultBase<LanguageModelV4GenerateResult>;
+
+/**
+ * A complete terminal result for one request in a batch, discriminated by
+ * modality.
+ *
+ * Additional modality-specific item results can be added to this union.
+ */
+export type BatchV4ItemResult = TextBatchV4ItemResult;
+
+/**
+ * Specification for a provider-owned durable batch service.
+ */
+export type BatchV4<ModelIds extends BatchV4ModelIds = BatchV4ModelIds> = {
+  /**
+   * The batch service must specify which interface version it implements.
+   */
+  readonly specificationVersion: 'v4';
+
+  /**
+   * Provider ID.
+   */
+  readonly provider: string;
+
+  /**
+   * Supported URL patterns by media type for requests in this batch service.
+   */
+  readonly supportedUrls:
+    | PromiseLike<Record<string, RegExp[]>>
+    | Record<string, RegExp[]>;
+
   experimental_doStartBatch(
-    options: BatchV4StartOptions<REQUEST>,
+    options: BatchV4StartOptions<ModelIds>,
   ): PromiseLike<BatchV4StartResult>;
 
   experimental_doGetBatchStatus(
@@ -107,5 +160,5 @@ export type BatchModelV4<REQUEST, RESULT> = {
 
   experimental_doGetBatchResults(
     options: BatchV4OperationOptions,
-  ): PromiseLike<ReadableStream<BatchV4ItemResult<RESULT>>>;
+  ): PromiseLike<ReadableStream<BatchV4ItemResult>>;
 };

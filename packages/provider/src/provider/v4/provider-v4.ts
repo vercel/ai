@@ -1,3 +1,4 @@
+import type { BatchV4 } from '../../batch/v4/batch-v4';
 import type { EmbeddingModelV4 } from '../../embedding-model/v4/embedding-model-v4';
 import type { FilesV4 } from '../../files/v4/files-v4';
 import type { ImageModelV4 } from '../../image-model/v4/image-model-v4';
@@ -92,4 +93,9 @@ export interface ProviderV4 {
    * The returned interface can be passed to the `uploadSkill` function.
    */
   skills?(): SkillsV4;
+
+  /**
+   * Returns the provider-owned durable batch service.
+   */
+  batch?(): BatchV4;
 }

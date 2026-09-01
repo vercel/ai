@@ -1,8 +1,9 @@
 import type {
+  Experimental_BatchV4 as BatchV4,
   Experimental_BatchV4Error as BatchV4Error,
   Experimental_BatchV4StartResult as BatchV4StartResult,
   Experimental_BatchV4Status as BatchV4Status,
-  Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
+  ProviderV4,
 } from '@ai-sdk/provider';
 import type {
   InferToolSetContext,
@@ -13,21 +14,21 @@ import type { ContentPart } from '../generate-text/content-part';
 import type { ToolOrder } from '../generate-text/tool-order';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import type { Prompt } from '../prompt/prompt';
-import type {
-  FinishReason,
-  GlobalProviderModelId,
-  ToolChoice,
-} from '../types/language-model';
+import type { FinishReason, ToolChoice } from '../types/language-model';
 import type { ProviderMetadata } from '../types/provider-metadata';
 import type { LanguageModelUsage } from '../types/usage';
 
 /**
- * Language model input that can be used for durable batch processing.
- *
- * String model IDs are resolved through the global provider and checked for
- * batch support at runtime.
+ * Provider or lower-level batch service used for durable batch processing.
  */
-export type BatchLanguageModel = GlobalProviderModelId | BatchLanguageModelV4;
+export type BatchProvider = ProviderV4 | BatchV4;
+
+type InferBatchModelId<PROVIDER extends BatchProvider> =
+  PROVIDER extends BatchV4<infer MODEL_IDS>
+    ? MODEL_IDS['text']
+    : PROVIDER extends { batch(): BatchV4<infer MODEL_IDS> }
+      ? MODEL_IDS['text']
+      : string;
 
 /**
  * The persisted reference for a text batch.
@@ -37,7 +38,6 @@ export type TextBatchReference = {
   readonly type: 'text';
   readonly id: string;
   readonly provider: string;
-  readonly modelId: string;
 };
 
 /**
@@ -65,9 +65,10 @@ export type TextBatch = TextBatchReference & BatchStatus;
 /**
  * One text generation request within a batch.
  */
-export type TextBatchRequest = Prompt &
+export type TextBatchRequest<ModelId extends string = string> = Prompt &
   LanguageModelCallOptions & {
     id: string;
+    model?: ModelId;
     providerOptions?: ProviderOptions;
   };
 
@@ -80,9 +81,13 @@ type BatchRequestOptions = {
 /**
  * Options for starting a text batch.
  */
-export type StartTextBatchOptions<TOOLS extends ToolSet = ToolSet> = {
-  model: BatchLanguageModel;
-  requests: ReadonlyArray<TextBatchRequest>;
+export type StartTextBatchOptions<
+  TOOLS extends ToolSet = ToolSet,
+  PROVIDER extends BatchProvider = BatchProvider,
+> = {
+  provider: PROVIDER;
+  model: InferBatchModelId<PROVIDER>;
+  requests: ReadonlyArray<TextBatchRequest<InferBatchModelId<PROVIDER>>>;
 
   /**
    * Tools that the model can call for every request in the batch.
@@ -129,7 +134,7 @@ export type StartTextBatchResult = TextBatch & {
  * Options shared by batch status and result retrieval operations.
  */
 export type BatchOperationOptions<TOOLS extends ToolSet = ToolSet> = {
-  model: BatchLanguageModel;
+  provider: BatchProvider;
   batch: BatchReference;
 
   /**

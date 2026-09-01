@@ -5,7 +5,7 @@ export {
 } from './batch';
 export type {
   BatchError as Experimental_BatchError,
-  BatchLanguageModel as Experimental_BatchLanguageModel,
+  BatchProvider as Experimental_BatchProvider,
   BatchOperationOptions as Experimental_BatchOperationOptions,
   BatchReference as Experimental_BatchReference,
   BatchStatus as Experimental_BatchStatus,
