@@ -202,4 +202,51 @@ describe('HttpChatTransport', () => {
       expect(receivedAbortSignal).toBe(abortController.signal);
     });
   });
+  describe('error responses', () => {
+    it('should fall back to the default message when the error body is empty', async () => {
+      const transport = new MockHttpChatTransport({
+        api: 'http://localhost/api/chat',
+        fetch: async () => new Response(null, { status: 502 }),
+      });
+
+      await expect(
+        transport.sendMessages({
+          chatId: 'c123',
+          messageId: 'm123',
+          trigger: 'submit-message',
+          messages: [
+            {
+              id: 'm123',
+              role: 'user',
+              parts: [{ text: 'Hello, world!', type: 'text' }],
+            },
+          ],
+          abortSignal: new AbortController().signal,
+        }),
+      ).rejects.toThrowError('Failed to fetch the chat response.');
+    });
+
+    it('should surface a non-empty error body verbatim', async () => {
+      const transport = new MockHttpChatTransport({
+        api: 'http://localhost/api/chat',
+        fetch: async () => new Response('rate limited', { status: 429 }),
+      });
+
+      await expect(
+        transport.sendMessages({
+          chatId: 'c123',
+          messageId: 'm123',
+          trigger: 'submit-message',
+          messages: [
+            {
+              id: 'm123',
+              role: 'user',
+              parts: [{ text: 'Hello, world!', type: 'text' }],
+            },
+          ],
+          abortSignal: new AbortController().signal,
+        }),
+      ).rejects.toThrowError('rate limited');
+    });
+  });
 });
