@@ -353,7 +353,7 @@ describe('OpenAI Files - uploadFile (pre-request rejection)', () => {
   });
 });
 
-describe('OpenAI Files - retrieveFile', () => {
+describe('OpenAI Files - getFileMetadata', () => {
   function prepareRetrieveResponse({
     expires_at = null,
   }: { expires_at?: number | null } = {}) {
@@ -378,7 +378,7 @@ describe('OpenAI Files - retrieveFile', () => {
     const provider = createOpenAI({ apiKey: 'test-api-key' });
     const files = provider.files();
 
-    const result = await files.retrieveFile!({
+    const result = await files.getFileMetadata!({
       file: { openai: 'file-abc123' },
     });
 
@@ -406,7 +406,7 @@ describe('OpenAI Files - retrieveFile', () => {
     const provider = createOpenAI({ apiKey: 'test-api-key' });
     const files = provider.files();
 
-    const result = await files.retrieveFile!({
+    const result = await files.getFileMetadata!({
       file: { openai: 'file-abc123' },
     });
 
@@ -420,7 +420,7 @@ describe('OpenAI Files - retrieveFile', () => {
       const files = provider.files();
 
       await expect(
-        files.retrieveFile!({ file: { openai: fileId } }),
+        files.getFileMetadata!({ file: { openai: fileId } }),
       ).rejects.toThrow("file reference is missing an 'openai' file id.");
     },
   );
@@ -434,7 +434,7 @@ describe('OpenAI Files - retrieveFile', () => {
       // encodes to a non-normalizable segment, so the request targets an
       // unregistered URL instead of /v1/files or a parent path
       await expect(
-        files.retrieveFile!({ file: { openai: fileId } }),
+        files.getFileMetadata!({ file: { openai: fileId } }),
       ).rejects.toThrow();
       expect(server.calls.length).toBe(0);
     },
@@ -445,7 +445,7 @@ describe('OpenAI Files - retrieveFile', () => {
     const files = provider.files();
 
     await expect(
-      files.retrieveFile!({ file: { other: 'file-abc123' } }),
+      files.getFileMetadata!({ file: { other: 'file-abc123' } }),
     ).rejects.toThrow("file reference is missing an 'openai' file id.");
   });
 });
