@@ -1,5 +1,12 @@
 # ai
 
+## 7.0.88
+
+### Patch Changes
+
+- 8b6b756: fix(ai): prevent generateText from accepting responses that violate required tool choices
+- e07b577: feat: add tool calling support to batch
+
 ## 7.0.87
 
 ### Patch Changes
