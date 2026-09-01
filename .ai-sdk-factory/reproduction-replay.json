@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20156,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20156-generate-image-empty-result-retry.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20156-generate-image-empty-result-retry.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #20156 REPRODUCED: generateImage rejected the first empty result after 1 provider call instead of retrying the successful second response"
+  }
+}
