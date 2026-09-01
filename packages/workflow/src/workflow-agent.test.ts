@@ -317,8 +317,9 @@ describe('WorkflowAgent', () => {
         tools,
       });
 
+      const write = vi.fn();
       const mockWritable = new WritableStream({
-        write: vi.fn(),
+        write,
         close: vi.fn(),
       });
 
@@ -370,6 +371,19 @@ describe('WorkflowAgent', () => {
           value: `Error: ${errorMessage}`,
         },
       });
+      expect(write.mock.calls.map(([chunk]) => chunk)).toContainEqual({
+        type: 'tool-error',
+        toolCallId: 'test-call-id',
+        toolName: 'testTool',
+        input: '{}',
+        error: `Error: ${errorMessage}`,
+      });
+      expect(write.mock.calls.map(([chunk]) => chunk)).not.toContainEqual(
+        expect.objectContaining({
+          type: 'tool-result',
+          toolCallId: 'test-call-id',
+        }),
+      );
     });
 
     it('should successfully execute tools that return normally', async () => {
@@ -830,8 +844,9 @@ describe('WorkflowAgent', () => {
         tools: {},
       });
 
+      const write = vi.fn();
       const mockWritable = new WritableStream({
-        write: vi.fn(),
+        write,
         close: vi.fn(),
       });
 
@@ -892,6 +907,13 @@ describe('WorkflowAgent', () => {
           type: 'error-text',
           value: 'Search failed: Rate limit exceeded',
         },
+      });
+      expect(write.mock.calls.map(([chunk]) => chunk)).toContainEqual({
+        type: 'tool-error',
+        toolCallId: 'provider-call-id',
+        toolName: 'WebSearch',
+        input: '{"query":"test query"}',
+        error: 'Search failed: Rate limit exceeded',
       });
     });
 
