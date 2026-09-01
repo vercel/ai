@@ -1,5 +1,25 @@
 # @ai-sdk/google
 
+## 4.0.60
+
+### Patch Changes
+
+- e07b577: feat: add tool calling support to batch
+
+## 4.0.59
+
+### Patch Changes
+
+- ca29e9b: fix(google): support video response formats in Gemini Interactions
+
+## 4.0.58
+
+### Patch Changes
+
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
 ## 4.0.57
 
 ### Patch Changes

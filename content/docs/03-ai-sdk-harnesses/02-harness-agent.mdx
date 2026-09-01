@@ -526,6 +526,10 @@ console.log(preparation.identity);
 - `sandboxConfig`: sandbox working-directory and lifecycle hook configuration.
 - `telemetry`, `debug`, and `onLog`: observability and diagnostics.
 
+Telemetry reports each turn's resolved model, instructions, and active
+host-defined tools. Skills are adapter context and do not have a corresponding
+AI SDK telemetry field, so they are not included in standard telemetry events.
+
 Adapter-specific settings belong on the adapter factory, for example
 `createCodex({ reasoningEffort: 'high' })`.
 

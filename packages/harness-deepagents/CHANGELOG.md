@@ -1,5 +1,40 @@
 # @ai-sdk/harness-deepagents
 
+## 1.0.97
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.97
+
+## 1.0.96
+
+### Patch Changes
+
+- c0c7fac: feat(harness): add reusable `createReadBridgeAsset()` helper function
+- Updated dependencies [c0c7fac]
+  - @ai-sdk/harness@1.0.96
+
+## 1.0.95
+
+### Patch Changes
+
+- 371e954: feat(harness): add `createBridgeToken()` and `withBridgeToken()` helpers for bridge backed harness adapters
+- 62f481f: fix(harness): fix bridge resolution to no longer look for an alternative path which could cause Turbopack errors
+- Updated dependencies [371e954]
+- Updated dependencies [87b4858]
+  - @ai-sdk/harness@1.0.95
+
+## 1.0.94
+
+### Patch Changes
+
+- 9ec34bd: Preserve Deep Agents conversation context when a stopped session is resumed.
+- 8961fde: feat(harness): allow changing `model` between turns via call options
+- Updated dependencies [8961fde]
+- Updated dependencies [eb59f2a]
+  - @ai-sdk/harness@1.0.94
+  - @ai-sdk/provider-utils@5.0.34
+
 ## 1.0.93
 
 ### Patch Changes

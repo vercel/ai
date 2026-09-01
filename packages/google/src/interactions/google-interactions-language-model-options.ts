@@ -75,8 +75,8 @@ export const googleInteractionsLanguageModelOptions = lazySchema(() =>
 
       /**
        * Output-format entries that map directly to the API's `response_format`
-       * array. Use this to request image, audio, or non-JSON text outputs
-       * with full control over `mime_type`, `aspect_ratio`, and `image_size`.
+       * array. Use this to request image, audio, video, or non-JSON text
+       * outputs with modality-specific controls.
        *
        * Entries are sent in order. The AI SDK call-level `responseFormat: {
        * type: 'json', schema }` still drives JSON-mode and adds a matching
@@ -121,6 +121,16 @@ export const googleInteractionsLanguageModelOptions = lazySchema(() =>
               .object({
                 type: z.literal('audio'),
                 mimeType: z.string().nullish(),
+              })
+              .loose(),
+            z
+              .object({
+                type: z.literal('video'),
+                aspectRatio: z.enum(['16:9', '9:16']).nullish(),
+                resolution: z.enum(['360p', '720p', '1080p', '4k']).nullish(),
+                duration: z.string().nullish(),
+                delivery: z.enum(['inline', 'uri']).nullish(),
+                gcsUri: z.string().nullish(),
               })
               .loose(),
           ]),

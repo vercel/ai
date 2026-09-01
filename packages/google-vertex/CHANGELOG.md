@@ -1,5 +1,32 @@
 # @ai-sdk/google-vertex
 
+## 5.0.72
+
+### Patch Changes
+
+- Updated dependencies [e07b577]
+  - @ai-sdk/google@4.0.60
+
+## 5.0.71
+
+### Patch Changes
+
+- Updated dependencies [ca29e9b]
+  - @ai-sdk/google@4.0.59
+
+## 5.0.70
+
+### Patch Changes
+
+- 1d9b13b: fix(google-vertex): advertise the Vertex text embedding batch limit as 250
+- Updated dependencies [23eb659]
+- Updated dependencies [aa45741]
+  - @ai-sdk/openai-compatible@3.0.41
+  - @ai-sdk/anthropic@4.0.46
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/google@4.0.58
+  - @ai-sdk/provider-utils@5.0.34
+
 ## 5.0.69
 
 ### Patch Changes

@@ -1,5 +1,27 @@
 # @ai-sdk/openai
 
+## 4.0.54
+
+### Patch Changes
+
+- f6fac50: fix(openai): handle null usage in responses
+- e07b577: feat: add tool calling support to batch
+
+## 4.0.53
+
+### Patch Changes
+
+- 7439d7a: Fix workflow deserialization for OpenAI Responses models.
+
+## 4.0.52
+
+### Patch Changes
+
+- 1c68540: Preserve explicit prompt cache breakpoints on scalar Responses tool results.
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
 ## 4.0.51
 
 ### Patch Changes

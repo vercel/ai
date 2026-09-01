@@ -33,7 +33,10 @@ import {
   openaiErrorDataSchema,
   openaiFailedResponseHandler,
 } from './openai-error';
-import type { OpenAIConfig } from './openai-config';
+import {
+  prepareOpenAIConfigForWorkflowDeserialize,
+  type OpenAIConfig,
+} from './openai-config';
 import { openaiFilesResponseSchema } from './files/openai-files-api';
 import { convertOpenAIResponsesUsage } from './responses/convert-openai-responses-usage';
 import { mapOpenAIResponseFinishReason } from './responses/map-openai-responses-finish-reason';
@@ -41,7 +44,10 @@ import {
   openaiResponsesResponseSchema,
   type OpenAIResponsesLogprobs,
 } from './responses/openai-responses-api';
-import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
+import {
+  mapWebSearchOutput,
+  OpenAIResponsesLanguageModel,
+} from './responses/openai-responses-language-model';
 import type { OpenAIResponsesModelId } from './responses/openai-responses-language-model-options';
 import type { ResponsesReasoningProviderMetadata } from './responses/openai-responses-provider-metadata';
 
@@ -162,6 +168,23 @@ class OpenAIResponsesBatch {
 
       for (const warning of preparedRequest.warnings) {
         warnings.push({ requestId: request.id, warning });
+      }
+
+      for (const tool of request.options.tools ?? []) {
+        if (
+          tool.type === 'provider' &&
+          !openAIBatchConvertibleProviderToolIds.has(tool.id)
+        ) {
+          warnings.push({
+            requestId: request.id,
+            warning: {
+              type: 'unsupported',
+              feature: `batch result conversion for tool "${tool.name}"`,
+              details:
+                'OpenAI may return output for this tool that AI SDK text batches cannot currently convert.',
+            },
+          });
+        }
       }
     }
 
@@ -382,6 +405,14 @@ class OpenAIResponsesBatch {
   }
 }
 
+const openAIBatchConvertibleProviderToolIds = new Set([
+  'openai.code_interpreter',
+  'openai.custom',
+  'openai.file_search',
+  'openai.web_search',
+  'openai.web_search_preview',
+]);
+
 export class OpenAIResponsesBatchLanguageModel
   extends OpenAIResponsesLanguageModel
   implements BatchLanguageModelV4
@@ -393,12 +424,12 @@ export class OpenAIResponsesBatchLanguageModel
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
-    modelId: OpenAIResponsesModelId;
-    config: OpenAIConfig;
+    modelId: string;
+    config: Parameters<typeof prepareOpenAIConfigForWorkflowDeserialize>[0];
   }) {
     return new OpenAIResponsesBatchLanguageModel(
-      options.modelId,
-      options.config,
+      options.modelId as OpenAIResponsesModelId,
+      prepareOpenAIConfigForWorkflowDeserialize(options.config),
     );
   }
 
@@ -577,6 +608,7 @@ async function convertOpenAIResponsesBatchResponse(
 
   const content: LanguageModelV4GenerateResult['content'] = [];
   const logprobs: Array<NonNullable<OpenAIResponsesLogprobs>> = [];
+  let hasFunctionCall = false;
 
   for (const part of response.output) {
     switch (part.type) {
@@ -612,15 +644,104 @@ async function convertOpenAIResponsesBatchResponse(
       }
 
       case 'function_call':
-      case 'custom_tool_call':
-        return {
-          success: false,
-          error: {
-            message:
-              'OpenAI returned a tool call, but tool calls are not supported in AI SDK text batches.',
-            code: 'unsupported_content',
+        hasFunctionCall = true;
+        content.push({
+          type: 'tool-call',
+          toolCallId: part.call_id,
+          toolName: part.name,
+          input: part.arguments,
+          providerMetadata: {
+            openai: {
+              itemId: part.id,
+              ...(part.namespace != null && { namespace: part.namespace }),
+              ...(part.caller != null && {
+                caller:
+                  part.caller.type === 'program'
+                    ? { type: 'program', callerId: part.caller.caller_id }
+                    : part.caller,
+              }),
+            },
           },
-        };
+        });
+        break;
+
+      case 'custom_tool_call':
+        hasFunctionCall = true;
+        content.push({
+          type: 'tool-call',
+          toolCallId: part.call_id,
+          toolName: part.name,
+          input: JSON.stringify(part.input),
+          providerMetadata: { openai: { itemId: part.id } },
+        });
+        break;
+
+      case 'web_search_call':
+        content.push({
+          type: 'tool-call',
+          toolCallId: part.id,
+          toolName: 'web_search',
+          input: '{}',
+          providerExecuted: true,
+          dynamic: true,
+        });
+        content.push({
+          type: 'tool-result',
+          toolCallId: part.id,
+          toolName: 'web_search',
+          result: mapWebSearchOutput(part.action),
+          dynamic: true,
+        });
+        break;
+
+      case 'file_search_call':
+        content.push({
+          type: 'tool-call',
+          toolCallId: part.id,
+          toolName: 'file_search',
+          input: '{}',
+          providerExecuted: true,
+          dynamic: true,
+        });
+        content.push({
+          type: 'tool-result',
+          toolCallId: part.id,
+          toolName: 'file_search',
+          result: {
+            queries: part.queries,
+            results:
+              part.results?.map(result => ({
+                attributes: result.attributes,
+                fileId: result.file_id,
+                filename: result.filename,
+                score: result.score,
+                text: result.text,
+              })) ?? null,
+          },
+          dynamic: true,
+        });
+        break;
+
+      case 'code_interpreter_call':
+        content.push({
+          type: 'tool-call',
+          toolCallId: part.id,
+          toolName: 'code_interpreter',
+          input: JSON.stringify({
+            code: part.code,
+            containerId: part.container_id,
+          }),
+          providerExecuted: true,
+          dynamic: true,
+        });
+        content.push({
+          type: 'tool-result',
+          toolCallId: part.id,
+          toolName: 'code_interpreter',
+          result: { outputs: part.outputs },
+          dynamic: true,
+        });
+        break;
 
       default:
         return {
@@ -655,7 +776,7 @@ async function convertOpenAIResponsesBatchResponse(
       finishReason: {
         unified: mapOpenAIResponseFinishReason({
           finishReason: response.incomplete_details?.reason,
-          hasFunctionCall: false,
+          hasFunctionCall,
         }),
         raw: response.incomplete_details?.reason ?? undefined,
       },

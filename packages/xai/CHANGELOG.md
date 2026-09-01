@@ -1,5 +1,19 @@
 # @ai-sdk/xai
 
+## 4.0.51
+
+### Patch Changes
+
+- e07b577: feat: add tool calling support to batch
+
+## 4.0.50
+
+### Patch Changes
+
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
 ## 4.0.49
 
 ### Patch Changes

@@ -12,6 +12,14 @@ export const piSessionEventSchema = z.looseObject({
     .looseObject({
       type: z.string().optional(),
       delta: z.string().optional(),
+      // `toolcall_start` / `toolcall_delta` / `toolcall_end` address a content
+      // block by index rather than by tool call id. The id and name live in the
+      // partial assistant message at that index, which Pi fills in before the
+      // first delta arrives.
+      contentIndex: z.number().optional(),
+      partial: z
+        .looseObject({ content: z.array(z.unknown()).optional() })
+        .optional(),
     })
     .optional(),
   toolCallId: z.string().optional(),

@@ -356,6 +356,43 @@ describe('Claude Code bridge configuration', () => {
     });
   });
 
+  test('marks approval-gated external MCP tool calls as dynamic', async () => {
+    state.start = {
+      ...state.start,
+      permissionMode: 'allow-reads',
+    };
+
+    await import('./index');
+
+    const canUseTool = state.queryArgs[0]?.options.canUseTool as
+      | ((
+          toolName: string,
+          toolInput: Record<string, unknown>,
+          options: { toolUseID: string },
+        ) => Promise<unknown>)
+      | undefined;
+    await canUseTool?.(
+      'mcp__context7__query-docs',
+      { libraryId: '/vercel/next.js' },
+      { toolUseID: 'external-tool' },
+    );
+
+    expect(
+      state.emitted.find(
+        event =>
+          event.type === 'tool-call' && event.toolCallId === 'external-tool',
+      ),
+    ).toEqual({
+      type: 'tool-call',
+      toolCallId: 'external-tool',
+      toolName: 'mcp__context7__query-docs',
+      nativeName: 'mcp__context7__query-docs',
+      input: '{"libraryId":"/vercel/next.js"}',
+      providerExecuted: true,
+      dynamic: true,
+    });
+  });
+
   test('uses callback metadata to correlate identical parallel host tool calls', async () => {
     state.start = {
       ...state.start,

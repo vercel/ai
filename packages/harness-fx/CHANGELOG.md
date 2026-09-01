@@ -1,5 +1,41 @@
 # @ai-sdk/harness-fx
 
+## 1.0.10
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.97
+- @ai-sdk/harness-acp@1.0.35
+
+## 1.0.9
+
+### Patch Changes
+
+- Updated dependencies [c0c7fac]
+  - @ai-sdk/harness-acp@1.0.34
+  - @ai-sdk/harness@1.0.96
+
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [371e954]
+- Updated dependencies [87b4858]
+- Updated dependencies [62f481f]
+  - @ai-sdk/harness-acp@1.0.33
+  - @ai-sdk/harness@1.0.95
+
+## 1.0.7
+
+### Patch Changes
+
+- 8961fde: feat(harness): allow changing `model` between turns via call options
+- Updated dependencies [8961fde]
+- Updated dependencies [eb59f2a]
+  - @ai-sdk/harness-acp@1.0.32
+  - @ai-sdk/harness@1.0.94
+  - @ai-sdk/provider-utils@5.0.34
+
 ## 1.0.6
 
 ### Patch Changes

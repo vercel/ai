@@ -1,5 +1,44 @@
 # @ai-sdk/harness
 
+## 1.0.97
+
+### Patch Changes
+
+- Updated dependencies [8b6b756]
+- Updated dependencies [e07b577]
+  - ai@7.0.88
+
+## 1.0.96
+
+### Patch Changes
+
+- c0c7fac: feat(harness): add reusable `createReadBridgeAsset()` helper function
+- Updated dependencies [850d863]
+  - ai@7.0.87
+
+## 1.0.95
+
+### Patch Changes
+
+- 371e954: feat(harness): add `createBridgeToken()` and `withBridgeToken()` helpers for bridge backed harness adapters
+- 87b4858: feat(harness): enhance per-turn telemetry with recently added per-turn configuration data
+- Updated dependencies [11109ae]
+  - ai@7.0.86
+
+## 1.0.94
+
+### Patch Changes
+
+- 8961fde: feat(harness): allow changing `model` between turns via call options
+- eb59f2a: fix(harness): ensure harness adapters can stream tool input deltas before the complete tool call arrives
+- Updated dependencies [55a9981]
+- Updated dependencies [dd32de2]
+- Updated dependencies [aa45741]
+- Updated dependencies [cc29073]
+  - ai@7.0.85
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
 ## 1.0.93
 
 ### Patch Changes

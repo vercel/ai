@@ -1,5 +1,40 @@
 # ai
 
+## 7.0.88
+
+### Patch Changes
+
+- 8b6b756: fix(ai): prevent generateText from accepting responses that violate required tool choices
+- e07b577: feat: add tool calling support to batch
+
+## 7.0.87
+
+### Patch Changes
+
+- 850d863: fix(ai): preserve approval descriptors in UI message streams
+
+## 7.0.86
+
+### Patch Changes
+
+- 11109ae: feat(ai): support signed tool approvals in WorkflowAgent
+- Updated dependencies [1329d5a]
+  - @ai-sdk/gateway@4.0.70
+
+## 7.0.85
+
+### Patch Changes
+
+- 55a9981: Ensure canonical hashes preserve undefined array element positions.
+- dd32de2: fix(ai): sum Gateway image-generation costs across split requests
+- aa45741: fix(provider/anthropic): preserve native message batch request counts in provider metadata and support the full language-model option surface in batch requests
+- cc29073: feat(ai): expose individual image generation calls
+- Updated dependencies [d2507af]
+- Updated dependencies [aa45741]
+  - @ai-sdk/gateway@4.0.69
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
 ## 7.0.84
 
 ### Patch Changes

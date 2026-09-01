@@ -1,5 +1,35 @@
 # @ai-sdk/workflow-harness
 
+## 1.0.97
+
+### Patch Changes
+
+- 4c64779: fix(workflow-harness): preserve partial tool inputs across time slices
+  - @ai-sdk/harness@1.0.97
+
+## 1.0.96
+
+### Patch Changes
+
+- Updated dependencies [c0c7fac]
+  - @ai-sdk/harness@1.0.96
+
+## 1.0.95
+
+### Patch Changes
+
+- Updated dependencies [371e954]
+- Updated dependencies [87b4858]
+  - @ai-sdk/harness@1.0.95
+
+## 1.0.94
+
+### Patch Changes
+
+- Updated dependencies [8961fde]
+- Updated dependencies [eb59f2a]
+  - @ai-sdk/harness@1.0.94
+
 ## 1.0.93
 
 ### Patch Changes

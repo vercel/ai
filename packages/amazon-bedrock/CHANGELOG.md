@@ -1,5 +1,32 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.70
+
+### Patch Changes
+
+- Updated dependencies [f6fac50]
+- Updated dependencies [e07b577]
+  - @ai-sdk/openai@4.0.54
+
+## 5.0.69
+
+### Patch Changes
+
+- Updated dependencies [7439d7a]
+  - @ai-sdk/openai@4.0.53
+
+## 5.0.68
+
+### Patch Changes
+
+- 051a41d: Enable Anthropic reasoning budgets for application inference profile ARNs.
+- Updated dependencies [1c68540]
+- Updated dependencies [aa45741]
+  - @ai-sdk/openai@4.0.52
+  - @ai-sdk/anthropic@4.0.46
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
 ## 5.0.67
 
 ### Patch Changes

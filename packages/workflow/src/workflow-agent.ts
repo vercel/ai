@@ -28,12 +28,14 @@ import {
   type ToolCallRepairFunction,
   type ToolChoice,
   type ToolSet,
+  type InferUITools,
   type UIMessage,
   type LanguageModel,
   type Prompt,
   type TelemetryOptions as CoreTelemetryOptions,
   type Instructions,
   type Experimental_SandboxSession as SandboxSession,
+  InvalidToolApprovalSignatureError,
 } from 'ai';
 import {
   createRestrictedTelemetryDispatcher,
@@ -41,8 +43,10 @@ import {
   convertToLanguageModelPrompt,
   mergeAbortSignals,
   mergeCallbacks,
+  signToolApproval,
   standardizePrompt,
   validateApprovedToolApprovals,
+  verifyToolApprovalSignature,
 } from 'ai/internal';
 import { createLanguageModelToolResultOutput } from './create-language-model-tool-result-output.js';
 import type { ModelCallStreamPart } from './do-stream-step.js';
@@ -82,9 +86,13 @@ export type InferWorkflowAgentTools<WORKFLOW_AGENT> =
  * Infer the UI message type of a workflow agent.
  */
 export type InferWorkflowAgentUIMessage<
-  _WORKFLOW_AGENT,
+  WORKFLOW_AGENT,
   MESSAGE_METADATA = unknown,
-> = UIMessage<MESSAGE_METADATA>;
+> = UIMessage<
+  MESSAGE_METADATA,
+  never,
+  InferUITools<InferWorkflowAgentTools<WORKFLOW_AGENT>>
+>;
 
 /**
  * Re-export the Output helper for structured output specifications.
@@ -116,6 +124,17 @@ export interface OutputSpecification<OUTPUT, PARTIAL> {
  * Provider-specific options type. This is equivalent to SharedV4ProviderOptions from @ai-sdk/provider.
  */
 export type ProviderOptions = SharedV4ProviderOptions;
+
+/**
+ * Workflow-safe reference to the environment variable that contains the
+ * secret used to sign and verify tool approvals.
+ */
+export type WorkflowToolApprovalSecret = {
+  /**
+   * Name of an environment variable containing a high-entropy secret.
+   */
+  environmentVariable: string;
+};
 
 type WorkflowAgentToolsContextParameter<TTools extends ToolSet> =
   HasRequiredKey<InferToolSetContext<TTools>> extends true
@@ -336,7 +355,7 @@ export interface PrepareStepResult<
    * Override the active tools for this step.
    * Limits the tools that are available for the model to call.
    */
-  activeTools?: string[];
+  activeTools?: ActiveTools<NoInfer<TTools>>;
 
   /**
    * Updated runtime context for the current and subsequent steps.
@@ -545,6 +564,18 @@ export type WorkflowAgentOptions<
     experimental_sandbox?: SandboxSession;
 
     /**
+     * Workflow-safe reference to the environment variable containing the
+     * secret for HMAC-signing tool approval requests. When set, the agent signs
+     * each approval request and verifies the signature before executing an
+     * approved tool replayed from client-supplied message history.
+     *
+     * Only the environment variable name crosses workflow boundaries. The
+     * secret value is read inside signing and verification steps and is never
+     * serialized. Per-stream values override this default.
+     */
+    experimental_toolApprovalSecret?: WorkflowToolApprovalSecret;
+
+    /**
      * Default callback function called before each step in the agent loop.
      * Use this to modify settings, manage context, or inject messages dynamically
      * for every stream call on this agent instance.
@@ -580,6 +611,13 @@ export type WorkflowAgentOptions<
     /**
      * Callback called when the agent starts streaming, before any LLM calls.
      */
+    onStart?: WorkflowAgentOnStartCallback<TTools, TRuntimeContext>;
+
+    /**
+     * Callback called when the agent starts streaming, before any LLM calls.
+     *
+     * @deprecated Use `onStart` instead.
+     */
     experimental_onStart?: WorkflowAgentOnStartCallback<
       TTools,
       TRuntimeContext
@@ -587,6 +625,13 @@ export type WorkflowAgentOptions<
 
     /**
      * Callback called before each step (LLM call) begins.
+     */
+    onStepStart?: WorkflowAgentOnStepStartCallback<TTools, TRuntimeContext>;
+
+    /**
+     * Callback called before each step (LLM call) begins.
+     *
+     * @deprecated Use `onStepStart` instead.
      */
     experimental_onStepStart?: WorkflowAgentOnStepStartCallback<
       TTools,
@@ -1004,6 +1049,18 @@ export type WorkflowAgentStreamOptions<
     experimental_sandbox?: SandboxSession;
 
     /**
+     * Workflow-safe reference to the environment variable containing the
+     * secret for HMAC-signing tool approval requests. When set, the agent signs
+     * each approval request and verifies the signature before executing an
+     * approved tool replayed from client-supplied message history.
+     *
+     * Only the environment variable name crosses workflow boundaries. The
+     * secret value is read inside signing and verification steps and is never
+     * serialized. Overrides the constructor-level value if provided.
+     */
+    experimental_toolApprovalSecret?: WorkflowToolApprovalSecret;
+
+    /**
      * Callback function to be called after each step completes.
      */
     onStepEnd?: WorkflowAgentOnStepEndCallback<TTools, TRuntimeContext>;
@@ -1043,6 +1100,13 @@ export type WorkflowAgentStreamOptions<
     /**
      * Callback called when the agent starts streaming, before any LLM calls.
      */
+    onStart?: WorkflowAgentOnStartCallback<TTools, TRuntimeContext>;
+
+    /**
+     * Callback called when the agent starts streaming, before any LLM calls.
+     *
+     * @deprecated Use `onStart` instead.
+     */
     experimental_onStart?: WorkflowAgentOnStartCallback<
       TTools,
       TRuntimeContext
@@ -1050,6 +1114,13 @@ export type WorkflowAgentStreamOptions<
 
     /**
      * Callback called before each step (LLM call) begins.
+     */
+    onStepStart?: WorkflowAgentOnStepStartCallback<TTools, TRuntimeContext>;
+
+    /**
+     * Callback called before each step (LLM call) begins.
+     *
+     * @deprecated Use `onStepStart` instead.
      */
     experimental_onStepStart?: WorkflowAgentOnStepStartCallback<
       TTools,
@@ -1267,6 +1338,7 @@ export class WorkflowAgent<
   private repairToolCall?: ToolCallRepairFunction<TBaseTools>;
   private experimentalDownload?: DownloadFunction;
   private experimentalSandbox?: SandboxSession;
+  private experimentalToolApprovalSecret?: WorkflowToolApprovalSecret;
   private prepareStep?: PrepareStepCallback<TBaseTools, TRuntimeContext>;
   private allowSystemInMessages: boolean;
   private constructorOnStepEnd?: WorkflowAgentOnStepEndCallback<
@@ -1306,12 +1378,15 @@ export class WorkflowAgent<
       options.repairToolCall ?? options.experimental_repairToolCall;
     this.experimentalDownload = options.experimental_download;
     this.experimentalSandbox = options.experimental_sandbox;
+    this.experimentalToolApprovalSecret =
+      options.experimental_toolApprovalSecret;
     this.prepareStep = options.prepareStep;
     this.constructorOnStepEnd = options.onStepEnd ?? options.onStepFinish;
     const { onFinish, onEnd = onFinish } = options;
     this.constructorOnEnd = onEnd;
-    this.constructorOnStart = options.experimental_onStart;
-    this.constructorOnStepStart = options.experimental_onStepStart;
+    this.constructorOnStart = options.onStart ?? options.experimental_onStart;
+    this.constructorOnStepStart =
+      options.onStepStart ?? options.experimental_onStepStart;
     this.constructorOnToolExecutionStart = options.onToolExecutionStart;
     this.constructorOnToolExecutionEnd = options.onToolExecutionEnd;
     this.prepareCall = options.prepareCall;
@@ -1375,6 +1450,9 @@ export class WorkflowAgent<
       options.activeTools ?? this.activeTools;
     let effectiveDownloadFromPrepare =
       options.experimental_download ?? this.experimentalDownload;
+    const effectiveToolApprovalSecret =
+      options.experimental_toolApprovalSecret ??
+      this.experimentalToolApprovalSecret;
     let effectiveTelemetryFromPrepare = options.telemetry ?? this.telemetry;
 
     // Resolve messages for prepareCall: use messages directly, or convert prompt
@@ -1481,6 +1559,14 @@ export class WorkflowAgent<
     );
     const timeoutAt =
       options.timeout == null ? undefined : Date.now() + options.timeout;
+    const mergedOnToolExecutionStart = mergeCallbacks(
+      this.constructorOnToolExecutionStart,
+      options.onToolExecutionStart,
+    );
+    const mergedOnToolExecutionEnd = mergeCallbacks(
+      this.constructorOnToolExecutionEnd,
+      options.onToolExecutionEnd,
+    );
 
     // Process tool approval responses before starting the agent loop.
     // This mirrors how stream-text.ts handles tool-approval-response parts:
@@ -1569,11 +1655,20 @@ export class WorkflowAgent<
           }
 
           // Re-validate through the shared core implementation: input schema,
-          // HMAC signature (when configured), and approval policy. Convert
-          // invalid input, denial, or signature errors to a tool error result
-          // so the agent loop can continue gracefully.
+          // approval signature (when configured), and approval policy.
+          // Convert invalid input, denial, or signature errors to a tool error
+          // result so the agent loop can continue gracefully.
           let revalidationReason: string | undefined;
           try {
+            await validateWorkflowToolApprovalSignature({
+              secret: effectiveToolApprovalSecret,
+              approvalId: approval.collected.approvalRequest.approvalId,
+              toolCallId: approval.toolCallId,
+              toolName: approval.toolName,
+              input: approval.input,
+              signature: approval.collected.approvalRequest.signature,
+            });
+
             const { deniedToolApprovals: policyDenied, invalidToolApprovals } =
               await validateApprovedToolApprovals({
                 approvedToolApprovals: [approval.collected],
@@ -1617,111 +1712,25 @@ export class WorkflowAgent<
             continue;
           }
 
-          try {
-            const { execute } = tool;
-            const resolvedContext = await resolveToolContext({
-              toolName: approval.toolName,
-              tool,
-              toolsContext: effectiveToolsContext,
-            });
-            const toolCallEvent: ToolCall = {
-              type: 'tool-call',
+          const result = await executeToolWithCallbacks(
+            {
               toolCallId: approval.toolCallId,
               toolName: approval.toolName,
               input: approval.input,
-            };
-            const messages = prompt.messages as unknown as ModelMessage[];
-            await telemetryDispatcher.onToolExecutionStart?.({
-              toolCall: toolCallEvent,
-              stepNumber: 0,
-              messages,
-              toolContext: resolvedContext,
-            });
-            const startTime = Date.now();
-            const executeApprovedTool = () =>
-              execute(approval.input, {
-                toolCallId: approval.toolCallId,
-                messages: [],
-                abortSignal: effectiveAbortSignal,
-                context: resolvedContext,
-                experimental_sandbox: sandbox,
-              });
-            const toolResult =
-              telemetryDispatcher.executeTool != null
-                ? await telemetryDispatcher.executeTool({
-                    callId: 'workflow-agent',
-                    toolCallId: approval.toolCallId,
-                    execute: executeApprovedTool,
-                  })
-                : await executeApprovedTool();
-            await telemetryDispatcher.onToolExecutionEnd?.({
-              toolCall: toolCallEvent,
-              stepNumber: 0,
-              durationMs: Date.now() - startTime,
-              messages,
-              toolContext: resolvedContext,
-              success: true,
-              output: toolResult,
-            });
-            toolResultContent.push({
-              type: 'tool-result' as const,
-              toolCallId: approval.toolCallId,
-              toolName: approval.toolName,
-              output: await createLanguageModelToolResultOutput({
-                toolCallId: approval.toolCallId,
-                toolName: approval.toolName,
-                input: approval.input,
-                output: toolResult,
-                tool,
-                errorMode: 'none',
-                supportedUrls: {},
-                download,
-              }),
-            });
-            approvedRawResults.push({
-              toolCallId: approval.toolCallId,
-              toolName: approval.toolName,
-              input: approval.input,
-              output: toolResult,
-            });
-          } catch (error) {
-            const errorMessage = getErrorMessage(error);
-            await telemetryDispatcher.onToolExecutionEnd?.({
-              toolCall: {
-                type: 'tool-call',
-                toolCallId: approval.toolCallId,
-                toolName: approval.toolName,
-                input: approval.input,
-              },
-              stepNumber: 0,
-              durationMs: 0,
-              messages: prompt.messages as unknown as ModelMessage[],
-              toolContext: undefined,
-              success: false,
-              error,
-            });
-            toolResultContent.push({
-              type: 'tool-result' as const,
-              toolCallId: approval.toolCallId,
-              toolName: approval.toolName,
-              output: await createLanguageModelToolResultOutput({
-                toolCallId: approval.toolCallId,
-                toolName: approval.toolName,
-                input: approval.input,
-                output: errorMessage,
-                tool,
-                errorMode: 'text',
-                supportedUrls: {},
-                download,
-              }),
-            });
-            approvedRawResults.push({
-              toolCallId: approval.toolCallId,
-              toolName: approval.toolName,
-              input: approval.input,
-              output: errorMessage,
-            });
-          }
+            },
+            this.tools as ToolSet,
+            prompt.messages as unknown as LanguageModelV4Prompt,
+            effectiveToolsContext,
+            0,
+            sandbox,
+          );
+          toolResultContent.push(result.modelResult);
+          approvedRawResults.push({
+            toolCallId: approval.toolCallId,
+            toolName: approval.toolName,
+            input: approval.input,
+            output: result.rawOutput,
+          });
         }
       }
 
@@ -1868,23 +1877,14 @@ export class WorkflowAgent<
       this.constructorOnStart as
         | WorkflowAgentOnStartCallback<TTools, TRuntimeContext>
         | undefined,
-      options.experimental_onStart,
+      options.onStart ?? options.experimental_onStart,
     );
     const mergedOnStepStart = mergeCallbacks(
       this.constructorOnStepStart as
         | WorkflowAgentOnStepStartCallback<TTools, TRuntimeContext>
         | undefined,
-      options.experimental_onStepStart,
+      options.onStepStart ?? options.experimental_onStepStart,
     );
-    const mergedOnToolExecutionStart = mergeCallbacks(
-      this.constructorOnToolExecutionStart,
-      options.onToolExecutionStart,
-    );
-    const mergedOnToolExecutionEnd = mergeCallbacks(
-      this.constructorOnToolExecutionEnd,
-      options.onToolExecutionEnd,
-    );
-
     // Determine effective tool choice
     const effectiveToolChoice = effectiveToolChoiceFromPrepare;
 
@@ -1948,14 +1948,14 @@ export class WorkflowAgent<
     });
 
     // Helper to wrap executeTool with onToolExecutionStart/onToolExecutionEnd callbacks
-    const executeToolWithCallbacks = async (
+    async function executeToolWithCallbacks(
       toolCall: { toolCallId: string; toolName: string; input: unknown },
       tools: ToolSet,
       messages: LanguageModelV4Prompt,
       perToolContexts: Record<string, Context | undefined>,
       currentStepNumber: number = 0,
       stepSandbox?: SandboxSession,
-    ): Promise<WorkflowToolExecutionResult> => {
+    ): Promise<WorkflowToolExecutionResult> {
       const toolCallEvent: ToolCall = {
         type: 'tool-call',
         toolCallId: toolCall.toolCallId,
@@ -2096,7 +2096,7 @@ export class WorkflowAgent<
         });
       }
       return result;
-    };
+    }
 
     const recordProviderExecutedToolTelemetry = async (
       toolCall: { toolCallId: string; toolName: string; input: unknown },
@@ -2388,7 +2388,18 @@ export class WorkflowAgent<
             // so useChat can show the approval UI
             if (options.writable) {
               if (allToolResults.length > 0) {
-                await writeToolResults(options.writable, allToolResults);
+                await writeToolResults(
+                  options.writable,
+                  executedResults.map(r => ({
+                    toolCallId: r.modelResult.toolCallId,
+                    toolName: r.modelResult.toolName,
+                    input: toolCalls.find(
+                      tc => tc.toolCallId === r.modelResult.toolCallId,
+                    )?.input,
+                    output: r.rawOutput,
+                    isError: r.isError,
+                  })),
+                );
               }
 
               const approvalToolCalls = pausedToolCalls.filter((_, i) => {
@@ -2398,13 +2409,31 @@ export class WorkflowAgent<
                 return approvalNeeded[tcIndex];
               });
               if (approvalToolCalls.length > 0) {
-                await writeApprovalRequests(
-                  options.writable,
-                  approvalToolCalls.map(tc => ({
-                    toolCallId: tc.toolCallId,
-                    toolName: tc.toolName,
-                  })),
+                // The signing step receives only a non-secret environment
+                // variable reference. It resolves the secret inside the step,
+                // and only the resulting signature is persisted in the stream.
+                const approvalRequests = await Promise.all(
+                  approvalToolCalls.map(async tc => {
+                    const approvalId = `approval-${tc.toolCallId}`;
+                    const signature =
+                      effectiveToolApprovalSecret == null
+                        ? undefined
+                        : await signWorkflowToolApproval({
+                            secret: effectiveToolApprovalSecret,
+                            approvalId,
+                            toolCallId: tc.toolCallId,
+                            toolName: tc.toolName,
+                            input: tc.input,
+                          });
+
+                    return {
+                      approvalId,
+                      toolCallId: tc.toolCallId,
+                      ...(signature != null ? { signature } : {}),
+                    };
+                  }),
                 );
+                await writeApprovalRequests(options.writable, approvalRequests);
               }
             }
 
@@ -2495,9 +2524,9 @@ export class WorkflowAgent<
             return [];
           });
 
-          // Write tool results and step boundaries to the stream so the
-          // UI can transition tool parts to output-available state and
-          // properly separate multi-step model calls in the message history.
+          // Write tool results and step boundaries to the stream so the UI can
+          // transition tool parts to the appropriate output state and properly
+          // separate multi-step model calls in the message history.
           if (options.writable) {
             await writeToolResults(
               options.writable,
@@ -2508,6 +2537,7 @@ export class WorkflowAgent<
                   tc => tc.toolCallId === r.modelResult.toolCallId,
                 )?.input,
                 output: r.rawOutput,
+                isError: r.isError,
               })),
               true,
             );
@@ -2731,21 +2761,136 @@ async function closeStream(
  */
 async function writeApprovalRequests(
   writable: WritableStream<any>,
-  toolCalls: Array<{ toolCallId: string; toolName: string }>,
+  approvalRequests: Array<{
+    approvalId: string;
+    toolCallId: string;
+    signature?: string;
+  }>,
 ) {
   'use step';
   const writer = writable.getWriter();
   try {
-    for (const tc of toolCalls) {
+    for (const request of approvalRequests) {
       await writer.write({
         type: 'tool-approval-request',
-        approvalId: `approval-${tc.toolCallId}`,
-        toolCallId: tc.toolCallId,
+        approvalId: request.approvalId,
+        toolCallId: request.toolCallId,
+        ...(request.signature != null ? { signature: request.signature } : {}),
       });
     }
   } finally {
     writer.releaseLock();
   }
+}
+
+async function signWorkflowToolApproval({
+  secret,
+  approvalId,
+  toolCallId,
+  toolName,
+  input,
+}: {
+  secret: WorkflowToolApprovalSecret;
+  approvalId: string;
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+}): Promise<string> {
+  'use step';
+
+  return signToolApproval({
+    secret: getWorkflowToolApprovalSecret(secret),
+    approvalId,
+    toolCallId,
+    toolName,
+    input,
+  });
+}
+
+async function verifyWorkflowToolApprovalSignature({
+  secret,
+  signature,
+  approvalId,
+  toolCallId,
+  toolName,
+  input,
+}: {
+  secret: WorkflowToolApprovalSecret;
+  signature: string;
+  approvalId: string;
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+}): Promise<boolean> {
+  'use step';
+
+  return verifyToolApprovalSignature({
+    secret: getWorkflowToolApprovalSecret(secret),
+    signature,
+    approvalId,
+    toolCallId,
+    toolName,
+    input,
+  });
+}
+
+async function validateWorkflowToolApprovalSignature({
+  secret,
+  signature,
+  approvalId,
+  toolCallId,
+  toolName,
+  input,
+}: {
+  secret: WorkflowToolApprovalSecret | undefined;
+  signature: string | undefined;
+  approvalId: string;
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+}): Promise<void> {
+  if (secret == null) {
+    return;
+  }
+
+  if (signature == null) {
+    throw new InvalidToolApprovalSignatureError({
+      approvalId,
+      toolCallId,
+      reason: 'missing signature',
+    });
+  }
+
+  const valid = await verifyWorkflowToolApprovalSignature({
+    secret,
+    signature,
+    approvalId,
+    toolCallId,
+    toolName,
+    input,
+  });
+
+  if (!valid) {
+    throw new InvalidToolApprovalSignatureError({
+      approvalId,
+      toolCallId,
+      reason: 'invalid signature',
+    });
+  }
+}
+
+function getWorkflowToolApprovalSecret({
+  environmentVariable,
+}: WorkflowToolApprovalSecret): string {
+  const secret = process.env[environmentVariable];
+
+  if (secret == null) {
+    throw new Error(
+      `Tool approval secret environment variable "${environmentVariable}" is not set`,
+    );
+  }
+
+  return secret;
 }
 
 async function writeToolResults(
@@ -2755,6 +2900,7 @@ async function writeToolResults(
     toolName: string;
     input: unknown;
     output: unknown;
+    isError: boolean;
   }>,
   writeStepBoundary = false,
 ) {
@@ -2762,13 +2908,23 @@ async function writeToolResults(
   const writer = writable.getWriter();
   try {
     for (const r of results) {
-      await writer.write({
-        type: 'tool-result',
-        toolCallId: r.toolCallId,
-        toolName: r.toolName,
-        input: r.input,
-        output: r.output,
-      });
+      await writer.write(
+        r.isError
+          ? {
+              type: 'tool-error',
+              toolCallId: r.toolCallId,
+              toolName: r.toolName,
+              input: r.input,
+              error: r.output,
+            }
+          : {
+              type: 'tool-result',
+              toolCallId: r.toolCallId,
+              toolName: r.toolName,
+              input: r.input,
+              output: r.output,
+            },
+      );
     }
     if (writeStepBoundary) {
       // Emit step boundaries so the UI message history properly separates
