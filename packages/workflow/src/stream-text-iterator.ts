@@ -6,6 +6,7 @@ import type {
 } from '@ai-sdk/provider';
 import type { Context } from '@ai-sdk/provider-utils';
 import {
+  DefaultGeneratedFile,
   experimental_filterActiveTools as filterActiveTools,
   type ActiveTools,
   type Experimental_SandboxSession as SandboxSession,
@@ -402,11 +403,16 @@ export async function* streamTextIterator({
       } else if (finishReason === 'tool-calls') {
         lastStepWasToolCalls = true;
 
-        const textContent = step.content.filter(
-          item => item.type === 'text',
-        ) as Array<{ type: 'text'; text: string }>;
+        const assistantContent = getAssistantMessageContent(step);
+        const includedToolCallIds = new Set(
+          assistantContent.flatMap(part =>
+            part.type === 'tool-call' ? [part.toolCallId] : [],
+          ),
+        );
 
-        // Add assistant message with text and tool calls to the conversation
+        // Add assistant message content in provider emission order. Invalid
+        // tool calls are not part of StepResult.content, so retain the previous
+        // behavior of appending them to the prompt.
         // Note: providerMetadata from the tool call is mapped to providerOptions
         // in the prompt format, following the AI SDK convention. This is critical
         // for providers like Gemini that require thoughtSignature to be preserved
@@ -414,24 +420,10 @@ export async function* streamTextIterator({
         conversationPrompt.push({
           role: 'assistant',
           content: [
-            ...textContent,
-            ...toolCalls.map(toolCall => {
-              const sanitizedMetadata = sanitizeProviderMetadataForToolCall(
-                toolCall.providerMetadata,
-              );
-              return {
-                type: 'tool-call' as const,
-                toolCallId: toolCall.toolCallId,
-                toolName: toolCall.toolName,
-                input: toolCall.input,
-                ...(sanitizedMetadata != null
-                  ? {
-                      providerOptions:
-                        sanitizedMetadata as SharedV4ProviderOptions,
-                    }
-                  : {}),
-              };
-            }),
+            ...assistantContent,
+            ...toolCalls
+              .filter(toolCall => !includedToolCallIds.has(toolCall.toolCallId))
+              .map(toAssistantToolCallContent),
           ],
         });
 
@@ -462,15 +454,13 @@ export async function* streamTextIterator({
           }
         }
       } else if (finishReason === 'stop') {
-        // Add assistant message with text content to the conversation
-        const textContent = step.content.filter(
-          item => item.type === 'text',
-        ) as Array<{ type: 'text'; text: string }>;
+        // Add assistant response content to the conversation
+        const assistantContent = getAssistantMessageContent(step);
 
-        if (textContent.length > 0) {
+        if (assistantContent.length > 0) {
           conversationPrompt.push({
             role: 'assistant',
-            content: textContent,
+            content: assistantContent,
           });
         }
 
@@ -554,7 +544,12 @@ function normalizeStepForTelemetry(step: StepResult<any, any>) {
 /**
  * Reconstruct a full `StepResult` from the minimal aggregates returned by
  * `doStreamStep`. Runs outside the step boundary so StepResult's redundant
+<<<<<<< HEAD
  * fields (duplicate tool-call lists, `content`, and `reasoningText`) and the
+=======
+ * fields (duplicate tool-call lists, `text`, `files`, `sources`,
+ * `reasoningText`, and the always-empty `*ToolResults` arrays) and the
+>>>>>>> origin/main
  * per-chunk snapshot don't cross it. The shape matches what the AI SDK's
  * `streamText` exposes to callers.
  */
@@ -568,9 +563,41 @@ function buildStepResult(
     toolsContext: Record<string, Context | undefined>;
   },
 ): StepResult<ToolSet, any> {
-  const { text, reasoning: reasoningParts, responseMetadata, warnings } = raw;
+  const {
+    content: rawContent,
+    reasoning: reasoningParts,
+    responseMetadata,
+    warnings,
+  } = raw;
   const reasoningText = reasoningParts.map(r => r.text).join('') || undefined;
+  const validToolCallsByIndex = new Map(
+    toolCalls.flatMap((tc, index) =>
+      tc.invalid
+        ? []
+        : [
+            [
+              index,
+              {
+                type: 'tool-call' as const,
+                toolCallId: tc.toolCallId,
+                toolName: tc.toolName,
+                input: tc.input,
+                ...(tc.dynamic ? { dynamic: true as const } : {}),
+                ...(tc.providerMetadata != null
+                  ? { providerMetadata: tc.providerMetadata }
+                  : {}),
+              },
+            ] as const,
+          ],
+    ),
+  );
+  const validToolCalls = [...validToolCallsByIndex.values()];
+  const content: StepResult<ToolSet, any>['content'] = [];
+  const files: StepResult<ToolSet, any>['files'] = [];
+  const sources: StepResult<ToolSet, any>['sources'] = [];
+  let text = '';
 
+<<<<<<< HEAD
   const validToolCalls = toolCalls
     .filter(tc => !tc.invalid)
     .map(tc => ({
@@ -581,6 +608,49 @@ function buildStepResult(
       ...(tc.dynamic ? { dynamic: true as const } : {}),
       ...(tc.providerExecuted ? { providerExecuted: true } : {}),
     }));
+=======
+  for (const part of rawContent) {
+    switch (part.type) {
+      case 'text':
+        text += part.text;
+        content.push({
+          type: 'text',
+          text: part.text,
+          ...(part.providerMetadata != null
+            ? { providerMetadata: part.providerMetadata }
+            : {}),
+        });
+        break;
+      case 'file': {
+        const file = new DefaultGeneratedFile({
+          data: part.data,
+          mediaType: part.mediaType,
+          providerMetadata: part.providerMetadata,
+        });
+        files.push(file);
+        content.push({
+          type: 'file',
+          file,
+          ...(part.providerMetadata != null
+            ? { providerMetadata: part.providerMetadata }
+            : {}),
+        });
+        break;
+      }
+      case 'source':
+        sources.push(part);
+        content.push(part);
+        break;
+      case 'tool-call': {
+        const toolCall = validToolCallsByIndex.get(part.toolCallIndex);
+        if (toolCall != null) {
+          content.push(toolCall);
+        }
+        break;
+      }
+    }
+  }
+>>>>>>> origin/main
 
   return {
     callId: 'workflow-agent',
@@ -593,18 +663,15 @@ function buildStepResult(
     metadata: undefined,
     runtimeContext: opts.runtimeContext ?? {},
     toolsContext: opts.toolsContext ?? {},
-    content: [
-      ...(text ? [{ type: 'text' as const, text }] : []),
-      ...validToolCalls,
-    ],
+    content,
     text,
     reasoning: reasoningParts.map(r => ({
       type: 'reasoning' as const,
       text: r.text,
     })),
     reasoningText,
-    files: [],
-    sources: [],
+    files,
+    sources,
     toolCalls: validToolCalls,
     staticToolCalls: validToolCalls.filter(tc => tc.dynamic !== true),
     dynamicToolCalls: validToolCalls.filter(tc => tc.dynamic),
@@ -652,6 +719,65 @@ function buildStepResult(
     },
     providerMetadata: finish?.providerMetadata ?? {},
   } as StepResult<ToolSet, any>;
+}
+
+function getAssistantMessageContent(
+  step: StepResult<any, any>,
+): Extract<LanguageModelV4Prompt[number], { role: 'assistant' }>['content'] {
+  const content: Extract<
+    LanguageModelV4Prompt[number],
+    { role: 'assistant' }
+  >['content'] = [];
+
+  for (const part of step.content) {
+    switch (part.type) {
+      case 'text':
+        if (part.text.length > 0) {
+          content.push({ type: 'text', text: part.text });
+        }
+        break;
+      case 'file':
+        content.push({
+          type: 'file',
+          data: { type: 'data', data: part.file.base64 },
+          mediaType: part.file.mediaType,
+          ...(part.providerMetadata != null
+            ? {
+                providerOptions:
+                  part.providerMetadata as SharedV4ProviderOptions,
+              }
+            : {}),
+        });
+        break;
+      case 'tool-call':
+        content.push(toAssistantToolCallContent(part));
+        break;
+    }
+  }
+
+  return content;
+}
+
+function toAssistantToolCallContent(toolCall: {
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+  providerMetadata?: unknown;
+}) {
+  const sanitizedMetadata = sanitizeProviderMetadataForToolCall(
+    toolCall.providerMetadata,
+  );
+  return {
+    type: 'tool-call' as const,
+    toolCallId: toolCall.toolCallId,
+    toolName: toolCall.toolName,
+    input: toolCall.input,
+    ...(sanitizedMetadata != null
+      ? {
+          providerOptions: sanitizedMetadata as SharedV4ProviderOptions,
+        }
+      : {}),
+  };
 }
 
 /**
