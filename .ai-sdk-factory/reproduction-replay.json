@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 11418,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-11418-stream-text-onfinish-object.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-11418-stream-text-onfinish-object.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "BUG: streamText onFinish did not expose the complete structured output"
+  }
+}
