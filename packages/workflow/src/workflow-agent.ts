@@ -1623,11 +1623,15 @@ export class WorkflowAgent<
     const download = effectiveDownloadFromPrepare;
     const sandbox = options.experimental_sandbox ?? this.experimentalSandbox;
     const mergedOnToolExecutionStart = mergeCallbacks(
-      this.constructorOnToolExecutionStart,
+      this.constructorOnToolExecutionStart as
+        | WorkflowAgentOnToolExecutionStartCallback<TTools>
+        | undefined,
       options.onToolExecutionStart,
     );
     const mergedOnToolExecutionEnd = mergeCallbacks(
-      this.constructorOnToolExecutionEnd,
+      this.constructorOnToolExecutionEnd as
+        | WorkflowAgentOnToolExecutionEndCallback<TTools>
+        | undefined,
       options.onToolExecutionEnd,
     );
 
@@ -1953,22 +1957,6 @@ export class WorkflowAgent<
         | undefined,
       options.onStepStart ?? options.experimental_onStepStart,
     );
-<<<<<<< HEAD
-    const mergedOnToolExecutionStart = mergeCallbacks(
-      this.constructorOnToolExecutionStart as
-        | WorkflowAgentOnToolExecutionStartCallback<TTools>
-        | undefined,
-      options.onToolExecutionStart,
-    );
-    const mergedOnToolExecutionEnd = mergeCallbacks(
-      this.constructorOnToolExecutionEnd as
-        | WorkflowAgentOnToolExecutionEndCallback<TTools>
-        | undefined,
-      options.onToolExecutionEnd,
-    );
-
-=======
->>>>>>> origin/main
     // Determine effective tool choice
     const effectiveToolChoice = effectiveToolChoiceFromPrepare;
 
