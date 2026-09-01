@@ -26,6 +26,7 @@ import {
   type ParsedToolCall,
   type ProviderExecutedToolResult,
   type StreamFinish,
+  type ToolInputLifecycleEvent,
 } from './do-stream-step.js';
 import { serializeToolSet } from './serializable-schema.js';
 import type {
@@ -336,6 +337,7 @@ export async function* streamTextIterator({
         headers: currentGenerationSettings.headers,
       } as never);
 
+      const stepInputMessages = conversationPrompt as unknown as ModelMessage[];
       const streamStepResult = await doStreamStep(
         conversationPrompt,
         currentModel,
@@ -361,8 +363,21 @@ export async function* streamTextIterator({
         hasTerminalError = true;
       }
 
-      const { toolCalls, finish, raw, providerExecutedToolResults } =
-        streamStepResult;
+      const {
+        toolCalls,
+        finish,
+        raw,
+        providerExecutedToolResults,
+        toolInputLifecycleEvents,
+      } = streamStepResult;
+      await invokeToolInputLifecycleCallbacks({
+        events: toolInputLifecycleEvents,
+        tools: effectiveTools,
+        messages: stepInputMessages,
+        abortSignal: currentGenerationSettings.abortSignal,
+        toolsContext: currentToolsContext,
+        experimental_sandbox: stepSandbox,
+      });
       // Reconstruct the full StepResult outside the step boundary so the
       // durable event log doesn't carry StepResult's redundant copies (or the
       // per-chunk snapshot the step used to return).
@@ -423,6 +438,9 @@ export async function* streamTextIterator({
                 toolCallId: toolCall.toolCallId,
                 toolName: toolCall.toolName,
                 input: toolCall.input,
+                ...(toolCall.providerExecuted != null
+                  ? { providerExecuted: toolCall.providerExecuted }
+                  : {}),
                 ...(sanitizedMetadata != null
                   ? {
                       providerOptions:
@@ -534,6 +552,55 @@ export async function* streamTextIterator({
   return conversationPrompt;
 }
 
+async function invokeToolInputLifecycleCallbacks({
+  events,
+  tools,
+  messages,
+  abortSignal,
+  toolsContext,
+  experimental_sandbox,
+}: {
+  events: ToolInputLifecycleEvent[];
+  tools: ToolSet;
+  messages: ModelMessage[];
+  abortSignal?: AbortSignal;
+  toolsContext: Record<string, Context | undefined>;
+  experimental_sandbox?: SandboxSession;
+}) {
+  for (const event of events) {
+    const tool = tools[event.toolName];
+    if (tool == null) {
+      continue;
+    }
+
+    const options = {
+      toolCallId: event.toolCallId,
+      messages,
+      abortSignal,
+      context: toolsContext[event.toolName],
+      experimental_sandbox,
+    };
+
+    switch (event.type) {
+      case 'start':
+        await tool.onInputStart?.(options);
+        break;
+      case 'delta':
+        await tool.onInputDelta?.({
+          ...options,
+          inputTextDelta: event.inputTextDelta,
+        });
+        break;
+      case 'available':
+        await tool.onInputAvailable?.({
+          ...options,
+          input: event.input,
+        });
+        break;
+    }
+  }
+}
+
 function getModelInfo(model: LanguageModel): {
   provider: string;
   modelId: string;
@@ -577,6 +644,8 @@ function buildStepResult(
       toolCallId: tc.toolCallId,
       toolName: tc.toolName,
       input: tc.input,
+      ...(tc.title != null ? { title: tc.title } : {}),
+      ...(tc.toolMetadata != null ? { toolMetadata: tc.toolMetadata } : {}),
       ...(tc.dynamic ? { dynamic: true as const } : {}),
     }));
 
