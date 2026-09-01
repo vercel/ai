@@ -28,7 +28,9 @@ import {
   type ParsedToolCall,
   type ProviderExecutedToolResult,
   type StreamFinish,
+  type ToolInputLifecycleEvent,
 } from './do-stream-step.js';
+import { resolveToolContext } from './resolve-tool-context.js';
 import { serializeToolSet } from './serializable-schema.js';
 import type {
   GenerationSettings,
@@ -338,6 +340,7 @@ export async function* streamTextIterator({
         headers: currentGenerationSettings.headers,
       } as never);
 
+      const stepInputMessages = conversationPrompt as unknown as ModelMessage[];
       const streamStepResult = await doStreamStep(
         conversationPrompt,
         currentModel,
@@ -363,8 +366,22 @@ export async function* streamTextIterator({
         hasTerminalError = true;
       }
 
-      const { toolCalls, finish, raw, providerExecutedToolResults } =
-        streamStepResult;
+      const {
+        toolCalls,
+        finish,
+        raw,
+        providerExecutedToolResults,
+        toolInputLifecycleEvents,
+      } = streamStepResult;
+      await invokeToolInputLifecycleCallbacks({
+        events: toolInputLifecycleEvents ?? [],
+        toolCalls,
+        tools: effectiveTools,
+        messages: stepInputMessages,
+        abortSignal: currentGenerationSettings.abortSignal,
+        toolsContext: currentToolsContext,
+        experimental_sandbox: stepSandbox,
+      });
       // Reconstruct the full StepResult outside the step boundary so the
       // durable event log doesn't carry StepResult's redundant copies (or the
       // per-chunk snapshot the step used to return).
@@ -525,6 +542,89 @@ export async function* streamTextIterator({
   return conversationPrompt;
 }
 
+async function invokeToolInputLifecycleCallbacks({
+  events,
+  toolCalls,
+  tools,
+  messages,
+  abortSignal,
+  toolsContext,
+  experimental_sandbox,
+}: {
+  events: ToolInputLifecycleEvent[];
+  toolCalls: ParsedToolCall[];
+  tools: ToolSet;
+  messages: ModelMessage[];
+  abortSignal?: AbortSignal;
+  toolsContext: Record<string, Context | undefined>;
+  experimental_sandbox?: SandboxSession;
+}) {
+  const toolNamesByCallId = new Map<string, string>();
+  const toolCallsById = new Map(
+    toolCalls.map(toolCall => [toolCall.toolCallId, toolCall]),
+  );
+  const resolvedContexts = new Map<string, Promise<unknown>>();
+
+  for (const event of events) {
+    const [type, toolCallId, value] = event;
+    if (type === 'start') {
+      toolNamesByCallId.set(toolCallId, value);
+    }
+
+    const toolName =
+      type === 'start' ? value : toolNamesByCallId.get(toolCallId);
+    if (toolName == null) {
+      continue;
+    }
+
+    const tool = tools[toolName];
+    if (tool == null) {
+      continue;
+    }
+
+    let resolvedContext = resolvedContexts.get(toolName);
+    if (resolvedContext == null) {
+      resolvedContext = resolveToolContext({
+        toolName,
+        tool,
+        toolsContext,
+      });
+      resolvedContexts.set(toolName, resolvedContext);
+    }
+
+    const options = {
+      toolCallId,
+      messages,
+      abortSignal,
+      context: await resolvedContext,
+      experimental_sandbox,
+    };
+
+    switch (type) {
+      case 'start':
+        await tool.onInputStart?.(options);
+        break;
+      case 'delta':
+        await tool.onInputDelta?.({
+          ...options,
+          inputTextDelta: value,
+        });
+        break;
+      case 'available': {
+        const toolCall = toolCallsById.get(toolCallId);
+        if (toolCall == null) {
+          break;
+        }
+        await tool.onInputAvailable?.({
+          ...options,
+          input: toolCall.input,
+        });
+        break;
+      }
+    }
+  }
+}
+
 function getModelInfo(model: LanguageModel): {
   provider: string;
   modelId: string;
@@ -578,6 +678,13 @@ function buildStepResult(
                 toolCallId: tc.toolCallId,
                 toolName: tc.toolName,
                 input: tc.input,
+                ...(tc.providerExecuted != null
+                  ? { providerExecuted: tc.providerExecuted }
+                  : {}),
+                ...(tc.title != null ? { title: tc.title } : {}),
+                ...(tc.toolMetadata != null
+                  ? { toolMetadata: tc.toolMetadata }
+                  : {}),
                 ...(tc.dynamic ? { dynamic: true as const } : {}),
                 ...(tc.providerExecuted ? { providerExecuted: true } : {}),
                 ...(tc.providerMetadata != null
@@ -746,6 +853,7 @@ function toAssistantToolCallContent(toolCall: {
   toolCallId: string;
   toolName: string;
   input: unknown;
+  providerExecuted?: boolean;
   providerMetadata?: unknown;
 }) {
   const sanitizedMetadata = sanitizeProviderMetadataForToolCall(
@@ -756,6 +864,9 @@ function toAssistantToolCallContent(toolCall: {
     toolCallId: toolCall.toolCallId,
     toolName: toolCall.toolName,
     input: toolCall.input,
+    ...(toolCall.providerExecuted != null
+      ? { providerExecuted: toolCall.providerExecuted }
+      : {}),
     ...(sanitizedMetadata != null
       ? {
           providerOptions: sanitizedMetadata as SharedV4ProviderOptions,
