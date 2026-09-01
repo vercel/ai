@@ -1,4 +1,7 @@
-import type { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import type {
+  LanguageModelV2Prompt,
+  SharedV2ProviderOptions,
+} from '@ai-sdk/provider';
 import { safeValidateTypes } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
@@ -76,6 +79,8 @@ const modelId = 'anthropic.claude-3-haiku-20240307-v1:0';
 const anthropicModelId = 'anthropic.claude-3-5-sonnet-20240620-v1:0'; // Define at top level
 const structuredOutputModelId = 'anthropic.claude-opus-4-5-20251101-v1:0';
 const adaptiveStructuredOutputModelId = 'anthropic.claude-opus-4-6-v1';
+const sonnet46ModelId = 'anthropic.claude-sonnet-4-6-v1';
+const haiku45ModelId = 'us.anthropic.claude-haiku-4-5-20251001-v1:0';
 const unsupportedStructuredOutputModelId =
   'anthropic.claude-sonnet-4-20250514-v1:0';
 const baseUrl = 'https://bedrock-runtime.us-east-1.amazonaws.com';
@@ -92,6 +97,12 @@ const structuredOutputGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
 )}/converse`;
 const adaptiveStructuredOutputGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   adaptiveStructuredOutputModelId,
+)}/converse`;
+const sonnet46GenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  sonnet46ModelId,
+)}/converse`;
+const haiku45GenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  haiku45ModelId,
 )}/converse`;
 const unsupportedStructuredOutputGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   unsupportedStructuredOutputModelId,
@@ -139,6 +150,8 @@ const server = createTestServer({
   [anthropicGenerateUrl]: {},
   [structuredOutputGenerateUrl]: {},
   [adaptiveStructuredOutputGenerateUrl]: {},
+  [sonnet46GenerateUrl]: {},
+  [haiku45GenerateUrl]: {},
   [unsupportedStructuredOutputGenerateUrl]: {},
   [legacyAnthropic37GenerateUrl]: {},
   [novaGenerateUrl]: {},
@@ -261,6 +274,20 @@ const adaptiveStructuredOutputModel = new BedrockChatLanguageModel(
     generateId: () => 'test-id',
   },
 );
+
+const sonnet46Model = new BedrockChatLanguageModel(sonnet46ModelId, {
+  baseUrl: () => baseUrl,
+  headers: {},
+  fetch: fakeFetchWithAuth,
+  generateId: () => 'test-id',
+});
+
+const haiku45Model = new BedrockChatLanguageModel(haiku45ModelId, {
+  baseUrl: () => baseUrl,
+  headers: {},
+  fetch: fakeFetchWithAuth,
+  generateId: () => 'test-id',
+});
 
 const unsupportedStructuredOutputModel = new BedrockChatLanguageModel(
   unsupportedStructuredOutputModelId,
@@ -2583,6 +2610,30 @@ describe('doGenerate', () => {
     };
   }
 
+  function prepareStructuredOutputJsonToolResponse(url: string) {
+    server.urls[url].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'json-tool-id',
+                  name: 'json',
+                  input: { answer: 'ok' },
+                },
+              },
+            ],
+          },
+        },
+        stopReason: 'tool_use',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+  }
+
   it('should extract text response', async () => {
     prepareJsonResponse({ content: [{ type: 'text', text: 'Hello, World!' }] });
 
@@ -3582,6 +3633,222 @@ describe('doGenerate', () => {
         },
       },
     });
+  });
+
+  it.each([
+    {
+      modelId: sonnet46ModelId,
+      model: sonnet46Model,
+      generateUrl: sonnet46GenerateUrl,
+    },
+    {
+      modelId: haiku45ModelId,
+      model: haiku45Model,
+      generateUrl: haiku45GenerateUrl,
+    },
+  ])(
+    'defaults to the json tool for $modelId when thinking is enabled',
+    async ({ model: affectedModel, generateUrl }) => {
+      prepareStructuredOutputJsonToolResponse(generateUrl);
+
+      const result = await affectedModel.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { answer: { type: 'string' } },
+            required: ['answer'],
+          },
+        },
+        providerOptions: {
+          bedrock: {
+            reasoningConfig: { type: 'enabled', budgetTokens: 1024 },
+          },
+        },
+      });
+
+      const requestBody = await server.calls.at(-1)!.requestBodyJson;
+
+      expect(requestBody.toolConfig.tools).toHaveLength(1);
+      expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('json');
+      expect(requestBody.toolConfig.toolChoice).toEqual({ any: {} });
+      expect(
+        requestBody.additionalModelRequestFields?.output_config?.format,
+      ).toBeUndefined();
+      expect(result.content).toEqual([
+        { type: 'text', text: '{"answer":"ok"}' },
+      ]);
+      expect(result.finishReason).toBe('stop');
+      expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(
+        true,
+      );
+    },
+  );
+
+  it.each([
+    {
+      providerOptionsName: 'bedrock',
+      providerOptions: {
+        bedrock: {
+          structuredOutputMode: 'jsonTool',
+          reasoningConfig: { type: 'enabled', budgetTokens: 1024 },
+        },
+      } as SharedV2ProviderOptions,
+    },
+    {
+      providerOptionsName: 'anthropic',
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: { type: 'enabled', budgetTokens: 1024 },
+        },
+        anthropic: { structuredOutputMode: 'jsonTool' },
+      } as SharedV2ProviderOptions,
+    },
+  ])(
+    'forces the json tool wire format with $providerOptionsName provider options',
+    async ({ providerOptions }) => {
+      prepareStructuredOutputJsonToolResponse(structuredOutputGenerateUrl);
+
+      const result = await structuredOutputModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { answer: { type: 'string' } },
+            required: ['answer'],
+          },
+        },
+      });
+
+      const requestBody = await server.calls.at(-1)!.requestBodyJson;
+
+      expect(requestBody.toolConfig.tools).toHaveLength(1);
+      expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('json');
+      expect(requestBody.toolConfig.toolChoice).toEqual({ any: {} });
+      expect(requestBody.structuredOutputMode).toBeUndefined();
+      expect(
+        requestBody.additionalModelRequestFields?.output_config?.format,
+      ).toBeUndefined();
+      expect(result.content).toEqual([
+        { type: 'text', text: '{"answer":"ok"}' },
+      ]);
+      expect(result.finishReason).toBe('stop');
+      expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(
+        true,
+      );
+    },
+  );
+
+  it('removes a manually supplied output_config.format in jsonTool mode while preserving sibling fields', async () => {
+    prepareStructuredOutputJsonToolResponse(structuredOutputGenerateUrl);
+
+    await structuredOutputModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          structuredOutputMode: 'jsonTool',
+          additionalModelRequestFields: {
+            output_config: {
+              effort: 'medium',
+              format: { type: 'manually-supplied-format' },
+            },
+          },
+        },
+      },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { answer: { type: 'string' } },
+          required: ['answer'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls.at(-1)!.requestBodyJson;
+
+    expect(requestBody.additionalModelRequestFields?.output_config).toEqual({
+      effort: 'medium',
+    });
+  });
+
+  it('forces output_config.format for a model that auto mode routes to the json tool', async () => {
+    server.urls[sonnet46GenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            content: [{ text: '{"answer":"ok"}' }],
+            role: 'assistant',
+          },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    await sonnet46Model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: { structuredOutputMode: 'outputFormat' },
+      },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { answer: { type: 'string' } },
+          required: ['answer'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls.at(-1)!.requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeUndefined();
+    expect(
+      requestBody.additionalModelRequestFields?.output_config?.format,
+    ).toEqual({
+      type: 'json_schema',
+      schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: { answer: { type: 'string' } },
+        required: ['answer'],
+      },
+    });
+  });
+
+  it('prefers bedrock structuredOutputMode over anthropic structuredOutputMode', async () => {
+    prepareStructuredOutputJsonToolResponse(structuredOutputGenerateUrl);
+
+    await structuredOutputModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          structuredOutputMode: 'jsonTool',
+          reasoningConfig: { type: 'enabled', budgetTokens: 1024 },
+        },
+        anthropic: { structuredOutputMode: 'outputFormat' },
+      },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { answer: { type: 'string' } },
+          required: ['answer'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls.at(-1)!.requestBodyJson;
+
+    expect(requestBody.toolConfig.toolChoice).toEqual({ any: {} });
+    expect(
+      requestBody.additionalModelRequestFields?.output_config?.format,
+    ).toBeUndefined();
   });
 
   it('does not send native structured output to an unsupported Anthropic model', async () => {
