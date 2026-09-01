@@ -1,12 +1,14 @@
 import {
   InvalidArgumentError,
-  type Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
+  type Experimental_BatchV4 as BatchV4,
   type Experimental_BatchV4Error as BatchV4Error,
   type Experimental_BatchV4ItemResult as BatchV4ItemResult,
   type Experimental_BatchV4OperationOptions as BatchV4OperationOptions,
-  type Experimental_BatchV4StartOptions as BatchV4StartOptions,
   type Experimental_BatchV4StartResult as BatchV4StartResult,
   type Experimental_BatchV4Status as BatchV4Status,
+  type Experimental_LanguageModelV4BatchRequest as LanguageModelV4BatchRequest,
+  type Experimental_TextBatchV4ItemResult as TextBatchV4ItemResult,
+  type Experimental_TextBatchV4StartOptions as TextBatchV4StartOptions,
   type LanguageModelV4Content,
   type LanguageModelV4GenerateResult,
   type SharedV4ProviderMetadata,
@@ -23,34 +25,32 @@ import {
   postFormDataToApi,
   postJsonToApi,
   safeValidateTypes,
-  WORKFLOW_DESERIALIZE,
-  WORKFLOW_SERIALIZE,
   zodSchema,
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { convertXaiChatUsage } from '../convert-xai-chat-usage';
-import { getResponseMetadata } from '../get-response-metadata';
-import { mapXaiFinishReason } from '../map-xai-finish-reason';
+import { convertXaiChatUsage } from './convert-xai-chat-usage';
+import { getResponseMetadata } from './get-response-metadata';
+import { mapXaiFinishReason } from './map-xai-finish-reason';
 import {
   xaiChatResponseSchema,
   type XaiChatResponse,
-} from '../xai-chat-language-model';
-import { xaiFailedResponseHandler } from '../xai-error';
-import { xaiFilesResponseSchema } from '../files/xai-files-api';
+} from './xai-chat-language-model';
+import { xaiFailedResponseHandler } from './xai-error';
+import { xaiFilesResponseSchema } from './files/xai-files-api';
 import {
   XaiResponsesLanguageModel,
+  xaiResponsesSupportedUrls,
   type XaiResponsesConfig,
-} from './xai-responses-language-model';
-import type { XaiResponsesModelId } from './xai-responses-language-model-options';
+} from './responses/xai-responses-language-model';
+import type { XaiResponsesModelId } from './responses/xai-responses-language-model-options';
 
 const xaiBatchEndpoint = '/v1/responses';
 const xaiBatchName = 'ai-sdk-text-batch';
 const xaiBatchResultsPageSize = 1000;
 
-type XaiBatchRequest = Parameters<
-  BatchLanguageModelV4['experimental_doStartBatch']
->[0]['requests'][number];
+type XaiBatchModelIds = { readonly text: XaiResponsesModelId };
+type XaiBatchRequest = LanguageModelV4BatchRequest<XaiResponsesModelId>;
 
 type XaiBatchPreparedRequest = {
   body: unknown;
@@ -116,18 +116,22 @@ const xaiBatchResultsPageSchema = lazySchema(() =>
   ),
 );
 
-class XaiResponsesBatch {
+export class XaiBatch implements BatchV4<XaiBatchModelIds> {
+  readonly specificationVersion = 'v4' as const;
+  readonly provider: string;
+  readonly supportedUrls = xaiResponsesSupportedUrls;
+
   constructor(
     private readonly options: {
+      provider: string;
       config: XaiResponsesConfig;
-      prepareRequest: (
-        request: XaiBatchRequest,
-      ) => PromiseLike<XaiBatchPreparedRequest>;
     },
-  ) {}
+  ) {
+    this.provider = options.provider;
+  }
 
-  async startBatch(
-    options: BatchV4StartOptions<XaiBatchRequest>,
+  async experimental_doStartBatch(
+    options: TextBatchV4StartOptions<XaiResponsesModelId>,
   ): Promise<BatchV4StartResult> {
     const fileParts: string[] = [];
     const warnings: BatchV4StartResult['warnings'] =
@@ -145,7 +149,7 @@ class XaiResponsesBatch {
           ];
 
     for (const request of options.requests) {
-      const preparedRequest = await this.options.prepareRequest(request);
+      const preparedRequest = await this.prepareRequest(request);
 
       fileParts.push(
         JSON.stringify({
@@ -207,15 +211,15 @@ class XaiResponsesBatch {
     };
   }
 
-  async getBatchStatus(
+  async experimental_doGetBatchStatus(
     options: BatchV4OperationOptions,
   ): Promise<BatchV4Status> {
     return convertXaiBatchStatus(await this.retrieveBatch(options));
   }
 
-  async getBatchResults(
+  async experimental_doGetBatchResults(
     options: BatchV4OperationOptions,
-  ): Promise<ReadableStream<BatchV4ItemResult<LanguageModelV4GenerateResult>>> {
+  ): Promise<ReadableStream<BatchV4ItemResult>> {
     const batch = await this.retrieveBatch(options);
     if (convertXaiBatchStatus(batch).status === 'pending') {
       throw new InvalidArgumentError({
@@ -249,7 +253,7 @@ class XaiResponsesBatch {
 
   private async *iterateBatchResults(
     options: BatchV4OperationOptions,
-  ): AsyncGenerator<BatchV4ItemResult<LanguageModelV4GenerateResult>> {
+  ): AsyncGenerator<BatchV4ItemResult> {
     let paginationToken: string | undefined;
 
     do {
@@ -287,7 +291,7 @@ class XaiResponsesBatch {
 
   private async convertBatchResult(
     result: XaiBatchResult,
-  ): Promise<BatchV4ItemResult<LanguageModelV4GenerateResult>> {
+  ): Promise<TextBatchV4ItemResult> {
     const error = result.batch_result?.error;
     if (
       (result.error_message?.length ?? 0) > 0 ||
@@ -296,6 +300,7 @@ class XaiResponsesBatch {
     ) {
       const convertedError = convertXaiBatchError(result);
       return {
+        type: 'text',
         id: result.batch_request_id,
         status: isXaiCancellationError(error?.code) ? 'cancelled' : 'failed',
         error: convertedError,
@@ -317,11 +322,13 @@ class XaiResponsesBatch {
       const conversion = convertXaiChatBatchResponse(validation.value);
       return conversion.success
         ? {
+            type: 'text',
             id: result.batch_request_id,
             status: 'succeeded',
             result: conversion.result,
           }
         : {
+            type: 'text',
             id: result.batch_request_id,
             status: 'failed',
             error: conversion.error,
@@ -331,51 +338,19 @@ class XaiResponsesBatch {
     return invalidXaiBatchResult(result.batch_request_id);
   }
 
+  private async prepareRequest(
+    request: XaiBatchRequest,
+  ): Promise<XaiBatchPreparedRequest> {
+    const { args: body, warnings } =
+      await XaiResponsesLanguageModel.prepareRequest({
+        modelId: request.modelId,
+        options: request.options,
+      });
+    return { body, warnings };
+  }
+
   private getUrl(path: string) {
     return `${this.options.config.baseURL ?? 'https://api.x.ai/v1'}${path}`;
-  }
-}
-
-export class XaiResponsesBatchLanguageModel
-  extends XaiResponsesLanguageModel
-  implements BatchLanguageModelV4
-{
-  private readonly batch: XaiResponsesBatch;
-
-  static [WORKFLOW_SERIALIZE](model: XaiResponsesLanguageModel) {
-    return XaiResponsesLanguageModel[WORKFLOW_SERIALIZE](model);
-  }
-
-  static [WORKFLOW_DESERIALIZE](options: {
-    modelId: XaiResponsesModelId;
-    config: XaiResponsesConfig;
-  }) {
-    return new XaiResponsesBatchLanguageModel(options.modelId, options.config);
-  }
-
-  constructor(modelId: XaiResponsesModelId, config: XaiResponsesConfig) {
-    super(modelId, config);
-    this.batch = new XaiResponsesBatch({
-      config,
-      prepareRequest: async request => {
-        const { args: body, warnings } = await this.getArgs(request.options);
-        return { body, warnings };
-      },
-    });
-  }
-
-  experimental_doStartBatch(
-    options: Parameters<BatchLanguageModelV4['experimental_doStartBatch']>[0],
-  ) {
-    return this.batch.startBatch(options);
-  }
-
-  experimental_doGetBatchStatus(options: BatchV4OperationOptions) {
-    return this.batch.getBatchStatus(options);
-  }
-
-  experimental_doGetBatchResults(options: BatchV4OperationOptions) {
-    return this.batch.getBatchResults(options);
   }
 }
 
@@ -455,10 +430,9 @@ function isXaiCancellationError(code: string | number | null | undefined) {
   );
 }
 
-function invalidXaiBatchResult(
-  id: string,
-): BatchV4ItemResult<LanguageModelV4GenerateResult> {
+function invalidXaiBatchResult(id: string): TextBatchV4ItemResult {
   return {
+    type: 'text',
     id,
     status: 'failed',
     error: {

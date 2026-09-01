@@ -22,7 +22,7 @@ run(async () => {
       },
       {
         id: 'capital-germany',
-        model: 'grok-4.5',
+        model: 'grok-4.20-non-reasoning',
         prompt: 'What is the capital of Germany?',
       },
     ],
