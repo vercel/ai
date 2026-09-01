@@ -587,11 +587,11 @@ Agents provide lifecycle callbacks for logging, observability, and custom teleme
 const agent = new WorkflowAgent({
   model: 'anthropic/claude-sonnet-4-6',
 
-  experimental_onStart({ modelId, messages }) {
-    console.log('Agent started');
+  onStart({ messages }) {
+    console.log(`Agent started with ${messages.length} messages`);
   },
 
-  experimental_onStepStart({ stepNumber }) {
+  onStepStart({ stepNumber }) {
     console.log(`Step ${stepNumber} starting`);
   },
 
@@ -612,6 +612,11 @@ const agent = new WorkflowAgent({
   },
 });
 ```
+
+The deprecated `experimental_onStart` and `experimental_onStepStart` names
+remain available for backwards compatibility. When both the stable and
+experimental name are provided in the same constructor or `stream()` call, the
+stable callback is used.
 
 ## Type Inference
 
@@ -764,7 +769,7 @@ For persistence, store `UIMessage[]` as your source of truth and call [`convertT
 
 ### Everything else
 
-Other options carry over with the same names: `prepareStep`, `onStepEnd`, `onEnd`, `onError`, `toolChoice`, `activeTools`, `timeout`, `repairToolCall`, `experimental_sandbox`, and the usual generation settings (`temperature`, `maxOutputTokens`, `topP`, …). `WorkflowAgent` additionally adds `prepareCall` (runs once before the loop) and the `experimental_onStart` / `experimental_onStepStart` / `onToolExecutionStart` / `onToolExecutionEnd` lifecycle callbacks documented above.
+Other options carry over with the same names: `prepareStep`, `onStart`, `onStepStart`, `onStepEnd`, `onEnd`, `onError`, `toolChoice`, `activeTools`, `timeout`, `repairToolCall`, `experimental_sandbox`, and the usual generation settings (`temperature`, `maxOutputTokens`, `topP`, …). `WorkflowAgent` additionally adds `prepareCall` (runs once before the loop) and the `onToolExecutionStart` / `onToolExecutionEnd` lifecycle callbacks documented above. The deprecated `experimental_onStart` and `experimental_onStepStart` aliases remain available for backwards compatibility.
 
 ## Next Steps
 

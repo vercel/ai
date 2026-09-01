@@ -17,6 +17,11 @@ To prevent that, the SDK validates every response-supplied URL before fetching
 it. This happens automatically inside the provider packages — you don't need to
 configure anything.
 
+For authenticated task-status polling, providers can construct the first URL
+from the configured API endpoint. The SDK trusts that configured origin for the
+initial request, but manually follows and validates every redirect away from it.
+MiniMax, Kling AI, and ByteDance video polling use this protected path.
+
 ## What the SDK protects against
 
 When the SDK fetches a URL taken from a provider response, it:
@@ -45,7 +50,8 @@ A blocked URL surfaces as a `DownloadError`.
 URLs that are same-origin with the provider endpoint **you configured** (e.g. a
 custom `baseURL` pointing at a self-hosted or `localhost` deployment) are
 exempt from these checks — they target exactly the host you told the SDK to
-talk to. Any redirect off that origin is still validated.
+talk to. This also applies to task-status polling. Any redirect off that origin
+is still validated before the redirected request is sent.
 
 ## DNS validation across runtimes
 

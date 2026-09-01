@@ -179,11 +179,11 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
         'Telemetry configuration with options for enabling/disabling telemetry, setting a function ID, and recording inputs/outputs.',
     },
     {
-      name: 'experimental_onStart',
+      name: 'onStart',
       type: 'WorkflowAgentOnStartCallback',
       isOptional: true,
       description:
-        'Callback called when the agent starts streaming, before any LLM calls. Receives the model, messages, runtime context, and tools context. If also specified in `stream()`, both callbacks fire (constructor first). Experimental (can break in patch releases).',
+        'Callback called when the agent starts streaming, before any LLM calls. Receives the model, messages, runtime context, and tools context. If also specified in `stream()`, both callbacks fire (constructor first). Takes precedence over `experimental_onStart` when both are provided in the constructor.',
       properties: [
         {
           type: 'GenerateTextStartEvent',
@@ -213,11 +213,18 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onStepStart',
+      name: 'experimental_onStart',
+      type: 'WorkflowAgentOnStartCallback',
+      isOptional: true,
+      description:
+        'Deprecated alias for `onStart`. Used only when `onStart` is not provided in the constructor.',
+    },
+    {
+      name: 'onStepStart',
       type: 'WorkflowAgentOnStepStartCallback',
       isOptional: true,
       description:
-        'Callback called before each step (LLM call) begins. Receives step number, model, messages, previous steps, runtime context, and tools context. If also specified in `stream()`, both callbacks fire (constructor first). Experimental (can break in patch releases).',
+        'Callback called before each step (LLM call) begins. Receives step number, model, messages, previous steps, runtime context, and tools context. If also specified in `stream()`, both callbacks fire (constructor first). Takes precedence over `experimental_onStepStart` when both are provided in the constructor.',
       properties: [
         {
           type: 'GenerateTextStepStartEvent',
@@ -251,6 +258,13 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
           ],
         },
       ],
+    },
+    {
+      name: 'experimental_onStepStart',
+      type: 'WorkflowAgentOnStepStartCallback',
+      isOptional: true,
+      description:
+        'Deprecated alias for `onStepStart`. Used only when `onStepStart` is not provided in the constructor.',
     },
     {
       name: 'onToolExecutionStart',
@@ -601,18 +615,32 @@ const result = await agent.stream({
         'Per-call prepareStep override. Receives the initial instructions and messages alongside the current step state.',
     },
     {
+      name: 'onStart',
+      type: 'WorkflowAgentOnStartCallback',
+      isOptional: true,
+      description:
+        'Per-call onStart callback. If also specified in the constructor, both fire (constructor first). Takes precedence over `experimental_onStart` when both are provided in this call.',
+    },
+    {
       name: 'experimental_onStart',
       type: 'WorkflowAgentOnStartCallback',
       isOptional: true,
       description:
-        'Per-call onStart callback. If also specified in the constructor, both fire (constructor first). Experimental.',
+        'Deprecated alias for the per-call `onStart` callback. Used only when `onStart` is not provided in this call.',
+    },
+    {
+      name: 'onStepStart',
+      type: 'WorkflowAgentOnStepStartCallback',
+      isOptional: true,
+      description:
+        'Per-call onStepStart callback. If also specified in the constructor, both fire (constructor first). Takes precedence over `experimental_onStepStart` when both are provided in this call.',
     },
     {
       name: 'experimental_onStepStart',
       type: 'WorkflowAgentOnStepStartCallback',
       isOptional: true,
       description:
-        'Per-call onStepStart callback. If also specified in the constructor, both fire (constructor first). Experimental.',
+        'Deprecated alias for the per-call `onStepStart` callback. Used only when `onStepStart` is not provided in this call.',
     },
     {
       name: 'onToolExecutionStart',

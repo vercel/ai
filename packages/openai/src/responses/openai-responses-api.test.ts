@@ -251,4 +251,24 @@ describe('openaiResponsesChunkSchema', () => {
 
     expect(result.success).toBe(false);
   });
+
+  describe.each(['response.completed', 'response.incomplete'] as const)(
+    '%s',
+    type => {
+      it.each([
+        { name: 'missing usage', response: {} },
+        {
+          name: 'null usage',
+          response: { usage: null },
+        },
+      ])('accepts responses with $name', async ({ response }) => {
+        const result = await safeValidateTypes({
+          value: { type, response },
+          schema: openaiResponsesChunkSchema,
+        });
+
+        expect(result).toMatchObject({ success: true, value: { type } });
+      });
+    },
+  );
 });

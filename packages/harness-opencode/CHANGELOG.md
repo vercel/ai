@@ -1,5 +1,19 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.100
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider-utils@5.0.35
+  - @ai-sdk/harness@1.0.98
+
+## 1.0.99
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.97
+
 ## 1.0.98
 
 ### Patch Changes

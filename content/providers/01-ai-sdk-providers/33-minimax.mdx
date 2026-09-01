@@ -162,6 +162,8 @@ const { video } = await generateVideo({
 
 Both models generate one video per call. Generation is asynchronous — the model
 creates a task and polls until it completes, then returns the resulting MP4 URL.
+Status polls trust the configured MiniMax API origin for the first request and
+validate every redirect to another origin before following it.
 
 `duration` accepts a whole number of seconds and defaults to 5. MiniMax-H3
 supports 4 to 15 seconds; MiniMax-H3-Max supports 5 to 15 seconds. A fractional

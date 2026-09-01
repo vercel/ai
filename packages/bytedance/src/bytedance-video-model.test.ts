@@ -1,4 +1,4 @@
-import type { FetchFunction } from '@ai-sdk/provider-utils';
+import { DownloadError, type FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { ByteDanceVideoModel } from './bytedance-video-model';
@@ -21,11 +21,13 @@ const defaultOptions = {
 } as const;
 
 function createBasicModel({
+  baseURL = 'https://ark.ap-southeast.bytepluses.com/api/v3',
   headers,
   fetch,
   currentDate,
   modelId = 'seedance-1-0-pro-250528',
 }: {
+  baseURL?: string;
   headers?: Record<string, string | undefined>;
   fetch?: FetchFunction;
   currentDate?: () => Date;
@@ -33,7 +35,7 @@ function createBasicModel({
 } = {}) {
   return new ByteDanceVideoModel(modelId, {
     provider: 'bytedance.video',
-    baseURL: 'https://ark.ap-southeast.bytepluses.com/api/v3',
+    baseURL,
     headers: () => headers ?? { Authorization: 'Bearer test-key' },
     fetch,
     _internal: {
@@ -1648,6 +1650,34 @@ describe('ByteDanceVideoModel', () => {
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
       });
+    });
+
+    it('should validate redirects after trusting the configured origin', async () => {
+      const calls: Array<{ url: string; init?: RequestInit }> = [];
+      const fetch: FetchFunction = async (url, init) => {
+        calls.push({ url: url.toString(), init });
+        return new Response(null, {
+          status: 302,
+          headers: {
+            Location: 'http://169.254.169.254/latest/meta-data/',
+          },
+        });
+      };
+      const model = createBasicModel({
+        baseURL: 'http://localhost:3000/api/v3',
+        fetch,
+      });
+
+      await expect(
+        model.doStatus({ operation: { taskId: 'test-task-id-123' } }),
+      ).rejects.toBeInstanceOf(DownloadError);
+
+      expect(calls).toStrictEqual([
+        {
+          url: 'http://localhost:3000/api/v3/contents/generations/tasks/test-task-id-123',
+          init: expect.objectContaining({ redirect: 'manual' }),
+        },
+      ]);
     });
   });
 });

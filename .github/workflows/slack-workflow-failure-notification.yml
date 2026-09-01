@@ -39,6 +39,6 @@ jobs:
           curl "$SLACK_WORKFLOW_FAILURE_URL" -X POST -H "Content-Type: application/json" -d "$payload"
         env:
           SLACK_WORKFLOW_FAILURE_URL: ${{ secrets.SLACK_WORKFLOW_FAILURE_URL }}
-          CHANNEL_ID: 'C050WU03V3N'
+          CHANNEL_ID: 'C0BU7R72RNW'
           WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
           WORKFLOW_URL: ${{ github.event.workflow_run.html_url }}

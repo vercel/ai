@@ -1,5 +1,22 @@
 # ai
 
+## 7.0.89
+
+### Patch Changes
+
+- 5190b67: feat(provider): extend the FilesV4 interface with optional `getFileMetadata`, `downloadFile` (streaming), and `deleteFile` operations, plus `abortSignal`/`headers` call options and a `{ type: 'stream' }` upload data variant; upload results now expose `byteSize`, `createdAt`, and `expiresAt` (also surfaced by the core `uploadFile()` helper, which now forwards `abortSignal`/`headers`); add `postMultipartStreamToApi` (streaming multipart uploads with deterministic part ordering and failure-path stream teardown), `deleteFromApi`, and `createBinaryStreamResponseHandler` to provider-utils
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+  - @ai-sdk/gateway@4.0.71
+
+## 7.0.88
+
+### Patch Changes
+
+- 8b6b756: fix(ai): prevent generateText from accepting responses that violate required tool choices
+- e07b577: feat: add tool calling support to batch
+
 ## 7.0.87
 
 ### Patch Changes

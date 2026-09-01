@@ -18,6 +18,8 @@ import {
 
 const model = 'anthropic/claude-sonnet-4-6';
 
+type IsAny<T> = 0 extends 1 & T ? true : false;
+
 describe('WorkflowAgent types', () => {
   it('infers UI message tool parts from configured tools', () => {
     const tools = {
@@ -58,6 +60,63 @@ describe('WorkflowAgent types', () => {
     });
   });
 
+  it('preserves tool and runtime context types in stop conditions', () => {
+    const tools = {
+      lookup: tool({
+        inputSchema: z.object({ query: z.string() }),
+        execute: async () => ({ count: 1 }),
+      }),
+    };
+
+    const agent = new WorkflowAgent({
+      model,
+      runtimeContext: { tenantId: 'tenant-1' },
+      tools,
+      stopWhen: ({ steps }) => {
+        const last = steps[0]!;
+        expectTypeOf<
+          IsAny<typeof last.runtimeContext>
+        >().toEqualTypeOf<false>();
+        expectTypeOf(last.runtimeContext).toEqualTypeOf<{
+          tenantId: string;
+        }>();
+
+        const toolCall = last.staticToolCalls[0]!;
+        expectTypeOf(toolCall.toolName).toEqualTypeOf<'lookup'>();
+        expectTypeOf<IsAny<typeof toolCall.input>>().toEqualTypeOf<false>();
+        expectTypeOf(toolCall.input).toEqualTypeOf<{ query: string }>();
+
+        const toolResult = last.staticToolResults[0]!;
+        expectTypeOf<IsAny<typeof toolResult.output>>().toEqualTypeOf<false>();
+        expectTypeOf(toolResult.output).toEqualTypeOf<{ count: number }>();
+        return false;
+      },
+    });
+
+    agent.stream({
+      prompt: 'Look something up.',
+      stopWhen: ({ steps }) => {
+        const last = steps[0]!;
+        expectTypeOf<
+          IsAny<typeof last.runtimeContext>
+        >().toEqualTypeOf<false>();
+        expectTypeOf(last.runtimeContext).toEqualTypeOf<{
+          tenantId: string;
+        }>();
+
+        const toolCall = last.staticToolCalls[0]!;
+        expectTypeOf(toolCall.toolName).toEqualTypeOf<'lookup'>();
+        expectTypeOf<IsAny<typeof toolCall.input>>().toEqualTypeOf<false>();
+        expectTypeOf(toolCall.input).toEqualTypeOf<{ query: string }>();
+
+        const toolResult = last.staticToolResults[0]!;
+        expectTypeOf<IsAny<typeof toolResult.output>>().toEqualTypeOf<false>();
+        expectTypeOf(toolResult.output).toEqualTypeOf<{ count: number }>();
+        return false;
+      },
+    });
+  });
+
   it('exposes experimental_sandbox in prepareStep', () => {
     new WorkflowAgent({
       model,
@@ -83,6 +142,32 @@ describe('WorkflowAgent types', () => {
     });
   });
 
+  it('restricts prepareStep activeTools to configured tool names', () => {
+    const tools = {
+      weather: tool({
+        inputSchema: z.object({ city: z.string() }),
+        execute: async () => 'sunny',
+      }),
+    };
+
+    new WorkflowAgent({
+      model,
+      tools,
+      prepareStep: () => ({
+        activeTools: ['weather'],
+      }),
+    });
+
+    new WorkflowAgent({
+      model,
+      tools,
+      // @ts-expect-error activeTools only accepts configured tool names
+      prepareStep: () => ({
+        activeTools: ['weahter'],
+      }),
+    });
+  });
+
   it('accepts stream-level instructions', () => {
     const agent = new WorkflowAgent({ model });
 
@@ -93,6 +178,37 @@ describe('WorkflowAgent types', () => {
         content: 'Be concise.',
       },
     });
+  });
+
+  it('accepts stable lifecycle callbacks in constructor and stream options', () => {
+    const constructorOptions = {
+      model,
+      runtimeContext: { userId: 'user-123' },
+      onStart: ({ runtimeContext }) => {
+        expectTypeOf(runtimeContext).toMatchObjectType<{ userId: string }>();
+      },
+      onStepStart: ({ runtimeContext, stepNumber }) => {
+        expectTypeOf(runtimeContext).toMatchObjectType<{ userId: string }>();
+        expectTypeOf(stepNumber).toEqualTypeOf<number>();
+      },
+    } satisfies WorkflowAgentOptions<Record<string, never>, { userId: string }>;
+
+    const streamOptions = {
+      prompt: 'hello',
+      onStart: ({ runtimeContext }) => {
+        expectTypeOf(runtimeContext).toMatchObjectType<{ userId: string }>();
+      },
+      onStepStart: ({ runtimeContext, stepNumber }) => {
+        expectTypeOf(runtimeContext).toMatchObjectType<{ userId: string }>();
+        expectTypeOf(stepNumber).toEqualTypeOf<number>();
+      },
+    } satisfies WorkflowAgentStreamOptions<
+      Record<string, never>,
+      { userId: string }
+    >;
+
+    const agent = new WorkflowAgent(constructorOptions);
+    agent.stream(streamOptions);
   });
 
   it('accepts tool approval secrets in constructor and stream options', () => {

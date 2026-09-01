@@ -392,7 +392,8 @@ export class ByteDanceVideoModel implements VideoModelV4 {
 
     const { value: statusResponse, responseHeaders } = await getFromApi({
       url: `${this.config.baseURL}/contents/generations/tasks/${taskId}`,
-      validateUrl: false,
+      validateUrl: true,
+      trustedOrigin: this.config.baseURL,
       headers: combineHeaders(
         await resolve(this.config.headers),
         options.headers,
