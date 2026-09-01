@@ -4,6 +4,7 @@
 '@ai-sdk/openai': patch
 '@ai-sdk/xai': patch
 '@ai-sdk/anthropic': patch
+'@ai-sdk/google': patch
 ---
 
 feat: support per-request models in batch

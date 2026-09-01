@@ -22,7 +22,6 @@ run(async () => {
       },
       {
         id: 'capital-germany',
-        model: 'gemini-3.7-flash',
         prompt: 'What is the capital of Germany?',
       },
     ],
@@ -38,7 +37,7 @@ run(async () => {
       break;
     }
 
-    await setTimeout(60_000);
+    await setTimeout(10_000);
   }
 
   for await (const item of getBatchResults({ provider, batch })) {
