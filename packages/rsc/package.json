@@ -40,7 +40,7 @@
     "ai": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "jsondiffpatch": "0.7.3"
+    "jsondiffpatch": "0.7.6"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",
