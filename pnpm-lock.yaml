@@ -8,6 +8,7 @@ overrides:
   shell-quote: 1.10.0
   tinyexec: 1.0.2
   tar: 7.5.19
+  '@vercel/sandbox@0.0.21>undici': 7.29.0
 
 importers:
 
@@ -218,8 +219,8 @@ importers:
         specifier: ^2.0.0
         version: 2.0.0
       undici:
-        specifier: ^7.21.0
-        version: 7.22.0
+        specifier: ^7.29.0
+        version: 7.29.0
       valibot:
         specifier: ^1.0.0-rc.0 || ^1.0.0
         version: 1.2.0(typescript@5.8.3)
@@ -18412,8 +18413,8 @@ packages:
     resolution: {integrity: sha512-raqeBD6NQK4SkWhQzeYKd1KmIG6dllBOTt55Rmkt4HtI9mwdWtJljnrXjAFUBLTSN67HWrOIZ3EPF4kjUw80Bg==}
     engines: {node: '>=14.0'}
 
-  undici@7.22.0:
-    resolution: {integrity: sha512-RqslV2Us5BrllB+JeiZnK4peryVTndy9Dnqq62S3yYRRTj0tFQCwEniUy2167skdGOy3vqRzEvl1Dm4sV2ReDg==}
+  undici@7.29.0:
+    resolution: {integrity: sha512-IDxfleLmmbSskfWSUATiN1nfn2rDuvnMOqb5CWR92iIfojA0Ud+ulOAAEQ57LPr9rWmsreUyf5lwyao+7GNNVw==}
     engines: {node: '>=20.18.1'}
 
   unenv@1.10.0:
@@ -28462,7 +28463,7 @@ snapshots:
       jsonlines: 0.1.1
       ms: 2.1.3
       tar-stream: 3.1.7
-      undici: 7.22.0
+      undici: 7.29.0
       zod: 3.24.4
 
   '@vitejs/plugin-basic-ssl@2.1.0(vite@7.1.11(@types/node@20.17.24)(jiti@2.6.1)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1)(tsx@4.19.2)(yaml@2.7.0))':
@@ -38861,7 +38862,7 @@ snapshots:
     dependencies:
       '@fastify/busboy': 2.1.0
 
-  undici@7.22.0: {}
+  undici@7.29.0: {}
 
   unenv@1.10.0:
     dependencies:

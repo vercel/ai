@@ -69,7 +69,8 @@
     "overrides": {
       "shell-quote": "1.10.0",
       "tinyexec": "1.0.2",
-      "tar": "7.5.19"
+      "tar": "7.5.19",
+      "@vercel/sandbox@0.0.21>undici": "7.29.0"
     }
   }
 }
