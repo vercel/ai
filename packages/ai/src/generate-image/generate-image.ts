@@ -295,7 +295,7 @@ export async function generateImage({
   logWarnings({ warnings, provider: model.provider, model: model.modelId });
 
   if (!images.length) {
-    throw new NoImageGeneratedError({ responses });
+    throw new NoImageGeneratedError({ calls, responses });
   }
 
   return new DefaultGenerateImageResult({
