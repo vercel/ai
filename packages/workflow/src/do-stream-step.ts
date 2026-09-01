@@ -2,6 +2,8 @@ import type {
   JSONObject,
   LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
+  LanguageModelV4Source,
+  SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import { isAbortError } from '@ai-sdk/provider-utils';
 import {
@@ -79,9 +81,13 @@ export interface ParsedToolCall {
   toolName: string;
   input: unknown;
   providerExecuted?: boolean;
+<<<<<<< HEAD
   providerMetadata?: Record<string, unknown>;
   title?: string;
   toolMetadata?: JSONObject;
+=======
+  providerMetadata?: SharedV4ProviderMetadata;
+>>>>>>> origin/main
   dynamic?: boolean;
   invalid?: boolean;
   error?: unknown;
@@ -97,6 +103,24 @@ export interface StreamFinish {
   providerMetadata?: Record<string, unknown>;
 }
 
+export type DoStreamStepRawContentPart =
+  | {
+      type: 'text';
+      text: string;
+      providerMetadata?: SharedV4ProviderMetadata;
+    }
+  | {
+      type: 'file';
+      data: string;
+      mediaType: string;
+      providerMetadata?: SharedV4ProviderMetadata;
+    }
+  | LanguageModelV4Source
+  | {
+      type: 'tool-call';
+      toolCallIndex: number;
+    };
+
 /**
  * Compact callback replay data. The start event establishes the tool name for
  * a call, so delta events do not repeat it and available events reuse the
@@ -111,14 +135,14 @@ export type ToolInputLifecycleEvent =
  * Minimal aggregates needed to reconstruct a `StepResult` outside the step
  * boundary. By returning only these fields (instead of a fully-populated
  * StepResult plus the raw `chunks[]` array), the durable event log doesn't
- * carry StepResult's redundant copies — `content`, the duplicate
- * `toolCalls`/`dynamicToolCalls` lists, `reasoningText`, the always-empty
- * `*ToolResults` arrays, and the per-chunk `chunks[]` snapshot the iterator
- * never reads. The caller reconstructs the full StepResult via
- * `buildStepResult`.
+ * carry StepResult's redundant derived fields — duplicate
+ * `toolCalls`/`dynamicToolCalls` lists, `text`, `files`, `sources`,
+ * `reasoningText`, the always-empty `*ToolResults` arrays, and the per-chunk
+ * `chunks[]` snapshot the iterator never reads. The caller reconstructs the
+ * full StepResult via `buildStepResult`.
  */
 export interface DoStreamStepRawResult {
-  text: string;
+  content: DoStreamStepRawContentPart[];
   reasoning: Array<{ text: string }>;
   responseMetadata?: { id?: string; timestamp?: Date; modelId?: string };
   warnings?: unknown[];
@@ -263,7 +287,8 @@ export async function doStreamStep(
   let finish: StreamFinish | undefined;
 
   // Minimal aggregation — only what buildStepResult needs outside the step.
-  let text = '';
+  const content: DoStreamStepRawContentPart[] = [];
+  const textPartIndexes = new Map<string, number>();
   const reasoningParts: Array<{ text: string }> = [];
   let responseMetadata:
     | { id?: string; timestamp?: Date; modelId?: string }
@@ -284,6 +309,7 @@ export async function doStreamStep(
 
     for await (const part of modelStream) {
       switch (part.type) {
+<<<<<<< HEAD
         case 'tool-input-start':
           ongoingToolCallToolNames.set(part.id, part.toolName);
           if (
@@ -304,15 +330,54 @@ export async function doStreamStep(
           }
           break;
         }
+=======
+        case 'text-start':
+          upsertTextContentPart({
+            content,
+            textPartIndexes,
+            id: part.id,
+            providerMetadata: part.providerMetadata,
+          });
+          break;
+>>>>>>> origin/main
         case 'text-delta':
-          text += part.text;
+          upsertTextContentPart({
+            content,
+            textPartIndexes,
+            id: part.id,
+            textDelta: part.text,
+            providerMetadata: part.providerMetadata,
+          });
+          break;
+        case 'text-end':
+          upsertTextContentPart({
+            content,
+            textPartIndexes,
+            id: part.id,
+            providerMetadata: part.providerMetadata,
+          });
+          textPartIndexes.delete(part.id);
           break;
         case 'reasoning-delta':
           reasoningParts.push({ text: part.text });
           break;
+        case 'file':
+          content.push({
+            type: 'file',
+            data: part.file.base64,
+            mediaType: part.file.mediaType,
+            ...(part.providerMetadata != null
+              ? { providerMetadata: part.providerMetadata }
+              : {}),
+          });
+          break;
+        case 'source':
+          content.push(part);
+          break;
         case 'tool-call': {
           // parseToolCall adds dynamic/invalid/error at runtime
           const toolCallPart = part as typeof part & Partial<ParsedToolCall>;
+<<<<<<< HEAD
           const lifecycleToolName = ongoingToolCallToolNames.get(
             toolCallPart.toolCallId,
           );
@@ -326,21 +391,29 @@ export async function doStreamStep(
               toolCallPart.toolCallId,
             ]);
           }
+=======
+          const toolCallIndex = toolCalls.length;
+>>>>>>> origin/main
           toolCalls.push({
             type: 'tool-call',
             toolCallId: toolCallPart.toolCallId,
             toolName: toolCallPart.toolName,
             input: toolCallPart.input,
             providerExecuted: toolCallPart.providerExecuted,
+<<<<<<< HEAD
             providerMetadata: toolCallPart.providerMetadata as
               | Record<string, unknown>
               | undefined,
             title: toolCallPart.title,
             toolMetadata: toolCallPart.toolMetadata,
+=======
+            providerMetadata: toolCallPart.providerMetadata,
+>>>>>>> origin/main
             dynamic: toolCallPart.dynamic,
             invalid: toolCallPart.invalid,
             error: toolCallPart.error,
           });
+          content.push({ type: 'tool-call', toolCallIndex });
           break;
         }
         case 'tool-result':
@@ -429,7 +502,7 @@ export async function doStreamStep(
     toolCalls,
     finish,
     raw: {
-      text,
+      content,
       reasoning: reasoningParts,
       responseMetadata,
       warnings,
@@ -443,3 +516,43 @@ export async function doStreamStep(
 // Model-call retries are handled above so the workflow runtime must not add
 // another retry layer around the durable step.
 doStreamStep.maxRetries = 0;
+
+function upsertTextContentPart({
+  content,
+  textPartIndexes,
+  id,
+  textDelta,
+  providerMetadata,
+}: {
+  content: DoStreamStepRawContentPart[];
+  textPartIndexes: Map<string, number>;
+  id: string;
+  textDelta?: string;
+  providerMetadata?: SharedV4ProviderMetadata;
+}) {
+  let partIndex = textPartIndexes.get(id);
+
+  if (partIndex == null) {
+    partIndex =
+      content.push({
+        type: 'text',
+        text: '',
+        ...(providerMetadata != null ? { providerMetadata } : {}),
+      }) - 1;
+    textPartIndexes.set(id, partIndex);
+  }
+
+  const part = content[partIndex];
+
+  if (part.type !== 'text') {
+    throw new Error(`Expected text content at index ${partIndex}.`);
+  }
+
+  if (textDelta != null) {
+    part.text += textDelta;
+  }
+
+  if (providerMetadata != null) {
+    part.providerMetadata = providerMetadata;
+  }
+}
