@@ -2385,7 +2385,18 @@ export class WorkflowAgent<
             // so useChat can show the approval UI
             if (options.writable) {
               if (allToolResults.length > 0) {
-                await writeToolResults(options.writable, allToolResults);
+                await writeToolResults(
+                  options.writable,
+                  executedResults.map(r => ({
+                    toolCallId: r.modelResult.toolCallId,
+                    toolName: r.modelResult.toolName,
+                    input: toolCalls.find(
+                      tc => tc.toolCallId === r.modelResult.toolCallId,
+                    )?.input,
+                    output: r.rawOutput,
+                    isError: r.isError,
+                  })),
+                );
               }
 
               const approvalToolCalls = pausedToolCalls.filter((_, i) => {
@@ -2510,9 +2521,9 @@ export class WorkflowAgent<
             return [];
           });
 
-          // Write tool results and step boundaries to the stream so the
-          // UI can transition tool parts to output-available state and
-          // properly separate multi-step model calls in the message history.
+          // Write tool results and step boundaries to the stream so the UI can
+          // transition tool parts to the appropriate output state and properly
+          // separate multi-step model calls in the message history.
           if (options.writable) {
             await writeToolResults(
               options.writable,
@@ -2523,6 +2534,7 @@ export class WorkflowAgent<
                   tc => tc.toolCallId === r.modelResult.toolCallId,
                 )?.input,
                 output: r.rawOutput,
+                isError: r.isError,
               })),
               true,
             );
@@ -2885,6 +2897,7 @@ async function writeToolResults(
     toolName: string;
     input: unknown;
     output: unknown;
+    isError: boolean;
   }>,
   writeStepBoundary = false,
 ) {
@@ -2892,13 +2905,23 @@ async function writeToolResults(
   const writer = writable.getWriter();
   try {
     for (const r of results) {
-      await writer.write({
-        type: 'tool-result',
-        toolCallId: r.toolCallId,
-        toolName: r.toolName,
-        input: r.input,
-        output: r.output,
-      });
+      await writer.write(
+        r.isError
+          ? {
+              type: 'tool-error',
+              toolCallId: r.toolCallId,
+              toolName: r.toolName,
+              input: r.input,
+              error: r.output,
+            }
+          : {
+              type: 'tool-result',
+              toolCallId: r.toolCallId,
+              toolName: r.toolName,
+              input: r.input,
+              output: r.output,
+            },
+      );
     }
     if (writeStepBoundary) {
       // Emit step boundaries so the UI message history properly separates
