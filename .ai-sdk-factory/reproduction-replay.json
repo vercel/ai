@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 20107,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20107-empty-error-body.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20107-empty-error-body.ts",
+    "packages/react/src/reproduction/issue-20107-empty-error-body.test.tsx",
+    "packages/svelte/src/reproduction/issue-20107-empty-error-body.svelte.test.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #20107 reproduced: empty HTTP error bodies produced blank user-visible error messages"
+  }
+}
