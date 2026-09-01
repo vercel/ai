@@ -252,6 +252,42 @@ describe('startTextBatch', () => {
     expect(result.warnings).toEqual([]);
   });
 
+  it('logs request warnings with the request model', async () => {
+    const warningLogger = vi.fn();
+    globalThis.AI_SDK_LOG_WARNINGS = warningLogger;
+    const batchApi = createMockBatchApi({
+      doStartBatch: async () => ({
+        batchId: 'batch-123',
+        status: 'pending',
+        warnings: [
+          {
+            requestId: 'request-2',
+            warning: { type: 'other', message: 'request warning' },
+          },
+        ],
+      }),
+    });
+
+    try {
+      await startTextBatch({
+        provider: batchApi,
+        model: 'default-model',
+        requests: [
+          { id: 'request-1', prompt: 'hello' },
+          { id: 'request-2', model: 'override-model', prompt: 'hello' },
+        ],
+      });
+
+      expect(warningLogger).toHaveBeenCalledWith({
+        warnings: [{ type: 'other', message: 'request warning' }],
+        provider: 'mock-provider',
+        model: 'override-model',
+      });
+    } finally {
+      delete globalThis.AI_SDK_LOG_WARNINGS;
+    }
+  });
+
   it('forwards definition-only tools without executing them', async () => {
     const execute = vi.fn(async () => ({ temperature: 20 }));
     const calls: Array<Parameters<BatchV4['doStartBatch']>[0]> = [];

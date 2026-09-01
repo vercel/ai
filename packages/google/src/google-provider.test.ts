@@ -388,6 +388,27 @@ describe('google-provider', () => {
       }),
     ).toBe(false);
   });
+
+  it('should only advertise URL support shared by all batch models', () => {
+    const batch = createGoogle({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+
+    expect(
+      isUrlSupported({
+        url: 'https://example.com/file.txt',
+        mediaType: 'text/plain',
+        supportedUrls: batch.supportedUrls as Record<string, RegExp[]>,
+      }),
+    ).toBe(false);
+    expect(
+      isUrlSupported({
+        url: 'https://generativelanguage.googleapis.com/v1beta/files/file-1',
+        mediaType: 'text/plain',
+        supportedUrls: batch.supportedUrls as Record<string, RegExp[]>,
+      }),
+    ).toBe(true);
+  });
 });
 
 describe('google provider - custom provider name', () => {

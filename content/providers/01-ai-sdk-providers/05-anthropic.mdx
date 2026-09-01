@@ -164,23 +164,28 @@ import {
 } from 'ai';
 import { setTimeout } from 'node:timers/promises';
 
-const model = anthropic('claude-haiku-4-5');
+const model = 'claude-haiku-4-5';
 
 const batch = await startTextBatch({
+  provider: anthropic,
   model,
   requests: [
     { id: 'capital-france', prompt: 'What is the capital of France?' },
-    { id: 'capital-germany', prompt: 'What is the capital of Germany?' },
+    {
+      id: 'capital-germany',
+      model: 'claude-sonnet-4-5',
+      prompt: 'What is the capital of Germany?',
+    },
   ],
 });
 
 let status = batch.status;
 while (status === 'pending') {
   await setTimeout(60_000);
-  ({ status } = await getBatchStatus({ model, batch }));
+  ({ status } = await getBatchStatus({ provider: anthropic, batch }));
 }
 
-for await (const item of getBatchResults({ model, batch })) {
+for await (const item of getBatchResults({ provider: anthropic, batch })) {
   if (item.status === 'succeeded') {
     console.log(item.id, item.text);
   } else {
@@ -193,6 +198,10 @@ for await (const item of getBatchResults({ model, batch })) {
 to check the batch status or retrieve its results from another process. Results
 can arrive in a different order from the input requests, so match each result by
 its `id`.
+
+The `model` passed to `startTextBatch` is the default for all requests. Set
+`model` on an individual request to use a different Anthropic batch model for
+that request.
 
 #### Batch Limitations
 

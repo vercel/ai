@@ -261,7 +261,10 @@ export function createGoogle(
       `ai-sdk/google/${VERSION}`,
     );
 
-  const getSupportedUrls = (modelId?: GoogleModelId) => ({
+  const getSupportedUrls = (
+    modelId?: GoogleModelId,
+    includeExternalUrls = modelId == null || supportsExternalFileUrls(modelId),
+  ) => ({
     '*': [
       googleFilesUrlPattern,
       new RegExp(`^${baseURL}/files/.*$`),
@@ -270,7 +273,7 @@ export function createGoogle(
       ),
       new RegExp(`^https://youtu\\.be/[\\w-]+(?:\\?[\\w=&.-]*)?$`),
     ],
-    ...(modelId == null || supportsExternalFileUrls(modelId)
+    ...(includeExternalUrls
       ? Object.fromEntries(
           supportedExternalUrlMediaTypes.map(mediaType => [
             mediaType,
@@ -298,7 +301,9 @@ export function createGoogle(
     new GoogleBatch({
       provider: `${providerName.replace(/\.generative-ai$/, '')}.batch`,
       config: languageModelConfig,
-      supportedUrls: getSupportedUrls(),
+      // Batch prompt conversion happens before the model is available to the
+      // provider. Only advertise URL support shared by every batch model.
+      supportedUrls: getSupportedUrls(undefined, false),
     });
 
   const createEmbeddingModel = (modelId: GoogleEmbeddingModelId) =>

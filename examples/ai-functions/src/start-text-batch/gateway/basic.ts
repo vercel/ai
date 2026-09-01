@@ -19,7 +19,6 @@ run(async () => {
       },
       {
         id: 'capital-germany',
-        model: 'openai/gpt-4.1-nano',
         prompt: 'What is the capital of Germany?',
       },
     ],

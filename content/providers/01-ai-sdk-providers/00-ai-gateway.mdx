@@ -267,17 +267,15 @@ const batchReference = {
   type: batch.type,
   id: batch.id,
   provider: batch.provider,
-  modelId: batch.modelId,
 } satisfies TextBatchReference;
 
 await completeBatchWebhookReservation(token, {
   batch: batchReference,
-  model,
   signingSecret,
 });
 ```
 
-The signing secret is returned only in the start response. Reserve the callback token before submitting the batch, then persist the secret, model, and minimal `batch` reference before the process exits. The stable `providerOptions.gateway.idempotencyKey` makes retrying an ambiguous start safe. Reuse the reserved token when retrying; do not generate a new one. Delete the reservation after a definitive start failure. While the reservation is still pending, the receiver should return a retryable response so an early delivery is sent again after setup completes.
+The signing secret is returned only in the start response. Reserve the callback token before submitting the batch, then persist the secret and minimal `batch` reference before the process exits. The stable `providerOptions.gateway.idempotencyKey` makes retrying an ambiguous start safe. Reuse the reserved token when retrying; do not generate a new one. Delete the reservation after a definitive start failure. While the reservation is still pending, the receiver should return a retryable response so an early delivery is sent again after setup completes.
 
 The receiver must verify the `x-ai-gateway-signature` header against a bounded raw request body before trusting the event:
 
@@ -340,7 +338,6 @@ export async function POST(request: Request) {
   await enqueueBatchResultFetch({
     batch: record.batch,
     deliveryId,
-    model: record.model,
   });
 
   return new Response(null, { status: 204 });
@@ -399,7 +396,11 @@ function verifySignature({
 
 The signature header has the form `t=<unix seconds>,v1=<hex digest>`, where `v1` is the HMAC-SHA256 digest of `"<t>.<raw body>"`. Verify a size-limited raw request body rather than a re-serialized object, use a timing-safe comparison, reject stale timestamps, and reject events whose `data.jobId` does not match the persisted `batch.id`.
 
-AI Gateway expects a 2xx response within 10 seconds and retries failed deliveries. It does not follow redirects, so the callback endpoint itself must return the 2xx response. Retries carry the same `x-ai-gateway-idempotency-key` value (`<jobId>-<status>`), which receivers can use for deduplication. After verification, pass the persisted model and `batch` reference to `experimental_getBatchStatus` and `experimental_getBatchResults`. Delivery is best-effort, so periodically reconcile persisted batches by status as a fallback for a notification that exhausts its retries.
+AI Gateway expects a 2xx response within 10 seconds and retries failed deliveries. It does not follow redirects, so the callback endpoint itself must return the 2xx response. Retries carry the same `x-ai-gateway-idempotency-key` value (`<jobId>-<status>`), which receivers can use for deduplication. After verification, pass the persisted `batch` reference to `experimental_getBatchStatus` and `experimental_getBatchResults`. Delivery is best-effort, so periodically reconcile persisted batches by status as a fallback for a notification that exhausts its retries.
+
+The `model` passed to `startTextBatch` is the default for all requests. AI
+Gateway currently requires every request in a batch to use the same model and
+throws before submission when request-level model overrides differ.
 
 ## Reranking Models
 

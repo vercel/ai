@@ -1084,9 +1084,10 @@ import {
 } from 'ai';
 import { setTimeout } from 'node:timers/promises';
 
-const model = google('gemini-3.6-flash');
+const model = 'gemini-3.6-flash';
 
 const batch = await startTextBatch({
+  provider: google,
   model,
   requests: [
     { id: 'capital-france', prompt: 'What is the capital of France?' },
@@ -1097,10 +1098,10 @@ const batch = await startTextBatch({
 let status = batch.status;
 while (status === 'pending') {
   await setTimeout(60_000);
-  ({ status } = await getBatchStatus({ model, batch }));
+  ({ status } = await getBatchStatus({ provider: google, batch }));
 }
 
-for await (const item of getBatchResults({ model, batch })) {
+for await (const item of getBatchResults({ provider: google, batch })) {
   if (item.status === 'succeeded') {
     console.log(item.id, item.text);
   } else {
@@ -1114,12 +1115,17 @@ to check the batch status or retrieve its results from another process. Results
 can arrive in a different order from the input requests, so match each result by
 its `id`.
 
+The `model` passed to `startTextBatch` is the default for all requests. Google
+requires every request in a batch to use the same model and throws before
+submission when request-level model overrides differ.
+
 #### Webhooks
 
 You can pass a `webhookUrl` to receive a notification when the batch reaches a terminal state:
 
 ```ts
 const batch = await startTextBatch({
+  provider: google,
   model,
   requests: [
     { id: 'capital-france', prompt: 'What is the capital of France?' },

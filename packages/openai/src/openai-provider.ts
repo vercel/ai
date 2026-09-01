@@ -326,7 +326,6 @@ export function createOpenAI(
   const createBatch = () =>
     new OpenAIBatch({
       provider: `${providerName}.batch`,
-      baseURL,
       config: {
         provider: `${providerName}.responses`,
         baseURL,

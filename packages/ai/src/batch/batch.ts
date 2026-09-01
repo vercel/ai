@@ -110,11 +110,19 @@ export async function startTextBatch<
     });
     const { batchId, warnings, ...status } = result;
 
-    logWarnings({
-      warnings: warnings.map(({ warning }) => warning),
-      provider: batchApi.provider,
-      model,
-    });
+    const modelByRequestId = new Map(
+      normalizedRequests.map(request => [request.id, request.modelId]),
+    );
+    for (const { requestId, warning } of warnings) {
+      logWarnings({
+        warnings: [warning],
+        provider: batchApi.provider,
+        model:
+          requestId == null
+            ? model
+            : (modelByRequestId.get(requestId) ?? model),
+      });
+    }
 
     return {
       version: 1,

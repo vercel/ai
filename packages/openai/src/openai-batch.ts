@@ -132,7 +132,6 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
   constructor(
     private readonly options: {
       provider: string;
-      baseURL: string;
       config: OpenAIConfig;
     },
   ) {
@@ -419,7 +418,7 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
   }
 
   private getUrl(path: string) {
-    return `${this.options.baseURL}${path}`;
+    return this.options.config.url({ path, modelId: '' });
   }
 }
 
