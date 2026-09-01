@@ -3,7 +3,7 @@ import { GatewayImageModel } from './gateway-image-model';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import type { GatewayConfig } from './gateway-config';
 
-const TEST_MODEL_ID = 'google/imagen-4.0-generate';
+const TEST_MODEL_ID = 'openai/gpt-image-1';
 
 const createTestModel = (
   config: Partial<
@@ -73,6 +73,7 @@ describe('GatewayImageModel', () => {
       warnings?: Array<
         | { type: 'unsupported'; feature: string; details?: string }
         | { type: 'compatibility'; feature: string; details?: string }
+        | { type: 'deprecated'; setting: string; message: string }
         | { type: 'other'; message: string }
       >;
       providerMetadata?: Record<string, unknown>;
@@ -286,6 +287,34 @@ describe('GatewayImageModel', () => {
     it('should return warnings when provided', async () => {
       const mockWarnings = [
         { type: 'other' as const, message: 'Setting not supported' },
+      ];
+
+      prepareJsonResponse({
+        images: ['base64-1'],
+        warnings: mockWarnings,
+      });
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.warnings).toEqual(mockWarnings);
+    });
+
+    it('should return deprecated warnings correctly', async () => {
+      const mockWarnings = [
+        {
+          type: 'deprecated' as const,
+          setting: 'size',
+          message: 'Use `aspectRatio` instead.',
+        },
       ];
 
       prepareJsonResponse({

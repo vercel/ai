@@ -165,7 +165,13 @@ Finally, you will create an API route for `api/chat` to handle the assistant's m
 
 ```tsx filename='app/api/chat/route.ts'
 import { cacheMiddleware } from '@/ai/middleware';
-import { wrapLanguageModel, streamText, tool } from 'ai';
+import {
+  wrapLanguageModel,
+  streamText,
+  tool,
+  createUIMessageStreamResponse,
+  toUIMessageStream,
+} from 'ai';
 import { z } from 'zod';
 
 const wrappedModel = wrapLanguageModel({
@@ -192,6 +198,8 @@ export async function POST(req: Request) {
       }),
     },
   });
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```

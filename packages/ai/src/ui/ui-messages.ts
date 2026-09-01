@@ -136,6 +136,11 @@ export type ReasoningUIPart = {
   type: 'reasoning';
 
   /**
+   * The reasoning part ID.
+   */
+  id?: string;
+
+  /**
    * The reasoning text.
    */
   text: string;
@@ -291,7 +296,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
 } & (
   | {
       state: 'input-streaming';
-      input: DeepPartial<asUITool<TOOL>['input']> | undefined;
+      input?: DeepPartial<asUITool<TOOL>['input']> | undefined;
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
@@ -314,8 +319,10 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval: {
         id: string;
         approved?: never;
+        requestReason?: string;
         reason?: never;
         isAutomatic?: boolean;
+        signature?: string;
       };
     }
   | {
@@ -327,8 +334,10 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval: {
         id: string;
         approved: boolean;
+        requestReason?: string;
         reason?: string;
         isAutomatic?: boolean;
+        signature?: string;
       };
     }
   | {
@@ -342,8 +351,10 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval?: {
         id: string;
         approved: true;
+        requestReason?: string;
         reason?: string;
         isAutomatic?: boolean;
+        signature?: string;
       };
     }
   | {
@@ -357,8 +368,10 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval?: {
         id: string;
         approved: true;
+        requestReason?: string;
         reason?: string;
         isAutomatic?: boolean;
+        signature?: string;
       };
     }
   | {
@@ -370,8 +383,10 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval: {
         id: string;
         approved: false;
+        requestReason?: string;
         reason?: string;
         isAutomatic?: boolean;
+        signature?: string;
       };
     }
 );
@@ -404,7 +419,7 @@ export type DynamicToolUIPart = {
 } & (
   | {
       state: 'input-streaming';
-      input: unknown | undefined;
+      input?: unknown;
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
@@ -427,8 +442,10 @@ export type DynamicToolUIPart = {
       approval: {
         id: string;
         approved?: never;
+        requestReason?: string;
         reason?: never;
         isAutomatic?: boolean;
+        signature?: string;
       };
     }
   | {
@@ -440,8 +457,10 @@ export type DynamicToolUIPart = {
       approval: {
         id: string;
         approved: boolean;
+        requestReason?: string;
         reason?: string;
         isAutomatic?: boolean;
+        signature?: string;
       };
     }
   | {
@@ -455,8 +474,10 @@ export type DynamicToolUIPart = {
       approval?: {
         id: string;
         approved: true;
+        requestReason?: string;
         reason?: string;
         isAutomatic?: boolean;
+        signature?: string;
       };
     }
   | {
@@ -469,8 +490,10 @@ export type DynamicToolUIPart = {
       approval?: {
         id: string;
         approved: true;
+        requestReason?: string;
         reason?: string;
         isAutomatic?: boolean;
+        signature?: string;
       };
     }
   | {
@@ -482,8 +505,10 @@ export type DynamicToolUIPart = {
       approval: {
         id: string;
         approved: false;
+        requestReason?: string;
         reason?: string;
         isAutomatic?: boolean;
+        signature?: string;
       };
     }
 );

@@ -1,6 +1,6 @@
 import { tool, type ToolSet } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import type { Callback } from '../util/callback';
 import type {
   GenerateTextEndEvent,
@@ -49,6 +49,9 @@ describe('createRestrictedTelemetryDispatcher types', () => {
     expectTypeOf(telemetryDispatcher.onStepStart).toMatchTypeOf<
       | Callback<GenerateTextStepStartEvent<ToolSet, RuntimeContext, Output>>
       | undefined
+    >();
+    expectTypeOf(telemetryDispatcher.onStepEnd).toMatchTypeOf<
+      Callback<GenerateTextStepEndEvent<ToolSet, RuntimeContext>> | undefined
     >();
     expectTypeOf(telemetryDispatcher.onStepFinish).toMatchTypeOf<
       Callback<GenerateTextStepEndEvent<ToolSet, RuntimeContext>> | undefined

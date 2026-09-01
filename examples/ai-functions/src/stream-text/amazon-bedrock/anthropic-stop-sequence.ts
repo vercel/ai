@@ -10,7 +10,7 @@ run(async () => {
     stopSequences: ['5'],
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'text-delta':
         process.stdout.write(part.text);

@@ -20,7 +20,7 @@ Function tools and dynamic tools contain several core elements:
 
 The `tools` parameter of `generateText` and `streamText` is an object that has the tool names as keys and the tools as values:
 
-```ts highlight="6-17"
+```ts highlight="7-18"
 import { z } from 'zod';
 import { generateText, tool, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
@@ -63,7 +63,7 @@ model for each generation step. It receives the matching tool `context` from
 `toolsContext` and the current `experimental_sandbox`, if one was provided. If `prepareStep`
 updates `toolsContext` or `experimental_sandbox`, the next step uses those updated values.
 
-```ts highlight="6-14,28-33"
+```ts highlight="5-16,32-35"
 import { generateText, tool } from 'ai';
 import { z } from 'zod';
 
@@ -88,7 +88,7 @@ const shell = tool({
       throw new Error('Experimental sandbox is not available');
     }
 
-    return experimental_sandbox.runCommand({ command });
+    return experimental_sandbox.run({ command });
   },
 });
 
@@ -169,7 +169,7 @@ The older `needsApproval` property on `tool()` definitions is deprecated. Existi
 
 ### Configure `toolApproval`
 
-```ts highlight="8-10"
+```ts highlight="4-6"
 const result = await generateText({
   model: __MODEL__,
   tools: { runCommand },
@@ -188,14 +188,15 @@ string or as an object with a `type` field:
 - `'denied'`: record an automatic denial by emitting approval request/response parts in the output, then surface a denied tool output
 - `'user-approval'`: emit an approval request and wait for an explicit response
 
-For automatic approvals and denials, you can also return an object to include a
-reason:
+Object statuses can also include a reason. For automatic approvals and denials,
+the reason is emitted on the approval response. For manual approval, the reason
+is emitted on the approval request so it can be shown to the approver:
 
 ```ts
 toolApproval: {
   runCommand: {
-    type: 'denied',
-    reason: 'blocked by policy',
+    type: 'user-approval',
+    reason: 'filesystem changes require operator review',
   },
 }
 ```
@@ -285,6 +286,7 @@ for (const part of result.content) {
   if (part.type === 'tool-approval-request' && !part.isAutomatic) {
     console.log(part.approvalId); // Unique ID for this approval request
     console.log(part.toolCall); // Contains toolName, input, etc.
+    console.log(part.reason); // Why this tool call requires approval
   }
 }
 ```
@@ -413,7 +415,7 @@ In the following example, there are two steps:
    1. The tool result is sent to the model.
    1. The model generates a response considering the tool result.
 
-```ts highlight="18-19"
+```ts highlight="19-20"
 import { z } from 'zod';
 import { generateText, tool, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
@@ -442,12 +444,12 @@ const { text, steps } = await generateText({
 ### Steps
 
 To access intermediate tool calls and results, you can use the `steps` property in the result object
-or the `streamText` `onFinish` callback.
+or the `streamText` `onEnd` callback.
 It contains all the text, tool calls, tool results, per-step `performance`, and more from each step.
 
 #### Example: Extract tool results from all steps
 
-```ts highlight="3,9-10"
+```ts highlight="4,10-11"
 import { generateText } from 'ai';
 __PROVIDER_IMPORT__;
 
@@ -461,9 +463,9 @@ const { steps } = await generateText({
 const allToolCalls = steps.flatMap(step => step.toolCalls);
 ```
 
-### `onStepFinish` callback
+### `onStepEnd` callback
 
-When using `generateText` or `streamText`, you can provide an `onStepFinish` callback that
+When using `generateText` or `streamText`, you can provide an `onStepEnd` callback that
 is triggered when a step is finished,
 i.e. all text deltas, tool calls, and tool results for the step are available.
 When you have multiple steps, the callback is triggered for each step.
@@ -475,7 +477,7 @@ import { generateText } from 'ai';
 
 const result = await generateText({
   // ...
-  onStepFinish({
+  onStepEnd({
     stepNumber,
     text,
     toolCalls,
@@ -643,7 +645,7 @@ especially if you are using multi-step tool calls.
 
 Both `generateText` and `streamText` have a `responseMessages` property that you can use to
 add the assistant and tool messages to your conversation history.
-It is also available in the `onFinish` callback of `streamText`.
+It is also available in the `onEnd` callback of `streamText`.
 
 The `responseMessages` property contains the accumulated response messages from the call as an array of `ModelMessage` objects that you can add to your conversation history:
 
@@ -708,7 +710,7 @@ const result = await generateText({
       /* ... */
     }),
   },
-  onStepFinish: ({ toolCalls, toolResults }) => {
+  onStepEnd: ({ toolCalls, toolResults }) => {
     // Type-safe iteration
     for (const toolCall of toolCalls) {
       if (toolCall.dynamic) {
@@ -772,7 +774,7 @@ It supports the following settings:
 - `none`: the model must not call tools
 - `{ type: 'tool', toolName: string (typed) }`: the model must call the specified tool
 
-```ts highlight="18"
+```ts highlight="19"
 import { z } from 'zod';
 import { generateText, tool } from 'ai';
 __PROVIDER_IMPORT__;
@@ -805,12 +807,13 @@ When tools are called, they receive additional options as a second parameter.
 The ID of the tool call is forwarded to the tool execution.
 You can use it e.g. when sending tool-call related information with stream data.
 
-```ts highlight="14-20"
+```ts highlight="15-21"
 import {
   streamText,
   tool,
   createUIMessageStream,
   createUIMessageStreamResponse,
+  toUIMessageStream,
 } from 'ai';
 
 export async function POST(req: Request) {
@@ -840,7 +843,7 @@ export async function POST(req: Request) {
         },
       });
 
-      writer.merge(result.toUIMessageStream());
+      writer.merge(toUIMessageStream({ stream: result.stream }));
     },
   });
 
@@ -876,7 +879,7 @@ const result = await generateText({
 The abort signals from `generateText` and `streamText` are forwarded to the tool execution.
 You can access them in the second parameter of the `execute` function and e.g. abort long-running computations or forward them to fetch calls inside tools.
 
-```ts highlight="6,11,14"
+```ts highlight="7,12,15"
 import { z } from 'zod';
 import { generateText, tool } from 'ai';
 __PROVIDER_IMPORT__;
@@ -911,7 +914,7 @@ call when a tool needs to run commands or code in an execution environment. The 
 </Note>
 
 Tool code still runs wherever your application runs. Only the operations that your tool explicitly delegates to
-the experimental sandbox, such as `experimental_sandbox.runCommand(...)`,
+the experimental sandbox, such as `experimental_sandbox.run(...)`,
 run in the experimental sandbox environment.
 
 ```ts highlight="7-15,21"
@@ -934,7 +937,7 @@ const result = await generateText({
           throw new Error('Experimental sandbox is not available');
         }
 
-        return experimental_sandbox.runCommand({
+        return experimental_sandbox.run({
           command,
           workingDirectory,
           abortSignal,
@@ -950,14 +953,15 @@ const result = await generateText({
 The experimental sandbox description is not added to the model prompt automatically. If the model should know about details such as the root directory, exposed ports, or public hostname, include `experimental_sandbox.description` in your system prompt,
 instructions, user-visible context, or a tool description function.
 
-`runCommand` also accepts an optional `workingDirectory` and `abortSignal`.
+`run` also accepts an optional `workingDirectory`, `env`, and `abortSignal`.
 Use `workingDirectory` when a tool needs to run a command from a directory other
-than the experimental sandbox implementation's default working directory. Forward
+than the experimental sandbox implementation's default working directory. Use `env`
+to set environment variables for the command. Forward
 `abortSignal` from the tool execution options so the experimental sandbox can cancel the command if the overall operation is aborted or times out.
 
 The AI SDK forwards your experimental sandbox object but does not create or isolate one for you.
 
-The `Experimental_Sandbox` interface is only a contract. Its isolation guarantees depend on your implementation or experimental sandbox provider. A local implementation that uses
+The `Experimental_SandboxSession` interface is only a contract. Its isolation guarantees depend on your implementation or experimental sandbox provider. A local implementation that uses
 `child_process.exec` with a working directory is not a security boundary because
 commands can still access paths outside that directory. For untrusted commands
 or user-directed coding agents, use a real isolation provider, restrict
@@ -1041,11 +1045,11 @@ The following tool input lifecycle hooks are available:
 - **`onInputDelta`**: Called for each chunk of text as the input is streamed
 - **`onInputAvailable`**: Called when the complete input is available and validated
 
-`onInputStart` and `onInputDelta` are only called in streaming contexts (when using `streamText`). They are not called when using `generateText`.
+`onInputStart` is always called before `onInputAvailable`, including when using `generateText`. `onInputDelta` is only called in streaming contexts (when using `streamText`).
 
 ### Example
 
-```ts highlight="15-23"
+```ts highlight="16-24"
 import { streamText, tool } from 'ai';
 __PROVIDER_IMPORT__;
 import { z } from 'zod';
@@ -1178,33 +1182,32 @@ toolErrors.forEach(toolError => {
 
 ### `streamText`
 
-`streamText` sends errors as part of the full stream. Tool execution errors appear as `tool-error` parts, while other errors appear as `error` parts.
+`streamText` sends errors as part of the `stream` result. Tool execution errors appear as `tool-error` parts, while other errors appear as `error` parts.
 
-When using `toUIMessageStreamResponse`, you can pass an `onError` function to extract the error message from the error part and forward it as part of the stream response:
+When using `toUIMessageStream`, you can pass an `onError` function to extract the error message from the error part and forward it as part of the stream response:
 
 ```ts
 const result = streamText({
   // ...
 });
 
-return result.toUIMessageStreamResponse({
-  onError: error => {
-    if (NoSuchToolError.isInstance(error)) {
-      return 'The model tried to call a unknown tool.';
-    } else if (InvalidToolInputError.isInstance(error)) {
-      return 'The model called a tool with invalid inputs.';
-    } else {
-      return 'An unknown error occurred.';
-    }
-  },
+return createUIMessageStreamResponse({
+  stream: toUIMessageStream({
+    stream: result.stream,
+    onError: error => {
+      if (NoSuchToolError.isInstance(error)) {
+        return 'The model tried to call a unknown tool.';
+      } else if (InvalidToolInputError.isInstance(error)) {
+        return 'The model called a tool with invalid inputs.';
+      } else {
+        return 'An unknown error occurred.';
+      }
+    },
+  }),
 });
 ```
 
 ## Tool Call Repair
-
-<Note type="warning">
-  The tool call repair feature is experimental and may change in the future.
-</Note>
 
 Language models sometimes fail to generate valid tool calls,
 especially when the input schema is complex or the model is smaller.
@@ -1214,7 +1217,7 @@ in the next step to give it an opportunity to fix it.
 However, you may want to control how invalid tool calls are repaired without requiring
 additional steps that pollute the message history.
 
-You can use the `experimental_repairToolCall` function to attempt to repair the tool call
+You can use the `repairToolCall` function to attempt to repair the tool call
 with a custom function.
 
 You can use different strategies to repair the tool call:
@@ -1234,12 +1237,7 @@ const result = await generateText({
   tools,
   prompt,
 
-  experimental_repairToolCall: async ({
-    toolCall,
-    tools,
-    inputSchema,
-    error,
-  }) => {
+  repairToolCall: async ({ toolCall, tools, inputSchema, error }) => {
     if (NoSuchToolError.isInstance(error)) {
       return null; // do not attempt to fix invalid tool names
     }
@@ -1275,7 +1273,7 @@ const result = await generateText({
   tools,
   prompt,
 
-  experimental_repairToolCall: async ({
+  repairToolCall: async ({
     toolCall,
     tools,
     error,
@@ -1338,7 +1336,7 @@ the AI SDK provides the `activeTools` property.
 It is an array of tool names that are currently active.
 By default, the value is `undefined` and all tools are active.
 
-```ts highlight="7"
+```ts highlight="8"
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 __PROVIDER_IMPORT__;
@@ -1349,6 +1347,36 @@ const { text } = await generateText({
   activeTools: ['firstTool'],
 });
 ```
+
+## Tool Order
+
+Some providers include tool definitions in the cached portion of a request.
+If the order of those definitions changes between otherwise similar requests,
+the provider may not be able to reuse the cached prefix as effectively.
+
+Use `toolOrder` when you want a stable provider request shape for caching or
+debugging. The list can be partial: tools listed in `toolOrder` are sent first
+in that order, and any remaining tools are sent afterwards in alphabetical
+order. Tool names are typed from your `tools` object.
+
+```ts highlight="7"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
+
+const { text } = await generateText({
+  model: __MODEL__,
+  tools: myToolSet,
+  toolOrder: ['search', 'readFile'],
+  prompt: 'Summarize the latest project notes.',
+});
+```
+
+`toolOrder` controls only the order of tool definitions sent to the provider.
+It does not force the model to call a tool. Use [`toolChoice`](#tool-choice) to
+control tool selection, and use [`activeTools`](#active-tools) when you want to
+limit which tools are available. When both `activeTools` and `toolOrder` are
+provided, `activeTools` filters the available tools first and `toolOrder`
+orders the remaining tools.
 
 ## Multi-modal Tool Results
 
@@ -1371,7 +1399,7 @@ that converts the tool result into a content part.
 
 Here is an example for converting a screenshot into a content part:
 
-```ts highlight="22-27"
+```ts highlight="23-38"
 const result = await generateText({
   model: __MODEL__,
   tools: {

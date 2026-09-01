@@ -16,7 +16,7 @@ run(async () => {
       }),
     },
     stopWhen: isStepCount(5),
-    onFinish({ responseMessages }) {
+    onEnd({ responseMessages }) {
       console.log(JSON.stringify(responseMessages, null, 2));
     },
     prompt: 'What is the current weather in San Francisco?',

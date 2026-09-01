@@ -1,6 +1,12 @@
 import { openai } from '@ai-sdk/openai';
 import { splitMCPAppTools } from '@ai-sdk/mcp';
-import { convertToModelMessages, isStepCount, streamText } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  isStepCount,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 import { createLocalMCPAppsClient } from '../mcp-client';
 
 function logModelStep(event: {
@@ -43,18 +49,20 @@ export async function POST(req: Request) {
       stopWhen: isStepCount(5),
       messages: modelMessages,
       onStepFinish: logModelStep,
-      onFinish: async event => {
+      onEnd: async event => {
         console.log('[mcp-apps/chat] model finish', {
           finishReason: event.finishReason,
           text: event.text,
-          totalUsage: event.totalUsage,
+          totalUsage: event.usage,
           stepCount: event.steps.length,
         });
         await client.close();
       },
     });
 
-    return result.toUIMessageStreamResponse();
+    return createUIMessageStreamResponse({
+      stream: toUIMessageStream({ stream: result.stream }),
+    });
   } catch (error) {
     await client.close();
     console.error(error);

@@ -3,7 +3,7 @@ import { isAbortError } from './is-abort-error';
 
 const FETCH_FAILED_ERROR_MESSAGES = ['fetch failed', 'failed to fetch'];
 
-const BUN_ERROR_CODES = [
+const RETRYABLE_NETWORK_ERROR_CODES = new Set([
   'ConnectionRefused',
   'ConnectionClosed',
   'FailedToOpenSocket',
@@ -11,19 +11,33 @@ const BUN_ERROR_CODES = [
   'ECONNREFUSED',
   'ETIMEDOUT',
   'EPIPE',
-];
+  'UND_ERR_SOCKET',
+  'UND_ERR_HEADERS_TIMEOUT',
+  'UND_ERR_BODY_TIMEOUT',
+  'UND_ERR_CONNECT_TIMEOUT',
+]);
 
-function isBunNetworkError(error: unknown): error is Error & { code?: string } {
-  if (!(error instanceof Error)) {
-    return false;
+function findNetworkError(
+  error: unknown,
+): (Error & { code?: unknown }) | undefined {
+  const visited = new Set<Error>();
+  let current = error;
+
+  while (current instanceof Error && !visited.has(current)) {
+    visited.add(current);
+
+    const errorWithCode = current as Error & { code?: unknown };
+    if (
+      typeof errorWithCode.code === 'string' &&
+      RETRYABLE_NETWORK_ERROR_CODES.has(errorWithCode.code)
+    ) {
+      return errorWithCode;
+    }
+
+    current = (current as Error & { cause?: unknown }).cause;
   }
 
-  const code = (error as any).code;
-  if (typeof code === 'string' && BUN_ERROR_CODES.includes(code)) {
-    return true;
-  }
-
-  return false;
+  return undefined;
 }
 
 export function handleFetchError({
@@ -58,9 +72,27 @@ export function handleFetchError({
     }
   }
 
-  if (isBunNetworkError(error)) {
+  const networkError = findNetworkError(error);
+
+  if (networkError != null) {
+    if (APICallError.isInstance(error)) {
+      return new APICallError({
+        message: error.message,
+        cause: error.cause,
+        url: error.url,
+        requestBodyValues: error.requestBodyValues,
+        statusCode: error.statusCode,
+        responseHeaders: error.responseHeaders,
+        responseBody: error.responseBody,
+        data: error.data,
+        isRetryable: true,
+      });
+    }
+
     return new APICallError({
-      message: `Cannot connect to API: ${error.message}`,
+      message: `Cannot connect to API: ${
+        error instanceof Error ? error.message : networkError.message
+      }`,
       cause: error,
       url,
       requestBodyValues,

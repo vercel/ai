@@ -2,7 +2,9 @@ import { openai } from '@ai-sdk/openai';
 import {
   consumeStream,
   convertToModelMessages,
+  createUIMessageStreamResponse,
   streamText,
+  toUIMessageStream,
   type UIMessage,
 } from 'ai';
 export const maxDuration = 30;
@@ -16,12 +18,15 @@ export async function POST(req: Request) {
     abortSignal: req.signal,
   });
 
-  return result.toUIMessageStreamResponse({
-    onFinish: async ({ isAborted }) => {
-      if (isAborted) {
-        console.log('Aborted');
-      }
-    },
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      onFinish: async ({ isAborted }) => {
+        if (isAborted) {
+          console.log('Aborted');
+        }
+      },
+    }),
     consumeSseStream: consumeStream, // needed for correct abort handling
   });
 }

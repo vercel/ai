@@ -1,8 +1,8 @@
 import {
   InvalidArgumentError,
   NoSuchModelError,
+  type Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
   type FilesV4,
-  type LanguageModelV4,
   type ProviderV4,
   type SkillsV4,
 } from '@ai-sdk/provider';
@@ -10,31 +10,45 @@ import {
   generateId,
   loadApiKey,
   loadOptionalSetting,
+  validateBaseURL,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { AnthropicFiles } from './anthropic-files';
-import { AnthropicLanguageModel } from './anthropic-language-model';
+import { AnthropicMessagesBatchLanguageModel } from './anthropic-messages-batch';
 import type { AnthropicModelId } from './anthropic-language-model-options';
 import { anthropicTools } from './anthropic-tools';
 import { AnthropicSkills } from './skills/anthropic-skills';
 import { VERSION } from './version';
 
+const ANTHROPIC_API_URL = 'https://api.anthropic.com';
+const ANTHROPIC_API_VERSIONED_URL = `${ANTHROPIC_API_URL}/v1`;
+
+function normalizeBaseURL(baseURL: string | undefined): string | undefined {
+  const baseURLWithoutTrailingSlash = withoutTrailingSlash(
+    validateBaseURL(baseURL),
+  );
+
+  return baseURLWithoutTrailingSlash === ANTHROPIC_API_URL
+    ? ANTHROPIC_API_VERSIONED_URL
+    : baseURLWithoutTrailingSlash;
+}
+
 export interface AnthropicProvider extends ProviderV4 {
   /**
    * Creates a model for text generation.
    */
-  (modelId: AnthropicModelId): LanguageModelV4;
+  (modelId: AnthropicModelId): BatchLanguageModelV4;
 
   /**
    * Creates a model for text generation.
    */
-  languageModel(modelId: AnthropicModelId): LanguageModelV4;
+  languageModel(modelId: AnthropicModelId): BatchLanguageModelV4;
 
-  chat(modelId: AnthropicModelId): LanguageModelV4;
+  chat(modelId: AnthropicModelId): BatchLanguageModelV4;
 
-  messages(modelId: AnthropicModelId): LanguageModelV4;
+  messages(modelId: AnthropicModelId): BatchLanguageModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -102,12 +116,12 @@ export function createAnthropic(
   options: AnthropicProviderSettings = {},
 ): AnthropicProvider {
   const baseURL =
-    withoutTrailingSlash(
+    normalizeBaseURL(
       loadOptionalSetting({
         settingValue: options.baseURL,
         environmentVariableName: 'ANTHROPIC_BASE_URL',
       }),
-    ) ?? 'https://api.anthropic.com/v1';
+    ) ?? ANTHROPIC_API_VERSIONED_URL;
 
   const providerName = options.name ?? 'anthropic.messages';
 
@@ -142,7 +156,7 @@ export function createAnthropic(
   };
 
   const createChatModel = (modelId: AnthropicModelId) =>
-    new AnthropicLanguageModel(modelId, {
+    new AnthropicMessagesBatchLanguageModel(modelId, {
       provider: providerName,
       baseURL,
       headers: getHeaders,

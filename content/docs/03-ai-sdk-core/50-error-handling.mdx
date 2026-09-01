@@ -9,7 +9,7 @@ description: Learn how to handle errors in the AI SDK Core
 
 Regular errors are thrown and can be handled using the `try/catch` block.
 
-```ts highlight="3,8-10"
+```ts highlight="4,9-11"
 import { generateText } from 'ai';
 __PROVIDER_IMPORT__;
 
@@ -31,7 +31,7 @@ When errors occur during streams that do not support error chunks,
 the error is thrown as a regular error.
 You can handle these errors using the `try/catch` block.
 
-```ts highlight="3,12-14"
+```ts highlight="4,13-15"
 import { streamText } from 'ai';
 __PROVIDER_IMPORT__;
 
@@ -51,28 +51,36 @@ try {
 
 ## Handling streaming errors (streaming with `error` support)
 
-Full streams support error parts.
+The `stream` result supports error parts.
 You can handle those parts similar to other parts.
 It is recommended to also add a try-catch block for errors that
 happen outside of the streaming.
 
-```ts highlight="13-21"
-import { streamText } from 'ai';
+```ts highlight="14-22"
+import { StreamProviderError, streamText } from 'ai';
 __PROVIDER_IMPORT__;
 
 try {
-  const { fullStream } = streamText({
+  const { stream } = streamText({
     model: __MODEL__,
     prompt: 'Write a vegetarian lasagna recipe for 4 people.',
   });
 
-  for await (const part of fullStream) {
+  for await (const part of stream) {
     switch (part.type) {
       // ... handle other part types
 
       case 'error': {
         const error = part.error;
-        // handle error
+
+        if (StreamProviderError.isInstance(error)) {
+          console.error(error.message, {
+            type: error.type,
+            code: error.code,
+            statusCode: error.statusCode,
+            isRetryable: error.isRetryable,
+          });
+        }
         break;
       }
 
@@ -93,13 +101,20 @@ try {
 }
 ```
 
+Well-formed provider error events that arrive after streaming starts are
+normalized into [`StreamProviderError`](/docs/reference/ai-sdk-errors/ai-stream-provider-error)
+instances. The same instance is supplied to callbacks such as `onError` and to
+the `error` part in the full stream. The SDK does not automatically restart a
+partially consumed stream; use `isRetryable` to implement application-managed
+retries and decide how to handle any partial output.
+
 ## Handling stream aborts
 
 When streams are aborted (e.g., via chat stop button), you may want to perform cleanup operations like updating stored messages in your UI. Use the `onAbort` callback to handle these cases.
 
-The `onAbort` callback is called when a stream is aborted via `AbortSignal`, but `onFinish` is not called. This ensures you can still update your UI state appropriately.
+The `onAbort` callback is called when a stream is aborted via `AbortSignal`, but `onEnd` is not called. This ensures you can still update your UI state appropriately.
 
-```ts highlight="5-9"
+```ts highlight="6-10"
 import { streamText } from 'ai';
 __PROVIDER_IMPORT__;
 
@@ -110,7 +125,7 @@ const { textStream } = streamText({
     // Update stored messages or perform cleanup
     console.log('Stream aborted after', steps.length, 'steps');
   },
-  onFinish: ({ steps, totalUsage }) => {
+  onEnd: ({ steps, totalUsage }) => {
     // This is called on normal completion
     console.log('Stream completed normally');
   },
@@ -127,16 +142,16 @@ The `onAbort` callback receives:
 
 You can also handle abort events directly in the stream:
 
-```ts highlight="10-13"
+```ts highlight="11-14"
 import { streamText } from 'ai';
 __PROVIDER_IMPORT__;
 
-const { fullStream } = streamText({
+const { stream } = streamText({
   model: __MODEL__,
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 
-for await (const chunk of fullStream) {
+for await (const chunk of stream) {
   switch (chunk.type) {
     case 'abort': {
       // Handle abort directly in stream

@@ -38,6 +38,7 @@
   - Non-experimental types must NEVER include references to experimental types (e.g., do not add a reference to something like `Experimental_VideoModelV4` to `ProviderV4`).
   - Experimental features must remain fully isolated until they are promoted to stable.
   - Adding a new experimental feature requires broad consensus between the maintainers. Use it with caution. Do not use experimental code as a way out when you're unsure about stability.
+  - Confine the prefix to the import and export seams: declare symbols with their unprefixed names and apply the `Experimental_*` / `experimental_*` alias only where they cross a package boundary. See `naming-conventions.md` for the exact pattern.
 
 - **Clear, accurate naming.** When in doubt, prefer longer, more explicit names that are unambiguous and correct (e.g. `.languageModel(id)` over `.chat(id)`).
   - Optimize for clarity for both developers and coding agents, not brevity.

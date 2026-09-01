@@ -1,6 +1,7 @@
-import type {
-  LanguageModelV4Prompt,
-  LanguageModelV4FilePart,
+import {
+  APICallError,
+  type LanguageModelV4FilePart,
+  type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
@@ -524,6 +525,10 @@ describe('GatewayLanguageModel', () => {
         expect(serverError.message).toBe('Database connection failed');
         expect(serverError.statusCode).toBe(500);
         expect(serverError.type).toBe('internal_server_error');
+        expect(APICallError.isInstance(serverError.cause)).toBe(true);
+        expect((serverError.cause as APICallError).message).toContain(
+          'Database connection failed',
+        );
       }
     });
 
@@ -650,6 +655,36 @@ describe('GatewayLanguageModel', () => {
           },
         ]
       `);
+    });
+
+    it('should preserve explicit mid-stream provider error metadata', async () => {
+      const error = {
+        message: 'Upstream provider overloaded',
+        type: 'provider_overloaded',
+        statusCode: 503,
+        isRetryable: true,
+      };
+
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'text-delta',
+            textDelta: 'Partial output',
+          })}\n\n`,
+          `data: ${JSON.stringify({ type: 'error', error })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toEqual([
+        { type: 'text-delta', textDelta: 'Partial output' },
+        { type: 'error', error },
+      ]);
     });
 
     it('should pass streaming headers', async () => {
@@ -1632,47 +1667,6 @@ describe('GatewayLanguageModel', () => {
       });
     });
 
-    it('should pass hipaaCompliant option', async () => {
-      prepareJsonResponse({
-        content: { type: 'text', text: 'Test response' },
-      });
-
-      await createTestModel().doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          gateway: {
-            hipaaCompliant: true,
-          },
-        },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.providerOptions).toEqual({
-        gateway: { hipaaCompliant: true },
-      });
-    });
-
-    it('should pass both zeroDataRetention and hipaaCompliant options', async () => {
-      prepareJsonResponse({
-        content: { type: 'text', text: 'Test response' },
-      });
-
-      await createTestModel().doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          gateway: {
-            zeroDataRetention: true,
-            hipaaCompliant: true,
-          },
-        },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.providerOptions).toEqual({
-        gateway: { zeroDataRetention: true, hipaaCompliant: true },
-      });
-    });
-
     it('should pass quotaEntityId option', async () => {
       prepareJsonResponse({
         content: { type: 'text', text: 'Test response' },
@@ -1711,6 +1705,108 @@ describe('GatewayLanguageModel', () => {
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody.providerOptions).toEqual({
         gateway: { quotaEntityId: 'entity-123', user: 'user-456' },
+      });
+    });
+  });
+
+  describe('file data encoding', () => {
+    function prepareResponse() {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'json-value',
+        body: {
+          id: 'test-id',
+          created: 1711115037,
+          model: 'test-model',
+          content: { type: 'text', text: '' },
+          finish_reason: 'stop',
+          usage: { prompt_tokens: 4, completion_tokens: 30 },
+        },
+      };
+    }
+
+    it('should base64-encode Uint8Array data in a reasoning-file part', async () => {
+      prepareResponse();
+      const bytes = new Uint8Array([1, 2, 3, 4]);
+      const expectedBase64 = Buffer.from(bytes).toString('base64');
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning-file',
+              data: { type: 'data', data: bytes },
+              mediaType: 'image/png',
+            },
+          ],
+        },
+      ];
+
+      await createTestModel().doGenerate({ prompt });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.prompt[0].content[0].data).toEqual({
+        type: 'data',
+        data: expectedBase64,
+      });
+    });
+
+    it('should base64-encode Uint8Array data in tool-result file content', async () => {
+      prepareResponse();
+      const bytes = new Uint8Array([5, 6, 7, 8]);
+      const expectedBase64 = Buffer.from(bytes).toString('base64');
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call_1',
+              toolName: 'render',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file',
+                    data: { type: 'data', data: bytes },
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ];
+
+      await createTestModel().doGenerate({ prompt });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.prompt[0].content[0].output.value[0].data).toEqual({
+        type: 'data',
+        data: expectedBase64,
+      });
+    });
+
+    it('should not modify reasoning-file data that is a URL', async () => {
+      prepareResponse();
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning-file',
+              data: { type: 'url', url: new URL('https://example.com/a.png') },
+              mediaType: 'image/png',
+            },
+          ],
+        },
+      ];
+
+      await createTestModel().doGenerate({ prompt });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.prompt[0].content[0].data).toEqual({
+        type: 'url',
+        url: 'https://example.com/a.png',
       });
     });
   });

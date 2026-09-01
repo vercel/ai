@@ -20,10 +20,7 @@ import useSWR from 'swr';
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
 
-export type Experimental_UseObjectOptions<
-  SCHEMA extends FlexibleSchema,
-  RESULT,
-> = {
+export type UseObjectOptions<SCHEMA extends FlexibleSchema, RESULT> = {
   /**
    * The API endpoint. It should stream JSON that matches the schema as chunked text.
    */
@@ -88,7 +85,7 @@ export type Experimental_UseObjectOptions<
   credentials?: RequestCredentials;
 };
 
-export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
+export type UseObjectHelpers<RESULT, INPUT> = {
   /**
    * Calls the API with the provided input as JSON body.
    */
@@ -120,7 +117,7 @@ export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
   clear: () => void;
 };
 
-function useObject<
+export function useObject<
   SCHEMA extends FlexibleSchema,
   RESULT = InferSchema<SCHEMA>,
   INPUT = any,
@@ -134,17 +131,14 @@ function useObject<
   onFinish,
   headers,
   credentials,
-}: Experimental_UseObjectOptions<
-  SCHEMA,
-  RESULT
->): Experimental_UseObjectHelpers<RESULT, INPUT> {
+}: UseObjectOptions<SCHEMA, RESULT>): UseObjectHelpers<RESULT, INPUT> {
   // Generate an unique id if not provided.
   const hookId = useId();
   const completionId = id ?? hookId;
 
   // Store the completion state in SWR, using the completionId as the key to share states.
   const { data, mutate } = useSWR<DeepPartial<RESULT>>(
-    [api, completionId],
+    [completionId, 'object'],
     null,
     { fallbackData: initialValue },
   );
@@ -270,5 +264,3 @@ function useObject<
     clear,
   };
 }
-
-export const experimental_useObject = useObject;

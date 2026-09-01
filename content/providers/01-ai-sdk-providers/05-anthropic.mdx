@@ -11,21 +11,7 @@ The [Anthropic](https://www.anthropic.com/) provider contains language model sup
 
 The Anthropic provider is available in the `@ai-sdk/anthropic` module. You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab>
-    <Snippet text="pnpm add @ai-sdk/anthropic" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install @ai-sdk/anthropic" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add @ai-sdk/anthropic" dark />
-  </Tab>
-
-  <Tab>
-    <Snippet text="bun add @ai-sdk/anthropic" dark />
-  </Tab>
-</Tabs>
+<InstallPackages packages="@ai-sdk/anthropic" />
 
 ## Provider Instance
 
@@ -158,6 +144,66 @@ The following optional provider options are available for Anthropic models:
   Optional. Metadata to include with the request. See the [Anthropic API documentation](https://platform.claude.com/docs/en/api/messages/create) for details.
   - `userId` _string_ - An external identifier for the end-user. Should be a UUID, hash, or other opaque identifier. Must not contain PII.
 
+### Text Batches
+
+<Note type="warning">
+  Text batch support is experimental and the API may change in patch releases.
+</Note>
+
+Anthropic language models support asynchronous text generation through the
+[Message Batches API](https://platform.claude.com/docs/en/build-with-claude/batch-processing).
+Use the experimental text batch APIs to start a batch, poll its status, and
+stream its results:
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import {
+  experimental_getBatchResults as getBatchResults,
+  experimental_getBatchStatus as getBatchStatus,
+  experimental_startTextBatch as startTextBatch,
+} from 'ai';
+import { setTimeout } from 'node:timers/promises';
+
+const model = anthropic('claude-haiku-4-5');
+
+const batch = await startTextBatch({
+  model,
+  requests: [
+    { id: 'capital-france', prompt: 'What is the capital of France?' },
+    { id: 'capital-germany', prompt: 'What is the capital of Germany?' },
+  ],
+});
+
+let status = batch.status;
+while (status === 'pending') {
+  await setTimeout(60_000);
+  ({ status } = await getBatchStatus({ model, batch }));
+}
+
+for await (const item of getBatchResults({ model, batch })) {
+  if (item.status === 'succeeded') {
+    console.log(item.id, item.text);
+  } else {
+    console.error(item.id, item.error);
+  }
+}
+```
+
+`startTextBatch` returns a serializable batch reference. Persist this reference
+to check the batch status or retrieve its results from another process. Results
+can arrive in a different order from the input requests, so match each result by
+its `id`.
+
+#### Batch Limitations
+
+<Note>
+  Anthropic Message Batches do not support the `speed` option or completion
+  webhooks. Explicit `anthropicBeta` values must be configured when starting the
+  batch rather than on an individual request. When you provide a `webhookUrl`,
+  the provider returns an unsupported warning and starts the batch without a
+  webhook.
+</Note>
+
 ### Structured Outputs and Tool Input Streaming
 
 Tool call streaming is enabled by default. You can opt out by setting the
@@ -189,7 +235,9 @@ const result = streamText({
 
 ### Effort
 
-Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT). `claude-opus-4-7` additionally supports `xhigh` for maximum reasoning effort.
+Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT). `claude-opus-4-7`, `claude-opus-4-8`, `claude-opus-5`, `claude-fable-5`, and `claude-sonnet-5` additionally support `xhigh` for maximum reasoning effort.
+
+On `claude-opus-5`, thinking can only be disabled at effort levels up to and including `high`. When you combine `thinking: { type: 'disabled' }` with `effort: 'xhigh'` or `effort: 'max'`, the AI SDK lowers the effort to `high` and emits a warning instead of sending a request that the API would reject.
 
 ```ts highlight="8-10"
 import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
@@ -241,7 +289,7 @@ import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: anthropic('claude-opus-4-7'),
+  model: anthropic('claude-opus-4-8'),
   prompt: 'Research the pros and cons of Rust vs Go for building CLI tools.',
   providerOptions: {
     anthropic: {
@@ -290,6 +338,83 @@ const { text } = await generateText({
 ```
 
 The `inferenceGeo` option accepts `'us'` (US-only infrastructure) or `'global'` (default, any available geography).
+
+### Safety Classifiers and Fallbacks
+
+Claude Fable 5 has safeguards that limit its performance in certain areas like cybersecurity, biology, and chemistry, and automated safety checks are run on every request.
+
+When one of these checks blocks a request, the API does not answer it. Instead it returns a classifier block: a `200` response with a `refusal` stop reason and an optional `stop_details` object describing the category that triggered the block. The AI SDK surfaces this as a `content-filter` finish reason, with the details available on `providerMetadata.anthropic.stopDetails`.
+
+A classifier block looks like this:
+
+```json
+{
+  "type": "message",
+  "model": "claude-fable-5",
+  "content": [],
+  "stop_reason": "refusal",
+  "stop_details": {
+    "type": "refusal",
+    "category": "cyber",
+    "explanation": "This request triggered restrictions on violative cyber content and was blocked under Anthropic's Usage Policy."
+  }
+}
+```
+
+Branch on the finish reason rather than on the presence of `stop_details` — the API may return a refusal with no details at all.
+
+To avoid receiving a classifier block, pass the `fallbacks` option. When the primary model's classifiers block a turn, the API automatically retries it server-side on a fallback model and returns that model's answer. The required beta header is added for you.
+
+The recommended configuration is `fallbacks: 'default'`, which lets the API route the retry to Anthropic's recommended fallback model based on the refusal category and removes the need to migrate when a fallback model is deprecated:
+
+```ts highlight="8-10"
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: anthropic('claude-fable-5'),
+  prompt: 'Explain the history of cryptography.',
+  providerOptions: {
+    anthropic: {
+      fallbacks: 'default',
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+```
+
+You can also pin an explicit fallback chain:
+
+```ts highlight="8-10"
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: anthropic('claude-fable-5'),
+  prompt: 'Explain the history of cryptography.',
+  providerOptions: {
+    anthropic: {
+      fallbacks: [{ model: 'claude-fable-5' }],
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+```
+
+Each fallback entry requires a `model` and may additionally override `max_tokens`, `thinking`, `output_config`, and `speed` for that attempt only.
+
+When a fallback serves the turn, it is recorded in the per-model usage breakdown (`usage.iterations`) as a `fallback_message` entry. The AI SDK exposes this breakdown on `providerMetadata.anthropic.iterations`, so you can detect whether a fallback ran:
+
+```ts
+// set up `result` with a `streamText` call passing `fallbacks` as shown
+// above, then consume the stream
+
+const { iterations } =
+  (await result.finalStep).providerMetadata?.anthropic ?? {};
+const servedByFallback = iterations?.some(
+  iteration => iteration.type === 'fallback_message',
+);
+
+console.log('Served by fallback:', servedByFallback);
+```
 
 ### Reasoning
 
@@ -340,7 +465,7 @@ Starting with `claude-opus-4-7`, thinking content is omitted from the response b
 
 ```ts highlight="5"
 const { text, reasoningText } = await generateText({
-  model: anthropic('claude-opus-4-7'),
+  model: anthropic('claude-opus-4-8'),
   providerOptions: {
     anthropic: {
       thinking: { type: 'adaptive', display: 'summarized' },
@@ -382,6 +507,11 @@ console.log(reasoningText); // reasoning text
 console.log(reasoning); // reasoning details including redacted reasoning
 console.log(text); // text response
 ```
+
+Anthropic's `max_tokens` limit includes both thinking and final text. To reserve
+room for both, the provider adds `budgetTokens` to `maxOutputTokens` when
+setting `max_tokens`. For known models, the combined value is capped at the
+model's maximum output token limit.
 
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
 on how to integrate reasoning into your chatbot.
@@ -506,7 +636,7 @@ When compaction occurs, the model generates a summary of the earlier context. Th
 When using `streamText`, you can detect compaction summaries by checking the `providerMetadata` on `text-start` events:
 
 ```ts
-for await (const part of result.fullStream) {
+for await (const part of result.stream) {
   switch (part.type) {
     case 'text-start': {
       const isCompaction =
@@ -732,13 +862,13 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { generateText, isStepCount } from 'ai';
 
 const result = await generateText({
-  model: anthropic('claude-opus-4-7'),
+  model: anthropic('claude-opus-4-8'),
   tools: {
     bash: anthropic.tools.bash_20250124(),
   },
   experimental_sandbox: {
     description: 'A sandboxed shell environment.',
-    runCommand: async ({ command }) => {
+    run: async ({ command }) => {
       // Run the command in your sandbox and return the result.
       return {
         exitCode: 0,
@@ -989,13 +1119,15 @@ import { generateText } from 'ai';
 
 const result = await generateText({
   model: anthropic('claude-sonnet-4-6'),
-  system: 'You have access to an `advisor` tool backed by a stronger reviewer model.'
+  instructions:
+    'You have access to an `advisor` tool backed by a stronger reviewer model.',
   prompt:
     'Build a concurrent worker pool in Go with graceful shutdown. Outline the design first.',
   tools: {
     advisor: anthropic.tools.advisor_20260301({
-      model: 'claude-opus-4-7',
+      model: 'claude-opus-4-8',
       maxUses: 3,
+      maxTokens: 2048,
     }),
   },
 });
@@ -1012,11 +1144,15 @@ The advisor tool supports the following configuration options:
 
 - **model** _string_
 
-  Required. The advisor model ID, such as `claude-opus-4-7`. The advisor model must be at least as capable as the executor model.
+  Required. The advisor model ID, such as `claude-opus-4-8`. The advisor model must be at least as capable as the executor model.
 
 - **maxUses** _number_
 
   Optional. Maximum number of advisor calls allowed in a single request. Once the executor reaches this cap, further advisor calls return an `advisor_tool_result_error` with `errorCode: 'max_uses_exceeded'`, and the executor continues without further advice.
+
+- **maxTokens** _number_
+
+  Optional. Maximum number of tokens the advisor can generate per call, including thinking and text. The minimum is `1024`, and Anthropic recommends starting with `2048`. This limit applies independently to each advisor call and is separate from the request-level `maxOutputTokens`, which controls executor output. Values above the selected advisor model's output limit result in an Anthropic `400` error. When configured, successful advisor results include `stopReason`; check for `stopReason === 'max_tokens'` to detect truncated advice. The field is available on both plaintext and redacted advisor result variants and is preserved across follow-up turns.
 
 - **caching** _object_
 
@@ -1142,6 +1278,61 @@ const result = await generateText({
 ```
 
 This sends `tool_reference` blocks to Anthropic, which loads the corresponding deferred tool schemas into Claude's context.
+
+### Mid-Conversation Tool Changes
+
+With `claude-opus-4-8`, you can add or remove tools between turns of a conversation without invalidating the prompt cache. Attach `toolChanges` to a system message that appears mid-conversation (right before an assistant message or at the end of the messages). The required `mid-conversation-tool-changes-2026-07-01` beta header is added automatically.
+
+Tools referenced by a `tool_addition` must be declared in the `tools` option — typically with `deferLoading: true`, so they are not loaded into context until the addition surfaces them. A `tool_removal` removes a previously available tool from the conversation going forward.
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: anthropic('claude-opus-4-8'),
+  // required for system messages inside `messages`:
+  allowSystemInMessages: true,
+  tools: {
+    get_weather: tool({
+      description: 'Get weather',
+      inputSchema: z.object({ city: z.string() }),
+    }),
+    get_forecast: tool({
+      description: 'Get 5-day forecast',
+      inputSchema: z.object({ city: z.string() }),
+      providerOptions: {
+        // declared up front but not loaded until a tool_addition surfaces it
+        anthropic: { deferLoading: true },
+      },
+    }),
+  },
+  messages: [
+    { role: 'user', content: 'What tools do you have for weather in Paris?' },
+    {
+      role: 'system',
+      content: '',
+      providerOptions: {
+        anthropic: {
+          toolChanges: [
+            { type: 'tool_addition', toolName: 'get_forecast' },
+            { type: 'tool_removal', toolName: 'get_weather' },
+          ],
+        },
+      },
+    },
+  ],
+});
+```
+
+To change a tool's definition, remove the old definition at the end of one request, then carry the conversation forward with the updated definition in `tools` on the next request.
+
+<Note>
+  Tool changes are not supported on the initial system message. The AI SDK
+  ignores them there and emits a warning — configure the initial tool set via
+  the `tools` option instead.
+</Note>
 
 ### MCP Connectors
 
@@ -1276,6 +1467,48 @@ const result = await generateText({
   file operations), and `codeExecution_20250522` (supports Bash only).
 </Note>
 
+#### Uploading Files for Code Execution
+
+You can upload files via the [Files API](https://docs.anthropic.com/en/docs/build-with-claude/files) and make them available inside the code execution sandbox. First upload the file, then reference it in your message using `containerUpload: true` in the provider options:
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText, uploadFile } from 'ai';
+import * as fs from 'fs';
+
+const { providerReference } = await uploadFile({
+  api: anthropic.files(),
+  data: fs.readFileSync('./data.csv'),
+  filename: 'data.csv',
+  mediaType: 'text/csv',
+});
+
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  tools: {
+    code_execution: anthropic.tools.codeExecution_20250825(),
+  },
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Analyze this CSV data' },
+        {
+          type: 'file',
+          mediaType: 'text/csv',
+          data: { type: 'reference', reference: providerReference },
+          providerOptions: {
+            anthropic: { containerUpload: true },
+          },
+        },
+      ],
+    },
+  ],
+});
+```
+
+Supported file types include CSV, Excel, JSON, XML, images (JPEG, PNG, GIF, WebP), and text files.
+
 #### Error Handling
 
 Code execution errors are handled differently depending on whether you're using streaming or non-streaming:
@@ -1403,7 +1636,7 @@ To use skills, you need to:
 1. Enable the code execution tool
 2. Specify the container with skills in `providerOptions`
 
-```ts highlight="4,9-17,19-23"
+```ts highlight="6-8,10-23"
 import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
@@ -1433,7 +1666,7 @@ const result = await generateText({
 
 You can also use custom skills by specifying `type: 'custom'`:
 
-```ts highlight="9-11"
+```ts highlight="11-15"
 const result = await generateText({
   model: anthropic('claude-sonnet-4-5'),
   tools: {
@@ -1523,17 +1756,21 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 ### Model Capabilities
 
-| Model               | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          | Tool Search         | Compaction          |
-| ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `claude-opus-4-7`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-opus-4-6`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-sonnet-4-6` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
-| `claude-opus-4-5`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
-| `claude-haiku-4-5`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
-| `claude-sonnet-4-5` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
-| `claude-opus-4-1`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
-| `claude-opus-4-0`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
-| `claude-sonnet-4-0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| Model               | Image Input | Object Generation | Tool Usage | Computer Use | Web Search | Tool Search | Compaction |
+| ------------------- | ----------- | ----------------- | ---------- | ------------ | ---------- | ----------- | ---------- |
+| `claude-opus-5`     | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-sonnet-5`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-fable-5`    | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-opus-4-8`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-opus-4-7`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-opus-4-6`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-sonnet-4-6` | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   |            |
+| `claude-opus-4-5`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   |            |
+| `claude-haiku-4-5`  | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  |             |            |
+| `claude-sonnet-4-5` | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   |            |
+| `claude-opus-4-1`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  |             |            |
+| `claude-opus-4-0`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  |             |            |
+| `claude-sonnet-4-0` | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  |             |            |
 
 <Note>
   The table above lists popular models. Please see the [Anthropic

@@ -9,18 +9,18 @@ import { prepareHeaders } from '../util/prepare-headers';
  * @param options.status - Optional HTTP status code (default: 200).
  * @param options.statusText - Optional HTTP status text.
  * @param options.headers - Optional response headers.
- * @param options.textStream - The text stream to send.
+ * @param options.stream - The text stream to send.
  * @returns A Response object with the text stream body.
  */
 export function createTextStreamResponse({
   status,
   statusText,
   headers,
-  textStream,
+  stream,
 }: ResponseInit & {
-  textStream: ReadableStream<string>;
+  stream: ReadableStream<string>;
 }): Response {
-  return new Response(textStream.pipeThrough(new TextEncoderStream()), {
+  return new Response(stream.pipeThrough(new TextEncoderStream()), {
     status: status ?? 200,
     statusText,
     headers: prepareHeaders(headers, {

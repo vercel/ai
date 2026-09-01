@@ -17,7 +17,7 @@ run(async () => {
   let inReasoning = false;
   let inText = false;
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     if (part.type === 'reasoning-delta') {
       if (!inReasoning) {
         console.log('Reasoning:');

@@ -5,6 +5,7 @@ import {
   createUIMessageStream,
   convertToModelMessages,
   isStepCount,
+  toUIMessageStream,
 } from 'ai';
 import { processToolCalls } from './utils';
 import { tools } from './tools';
@@ -47,7 +48,10 @@ export async function POST(req: Request) {
       });
 
       writer.merge(
-        result.toUIMessageStream({ originalMessages: processedMessages }),
+        toUIMessageStream({
+          stream: result.stream,
+          originalMessages: processedMessages,
+        }),
       );
     },
     onStepFinish: ({ messages, responseMessage }) => {

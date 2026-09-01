@@ -20,6 +20,7 @@ export type TogetherAIChatModelId =
   | 'databricks/dbrx-instruct'
   | 'deepseek-ai/deepseek-llm-67b-chat'
   | 'deepseek-ai/DeepSeek-V3'
+  | 'deepseek-ai/DeepSeek-V4-Flash-0731'
   | 'google/gemma-2b-it'
   | 'Gryphe/MythoMax-L2-13b'
   | 'meta-llama/Llama-2-13b-chat-hf'

@@ -8,20 +8,34 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { generateKlingAIAuthToken } from './klingai-auth';
+import { resolveKlingAIAuthToken } from './klingai-auth';
 import { KlingAIVideoModel } from './klingai-video-model';
 import type { KlingAIVideoModelId } from './klingai-video-settings';
 import { VERSION } from './version';
 
 export interface KlingAIProviderSettings {
   /**
+   * KlingAI API key. Default value is taken from the `KLINGAI_API_KEY`
+   * environment variable.
+   *
+   * This is the recommended way to authenticate. When set, it takes precedence
+   * over the legacy `accessKey` / `secretKey` pair.
+   */
+  apiKey?: string;
+  /**
    * KlingAI Access key. Default value is taken from the `KLINGAI_ACCESS_KEY`
    * environment variable.
+   *
+   * Legacy authentication. Used together with `secretKey` to sign a short-lived
+   * JWT. Prefer `apiKey` instead.
    */
   accessKey?: string;
   /**
    * KlingAI Secret key. Default value is taken from the `KLINGAI_SECRET_KEY`
    * environment variable.
+   *
+   * Legacy authentication. Used together with `accessKey` to sign a short-lived
+   * JWT. Prefer `apiKey` instead.
    */
   secretKey?: string;
   /**
@@ -63,7 +77,8 @@ export function createKlingAI(
     withoutTrailingSlash(options.baseURL ?? defaultBaseURL) ?? defaultBaseURL;
 
   const getHeaders = async () => {
-    const token = await generateKlingAIAuthToken({
+    const token = await resolveKlingAIAuthToken({
+      apiKey: options.apiKey,
       accessKey: options.accessKey,
       secretKey: options.secretKey,
     });
