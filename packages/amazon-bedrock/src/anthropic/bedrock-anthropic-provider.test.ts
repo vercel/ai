@@ -78,6 +78,14 @@ describe('bedrock-anthropic-provider', () => {
   });
 
   it.each([
+    'anthropic.claude-haiku-4-5-20251001-v1:0',
+    'us.anthropic.claude-haiku-4-5-20251001-v1:0',
+    'eu.anthropic.claude-haiku-4-5-20251001-v1:0',
+    'global.anthropic.claude-haiku-4-5-20251001-v1:0',
+    'anthropic.claude-sonnet-4-6-v1',
+    'us.anthropic.claude-sonnet-4-6-v1',
+    'eu.anthropic.claude-sonnet-4-6-v1',
+    'global.anthropic.claude-sonnet-4-6-v1',
     'anthropic.claude-opus-4-7',
     'us.anthropic.claude-opus-4-7',
     'eu.anthropic.claude-opus-4-7',
@@ -93,24 +101,21 @@ describe('bedrock-anthropic-provider', () => {
     'anthropic.claude-sonnet-5',
     'us.anthropic.claude-sonnet-5',
     'eu.anthropic.claude-sonnet-5',
-  ])(
-    'should disable native structured output for %s (Bedrock rejects output_config.format)',
-    modelId => {
-      const provider = createBedrockAnthropic({
-        region: 'us-east-1',
-        accessKeyId: 'test-key',
-        secretAccessKey: 'test-secret',
-      });
-      provider(modelId as Parameters<typeof provider>[0]);
+  ])('should disable native structured output for %s', modelId => {
+    const provider = createBedrockAnthropic({
+      region: 'us-east-1',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+    });
+    provider(modelId as Parameters<typeof provider>[0]);
 
-      expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
-        modelId,
-        expect.objectContaining({
-          supportsNativeStructuredOutput: false,
-        }),
-      );
-    },
-  );
+    expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
+      modelId,
+      expect.objectContaining({
+        supportsNativeStructuredOutput: false,
+      }),
+    );
+  });
 
   it.each([
     'anthropic.claude-opus-4-7',
@@ -148,7 +153,7 @@ describe('bedrock-anthropic-provider', () => {
   );
 
   it.each([
-    'anthropic.claude-sonnet-4-6',
+    'anthropic.claude-sonnet-4-6-v1',
     'us.anthropic.claude-haiku-4-5-20251001-v1:0',
   ])('should keep strict tools enabled for %s', modelId => {
     const provider = createBedrockAnthropic({

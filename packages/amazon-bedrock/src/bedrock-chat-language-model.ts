@@ -63,6 +63,7 @@ type BedrockChatConfig = {
 
 const anthropicProviderOptions = z.object({
   disableParallelToolUse: z.boolean().optional(),
+  structuredOutputMode: z.enum(['outputFormat', 'jsonTool', 'auto']).optional(),
 });
 
 export class BedrockChatLanguageModel implements LanguageModelV3 {
@@ -177,14 +178,52 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     const { supportsStructuredOutput: modelSupportsStructuredOutput } =
       getModelCapabilities(this.modelId);
 
+    const structuredOutputMode =
+      bedrockOptions.structuredOutputMode ??
+      anthropicOptions?.structuredOutputMode ??
+      'auto';
+
+    if (structuredOutputMode === 'jsonTool') {
+      const additionalModelRequestFields = {
+        ...bedrockOptions.additionalModelRequestFields,
+      };
+      const outputConfig = additionalModelRequestFields.output_config;
+
+      if (
+        outputConfig != null &&
+        typeof outputConfig === 'object' &&
+        !Array.isArray(outputConfig)
+      ) {
+        const outputConfigWithoutFormat = { ...outputConfig };
+        delete outputConfigWithoutFormat.format;
+
+        if (Object.keys(outputConfigWithoutFormat).length > 0) {
+          additionalModelRequestFields.output_config =
+            outputConfigWithoutFormat;
+        } else {
+          delete additionalModelRequestFields.output_config;
+        }
+
+        bedrockOptions.additionalModelRequestFields =
+          additionalModelRequestFields;
+      }
+    }
+
+    const modelSupportsNativeStructuredOutput =
+      supportsNativeStructuredOutput(this.modelId) &&
+      (modelSupportsStructuredOutput || isThinkingEnabled);
+
     const useNativeStructuredOutput =
       isAnthropicModel &&
-      supportsNativeStructuredOutput(this.modelId) &&
-      (modelSupportsStructuredOutput || isThinkingEnabled) &&
       responseFormat?.type === 'json' &&
-      responseFormat.schema != null;
+      responseFormat.schema != null &&
+      (structuredOutputMode === 'outputFormat' ||
+        (structuredOutputMode === 'auto' &&
+          modelSupportsNativeStructuredOutput));
 
     const useJsonInstructionForStructuredOutput =
+      !useNativeStructuredOutput &&
+      structuredOutputMode !== 'jsonTool' &&
       isAnthropicModel &&
       !supportsStrictTools(this.modelId) &&
       responseFormat?.type === 'json' &&
@@ -438,6 +477,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       reasoningConfig: _,
       additionalModelRequestFields: __,
       serviceTier: ___,
+      structuredOutputMode: ____,
       ...filteredBedrockOptions
     } = providerOptions?.bedrock || {};
 

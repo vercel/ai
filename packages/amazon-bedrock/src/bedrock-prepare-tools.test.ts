@@ -366,6 +366,27 @@ describe('prepareTools', () => {
       ]);
     });
 
+    it.each([
+      'anthropic.claude-sonnet-4-6-v1',
+      'us.anthropic.claude-haiku-4-5-20251001-v1:0',
+    ])('should keep strict mode enabled for %s', async modelId => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: true,
+          },
+        ],
+        modelId,
+      });
+
+      expect((result.toolConfig.tools![0] as any).toolSpec.strict).toBe(true);
+      expect(result.toolWarnings).toEqual([]);
+    });
+
     it('should pass through strict mode when strict is false', async () => {
       const result = await prepareTools({
         tools: [
