@@ -61,6 +61,10 @@ type BedrockChatConfig = {
   generateId: () => string;
 };
 
+function isJsonResponseToolName(name: string): boolean {
+  return name === 'json' || name === 'json<|channel|>commentary';
+}
+
 const anthropicProviderOptions = z.object({
   disableParallelToolUse: z.boolean().optional(),
   structuredOutputMode: z.enum(['outputFormat', 'jsonTool', 'auto']).optional(),
@@ -612,7 +616,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       // tool calls
       if (part.toolUse) {
         const isJsonResponseTool =
-          usesJsonResponseTool && part.toolUse.name === 'json';
+          usesJsonResponseTool && isJsonResponseToolName(part.toolUse.name);
 
         if (isJsonResponseTool) {
           isJsonResponseFromTool = true;
@@ -1070,7 +1074,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
               const toolUse = contentBlockStart.start.toolUse;
               const blockIndex = contentBlockStart.contentBlockIndex!;
               const isJsonResponseTool =
-                usesJsonResponseTool && toolUse.name === 'json';
+                usesJsonResponseTool && isJsonResponseToolName(toolUse.name);
 
               const normalizedToolCallId = normalizeToolCallId(
                 toolUse.toolUseId!,
