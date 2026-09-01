@@ -25,6 +25,7 @@ export type AnthropicMessagesModelId =
   | 'claude-opus-4-8'
   | 'claude-opus-5'
   | 'claude-fable-5'
+  | 'claude-fable-5-1'
   | 'claude-sonnet-5'
   | (string & {});
 
@@ -69,6 +70,21 @@ export type AnthropicFilePartProviderOptions = z.infer<
  */
 export const anthropicSystemMessageProviderOptions = z.object({
   /**
+   * Controls when a mid-conversation system message is cleared.
+   *
+   * The value is forwarded to Anthropic as `clear_at`. The required
+   * `mid-conversation-system-clear-at-2026-08-21` beta is added automatically.
+   */
+  clearAt: z.literal('next_user_message').optional(),
+
+  /**
+   * Overrides the effort for the turn following this mid-conversation system
+   * message. The required `mid-conversation-effort-2026-08-01` beta is added
+   * automatically.
+   */
+  effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
+
+  /**
    * Mid-conversation tool changes. Adds or removes tools from the
    * conversation's tool set between turns without invalidating the prompt
    * cache.
@@ -102,6 +118,15 @@ export type AnthropicSystemMessageProviderOptions = z.infer<
   typeof anthropicSystemMessageProviderOptions
 >;
 
+const anthropicThinkingBlockBinding = z.object({
+  /**
+   * Controls behavior when a replayed thinking block does not match its
+   * conversation prefix. The `drop_block` behavior drops the mismatched block
+   * instead of returning an invalid signature error.
+   */
+  prefixMismatchBehavior: z.literal('drop_block'),
+});
+
 export const anthropicProviderOptions = z.object({
   /**
    * Whether to send reasoning to the model.
@@ -114,8 +139,8 @@ export const anthropicProviderOptions = z.object({
    * Determines how structured outputs are generated.
    *
    * - `outputFormat`: Use the `output_format` parameter to specify the structured output format.
-   * - `jsonTool`: Use a special JSON response tool to specify the structured output format (default).
-   * - `auto`: Use 'outputFormat' when supported, otherwise use 'jsonTool'.
+   * - `jsonTool`: Use a special JSON response tool to specify the structured output format (default for most models).
+   * - `auto`: Use 'outputFormat' when supported, otherwise use 'jsonTool' (default for Fable 5.1).
    */
   structuredOutputMode: z.enum(['outputFormat', 'jsonTool', 'auto']).optional(),
 
@@ -126,7 +151,7 @@ export const anthropicProviderOptions = z.object({
    * Requires a minimum budget of 1,024 tokens and counts towards the `max_tokens` limit.
    */
   thinking: z
-    .discriminatedUnion('type', [
+    .union([
       z.object({
         /** for Sonnet 4.6, Opus 4.6, and newer models */
         type: z.literal('adaptive'),
@@ -134,16 +159,34 @@ export const anthropicProviderOptions = z.object({
          * Controls whether thinking content is included in the response.
          * - `"omitted"`: Thinking blocks are present but text is empty (default for Opus 4.7+).
          * - `"summarized"`: Thinking content is returned. Required to see reasoning output.
+         * - `"updates"`: Thinking summaries are emitted between tool calls.
          */
-        display: z.enum(['omitted', 'summarized']).optional(),
+        display: z.enum(['omitted', 'summarized', 'updates']).optional(),
+        /**
+         * Controls handling for thinking blocks whose conversation prefix no
+         * longer matches. Forwarded as `block_binding`.
+         */
+        blockBinding: anthropicThinkingBlockBinding.optional(),
       }),
       z.object({
         /** for models before Opus 4.6, except Sonnet 4.6 still supports it */
         type: z.literal('enabled'),
         budgetTokens: z.number().optional(),
+        /**
+         * Controls handling for thinking blocks whose conversation prefix no
+         * longer matches. Forwarded as `block_binding`.
+         */
+        blockBinding: anthropicThinkingBlockBinding.optional(),
       }),
       z.object({
         type: z.literal('disabled'),
+      }),
+      z.object({
+        /**
+         * Configure prefix mismatch handling without changing the model's
+         * default thinking mode.
+         */
+        blockBinding: anthropicThinkingBlockBinding,
       }),
     ])
     .optional(),

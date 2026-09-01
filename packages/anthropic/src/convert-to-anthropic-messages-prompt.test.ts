@@ -63,6 +63,59 @@ describe('system messages', () => {
     expect(result.betas.has('mid-conversation-system-2026-04-07')).toBe(true);
   });
 
+  it('should serialize clearAt and effort on a mid-conversation system message', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        {
+          role: 'system',
+          content: 'Use concise answers for this turn.',
+          providerOptions: {
+            anthropic: {
+              clearAt: 'next_user_message',
+              effort: 'low',
+            },
+          },
+        },
+        { role: 'user', content: [{ type: 'text', text: 'continue' }] },
+      ],
+      sendReasoning: true,
+      warnings: [],
+    });
+
+    expect(result.prompt.messages).toContainEqual({
+      role: 'system',
+      content: [{ type: 'text', text: 'Use concise answers for this turn.' }],
+      clear_at: 'next_user_message',
+      output_config: { effort: 'low' },
+    });
+    expect(
+      result.betas.has('mid-conversation-system-clear-at-2026-08-21'),
+    ).toBe(true);
+    expect(result.betas.has('mid-conversation-effort-2026-08-01')).toBe(true);
+  });
+
+  it('should omit empty text for a system message that only sets turn effort', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: { anthropic: { effort: 'high' } },
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+    });
+
+    expect(result.prompt.messages).toContainEqual({
+      role: 'system',
+      content: [],
+      output_config: { effort: 'high' },
+    });
+  });
+
   it('should emit tool change blocks on a mid-conversation system message and add the beta', async () => {
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
