@@ -4,6 +4,7 @@ import {
   type ImageModelV4CallOptions,
   type ImageModelV4File,
   type ImageModelV4ProviderMetadata,
+  type ImageModelV4Result,
   type JSONObject,
 } from '@ai-sdk/provider';
 import {
@@ -25,6 +26,7 @@ import type { ImageModelResponseMetadata } from '../types/image-model-response-m
 import { addImageModelUsage, type ImageModelUsage } from '../types/usage';
 import type { Warning } from '../types/warning';
 import { prepareRetries } from '../util/prepare-retries';
+import { RetryError } from '../util/retry-error';
 import { VERSION } from '../version';
 import type {
   GenerateImageCall,
@@ -47,6 +49,16 @@ type GatewayCostMetadata = {
   [key in (typeof gatewayCostMetadataKeys)[number]]?: unknown;
 };
 
+class RetryableNoImageResultError extends Error {
+  readonly result: ImageModelV4Result;
+
+  constructor(result: ImageModelV4Result) {
+    super('No image generated.');
+    this.name = 'RetryableNoImageResultError';
+    this.result = result;
+  }
+}
+
 export type GenerateImagePrompt =
   | string
   | {
@@ -67,7 +79,7 @@ export type GenerateImagePrompt =
  * @param seed - Seed for the image generation.
  * @param providerOptions - Additional provider-specific options that are passed through to the provider
  * as body parameters.
- * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
+ * @param maxRetries - Maximum number of retries per image model call, including retries after empty responses. Set to 0 to disable retries. Default: 2.
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
@@ -138,7 +150,8 @@ export async function generateImage({
   providerOptions?: ProviderOptions;
 
   /**
-   * Maximum number of retries per image model call. Set to 0 to disable retries.
+   * Maximum number of retries per image model call, including retries after
+   * empty responses. Set to 0 to disable retries.
    *
    * @default 2
    */
@@ -165,6 +178,8 @@ export async function generateImage({
   const { retry } = prepareRetries({
     maxRetries: maxRetriesArg,
     abortSignal,
+    additionalRetryableError: error =>
+      error instanceof RetryableNoImageResultError,
   });
 
   // default to 1 if the model has not specified limits on
@@ -184,12 +199,12 @@ export async function generateImage({
   });
 
   const results = await Promise.all(
-    callImageCounts.map(
-      async callImageCount =>
-        await retry(() => {
+    callImageCounts.map(async callImageCount => {
+      try {
+        return await retry(async () => {
           const { prompt, files, mask } = normalizePrompt(promptArg);
 
-          return model.doGenerate({
+          const result = await model.doGenerate({
             prompt,
             files,
             mask,
@@ -201,8 +216,29 @@ export async function generateImage({
             seed,
             providerOptions: providerOptions ?? {},
           });
-        }),
-    ),
+
+          if (result.images.length === 0) {
+            throw new RetryableNoImageResultError(result);
+          }
+
+          return result;
+        });
+      } catch (error) {
+        const noImageResultError =
+          error instanceof RetryableNoImageResultError
+            ? error
+            : RetryError.isInstance(error) &&
+                error.lastError instanceof RetryableNoImageResultError
+              ? error.lastError
+              : undefined;
+
+        if (noImageResultError != null) {
+          return noImageResultError.result;
+        }
+
+        throw error;
+      }
+    }),
   );
 
   // collect result images, warnings, and response metadata
