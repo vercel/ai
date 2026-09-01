@@ -19,6 +19,12 @@ import {
 const model = 'anthropic/claude-sonnet-4-6';
 
 describe('WorkflowAgent types', () => {
+  it('does not expose an unsupported generate method', () => {
+    const agent = new WorkflowAgent({ model });
+
+    expectTypeOf(agent).not.toHaveProperty('generate');
+  });
+
   it('infers UI message tool parts from configured tools', () => {
     const tools = {
       weather: tool({

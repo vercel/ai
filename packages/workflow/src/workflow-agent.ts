@@ -1380,10 +1380,6 @@ export class WorkflowAgent<
     };
   }
 
-  generate() {
-    throw new Error('Not implemented');
-  }
-
   async stream<
     TTools extends TBaseTools = TBaseTools,
     OUTPUT = never,
