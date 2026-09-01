@@ -7,6 +7,7 @@ import type {
 import type { Context } from '@ai-sdk/provider-utils';
 import {
   experimental_filterActiveTools as filterActiveTools,
+  type ActiveTools,
   type Experimental_SandboxSession as SandboxSession,
   type Instructions,
   type LanguageModel,
@@ -165,7 +166,7 @@ export async function* streamTextIterator({
   let currentRuntimeContext: Context = runtimeContext ?? {};
   let currentToolsContext: Record<string, Context | undefined> =
     toolsContext ?? {};
-  let currentActiveTools: string[] | undefined;
+  let currentActiveTools: ActiveTools<ToolSet>;
 
   const steps: StepResult<any, any>[] = [];
   let done = false;
@@ -298,7 +299,7 @@ export async function* streamTextIterator({
     try {
       // Filter tools if activeTools is specified
       const effectiveTools =
-        currentActiveTools && currentActiveTools.length > 0
+        currentActiveTools !== undefined
           ? (filterActiveTools({
               tools,
               activeTools: currentActiveTools,

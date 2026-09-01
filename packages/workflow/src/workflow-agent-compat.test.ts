@@ -730,6 +730,56 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
     });
   });
 
+  describe('stable start callbacks', () => {
+    it('uses stable callbacks in preference to experimental aliases in each option scope', async () => {
+      const calls: string[] = [];
+      const mockModel = new MockLanguageModelV4({
+        doStream: async () => createShortStreamResponse(),
+      });
+
+      const agent = new WorkflowAgent({
+        model: mockModel,
+        onStart: () => {
+          calls.push('constructor onStart');
+        },
+        experimental_onStart: () => {
+          calls.push('constructor experimental_onStart');
+        },
+        onStepStart: () => {
+          calls.push('constructor onStepStart');
+        },
+        experimental_onStepStart: () => {
+          calls.push('constructor experimental_onStepStart');
+        },
+      });
+
+      const { writable } = createMockWritable();
+      await agent.stream({
+        messages: [{ role: 'user', content: 'Hello, world!' }],
+        writable,
+        onStart: () => {
+          calls.push('stream onStart');
+        },
+        experimental_onStart: () => {
+          calls.push('stream experimental_onStart');
+        },
+        onStepStart: () => {
+          calls.push('stream onStepStart');
+        },
+        experimental_onStepStart: () => {
+          calls.push('stream experimental_onStepStart');
+        },
+      });
+
+      expect(calls).toEqual([
+        'constructor onStart',
+        'stream onStart',
+        'constructor onStepStart',
+        'stream onStepStart',
+      ]);
+    });
+  });
+
   describe('experimental_onStepStart', () => {
     describe('stream', () => {
       let mockModel: MockLanguageModelV4;
