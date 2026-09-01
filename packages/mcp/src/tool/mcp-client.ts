@@ -1305,7 +1305,10 @@ class DefaultMCPClient implements MCPClient {
 
     // Fallback
     if ('content' in result && Array.isArray(result.content)) {
-      const textContent = result.content.find(c => c.type === 'text');
+      const textContent = result.content.find(
+        (content: { type: string; [key: string]: unknown }) =>
+          content.type === 'text',
+      );
       if (textContent && 'text' in textContent) {
         const parseResult = await safeParseJSON({
           text: textContent.text,
