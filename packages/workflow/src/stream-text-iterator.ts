@@ -404,8 +404,15 @@ export async function* streamTextIterator({
         lastStepWasToolCalls = true;
 
         const assistantContent = getAssistantMessageContent(step);
+        const includedToolCallIds = new Set(
+          assistantContent.flatMap(part =>
+            part.type === 'tool-call' ? [part.toolCallId] : [],
+          ),
+        );
 
-        // Add assistant message with response content and tool calls to the conversation
+        // Add assistant message content in provider emission order. Invalid
+        // tool calls are not part of StepResult.content, so retain the previous
+        // behavior of appending them to the prompt.
         // Note: providerMetadata from the tool call is mapped to providerOptions
         // in the prompt format, following the AI SDK convention. This is critical
         // for providers like Gemini that require thoughtSignature to be preserved
@@ -414,23 +421,9 @@ export async function* streamTextIterator({
           role: 'assistant',
           content: [
             ...assistantContent,
-            ...toolCalls.map(toolCall => {
-              const sanitizedMetadata = sanitizeProviderMetadataForToolCall(
-                toolCall.providerMetadata,
-              );
-              return {
-                type: 'tool-call' as const,
-                toolCallId: toolCall.toolCallId,
-                toolName: toolCall.toolName,
-                input: toolCall.input,
-                ...(sanitizedMetadata != null
-                  ? {
-                      providerOptions:
-                        sanitizedMetadata as SharedV4ProviderOptions,
-                    }
-                  : {}),
-              };
-            }),
+            ...toolCalls
+              .filter(toolCall => !includedToolCallIds.has(toolCall.toolCallId))
+              .map(toAssistantToolCallContent),
           ],
         });
 
@@ -551,9 +544,10 @@ function normalizeStepForTelemetry(step: StepResult<any, any>) {
 /**
  * Reconstruct a full `StepResult` from the minimal aggregates returned by
  * `doStreamStep`. Runs outside the step boundary so StepResult's redundant
- * fields (duplicate tool-call lists, `content`, `reasoningText`, the
- * always-empty `*ToolResults` arrays) and the per-chunk snapshot don't cross
- * it. The shape matches what the AI SDK's `streamText` exposes to callers.
+ * fields (duplicate tool-call lists, `text`, `files`, `sources`,
+ * `reasoningText`, and the always-empty `*ToolResults` arrays) and the
+ * per-chunk snapshot don't cross it. The shape matches what the AI SDK's
+ * `streamText` exposes to callers.
  */
 function buildStepResult(
   raw: DoStreamStepRawResult,
@@ -566,35 +560,80 @@ function buildStepResult(
   },
 ): StepResult<ToolSet, any> {
   const {
-    text,
+    content: rawContent,
     reasoning: reasoningParts,
-    files: rawFiles,
-    sources,
     responseMetadata,
     warnings,
   } = raw;
   const reasoningText = reasoningParts.map(r => r.text).join('') || undefined;
-  const fileParts = rawFiles.map(file => ({
-    type: 'file' as const,
-    file: new DefaultGeneratedFile({
-      data: file.data,
-      mediaType: file.mediaType,
-      providerMetadata: file.providerMetadata,
-    }),
-    ...(file.providerMetadata != null
-      ? { providerMetadata: file.providerMetadata }
-      : {}),
-  }));
+  const validToolCallsByIndex = new Map(
+    toolCalls.flatMap((tc, index) =>
+      tc.invalid
+        ? []
+        : [
+            [
+              index,
+              {
+                type: 'tool-call' as const,
+                toolCallId: tc.toolCallId,
+                toolName: tc.toolName,
+                input: tc.input,
+                ...(tc.dynamic ? { dynamic: true as const } : {}),
+                ...(tc.providerMetadata != null
+                  ? { providerMetadata: tc.providerMetadata }
+                  : {}),
+              },
+            ] as const,
+          ],
+    ),
+  );
+  const validToolCalls = [...validToolCallsByIndex.values()];
+  const content: StepResult<ToolSet, any>['content'] = [];
+  const files: StepResult<ToolSet, any>['files'] = [];
+  const sources: StepResult<ToolSet, any>['sources'] = [];
+  let text = '';
 
-  const validToolCalls = toolCalls
-    .filter(tc => !tc.invalid)
-    .map(tc => ({
-      type: 'tool-call' as const,
-      toolCallId: tc.toolCallId,
-      toolName: tc.toolName,
-      input: tc.input,
-      ...(tc.dynamic ? { dynamic: true as const } : {}),
-    }));
+  for (const part of rawContent) {
+    switch (part.type) {
+      case 'text':
+        text += part.text;
+        content.push({
+          type: 'text',
+          text: part.text,
+          ...(part.providerMetadata != null
+            ? { providerMetadata: part.providerMetadata }
+            : {}),
+        });
+        break;
+      case 'file': {
+        const file = new DefaultGeneratedFile({
+          data: part.data,
+          mediaType: part.mediaType,
+          providerMetadata: part.providerMetadata,
+        });
+        files.push(file);
+        content.push({
+          type: 'file',
+          file,
+          ...(part.providerMetadata != null
+            ? { providerMetadata: part.providerMetadata }
+            : {}),
+        });
+        break;
+      }
+      case 'source':
+        sources.push(part);
+        content.push(part);
+        break;
+      case 'tool-call': {
+        const toolCall = validToolCallsByIndex.get(part.toolCallIndex);
+        if (toolCall != null) {
+          content.push(toolCall);
+        }
+        break;
+      }
+    }
+  }
 
   return {
     callId: 'workflow-agent',
@@ -607,19 +646,14 @@ function buildStepResult(
     metadata: undefined,
     runtimeContext: opts.runtimeContext ?? {},
     toolsContext: opts.toolsContext ?? {},
-    content: [
-      ...(text ? [{ type: 'text' as const, text }] : []),
-      ...fileParts,
-      ...sources,
-      ...validToolCalls,
-    ],
+    content,
     text,
     reasoning: reasoningParts.map(r => ({
       type: 'reasoning' as const,
       text: r.text,
     })),
     reasoningText,
-    files: fileParts.map(part => part.file),
+    files,
     sources,
     toolCalls: validToolCalls,
     staticToolCalls: [],
@@ -696,10 +730,35 @@ function getAssistantMessageContent(
             : {}),
         });
         break;
+      case 'tool-call':
+        content.push(toAssistantToolCallContent(part));
+        break;
     }
   }
 
   return content;
+}
+
+function toAssistantToolCallContent(toolCall: {
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+  providerMetadata?: unknown;
+}) {
+  const sanitizedMetadata = sanitizeProviderMetadataForToolCall(
+    toolCall.providerMetadata,
+  );
+  return {
+    type: 'tool-call' as const,
+    toolCallId: toolCall.toolCallId,
+    toolName: toolCall.toolName,
+    input: toolCall.input,
+    ...(sanitizedMetadata != null
+      ? {
+          providerOptions: sanitizedMetadata as SharedV4ProviderOptions,
+        }
+      : {}),
+  };
 }
 
 /**

@@ -60,13 +60,14 @@ describe('WorkflowAgent.stream model files and sources', () => {
     });
 
     const step = result.steps[0]!;
-    expect(step.content).toContainEqual(source);
-    expect(step.content).toContainEqual(
+    expect(step.content).toEqual([
+      source,
       expect.objectContaining({
         type: 'file',
         file: expect.objectContaining({ mediaType: 'text/plain' }),
       }),
-    );
+      { type: 'text', text: 'answer' },
+    ]);
     expect(step.files).toHaveLength(1);
     expect(step.files[0]?.base64).toBe('ZmlsZS1jb250ZW50');
     expect(step.sources).toEqual([source]);
@@ -83,12 +84,12 @@ describe('WorkflowAgent.stream model files and sources', () => {
     expect(assistantMessage).toEqual({
       role: 'assistant',
       content: [
-        { type: 'text', text: 'answer' },
         {
           type: 'file',
           data: { type: 'data', data: 'ZmlsZS1jb250ZW50' },
           mediaType: 'text/plain',
         },
+        { type: 'text', text: 'answer' },
       ],
     });
     expect(onEnd.mock.calls[0]?.[0].messages).toContainEqual(assistantMessage);

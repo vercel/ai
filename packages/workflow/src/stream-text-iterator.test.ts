@@ -93,10 +93,8 @@ function createMockDoStreamStepResult({
     // doStreamStep now returns minimal raw aggregates; the iterator
     // reconstructs the StepResult via buildStepResult.
     raw: {
-      text: '',
+      content: [],
       reasoning: [],
-      files: [],
-      sources: [],
       responseMetadata: undefined,
       warnings: [],
       ...rawOverrides,
@@ -263,7 +261,13 @@ describe('streamTextIterator', () => {
             finishReason: 'tool-calls',
             finishRaw: 'tool_calls',
             rawOverrides: {
-              text: 'I found the answer before calling the tool.',
+              content: [
+                {
+                  type: 'text',
+                  text: 'I found the answer before calling the tool.',
+                },
+                { type: 'tool-call', toolCallIndex: 0 },
+              ],
             },
           }),
         )
@@ -344,9 +348,10 @@ describe('streamTextIterator', () => {
       vi.mocked(doStreamStep).mockResolvedValueOnce(
         createMockDoStreamStepResult({
           rawOverrides: {
-            text: 'Download the generated file.',
-            files: [
+            content: [
+              { type: 'text', text: 'Download the generated file.' },
               {
+                type: 'file',
                 data: 'ZmlsZS1jb250ZW50',
                 mediaType: 'text/plain',
               },
@@ -390,8 +395,7 @@ describe('streamTextIterator', () => {
       vi.mocked(doStreamStep).mockResolvedValueOnce(
         createMockDoStreamStepResult({
           rawOverrides: {
-            text: 'Answer with a source.',
-            sources: [source],
+            content: [{ type: 'text', text: 'Answer with a source.' }, source],
           },
         }),
       );
@@ -410,6 +414,81 @@ describe('streamTextIterator', () => {
       expect(yielded.messages.at(-1)).toEqual({
         role: 'assistant',
         content: [{ type: 'text', text: 'Answer with a source.' }],
+      });
+    });
+
+    it('preserves file and text order in a subsequent tool-call turn', async () => {
+      let capturedPrompt: LanguageModelV4Prompt | undefined;
+      const toolCall: ParsedToolCall = {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'testTool',
+        input: { query: 'test' },
+      };
+
+      vi.mocked(doStreamStep)
+        .mockResolvedValueOnce(
+          createMockDoStreamStepResult({
+            toolCalls: [toolCall],
+            finishReason: 'tool-calls',
+            finishRaw: 'tool_calls',
+            rawOverrides: {
+              content: [
+                {
+                  type: 'file',
+                  data: 'ZmlsZS1iZWZvcmUtdGV4dA==',
+                  mediaType: 'text/plain',
+                },
+                { type: 'text', text: 'Use this file.' },
+                { type: 'tool-call', toolCallIndex: 0 },
+              ],
+            },
+          }),
+        )
+        .mockImplementationOnce(async prompt => {
+          capturedPrompt = prompt;
+          return createMockDoStreamStepResult();
+        });
+
+      const iterator = streamTextIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {
+          testTool: {
+            description: 'A test tool',
+            execute: async () => ({ result: 'success' }),
+          },
+        } as unknown as ToolSet,
+        model: vi.fn() as any,
+      });
+
+      await iterator.next();
+      await iterator.next([
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          output: { type: 'text', value: '{"result":"success"}' },
+        },
+      ]);
+
+      expect(
+        capturedPrompt?.find(message => message.role === 'assistant'),
+      ).toEqual({
+        role: 'assistant',
+        content: [
+          {
+            type: 'file',
+            data: { type: 'data', data: 'ZmlsZS1iZWZvcmUtdGV4dA==' },
+            mediaType: 'text/plain',
+          },
+          { type: 'text', text: 'Use this file.' },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+            input: { query: 'test' },
+          },
+        ],
       });
     });
   });
