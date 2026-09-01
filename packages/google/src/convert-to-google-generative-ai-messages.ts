@@ -191,7 +191,14 @@ export function convertToGoogleGenerativeAIMessages(
                 name: part.toolName,
                 response: {
                   name: part.toolName,
+<<<<<<< HEAD
                   content: output.value,
+=======
+                  content:
+                    output.type === 'execution-denied'
+                      ? (output.reason ?? 'Tool call execution denied.')
+                      : output.value,
+>>>>>>> 327642b278 ([v6.0] fix: more precise default message for tool execution denial (#16804))
                 },
               },
             });

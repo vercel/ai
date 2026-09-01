@@ -1994,6 +1994,39 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
+    it('should convert execution-denied tool result to function_call_output', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_denied_123',
+                toolName: 'search',
+                output: {
+                  type: 'execution-denied',
+                  reason: 'User denied the tool execution',
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_denied_123',
+          output: 'User denied the tool execution',
+        },
+      ]);
+    });
+
     it('should convert single tool result part with multipart that contains text', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
@@ -2361,6 +2394,127 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
+    it('should skip provider-executed execution-denied tool results in assistant messages', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'I need approval before running that tool.',
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'ws_denied_123',
+                toolName: 'web_search',
+                output: {
+                  type: 'execution-denied',
+                  reason: 'User denied the tool execution',
+                },
+              },
+              {
+                type: 'text',
+                text: 'The tool was not run.',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result).toEqual({
+        input: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'I need approval before running that tool.',
+              },
+            ],
+            id: undefined,
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'The tool was not run.',
+              },
+            ],
+            id: undefined,
+          },
+        ],
+        warnings: [],
+      });
+    });
+
+    it('should skip json-wrapped execution-denied tool results in assistant messages', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'I need approval before running that tool.',
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'ws_denied_json_123',
+                toolName: 'web_search',
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'execution-denied',
+                    reason: 'User denied the tool execution',
+                  },
+                },
+              },
+              {
+                type: 'text',
+                text: 'The tool was not run.',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result).toEqual({
+        input: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'I need approval before running that tool.',
+              },
+            ],
+            id: undefined,
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'The tool was not run.',
+              },
+            ],
+            id: undefined,
+          },
+        ],
+        warnings: [],
+      });
+    });
+
     describe('local shell', () => {
       it('should convert local shell tool call and result into item reference with store: true', async () => {
         const result = await convertToOpenAIResponsesInput({
@@ -2516,4 +2670,1046 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
   });
+<<<<<<< HEAD
+=======
+
+  describe('MCP tool approval responses', () => {
+    it('should convert approved tool-approval-response to mcp_approval_response with store: true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'mcp-approval-123',
+                approved: true,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "mcp-approval-123",
+            "type": "item_reference",
+          },
+          {
+            "approval_request_id": "mcp-approval-123",
+            "approve": true,
+            "type": "mcp_approval_response",
+          },
+        ]
+      `);
+    });
+
+    it('should convert denied tool-approval-response to mcp_approval_response with store: true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'mcp-approval-456',
+                approved: false,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "mcp-approval-456",
+            "type": "item_reference",
+          },
+          {
+            "approval_request_id": "mcp-approval-456",
+            "approve": false,
+            "type": "mcp_approval_response",
+          },
+        ]
+      `);
+    });
+
+    it('should convert tool-approval-response to mcp_approval_response without item_reference when store: false', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'mcp-approval-789',
+                approved: true,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "approval_request_id": "mcp-approval-789",
+            "approve": true,
+            "type": "mcp_approval_response",
+          },
+        ]
+      `);
+    });
+
+    it('should skip duplicate tool-approval-response with same approvalId', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'duplicate-approval',
+                approved: true,
+              },
+              {
+                type: 'tool-approval-response',
+                approvalId: 'duplicate-approval',
+                approved: true,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "duplicate-approval",
+            "type": "item_reference",
+          },
+          {
+            "approval_request_id": "duplicate-approval",
+            "approve": true,
+            "type": "mcp_approval_response",
+          },
+        ]
+      `);
+    });
+
+    it('should handle multiple different tool-approval-responses', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-1',
+                approved: true,
+              },
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-2',
+                approved: false,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "approval-1",
+            "type": "item_reference",
+          },
+          {
+            "approval_request_id": "approval-1",
+            "approve": true,
+            "type": "mcp_approval_response",
+          },
+          {
+            "id": "approval-2",
+            "type": "item_reference",
+          },
+          {
+            "approval_request_id": "approval-2",
+            "approve": false,
+            "type": "mcp_approval_response",
+          },
+        ]
+      `);
+    });
+
+    it('should skip execution-denied output when it has approvalId in providerOptions', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'denied-approval',
+                approved: false,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-123',
+                toolName: 'mcp_tool',
+                output: {
+                  type: 'execution-denied',
+                  reason: 'User denied the tool execution',
+                  providerOptions: {
+                    openai: {
+                      approvalId: 'denied-approval',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      // Only the mcp_approval_response should be present, not a function_call_output
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "denied-approval",
+            "type": "item_reference",
+          },
+          {
+            "approval_request_id": "denied-approval",
+            "approve": false,
+            "type": "mcp_approval_response",
+          },
+        ]
+      `);
+    });
+
+    it('should handle tool-approval-response mixed with regular tool results', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-for-mcp',
+                approved: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'regular-call-1',
+                toolName: 'calculator',
+                output: {
+                  type: 'json',
+                  value: { result: 42 },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "approval-for-mcp",
+            "type": "item_reference",
+          },
+          {
+            "approval_request_id": "approval-for-mcp",
+            "approve": true,
+            "type": "mcp_approval_response",
+          },
+          {
+            "call_id": "regular-call-1",
+            "output": "{"result":42}",
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('hasConversation', () => {
+    it('should skip assistant text messages with item IDs when hasConversation is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Hi there!',
+                providerOptions: { openai: { itemId: 'msg_existing_123' } },
+              },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'What is the weather?' }],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasConversation: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "text": "What is the weather?",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+
+    it('should skip assistant tool-call messages with item IDs when hasConversation is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'What is the weather?' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'getWeather',
+                input: { location: 'San Francisco' },
+                providerOptions: {
+                  openai: { itemId: 'fc_existing_456' },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'getWeather',
+                output: { type: 'json', value: { temp: 72 } },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasConversation: true,
+      });
+
+      // Tool call with itemId should be skipped, but tool output should remain
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather?",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "call_id": "call_123",
+            "output": "{"temp":72}",
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should include assistant messages without item IDs when hasConversation is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Hi there!',
+                // No itemId - this is a new message
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasConversation: true,
+      });
+
+      // Assistant message without itemId should be included
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "text": "Hi there!",
+                "type": "output_text",
+              },
+            ],
+            "id": undefined,
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should include assistant messages with item IDs when hasConversation is false', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Hi there!',
+                providerOptions: { openai: { itemId: 'msg_existing_123' } },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasConversation: false,
+      });
+
+      // With hasConversation false, should use item_reference
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "msg_existing_123",
+            "type": "item_reference",
+          },
+        ]
+      `);
+    });
+
+    it('should skip reasoning parts with item IDs when hasConversation is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'Let me think...',
+                providerOptions: {
+                  openai: { itemId: 'reasoning_existing_789' },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasConversation: true,
+      });
+
+      // Reasoning with itemId should be skipped
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('hasPreviousResponseId', () => {
+    it('should keep text item references and skip function call item references when hasPreviousResponseId is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Hi there!',
+                providerOptions: { openai: { itemId: 'msg_existing_123' } },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'getWeather',
+                input: { location: 'San Francisco' },
+                providerOptions: {
+                  openai: { itemId: 'fc_existing_456' },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'getWeather',
+                output: { type: 'json', value: { temp: 72 } },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasPreviousResponseId: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "msg_existing_123",
+            "type": "item_reference",
+          },
+          {
+            "call_id": "call_123",
+            "output": "{"temp":72}",
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should skip reasoning parts with item IDs when hasPreviousResponseId is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'Let me think...',
+                providerOptions: {
+                  openai: { itemId: 'rs_existing_789' },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasPreviousResponseId: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('custom tool calls', () => {
+    const customProviderToolNames = new Set(['write_sql']);
+
+    it('should convert custom tool call to custom_tool_call input item', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_custom_001',
+                toolName: 'write_sql',
+                input: 'SELECT * FROM users WHERE age > 25',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_custom_001",
+            "id": undefined,
+            "input": "SELECT * FROM users WHERE age > 25",
+            "name": "write_sql",
+            "type": "custom_tool_call",
+          },
+        ]
+      `);
+    });
+
+    it('should JSON.stringify non-string custom tool call input', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_custom_002',
+                toolName: 'write_sql',
+                input: { query: 'test' },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_custom_002",
+            "id": undefined,
+            "input": "{"query":"test"}",
+            "name": "write_sql",
+            "type": "custom_tool_call",
+          },
+        ]
+      `);
+    });
+
+    it('should convert custom tool call with itemId to item_reference when store: true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_custom_003',
+                toolName: 'write_sql',
+                input: 'SELECT 1',
+                providerOptions: {
+                  openai: {
+                    itemId: 'ct_ref_123',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "ct_ref_123",
+            "type": "item_reference",
+          },
+        ]
+      `);
+    });
+
+    it('should convert custom tool result to custom_tool_call_output with text value', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_custom_001',
+                toolName: 'write_sql',
+                output: {
+                  type: 'text',
+                  value: 'Query executed successfully. 42 rows returned.',
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_custom_001",
+            "output": "Query executed successfully. 42 rows returned.",
+            "type": "custom_tool_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should convert custom tool result to custom_tool_call_output with json value', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_custom_002',
+                toolName: 'write_sql',
+                output: {
+                  type: 'json',
+                  value: { rows: 42, status: 'ok' },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_custom_002",
+            "output": "{"rows":42,"status":"ok"}",
+            "type": "custom_tool_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should convert aliased tool name to provider custom tool name', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: {
+          toProviderToolName: name =>
+            name === 'alias_name' ? 'write_sql' : name,
+          toCustomToolName: name =>
+            name === 'write_sql' ? 'alias_name' : name,
+        },
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_custom_004',
+                toolName: 'alias_name',
+                input: 'SELECT 1',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_custom_004",
+            "id": undefined,
+            "input": "SELECT 1",
+            "name": "write_sql",
+            "type": "custom_tool_call",
+          },
+        ]
+      `);
+    });
+
+    it('should convert execution-denied custom tool result to custom_tool_call_output', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_custom_denied_001',
+                toolName: 'write_sql',
+                output: {
+                  type: 'execution-denied',
+                  reason: 'User denied the tool execution',
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'custom_tool_call_output',
+          call_id: 'call_custom_denied_001',
+          output: 'User denied the tool execution',
+        },
+      ]);
+    });
+
+    it('should convert custom tool result content output', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_custom_005',
+                toolName: 'write_sql',
+                output: {
+                  type: 'content',
+                  value: [{ type: 'text', text: 'hello' }],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_custom_005",
+            "output": [
+              {
+                "text": "hello",
+                "type": "input_text",
+              },
+            ],
+            "type": "custom_tool_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should convert custom tool result content output with file-url', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_custom_006',
+                toolName: 'write_sql',
+                output: {
+                  type: 'content',
+                  value: [
+                    { type: 'text', text: 'Here is the file:' },
+                    { type: 'file-url', url: 'https://example.com/test.pdf' },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_custom_006",
+            "output": [
+              {
+                "text": "Here is the file:",
+                "type": "input_text",
+              },
+              {
+                "file_url": "https://example.com/test.pdf",
+                "type": "input_file",
+              },
+            ],
+            "type": "custom_tool_call_output",
+          },
+        ]
+      `);
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should not emit custom_tool_call when customProviderToolNames is not provided', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_custom_001',
+                toolName: 'write_sql',
+                input: 'SELECT 1',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "arguments": ""SELECT 1"",
+            "call_id": "call_custom_001",
+            "name": "write_sql",
+            "type": "function_call",
+          },
+        ]
+      `);
+    });
+  });
+>>>>>>> 327642b278 ([v6.0] fix: more precise default message for tool execution denial (#16804))
 });

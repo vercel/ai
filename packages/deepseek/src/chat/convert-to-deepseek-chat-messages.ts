@@ -334,6 +334,12 @@ export async function convertToDeepSeekChatMessages({
             case 'error-text':
               contentValue = output.value;
               break;
+<<<<<<< HEAD
+=======
+            case 'execution-denied':
+              contentValue = output.reason ?? 'Tool call execution denied.';
+              break;
+>>>>>>> 327642b278 ([v6.0] fix: more precise default message for tool execution denial (#16804))
             case 'content':
             case 'json':
             case 'error-json':
