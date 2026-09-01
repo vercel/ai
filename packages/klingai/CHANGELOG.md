@@ -1,5 +1,13 @@
 # @ai-sdk/klingai
 
+## 4.0.38
+
+### Patch Changes
+
+- a580ec8: feat(minimax): validate video status polling redirects for MiniMax, Kling AI, and ByteDance
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
 ## 4.0.37
 
 ### Patch Changes
