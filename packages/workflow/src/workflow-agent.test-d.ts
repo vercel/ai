@@ -95,6 +95,37 @@ describe('WorkflowAgent types', () => {
     });
   });
 
+  it('accepts stable lifecycle callbacks in constructor and stream options', () => {
+    const constructorOptions = {
+      model,
+      runtimeContext: { userId: 'user-123' },
+      onStart: ({ runtimeContext }) => {
+        expectTypeOf(runtimeContext).toMatchObjectType<{ userId: string }>();
+      },
+      onStepStart: ({ runtimeContext, stepNumber }) => {
+        expectTypeOf(runtimeContext).toMatchObjectType<{ userId: string }>();
+        expectTypeOf(stepNumber).toEqualTypeOf<number>();
+      },
+    } satisfies WorkflowAgentOptions<Record<string, never>, { userId: string }>;
+
+    const streamOptions = {
+      prompt: 'hello',
+      onStart: ({ runtimeContext }) => {
+        expectTypeOf(runtimeContext).toMatchObjectType<{ userId: string }>();
+      },
+      onStepStart: ({ runtimeContext, stepNumber }) => {
+        expectTypeOf(runtimeContext).toMatchObjectType<{ userId: string }>();
+        expectTypeOf(stepNumber).toEqualTypeOf<number>();
+      },
+    } satisfies WorkflowAgentStreamOptions<
+      Record<string, never>,
+      { userId: string }
+    >;
+
+    const agent = new WorkflowAgent(constructorOptions);
+    agent.stream(streamOptions);
+  });
+
   it('accepts tool approval secrets in constructor and stream options', () => {
     const constructorOptions = {
       model,
