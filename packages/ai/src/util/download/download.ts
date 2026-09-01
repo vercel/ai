@@ -1,8 +1,9 @@
 import {
+  cancelResponseBody,
   DownloadError,
   readResponseWithSizeLimit,
   DEFAULT_MAX_DOWNLOAD_SIZE,
-  validateDownloadUrl,
+  fetchWithValidatedRedirects,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
 } from '@ai-sdk/provider-utils';
@@ -28,23 +29,23 @@ export const download = async ({
   abortSignal?: AbortSignal;
 }) => {
   const urlText = url.toString();
-  validateDownloadUrl(urlText);
   try {
-    const response = await fetch(urlText, {
-      headers: withUserAgentSuffix(
-        {},
-        `ai-sdk/${VERSION}`,
-        getRuntimeEnvironmentUserAgent(),
-      ),
-      signal: abortSignal,
+    const headers = withUserAgentSuffix(
+      {},
+      `ai-sdk/${VERSION}`,
+      getRuntimeEnvironmentUserAgent(),
+    );
+
+    const response = await fetchWithValidatedRedirects({
+      url: urlText,
+      headers,
+      abortSignal,
     });
 
-    // Validate final URL after redirects to prevent SSRF via open redirect
-    if (response.redirected) {
-      validateDownloadUrl(response.url);
-    }
-
     if (!response.ok) {
+      // Release the connection before rejecting so an error status from an
+      // attacker-controlled origin cannot leak open sockets.
+      await cancelResponseBody(response);
       throw new DownloadError({
         url: urlText,
         statusCode: response.status,

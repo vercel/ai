@@ -151,6 +151,27 @@ export function parseGoogleInteractionsOutputs({
                 ...googleProviderMetadata({ interactionId }),
               });
             }
+          } else if (blockType === 'video') {
+            const video = block as {
+              data?: string;
+              mime_type?: string;
+              uri?: string;
+            };
+            if (video.data != null && video.data.length > 0) {
+              content.push({
+                type: 'file',
+                mediaType: video.mime_type ?? 'video/mp4',
+                data: { type: 'data', data: video.data },
+                ...googleProviderMetadata({ interactionId }),
+              });
+            } else if (video.uri != null && video.uri.length > 0) {
+              content.push({
+                type: 'file',
+                mediaType: video.mime_type ?? 'video/mp4',
+                data: { type: 'url', url: new URL(video.uri) },
+                ...googleProviderMetadata({ interactionId }),
+              });
+            }
           }
         }
         break;
@@ -212,7 +233,7 @@ export function parseGoogleInteractionsOutputs({
           const input = JSON.stringify(call.arguments ?? {});
           content.push({
             type: 'tool-call',
-            toolCallId: call.id ?? generateId(),
+            toolCallId: call.id || generateId(),
             toolName,
             input,
             providerExecuted: true,
@@ -230,7 +251,7 @@ export function parseGoogleInteractionsOutputs({
               : builtinToolNameFromResultType(type);
           content.push({
             type: 'tool-result',
-            toolCallId: result.call_id ?? generateId(),
+            toolCallId: result.call_id || generateId(),
             toolName,
             result: (result.result ?? null) as NonNullable<JSONValue>,
           });

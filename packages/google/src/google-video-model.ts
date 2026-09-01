@@ -1,14 +1,19 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV4,
+  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
+  type Experimental_VideoModelV4File as VideoModelV4File,
+  type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
+  type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
+  type SharedV4ProviderMetadata,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
-  delay,
   getFromApi,
+  isSameOrigin,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -34,7 +39,107 @@ interface GoogleVideoModelConfig {
   };
 }
 
-export class GoogleVideoModel implements Experimental_VideoModelV4 {
+function getFirstFrameImage(
+  options: VideoModelV4CallOptions,
+): VideoModelV4File | undefined {
+  return options.frameImages?.find(frame => frame.frameType === 'first_frame')
+    ?.image;
+}
+
+function resolveStartImage(
+  options: VideoModelV4CallOptions,
+): VideoModelV4File | undefined {
+  return getFirstFrameImage(options) ?? options.image;
+}
+
+function getLastFrameImage(
+  options: VideoModelV4CallOptions,
+): VideoModelV4File | undefined {
+  return options.frameImages?.find(frame => frame.frameType === 'last_frame')
+    ?.image;
+}
+
+function getInputReferences(
+  options: VideoModelV4CallOptions,
+): Array<VideoModelV4File> | undefined {
+  if (options.frameImages != null && options.frameImages.length > 0) {
+    return undefined;
+  }
+
+  return options.inputReferences != null && options.inputReferences.length > 0
+    ? options.inputReferences
+    : undefined;
+}
+
+function convertFileToGoogleImage(
+  file: VideoModelV4File,
+  warnings: SharedV4Warning[],
+): Record<string, unknown> | undefined {
+  if (file.type === 'url') {
+    if (file.url.startsWith('gs://')) {
+      return {
+        gcsUri: file.url,
+        mimeType: 'image/png',
+      };
+    }
+
+    warnings.push({
+      type: 'unsupported',
+      feature: 'URL-based image input',
+      details:
+        'Google Generative AI video models require base64-encoded images or GCS URIs. URL will be ignored.',
+    });
+    return undefined;
+  }
+
+  const base64Data =
+    typeof file.data === 'string'
+      ? file.data
+      : convertUint8ArrayToBase64(file.data);
+
+  // Veo's predictLongRunning endpoint uses Vertex-style image payloads, not
+  // Gemini generateContent inlineData.
+  return {
+    bytesBase64Encoded: base64Data,
+    mimeType: file.mediaType || 'image/png',
+  };
+}
+
+function convertProviderReferenceImage(
+  refImg: NonNullable<GoogleVideoModelOptions['referenceImages']>[number],
+): Record<string, unknown> {
+  if (refImg.bytesBase64Encoded) {
+    return {
+      image: {
+        bytesBase64Encoded: refImg.bytesBase64Encoded,
+        mimeType: 'image/png',
+      },
+      referenceType: 'asset',
+    };
+  }
+
+  if (refImg.gcsUri) {
+    return {
+      image: {
+        gcsUri: refImg.gcsUri,
+        mimeType: 'image/png',
+      },
+      referenceType: 'asset',
+    };
+  }
+
+  return refImg;
+}
+
+function convertInputReferenceImage(
+  file: VideoModelV4File,
+  warnings: SharedV4Warning[],
+): Record<string, unknown> | undefined {
+  const image = convertFileToGoogleImage(file, warnings);
+  return image != null ? { image, referenceType: 'asset' } : undefined;
+}
+
+export class GoogleVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4';
 
   get provider(): string {
@@ -51,10 +156,14 @@ export class GoogleVideoModel implements Experimental_VideoModelV4 {
     private readonly config: GoogleVideoModelConfig,
   ) {}
 
-  async doGenerate(
-    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV4['doGenerate']>>> {
-    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+  private async buildRequest(
+    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+  ): Promise<{
+    instances: Array<Record<string, unknown>>;
+    parameters: Record<string, unknown>;
+    warnings: SharedV4Warning[];
+    googleOptions: GoogleVideoModelOptions | undefined;
+  }> {
     const warnings: SharedV4Warning[] = [];
 
     const googleOptions = (await parseProviderOptions({
@@ -70,46 +179,32 @@ export class GoogleVideoModel implements Experimental_VideoModelV4 {
       instance.prompt = options.prompt;
     }
 
-    // Handle image-to-video: convert image to base64
-    if (options.image != null) {
-      if (options.image.type === 'url') {
-        warnings.push({
-          type: 'unsupported',
-          feature: 'URL-based image input',
-          details:
-            'Google Generative AI video models require base64-encoded images. URL will be ignored.',
-        });
-      } else {
-        const base64Data =
-          typeof options.image.data === 'string'
-            ? options.image.data
-            : convertUint8ArrayToBase64(options.image.data);
-
-        instance.image = {
-          inlineData: {
-            mimeType: options.image.mediaType || 'image/png',
-            data: base64Data,
-          },
-        };
+    const startImage = resolveStartImage(options);
+    if (startImage != null) {
+      const image = convertFileToGoogleImage(startImage, warnings);
+      if (image != null) {
+        instance.image = image;
       }
     }
 
-    if (googleOptions?.referenceImages != null) {
-      instance.referenceImages = googleOptions.referenceImages.map(refImg => {
-        if (refImg.bytesBase64Encoded) {
-          return {
-            inlineData: {
-              mimeType: 'image/png',
-              data: refImg.bytesBase64Encoded,
-            },
-          };
-        } else if (refImg.gcsUri) {
-          return {
-            gcsUri: refImg.gcsUri,
-          };
-        }
-        return refImg;
+    const lastFrameImage = getLastFrameImage(options);
+    if (lastFrameImage != null) {
+      const lastFrame = convertFileToGoogleImage(lastFrameImage, warnings);
+      if (lastFrame != null) {
+        instance.lastFrame = lastFrame;
+      }
+    }
+
+    const inputReferences = getInputReferences(options);
+    if (inputReferences != null) {
+      instance.referenceImages = inputReferences.flatMap(reference => {
+        const converted = convertInputReferenceImage(reference, warnings);
+        return converted != null ? [converted] : [];
       });
+    } else if (googleOptions?.referenceImages != null) {
+      instance.referenceImages = googleOptions.referenceImages.map(refImg =>
+        convertProviderReferenceImage(refImg),
+      );
     }
 
     const parameters: Record<string, unknown> = {
@@ -166,7 +261,97 @@ export class GoogleVideoModel implements Experimental_VideoModelV4 {
       }
     }
 
-    const { value: operation } = await postJsonToApi({
+    return { instances, parameters, warnings, googleOptions };
+  }
+
+  private async buildCompletedResult(
+    finalOperation: z.infer<typeof googleOperationSchema>,
+    responseHeaders: Record<string, string> | undefined,
+    warnings: SharedV4Warning[],
+    currentDate: Date,
+  ): Promise<{
+    status: 'completed';
+    videos: Array<{ type: 'url'; url: string; mediaType: string }>;
+    warnings: SharedV4Warning[];
+    providerMetadata: SharedV4ProviderMetadata;
+    response: {
+      timestamp: Date;
+      modelId: string;
+      headers: Record<string, string> | undefined;
+    };
+  }> {
+    const response = finalOperation.response;
+    if (
+      !response?.generateVideoResponse?.generatedSamples ||
+      response.generateVideoResponse.generatedSamples.length === 0
+    ) {
+      throw new AISDKError({
+        name: 'GOOGLE_VIDEO_GENERATION_ERROR',
+        message: `No videos in response. Response: ${JSON.stringify(finalOperation)}`,
+      });
+    }
+
+    const videos: Array<{ type: 'url'; url: string; mediaType: string }> = [];
+    const videoMetadata: Array<{ uri: string }> = [];
+
+    // Get API key from headers to append to download URLs
+    const resolvedHeaders = await resolve(this.config.headers);
+    const apiKey = resolvedHeaders?.['x-goog-api-key'];
+
+    for (const generatedSample of response.generateVideoResponse
+      .generatedSamples) {
+      if (generatedSample.video?.uri) {
+        // Append the API key to the download URL for authentication, but only
+        // when the response-supplied URI stays on the provider's own origin —
+        // otherwise the key would leak to whatever host the response names.
+        const urlWithAuth =
+          apiKey && isSameOrigin(generatedSample.video.uri, this.config.baseURL)
+            ? `${generatedSample.video.uri}${generatedSample.video.uri.includes('?') ? '&' : '?'}key=${apiKey}`
+            : generatedSample.video.uri;
+
+        videos.push({
+          type: 'url',
+          url: urlWithAuth,
+          mediaType: 'video/mp4',
+        });
+        videoMetadata.push({
+          uri: generatedSample.video.uri,
+        });
+      }
+    }
+
+    if (videos.length === 0) {
+      throw new AISDKError({
+        name: 'GOOGLE_VIDEO_GENERATION_ERROR',
+        message: 'No valid videos in response',
+      });
+    }
+
+    return {
+      status: 'completed',
+      videos,
+      warnings,
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+      },
+      providerMetadata: {
+        google: {
+          videos: videoMetadata,
+        },
+      },
+    };
+  }
+
+  async doStart(
+    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+  ): Promise<VideoModelV4OperationStartResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { instances, parameters, warnings } =
+      await this.buildRequest(options);
+
+    const { value: operation, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/models/${this.modelId}:predictLongRunning`,
       headers: combineHeaders(
         await resolve(this.config.headers),
@@ -192,114 +377,67 @@ export class GoogleVideoModel implements Experimental_VideoModelV4 {
       });
     }
 
-    const pollIntervalMs = googleOptions?.pollIntervalMs ?? 10000; // 10 seconds (per Google docs)
-    const pollTimeoutMs = googleOptions?.pollTimeoutMs ?? 600000; // 10 minutes
-
-    const startTime = Date.now();
-    let finalOperation = operation;
-    let responseHeaders: Record<string, string> | undefined;
-
-    while (!finalOperation.done) {
-      if (Date.now() - startTime > pollTimeoutMs) {
-        throw new AISDKError({
-          name: 'GOOGLE_VIDEO_GENERATION_TIMEOUT',
-          message: `Video generation timed out after ${pollTimeoutMs}ms`,
-        });
-      }
-
-      await delay(pollIntervalMs);
-
-      if (options.abortSignal?.aborted) {
-        throw new AISDKError({
-          name: 'GOOGLE_VIDEO_GENERATION_ABORTED',
-          message: 'Video generation request was aborted',
-        });
-      }
-
-      const { value: statusOperation, responseHeaders: pollHeaders } =
-        await getFromApi({
-          url: `${this.config.baseURL}/${operationName}`,
-          headers: combineHeaders(
-            await resolve(this.config.headers),
-            options.headers,
-          ),
-          successfulResponseHandler: createJsonResponseHandler(
-            googleOperationSchema,
-          ),
-          failedResponseHandler: googleFailedResponseHandler,
-          abortSignal: options.abortSignal,
-          fetch: this.config.fetch,
-        });
-
-      finalOperation = statusOperation;
-      responseHeaders = pollHeaders;
-    }
-
-    if (finalOperation.error) {
-      throw new AISDKError({
-        name: 'GOOGLE_VIDEO_GENERATION_FAILED',
-        message: `Video generation failed: ${finalOperation.error.message}`,
-      });
-    }
-
-    const response = finalOperation.response;
-    if (
-      !response?.generateVideoResponse?.generatedSamples ||
-      response.generateVideoResponse.generatedSamples.length === 0
-    ) {
-      throw new AISDKError({
-        name: 'GOOGLE_VIDEO_GENERATION_ERROR',
-        message: `No videos in response. Response: ${JSON.stringify(finalOperation)}`,
-      });
-    }
-
-    const videos: Array<{ type: 'url'; url: string; mediaType: string }> = [];
-    const videoMetadata: Array<{ uri: string }> = [];
-
-    // Get API key from headers to append to download URLs
-    const resolvedHeaders = await resolve(this.config.headers);
-    const apiKey = resolvedHeaders?.['x-goog-api-key'];
-
-    for (const generatedSample of response.generateVideoResponse
-      .generatedSamples) {
-      if (generatedSample.video?.uri) {
-        // Append API key to URL for authentication during download
-        const urlWithAuth = apiKey
-          ? `${generatedSample.video.uri}${generatedSample.video.uri.includes('?') ? '&' : '?'}key=${apiKey}`
-          : generatedSample.video.uri;
-
-        videos.push({
-          type: 'url',
-          url: urlWithAuth,
-          mediaType: 'video/mp4',
-        });
-        videoMetadata.push({
-          uri: generatedSample.video.uri,
-        });
-      }
-    }
-
-    if (videos.length === 0) {
-      throw new AISDKError({
-        name: 'GOOGLE_VIDEO_GENERATION_ERROR',
-        message: 'No valid videos in response',
-      });
-    }
-
     return {
-      videos,
+      operation: { operationName },
       warnings,
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
         headers: responseHeaders,
       },
-      providerMetadata: {
-        google: {
-          videos: videoMetadata,
-        },
-      },
     };
+  }
+
+  async doStatus(
+    options: Parameters<NonNullable<VideoModelV4['doStatus']>>[0],
+  ): Promise<VideoModelV4OperationStatusResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { operationName } = options.operation as { operationName: string };
+
+    const { value: statusOperation, responseHeaders } = await getFromApi({
+      url: `${this.config.baseURL}/${operationName}`,
+      validateUrl: false,
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
+      successfulResponseHandler: createJsonResponseHandler(
+        googleOperationSchema,
+      ),
+      failedResponseHandler: googleFailedResponseHandler,
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    if (!statusOperation.done) {
+      return {
+        status: 'pending',
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
+    }
+
+    if (statusOperation.error) {
+      return {
+        status: 'error' as const,
+        error: `Video generation failed: ${statusOperation.error.message}`,
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
+    }
+
+    return this.buildCompletedResult(
+      statusOperation,
+      responseHeaders,
+      [],
+      currentDate,
+    );
   }
 }
 

@@ -1,14 +1,11 @@
-import {
-  byteDance,
-  type ByteDanceVideoProviderOptions,
-} from '@ai-sdk/bytedance';
+import { byteDance, type ByteDanceVideoModelOptions } from '@ai-sdk/bytedance';
 import { experimental_generateVideo as generateVideo } from 'ai';
 import { presentVideos } from '../../lib/present-video';
 import { run } from '../../lib/run';
 import { withSpinner } from '../../lib/spinner';
 
 run(async () => {
-  const { video } = await withSpinner(
+  const { video, warnings, providerMetadata } = await withSpinner(
     'Generating text-to-video with seedance-1-0-pro...',
     () =>
       generateVideo({
@@ -20,11 +17,13 @@ run(async () => {
         providerOptions: {
           bytedance: {
             watermark: false,
-            pollTimeoutMs: 600000,
-          } satisfies ByteDanceVideoProviderOptions,
+          } satisfies ByteDanceVideoModelOptions,
         },
       }),
   );
 
+  console.log('Warnings:', warnings);
+  // `bytedance.taskId` and `bytedance.usage` come from the completed task.
+  console.log('Provider metadata:', providerMetadata);
   await presentVideos([video]);
 });

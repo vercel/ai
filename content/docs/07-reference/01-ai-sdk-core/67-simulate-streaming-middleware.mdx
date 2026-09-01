@@ -56,7 +56,7 @@ const result = streamText({
 });
 
 // Now you can use the streaming interface
-for await (const chunk of result.fullStream) {
+for await (const chunk of result.stream) {
   // Process streaming chunks
 }
 ```

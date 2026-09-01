@@ -7,9 +7,11 @@ import { openai } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
   createUIMessageStream,
+  createUIMessageStreamResponse,
   generateId,
   JsonToSseTransformStream,
   streamText,
+  toUIMessageStream,
   type UIMessage,
 } from 'ai';
 import { after } from 'next/server';
@@ -40,11 +42,14 @@ export async function POST(req: Request) {
     messages: await convertToModelMessages(messages),
   });
 
-  return result.toUIMessageStreamResponse({
-    originalMessages: messages,
-    onFinish: ({ messages }) => {
-      saveChat({ chatId, messages });
-    },
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      originalMessages: messages,
+      onFinish: ({ messages }) => {
+        saveChat({ chatId, messages });
+      },
+    }),
     async consumeSseStream({ stream }) {
       // send the sse stream into a resumable stream sink as well:
       const streamContext = createResumableStreamContext({ waitUntil: after });

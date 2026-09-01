@@ -4,6 +4,7 @@ import {
   createUIMessageStream,
   createUIMessageStreamResponse,
   streamText,
+  toUIMessageStream,
   type UIMessage,
 } from 'ai';
 export async function POST(req: Request) {
@@ -28,7 +29,9 @@ export async function POST(req: Request) {
         messages: modelMessages,
       });
 
-      writer.merge(result.toUIMessageStream({ sendStart: false }));
+      writer.merge(
+        toUIMessageStream({ stream: result.stream, sendStart: false }),
+      );
     },
     originalMessages: messages,
     onFinish: options => {

@@ -1,4 +1,7 @@
-import { createGoogle } from '@ai-sdk/google';
+import {
+  createGoogle,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
@@ -65,7 +68,8 @@ run(async () => {
           type: 'deep-research',
           thinkingSummaries: 'auto',
         },
-      },
+        background: true,
+      } satisfies GoogleLanguageModelInteractionsOptions,
     },
     prompt:
       'Compile an exhaustive survey of every paper published on retrieval-augmented generation since 2020. Include all authors, abstracts, and links.',
@@ -73,7 +77,7 @@ run(async () => {
   });
 
   try {
-    for await (const part of result.fullStream) {
+    for await (const part of result.stream) {
       if (part.type === 'reasoning-delta') {
         process.stdout.write(`\x1b[2m${part.text}\x1b[0m`);
       } else if (part.type === 'text-delta') {

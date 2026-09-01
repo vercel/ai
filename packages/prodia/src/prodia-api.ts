@@ -26,10 +26,9 @@ export const prodiaJobResultSchema = z.object({
     })
     .optional(),
   config: z
-    .object({
+    .looseObject({
       seed: z.number().optional(),
     })
-    .passthrough()
     .optional(),
   metrics: z
     .object({

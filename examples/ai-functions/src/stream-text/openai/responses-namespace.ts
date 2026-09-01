@@ -14,7 +14,7 @@ import { run } from '../../lib/run';
  */
 run(async () => {
   const result = streamText({
-    model: openai.responses('gpt-5.4'),
+    model: openai.responses('gpt-5.6'),
     prompt: 'What is the current weather in Tokyo?',
     tools: {
       tool_search: openai.tools.toolSearch({ execution: 'server' }),
@@ -35,7 +35,7 @@ run(async () => {
     },
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     if (part.type === 'tool-input-end') {
       console.log(
         `tool-input-end providerMetadata.openai: ${JSON.stringify(part.providerMetadata?.openai)}`,

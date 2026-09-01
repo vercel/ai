@@ -493,7 +493,14 @@ AI Gateway as the default provider, so no provider import is required.
 ### Express.js Chat Endpoint
 
 ```typescript
-import { convertToModelMessages, streamText } from 'ai';
+import {
+  convertToModelMessages,
+  pipeTextStreamToResponse,
+  pipeUIMessageStreamToResponse,
+  streamText,
+  toTextStream,
+  toUIMessageStream,
+} from 'ai';
 import express from 'express';
 
 const app = express();
@@ -507,7 +514,10 @@ app.post('/api/chat', async (req, res) => {
     messages: convertToModelMessages(messages),
   });
 
-  result.pipeUIMessageStreamToResponse(res);
+  pipeUIMessageStreamToResponse({
+    response: res,
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 });
 ```
 
@@ -522,7 +532,10 @@ app.post('/api/completion', async (req, res) => {
     prompt,
   });
 
-  result.pipeTextStreamToResponse(res);
+  pipeTextStreamToResponse({
+    response: res,
+    stream: toTextStream({ stream: result.stream }),
+  });
 });
 ```
 

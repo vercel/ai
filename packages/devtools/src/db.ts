@@ -1,8 +1,13 @@
 import path from 'node:path';
 import fs from 'node:fs';
 
-const DB_DIR = path.join(process.cwd(), '.devtools');
-const DB_PATH = path.join(DB_DIR, 'generations.json');
+const DEVTOOLS_DB_DIR = '.devtools';
+const DEVTOOLS_DB_FILE = 'generations.json';
+// Cap how many bytes we read from a remote database file. Guards against a
+// synchronous hang / OOM if the file is enormous.
+const MAX_DB_BYTES = 100 * 1024 * 1024; // 100 MB
+const DB_DIR = path.join(process.cwd(), DEVTOOLS_DB_DIR);
+const DB_PATH = path.join(DB_DIR, DEVTOOLS_DB_FILE);
 const DEVTOOLS_PORT = process.env.AI_SDK_DEVTOOLS_PORT
   ? parseInt(process.env.AI_SDK_DEVTOOLS_PORT)
   : 4983;
@@ -140,21 +145,57 @@ const saveDb = (db: Database): void => {
   writeDb(db);
 };
 
+const normalizeDevtoolsDbPath = (dbPath: string): string | undefined => {
+  const resolvedPath = path.resolve(dbPath);
+  const dbDir = path.dirname(resolvedPath);
+
+  if (
+    path.basename(resolvedPath) !== DEVTOOLS_DB_FILE ||
+    path.basename(dbDir) !== DEVTOOLS_DB_DIR
+  ) {
+    return undefined;
+  }
+
+  return resolvedPath;
+};
+
+export const validateRemoteDbPath = (dbPath: unknown): string | undefined => {
+  if (typeof dbPath !== 'string') {
+    return undefined;
+  }
+
+  const normalizedPath = normalizeDevtoolsDbPath(dbPath);
+  if (!normalizedPath) {
+    return undefined;
+  }
+
+  try {
+    const stats = fs.statSync(normalizedPath);
+    if (!stats.isFile() || stats.size > MAX_DB_BYTES) {
+      return undefined;
+    }
+
+    const realPath = fs.realpathSync(normalizedPath);
+    return normalizeDevtoolsDbPath(realPath);
+  } catch {
+    return undefined;
+  }
+};
+
 /**
  * Reload the database from disk.
  * Used by the viewer server to pick up changes made by the middleware/integration.
- * When a remote dbPath is provided (from a notify POST), reads from that path
- * instead of the local CWD-based path, so the viewer works regardless of where
- * it was started.
+ * When a valid remote dbPath is provided (from a notify POST), reads from that
+ * path instead of the local CWD-based path, so the viewer works regardless of
+ * where it was started.
  */
 export const reloadDb = async (remoteDbPath?: string): Promise<void> => {
-  if (remoteDbPath) {
+  const validatedRemoteDbPath = validateRemoteDbPath(remoteDbPath);
+  if (validatedRemoteDbPath) {
     try {
-      if (fs.existsSync(remoteDbPath)) {
-        const content = fs.readFileSync(remoteDbPath, 'utf-8');
-        dbCache = JSON.parse(content);
-        return;
-      }
+      const content = fs.readFileSync(validatedRemoteDbPath, 'utf-8');
+      dbCache = JSON.parse(content);
+      return;
     } catch {
       // Fall through to default
     }

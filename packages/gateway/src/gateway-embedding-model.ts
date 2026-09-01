@@ -6,6 +6,7 @@ import {
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  getErrorMessage,
   lazySchema,
   postJsonToApi,
   resolve,
@@ -15,7 +16,7 @@ import {
   zodSchema,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import { z } from './zod';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import type { GatewayConfig } from './gateway-config';
@@ -86,7 +87,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV4 {
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         ...(abortSignal && { abortSignal }),
         fetch: this.config.fetch,
@@ -98,7 +99,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV4 {
         providerMetadata:
           responseBody.providerMetadata as unknown as SharedV4ProviderMetadata,
         response: { headers: responseHeaders, body: rawValue },
-        warnings: [],
+        warnings: responseBody.warnings ?? [],
       };
     } catch (error) {
       throw await asGatewayError(
@@ -120,11 +121,34 @@ export class GatewayEmbeddingModel implements EmbeddingModelV4 {
   }
 }
 
+const gatewayEmbeddingWarningSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('unsupported'),
+    feature: z.string(),
+    details: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('compatibility'),
+    feature: z.string(),
+    details: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('deprecated'),
+    setting: z.string(),
+    message: z.string(),
+  }),
+  z.object({
+    type: z.literal('other'),
+    message: z.string(),
+  }),
+]);
+
 const gatewayEmbeddingResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       embeddings: z.array(z.array(z.number())),
       usage: z.object({ tokens: z.number() }).nullish(),
+      warnings: z.array(gatewayEmbeddingWarningSchema).optional(),
       providerMetadata: z
         .record(z.string(), z.record(z.string(), z.unknown()))
         .optional(),

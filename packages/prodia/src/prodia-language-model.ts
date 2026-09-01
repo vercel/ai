@@ -74,6 +74,9 @@ export class ProdiaLanguageModel implements LanguageModelV4 {
     if (options.topK !== undefined) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
+    if (options.seed !== undefined) {
+      warnings.push({ type: 'unsupported', feature: 'seed' });
+    }
     if (options.maxOutputTokens !== undefined) {
       warnings.push({ type: 'unsupported', feature: 'maxOutputTokens' });
     }
@@ -221,7 +224,7 @@ export class ProdiaLanguageModel implements LanguageModelV4 {
       'job.json',
     );
     if (imageBytes) {
-      const ext =
+      const fileExtension =
         imageMediaType === 'image/png'
           ? '.png'
           : imageMediaType === 'image/jpeg'
@@ -232,7 +235,7 @@ export class ProdiaLanguageModel implements LanguageModelV4 {
       formData.append(
         'input',
         new Blob([imageBytes], { type: imageMediaType }),
-        'input' + ext,
+        'input' + fileExtension,
       );
     }
 

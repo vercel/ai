@@ -4,6 +4,7 @@ import {
   createUIMessageStream,
   streamText,
   pipeUIMessageStreamToResponse,
+  toUIMessageStream,
 } from 'ai';
 import type { Response } from 'express';
 
@@ -16,7 +17,10 @@ export class AppController {
       prompt: 'Invent a new holiday and describe its traditions.',
     });
 
-    result.pipeUIMessageStreamToResponse(res);
+    pipeUIMessageStreamToResponse({
+      response: res,
+      stream: toUIMessageStream({ stream: result.stream }),
+    });
   }
 
   @Post('/stream-data')
@@ -38,7 +42,8 @@ export class AppController {
           prompt: 'Invent a new holiday and describe its traditions.',
         });
         writer.merge(
-          result.toUIMessageStream({
+          toUIMessageStream({
+            stream: result.stream,
             sendStart: false,
             onError: error => {
               // Error messages are masked by default for security reasons.

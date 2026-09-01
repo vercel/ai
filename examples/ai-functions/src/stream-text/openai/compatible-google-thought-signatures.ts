@@ -82,7 +82,7 @@ run(async () => {
   });
 
   console.log('Turn 1 response:');
-  for await (const chunk of turn1.fullStream) {
+  for await (const chunk of turn1.stream) {
     if (chunk.type === 'text-delta') {
       process.stdout.write(chunk.text);
     } else if (chunk.type === 'tool-call') {
@@ -167,7 +167,7 @@ run(async () => {
     });
 
     console.log('Turn 2 response:');
-    for await (const chunk of turn2.fullStream) {
+    for await (const chunk of turn2.stream) {
       if (chunk.type === 'text-delta') {
         process.stdout.write(chunk.text);
       }
@@ -215,7 +215,7 @@ run(async () => {
   });
 
   console.log('Parallel test response:');
-  for await (const chunk of parallelTest.fullStream) {
+  for await (const chunk of parallelTest.stream) {
     if (chunk.type === 'text-delta') {
       process.stdout.write(chunk.text);
     }

@@ -10,6 +10,7 @@ import {
   isFullMediaType,
   resolveFullMediaType,
   resolveProviderReference,
+  secureJsonParse,
 } from '@ai-sdk/provider-utils';
 import type {
   GoogleInteractionsContent,
@@ -262,6 +263,7 @@ function convertFilePartToContent({
       kind = 'video';
       break;
     case 'application':
+    case 'text':
       kind = 'document';
       break;
     default:
@@ -376,7 +378,7 @@ function compactPromptForPreviousInteraction({
 
 function safeParseToolArgs(input: string): Record<string, unknown> {
   try {
-    const parsed = JSON.parse(input);
+    const parsed = secureJsonParse(input);
     if (
       parsed != null &&
       typeof parsed === 'object' &&

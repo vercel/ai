@@ -212,7 +212,7 @@ async function main(prompt: string) {
       }),
     },
     // log out intermediate steps
-    onStepFinish: ({ toolResults }) => {
+    onStepEnd: ({ toolResults }) => {
       if (toolResults.length > 0) {
         console.log('Tool results:');
         console.dir(toolResults, { depth: null });

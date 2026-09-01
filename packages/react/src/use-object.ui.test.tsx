@@ -6,7 +6,8 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
-import { experimental_useObject } from './use-object';
+import { experimental_useObject } from './index';
+import { useObject } from './use-object';
 
 const server = createTestServer({
   '/api/use-object': {},
@@ -26,19 +27,18 @@ describe('text stream', () => {
     headers?: Record<string, string> | Headers;
     credentials?: RequestCredentials;
   }) => {
-    const { object, error, submit, isLoading, stop, clear } =
-      experimental_useObject({
-        api: '/api/use-object',
-        schema: z.object({ content: z.string() }),
-        onError(error) {
-          onErrorResult = error;
-        },
-        onFinish(event) {
-          onFinishCalls.push(event);
-        },
-        headers,
-        credentials,
-      });
+    const { object, error, submit, isLoading, stop, clear } = useObject({
+      api: '/api/use-object',
+      schema: z.object({ content: z.string() }),
+      onError(error) {
+        onErrorResult = error;
+      },
+      onFinish(event) {
+        onFinishCalls.push(event);
+      },
+      headers,
+      credentials,
+    });
 
     return (
       <div>
@@ -279,7 +279,7 @@ describe('text stream', () => {
     };
 
     const TestComponentWithAsyncHeaders = () => {
-      const { submit } = experimental_useObject({
+      const { submit } = useObject({
         api: '/api/use-object',
         schema: z.object({ content: z.string() }),
         headers: async () => {
@@ -321,7 +321,7 @@ describe('text stream', () => {
     };
 
     const TestComponentWithSyncFunctionHeaders = () => {
-      const { submit } = experimental_useObject({
+      const { submit } = useObject({
         api: '/api/use-object',
         schema: z.object({ content: z.string() }),
         headers: () => ({
@@ -384,5 +384,52 @@ describe('text stream', () => {
       expect(screen.getByTestId('error')).toBeEmptyDOMElement();
       expect(screen.getByTestId('loading')).toHaveTextContent('false');
     });
+  });
+
+  it('should preserve the object state when the API changes', async () => {
+    server.urls['/api/use-object'].response = {
+      type: 'stream-chunks',
+      chunks: ['{ ', '"content": "Hello, ', 'world', '!"', '}'],
+    };
+
+    const ApiTestComponent = ({ api }: { api: string }) => {
+      const { object, submit } = useObject({
+        api,
+        schema: z.object({ content: z.string() }),
+      });
+
+      return (
+        <div>
+          <div data-testid="object">{JSON.stringify(object)}</div>
+          <button
+            data-testid="submit-button"
+            onClick={() => submit('test-input')}
+          >
+            Generate
+          </button>
+        </div>
+      );
+    };
+
+    const { rerender } = render(<ApiTestComponent api="/api/use-object" />);
+    await userEvent.click(screen.getByTestId('submit-button'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('object')).toHaveTextContent(
+        JSON.stringify({ content: 'Hello, world!' }),
+      );
+    });
+
+    rerender(<ApiTestComponent api="/api/changed" />);
+
+    expect(screen.getByTestId('object')).toHaveTextContent(
+      JSON.stringify({ content: 'Hello, world!' }),
+    );
+  });
+});
+
+describe('deprecated experimental_useObject alias', () => {
+  it('should be the same function as useObject', () => {
+    expect(experimental_useObject).toBe(useObject);
   });
 });

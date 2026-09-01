@@ -43,10 +43,10 @@ import { getModelPath } from './get-model-path';
 import { googleFailedResponseHandler } from './google-error';
 import {
   googleLanguageModelOptions,
-  VertexServiceTierMap,
   type GoogleLanguageModelOptions,
   type GoogleModelId,
 } from './google-language-model-options';
+import { getGoogleModelCapabilities } from './google-model-capabilities';
 import type { GoogleProviderMetadata } from './google-prompt';
 import { prepareTools } from './google-prepare-tools';
 import {
@@ -55,7 +55,16 @@ import {
 } from './google-json-accumulator';
 import { mapGoogleFinishReason } from './map-google-finish-reason';
 
-type GoogleConfig = {
+const configurableSafetySettingCategories = [
+  'HARM_CATEGORY_HATE_SPEECH',
+  'HARM_CATEGORY_DANGEROUS_CONTENT',
+  'HARM_CATEGORY_HARASSMENT',
+  'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+] as const;
+
+const gemini25ModelPattern = /(^|\/)gemini-2\.5(?:[.-]|$)/i;
+
+export type GoogleLanguageModelConfig = {
   provider: string;
   baseURL: string;
   headers?: Resolvable<Record<string, string | undefined>>;
@@ -73,7 +82,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
   readonly modelId: GoogleModelId;
 
-  private readonly config: GoogleConfig;
+  private readonly config: GoogleLanguageModelConfig;
   private readonly generateId: () => string;
 
   static [WORKFLOW_SERIALIZE](model: GoogleLanguageModel) {
@@ -85,12 +94,12 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
-    config: GoogleConfig;
+    config: GoogleLanguageModelConfig;
   }) {
     return new GoogleLanguageModel(options.modelId, options.config);
   }
 
-  constructor(modelId: GoogleModelId, config: GoogleConfig) {
+  constructor(modelId: GoogleModelId, config: GoogleLanguageModelConfig) {
     this.modelId = modelId;
     this.config = config;
     this.generateId = config.generateId ?? generateId;
@@ -104,7 +113,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     return this.config.supportedUrls?.() ?? {};
   }
 
-  private async getArgs(
+  protected async getArgs(
     {
       prompt,
       maxOutputTokens,
@@ -183,19 +192,99 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       });
     }
 
-    // Vertex API requires another service tier format.
-    let sanitizedServiceTier: string | undefined = googleOptions?.serviceTier;
     if (googleOptions?.serviceTier && isVertexProvider) {
-      sanitizedServiceTier = VertexServiceTierMap[googleOptions.serviceTier];
+      warnings.push({
+        type: 'other',
+        message:
+          "'serviceTier' is a Gemini API option and is not supported on Vertex AI. " +
+          "Use 'sharedRequestType' (and optionally 'requestType') instead. See " +
+          'https://docs.cloud.google.com/vertex-ai/generative-ai/docs/priority-paygo',
+      });
+    }
+    if (
+      (googleOptions?.sharedRequestType || googleOptions?.requestType) &&
+      !isVertexProvider
+    ) {
+      warnings.push({
+        type: 'other',
+        message:
+          "'sharedRequestType' and 'requestType' are Vertex AI options and " +
+          `are ignored with the current Google provider (${this.config.provider}).`,
+      });
+    }
+
+    const vertexPaygoHeaders: Record<string, string> | undefined =
+      isVertexProvider &&
+      (googleOptions?.sharedRequestType || googleOptions?.requestType)
+        ? {
+            ...(googleOptions.sharedRequestType && {
+              'X-Vertex-AI-LLM-Shared-Request-Type':
+                googleOptions.sharedRequestType,
+            }),
+            ...(googleOptions.requestType && {
+              'X-Vertex-AI-LLM-Request-Type': googleOptions.requestType,
+            }),
+          }
+        : undefined;
+    const bodyServiceTier = isVertexProvider
+      ? undefined
+      : googleOptions?.serviceTier;
+
+    // personGeneration, prominentPeople and imageOutputOptions are only
+    // supported by the Vertex AI API, the Gemini API rejects them.
+    let imageConfig = googleOptions?.imageConfig;
+    if (imageConfig != null && !isVertexProvider) {
+      const {
+        personGeneration,
+        prominentPeople,
+        imageOutputOptions,
+        ...geminiApiImageConfig
+      } = imageConfig;
+      const droppedImageConfigFields = Object.entries({
+        personGeneration,
+        prominentPeople,
+        imageOutputOptions,
+      })
+        .filter(([, value]) => value != null)
+        .map(([key]) => `'imageConfig.${key}'`);
+      if (droppedImageConfigFields.length > 0) {
+        warnings.push({
+          type: 'other',
+          message:
+            `${droppedImageConfigFields.join(', ')} ` +
+            `${droppedImageConfigFields.length === 1 ? 'is a Vertex AI option and is' : 'are Vertex AI options and are'} ` +
+            `ignored with the current Google provider (${this.config.provider}).`,
+        });
+        imageConfig = geminiApiImageConfig;
+      }
     }
 
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
-    const supportsFunctionResponseParts = this.modelId.startsWith('gemini-3');
+    const isGemini25DeveloperApiModel =
+      !isVertexProvider && gemini25ModelPattern.test(this.modelId);
+
+    if (isGemini25DeveloperApiModel && frequencyPenalty != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'frequencyPenalty',
+      });
+    }
+    if (isGemini25DeveloperApiModel && presencePenalty != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'presencePenalty',
+      });
+    }
+
+    const { usesGemini3Features } = getGoogleModelCapabilities(this.modelId);
 
     const { contents, systemInstruction } = convertToGoogleMessages(prompt, {
       isGemmaModel,
+      isGemini3Model: usesGemini3Features,
+      onWarning: warning => warnings.push(warning),
       providerOptionsNames,
-      supportsFunctionResponseParts,
+      supportsFunctionResponseParts: usesGemini3Features,
+      includeFunctionCallIds: !isVertexProvider,
     });
 
     const {
@@ -224,6 +313,16 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         ? (googleOptions?.streamFunctionCallArguments ?? false)
         : undefined;
 
+    const safetyThreshold = googleOptions?.threshold;
+    const safetySettings =
+      googleOptions?.safetySettings ??
+      (safetyThreshold != null
+        ? configurableSafetySettingCategories.map(category => ({
+            category,
+            threshold: safetyThreshold,
+          }))
+        : undefined);
+
     const toolConfig =
       googleToolConfig ||
       streamFunctionCallArguments ||
@@ -250,8 +349,12 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           temperature,
           topK,
           topP,
-          frequencyPenalty,
-          presencePenalty,
+          frequencyPenalty: isGemini25DeveloperApiModel
+            ? undefined
+            : frequencyPenalty,
+          presencePenalty: isGemini25DeveloperApiModel
+            ? undefined
+            : presencePenalty,
           stopSequences,
           seed,
 
@@ -277,64 +380,50 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           ...(googleOptions?.mediaResolution && {
             mediaResolution: googleOptions.mediaResolution,
           }),
-          ...(googleOptions?.imageConfig && {
-            imageConfig: googleOptions.imageConfig,
-          }),
+          ...(imageConfig && { imageConfig }),
         },
         contents,
         systemInstruction: isGemmaModel ? undefined : systemInstruction,
-        safetySettings: googleOptions?.safetySettings,
+        safetySettings,
         tools: googleTools,
         toolConfig,
         cachedContent: googleOptions?.cachedContent,
         labels: googleOptions?.labels,
-        serviceTier: sanitizedServiceTier,
+        serviceTier: bodyServiceTier,
       },
       warnings: [...warnings, ...toolWarnings],
       providerOptionsNames,
+      extraHeaders: vertexPaygoHeaders,
     };
   }
 
-  async doGenerate(
-    options: LanguageModelV4CallOptions,
-  ): Promise<LanguageModelV4GenerateResult> {
-    const { args, warnings, providerOptionsNames } =
-      await this.getArgs(options);
+  protected convertGenerateContentResponse({
+    response,
+    warnings,
+    providerOptionsNames,
+  }: {
+    response: InferSchema<typeof responseSchema>;
+    warnings: SharedV4Warning[];
+    providerOptionsNames: readonly string[];
+  }): LanguageModelV4GenerateResult {
     const wrapProviderMetadata = (payload: Record<string, unknown>) =>
       Object.fromEntries(
         providerOptionsNames.map(name => [name, payload]),
       ) as SharedV4ProviderMetadata;
-
-    const mergedHeaders = combineHeaders(
-      this.config.headers ? await resolve(this.config.headers) : undefined,
-      options.headers,
-    );
-
-    const {
-      responseHeaders,
-      value: response,
-      rawValue: rawResponse,
-    } = await postJsonToApi({
-      url: `${this.config.baseURL}/${getModelPath(
-        this.modelId,
-      )}:generateContent`,
-      headers: mergedHeaders,
-      body: args,
-      failedResponseHandler: googleFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(responseSchema),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
-    });
-
-    const candidate = response.candidates[0];
+    const candidate = response.candidates?.[0];
+    const promptBlockReason = response.promptFeedback?.blockReason;
+    const isPromptBlocked =
+      candidate?.finishReason == null && promptBlockReason != null;
+    const rawFinishReason =
+      candidate?.finishReason ?? promptBlockReason ?? undefined;
     const content: Array<LanguageModelV4Content> = [];
 
     // map ordered parts to content:
-    const parts = candidate.content?.parts ?? [];
+    const parts = candidate?.content?.parts ?? [];
 
     const usageMetadata = response.usageMetadata;
 
-    // Associates a code execution result with its preceding call.
+    // Associates code execution results with their preceding call.
     let lastCodeExecutionToolCallId: string | undefined;
     // Associates a server-side tool response with its preceding call (tool combination).
     let lastServerToolCallId: string | undefined;
@@ -355,7 +444,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       } else if ('codeExecutionResult' in part && part.codeExecutionResult) {
         content.push({
           type: 'tool-result',
-          // Assumes a result directly follows its corresponding call part.
+          // Results correspond to the most recent executable code part.
           toolCallId: lastCodeExecutionToolCallId!,
           toolName: 'code_execution',
           result: {
@@ -363,8 +452,6 @@ export class GoogleLanguageModel implements LanguageModelV4 {
             output: part.codeExecutionResult.output ?? '',
           },
         });
-        // Clear the ID after use to avoid accidental reuse.
-        lastCodeExecutionToolCallId = undefined;
       } else if ('text' in part && part.text != null) {
         const thoughtSignatureMetadata = part.thoughtSignature
           ? wrapProviderMetadata({
@@ -387,7 +474,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       } else if ('functionCall' in part && part.functionCall.name != null) {
         content.push({
           type: 'tool-call' as const,
-          toolCallId: part.functionCall.id ?? this.config.generateId(),
+          toolCallId: part.functionCall.id || this.config.generateId(),
           toolName: part.functionCall.name,
           input: JSON.stringify(part.functionCall.args ?? {}),
           providerMetadata: part.thoughtSignature
@@ -410,7 +497,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
             : undefined,
         });
       } else if ('toolCall' in part && part.toolCall) {
-        const toolCallId = part.toolCall.id ?? this.config.generateId();
+        const toolCallId = part.toolCall.id || this.config.generateId();
         lastServerToolCallId = toolCallId;
         content.push({
           type: 'tool-call',
@@ -432,8 +519,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         });
       } else if ('toolResponse' in part && part.toolResponse) {
         const responseToolCallId =
-          lastServerToolCallId ??
-          part.toolResponse.id ??
+          lastServerToolCallId ||
+          part.toolResponse.id ||
           this.config.generateId();
         content.push({
           type: 'tool-result',
@@ -457,7 +544,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
     const sources =
       extractSources({
-        groundingMetadata: candidate.groundingMetadata,
+        groundingMetadata: candidate?.groundingMetadata,
         generateId: this.config.generateId,
       }) ?? [];
     for (const source of sources) {
@@ -467,29 +554,74 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     return {
       content,
       finishReason: {
-        unified: mapGoogleFinishReason({
-          finishReason: candidate.finishReason,
-          // Only count client-executed tool calls for finish reason determination.
-          hasToolCalls: content.some(
-            part => part.type === 'tool-call' && !part.providerExecuted,
-          ),
-        }),
-        raw: candidate.finishReason ?? undefined,
+        unified: isPromptBlocked
+          ? 'content-filter'
+          : mapGoogleFinishReason({
+              finishReason: rawFinishReason,
+              // Only count client-executed tool calls for finish reason determination.
+              hasToolCalls: content.some(
+                part => part.type === 'tool-call' && !part.providerExecuted,
+              ),
+            }),
+        raw: rawFinishReason,
       },
       usage: convertGoogleUsage(usageMetadata),
       warnings,
       providerMetadata: wrapProviderMetadata({
         promptFeedback: response.promptFeedback ?? null,
-        groundingMetadata: candidate.groundingMetadata ?? null,
-        urlContextMetadata: candidate.urlContextMetadata ?? null,
-        safetyRatings: candidate.safetyRatings ?? null,
+        groundingMetadata: candidate?.groundingMetadata ?? null,
+        urlContextMetadata: candidate?.urlContextMetadata ?? null,
+        safetyRatings: candidate?.safetyRatings ?? null,
         usageMetadata: usageMetadata ?? null,
-        finishMessage: candidate.finishMessage ?? null,
-        serviceTier: response.serviceTier ?? null,
+        finishMessage: candidate?.finishMessage ?? null,
+        serviceTier: usageMetadata?.serviceTier ?? null,
       } satisfies GoogleProviderMetadata),
+      response: {
+        // TODO timestamp, model id
+        id: response.responseId ?? undefined,
+      },
+    };
+  }
+
+  async doGenerate(
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
+    const { args, warnings, providerOptionsNames, extraHeaders } =
+      await this.getArgs(options);
+
+    const mergedHeaders = combineHeaders(
+      this.config.headers ? await resolve(this.config.headers) : undefined,
+      options.headers,
+      extraHeaders,
+    );
+
+    const {
+      responseHeaders,
+      value: response,
+      rawValue: rawResponse,
+    } = await postJsonToApi({
+      url: `${this.config.baseURL}/${getModelPath(
+        this.modelId,
+      )}:generateContent`,
+      headers: mergedHeaders,
+      body: args,
+      failedResponseHandler: googleFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(responseSchema),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    const result = this.convertGenerateContentResponse({
+      response,
+      warnings,
+      providerOptionsNames,
+    });
+
+    return {
+      ...result,
       request: { body: args },
       response: {
-        // TODO timestamp, model id, id
+        ...result.response,
         headers: responseHeaders,
         body: rawResponse,
       },
@@ -499,10 +631,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
   async doStream(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4StreamResult> {
-    const { args, warnings, providerOptionsNames } = await this.getArgs(
-      options,
-      { isStreaming: true },
-    );
+    const { args, warnings, providerOptionsNames, extraHeaders } =
+      await this.getArgs(options, { isStreaming: true });
     const wrapProviderMetadata = (payload: Record<string, unknown>) =>
       Object.fromEntries(
         providerOptionsNames.map(name => [name, payload]),
@@ -511,6 +641,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     const headers = combineHeaders(
       this.config.headers ? await resolve(this.config.headers) : undefined,
       options.headers,
+      extraHeaders,
     );
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -533,10 +664,10 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     let providerMetadata: SharedV4ProviderMetadata | undefined = undefined;
     let lastGroundingMetadata: GroundingMetadataSchema | null = null;
     let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
-    let serviceTier: string | null = null;
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
+    let hasEmittedResponseMetadata = false;
 
     // Track active blocks to group consecutive parts of same type
     let currentTextBlockId: string | null = null;
@@ -545,7 +676,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
     // Track emitted sources to prevent duplicates
     const emittedSourceUrls = new Set<string>();
-    // Associates a code execution result with its preceding call.
+    // Associates code execution results with their preceding call.
     let lastCodeExecutionToolCallId: string | undefined;
     // Associates a server-side tool response with its preceding call (tool combination).
     let lastServerToolCallId: string | undefined;
@@ -556,6 +687,42 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       accumulator: GoogleJSONAccumulator;
       providerMetadata?: SharedV4ProviderMetadata;
     }> = [];
+
+    const finishActiveStreamingToolCall = (
+      controller: TransformStreamDefaultController<LanguageModelV4StreamPart>,
+    ) => {
+      const active = activeStreamingToolCalls.pop();
+      if (active == null) {
+        return;
+      }
+
+      const { finalJSON, closingDelta } = active.accumulator.finalize();
+
+      if (closingDelta.length > 0) {
+        controller.enqueue({
+          type: 'tool-input-delta',
+          id: active.toolCallId,
+          delta: closingDelta,
+          providerMetadata: active.providerMetadata,
+        });
+      }
+
+      controller.enqueue({
+        type: 'tool-input-end',
+        id: active.toolCallId,
+        providerMetadata: active.providerMetadata,
+      });
+
+      controller.enqueue({
+        type: 'tool-call',
+        toolCallId: active.toolCallId,
+        toolName: active.toolName,
+        input: finalJSON,
+        providerMetadata: active.providerMetadata,
+      });
+
+      hasToolCalls = true;
+    };
 
     return {
       stream: response.pipeThrough(
@@ -579,20 +746,40 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
             const value = chunk.value;
 
+            if (!hasEmittedResponseMetadata && value.responseId != null) {
+              hasEmittedResponseMetadata = true;
+              controller.enqueue({
+                type: 'response-metadata',
+                id: value.responseId,
+              });
+            }
+
             const usageMetadata = value.usageMetadata;
 
             if (usageMetadata != null) {
               usage = usageMetadata;
             }
 
-            if (value.serviceTier != null) {
-              serviceTier = value.serviceTier;
-            }
-
             const candidate = value.candidates?.[0];
 
             // sometimes the API returns an empty candidates array
             if (candidate == null) {
+              const promptBlockReason = value.promptFeedback?.blockReason;
+              if (promptBlockReason != null) {
+                finishReason = {
+                  unified: 'content-filter',
+                  raw: promptBlockReason,
+                };
+                providerMetadata = wrapProviderMetadata({
+                  promptFeedback: value.promptFeedback ?? null,
+                  groundingMetadata: lastGroundingMetadata,
+                  urlContextMetadata: lastUrlContextMetadata,
+                  safetyRatings: null,
+                  usageMetadata: usageMetadata ?? null,
+                  finishMessage: null,
+                  serviceTier: usage?.serviceTier ?? null,
+                } satisfies GoogleProviderMetadata);
+              }
               return;
             }
 
@@ -641,7 +828,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                   'codeExecutionResult' in part &&
                   part.codeExecutionResult
                 ) {
-                  // Assumes a result directly follows its corresponding call part.
+                  // Results correspond to the most recent executable code part.
                   const toolCallId = lastCodeExecutionToolCallId;
 
                   if (toolCallId) {
@@ -654,8 +841,6 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                         output: part.codeExecutionResult.output ?? '',
                       },
                     });
-                    // Clear the ID after use.
-                    lastCodeExecutionToolCallId = undefined;
                   }
                 } else if ('text' in part && part.text != null) {
                   const thoughtSignatureMetadata = part.thoughtSignature
@@ -759,7 +944,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                     providerMetadata: fileMeta,
                   });
                 } else if ('toolCall' in part && part.toolCall) {
-                  const toolCallId = part.toolCall.id ?? generateId();
+                  const toolCallId = part.toolCall.id || generateId();
                   lastServerToolCallId = toolCallId;
                   const serverMeta = wrapProviderMetadata({
                     ...(part.thoughtSignature
@@ -780,8 +965,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                   });
                 } else if ('toolResponse' in part && part.toolResponse) {
                   const responseToolCallId =
-                    lastServerToolCallId ??
-                    part.toolResponse.id ??
+                    lastServerToolCallId ||
+                    part.toolResponse.id ||
                     generateId();
                   const serverMeta = wrapProviderMetadata({
                     ...(part.thoughtSignature
@@ -834,11 +1019,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                   part.functionCall.willContinue !== true;
 
                 if (isStreamingChunk) {
-                  if (
-                    part.functionCall.name != null &&
-                    part.functionCall.willContinue === true
-                  ) {
-                    const toolCallId = part.functionCall.id ?? generateId();
+                  if (part.functionCall.name != null) {
+                    const toolCallId = part.functionCall.id || generateId();
                     const accumulator = new GoogleJSONAccumulator();
                     activeStreamingToolCalls.push({
                       toolCallId,
@@ -855,9 +1037,10 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                     });
 
                     if (part.functionCall.partialArgs != null) {
-                      const { textDelta } = accumulator.processPartialArgs(
-                        part.functionCall.partialArgs as PartialArg[],
-                      );
+                      const partialArgs = part.functionCall
+                        .partialArgs as PartialArg[];
+                      const { textDelta } =
+                        accumulator.processPartialArgs(partialArgs);
                       if (textDelta.length > 0) {
                         controller.enqueue({
                           type: 'tool-input-delta',
@@ -865,6 +1048,12 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                           delta: textDelta,
                           providerMetadata: providerMeta,
                         });
+                      }
+                      if (
+                        part.functionCall.willContinue !== true &&
+                        partialArgs.every(arg => arg.willContinue !== true)
+                      ) {
+                        finishActiveStreamingToolCall(controller);
                       }
                     }
                   } else if (
@@ -875,9 +1064,10 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                       activeStreamingToolCalls[
                         activeStreamingToolCalls.length - 1
                       ];
-                    const { textDelta } = active.accumulator.processPartialArgs(
-                      part.functionCall.partialArgs as PartialArg[],
-                    );
+                    const partialArgs = part.functionCall
+                      .partialArgs as PartialArg[];
+                    const { textDelta } =
+                      active.accumulator.processPartialArgs(partialArgs);
                     if (textDelta.length > 0) {
                       controller.enqueue({
                         type: 'tool-input-delta',
@@ -886,41 +1076,20 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                         providerMetadata: providerMeta,
                       });
                     }
+                    if (
+                      part.functionCall.willContinue !== true &&
+                      partialArgs.every(arg => arg.willContinue !== true)
+                    ) {
+                      finishActiveStreamingToolCall(controller);
+                    }
                   }
                 } else if (
                   isTerminalChunk &&
                   activeStreamingToolCalls.length > 0
                 ) {
-                  const active = activeStreamingToolCalls.pop()!;
-                  const { finalJSON, closingDelta } =
-                    active.accumulator.finalize();
-
-                  if (closingDelta.length > 0) {
-                    controller.enqueue({
-                      type: 'tool-input-delta',
-                      id: active.toolCallId,
-                      delta: closingDelta,
-                      providerMetadata: active.providerMetadata,
-                    });
-                  }
-
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: active.toolCallId,
-                    providerMetadata: active.providerMetadata,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId: active.toolCallId,
-                    toolName: active.toolName,
-                    input: finalJSON,
-                    providerMetadata: active.providerMetadata,
-                  });
-
-                  hasToolCalls = true;
+                  finishActiveStreamingToolCall(controller);
                 } else if (isCompleteCall) {
-                  const toolCallId = part.functionCall.id ?? generateId();
+                  const toolCallId = part.functionCall.id || generateId();
                   const toolName = part.functionCall.name!;
                   const args =
                     typeof part.functionCall.args === 'string'
@@ -957,7 +1126,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
                   hasToolCalls = true;
                 } else if (isNoArgsCompleteCall) {
-                  const toolCallId = part.functionCall.id ?? generateId();
+                  const toolCallId = part.functionCall.id || generateId();
                   const toolName = part.functionCall.name!;
 
                   controller.enqueue({
@@ -986,13 +1155,21 @@ export class GoogleLanguageModel implements LanguageModelV4 {
               }
             }
 
-            if (candidate.finishReason != null) {
+            const promptBlockReason = value.promptFeedback?.blockReason;
+            const isPromptBlocked =
+              candidate.finishReason == null && promptBlockReason != null;
+            const rawFinishReason =
+              candidate.finishReason ?? promptBlockReason ?? undefined;
+
+            if (rawFinishReason != null) {
               finishReason = {
-                unified: mapGoogleFinishReason({
-                  finishReason: candidate.finishReason,
-                  hasToolCalls,
-                }),
-                raw: candidate.finishReason,
+                unified: isPromptBlocked
+                  ? 'content-filter'
+                  : mapGoogleFinishReason({
+                      finishReason: rawFinishReason,
+                      hasToolCalls,
+                    }),
+                raw: rawFinishReason,
               };
 
               providerMetadata = wrapProviderMetadata({
@@ -1002,7 +1179,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                 safetyRatings: candidate.safetyRatings ?? null,
                 usageMetadata: usageMetadata ?? null,
                 finishMessage: candidate.finishMessage ?? null,
-                serviceTier,
+                serviceTier: usage?.serviceTier ?? null,
               } satisfies GoogleProviderMetadata);
             }
           },
@@ -1036,10 +1213,6 @@ export class GoogleLanguageModel implements LanguageModelV4 {
   }
 }
 
-function isGemini3Model(modelId: string): boolean {
-  return /gemini-3[\.\-]/i.test(modelId) || /gemini-3$/i.test(modelId);
-}
-
 function getMaxOutputTokensForGemini25Model(): number {
   return 65536;
 }
@@ -1069,8 +1242,11 @@ function resolveThinkingConfig({
     return undefined;
   }
 
-  if (isGemini3Model(modelId) && !modelId.includes('gemini-3-pro-image')) {
-    return resolveGemini3ThinkingConfig({ reasoning, warnings });
+  if (
+    getGoogleModelCapabilities(modelId).usesGemini3Features &&
+    !modelId.includes('gemini-3-pro-image')
+  ) {
+    return resolveGemini3ThinkingConfig({ reasoning, modelId, warnings });
   }
 
   return resolveGemini25ThinkingConfig({ reasoning, modelId, warnings });
@@ -1078,23 +1254,27 @@ function resolveThinkingConfig({
 
 function resolveGemini3ThinkingConfig({
   reasoning,
+  modelId,
   warnings,
 }: {
   reasoning: Exclude<
     LanguageModelV4CallOptions['reasoning'],
     'provider-default' | undefined
   >;
+  modelId: string;
   warnings: SharedV4Warning[];
 }): Pick<GoogleThinkingConfig, 'thinkingLevel'> | undefined {
+  const minimumThinkingLevel = getMinimumThinkingLevelForGemini3Model(modelId);
+
   if (reasoning === 'none') {
     // It's not possible to fully disable thinking with Gemini 3.
-    return { thinkingLevel: 'minimal' };
+    return { thinkingLevel: minimumThinkingLevel };
   }
 
   const thinkingLevel = mapReasoningToProviderEffort({
     reasoning,
     effortMap: {
-      minimal: 'minimal',
+      minimal: minimumThinkingLevel,
       low: 'low',
       medium: 'medium',
       high: 'high',
@@ -1108,6 +1288,31 @@ function resolveGemini3ThinkingConfig({
   }
 
   return { thinkingLevel };
+}
+
+function getMinimumThinkingLevelForGemini3Model(
+  modelId: string,
+): 'minimal' | 'low' {
+  const modelName = modelId.split('/').at(-1)?.toLowerCase();
+
+  if (modelName === 'gemini-flash-latest') {
+    return 'low';
+  }
+
+  const versionMatch = /^gemini-(\d+)\.(\d+)-flash(?:$|-(?!lite(?:-|$)))/.exec(
+    modelName ?? '',
+  );
+
+  if (versionMatch == null) {
+    return 'minimal';
+  }
+
+  const majorVersion = Number(versionMatch[1]);
+  const minorVersion = Number(versionMatch[2]);
+
+  return majorVersion > 3 || (majorVersion === 3 && minorVersion >= 7)
+    ? 'low'
+    : 'minimal';
 }
 
 function resolveGemini25ThinkingConfig({
@@ -1400,25 +1605,33 @@ const getSafetyRatingSchema = () =>
 
 const tokenDetailsSchema = z
   .array(
-    z.object({
-      modality: z.string(),
-      tokenCount: z.number(),
-    }),
+    z
+      .object({
+        modality: z.string(),
+        tokenCount: z.number(),
+      })
+      .loose(),
   )
   .nullish();
 
-const usageSchema = z.object({
-  cachedContentTokenCount: z.number().nullish(),
-  thoughtsTokenCount: z.number().nullish(),
-  promptTokenCount: z.number().nullish(),
-  candidatesTokenCount: z.number().nullish(),
-  totalTokenCount: z.number().nullish(),
-  // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
-  trafficType: z.string().nullish(),
-  // https://ai.google.dev/api/generate-content#Modality
-  promptTokensDetails: tokenDetailsSchema,
-  candidatesTokensDetails: tokenDetailsSchema,
-});
+const usageSchema = z
+  .object({
+    cachedContentTokenCount: z.number().nullish(),
+    thoughtsTokenCount: z.number().nullish(),
+    promptTokenCount: z.number().nullish(),
+    candidatesTokenCount: z.number().nullish(),
+    toolUsePromptTokenCount: z.number().nullish(),
+    totalTokenCount: z.number().nullish(),
+    // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
+    trafficType: z.string().nullish(),
+    serviceTier: z.string().nullish(),
+    // https://ai.google.dev/api/generate-content#Modality
+    promptTokensDetails: tokenDetailsSchema,
+    cacheTokensDetails: tokenDetailsSchema,
+    candidatesTokensDetails: tokenDetailsSchema,
+    toolUsePromptTokensDetails: tokenDetailsSchema,
+  })
+  .loose();
 
 // https://ai.google.dev/api/generate-content#UrlRetrievalMetadata
 export const getUrlContextMetadataSchema = () =>
@@ -1433,19 +1646,22 @@ export const getUrlContextMetadataSchema = () =>
       .nullish(),
   });
 
-const responseSchema = lazySchema(() =>
+export const responseSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      candidates: z.array(
-        z.object({
-          content: getContentSchema().nullish().or(z.object({}).strict()),
-          finishReason: z.string().nullish(),
-          finishMessage: z.string().nullish(),
-          safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
-          groundingMetadata: getGroundingMetadataSchema().nullish(),
-          urlContextMetadata: getUrlContextMetadataSchema().nullish(),
-        }),
-      ),
+      responseId: z.string().nullish(),
+      candidates: z
+        .array(
+          z.object({
+            content: getContentSchema().nullish().or(z.object({}).strict()),
+            finishReason: z.string().nullish(),
+            finishMessage: z.string().nullish(),
+            safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
+            groundingMetadata: getGroundingMetadataSchema().nullish(),
+            urlContextMetadata: getUrlContextMetadataSchema().nullish(),
+          }),
+        )
+        .nullish(),
       usageMetadata: usageSchema.nullish(),
       promptFeedback: z
         .object({
@@ -1453,21 +1669,24 @@ const responseSchema = lazySchema(() =>
           safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
         })
         .nullish(),
-      serviceTier: z.string().nullish(),
     }),
   ),
 );
 
+type CandidateSchema = NonNullable<
+  InferSchema<typeof responseSchema>['candidates']
+>[number];
+
 export type GroundingMetadataSchema = NonNullable<
-  InferSchema<typeof responseSchema>['candidates'][number]['groundingMetadata']
+  CandidateSchema['groundingMetadata']
 >;
 
 export type UrlContextMetadataSchema = NonNullable<
-  InferSchema<typeof responseSchema>['candidates'][number]['urlContextMetadata']
+  CandidateSchema['urlContextMetadata']
 >;
 
 export type SafetyRatingSchema = NonNullable<
-  InferSchema<typeof responseSchema>['candidates'][number]['safetyRatings']
+  CandidateSchema['safetyRatings']
 >[number];
 
 export type PromptFeedbackSchema = NonNullable<
@@ -1483,6 +1702,7 @@ export type UsageMetadataSchema = NonNullable<
 const chunkSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      responseId: z.string().nullish(),
       candidates: z
         .array(
           z.object({
@@ -1502,7 +1722,6 @@ const chunkSchema = lazySchema(() =>
           safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
         })
         .nullish(),
-      serviceTier: z.string().nullish(),
     }),
   ),
 );

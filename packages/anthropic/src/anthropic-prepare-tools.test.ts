@@ -976,6 +976,7 @@ describe('prepareTools', () => {
             args: {
               model: 'claude-opus-4-7',
               maxUses: 5,
+              maxTokens: 2048,
               caching: { type: 'ephemeral', ttl: '1h' },
             },
           },
@@ -998,6 +999,7 @@ describe('prepareTools', () => {
                 "ttl": "1h",
                 "type": "ephemeral",
               },
+              "max_tokens": 2048,
               "max_uses": 5,
               "model": "claude-opus-4-7",
               "name": "advisor",
@@ -1006,6 +1008,52 @@ describe('prepareTools', () => {
           ],
         }
       `);
+    });
+
+    it('should reject advisor_20260301 maxTokens below 1024', async () => {
+      await expect(
+        prepareTools({
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.advisor_20260301',
+              name: 'advisor',
+              args: {
+                model: 'claude-opus-4-7',
+                maxTokens: 1023,
+              },
+            },
+          ],
+          toolChoice: undefined,
+          supportsStructuredOutput: true,
+          supportsStrictTools: true,
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_TypeValidationError',
+      });
+    });
+
+    it('should reject non-integer advisor_20260301 maxTokens', async () => {
+      await expect(
+        prepareTools({
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.advisor_20260301',
+              name: 'advisor',
+              args: {
+                model: 'claude-opus-4-7',
+                maxTokens: 2048.5,
+              },
+            },
+          ],
+          toolChoice: undefined,
+          supportsStructuredOutput: true,
+          supportsStrictTools: true,
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_TypeValidationError',
+      });
     });
   });
 
@@ -1752,6 +1800,78 @@ describe('anthropicChunkSchema - web_fetch_tool_result', () => {
 
     const schema = anthropicChunkSchema();
     const result = await schema.validate!(pdfChunk);
+
+    expect(result.success).toBe(true);
+  });
+});
+
+describe('anthropicChunkSchema - shared batch content variants', () => {
+  it('accepts a string MCP tool result in a streaming content block', async () => {
+    const result = await anthropicChunkSchema().validate!({
+      content_block: {
+        content: 'tool output',
+        is_error: false,
+        tool_use_id: 'mcp_123',
+        type: 'mcp_tool_result',
+      },
+      index: 0,
+      type: 'content_block_start',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts opaque MCP tool result citations', async () => {
+    const result = await anthropicChunkSchema().validate!({
+      content_block: {
+        content: [
+          {
+            citations: [
+              {
+                reference: 'opaque-reference',
+                type: 'future_citation_variant',
+              },
+            ],
+            text: 'tool output',
+            type: 'text',
+          },
+        ],
+        is_error: false,
+        tool_use_id: 'mcp_123',
+        type: 'mcp_tool_result',
+      },
+      index: 0,
+      type: 'content_block_start',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it.each([
+    {
+      cited_text: 'block',
+      document_index: 0,
+      document_title: null,
+      end_block_index: 2,
+      file_id: null,
+      start_block_index: 1,
+      type: 'content_block_location',
+    },
+    {
+      cited_text: 'result',
+      end_block_index: 2,
+      search_result_index: 0,
+      source: 'https://example.com',
+      start_block_index: 1,
+      title: null,
+      type: 'search_result_location',
+    },
+  ])('accepts $type citation deltas', async citation => {
+    const result = await anthropicChunkSchema().validate!({
+      delta: { citation, type: 'citations_delta' },
+      index: 0,
+      type: 'content_block_delta',
+    });
 
     expect(result.success).toBe(true);
   });

@@ -150,6 +150,26 @@ export type AmazonBedrockDocumentFormat =
   AmazonBedrockDocumentFormats[keyof AmazonBedrockDocumentFormats];
 export type AmazonBedrockDocumentMimeType = keyof AmazonBedrockDocumentFormats;
 
+/**
+ * @see https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_VideoBlock.html
+ */
+export const BEDROCK_VIDEO_MIME_TYPES = {
+  'video/x-matroska': 'mkv',
+  'video/quicktime': 'mov',
+  'video/mp4': 'mp4',
+  'video/webm': 'webm',
+  'video/x-flv': 'flv',
+  'video/mpeg': 'mpeg',
+  'video/mpg': 'mpg',
+  'video/wmv': 'wmv',
+  'video/x-ms-wmv': 'wmv',
+  'video/3gpp': 'three_gp',
+} as const;
+type AmazonBedrockVideoFormats = typeof BEDROCK_VIDEO_MIME_TYPES;
+export type AmazonBedrockVideoFormat =
+  AmazonBedrockVideoFormats[keyof AmazonBedrockVideoFormats];
+export type AmazonBedrockVideoMimeType = keyof AmazonBedrockVideoFormats;
+
 export interface AmazonBedrockDocumentBlock {
   document: {
     format: AmazonBedrockDocumentFormat;
@@ -163,23 +183,57 @@ export interface AmazonBedrockDocumentBlock {
   };
 }
 
+export interface AmazonBedrockGuardrailTextBlock extends AmazonBedrockTextBlock {
+  qualifiers?: Array<'grounding_source' | 'query' | 'guard_content'>;
+}
+
 export interface AmazonBedrockGuardrailConverseContentBlock {
-  guardContent: unknown;
+  guardContent:
+    | {
+        text: AmazonBedrockGuardrailTextBlock;
+      }
+    | AmazonBedrockImageBlock;
 }
 
 export interface AmazonBedrockImageBlock {
   image: {
     format: AmazonBedrockImageFormat;
-    source: {
-      bytes: string;
-    };
+    source:
+      | {
+          bytes: string;
+        }
+      | {
+          s3Location: {
+            uri: string;
+          };
+        };
+  };
+}
+
+export interface AmazonBedrockVideoBlock {
+  video: {
+    format: AmazonBedrockVideoFormat;
+    source:
+      | {
+          bytes: string;
+        }
+      | {
+          s3Location: {
+            uri: string;
+          };
+        };
   };
 }
 
 export interface AmazonBedrockToolResultBlock {
   toolResult: {
     toolUseId: string;
-    content: Array<AmazonBedrockTextBlock | AmazonBedrockImageBlock>;
+    content: Array<
+      | AmazonBedrockTextBlock
+      | AmazonBedrockImageBlock
+      | AmazonBedrockDocumentBlock
+      | AmazonBedrockVideoBlock
+    >;
   };
 }
 
@@ -212,13 +266,21 @@ export interface AmazonBedrockRedactedReasoningContentBlock {
   };
 }
 
+export interface AmazonBedrockRedactedContentBlock {
+  reasoningContent: {
+    redactedContent: string;
+  };
+}
+
 export type AmazonBedrockContentBlock =
   | AmazonBedrockDocumentBlock
   | AmazonBedrockGuardrailConverseContentBlock
   | AmazonBedrockImageBlock
+  | AmazonBedrockVideoBlock
   | AmazonBedrockTextBlock
   | AmazonBedrockToolResultBlock
   | AmazonBedrockToolUseBlock
   | AmazonBedrockReasoningContentBlock
   | AmazonBedrockRedactedReasoningContentBlock
+  | AmazonBedrockRedactedContentBlock
   | AmazonBedrockCachePoint;

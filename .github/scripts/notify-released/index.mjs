@@ -4,7 +4,7 @@ import { Octokit } from 'octokit';
 
 const DRY_RUN = process.argv.includes('--dry-run');
 const NPM_VERIFY_TIMEOUT_MS = parseInt(
-  process.env.NPM_VERIFY_TIMEOUT_MS || '300000',
+  process.env.NPM_VERIFY_TIMEOUT_MS || '600000',
   10,
 );
 const NPM_POLL_INTERVAL_MS = 10000;

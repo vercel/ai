@@ -136,14 +136,30 @@ See the [KlingAI Capability Map](https://app.klingai.com/global/dev/document-api
 
 ## Authentication
 
-Kling AI uses access key / secret key authentication. Set the following environment variables:
+Kling AI uses API key authentication. Create a key in the [Kling AI developer console](https://kling.ai/dev/api-key) and set the following environment variable:
+
+```
+KLINGAI_API_KEY=your-api-key
+```
+
+Or pass it directly:
+
+```ts
+import { createKlingAI } from '@ai-sdk/klingai';
+
+const klingai = createKlingAI({
+  apiKey: 'your-api-key',
+});
+```
+
+### Legacy access key / secret key
+
+Kling AI's earlier access key / secret key pair is still supported. The provider uses it to sign a short-lived JWT for each request:
 
 ```
 KLINGAI_ACCESS_KEY=your-access-key
 KLINGAI_SECRET_KEY=your-secret-key
 ```
-
-Or pass them directly:
 
 ```ts
 import { createKlingAI } from '@ai-sdk/klingai';
@@ -153,6 +169,13 @@ const klingai = createKlingAI({
   secretKey: 'your-secret-key',
 });
 ```
+
+Credentials are resolved in this order, with explicit settings taking precedence over environment variables:
+
+1. The `apiKey` setting
+2. The `accessKey` and `secretKey` settings
+3. The `KLINGAI_API_KEY` environment variable
+4. The `KLINGAI_ACCESS_KEY` and `KLINGAI_SECRET_KEY` environment variables
 
 ## Documentation
 
