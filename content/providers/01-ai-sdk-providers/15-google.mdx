@@ -1262,8 +1262,8 @@ The [Gemini Interactions API](https://ai.google.dev/gemini-api/docs/interactions
 (`POST /v1beta/interactions`) is a separate Google endpoint with server-side
 state, unified content blocks, first-class built-in tools, agent presets,
 managed agents that run in a sandboxed Linux environment, and native
-multimodal image output. It is reached via the `google.interactions(...)`
-factory:
+multimodal image and video output. It is reached via the
+`google.interactions(...)` factory:
 
 ```ts
 import { google } from '@ai-sdk/google';
@@ -1355,17 +1355,42 @@ The following optional provider options are available:
   Whether the model returns synthesized thought summaries on reasoning
   parts. Defaults to the API default.
 
-- **responseFormat** _Array\<\{ type: 'text' | 'image' | 'audio'; mimeType?: string; schema?: unknown; aspectRatio?: string; imageSize?: '1K' \| '2K' \| '4K' \| '512' \}\>_
+- **responseFormat** _Array\<ResponseFormatEntry\>_
 
   Output-format entries that map directly to the API's `response_format`
-  array. Use this for fine-grained control over image, audio, or non-JSON
-  text outputs (e.g. `aspectRatio` and `imageSize` for image generation).
+  array. Entries have the following shape:
+
+  ```ts
+  type ResponseFormatEntry =
+    | { type: 'text'; mimeType?: string; schema?: unknown }
+    | {
+        type: 'image';
+        mimeType?: string;
+        aspectRatio?: string;
+        imageSize?: '1K' | '2K' | '4K' | '512';
+      }
+    | { type: 'audio'; mimeType?: string }
+    | {
+        type: 'video';
+        aspectRatio?: '16:9' | '9:16';
+        resolution?: '360p' | '720p' | '1080p' | '4k';
+        duration?: string;
+        delivery?: 'inline' | 'uri';
+        gcsUri?: string;
+      };
+  ```
+
+  Use this for fine-grained control over image, audio, video, or non-JSON
+  text outputs. Video entries can control aspect ratio, resolution, duration,
+  and inline or URI delivery; set `gcsUri` when delivering to Google Cloud
+  Storage. Inline videos are returned in `result.files` by `generateText` and
+  emitted as `file` parts by `streamText`.
   The AI SDK call-level `responseFormat: { type: 'json', schema }` still
   drives JSON-mode automatically and prepends a matching text entry;
   entries listed here are appended.
 
-  `aspectRatio` accepts `1:1`, `2:3`, `3:2`, `3:4`, `4:3`, `4:5`, `5:4`,
-  `9:16`, `16:9`, `21:9`, `1:8`, `8:1`, `1:4`, `4:1`.
+  For image entries, `aspectRatio` accepts `1:1`, `2:3`, `3:2`, `3:4`, `4:3`,
+  `4:5`, `5:4`, `9:16`, `16:9`, `21:9`, `1:8`, `8:1`, `1:4`, `4:1`.
 
 - **imageConfig** _\{ aspectRatio?: string; imageSize?: '1K' | '2K' | '4K' | '512' \}_ (deprecated)
 
