@@ -761,9 +761,12 @@ For persistence, store `UIMessage[]` as your source of truth and call [`convertT
 + return { messages: result.messages };
 ```
 
-### No `generate()` method
+### Use `generate()` for non-streaming results
 
-`WorkflowAgent` only exposes `stream()`. If you were calling `agent.generate()`, switch to `stream()` and read `result.messages` / `result.output` once the promise resolves.
+`WorkflowAgent.generate()` runs the same durable agent loop without writing
+stream chunks. Pass a prompt or messages and read `result.messages` /
+`result.output` once the promise resolves. Use `stream()` instead when you need
+to provide a workflow `writable`.
 
 ### Replace `experimental_context` with `runtimeContext` and `toolsContext`
 
