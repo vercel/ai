@@ -514,6 +514,10 @@ export type WorkflowAgentOptions<
      * Default stop condition for the agent loop. When the condition is an array,
      * any of the conditions can be met to stop the generation.
      *
+     * When omitted, the agent stops after 20 steps, even if the model is still
+     * requesting tools. Workflows that intentionally require more than 20 steps
+     * must configure an explicit condition.
+     *
      * Per-stream `stopWhen` values passed to `stream()` override this default.
      * To preserve the previous unlimited behavior when upgrading, explicitly
      * set `stopWhen: isLoopFinished()`.
@@ -943,6 +947,10 @@ export type WorkflowAgentStreamOptions<
     /**
      * Condition for stopping the generation when there are tool results in the last step.
      * When the condition is an array, any of the conditions can be met to stop the generation.
+     * When omitted, the agent stops after 20 steps, even if the model is still
+     * requesting tools. Workflows that intentionally require more than 20 steps
+     * must configure an explicit condition.
+     *
      * To preserve the previous unlimited behavior when upgrading, explicitly
      * set `stopWhen: isLoopFinished()`.
      *

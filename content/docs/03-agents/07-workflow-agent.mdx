@@ -413,9 +413,11 @@ const result = await agent.stream({
 ```
 
 <Note>
-  Upgrading from `@ai-sdk/workflow` 2.0.19 or earlier changes an omitted
-  `stopWhen` from unlimited natural completion to a 20-step limit. Workflows
-  that need more than 20 steps must configure an explicit condition.
+  In releases before this change, omitting `stopWhen` allowed unlimited natural
+  completion. The new default can stop while the model is still requesting
+  tools, and the result contains only the work completed through the 20-step
+  limit. Workflows that intentionally need more than 20 steps must configure an
+  explicit condition before upgrading.
 </Note>
 
 If you are migrating a workflow that relied on the previous unlimited default,

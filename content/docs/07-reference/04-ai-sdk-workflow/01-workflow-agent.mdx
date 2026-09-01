@@ -99,7 +99,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       type: 'StopCondition | StopCondition[]',
       isOptional: true,
       description:
-        'Default stop condition for the agent loop. Default: isStepCount(20). In @ai-sdk/workflow 2.0.19 and earlier, omitting this option allowed unlimited natural completion. Per-stream values override this default. Use `isLoopFinished()` to preserve the previous unlimited behavior, but beware of potential runaway loops. See https://ai-sdk.dev/v7/docs/reference/ai-sdk-core/loop-finished#isloopfinished.',
+        'Default stop condition for the agent loop. Default: isStepCount(20), which can stop while the model is still requesting tools. Prior releases allowed unlimited natural completion when this option was omitted. Per-stream values override this default. Use `isLoopFinished()` to preserve the previous unlimited behavior, but beware of potential runaway loops. See https://ai-sdk.dev/v7/docs/reference/ai-sdk-core/loop-finished#isloopfinished.',
     },
     {
       name: 'activeTools',
@@ -509,7 +509,7 @@ const result = await agent.stream({
       name: 'stopWhen',
       type: 'StopCondition | StopCondition[]',
       isOptional: true,
-      description: 'Condition(s) for ending the agent loop. Default: isStepCount(20). In @ai-sdk/workflow 2.0.19 and earlier, omitting this option allowed unlimited natural completion. Use `isLoopFinished()` to preserve the previous unlimited behavior, but beware of potential runaway loops. See https://ai-sdk.dev/v7/docs/reference/ai-sdk-core/loop-finished#isloopfinished.',
+      description: 'Condition(s) for ending the agent loop. Default: isStepCount(20), which can stop while the model is still requesting tools. Prior releases allowed unlimited natural completion when this option was omitted. Use `isLoopFinished()` to preserve the previous unlimited behavior, but beware of potential runaway loops. See https://ai-sdk.dev/v7/docs/reference/ai-sdk-core/loop-finished#isloopfinished.',
     },
 
     {
