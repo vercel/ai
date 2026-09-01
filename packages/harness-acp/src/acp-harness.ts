@@ -115,6 +115,8 @@ const acpResumeStateSchema = z.object({
   skillsDirectory: z.string().optional(),
 });
 
+type ACPBridgeCoords = z.infer<typeof acpBridgeCoordsSchema>;
+
 export function createACP<TBuiltinTools extends ToolSet = {}>(
   settings: ACPHarnessSettings<TBuiltinTools>,
 ): HarnessV1<TBuiltinTools> {
@@ -149,7 +151,9 @@ export function createACP<TBuiltinTools extends ToolSet = {}>(
         portEndpoint: settings.portEndpoint,
         startupTimeoutMs: settings.startupTimeoutMs,
         clientApp,
-        lifecycleStateSchema: acpResumeStateSchema,
+        lifecycleStateSchema: acpResumeStateSchema satisfies z.ZodType<{
+          bridge?: ACPBridgeCoords;
+        }>,
       });
     }
     default:

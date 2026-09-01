@@ -25,6 +25,12 @@ import {
 
 export type ModelCallStreamPart<TTools extends ToolSet = ToolSet> =
   | Experimental_LanguageModelStreamPart<TTools>
+  | {
+      type: 'tool-approval-request';
+      approvalId: string;
+      toolCallId: string;
+      signature?: string;
+    }
   | { type: 'reset-step' };
 
 export type ModelStopCondition = StopCondition<NoInfer<ToolSet>, any>;
@@ -326,7 +332,16 @@ export async function doStreamStep(
 
       // Write to writable in real-time
       if (writer) {
-        await writer.write(part);
+        if (part.type === 'tool-approval-request') {
+          await writer.write({
+            type: 'tool-approval-request',
+            approvalId: part.approvalId,
+            toolCallId: part.toolCall.toolCallId,
+            ...(part.signature != null ? { signature: part.signature } : {}),
+          });
+        } else {
+          await writer.write(part);
+        }
       }
 
       if (part.type === 'error' && !hasTerminalError) {

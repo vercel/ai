@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.59
+
+### Patch Changes
+
+- ca29e9b: fix(google): support video response formats in Gemini Interactions
+
 ## 4.0.58
 
 ### Patch Changes

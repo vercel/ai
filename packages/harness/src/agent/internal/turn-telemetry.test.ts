@@ -30,6 +30,9 @@ describe('createTurnTelemetry', () => {
       harnessId: 'mock',
       modelId: 'mock-model',
       instructions: undefined,
+      tools: {},
+      activeToolNames: [],
+      toolSpecs: [],
       promptText: 'go',
       runtimeContext: undefined,
     });

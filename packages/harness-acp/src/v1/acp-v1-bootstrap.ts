@@ -1,6 +1,5 @@
-import { readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 import type { HarnessV1Bootstrap } from '@ai-sdk/harness';
+import { createReadBridgeAsset } from '@ai-sdk/harness/utils';
 import {
   createImplementationDescriptor,
   createImplementationInstallCommand,
@@ -10,6 +9,10 @@ import {
   getImplementationWorkspaceFile,
   type ACPImplementation,
 } from './implementation';
+
+const readBridgeAsset = createReadBridgeAsset({
+  resolveAssetUrl: name => new URL(`./bridge/${name}`, import.meta.url),
+});
 
 export function createACPBootstrap({
   harnessId,
@@ -30,10 +33,10 @@ export function createACPBootstrap({
       if (cachedBootstrap != null) return cachedBootstrap;
       const [bridgePackage, bridgeLock, bridge, hostToolMCP] =
         await Promise.all([
-          readBridgeAsset({ name: 'package.json' }),
-          readBridgeAsset({ name: 'pnpm-lock.yaml' }),
-          readBridgeAsset({ name: 'index.mjs' }),
-          readBridgeAsset({ name: 'host-tool-mcp.mjs' }),
+          readBridgeAsset('package.json'),
+          readBridgeAsset('pnpm-lock.yaml'),
+          readBridgeAsset('index.mjs'),
+          readBridgeAsset('host-tool-mcp.mjs'),
         ]);
       const implementationManifest = createImplementationManifest({
         implementation,
@@ -117,34 +120,4 @@ export function createACPBootstrap({
       return cachedBootstrap;
     },
   };
-}
-
-async function readBridgeAsset({ name }: { name: string }): Promise<string> {
-  const candidates = resolveBridgeAssetCandidates({
-    name,
-    moduleUrl: import.meta.url,
-  });
-  let lastError: unknown;
-  for (const url of candidates) {
-    try {
-      return await readFile(fileURLToPath(url), 'utf8');
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
-      lastError = error;
-    }
-  }
-  throw lastError ?? new Error(`ACP bridge asset not found: ${name}`);
-}
-
-export function resolveBridgeAssetCandidates({
-  name,
-  moduleUrl,
-}: {
-  name: string;
-  moduleUrl: string | URL;
-}): URL[] {
-  return [
-    new URL(`./bridge/${name}`, moduleUrl),
-    new URL(`../bridge/${name}`, moduleUrl),
-  ];
 }

@@ -150,6 +150,9 @@ export async function runHarnessAgent(
   const writer = writable.getWriter();
   const streamContext = createMutableStreamContext(state.streamContext);
   const executionPartState = createExecutionPartState();
+  let skipFirstStartStep =
+    state.continueFrom != null &&
+    Object.keys(streamContext.activeToolInputs).length > 0;
 
   let suspendPromise: Promise<HarnessV1ContinueTurnState> | undefined;
   const timer =
@@ -184,6 +187,10 @@ export async function runHarnessAgent(
          */
         if (value.type === 'start' && state.continueFrom != null) continue;
         if (value.type === 'finish') continue;
+        if (value.type === 'start-step' && skipFirstStartStep) {
+          skipFirstStartStep = false;
+          continue;
+        }
         if (value.type === 'error') {
           const errorText = (value as { errorText?: unknown }).errorText;
           /*
@@ -342,12 +349,20 @@ export async function runHarnessAgent(
 type MutableStreamContext = {
   activeTextParts: Record<string, HarnessWorkflowSerializedChunk>;
   activeReasoningParts: Record<string, HarnessWorkflowSerializedChunk>;
+  activeToolInputs: Record<
+    string,
+    {
+      readonly start: HarnessWorkflowSerializedChunk;
+      readonly text: string;
+    }
+  >;
   pendingToolInputs: Record<string, HarnessWorkflowSerializedChunk>;
 };
 
 type ExecutionPartState = {
   openedTextParts: Set<string>;
   openedReasoningParts: Set<string>;
+  openedToolInputs: Set<string>;
 };
 
 function createMutableStreamContext(
@@ -356,6 +371,7 @@ function createMutableStreamContext(
   return {
     activeTextParts: { ...(context?.activeTextParts ?? {}) },
     activeReasoningParts: { ...(context?.activeReasoningParts ?? {}) },
+    activeToolInputs: { ...(context?.activeToolInputs ?? {}) },
     pendingToolInputs: { ...(context?.pendingToolInputs ?? {}) },
   };
 }
@@ -364,6 +380,7 @@ function createExecutionPartState(): ExecutionPartState {
   return {
     openedTextParts: new Set(),
     openedReasoningParts: new Set(),
+    openedToolInputs: new Set(),
   };
 }
 
@@ -386,6 +403,7 @@ async function writeRequiredPrelude(options: {
 }): Promise<void> {
   const { chunk, writer, streamContext, executionPartState } = options;
   const id = stringProperty({ chunk, key: 'id' });
+  const toolCallId = stringProperty({ chunk, key: 'toolCallId' });
 
   if (
     (chunk.type === 'text-delta' || chunk.type === 'text-end') &&
@@ -405,6 +423,25 @@ async function writeRequiredPrelude(options: {
   ) {
     await writer.write(streamContext.activeReasoningParts[id]);
     executionPartState.openedReasoningParts.add(id);
+  }
+
+  const activeToolInput =
+    toolCallId == null ? undefined : streamContext.activeToolInputs[toolCallId];
+  if (
+    chunk.type === 'tool-input-delta' &&
+    toolCallId != null &&
+    activeToolInput != null &&
+    !executionPartState.openedToolInputs.has(toolCallId)
+  ) {
+    await writer.write(activeToolInput.start);
+    if (activeToolInput.text.length > 0) {
+      await writer.write({
+        type: 'tool-input-delta',
+        toolCallId,
+        inputTextDelta: activeToolInput.text,
+      });
+    }
+    executionPartState.openedToolInputs.add(toolCallId);
   }
 }
 
@@ -441,12 +478,40 @@ function recordWorkflowChunk(options: {
     return;
   }
 
+  if (chunk.type === 'tool-input-start' && toolCallId != null) {
+    streamContext.activeToolInputs[toolCallId] = {
+      start: cloneChunk(chunk),
+      text: '',
+    };
+    executionPartState.openedToolInputs.add(toolCallId);
+    return;
+  }
+
+  if (chunk.type === 'tool-input-delta' && toolCallId != null) {
+    const activeToolInput = streamContext.activeToolInputs[toolCallId];
+    const inputTextDelta = stringProperty({
+      chunk,
+      key: 'inputTextDelta',
+    });
+    if (activeToolInput != null && inputTextDelta != null) {
+      streamContext.activeToolInputs[toolCallId] = {
+        start: activeToolInput.start,
+        text: activeToolInput.text + inputTextDelta,
+      };
+    }
+    return;
+  }
+
   if (chunk.type === 'tool-input-available' && toolCallId != null) {
+    delete streamContext.activeToolInputs[toolCallId];
+    executionPartState.openedToolInputs.delete(toolCallId);
     streamContext.pendingToolInputs[toolCallId] = cloneChunk(chunk);
     return;
   }
 
   if (chunk.type === 'tool-input-error' && toolCallId != null) {
+    delete streamContext.activeToolInputs[toolCallId];
+    executionPartState.openedToolInputs.delete(toolCallId);
     delete streamContext.pendingToolInputs[toolCallId];
     return;
   }
@@ -493,6 +558,9 @@ function serializeStreamContextField(context: MutableStreamContext): {
       : {}),
     ...(Object.keys(context.activeReasoningParts).length > 0
       ? { activeReasoningParts: context.activeReasoningParts }
+      : {}),
+    ...(Object.keys(context.activeToolInputs).length > 0
+      ? { activeToolInputs: context.activeToolInputs }
       : {}),
     ...(Object.keys(context.pendingToolInputs).length > 0
       ? { pendingToolInputs: context.pendingToolInputs }

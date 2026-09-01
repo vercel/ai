@@ -354,6 +354,49 @@ const agent = new WorkflowAgent({
 
 Because the workflow is durable, the approval request survives process restarts — the user can approve hours later and the agent will resume.
 
+### Signed Tool Approvals
+
+Client-supplied message history can be modified before it is replayed to the
+workflow. For tools that perform sensitive operations, configure
+`experimental_toolApprovalSecret` to authenticate approval requests:
+
+```ts highlight="4"
+const agent = new WorkflowAgent({
+  model: 'anthropic/claude-sonnet-4-6',
+  experimental_toolApprovalSecret: {
+    environmentVariable: 'TOOL_APPROVAL_SECRET',
+  },
+  tools: {
+    bookFlight: tool({
+      description: 'Book a flight',
+      inputSchema: z.object({ flightId: z.string() }),
+      needsApproval: true,
+      execute: bookFlightStep,
+    }),
+  },
+});
+```
+
+The agent HMAC-signs the approval ID, tool call ID, tool name, and validated
+input. When approved message history is replayed, a missing or invalid
+signature prevents the tool from executing. The signature is preserved through
+the durable model-call stream, `createModelCallToUIChunkTransform()`,
+`addToolApprovalResponse()`, and `convertToModelMessages()`.
+
+Use a high-entropy secret of at least 32 bytes and make the same secret
+available to every worker that can issue or resume an approval. Keep old keys
+available while approvals signed with them are pending; changing the secret
+invalidates those pending approvals.
+
+`WorkflowAgent` passes only the environment variable name into signing and
+verification steps. Each step reads the secret from its local environment, and
+the raw value is never included in step arguments, durable stream parts,
+callbacks, or telemetry events. Configure the environment variable on every
+worker, and do not put the secret value in `runtimeContext` or `toolsContext`.
+
+You can also provide `experimental_toolApprovalSecret` to `agent.stream()`.
+The stream-level value overrides the constructor default.
+
 ## Loop Control
 
 Control how many steps the agent can take:

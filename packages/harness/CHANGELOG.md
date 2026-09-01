@@ -1,5 +1,22 @@
 # @ai-sdk/harness
 
+## 1.0.96
+
+### Patch Changes
+
+- c0c7fac: feat(harness): add reusable `createReadBridgeAsset()` helper function
+- Updated dependencies [850d863]
+  - ai@7.0.87
+
+## 1.0.95
+
+### Patch Changes
+
+- 371e954: feat(harness): add `createBridgeToken()` and `withBridgeToken()` helpers for bridge backed harness adapters
+- 87b4858: feat(harness): enhance per-turn telemetry with recently added per-turn configuration data
+- Updated dependencies [11109ae]
+  - ai@7.0.86
+
 ## 1.0.94
 
 ### Patch Changes

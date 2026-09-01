@@ -43,7 +43,7 @@ const googleBatchInputFileMaxBytes = 2 * 1024 * 1024 * 1024;
 const googleBatchInlineCreationMaxBytes = 20_000_000;
 const supportedGoogleBatchContentTypes = new Set<
   LanguageModelV4GenerateResult['content'][number]['type']
->(['text', 'reasoning', 'source']);
+>(['text', 'reasoning', 'source', 'tool-call', 'tool-result']);
 
 type GoogleBatchRequest = Parameters<
   BatchLanguageModelV4['experimental_doStartBatch']

@@ -138,12 +138,27 @@ export function runPrompt<
   const onPendingToolResult = input.onPendingToolResult ?? (() => {});
   const onToolResultSettled = input.onToolResultSettled ?? (() => {});
   const activeTools = input.activeTools ?? input.tools;
+  const activeToolNames = Object.keys(input.tools).filter(
+    toolName =>
+      Object.prototype.hasOwnProperty.call(activeTools, toolName) ||
+      (Object.prototype.hasOwnProperty.call(
+        input.harness.builtinTools,
+        toolName,
+      ) &&
+        isHarnessV1BuiltinToolIncluded({
+          toolName,
+          toolFiltering: input.builtinToolFiltering,
+        })),
+  );
 
   const telemetry = createTurnTelemetry({
     telemetry: input.telemetry,
     harnessId: input.harness.harnessId,
     modelId: input.model,
     instructions: input.instructions,
+    tools: input.tools,
+    activeToolNames,
+    toolSpecs: input.toolSpecs,
     promptText: input.prompt != null ? promptToText(input.prompt) : '',
     runtimeContext: input.runtimeContext,
   });

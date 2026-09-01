@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.53
+
+### Patch Changes
+
+- 7439d7a: Fix workflow deserialization for OpenAI Responses models.
+
 ## 4.0.52
 
 ### Patch Changes

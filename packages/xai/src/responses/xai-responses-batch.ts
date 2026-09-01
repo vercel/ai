@@ -481,8 +481,8 @@ function convertXaiChatBatchResponse(
     };
   }
 
-  const choice = response.choices?.[0];
-  if (choice == null) {
+  const choices = response.choices;
+  if (choices == null || choices.length === 0) {
     return {
       success: false,
       error: {
@@ -492,19 +492,54 @@ function convertXaiChatBatchResponse(
     };
   }
 
-  if (choice.message.tool_calls?.length) {
-    return unsupportedXaiBatchContent('tool_calls');
-  }
-
   const content: LanguageModelV4Content[] = [];
-  if (choice.message.content) {
-    content.push({ type: 'text', text: choice.message.content });
-  }
-  if (choice.message.reasoning_content) {
-    content.push({
-      type: 'reasoning',
-      text: choice.message.reasoning_content,
-    });
+  const providerExecutedToolCallIds = new Set(
+    choices
+      .filter(choice => choice.message.role === 'tool')
+      .flatMap(choice =>
+        (choice.message.tool_calls ?? []).map(toolCall => toolCall.id),
+      ),
+  );
+  let lastAssistantChoice: (typeof choices)[number] | undefined;
+
+  for (const choice of choices) {
+    if (choice.message.role === 'tool') {
+      if (choice.message.content != null) {
+        for (const toolCall of choice.message.tool_calls ?? []) {
+          content.push({
+            type: 'tool-result',
+            toolCallId: toolCall.id,
+            toolName: toolCall.function.name,
+            result: choice.message.content,
+            dynamic: true,
+          });
+        }
+      }
+      continue;
+    }
+
+    lastAssistantChoice = choice;
+
+    if (choice.message.content) {
+      content.push({ type: 'text', text: choice.message.content });
+    }
+    if (choice.message.reasoning_content) {
+      content.push({
+        type: 'reasoning',
+        text: choice.message.reasoning_content,
+      });
+    }
+    for (const toolCall of choice.message.tool_calls ?? []) {
+      content.push({
+        type: 'tool-call',
+        toolCallId: toolCall.id,
+        toolName: toolCall.function.name,
+        input: toolCall.function.arguments,
+        ...(providerExecutedToolCallIds.has(toolCall.id)
+          ? { providerExecuted: true, dynamic: true }
+          : {}),
+      });
+    }
   }
   for (const url of response.citations ?? []) {
     content.push({
@@ -520,8 +555,8 @@ function convertXaiChatBatchResponse(
     result: {
       content,
       finishReason: {
-        unified: mapXaiFinishReason(choice.finish_reason),
-        raw: choice.finish_reason ?? undefined,
+        unified: mapXaiFinishReason(lastAssistantChoice?.finish_reason),
+        raw: lastAssistantChoice?.finish_reason ?? undefined,
       },
       usage: response.usage
         ? convertXaiChatUsage(response.usage)
@@ -541,18 +576,6 @@ function convertXaiChatBatchResponse(
           },
         } satisfies SharedV4ProviderMetadata,
       }),
-    },
-  };
-}
-
-function unsupportedXaiBatchContent(type: string): XaiBatchResponseConversion {
-  return {
-    success: false,
-    error: {
-      message:
-        `xAI returned "${type}" content, but tool content is not supported ` +
-        'in AI SDK text batches.',
-      code: 'unsupported_content',
     },
   };
 }
