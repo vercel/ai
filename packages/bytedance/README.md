@@ -1,6 +1,6 @@
 # AI SDK - ByteDance Provider
 
-The **ByteDance provider** for the [AI SDK](https://ai-sdk.dev/docs) contains video model support for ByteDance's Seedance family of video generation models through the [BytePlus ModelArk](https://docs.byteplus.com/en/docs/ModelArk/Video_Generation_API) platform.
+The **ByteDance provider** for the [AI SDK](https://ai-sdk.dev/docs) contains language, image, and video model support for ByteDance's Doubao, Seedream, and Seedance models through the [BytePlus ModelArk](https://docs.byteplus.com/en/docs/ModelArk/) platform.
 
 > **Deploying to Vercel?** With Vercel's AI Gateway you can access ByteDance (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
 
@@ -26,6 +26,50 @@ You can import the default provider instance `byteDance` from `@ai-sdk/bytedance
 
 ```ts
 import { byteDance } from '@ai-sdk/bytedance';
+```
+
+## Language Models
+
+You can create ByteDance language models using the provider instance:
+
+```ts
+import { byteDance } from '@ai-sdk/bytedance';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: byteDance('doubao-seed-2-1-pro-260628'),
+  prompt: 'Write a haiku about the ocean.',
+});
+```
+
+You can also use `.languageModel()` and `.chat()` methods:
+
+```ts
+const model = byteDance.languageModel('doubao-seed-2-1-pro-260628');
+const model = byteDance.chat('doubao-seed-2-1-pro-260628');
+```
+
+### Thinking & Reasoning Models
+
+Ark models support deep thinking and reasoning. Configure thinking and reasoning intensity via provider options:
+
+```ts
+import {
+  byteDance,
+  type ByteDanceLanguageModelChatOptions,
+} from '@ai-sdk/bytedance';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: byteDance('doubao-seed-2-1-pro-260628'),
+  prompt: 'Explain quantum computing simply.',
+  providerOptions: {
+    bytedance: {
+      thinking: { type: 'enabled' },
+      reasoningEffort: 'high',
+    } satisfies ByteDanceLanguageModelChatOptions,
+  },
+});
 ```
 
 ## Video Models
