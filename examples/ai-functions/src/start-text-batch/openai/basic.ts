@@ -22,7 +22,6 @@ run(async () => {
       },
       {
         id: 'capital-germany',
-        model: 'gpt-4.1-mini',
         prompt: 'What is the capital of Germany?',
       },
     ],
