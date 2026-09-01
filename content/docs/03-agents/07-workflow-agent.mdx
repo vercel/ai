@@ -27,7 +27,7 @@ A standard `ToolLoopAgent` runs entirely in memory — if the process crashes, a
 | **Durability**          | Lost on crash             | Survives restarts                               |
 | **Tool retries**        | Manual                    | Automatic (via workflow steps)                  |
 | **Human approval**      | Built-in                  | Built-in + survives suspension                  |
-| **`generate()` method** | Available                 | Not available                                   |
+| **`generate()` method** | Available                 | Available                                       |
 | **`stream()` method**   | Available                 | Primary API                                     |
 | **Stream output**       | `streamText` return value | `writable` parameter with `ModelCallStreamPart` |
 
@@ -86,8 +86,20 @@ new WorkflowAgent({ model: openai('gpt-4o') });
 `WorkflowAgent` is designed to run inside a workflow function. The key integration points are:
 
 1. Mark your function with `'use workflow'`
-2. Pass `getWritable()` to the agent's `stream()` method
+2. Call `generate()` for a final result, or pass `getWritable()` to `stream()` for live chunks
 3. Start the workflow from your API route
+
+For non-streaming usage, call `generate()` with a prompt or messages. It runs
+the same durable agent loop and returns the accumulated result without writing
+stream chunks:
+
+```ts
+const result = await agent.generate({
+  prompt: 'What is the weather in New York?',
+});
+
+console.log(result.messages);
+```
 
 ### End-to-End Example
 

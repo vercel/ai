@@ -70,10 +70,42 @@ type MockIterator = AsyncGenerator<
 >;
 
 describe('WorkflowAgent', () => {
-  it('does not expose an unsupported generate method', () => {
+  it('generates by running the agent without a writable stream', async () => {
+    const agent = new WorkflowAgent({ model: createMockModel() });
+    const expectedResult = {
+      messages: [],
+      steps: [],
+      toolCalls: [],
+      toolResults: [],
+      finishReason: 'stop' as const,
+      totalUsage: {
+        inputTokens: 0,
+        inputTokenDetails: {
+          noCacheTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+        },
+        outputTokens: 0,
+        outputTokenDetails: {
+          textTokens: 0,
+          reasoningTokens: 0,
+        },
+        totalTokens: 0,
+      },
+      output: undefined as never,
+    };
+    const stream = vi.spyOn(agent, 'stream').mockResolvedValue(expectedResult);
+
+    await expect(agent.generate({ prompt: 'Hello' })).resolves.toBe(
+      expectedResult,
+    );
+    expect(stream).toHaveBeenCalledWith({ prompt: 'Hello' });
+  });
+
+  it('keeps the legacy no-argument generate call as a no-op', () => {
     const agent = new WorkflowAgent({ model: createMockModel() });
 
-    expect(agent).not.toHaveProperty('generate');
+    expect(agent.generate()).toBeUndefined();
   });
 
   describe('id property', () => {

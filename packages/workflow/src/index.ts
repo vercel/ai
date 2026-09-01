@@ -4,6 +4,8 @@ export {
   type CompatibleLanguageModel,
   type DownloadFunction,
   type WorkflowAgentOptions,
+  type WorkflowAgentGenerateOptions,
+  type WorkflowAgentGenerateResult,
   type WorkflowAgentStreamOptions,
   type WorkflowAgentStreamResult,
   type WorkflowToolApprovalSecret,

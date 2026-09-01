@@ -11,6 +11,7 @@ import {
 import type { ModelCallStreamPart } from './do-stream-step.js';
 import {
   WorkflowAgent,
+  Output,
   type InferWorkflowAgentUIMessage,
   type WorkflowAgentOptions,
   type WorkflowAgentStreamOptions,
@@ -19,10 +20,33 @@ import {
 const model = 'anthropic/claude-sonnet-4-6';
 
 describe('WorkflowAgent types', () => {
-  it('does not expose an unsupported generate method', () => {
+  it('exposes a typed generate method while preserving the legacy overload', () => {
     const agent = new WorkflowAgent({ model });
 
-    expectTypeOf(agent).not.toHaveProperty('generate');
+    expectTypeOf(agent.generate()).toEqualTypeOf<void>();
+
+    const result = agent.generate({
+      prompt: 'hello',
+      output: Output.object({
+        schema: z.object({ greeting: z.string() }),
+      }),
+    });
+
+    expectTypeOf(result).toMatchTypeOf<
+      Promise<{ output: { greeting: string } }>
+    >();
+
+    agent.generate({
+      prompt: 'hello',
+      // @ts-expect-error generate does not accept a writable stream
+      writable: new WritableStream(),
+    });
+
+    agent.generate({
+      prompt: 'hello',
+      // @ts-expect-error prompt and messages are mutually exclusive
+      messages: [{ role: 'user', content: 'hello' }],
+    });
   });
 
   it('infers UI message tool parts from configured tools', () => {

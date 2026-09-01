@@ -464,6 +464,26 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
 
 ## Methods
 
+### `generate()`
+
+Runs the durable agent loop without forwarding streaming chunks. Pass either
+`prompt` or `messages`; the remaining options match `stream()` except for the
+stream-only `writable`, `sendFinish`, `preventClose`, `includeRawChunks`, and
+`experimental_transform` options. Returns a promise resolving to a
+`WorkflowAgentGenerateResult`.
+
+```ts
+const result = await agent.generate({
+  prompt: 'What is the weather in NYC?',
+});
+
+console.log(result.messages);
+```
+
+The original no-argument placeholder signature remains as a deprecated no-op
+for patch-release compatibility. New code should always pass `prompt` or
+`messages`.
+
 ### `stream()`
 
 Runs the agent loop, streaming responses and executing tool calls as needed. Returns a promise resolving to a `WorkflowAgentStreamResult`.

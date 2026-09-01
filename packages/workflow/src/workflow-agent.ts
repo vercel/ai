@@ -1177,6 +1177,27 @@ export type WorkflowAgentStreamOptions<
     preventClose?: boolean;
   };
 
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown
+  ? Omit<T, K>
+  : never;
+
+/**
+ * Options for the {@link WorkflowAgent.generate} method.
+ */
+export type WorkflowAgentGenerateOptions<
+  TTools extends ToolSet = ToolSet,
+  TRuntimeContext extends Context = Context,
+  OUTPUT = never,
+  PARTIAL_OUTPUT = never,
+> = DistributiveOmit<
+  WorkflowAgentStreamOptions<TTools, TRuntimeContext, OUTPUT, PARTIAL_OUTPUT>,
+  | 'writable'
+  | 'sendFinish'
+  | 'preventClose'
+  | 'includeRawChunks'
+  | 'experimental_transform'
+>;
+
 /**
  * A tool call made by the model. Matches the AI SDK's tool call shape.
  */
@@ -1282,6 +1303,14 @@ export interface WorkflowAgentStreamResult<
    */
   output: OUTPUT;
 }
+
+/**
+ * Result of the WorkflowAgent.generate method.
+ */
+export type WorkflowAgentGenerateResult<
+  TTools extends ToolSet = ToolSet,
+  OUTPUT = never,
+> = WorkflowAgentStreamResult<TTools, OUTPUT>;
 
 /**
  * A class for building durable AI agents within workflows.
@@ -1408,6 +1437,49 @@ export class WorkflowAgent<
       reasoning: options.reasoning,
       providerOptions: options.providerOptions,
     };
+  }
+
+  /**
+   * Retained for backwards compatibility with the original placeholder
+   * signature. Pass `prompt` or `messages` to generate an output.
+   *
+   * @deprecated Pass generation options with `prompt` or `messages`.
+   */
+  generate(): void;
+
+  /**
+   * Generates an output from the agent without forwarding streaming chunks.
+   */
+  generate<
+    TTools extends TBaseTools = TBaseTools,
+    OUTPUT = never,
+    PARTIAL_OUTPUT = never,
+  >(
+    options: WorkflowAgentGenerateOptions<
+      TTools,
+      TRuntimeContext,
+      OUTPUT,
+      PARTIAL_OUTPUT
+    >,
+  ): Promise<WorkflowAgentGenerateResult<TTools, OUTPUT>>;
+
+  generate<
+    TTools extends TBaseTools = TBaseTools,
+    OUTPUT = never,
+    PARTIAL_OUTPUT = never,
+  >(
+    options?: WorkflowAgentGenerateOptions<
+      TTools,
+      TRuntimeContext,
+      OUTPUT,
+      PARTIAL_OUTPUT
+    >,
+  ): Promise<WorkflowAgentGenerateResult<TTools, OUTPUT>> | void {
+    if (options == null) {
+      return;
+    }
+
+    return this.stream(options);
   }
 
   async stream<
