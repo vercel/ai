@@ -1,5 +1,13 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.169
+
+### Patch Changes
+
+- 85c2903: fix(amazon-bedrock): handle channel-qualified JSON response tool names
+- Updated dependencies [57d88f5]
+  - @ai-sdk/anthropic@3.0.116
+
 ## 4.0.168
 
 ### Patch Changes
