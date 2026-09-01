@@ -117,6 +117,17 @@ const newerAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   newerAnthropicModelId,
 )}/converse`;
 
+const haiku45AnthropicModelId = 'us.anthropic.claude-haiku-4-5-20251001-v1:0';
+const haiku45AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  haiku45AnthropicModelId,
+)}/converse`;
+
+const nativeStructuredOutputAnthropicModelId =
+  'anthropic.claude-sonnet-4-5-20250929-v1:0';
+const nativeStructuredOutputAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  nativeStructuredOutputAnthropicModelId,
+)}/converse`;
+
 const opusAnthropicModelId = 'us.anthropic.claude-opus-4-8';
 const opusAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   opusAnthropicModelId,
@@ -149,6 +160,8 @@ const server = createTestServer({
   [globalOpenaiGenerateUrl]: {},
   [customOpenaiSubstringGenerateUrl]: {},
   [newerAnthropicGenerateUrl]: {},
+  [haiku45AnthropicGenerateUrl]: {},
+  [nativeStructuredOutputAnthropicGenerateUrl]: {},
   [opusAnthropicGenerateUrl]: {},
   [opus5AnthropicGenerateUrl]: {},
   [sonnet5AnthropicGenerateUrl]: {},
@@ -260,6 +273,26 @@ const legacyAnthropic37Model = new AmazonBedrockChatLanguageModel(
 
 const newerAnthropicModel = new AmazonBedrockChatLanguageModel(
   newerAnthropicModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
+const haiku45AnthropicModel = new AmazonBedrockChatLanguageModel(
+  haiku45AnthropicModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
+const nativeStructuredOutputAnthropicModel = new AmazonBedrockChatLanguageModel(
+  nativeStructuredOutputAnthropicModelId,
   {
     baseUrl: () => baseUrl,
     headers: {},
@@ -5883,6 +5916,72 @@ describe('doGenerate', () => {
 
   it.each([
     {
+      modelId: newerAnthropicModelId,
+      model: newerAnthropicModel,
+      generateUrl: newerAnthropicGenerateUrl,
+    },
+    {
+      modelId: haiku45AnthropicModelId,
+      model: haiku45AnthropicModel,
+      generateUrl: haiku45AnthropicGenerateUrl,
+    },
+  ])(
+    'should default to the json tool for $modelId',
+    async ({ model, generateUrl }) => {
+      server.urls[generateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  toolUse: {
+                    toolUseId: 'json-tool-id',
+                    name: 'json',
+                    input: { name: 'Test' },
+                  },
+                },
+              ],
+            },
+          },
+          usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+          stopReason: 'tool_use',
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { name: { type: 'string' } },
+            required: ['name'],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+
+      expect(requestBody.toolConfig.tools).toHaveLength(1);
+      expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('json');
+      expect(requestBody.toolConfig.toolChoice).toEqual({ any: {} });
+      expect(
+        requestBody.additionalModelRequestFields?.output_config?.format,
+      ).toBeUndefined();
+      expect(result.content).toEqual([
+        { type: 'text', text: '{"name":"Test"}' },
+      ]);
+      expect(result.finishReason.unified).toBe('stop');
+      expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(
+        true,
+      );
+    },
+  );
+
+  it.each([
+    {
       providerOptionsName: 'amazonBedrock',
       providerOptions: {
         amazonBedrock: { structuredOutputMode: 'jsonTool' },
@@ -6109,7 +6208,7 @@ describe('doGenerate', () => {
   });
 
   it('should use native output_config.format for models with structured output support even without thinking enabled', async () => {
-    server.urls[newerAnthropicGenerateUrl].response = {
+    server.urls[nativeStructuredOutputAnthropicGenerateUrl].response = {
       type: 'json-value',
       body: {
         output: {
@@ -6123,7 +6222,7 @@ describe('doGenerate', () => {
       },
     };
 
-    await newerAnthropicModel.doGenerate({
+    await nativeStructuredOutputAnthropicModel.doGenerate({
       prompt: [
         {
           role: 'user',
@@ -6169,7 +6268,7 @@ describe('doGenerate', () => {
   });
 
   it('should sanitize unsupported JSON schema keywords for native structured output', async () => {
-    server.urls[newerAnthropicGenerateUrl].response = {
+    server.urls[nativeStructuredOutputAnthropicGenerateUrl].response = {
       type: 'json-value',
       body: {
         output: {
@@ -6183,7 +6282,7 @@ describe('doGenerate', () => {
       },
     };
 
-    await newerAnthropicModel.doGenerate({
+    await nativeStructuredOutputAnthropicModel.doGenerate({
       prompt: TEST_PROMPT,
       responseFormat: {
         type: 'json',
