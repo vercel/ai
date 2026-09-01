@@ -5,8 +5,8 @@ import {
   type FilesV4DeleteFileResult,
   type FilesV4DownloadFileCallOptions,
   type FilesV4DownloadFileResult,
-  type FilesV4RetrieveFileCallOptions,
-  type FilesV4RetrieveFileResult,
+  type FilesV4GetFileMetadataCallOptions,
+  type FilesV4GetFileMetadataResult,
   type FilesV4UploadFileCallOptions,
   type FilesV4UploadFileResult,
   type SharedV4ProviderReference,
@@ -206,11 +206,11 @@ export class XaiFiles implements FilesV4 {
     };
   }
 
-  async retrieveFile({
+  async getFileMetadata({
     file,
     abortSignal,
     headers,
-  }: FilesV4RetrieveFileCallOptions): Promise<FilesV4RetrieveFileResult> {
+  }: FilesV4GetFileMetadataCallOptions): Promise<FilesV4GetFileMetadataResult> {
     const fileId = this.getFileId(file);
 
     const { value: response } = await getFromApi({

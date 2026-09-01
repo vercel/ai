@@ -451,7 +451,7 @@ describe('XaiFiles', () => {
     );
   });
 
-  describe('retrieveFile', () => {
+  describe('getFileMetadata', () => {
     it('should retrieve file metadata via GET', async () => {
       const fetchMock = mockFetchResponse({
         body: {
@@ -470,7 +470,9 @@ describe('XaiFiles', () => {
         fetch: fetchMock,
       });
 
-      const result = await files.retrieveFile({ file: { xai: 'file-abc123' } });
+      const result = await files.getFileMetadata({
+        file: { xai: 'file-abc123' },
+      });
 
       const [url, options] = fetchMock.mock.calls[0];
       expect(url).toBe('https://api.x.ai/v1/files/file-abc123');
@@ -491,7 +493,7 @@ describe('XaiFiles', () => {
         });
 
         await expect(
-          files.retrieveFile({ file: { xai: fileId } }),
+          files.getFileMetadata({ file: { xai: fileId } }),
         ).rejects.toThrow("file reference is missing an 'xai' file id.");
       },
     );
@@ -511,7 +513,7 @@ describe('XaiFiles', () => {
           fetch: fetchMock,
         });
 
-        await files.retrieveFile({ file: { xai: fileId } });
+        await files.getFileMetadata({ file: { xai: fileId } });
 
         const [url] = fetchMock.mock.calls[0];
         expect(url).toBe(expectedUrl);
@@ -526,7 +528,7 @@ describe('XaiFiles', () => {
       });
 
       await expect(
-        files.retrieveFile({ file: { openai: 'file-abc123' } }),
+        files.getFileMetadata({ file: { openai: 'file-abc123' } }),
       ).rejects.toThrow("file reference is missing an 'xai' file id.");
     });
   });
