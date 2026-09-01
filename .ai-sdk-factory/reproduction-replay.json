@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20154,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20154-stream-text-on-abort-type.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20154-stream-text-on-abort-type.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_20154_REPRODUCED: streamText onAbort event type omits callId and reason"
+  }
+}
