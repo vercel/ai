@@ -354,7 +354,7 @@ export interface PrepareStepResult<
    * Override the active tools for this step.
    * Limits the tools that are available for the model to call.
    */
-  activeTools?: string[];
+  activeTools?: ActiveTools<NoInfer<TTools>>;
 
   /**
    * Updated runtime context for the current and subsequent steps.

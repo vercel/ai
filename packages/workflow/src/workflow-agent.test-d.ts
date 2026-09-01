@@ -83,6 +83,32 @@ describe('WorkflowAgent types', () => {
     });
   });
 
+  it('restricts prepareStep activeTools to configured tool names', () => {
+    const tools = {
+      weather: tool({
+        inputSchema: z.object({ city: z.string() }),
+        execute: async () => 'sunny',
+      }),
+    };
+
+    new WorkflowAgent({
+      model,
+      tools,
+      prepareStep: () => ({
+        activeTools: ['weather'],
+      }),
+    });
+
+    new WorkflowAgent({
+      model,
+      tools,
+      // @ts-expect-error activeTools only accepts configured tool names
+      prepareStep: () => ({
+        activeTools: ['weahter'],
+      }),
+    });
+  });
+
   it('accepts stream-level instructions', () => {
     const agent = new WorkflowAgent({ model });
 
