@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.127
+
+### Patch Changes
+
+- 27787e5: Add a structured output mode option and default Claude Sonnet 4.6 and Claude Haiku 4.5 to the JSON tool fallback.
+
 ## 3.0.126
 
 ### Patch Changes
