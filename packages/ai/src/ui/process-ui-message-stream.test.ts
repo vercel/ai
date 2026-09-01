@@ -7701,6 +7701,53 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  it('preserves approval descriptors in approval requests', async () => {
+    const descriptor = {
+      action: 'deleteAccount',
+      permissions: ['account:delete'],
+      risk: 'high',
+    };
+    const stream = createUIMessageStream([
+      {
+        input: { userId: 'user-123' },
+        toolCallId: 'call-1',
+        toolName: 'deleteAccount',
+        type: 'tool-input-available',
+      },
+      {
+        approvalDescriptor: descriptor,
+        approvalId: 'approval-1',
+        toolCallId: 'call-1',
+        type: 'tool-approval-request',
+      },
+    ]);
+
+    state = createStreamingUIMessageState({
+      messageId: 'msg-123',
+      lastMessage: undefined,
+    });
+
+    await consumeStream({
+      stream: processUIMessageStream({
+        stream,
+        runUpdateMessageJob,
+        onError: error => {
+          throw error;
+        },
+      }),
+    });
+
+    expect(
+      state!.message.parts.find(part => part.type === 'tool-deleteAccount'),
+    ).toMatchObject({
+      state: 'approval-requested',
+      approval: {
+        id: 'approval-1',
+        descriptor,
+      },
+    });
+  });
+
   describe('initial tool execution after approval (static tool)', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([

@@ -260,6 +260,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval: {
         id: string;
         approved?: never;
+        descriptor?: unknown;
         reason?: never;
         signature?: string;
       };
@@ -273,6 +274,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval: {
         id: string;
         approved: boolean;
+        descriptor?: unknown;
         reason?: string;
         signature?: string;
       };
@@ -288,6 +290,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval?: {
         id: string;
         approved: true;
+        descriptor?: unknown;
         reason?: string;
         signature?: string;
       };
@@ -303,6 +306,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval?: {
         id: string;
         approved: true;
+        descriptor?: unknown;
         reason?: string;
         signature?: string;
       };
@@ -316,6 +320,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval: {
         id: string;
         approved: false;
+        descriptor?: unknown;
         reason?: string;
         signature?: string;
       };
@@ -373,6 +378,7 @@ export type DynamicToolUIPart = {
       approval: {
         id: string;
         approved?: never;
+        descriptor?: unknown;
         reason?: never;
         signature?: string;
       };
@@ -386,6 +392,7 @@ export type DynamicToolUIPart = {
       approval: {
         id: string;
         approved: boolean;
+        descriptor?: unknown;
         reason?: string;
         signature?: string;
       };
@@ -401,6 +408,7 @@ export type DynamicToolUIPart = {
       approval?: {
         id: string;
         approved: true;
+        descriptor?: unknown;
         reason?: string;
         signature?: string;
       };
@@ -415,6 +423,7 @@ export type DynamicToolUIPart = {
       approval?: {
         id: string;
         approved: true;
+        descriptor?: unknown;
         reason?: string;
         signature?: string;
       };
@@ -428,6 +437,7 @@ export type DynamicToolUIPart = {
       approval: {
         id: string;
         approved: false;
+        descriptor?: unknown;
         reason?: string;
         signature?: string;
       };

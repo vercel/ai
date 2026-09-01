@@ -143,6 +143,7 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z.object({
                     id: z.string(),
                     approved: z.never().optional(),
+                    descriptor: z.unknown().optional(),
                     reason: z.never().optional(),
                     signature: z.string().optional(),
                   }),
@@ -161,6 +162,7 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z.object({
                     id: z.string(),
                     approved: z.boolean(),
+                    descriptor: z.unknown().optional(),
                     reason: z.string().optional(),
                     signature: z.string().optional(),
                   }),
@@ -182,6 +184,7 @@ const uiMessagesSchema = lazySchema(() =>
                     .object({
                       id: z.string(),
                       approved: z.literal(true),
+                      descriptor: z.unknown().optional(),
                       reason: z.string().optional(),
                       signature: z.string().optional(),
                     })
@@ -204,6 +207,7 @@ const uiMessagesSchema = lazySchema(() =>
                     .object({
                       id: z.string(),
                       approved: z.literal(true),
+                      descriptor: z.unknown().optional(),
                       reason: z.string().optional(),
                       signature: z.string().optional(),
                     })
@@ -223,6 +227,7 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z.object({
                     id: z.string(),
                     approved: z.literal(false),
+                    descriptor: z.unknown().optional(),
                     reason: z.string().optional(),
                     signature: z.string().optional(),
                   }),
@@ -264,6 +269,7 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z.object({
                     id: z.string(),
                     approved: z.never().optional(),
+                    descriptor: z.unknown().optional(),
                     reason: z.never().optional(),
                     signature: z.string().optional(),
                   }),
@@ -281,6 +287,7 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z.object({
                     id: z.string(),
                     approved: z.boolean(),
+                    descriptor: z.unknown().optional(),
                     reason: z.string().optional(),
                     signature: z.string().optional(),
                   }),
@@ -301,6 +308,7 @@ const uiMessagesSchema = lazySchema(() =>
                     .object({
                       id: z.string(),
                       approved: z.literal(true),
+                      descriptor: z.unknown().optional(),
                       reason: z.string().optional(),
                       signature: z.string().optional(),
                     })
@@ -322,6 +330,7 @@ const uiMessagesSchema = lazySchema(() =>
                     .object({
                       id: z.string(),
                       approved: z.literal(true),
+                      descriptor: z.unknown().optional(),
                       reason: z.string().optional(),
                       signature: z.string().optional(),
                     })
@@ -340,6 +349,7 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z.object({
                     id: z.string(),
                     approved: z.literal(false),
+                    descriptor: z.unknown().optional(),
                     reason: z.string().optional(),
                     signature: z.string().optional(),
                   }),
