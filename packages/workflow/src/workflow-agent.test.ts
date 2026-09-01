@@ -2379,6 +2379,41 @@ describe('WorkflowAgent', () => {
       const lastCall = calls[calls.length - 1][0];
       expect(Object.keys(lastCall.tools).sort()).toEqual(['tool1', 'tool3']);
     });
+
+    it.each(['constructor', 'stream'] as const)(
+      'should pass no tools when %s activeTools is empty',
+      async activeToolsSource => {
+        const tools: ToolSet = {
+          hidden: {
+            description: 'Hidden tool',
+            inputSchema: z.object({}),
+            execute: async () => ({}),
+          },
+        };
+
+        const agent = new WorkflowAgent({
+          model: createMockModel(),
+          tools,
+          ...(activeToolsSource === 'constructor' ? { activeTools: [] } : {}),
+        });
+
+        const { streamTextIterator } =
+          await import('./stream-text-iterator.js');
+        vi.mocked(streamTextIterator).mockClear();
+        vi.mocked(streamTextIterator).mockReturnValue({
+          next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+        } as unknown as MockIterator);
+
+        await agent.stream({
+          messages: [{ role: 'user', content: 'test' }],
+          writable: new WritableStream({ write: vi.fn(), close: vi.fn() }),
+          ...(activeToolsSource === 'stream' ? { activeTools: [] } : {}),
+        });
+
+        const call = vi.mocked(streamTextIterator).mock.calls.at(-1)?.[0];
+        expect(call?.tools).toEqual({});
+      },
+    );
   });
 
   describe('constructor-level defaults for stream-only parameters', () => {
