@@ -354,7 +354,7 @@ export interface PrepareStepResult<
    * Override the active tools for this step.
    * Limits the tools that are available for the model to call.
    */
-  activeTools?: string[];
+  activeTools?: ActiveTools<NoInfer<TTools>>;
 
   /**
    * Updated runtime context for the current and subsequent steps.
@@ -610,6 +610,13 @@ export type WorkflowAgentOptions<
     /**
      * Callback called when the agent starts streaming, before any LLM calls.
      */
+    onStart?: WorkflowAgentOnStartCallback<TTools, TRuntimeContext>;
+
+    /**
+     * Callback called when the agent starts streaming, before any LLM calls.
+     *
+     * @deprecated Use `onStart` instead.
+     */
     experimental_onStart?: WorkflowAgentOnStartCallback<
       TTools,
       TRuntimeContext
@@ -617,6 +624,13 @@ export type WorkflowAgentOptions<
 
     /**
      * Callback called before each step (LLM call) begins.
+     */
+    onStepStart?: WorkflowAgentOnStepStartCallback<TTools, TRuntimeContext>;
+
+    /**
+     * Callback called before each step (LLM call) begins.
+     *
+     * @deprecated Use `onStepStart` instead.
      */
     experimental_onStepStart?: WorkflowAgentOnStepStartCallback<
       TTools,
@@ -1085,6 +1099,13 @@ export type WorkflowAgentStreamOptions<
     /**
      * Callback called when the agent starts streaming, before any LLM calls.
      */
+    onStart?: WorkflowAgentOnStartCallback<TTools, TRuntimeContext>;
+
+    /**
+     * Callback called when the agent starts streaming, before any LLM calls.
+     *
+     * @deprecated Use `onStart` instead.
+     */
     experimental_onStart?: WorkflowAgentOnStartCallback<
       TTools,
       TRuntimeContext
@@ -1092,6 +1113,13 @@ export type WorkflowAgentStreamOptions<
 
     /**
      * Callback called before each step (LLM call) begins.
+     */
+    onStepStart?: WorkflowAgentOnStepStartCallback<TTools, TRuntimeContext>;
+
+    /**
+     * Callback called before each step (LLM call) begins.
+     *
+     * @deprecated Use `onStepStart` instead.
      */
     experimental_onStepStart?: WorkflowAgentOnStepStartCallback<
       TTools,
@@ -1399,8 +1427,9 @@ export class WorkflowAgent<
     this.constructorOnStepEnd = options.onStepEnd ?? options.onStepFinish;
     const { onFinish, onEnd = onFinish } = options;
     this.constructorOnEnd = onEnd;
-    this.constructorOnStart = options.experimental_onStart;
-    this.constructorOnStepStart = options.experimental_onStepStart;
+    this.constructorOnStart = options.onStart ?? options.experimental_onStart;
+    this.constructorOnStepStart =
+      options.onStepStart ?? options.experimental_onStepStart;
     this.constructorOnToolExecutionStart = options.onToolExecutionStart;
     this.constructorOnToolExecutionEnd = options.onToolExecutionEnd;
     this.prepareCall = options.prepareCall;
@@ -1967,13 +1996,13 @@ export class WorkflowAgent<
       this.constructorOnStart as
         | WorkflowAgentOnStartCallback<TTools, TRuntimeContext>
         | undefined,
-      options.experimental_onStart,
+      options.onStart ?? options.experimental_onStart,
     );
     const mergedOnStepStart = mergeCallbacks(
       this.constructorOnStepStart as
         | WorkflowAgentOnStepStartCallback<TTools, TRuntimeContext>
         | undefined,
-      options.experimental_onStepStart,
+      options.onStepStart ?? options.experimental_onStepStart,
     );
     const mergedOnToolExecutionStart = mergeCallbacks(
       this.constructorOnToolExecutionStart,

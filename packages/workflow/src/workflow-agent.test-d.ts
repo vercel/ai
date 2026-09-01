@@ -83,6 +83,32 @@ describe('WorkflowAgent types', () => {
     });
   });
 
+  it('restricts prepareStep activeTools to configured tool names', () => {
+    const tools = {
+      weather: tool({
+        inputSchema: z.object({ city: z.string() }),
+        execute: async () => 'sunny',
+      }),
+    };
+
+    new WorkflowAgent({
+      model,
+      tools,
+      prepareStep: () => ({
+        activeTools: ['weather'],
+      }),
+    });
+
+    new WorkflowAgent({
+      model,
+      tools,
+      // @ts-expect-error activeTools only accepts configured tool names
+      prepareStep: () => ({
+        activeTools: ['weahter'],
+      }),
+    });
+  });
+
   it('accepts stream-level instructions', () => {
     const agent = new WorkflowAgent({ model });
 
@@ -93,6 +119,37 @@ describe('WorkflowAgent types', () => {
         content: 'Be concise.',
       },
     });
+  });
+
+  it('accepts stable lifecycle callbacks in constructor and stream options', () => {
+    const constructorOptions = {
+      model,
+      runtimeContext: { userId: 'user-123' },
+      onStart: ({ runtimeContext }) => {
+        expectTypeOf(runtimeContext).toMatchObjectType<{ userId: string }>();
+      },
+      onStepStart: ({ runtimeContext, stepNumber }) => {
+        expectTypeOf(runtimeContext).toMatchObjectType<{ userId: string }>();
+        expectTypeOf(stepNumber).toEqualTypeOf<number>();
+      },
+    } satisfies WorkflowAgentOptions<Record<string, never>, { userId: string }>;
+
+    const streamOptions = {
+      prompt: 'hello',
+      onStart: ({ runtimeContext }) => {
+        expectTypeOf(runtimeContext).toMatchObjectType<{ userId: string }>();
+      },
+      onStepStart: ({ runtimeContext, stepNumber }) => {
+        expectTypeOf(runtimeContext).toMatchObjectType<{ userId: string }>();
+        expectTypeOf(stepNumber).toEqualTypeOf<number>();
+      },
+    } satisfies WorkflowAgentStreamOptions<
+      Record<string, never>,
+      { userId: string }
+    >;
+
+    const agent = new WorkflowAgent(constructorOptions);
+    agent.stream(streamOptions);
   });
 
   it('accepts tool approval secrets in constructor and stream options', () => {
