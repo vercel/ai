@@ -9,11 +9,13 @@ import { print } from '../../lib/print';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const model = google('gemini-3.6-flash');
+  const provider = google;
+  const model = 'gemini-3.6-flash';
   const tools = {
     google_search: google.tools.googleSearch({}),
   };
   const batch = await startTextBatch({
+    provider,
     model,
     tools,
     requests: [
@@ -26,10 +28,10 @@ run(async () => {
   });
   print('Started batch:', batch);
 
-  while ((await getBatchStatus({ model, batch })).status === 'pending') {
+  while ((await getBatchStatus({ provider, batch })).status === 'pending') {
     await setTimeout(60_000);
   }
-  for await (const item of getBatchResults({ model, batch, tools })) {
+  for await (const item of getBatchResults({ provider, batch, tools })) {
     print('Result:', item);
   }
 });

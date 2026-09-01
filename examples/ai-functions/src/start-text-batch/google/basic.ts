@@ -9,9 +9,11 @@ import { print } from '../../lib/print';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const model = google('gemini-3.6-flash');
+  const provider = google;
+  const model = 'gemini-3.6-flash';
 
   const batch = await startTextBatch({
+    provider,
     model,
     requests: [
       {
@@ -20,6 +22,7 @@ run(async () => {
       },
       {
         id: 'capital-germany',
+        model: 'gemini-3.7-flash',
         prompt: 'What is the capital of Germany?',
       },
     ],
@@ -28,7 +31,7 @@ run(async () => {
   print('Started batch:', batch);
 
   while (true) {
-    const { status } = await getBatchStatus({ model, batch });
+    const { status } = await getBatchStatus({ provider, batch });
     print('Batch status:', status);
 
     if (status !== 'pending') {
@@ -38,7 +41,7 @@ run(async () => {
     await setTimeout(60_000);
   }
 
-  for await (const item of getBatchResults({ model, batch })) {
+  for await (const item of getBatchResults({ provider, batch })) {
     if (item.status === 'succeeded') {
       print('Result:', { id: item.id, text: item.text });
     } else {

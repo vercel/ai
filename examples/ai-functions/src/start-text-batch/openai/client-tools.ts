@@ -11,7 +11,8 @@ import { print } from '../../lib/print';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const model = openai('gpt-4.1-nano');
+  const provider = openai;
+  const model = 'gpt-4.1-nano';
   let executeCallCount = 0;
 
   const tools = {
@@ -28,6 +29,7 @@ run(async () => {
   };
 
   const batch = await startTextBatch({
+    provider,
     model,
     tools,
     toolChoice: { type: 'tool', toolName: 'get_weather' },
@@ -43,14 +45,14 @@ run(async () => {
   print('Started batch:', batch);
 
   while (true) {
-    const { status } = await getBatchStatus({ model, batch });
+    const { status } = await getBatchStatus({ provider, batch });
     print('Batch status:', status);
 
     if (status !== 'pending') break;
     await setTimeout(10_000);
   }
 
-  for await (const item of getBatchResults({ model, batch, tools })) {
+  for await (const item of getBatchResults({ provider, batch, tools })) {
     print('Result:', item);
   }
 

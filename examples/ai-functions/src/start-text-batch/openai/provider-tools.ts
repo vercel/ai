@@ -9,7 +9,8 @@ import { print } from '../../lib/print';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const model = openai('gpt-5-mini');
+  const provider = openai;
+  const model = 'gpt-5-mini';
   const tools = {
     web_search: openai.tools.webSearch({
       searchContextSize: 'low',
@@ -17,6 +18,7 @@ run(async () => {
   };
 
   const batch = await startTextBatch({
+    provider,
     model,
     tools,
     toolChoice: { type: 'tool', toolName: 'web_search' },
@@ -32,14 +34,14 @@ run(async () => {
   print('Started batch:', batch);
 
   while (true) {
-    const { status } = await getBatchStatus({ model, batch });
+    const { status } = await getBatchStatus({ provider, batch });
     print('Batch status:', status);
 
     if (status !== 'pending') break;
     await setTimeout(10_000);
   }
 
-  for await (const item of getBatchResults({ model, batch, tools })) {
+  for await (const item of getBatchResults({ provider, batch, tools })) {
     print('Result:', item);
   }
 });

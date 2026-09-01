@@ -11,7 +11,8 @@ import { print } from '../../lib/print';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const model = xai('grok-4.3');
+  const provider = xai;
+  const model = 'grok-4.3';
   let executeCallCount = 0;
   const tools = {
     get_weather: tool({
@@ -25,6 +26,7 @@ run(async () => {
   };
 
   const batch = await startTextBatch({
+    provider,
     model,
     tools,
     toolChoice: { type: 'tool', toolName: 'get_weather' },
@@ -37,11 +39,11 @@ run(async () => {
   });
   print('Started batch:', batch);
 
-  while ((await getBatchStatus({ model, batch })).status === 'pending') {
+  while ((await getBatchStatus({ provider, batch })).status === 'pending') {
     await setTimeout(10_000);
   }
 
-  for await (const item of getBatchResults({ model, batch, tools })) {
+  for await (const item of getBatchResults({ provider, batch, tools })) {
     print('Result:', item);
   }
   if (executeCallCount !== 0) {
