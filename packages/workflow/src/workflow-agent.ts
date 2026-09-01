@@ -1523,6 +1523,14 @@ export class WorkflowAgent<
     } as Prompt);
     const download = effectiveDownloadFromPrepare;
     const sandbox = options.experimental_sandbox ?? this.experimentalSandbox;
+    const mergedOnToolExecutionStart = mergeCallbacks(
+      this.constructorOnToolExecutionStart,
+      options.onToolExecutionStart,
+    );
+    const mergedOnToolExecutionEnd = mergeCallbacks(
+      this.constructorOnToolExecutionEnd,
+      options.onToolExecutionEnd,
+    );
 
     // Process tool approval responses before starting the agent loop.
     // This mirrors how stream-text.ts handles tool-approval-response parts:
@@ -1668,110 +1676,25 @@ export class WorkflowAgent<
             continue;
           }
 
-          try {
-            const { execute } = tool;
-            const resolvedContext = await resolveToolContext({
-              toolName: approval.toolName,
-              tool,
-              toolsContext: effectiveToolsContext,
-            });
-            const toolCallEvent: ToolCall = {
-              type: 'tool-call',
+          const result = await executeToolWithCallbacks(
+            {
               toolCallId: approval.toolCallId,
               toolName: approval.toolName,
               input: approval.input,
-            };
-            const messages = prompt.messages as unknown as ModelMessage[];
-            await telemetryDispatcher.onToolExecutionStart?.({
-              toolCall: toolCallEvent,
-              stepNumber: 0,
-              messages,
-              toolContext: resolvedContext,
-            });
-            const startTime = Date.now();
-            const executeApprovedTool = () =>
-              execute(approval.input, {
-                toolCallId: approval.toolCallId,
-                messages: [],
-                context: resolvedContext,
-                experimental_sandbox: sandbox,
-              });
-            const toolResult =
-              telemetryDispatcher.executeTool != null
-                ? await telemetryDispatcher.executeTool({
-                    callId: 'workflow-agent',
-                    toolCallId: approval.toolCallId,
-                    execute: executeApprovedTool,
-                  })
-                : await executeApprovedTool();
-            await telemetryDispatcher.onToolExecutionEnd?.({
-              toolCall: toolCallEvent,
-              stepNumber: 0,
-              durationMs: Date.now() - startTime,
-              messages,
-              toolContext: resolvedContext,
-              success: true,
-              output: toolResult,
-            });
-            toolResultContent.push({
-              type: 'tool-result' as const,
-              toolCallId: approval.toolCallId,
-              toolName: approval.toolName,
-              output: await createLanguageModelToolResultOutput({
-                toolCallId: approval.toolCallId,
-                toolName: approval.toolName,
-                input: approval.input,
-                output: toolResult,
-                tool,
-                errorMode: 'none',
-                supportedUrls: {},
-                download,
-              }),
-            });
-            approvedRawResults.push({
-              toolCallId: approval.toolCallId,
-              toolName: approval.toolName,
-              input: approval.input,
-              output: toolResult,
-            });
-          } catch (error) {
-            const errorMessage = getErrorMessage(error);
-            await telemetryDispatcher.onToolExecutionEnd?.({
-              toolCall: {
-                type: 'tool-call',
-                toolCallId: approval.toolCallId,
-                toolName: approval.toolName,
-                input: approval.input,
-              },
-              stepNumber: 0,
-              durationMs: 0,
-              messages: prompt.messages as unknown as ModelMessage[],
-              toolContext: undefined,
-              success: false,
-              error,
-            });
-            toolResultContent.push({
-              type: 'tool-result' as const,
-              toolCallId: approval.toolCallId,
-              toolName: approval.toolName,
-              output: await createLanguageModelToolResultOutput({
-                toolCallId: approval.toolCallId,
-                toolName: approval.toolName,
-                input: approval.input,
-                output: errorMessage,
-                tool,
-                errorMode: 'text',
-                supportedUrls: {},
-                download,
-              }),
-            });
-            approvedRawResults.push({
-              toolCallId: approval.toolCallId,
-              toolName: approval.toolName,
-              input: approval.input,
-              output: errorMessage,
-            });
-          }
+            },
+            this.tools as ToolSet,
+            prompt.messages as unknown as LanguageModelV4Prompt,
+            effectiveToolsContext,
+            0,
+            sandbox,
+          );
+          toolResultContent.push(result.modelResult);
+          approvedRawResults.push({
+            toolCallId: approval.toolCallId,
+            toolName: approval.toolName,
+            input: approval.input,
+            output: result.rawOutput,
+          });
         }
       }
 
@@ -1931,15 +1854,6 @@ export class WorkflowAgent<
         | undefined,
       options.experimental_onStepStart,
     );
-    const mergedOnToolExecutionStart = mergeCallbacks(
-      this.constructorOnToolExecutionStart,
-      options.onToolExecutionStart,
-    );
-    const mergedOnToolExecutionEnd = mergeCallbacks(
-      this.constructorOnToolExecutionEnd,
-      options.onToolExecutionEnd,
-    );
-
     // Determine effective tool choice
     const effectiveToolChoice = effectiveToolChoiceFromPrepare;
 
@@ -2003,14 +1917,14 @@ export class WorkflowAgent<
     });
 
     // Helper to wrap executeTool with onToolExecutionStart/onToolExecutionEnd callbacks
-    const executeToolWithCallbacks = async (
+    async function executeToolWithCallbacks(
       toolCall: { toolCallId: string; toolName: string; input: unknown },
       tools: ToolSet,
       messages: LanguageModelV4Prompt,
       perToolContexts: Record<string, Context | undefined>,
       currentStepNumber: number = 0,
       stepSandbox?: SandboxSession,
-    ): Promise<WorkflowToolExecutionResult> => {
+    ): Promise<WorkflowToolExecutionResult> {
       const toolCallEvent: ToolCall = {
         type: 'tool-call',
         toolCallId: toolCall.toolCallId,
@@ -2150,7 +2064,7 @@ export class WorkflowAgent<
         });
       }
       return result;
-    };
+    }
 
     const recordProviderExecutedToolTelemetry = async (
       toolCall: { toolCallId: string; toolName: string; input: unknown },
