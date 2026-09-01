@@ -1,0 +1,8 @@
+{
+  "name": "@example/ai-functions",
+  "version": "0.0.0",
+  "private": true,
+  "devDependencies": {
+    "tsx": "4.19.2"
+  }
+}
