@@ -1221,25 +1221,39 @@ function addToolResultsToStep(
     return;
   }
 
-  const toolResults = executedResults.map(result => {
+  const toolOutputs = executedResults.map(result => {
     const toolCall = step.toolCalls.find(
       toolCall => toolCall.toolCallId === result.modelResult.toolCallId,
     );
 
-    return {
-      type: 'tool-result' as const,
+    const common = {
       toolCallId: result.modelResult.toolCallId,
       toolName: result.modelResult.toolName,
       input: toolCall?.input,
-      output: result.rawOutput,
       ...(toolCall?.dynamic === true ? { dynamic: true as const } : {}),
       ...(toolCall?.providerExecuted === true
         ? { providerExecuted: true }
         : {}),
     };
+
+    return result.isError
+      ? {
+          type: 'tool-error' as const,
+          ...common,
+          error: result.rawOutput,
+        }
+      : {
+          type: 'tool-result' as const,
+          ...common,
+          output: result.rawOutput,
+        };
   });
 
-  step.content.push(...(toolResults as StepResult<ToolSet, any>['content']));
+  step.content.push(...(toolOutputs as StepResult<ToolSet, any>['content']));
+
+  const toolResults = toolOutputs.filter(
+    result => result.type === 'tool-result',
+  );
   step.toolResults.push(
     ...(toolResults as StepResult<ToolSet, any>['toolResults']),
   );
