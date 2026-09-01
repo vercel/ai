@@ -220,6 +220,107 @@ describe('WorkflowAgent', () => {
   });
 
   describe('tool execution error handling', () => {
+    it('should pass the effective abort signal to locally executed tools', async () => {
+      const abortController = new AbortController();
+      const executeFn = vi.fn(
+        async (
+          _input: unknown,
+          { abortSignal }: { abortSignal?: AbortSignal },
+        ) => {
+          expect(abortSignal).toBe(abortController.signal);
+          return 'result';
+        },
+      );
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({}),
+            execute: executeFn,
+          }),
+        },
+      });
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const messages: LanguageModelV4Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'test' }] },
+      ];
+      vi.mocked(streamTextIterator).mockReturnValue({
+        next: vi
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: {
+              toolCalls: [
+                {
+                  toolCallId: 'test-call-id',
+                  toolName: 'testTool',
+                  input: {},
+                },
+              ],
+              messages,
+            },
+          })
+          .mockResolvedValueOnce({ done: true, value: messages }),
+      } as unknown as MockIterator);
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        abortSignal: abortController.signal,
+      });
+
+      expect(executeFn).toHaveBeenCalledOnce();
+    });
+
+    it('should pass an aborting timeout signal to locally executed tools', async () => {
+      let receivedSignal: AbortSignal | undefined;
+      let cooperativelyCancelled = false;
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({}),
+            execute: async (_input, { abortSignal }) => {
+              receivedSignal = abortSignal;
+              await new Promise(resolve => setTimeout(resolve, 25));
+              cooperativelyCancelled = abortSignal?.aborted === true;
+              return 'result';
+            },
+          }),
+        },
+      });
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const messages: LanguageModelV4Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'test' }] },
+      ];
+      vi.mocked(streamTextIterator).mockReturnValue({
+        next: vi
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: {
+              toolCalls: [
+                {
+                  toolCallId: 'test-call-id',
+                  toolName: 'testTool',
+                  input: {},
+                },
+              ],
+              messages,
+            },
+          })
+          .mockResolvedValueOnce({ done: true, value: messages }),
+      } as unknown as MockIterator);
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        timeout: 10,
+      });
+
+      expect(receivedSignal).toBeDefined();
+      expect(receivedSignal?.aborted).toBe(true);
+      expect(cooperativelyCancelled).toBe(true);
+    });
+
     it('should convert FatalError to tool error result', async () => {
       const errorMessage = 'This is a fatal error';
       const tools: ToolSet = {
@@ -2401,6 +2502,41 @@ describe('WorkflowAgent', () => {
       const lastCall = calls[calls.length - 1][0];
       expect(Object.keys(lastCall.tools).sort()).toEqual(['tool1', 'tool3']);
     });
+
+    it.each(['constructor', 'stream'] as const)(
+      'should pass no tools when %s activeTools is empty',
+      async activeToolsSource => {
+        const tools: ToolSet = {
+          hidden: {
+            description: 'Hidden tool',
+            inputSchema: z.object({}),
+            execute: async () => ({}),
+          },
+        };
+
+        const agent = new WorkflowAgent({
+          model: createMockModel(),
+          tools,
+          ...(activeToolsSource === 'constructor' ? { activeTools: [] } : {}),
+        });
+
+        const { streamTextIterator } =
+          await import('./stream-text-iterator.js');
+        vi.mocked(streamTextIterator).mockClear();
+        vi.mocked(streamTextIterator).mockReturnValue({
+          next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+        } as unknown as MockIterator);
+
+        await agent.stream({
+          messages: [{ role: 'user', content: 'test' }],
+          writable: new WritableStream({ write: vi.fn(), close: vi.fn() }),
+          ...(activeToolsSource === 'stream' ? { activeTools: [] } : {}),
+        });
+
+        const call = vi.mocked(streamTextIterator).mock.calls.at(-1)?.[0];
+        expect(call?.tools).toEqual({});
+      },
+    );
   });
 
   describe('constructor-level defaults for stream-only parameters', () => {
@@ -3843,6 +3979,7 @@ describe('WorkflowAgent', () => {
     it('should execute approved tools with conversation context and lifecycle callbacks', async () => {
       const toolResult = { city: 'London', temperature: 72 };
       const executeFn = vi.fn().mockResolvedValue(toolResult);
+      const abortController = new AbortController();
       const lifecycleCallbacks: string[] = [];
       const tools: ToolSet = {
         getWeather: {
@@ -3884,6 +4021,7 @@ describe('WorkflowAgent', () => {
       await agent.stream({
         messages,
         writable: mockWritable,
+        abortSignal: abortController.signal,
         onToolExecutionStart: async () => {
           lifecycleCallbacks.push('stream-start');
         },
@@ -3897,6 +4035,7 @@ describe('WorkflowAgent', () => {
         { city: 'London' },
         expect.objectContaining({
           toolCallId: 'call-1',
+          abortSignal: abortController.signal,
           messages,
         }),
       );

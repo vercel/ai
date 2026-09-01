@@ -12,13 +12,15 @@ import type {
   LanguageModelV4ToolCall,
   LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
-import type {
-  Experimental_LanguageModelStreamPart,
-  ModelMessage,
-  StepResult,
-  ToolSet,
+import {
+  tool,
+  type Experimental_LanguageModelStreamPart,
+  type ModelMessage,
+  type StepResult,
+  type ToolSet,
 } from 'ai';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { z } from 'zod/v4';
 import type {
   DoStreamStepRawResult,
   ParsedToolCall,
@@ -173,6 +175,33 @@ describe('streamTextIterator', () => {
         value: { aborted: true, messages: prompt },
       });
       expect(onError).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('activeTools', () => {
+    it('passes no tools to the model when prepareStep returns an empty list', async () => {
+      vi.mocked(doStreamStep).mockResolvedValue(createMockDoStreamStepResult());
+
+      const iterator = streamTextIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {
+          hidden: tool({
+            inputSchema: z.object({}),
+          }),
+        },
+        model: vi.fn() as any,
+        prepareStep: () => ({ activeTools: [] }),
+      });
+
+      await iterator.next();
+
+      expect(doStreamStep).toHaveBeenCalledWith(
+        expect.any(Array),
+        expect.any(Function),
+        undefined,
+        {},
+        expect.any(Object),
+      );
     });
   });
 

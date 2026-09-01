@@ -1,5 +1,16 @@
 # @ai-sdk/workflow
 
+## 2.0.19
+
+### Patch Changes
+
+- 902ce3b: fix(workflow): respect empty activeTools lists
+- c143af4: fix(workflow): propagate agent abort signals to local tool executions
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+  - ai@7.0.89
+
 ## 2.0.18
 
 ### Patch Changes
