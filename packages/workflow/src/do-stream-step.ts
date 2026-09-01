@@ -1,6 +1,8 @@
 import type {
   LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
+  LanguageModelV4Source,
+  SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import { isAbortError } from '@ai-sdk/provider-utils';
 import {
@@ -107,6 +109,12 @@ export interface StreamFinish {
 export interface DoStreamStepRawResult {
   text: string;
   reasoning: Array<{ text: string }>;
+  files: Array<{
+    data: string;
+    mediaType: string;
+    providerMetadata?: SharedV4ProviderMetadata;
+  }>;
+  sources: LanguageModelV4Source[];
   responseMetadata?: { id?: string; timestamp?: Date; modelId?: string };
   warnings?: unknown[];
 }
@@ -246,6 +254,8 @@ export async function doStreamStep(
   // Minimal aggregation — only what buildStepResult needs outside the step.
   let text = '';
   const reasoningParts: Array<{ text: string }> = [];
+  const files: DoStreamStepRawResult['files'] = [];
+  const sources: DoStreamStepRawResult['sources'] = [];
   let responseMetadata:
     | { id?: string; timestamp?: Date; modelId?: string }
     | undefined;
@@ -269,6 +279,18 @@ export async function doStreamStep(
           break;
         case 'reasoning-delta':
           reasoningParts.push({ text: part.text });
+          break;
+        case 'file':
+          files.push({
+            data: part.file.base64,
+            mediaType: part.file.mediaType,
+            ...(part.providerMetadata != null
+              ? { providerMetadata: part.providerMetadata }
+              : {}),
+          });
+          break;
+        case 'source':
+          sources.push(part);
           break;
         case 'tool-call': {
           // parseToolCall adds dynamic/invalid/error at runtime
@@ -376,6 +398,8 @@ export async function doStreamStep(
     raw: {
       text,
       reasoning: reasoningParts,
+      files,
+      sources,
       responseMetadata,
       warnings,
     },

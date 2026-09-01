@@ -6,6 +6,7 @@ import type {
 } from '@ai-sdk/provider';
 import type { Context } from '@ai-sdk/provider-utils';
 import {
+  DefaultGeneratedFile,
   experimental_filterActiveTools as filterActiveTools,
   type Experimental_SandboxSession as SandboxSession,
   type Instructions,
@@ -401,11 +402,9 @@ export async function* streamTextIterator({
       } else if (finishReason === 'tool-calls') {
         lastStepWasToolCalls = true;
 
-        const textContent = step.content.filter(
-          item => item.type === 'text',
-        ) as Array<{ type: 'text'; text: string }>;
+        const assistantContent = getAssistantMessageContent(step);
 
-        // Add assistant message with text and tool calls to the conversation
+        // Add assistant message with response content and tool calls to the conversation
         // Note: providerMetadata from the tool call is mapped to providerOptions
         // in the prompt format, following the AI SDK convention. This is critical
         // for providers like Gemini that require thoughtSignature to be preserved
@@ -413,7 +412,7 @@ export async function* streamTextIterator({
         conversationPrompt.push({
           role: 'assistant',
           content: [
-            ...textContent,
+            ...assistantContent,
             ...toolCalls.map(toolCall => {
               const sanitizedMetadata = sanitizeProviderMetadataForToolCall(
                 toolCall.providerMetadata,
@@ -461,15 +460,13 @@ export async function* streamTextIterator({
           }
         }
       } else if (finishReason === 'stop') {
-        // Add assistant message with text content to the conversation
-        const textContent = step.content.filter(
-          item => item.type === 'text',
-        ) as Array<{ type: 'text'; text: string }>;
+        // Add assistant response content to the conversation
+        const assistantContent = getAssistantMessageContent(step);
 
-        if (textContent.length > 0) {
+        if (assistantContent.length > 0) {
           conversationPrompt.push({
             role: 'assistant',
-            content: textContent,
+            content: assistantContent,
           });
         }
 
@@ -567,8 +564,26 @@ function buildStepResult(
     toolsContext: Record<string, Context | undefined>;
   },
 ): StepResult<ToolSet, any> {
-  const { text, reasoning: reasoningParts, responseMetadata, warnings } = raw;
+  const {
+    text,
+    reasoning: reasoningParts,
+    files: rawFiles,
+    sources,
+    responseMetadata,
+    warnings,
+  } = raw;
   const reasoningText = reasoningParts.map(r => r.text).join('') || undefined;
+  const fileParts = rawFiles.map(file => ({
+    type: 'file' as const,
+    file: new DefaultGeneratedFile({
+      data: file.data,
+      mediaType: file.mediaType,
+      providerMetadata: file.providerMetadata,
+    }),
+    ...(file.providerMetadata != null
+      ? { providerMetadata: file.providerMetadata }
+      : {}),
+  }));
 
   const validToolCalls = toolCalls
     .filter(tc => !tc.invalid)
@@ -593,6 +608,8 @@ function buildStepResult(
     toolsContext: opts.toolsContext ?? {},
     content: [
       ...(text ? [{ type: 'text' as const, text }] : []),
+      ...fileParts,
+      ...sources,
       ...validToolCalls,
     ],
     text,
@@ -601,8 +618,8 @@ function buildStepResult(
       text: r.text,
     })),
     reasoningText,
-    files: [],
-    sources: [],
+    files: fileParts.map(part => part.file),
+    sources,
     toolCalls: validToolCalls,
     staticToolCalls: [],
     dynamicToolCalls: validToolCalls.filter(tc => tc.dynamic),
@@ -650,6 +667,38 @@ function buildStepResult(
     },
     providerMetadata: finish?.providerMetadata ?? {},
   } as StepResult<ToolSet, any>;
+}
+
+function getAssistantMessageContent(
+  step: StepResult<any, any>,
+): Extract<LanguageModelV4Prompt[number], { role: 'assistant' }>['content'] {
+  const content: Extract<
+    LanguageModelV4Prompt[number],
+    { role: 'assistant' }
+  >['content'] = [];
+
+  for (const part of step.content) {
+    switch (part.type) {
+      case 'text':
+        content.push({ type: 'text', text: part.text });
+        break;
+      case 'file':
+        content.push({
+          type: 'file',
+          data: { type: 'data', data: part.file.base64 },
+          mediaType: part.file.mediaType,
+          ...(part.providerMetadata != null
+            ? {
+                providerOptions:
+                  part.providerMetadata as SharedV4ProviderOptions,
+              }
+            : {}),
+        });
+        break;
+    }
+  }
+
+  return content;
 }
 
 /**
