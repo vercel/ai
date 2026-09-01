@@ -3,7 +3,7 @@ import type {
   SharedV4ProviderOptions,
   Experimental_VideoModelV4File,
 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
+import { DownloadError, type FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { MiniMaxVideoModel } from './minimax-video-model';
@@ -84,17 +84,19 @@ const defaultOptions = {
 } as const;
 
 function createModel({
+  baseURL = TEST_BASE_URL,
   currentDate,
   fetch,
   modelId = 'MiniMax-H3',
 }: {
+  baseURL?: string;
   currentDate?: () => Date;
   fetch?: FetchFunction;
   modelId?: MiniMaxVideoModelId;
 } = {}) {
   return new MiniMaxVideoModel(modelId, {
     provider: 'minimax.video',
-    baseURL: TEST_BASE_URL,
+    baseURL,
     headers: () => ({ Authorization: 'Bearer test-key' }),
     fetch,
     _internal: { currentDate },
@@ -2013,6 +2015,44 @@ describe('MiniMaxVideoModel', () => {
         message: expect.stringContaining('aborted'),
       });
       expect(pollCount).toBe(1);
+    });
+  });
+
+  describe('polling redirects', () => {
+    it('should validate redirects after trusting the configured origin', async () => {
+      const calls: Array<{ url: string; init?: RequestInit }> = [];
+      const fetch: FetchFunction = async (url, init) => {
+        calls.push({ url: url.toString(), init });
+
+        if (init?.method === 'POST') {
+          return new Response(JSON.stringify(createVideoResponse), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+
+        return new Response(null, {
+          status: 302,
+          headers: {
+            Location: 'http://169.254.169.254/latest/meta-data/',
+          },
+        });
+      };
+
+      const model = createModel({
+        baseURL: 'http://localhost:3000',
+        fetch,
+      });
+
+      await expect(
+        model.doGenerate({ ...defaultOptions }),
+      ).rejects.toBeInstanceOf(DownloadError);
+
+      expect(calls).toHaveLength(2);
+      expect(calls[1]).toMatchObject({
+        url: `http://localhost:3000/v2/query/video_generation/${TASK_ID}`,
+        init: { redirect: 'manual' },
+      });
     });
   });
 

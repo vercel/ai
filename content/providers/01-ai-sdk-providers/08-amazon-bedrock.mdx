@@ -238,8 +238,11 @@ choose how Amazon Bedrock generates structured outputs:
 - `"auto"`: Use native structured output when supported and otherwise fall
   back to the JSON tool. This is the default.
 
-Use `"jsonTool"` when native structured output is unreliable for a particular
-model, schema, or workload:
+In `"auto"` mode, Claude Sonnet 4.6 and Claude Haiku 4.5 use the JSON tool
+fallback because native structured output can be unreliable across workloads
+and Bedrock accounts. You can set `"outputFormat"` to opt into native structured
+output when it works for your account and workload, or use `"jsonTool"` to force
+the fallback for any model:
 
 ```ts
 import {

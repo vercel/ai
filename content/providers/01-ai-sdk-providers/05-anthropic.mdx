@@ -233,9 +233,14 @@ const result = streamText({
 });
 ```
 
+For `claude-fable-5-1`, the default `"auto"` mode uses native structured
+outputs through `output_config.format`. Fable 5.1 rejects forced tool use, so
+do not use `"jsonTool"` or a required or named tool choice to implement
+structured output with this model.
+
 ### Effort
 
-Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT). `claude-opus-4-7`, `claude-opus-4-8`, `claude-opus-5`, `claude-fable-5`, and `claude-sonnet-5` additionally support `xhigh` for maximum reasoning effort.
+Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT). `claude-opus-4-7`, `claude-opus-4-8`, `claude-opus-5`, `claude-fable-5`, `claude-fable-5-1`, and `claude-sonnet-5` additionally support `xhigh` for maximum reasoning effort.
 
 On `claude-opus-5`, thinking can only be disabled at effort levels up to and including `high`. When you combine `thinking: { type: 'disabled' }` with `effort: 'xhigh'` or `effort: 'max'`, the AI SDK lowers the effort to `high` and emits a warning instead of sending a request that the API would reject.
 
@@ -483,6 +488,56 @@ console.log(text);
   `"omitted"` display will cause a long pause before output begins. Set
   `display: "summarized"` to restore visible progress during thinking.
 </Note>
+
+##### Thinking Updates
+
+Use `display: 'updates'` with `claude-fable-5-1` to stream thinking summaries
+between tool calls. The provider adds the required
+`thinking-display-updates-2026-08-18` beta header automatically:
+
+```ts highlight="12-16"
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { streamText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = streamText({
+  model: anthropic('claude-fable-5-1'),
+  tools: {
+    weather: tool({
+      inputSchema: z.object({ city: z.string() }),
+    }),
+  },
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'adaptive', display: 'updates' },
+    } satisfies AnthropicLanguageModelOptions,
+  },
+  prompt: 'Compare the weather in San Francisco and New York.',
+});
+```
+
+##### Thinking Binding Controls
+
+Fable 5.1 can recover from a thinking-block prefix mismatch by dropping the
+mismatched block. Set `blockBinding.prefixMismatchBehavior` to `drop_block`.
+You can provide block binding by itself to preserve the model's default
+thinking mode, or combine it with adaptive thinking.
+
+```ts highlight="7-11"
+const { text } = await generateText({
+  model: anthropic('claude-fable-5-1'),
+  prompt: 'Continue from this conversation.',
+  providerOptions: {
+    anthropic: {
+      thinking: {
+        blockBinding: {
+          prefixMismatchBehavior: 'drop_block',
+        },
+      },
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+```
 
 #### Budget-Based Thinking
 
@@ -1279,6 +1334,59 @@ const result = await generateText({
 
 This sends `tool_reference` blocks to Anthropic, which loads the corresponding deferred tool schemas into Claude's context.
 
+### Mid-Conversation System Controls
+
+With `claude-fable-5-1`, a mid-conversation system message can be cleared
+before the next user message with `clearAt: 'next_user_message'`, or set the
+effort for the next turn. The provider adds the required
+`mid-conversation-system-clear-at-2026-08-21` and
+`mid-conversation-effort-2026-08-01` beta headers automatically.
+
+```ts highlight="17-25"
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: anthropic('claude-fable-5-1'),
+  allowSystemInMessages: true,
+  messages: [
+    {
+      role: 'user',
+      content: 'Draft a migration plan.',
+    },
+    {
+      role: 'assistant',
+      content: 'First, inventory the public API.',
+    },
+    {
+      role: 'system',
+      content: 'For the next turn, verify every compatibility claim.',
+      providerOptions: {
+        anthropic: {
+          clearAt: 'next_user_message',
+          effort: 'high',
+        },
+      },
+    },
+    {
+      role: 'user',
+      content: 'Complete the plan.',
+    },
+  ],
+});
+```
+
+An effort-only system message can use an empty content array at the API level;
+in an AI SDK prompt, set `content: ''`. The provider serializes it as
+`content: []`.
+
+<Note>
+  `clearAt` and per-message `effort` apply only to mid-conversation system
+  messages. When used on the initial system message, the provider ignores them
+  and emits a warning. Use the top-level `effort` provider option to configure
+  effort for the full request.
+</Note>
+
 ### Mid-Conversation Tool Changes
 
 With `claude-opus-4-8`, you can add or remove tools between turns of a conversation without invalidating the prompt cache. Attach `toolChanges` to a system message that appears mid-conversation (right before an assistant message or at the end of the messages). The required `mid-conversation-tool-changes-2026-07-01` beta header is added automatically.
@@ -1760,6 +1868,7 @@ and the `mediaType` should be set to `'application/pdf'`.
 | ------------------- | ----------- | ----------------- | ---------- | ------------ | ---------- | ----------- | ---------- |
 | `claude-opus-5`     | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-sonnet-5`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-fable-5-1`  | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-fable-5`    | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-opus-4-8`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-opus-4-7`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
