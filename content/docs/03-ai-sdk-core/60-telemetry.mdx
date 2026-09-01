@@ -126,12 +126,12 @@ const result = await generateText({
 });
 ```
 
-In this example, telemetry integrations receive `runtimeContext` as `{ requestId: 'req_abc' }`. Properties set to `false` or omitted are excluded. If `telemetry.includeRuntimeContext` is omitted, no runtime context properties are included. `telemetry.includeRuntimeContext` is supported by `generateText`, `streamText`, and `ToolLoopAgent`.
+In this example, telemetry integrations receive `runtimeContext` as `{ requestId: 'req_abc' }`. Properties set to `false` or omitted are excluded. If `telemetry.includeRuntimeContext` is omitted, no runtime context properties are included. `telemetry.includeRuntimeContext` is supported by `generateText`, `streamText`, `embed`, `embedMany`, `rerank`, and `ToolLoopAgent`.
 
 <Note>
   `telemetry.includeRuntimeContext` only filters telemetry integrations,
-  including OpenTelemetry integrations. Lifecycle callbacks and returned results
-  still receive the full `runtimeContext`.
+  including OpenTelemetry integrations. Lifecycle callbacks still receive the
+  full `runtimeContext`; text generation and agent step results are unchanged.
 </Note>
 
 ### Tool context
@@ -582,14 +582,14 @@ The callback runs when each span is created and receives:
 - `spanType`: the type of span being created (`operation`, `step`, `languageModel`, `tool`, `embedding`, or `reranking`).
 - `operationId`: the AI SDK operation ID for the current call, such as `ai.generateText` or `ai.streamText`.
 - `callId`: the unique ID for the current AI SDK call.
-- `runtimeContext`: the telemetry-filtered runtime context for text generation spans, including updates from `prepareStep`.
+- `runtimeContext`: the telemetry-filtered runtime context. For text generation spans, it includes updates from `prepareStep`; embedding and reranking spans receive the context supplied to the operation.
 
 Custom attributes are merged with AI SDK attributes on the span. AI SDK-owned
 attributes take precedence when a custom attribute uses the same key.
 
-`sensitiveRuntimeContext` is applied before telemetry integrations receive
-`runtimeContext`, so custom span enrichment does not receive top-level runtime
-context properties marked as sensitive.
+`telemetry.includeRuntimeContext` is applied before telemetry integrations
+receive `runtimeContext`, so custom span enrichment only receives top-level
+runtime context properties explicitly selected for telemetry.
 
 ### Supplemental AI SDK attributes on OpenTelemetry spans
 

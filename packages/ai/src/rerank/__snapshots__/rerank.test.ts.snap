@@ -45,6 +45,7 @@ exports[`rerank > options.onEnd > should send correct event information 1`] = `
     "modelId": "mock-response-model-id",
     "timestamp": 2025-06-01T00:00:00.000Z,
   },
+  "runtimeContext": {},
   "warnings": [
     {
       "message": "test warning",
@@ -69,6 +70,7 @@ exports[`rerank > options.onStart > should send correct event information 1`] = 
   "provider": "mock-provider",
   "providerOptions": undefined,
   "query": "rainy day",
+  "runtimeContext": {},
   "topN": 3,
 }
 `;

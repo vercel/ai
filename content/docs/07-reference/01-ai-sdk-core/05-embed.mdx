@@ -68,6 +68,13 @@ const { embedding } = await embed({
         'Provider-specific options that are passed through to the provider.',
     },
     {
+      name: 'runtimeContext',
+      type: 'RUNTIME_CONTEXT',
+      isOptional: true,
+      description:
+        'User-defined runtime context available to lifecycle callbacks and telemetry integrations. It is not sent to the embedding model.',
+    },
+    {
       name: 'telemetry',
       type: 'TelemetryOptions',
       isOptional: true,
@@ -103,6 +110,13 @@ const { embedding } = await embed({
               isOptional: true,
               description:
                 'Identifier for this function. Used to group telemetry data by function.',
+            },
+            {
+              name: 'includeRuntimeContext',
+              type: 'Partial<Record<keyof RUNTIME_CONTEXT, boolean>>',
+              isOptional: true,
+              description:
+                'Top-level runtime context properties to include in telemetry. Properties are excluded unless explicitly set to `true`.',
             },
             {
               name: 'integrations',
@@ -165,6 +179,12 @@ const { embedding } = await embed({
               type: 'ProviderOptions | undefined',
               description: 'Additional provider-specific options.',
             },
+            {
+              name: 'runtimeContext',
+              type: 'RUNTIME_CONTEXT',
+              description:
+                'The full user-defined runtime context for the operation.',
+            },
           ],
         },
       ],
@@ -223,6 +243,12 @@ const { embedding } = await embed({
               name: 'response',
               type: '{ headers?: Record<string, string>; body?: unknown } | undefined',
               description: 'Optional response data including headers and body.',
+            },
+            {
+              name: 'runtimeContext',
+              type: 'RUNTIME_CONTEXT',
+              description:
+                'The full user-defined runtime context for the operation.',
             },
           ],
         },

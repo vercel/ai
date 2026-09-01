@@ -12,6 +12,7 @@ import {
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
+import { registerTelemetry } from '../telemetry/telemetry-registry';
 import type { Embedding, EmbeddingModelUsage, Warning } from '../types';
 import { embed } from './embed';
 import type { EmbedStartEvent, EmbedEndEvent } from './embed-events';
@@ -23,6 +24,10 @@ vi.mock('../version', () => {
   return {
     VERSION: '0.0.0-test',
   };
+});
+
+afterEach(() => {
+  globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = undefined;
 });
 
 describe('result.embedding', () => {
@@ -264,6 +269,113 @@ describe('logWarnings', () => {
 });
 
 describe('options.onStart', () => {
+  it('should expose the full runtime context to lifecycle callbacks', async () => {
+    const runtimeContext = {
+      userId: 'user-123',
+      secret: 'private',
+    };
+    const callbackContexts: unknown[] = [];
+
+    await embed({
+      model: new MockEmbeddingModelV4({
+        doEmbed: mockEmbed([testValue], [dummyEmbedding]),
+      }),
+      value: testValue,
+      runtimeContext,
+      onStart: event => {
+        callbackContexts.push(event.runtimeContext);
+      },
+      onEnd: event => {
+        callbackContexts.push(event.runtimeContext);
+      },
+    });
+
+    expect(callbackContexts).toEqual([runtimeContext, runtimeContext]);
+  });
+
+  it('should only expose selected runtime context to global telemetry integrations', async () => {
+    const telemetryContexts: unknown[] = [];
+
+    registerTelemetry({
+      onStart: event => {
+        const embedEvent = event as {
+          operationId?: string;
+          runtimeContext?: unknown;
+        };
+        if (embedEvent.operationId === 'ai.embed') {
+          telemetryContexts.push(embedEvent.runtimeContext);
+        }
+      },
+      onEnd: event => {
+        const embedEvent = event as {
+          operationId?: string;
+          runtimeContext?: unknown;
+        };
+        if (embedEvent.operationId === 'ai.embed') {
+          telemetryContexts.push(embedEvent.runtimeContext);
+        }
+      },
+    });
+
+    await embed({
+      model: new MockEmbeddingModelV4({
+        doEmbed: mockEmbed([testValue], [dummyEmbedding]),
+      }),
+      value: testValue,
+      runtimeContext: {
+        userId: 'user-123',
+        secret: 'private',
+      },
+      telemetry: {
+        includeRuntimeContext: {
+          userId: true,
+        },
+      },
+    });
+
+    expect(telemetryContexts).toEqual([
+      { userId: 'user-123' },
+      { userId: 'user-123' },
+    ]);
+  });
+
+  it('should only expose selected runtime context to telemetry error events', async () => {
+    let errorEvent: unknown;
+
+    await expect(
+      embed({
+        model: new MockEmbeddingModelV4({
+          doEmbed: async () => {
+            throw new Error('embedding failed');
+          },
+        }),
+        value: testValue,
+        runtimeContext: {
+          requestId: 'request-123',
+          secret: 'private',
+        },
+        telemetry: {
+          includeRuntimeContext: {
+            requestId: true,
+          },
+          integrations: {
+            onError: event => {
+              errorEvent = event;
+            },
+          },
+        },
+        maxRetries: 0,
+      }),
+    ).rejects.toThrow('embedding failed');
+
+    expect(errorEvent).toMatchObject({
+      runtimeContext: {
+        requestId: 'request-123',
+      },
+    });
+    expect(errorEvent).not.toHaveProperty('runtimeContext.secret');
+  });
+
   it('should send correct event information', async () => {
     let startEvent!: EmbedStartEvent;
 

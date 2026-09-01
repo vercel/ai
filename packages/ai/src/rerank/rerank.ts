@@ -1,12 +1,13 @@
 import type { JSONObject, RerankingModelV4CallOptions } from '@ai-sdk/provider';
 import {
   createIdGenerator,
+  type Context,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../../src/util/prepare-retries';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveRerankingModel } from '../model/resolve-model';
-import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
+import { createRuntimeContextTelemetryDispatcher } from '../telemetry/create-runtime-context-telemetry-dispatcher';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type { RerankingModel } from '../types';
 import type { Callback } from '../util/callback';
@@ -31,11 +32,15 @@ const originalGenerateCallId = createIdGenerator({
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  * @param providerOptions - Additional provider-specific options.
+ * @param runtimeContext - User-defined runtime context for lifecycle callbacks and telemetry.
  * @param telemetry - Optional telemetry configuration.
  *
  * @returns A result object that contains the reranked documents, the reranked indices, and additional information.
  */
-export async function rerank<VALUE extends JSONObject | string>({
+export async function rerank<
+  VALUE extends JSONObject | string,
+  RUNTIME_CONTEXT extends Context = Context,
+>({
   model: modelArg,
   documents,
   query,
@@ -46,6 +51,7 @@ export async function rerank<VALUE extends JSONObject | string>({
   providerOptions,
   experimental_telemetry,
   telemetry = experimental_telemetry,
+  runtimeContext = {} as RUNTIME_CONTEXT,
   onStart,
   experimental_onStart,
   onEnd,
@@ -93,14 +99,19 @@ export async function rerank<VALUE extends JSONObject | string>({
   /**
    * Optional telemetry configuration.
    */
-  telemetry?: TelemetryOptions;
+  telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
 
   /**
    * Optional telemetry configuration.
    *
    * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
    */
-  experimental_telemetry?: TelemetryOptions;
+  experimental_telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
+
+  /**
+   * User-defined runtime context for the reranking operation.
+   */
+  runtimeContext?: RUNTIME_CONTEXT;
 
   /**
    * Additional provider-specific options. They are passed through
@@ -113,7 +124,7 @@ export async function rerank<VALUE extends JSONObject | string>({
    * Callback that is called when the rerank operation begins,
    * before the reranking model is called.
    */
-  onStart?: Callback<RerankStartEvent>;
+  onStart?: Callback<RerankStartEvent<NoInfer<RUNTIME_CONTEXT>>>;
 
   /**
    * Callback that is called when the rerank operation begins,
@@ -121,13 +132,13 @@ export async function rerank<VALUE extends JSONObject | string>({
    *
    * @deprecated Use `onStart` instead.
    */
-  experimental_onStart?: Callback<RerankStartEvent>;
+  experimental_onStart?: Callback<RerankStartEvent<NoInfer<RUNTIME_CONTEXT>>>;
 
   /**
    * Callback that is called when the rerank operation completes,
    * after the reranking model returns.
    */
-  onEnd?: Callback<RerankEndEvent>;
+  onEnd?: Callback<RerankEndEvent<NoInfer<RUNTIME_CONTEXT>>>;
 
   /**
    * Callback that is called when the rerank operation completes,
@@ -135,7 +146,7 @@ export async function rerank<VALUE extends JSONObject | string>({
    *
    * @deprecated Use `onEnd` instead.
    */
-  experimental_onEnd?: Callback<RerankEndEvent>;
+  experimental_onEnd?: Callback<RerankEndEvent<NoInfer<RUNTIME_CONTEXT>>>;
 
   /**
    * Internal. For test use only. May change without notice.
@@ -149,8 +160,13 @@ export async function rerank<VALUE extends JSONObject | string>({
   const resolvedOnStart = onStart ?? experimental_onStart;
   const resolvedOnEnd = onEnd ?? experimental_onEnd;
 
-  const telemetryDispatcher = createTelemetryDispatcher({
+  const telemetryDispatcher = createRuntimeContextTelemetryDispatcher<
+    RUNTIME_CONTEXT,
+    RerankStartEvent<RUNTIME_CONTEXT>,
+    RerankEndEvent<RUNTIME_CONTEXT>
+  >({
     telemetry,
+    includeRuntimeContext: telemetry?.includeRuntimeContext,
   });
 
   const runInTracingChannelSpan =
@@ -171,6 +187,7 @@ export async function rerank<VALUE extends JSONObject | string>({
         maxRetries: maxRetriesArg ?? 2,
         headers,
         providerOptions,
+        runtimeContext,
       },
       callbacks: [resolvedOnStart, telemetryDispatcher.onStart],
     });
@@ -190,6 +207,7 @@ export async function rerank<VALUE extends JSONObject | string>({
           timestamp: new Date(),
           modelId: model.modelId,
         },
+        runtimeContext,
       },
       callbacks: [resolvedOnEnd, telemetryDispatcher.onEnd],
     });
@@ -226,6 +244,7 @@ export async function rerank<VALUE extends JSONObject | string>({
     maxRetries,
     headers,
     providerOptions,
+    runtimeContext,
   };
 
   return await runInTracingChannelSpan({
@@ -314,6 +333,7 @@ export async function rerank<VALUE extends JSONObject | string>({
               headers: response?.headers,
               body: response?.body,
             },
+            runtimeContext,
           },
           callbacks: [resolvedOnEnd, telemetryDispatcher.onEnd],
         });
@@ -335,7 +355,11 @@ export async function rerank<VALUE extends JSONObject | string>({
           },
         });
       } catch (error) {
-        await telemetryDispatcher.onError?.({ callId, error });
+        await telemetryDispatcher.onError({
+          callId,
+          error,
+          runtimeContext,
+        });
         throw error;
       }
     },

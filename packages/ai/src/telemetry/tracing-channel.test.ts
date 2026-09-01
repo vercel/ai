@@ -14,6 +14,7 @@ import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
 import { createTelemetryDispatcher } from './create-telemetry-dispatcher';
+import { createRuntimeContextTelemetryDispatcher } from './create-runtime-context-telemetry-dispatcher';
 import {
   AI_SDK_TELEMETRY_TRACING_CHANNEL,
   type TelemetryTracingChannelMessage,
@@ -225,6 +226,50 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
             "recordOutputs": undefined,
           },
           "type": "generateText",
+        },
+      ]
+    `);
+  });
+
+  it('only traces runtime context properties selected for telemetry', async () => {
+    const messages = await collectTracingChannelStartMessages(async () => {
+      const telemetry = createRuntimeContextTelemetryDispatcher<any, any, any>({
+        telemetry: {
+          includeRuntimeContext: {
+            requestId: true,
+          },
+        },
+        includeRuntimeContext: {
+          requestId: true,
+        },
+      });
+
+      await telemetry.runInTracingChannelSpan!({
+        type: 'embed',
+        event: {
+          callId: 'tracing-channel-embed',
+          runtimeContext: {
+            requestId: 'request-123',
+            secret: 'private',
+          },
+        },
+        execute: async () => undefined,
+      });
+    });
+
+    expect(messages).toMatchInlineSnapshot(`
+      [
+        {
+          "event": {
+            "callId": "tracing-channel-embed",
+            "functionId": undefined,
+            "recordInputs": undefined,
+            "recordOutputs": undefined,
+            "runtimeContext": {
+              "requestId": "request-123",
+            },
+          },
+          "type": "embed",
         },
       ]
     `);

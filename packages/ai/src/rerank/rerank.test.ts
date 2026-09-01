@@ -363,6 +363,29 @@ describe('rerank', () => {
       }),
     });
 
+    it('should expose the full runtime context to lifecycle callbacks', async () => {
+      const runtimeContext = {
+        experimentId: 'experiment-123',
+        secret: 'private',
+      };
+      const callbackContexts: unknown[] = [];
+
+      await rerank({
+        model: mockModel,
+        documents: ['sunny day', 'rainy day'],
+        query: 'rain',
+        runtimeContext,
+        onStart: event => {
+          callbackContexts.push(event.runtimeContext);
+        },
+        onEnd: event => {
+          callbackContexts.push(event.runtimeContext);
+        },
+      });
+
+      expect(callbackContexts).toEqual([runtimeContext, runtimeContext]);
+    });
+
     it('should send correct event information', async () => {
       let startEvent!: RerankStartEvent;
 
@@ -850,6 +873,9 @@ describe('rerank', () => {
         model: mockModel,
         documents: [] as string[],
         query: 'rainy day',
+        runtimeContext: {
+          requestId: 'request-123',
+        },
         _internal: {
           generateCallId: () => 'empty-call-id',
         },
@@ -863,9 +889,15 @@ describe('rerank', () => {
 
       expect(startEvent.callId).toBe('empty-call-id');
       expect(startEvent.documents).toEqual([]);
+      expect(startEvent.runtimeContext).toEqual({
+        requestId: 'request-123',
+      });
       expect(endEvent.callId).toBe('empty-call-id');
       expect(endEvent.ranking).toEqual([]);
       expect(endEvent.documents).toEqual([]);
+      expect(endEvent.runtimeContext).toEqual({
+        requestId: 'request-123',
+      });
     });
   });
 });

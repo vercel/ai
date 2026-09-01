@@ -16,14 +16,14 @@ should affect execution.
 
 ## Context Types
 
-| Concept                           | Where you define it                                                | Where you read it                                                                               | Use it for                                                    |
-| --------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `runtimeContext`                  | `generateText`, `streamText`, or `ToolLoopAgent` calls             | `prepareStep`, lifecycle callbacks, step results, and telemetry                                 | Shared generation or agent state                              |
-| `toolsContext`                    | `generateText`, `streamText`, or `ToolLoopAgent` calls             | `prepareStep`, approval callbacks, tool context resolution, and tool description functions      | A map of per-tool context values keyed by tool name           |
-| tool `context`                    | Each tool's `toolsContext` entry, validated by its `contextSchema` | Tool description functions, tool `execute`, `needsApproval`, and tool input lifecycle callbacks | Values needed by one tool                                     |
-| `toolContext`                     | Derived from one tool's context                                    | Tool approval callbacks and tool execution events                                               | The event/callback name for one tool's context                |
-| `telemetry.includeRuntimeContext` | The generation or agent call                                       | Telemetry filtering                                                                             | Top-level `runtimeContext` properties to include in telemetry |
-| `telemetry.includeToolsContext`   | The generation or agent call                                       | Telemetry filtering                                                                             | Top-level tool context properties to include in telemetry     |
+| Concept                           | Where you define it                                                                    | Where you read it                                                                                             | Use it for                                                    |
+| --------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `runtimeContext`                  | `generateText`, `streamText`, `embed`, `embedMany`, `rerank`, or `ToolLoopAgent` calls | `prepareStep` and step results for text generation; lifecycle callbacks and telemetry for all supported calls | Shared application and operation state                        |
+| `toolsContext`                    | `generateText`, `streamText`, or `ToolLoopAgent` calls                                 | `prepareStep`, approval callbacks, tool context resolution, and tool description functions                    | A map of per-tool context values keyed by tool name           |
+| tool `context`                    | Each tool's `toolsContext` entry, validated by its `contextSchema`                     | Tool description functions, tool `execute`, `needsApproval`, and tool input lifecycle callbacks               | Values needed by one tool                                     |
+| `toolContext`                     | Derived from one tool's context                                                        | Tool approval callbacks and tool execution events                                                             | The event/callback name for one tool's context                |
+| `telemetry.includeRuntimeContext` | Any supported call with `runtimeContext`                                               | Telemetry filtering                                                                                           | Top-level `runtimeContext` properties to include in telemetry |
+| `telemetry.includeToolsContext`   | The generation or agent call                                                           | Telemetry filtering                                                                                           | Top-level tool context properties to include in telemetry     |
 
 In agents, `runtimeContext` is the agent's shared runtime state. It flows
 through the loop and can be read or updated in `prepareStep` between model
@@ -31,9 +31,10 @@ calls. Tool-specific data stays in `toolsContext`, where each tool receives only
 its own validated `context`.
 
 ```txt
-generateText / streamText / ToolLoopAgent
+generateText / streamText / embed / embedMany / rerank / ToolLoopAgent
   -> runtimeContext
-       -> prepareStep, lifecycle callbacks, step results
+       -> lifecycle callbacks
+       -> prepareStep and step results for text generation and agents
        -> telemetry, filtered by telemetry.includeRuntimeContext
   -> toolsContext
        -> prepareStep
@@ -45,8 +46,9 @@ generateText / streamText / ToolLoopAgent
 ## Runtime Context
 
 Pass `runtimeContext` when you need shared state for the whole generation or
-agent loop. It is not added to the model prompt automatically. Use it to
-configure step preparation, track server-side state, or correlate lifecycle
+agent loop, or when embedding and reranking operations need request-local
+attribution. It is not added to model inputs automatically. Use it to configure
+step preparation, track server-side state, or correlate lifecycle and telemetry
 events.
 
 ```ts
@@ -71,6 +73,9 @@ const result = await generateText({
 `prepareStep` can return a new `runtimeContext`. The new value affects the
 current step and all subsequent steps, which makes it the right place to update
 agent state between turns of the loop.
+
+For `embed`, `embedMany`, and `rerank`, the context is immutable for the
+operation and is available in the `onStart` and `onEnd` lifecycle callbacks.
 
 ## Tool Context
 
@@ -189,8 +194,9 @@ In this example, telemetry receives `runtimeContext` with only `requestId` and t
 
 <Note>
   Context filters only affect telemetry integrations, including OpenTelemetry
-  integrations. Tool execution, lifecycle callbacks, and returned results still
-  receive the full context values.
+  integrations. Lifecycle callbacks still receive the full `runtimeContext`.
+  Text generation and agent execution also retain the full context in their
+  existing step results and tool flows.
 </Note>
 
 Context telemetry filtering is shallow. For `telemetry.includeRuntimeContext`, only
@@ -202,15 +208,16 @@ properties are sent.
 
 ## Where Context Is Available
 
-| Location                          | `runtimeContext`                              | `toolsContext`                              | Tool `context` / `toolContext`                           |
-| --------------------------------- | --------------------------------------------- | ------------------------------------------- | -------------------------------------------------------- |
-| `prepareStep`                     | Read and update                               | Read and update                             | Not directly                                             |
-| Tool description functions        | Not passed directly                           | Not passed directly                         | Read one tool's validated `context`                      |
-| Tool `execute`                    | Not passed directly                           | Not passed directly                         | Read one tool's validated `context`                      |
-| Tool approval                     | Read in generic and per-tool callbacks        | Read in generic callbacks                   | Read as `toolContext` in per-tool callbacks              |
-| Tool execution events             | Not included                                  | Not included                                | Read as `toolContext`                                    |
-| Step results and finish callbacks | Read final or per-step state                  | Read final or per-step state                | Available through the per-tool entries in `toolsContext` |
-| Telemetry                         | Filtered by `telemetry.includeRuntimeContext` | Filtered by `telemetry.includeToolsContext` | Filtered by `telemetry.includeToolsContext`              |
+| Location                          | `runtimeContext`                               | `toolsContext`                              | Tool `context` / `toolContext`                           |
+| --------------------------------- | ---------------------------------------------- | ------------------------------------------- | -------------------------------------------------------- |
+| `prepareStep`                     | Read and update for text generation and agents | Read and update                             | Not directly                                             |
+| Tool description functions        | Not passed directly                            | Not passed directly                         | Read one tool's validated `context`                      |
+| Tool `execute`                    | Not passed directly                            | Not passed directly                         | Read one tool's validated `context`                      |
+| Tool approval                     | Read in generic and per-tool callbacks         | Read in generic callbacks                   | Read as `toolContext` in per-tool callbacks              |
+| Tool execution events             | Not included                                   | Not included                                | Read as `toolContext`                                    |
+| Embedding and reranking callbacks | Read the operation context                     | Not available                               | Not available                                            |
+| Step results and finish callbacks | Read final or per-step state                   | Read final or per-step state                | Available through the per-tool entries in `toolsContext` |
+| Telemetry                         | Filtered by `telemetry.includeRuntimeContext`  | Filtered by `telemetry.includeToolsContext` | Filtered by `telemetry.includeToolsContext`              |
 
 ## Choosing the Right Context
 

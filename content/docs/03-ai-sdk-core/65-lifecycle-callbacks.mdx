@@ -238,12 +238,16 @@ const values = ['sunny day at the beach', 'rainy afternoon in the city'];
 const { embeddings } = await embedMany({
   model: 'openai/text-embedding-3-small',
   values,
+  runtimeContext: {
+    requestId: 'req_123',
+  },
 
-  onStart({ callId, operationId, modelId, value }) {
+  onStart({ callId, operationId, modelId, value, runtimeContext }) {
     logger.info('ai.embedding.started', {
       callId,
       operationId,
       modelId,
+      requestId: runtimeContext.requestId,
       valueCount: Array.isArray(value) ? value.length : 1,
     });
   },
@@ -260,10 +264,14 @@ const { ranking } = await rerank({
   model: cohere.reranking('rerank-v3.5'),
   documents: values,
   query: 'talk about rain',
+  runtimeContext: {
+    requestId: 'req_123',
+  },
 
-  onEnd({ callId, ranking }) {
+  onEnd({ callId, ranking, runtimeContext }) {
     logger.info('ai.rerank.finished', {
       callId,
+      requestId: runtimeContext.requestId,
       topResult: ranking[0],
     });
   },
@@ -301,7 +309,10 @@ This distinction matters when the step includes local tool execution: the step d
 
 ## Runtime and Tool Context
 
-Lifecycle callbacks receive the full `runtimeContext` and `toolsContext` values that flow through the call.
+Lifecycle callbacks receive the full `runtimeContext` values that flow through
+`generateText`, `streamText`, `embed`, `embedMany`, `rerank`, and
+`ToolLoopAgent` calls. Text generation and agent callbacks also receive
+`toolsContext`.
 This makes callbacks useful for attaching application context without changing prompts or tool inputs.
 
 ```tsx highlight="8-24,26-39"

@@ -84,6 +84,13 @@ const { embeddings } = await embedMany({
         'Maximum number of concurrent requests to the provider. Default: Infinity.',
     },
     {
+      name: 'runtimeContext',
+      type: 'RUNTIME_CONTEXT',
+      isOptional: true,
+      description:
+        'User-defined runtime context available to lifecycle callbacks and telemetry integrations. It is not sent to the embedding model.',
+    },
+    {
       name: 'telemetry',
       type: 'TelemetryOptions',
       isOptional: true,
@@ -119,6 +126,13 @@ const { embeddings } = await embedMany({
               isOptional: true,
               description:
                 'Identifier for this function. Used to group telemetry data by function.',
+            },
+            {
+              name: 'includeRuntimeContext',
+              type: 'Partial<Record<keyof RUNTIME_CONTEXT, boolean>>',
+              isOptional: true,
+              description:
+                'Top-level runtime context properties to include in telemetry. Properties are excluded unless explicitly set to `true`.',
             },
             {
               name: 'integrations',
@@ -182,6 +196,12 @@ const { embeddings } = await embedMany({
               type: 'ProviderOptions | undefined',
               description: 'Additional provider-specific options.',
             },
+            {
+              name: 'runtimeContext',
+              type: 'RUNTIME_CONTEXT',
+              description:
+                'The full user-defined runtime context for the operation.',
+            },
           ],
         },
       ],
@@ -243,6 +263,12 @@ const { embeddings } = await embedMany({
               type: 'Array<{ headers?: Record<string, string>; body?: unknown } | undefined>',
               description:
                 'Response data from each embedding call. There may be multiple responses if the request was split into chunks.',
+            },
+            {
+              name: 'runtimeContext',
+              type: 'RUNTIME_CONTEXT',
+              description:
+                'The full user-defined runtime context for the operation.',
             },
           ],
         },
