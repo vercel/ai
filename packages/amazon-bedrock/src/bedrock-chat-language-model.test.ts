@@ -2787,6 +2787,89 @@ describe('doStream', () => {
     `);
   });
 
+  it('should handle channel-qualified JSON response tool names in streaming', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockStart: {
+            contentBlockIndex: 0,
+            start: {
+              toolUse: {
+                toolUseId: 'json-tool-id',
+                name: 'json<|channel|>commentary',
+              },
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: {
+              toolUse: {
+                input: '{"name":"Pizza","price":12,"size":"Large"}',
+              },
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStop: { contentBlockIndex: 0 },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'tool_use',
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Generate JSON' }] },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            price: { type: 'number' },
+            size: { type: 'string' },
+          },
+          required: ['name', 'price', 'size'],
+        },
+      },
+      includeRawChunks: false,
+    });
+
+    const result = await convertReadableStreamToArray(stream);
+
+    expect(result).toContainEqual({
+      type: 'text-delta',
+      id: '0',
+      delta: '{"name":"Pizza","price":12,"size":"Large"}',
+    });
+    expect(result).not.toContainEqual(
+      expect.objectContaining({ type: 'tool-call' }),
+    );
+    expect(result).toContainEqual(
+      expect.objectContaining({
+        type: 'finish',
+        finishReason: {
+          raw: 'tool_use',
+          unified: 'stop',
+        },
+        providerMetadata: {
+          bedrock: {
+            isJsonResponseFromTool: true,
+            stopSequence: null,
+          },
+        },
+      }),
+    );
+  });
+
   it('should include text content before JSON tool call in streaming', async () => {
     setupMockEventStreamHandler();
     prepareChunksFixtureResponse('bedrock-json-tool.2');
@@ -6370,6 +6453,67 @@ describe('doGenerate', () => {
       'Respond with a JSON object.',
     );
     expect(requestBody.toolConfig.toolChoice).toEqual({ any: {} });
+  });
+
+  it('should handle channel-qualified JSON response tool names', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'json-tool-id',
+                  name: 'json<|channel|>commentary',
+                  input: {
+                    name: 'Pizza',
+                    price: 12,
+                    size: 'Large',
+                  },
+                },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 137, outputTokens: 196, totalTokens: 333 },
+        stopReason: 'tool_use',
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate product data' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            price: { type: 'number' },
+            size: { type: 'string' },
+          },
+          required: ['name', 'price', 'size'],
+        },
+      },
+    });
+
+    expect(result.content).toEqual([
+      {
+        type: 'text',
+        text: '{"name":"Pizza","price":12,"size":"Large"}',
+      },
+    ]);
+    expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
+    expect(result.finishReason).toEqual({
+      raw: 'tool_use',
+      unified: 'stop',
+    });
   });
 
   describe('json schema response format with json tool response', () => {
