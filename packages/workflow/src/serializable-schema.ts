@@ -35,15 +35,11 @@ export type SerializableToolDef = {
   inputExamples?: Array<{ input: unknown }>;
   /** Provider-specific options attached to the tool definition. */
   providerOptions?: Tool['providerOptions'];
-<<<<<<< HEAD
   /** Input lifecycle callbacks that must be invoked outside the step. */
   hasOnInputStart?: boolean;
   hasOnInputDelta?: boolean;
   hasOnInputAvailable?: boolean;
   /** Present on dynamic and provider tools. */
-=======
-  /** Present on provider tools (e.g. anthropic.tools.webSearch). */
->>>>>>> origin/main
   type?: 'dynamic' | 'provider';
   /** Provider tool is executed by the provider. */
   isProviderExecuted?: boolean;
@@ -90,7 +86,6 @@ export function serializeToolSet<TOOLS extends ToolSet>(
       if (t.type === 'dynamic') {
         def.type = 'dynamic';
       }
-<<<<<<< HEAD
       if (t.onInputStart != null) {
         def.hasOnInputStart = true;
       }
@@ -100,8 +95,6 @@ export function serializeToolSet<TOOLS extends ToolSet>(
       if (t.onInputAvailable != null) {
         def.hasOnInputAvailable = true;
       }
-=======
->>>>>>> origin/main
 
       // Preserve provider tool identity so the Gateway can recognize
       // them as provider-executed tools (e.g. anthropic webSearch).
