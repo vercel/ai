@@ -8,11 +8,12 @@ function formatDescriptor(descriptor: unknown) {
 }
 
 export default function ApprovalDescriptor() {
-  const { error, messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({
-      api: '/api/chat/approval-descriptor',
-    }),
-  });
+  const { addToolApprovalResponse, error, messages, sendMessage, status } =
+    useChat({
+      transport: new DefaultChatTransport({
+        api: '/api/chat/approval-descriptor',
+      }),
+    });
 
   const toolPart = messages
     .flatMap(message => message.parts)
@@ -29,8 +30,8 @@ export default function ApprovalDescriptor() {
       <div>
         <h1 className="text-xl font-bold">Approval Descriptor Stream</h1>
         <p className="mt-2 text-sm text-gray-600">
-          Streams an approval request and response from a remote agent. The
-          descriptor should remain unchanged in both UI states.
+          Streams an approval request and records the response on the client.
+          The descriptor should remain unchanged in both UI states.
         </p>
       </div>
 
@@ -63,6 +64,23 @@ export default function ApprovalDescriptor() {
                 {formatDescriptor(approval.descriptor)}
               </pre>
             </>
+          )}
+
+          {toolPart.state === 'approval-requested' && (
+            <button
+              type="button"
+              data-testid="approve-tool"
+              className="px-4 py-2 mt-4 text-white bg-green-600 rounded"
+              onClick={() =>
+                addToolApprovalResponse({
+                  id: toolPart.approval.id,
+                  approved: true,
+                  reason: 'Approved in the browser',
+                })
+              }
+            >
+              Approve
+            </button>
           )}
         </section>
       )}

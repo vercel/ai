@@ -51,10 +51,8 @@ describe('UIMessagePart', () => {
 
     type _ = AssertAssignable<ToolUIPart<TestTools>, Part>;
   });
-<<<<<<< HEAD
-=======
 
-  it('keeps approval request and response reasons distinct', () => {
+  it('allows approval descriptors in request and response states', () => {
     type RequestedPart = {
       type: 'tool-weather';
       state: 'approval-requested';
@@ -65,7 +63,6 @@ describe('UIMessagePart', () => {
         descriptor: {
           action: 'getWeather';
         };
-        requestReason: 'requires operator review';
       };
     };
     type _Requested = AssertAssignable<ToolUIPart<TestTools>, RequestedPart>;
@@ -81,11 +78,9 @@ describe('UIMessagePart', () => {
         descriptor: {
           action: 'getWeather';
         };
-        requestReason: 'requires operator review';
         reason: 'approved by operator';
       };
     };
     type _Responded = AssertAssignable<ToolUIPart<TestTools>, RespondedPart>;
   });
->>>>>>> 850d863214 (fix: tool approval descriptor loss during UI message stream processing (#19882))
 });
