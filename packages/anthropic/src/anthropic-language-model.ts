@@ -1719,7 +1719,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
           switch (value.type) {
             case 'ping': {
-              return; // ignored
+              controller.enqueue({ type: 'ping' });
+              return;
             }
 
             case 'content_block_start': {
