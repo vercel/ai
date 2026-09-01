@@ -122,6 +122,19 @@ describe('AmazonBedrockProvider', () => {
       expect(constructorCall[1].baseUrl()).toBe('https://custom.url');
     });
 
+    it('should resolve the Bedrock Runtime endpoint for an ISO region', () => {
+      const provider = createAmazonBedrock({
+        region: 'us-iso-east-1',
+      });
+
+      provider('anthropic.claude-v2');
+
+      const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
+      expect(constructorCall[1].baseUrl()).toBe(
+        'https://bedrock-runtime.us-iso-east-1.c2s.ic.gov',
+      );
+    });
+
     it('should accept a credentialProvider in options', () => {
       const mockCredentialProvider = vi.fn().mockResolvedValue({
         accessKeyId: 'dynamic-access-key',
