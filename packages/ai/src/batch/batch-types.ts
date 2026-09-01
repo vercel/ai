@@ -85,7 +85,11 @@ export type StartTextBatchOptions<
   TOOLS extends ToolSet = ToolSet,
   PROVIDER extends BatchProvider = BatchProvider,
 > = {
-  provider: PROVIDER;
+  /**
+   * Provider used to process the batch. Defaults to the global provider, or
+   * the Vercel AI Gateway when no global provider is configured.
+   */
+  provider?: PROVIDER;
   model: InferBatchModelId<PROVIDER>;
   requests: ReadonlyArray<TextBatchRequest<InferBatchModelId<PROVIDER>>>;
 
@@ -134,7 +138,11 @@ export type StartTextBatchResult = TextBatch & {
  * Options shared by batch status and result retrieval operations.
  */
 export type BatchOperationOptions<TOOLS extends ToolSet = ToolSet> = {
-  provider: BatchProvider;
+  /**
+   * Provider used to access the batch. Defaults to the global provider, or
+   * the Vercel AI Gateway when no global provider is configured.
+   */
+  provider?: BatchProvider;
   batch: BatchReference;
 
   /**

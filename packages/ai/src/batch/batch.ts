@@ -5,6 +5,7 @@ import {
   type LanguageModelV4GenerateResult,
   type LanguageModelV4ToolCall,
 } from '@ai-sdk/provider';
+import { gateway } from '@ai-sdk/gateway';
 import { type ToolSet, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { convertLanguageModelContent } from '../generate-text/convert-language-model-content';
@@ -22,6 +23,7 @@ import { asAsyncIterableStream } from '../util/async-iterable-stream';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
+import { asProviderV4 } from '../model/as-provider-v4';
 import type {
   BatchOperationOptions,
   BatchProvider,
@@ -236,7 +238,9 @@ export function getBatchResults<TOOLS extends ToolSet>({
   return asAsyncIterableStream(transform.readable);
 }
 
-function resolveBatchApi(provider: BatchProvider): BatchV4 {
+function resolveBatchApi(provider?: BatchProvider): BatchV4 {
+  provider ??= asProviderV4(globalThis.AI_SDK_DEFAULT_PROVIDER ?? gateway);
+
   if (isBatchApi(provider)) {
     return provider;
   }

@@ -60,6 +60,34 @@ function createMockBatchApi({
 }
 
 describe('startTextBatch', () => {
+  it('uses the global default provider when provider is omitted', async () => {
+    const calls: Array<Parameters<BatchV4['experimental_doStartBatch']>[0]> =
+      [];
+    const batchApi = createMockBatchApi({
+      doStartBatch: async options => {
+        calls.push(options);
+        return { batchId: 'batch-123', status: 'pending', warnings: [] };
+      },
+    });
+    globalThis.AI_SDK_DEFAULT_PROVIDER = Object.assign(new MockProviderV4(), {
+      batch: () => batchApi,
+    });
+
+    try {
+      await startTextBatch({
+        model: 'anthropic/claude-sonnet-5',
+        requests: [{ id: 'request-1', prompt: 'hello' }],
+      });
+    } finally {
+      delete globalThis.AI_SDK_DEFAULT_PROVIDER;
+    }
+
+    expect(calls[0]).toMatchObject({
+      type: 'text',
+      requests: [{ id: 'request-1', modelId: 'anthropic/claude-sonnet-5' }],
+    });
+  });
+
   it('resolves the batch service from a provider and applies the default model', async () => {
     const calls: Array<Parameters<BatchV4['experimental_doStartBatch']>[0]> =
       [];

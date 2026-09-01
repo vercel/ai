@@ -169,16 +169,16 @@ it('defines batch support as a standalone provider service', () => {
   >().toEqualTypeOf<BatchV4OperationOptions>();
   expectTypeOf<
     StartTextBatchOptions<ToolSet, TestProvider>['provider']
-  >().toEqualTypeOf<TestProvider>();
+  >().toEqualTypeOf<TestProvider | undefined>();
   expectTypeOf<
     StartTextBatchOptions<ToolSet, TestProvider>['model']
   >().toEqualTypeOf<ModelId>();
   expectTypeOf<
     StartTextBatchOptions<ToolSet, TestProvider>['requests'][number]['model']
   >().toEqualTypeOf<ModelId | undefined>();
-  expectTypeOf<
-    BatchOperationOptions['provider']
-  >().toEqualTypeOf<BatchProvider>();
+  expectTypeOf<BatchOperationOptions['provider']>().toEqualTypeOf<
+    BatchProvider | undefined
+  >();
   expectTypeOf<BatchV4Status['status']>().toEqualTypeOf<
     'pending' | 'completed' | 'failed'
   >();
@@ -227,6 +227,16 @@ it('infers default and per-request model IDs from the provider batch service', (
       },
     ],
   });
+});
+
+it('allows the default provider to be omitted', () => {
+  startTextBatch({
+    model: 'anthropic/claude-sonnet-5',
+    requests: [{ id: 'request-1', prompt: 'hello' }],
+  });
+
+  getBatchStatus({ batch: {} as BatchReference });
+  getBatchResults({ batch: {} as BatchReference });
 });
 
 it('exports the experimental batch functions with the public result types', () => {

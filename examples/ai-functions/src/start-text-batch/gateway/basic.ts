@@ -2,18 +2,15 @@ import {
   experimental_getBatchResults as getBatchResults,
   experimental_getBatchStatus as getBatchStatus,
   experimental_startTextBatch as startTextBatch,
-  gateway,
 } from 'ai';
 import { setTimeout } from 'node:timers/promises';
 import { print } from '../../lib/print';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const provider = gateway;
-  const model = 'anthropic/claude-haiku-4-5';
+  const model = 'anthropic/claude-sonnet-5';
 
   const batch = await startTextBatch({
-    provider,
     model,
     requests: [
       {
@@ -31,7 +28,7 @@ run(async () => {
   print('Started batch:', batch);
 
   while (true) {
-    const { status } = await getBatchStatus({ provider, batch });
+    const { status } = await getBatchStatus({ batch });
     print('Batch status:', status);
 
     if (status !== 'pending') {
@@ -41,7 +38,7 @@ run(async () => {
     await setTimeout(10_000);
   }
 
-  for await (const item of getBatchResults({ provider, batch })) {
+  for await (const item of getBatchResults({ batch })) {
     if (item.status === 'succeeded') {
       print('Result:', { id: item.id, text: item.text });
     } else {
