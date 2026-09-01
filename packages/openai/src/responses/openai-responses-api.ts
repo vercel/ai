@@ -1764,7 +1764,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
             })
             .nullish(),
         })
-        .optional(),
+        .nullish(),
     }),
   ),
 );
