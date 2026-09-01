@@ -3,28 +3,28 @@ import type { SharedV4ProviderReference } from '../../shared/v4/shared-v4-provid
 import type { SharedV4Warning } from '../../shared/v4/shared-v4-warning';
 
 /**
- * Result of uploading a file via the files interface.
+ * Result of retrieving file metadata via the files interface.
  */
-export type FilesV4UploadFileResult = {
+export type FilesV4GetFileMetadataResult = {
   /**
    * A provider reference mapping provider names to provider-specific file identifiers.
-   * The key is the canonical provider name (e.g. `openai`) and may differ from
-   * the interface's `provider` id (e.g. `openai.files`).
+   * Contains only the operated provider's entry — when working with a merged
+   * multi-provider reference, do not reassign it with this result.
    */
   providerReference: SharedV4ProviderReference;
 
   /**
-   * The IANA media type of the uploaded file, if available from the provider.
-   */
-  mediaType?: string;
-
-  /**
-   * The filename of the uploaded file, if available from the provider.
+   * The filename of the file, if available from the provider.
    */
   filename?: string;
 
   /**
-   * The size of the uploaded file in bytes, if available from the provider.
+   * The IANA media type of the file, if available from the provider.
+   */
+  mediaType?: string;
+
+  /**
+   * The size of the file in bytes, if available from the provider.
    */
   byteSize?: number;
 
@@ -34,8 +34,8 @@ export type FilesV4UploadFileResult = {
   createdAt?: Date;
 
   /**
-   * When the provider will delete the file (retention expiry, e.g. from a
-   * requested upload TTL), if available from the provider.
+   * When the provider will delete the file (retention expiry),
+   * if available from the provider.
    */
   expiresAt?: Date;
 
