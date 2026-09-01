@@ -715,7 +715,9 @@ function getAssistantMessageContent(
   for (const part of step.content) {
     switch (part.type) {
       case 'text':
-        content.push({ type: 'text', text: part.text });
+        if (part.text.length > 0) {
+          content.push({ type: 'text', text: part.text });
+        }
         break;
       case 'file':
         content.push({

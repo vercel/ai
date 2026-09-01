@@ -520,6 +520,95 @@ describe('streamTextIterator', () => {
         ],
       });
     });
+
+    it('omits empty text from file-bearing tool-call message history', async () => {
+      let capturedPrompt: LanguageModelV4Prompt | undefined;
+      const toolCall: ParsedToolCall = {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'testTool',
+        input: { query: 'test' },
+      };
+
+      vi.mocked(doStreamStep)
+        .mockResolvedValueOnce(
+          createMockDoStreamStepResult({
+            toolCalls: [toolCall],
+            finishReason: 'tool-calls',
+            finishRaw: 'tool_calls',
+            rawOverrides: {
+              content: [
+                {
+                  type: 'file',
+                  data: 'ZmlsZS1jb250ZW50',
+                  mediaType: 'text/plain',
+                },
+                { type: 'text', text: '' },
+                { type: 'tool-call', toolCallIndex: 0 },
+              ],
+            },
+          }),
+        )
+        .mockImplementationOnce(async prompt => {
+          capturedPrompt = prompt;
+          return createMockDoStreamStepResult();
+        });
+
+      const iterator = streamTextIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {
+          testTool: {
+            description: 'A test tool',
+            execute: async () => ({ result: 'success' }),
+          },
+        } as unknown as ToolSet,
+        model: vi.fn() as any,
+      });
+
+      const firstResult = await iterator.next();
+      const yielded = firstResult.value as StreamTextIteratorYieldValue;
+      const expectedAssistantMessage: LanguageModelV4Prompt[number] = {
+        role: 'assistant',
+        content: [
+          {
+            type: 'file',
+            data: { type: 'data', data: 'ZmlsZS1jb250ZW50' },
+            mediaType: 'text/plain',
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+            input: { query: 'test' },
+          },
+        ],
+      };
+
+      expect(yielded.step?.content).toEqual([
+        expect.objectContaining({ type: 'file' }),
+        { type: 'text', text: '' },
+        expect.objectContaining({
+          type: 'tool-call',
+          toolCallId: 'call-1',
+        }),
+      ]);
+      expect(
+        yielded.messages.find(message => message.role === 'assistant'),
+      ).toEqual(expectedAssistantMessage);
+
+      await iterator.next([
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          output: { type: 'text', value: '{"result":"success"}' },
+        },
+      ]);
+
+      expect(
+        capturedPrompt?.find(message => message.role === 'assistant'),
+      ).toEqual(expectedAssistantMessage);
+    });
   });
 
   describe('providerMetadata to providerOptions mapping', () => {
