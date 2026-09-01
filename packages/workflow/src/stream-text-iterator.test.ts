@@ -18,6 +18,7 @@ import type {
   StepResult,
   ToolSet,
 } from 'ai';
+import { jsonSchema } from '@ai-sdk/provider-utils';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import type {
   DoStreamStepRawResult,
@@ -76,12 +77,28 @@ function createMockFinish(
 
 function createMockDoStreamStepResult({
   toolCalls = [] as ParsedToolCall[],
+  toolInputLifecycleEvents = [],
   finishReason = 'stop' as 'stop' | 'tool-calls',
   finishRaw = 'stop',
   providerMetadata,
   rawOverrides = {},
 }: {
   toolCalls?: ParsedToolCall[];
+  toolInputLifecycleEvents?: Array<
+    | { type: 'start'; toolName: string; toolCallId: string }
+    | {
+        type: 'delta';
+        toolName: string;
+        toolCallId: string;
+        inputTextDelta: string;
+      }
+    | {
+        type: 'available';
+        toolName: string;
+        toolCallId: string;
+        input: unknown;
+      }
+  >;
   finishReason?: 'stop' | 'tool-calls';
   finishRaw?: string;
   providerMetadata?: Record<string, Record<string, unknown>>;
@@ -100,12 +117,76 @@ function createMockDoStreamStepResult({
       ...rawOverrides,
     } as DoStreamStepRawResult,
     providerExecutedToolResults: new Map(),
+    toolInputLifecycleEvents,
   };
 }
 
 describe('streamTextIterator', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('invokes original tool input callbacks from recorded step events', async () => {
+    const callbacks: string[] = [];
+    vi.mocked(doStreamStep).mockResolvedValue(
+      createMockDoStreamStepResult({
+        finishReason: 'tool-calls',
+        toolCalls: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'search',
+            input: { query: 'docs' },
+          },
+        ],
+        toolInputLifecycleEvents: [
+          { type: 'start', toolName: 'search', toolCallId: 'call-1' },
+          {
+            type: 'delta',
+            toolName: 'search',
+            toolCallId: 'call-1',
+            inputTextDelta: '{"query":"docs"}',
+          },
+          {
+            type: 'available',
+            toolName: 'search',
+            toolCallId: 'call-1',
+            input: { query: 'docs' },
+          },
+        ],
+      }),
+    );
+
+    const iterator = streamTextIterator({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'search' }] }],
+      tools: {
+        search: {
+          inputSchema: jsonSchema({
+            type: 'object',
+            properties: { query: { type: 'string' } },
+          }),
+          onInputStart: ({ context }) => {
+            callbacks.push(`start:${String((context as any).requestId)}`);
+          },
+          onInputDelta: ({ inputTextDelta }) => {
+            callbacks.push(`delta:${inputTextDelta}`);
+          },
+          onInputAvailable: ({ input }: { input: unknown }) => {
+            callbacks.push(`available:${JSON.stringify(input)}`);
+          },
+        },
+      },
+      toolsContext: { search: { requestId: 'request-1' } },
+      model: vi.fn() as any,
+    });
+
+    await iterator.next();
+
+    expect(callbacks).toEqual([
+      'start:request-1',
+      'delta:{"query":"docs"}',
+      'available:{"query":"docs"}',
+    ]);
   });
 
   describe('generation settings', () => {

@@ -295,4 +295,82 @@ describe('doStreamStep', () => {
     });
     expect(streamedParts).toContainEqual({ type: 'error', error: terminal });
   });
+
+  it('records tool input lifecycle events for callbacks outside the step', async () => {
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start' as const, warnings: [] },
+          {
+            type: 'tool-input-start' as const,
+            id: 'call-1',
+            toolName: 'search',
+          },
+          {
+            type: 'tool-input-delta' as const,
+            id: 'call-1',
+            delta: '{"query":"docs"}',
+          },
+          { type: 'tool-input-end' as const, id: 'call-1' },
+          {
+            type: 'tool-call' as const,
+            toolCallId: 'call-1',
+            toolName: 'search',
+            input: '{"query":"docs"}',
+          },
+          {
+            type: 'finish' as const,
+            finishReason: {
+              unified: 'tool-calls' as const,
+              raw: 'tool-calls',
+            },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: 1,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 1,
+                text: 1,
+                reasoning: undefined,
+              },
+            },
+          },
+        ]),
+      }),
+    });
+
+    const result = await doStreamStep(prompt, model, undefined, {
+      search: {
+        hasOnInputStart: true,
+        hasOnInputDelta: true,
+        hasOnInputAvailable: true,
+        inputSchema: {
+          type: 'object',
+          properties: { query: { type: 'string' } },
+          required: ['query'],
+        },
+      },
+    });
+
+    expect(result).toMatchObject({
+      toolInputLifecycleEvents: [
+        { type: 'start', toolName: 'search', toolCallId: 'call-1' },
+        {
+          type: 'delta',
+          toolName: 'search',
+          toolCallId: 'call-1',
+          inputTextDelta: '{"query":"docs"}',
+        },
+        {
+          type: 'available',
+          toolName: 'search',
+          toolCallId: 'call-1',
+          input: { query: 'docs' },
+        },
+      ],
+    });
+  });
 });
