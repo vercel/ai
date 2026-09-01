@@ -492,7 +492,8 @@ console.log(text);
 ##### Thinking Updates
 
 Use `display: 'updates'` with `claude-fable-5-1` to stream thinking summaries
-between tool calls:
+between tool calls. The provider adds the required
+`thinking-display-updates-2026-08-18` beta header automatically:
 
 ```ts highlight="12-16"
 import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';

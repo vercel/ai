@@ -18,19 +18,18 @@ run(async () => {
           'Today we are launching a faster way to build developer tools.',
       },
       {
+        role: 'user',
+        content: 'Rewrite and finalize the announcement.',
+      },
+      {
         role: 'system',
         content:
           'For the next turn only, verify every claim and use high effort.',
         providerOptions: {
           anthropic: {
             clearAt: 'next_user_message',
-            effort: 'high',
           },
         },
-      },
-      {
-        role: 'user',
-        content: 'Rewrite and finalize the announcement.',
       },
     ],
   });

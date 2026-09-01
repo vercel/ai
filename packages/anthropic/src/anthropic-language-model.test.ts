@@ -11851,6 +11851,9 @@ describe('claude-opus-4-7 specific behavior', () => {
       type: 'adaptive',
       display: 'updates',
     });
+    expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+      'thinking-display-updates-2026-08-18',
+    );
   });
 
   it('should serialize thinking binding controls and add the beta header', async () => {

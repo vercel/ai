@@ -856,6 +856,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       betas.add('fast-mode-2026-02-01');
     }
 
+    if (thinkingDisplay === 'updates') {
+      betas.add('thinking-display-updates-2026-08-18');
+    }
+
     if (thinkingBlockBinding != null) {
       betas.add('thinking-binding-controls-2026-08-01');
     }
