@@ -70,6 +70,12 @@ type MockIterator = AsyncGenerator<
 >;
 
 describe('WorkflowAgent', () => {
+  it('does not expose an unsupported generate method', () => {
+    const agent = new WorkflowAgent({ model: createMockModel() });
+
+    expect(agent).not.toHaveProperty('generate');
+  });
+
   describe('id property', () => {
     it('should expose id when provided in constructor', () => {
       const agent = new WorkflowAgent({
