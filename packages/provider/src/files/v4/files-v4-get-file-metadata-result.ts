@@ -5,7 +5,7 @@ import type { SharedV4Warning } from '../../shared/v4/shared-v4-warning';
 /**
  * Result of retrieving file metadata via the files interface.
  */
-export type FilesV4RetrieveFileResult = {
+export type FilesV4GetFileMetadataResult = {
   /**
    * A provider reference mapping provider names to provider-specific file identifiers.
    * Contains only the operated provider's entry — when working with a merged

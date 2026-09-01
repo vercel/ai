@@ -2,8 +2,8 @@ import type { FilesV4DeleteFileCallOptions } from './files-v4-delete-file-call-o
 import type { FilesV4DeleteFileResult } from './files-v4-delete-file-result';
 import type { FilesV4DownloadFileCallOptions } from './files-v4-download-file-call-options';
 import type { FilesV4DownloadFileResult } from './files-v4-download-file-result';
-import type { FilesV4RetrieveFileCallOptions } from './files-v4-retrieve-file-call-options';
-import type { FilesV4RetrieveFileResult } from './files-v4-retrieve-file-result';
+import type { FilesV4GetFileMetadataCallOptions } from './files-v4-get-file-metadata-call-options';
+import type { FilesV4GetFileMetadataResult } from './files-v4-get-file-metadata-result';
 import type { FilesV4UploadFileCallOptions } from './files-v4-upload-file-call-options';
 import type { FilesV4UploadFileResult } from './files-v4-upload-file-result';
 
@@ -35,11 +35,11 @@ export type FilesV4 = {
 
   /**
    * Retrieves metadata for a previously uploaded file.
-   * Optional: presence signals that the provider supports metadata retrieval.
+   * Optional: presence signals that the provider supports metadata reads.
    */
-  retrieveFile?(
-    options: FilesV4RetrieveFileCallOptions,
-  ): PromiseLike<FilesV4RetrieveFileResult>;
+  getFileMetadata?(
+    options: FilesV4GetFileMetadataCallOptions,
+  ): PromiseLike<FilesV4GetFileMetadataResult>;
 
   /**
    * Downloads the content of a previously uploaded file as a byte stream.

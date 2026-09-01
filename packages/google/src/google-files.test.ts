@@ -1,3 +1,4 @@
+import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
 import { describe, expect, it, vi } from 'vitest';
 import { GoogleFiles } from './google-files';
 
@@ -105,6 +106,22 @@ describe('GoogleFiles', () => {
   });
 
   describe('uploadFile', () => {
+    it('should reject stream data at runtime and cancel the stream', async () => {
+      const cancelSpy = vi.fn();
+      const stream = new ReadableStream<Uint8Array>({ cancel: cancelSpy });
+      const { files, fetchFn } = createMockFiles();
+
+      await expect(
+        files.uploadFile({
+          data: { type: 'stream', stream },
+          mediaType: 'application/pdf',
+        }),
+      ).rejects.toThrow(UnsupportedFunctionalityError);
+
+      await vi.waitFor(() => expect(cancelSpy).toHaveBeenCalled());
+      expect(fetchFn).not.toHaveBeenCalled();
+    });
+
     it('should thread per-call headers and abortSignal through the upload', async () => {
       const captured: Array<{ url: string; init: RequestInit | undefined }> =
         [];
