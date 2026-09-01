@@ -17,6 +17,7 @@ import {
 import {
   Output,
   experimental_filterActiveTools as filterActiveTools,
+  isStepCount,
   type FinishReason,
   type LanguageModelResponseMetadata,
   type LanguageModelUsage,
@@ -510,6 +511,8 @@ export type WorkflowAgentOptions<
      * any of the conditions can be met to stop the generation.
      *
      * Per-stream `stopWhen` values passed to `stream()` override this default.
+     *
+     * @default isStepCount(20)
      */
     stopWhen?:
       | StopCondition<NoInfer<ToolSet>, any>
@@ -920,6 +923,8 @@ export type WorkflowAgentStreamOptions<
     /**
      * Condition for stopping the generation when there are tool results in the last step.
      * When the condition is an array, any of the conditions can be met to stop the generation.
+     *
+     * @default isStepCount(20)
      */
     stopWhen?:
       | StopCondition<NoInfer<ToolSet>, any>
@@ -1415,7 +1420,8 @@ export class WorkflowAgent<
         Context | undefined
       >;
     let effectiveToolChoiceFromPrepare = options.toolChoice ?? this.toolChoice;
-    let effectiveStopWhenFromPrepare = options.stopWhen ?? this.stopWhen;
+    let effectiveStopWhenFromPrepare =
+      options.stopWhen ?? this.stopWhen ?? isStepCount(20);
     let effectiveActiveToolsFromPrepare =
       options.activeTools ?? this.activeTools;
     let effectiveDownloadFromPrepare =
