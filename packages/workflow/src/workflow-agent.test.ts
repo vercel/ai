@@ -3818,9 +3818,10 @@ describe('WorkflowAgent', () => {
       ] as any;
     }
 
-    it('should execute approved tools and continue with results', async () => {
+    it('should execute approved tools with conversation context and lifecycle callbacks', async () => {
       const toolResult = { city: 'London', temperature: 72 };
       const executeFn = vi.fn().mockResolvedValue(toolResult);
+      const lifecycleCallbacks: string[] = [];
       const tools: ToolSet = {
         getWeather: {
           description: 'Get weather',
@@ -3835,6 +3836,12 @@ describe('WorkflowAgent', () => {
       const agent = new WorkflowAgent({
         model: mockModel,
         tools,
+        onToolExecutionStart: async () => {
+          lifecycleCallbacks.push('constructor-start');
+        },
+        onToolExecutionEnd: async () => {
+          lifecycleCallbacks.push('constructor-end');
+        },
       });
 
       const mockWritable = new WritableStream({
@@ -3850,50 +3857,34 @@ describe('WorkflowAgent', () => {
         mockIterator as unknown as MockIterator,
       );
 
-      // Messages containing a tool call, approval request, and an approved response
+      const messages = createApprovalMessages({});
+
       await agent.stream({
-        messages: [
-          { role: 'user', content: "What's the weather in London?" },
-          {
-            role: 'assistant',
-            content: [
-              {
-                type: 'tool-call',
-                toolCallId: 'call-1',
-                toolName: 'getWeather',
-                input: { city: 'London' },
-              },
-              {
-                type: 'tool-approval-request',
-                approvalId: 'approval-call-1',
-                toolCallId: 'call-1',
-              },
-            ],
-          },
-          {
-            role: 'tool',
-            content: [
-              {
-                type: 'tool-approval-response',
-                approvalId: 'approval-call-1',
-                approved: true,
-              },
-            ],
-          },
-        ] as any,
+        messages,
         writable: mockWritable,
+        onToolExecutionStart: async () => {
+          lifecycleCallbacks.push('stream-start');
+        },
+        onToolExecutionEnd: async () => {
+          lifecycleCallbacks.push('stream-end');
+        },
       });
 
-      // The tool should have been executed
       expect(executeFn).toHaveBeenCalledTimes(1);
       expect(executeFn).toHaveBeenCalledWith(
         { city: 'London' },
         expect.objectContaining({
           toolCallId: 'call-1',
+          messages,
         }),
       );
+      expect(lifecycleCallbacks).toEqual([
+        'constructor-start',
+        'stream-start',
+        'constructor-end',
+        'stream-end',
+      ]);
 
-      // The streamTextIterator should have been called (the agent continues after approval)
       expect(mockIterator.next).toHaveBeenCalled();
     });
 
