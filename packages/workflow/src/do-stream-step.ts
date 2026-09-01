@@ -118,11 +118,11 @@ export type DoStreamStepRawContentPart =
  * Minimal aggregates needed to reconstruct a `StepResult` outside the step
  * boundary. By returning only these fields (instead of a fully-populated
  * StepResult plus the raw `chunks[]` array), the durable event log doesn't
- * carry StepResult's redundant derived fields — duplicate
- * `toolCalls`/`dynamicToolCalls` lists, `text`, `files`, `sources`,
- * `reasoningText`, the always-empty `*ToolResults` arrays, and the per-chunk
- * `chunks[]` snapshot the iterator never reads. The caller reconstructs the
- * full StepResult via `buildStepResult`.
+ * carry StepResult's redundant derived fields — duplicate tool-call lists,
+ * `text`, `files`, `sources`, `reasoningText`, or the tool-result arrays
+ * populated after execution. It also avoids the per-chunk `chunks[]` snapshot
+ * the iterator never reads. The caller reconstructs the full StepResult via
+ * `buildStepResult`.
  */
 export interface DoStreamStepRawResult {
   content: DoStreamStepRawContentPart[];

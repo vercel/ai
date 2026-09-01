@@ -18,7 +18,7 @@ import {
   jsonSchema,
   type Tool,
 } from '@ai-sdk/provider-utils';
-import { tool, type ToolSet } from 'ai';
+import { dynamicTool, tool, type ToolSet } from 'ai';
 import Ajv from 'ajv';
 
 /**
@@ -32,7 +32,7 @@ export type SerializableToolDef = {
   /** Provider-specific options attached to the tool definition. */
   providerOptions?: Tool['providerOptions'];
   /** Present on provider tools (e.g. anthropic.tools.webSearch). */
-  type?: 'provider';
+  type?: 'dynamic' | 'provider';
   /** Provider tool is executed by the provider. */
   isProviderExecuted?: boolean;
   /** Provider tool ID, e.g. 'anthropic.web_search_20250305'. */
@@ -69,6 +69,10 @@ export function serializeToolSet<TOOLS extends ToolSet>(
         inputExamples: t.inputExamples,
         providerOptions: t.providerOptions,
       };
+
+      if (t.type === 'dynamic') {
+        def.type = 'dynamic';
+      }
 
       // Preserve provider tool identity so the Gateway can recognize
       // them as provider-executed tools (e.g. anthropic webSearch).
@@ -131,6 +135,30 @@ export function resolveSerializableTools(
             isProviderExecuted: t.isProviderExecuted ?? false,
             inputSchema: jsonSchema(t.inputSchema),
             providerOptions: t.providerOptions,
+          }),
+        ];
+      }
+
+      if (t.type === 'dynamic') {
+        const validateFn = ajv.compile(t.inputSchema);
+
+        return [
+          name,
+          dynamicTool({
+            description: t.description,
+            inputExamples: t.inputExamples,
+            providerOptions: t.providerOptions,
+            inputSchema: jsonSchema(t.inputSchema, {
+              validate: value => {
+                if (validateFn(value)) {
+                  return { success: true, value };
+                }
+                return {
+                  success: false,
+                  error: new Error(ajv.errorsText(validateFn.errors)),
+                };
+              },
+            }),
           }),
         ];
       }
