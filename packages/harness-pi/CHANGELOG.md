@@ -1,5 +1,12 @@
 # @ai-sdk/harness-pi
 
+## 1.0.99
+
+### Patch Changes
+
+- e115d16: fix(harness-pi): stream Pi tool input while it is generated
+  - @ai-sdk/harness@1.0.97
+
 ## 1.0.98
 
 ### Patch Changes

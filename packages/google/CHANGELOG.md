@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.60
+
+### Patch Changes
+
+- e07b577: feat: add tool calling support to batch
+
 ## 4.0.59
 
 ### Patch Changes

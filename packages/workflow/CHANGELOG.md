@@ -1,5 +1,18 @@
 # @ai-sdk/workflow
 
+## 2.0.18
+
+### Patch Changes
+
+- 238aff0: fix(workflow): preserve context and lifecycle callbacks for approved tools
+- 05672ad: fix(workflow): stream failed tool executions as tool errors
+- 3b6ef0c: fix(workflow): infer configured tool parts in WorkflowAgent UI messages
+- d3b1ffb: feat(workflow): add stable onStart and onStepStart callbacks to WorkflowAgent
+- 33d185e: fix(workflow): restrict prepareStep activeTools to configured tool names
+- Updated dependencies [8b6b756]
+- Updated dependencies [e07b577]
+  - ai@7.0.88
+
 ## 2.0.17
 
 ### Patch Changes
