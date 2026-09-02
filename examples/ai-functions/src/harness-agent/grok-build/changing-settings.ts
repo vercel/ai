@@ -21,6 +21,33 @@ const profiles = {
 
 type Profile = keyof typeof profiles;
 
+const cheaperModel = 'grok-build-0.1';
+
+const turns = [
+  {
+    label: 'default model',
+    profile: 'frontend',
+    useCheaperModel: false,
+    prompt:
+      'My name is Felix, by the way. Read the active workflow skill, call getPolicy, and include every validation code in your answer.',
+  },
+  {
+    label: 'changed model',
+    profile: 'frontend',
+    useCheaperModel: true,
+    prompt:
+      'Remember my name? Include it in your answer. Read the active workflow skill, call getPolicy, and include every validation code in your answer.',
+    remembersName: true,
+  },
+  {
+    label: 'changed profile',
+    profile: 'backend',
+    useCheaperModel: true,
+    prompt:
+      'Read the active workflow skill, call getPolicy, and include every validation code in your answer.',
+  },
+] as const;
+
 function createPolicyTool(profile: Profile) {
   return tool({
     description: 'Return the validation code for the active project policy.',
@@ -41,11 +68,13 @@ run(async () => {
     tools: { getPolicy: createPolicyTool('frontend') },
     callOptionsSchema: z.object({
       profile: z.enum(['frontend', 'backend']),
+      useCheaperModel: z.boolean(),
     }),
     prepareCall: ({ options, ...call }) => {
       const profile = profiles[options.profile];
       return {
         ...call,
+        model: options.useCheaperModel ? cheaperModel : undefined,
         instructions: `Include ${profile.instructionCode} in the answer.`,
         skills: [
           {
@@ -61,13 +90,15 @@ run(async () => {
 
   const session = await agent.createSession();
   try {
-    for (const profileName of ['frontend', 'backend'] as const) {
-      console.log(`--- ${profileName} turn ---`);
+    for (const turn of turns) {
+      console.log(`--- ${turn.label} turn ---`);
       const result = await agent.stream({
         session,
-        prompt:
-          'Read the active workflow skill, call getPolicy, and include every validation code in your answer.',
-        options: { profile: profileName },
+        prompt: turn.prompt,
+        options: {
+          profile: turn.profile,
+          useCheaperModel: turn.useCheaperModel,
+        },
       });
       let text = '';
       await printFullStream({
@@ -77,12 +108,17 @@ run(async () => {
         },
       });
 
-      for (const code of Object.values(profiles[profileName])) {
+      for (const code of Object.values(profiles[turn.profile])) {
         if (!text.includes(code)) {
           throw new Error(
-            `${profileName} turn did not use its prepared settings: missing ${code}`,
+            `${turn.label} turn did not use its prepared settings: missing ${code}`,
           );
         }
+      }
+      if ('remembersName' in turn && !text.includes('Felix')) {
+        throw new Error(
+          'The second turn did not retain the name from the first turn.',
+        );
       }
     }
   } finally {

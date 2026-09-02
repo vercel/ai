@@ -1,9 +1,19 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { cline, createCline } from './index';
+import type * as ClineSessionModule from './cline-session';
 import {
   resolveActiveClineBuiltinNames,
   CLINE_NATIVE_BUILTIN_NAMES,
 } from './cline-tools';
+
+const mocks = vi.hoisted(() => ({
+  createClineSession: vi.fn(async () => ({})),
+}));
+
+vi.mock('./cline-session', async importOriginal => {
+  const actual = await importOriginal<typeof ClineSessionModule>();
+  return { ...actual, createClineSession: mocks.createClineSession };
+});
 
 describe('createCline', () => {
   it('returns a harness-v1 spec', () => {
@@ -27,6 +37,22 @@ describe('createCline', () => {
   it('validates lifecycle state data with its schema', () => {
     const schema = createCline().lifecycleStateSchema;
     expect(schema).toBeDefined();
+  });
+
+  it('passes the deprecated adapter model to the session as a fallback', async () => {
+    const harness = createCline({ modelId: 'legacy-model' });
+
+    await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: {} as never,
+      sessionWorkDir: '/workspace/project',
+    });
+
+    expect(mocks.createClineSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({ modelId: 'legacy-model' }),
+      }),
+    );
   });
 });
 

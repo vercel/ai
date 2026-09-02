@@ -1085,6 +1085,29 @@ describe('GoogleBatchLanguageModel', () => {
           key: 'text-request',
           response: googleResponse({ id: 'response-text', text: 'Paris' }),
         },
+        {
+          key: 'tool-request',
+          response: {
+            ...googleResponse({ id: 'response-tool', text: '' }),
+            candidates: [
+              {
+                content: {
+                  role: 'model',
+                  parts: [
+                    {
+                      functionCall: {
+                        id: 'call-1',
+                        name: 'weather',
+                        args: { city: 'Paris' },
+                      },
+                    },
+                  ],
+                },
+                finishReason: 'STOP',
+              },
+            ],
+          },
+        },
       ]);
       const model = createGoogle({ apiKey: 'test-api-key' })(
         'gemini-2.5-flash',
@@ -1095,7 +1118,7 @@ describe('GoogleBatchLanguageModel', () => {
       });
       const results = await convertReadableStreamToArray(stream);
 
-      expect(results).toHaveLength(2);
+      expect(results).toHaveLength(3);
       expect(results).toMatchObject([
         {
           id: 'image-request',
@@ -1110,6 +1133,20 @@ describe('GoogleBatchLanguageModel', () => {
           id: 'text-request',
           status: 'succeeded',
           result: { content: [{ type: 'text', text: 'Paris' }] },
+        },
+        {
+          id: 'tool-request',
+          status: 'succeeded',
+          result: {
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'weather',
+                input: '{"city":"Paris"}',
+              },
+            ],
+          },
         },
       ]);
     });

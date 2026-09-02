@@ -44,7 +44,7 @@ import type { HarnessAgentToolResultContinuation } from '../harness-agent-tool-r
 import type { HarnessAgentToolApprovalConfiguration } from '../harness-agent-settings';
 import { HarnessStreamTextResult } from './harness-stream-text-result';
 import { translateStreamPart } from './translate-stream-part';
-import { stripWorkDir } from './strip-work-dir';
+import { createToolInputWorkDirStripper, stripWorkDir } from './strip-work-dir';
 import {
   createTurnTelemetry,
   type TurnContentPart,
@@ -81,6 +81,7 @@ export function runPrompt<
   mode?: 'prompt' | 'continue';
   /** Required for `mode: 'prompt'`; absent for `mode: 'continue'`. */
   prompt?: HarnessV1Prompt;
+  model?: string;
   skills?: ReadonlyArray<HarnessV1Skill>;
   instructions: string | undefined;
   tools: TOOLS;
@@ -137,12 +138,27 @@ export function runPrompt<
   const onPendingToolResult = input.onPendingToolResult ?? (() => {});
   const onToolResultSettled = input.onToolResultSettled ?? (() => {});
   const activeTools = input.activeTools ?? input.tools;
+  const activeToolNames = Object.keys(input.tools).filter(
+    toolName =>
+      Object.prototype.hasOwnProperty.call(activeTools, toolName) ||
+      (Object.prototype.hasOwnProperty.call(
+        input.harness.builtinTools,
+        toolName,
+      ) &&
+        isHarnessV1BuiltinToolIncluded({
+          toolName,
+          toolFiltering: input.builtinToolFiltering,
+        })),
+  );
 
   const telemetry = createTurnTelemetry({
     telemetry: input.telemetry,
     harnessId: input.harness.harnessId,
-    modelId: input.session.modelId,
+    modelId: input.model,
     instructions: input.instructions,
+    tools: input.tools,
+    activeToolNames,
+    toolSpecs: input.toolSpecs,
     promptText: input.prompt != null ? promptToText(input.prompt) : '',
     runtimeContext: input.runtimeContext,
   });
@@ -181,6 +197,7 @@ export function runPrompt<
           input.mode === 'continue'
             ? emit =>
                 input.session.doContinueTurn({
+                  model: input.model,
                   skills: input.skills ?? [],
                   responseFormat: input.responseFormat,
                   tools: input.toolSpecs,
@@ -196,6 +213,7 @@ export function runPrompt<
                 }
                 return input.session.doPromptTurn({
                   prompt: input.prompt,
+                  model: input.model,
                   skills: input.skills ?? [],
                   responseFormat: input.responseFormat,
                   tools: input.toolSpecs,
@@ -220,6 +238,9 @@ export function runPrompt<
     const { stream, control } = bridge;
     input.onPromptControlAvailable?.(control);
     const reader = stream.getReader();
+    const stripToolInputWorkDir = createToolInputWorkDirStripper({
+      sessionWorkDir: input.sessionWorkDir,
+    });
     const toolCallsByToolCallId = new Map<string, ToolCallTextStreamPart>();
     const rawToolCallsByToolCallId = new Map<
       string,
@@ -534,7 +555,7 @@ export function runPrompt<
           input: approval.input,
         } satisfies Extract<HarnessV1StreamPart, { type: 'tool-call' }>);
 
-      await telemetry.start(input.session.modelId);
+      await telemetry.start(input.model);
       await telemetry.toolStart({
         toolCallId: rawToolCall.toolCallId,
         toolName: rawToolCall.toolName,
@@ -649,9 +670,9 @@ export function runPrompt<
         }
 
         // Begin the operation span on stream-start, using the runtime-resolved
-        // model the adapter reports (falling back to the session's model).
+        // model the adapter reports (falling back to the requested turn model).
         if (value.type === 'stream-start') {
-          await telemetry.start(value.modelId ?? input.session.modelId);
+          await telemetry.start(value.modelId ?? input.model);
         }
 
         // Open a step span lazily before the first content of each step.
@@ -662,6 +683,28 @@ export function runPrompt<
           value.type !== 'error'
         ) {
           await telemetry.ensureStepOpen();
+        }
+
+        if (
+          value.type === 'tool-input-start' ||
+          value.type === 'tool-input-delta' ||
+          value.type === 'tool-input-end'
+        ) {
+          if (
+            settledHostToolCallIds.has(value.id) ||
+            settledBuiltinApprovalToolCallIds.has(value.id)
+          ) {
+            continue;
+          }
+          for (const displayValue of stripToolInputWorkDir(value)) {
+            for (const part of translateStreamPart<TOOLS>(
+              displayValue,
+              translateOptions,
+            )) {
+              result.enqueue(part);
+            }
+          }
+          continue;
         }
 
         /*

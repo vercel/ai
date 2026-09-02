@@ -812,6 +812,7 @@ describe('streamLanguageModelCall', () => {
             "file": DefaultGeneratedFileWithType {
               "base64Data": "SGVsbG8gV29ybGQ=",
               "mediaType": "text/plain",
+              "providerMetadata": undefined,
               "type": "file",
               "uint8ArrayData": undefined,
             },
@@ -884,6 +885,7 @@ describe('streamLanguageModelCall', () => {
             "file": DefaultGeneratedFileWithType {
               "base64Data": undefined,
               "mediaType": "text/plain",
+              "providerMetadata": undefined,
               "type": "file",
               "uint8ArrayData": Uint8Array [
                 72,

@@ -137,6 +137,13 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
         'Default sandbox session passed to tool descriptions and execution as `experimental_sandbox`, and exposed to `prepareStep`. Per-stream values override this default.',
     },
     {
+      name: 'experimental_toolApprovalSecret',
+      type: 'WorkflowToolApprovalSecret',
+      isOptional: true,
+      description:
+        'Workflow-safe reference to the environment variable containing the secret used to HMAC-sign tool approval requests and verify approved message history before tool execution. Only the environment variable name crosses workflow boundaries; the secret is read inside signing and verification steps. Per-stream values override this default.',
+    },
+    {
       name: 'prepareStep',
       type: 'PrepareStepCallback',
       isOptional: true,
@@ -172,11 +179,11 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
         'Telemetry configuration with options for enabling/disabling telemetry, setting a function ID, and recording inputs/outputs.',
     },
     {
-      name: 'experimental_onStart',
+      name: 'onStart',
       type: 'WorkflowAgentOnStartCallback',
       isOptional: true,
       description:
-        'Callback called when the agent starts streaming, before any LLM calls. Receives the model, messages, runtime context, and tools context. If also specified in `stream()`, both callbacks fire (constructor first). Experimental (can break in patch releases).',
+        'Callback called when the agent starts streaming, before any LLM calls. Receives the model, messages, runtime context, and tools context. If also specified in `stream()`, both callbacks fire (constructor first). Takes precedence over `experimental_onStart` when both are provided in the constructor.',
       properties: [
         {
           type: 'GenerateTextStartEvent',
@@ -206,11 +213,18 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onStepStart',
+      name: 'experimental_onStart',
+      type: 'WorkflowAgentOnStartCallback',
+      isOptional: true,
+      description:
+        'Deprecated alias for `onStart`. Used only when `onStart` is not provided in the constructor.',
+    },
+    {
+      name: 'onStepStart',
       type: 'WorkflowAgentOnStepStartCallback',
       isOptional: true,
       description:
-        'Callback called before each step (LLM call) begins. Receives step number, model, messages, previous steps, runtime context, and tools context. If also specified in `stream()`, both callbacks fire (constructor first). Experimental (can break in patch releases).',
+        'Callback called before each step (LLM call) begins. Receives step number, model, messages, previous steps, runtime context, and tools context. If also specified in `stream()`, both callbacks fire (constructor first). Takes precedence over `experimental_onStepStart` when both are provided in the constructor.',
       properties: [
         {
           type: 'GenerateTextStepStartEvent',
@@ -244,6 +258,13 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
           ],
         },
       ],
+    },
+    {
+      name: 'experimental_onStepStart',
+      type: 'WorkflowAgentOnStepStartCallback',
+      isOptional: true,
+      description:
+        'Deprecated alias for `onStepStart`. Used only when `onStepStart` is not provided in the constructor.',
     },
     {
       name: 'onToolExecutionStart',
@@ -560,6 +581,13 @@ const result = await agent.stream({
         'Sandbox session passed to tool descriptions and execution as `experimental_sandbox`, and exposed to `prepareStep`. Overrides the constructor default.',
     },
     {
+      name: 'experimental_toolApprovalSecret',
+      type: 'WorkflowToolApprovalSecret',
+      isOptional: true,
+      description:
+        'Workflow-safe reference to the environment variable containing the secret used to HMAC-sign tool approval requests and verify approved message history before tool execution. Only the environment variable name crosses workflow boundaries; the secret is read inside signing and verification steps. Overrides the constructor default.',
+    },
+    {
       name: 'telemetry',
       type: 'TelemetryOptions',
       isOptional: true,
@@ -587,18 +615,32 @@ const result = await agent.stream({
         'Per-call prepareStep override. Receives the initial instructions and messages alongside the current step state.',
     },
     {
+      name: 'onStart',
+      type: 'WorkflowAgentOnStartCallback',
+      isOptional: true,
+      description:
+        'Per-call onStart callback. If also specified in the constructor, both fire (constructor first). Takes precedence over `experimental_onStart` when both are provided in this call.',
+    },
+    {
       name: 'experimental_onStart',
       type: 'WorkflowAgentOnStartCallback',
       isOptional: true,
       description:
-        'Per-call onStart callback. If also specified in the constructor, both fire (constructor first). Experimental.',
+        'Deprecated alias for the per-call `onStart` callback. Used only when `onStart` is not provided in this call.',
+    },
+    {
+      name: 'onStepStart',
+      type: 'WorkflowAgentOnStepStartCallback',
+      isOptional: true,
+      description:
+        'Per-call onStepStart callback. If also specified in the constructor, both fire (constructor first). Takes precedence over `experimental_onStepStart` when both are provided in this call.',
     },
     {
       name: 'experimental_onStepStart',
       type: 'WorkflowAgentOnStepStartCallback',
       isOptional: true,
       description:
-        'Per-call onStepStart callback. If also specified in the constructor, both fire (constructor first). Experimental.',
+        'Deprecated alias for the per-call `onStepStart` callback. Used only when `onStepStart` is not provided in this call.',
     },
     {
       name: 'onToolExecutionStart',
@@ -922,6 +964,9 @@ import { z } from 'zod';
 
 const agent = new WorkflowAgent({
   model: 'anthropic/claude-sonnet-4-6',
+  experimental_toolApprovalSecret: {
+    environmentVariable: 'TOOL_APPROVAL_SECRET',
+  },
   tools: {
     bookFlight: tool({
       description: 'Book a flight',
@@ -935,6 +980,14 @@ const agent = new WorkflowAgent({
   },
 });
 ```
+
+When `experimental_toolApprovalSecret` is configured, each approval request is
+signed over its approval ID, tool call ID, tool name, and validated input.
+Replayed approvals with a missing or invalid signature do not execute the tool.
+The signature is preserved in the durable stream and UI message history, while
+only the environment variable name crosses workflow boundaries. Signing and
+verification steps read the raw secret from their local environment and do not
+serialize it. A stream-level reference overrides the constructor value.
 
 ### Agent with Lifecycle Callbacks
 

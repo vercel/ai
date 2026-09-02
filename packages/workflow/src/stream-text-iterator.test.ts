@@ -12,13 +12,16 @@ import type {
   LanguageModelV4ToolCall,
   LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
-import type {
-  Experimental_LanguageModelStreamPart,
-  ModelMessage,
-  StepResult,
-  ToolSet,
+import {
+  tool,
+  type Experimental_LanguageModelStreamPart,
+  type ModelMessage,
+  type StepResult,
+  type ToolSet,
 } from 'ai';
+import { jsonSchema } from '@ai-sdk/provider-utils';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { z } from 'zod/v4';
 import type {
   DoStreamStepRawResult,
   ParsedToolCall,
@@ -76,12 +79,18 @@ function createMockFinish(
 
 function createMockDoStreamStepResult({
   toolCalls = [] as ParsedToolCall[],
+  toolInputLifecycleEvents = [],
   finishReason = 'stop' as 'stop' | 'tool-calls',
   finishRaw = 'stop',
   providerMetadata,
   rawOverrides = {},
 }: {
   toolCalls?: ParsedToolCall[];
+  toolInputLifecycleEvents?: Array<
+    | ['start', toolCallId: string, toolName: string]
+    | ['delta', toolCallId: string, inputTextDelta: string]
+    | ['available', toolCallId: string]
+  >;
   finishReason?: 'stop' | 'tool-calls';
   finishRaw?: string;
   providerMetadata?: Record<string, Record<string, unknown>>;
@@ -93,19 +102,165 @@ function createMockDoStreamStepResult({
     // doStreamStep now returns minimal raw aggregates; the iterator
     // reconstructs the StepResult via buildStepResult.
     raw: {
-      text: '',
+      content: [],
       reasoning: [],
       responseMetadata: undefined,
       warnings: [],
       ...rawOverrides,
     } as DoStreamStepRawResult,
     providerExecutedToolResults: new Map(),
+    toolInputLifecycleEvents,
   };
 }
 
 describe('streamTextIterator', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('replays tool input callbacks in order before advancing the agent step', async () => {
+    const callbacks: string[] = [];
+    vi.mocked(doStreamStep).mockImplementation(async () => {
+      callbacks.push('model-step-finished');
+      return createMockDoStreamStepResult({
+        finishReason: 'tool-calls',
+        toolCalls: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'search',
+            input: { query: 'docs' },
+          },
+        ],
+        toolInputLifecycleEvents: [
+          ['start', 'call-1', 'search'],
+          ['delta', 'call-1', '{"query":"docs"}'],
+          ['available', 'call-1'],
+        ],
+      });
+    });
+
+    const iterator = streamTextIterator({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'search' }] }],
+      tools: {
+        search: {
+          inputSchema: jsonSchema({
+            type: 'object',
+            properties: { query: { type: 'string' } },
+          }),
+          onInputStart: ({ context }) => {
+            callbacks.push(`start:${String((context as any).requestId)}`);
+          },
+          onInputDelta: ({ inputTextDelta }) => {
+            callbacks.push(`delta:${inputTextDelta}`);
+          },
+          onInputAvailable: ({ input }: { input: unknown }) => {
+            callbacks.push(`available:${JSON.stringify(input)}`);
+          },
+        },
+      },
+      toolsContext: { search: { requestId: 'request-1' } },
+      model: vi.fn() as any,
+    });
+
+    await iterator.next();
+
+    expect(callbacks).toEqual([
+      'model-step-finished',
+      'start:request-1',
+      'delta:{"query":"docs"}',
+      'available:{"query":"docs"}',
+    ]);
+  });
+
+  it('validates and normalizes tool context before input callbacks', async () => {
+    const callback = vi.fn();
+    vi.mocked(doStreamStep).mockResolvedValue(
+      createMockDoStreamStepResult({
+        finishReason: 'tool-calls',
+        toolCalls: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'search',
+            input: { query: 'docs' },
+          },
+        ],
+        toolInputLifecycleEvents: [['start', 'call-1', 'search']],
+      }),
+    );
+
+    const iterator = streamTextIterator({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'search' }] }],
+      tools: {
+        search: tool({
+          inputSchema: z.object({ query: z.string() }),
+          contextSchema: z.object({
+            requestId: z.string().default('generated-request'),
+          }),
+          onInputStart: callback,
+        }),
+      },
+      toolsContext: { search: {} },
+      model: vi.fn() as any,
+    });
+
+    await iterator.next();
+
+    expect(callback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        context: { requestId: 'generated-request' },
+      }),
+    );
+  });
+
+  it('rejects invalid tool context before input callbacks run', async () => {
+    const callback = vi.fn();
+    vi.mocked(doStreamStep).mockResolvedValue(
+      createMockDoStreamStepResult({
+        finishReason: 'tool-calls',
+        toolCalls: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'search',
+            input: { query: 'docs' },
+          },
+        ],
+        toolInputLifecycleEvents: [['start', 'call-1', 'search']],
+      }),
+    );
+
+    const iterator = streamTextIterator({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'search' }] }],
+      tools: {
+        search: tool({
+          inputSchema: z.object({ query: z.string() }),
+          contextSchema: z.object({ requestId: z.string() }),
+          onInputStart: callback,
+        }),
+      },
+      toolsContext: { search: { requestId: 123 } as any },
+      model: vi.fn() as any,
+    });
+
+    await expect(iterator.next()).rejects.toThrow();
+    expect(callback).not.toHaveBeenCalled();
+  });
+
+  it('accepts persisted model-step results without callback replay data', async () => {
+    const persistedResult = createMockDoStreamStepResult();
+    delete (persistedResult as { toolInputLifecycleEvents?: unknown })
+      .toolInputLifecycleEvents;
+    vi.mocked(doStreamStep).mockResolvedValue(persistedResult);
+
+    const iterator = streamTextIterator({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+      tools: {},
+      model: vi.fn() as any,
+    });
+
+    await expect(iterator.next()).resolves.toMatchObject({ done: false });
   });
 
   describe('generation settings', () => {
@@ -173,6 +328,33 @@ describe('streamTextIterator', () => {
         value: { aborted: true, messages: prompt },
       });
       expect(onError).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('activeTools', () => {
+    it('passes no tools to the model when prepareStep returns an empty list', async () => {
+      vi.mocked(doStreamStep).mockResolvedValue(createMockDoStreamStepResult());
+
+      const iterator = streamTextIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {
+          hidden: tool({
+            inputSchema: z.object({}),
+          }),
+        },
+        model: vi.fn() as any,
+        prepareStep: () => ({ activeTools: [] }),
+      });
+
+      await iterator.next();
+
+      expect(doStreamStep).toHaveBeenCalledWith(
+        expect.any(Array),
+        expect.any(Function),
+        undefined,
+        {},
+        expect.any(Object),
+      );
     });
   });
 
@@ -261,7 +443,13 @@ describe('streamTextIterator', () => {
             finishReason: 'tool-calls',
             finishRaw: 'tool_calls',
             rawOverrides: {
-              text: 'I found the answer before calling the tool.',
+              content: [
+                {
+                  type: 'text',
+                  text: 'I found the answer before calling the tool.',
+                },
+                { type: 'tool-call', toolCallIndex: 0 },
+              ],
             },
           }),
         )
@@ -336,6 +524,243 @@ describe('streamTextIterator', () => {
           },
         ]
       `);
+    });
+
+    it('preserves generated files in the assistant message history', async () => {
+      vi.mocked(doStreamStep).mockResolvedValueOnce(
+        createMockDoStreamStepResult({
+          rawOverrides: {
+            content: [
+              { type: 'text', text: 'Download the generated file.' },
+              {
+                type: 'file',
+                data: 'ZmlsZS1jb250ZW50',
+                mediaType: 'text/plain',
+              },
+            ],
+          },
+        }),
+      );
+
+      const iterator = streamTextIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {},
+        model: vi.fn() as any,
+      });
+
+      const result = await iterator.next();
+      const yielded = result.value as StreamTextIteratorYieldValue;
+
+      expect(yielded.step?.files).toHaveLength(1);
+      expect(yielded.step?.files[0]?.base64).toBe('ZmlsZS1jb250ZW50');
+      expect(yielded.messages.at(-1)).toEqual({
+        role: 'assistant',
+        content: [
+          { type: 'text', text: 'Download the generated file.' },
+          {
+            type: 'file',
+            data: { type: 'data', data: 'ZmlsZS1jb250ZW50' },
+            mediaType: 'text/plain',
+          },
+        ],
+      });
+    });
+
+    it('preserves sources in step results without adding them to message history', async () => {
+      const source = {
+        type: 'source' as const,
+        sourceType: 'url' as const,
+        id: 'source-1',
+        url: 'https://example.com/source',
+        title: 'Example source',
+      };
+      vi.mocked(doStreamStep).mockResolvedValueOnce(
+        createMockDoStreamStepResult({
+          rawOverrides: {
+            content: [{ type: 'text', text: 'Answer with a source.' }, source],
+          },
+        }),
+      );
+
+      const iterator = streamTextIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {},
+        model: vi.fn() as any,
+      });
+
+      const result = await iterator.next();
+      const yielded = result.value as StreamTextIteratorYieldValue;
+
+      expect(yielded.step?.content).toContainEqual(source);
+      expect(yielded.step?.sources).toEqual([source]);
+      expect(yielded.messages.at(-1)).toEqual({
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Answer with a source.' }],
+      });
+    });
+
+    it('preserves file and text order in a subsequent tool-call turn', async () => {
+      let capturedPrompt: LanguageModelV4Prompt | undefined;
+      const toolCall: ParsedToolCall = {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'testTool',
+        input: { query: 'test' },
+      };
+
+      vi.mocked(doStreamStep)
+        .mockResolvedValueOnce(
+          createMockDoStreamStepResult({
+            toolCalls: [toolCall],
+            finishReason: 'tool-calls',
+            finishRaw: 'tool_calls',
+            rawOverrides: {
+              content: [
+                {
+                  type: 'file',
+                  data: 'ZmlsZS1iZWZvcmUtdGV4dA==',
+                  mediaType: 'text/plain',
+                },
+                { type: 'text', text: 'Use this file.' },
+                { type: 'tool-call', toolCallIndex: 0 },
+              ],
+            },
+          }),
+        )
+        .mockImplementationOnce(async prompt => {
+          capturedPrompt = prompt;
+          return createMockDoStreamStepResult();
+        });
+
+      const iterator = streamTextIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {
+          testTool: {
+            description: 'A test tool',
+            execute: async () => ({ result: 'success' }),
+          },
+        } as unknown as ToolSet,
+        model: vi.fn() as any,
+      });
+
+      await iterator.next();
+      await iterator.next([
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          output: { type: 'text', value: '{"result":"success"}' },
+        },
+      ]);
+
+      expect(
+        capturedPrompt?.find(message => message.role === 'assistant'),
+      ).toEqual({
+        role: 'assistant',
+        content: [
+          {
+            type: 'file',
+            data: { type: 'data', data: 'ZmlsZS1iZWZvcmUtdGV4dA==' },
+            mediaType: 'text/plain',
+          },
+          { type: 'text', text: 'Use this file.' },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+            input: { query: 'test' },
+          },
+        ],
+      });
+    });
+
+    it('omits empty text from file-bearing tool-call message history', async () => {
+      let capturedPrompt: LanguageModelV4Prompt | undefined;
+      const toolCall: ParsedToolCall = {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'testTool',
+        input: { query: 'test' },
+      };
+
+      vi.mocked(doStreamStep)
+        .mockResolvedValueOnce(
+          createMockDoStreamStepResult({
+            toolCalls: [toolCall],
+            finishReason: 'tool-calls',
+            finishRaw: 'tool_calls',
+            rawOverrides: {
+              content: [
+                {
+                  type: 'file',
+                  data: 'ZmlsZS1jb250ZW50',
+                  mediaType: 'text/plain',
+                },
+                { type: 'text', text: '' },
+                { type: 'tool-call', toolCallIndex: 0 },
+              ],
+            },
+          }),
+        )
+        .mockImplementationOnce(async prompt => {
+          capturedPrompt = prompt;
+          return createMockDoStreamStepResult();
+        });
+
+      const iterator = streamTextIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {
+          testTool: {
+            description: 'A test tool',
+            execute: async () => ({ result: 'success' }),
+          },
+        } as unknown as ToolSet,
+        model: vi.fn() as any,
+      });
+
+      const firstResult = await iterator.next();
+      const yielded = firstResult.value as StreamTextIteratorYieldValue;
+      const expectedAssistantMessage: LanguageModelV4Prompt[number] = {
+        role: 'assistant',
+        content: [
+          {
+            type: 'file',
+            data: { type: 'data', data: 'ZmlsZS1jb250ZW50' },
+            mediaType: 'text/plain',
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+            input: { query: 'test' },
+          },
+        ],
+      };
+
+      expect(yielded.step?.content).toEqual([
+        expect.objectContaining({ type: 'file' }),
+        { type: 'text', text: '' },
+        expect.objectContaining({
+          type: 'tool-call',
+          toolCallId: 'call-1',
+        }),
+      ]);
+      expect(
+        yielded.messages.find(message => message.role === 'assistant'),
+      ).toEqual(expectedAssistantMessage);
+
+      await iterator.next([
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          output: { type: 'text', value: '{"result":"success"}' },
+        },
+      ]);
+
+      expect(
+        capturedPrompt?.find(message => message.role === 'assistant'),
+      ).toEqual(expectedAssistantMessage);
     });
   });
 

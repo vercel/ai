@@ -1,5 +1,75 @@
 # @ai-sdk/harness-grok-build
 
+## 1.0.36
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+  - @ai-sdk/harness@1.0.99
+  - @ai-sdk/harness-acp@1.0.37
+
+## 1.0.35
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider-utils@5.0.35
+  - @ai-sdk/harness@1.0.98
+  - @ai-sdk/harness-acp@1.0.36
+
+## 1.0.34
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.97
+- @ai-sdk/harness-acp@1.0.35
+
+## 1.0.33
+
+### Patch Changes
+
+- Updated dependencies [c0c7fac]
+  - @ai-sdk/harness-acp@1.0.34
+  - @ai-sdk/harness@1.0.96
+
+## 1.0.32
+
+### Patch Changes
+
+- Updated dependencies [371e954]
+- Updated dependencies [87b4858]
+- Updated dependencies [62f481f]
+  - @ai-sdk/harness-acp@1.0.33
+  - @ai-sdk/harness@1.0.95
+
+## 1.0.31
+
+### Patch Changes
+
+- 8961fde: feat(harness): allow changing `model` between turns via call options
+- Updated dependencies [8961fde]
+- Updated dependencies [eb59f2a]
+  - @ai-sdk/harness-acp@1.0.32
+  - @ai-sdk/harness@1.0.94
+  - @ai-sdk/provider-utils@5.0.34
+
+## 1.0.30
+
+### Patch Changes
+
+- 39e8870: feat(harness-grok-build): update underlying SDK and add support for `reasoningEffort` control
+- 7608210: feat(harness): add `model` parameter to `HarnessAgent` instead of having each harness adapter support it on their own constructor functions
+- Updated dependencies [cc9f6ce]
+- Updated dependencies [7608210]
+- Updated dependencies [6f8a2d7]
+- Updated dependencies [f7bd978]
+- Updated dependencies [14d4fc0]
+- Updated dependencies [90192f1]
+  - @ai-sdk/harness@1.0.93
+  - @ai-sdk/harness-acp@1.0.31
+  - @ai-sdk/provider-utils@5.0.33
+
 ## 1.0.29
 
 ### Patch Changes

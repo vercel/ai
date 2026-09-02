@@ -7,6 +7,356 @@ import {
 } from './create-emit-stream-event';
 
 describe('createEmitStreamEvent', () => {
+  it.each([
+    {
+      name: 'TaskCreate object output',
+      nativeName: 'TaskCreate',
+      content: 'Task #1 created successfully: probe-task',
+      toolUseResult: { task: { id: '1', subject: 'probe-task' } },
+      isError: false,
+      expectedResult: { task: { id: '1', subject: 'probe-task' } },
+    },
+    {
+      name: 'Read object output',
+      nativeName: 'Read',
+      content: '1\talpha\n2\tbeta\n3\tgamma\n4\t',
+      toolUseResult: {
+        type: 'text',
+        file: {
+          filePath: '/tmp/sample.txt',
+          content: 'alpha\nbeta\ngamma\n',
+          numLines: 4,
+          startLine: 1,
+          totalLines: 4,
+        },
+      },
+      isError: false,
+      expectedResult: {
+        type: 'text',
+        file: {
+          filePath: '/tmp/sample.txt',
+          content: 'alpha\nbeta\ngamma\n',
+          numLines: 4,
+          startLine: 1,
+          totalLines: 4,
+        },
+      },
+    },
+    {
+      name: 'successful Bash object output',
+      nativeName: 'Bash',
+      content: 'hello-stdouthello-stderr',
+      toolUseResult: {
+        stdout: 'hello-stdouthello-stderr',
+        stderr: '',
+        interrupted: false,
+        isImage: false,
+        noOutputExpected: false,
+      },
+      isError: false,
+      expectedResult: {
+        stdout: 'hello-stdouthello-stderr',
+        stderr: '',
+        interrupted: false,
+        isImage: false,
+        noOutputExpected: false,
+      },
+    },
+    {
+      name: 'failed Bash string output',
+      nativeName: 'Bash',
+      content: 'Exit code 2\nmissing',
+      toolUseResult: 'Error: Exit code 2\nmissing',
+      isError: true,
+      expectedResult: 'Error: Exit code 2\nmissing',
+    },
+  ])(
+    'uses the Claude Agent SDK output for $name',
+    ({ nativeName, content, toolUseResult, isError, expectedResult }) => {
+      const state = createClaudeStreamEventState();
+      const emitted: Record<string, unknown>[] = [];
+      const emitStreamEvent = createEmitStreamEvent({
+        state,
+        emit: event => emitted.push(event),
+        emitWarning: () => {},
+        emitTerminalError: () => {},
+        onCompactionBoundary: () => {},
+        toCommonName: name => (name === 'Bash' ? 'bash' : name),
+      });
+
+      emitStreamEvent({
+        type: 'assistant',
+        message: {
+          content: [
+            {
+              type: 'tool_use',
+              id: 'tool-1',
+              name: nativeName,
+              input: {},
+            },
+          ],
+        },
+      });
+      emitStreamEvent({
+        type: 'user',
+        message: {
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'tool-1',
+              content,
+              is_error: isError,
+            },
+          ],
+        },
+        tool_use_result: toolUseResult,
+      });
+
+      expect(emitted.find(event => event.type === 'tool-result')).toEqual({
+        type: 'tool-result',
+        toolCallId: 'tool-1',
+        toolName: nativeName === 'Bash' ? 'bash' : nativeName,
+        result: expectedResult,
+        isError,
+      });
+    },
+  );
+
+  it('falls back to model-facing content when the SDK does not provide an output', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'assistant',
+      message: {
+        content: [
+          {
+            type: 'tool_use',
+            id: 'tool-1',
+            name: 'Read',
+            input: {},
+          },
+        ],
+      },
+    });
+    emitStreamEvent({
+      type: 'user',
+      message: {
+        content: [
+          {
+            type: 'tool_result',
+            tool_use_id: 'tool-1',
+            content: 'file contents',
+          },
+        ],
+      },
+    });
+
+    expect(emitted.find(event => event.type === 'tool-result')).toEqual({
+      type: 'tool-result',
+      toolCallId: 'tool-1',
+      toolName: 'Read',
+      result: 'file contents',
+      isError: false,
+    });
+  });
+
+  it('falls back to model-facing content when a singular output cannot be paired with multiple results', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'assistant',
+      message: {
+        content: [
+          {
+            type: 'tool_use',
+            id: 'tool-1',
+            name: 'Read',
+            input: {},
+          },
+          {
+            type: 'tool_use',
+            id: 'tool-2',
+            name: 'Glob',
+            input: {},
+          },
+        ],
+      },
+    });
+    emitStreamEvent({
+      type: 'user',
+      message: {
+        content: [
+          {
+            type: 'tool_result',
+            tool_use_id: 'tool-1',
+            content: 'file contents',
+          },
+          {
+            type: 'tool_result',
+            tool_use_id: 'tool-2',
+            content: 'sample.txt',
+          },
+        ],
+      },
+      tool_use_result: { filenames: ['sample.txt'] },
+    });
+
+    expect(
+      emitted
+        .filter(event => event.type === 'tool-result')
+        .map(event => event.result),
+    ).toEqual(['file contents', 'sample.txt']);
+  });
+
+  it('streams native tool input before the complete tool call', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => (name === 'Write' ? 'write' : name),
+    });
+
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'content_block_start',
+        index: 1,
+        content_block: {
+          type: 'tool_use',
+          id: 'tool-1',
+          name: 'Write',
+        },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'content_block_delta',
+        index: 1,
+        delta: {
+          type: 'input_json_delta',
+          partial_json: '{"file_path":"notes.md",',
+        },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'content_block_delta',
+        index: 1,
+        delta: {
+          type: 'input_json_delta',
+          partial_json: '"content":"hello"}',
+        },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: { type: 'content_block_stop', index: 1 },
+    });
+
+    expect(emitted).toEqual([
+      { type: 'stream-start' },
+      {
+        type: 'tool-input-start',
+        id: 'tool-1',
+        toolName: 'write',
+        providerExecuted: true,
+      },
+      {
+        type: 'tool-input-delta',
+        id: 'tool-1',
+        delta: '{"file_path":"notes.md",',
+      },
+      {
+        type: 'tool-input-delta',
+        id: 'tool-1',
+        delta: '"content":"hello"}',
+      },
+      { type: 'tool-input-end', id: 'tool-1' },
+    ]);
+    expect(state.partialBlocks.size).toBe(0);
+  });
+
+  it('streams host tool input with its user-facing identity', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'content_block_start',
+        index: 1,
+        content_block: {
+          type: 'tool_use',
+          id: 'host-tool-1',
+          name: 'mcp__harness-tools__weather',
+        },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'content_block_delta',
+        index: 1,
+        delta: {
+          type: 'input_json_delta',
+          partial_json: '{"city":"Chicago"}',
+        },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: { type: 'content_block_stop', index: 1 },
+    });
+
+    expect(emitted).toEqual([
+      { type: 'stream-start' },
+      {
+        type: 'tool-input-start',
+        id: 'host-tool-1',
+        toolName: 'weather',
+        providerExecuted: false,
+      },
+      {
+        type: 'tool-input-delta',
+        id: 'host-tool-1',
+        delta: '{"city":"Chicago"}',
+      },
+      { type: 'tool-input-end', id: 'host-tool-1' },
+    ]);
+  });
+
   it('emits the resolved model and a native tool step', () => {
     const state = createClaudeStreamEventState();
     const emitted: Record<string, unknown>[] = [];

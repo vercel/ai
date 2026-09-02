@@ -176,9 +176,11 @@ function toAiGatewayProviderBaseUrl(baseUrl: string): string {
 function createClineAgentModel({
   settings,
   clientApp,
+  modelId,
 }: {
   settings: ClineSessionSettings;
   clientApp: string;
+  modelId: string | undefined;
 }): { model: AgentModel; providerId: string } {
   const gatewayBaseUrl = settings.authEnv.AI_GATEWAY_BASE_URL;
   const isAiGateway = gatewayBaseUrl != null;
@@ -215,7 +217,7 @@ function createClineAgentModel({
   });
   const modelSelection = {
     providerId,
-    ...(settings.modelId ? { modelId: settings.modelId } : {}),
+    ...(modelId ? { modelId } : {}),
   };
   const modelOptions =
     settings.reasoningEffort === 'none'
@@ -290,9 +292,11 @@ export async function createClineSession(
   const mcpRuntime = await createClineMcpRuntime({
     mcpServers: input.settings.mcpServers,
   });
-  const { model, providerId } = createClineAgentModel({
+  let activeModelId = input.settings.modelId;
+  let agentModel = createClineAgentModel({
     settings: input.settings,
     clientApp: input.clientApp,
+    modelId: activeModelId,
   });
 
   // Per-session mutable state we hold across prompts.
@@ -385,12 +389,12 @@ export async function createClineSession(
     unsubscribe?.();
     unsubscribe = undefined;
     agent = new Agent({
-      model,
-      ...(input.settings.modelId
+      model: agentModel.model,
+      ...(activeModelId
         ? {
             messageModelInfo: {
-              id: input.settings.modelId,
-              provider: providerId,
+              id: activeModelId,
+              provider: agentModel.providerId,
             },
           }
         : {}),
@@ -559,6 +563,7 @@ export async function createClineSession(
    */
   async function runTurn(turnOpts: {
     text: string | undefined;
+    model?: string;
     skills: ReadonlyArray<HarnessV1Skill>;
     tools: ReadonlyArray<HarnessV1ToolSpec>;
     instructions?: string;
@@ -586,7 +591,7 @@ export async function createClineSession(
     }
     if (
       turnOpts.responseFormat?.type === 'json' &&
-      providerId === 'openai-codex-cli'
+      agentModel.providerId === 'openai-codex-cli'
     ) {
       throw new HarnessCapabilityUnsupportedError({
         message:
@@ -595,7 +600,17 @@ export async function createClineSession(
       });
     }
 
+    if (turnOpts.model != null && turnOpts.model !== activeModelId) {
+      activeModelId = turnOpts.model;
+      agentModel = createClineAgentModel({
+        settings: input.settings,
+        clientApp: input.clientApp,
+        modelId: activeModelId,
+      });
+    }
+
     const signature = JSON.stringify({
+      modelId: activeModelId,
       tools: userTools,
       responseFormat: turnOpts.responseFormat,
       instructions: turnOpts.instructions,
@@ -628,7 +643,7 @@ export async function createClineSession(
 
     turnOpts.emit({
       type: 'stream-start',
-      ...(input.settings.modelId ? { modelId: input.settings.modelId } : {}),
+      ...(activeModelId ? { modelId: activeModelId } : {}),
     });
 
     acceptingUserMessages = true;
@@ -793,7 +808,6 @@ export async function createClineSession(
   const sessionImpl: HarnessV1Session = {
     sessionId: input.sessionId,
     isResume: input.isResume,
-    ...(input.settings.modelId ? { modelId: input.settings.modelId } : {}),
 
     // The Cline runtime has no bridge to attach to and no in-sandbox event
     // log to replay; its only cross-process resume path is restoring the
@@ -804,6 +818,7 @@ export async function createClineSession(
     ): Promise<HarnessV1PromptControl> => {
       return runTurn({
         text: extractUserText(promptOpts.prompt),
+        ...(promptOpts.model ? { model: promptOpts.model } : {}),
         skills: promptOpts.skills,
         tools: promptOpts.tools ?? [],
         ...(promptOpts.instructions
@@ -839,6 +854,7 @@ export async function createClineSession(
        */
       return runTurn({
         text: undefined,
+        ...(continueOpts.model ? { model: continueOpts.model } : {}),
         skills: continueOpts.skills,
         tools: continueOpts.tools ?? [],
         ...(continueOpts.instructions

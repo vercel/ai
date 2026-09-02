@@ -112,6 +112,13 @@ describe('createCursor', () => {
       },
     ]);
     expect(settings.credentialBrokering?.({ env: {} })).toEqual([]);
+    expect(settings.modelMapping).toEqual({
+      type: 'session-config-option',
+      path: 'model',
+    });
+    expect(settings.clientCapabilities).toEqual({
+      _meta: { parameterizedModelPicker: true },
+    });
   });
 
   it('forwards user-configurable settings', () => {

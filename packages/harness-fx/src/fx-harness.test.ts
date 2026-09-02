@@ -266,6 +266,10 @@ describe('createFx', () => {
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
     });
+    expect(settings.modelMapping).toEqual({
+      type: 'session-config-option',
+      path: 'model',
+    });
   });
 
   it('classifies tool calls from configured external MCP servers', () => {

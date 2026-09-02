@@ -11,7 +11,7 @@ const sdkMock = vi.hoisted(() => ({
 
 const permissionReplyMock = vi.hoisted(() => vi.fn());
 const createOpencodeServerMock = vi.hoisted(() =>
-  vi.fn(async () => ({
+  vi.fn(async (_options: Record<string, unknown>) => ({
     url: 'http://127.0.0.1:4096',
     close: vi.fn(),
   })),
@@ -91,9 +91,9 @@ describe('OpenCode bridge turn settlement', () => {
     process.argv.length = 0;
     for (const arg of originalArgv) process.argv.push(arg);
     vi.resetModules();
-    createOpencodeServerMock.mockClear();
     relayMock.authorizeToolCall.mockReset();
     permissionReplyMock.mockReset();
+    createOpencodeServerMock.mockClear();
   });
 
   it('disables the interactive question tool', async () => {
@@ -140,6 +140,7 @@ describe('OpenCode bridge turn settlement', () => {
       v2: {
         session: {
           context: vi.fn(async () => ({ data: [] })),
+          switchModel: vi.fn(async () => ({ data: {} })),
         },
       },
     };
@@ -160,10 +161,29 @@ describe('OpenCode bridge turn settlement', () => {
     const emitted: Array<Record<string, unknown>> = [];
     const emitError = vi.fn();
     const userMessages = createUserMessages();
+    const openCodeConfig = {
+      agent: {
+        general: {
+          model: 'openai/gpt-5.4-mini',
+          permission: { bash: 'allow', external_directory: 'allow' },
+          tools: { bash: true, edit: true },
+        },
+      },
+      mode: {
+        plan: {
+          model: 'openai/gpt-5.4-mini',
+          permission: { edit: 'allow' },
+          tools: { edit: true },
+        },
+      },
+      share: 'manual',
+    };
     bridgeMock.start = {
       type: 'start',
       operation: 'prompt',
       prompt: 'Start.',
+      model: 'openai/gpt-5.6-sol',
+      openCodeConfig,
     };
     bridgeMock.turn = {
       emit: (event: Record<string, unknown>) => emitted.push(event),
@@ -202,6 +222,7 @@ describe('OpenCode bridge turn settlement', () => {
       v2: {
         session: {
           context: vi.fn(async () => ({ data: [] })),
+          switchModel: vi.fn(async () => ({ data: {} })),
         },
       },
     };
@@ -209,6 +230,47 @@ describe('OpenCode bridge turn settlement', () => {
 
     await import('./index');
 
+    const client = sdkMock.client as {
+      v2: { session: { switchModel: ReturnType<typeof vi.fn> } };
+    };
+    expect(client.v2.session.switchModel).toHaveBeenCalledWith({
+      sessionID: 'session-1',
+      model: {
+        providerID: 'openai',
+        id: 'gpt-5.6-sol',
+      },
+    });
+    const serverConfig = createOpencodeServerMock.mock.calls[0]?.[0]
+      .config as Record<string, unknown>;
+    expect(serverConfig).toMatchObject({
+      agent: { general: { model: 'openai/gpt-5.4-mini' } },
+      mode: { plan: { model: 'openai/gpt-5.4-mini' } },
+      model: 'openai/gpt-5.6-sol',
+      share: 'disabled',
+    });
+    expect(serverConfig.agent).toEqual({
+      general: { model: 'openai/gpt-5.4-mini' },
+    });
+    expect(serverConfig.mode).toEqual({
+      plan: { model: 'openai/gpt-5.4-mini' },
+    });
+    expect(openCodeConfig).toEqual({
+      agent: {
+        general: {
+          model: 'openai/gpt-5.4-mini',
+          permission: { bash: 'allow', external_directory: 'allow' },
+          tools: { bash: true, edit: true },
+        },
+      },
+      mode: {
+        plan: {
+          model: 'openai/gpt-5.4-mini',
+          permission: { edit: 'allow' },
+          tools: { edit: true },
+        },
+      },
+      share: 'manual',
+    });
     expect(userMessages.close).toHaveBeenCalledWith(
       expect.objectContaining({ message: 'model step failed' }),
     );
@@ -279,6 +341,7 @@ describe('OpenCode bridge turn settlement', () => {
       v2: {
         session: {
           context: vi.fn(async () => ({ data: [] })),
+          switchModel: vi.fn(async () => ({ data: {} })),
         },
       },
     };
@@ -414,6 +477,84 @@ describe('OpenCode bridge turn settlement', () => {
                 type: 'message.updated',
                 properties: {
                   info: {
+                    id: 'child-message',
+                    sessionID: 'child-session',
+                    role: 'assistant',
+                    providerID: 'openai',
+                    modelID: 'gpt-5.6-sol',
+                  },
+                },
+              };
+              yield {
+                type: 'message.part.updated',
+                properties: {
+                  part: {
+                    id: 'child-step-finish',
+                    messageID: 'child-message',
+                    sessionID: 'child-session',
+                    type: 'step-finish',
+                    reason: 'stop',
+                    cost: 0.0042,
+                    tokens: {
+                      input: 3,
+                      output: 5,
+                      reasoning: 1,
+                      cache: { read: 10, write: 2 },
+                    },
+                  },
+                },
+              };
+              yield {
+                type: 'message.part.updated',
+                properties: {
+                  part: {
+                    id: 'child-step-finish-2',
+                    messageID: 'child-message',
+                    sessionID: 'child-session',
+                    type: 'step-finish',
+                    reason: 'stop',
+                    cost: 0.0021,
+                    tokens: {
+                      input: 2,
+                      output: 3,
+                      reasoning: 0,
+                      cache: { read: 4, write: 0 },
+                    },
+                  },
+                },
+              };
+              yield {
+                type: 'session.next.step.ended',
+                properties: {
+                  sessionID: 'parent-session',
+                  finish: 'stop',
+                  tokens: {
+                    input: 1,
+                    output: 1,
+                    reasoning: 0,
+                    cache: { read: 0, write: 0 },
+                  },
+                  cost: 0,
+                },
+              };
+              yield {
+                type: 'session.status',
+                properties: {
+                  sessionID: 'parent-session',
+                  status: { type: 'busy' },
+                },
+              };
+              yield {
+                type: 'session.status',
+                properties: {
+                  sessionID: 'parent-session',
+                  status: { type: 'idle' },
+                },
+              };
+              yield {
+                type: 'message.updated',
+                properties: {
+                  info: {
                     id: 'parent-message',
                     sessionID: 'parent-session',
                     role: 'assistant',
@@ -428,6 +569,7 @@ describe('OpenCode bridge turn settlement', () => {
       v2: {
         session: {
           context: vi.fn(async () => ({ data: [] })),
+          switchModel: vi.fn(async () => ({ data: {} })),
           permission: { reply: permissionReplyMock },
         },
       },
@@ -445,6 +587,46 @@ describe('OpenCode bridge turn settlement', () => {
       sessionID: 'child-session',
       requestID: 'child-permission',
       reply: 'always',
+    });
+    expect(emitted).toContainEqual({
+      type: 'raw',
+      rawValue: {
+        type: 'opencode.subagent-usage',
+        version: 1,
+        sessionId: 'child-session',
+        stepId: 'child-step-finish',
+        modelId: 'openai/gpt-5.6-sol',
+        usage: {
+          inputTokens: {
+            total: 3,
+            noCache: 0,
+            cacheRead: 10,
+            cacheWrite: 2,
+          },
+          outputTokens: { total: 6, text: 5, reasoning: 1 },
+        },
+        cost: 0.0042,
+      },
+    });
+    expect(emitted).toContainEqual({
+      type: 'raw',
+      rawValue: {
+        type: 'opencode.subagent-usage',
+        version: 1,
+        sessionId: 'child-session',
+        stepId: 'child-step-finish-2',
+        modelId: 'openai/gpt-5.6-sol',
+        usage: {
+          inputTokens: {
+            total: 2,
+            noCache: 0,
+            cacheRead: 4,
+            cacheWrite: 0,
+          },
+          outputTokens: { total: 3, text: 3, reasoning: 0 },
+        },
+        cost: 0.0021,
+      },
     });
     expect(emitted).toContainEqual({
       type: 'text-delta',
