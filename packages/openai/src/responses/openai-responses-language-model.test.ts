@@ -1849,6 +1849,50 @@ describe('OpenAIResponsesLanguageModel', () => {
         ]);
       });
 
+      it('should send serviceTier ultrafast provider option', async () => {
+        const { warnings } = await createModel('gpt-5.6-sol').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              serviceTier: 'ultrafast',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5.6-sol',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          service_tier: 'ultrafast',
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should warn and drop serviceTier ultrafast for a model without ultrafast processing', async () => {
+        const { warnings } = await createModel('gpt-5.6-luna').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              serviceTier: 'ultrafast',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).service_tier,
+        ).toBeUndefined();
+
+        expect(warnings).toStrictEqual([
+          {
+            type: 'unsupported',
+            feature: 'serviceTier',
+            details: 'ultrafast processing is only available for gpt-5.6-sol',
+          },
+        ]);
+      });
+
       it('should send truncation auto provider option', async () => {
         const { warnings } = await createModel('gpt-5').doGenerate({
           prompt: TEST_PROMPT,

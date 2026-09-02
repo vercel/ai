@@ -2306,6 +2306,81 @@ describe('doGenerate', () => {
     expect(requestBody.service_tier).toBe('fast');
     expect(result.warnings).toEqual([]);
   });
+
+  it('should send serviceTier ultrafast processing setting', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('gpt-5.6-sol');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'ultrafast',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "gpt-5.6-sol",
+        "service_tier": "ultrafast",
+      }
+    `);
+  });
+
+  it('should show warning when using ultrafast processing with unsupported model', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('gpt-5.6-luna');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'ultrafast',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.service_tier).toBeUndefined();
+
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "ultrafast processing is only available for gpt-5.6-sol",
+          "feature": "serviceTier",
+          "type": "unsupported",
+        },
+      ]
+    `);
+  });
+
+  it('should allow ultrafast processing with gpt-5.6-sol model without warnings', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('gpt-5.6-sol');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'ultrafast',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.service_tier).toBe('ultrafast');
+    expect(result.warnings).toEqual([]);
+  });
 });
 
 describe('doStream', () => {
