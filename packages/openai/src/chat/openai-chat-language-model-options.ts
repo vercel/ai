@@ -139,12 +139,20 @@ export const openaiLanguageModelChatOptions = lazySchema(() =>
        * - 'flex': 50% cheaper processing at the cost of increased latency. Only available for o3 and o4-mini models.
        * - 'priority': Higher-speed processing with predictably low latency at premium cost. Available for Enterprise customers.
        * - 'fast': OpenAI's newer name for the 'priority' tier. Interchangeable with it.
+       * - 'ultrafast': Access-controlled Ultrafast processing. Currently available for gpt-5.6-sol;
+       *                a response served through it reports service_tier=ultrafast.
+       *                Published on the Responses `service_tier` parameter and openai-node `ServiceTier`
+       *                (v7.5.0+). This is an OpenAI-only preview tier, not Azure OpenAI.
        * - 'default': The request will be processed with the standard pricing and performance for the selected model.
+       *
+       * @see https://developers.openai.com/api/reference/resources/responses/methods/create
+       * @see https://developers.openai.com/api/docs/changelog
+       * @see https://openai.com/index/previewing-ultrafast/
        *
        * @default 'auto'
        */
       serviceTier: z
-        .enum(['auto', 'flex', 'priority', 'fast', 'default'])
+        .enum(['auto', 'flex', 'priority', 'fast', 'ultrafast', 'default'])
         .optional(),
 
       /**
