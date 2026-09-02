@@ -295,6 +295,12 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
        * Set to 'priority' for faster processing with Enterprise access (available for gpt-4, gpt-5, gpt-5-mini, o3, o4-mini; gpt-5-nano is not supported).
        * Set to 'fast' for the same tier as 'priority' (OpenAI's newer name for it).
        * Set to 'ultrafast' for access-controlled Ultrafast processing (currently gpt-5.6-sol).
+       * Published on the Responses `service_tier` parameter and openai-node `ServiceTier`
+       * (v7.5.0+). This is an OpenAI-only preview tier, not Azure OpenAI.
+       *
+       * @see https://developers.openai.com/api/reference/resources/responses/methods/create
+       * @see https://developers.openai.com/api/docs/changelog
+       * @see https://openai.com/index/previewing-ultrafast/
        *
        * Defaults to 'auto'.
        */
