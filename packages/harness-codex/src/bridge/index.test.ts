@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import type { ThreadOptions } from '@openai/codex-sdk';
 
 type CodexOptions = {
   config?: Record<string, unknown>;
 };
-type ThreadOptions = { model?: string };
 type TurnOptions = { outputSchema?: Record<string, unknown> };
 const CODEX_ENV_KEYS = [
   'AI_GATEWAY_API_KEY',
@@ -21,6 +21,9 @@ const state = vi.hoisted(() => ({
     | { type: 'json'; schema: Record<string, unknown> }
     | undefined,
   startInstructions: undefined as string | undefined,
+  startReasoningEffort: undefined as
+    | ThreadOptions['modelReasoningEffort']
+    | undefined,
   startResumeThreadId: undefined as string | undefined,
   startRestartThread: false,
   startCodexConfig: undefined as Record<string, unknown> | undefined,
@@ -73,6 +76,9 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
         ...(state.startInstructions
           ? { instructions: state.startInstructions }
           : {}),
+        ...(state.startReasoningEffort
+          ? { reasoningEffort: state.startReasoningEffort }
+          : {}),
         ...(state.startResumeThreadId
           ? { resumeThreadId: state.startResumeThreadId }
           : {}),
@@ -110,6 +116,7 @@ describe('Codex bridge config', () => {
     state.startModel = 'gpt-5.5';
     state.startResponseFormat = undefined;
     state.startInstructions = undefined;
+    state.startReasoningEffort = undefined;
     state.startResumeThreadId = undefined;
     state.startRestartThread = false;
     state.startCodexConfig = undefined;
@@ -213,6 +220,19 @@ describe('Codex bridge config', () => {
       }
     `);
   });
+
+  test.each(['xhigh', 'max'] as const)(
+    'passes %s reasoning effort to Codex',
+    async reasoningEffort => {
+      state.startReasoningEffort = reasoningEffort;
+
+      await import('./index');
+
+      expect(state.threadOptions[0]?.modelReasoningEffort).toBe(
+        reasoningEffort,
+      );
+    },
+  );
 
   test('disables WebSockets for a configured direct OpenAI endpoint', async () => {
     process.env.CODEX_API_KEY = 'CODEX_API_KEY';

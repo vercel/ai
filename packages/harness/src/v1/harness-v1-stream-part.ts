@@ -1,6 +1,7 @@
 import type {
   JSONValue,
   LanguageModelV4FinishReason,
+  LanguageModelV4StreamPart,
   LanguageModelV4ToolApprovalRequest,
   LanguageModelV4ToolCall,
   LanguageModelV4ToolResult,
@@ -58,7 +59,7 @@ export type HarnessV1StreamPart =
     }
   | { type: 'reasoning-end'; id: string; harnessMetadata?: HarnessV1Metadata }
 
-  // Tool calls, approvals, results — reuse V4 primitives.
+  // Tool inputs, calls, approvals, results — reuse V4 primitives.
   //
   // `nativeName` lets adapters surface the runtime's native name for a builtin
   // when it differs from the wire `toolName` (e.g. `toolName: 'bash'`,
@@ -73,6 +74,9 @@ export type HarnessV1StreamPart =
   // built-in `Bash`, Codex's `shell`) vs. needs host dispatch is signalled by
   // the standard `providerExecuted` field on `LanguageModelV4ToolCall` —
   // `true` for runtime-executed builtins, false/undefined for host tools.
+  | Extract<LanguageModelV4StreamPart, { type: 'tool-input-start' }>
+  | Extract<LanguageModelV4StreamPart, { type: 'tool-input-delta' }>
+  | Extract<LanguageModelV4StreamPart, { type: 'tool-input-end' }>
   | (LanguageModelV4ToolCall & {
       nativeName?: string;
       /**
@@ -268,6 +272,29 @@ export const harnessV1ReasoningEndPartSchema = z.object({
   harnessMetadata: harnessV1MetadataSchema.optional(),
 });
 
+export const harnessV1ToolInputStartPartSchema = z.object({
+  type: z.literal('tool-input-start'),
+  id: z.string(),
+  toolName: z.string(),
+  providerMetadata: harnessV1ProviderMetadataSchema.optional(),
+  providerExecuted: z.boolean().optional(),
+  dynamic: z.boolean().optional(),
+  title: z.string().optional(),
+});
+
+export const harnessV1ToolInputDeltaPartSchema = z.object({
+  type: z.literal('tool-input-delta'),
+  id: z.string(),
+  delta: z.string(),
+  providerMetadata: harnessV1ProviderMetadataSchema.optional(),
+});
+
+export const harnessV1ToolInputEndPartSchema = z.object({
+  type: z.literal('tool-input-end'),
+  id: z.string(),
+  providerMetadata: harnessV1ProviderMetadataSchema.optional(),
+});
+
 export const harnessV1ToolCallPartSchema = z.object({
   type: z.literal('tool-call'),
   toolCallId: z.string(),
@@ -352,6 +379,9 @@ export const harnessV1StreamPartSchema = z.discriminatedUnion('type', [
   harnessV1ReasoningStartPartSchema,
   harnessV1ReasoningDeltaPartSchema,
   harnessV1ReasoningEndPartSchema,
+  harnessV1ToolInputStartPartSchema,
+  harnessV1ToolInputDeltaPartSchema,
+  harnessV1ToolInputEndPartSchema,
   harnessV1ToolCallPartSchema,
   harnessV1ToolApprovalRequestPartSchema,
   harnessV1ToolResultPartSchema,

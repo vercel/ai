@@ -141,7 +141,7 @@ describe('Deep Agents bridge instructions', () => {
     });
     const handler = vi.fn(async request => request.model);
     const wrapModelCall = state.createDeepAgentOptions[0]?.middleware?.find(
-      middleware => middleware.name === 'harnessReasoning',
+      middleware => middleware.name === 'harnessModel',
     )?.wrapModelCall;
 
     expect(state.createDeepAgentOptions[0]?.model).toBeUndefined();

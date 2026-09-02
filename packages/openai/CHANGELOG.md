@@ -1,5 +1,50 @@
 # @ai-sdk/openai
 
+## 4.0.56
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
+## 4.0.55
+
+### Patch Changes
+
+- 3fc40db: feat(openai): implement `getFileMetadata`, `downloadFile` (streaming), and `deleteFile` on the OpenAI files interface, support streaming uploads via `{ type: 'stream' }` data, expose `byteSize`/`createdAt`/`expiresAt` on upload results, and thread `abortSignal`/`headers` through all file operations; blank and dot-segment file ids are rejected/encoded so they cannot retarget request paths
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+
+## 4.0.54
+
+### Patch Changes
+
+- f6fac50: fix(openai): handle null usage in responses
+- e07b577: feat: add tool calling support to batch
+
+## 4.0.53
+
+### Patch Changes
+
+- 7439d7a: Fix workflow deserialization for OpenAI Responses models.
+
+## 4.0.52
+
+### Patch Changes
+
+- 1c68540: Preserve explicit prompt cache breakpoints on scalar Responses tool results.
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 4.0.51
+
+### Patch Changes
+
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
 ## 4.0.50
 
 ### Patch Changes

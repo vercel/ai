@@ -195,6 +195,7 @@ export class HarnessAgentSession {
     OUTPUT extends Output,
   >(options: {
     prompt: HarnessAgentPrompt;
+    model: string | undefined;
     skills: ReadonlyArray<HarnessV1Skill>;
     instructions: string | undefined;
     tools: TOOLS;
@@ -211,6 +212,7 @@ export class HarnessAgentSession {
     const session = this.requireReusableSession();
     this.requirePromptableTurn();
     this.persistedTurnSettings = {
+      ...(options.model == null ? {} : { model: options.model }),
       skills: options.skills,
       ...(options.instructions == null
         ? {}
@@ -230,6 +232,7 @@ export class HarnessAgentSession {
         harness: this.harness,
         session,
         prompt: options.prompt,
+        model: options.model,
         skills: options.skills,
         instructions: options.instructions,
         tools: options.tools,
@@ -290,6 +293,7 @@ export class HarnessAgentSession {
     RUNTIME_CONTEXT extends Context,
     OUTPUT extends Output,
   >(options: {
+    model: string | undefined;
     skills: ReadonlyArray<HarnessV1Skill>;
     instructions: string | undefined;
     tools: TOOLS;
@@ -312,6 +316,7 @@ export class HarnessAgentSession {
     const session = this.requireReusableSession();
     this.requireContinuableTurn();
     const turnSettings = this.resolveActiveTurnSettings({
+      model: options.model,
       skills: options.skills,
       instructions: options.instructions,
       tools: options.tools,
@@ -326,6 +331,7 @@ export class HarnessAgentSession {
         harness: this.harness,
         session,
         mode: 'continue',
+        model: turnSettings.persisted.model,
         skills: turnSettings.persisted.skills,
         instructions: turnSettings.persisted.instructions,
         tools: turnSettings.tools as TOOLS,
@@ -753,6 +759,7 @@ export class HarnessAgentSession {
   }
 
   private resolveActiveTurnSettings(options: {
+    model: string | undefined;
     skills: ReadonlyArray<HarnessV1Skill>;
     instructions: string | undefined;
     tools: ToolSet;
@@ -766,6 +773,7 @@ export class HarnessAgentSession {
     const persisted =
       this.persistedTurnSettings ??
       ({
+        ...(options.model == null ? {} : { model: options.model }),
         skills: options.skills,
         ...(options.instructions == null
           ? {}

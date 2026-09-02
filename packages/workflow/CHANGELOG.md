@@ -1,5 +1,85 @@
 # @ai-sdk/workflow
 
+## 2.0.21
+
+### Patch Changes
+
+- 180ce77: fix(workflow): preserve tool behavior across workflow step boundaries
+- 82a16c9: fix(workflow): retain model files and sources in provider order across durable agent results and message history
+- 30306cf: fix(workflow): include executed tool results in completed agent steps
+- 19d8f30: fix(workflow): infer constructor-level structured output in stream results
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+  - ai@7.0.90
+
+## 2.0.20
+
+### Patch Changes
+
+- 85d2081: fix(workflow): preserve configured tool and runtime context types in stop conditions
+
+## 2.0.19
+
+### Patch Changes
+
+- 902ce3b: fix(workflow): respect empty activeTools lists
+- c143af4: fix(workflow): propagate agent abort signals to local tool executions
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+  - ai@7.0.89
+
+## 2.0.18
+
+### Patch Changes
+
+- 238aff0: fix(workflow): preserve context and lifecycle callbacks for approved tools
+- 05672ad: fix(workflow): stream failed tool executions as tool errors
+- 3b6ef0c: fix(workflow): infer configured tool parts in WorkflowAgent UI messages
+- d3b1ffb: feat(workflow): add stable onStart and onStepStart callbacks to WorkflowAgent
+- 33d185e: fix(workflow): restrict prepareStep activeTools to configured tool names
+- Updated dependencies [8b6b756]
+- Updated dependencies [e07b577]
+  - ai@7.0.88
+
+## 2.0.17
+
+### Patch Changes
+
+- Updated dependencies [850d863]
+  - ai@7.0.87
+
+## 2.0.16
+
+### Patch Changes
+
+- 11109ae: feat(ai): support signed tool approvals in WorkflowAgent
+- Updated dependencies [11109ae]
+  - ai@7.0.86
+
+## 2.0.15
+
+### Patch Changes
+
+- Updated dependencies [55a9981]
+- Updated dependencies [dd32de2]
+- Updated dependencies [aa45741]
+- Updated dependencies [cc29073]
+  - ai@7.0.85
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 2.0.14
+
+### Patch Changes
+
+- Updated dependencies [6669d69]
+- Updated dependencies [a6463ca]
+- Updated dependencies [e604532]
+- Updated dependencies [90192f1]
+  - ai@7.0.84
+  - @ai-sdk/provider-utils@5.0.33
+
 ## 2.0.13
 
 ### Patch Changes

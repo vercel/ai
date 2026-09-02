@@ -380,7 +380,36 @@ describe('createCodex adapter', () => {
       'ai-sdk/harness-codex/0.0.0-test',
     );
     expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
-    expect(session.modelId).toBe('gpt-5.5');
+    await session.doDestroy();
+  });
+
+  it('prefers the per-turn model over the deprecated adapter model', async () => {
+    const harness = createCodex({ model: 'legacy-model' });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        runs: [],
+        spawns: [],
+        writes: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/codex-s1',
+    });
+    const control = await session.doPromptTurn({
+      model: 'agent-model',
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    await vi.waitFor(() => {
+      expect(sentMessages.at(-1)).toMatchObject({
+        type: 'start',
+        model: 'agent-model',
+      });
+    });
     await session.doDestroy();
   });
 
@@ -446,6 +475,7 @@ describe('createCodex adapter', () => {
   });
 
   it('customizes real credentials when request transformations are unavailable', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const forwardedCredentials: Array<{
       credential: string;
@@ -481,8 +511,36 @@ describe('createCodex adapter', () => {
     ]);
     expect(spawnEnvs.at(0)?.CODEX_API_KEY).toBe('caller-managed-credential');
     expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('openai-secret');
+    expect(warn).not.toHaveBeenCalled();
 
     await session.doDestroy();
+
+    const identityHarness = createCodex({
+      auth: { OPENAI_API_KEY: 'openai-secret' },
+      credentialForwarding: ({ credential }) => credential,
+    });
+    const identitySandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      runs: [],
+      spawns: [],
+      spawnEnvs: [],
+      writes: [],
+    });
+    Object.assign(identitySandboxSession, {
+      addRequestTransformations: undefined,
+    });
+    const identitySession = await identityHarness.doStart({
+      sessionId: 's2',
+      sandboxSession: identitySandboxSession,
+      sessionWorkDir: '/vercel/sandbox/codex-s2',
+    });
+
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      'The sandbox implementation does not support configuring request transformations, so credential brokering does not work. Falling back to less secure credential forwarding.',
+    );
+
+    await identitySession.doDestroy();
+    warn.mockRestore();
   });
 
   it('configures the standard OpenAI URL for brokered direct auth', async () => {

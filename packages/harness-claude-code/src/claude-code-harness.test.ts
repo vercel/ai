@@ -430,6 +430,30 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
+  it('prefers the per-turn model over the deprecated adapter model', async () => {
+    const harness = createClaudeCode({ model: 'legacy-model' });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      model: 'agent-model',
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({ model: 'agent-model' });
+    await session.doDestroy();
+  });
+
   it('sets the client app for AI Gateway auth', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const harness = createClaudeCode({
@@ -532,6 +556,7 @@ describe('createClaudeCode adapter', () => {
   });
 
   it('customizes real credentials when request transformations are unavailable', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const forwardedCredentials: Array<{
       credential: string;
@@ -574,8 +599,30 @@ describe('createClaudeCode adapter', () => {
       env: { ANTHROPIC_API_KEY: 'caller-managed-credential' },
     });
     expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('anthropic-secret');
+    expect(warn).not.toHaveBeenCalled();
 
     await session.doDestroy();
+
+    const identityHarness = createClaudeCode({
+      auth: { ANTHROPIC_API_KEY: 'anthropic-secret' },
+      credentialForwarding: ({ credential }) => credential,
+    });
+    const identitySession = await identityHarness.doStart({
+      sessionId: 's2',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        spawnEnvs: [],
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s2',
+    });
+
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      'The sandbox implementation does not support configuring request transformations, so credential brokering does not work. Falling back to less secure credential forwarding.',
+    );
+
+    await identitySession.doDestroy();
   });
 
   it('customizes credentials forwarded through the Claude process environment', async () => {
@@ -670,6 +717,48 @@ describe('createClaudeCode adapter', () => {
     });
     expect(mintBridgeToken).toHaveBeenCalledTimes(1);
     await attachedSession.doDetach();
+  });
+
+  it('resumes the exact conversation after detaching and attaching', async () => {
+    const harness = createClaudeCode();
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      writes: [],
+      runs: [],
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1',
+        data: { claudeSessionId: 'claude-session-1' },
+      },
+    });
+    const resumeFrom = await session.doDetach();
+
+    const attachedSession = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      resumeFrom,
+    });
+    const control = await attachedSession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Continue the work.',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({
+      resumeSessionId: 'claude-session-1',
+    });
+    expect(lastStart()).not.toHaveProperty('continue');
+
+    await attachedSession.doDestroy();
   });
 
   it('passes port endpoint headers to fresh, retried, and attached WebSocket connections', async () => {
@@ -849,6 +938,41 @@ describe('createClaudeCode adapter', () => {
     void Promise.resolve(control.done).catch(() => {});
 
     expect(lastStart()).toMatchObject({ env });
+
+    await session.doDestroy();
+  });
+
+  it('does not start a bridge turn when the signal is already aborted', async () => {
+    const harness = createClaudeCode();
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+
+    const abort = new AbortController();
+    abort.abort(new Error('stopped before start'));
+
+    const promptOptions = {
+      skills: [],
+      tools: [],
+      prompt: 'never runs',
+      emit: () => {},
+      abortSignal: abort.signal,
+    };
+    const control = await session.doPromptTurn(promptOptions);
+
+    // The turn settles as the caller's own abort…
+    await expect(Promise.resolve(control.done)).rejects.toThrow(
+      'stopped before start',
+    );
+    // …and no `start` is sent: the bridge must not run an unattended turn
+    // the caller has already observed as cancelled.
+    expect(sentMessages.filter(m => m.type === 'start')).toHaveLength(0);
 
     await session.doDestroy();
   });

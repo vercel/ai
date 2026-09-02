@@ -1,5 +1,69 @@
 # @ai-sdk/harness-pi
 
+## 1.0.101
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+  - @ai-sdk/harness@1.0.99
+
+## 1.0.100
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider-utils@5.0.35
+  - @ai-sdk/harness@1.0.98
+
+## 1.0.99
+
+### Patch Changes
+
+- e115d16: fix(harness-pi): stream Pi tool input while it is generated
+  - @ai-sdk/harness@1.0.97
+
+## 1.0.98
+
+### Patch Changes
+
+- Updated dependencies [c0c7fac]
+  - @ai-sdk/harness@1.0.96
+
+## 1.0.97
+
+### Patch Changes
+
+- Updated dependencies [371e954]
+- Updated dependencies [87b4858]
+  - @ai-sdk/harness@1.0.95
+
+## 1.0.96
+
+### Patch Changes
+
+- 8961fde: feat(harness): allow changing `model` between turns via call options
+- Updated dependencies [8961fde]
+- Updated dependencies [eb59f2a]
+  - @ai-sdk/harness@1.0.94
+  - @ai-sdk/provider-utils@5.0.34
+
+## 1.0.95
+
+### Patch Changes
+
+- f7fa993: fix(harness-pi): allow configuring Pi sessions with the `max` thinking level
+- 7608210: feat(harness): add `model` parameter to `HarnessAgent` instead of having each harness adapter support it on their own constructor functions
+- f7bd978: chore(harness): update underlying adapter SDKs to their latest versions
+- 14d4fc0: feat(harness): allow changing harness settings between turns via `prepareCall()` support on `HarnessAgent`
+- Updated dependencies [cc9f6ce]
+- Updated dependencies [7608210]
+- Updated dependencies [6f8a2d7]
+- Updated dependencies [14d4fc0]
+- Updated dependencies [90192f1]
+  - @ai-sdk/harness@1.0.93
+  - @ai-sdk/provider-utils@5.0.33
+
 ## 1.0.94
 
 ### Patch Changes
