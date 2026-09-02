@@ -203,6 +203,24 @@ const { ranking, response } = await rerank({
 console.log(response); // { id, timestamp, modelId, headers, body }
 ```
 
+## Reranking Large Document Sets
+
+Some reranking models limit how many documents they can score in a single request. Use [`rerankMany`](/docs/reference/ai-sdk-core/rerank-many) to rerank a set larger than that limit: it splits the documents into windows sized to the model's `maxDocumentsPerCall`, scores each window, and merges the results into a single ranking sorted by relevance score before applying `topN`.
+
+```tsx
+import { rerankMany } from 'ai';
+import { cohere } from '@ai-sdk/cohere';
+
+const { ranking } = await rerankMany({
+  model: cohere.reranking('rerank-v3.5'),
+  documents: manyDocuments,
+  query: 'talk about rain',
+  topN: 10,
+});
+```
+
+When the model reports that it supports parallel calls, the windows are sent concurrently; use `maxParallelCalls` to bound the concurrency. `rerankMany` assumes the model scores each document against the query independently, so splitting the documents across windows does not change their scores.
+
 ## Reranking Providers & Models
 
 Several providers offer reranking models:
