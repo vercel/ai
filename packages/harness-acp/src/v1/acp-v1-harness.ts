@@ -333,8 +333,6 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           'ai-gateway'
             ? {}
             : undefined;
-      } else if (settings.credentialBrokering != null) {
-        warnCredentialBrokeringUnavailable();
       }
       if (
         settings.credentialForwarding != null &&
@@ -561,6 +559,25 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               credentialForwarding: settings.credentialForwarding,
             })
           : sandboxImplementationEnvironment;
+      if (
+        settings.credentialBrokering != null &&
+        sandboxCredentialEnvironment == null
+      ) {
+        warnCredentialBrokeringUnavailable({
+          environment: {
+            ...sandboxImplementationEnvironment,
+            ...resolvedProviderAuthentication.env,
+          },
+          forwardedEnvironment: {
+            ...forwardedImplementationEnvironment,
+            ...sandboxProviderAuthenticationEnvironment,
+          },
+          credentialEnvironmentVariables: [
+            ...credentialForwardingEnvironmentVariables,
+            'AI_SDK_ACP_GATEWAY_API_KEY',
+          ],
+        });
+      }
       const port = resolveBridgePort({
         sandboxSession,
         override: portOverride,

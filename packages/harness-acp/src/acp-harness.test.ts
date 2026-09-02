@@ -1017,6 +1017,7 @@ describe('createACP', () => {
   });
 
   it('preserves real credential forwarding when additive transformations are unavailable', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.stubEnv('PROVIDER_API_KEY', 'legacy-secret');
     const credentialBrokering = vi.fn(() => []);
     const spawns: Array<{
@@ -1043,11 +1044,16 @@ describe('createACP', () => {
 
     expect(credentialBrokering).not.toHaveBeenCalled();
     expect(spawns[0]!.env.PROVIDER_API_KEY).toBe('legacy-secret');
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      'The sandbox implementation does not support configuring request transformations, so credential brokering does not work. Falling back to less secure credential forwarding.',
+    );
 
     await session.doDestroy();
+    warn.mockRestore();
   });
 
   it('customizes direct and Gateway credentials under their sandbox environment names', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.stubEnv('PROVIDER_API_KEY', 'direct-secret');
     vi.stubEnv('AI_GATEWAY_API_KEY', 'gateway-secret');
     const credentialBrokering = vi.fn(() => []);
@@ -1112,8 +1118,10 @@ describe('createACP', () => {
         providerEnvironment: {},
       },
     });
+    expect(warn).not.toHaveBeenCalled();
 
     await session.doDestroy();
+    warn.mockRestore();
   });
 
   it('aborts before spawning when credential forwarding fails', async () => {
