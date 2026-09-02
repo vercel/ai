@@ -33,6 +33,24 @@ export type ImageModelV4Middleware = {
   }) => ImageModelV4['maxImagesPerCall'];
 
   /**
+   * Override whether the model supports image file inputs if desired.
+   * Returning `undefined` marks support as unknown.
+   * @param options.model - The image model instance.
+   */
+  overrideSupportsFileInputs?: (options: {
+    model: ImageModelV4;
+  }) => ImageModelV4['supportsFileInputs'];
+
+  /**
+   * Override whether the model supports mask inputs if desired.
+   * Returning `undefined` marks support as unknown.
+   * @param options.model - The image model instance.
+   */
+  overrideSupportsMaskInputs?: (options: {
+    model: ImageModelV4;
+  }) => ImageModelV4['supportsMaskInputs'];
+
+  /**
    * Transforms the parameters before they are passed to the image model.
    * @param options - Object containing the parameters.
    * @param options.params - The original parameters for the image model call.

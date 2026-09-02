@@ -990,6 +990,20 @@ describe('embedding', () => {
 describe('image', () => {
   const prompt = 'A cute baby sea otter';
 
+  describe('image editing capabilities', () => {
+    it.each(['image', 'imageModel'] as const)(
+      'leaves capabilities unknown for arbitrary deployment names created with %s',
+      factoryMethod => {
+        for (const deploymentName of ['gpt-image-production', 'dall-e-3']) {
+          const model = provider[factoryMethod](deploymentName);
+
+          expect(model.supportsFileInputs).toBeUndefined();
+          expect(model.supportsMaskInputs).toBeUndefined();
+        }
+      },
+    );
+  });
+
   describe('doGenerate', () => {
     function prepareJsonResponse() {
       server.urls[

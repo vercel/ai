@@ -1031,6 +1031,13 @@ Azure OpenAI supports DALL-E 2 and DALL-E 3 models through deployments. The capa
 | DALL-E 3      | 1024x1024, 1792x1024, 1024x1792 |
 | DALL-E 2      | 256x256, 512x512, 1024x1024     |
 
+Azure deployment names are user-defined and do not identify the backing model.
+Consequently, `supportsFileInputs` and `supportsMaskInputs` are `undefined`
+(unknown) for Azure image model instances. If your application knows the
+capabilities of a deployment, you can advertise them with the
+`overrideSupportsFileInputs` and `overrideSupportsMaskInputs` options of
+[`wrapImageModel`](/docs/reference/ai-sdk-core/wrap-image-model).
+
 <Note>
   DALL-E models do not support the `aspectRatio` parameter. Use the `size`
   parameter instead.

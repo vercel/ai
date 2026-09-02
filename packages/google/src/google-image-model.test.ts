@@ -64,6 +64,61 @@ function prepareJsonResponse({
 }
 
 describe('GoogleImageModel', () => {
+  describe('capabilities', () => {
+    it.each([
+      {
+        modelId: 'gemini-2.5-flash-image',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'gemini-3-pro-image-preview',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'gemini-3.1-flash-image-preview',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'gemini-2.5-pro',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+      {
+        modelId: 'gemini-3-pro-preview',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+      {
+        modelId: 'gemini-custom',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+      {
+        modelId: 'legacy-image-model',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+    ] as const)(
+      'advertises file=$supportsFileInputs and mask=$supportsMaskInputs for $modelId',
+      ({ modelId, supportsFileInputs, supportsMaskInputs }) => {
+        const capabilityModel = new GoogleImageModel(
+          modelId,
+          {},
+          {
+            provider: 'google.generative-ai',
+            baseURL: 'https://api.example.com/v1beta',
+          },
+        );
+
+        expect(capabilityModel.supportsFileInputs).toBe(supportsFileInputs);
+        expect(capabilityModel.supportsMaskInputs).toBe(supportsMaskInputs);
+      },
+    );
+  });
+
   describe('maxImagesPerCall', () => {
     it('should return 10 by default', () => {
       expect(model.maxImagesPerCall).toBe(10);

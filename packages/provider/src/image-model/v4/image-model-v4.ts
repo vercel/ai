@@ -37,6 +37,22 @@ export type ImageModelV4 = {
   readonly maxImagesPerCall: number | undefined | GetMaxImagesPerCallFunction;
 
   /**
+   * Whether the model supports image file inputs for image editing.
+   *
+   * `undefined` means that support is unknown. Callers should only route image
+   * editing requests to the model when this value resolves to `true`.
+   */
+  readonly supportsFileInputs?: PromiseLike<boolean> | boolean;
+
+  /**
+   * Whether the model supports mask inputs for image editing.
+   *
+   * `undefined` means that support is unknown. Mask support is advertised
+   * separately because some models support image file inputs without masks.
+   */
+  readonly supportsMaskInputs?: PromiseLike<boolean> | boolean;
+
+  /**
    * Generates an array of images.
    */
   doGenerate(options: ImageModelV4CallOptions): PromiseLike<ImageModelV4Result>;

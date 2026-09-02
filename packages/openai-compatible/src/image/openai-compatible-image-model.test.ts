@@ -87,6 +87,8 @@ describe('OpenAICompatibleImageModel', () => {
       expect(model.modelId).toBe('dall-e-3');
       expect(model.specificationVersion).toBe('v4');
       expect(model.maxImagesPerCall).toBe(10);
+      expect(model.supportsFileInputs).toBeUndefined();
+      expect(model.supportsMaskInputs).toBeUndefined();
     });
   });
 

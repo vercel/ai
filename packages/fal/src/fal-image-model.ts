@@ -34,6 +34,28 @@ export class FalImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
 
+  get supportsFileInputs(): boolean | undefined {
+    if (
+      this.modelId === 'fal-ai/flux-2/edit' ||
+      this.modelId === 'fal-ai/flux-pro/kontext' ||
+      this.modelId === 'fal-ai/flux-pro/kontext/max' ||
+      this.modelId.endsWith('/image-to-image') ||
+      this.modelId.endsWith('/inpainting')
+    ) {
+      return true;
+    }
+
+    return this.modelId.includes('/text-to-image') ? false : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    if (this.modelId.endsWith('/inpainting')) {
+      return true;
+    }
+
+    return this.supportsFileInputs == null ? undefined : false;
+  }
+
   get provider(): string {
     return this.config.provider;
   }
