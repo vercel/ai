@@ -79,7 +79,11 @@ export async function waitForBridgeReady({
   createTimeoutError,
   createExitError,
 }: WaitForBridgeReadyOptions): Promise<WaitForBridgeReadyResult> {
-  const reader = proc.stdout.pipeThrough(new TextDecoderStream()).getReader();
+  const reader = proc.stdout
+    .pipeThrough(
+      new TextDecoderStream() as unknown as TransformStream<Uint8Array, string>,
+    )
+    .getReader();
   const decoder = lineDecoder();
   const stdoutTail: string[] = [];
   const deadline = Date.now() + timeoutMs;

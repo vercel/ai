@@ -89,7 +89,7 @@ export class AnthropicSkills implements SkillsV4 {
 
     for (const file of params.files) {
       const content = convertInlineFileDataToUint8Array(file.data);
-      formData.append('files[]', new Blob([content]), file.path);
+      formData.append('files[]', new Blob([content as BlobPart]), file.path);
     }
 
     const headers = await this.getHeaders();

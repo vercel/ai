@@ -92,7 +92,7 @@ export class ProdiaVideoModel implements VideoModelV4 {
       );
       formData.append(
         'input',
-        new Blob([imageData.bytes], { type: imageData.mediaType }),
+        new Blob([imageData.bytes as BlobPart], { type: imageData.mediaType }),
         'input' + getExtension(imageData.mediaType),
       );
 

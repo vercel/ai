@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "noUncheckedSideEffectImports": false,
+    "target": "ES2022",
     "lib": [
       "dom",
       "dom.iterable",

@@ -180,8 +180,8 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
     const formData = new FormData();
     const blob =
       audio instanceof Uint8Array
-        ? new Blob([audio])
-        : new Blob([convertBase64ToUint8Array(audio)]);
+        ? new Blob([audio as BlobPart])
+        : new Blob([convertBase64ToUint8Array(audio) as BlobPart]);
 
     formData.append('model', this.modelId);
     const fileExtension = mediaTypeToExtension(mediaType);

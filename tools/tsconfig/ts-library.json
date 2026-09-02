@@ -5,7 +5,7 @@
   "compilerOptions": {
     "lib": ["dom", "dom.iterable", "ES2018"],
     "module": "ESNext",
-    "target": "ES2018",
+    "target": "ES2022",
     "stripInternal": true
   }
 }

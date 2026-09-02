@@ -89,7 +89,7 @@ export class DeepSeekFiles implements FilesV4 {
     const fileBytes = convertInlineFileDataToUint8Array(data);
     validateFileUpload({ fileBytes, mediaType, filename });
 
-    const blob = new Blob([fileBytes], { type: mediaType });
+    const blob = new Blob([fileBytes as BlobPart], { type: mediaType });
 
     const formData = new FormData();
     if (filename != null) {

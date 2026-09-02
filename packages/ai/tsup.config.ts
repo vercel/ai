@@ -8,7 +8,7 @@ export default defineConfig([
     external: ['react', 'svelte', 'vue', 'chai', 'chai/*'],
     dts: true,
     sourcemap: true,
-    target: 'es2018',
+    target: 'es2022',
     platform: 'node',
     define: {
       __PACKAGE_VERSION__: JSON.stringify(
@@ -25,7 +25,7 @@ export default defineConfig([
     external: ['chai', 'chai/*'],
     dts: true,
     sourcemap: true,
-    target: 'es2018',
+    target: 'es2022',
     platform: 'node',
     define: {
       __PACKAGE_VERSION__: JSON.stringify(
@@ -53,7 +53,7 @@ export default defineConfig([
     dts: true,
     sourcemap: true,
     // Allow BigInt in tests
-    target: 'es2020',
+    target: 'es2022',
     platform: 'node',
     define: {
       __PACKAGE_VERSION__: JSON.stringify(

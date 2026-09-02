@@ -54,7 +54,7 @@ export class AnthropicFiles implements FilesV4 {
   }: FilesV4UploadFileCallOptions): Promise<FilesV4UploadFileResult> {
     const fileBytes = convertInlineFileDataToUint8Array(data);
 
-    const blob = new Blob([fileBytes], { type: mediaType });
+    const blob = new Blob([fileBytes as BlobPart], { type: mediaType });
 
     const formData = new FormData();
     if (filename != null) {

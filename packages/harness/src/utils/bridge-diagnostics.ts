@@ -145,7 +145,14 @@ export async function forwardBridgeProcessStream({
   tailLimit?: number;
 }): Promise<void> {
   try {
-    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
+    const reader = stream
+      .pipeThrough(
+        new TextDecoderStream() as unknown as TransformStream<
+          Uint8Array,
+          string
+        >,
+      )
+      .getReader();
     const decoder = lineDecoder();
     while (true) {
       const { value, done } = await reader.read();
@@ -163,7 +170,14 @@ export async function drainBridgeProcessStream(
   stream: ReadableStream<Uint8Array>,
 ): Promise<void> {
   try {
-    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
+    const reader = stream
+      .pipeThrough(
+        new TextDecoderStream() as unknown as TransformStream<
+          Uint8Array,
+          string
+        >,
+      )
+      .getReader();
     while (true) {
       const { done } = await reader.read();
       if (done) return;
