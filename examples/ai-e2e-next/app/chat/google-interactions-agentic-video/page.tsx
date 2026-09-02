@@ -68,6 +68,7 @@ export default function Chat() {
                 ) {
                   return (
                     <div key={index}>
+                      {/* eslint-disable-next-line jsx-a11y/media-has-caption -- User-provided videos do not include a captions track. */}
                       <video
                         className="w-full rounded-md"
                         src={part.url}
