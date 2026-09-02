@@ -591,6 +591,24 @@ class DefaultMCPClient implements MCPClient {
         }
 
         try {
+          // Normalize structuredContent-only results for backwards compatibility.
+          // Some MCP servers return structuredContent without content.
+          if (
+            response.result != null &&
+            typeof response.result === 'object' &&
+            'structuredContent' in response.result &&
+            !('content' in response.result)
+          ) {
+            response.result = {
+              ...response.result,
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(response.result.structuredContent),
+                },
+              ],
+            };
+          }
           const result = resultSchema.parse(response.result);
           cleanup();
           resolve(result);
