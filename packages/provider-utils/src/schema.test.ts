@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as z4 from 'zod/v4';
+import type * as z4Core from 'zod/v4/core';
 import { safeParseJSON } from './parse-json';
 import { asSchema, zodSchema, type StandardSchema } from './schema';
 
@@ -601,5 +602,188 @@ describe('StandardSchema (StandardJSONSchemaV1)', () => {
         properties: { text: { type: 'string' } },
       });
     });
+  });
+});
+
+describe('zod/v4 sync-first validation', () => {
+  it('validates plain object schemas (valid and invalid)', async () => {
+    const schema = zodSchema(
+      z4.object({ text: z4.string(), count: z4.number() }),
+    );
+
+    await expect(schema.validate?.({ text: 'a', count: 1 })).resolves.toEqual({
+      success: true,
+      value: { text: 'a', count: 1 },
+    });
+
+    const invalid = await schema.validate?.({ text: 'a', count: 'nope' });
+    expect(invalid?.success).toBe(false);
+    if (invalid?.success === false) {
+      expect(invalid.error).toBeInstanceOf(z4.ZodError);
+      expect((invalid.error as z4.ZodError).issues[0]?.path).toEqual(['count']);
+    }
+  });
+
+  it('validates discriminated unions', async () => {
+    const schema = zodSchema(
+      z4.discriminatedUnion('type', [
+        z4.object({ type: z4.literal('a'), value: z4.string() }),
+        z4.object({ type: z4.literal('b') }),
+      ]),
+    );
+
+    await expect(schema.validate?.({ type: 'b' })).resolves.toEqual({
+      success: true,
+      value: { type: 'b' },
+    });
+    const invalid = await schema.validate?.({ type: 'c' });
+    expect(invalid?.success).toBe(false);
+  });
+
+  it('applies sync transforms and defaults', async () => {
+    const schema = zodSchema(
+      z4.object({
+        upper: z4.string().transform(value => value.toUpperCase()),
+        withDefault: z4.string().default('fallback'),
+      }),
+    );
+
+    await expect(schema.validate?.({ upper: 'abc' })).resolves.toEqual({
+      success: true,
+      value: { upper: 'ABC', withDefault: 'fallback' },
+    });
+  });
+
+  it('parses schemas with async refinements via the async path', async () => {
+    const schema = zodSchema(
+      z4.object({
+        name: z4.string().refine(async value => value !== 'reject', {
+          message: 'rejected name',
+        }),
+      }),
+    );
+
+    // async refinements are classified as async-only at construction;
+    // repeated calls must behave identically
+    for (let i = 0; i < 2; i++) {
+      await expect(schema.validate?.({ name: 'ok' })).resolves.toEqual({
+        success: true,
+        value: { name: 'ok' },
+      });
+
+      const invalid = await schema.validate?.({ name: 'reject' });
+      expect(invalid?.success).toBe(false);
+      if (invalid?.success === false) {
+        expect((invalid.error as z4.ZodError).issues[0]?.message).toBe(
+          'rejected name',
+        );
+      }
+    }
+  });
+
+  it('applies async transforms via the async path', async () => {
+    const schema = zodSchema(
+      z4.object({
+        value: z4.string().transform(async value => value.length),
+      }),
+    );
+
+    await expect(schema.validate?.({ value: 'abcd' })).resolves.toEqual({
+      success: true,
+      value: { value: 4 },
+    });
+  });
+
+  it('validates async pipes correctly (sync parser mis-reports these)', async () => {
+    const schema = zodSchema(
+      z4.object({
+        value: z4.string().pipe(z4.transform(async value => value.length)),
+      }),
+    );
+
+    await expect(schema.validate?.({ value: 'abcd' })).resolves.toEqual({
+      success: true,
+      value: { value: 4 },
+    });
+  });
+
+  it('propagates non-zod errors thrown during validation', async () => {
+    const schema = zodSchema(
+      z4.object({
+        value: z4.string().refine(() => {
+          throw new Error('refinement exploded');
+        }),
+      }),
+    );
+
+    await expect(schema.validate?.({ value: 'x' })).rejects.toThrow(
+      'refinement exploded',
+    );
+  });
+});
+
+describe('zod/v4 compiled sync path (mocked compile support)', () => {
+  // The pinned zod devDependency predates z.compile, so the detection wiring
+  // is exercised here with a mocked export; real-compilation coverage needs a
+  // zod >= 4.5 test matrix.
+  async function loadSchemaModuleWithCompile(
+    compileImpl: (schema: unknown, options: { strict: boolean }) => unknown,
+  ) {
+    vi.resetModules();
+    const compileSpy = vi.fn(compileImpl);
+    const actualCore = await vi.importActual<typeof z4Core>('zod/v4/core');
+    vi.doMock('zod/v4/core', () => ({ ...actualCore, compile: compileSpy }));
+    const schemaModule = await import('./schema');
+    return { compileSpy, zodSchema: schemaModule.zodSchema };
+  }
+
+  afterEach(() => {
+    vi.doUnmock('zod/v4/core');
+    vi.resetModules();
+  });
+
+  it('routes provably-sync schemas through the compiled clone', async () => {
+    const { compileSpy, zodSchema: mockedZodSchema } =
+      await loadSchemaModuleWithCompile((schema, options) => {
+        expect(options).toEqual({ strict: true });
+        return schema; // stand-in for the compiled clone
+      });
+
+    const rawSchema = z4.object({ text: z4.string() });
+    const schema = mockedZodSchema(rawSchema);
+
+    await expect(schema.validate?.({ text: 'a' })).resolves.toEqual({
+      success: true,
+      value: { text: 'a' },
+    });
+    const invalid = await schema.validate?.({ text: 1 });
+    expect(invalid?.success).toBe(false);
+    expect(compileSpy).toHaveBeenCalledTimes(1);
+
+    // classification is cached per schema across wrappers and calls
+    const again = mockedZodSchema(rawSchema);
+    await again.validate?.({ text: 'b' });
+    expect(compileSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps async parsing when strict compilation rejects the schema', async () => {
+    const { compileSpy, zodSchema: mockedZodSchema } =
+      await loadSchemaModuleWithCompile(() => {
+        throw new Error('async constructs not supported');
+      });
+
+    const schema = mockedZodSchema(
+      z4.object({
+        name: z4.string().refine(async value => value !== 'reject'),
+      }),
+    );
+
+    await expect(schema.validate?.({ name: 'ok' })).resolves.toEqual({
+      success: true,
+      value: { name: 'ok' },
+    });
+    const invalid = await schema.validate?.({ name: 'reject' });
+    expect(invalid?.success).toBe(false);
+    expect(compileSpy).toHaveBeenCalledTimes(1);
   });
 });
