@@ -25,10 +25,19 @@ For basic sandbox sessions without port discovery, configure both `port` and
 `portEndpoint`. `jcodeHome` can override the default durable per-session Jcode
 home.
 
-The adapter supports typed prompt, manual compaction, stop/resume, and destroy
-lifecycle operations. Host-defined tools, turn suspension, lossless turn
-continuation, live detach, JSON response formats, and mid-turn user messages are
-not supported yet and reject with `HarnessCapabilityUnsupportedError`.
+The adapter supports typed prompt, host-defined tools, manual compaction,
+stop/resume, and destroy lifecycle operations. Host tools execute outside Jcode
+through Harness V1's `submitToolResult` flow and require Jcode runtime and SDK
+1.3.0 or newer. Turn suspension, lossless turn continuation, live detach, JSON
+response formats, and mid-turn user messages are not supported yet and reject
+with `HarnessCapabilityUnsupportedError`.
+
+For release validation, run `scripts/release-validation.sh`. It builds release
+binaries, packs the local SDK and runtime, installs all artifacts into a clean
+consumer, launches the bundled runtime, and verifies `external_tools_v1`. Setting
+`RUN_VERCEL_SANDBOX=1` additionally requires `VERCEL_OIDC_TOKEN` and a bridge
+lockfile regenerated against the published SDK version. This prevents a sandbox
+release from silently installing an older SDK.
 
 Host execution remains an explicit fallback for trusted local workspaces only:
 
