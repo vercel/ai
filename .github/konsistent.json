@@ -231,8 +231,8 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "auth": {},
-                    "mcpServers": {}
+                    "auth": "${harnessId.toPascalCase()}AuthenticationMode",
+                    "mcpServers": "Record<string, unknown>"
                   }
                 }
               }
@@ -276,10 +276,10 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "credentialForwarding": {},
-                    "mintBridgeToken": {},
+                    "credentialForwarding": "HarnessV1CredentialForwarding",
+                    "mintBridgeToken": "(sandboxId: string) => string",
                     "port": { "type": "number" },
-                    "portEndpoint": {},
+                    "portEndpoint": "HarnessV1PortEndpoint",
                     "startupTimeoutMs": { "type": "number" }
                   }
                 }
@@ -304,10 +304,10 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "credentialForwarding": {},
-                    "mintBridgeToken": {},
+                    "credentialForwarding": "HarnessV1CredentialForwarding",
+                    "mintBridgeToken": "(sandboxId: string) => string",
                     "port": { "type": "number" },
-                    "portEndpoint": {},
+                    "portEndpoint": "HarnessV1PortEndpoint",
                     "startupTimeoutMs": { "type": "number" }
                   }
                 }
