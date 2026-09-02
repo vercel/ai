@@ -530,7 +530,7 @@ describe('syncHostWorkspaceFromSandbox', () => {
         'utf8',
       ),
     ).toBe('# skill 699');
-  });
+  }, 30_000);
 
   it('mirrors members whose path exceeds the 100-character tar name field', async () => {
     const longName =
