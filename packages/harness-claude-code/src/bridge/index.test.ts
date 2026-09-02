@@ -643,6 +643,52 @@ describe('Claude Code bridge configuration', () => {
     });
   });
 
+  test('surfaces API errors carried by success result frames', async () => {
+    const emitError = vi.fn();
+    state.emitError = emitError;
+    state.messages = [
+      {
+        type: 'result',
+        subtype: 'success',
+        is_error: true,
+        api_error_status: 400,
+        result: 'API Error: 400 the request was rejected',
+        terminal_reason: 'api_error',
+        total_cost_usd: 0,
+        usage: {
+          input_tokens: 0,
+          output_tokens: 0,
+        },
+      },
+    ];
+
+    await import('./index');
+
+    const terminalError = emitError.mock.calls[0]?.[0];
+    const finish = state.emitted.find(event => event.type === 'finish');
+    const outputEvents = state.emitted.filter(event =>
+      ['text-start', 'text-delta', 'reasoning-start', 'tool-call'].includes(
+        String(event.type),
+      ),
+    );
+    if (
+      terminalError == null &&
+      finish?.finishReason != null &&
+      outputEvents.length === 0
+    ) {
+      throw new Error(
+        'ISSUE_20210_REPRODUCED: is_error success result emitted a normal finish and dropped the API error',
+      );
+    }
+
+    expect(terminalError).toEqual({
+      error: 'API Error: 400 the request was rejected',
+      message: 'claude-code terminal error',
+    });
+    expect(finish).toBeUndefined();
+    expect(outputEvents).toEqual([]);
+  });
+
   test('a host abort interrupts the query gracefully, stays quiet, and disposes it', async () => {
     const turnAbort = new AbortController();
     state.turnAbortController = turnAbort;
