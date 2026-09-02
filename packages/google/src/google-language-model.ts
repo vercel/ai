@@ -414,7 +414,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     response: InferSchema<typeof responseSchema>;
     warnings: SharedV4Warning[];
     providerOptionsNames: readonly string[];
-    toolNameMapping: ReturnType<typeof createToolNameMapping>;
+    toolNameMapping?: ReturnType<typeof createToolNameMapping>;
   }): LanguageModelV4GenerateResult {
     const wrapProviderMetadata = (payload: Record<string, unknown>) =>
       Object.fromEntries(
@@ -447,7 +447,9 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         content.push({
           type: 'tool-call',
           toolCallId,
-          toolName: toolNameMapping.toCustomToolName('code_execution'),
+          toolName:
+            toolNameMapping?.toCustomToolName('code_execution') ??
+            'code_execution',
           input: JSON.stringify(part.executableCode),
           providerExecuted: true,
         });
@@ -456,7 +458,9 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           type: 'tool-result',
           // Results correspond to the most recent executable code part.
           toolCallId: lastCodeExecutionToolCallId!,
-          toolName: toolNameMapping.toCustomToolName('code_execution'),
+          toolName:
+            toolNameMapping?.toCustomToolName('code_execution') ??
+            'code_execution',
           result: {
             outcome: part.codeExecutionResult.outcome,
             output: part.codeExecutionResult.output ?? '',
