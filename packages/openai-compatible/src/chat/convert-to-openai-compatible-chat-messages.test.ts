@@ -699,6 +699,47 @@ describe('tool calls', () => {
       },
     ]);
   });
+
+  it('should preserve media content in tool results instead of stringifying it', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'getImage',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'file',
+                  data: {
+                    type: 'data' as const,
+                    data: new Uint8Array([0, 1, 2, 3]),
+                  },
+                  mediaType: 'image/png',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'image_url',
+            image_url: { url: 'data:image/png;base64,AAECAw==' },
+          },
+        ],
+        tool_call_id: 'call-1',
+      },
+    ]);
+  });
 });
 
 describe('provider-specific metadata merging', () => {
