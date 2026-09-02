@@ -576,6 +576,9 @@ importers:
       sharp:
         specifier: ^0.33.5
         version: 0.33.5
+      superjson:
+        specifier: 2.2.6
+        version: 2.2.6
       terminal-image:
         specifier: ^2.0.0
         version: 2.0.0(debug@4.4.3(supports-color@8.1.1))
