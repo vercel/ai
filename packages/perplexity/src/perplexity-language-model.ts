@@ -381,7 +381,6 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
   }
 }
 
-<<<<<<< HEAD
 function getResponseMetadata({
   id,
   model,
@@ -398,13 +397,6 @@ function getResponseMetadata({
   };
 }
 
-const perplexityCostSchema = z.object({
-  input_tokens_cost: z.number().nullish(),
-  output_tokens_cost: z.number().nullish(),
-  request_cost: z.number().nullish(),
-  total_cost: z.number().nullish(),
-});
-=======
 const perplexityCostSchema = z
   .object({
     input_tokens_cost: z.number().nullish(),
@@ -416,7 +408,6 @@ const perplexityCostSchema = z
     total_cost: z.number().nullish(),
   })
   .catchall(z.json());
->>>>>>> d4a22b0ab5 (fix: Perplexity chat usage.raw omitted complete provider usage and cost data (#20201))
 
 const perplexityUsageSchema = z
   .object({
