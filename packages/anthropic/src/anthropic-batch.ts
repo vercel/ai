@@ -7,7 +7,7 @@ import {
   type Experimental_BatchV4OperationOptions as BatchV4OperationOptions,
   type Experimental_BatchV4StartResult as BatchV4StartResult,
   type Experimental_BatchV4Status as BatchV4Status,
-  type Experimental_LanguageModelV4BatchRequest as LanguageModelV4BatchRequest,
+  type Experimental_TextBatchV4Request as TextBatchV4Request,
   type Experimental_TextBatchV4ItemResult as TextBatchV4ItemResult,
   type Experimental_BatchV4StartOptions as BatchV4StartOptions,
   type JSONObject,
@@ -62,7 +62,7 @@ const anthropicBatchProviderOptionsSchema = anthropicLanguageModelOptions.pick({
   anthropicBeta: true,
 });
 
-type AnthropicBatchRequest = LanguageModelV4BatchRequest<AnthropicModelId>;
+type AnthropicBatchRequest = TextBatchV4Request<AnthropicModelId>;
 
 const anthropicBatchResponseSchema = lazySchema(() =>
   zodSchema(

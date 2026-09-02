@@ -7,7 +7,7 @@ import {
   type Experimental_BatchV4OperationOptions as BatchV4OperationOptions,
   type Experimental_BatchV4StartResult as BatchV4StartResult,
   type Experimental_BatchV4Status as BatchV4Status,
-  type Experimental_LanguageModelV4BatchRequest as LanguageModelV4BatchRequest,
+  type Experimental_TextBatchV4Request as TextBatchV4Request,
   type Experimental_BatchV4StartOptions as BatchV4StartOptions,
   type LanguageModelV4GenerateResult,
 } from '@ai-sdk/provider';
@@ -44,7 +44,7 @@ const supportedGoogleBatchContentTypes = new Set<
   LanguageModelV4GenerateResult['content'][number]['type']
 >(['text', 'reasoning', 'source', 'tool-call', 'tool-result']);
 
-type GoogleBatchRequest = LanguageModelV4BatchRequest<GoogleModelId>;
+type GoogleBatchRequest = TextBatchV4Request<GoogleModelId>;
 
 const googleRpcStatusSchema = z.object({
   code: z.union([z.number(), z.string()]).nullish(),

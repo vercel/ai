@@ -11,3 +11,4 @@ export type {
   TextBatchV4ItemResult as Experimental_TextBatchV4ItemResult,
 } from './batch-v4';
 export type { BatchV4RequestBase as Experimental_BatchV4RequestBase } from './batch-v4-request';
+export type { TextBatchV4Request as Experimental_TextBatchV4Request } from './text-batch-v4-request';

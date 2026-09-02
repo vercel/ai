@@ -1,4 +1,4 @@
-import type { Experimental_LanguageModelV4BatchRequest as LanguageModelV4BatchRequest } from '@ai-sdk/provider';
+import type { Experimental_TextBatchV4Request as TextBatchV4Request } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it, vi } from 'vitest';
@@ -27,7 +27,7 @@ const server = createTestServer({
   [urls.output]: {},
 });
 
-type BatchRequest = LanguageModelV4BatchRequest<'gemini-2.5-flash'>;
+type BatchRequest = TextBatchV4Request<'gemini-2.5-flash'>;
 
 function request(
   id: string,

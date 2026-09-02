@@ -9,7 +9,7 @@ import {
   type Experimental_BatchV4Status as BatchV4Status,
   type Experimental_TextBatchV4ItemResult as TextBatchV4ItemResult,
   type Experimental_BatchV4StartOptions as BatchV4StartOptions,
-  type Experimental_LanguageModelV4BatchRequest as LanguageModelV4BatchRequest,
+  type Experimental_TextBatchV4Request as TextBatchV4Request,
   type LanguageModelV4GenerateResult,
   type SharedV4ProviderMetadata,
   type SharedV4Warning,
@@ -56,7 +56,7 @@ type OpenAIBatchModelIds = {
   readonly text: OpenAIResponsesModelId;
 };
 
-type OpenAIBatchRequest = LanguageModelV4BatchRequest<OpenAIResponsesModelId>;
+type OpenAIBatchRequest = TextBatchV4Request<OpenAIResponsesModelId>;
 
 type OpenAIBatchPreparedRequest = {
   body: unknown;

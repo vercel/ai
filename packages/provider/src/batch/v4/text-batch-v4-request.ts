@@ -1,10 +1,10 @@
-import type { BatchV4RequestBase } from '../../batch/v4/batch-v4-request';
-import type { LanguageModelV4CallOptions } from './language-model-v4-call-options';
+import type { LanguageModelV4CallOptions } from '../../language-model/v4/language-model-v4-call-options';
+import type { BatchV4RequestBase } from './batch-v4-request';
 
 /**
- * A normalized language model call within a batch.
+ * A normalized text generation request within a batch.
  */
-export type LanguageModelV4BatchRequest<ModelId extends string = string> =
+export type TextBatchV4Request<ModelId extends string = string> =
   BatchV4RequestBase<ModelId> & {
     readonly type: 'text';
     readonly options: Pick<

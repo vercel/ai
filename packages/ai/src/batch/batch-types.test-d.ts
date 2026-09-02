@@ -5,7 +5,7 @@ import type {
   Experimental_BatchV4OperationOptions as BatchV4OperationOptions,
   Experimental_BatchV4Request as BatchV4Request,
   Experimental_BatchV4Status as BatchV4Status,
-  Experimental_LanguageModelV4BatchRequest as LanguageModelV4BatchRequest,
+  Experimental_TextBatchV4Request as TextBatchV4Request,
   Experimental_TextBatchV4ItemResult as TextBatchV4ItemResult,
   LanguageModelV4,
   LanguageModelV4CallOptions,
@@ -86,7 +86,7 @@ it('accepts shared definition-only tools when starting and reading a batch', () 
 });
 
 it('only exposes text-generation call options to batch providers', () => {
-  type BatchCallOptions = LanguageModelV4BatchRequest['options'];
+  type BatchCallOptions = TextBatchV4Request['options'];
   type ExpectedBatchCallOptions = Pick<
     LanguageModelV4CallOptions,
     | 'prompt'
@@ -108,7 +108,7 @@ it('only exposes text-generation call options to batch providers', () => {
   expectTypeOf<keyof BatchV4Request>().toEqualTypeOf<
     'id' | 'type' | 'modelId' | 'options'
   >();
-  expectTypeOf<LanguageModelV4BatchRequest<'model-a'>>().toEqualTypeOf<
+  expectTypeOf<TextBatchV4Request<'model-a'>>().toEqualTypeOf<
     BatchV4Request<{ text: 'model-a' }>
   >();
   expectTypeOf<BatchCallOptions>().toEqualTypeOf<ExpectedBatchCallOptions>();
@@ -119,7 +119,7 @@ it('only exposes text-generation call options to batch providers', () => {
     >
   >().toEqualTypeOf<never>();
   expectTypeOf<
-    LanguageModelV4BatchRequest<'model-a'>['modelId']
+    TextBatchV4Request<'model-a'>['modelId']
   >().toEqualTypeOf<'model-a'>();
 });
 

@@ -4,7 +4,7 @@ import type {
   SharedV4Warning,
 } from '../../shared';
 import type { LanguageModelV4GenerateResult } from '../../language-model/v4/language-model-v4-generate-result';
-import type { LanguageModelV4BatchRequest } from '../../language-model/v4/language-model-v4-batch';
+import type { TextBatchV4Request } from './text-batch-v4-request';
 
 /**
  * Model IDs accepted by each batch modality.
@@ -59,7 +59,7 @@ export type BatchV4Status = {
 };
 
 export type BatchV4Request<ModelIds extends BatchV4ModelIds = BatchV4ModelIds> =
-  LanguageModelV4BatchRequest<ModelIds['text']>;
+  TextBatchV4Request<ModelIds['text']>;
 
 /**
  * Options for starting a batch of requests discriminated by modality.

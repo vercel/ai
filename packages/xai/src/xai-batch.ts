@@ -6,7 +6,7 @@ import {
   type Experimental_BatchV4OperationOptions as BatchV4OperationOptions,
   type Experimental_BatchV4StartResult as BatchV4StartResult,
   type Experimental_BatchV4Status as BatchV4Status,
-  type Experimental_LanguageModelV4BatchRequest as LanguageModelV4BatchRequest,
+  type Experimental_TextBatchV4Request as TextBatchV4Request,
   type Experimental_TextBatchV4ItemResult as TextBatchV4ItemResult,
   type Experimental_BatchV4StartOptions as BatchV4StartOptions,
   type LanguageModelV4Content,
@@ -50,7 +50,7 @@ const xaiBatchName = 'ai-sdk-text-batch';
 const xaiBatchResultsPageSize = 1000;
 
 type XaiBatchModelIds = { readonly text: XaiResponsesModelId };
-type XaiBatchRequest = LanguageModelV4BatchRequest<XaiResponsesModelId>;
+type XaiBatchRequest = TextBatchV4Request<XaiResponsesModelId>;
 
 type XaiBatchPreparedRequest = {
   body: unknown;
