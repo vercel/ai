@@ -1,4 +1,4 @@
-import { signal } from '@angular/core';
+import { signal, untracked } from '@angular/core';
 import {
   callCompletionApi,
   generateId,
@@ -81,8 +81,9 @@ export class Completion<BODY extends object = object> {
   /** Form submission handler to automatically reset input and call the completion API */
   handleSubmit = async (event?: { preventDefault?: () => void }) => {
     event?.preventDefault?.();
-    if (this.#input()) {
-      await this.complete(this.#input());
+    const input = untracked(this.#input);
+    if (input) {
+      await this.complete(input);
     }
   };
 
