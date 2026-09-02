@@ -75,6 +75,7 @@ export class GatewayLanguageModel implements LanguageModelV4 {
     const resolvedHeaders = this.config.headers
       ? await resolve(this.config.headers)
       : undefined;
+    const authMethod = await parseAuthMethod(resolvedHeaders ?? {});
 
     try {
       const {
@@ -122,6 +123,7 @@ export class GatewayLanguageModel implements LanguageModelV4 {
     const resolvedHeaders = this.config.headers
       ? await resolve(this.config.headers)
       : undefined;
+    const authMethod = await parseAuthMethod(resolvedHeaders ?? {});
 
     try {
       const { value: response, responseHeaders } = await postJsonToApi({
@@ -153,7 +155,7 @@ export class GatewayLanguageModel implements LanguageModelV4 {
                 controller.enqueue({ type: 'stream-start', warnings });
               }
             },
-            transform(chunk, controller) {
+            async transform(chunk, controller) {
               if (chunk.success) {
                 const streamPart = chunk.value;
 
@@ -173,9 +175,11 @@ export class GatewayLanguageModel implements LanguageModelV4 {
 
                 controller.enqueue(streamPart);
               } else {
-                controller.error(
+                const streamError = await asGatewayError(
                   (chunk as { success: false; error: unknown }).error,
+                  authMethod,
                 );
+                controller.error(streamError);
               }
             },
           }),
@@ -184,10 +188,7 @@ export class GatewayLanguageModel implements LanguageModelV4 {
         response: { headers: responseHeaders },
       };
     } catch (error) {
-      throw await asGatewayError(
-        error,
-        await parseAuthMethod(resolvedHeaders ?? {}),
-      );
+      throw await asGatewayError(error, authMethod);
     }
   }
 
