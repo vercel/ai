@@ -191,6 +191,8 @@ and support structured data generation with [`Output`](/docs/reference/ai-sdk-co
 
 When using OpenAI language models on Azure, you can configure provider-specific options using `providerOptions.openai`. More information on available configuration options are on [the OpenAI provider page](/providers/ai-sdk-providers/openai#language-models).
 
+`serviceTier: 'ultrafast'` is an OpenAI-only preview tier (currently `gpt-5.6-sol`). Azure OpenAI does not document it. The shared option type accepts the value and forwards `service_tier` as-is.
+
 ```ts highlight="12-14,24-26"
 import { azure, type OpenAILanguageModelResponsesOptions } from '@ai-sdk/azure';
 
