@@ -364,7 +364,7 @@ describe('urlContextMetadata', () => {
 });
 
 describe('doGenerate', () => {
-  it('should associate multiple generated and streamed code execution results with the same tool call', async () => {
+  it('should use the custom code execution tool name for generated and streamed results', async () => {
     const response = {
       candidates: [
         {
@@ -422,7 +422,7 @@ describe('doGenerate', () => {
           {
             type: 'provider',
             id: 'google.code_execution',
-            name: 'code_execution',
+            name: 'CodeExecutionTool',
             args: {},
           },
         ],
@@ -436,7 +436,7 @@ describe('doGenerate', () => {
           "input": "{"language":"PYTHON","code":"print('ok')\\nprint(1/0)"}",
           "providerExecuted": true,
           "toolCallId": "test-id",
-          "toolName": "code_execution",
+          "toolName": "CodeExecutionTool",
           "type": "tool-call",
         },
         {
@@ -446,7 +446,7 @@ describe('doGenerate', () => {
       ",
           },
           "toolCallId": "test-id",
-          "toolName": "code_execution",
+          "toolName": "CodeExecutionTool",
           "type": "tool-result",
         },
         {
@@ -456,7 +456,7 @@ describe('doGenerate', () => {
       ",
           },
           "toolCallId": "test-id",
-          "toolName": "code_execution",
+          "toolName": "CodeExecutionTool",
           "type": "tool-result",
         },
       ]
@@ -469,7 +469,7 @@ describe('doGenerate', () => {
           {
             type: 'provider',
             id: 'google.code_execution',
-            name: 'code_execution',
+            name: 'CodeExecutionTool',
             args: {},
           },
         ],
@@ -488,7 +488,7 @@ describe('doGenerate', () => {
           "input": "{"language":"PYTHON","code":"print('ok')\\nprint(1/0)"}",
           "providerExecuted": true,
           "toolCallId": "test-id",
-          "toolName": "code_execution",
+          "toolName": "CodeExecutionTool",
           "type": "tool-call",
         },
         {
@@ -498,7 +498,7 @@ describe('doGenerate', () => {
       ",
           },
           "toolCallId": "test-id",
-          "toolName": "code_execution",
+          "toolName": "CodeExecutionTool",
           "type": "tool-result",
         },
         {
@@ -508,7 +508,7 @@ describe('doGenerate', () => {
       ",
           },
           "toolCallId": "test-id",
-          "toolName": "code_execution",
+          "toolName": "CodeExecutionTool",
           "type": "tool-result",
         },
       ]
