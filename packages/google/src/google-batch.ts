@@ -105,6 +105,7 @@ const googleFileUploadResponseSchema = lazySchema(() =>
     z.object({
       file: z.object({
         name: z.string(),
+        expirationTime: z.string().nullish(),
       }),
     }),
   ),
@@ -244,6 +245,7 @@ export class GoogleBatchLanguageModel
       this.modelId,
     )}:batchGenerateContent`;
     let operation: GoogleBatchOperation;
+    let inputFileMetadata: Record<string, string> | undefined;
 
     if (fileParts == null) {
       const { value } = await postJsonToApi({
@@ -310,6 +312,13 @@ export class GoogleBatchLanguageModel
         fetch: this.batchConfig.fetch,
       });
 
+      inputFileMetadata = {
+        inputFileId: uploadedFile.file.name,
+        ...(uploadedFile.file.expirationTime != null
+          ? { inputFileExpiresAt: uploadedFile.file.expirationTime }
+          : {}),
+      };
+
       const { value } = await postJsonToApi({
         url: createUrl,
         headers,
@@ -337,6 +346,9 @@ export class GoogleBatchLanguageModel
     return {
       batchId: operation.name,
       ...convertGoogleBatchStatus(operation),
+      ...(inputFileMetadata != null
+        ? { providerMetadata: { google: inputFileMetadata } }
+        : {}),
       warnings,
     };
   }

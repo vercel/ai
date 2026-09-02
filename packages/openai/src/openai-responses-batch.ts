@@ -20,6 +20,7 @@ import {
   getFromApi,
   lazySchema,
   normalizeBatchRequestCounts,
+  parseProviderOptions,
   postJsonToApi,
   postToApi,
   safeValidateTypes,
@@ -52,7 +53,25 @@ import type { OpenAIResponsesModelId } from './responses/openai-responses-langua
 import type { ResponsesReasoningProviderMetadata } from './responses/openai-responses-provider-metadata';
 
 const openaiBatchEndpoint = '/v1/responses';
-const openaiBatchInputFileExpiresAfterSeconds = 48 * 60 * 60;
+const openaiBatchInputFileDefaultExpiresAfterSeconds = 48 * 60 * 60;
+
+const openaiBatchProviderOptionsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      /**
+       * TTL in seconds for the uploaded batch input file, measured from
+       * upload time. OpenAI accepts integers between 3600 (1 hour) and
+       * 2592000 (30 days) inclusive. Defaults to 48 hours.
+       */
+      inputFileExpiresAfter: z
+        .number()
+        .int()
+        .min(3600)
+        .max(2_592_000)
+        .optional(),
+    }),
+  ),
+);
 
 type OpenAIBatchRequest = Parameters<
   BatchLanguageModelV4['experimental_doStartBatch']
@@ -153,6 +172,13 @@ class OpenAIResponsesBatch {
             },
           ];
 
+    const batchOptions = await this.parseBatchProviderOptions(
+      options.providerOptions,
+    );
+    const inputFileExpiresAfterSeconds =
+      batchOptions?.inputFileExpiresAfter ??
+      openaiBatchInputFileDefaultExpiresAfterSeconds;
+
     for (const request of options.requests) {
       const preparedRequest = await this.options.prepareRequest(request);
 
@@ -200,7 +226,7 @@ class OpenAIResponsesBatch {
     formData.append('expires_after[anchor]', 'created_at');
     formData.append(
       'expires_after[seconds]',
-      String(openaiBatchInputFileExpiresAfterSeconds),
+      String(inputFileExpiresAfterSeconds),
     );
 
     const { value: uploadedFile } = await postToApi({
@@ -211,9 +237,7 @@ class OpenAIResponsesBatch {
         values: {
           purpose: 'batch',
           'expires_after[anchor]': 'created_at',
-          'expires_after[seconds]': String(
-            openaiBatchInputFileExpiresAfterSeconds,
-          ),
+          'expires_after[seconds]': String(inputFileExpiresAfterSeconds),
           file: {
             name: filename,
             type: file.type,
@@ -245,11 +269,42 @@ class OpenAIResponsesBatch {
       fetch: this.options.config.fetch,
     });
 
+    const inputFileExpiresAt = convertUnixTimestamp(uploadedFile.expires_at);
+
     return {
       batchId: batch.id,
       ...convertOpenAIBatchStatus(batch),
+      providerMetadata: {
+        openai: {
+          inputFileId: uploadedFile.id,
+          ...(inputFileExpiresAt != null ? { inputFileExpiresAt } : {}),
+        },
+      },
       warnings,
     };
+  }
+
+  private async parseBatchProviderOptions(
+    providerOptions: BatchV4StartOptions<OpenAIBatchRequest>['providerOptions'],
+  ) {
+    const providerOptionsName = this.options.config.provider.includes('azure')
+      ? 'azure'
+      : 'openai';
+    let batchOptions = await parseProviderOptions({
+      provider: providerOptionsName,
+      providerOptions,
+      schema: openaiBatchProviderOptionsSchema,
+    });
+
+    if (batchOptions == null && providerOptionsName !== 'openai') {
+      batchOptions = await parseProviderOptions({
+        provider: 'openai',
+        providerOptions,
+        schema: openaiBatchProviderOptionsSchema,
+      });
+    }
+
+    return batchOptions;
   }
 
   async getBatchStatus(
