@@ -103,6 +103,12 @@ type OpenBlockState =
       isError?: boolean;
       resultEmitted: boolean;
     }
+  | {
+      kind: 'custom';
+      id: string;
+      customKind: 'google.processing_call' | 'google.processing_result';
+      google: Record<string, string>;
+    }
   /**
    * A `model_output` step whose inner content-block kind has not yet been
    * disambiguated. `step.start` may arrive bare (`{type: 'model_output'}`,
@@ -337,6 +343,24 @@ export function buildGoogleInteractionsStreamTransform({
                 }
               }
             }
+          } else if (
+            stepType === 'processing_call' ||
+            stepType === 'processing_result'
+          ) {
+            const google: Record<string, string> = {};
+            if (step?.signature != null) google.signature = step.signature;
+            if (interactionId != null) google.interactionId = interactionId;
+            if (stepType === 'processing_call') {
+              google.processingId = step?.id || blockId;
+            } else {
+              google.processingCallId = step?.call_id || blockId;
+            }
+            openBlocks.set(index, {
+              kind: 'custom',
+              id: blockId,
+              customKind: `google.${stepType}`,
+              google,
+            });
           } else if (stepType === 'function_call') {
             const toolCallId = step?.id || blockId;
             const toolName = step?.name ?? 'unknown';
@@ -544,7 +568,28 @@ export function buildGoogleInteractionsStreamTransform({
               }
             | undefined;
 
-          if (open.kind === 'text' && delta?.type === 'text') {
+          if (
+            open.kind === 'custom' &&
+            (delta?.type === 'processing_call' ||
+              delta?.type === 'processing_result')
+          ) {
+            if (delta.signature != null)
+              open.google.signature = delta.signature;
+            if (
+              delta.type === 'processing_call' &&
+              delta.id != null &&
+              delta.id.length > 0
+            ) {
+              open.google.processingId = delta.id;
+            }
+            if (
+              delta.type === 'processing_result' &&
+              delta.call_id != null &&
+              delta.call_id.length > 0
+            ) {
+              open.google.processingCallId = delta.call_id;
+            }
+          } else if (open.kind === 'text' && delta?.type === 'text') {
             const text = delta.text ?? '';
             if (text.length > 0) {
               controller.enqueue({
@@ -723,6 +768,12 @@ export function buildGoogleInteractionsStreamTransform({
               toolName: open.toolName,
               input: accumulated,
               ...(providerMetadata ? { providerMetadata } : {}),
+            });
+          } else if (open.kind === 'custom') {
+            controller.enqueue({
+              type: 'custom',
+              kind: open.customKind,
+              providerMetadata: { google: open.google },
             });
           } else if (open.kind === 'builtin_tool_call' && !open.callEmitted) {
             controller.enqueue({
