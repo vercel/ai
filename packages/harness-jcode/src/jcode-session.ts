@@ -5,9 +5,15 @@ import {
   type HarnessV1ResumeSessionState,
   type HarnessV1Session,
 } from '@ai-sdk/harness';
-import { parkJcodeClient, type JcodeSdkClient } from './jcode-client';
+import {
+  parkJcodeClient,
+  type JcodeSdkClient,
+  type JcodeSdkEvent,
+} from './jcode-client';
 import {
   createJcodeTranslatorState,
+  translateJcodeExternalToolCall,
+  translateJcodeExternalToolResult,
   translateJcodeEvent,
 } from './jcode-translate';
 import { extractJcodePrompt, frameJcodeInstructions } from './jcode-utils';
@@ -82,11 +88,25 @@ export async function createJcodeSession({
     if (options.responseFormat?.type === 'json') {
       throw unsupported('JSON response format is not supported yet');
     }
-    if (options.tools && options.tools.length > 0) {
+
+    const tools = options.tools ?? [];
+    if (tools.length > 0 && !client.supports('external_tools_v1')) {
       throw unsupported(
-        'host-defined tools require session-scoped MCP support in Jcode',
+        'the Jcode runtime does not support host-defined tools (external_tools_v1)',
       );
     }
+    const toolNames = new Set<string>();
+    const externalTools = tools.map(tool => {
+      if (toolNames.has(tool.name)) {
+        throw new Error(`duplicate host tool name: ${tool.name}`);
+      }
+      toolNames.add(tool.name);
+      return {
+        name: tool.name,
+        description: tool.description ?? '',
+        input_schema: tool.inputSchema ?? {},
+      };
+    });
 
     let prompt = extractJcodePrompt(options.prompt);
     if (isFirstPrompt && options.instructions) {
@@ -96,6 +116,22 @@ export async function createJcodeSession({
 
     const iterator = client.events(jcodeSessionId);
     const state = createJcodeTranslatorState();
+    const pendingExternalCalls = new Map<
+      string,
+      {
+        readonly name: string;
+        readonly ready: Promise<JcodeSdkEvent>;
+        readonly resolveReady: (event: JcodeSdkEvent) => void;
+        readonly rejectReady: (error: Error) => void;
+        readyEvent?: JcodeSdkEvent;
+        submitting: boolean;
+      }
+    >();
+    const externalCallIds = new Set<string>();
+    const submittedExternalResults = new Map<
+      string,
+      { readonly output: unknown; readonly isError: boolean }
+    >();
     options.emit({
       type: 'stream-start',
       ...(model ? { modelId: model } : {}),
@@ -126,8 +162,125 @@ export async function createJcodeSession({
           if (options.abortSignal.aborted) await cancel();
         }
 
+        await client.setExternalTools(jcodeSessionId, externalTools);
         await client.sendMessage(jcodeSessionId, prompt);
         for await (const event of iterator) {
+          if (event.ev === 'tool_start' && toolNames.has(event.name)) {
+            externalCallIds.add(event.call_id);
+            for (const part of translateJcodeEvent(event, state)) {
+              options.emit(part);
+            }
+            continue;
+          }
+          if (
+            event.ev === 'tool_input_delta' &&
+            externalCallIds.has(event.call_id)
+          ) {
+            translateJcodeEvent(event, state);
+            continue;
+          }
+          if (event.ev === 'tool_exec' && externalCallIds.has(event.call_id)) {
+            const tool = state.tools.get(event.call_id);
+            if (!tool)
+              throw new Error(`missing external tool state: ${event.call_id}`);
+            tool.emitted = true;
+            state.stepHadToolCall = true;
+            let resolveReady!: (event: JcodeSdkEvent) => void;
+            let rejectReady!: (error: Error) => void;
+            const ready = new Promise<JcodeSdkEvent>((resolve, reject) => {
+              resolveReady = resolve;
+              rejectReady = reject;
+            });
+            void ready.catch(() => {});
+            pendingExternalCalls.set(event.call_id, {
+              name: event.name,
+              ready,
+              resolveReady,
+              rejectReady,
+              submitting: false,
+            });
+            let input: unknown = tool.input || {};
+            try {
+              input = tool.input ? JSON.parse(tool.input) : {};
+            } catch {}
+            options.emit(
+              translateJcodeExternalToolCall({
+                ev: 'external_tool_call',
+                session_id: jcodeSessionId,
+                root_session_id: jcodeSessionId,
+                call_id: event.call_id,
+                catalog_revision: 0,
+                name: event.name,
+                input,
+              }),
+            );
+            continue;
+          }
+          if (
+            event.ev === 'tool_done' &&
+            externalCallIds.delete(event.call_id)
+          ) {
+            const submitted = submittedExternalResults.get(event.call_id);
+            submittedExternalResults.delete(event.call_id);
+            state.tools.delete(event.call_id);
+            options.emit(
+              translateJcodeExternalToolResult({
+                toolCallId: event.call_id,
+                toolName: event.name,
+                output: submitted?.output ?? event.error ?? event.output,
+                isError: submitted?.isError ?? event.error != null,
+              }),
+            );
+            continue;
+          }
+          if (event.ev === 'external_tool_call') {
+            if (event.root_session_id !== jcodeSessionId) {
+              throw new Error(
+                `external tool call ${event.call_id} was routed to the wrong root session`,
+              );
+            }
+            if (!event.session_id) {
+              throw new Error(
+                `external tool call ${event.call_id} has no calling session`,
+              );
+            }
+            if (!toolNames.has(event.name)) {
+              throw new Error(
+                `external tool call ${event.call_id} references unknown tool ${event.name}`,
+              );
+            }
+            const pending = pendingExternalCalls.get(event.call_id);
+            if (pending?.readyEvent) {
+              throw new Error(
+                `duplicate external tool call id: ${event.call_id}`,
+              );
+            }
+            if (pending) {
+              pending.readyEvent = event;
+              pending.resolveReady(event);
+            } else {
+              let resolveReady!: (event: JcodeSdkEvent) => void;
+              let rejectReady!: (error: Error) => void;
+              const ready = new Promise<JcodeSdkEvent>((resolve, reject) => {
+                resolveReady = resolve;
+                rejectReady = reject;
+              });
+              void ready.catch(() => {});
+              const fallback = {
+                name: event.name,
+                ready,
+                resolveReady,
+                rejectReady,
+                readyEvent: event,
+                submitting: false,
+              };
+              pendingExternalCalls.set(event.call_id, fallback);
+              fallback.resolveReady(event);
+              state.stepHadToolCall = true;
+              options.emit(translateJcodeExternalToolCall(event));
+            }
+            continue;
+          }
           if (event.ev === 'error') {
             throw new Error(`${event.code}: ${event.message}`);
           }
@@ -141,6 +294,16 @@ export async function createJcodeSession({
         options.emit({ type: 'error', error });
         throw error;
       } finally {
+        for (const pending of pendingExternalCalls.values()) {
+          if (!pending.readyEvent) {
+            pending.rejectReady(
+              new Error(
+                'Jcode turn ended before the external tool call became ready',
+              ),
+            );
+          }
+        }
+        pendingExternalCalls.clear();
         settled = true;
         activeCancel = undefined;
         activeDone = undefined;
@@ -154,10 +317,41 @@ export async function createJcodeSession({
 
     return {
       done,
-      async submitToolResult() {
-        throw unsupported(
-          'host tool results require session-scoped MCP support in Jcode',
-        );
+      async submitToolResult({ toolCallId, output, isError }) {
+        const pending = pendingExternalCalls.get(toolCallId);
+        if (!pending) {
+          throw new Error(
+            `unknown or settled external tool call: ${toolCallId}`,
+          );
+        }
+        if (pending.submitting) {
+          throw new Error(
+            `external tool result submission is already in flight: ${toolCallId}`,
+          );
+        }
+        pending.submitting = true;
+        submittedExternalResults.set(toolCallId, {
+          output,
+          isError: isError ?? false,
+        });
+        try {
+          const readyEvent = pending.readyEvent ?? (await pending.ready);
+          if (readyEvent.ev !== 'external_tool_call') {
+            throw new Error(
+              `unexpected external tool readiness event: ${readyEvent.ev}`,
+            );
+          }
+          await client.submitExternalToolResult(jcodeSessionId, {
+            call_id: toolCallId,
+            output,
+            is_error: isError ?? false,
+          });
+          pendingExternalCalls.delete(toolCallId);
+        } catch (error) {
+          submittedExternalResults.delete(toolCallId);
+          pending.submitting = false;
+          throw error;
+        }
       },
       async submitUserMessage(text) {
         await client.softInterrupt(jcodeSessionId, text);

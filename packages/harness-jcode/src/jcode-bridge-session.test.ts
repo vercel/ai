@@ -211,20 +211,52 @@ describe('createJcodeBridgeSession', () => {
     },
   );
 
-  it('rejects unsupported tools, suspend, continue, and detach', async () => {
+  it('forwards host tools and their results over the bridge', async () => {
+    const channel = new FakeChannel();
+    const session = createJcodeBridgeSession({
+      sessionId: 'session-1',
+      channel: channel as unknown as JcodeBridgeChannel,
+      proc: fakeProcess(),
+      jcodeHome: '/sandbox/jcode-home',
+    });
+    const control = await session.doPromptTurn({
+      prompt: 'hello',
+      tools: [{ name: 'weather', description: 'Get weather', inputSchema: {} }],
+      emit: () => {},
+    });
+    expect(channel.sent[0]).toMatchObject({
+      type: 'start',
+      tools: [{ name: 'weather', description: 'Get weather', inputSchema: {} }],
+    });
+    await control.submitToolResult({
+      toolCallId: 'call-1',
+      output: { temperature: 21 },
+      isError: false,
+    });
+    expect(channel.sent[1]).toEqual({
+      type: 'tool-result',
+      toolCallId: 'call-1',
+      output: { temperature: 21 },
+      isError: false,
+    });
+    channel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'stop' },
+      totalUsage: {
+        inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
+        outputTokens: { total: 0, text: 0, reasoning: 0 },
+      },
+    });
+    await control.done;
+  });
+
+  it('rejects unsupported suspend, continue, and detach', async () => {
     const session = createJcodeBridgeSession({
       sessionId: 'session-1',
       channel: new FakeChannel() as unknown as JcodeBridgeChannel,
       proc: fakeProcess(),
       jcodeHome: '/sandbox/jcode-home',
     });
-    await expect(
-      session.doPromptTurn({
-        prompt: 'hello',
-        tools: [{ name: 'tool', inputSchema: {} }],
-        emit: () => {},
-      }),
-    ).rejects.toThrow('host-defined tools are not supported yet');
     await expect(session.doSuspendTurn()).rejects.toThrow(
       'turn suspension is not supported yet',
     );

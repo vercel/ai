@@ -1,17 +1,22 @@
-import type { ApiEvent } from '@1jehuang/jcode-sdk';
 import type { HarnessV1StreamPart } from '@ai-sdk/harness';
 import { describe, expect, it, vi } from 'vitest';
-import { takeParkedJcodeClient, type JcodeSdkClient } from './jcode-client';
+import {
+  takeParkedJcodeClient,
+  type JcodeSdkClient,
+  type JcodeSdkEvent,
+} from './jcode-client';
 import { createJcodeSession } from './jcode-session';
 
-function iteratorFrom(events: ApiEvent[]): AsyncIterableIterator<ApiEvent> {
+function iteratorFrom(
+  events: JcodeSdkEvent[],
+): AsyncIterableIterator<JcodeSdkEvent> {
   const iterator = (async function* () {
     yield* events;
   })();
   return iterator;
 }
 
-function fakeClient(events: ApiEvent[] = []): JcodeSdkClient & {
+function fakeClient(events: JcodeSdkEvent[] = []): JcodeSdkClient & {
   sendMessage: ReturnType<typeof vi.fn>;
   cancel: ReturnType<typeof vi.fn>;
   close: ReturnType<typeof vi.fn>;
@@ -19,6 +24,7 @@ function fakeClient(events: ApiEvent[] = []): JcodeSdkClient & {
 } {
   return {
     instanceHome: '/durable/jcode',
+    supports: vi.fn(() => true),
     createSession: vi.fn(async () => ({ session_id: 'native-1' })),
     attachSession: vi.fn(async id => ({ session_id: id })),
     detachSession: vi.fn(async () => {}),
@@ -28,12 +34,129 @@ function fakeClient(events: ApiEvent[] = []): JcodeSdkClient & {
     compact: vi.fn(async () => 'compacted'),
     setModel: vi.fn(async () => {}),
     setReasoningEffort: vi.fn(async () => {}),
+    setExternalTools: vi.fn(async () => {}),
+    submitExternalToolResult: vi.fn(async () => {}),
     events: vi.fn(() => iteratorFrom(events)),
     close: vi.fn(async () => {}),
   };
 }
 
 describe('createJcodeSession', () => {
+  it('registers, emits, and submits host-executed external tools', async () => {
+    let releaseTurn: (() => void) | undefined;
+    const client = fakeClient();
+    client.events = vi.fn(() =>
+      (async function* () {
+        yield {
+          ev: 'tool_start',
+          session_id: 'native-1',
+          call_id: 'call-1',
+          name: 'weather',
+        } as const;
+        yield {
+          ev: 'tool_input_delta',
+          session_id: 'native-1',
+          call_id: 'call-1',
+          delta: '{"city":"Berlin"}',
+        } as const;
+        yield {
+          ev: 'tool_exec',
+          session_id: 'native-1',
+          call_id: 'call-1',
+          name: 'weather',
+        } as const;
+        yield {
+          ev: 'external_tool_call',
+          session_id: 'native-1',
+          root_session_id: 'native-1',
+          call_id: 'call-1',
+          catalog_revision: 1,
+          name: 'weather',
+          input: { city: 'Berlin' },
+        } as const;
+        await new Promise<void>(resolve => {
+          releaseTurn = resolve;
+        });
+        yield {
+          ev: 'tool_done',
+          session_id: 'native-1',
+          call_id: 'call-1',
+          name: 'weather',
+          output: '{"temperature":18}',
+        } as const;
+        yield { ev: 'turn_done', session_id: 'native-1' } as const;
+      })(),
+    );
+    const session = await createJcodeSession({
+      client,
+      sessionId: 'harness-1',
+      sessionWorkDir: '/workspace',
+    });
+    const emitted: HarnessV1StreamPart[] = [];
+    const control = await session.doPromptTurn({
+      prompt: 'weather?',
+      tools: [
+        {
+          name: 'weather',
+          description: 'Get weather',
+          inputSchema: { type: 'object' },
+        },
+      ],
+      emit: part => emitted.push(part),
+    });
+
+    await vi.waitFor(() =>
+      expect(emitted).toContainEqual({
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'weather',
+        input: '{"city":"Berlin"}',
+        providerExecuted: false,
+        dynamic: false,
+      }),
+    );
+    expect(client.setExternalTools).toHaveBeenCalledWith('native-1', [
+      {
+        name: 'weather',
+        description: 'Get weather',
+        input_schema: { type: 'object' },
+      },
+    ]);
+
+    await control.submitToolResult({
+      toolCallId: 'call-1',
+      output: { temperature: 18 },
+    });
+    expect(client.submitExternalToolResult).toHaveBeenCalledWith('native-1', {
+      call_id: 'call-1',
+      output: { temperature: 18 },
+      is_error: false,
+    });
+    releaseTurn?.();
+    await control.done;
+    expect(emitted.filter(part => part.type === 'tool-call')).toHaveLength(1);
+    expect(emitted).toContainEqual({
+      type: 'tool-result',
+      toolCallId: 'call-1',
+      toolName: 'weather',
+      result: { temperature: 18 },
+    });
+  });
+
+  it('clears the previous external tool catalog on a tool-free turn', async () => {
+    const client = fakeClient([{ ev: 'turn_done', session_id: 'native-1' }]);
+    const session = await createJcodeSession({
+      client,
+      sessionId: 'harness-1',
+      sessionWorkDir: '/workspace',
+    });
+    const control = await session.doPromptTurn({
+      prompt: 'hello',
+      emit: () => {},
+    });
+    await control.done;
+    expect(client.setExternalTools).toHaveBeenCalledWith('native-1', []);
+  });
   it('streams a model-backed turn as typed harness parts', async () => {
     const client = fakeClient([
       { ev: 'reasoning_delta', session_id: 'native-1', text: 'Think' },
@@ -146,7 +269,7 @@ describe('createJcodeSession', () => {
         await new Promise<void>(resolve => {
           release = resolve;
         });
-        yield { ev: 'turn_done', session_id: 'native-1' } as ApiEvent;
+        yield { ev: 'turn_done', session_id: 'native-1' } as JcodeSdkEvent;
       })(),
     );
     const session = await createJcodeSession({

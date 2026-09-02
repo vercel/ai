@@ -26,5 +26,8 @@ export const jcodeBridgeInboundMessageSchema = z.discriminatedUnion('type', [
   jcodeBridgeStartMessageSchema,
   ...harnessV1BridgeInboundCommandSchemas,
 ]);
+export type JcodeBridgeInboundMessage = z.infer<
+  typeof jcodeBridgeInboundMessageSchema
+>;
 
 export const jcodeBridgeReadySchema = harnessV1BridgeReadySchema;

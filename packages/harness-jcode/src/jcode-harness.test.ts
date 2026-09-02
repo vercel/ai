@@ -276,6 +276,7 @@ describe('createJcode', () => {
     const env = { API_KEY: 'secret' };
     const client = {
       instanceHome: '/resumed/home',
+      supports: vi.fn(() => true),
       attachSession: vi.fn(async () => ({ session_id: 'native-1' })),
       createSession: vi.fn(),
       detachSession: vi.fn(),
@@ -285,6 +286,8 @@ describe('createJcode', () => {
       compact: vi.fn(),
       setModel: vi.fn(),
       setReasoningEffort: vi.fn(),
+      setExternalTools: vi.fn(),
+      submitExternalToolResult: vi.fn(),
       events: vi.fn(() => (async function* () {})()),
       close: vi.fn(),
     };

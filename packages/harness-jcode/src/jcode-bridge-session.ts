@@ -9,17 +9,14 @@ import {
 import type { SandboxChannel } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxProcess } from '@ai-sdk/provider-utils';
 import type {
+  JcodeBridgeInboundMessage,
   JcodeBridgeOutboundMessage,
-  JcodeBridgeStartMessage,
 } from './jcode-bridge-protocol';
 import { extractJcodePrompt, frameJcodeInstructions } from './jcode-utils';
 
 export type JcodeBridgeChannel = SandboxChannel<
   JcodeBridgeOutboundMessage,
-  | JcodeBridgeStartMessage
-  | { type: 'abort' }
-  | { type: 'stop' }
-  | { type: 'destroy' }
+  JcodeBridgeInboundMessage
 >;
 
 export interface CreateJcodeBridgeSessionInput {
@@ -137,8 +134,9 @@ export function createJcodeBridgeSession({
 
     return {
       done,
-      async submitToolResult() {
-        throw unsupported('host-defined tools are not supported yet');
+      async submitToolResult(result) {
+        assertOpen();
+        channel.send({ type: 'tool-result', ...result });
       },
       async submitUserMessage() {
         throw unsupported('mid-turn user messages are not supported yet');
@@ -156,6 +154,7 @@ export function createJcodeBridgeSession({
       type: 'start',
       operation,
       prompt,
+      ...(options.tools?.length ? { tools: [...options.tools] } : {}),
       ...(model ? { model } : {}),
       ...(reasoningEffort ? { reasoningEffort } : {}),
       ...(resumeJcodeSessionId
@@ -196,9 +195,6 @@ export function createJcodeBridgeSession({
       assertOpen();
       if (options.responseFormat?.type === 'json') {
         throw unsupported('JSON response format is not supported yet');
-      }
-      if (options.tools?.length) {
-        throw unsupported('host-defined tools are not supported yet');
       }
       let prompt = extractJcodePrompt(options.prompt);
       if (firstPrompt && options.instructions) {

@@ -1,5 +1,6 @@
 import type { ApiEvent } from '@1jehuang/jcode-sdk';
 import type { HarnessV1StreamPart } from '@ai-sdk/harness';
+import type { JcodeExternalToolCallEvent } from './jcode-client';
 
 type Usage = Extract<
   HarnessV1StreamPart,
@@ -32,6 +33,42 @@ export function createJcodeTranslatorState(
     tools: new Map(),
     stepHadToolCall: false,
     totalUsage: zeroUsage(),
+  };
+}
+
+export function translateJcodeExternalToolCall(
+  event: JcodeExternalToolCallEvent,
+): HarnessV1StreamPart {
+  return {
+    type: 'tool-call',
+    toolCallId: event.call_id,
+    toolName: event.name,
+    input: JSON.stringify(event.input) ?? 'null',
+    providerExecuted: false,
+    dynamic: false,
+  };
+}
+
+export function translateJcodeExternalToolResult({
+  toolCallId,
+  toolName,
+  output,
+  isError,
+}: {
+  readonly toolCallId: string;
+  readonly toolName: string;
+  readonly output: unknown;
+  readonly isError: boolean;
+}): HarnessV1StreamPart {
+  return {
+    type: 'tool-result',
+    toolCallId,
+    toolName,
+    result: output as Extract<
+      HarnessV1StreamPart,
+      { readonly type: 'tool-result' }
+    >['result'],
+    ...(isError ? { isError: true } : {}),
   };
 }
 

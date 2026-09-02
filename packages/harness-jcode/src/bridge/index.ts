@@ -1,4 +1,8 @@
-import { JcodeClient } from '@1jehuang/jcode-sdk';
+import {
+  JcodeClient,
+  type ExternalToolCall,
+  type ExternalToolDefinition,
+} from '@1jehuang/jcode-sdk';
 import {
   runBridge,
   type BridgeEvent,
@@ -9,6 +13,8 @@ import type { JcodeBridgeStartMessage } from '../jcode-bridge-protocol';
 import {
   createJcodeTranslatorState,
   translateJcodeEvent,
+  translateJcodeExternalToolCall,
+  translateJcodeExternalToolResult,
 } from '../jcode-translate';
 
 const args = parseArgs(argv.slice(2));
@@ -49,6 +55,14 @@ async function runTurn(
 
     const stream = runtime.events(sessionId!);
     const state = createJcodeTranslatorState();
+    const externalToolNames = new Set(
+      (start.tools ?? []).map(tool => tool.name),
+    );
+    const externalCallIds = new Set<string>();
+    const externalResults = new Map<
+      string,
+      { readonly output: unknown; readonly isError: boolean }
+    >();
     const abort = () => {
       void runtime.cancel(sessionId!).catch(() => {});
     };
@@ -58,10 +72,69 @@ async function runTurn(
       ...(start.model ? { modelId: start.model } : {}),
     } as BridgeEvent);
     try {
+      await runtime.setExternalTools(
+        sessionId!,
+        (start.tools ?? []).map(toExternalToolDefinition),
+      );
       await runtime.sendMessage(sessionId!, start.prompt);
       for await (const event of stream) {
+        if (event.ev === 'tool_start' && externalToolNames.has(event.name)) {
+          externalCallIds.add(event.call_id);
+          for (const part of translateJcodeEvent(event, state)) {
+            turn.emit(part as BridgeEvent);
+          }
+          continue;
+        }
+        if (
+          event.ev === 'tool_input_delta' &&
+          externalCallIds.has(event.call_id)
+        ) {
+          translateJcodeEvent(event, state);
+          continue;
+        }
+        if (event.ev === 'tool_exec' && externalCallIds.has(event.call_id)) {
+          const tool = state.tools.get(event.call_id);
+          if (!tool)
+            throw new Error(`missing external tool state: ${event.call_id}`);
+          tool.emitted = true;
+          state.stepHadToolCall = true;
+          turn.emit({
+            type: 'tool-call',
+            toolCallId: event.call_id,
+            toolName: event.name,
+            input: tool.input || '{}',
+            providerExecuted: false,
+            dynamic: false,
+          } as BridgeEvent);
+          continue;
+        }
+        if (event.ev === 'tool_done' && externalCallIds.delete(event.call_id)) {
+          const submitted = externalResults.get(event.call_id);
+          externalResults.delete(event.call_id);
+          state.tools.delete(event.call_id);
+          turn.emit(
+            translateJcodeExternalToolResult({
+              toolCallId: event.call_id,
+              toolName: event.name,
+              output: submitted?.output ?? event.error ?? event.output,
+              isError: submitted?.isError ?? event.error != null,
+            }) as BridgeEvent,
+          );
+          continue;
+        }
         if (event.ev === 'error') {
           throw new Error(`${event.code}: ${event.message}`);
+        }
+        if (event.ev === 'external_tool_call') {
+          if (!externalCallIds.has(event.call_id)) {
+            state.stepHadToolCall = true;
+            turn.emit(translateJcodeExternalToolCall(event) as BridgeEvent);
+          }
+          externalResults.set(
+            event.call_id,
+            await forwardExternalToolCall(runtime, event, turn),
+          );
+          continue;
         }
         for (const part of translateJcodeEvent(event, state)) {
           turn.emit(part as BridgeEvent);
@@ -76,6 +149,35 @@ async function runTurn(
   } catch (error) {
     turn.emitError({ error, message: 'Jcode turn failed' });
   }
+}
+
+function toExternalToolDefinition(
+  tool: NonNullable<JcodeBridgeStartMessage['tools']>[number],
+): ExternalToolDefinition {
+  return {
+    name: tool.name,
+    description: tool.description ?? '',
+    input_schema:
+      tool.inputSchema != null &&
+      typeof tool.inputSchema === 'object' &&
+      !Array.isArray(tool.inputSchema)
+        ? (tool.inputSchema as Record<string, unknown>)
+        : {},
+  };
+}
+
+async function forwardExternalToolCall(
+  runtime: JcodeClient,
+  call: ExternalToolCall,
+  turn: BridgeTurn,
+): Promise<{ readonly output: unknown; readonly isError: boolean }> {
+  const result = await turn.requestToolResult(call.call_id);
+  await runtime.submitExternalToolResult(call.root_session_id, {
+    call_id: call.call_id,
+    output: result.output,
+    is_error: result.isError ?? false,
+  });
+  return { output: result.output, isError: result.isError ?? false };
 }
 
 async function ensureRuntime(

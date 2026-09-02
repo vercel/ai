@@ -25,5 +25,13 @@ describe('Jcode bridge protocol', () => {
     expect(jcodeBridgeInboundMessageSchema.parse({ type: 'abort' })).toEqual({
       type: 'abort',
     });
+    expect(
+      jcodeBridgeInboundMessageSchema.parse({
+        type: 'tool-result',
+        toolCallId: 'call-1',
+        output: { temperature: 21 },
+        isError: false,
+      }),
+    ).toMatchObject({ type: 'tool-result', toolCallId: 'call-1' });
   });
 });
