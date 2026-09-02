@@ -8235,6 +8235,47 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
       });
 
+      it('should flatten a mid-stream error event so message and code are top-level', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data:{"type":"response.created","sequence_number":0,"response":{"id":"resp_flagged","created_at":1741269019,"model":"gpt-4o-2024-07-18","service_tier":null}}\n\n`,
+            `data:{"type":"response.output_item.added","sequence_number":1,"output_index":0,"item":{"id":"msg_flagged","type":"message"}}\n\n`,
+            `data:{"type":"response.output_text.delta","sequence_number":2,"item_id":"msg_flagged","output_index":0,"content_index":0,"delta":"partial"}\n\n`,
+            `data:{"type":"error","sequence_number":3,"error":{"type":"invalid_request_error","code":"invalid_prompt","message":"Invalid prompt: your prompt was flagged.","param":null}}\n\n`,
+          ],
+        };
+
+        const { stream } = await createModel('gpt-4o-mini').doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks: false,
+        });
+
+        const events = await convertReadableStreamToArray(stream);
+        const errorEvent = events.find(event => event.type === 'error');
+
+        expect(errorEvent).toEqual({
+          type: 'error',
+          error: {
+            message: 'Invalid prompt: your prompt was flagged.',
+            type: 'invalid_request_error',
+            code: 'invalid_prompt',
+            statusCode: 400,
+            isRetryable: false,
+            data: {
+              type: 'error',
+              sequence_number: 3,
+              error: {
+                type: 'invalid_request_error',
+                code: 'invalid_prompt',
+                message: 'Invalid prompt: your prompt was flagged.',
+                param: null,
+              },
+            },
+          },
+        });
+      });
+
       it('should expose raw finish reason from late response.failed incomplete details', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'stream-chunks',
@@ -8276,14 +8317,21 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
             {
               "error": {
-                "error": {
-                  "code": "server_error",
-                  "message": "response failed",
-                  "param": null,
-                  "type": "server_error",
+                "code": "server_error",
+                "data": {
+                  "error": {
+                    "code": "server_error",
+                    "message": "response failed",
+                    "param": null,
+                    "type": "server_error",
+                  },
+                  "sequence_number": 2,
+                  "type": "error",
                 },
-                "sequence_number": 2,
-                "type": "error",
+                "isRetryable": true,
+                "message": "response failed",
+                "statusCode": 500,
+                "type": "server_error",
               },
               "type": "error",
             },

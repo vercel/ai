@@ -29,7 +29,10 @@ import {
 import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
-import { throwIfOpenAIStreamErrorBeforeOutput } from '../openai-stream-error';
+import {
+  createOpenAIProviderStreamError,
+  throwIfOpenAIStreamErrorBeforeOutput,
+} from '../openai-stream-error';
 import type { applyPatchInputSchema } from '../tool/apply-patch';
 import type {
   codeInterpreterInputSchema,
@@ -2229,17 +2232,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
               if (!encounteredStreamError && value.response.error != null) {
                 encounteredStreamError = true;
+                const error = {
+                  type: 'response.failed',
+                  sequence_number: value.sequence_number,
+                  response: {
+                    error: value.response.error,
+                    incomplete_details: value.response.incomplete_details,
+                    service_tier: value.response.service_tier,
+                  },
+                };
                 controller.enqueue({
                   type: 'error',
-                  error: {
-                    type: 'response.failed',
-                    sequence_number: value.sequence_number,
-                    response: {
-                      error: value.response.error,
-                      incomplete_details: value.response.incomplete_details,
-                      service_tier: value.response.service_tier,
-                    },
-                  },
+                  error: createOpenAIProviderStreamError(error) ?? error,
                 });
               }
             } else if (isResponseAnnotationAddedChunk(value)) {
@@ -2313,7 +2317,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             } else if (isErrorChunk(value)) {
               encounteredStreamError = true;
               finishReason = { unified: 'error', raw: 'error' };
-              controller.enqueue({ type: 'error', error: value });
+              controller.enqueue({
+                type: 'error',
+                error: createOpenAIProviderStreamError(value) ?? value,
+              });
             }
           },
 
