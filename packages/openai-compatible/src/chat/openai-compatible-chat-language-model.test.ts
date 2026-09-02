@@ -1414,6 +1414,25 @@ describe('doGenerate', () => {
       );
     });
 
+    it('should use max_completion_tokens for gateway-prefixed reasoning models', async () => {
+      prepareJsonResponse({ content: '{"value":"test"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel('openai/o1-mini', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 1000,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.max_completion_tokens).toBe(1000);
+      expect(requestBody.max_tokens).toBeUndefined();
+    });
+
     it('should pass textVerbosity setting from providerOptions', async () => {
       prepareJsonResponse({ content: '{"value":"test"}' });
 

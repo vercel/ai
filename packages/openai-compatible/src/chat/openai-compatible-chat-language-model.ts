@@ -49,6 +49,7 @@ import {
   type OpenAICompatibleChatModelId,
 } from './openai-compatible-chat-language-model-options';
 import type { MetadataExtractor } from './openai-compatible-metadata-extractor';
+import { getOpenAILanguageModelCapabilities } from '@ai-sdk/openai/src/openai-language-model-capabilities';
 import { prepareTools } from './openai-compatible-prepare-tools';
 
 type OpenAICompatibleStreamingToolCallDelta = StreamingToolCallDelta & {
@@ -323,6 +324,17 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
       },
       warnings: [...warnings, ...toolWarnings],
     };
+
+    // reasoning models use max_completion_tokens instead of max_tokens
+    const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
+    if (modelCapabilities.isReasoningModel && result.args.max_tokens != null) {
+      if (result.args.max_completion_tokens == null) {
+        result.args.max_completion_tokens = result.args.max_tokens;
+      }
+      result.args.max_tokens = undefined;
+    }
+
+    return result;
   }
 
   async doGenerate(
