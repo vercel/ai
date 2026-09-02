@@ -115,7 +115,10 @@ export function smoothStream<TOOLS extends ToolSet>({
     function flushBuffer(
       controller: TransformStreamDefaultController<TextStreamPart<TOOLS>>,
     ) {
-      if (buffer.length > 0 && type !== undefined) {
+      if (
+        type !== undefined &&
+        (buffer.length > 0 || providerMetadata != null)
+      ) {
         controller.enqueue({
           type,
           text: buffer,
@@ -137,7 +140,10 @@ export function smoothStream<TOOLS extends ToolSet>({
         }
 
         // Flush buffer when type or id changes
-        if ((chunk.type !== type || chunk.id !== id) && buffer.length > 0) {
+        if (
+          (chunk.type !== type || chunk.id !== id) &&
+          (buffer.length > 0 || providerMetadata != null)
+        ) {
           flushBuffer(controller);
         }
 

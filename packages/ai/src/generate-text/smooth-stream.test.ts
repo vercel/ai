@@ -1510,6 +1510,55 @@ describe('smoothStream', () => {
   });
 
   describe('providerMetadata preservation', () => {
+    it('should preserve metadata from an empty delta when the buffer is empty', async () => {
+      const providerMetadata = {
+        anthropic: { signature: 'sig_abc123' },
+      };
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'reasoning-start', id: 'r1' },
+        {
+          text: 'Let me think. ',
+          type: 'reasoning-delta',
+          id: 'r1',
+        },
+        {
+          text: '',
+          type: 'reasoning-delta',
+          id: 'r1',
+          providerMetadata,
+        },
+        { type: 'reasoning-end', id: 'r1' },
+        { type: 'text-start', id: 't1' },
+        { text: 'Hello world', type: 'text-delta', id: 't1' },
+        { type: 'text-end', id: 't1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: null,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events.filter(event => typeof event !== 'string')).toEqual([
+        { type: 'reasoning-start', id: 'r1' },
+        { text: 'Let ', type: 'reasoning-delta', id: 'r1' },
+        { text: 'me ', type: 'reasoning-delta', id: 'r1' },
+        { text: 'think. ', type: 'reasoning-delta', id: 'r1' },
+        {
+          text: '',
+          type: 'reasoning-delta',
+          id: 'r1',
+          providerMetadata,
+        },
+        { type: 'reasoning-end', id: 'r1' },
+        { type: 'text-start', id: 't1' },
+        { text: 'Hello ', type: 'text-delta', id: 't1' },
+        { text: 'world', type: 'text-delta', id: 't1' },
+        { type: 'text-end', id: 't1' },
+      ]);
+    });
+
     it('should preserve providerMetadata on reasoning-delta chunks (signature for Anthropic thinking)', async () => {
       const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
         { type: 'reasoning-start', id: '1' },
