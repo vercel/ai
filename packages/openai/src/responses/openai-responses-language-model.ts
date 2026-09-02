@@ -620,6 +620,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       delete (baseArgs as any).service_tier;
     }
 
+    // Validate ultrafast processing support
+    if (
+      openaiOptions?.serviceTier === 'ultrafast' &&
+      !modelCapabilities.supportsUltrafastProcessing
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'serviceTier',
+        details: 'ultrafast processing is only available for gpt-5.6-sol',
+      });
+      delete (baseArgs as any).service_tier;
+    }
+
     const shellToolEnvType = (
       tools?.find(
         tool => tool.type === 'provider' && tool.id === 'openai.shell',
