@@ -1,4 +1,4 @@
-import { tool } from '@ai-sdk/provider-utils';
+import type { FunctionTool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 const harnessV1QuestionSchema = z.object({
@@ -60,10 +60,13 @@ export type HarnessV1QuestionsToolOutput = z.infer<
   typeof harnessV1QuestionsToolOutputSchema
 >;
 
-export const harnessV1QuestionsTool = tool({
+export const harnessV1QuestionsTool: FunctionTool<
+  HarnessV1QuestionsToolInput,
+  HarnessV1QuestionsToolOutput
+> = {
   description: 'Ask the user one or more questions',
   inputSchema: harnessV1QuestionsToolInputSchema,
   outputSchema: harnessV1QuestionsToolOutputSchema,
-});
+};
 
 export type HarnessV1QuestionsTool = typeof harnessV1QuestionsTool;

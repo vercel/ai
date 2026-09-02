@@ -1,10 +1,19 @@
-import { describe, expect, test } from 'vitest';
+import type { InferToolOutput } from '@ai-sdk/provider-utils';
+import { describe, expect, expectTypeOf, test } from 'vitest';
 import {
+  type HarnessV1QuestionsToolOutput,
+  type harnessV1QuestionsTool,
   harnessV1QuestionsToolInputSchema,
   harnessV1QuestionsToolOutputSchema,
 } from './harness-v1-questions-tool';
 
 describe('askUserQuestions schemas', () => {
+  test('exposes the question response as its tool output type', () => {
+    expectTypeOf<
+      InferToolOutput<typeof harnessV1QuestionsTool>
+    >().toEqualTypeOf<HarnessV1QuestionsToolOutput>();
+  });
+
   test('accepts the canonical question input', () => {
     expect(
       harnessV1QuestionsToolInputSchema.parse({

@@ -466,6 +466,9 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
     ...HARNESS_V1_BUILTIN_TOOLS.askUserQuestions,
     nativeName: 'AskUserQuestion',
     toolUseKind: 'readonly',
+  } as typeof HARNESS_V1_BUILTIN_TOOLS.askUserQuestions & {
+    readonly nativeName: 'AskUserQuestion';
+    readonly toolUseKind: 'readonly';
   },
   Skill: {
     ...tool({
