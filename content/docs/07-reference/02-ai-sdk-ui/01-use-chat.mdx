@@ -267,10 +267,10 @@ Allows you to easily create a conversational user interface for your chatbot app
     },
     {
       name: 'sendAutomaticallyWhen',
-      type: '(options: { messages: UIMessage[] }) => boolean | PromiseLike<boolean>',
+      type: 'SendAutomaticallyWhen',
       isOptional: true,
       description:
-        'When provided, this function will be called when the stream is finished or a tool call is added to determine if the current messages should be resubmitted. You can use the lastAssistantMessageIsCompleteWithToolCalls helper for common scenarios.',
+        'A function with the signature (options: { messages: UIMessage[] }) => boolean | PromiseLike<boolean>. When provided, this function will be called when the stream is finished or a tool call is added to determine if the current messages should be resubmitted. You can use the lastAssistantMessageIsCompleteWithToolCalls helper for common scenarios.',
     },
     {
       name: 'onFinish',
@@ -406,9 +406,9 @@ Allows you to easily create a conversational user interface for your chatbot app
     },
     {
       name: 'sendMessage',
-      type: '(message?: { text: string; files?: FileList | FileUIPart[]; metadata?; messageId?: string } | CreateUIMessage, options?: ChatRequestOptions) => Promise<void>',
+      type: 'SendMessage',
       description:
-        'Function to send a new message to the chat. This will trigger an API call to generate the assistant response. If a messageId is provided, the message will be replaced (useful for editing). If no message is provided, resubmits the current messages (useful after adding tool outputs).',
+        'Function to send a new message to the chat. The signature is (message?: { text: string; files?: FileList | FileUIPart[]; metadata?; messageId?: string } | CreateUIMessage, options?: ChatRequestOptions) => Promise<void>. This will trigger an API call to generate the assistant response. If a messageId is provided, the message will be replaced (useful for editing). If no message is provided, resubmits the current messages (useful after adding tool outputs).',
       properties: [
         {
           type: 'ChatRequestOptions',
@@ -439,9 +439,9 @@ Allows you to easily create a conversational user interface for your chatbot app
     },
     {
       name: 'regenerate',
-      type: '(options?: { messageId?: string } & ChatRequestOptions) => Promise<void>',
+      type: 'Regenerate',
       description:
-        'Function to regenerate the last assistant message or a specific message. If no messageId is provided, regenerates the last assistant message. Accepts ChatRequestOptions for headers, body, and metadata.',
+        'Function to regenerate the last assistant message or a specific message. The signature is (options?: { messageId?: string } & ChatRequestOptions) => Promise<void>. If no messageId is provided, regenerates the last assistant message. Accepts ChatRequestOptions for headers, body, and metadata.',
     },
     {
       name: 'stop',
@@ -462,26 +462,26 @@ Allows you to easily create a conversational user interface for your chatbot app
     },
     {
       name: 'addToolOutput',
-      type: '(options: { tool: string; toolCallId: string; output: unknown } | { tool: string; toolCallId: string; state: "output-error", errorText: string }) => void',
+      type: 'AddToolOutput',
       description:
-        'Function to add a tool result to the chat. This will update the chat messages with the tool result. If sendAutomaticallyWhen is configured, it may trigger an automatic submission.',
+        'Function to add a tool result to the chat. The signature accepts either { tool: string; toolCallId: string; output: unknown } or { tool: string; toolCallId: string; state: "output-error", errorText: string }. This will update the chat messages with the tool result. If sendAutomaticallyWhen is configured, it may trigger an automatic submission.',
     },
     {
       name: 'addToolApprovalResponse',
-      type: '(options: { id: string; approved: boolean; reason?: string }) => void | PromiseLike<void>',
+      type: 'AddToolApprovalResponse',
       description:
-        'Function to respond to a tool approval request. The id should match the approval id from the tool call. If sendAutomaticallyWhen is configured, it may trigger an automatic submission.',
+        'Function to respond to a tool approval request. The signature is (options: { id: string; approved: boolean; reason?: string }) => void | PromiseLike<void>. The id should match the approval id from the tool call. If sendAutomaticallyWhen is configured, it may trigger an automatic submission.',
     },
     {
       name: 'addToolResult',
-      type: '(options: { tool: string; toolCallId: string; output: unknown } | { tool: string; toolCallId: string; state: "output-error", errorText: string }) => void',
+      type: 'AddToolResult',
       description: 'Deprecated. Use addToolOutput instead.',
     },
     {
       name: 'setMessages',
-      type: '(messages: UIMessage[] | ((messages: UIMessage[]) => UIMessage[])) => void',
+      type: 'SetMessages',
       description:
-        'Function to update the messages state locally without triggering an API call. Useful for optimistic updates.',
+        'Function to update the messages state locally without triggering an API call. The signature is (messages: UIMessage[] | ((messages: UIMessage[]) => UIMessage[])) => void. Useful for optimistic updates.',
     },
   ]}
 />
