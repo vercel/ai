@@ -1564,6 +1564,86 @@ describe('smoothStream', () => {
   });
 
   describe('providerMetadata preservation', () => {
+    const providerMetadataA = {
+      anthropic: { signature: 'sig-a' },
+    };
+    const providerMetadataB = {
+      anthropic: { signature: 'sig-b' },
+    };
+
+    async function smoothParts(parts: TextStreamPart<ToolSet>[]) {
+      const stream = convertArrayToReadableStream(parts).pipeThrough(
+        smoothStream({
+          delayInMs: null,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      return events.filter(event => typeof event !== 'string');
+    }
+
+    it.each([
+      {
+        chunking: 'word' as const,
+        deltaType: 'reasoning-delta' as const,
+        startType: 'reasoning-start' as const,
+        endType: 'reasoning-end' as const,
+        inputText: 'First second final',
+        expectedText: ['First ', 'second ', 'final'],
+      },
+      {
+        chunking: 'line' as const,
+        deltaType: 'text-delta' as const,
+        startType: 'text-start' as const,
+        endType: 'text-end' as const,
+        inputText: 'First line\nSecond line\nfinal line',
+        expectedText: ['First line\n', 'Second line\n', 'final line'],
+      },
+    ])(
+      'should preserve providerMetadata on every $chunking-chunked $deltaType part',
+      async ({
+        chunking,
+        deltaType,
+        startType,
+        endType,
+        inputText,
+        expectedText,
+      }) => {
+        const providerMetadata = {
+          anthropic: { signature: 'sig_abc123' },
+        };
+        const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+          { type: startType, id: '1' },
+          {
+            text: inputText,
+            type: deltaType,
+            id: '1',
+            providerMetadata,
+          },
+          { type: endType, id: '1' },
+        ]).pipeThrough(
+          smoothStream({
+            chunking,
+            delayInMs: null,
+            _internal: { delay },
+          })({ tools: {} }),
+        );
+
+        await consumeStream(stream);
+
+        expect(events.filter(event => event.type === deltaType)).toEqual(
+          expectedText.map(text => ({
+            type: deltaType,
+            text,
+            id: '1',
+            providerMetadata,
+          })),
+        );
+      },
+    );
+
     it('should preserve providerMetadata on reasoning-delta chunks (signature for Anthropic thinking)', async () => {
       const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
         { type: 'reasoning-start', id: '1' },
@@ -1601,6 +1681,165 @@ describe('smoothStream', () => {
       expect(lastReasoningDelta.providerMetadata).toEqual({
         anthropic: { signature: 'sig_abc123' },
       });
+    });
+
+    it('should preserve an empty metadata delta after an exact boundary', async () => {
+      const output = await smoothParts([
+        { text: 'Done ', type: 'reasoning-delta', id: '1' },
+        {
+          text: '',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: providerMetadataA,
+        },
+        { type: 'reasoning-end', id: '1' },
+      ]);
+
+      expect(output).toEqual([
+        { text: 'Done ', type: 'reasoning-delta', id: '1' },
+        {
+          text: '',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: providerMetadataA,
+        },
+        { type: 'reasoning-end', id: '1' },
+      ]);
+    });
+
+    it('should not carry metadata to a metadata-free delta with the same id', async () => {
+      const output = await smoothParts([
+        {
+          text: 'Signed',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: providerMetadataA,
+        },
+        { text: ' plain ', type: 'reasoning-delta', id: '1' },
+      ]);
+
+      expect(output).toEqual([
+        {
+          text: 'Signed',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: providerMetadataA,
+        },
+        { text: ' plain ', type: 'reasoning-delta', id: '1' },
+      ]);
+    });
+
+    it('should keep different metadata values with their source deltas', async () => {
+      const output = await smoothParts([
+        {
+          text: 'First',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: providerMetadataA,
+        },
+        {
+          text: ' second ',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: providerMetadataB,
+        },
+      ]);
+
+      expect(output).toEqual([
+        {
+          text: 'First',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: providerMetadataA,
+        },
+        {
+          text: ' second ',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: providerMetadataB,
+        },
+      ]);
+    });
+
+    it('should not carry word-chunk metadata to a subsequent delta type', async () => {
+      const providerMetadata = {
+        anthropic: { signature: 'sig_abc123' },
+      };
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        {
+          text: 'Signed ',
+          type: 'reasoning-delta',
+          id: 'reasoning-1',
+          providerMetadata,
+        },
+        {
+          text: 'Plain ',
+          type: 'text-delta',
+          id: 'text-1',
+        },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: null,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events.filter(event => typeof event !== 'string')).toEqual([
+        {
+          type: 'reasoning-delta',
+          text: 'Signed ',
+          id: 'reasoning-1',
+          providerMetadata,
+        },
+        {
+          type: 'text-delta',
+          text: 'Plain ',
+          id: 'text-1',
+        },
+      ]);
+    });
+
+    it('should not carry line-chunk metadata to a subsequent delta id', async () => {
+      const providerMetadata = {
+        anthropic: { signature: 'sig_abc123' },
+      };
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        {
+          text: 'Signed line\n',
+          type: 'text-delta',
+          id: 'text-1',
+          providerMetadata,
+        },
+        {
+          text: 'Plain line\n',
+          type: 'text-delta',
+          id: 'text-2',
+        },
+      ]).pipeThrough(
+        smoothStream({
+          chunking: 'line',
+          delayInMs: null,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events.filter(event => typeof event !== 'string')).toEqual([
+        {
+          type: 'text-delta',
+          text: 'Signed line\n',
+          id: 'text-1',
+          providerMetadata,
+        },
+        {
+          type: 'text-delta',
+          text: 'Plain line\n',
+          id: 'text-2',
+        },
+      ]);
     });
 
     it('should preserve providerMetadata on reasoning-start for redacted thinking', async () => {
