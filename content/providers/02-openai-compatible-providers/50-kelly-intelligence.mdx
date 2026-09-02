@@ -1,0 +1,77 @@
+---
+title: Kelly Intelligence
+description: Use the Kelly Intelligence OpenAI compatible API with the AI SDK.
+---
+
+# Kelly Intelligence Provider
+
+[Kelly Intelligence](https://api.thedailylesson.com) is an OpenAI-compatible API with a built-in 162,000-word vocabulary RAG layer, operated by [Lesson of the Day, PBC](https://lotdpbc.com). It exposes a `/v1/chat/completions` endpoint at `https://api.thedailylesson.com/v1`, so you can use it with the AI SDK via the OpenAI Compatible provider.
+
+## Setup
+
+The Kelly Intelligence provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/openai-compatible" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/openai-compatible" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+To use Kelly Intelligence, create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+
+const kelly = createOpenAICompatible({
+  name: "kelly",
+  apiKey: process.env.KELLY_API_KEY,
+  baseURL: "https://api.thedailylesson.com/v1",
+});
+```
+
+<Note>
+  The free tier requires no credit card. Sign up for a `KELLY_API_KEY` at
+  [api.thedailylesson.com](https://api.thedailylesson.com).
+</Note>
+
+## Language Models
+
+Kelly Intelligence exposes three model ids: `kelly-haiku`, `kelly-sonnet`, and `kelly-opus`.
+
+```ts
+const model = kelly("kelly-haiku");
+```
+
+### Example
+
+You can use Kelly Intelligence language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { generateText } from "ai";
+
+const kelly = createOpenAICompatible({
+  name: "kelly",
+  apiKey: process.env.KELLY_API_KEY,
+  baseURL: "https://api.thedailylesson.com/v1",
+});
+
+const { text } = await generateText({
+  model: kelly("kelly-haiku"),
+  prompt: 'Define the word "ephemeral" for an intermediate English learner.',
+});
+```
+
+Kelly Intelligence language models can also be used with `streamText`.
