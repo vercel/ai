@@ -1345,6 +1345,19 @@ export interface WorkflowAgentStreamResult<
   output: OUTPUT;
 }
 
+type WorkflowAgentExecutionResult<
+  TTools extends ToolSet,
+  TRuntimeContext extends Context,
+  OUTPUT,
+> = {
+  result: WorkflowAgentStreamResult<TTools, OUTPUT>;
+  initialResponseMessages: GenerateTextResult<
+    TTools,
+    TRuntimeContext,
+    never
+  >['responseMessages'];
+};
+
 /**
  * Result of the WorkflowAgent.generate method.
  *
@@ -1515,7 +1528,10 @@ export class WorkflowAgent<
       TPartialOutput
     >,
   ): Promise<WorkflowAgentGenerateResult<TTools, TRuntimeContext, TOutput>> {
-    const result = await this.execute(options, 'generate');
+    const { result, initialResponseMessages } = await this.execute(
+      options,
+      'generate',
+    );
     const output =
       (options.output ?? this.output) == null
         ? (result.steps.at(-1)?.text as TOutput)
@@ -1525,6 +1541,7 @@ export class WorkflowAgent<
       result,
       output,
       tools: this.tools as unknown as TTools,
+      initialResponseMessages,
     });
   }
 
@@ -1540,7 +1557,7 @@ export class WorkflowAgent<
       TPartialOutput
     >,
   ): Promise<WorkflowAgentStreamResult<TTools, TOutput>> {
-    return this.execute(options, 'stream');
+    return (await this.execute(options, 'stream')).result;
   }
 
   private async execute<
@@ -1555,7 +1572,7 @@ export class WorkflowAgent<
       TPartialOutput
     >,
     mode: 'generate' | 'stream',
-  ): Promise<WorkflowAgentStreamResult<TTools, TOutput>> {
+  ): Promise<WorkflowAgentExecutionResult<TTools, TRuntimeContext, TOutput>> {
     const { onFinish, onEnd = onFinish } = options;
 
     // Call prepareCall to transform parameters before the agent loop
@@ -1727,6 +1744,11 @@ export class WorkflowAgent<
         providerExecuted: collected.toolCall.providerExecuted === true,
       }),
     );
+    const initialResponseMessages: GenerateTextResult<
+      TTools,
+      TRuntimeContext,
+      never
+    >['responseMessages'] = [];
 
     // Approval ids of provider-executed tool calls. Provider-executed tools
     // (e.g. MCP via the Responses API) cannot be resolved locally — the
@@ -1745,7 +1767,6 @@ export class WorkflowAgent<
     );
 
     if (approvedToolApprovals.length > 0 || deniedToolApprovals.length > 0) {
-      const _toolResultMessages: ModelMessage[] = [];
       const toolResultContent: LanguageModelV4ToolResultPart[] = [];
       const approvedRawResults: Array<{
         toolCallId: string;
@@ -1918,10 +1939,16 @@ export class WorkflowAgent<
 
       // Add tool results as a new tool message
       if (toolResultContent.length > 0) {
-        cleanedMessages.push({
+        const toolResultMessage = {
           role: 'tool',
           content: toolResultContent,
-        } as ModelMessage);
+        } as GenerateTextResult<
+          TTools,
+          TRuntimeContext,
+          never
+        >['responseMessages'][number];
+        cleanedMessages.push(toolResultMessage as ModelMessage);
+        initialResponseMessages.push(toolResultMessage);
       }
 
       prompt.messages = cleanedMessages;
@@ -2275,13 +2302,16 @@ export class WorkflowAgent<
         mergedGenerationSettings.abortSignal.throwIfAborted();
       }
       return {
-        messages: prompt.messages,
-        steps,
-        toolCalls: [],
-        toolResults: [],
-        finishReason: 'other',
-        totalUsage: aggregateUsage(steps),
-        output: undefined as TOutput,
+        result: {
+          messages: prompt.messages,
+          steps,
+          toolCalls: [],
+          toolResults: [],
+          finishReason: 'other',
+          totalUsage: aggregateUsage(steps),
+          output: undefined as TOutput,
+        },
+        initialResponseMessages,
       };
     }
 
@@ -2591,13 +2621,16 @@ export class WorkflowAgent<
             }
 
             return {
-              messages,
-              steps,
-              toolCalls: allToolCalls,
-              toolResults: allToolResults,
-              finishReason,
-              totalUsage,
-              output: undefined as TOutput,
+              result: {
+                messages,
+                steps,
+                toolCalls: allToolCalls,
+                toolResults: allToolResults,
+                finishReason,
+                totalUsage,
+                output: undefined as TOutput,
+              },
+              initialResponseMessages,
             };
           }
 
@@ -2784,12 +2817,21 @@ export class WorkflowAgent<
       | OutputSpecification<TOutput, TPartialOutput>
       | undefined;
     let experimentalOutput: TOutput = undefined as TOutput;
+    // Decide whether to parse the structured output from the final step.
+    // - When the final step produced text, parse it unless the model stopped to
+    //   call tools (partial, non-final text should not be parsed).
+    // - When the final step produced no text, only `generate` treats a clean
+    //   `stop` as a completed-but-empty response and lets `parseCompleteOutput`
+    //   surface the resulting error (e.g. NoObjectGeneratedError). `stream`
+    //   preserves its historical behavior of skipping parsing on empty text
+    //   (resolving with an undefined output) so it does not start rejecting for
+    //   callers that previously succeeded.
     if (
       effectiveOutput &&
       steps.length > 0 &&
-      (steps.at(-1)!.finishReason === 'stop' ||
-        (steps.at(-1)!.finishReason !== 'tool-calls' &&
-          steps.at(-1)!.text.length > 0))
+      (steps.at(-1)!.text.length > 0
+        ? steps.at(-1)!.finishReason !== 'tool-calls'
+        : mode === 'generate' && steps.at(-1)!.finishReason === 'stop')
     ) {
       const lastStep = steps[steps.length - 1];
       const text = lastStep.text;
@@ -2868,14 +2910,17 @@ export class WorkflowAgent<
     }
 
     return {
-      messages: messages as ModelMessage[],
-      steps,
-      toolCalls: lastStepToolCalls,
-      toolResults: lastStepToolResults,
-      finishReason,
-      totalUsage,
-      output: experimentalOutput,
-      ...(hasTerminalError ? { error: terminalError } : {}),
+      result: {
+        messages: messages as ModelMessage[],
+        steps,
+        toolCalls: lastStepToolCalls,
+        toolResults: lastStepToolResults,
+        finishReason,
+        totalUsage,
+        output: experimentalOutput,
+        ...(hasTerminalError ? { error: terminalError } : {}),
+      },
+      initialResponseMessages,
     };
   }
 }
@@ -2888,10 +2933,16 @@ async function createWorkflowAgentGenerateResult<
   result,
   output,
   tools,
+  initialResponseMessages,
 }: {
   result: WorkflowAgentStreamResult<TTools, OUTPUT>;
   output: OUTPUT | undefined;
   tools: TTools;
+  initialResponseMessages: GenerateTextResult<
+    TTools,
+    TRuntimeContext,
+    never
+  >['responseMessages'];
 }): Promise<WorkflowAgentGenerateResult<TTools, TRuntimeContext, OUTPUT>> {
   const steps = await Promise.all(
     result.steps.map(async step => ({
@@ -2972,7 +3023,10 @@ async function createWorkflowAgentGenerateResult<
       return getFinalStep().response;
     },
     get responseMessages() {
-      return steps.flatMap(step => step.response.messages);
+      return [
+        ...initialResponseMessages,
+        ...steps.flatMap(step => step.response.messages),
+      ];
     },
     get providerMetadata() {
       return getFinalStep().providerMetadata;

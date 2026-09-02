@@ -1,5 +1,5 @@
 import type { LanguageModelV4StreamPart } from '@ai-sdk/provider';
-import { NoOutputGeneratedError, Output, tool } from 'ai';
+import { NoOutputGeneratedError, Output, ToolLoopAgent, tool } from 'ai';
 import { convertArrayToReadableStream, MockLanguageModelV4 } from 'ai/test';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
@@ -88,48 +88,82 @@ describe('WorkflowAgent.generate', () => {
   });
 
   it('aggregates tool calls and results across durable steps', async () => {
-    let callCount = 0;
+    let streamCallCount = 0;
+    let generateCallCount = 0;
     const tools = {
       lookup: tool({
         inputSchema: z.object({ query: z.string() }),
         execute: async ({ query }) => ({ answer: `${query}-result` }),
       }),
     };
-    const agent = new WorkflowAgent({
-      model: new MockLanguageModelV4({
-        doStream: async () => {
-          if (callCount++ === 0) {
-            return stream([
+    const model = new MockLanguageModelV4({
+      doGenerate: async () => {
+        if (generateCallCount++ === 0) {
+          return {
+            content: [
               {
                 type: 'tool-call',
+                toolCallType: 'function',
                 toolCallId: 'tool-call-1',
                 toolName: 'lookup',
                 input: '{"query":"weather"}',
               },
-              {
-                type: 'finish',
-                finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
-                usage,
-              },
-            ]);
-          }
+            ],
+            finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+            usage,
+            warnings: [],
+          };
+        }
 
+        return {
+          content: [{ type: 'text', text: 'sunny' }],
+          finishReason: { unified: 'stop', raw: 'stop' },
+          usage,
+          warnings: [],
+        };
+      },
+      doStream: async () => {
+        if (streamCallCount++ === 0) {
           return stream([
-            { type: 'text-start', id: 'text-1' },
-            { type: 'text-delta', id: 'text-1', delta: 'sunny' },
-            { type: 'text-end', id: 'text-1' },
+            {
+              type: 'tool-call',
+              toolCallId: 'tool-call-1',
+              toolName: 'lookup',
+              input: '{"query":"weather"}',
+            },
             {
               type: 'finish',
-              finishReason: { unified: 'stop', raw: 'stop' },
+              finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
               usage,
             },
           ]);
-        },
-      }),
+        }
+
+        return stream([
+          { type: 'text-start', id: 'text-1' },
+          { type: 'text-delta', id: 'text-1', delta: 'sunny' },
+          { type: 'text-end', id: 'text-1' },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage,
+          },
+        ]);
+      },
+    });
+    const agent = new WorkflowAgent({
+      model,
+      tools,
+    });
+    const toolLoopAgent = new ToolLoopAgent({
+      model,
       tools,
     });
 
     const result = await agent.generate({ prompt: 'Check the weather.' });
+    const toolLoopResult = await toolLoopAgent.generate({
+      prompt: 'Check the weather.',
+    });
 
     expect(result.steps).toHaveLength(2);
     expect(result.toolCalls).toEqual([
@@ -160,6 +194,156 @@ describe('WorkflowAgent.generate', () => {
       outputTokens: 8,
       totalTokens: 14,
     });
+    const summarizeResult = (value: typeof result | typeof toolLoopResult) => ({
+      text: value.text,
+      finishReason: value.finishReason,
+      usage: {
+        inputTokens: value.usage.inputTokens,
+        outputTokens: value.usage.outputTokens,
+        totalTokens: value.usage.totalTokens,
+      },
+      toolCalls: value.toolCalls.map(({ toolCallId, toolName, input }) => ({
+        toolCallId,
+        toolName,
+        input,
+      })),
+      toolResults: value.toolResults.map(
+        ({ toolCallId, toolName, input, output }) => ({
+          toolCallId,
+          toolName,
+          input,
+          output,
+        }),
+      ),
+      responseMessages: value.responseMessages,
+    });
+    expect(summarizeResult(result)).toEqual(summarizeResult(toolLoopResult));
+  });
+
+  it('includes pre-step approval results in responseMessages like ToolLoopAgent', async () => {
+    const tools = {
+      lookup: tool({
+        inputSchema: z.object({ query: z.string() }),
+        needsApproval: true,
+        execute: async ({ query }) => ({ answer: `${query}-result` }),
+      }),
+    };
+    const model = new MockLanguageModelV4({
+      doGenerate: async () => ({
+        content: [{ type: 'text', text: 'approved result' }],
+        finishReason: { unified: 'stop', raw: 'stop' },
+        usage,
+        warnings: [],
+      }),
+      doStream: async () =>
+        stream([
+          { type: 'text-start', id: 'text-1' },
+          { type: 'text-delta', id: 'text-1', delta: 'approved result' },
+          { type: 'text-end', id: 'text-1' },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage,
+          },
+        ]),
+    });
+    const messages = [
+      { role: 'user', content: 'Look it up.' },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'tool-call-1',
+            toolName: 'lookup',
+            input: { query: 'weather' },
+          },
+          {
+            type: 'tool-approval-request',
+            approvalId: 'approval-tool-call-1',
+            toolCallId: 'tool-call-1',
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-approval-response',
+            approvalId: 'approval-tool-call-1',
+            approved: true,
+          },
+        ],
+      },
+    ] as const;
+    const workflowAgent = new WorkflowAgent({ model, tools });
+    const toolLoopAgent = new ToolLoopAgent({ model, tools });
+
+    const workflowResult = await workflowAgent.generate({
+      messages: messages as any,
+    });
+    const toolLoopResult = await toolLoopAgent.generate({
+      messages: messages as any,
+    });
+
+    expect(workflowResult.responseMessages).toEqual(
+      toolLoopResult.responseMessages,
+    );
+    expect(
+      workflowResult.responseMessages.map(message => message.role),
+    ).toEqual(['tool', 'assistant']);
+    expect(workflowResult.responseMessages[0]).toMatchObject({
+      role: 'tool',
+      content: [
+        {
+          type: 'tool-result',
+          toolCallId: 'tool-call-1',
+          toolName: 'lookup',
+        },
+      ],
+    });
+  });
+
+  it('preserves stream object output behavior for empty stop responses', async () => {
+    const agent = new WorkflowAgent({
+      model: new MockLanguageModelV4({
+        doStream: async () =>
+          stream([
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage,
+            },
+          ]),
+      }),
+      output: Output.object({
+        schema: z.object({ answer: z.string() }),
+      }),
+    });
+
+    const result = await agent.stream({ prompt: 'Answer.' });
+
+    expect(result.output).toBeUndefined();
+  });
+
+  it('preserves stream text output behavior for empty stop responses', async () => {
+    const agent = new WorkflowAgent({
+      model: new MockLanguageModelV4({
+        doStream: async () =>
+          stream([
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage,
+            },
+          ]),
+      }),
+      output: Output.text(),
+    });
+
+    const result = await agent.stream({ prompt: 'Answer.' });
+
+    expect(result.output).toBeUndefined();
   });
 
   it('returns typed structured output', async () => {
