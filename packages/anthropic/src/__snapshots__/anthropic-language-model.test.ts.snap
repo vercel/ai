@@ -10438,11 +10438,6 @@ Both",
       },
     },
   },
-  {
-    "error": [AI_JSONParseError: JSON parsing failed: Text: .
-Error message: SyntaxError: Unexpected end of JSON input],
-    "type": "error",
-  },
 ]
 `;
 

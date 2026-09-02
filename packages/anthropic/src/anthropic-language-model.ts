@@ -2474,7 +2474,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       contentBlock.firstDelta &&
                       contentBlock.providerToolInputType != null
                     ) {
-                      delta = `{"type": "${contentBlock.providerToolInputType}",${delta.substring(1)}`;
+                      delta = delta.startsWith('{')
+                        ? `{"type": "${contentBlock.providerToolInputType}",${delta.substring(1)}`
+                        : `{"type": "${contentBlock.providerToolInputType}",${delta}`;
                     }
 
                     controller.enqueue({
