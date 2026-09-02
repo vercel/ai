@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20206,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20206-openai-image-generation-options.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20206-openai-image-generation-options.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_20206_REPRODUCED: documented image_generation options were rejected before fetch: moderation=low, action=generate, action=edit, action=auto, size=1536x864"
+  }
+}
