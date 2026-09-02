@@ -76,15 +76,13 @@ export function prepareTools({
       return { tools: mistralTools, toolChoice: type, toolWarnings };
     case 'required':
       return { tools: mistralTools, toolChoice: 'any', toolWarnings };
-
-    // mistral does not support tool mode directly,
-    // so we filter the tools and force the tool choice through 'any'
     case 'tool':
       return {
-        tools: mistralTools.filter(
-          tool => tool.function.name === toolChoice.toolName,
-        ),
-        toolChoice: 'any',
+        tools: mistralTools,
+        toolChoice: {
+          type: 'function',
+          function: { name: toolChoice.toolName },
+        },
         toolWarnings,
       };
     default: {
