@@ -1,0 +1,176 @@
+---
+title: Knowledge Base Agent with Infino
+description: Build an AI agent that reads from and writes to a knowledge base on object storage using Infino and the AI SDK
+tags: ['node', 'retrieval', 'tools']
+---
+
+In this recipe, you'll build an AI agent that interacts with a knowledge base using [Infino](https://github.com/infino-ai/infino) and the AI SDK. The agent can both retrieve information from the knowledge base and add new resources to it, using AI SDK tools.
+
+Infino is an embedded retrieval engine: it runs SQL, full-text (BM25), vector, and hybrid search over a single copy of your data stored as Apache Parquet on object storage. It runs in-process, so there is no server, cluster, or managed service to operate, and the same data can live on local disk or in an `s3://` bucket. Infino brings its own keyword and vector indexes but not embeddings, so you supply those with the AI SDK.
+
+This example uses [the following essay](https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt) as input data (`essay.txt`).
+
+## Getting Started
+
+Infino needs no account or API key, just a path or bucket URI for the data. You only need an embeddings and model provider, so set your OpenAI key:
+
+```bash
+OPENAI_API_KEY="***"
+```
+
+## Project Setup
+
+Create a new empty directory for your project and initialize pnpm:
+
+```bash
+mkdir knowledge-base-agent
+cd knowledge-base-agent
+pnpm init
+```
+
+Install the AI SDK, the OpenAI provider, the Infino engine, and tsx as a dev dependency:
+
+```bash
+pnpm i ai zod @ai-sdk/openai @infino-ai/infino
+pnpm i -D tsx
+```
+
+Finally, download and save the input essay:
+
+```bash
+curl -o essay.txt https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt
+```
+
+## Setting Up the Knowledge Base
+
+Read the essay, split it into chunks, embed them with the AI SDK, and write them to an Infino table. Create a script called `setup.ts`:
+
+```ts filename="setup.ts"
+import fs from 'fs';
+import path from 'path';
+import 'dotenv/config';
+import { embedMany } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { connect, IndexSpec } from '@infino-ai/infino';
+
+// text-embedding-3-small is 1536-dim; the table's vector column must match.
+const DIM = 1536;
+
+async function main() {
+  const content = fs.readFileSync(path.join(__dirname, 'essay.txt'), 'utf8');
+
+  // Split into paragraph chunks.
+  const chunks = content
+    .split(/\n\s*\n/)
+    .map(c => c.trim())
+    .filter(c => c.length > 50);
+
+  // Embed every chunk in one batch with the AI SDK.
+  const { embeddings } = await embedMany({
+    model: openai.embedding('text-embedding-3-small'),
+    values: chunks,
+  });
+
+  // "./data" persists locally; swap for an s3://bucket/prefix to keep the
+  // knowledge base on object storage, with no server or vector-DB cluster.
+  const db = connect('./data');
+
+  // One table: a doc id (FTS-indexed), the text (FTS-indexed, for BM25 and
+  // hybrid), and the embedding (vector-indexed).
+  const kb = db.createTable(
+    'kb',
+    { doc_id: 'large_utf8', text: 'large_utf8', embedding: { vector: DIM } },
+    new IndexSpec().fts('text').fts('doc_id').vector('embedding', DIM, 64, 'cosine'),
+  );
+
+  kb.append(
+    chunks.map((text, i) => ({ doc_id: `chunk-${i}`, text, embedding: embeddings[i] })),
+  );
+
+  console.log(`Indexed ${chunks.length} chunks into Infino.`);
+}
+
+main().catch(console.error);
+```
+
+Run the setup script to populate your knowledge base:
+
+```bash
+pnpm tsx setup.ts
+```
+
+## Building the Knowledge Base Agent
+
+Now create an agent that can search the knowledge base and add to it. Create a file called `agent.ts`:
+
+```ts filename="agent.ts"
+import 'dotenv/config';
+import { embed, generateId, generateText, stepCountIs, tool } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { connect } from '@infino-ai/infino';
+import { z } from 'zod';
+
+const DIM = 1536;
+const db = connect('./data');
+
+const sqlLit = (s: string) => `'${s.replace(/'/g, "''")}'`;
+const vectorLiteral = (v: number[]) => v.map(String).join(',');
+
+// Retrieval tool. Hybrid search fuses BM25 (keyword) and vector (semantic)
+// results with reciprocal-rank fusion, in one engine and one query.
+const searchKnowledgeBase = tool({
+  description:
+    'Search the knowledge base for passages relevant to a question. ' +
+    'Uses hybrid keyword + semantic retrieval.',
+  inputSchema: z.object({
+    query: z.string().describe('The question to search for.'),
+    k: z.number().int().positive().max(10).default(5).describe('How many passages to return.'),
+  }),
+  execute: async ({ query, k }) => {
+    const { embedding } = await embed({
+      model: openai.embedding('text-embedding-3-small'),
+      value: query,
+    });
+    const rows = db.querySql(
+      `SELECT doc_id, text, score FROM hybrid_search(` +
+        `'kb', 'text', ${sqlLit(query)}, 'embedding', ${sqlLit(vectorLiteral(embedding))}, ${k}) ` +
+        `ORDER BY score DESC`,
+    ) as Array<{ doc_id: string; text: string }>;
+    return rows.map(r => ({ id: r.doc_id, text: r.text }));
+  },
+});
+
+// Write tool. The agent can add new knowledge it learns or is given.
+const addResource = tool({
+  description: 'Add a new passage to the knowledge base so it can be retrieved later.',
+  inputSchema: z.object({ text: z.string().describe('The passage to store.') }),
+  execute: async ({ text }) => {
+    const { embedding } = await embed({
+      model: openai.embedding('text-embedding-3-small'),
+      value: text,
+    });
+    db.openTable('kb').append([{ doc_id: generateId(), text, embedding }]);
+    return { stored: true };
+  },
+});
+
+async function main() {
+  const { text } = await generateText({
+    model: openai('gpt-4o'),
+    tools: { searchKnowledgeBase, addResource },
+    stopWhen: stepCountIs(5),
+    prompt: 'What were the two main things the author worked on before college?',
+  });
+  console.log(text);
+}
+
+main().catch(console.error);
+```
+
+Run the agent:
+
+```bash
+pnpm tsx agent.ts
+```
+
+The model calls `searchKnowledgeBase`, Infino runs a hybrid keyword + semantic search over the indexed essay, and the model answers from the retrieved passages. Because the agent also has `addResource`, it can grow the knowledge base over the course of a conversation, and because the data is plain Parquet on object storage, the same table is queryable from SQL, BM25, or vector search outside the agent too.
