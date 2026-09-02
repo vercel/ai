@@ -2206,7 +2206,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   raw: value.response.incomplete_details?.reason ?? undefined,
                 };
               }
-              usage = value.response.usage;
+              usage = value.response.usage ?? undefined;
               if (typeof value.response.service_tier === 'string') {
                 serviceTier = value.response.service_tier;
               }

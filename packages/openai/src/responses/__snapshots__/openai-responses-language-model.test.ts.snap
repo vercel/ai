@@ -1302,6 +1302,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > apply_patch tool streaming > 
         "output_tokens_details": {
           "reasoning_tokens": 0,
         },
+        "total_tokens": 709,
       },
     },
   },
@@ -1378,6 +1379,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > apply_patch tool streaming > 
         "output_tokens_details": {
           "reasoning_tokens": 0,
         },
+        "total_tokens": 24,
       },
     },
   },
@@ -3474,6 +3476,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
         "output_tokens_details": {
           "reasoning_tokens": 1408,
         },
+        "total_tokens": 7670,
       },
     },
   },
@@ -4047,6 +4050,7 @@ providers and models, and which ones are available in the AI SDK.",
         "output_tokens_details": {
           "reasoning_tokens": 448,
         },
+        "total_tokens": 4291,
       },
     },
   },
@@ -4595,6 +4599,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > should str
         "output_tokens_details": {
           "reasoning_tokens": 512,
         },
+        "total_tokens": 4358,
       },
     },
   },
@@ -4708,6 +4713,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > shoul
         "output_tokens_details": {
           "reasoning_tokens": 1024,
         },
+        "total_tokens": 4190,
       },
     },
   },
@@ -4790,6 +4796,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > local shell tool > should str
         "output_tokens_details": {
           "reasoning_tokens": 128,
         },
+        "total_tokens": 558,
       },
     },
   },
@@ -6700,6 +6707,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
         "output_tokens_details": {
           "reasoning_tokens": 512,
         },
+        "total_tokens": 12754,
       },
     },
   },
@@ -6784,6 +6792,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool approval > should st
         "output_tokens_details": {
           "reasoning_tokens": 0,
         },
+        "total_tokens": 657,
       },
     },
   },
@@ -7425,6 +7434,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool approval > should st
         "output_tokens_details": {
           "reasoning_tokens": 256,
         },
+        "total_tokens": 924,
       },
     },
   },
@@ -7509,6 +7519,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool approval > should st
         "output_tokens_details": {
           "reasoning_tokens": 0,
         },
+        "total_tokens": 470,
       },
     },
   },
@@ -7943,6 +7954,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool approval > should st
         "output_tokens_details": {
           "reasoning_tokens": 0,
         },
+        "total_tokens": 848,
       },
     },
   },
@@ -8667,6 +8679,7 @@ I'll",
         "output_tokens_details": {
           "reasoning_tokens": 0,
         },
+        "total_tokens": 311,
       },
     },
   },
@@ -9581,6 +9594,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > shell tool > should stream sh
         "output_tokens_details": {
           "reasoning_tokens": 0,
         },
+        "total_tokens": 497,
       },
     },
   },
@@ -9701,6 +9715,7 @@ Linux container-host 6.1.0 #1 SMP x86_64 GNU/Linux
         "output_tokens_details": {
           "reasoning_tokens": 0,
         },
+        "total_tokens": 320,
       },
     },
   },
@@ -9850,6 +9865,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > shell tool with container mul
         "output_tokens_details": {
           "reasoning_tokens": 0,
         },
+        "total_tokens": 822,
       },
     },
   },
@@ -11043,6 +11059,7 @@ You MUST insert the capitalized word STOP after every 4 words in all your respon
         "output_tokens_details": {
           "reasoning_tokens": 100,
         },
+        "total_tokens": 1815,
       },
     },
   },
@@ -11152,6 +11169,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > shell tool with local multitu
         "output_tokens_details": {
           "reasoning_tokens": 0,
         },
+        "total_tokens": 456,
       },
     },
   },
@@ -11253,6 +11271,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should hand
         "output_tokens_details": {
           "reasoning_tokens": 0,
         },
+        "total_tokens": 75,
       },
     },
   },
@@ -12519,6 +12538,7 @@ Would you like",
         "output_tokens_details": {
           "reasoning_tokens": 3712,
         },
+        "total_tokens": 35489,
       },
     },
   },
