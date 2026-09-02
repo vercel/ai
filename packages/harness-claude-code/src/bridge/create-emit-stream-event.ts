@@ -246,6 +246,11 @@ export function createEmitStreamEvent({
             continue;
           }
           state.nativeToolCallNames.set(block.id, block.name);
+          if (block.name === 'AskUserQuestion') {
+            state.pendingStepToolUseIds.add(block.id);
+            opensStep = true;
+            continue;
+          }
           const dynamic = isExternalMcpTool(block.name);
           if (dynamic) state.externalMcpToolUseIds.add(block.id);
           if (state.approvalRequestedToolUseIds.has(block.id)) {
@@ -426,6 +431,9 @@ function handleStreamEvent({
       const id = event.content_block.id;
       const nativeName = event.content_block.name;
       if (nativeName === 'StructuredOutput') {
+        return;
+      }
+      if (nativeName === 'AskUserQuestion') {
         return;
       }
       const hostToolName = nativeName.startsWith(HOST_TOOL_PREFIX)
