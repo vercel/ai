@@ -244,11 +244,9 @@ export class GoogleBatchLanguageModel
     const createUrl = `${this.batchConfig.baseURL}/${getModelPath(
       this.modelId,
     )}:batchGenerateContent`;
-    let operation: GoogleBatchOperation;
-    let inputFileMetadata: Record<string, string> | undefined;
 
     if (fileParts == null) {
-      const { value } = await postJsonToApi({
+      const { value: operation } = await postJsonToApi({
         url: createUrl,
         headers,
         body: inlineBatchBody,
@@ -259,96 +257,98 @@ export class GoogleBatchLanguageModel
         abortSignal: options.abortSignal,
         fetch: this.batchConfig.fetch,
       });
-      operation = value;
-    } else {
-      const inputFile = new Blob(fileParts, { type: 'application/jsonl' });
-      // Blob snapshots the strings, so release the potentially large input array.
-      fileParts.length = 0;
-      if (inputFile.size > googleBatchInputFileMaxBytes) {
-        throw new InvalidArgumentError({
-          argument: 'requests',
-          message: 'Google batch input files must not exceed 2 GB.',
-        });
-      }
 
-      const { value: uploadUrl } = await postJsonToApi({
-        url: `${this.getBaseOrigin()}/upload/v1beta/files`,
-        headers: combineHeaders(headers, {
-          'X-Goog-Upload-Protocol': 'resumable',
-          'X-Goog-Upload-Command': 'start',
-          'X-Goog-Upload-Header-Content-Length': String(inputFile.size),
-          'X-Goog-Upload-Header-Content-Type': 'application/jsonl',
-        }),
-        body: {
-          file: {
-            display_name: `${displayName}-input`,
-          },
-        },
-        failedResponseHandler: googleFailedResponseHandler,
-        successfulResponseHandler: googleUploadUrlResponseHandler,
-        abortSignal: options.abortSignal,
-        fetch: this.batchConfig.fetch,
-      });
-
-      const { value: uploadedFile } = await postToApi({
-        url: uploadUrl,
-        headers: {
-          'X-Goog-Upload-Offset': '0',
-          'X-Goog-Upload-Command': 'upload, finalize',
-          'Content-Type': 'application/jsonl',
-        },
-        body: {
-          content: inputFile,
-          values: {
-            byteLength: inputFile.size,
-            mediaType: 'application/jsonl',
-          },
-        },
-        failedResponseHandler: googleFailedResponseHandler,
-        successfulResponseHandler: createJsonResponseHandler(
-          googleFileUploadResponseSchema,
-        ),
-        abortSignal: options.abortSignal,
-        fetch: this.batchConfig.fetch,
-      });
-
-      inputFileMetadata = {
-        inputFileId: uploadedFile.file.name,
-        ...(uploadedFile.file.expirationTime != null
-          ? { inputFileExpiresAt: uploadedFile.file.expirationTime }
-          : {}),
+      return {
+        batchId: operation.name,
+        ...convertGoogleBatchStatus(operation),
+        warnings,
       };
+    }
 
-      const { value } = await postJsonToApi({
-        url: createUrl,
-        headers,
-        body: {
-          batch: {
-            displayName,
-            ...(options.webhookUrl != null && {
-              webhookConfig: { uris: [options.webhookUrl] },
-            }),
-            inputConfig: {
-              fileName: uploadedFile.file.name,
-            },
+    const inputFile = new Blob(fileParts, { type: 'application/jsonl' });
+    // Blob snapshots the strings, so release the potentially large input array.
+    fileParts.length = 0;
+    if (inputFile.size > googleBatchInputFileMaxBytes) {
+      throw new InvalidArgumentError({
+        argument: 'requests',
+        message: 'Google batch input files must not exceed 2 GB.',
+      });
+    }
+
+    const { value: uploadUrl } = await postJsonToApi({
+      url: `${this.getBaseOrigin()}/upload/v1beta/files`,
+      headers: combineHeaders(headers, {
+        'X-Goog-Upload-Protocol': 'resumable',
+        'X-Goog-Upload-Command': 'start',
+        'X-Goog-Upload-Header-Content-Length': String(inputFile.size),
+        'X-Goog-Upload-Header-Content-Type': 'application/jsonl',
+      }),
+      body: {
+        file: {
+          display_name: `${displayName}-input`,
+        },
+      },
+      failedResponseHandler: googleFailedResponseHandler,
+      successfulResponseHandler: googleUploadUrlResponseHandler,
+      abortSignal: options.abortSignal,
+      fetch: this.batchConfig.fetch,
+    });
+
+    const { value: uploadedFile } = await postToApi({
+      url: uploadUrl,
+      headers: {
+        'X-Goog-Upload-Offset': '0',
+        'X-Goog-Upload-Command': 'upload, finalize',
+        'Content-Type': 'application/jsonl',
+      },
+      body: {
+        content: inputFile,
+        values: {
+          byteLength: inputFile.size,
+          mediaType: 'application/jsonl',
+        },
+      },
+      failedResponseHandler: googleFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        googleFileUploadResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.batchConfig.fetch,
+    });
+
+    const { value: operation } = await postJsonToApi({
+      url: createUrl,
+      headers,
+      body: {
+        batch: {
+          displayName,
+          ...(options.webhookUrl != null && {
+            webhookConfig: { uris: [options.webhookUrl] },
+          }),
+          inputConfig: {
+            fileName: uploadedFile.file.name,
           },
         },
-        failedResponseHandler: googleFailedResponseHandler,
-        successfulResponseHandler: createJsonResponseHandler(
-          googleBatchOperationSchema,
-        ),
-        abortSignal: options.abortSignal,
-        fetch: this.batchConfig.fetch,
-      });
-      operation = value;
-    }
+      },
+      failedResponseHandler: googleFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        googleBatchOperationSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.batchConfig.fetch,
+    });
 
     return {
       batchId: operation.name,
       ...convertGoogleBatchStatus(operation),
-      ...(inputFileMetadata != null
-        ? { providerMetadata: { google: inputFileMetadata } }
-        : {}),
+      providerMetadata: {
+        google: {
+          inputFileId: uploadedFile.file.name,
+          ...(uploadedFile.file.expirationTime != null
+            ? { inputFileExpiresAt: uploadedFile.file.expirationTime }
+            : {}),
+        },
+      },
       warnings,
     };
   }
