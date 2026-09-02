@@ -51,6 +51,61 @@ describe('GoogleRealtimeModel', () => {
 
       expect(result.token).toBe('projects/123/locations/us/accessTokens/abc');
       expect(result.url).toContain('generativelanguage.googleapis.com');
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('returns warnings for lossy embedded tool schema conversions', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ name: 'token' }),
+      });
+
+      const model = new GoogleRealtimeModel('gemini-2.0-flash-live-001', {
+        provider: 'google.realtime',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: () => ({ 'x-goog-api-key': 'test-key' }),
+        fetch: mockFetch,
+      });
+
+      const result = await model.doCreateClientSecret({
+        sessionConfig: {
+          tools: [
+            {
+              type: 'function',
+              name: 'getPrice',
+              parameters: {
+                type: 'object',
+                properties: {
+                  amount: { type: 'number', multipleOf: 0.5 },
+                },
+              },
+            },
+          ],
+        },
+      });
+
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'JSON Schema constraint "multipleOf"',
+          details:
+            'The constraint at "/properties/amount/multipleOf" is not supported by the Google realtime function parameter schema surface and was removed from the schema sent to the model.',
+        },
+      ]);
+      expect(
+        model.getSessionConfigWarnings({
+          tools: [
+            {
+              type: 'function',
+              name: 'getPrice',
+              parameters: {
+                type: 'number',
+                multipleOf: 0.5,
+              },
+            },
+          ],
+        }),
+      ).toHaveLength(1);
     });
 
     it('sets newSessionExpireTime from expiresAfterSeconds', async () => {

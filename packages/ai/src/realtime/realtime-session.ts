@@ -4,8 +4,11 @@ import type {
   RealtimeServerEvent,
   RealtimeSessionConfig,
 } from '../types/realtime-model';
+import type { Warning } from '../types';
+import { logWarnings } from '../logger/log-warnings';
 import { BrowserRealtimeAudio } from './browser-realtime-audio';
 import { BrowserRealtimeTransport } from './browser-realtime-transport';
+import type { RealtimeSetupResponse } from './realtime-types';
 import {
   createInitialRealtimeState,
   RealtimeEventReducer,
@@ -29,6 +32,11 @@ export type RealtimeSessionOptions = {
   }) => Promise<unknown> | unknown | undefined;
   onEvent?: (event: RealtimeServerEvent) => void;
   onError?: (error: Error) => void;
+  /**
+   * Called for each provider warning produced while preparing the session
+   * configuration. Warnings are also logged through the AI SDK warning logger.
+   */
+  onWarning?: (warning: Warning) => void;
 };
 
 export abstract class AbstractRealtimeSession {
@@ -38,6 +46,7 @@ export abstract class AbstractRealtimeSession {
   onToolCall: RealtimeSessionOptions['onToolCall'];
   onEvent: ((event: RealtimeServerEvent) => void) | undefined;
   onError: ((error: Error) => void) | undefined;
+  onWarning: ((warning: Warning) => void) | undefined;
 
   private readonly model: RealtimeModel;
   private readonly api: RealtimeSessionOptions['api'];
@@ -69,6 +78,7 @@ export abstract class AbstractRealtimeSession {
     this.onToolCall = options.onToolCall;
     this.onEvent = options.onEvent;
     this.onError = options.onError;
+    this.onWarning = options.onWarning;
 
     const sampleRate = options.sampleRate ?? 24000;
     const captureSampleRate =
@@ -116,13 +126,26 @@ export abstract class AbstractRealtimeSession {
         throw new Error(`Failed to fetch realtime setup: ${response.status}`);
       }
 
-      const setupData = await response.json();
+      const setupData = (await response.json()) as RealtimeSetupResponse;
       const { token, url, tools: toolDefinitions } = setupData;
 
       const config: RealtimeSessionConfig = {
         ...this.sessionConfig,
         tools: toolDefinitions as RealtimeSessionConfig['tools'],
       };
+
+      const warnings = deduplicateWarnings([
+        ...(setupData.warnings ?? []),
+        ...(this.model.getSessionConfigWarnings?.(config) ?? []),
+      ]);
+      logWarnings({
+        warnings,
+        provider: this.model.provider,
+        model: this.model.modelId,
+      });
+      for (const warning of warnings) {
+        this.onWarning?.(warning);
+      }
 
       this.audio.ensurePlaybackContext();
       this.transport.connect({
@@ -379,4 +402,17 @@ export abstract class AbstractRealtimeSession {
       }
     }
   }
+}
+
+function deduplicateWarnings(warnings: Warning[]): Warning[] {
+  const seen = new Set<string>();
+
+  return warnings.filter(warning => {
+    const key = JSON.stringify(warning);
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
 }

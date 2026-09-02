@@ -4,6 +4,7 @@ import type {
   Experimental_RealtimeModelV4FunctionCallOutput as RealtimeModelV4FunctionCallOutput,
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import { isRecord, safeParseJSON } from '@ai-sdk/provider-utils';
 import { convertJSONSchemaToOpenAPISchema } from '../convert-json-schema-to-openapi-schema';
@@ -363,6 +364,11 @@ async function serializeFunctionCallOutput(
 export function buildGoogleSessionConfig(
   config: RealtimeModelV4SessionConfig | undefined,
   modelId: string,
+  {
+    onWarning,
+  }: {
+    onWarning?: (warning: SharedV4Warning) => void;
+  } = {},
 ): Record<string, unknown> {
   const setup: Record<string, unknown> = {
     model: getModelPath(modelId),
@@ -402,7 +408,10 @@ export function buildGoogleSessionConfig(
         functionDeclarations: config.tools.map(tool => ({
           name: tool.name,
           description: tool.description,
-          parameters: convertJSONSchemaToOpenAPISchema(tool.parameters),
+          parameters: convertJSONSchemaToOpenAPISchema(tool.parameters, {
+            onWarning,
+            target: 'realtimeFunctionParameters',
+          }),
         })),
       },
     ];

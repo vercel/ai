@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Capture transport instances and outgoing events. The transport is created
 // inside the session constructor, so we replace it with a controllable fake
@@ -76,6 +76,54 @@ describe('AbstractRealtimeSession', () => {
   beforeEach(() => {
     sentEvents.length = 0;
     transportInstances.length = 0;
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    globalThis.AI_SDK_LOG_WARNINGS = undefined;
+  });
+
+  it('surfaces and logs deduplicated session config warnings', async () => {
+    const warning = {
+      type: 'unsupported' as const,
+      feature: 'JSON Schema constraint "multipleOf"',
+      details: 'The constraint was removed.',
+    };
+    const warningLogger = vi.fn();
+    const onWarning = vi.fn();
+    globalThis.AI_SDK_LOG_WARNINGS = warningLogger;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          token: 'token',
+          url: 'wss://example.com',
+          tools: [],
+          warnings: [warning],
+        }),
+      }),
+    );
+
+    const session = new TestSession({
+      model: {
+        provider: 'google.realtime',
+        modelId: 'gemini-live',
+        getSessionConfigWarnings: () => [warning],
+      } as never,
+      api: { token: '/api/realtime/setup' },
+      onWarning,
+    });
+
+    await session.connect();
+
+    expect(onWarning).toHaveBeenCalledOnce();
+    expect(onWarning).toHaveBeenCalledWith(warning);
+    expect(warningLogger).toHaveBeenCalledWith({
+      warnings: [warning],
+      provider: 'google.realtime',
+      model: 'gemini-live',
+    });
   });
 
   it('does not error when onToolCall returns undefined (manual flow)', async () => {

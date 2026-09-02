@@ -995,11 +995,66 @@ Example response excerpt:
 
 #### Schema Limitations
 
-The Google Generative AI API uses a subset of the OpenAPI 3.0 schema,
-which does not support features such as unions.
+The Google Generative AI API uses a subset of the OpenAPI 3.0 and JSON Schema
+vocabularies, which does not support every constraint or composition keyword.
 The errors that you get in this case look like this:
 
 `GenerateContentRequest.generation_config.response_schema.properties[occupation].type: must be specified`
+
+When `generateText` or `streamText` removes a constraint while converting a
+tool input or structured output schema, the provider adds an `unsupported`
+warning to `result.warnings`. The warning identifies the removed keyword,
+the target Google schema surface, and its location as a JSON Pointer, for
+example `/properties/price/multipleOf`.
+
+```ts highlight="9-12,18"
+import { google } from '@ai-sdk/google';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: google('gemini-2.5-flash'),
+  tools: {
+    lookupInvoice: tool({
+      inputSchema: z.object({
+        price: z.number().positive().multipleOf(0.5),
+      }),
+    }),
+  },
+  prompt: 'Look up the invoice priced at $12.50.',
+});
+
+console.log(result.warnings);
+```
+
+The provider preserves constraints supported by Google's OpenAPI schema
+surfaces, including string patterns and length bounds, inclusive numeric bounds,
+array size bounds, and object property-count bounds. Constraints that may still
+be removed include exclusive numeric bounds, numeric multiples, array
+uniqueness and containment, additional or pattern properties, dependencies,
+conditional schemas, negated schemas, and `allOf` compositions. `anyOf` is
+preserved. Boolean `false` schemas also cannot be represented without widening.
+Continue validating generated structured outputs and tool inputs against the
+original schema.
+
+Google treats JSON Schema `oneOf` like `anyOf`. The provider emits a
+`compatibility` warning for every `oneOf` location because a value that matches
+multiple branches is rejected by JSON Schema `oneOf` but can be accepted by
+Google.
+
+Recursive function tool schemas are sent unchanged through Google's
+`parametersJsonSchema` surface. The provider inspects those schemas without
+resolving their recursive references and emits target-specific warnings for
+unsupported constraints, including `const`, and `oneOf` compatibility. Normal
+schema conversion rewrites `const` to a single-value `enum`, but that rewrite
+cannot be applied to the unchanged recursive fallback. Unsupported-constraint
+warnings therefore explain that the keyword may not restrict values generated
+by the model rather than saying it was removed.
+
+Google realtime tool conversion uses the same diagnostics. Warnings are
+returned by `google.experimental_realtime.getToken`, and AI SDK realtime
+sessions automatically log them and pass each warning to the optional
+`onWarning` session callback.
 
 By default, structured outputs are enabled (and for tool calling they are required).
 You can disable structured outputs for object generation as a workaround:

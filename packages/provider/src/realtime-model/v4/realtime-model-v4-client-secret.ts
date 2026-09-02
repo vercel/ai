@@ -1,4 +1,5 @@
 import type { RealtimeModelV4SessionConfig } from './realtime-model-v4-session-config';
+import type { SharedV4Warning } from '../../shared';
 
 /**
  * Options for creating an ephemeral client secret for browser-side
@@ -37,4 +38,9 @@ export type RealtimeModelV4ClientSecretResult = {
    * Unix timestamp (seconds) when this client secret expires.
    */
   expiresAt?: number;
+
+  /**
+   * Provider warnings produced while preparing the embedded session config.
+   */
+  warnings?: SharedV4Warning[];
 };

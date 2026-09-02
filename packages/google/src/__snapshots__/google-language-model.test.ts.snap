@@ -483,7 +483,13 @@ exports[`doGenerate > tool-call > should extract tool calls 1`] = `
       "totalTokenCount": 937,
     },
   },
-  "warnings": [],
+  "warnings": [
+    {
+      "details": "The constraint at "/additionalProperties" is not supported by the Google function parameter schema surface and was removed from the schema sent to the model.",
+      "feature": "JSON Schema constraint "additionalProperties"",
+      "type": "unsupported",
+    },
+  ],
 }
 `;
 
@@ -840,7 +846,13 @@ exports[`doStream > streaming-tool-call-arguments > should stream partial functi
 [
   {
     "type": "stream-start",
-    "warnings": [],
+    "warnings": [
+      {
+        "details": "The constraint at "/additionalProperties" is not supported by the Google function parameter schema surface and was removed from the schema sent to the model.",
+        "feature": "JSON Schema constraint "additionalProperties"",
+        "type": "unsupported",
+      },
+    ],
   },
   {
     "id": "dqHOab6xGLzWodAPkPuViA4",
@@ -1599,7 +1611,13 @@ exports[`doStream > tool-call > should stream tool call 1`] = `
 [
   {
     "type": "stream-start",
-    "warnings": [],
+    "warnings": [
+      {
+        "details": "The constraint at "/additionalProperties" is not supported by the Google function parameter schema surface and was removed from the schema sent to the model.",
+        "feature": "JSON Schema constraint "additionalProperties"",
+        "type": "unsupported",
+      },
+    ],
   },
   {
     "id": "b36LacjwM668nsEP2tbsgQQ",

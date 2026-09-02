@@ -1,4 +1,5 @@
 import type { RealtimeToolDefinition } from '../types/realtime-model';
+import type { Warning } from '../types';
 
 /**
  * Response shape for the realtime setup/token endpoint.
@@ -10,4 +11,8 @@ export type RealtimeSetupResponse = {
   url: string;
   expiresAt?: number;
   tools: RealtimeToolDefinition[];
+  /**
+   * Provider warnings produced while preparing the session configuration.
+   */
+  warnings?: Warning[];
 };

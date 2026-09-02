@@ -374,6 +374,7 @@ export function createGoogle(
           token: secret.token,
           url: secret.url,
           expiresAt: secret.expiresAt,
+          warnings: secret.warnings,
         };
       },
     },

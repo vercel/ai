@@ -65,6 +65,13 @@ export async function POST(request: Request) {
   realtime sessions using your server-side API key.
 </Note>
 
+The endpoint returns an `Experimental_RealtimeSetupResponse` with `token`,
+`url`, and `tools`, plus optional `expiresAt` and `warnings` fields. Include
+provider warnings from server-side session preparation in `warnings`. The
+browser session deduplicates them with warnings produced while preparing the
+client-side session configuration, logs them through the AI SDK warning logger,
+and passes each warning to the optional `onWarning` callback.
+
 ## AI Gateway
 
 Use [AI Gateway](/providers/ai-sdk-providers/ai-gateway) when you want the same
@@ -105,6 +112,9 @@ export default function RealtimePage() {
       inputAudioTranscription: {},
       voice: 'alloy',
       turnDetection: { type: 'server-vad' },
+    },
+    onWarning: warning => {
+      console.warn(warning);
     },
   });
 

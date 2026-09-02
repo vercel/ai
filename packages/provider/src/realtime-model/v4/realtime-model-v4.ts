@@ -5,6 +5,7 @@ import type {
 import type { RealtimeModelV4ClientEvent } from './realtime-model-v4-client-event';
 import type { RealtimeModelV4ServerEvent } from './realtime-model-v4-server-event';
 import type { RealtimeModelV4SessionConfig } from './realtime-model-v4-session-config';
+import type { SharedV4Warning } from '../../shared';
 
 /**
  * Specification for a realtime model that supports bidirectional
@@ -77,6 +78,15 @@ export type RealtimeModelV4 = {
    * session.update event sent after WebSocket connection.
    */
   buildSessionConfig(config: RealtimeModelV4SessionConfig): unknown;
+
+  /**
+   * Returns provider warnings produced while mapping a normalized session
+   * configuration. Realtime session implementations use this to surface lossy
+   * or compatibility conversions before sending the configuration.
+   */
+  getSessionConfigWarnings?(
+    config: RealtimeModelV4SessionConfig,
+  ): SharedV4Warning[];
 
   /**
    * Browser-side: Returns a message to auto-send back over the WebSocket
