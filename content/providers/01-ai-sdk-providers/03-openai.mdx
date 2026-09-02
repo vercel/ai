@@ -33,3 +33,198 @@ const openai = createOpenAI({
   },
 });
 ```
+
+You can use the following optional settings to customize the OpenAI provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `https://api.openai.com/v1`.
+  The default OpenAI model factory (`openai('model-id')`) uses the Responses
+  API. If your custom base URL only supports the Chat Completions API, create
+  chat models with `openai.chat('model-id')` instead, or use the
+  [OpenAI-compatible provider](/providers/openai-compatible-providers).
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header.
+  It defaults to the `OPENAI_API_KEY` environment variable.
+
+- **name** _string_
+
+  The provider name. You can set this when using OpenAI compatible providers
+  to change the model provider property. Defaults to `openai`.
+
+- **organization** _string_
+
+  OpenAI Organization.
+
+- **project** _string_
+
+  OpenAI project.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Defaults to the global `fetch` function.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+## Language Models
+
+The OpenAI provider instance is a function that you can invoke to create a language model:
+
+```ts
+const model = openai('gpt-5');
+```
+
+It automatically selects the correct API based on the model id.
+You can also pass additional settings in the second argument:
+
+```ts
+const model = openai('gpt-5', {
+  // additional settings
+});
+```
+
+The available options depend on the API that's automatically chosen for the model (see below).
+If you want to explicitly select a specific model API, you can use `.responses`, `.chat`, or `.completion`.
+
+<Note>
+  Since AI SDK 5, the OpenAI responses API is called by default (unless you
+  specify e.g. 'openai.chat')
+</Note>
+
+### Example
+
+You can use OpenAI language models to generate text with the `generateText` function:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: openai('gpt-5'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+OpenAI language models can also be used in the `streamText` function
+and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output)
+(see [AI SDK Core](/docs/ai-sdk-core)).
+
+### Responses Models
+
+You can use the OpenAI responses API with the `openai(modelId)` or `openai.responses(modelId)` factory methods. It is the default API that is used by the OpenAI provider (since AI SDK 5).
+
+```ts
+const model = openai('gpt-5');
+```
+
+Further configuration can be done using OpenAI provider options.
+You can validate the provider options using the `OpenAILanguageModelResponsesOptions` type.
+
+```ts
+import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai('gpt-5'), // or openai.responses('gpt-5')
+  providerOptions: {
+    openai: {
+      parallelToolCalls: false,
+      store: false,
+      user: 'user_123',
+      // ...
+    } satisfies OpenAILanguageModelResponsesOptions,
+  },
+  // ...
+});
+```
+
+The following provider options are available:
+
+- **parallelToolCalls** _boolean_
+  Whether to use parallel tool calls. Defaults to `true`.
+
+- **store** _boolean_
+
+  Whether to store the generation. Defaults to `true`.
+
+- **passThroughUnsupportedFiles** _boolean_
+
+  Whether to pass through non-image file types as generic input files. Defaults to `false`, which restricts inline file inputs to images and PDFs. Enable this when the target OpenAI Responses model supports additional file media types.
+
+- **maxToolCalls** _integer_
+  The maximum number of total calls to built-in tools that can be processed in a response.
+  This maximum number applies across all built-in tool calls, not per individual tool.
+  Any further attempts to call a tool by the model will be ignored.
+
+- **metadata** _Record&lt;string, string&gt;_
+  Additional metadata to store with the generation.
+
+- **conversation** _string_
+  The ID of the OpenAI Conversation to continue.
+  You must create a conversation first via the [OpenAI API](https://platform.openai.com/docs/api-reference/conversations/create).
+  Cannot be used in conjunction with `previousResponseId`.
+  Defaults to `undefined`.
+
+- **previousResponseId** _string_
+  The ID of the previous response. You can use it to continue a conversation. Defaults to `undefined`.
+
+- **instructions** _string_
+  Instructions for the model.
+  They can be used to change the system or developer message when continuing a conversation using the `previousResponseId` option.
+  Defaults to `undefined`.
+
+- **logprobs** _boolean | number_
+  Return the log probabilities of the tokens. Including logprobs will increase the response size and can slow down response times. However, it can be useful to better understand how the model is behaving. Setting to `true` returns the log probabilities of the tokens that were generated. Setting to a number (1-20) returns the log probabilities of the top n tokens that were generated.
+
+- **user** _string_
+  A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse. Defaults to `undefined`.
+
+- **reasoningEffort** _'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'_
+  Reasoning effort for reasoning models. Defaults to `medium`. If you use `providerOptions` to set the `reasoningEffort` option, this model setting will be ignored.
+
+<Note>
+  Supported reasoning efforts vary by model. GPT-5.6 supports `'none'`, `'low'`,
+  `'medium'`, `'high'`, `'xhigh'`, and `'max'`.
+</Note>
+
+- **reasoningMode** _'standard' | 'pro'_
+  Controls how much model work GPT-5.6 performs before returning a final answer. `'standard'` is the default. Use `'pro'` for difficult tasks where quality matters more than latency and token usage.
+
+- **reasoningContext** _'auto' | 'current_turn' | 'all_turns'_
+  Controls which available reasoning items GPT-5.6 can reuse. `'auto'` uses the model default, `'current_turn'` excludes reasoning from earlier turns, and `'all_turns'` makes compatible earlier reasoning available. The effective context is returned as `providerMetadata.openai.reasoningContext`.
+
+- **reasoningSummary** _'auto' | 'detailed'_
+  Controls whether the model returns its reasoning process. Set to `'auto'` for a condensed summary, `'detailed'` for more comprehensive reasoning. Defaults to `undefined` (no reasoning summaries). When enabled, reasoning summaries appear in the stream as events with type `'reasoning'` and in non-streaming responses within the `reasoning` field.
+
+- **strictJsonSchema** _boolean_
+  Whether to use strict JSON schema validation. Defaults to `true`.
+
+<Note type="warning">
+  OpenAI structured outputs have several
+  [limitations](https://openai.com/index/introducing-structured-outputs-in-the-api),
+  in particular around the [supported
+  schemas](https://platform.openai.com/docs/guides/structured-outputs/supported-schemas),
+  and are therefore opt-in. For example, optional schema properties are not
+  supported. You need to change Zod `.nullish()` and `.optional()` to
+  `.nullable()`.
+</Note>
+
+- **serviceTier** _'auto' | 'flex' | 'priority' | 'fast' | 'ultrafast' | 'default'_
+  Service tier for the request. Set to 'flex' for 50% cheaper processing
+  at the cost of increased latency (available for o3, o4-mini, and gpt-5 models).
+  Set to 'priority' for faster processing with Enterprise access (available for gpt-4, gpt-5, gpt-5-mini, o3, o4-mini; gpt-5-nano is not supported).
+  'fast' is OpenAI's newer name for the 'priority' tier; the two are interchangeable, and responses from
+  gpt-5.6 and earlier report `serviceTier: 'priority'` for either.
+  Set to 'ultrafast' for access-controlled Ultrafast processing (currently `gpt-5.6-sol`).
+  Unlike 'fast' / 'priority', 'ultrafast' is a separate tier and is forwarded as-is;
+  a response served through it reports `serviceTier: 'ultrafast'`.
+
+  Defaults to 'auto'.
