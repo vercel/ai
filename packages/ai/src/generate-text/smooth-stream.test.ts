@@ -2,7 +2,7 @@ import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { smoothStream } from './smooth-stream';
 import type { TextStreamPart } from './stream-text-result';
 import type { ToolSet } from '@ai-sdk/provider-utils';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('smoothStream', () => {
   let events: any[] = [];
@@ -2199,6 +2199,76 @@ describe('smoothStream', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('document visibility', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('should skip delays while the document is hidden', async () => {
+      vi.stubGlobal('document', { visibilityState: 'hidden' });
+
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        {
+          text: 'Hello, World! This is an example text.',
+          type: 'text-delta',
+          id: '1',
+        },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events.filter(event => typeof event === 'string')).toEqual([
+        'delay null',
+        'delay null',
+        'delay null',
+        'delay null',
+        'delay null',
+        'delay null',
+      ]);
+      expect(events.at(-1)).toEqual({ type: 'text-end', id: '1' });
+    });
+
+    it('should resume without delays when the document becomes hidden', async () => {
+      const fakeDocument = {
+        visibilityState: 'visible' as DocumentVisibilityState,
+      };
+      vi.stubGlobal('document', fakeDocument);
+
+      const visibilityAwareDelay = (delayInMs: number | null) => {
+        events.push(`delay ${delayInMs}`);
+        fakeDocument.visibilityState = 'hidden';
+        return Promise.resolve();
+      };
+
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { type: 'text-delta', id: '1', text: 'one two three ' },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay: visibilityAwareDelay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events.filter(event => typeof event === 'string')).toEqual([
+        'delay 10',
+        'delay null',
+        'delay null',
+      ]);
+      expect(events.at(-1)).toEqual({ type: 'text-end', id: '1' });
     });
   });
 });
