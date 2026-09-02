@@ -18,8 +18,8 @@
     "README.md"
   ],
   "scripts": {
-    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json && pnpm copy-bridge-assets",
-    "build:watch": "pnpm clean && tsup --watch",
+    "build": "pnpm clean && tsdown --tsconfig tsconfig.build.json && pnpm copy-bridge-assets",
+    "build:watch": "pnpm clean && tsdown --watch",
     "clean": "del-cli dist *.tsbuildinfo",
     "copy-bridge-assets": "node -e \"import('node:fs/promises').then(async fs => { await fs.copyFile('src/bridge/package.json', 'dist/bridge/package.json'); await fs.copyFile('src/bridge/pnpm-lock.yaml', 'dist/bridge/pnpm-lock.yaml'); })\"",
     "type-check": "tsc --build",
@@ -54,7 +54,7 @@
     "deepagents": "1.13.1",
     "langchain": "^1.5.10",
     "langsmith": "^0.9.0",
-    "tsup": "^8.5.1",
+    "tsdown": "^0.22.14",
     "typescript": "5.8.3",
     "zod": "3.25.76"
   },

@@ -64,7 +64,7 @@ packages/<provider>/
 ├── package.json
 ├── tsconfig.json
 ├── tsconfig.build.json
-├── tsup.config.ts
+├── tsdown.config.ts
 ├── turbo.json
 ├── vitest.node.config.js
 └── vitest.edge.config.js
@@ -74,7 +74,7 @@ Preserve current package conventions rather than recreating configuration from m
 
 - Set the repository package version to exactly `2.0.0`, with no prerelease suffix.
 - Create `CHANGELOG.md` with an initial `# @ai-sdk/<provider>` heading.
-- Use ESM output and the current `tsup` package-version injection pattern.
+- Use ESM output and the current `tsdown` package-version injection pattern.
 - Extend `./node_modules/@vercel/ai-tsconfig/ts-library.json`, enable a composite project, and add package references for workspace dependencies.
 - Include the standard build, clean, type-check, Node test, and Edge test scripts.
 - Include the standard `files`, documentation prepack, repository, bugs, engines, and public provenance publishing metadata.
