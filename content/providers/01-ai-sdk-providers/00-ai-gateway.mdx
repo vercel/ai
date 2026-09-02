@@ -959,6 +959,132 @@ token-efficient content controls. Deep synthesis modes and generated summaries
 are intentionally not exposed yet because they have separate pricing from
 standard Search.
 
+#### Browserbase Search
+
+The Browserbase Search tool enables models to search the web using [Browserbase's Search API](https://docs.browserbase.com/reference/api/web-search). It is executed by AI Gateway and returns fast, structured search results without opening a browser session.
+
+```ts
+import { gateway, generateText } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-5.6-luna',
+  prompt:
+    'Find official guidance on traveling with power banks on U.S. flights. Return the most relevant page titles and URLs.',
+  tools: {
+    browserbase_search: gateway.tools.browserbaseSearch(),
+  },
+});
+
+console.log(result.text);
+console.log('Tool calls:', JSON.stringify(result.toolCalls, null, 2));
+console.log('Tool results:', JSON.stringify(result.toolResults, null, 2));
+```
+
+You can configure the maximum number of results returned by each search:
+
+```ts
+import { gateway, generateText } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-5.6-luna',
+  prompt:
+    'Find three recent reviews comparing e-readers for outdoor reading. Return their titles and URLs.',
+  tools: {
+    browserbase_search: gateway.tools.browserbaseSearch({
+      numResults: 3,
+    }),
+  },
+});
+
+console.log(result.text);
+```
+
+The Browserbase Search tool supports this optional configuration option:
+
+- **numResults** _number_
+
+  Maximum number of search results to return (1-25, default: 10).
+
+The tool works with both `generateText` and `streamText`.
+
+#### Browserbase Fetch
+
+The Browserbase Fetch tool enables models to retrieve page content using [Browserbase's Fetch API](https://docs.browserbase.com/platform/fetch/overview). It is a lightweight option for pages that do not require JavaScript execution or browser interaction, and it supports raw, Markdown, and schema-driven JSON output.
+
+```ts
+import { gateway, generateText } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-5.6-luna',
+  prompt:
+    'Fetch https://www.nps.gov/yose/planyourvisit/halfdome.htm and summarize the permit requirements and main safety warnings.',
+  tools: {
+    browserbase_fetch: gateway.tools.browserbaseFetch(),
+  },
+});
+
+console.log(result.text);
+console.log('Tool calls:', JSON.stringify(result.toolCalls, null, 2));
+console.log('Tool results:', JSON.stringify(result.toolResults, null, 2));
+```
+
+You can configure the output format and request behavior. For example, use JSON extraction to return content matching a JSON Schema:
+
+```ts
+import { gateway, generateText } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-5.6-luna',
+  prompt:
+    'Fetch https://www.nps.gov/yose/planyourvisit/halfdome.htm and extract its page title, whether a permit is required, and three safety tips.',
+  tools: {
+    browserbase_fetch: gateway.tools.browserbaseFetch({
+      allowRedirects: true,
+      format: 'json',
+      schema: {
+        type: 'object',
+        properties: {
+          pageTitle: { type: 'string' },
+          permitRequired: { type: 'boolean' },
+          safetyTips: {
+            type: 'array',
+            items: { type: 'string' },
+            maxItems: 3,
+          },
+        },
+        required: ['pageTitle', 'permitRequired', 'safetyTips'],
+      },
+    }),
+  },
+});
+
+console.log(result.text);
+```
+
+The Browserbase Fetch tool supports these optional configuration options:
+
+- **format** _'raw' | 'markdown' | 'json'_
+
+  Output format for the fetched content. `raw` returns the upstream response body unchanged and is the default. `markdown` converts the page to Markdown. `json` performs structured extraction and requires `schema`.
+
+- **schema** _object_
+
+  JSON Schema describing the desired structured content. Only used when `format` is `json`.
+
+- **allowRedirects** _boolean_
+
+  Follow HTTP redirects. Defaults to `false`.
+
+- **proxies** _boolean_
+
+  Route the request through Browserbase's proxy network. Defaults to `false`.
+
+- **allowInsecureSsl** _boolean_
+
+  Bypass TLS certificate verification. Defaults to `false`; only enable it for trusted hosts.
+
+The Fetch API does not execute JavaScript. Use a browser session for interactive or JavaScript-rendered pages. The tool works with both `generateText` and `streamText`.
+
 #### Tako Search
 
 The Tako Search tool enables models to search the web and Tako's curated knowledge graph in a single call using [Tako's Search API](https://docs.tako.com/documentation/integrating-tako/search/overview). This tool is executed by the AI Gateway and returns token-efficient web excerpts, plus knowledge-graph results that carry structured data, premium source attribution, and an embed-ready visualization.

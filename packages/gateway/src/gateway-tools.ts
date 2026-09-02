@@ -1,3 +1,5 @@
+import { browserbaseFetch } from './tool/browserbase-fetch';
+import { browserbaseSearch } from './tool/browserbase-search';
 import { exaSearch } from './tool/exa-search';
 import { parallelSearch } from './tool/parallel-search';
 import { perplexitySearch } from './tool/perplexity-search';
@@ -7,6 +9,22 @@ import { takoSearch } from './tool/tako-search';
  * Gateway-specific provider-defined tools.
  */
 export const gatewayTools = {
+  /**
+   * Fetch page content using Browserbase's lightweight Fetch API.
+   *
+   * Supports raw, Markdown, and schema-driven JSON output as well as redirects,
+   * proxy routing, and TLS controls.
+   */
+  browserbaseFetch,
+
+  /**
+   * Search the web using Browserbase's Search API for fast, structured results.
+   *
+   * Returns titles, URLs, and available publication metadata without requiring
+   * a browser session.
+   */
+  browserbaseSearch,
+
   /**
    * Search the web using Exa for current information and token-efficient
    * excerpts optimized for agent workflows.
