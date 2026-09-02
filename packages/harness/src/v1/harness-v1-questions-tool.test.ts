@@ -8,6 +8,7 @@ describe('askUserQuestions schemas', () => {
   test('accepts the canonical question input', () => {
     expect(
       harnessV1QuestionsToolInputSchema.parse({
+        allowPartialAnswers: true,
         questions: [
           {
             id: 'framework',
@@ -27,6 +28,7 @@ describe('askUserQuestions schemas', () => {
         ],
       }),
     ).toEqual({
+      allowPartialAnswers: true,
       questions: [
         {
           id: 'framework',
@@ -45,6 +47,14 @@ describe('askUserQuestions schemas', () => {
         },
       ],
     });
+  });
+
+  test('requires the partial answer capability', () => {
+    expect(() =>
+      harnessV1QuestionsToolInputSchema.parse({
+        questions: [{ id: 'framework', question: 'Which framework?' }],
+      }),
+    ).toThrow();
   });
 
   test.each([

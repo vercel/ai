@@ -31,6 +31,7 @@ const nativeRequest: OpenCodeQuestionRequest = {
 describe('OpenCode question translation', () => {
   test('preserves a native multi-question request as one canonical input', () => {
     expect(toHarnessQuestionsInput(nativeRequest)).toEqual({
+      allowPartialAnswers: true,
       questions: [
         {
           id: 'question-1',

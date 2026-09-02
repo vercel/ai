@@ -17,6 +17,7 @@ export function toHarnessQuestionsInput(
   nativeInput: AskUserQuestionInput,
 ): HarnessV1QuestionsToolInput {
   return {
+    allowPartialAnswers: true,
     questions: nativeInput.questions.map((question, questionIndex) => ({
       id: `question-${questionIndex + 1}`,
       question: question.question,

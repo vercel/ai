@@ -453,7 +453,7 @@ describe('Claude Code bridge configuration', () => {
       .toMatchInlineSnapshot(`
       [
         {
-          "input": "{"questions":[{"id":"question-1","question":"Which framework?","header":"Framework","options":[{"id":"option-1","label":"React","description":"React"},{"id":"option-2","label":"Vue","description":"Vue"}],"allowMultiple":false,"allowFreeForm":true}]}",
+          "input": "{"allowPartialAnswers":true,"questions":[{"id":"question-1","question":"Which framework?","header":"Framework","options":[{"id":"option-1","label":"React","description":"React"},{"id":"option-2","label":"Vue","description":"Vue"}],"allowMultiple":false,"allowFreeForm":true}]}",
           "nativeName": "AskUserQuestion",
           "providerExecuted": false,
           "providerMetadata": {

@@ -22,6 +22,7 @@ export function toHarnessQuestionsInput(
   nativeRequest: OpenCodeQuestionRequest,
 ): HarnessV1QuestionsToolInput {
   return {
+    allowPartialAnswers: true,
     questions: nativeRequest.questions.map((question, questionIndex) => ({
       id: `question-${questionIndex + 1}`,
       question: question.question,

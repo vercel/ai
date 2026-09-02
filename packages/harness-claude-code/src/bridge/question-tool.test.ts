@@ -22,6 +22,7 @@ const nativeInput: AskUserQuestionInput = {
 describe('Claude Code question translation', () => {
   test('maps a native multi-select question to the canonical contract', () => {
     expect(toHarnessQuestionsInput(nativeInput)).toEqual({
+      allowPartialAnswers: true,
       questions: [
         {
           id: 'question-1',

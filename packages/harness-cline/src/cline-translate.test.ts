@@ -46,6 +46,7 @@ describe('translateClineEvent', () => {
       toolCallId: 'question-call',
       toolName: 'askUserQuestions',
       input: JSON.stringify({
+        allowPartialAnswers: false,
         questions: [
           {
             id: 'question-1',

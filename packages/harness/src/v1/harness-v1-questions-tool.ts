@@ -27,6 +27,7 @@ const harnessV1QuestionSchema = z.object({
 });
 
 export const harnessV1QuestionsToolInputSchema = z.object({
+  allowPartialAnswers: z.boolean(),
   questions: z.array(harnessV1QuestionSchema).min(1),
 });
 

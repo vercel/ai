@@ -88,6 +88,7 @@ function toolCallPart(
       toolCallId: toolCall.toolCallId,
       toolName: 'askUserQuestions',
       input: JSON.stringify({
+        allowPartialAnswers: false,
         questions: [
           {
             id: 'question-1',

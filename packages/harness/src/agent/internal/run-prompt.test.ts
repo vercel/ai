@@ -152,6 +152,7 @@ describe('runPrompt client-side built-in tools', () => {
             toolCallId: 'question-call',
             toolName: 'askUserQuestions',
             input: JSON.stringify({
+              allowPartialAnswers: true,
               questions: [{ id: 'question-1', question: 'Which framework?' }],
             }),
             providerExecuted: false,
@@ -183,6 +184,7 @@ describe('runPrompt client-side built-in tools', () => {
         toolCallId: 'question-call',
         toolName: 'askUserQuestions',
         input: JSON.stringify({
+          allowPartialAnswers: true,
           questions: [{ id: 'question-1', question: 'Which framework?' }],
         }),
         providerOptions: providerMetadata,
