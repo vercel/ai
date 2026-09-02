@@ -3,7 +3,6 @@ export type OpenAILanguageModelCapabilities = {
   systemMessageMode: 'remove' | 'system' | 'developer';
   supportsFlexProcessing: boolean;
   supportsPriorityProcessing: boolean;
-  supportsUltrafastProcessing: boolean;
 
   /**
    * Allow temperature, topP, logProbs when reasoningEffort is none.
@@ -33,9 +32,6 @@ export function getOpenAILanguageModelCapabilities(
       !isGptChatModel) ||
     (oSeriesVersion != null && oSeriesVersion >= 3);
 
-  const supportsUltrafastProcessing =
-    modelId === 'gpt-5.6-sol' || modelId.startsWith('gpt-5.6-sol-');
-
   // Only recognizable OpenAI model families should use the developer role.
   // Fine-tuned, third-party, and custom model IDs keep conservative defaults.
   const isReasoningModel =
@@ -54,7 +50,6 @@ export function getOpenAILanguageModelCapabilities(
   return {
     supportsFlexProcessing,
     supportsPriorityProcessing,
-    supportsUltrafastProcessing,
     isReasoningModel,
     systemMessageMode,
     supportsNonReasoningParameters,

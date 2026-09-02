@@ -162,27 +162,4 @@ describe('getOpenAILanguageModelCapabilities', () => {
       },
     );
   });
-
-  describe('supportsUltrafastProcessing', () => {
-    it.each([
-      ['gpt-5.6-sol', true],
-      ['gpt-5.6-sol-2026-08-13', true],
-      ['gpt-5.6', false],
-      ['gpt-5.6-luna', false],
-      ['gpt-5.6-terra', false],
-      ['gpt-5', false],
-      ['gpt-5.4', false],
-      ['gpt-4o', false],
-      ['o3', false],
-      ['ft:gpt-5.6-sol:org:custom:abc123', false],
-    ])(
-      '%s supports ultrafast processing: %s',
-      (modelId, expectedCapabilities) => {
-        expect(
-          getOpenAILanguageModelCapabilities(modelId)
-            .supportsUltrafastProcessing,
-        ).toEqual(expectedCapabilities);
-      },
-    );
-  });
 });

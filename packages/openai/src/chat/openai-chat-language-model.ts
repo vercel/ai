@@ -324,19 +324,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       baseArgs.service_tier = undefined;
     }
 
-    // Validate ultrafast processing support
-    if (
-      openaiOptions.serviceTier === 'ultrafast' &&
-      !modelCapabilities.supportsUltrafastProcessing
-    ) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'serviceTier',
-        details: 'ultrafast processing is only available for gpt-5.6-sol',
-      });
-      baseArgs.service_tier = undefined;
-    }
-
     const {
       tools: openaiTools,
       toolChoice: openaiToolChoice,
