@@ -42,6 +42,29 @@ export type GoogleInteractionsModelId =
   | (string & {});
 
 /**
+ * Provider options for an individual video file part sent to the Gemini
+ * Interactions API.
+ */
+export type GoogleInteractionsVideoOptions = {
+  /**
+   * Controls how Gemini processes this video.
+   *
+   * Agentic processing dynamically explores the video timeline. Static
+   * processing samples frames at a fixed rate and optionally supports clipping
+   * and custom frame rates.
+   */
+  processing?:
+    | 'agentic'
+    | 'static'
+    | {
+        type: 'static';
+        startOffset?: number;
+        endOffset?: number;
+        fps?: number;
+      };
+};
+
+/**
  * Provider-options schema for `google.interactions(...)` calls. Read from the
  * shared `providerOptions.google.*` namespace (per PRD); per-call options that
  * the AI SDK doesn't natively expose live here.

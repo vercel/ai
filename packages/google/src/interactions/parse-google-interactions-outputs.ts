@@ -23,9 +23,13 @@ export type ParseGoogleInteractionsOutputsResult = {
 function googleProviderMetadata({
   signature,
   interactionId,
+  processingId,
+  processingCallId,
 }: {
   signature?: string | null;
   interactionId?: string;
+  processingId?: string;
+  processingCallId?: string;
 }): { providerMetadata: { google: Record<string, string> } } | object {
   const google: Record<string, string> = {};
   if (signature != null) {
@@ -33,6 +37,12 @@ function googleProviderMetadata({
   }
   if (interactionId != null) {
     google.interactionId = interactionId;
+  }
+  if (processingId != null) {
+    google.processingId = processingId;
+  }
+  if (processingCallId != null) {
+    google.processingCallId = processingCallId;
   }
   return Object.keys(google).length > 0 ? { providerMetadata: { google } } : {};
 }
@@ -194,6 +204,40 @@ export function parseGoogleInteractionsOutputs({
           ...googleProviderMetadata({
             signature: thought.signature,
             interactionId,
+          }),
+        });
+        break;
+      }
+      case 'processing_call': {
+        const call = step as {
+          id?: string;
+          signature?: string | null;
+        };
+        const processingId = call.id || generateId();
+        content.push({
+          type: 'custom',
+          kind: 'google.processing_call',
+          ...googleProviderMetadata({
+            signature: call.signature,
+            interactionId,
+            processingId,
+          }),
+        });
+        break;
+      }
+      case 'processing_result': {
+        const result = step as {
+          call_id?: string;
+          signature?: string | null;
+        };
+        const processingCallId = result.call_id || generateId();
+        content.push({
+          type: 'custom',
+          kind: 'google.processing_result',
+          ...googleProviderMetadata({
+            signature: result.signature,
+            interactionId,
+            processingCallId,
           }),
         });
         break;

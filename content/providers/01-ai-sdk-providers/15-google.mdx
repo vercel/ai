@@ -1453,7 +1453,20 @@ exposes:
 - **signature** _string_
 
   Per-block signature hash, set by the SDK on output reasoning and
-  tool-call parts. Round-tripped automatically on the next turn.
+  tool-call or agentic video processing parts. Round-tripped automatically on
+  the next turn.
+
+Agentic video custom parts additionally expose:
+
+- **processingId** _string_
+
+  ID of an agentic video `processing_call`. Present on
+  `google.processing_call` custom parts.
+
+- **processingCallId** _string_
+
+  ID of the matching agentic video processing call. Present on
+  `google.processing_result` custom parts.
 
 ### Stateful chaining
 
@@ -1524,6 +1537,97 @@ const turn2 = await generateText({
   },
 });
 ```
+
+### Agentic video understanding
+
+Gemini 3.7 Flash, 3.6 Flash, and 3.5 Flash Lite support agentic video
+understanding through the Interactions API. Instead of sampling the entire
+video at a fixed frame rate, the model dynamically navigates the timeline and
+loads the transcripts, frames, or audio needed for the prompt.
+
+Set `processing: 'agentic'` in the Google provider options of an individual
+video file part. You can validate the per-file options with
+`GoogleInteractionsVideoOptions`:
+
+```ts
+import { google, type GoogleInteractionsVideoOptions } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: google.interactions('gemini-3.7-flash'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'file',
+          data: 'https://www.youtube.com/watch?v=9hE5-98ZeCg',
+          mediaType: 'video',
+          providerOptions: {
+            google: {
+              processing: 'agentic',
+            } satisfies GoogleInteractionsVideoOptions,
+          },
+        },
+        {
+          type: 'text',
+          text: 'Identify the three most important moments and include timestamps.',
+        },
+      ],
+    },
+  ],
+  providerOptions: {
+    google: {
+      thinkingSummaries: 'auto',
+    },
+  },
+});
+
+const processingSteps = result.content.filter(
+  part =>
+    part.type === 'custom' &&
+    (part.kind === 'google.processing_call' ||
+      part.kind === 'google.processing_result'),
+);
+```
+
+Agentic navigation is exposed as `custom` content parts:
+
+- `google.processing_call` marks a request by the model to inspect part of the
+  video. Its `providerMetadata.google.processingId` contains the processing ID.
+- `google.processing_result` marks completion of that request. Its
+  `providerMetadata.google.processingCallId` links it to the processing call.
+
+These parts are informational and do not require a tool response. They are
+available from both `generateText` and `streamText`.
+
+For static processing, use `'static'` or provide clipping and frame-rate
+options:
+
+```ts
+const video = {
+  type: 'file' as const,
+  data: videoBytes,
+  mediaType: 'video/mp4',
+  providerOptions: {
+    google: {
+      processing: {
+        type: 'static',
+        startOffset: 1200,
+        endOffset: 1500,
+        fps: 0.5,
+      },
+    } satisfies GoogleInteractionsVideoOptions,
+  },
+};
+```
+
+With stateful conversations, pass the returned `interactionId` as
+`previousInteractionId`; Gemini retains the video context server-side. With
+`store: false`, append `result.responseMessages` and re-send the full history.
+The processing custom parts and their signatures are then round-tripped as
+native `processing_call` and `processing_result` steps so the video context is
+preserved.
 
 ### Built-in Tools
 
