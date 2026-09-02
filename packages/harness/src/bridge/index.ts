@@ -11,6 +11,7 @@ import { appendFile, mkdir, writeFile } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { env as procEnv, pid, stdout } from 'node:process';
+import type { ToolResultPart } from '@ai-sdk/provider-utils';
 import { WebSocketServer, type WebSocket } from 'ws';
 
 export { HarnessBridgeCapabilityUnsupportedError } from './harness-bridge-capability-unsupported-error';
@@ -244,8 +245,21 @@ export interface BridgeTurn {
    * itself (via {@link emit}) using the same `toolCallId`.
    */
   requestToolResult(
-    toolCallId: string,
-  ): Promise<{ output: unknown; isError?: boolean }>;
+    input:
+      | string
+      | {
+          toolCallId: string;
+          matches?: (result: {
+            output: unknown;
+            isError?: boolean;
+            toolResult?: ToolResultPart;
+          }) => boolean;
+        },
+  ): Promise<{
+    output: unknown;
+    isError?: boolean;
+    toolResult?: ToolResultPart;
+  }>;
 
   /**
    * Register interest in a host approval decision and resolve when the matching
@@ -342,6 +356,7 @@ type InboundControl =
       toolCallId: string;
       output: unknown;
       isError?: boolean;
+      toolResult?: ToolResultPart;
     }
   | {
       type: 'tool-approval-response';
@@ -506,8 +521,27 @@ export async function runBridge<TStart extends { type: 'start' }>(
 
   const pendingToolResults = new Map<
     string,
-    (output: { output: unknown; isError?: boolean }) => void
+    {
+      resolve: (output: {
+        output: unknown;
+        isError?: boolean;
+        toolResult?: ToolResultPart;
+      }) => void;
+      matches?: (output: {
+        output: unknown;
+        isError?: boolean;
+        toolResult?: ToolResultPart;
+      }) => boolean;
+    }
   >();
+  const bufferedToolResults: Array<{
+    toolCallId: string;
+    result: {
+      output: unknown;
+      isError?: boolean;
+      toolResult?: ToolResultPart;
+    };
+  }> = [];
   const pendingToolApprovals = new Map<
     string,
     (response: { approved: boolean; reason?: string }) => void
@@ -749,10 +783,28 @@ export async function runBridge<TStart extends { type: 'start' }>(
         const userMessages = createBridgeUserMessageQueue({ respond: emit });
         const turn: BridgeTurn = {
           emit,
-          requestToolResult: toolCallId =>
-            new Promise(resolve => {
-              pendingToolResults.set(toolCallId, resolve);
-            }),
+          requestToolResult: requestInput => {
+            const request =
+              typeof requestInput === 'string'
+                ? { toolCallId: requestInput }
+                : requestInput;
+            const bufferedIndex = bufferedToolResults.findIndex(
+              buffered =>
+                buffered.toolCallId === request.toolCallId ||
+                request.matches?.(buffered.result) === true,
+            );
+            if (bufferedIndex >= 0) {
+              return Promise.resolve(
+                bufferedToolResults.splice(bufferedIndex, 1)[0].result,
+              );
+            }
+            return new Promise(resolve => {
+              pendingToolResults.set(request.toolCallId, {
+                resolve,
+                matches: request.matches,
+              });
+            });
+          },
           requestToolApproval: approvalId =>
             new Promise(resolve => {
               pendingToolApprovals.set(approvalId, resolve);
@@ -800,10 +852,29 @@ export async function runBridge<TStart extends { type: 'start' }>(
         return;
       }
       case 'tool-result': {
-        const resolver = pendingToolResults.get(msg.toolCallId);
-        if (resolver) {
-          pendingToolResults.delete(msg.toolCallId);
-          resolver({ output: msg.output, isError: msg.isError });
+        const result = {
+          output: msg.output,
+          isError: msg.isError,
+          toolResult: msg.toolResult,
+        };
+        const exactPending = pendingToolResults.get(msg.toolCallId);
+        const matchingPending =
+          exactPending == null
+            ? Array.from(pendingToolResults.entries()).find(
+                ([, pending]) => pending.matches?.(result) === true,
+              )
+            : undefined;
+        const pending = exactPending ?? matchingPending?.[1];
+        const pendingId =
+          exactPending != null ? msg.toolCallId : matchingPending?.[0];
+        if (pending != null && pendingId != null) {
+          pendingToolResults.delete(pendingId);
+          pending.resolve(result);
+        } else {
+          bufferedToolResults.push({
+            toolCallId: msg.toolCallId,
+            result,
+          });
         }
         return;
       }
