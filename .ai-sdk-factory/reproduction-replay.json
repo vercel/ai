@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20214,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20214-smooth-stream-provider-metadata.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20214-smooth-stream-provider-metadata.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #20214 REPRODUCED: smoothStream dropped the reasoning signature and leaked it onto text part t1"
+  }
+}
