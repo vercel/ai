@@ -1,5 +1,15 @@
 # @ai-sdk/harness-fx
 
+## 1.0.13
+
+### Patch Changes
+
+- 74d252a: fix(harness-acp): preserve terminal events replayed during ACP continuation startup
+- Updated dependencies [74d252a]
+- Updated dependencies [0c37bf0]
+  - @ai-sdk/harness-acp@1.0.38
+  - @ai-sdk/harness@1.0.100
+
 ## 1.0.12
 
 ### Patch Changes
