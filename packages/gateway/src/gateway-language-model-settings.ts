@@ -226,6 +226,7 @@ export type GatewayModelId =
   | 'thinkingmachines/inkling-small'
   | 'xiaomi/mimo-v2.5'
   | 'xiaomi/mimo-v2.5-pro'
+  | 'xiaomi/mimo-v2.5-pro-ultraspeed'
   | 'zai/glm-4.5'
   | 'zai/glm-4.5-air'
   | 'zai/glm-4.5v'
