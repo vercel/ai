@@ -1,0 +1,28 @@
+{
+  "id": "sanitized-live-normal",
+  "model": "sonar",
+  "created": 1788391306,
+  "usage": {
+    "completion_tokens": 1,
+    "cost": {
+      "input_tokens_cost": 0.00001,
+      "output_tokens_cost": 0,
+      "request_cost": 0.005,
+      "total_cost": 0.00501
+    },
+    "prompt_tokens": 5,
+    "search_context_size": "low",
+    "total_tokens": 6
+  },
+  "object": "chat.completion",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "OK"
+      },
+      "finish_reason": "stop"
+    }
+  ]
+}

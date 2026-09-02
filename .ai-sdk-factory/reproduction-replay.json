@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 20198,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20198-perplexity-raw-usage.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20198-perplexity-raw-usage.ts",
+    "packages/perplexity/src/__fixtures__/perplexity-usage-raw-live.json",
+    "packages/perplexity/src/__fixtures__/perplexity-usage-raw-live.chunks.txt"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_20198: Perplexity usage.raw dropped provider fields in normal and streaming results"
+  }
+}
