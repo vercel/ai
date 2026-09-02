@@ -1,5 +1,5 @@
 import type { Experimental_SandboxProcess } from '@ai-sdk/provider-utils';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { JcodeBridgeOutboundMessage } from './jcode-bridge-protocol';
 import {
   createJcodeBridgeSession,
@@ -13,6 +13,9 @@ class FakeChannel {
     Set<(message: JcodeBridgeOutboundMessage) => void>
   >();
   private closed = false;
+  private closeListener:
+    | ((code: number | undefined, reason: string | undefined) => void)
+    | undefined;
 
   on(type: string, listener: (message: JcodeBridgeOutboundMessage) => void) {
     const listeners = this.listeners.get(type) ?? new Set();
@@ -21,7 +24,11 @@ class FakeChannel {
     return () => listeners.delete(listener);
   }
 
-  onClose() {}
+  onClose(
+    listener: (code: number | undefined, reason: string | undefined) => void,
+  ) {
+    this.closeListener = listener;
+  }
   beginClose() {}
   isClosed() {
     return this.closed;
@@ -36,6 +43,9 @@ class FakeChannel {
     for (const listener of this.listeners.get(message.type) ?? []) {
       listener(message);
     }
+  }
+  emitClose(code?: number, reason?: string) {
+    this.closeListener?.(code, reason);
   }
 }
 
@@ -108,6 +118,98 @@ describe('createJcodeBridgeSession', () => {
     });
     await compact;
   });
+
+  it('sends resume identity without reframing instructions', async () => {
+    const channel = new FakeChannel();
+    const session = createJcodeBridgeSession({
+      sessionId: 'session-1',
+      channel: channel as unknown as JcodeBridgeChannel,
+      proc: fakeProcess(),
+      resumeJcodeSessionId: 'native-session',
+      jcodeHome: '/sandbox/jcode-home',
+    });
+
+    const control = await session.doPromptTurn({
+      prompt: 'continue',
+      instructions: 'must not be injected on resume',
+      emit: () => {},
+    });
+
+    expect(channel.sent).toEqual([
+      {
+        type: 'start',
+        operation: 'prompt',
+        prompt: 'continue',
+        resumeSessionId: 'native-session',
+      },
+    ]);
+    channel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'stop' },
+      totalUsage: {
+        inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
+        outputTokens: { total: 0, text: 0, reasoning: 0 },
+      },
+    });
+    await control.done;
+  });
+
+  it('aborts an active turn and rejects when the bridge closes early', async () => {
+    const channel = new FakeChannel();
+    const session = createJcodeBridgeSession({
+      sessionId: 'session-1',
+      channel: channel as unknown as JcodeBridgeChannel,
+      proc: fakeProcess(),
+      jcodeHome: '/sandbox/jcode-home',
+    });
+    const abort = new AbortController();
+    const aborted = await session.doPromptTurn({
+      prompt: 'wait',
+      abortSignal: abort.signal,
+      emit: () => {},
+    });
+    abort.abort(new Error('cancelled'));
+
+    await expect(aborted.done).rejects.toThrow('cancelled');
+    expect(channel.sent).toContainEqual({ type: 'abort' });
+
+    const closing = await session.doPromptTurn({
+      prompt: 'again',
+      emit: () => {},
+    });
+    channel.emitClose(1006, 'socket lost');
+    await expect(closing.done).rejects.toThrow(
+      'jcode bridge closed before the turn finished: socket lost',
+    );
+  });
+
+  it.each(['doStop', 'doDestroy'] as const)(
+    '%s closes the channel and kills the bridge process',
+    async operation => {
+      const channel = new FakeChannel();
+      const proc = fakeProcess();
+      proc.wait = vi.fn(async () => ({ exitCode: 0 }));
+      proc.kill = vi.fn(async () => {});
+      const session = createJcodeBridgeSession({
+        sessionId: 'session-1',
+        channel: channel as unknown as JcodeBridgeChannel,
+        proc,
+        jcodeHome: '/sandbox/jcode-home',
+      });
+
+      const closing = session[operation]();
+      if (operation === 'doStop') {
+        channel.emit({ type: 'bridge-stop', data: {} });
+      }
+      await closing;
+
+      expect(channel.isClosed()).toBe(true);
+      expect(proc.kill).toHaveBeenCalledOnce();
+      await expect(
+        session.doPromptTurn({ prompt: 'closed', emit: () => {} }),
+      ).rejects.toThrow('jcode harness session is closed');
+    },
+  );
 
   it('rejects unsupported tools, suspend, continue, and detach', async () => {
     const session = createJcodeBridgeSession({
