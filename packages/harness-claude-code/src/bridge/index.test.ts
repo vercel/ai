@@ -643,7 +643,7 @@ describe('Claude Code bridge configuration', () => {
     });
   });
 
-  test('surfaces API errors carried by success result frames', async () => {
+  test('surfaces API error messages carried by success result frames', async () => {
     const emitError = vi.fn();
     state.emitError = emitError;
     state.messages = [
@@ -664,29 +664,60 @@ describe('Claude Code bridge configuration', () => {
 
     await import('./index');
 
-    const terminalError = emitError.mock.calls[0]?.[0];
-    const finish = state.emitted.find(event => event.type === 'finish');
-    const outputEvents = state.emitted.filter(event =>
-      ['text-start', 'text-delta', 'reasoning-start', 'tool-call'].includes(
-        String(event.type),
-      ),
-    );
-    if (
-      terminalError == null &&
-      finish?.finishReason != null &&
-      outputEvents.length === 0
-    ) {
-      throw new Error(
-        'ISSUE_20210_REPRODUCED: is_error success result emitted a normal finish and dropped the API error',
-      );
-    }
-
-    expect(terminalError).toEqual({
+    expect(emitError).toHaveBeenCalledWith({
       error: 'API Error: 400 the request was rejected',
       message: 'claude-code terminal error',
     });
-    expect(finish).toBeUndefined();
-    expect(outputEvents).toEqual([]);
+    expect(state.emitted).not.toContainEqual(
+      expect.objectContaining({ type: 'finish' }),
+    );
+  });
+
+  test('falls back to the API status for an errored success result without a message', async () => {
+    const emitError = vi.fn();
+    state.emitError = emitError;
+    state.messages = [
+      {
+        type: 'result',
+        subtype: 'success',
+        is_error: true,
+        api_error_status: 429,
+        result: '  ',
+      },
+    ];
+
+    await import('./index');
+
+    expect(emitError).toHaveBeenCalledWith({
+      error: 'API Error: 429',
+      message: 'claude-code terminal error',
+    });
+    expect(state.emitted).not.toContainEqual(
+      expect.objectContaining({ type: 'finish' }),
+    );
+  });
+
+  test('keeps successful result frames with is_error false on the success path', async () => {
+    const emitError = vi.fn();
+    state.emitError = emitError;
+    state.messages = [
+      {
+        type: 'result',
+        subtype: 'success',
+        is_error: false,
+        result: 'done',
+      },
+    ];
+
+    await import('./index');
+
+    expect(emitError).not.toHaveBeenCalled();
+    expect(state.emitted).toContainEqual(
+      expect.objectContaining({
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'stop' },
+      }),
+    );
   });
 
   test('a host abort interrupts the query gracefully, stays quiet, and disposes it', async () => {
