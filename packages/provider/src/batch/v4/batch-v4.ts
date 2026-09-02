@@ -64,7 +64,8 @@ export type BatchV4Request<ModelIds extends BatchV4ModelIds = BatchV4ModelIds> =
 /**
  * Options for starting a batch of requests discriminated by modality.
  *
- * Additional modality-specific options can be added to this union.
+ * Additional modality-specific request variants can be added to
+ * `BatchV4Request`.
  */
 export type BatchV4StartOptions<
   ModelIds extends BatchV4ModelIds = BatchV4ModelIds,

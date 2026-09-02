@@ -20,9 +20,10 @@ import {
   type GatewayProviderMetadata,
   type Experimental_BatchError as BatchError,
   type Experimental_BatchProvider as BatchProvider,
-  type Experimental_BatchOperationOptions as BatchOperationOptions,
   type Experimental_BatchReference as BatchReference,
   type Experimental_BatchStatus as BatchStatus,
+  type Experimental_GetBatchResultsOptions as GetBatchResultsOptions,
+  type Experimental_GetBatchStatusOptions as GetBatchStatusOptions,
   type Experimental_StartBatchOptions as StartBatchOptions,
   type Experimental_StartBatchResult as StartBatchResult,
   type Experimental_Batch as Batch,
@@ -43,7 +44,7 @@ it('exposes typed Gateway async-job metadata', () => {
 it('uses a modality-independent batch reference', () => {
   expectTypeOf<Batch>().toMatchTypeOf<BatchReference>();
   expectTypeOf<
-    BatchOperationOptions['batch']
+    GetBatchStatusOptions['batch']
   >().toEqualTypeOf<BatchReference>();
 });
 
@@ -80,9 +81,10 @@ it('accepts shared definition-only tools when starting and reading a batch', () 
   expectTypeOf<
     StartBatchOptions<typeof tools>['requests'][number]['tools']
   >().toEqualTypeOf<typeof tools | undefined>();
-  expectTypeOf<BatchOperationOptions<typeof tools>['tools']>().toEqualTypeOf<
+  expectTypeOf<GetBatchResultsOptions<typeof tools>['tools']>().toEqualTypeOf<
     typeof tools | undefined
   >();
+  expectTypeOf<'tools'>().not.toMatchTypeOf<keyof GetBatchStatusOptions>();
 });
 
 it('only exposes text-generation call options to batch providers', () => {
@@ -170,7 +172,7 @@ it('defines batch support as a standalone provider service', () => {
   expectTypeOf<
     StartBatchOptions<ToolSet, TestProvider>['requests'][number]['model']
   >().toEqualTypeOf<ModelId>();
-  expectTypeOf<BatchOperationOptions['provider']>().toEqualTypeOf<
+  expectTypeOf<GetBatchStatusOptions['provider']>().toEqualTypeOf<
     BatchProvider | undefined
   >();
   expectTypeOf<BatchV4Status['status']>().toEqualTypeOf<

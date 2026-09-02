@@ -81,7 +81,7 @@ export type BatchRequest<
   TOOLS extends ToolSet = ToolSet,
 > = TextBatchRequest<ModelIds['text'], TOOLS>;
 
-type BatchRequestOptions = {
+type BatchCallOptions = {
   abortSignal?: AbortSignal;
   headers?: Record<string, string | undefined>;
   timeout?: number | { totalMs?: number };
@@ -109,7 +109,7 @@ export type StartBatchOptions<
    * unsupported warning.
    */
   webhookUrl?: string;
-} & BatchRequestOptions;
+} & BatchCallOptions;
 
 /**
  * The acknowledged batch and warnings produced while starting it.
@@ -119,27 +119,32 @@ export type StartBatchResult = Batch & {
 };
 
 /**
- * Options shared by batch status and result retrieval operations.
+ * Options for retrieving batch status.
  */
-export type BatchOperationOptions<TOOLS extends ToolSet = ToolSet> = {
+export type GetBatchStatusOptions = {
   /**
    * Provider used to access the batch. Defaults to the global provider, or
    * the Vercel AI Gateway when no global provider is configured.
    */
   provider?: BatchProvider;
   batch: BatchReference;
-
-  /**
-   * Definitions for client tools that were provided to `startBatch` requests.
-   *
-   * The definitions are used only to validate and normalize returned tool
-   * calls. Their `execute` functions are never invoked.
-   */
-  tools?: TOOLS;
-
   providerOptions?: ProviderOptions;
   maxRetries?: number;
-} & BatchRequestOptions;
+} & BatchCallOptions;
+
+/**
+ * Options for retrieving batch results.
+ */
+export type GetBatchResultsOptions<TOOLS extends ToolSet = ToolSet> =
+  GetBatchStatusOptions & {
+    /**
+     * Definitions for client tools that were provided to `startBatch` requests.
+     *
+     * The definitions are used only to validate and normalize returned tool
+     * calls. Their `execute` functions are never invoked.
+     */
+    tools?: TOOLS;
+  };
 
 /**
  * A normalized result for a successful text batch item.

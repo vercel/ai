@@ -6,9 +6,10 @@ export {
 export type {
   BatchError as Experimental_BatchError,
   BatchProvider as Experimental_BatchProvider,
-  BatchOperationOptions as Experimental_BatchOperationOptions,
   BatchReference as Experimental_BatchReference,
   BatchStatus as Experimental_BatchStatus,
+  GetBatchResultsOptions as Experimental_GetBatchResultsOptions,
+  GetBatchStatusOptions as Experimental_GetBatchStatusOptions,
   StartBatchOptions as Experimental_StartBatchOptions,
   StartBatchResult as Experimental_StartBatchResult,
   Batch as Experimental_Batch,

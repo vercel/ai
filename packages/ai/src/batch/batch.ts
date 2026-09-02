@@ -27,11 +27,12 @@ import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import { asProviderV4 } from '../model/as-provider-v4';
 import type {
-  BatchOperationOptions,
   BatchItemResult,
   BatchProvider,
   BatchReference,
   BatchStatus,
+  GetBatchResultsOptions,
+  GetBatchStatusOptions,
   StartBatchOptions,
   StartBatchResult,
   TextBatchGenerationResult,
@@ -175,7 +176,7 @@ export async function getBatchStatus({
   abortSignal,
   headers,
   timeout,
-}: Omit<BatchOperationOptions, 'tools'>): Promise<BatchStatus> {
+}: GetBatchStatusOptions): Promise<BatchStatus> {
   const batchApi = resolveBatchApi(provider);
   validateBatchReference({ batchApi, batch });
 
@@ -216,7 +217,7 @@ export function getBatchResults<TOOLS extends ToolSet>({
   abortSignal,
   headers,
   timeout,
-}: BatchOperationOptions<TOOLS>) {
+}: GetBatchResultsOptions<TOOLS>) {
   const batchApi = resolveBatchApi(provider);
   validateBatchReference({ batchApi, batch });
 
