@@ -72,6 +72,7 @@ import {
   type ServerCapabilities,
   type ToolSchemas,
   type ToolMeta,
+  type MCPToolAnnotations,
   type McpProviderMetadata,
   type InitializeResult,
   type DiscoverResult,
@@ -1202,6 +1203,9 @@ class DefaultMCPClient implements MCPClient {
       _meta,
     } of definitions.tools) {
       const resolvedTitle = title ?? annotations?.title;
+      const needsApproval =
+        annotations?.destructiveHint === true ||
+        annotations?.readOnlyHint === false;
       if (
         schemas !== 'automatic' &&
         !Object.prototype.hasOwnProperty.call(schemas, name)
@@ -1217,6 +1221,9 @@ class DefaultMCPClient implements MCPClient {
         clientName: this.clientInfo.name,
         toolName: name,
         ...(resolvedTitle != null ? { title: resolvedTitle } : {}),
+        ...(annotations != null
+          ? { annotations: annotations as MCPToolAnnotations }
+          : {}),
         ...(appMeta?.resourceUri != null
           ? {
               app: {
@@ -1255,6 +1262,7 @@ class DefaultMCPClient implements MCPClient {
               description,
               title: resolvedTitle,
               metadata,
+              ...(needsApproval ? { needsApproval: true } : {}),
               inputSchema: jsonSchema({
                 ...inputSchema,
                 properties: inputSchema.properties ?? {},
@@ -1267,6 +1275,7 @@ class DefaultMCPClient implements MCPClient {
               description,
               title: resolvedTitle,
               metadata,
+              ...(needsApproval ? { needsApproval: true } : {}),
               inputSchema: schemas[name].inputSchema,
               ...(outputSchema != null ? { outputSchema } : {}),
               execute,

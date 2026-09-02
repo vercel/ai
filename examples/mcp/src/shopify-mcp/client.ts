@@ -24,6 +24,10 @@ async function main() {
     const result = streamText({
       model: openai('gpt-4o-mini'),
       tools,
+      toolApproval: () => ({
+        type: 'user-approval',
+        reason: 'Confirm before allowing the commerce server to run a tool.',
+      }),
       instructions: 'You are a helpful chatbot',
       prompt: 'What tools are available for me to call?',
       onEnd: async () => {

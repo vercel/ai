@@ -320,6 +320,12 @@ const tools = await mcpClient.tools();
 
 This approach is simpler to implement and automatically stays in sync with server changes. However, you won't have TypeScript type safety during development, and all tools from the server will be loaded
 
+MCP tool annotations are preserved in `tool.metadata.annotations`. Tools with
+`destructiveHint: true` or `readOnlyHint: false` require user approval by
+default. MCP annotations are server-provided hints rather than a security
+boundary, so configure `toolApproval` explicitly when connecting to an
+untrusted server or when every discovered tool must be covered by a policy.
+
 ### Schema Definition
 
 For better type safety and control, you can define the tools and their input schemas explicitly in your client code:

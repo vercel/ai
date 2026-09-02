@@ -12,10 +12,19 @@ export const SUPPORTED_PROTOCOL_VERSIONS = [
   '2024-11-05',
 ];
 
+export type MCPToolAnnotations = JSONObject & {
+  title?: string;
+  readOnlyHint?: boolean;
+  destructiveHint?: boolean;
+  idempotentHint?: boolean;
+  openWorldHint?: boolean;
+};
+
 export type McpProviderMetadata = {
   clientName?: string;
   title?: string;
   toolName?: string;
+  annotations?: MCPToolAnnotations;
   app?: JSONObject;
 };
 
@@ -179,6 +188,10 @@ const ToolSchema = z
       z
         .object({
           title: z.optional(z.string()),
+          readOnlyHint: z.optional(z.boolean()),
+          destructiveHint: z.optional(z.boolean()),
+          idempotentHint: z.optional(z.boolean()),
+          openWorldHint: z.optional(z.boolean()),
         })
         .loose(),
     ),

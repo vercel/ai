@@ -36,6 +36,7 @@ export type {
   ElicitResult,
   InitializeResult,
   ListToolsResult,
+  MCPToolAnnotations,
   McpProviderMetadata,
   ClientCapabilities as MCPClientCapabilities,
 } from './tool/types';
