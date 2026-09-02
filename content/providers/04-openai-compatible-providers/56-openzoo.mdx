@@ -6,10 +6,10 @@ description: Use the OpenZoo OpenAI compatible API with the AI SDK.
 # OpenZoo Provider
 
 [OpenZoo](https://openzoo.fun) provides pay-per-call access to a large catalog of
-models through an OpenAI-compatible API. There is no account or signup: any API
-key value is accepted, and usage is settled per request via the x402 protocol
-(USDC on Solana or Base), by card, or automatically by a local gateway. You can
-use it with the AI SDK through the `@ai-sdk/openai-compatible` module.
+models through an OpenAI-compatible API. There is no account or signup: a small
+local proxy (`npx openzoo`) pays for each request via the x402 protocol (USDC
+on Solana or Base) from a local burner wallet. You can use it with the AI SDK
+through the `@ai-sdk/openai-compatible` module.
 
 ## Setup
 
@@ -17,6 +17,15 @@ The OpenZoo provider is available via the `@ai-sdk/openai-compatible` module as
 it is compatible with the OpenAI API. You can install it with:
 
 <InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Then start the local proxy, which listens on `http://localhost:8402/v1`:
+
+```bash
+npx openzoo
+```
+
+`npx openzoo address` prints the proxy's wallet — fund it with USDC on Solana
+or Base; `npx openzoo balance` shows what is left.
 
 ## Provider Instance
 
@@ -28,22 +37,23 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
 const openzoo = createOpenAICompatible({
   name: 'openzoo',
-  baseURL: 'https://api.openzoo.fun/v1',
-  apiKey: process.env.OPENZOO_API_KEY ?? 'sk-openzoo',
+  baseURL: 'http://localhost:8402/v1',
+  apiKey: 'sk-openzoo',
 });
 ```
 
 <Note>
-  OpenZoo does not require signup — any API key value is accepted (for example
-  `sk-openzoo`). You can also run a local gateway with `npx openzoo` and set
-  `baseURL: 'http://localhost:8402/v1'`; the gateway pays per call on your
-  behalf.
+  The local proxy ignores the API key, so any non-empty value works (for
+  example `sk-openzoo`). The hosted endpoint `https://api.openzoo.fun/v1`
+  answers HTTP 402 unless the caller pays x402 or presents an OpenZoo
+  subscription key (`ozk_live_…`); the AI SDK cannot pay x402 itself, so use
+  the local proxy.
 </Note>
 
 ## Language Models
 
 You can create OpenZoo models using the provider instance. The first argument is
-a model ID from the [model catalog](https://api.openzoo.fun/v1/models), for
+a model ID from the model catalog at `http://localhost:8402/v1/models`, for
 example `z-ai/glm-5.3-flash`:
 
 ```ts
@@ -61,7 +71,7 @@ import { generateText } from 'ai';
 
 const openzoo = createOpenAICompatible({
   name: 'openzoo',
-  baseURL: 'https://api.openzoo.fun/v1',
+  baseURL: 'http://localhost:8402/v1',
   apiKey: 'sk-openzoo',
 });
 
@@ -80,7 +90,7 @@ import { streamText } from 'ai';
 
 const openzoo = createOpenAICompatible({
   name: 'openzoo',
-  baseURL: 'https://api.openzoo.fun/v1',
+  baseURL: 'http://localhost:8402/v1',
   apiKey: 'sk-openzoo',
 });
 
@@ -94,7 +104,6 @@ for await (const textPart of result.textStream) {
 }
 ```
 
-The model list at
-[`https://api.openzoo.fun/v1/models`](https://api.openzoo.fun/v1/models) is free
-to fetch and includes per-model pricing (`prompt_price_per_1m` /
-`completion_price_per_1m`) and context metadata.
+The model list at `http://localhost:8402/v1/models` is free to fetch and
+includes per-model pricing (`prompt_price_per_1m` / `completion_price_per_1m`)
+and context metadata.
