@@ -12,7 +12,10 @@ import { gzipSync } from 'node:zlib';
 import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { syncHostWorkspaceFromSandbox } from './pi-workspace-mirror';
+import {
+  ARCHIVE_BATCH_SIZE,
+  syncHostWorkspaceFromSandbox,
+} from './pi-workspace-mirror';
 
 const sandboxWorkDir = '/sandbox/work';
 
@@ -506,8 +509,12 @@ describe('syncHostWorkspaceFromSandbox', () => {
   });
 
   it('transfers files as batched archives instead of one request per file', async () => {
+    // One file past the 300-file batch boundary — enough to prove a second
+    // archive request happens and that the last file isn't dropped at the
+    // split, without paying for hundreds of unnecessary tar entries.
+    const fileCount = ARCHIVE_BATCH_SIZE + 1;
     const files: Record<string, string> = {};
-    for (let index = 0; index < 700; index++) {
+    for (let index = 0; index < fileCount; index++) {
       files[`.agents/skills/skill-${index}/SKILL.md`] = `# skill ${index}`;
     }
     const { sandbox, run, readBinaryFile } = makeSandbox({
@@ -522,14 +529,17 @@ describe('syncHostWorkspaceFromSandbox', () => {
     });
 
     expect(readBinaryFile).not.toHaveBeenCalled();
-    // One listing plus ceil(700 / 300) archives — not 700 requests.
-    expect(run).toHaveBeenCalledTimes(4);
+    // One listing plus ceil(fileCount / 300) archives — not fileCount requests.
+    expect(run).toHaveBeenCalledTimes(3);
     expect(
       readFileSync(
-        path.join(hostWorkDir, '.agents/skills/skill-699/SKILL.md'),
+        path.join(
+          hostWorkDir,
+          `.agents/skills/skill-${fileCount - 1}/SKILL.md`,
+        ),
         'utf8',
       ),
-    ).toBe('# skill 699');
+    ).toBe(`# skill ${fileCount - 1}`);
   });
 
   it('mirrors members whose path exceeds the 100-character tar name field', async () => {

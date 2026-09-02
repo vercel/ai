@@ -142,6 +142,45 @@ describe('opaPolicy end-to-end with generateText', () => {
     });
   });
 
+  it('skips execution when the policy returns an unrecognized decision', async () => {
+    const execute = vi.fn(async () => 'ok');
+
+    const result = await generateText({
+      model: modelEmittingOneToolCallThenText(),
+      prompt: 'do something',
+      stopWhen: isStepCount(3),
+      tools: {
+        git: tool({
+          inputSchema: jsonSchema<{ args: string[] }>({
+            type: 'object',
+            properties: { args: { type: 'array', items: { type: 'string' } } },
+            required: ['args'],
+          }),
+          execute,
+        }),
+      },
+      toolApproval: opaPolicy({
+        client: stubClient({ decision: 'blocked' }),
+        path: 'agent/call/decision',
+      }),
+    });
+
+    expect(execute).not.toHaveBeenCalled();
+    const toolMessage = result.responseMessages.find(m => m.role === 'tool') as
+      | {
+          content: Array<{
+            type: string;
+            output?: { type: string; reason?: string };
+          }>;
+        }
+      | undefined;
+    const toolResult = toolMessage?.content.find(c => c.type === 'tool-result');
+    expect(toolResult?.output).toEqual({
+      type: 'execution-denied',
+      reason: 'unrecognized OPA policy decision',
+    });
+  });
+
   it('routes a dispatcher call through the same Rego rule via toInput', async () => {
     // Demonstrates the transitive-enforcement pattern documented in the
     // README: bash `'git push'` is rewritten to (kind: 'git', args: ['push'])
