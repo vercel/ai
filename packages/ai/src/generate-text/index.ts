@@ -70,6 +70,8 @@ export {
   type StreamTextOnChunkCallback,
   type StreamTextOnEndCallback,
   type StreamTextOnErrorCallback,
+  type StreamTextOnErrorRetryCallback,
+  type StreamTextOnErrorResult,
   type StreamTextTransform,
 } from './stream-text';
 export type {

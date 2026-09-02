@@ -118,7 +118,11 @@ describe('xAI batch', () => {
   it('uploads prepared JSONL requests and creates a file-backed batch', async () => {
     server.urls[urls.files].response = {
       type: 'json-value',
-      body: { id: 'file_123', filename: 'batch.jsonl' },
+      body: {
+        id: 'file_123',
+        filename: 'batch.jsonl',
+        expires_at: 1_700_172_800,
+      },
     };
     server.urls[urls.batches].response = {
       type: 'json-value',
@@ -164,6 +168,12 @@ describe('xAI batch', () => {
       },
       createdAt: '2026-08-25T12:00:00Z',
       expiresAt: '2099-08-26T12:00:00Z',
+      providerMetadata: {
+        xai: {
+          inputFileId: 'file_123',
+          inputFileExpiresAt: '2023-11-16T22:13:20.000Z',
+        },
+      },
       warnings: [
         {
           warning: {
@@ -184,6 +194,7 @@ describe('xAI batch', () => {
     const file = multipart?.file as File;
     expect(file.name).toBe('batch.jsonl');
     expect(file.type).toBe('application/jsonl');
+    expect(multipart?.expires_after).toBeUndefined();
     const lines = (await file.text())
       .trim()
       .split('\n')
@@ -239,6 +250,39 @@ describe('xAI batch', () => {
         'operation-header': 'operation',
       });
     }
+  });
+
+  it('appends inputFileExpiresAfter as expires_after before the file part', async () => {
+    server.urls[urls.files].response = {
+      type: 'json-value',
+      body: { id: 'file_123', filename: 'batch.jsonl' },
+    };
+    server.urls[urls.batches].response = {
+      type: 'json-value',
+      body: batchResponse(),
+    };
+    const batch = createXai({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+
+    const result = await batch.doStartBatch({
+      requests: [
+        { id: 'france', ...request('What is the capital of France?') },
+      ],
+      providerOptions: { xai: { inputFileExpiresAfter: 172_800 } },
+    });
+
+    const multipart = await server.calls[0].requestBodyMultipart;
+    expect(multipart?.expires_after).toBe('172800');
+    // xAI rejects uploads where expires_after arrives after the file part
+    expect(Object.keys(multipart ?? {})).toEqual(['expires_after', 'file']);
+    expect(await server.calls[1].requestBodyJson).toEqual({
+      name: 'ai-sdk-text-batch',
+      input_file_id: 'file_123',
+    });
+    expect(result.providerMetadata).toEqual({
+      xai: { inputFileId: 'file_123' },
+    });
   });
 
   it('maps xAI state counters and cancellation metadata', async () => {

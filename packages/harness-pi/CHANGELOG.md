@@ -1,5 +1,13 @@
 # @ai-sdk/harness-pi
 
+## 1.0.102
+
+### Patch Changes
+
+- 7c3211d: fix (harness-pi): transfer the workspace mirror as batched archives instead of one request per file
+- Updated dependencies [0c37bf0]
+  - @ai-sdk/harness@1.0.100
+
 ## 1.0.101
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @ai-sdk/harness-codex
 
+## 1.0.102
+
+### Patch Changes
+
+- 0c37bf0: fix(harness): avoid warning about lack of credential brokering support when `credentialForwarding` callback is used to replace all credentials with ephemeral fake secrets
+- Updated dependencies [0c37bf0]
+  - @ai-sdk/harness@1.0.100
+
 ## 1.0.101
 
 ### Patch Changes

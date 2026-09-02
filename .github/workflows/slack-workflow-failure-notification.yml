@@ -11,6 +11,8 @@ on:
       - completed
 
 permissions:
+  actions: read
+  checks: read
   contents: read
 
 jobs:
@@ -28,7 +30,73 @@ jobs:
       }}
 
     steps:
+      - name: Detect expired Backport approval
+        id: expired-backport-approval
+        if: github.event.workflow_run.name == 'Backport'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const approvalExpiredMessage =
+              'This workflow run required approval but was not approved before it expired.';
+            const { owner, repo } = context.repo;
+            let approvalExpired = false;
+
+            try {
+              const jobs = await github.paginate(
+                github.rest.actions.listJobsForWorkflowRun,
+                {
+                  owner,
+                  repo,
+                  run_id: context.payload.workflow_run.id,
+                  filter: 'latest',
+                  per_page: 100,
+                },
+              );
+
+              for (const job of jobs) {
+                const checkRunId = Number(job.check_run_url.split('/').at(-1));
+
+                if (!Number.isInteger(checkRunId)) {
+                  core.warning(`Could not determine the check run for ${job.name}.`);
+                  continue;
+                }
+
+                try {
+                  const annotations = await github.paginate(
+                    github.rest.checks.listAnnotations,
+                    {
+                      owner,
+                      repo,
+                      check_run_id: checkRunId,
+                      per_page: 100,
+                    },
+                  );
+
+                  if (
+                    annotations.some(
+                      annotation => annotation.message === approvalExpiredMessage,
+                    )
+                  ) {
+                    approvalExpired = true;
+                    break;
+                  }
+                } catch (error) {
+                  core.warning(
+                    `Could not inspect annotations for ${job.name}: ${error.message}`,
+                  );
+                }
+              }
+            } catch (error) {
+              core.warning(
+                `Could not inspect jobs for the Backport workflow: ${error.message}`,
+              );
+            }
+
+            core.setOutput('expired', String(approvalExpired));
+
       - name: Send Slack notification
+        if: steps.expired-backport-approval.outputs.expired != 'true'
         run: |
           payload=$(jq -n \
             --arg channel_id "$CHANNEL_ID" \

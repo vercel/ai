@@ -22,6 +22,7 @@ import {
   getFromApi,
   lazySchema,
   normalizeBatchRequestCounts,
+  parseProviderOptions,
   postFormDataToApi,
   postJsonToApi,
   safeValidateTypes,
@@ -48,6 +49,24 @@ import type { XaiResponsesModelId } from './responses/xai-responses-language-mod
 const xaiBatchEndpoint = '/v1/responses';
 const xaiBatchName = 'ai-sdk-text-batch';
 const xaiBatchResultsPageSize = 1000;
+
+const xaiBatchProviderOptionsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      /**
+       * TTL in seconds for the uploaded batch input file, measured from
+       * upload time. xAI accepts integers between 3600 (1 hour) and
+       * 2592000 (30 days) inclusive. Without it the file has no expiry.
+       */
+      inputFileExpiresAfter: z
+        .number()
+        .int()
+        .min(3600)
+        .max(2_592_000)
+        .optional(),
+    }),
+  ),
+);
 
 type XaiBatchModelIds = { readonly text: XaiResponsesModelId };
 type XaiBatchRequest = TextBatchV4Request<XaiResponsesModelId>;
@@ -148,6 +167,12 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
             },
           ];
 
+    const batchOptions = await parseProviderOptions({
+      provider: 'xai',
+      providerOptions: options.providerOptions,
+      schema: xaiBatchProviderOptionsSchema,
+    });
+
     for (const request of options.requests) {
       const preparedRequest = await this.prepareRequest(request);
 
@@ -170,6 +195,14 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
     const file = new Blob(fileParts, { type: 'application/jsonl' });
     fileParts.length = 0;
     const formData = new FormData();
+    // xAI rejects uploads where expires_after arrives after the file part,
+    // so all fields precede the file.
+    if (batchOptions?.inputFileExpiresAfter != null) {
+      formData.append(
+        'expires_after',
+        String(batchOptions.inputFileExpiresAfter),
+      );
+    }
     formData.append('file', file, filename);
 
     const headers = combineHeaders(
@@ -207,6 +240,18 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
     return {
       batchId: batch.batch_id,
       ...convertXaiBatchStatus(batch),
+      providerMetadata: {
+        xai: {
+          inputFileId: uploadedFile.id,
+          ...(uploadedFile.expires_at != null
+            ? {
+                inputFileExpiresAt: new Date(
+                  uploadedFile.expires_at * 1000,
+                ).toISOString(),
+              }
+            : {}),
+        },
+      },
       warnings,
     };
   }

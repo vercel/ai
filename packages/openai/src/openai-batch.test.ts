@@ -68,6 +68,7 @@ function prepareCreateResponse(overrides: Record<string, unknown> = {}) {
       object: 'file',
       filename: 'batch.jsonl',
       purpose: 'batch',
+      expires_at: 1_700_172_800,
     },
   };
   server.urls[urls.batches].response = {
@@ -156,6 +157,12 @@ describe('OpenAI batch service', () => {
       },
       createdAt: '2023-11-14T22:13:20.000Z',
       expiresAt: '2023-11-15T22:13:20.000Z',
+      providerMetadata: {
+        openai: {
+          inputFileId: 'file-input',
+          inputFileExpiresAt: '2023-11-16T22:13:20.000Z',
+        },
+      },
       warnings: [
         {
           warning: {
@@ -250,6 +257,45 @@ describe('OpenAI batch service', () => {
         'The OpenAI Batch API requires all requests in a batch to use the same model. Found "gpt-5.6" and "gpt-5-mini".',
     });
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('applies the inputFileExpiresAfter provider option to the input file upload', async () => {
+    prepareCreateResponse();
+    const batch = createOpenAI({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+
+    await batch.doStartBatch({
+      requests: [
+        { id: 'france', ...request('What is the capital of France?') },
+      ],
+      providerOptions: { openai: { inputFileExpiresAfter: 3600 } },
+    });
+
+    const multipart = await server.calls[0].requestBodyMultipart;
+    expect(multipart?.['expires_after[anchor]']).toBe('created_at');
+    expect(multipart?.['expires_after[seconds]']).toBe('3600');
+  });
+
+  it('omits inputFileExpiresAt when the upload response carries no expiry', async () => {
+    prepareCreateResponse();
+    server.urls[urls.files].response = {
+      type: 'json-value',
+      body: { id: 'file-input', object: 'file' },
+    };
+    const batch = createOpenAI({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+
+    const result = await batch.doStartBatch({
+      requests: [
+        { id: 'france', ...request('What is the capital of France?') },
+      ],
+    });
+
+    expect(result.providerMetadata).toEqual({
+      openai: { inputFileId: 'file-input' },
+    });
   });
 
   it('warns when a provider tool can return unsupported batch output', async () => {

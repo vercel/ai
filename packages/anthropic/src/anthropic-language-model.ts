@@ -2893,7 +2893,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
-  } else if (modelId.includes('claude-sonnet-4-')) {
+  } else if (/claude-sonnet-4(?:-|@)/.test(modelId)) {
     return {
       maxOutputTokens: 64000,
       supportsStructuredOutput: false,
@@ -2903,7 +2903,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
-  } else if (modelId.includes('claude-opus-4-')) {
+  } else if (/claude-opus-4(?:-|@)/.test(modelId)) {
     return {
       maxOutputTokens: 32000,
       supportsStructuredOutput: false,
