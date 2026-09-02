@@ -1121,9 +1121,14 @@ function createSession({
   channel.on('bridge-thread', event => {
     latestACPSessionId = event.threadId;
   });
-  channel.on('finish', markTurnFinished);
-  channel.on('error', markTurnFinished);
-  channel.onClose(markTurnFinished);
+  // A resumed continuation replays its buffered events after the new session
+  // is created. Let `wireTurn` consume those events so it can forward a
+  // terminal replay instead of rejecting the continuation before it starts.
+  if (!turnInFlightAtStart) {
+    channel.on('finish', markTurnFinished);
+    channel.on('error', markTurnFinished);
+    channel.onClose(markTurnFinished);
+  }
 
   const wireTurn = ({
     emit,
@@ -1256,6 +1261,7 @@ function createSession({
     }
     subscriptions.push(
       channel.on('finish', event => {
+        markTurnFinished();
         closeForwardedBlock();
         forward(event);
         settle(abortRequested ? { error: abortError } : {});
@@ -1263,6 +1269,7 @@ function createSession({
     );
     subscriptions.push(
       channel.on('error', event => {
+        markTurnFinished();
         closeForwardedBlock();
         const error = deserializeBridgeError({
           error: event.error,
@@ -1273,6 +1280,7 @@ function createSession({
       }),
     );
     channel.onClose((_code, reason) => {
+      markTurnFinished();
       if (reason === 'suspended') {
         settle({});
         return;

@@ -45,7 +45,7 @@ const PI_CONTEXT_FILENAMES = ['AGENTS.md', 'AGENTS.MD'] as const;
  * few hundred files instead of one request per file. Sandboxes without `tar`,
  * `gzip`, or `base64` fall back to per-file reads.
  */
-const ARCHIVE_BATCH_SIZE = 300;
+export const ARCHIVE_BATCH_SIZE = 300;
 const TAR_BLOCK_SIZE = 512;
 
 function normalizeRelativePath(inputPath: string): string {
