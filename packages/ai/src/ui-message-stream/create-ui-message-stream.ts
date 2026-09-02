@@ -20,7 +20,10 @@ import type { UIMessageStreamWriterWithOutcome } from './ui-message-stream-write
  *   and a message ID is provided for the response message.
  * @param options.onStepEnd - A callback that is called when each step ends. Useful for persisting intermediate messages.
  * @param options.onStepFinish - Deprecated alias for `onStepEnd`.
- * @param options.onEnd - A callback that is called when the stream ends.
+ * @param options.onEnd - A callback that is called when the stream ends,
+ *   including after abort or a mid-stream error. Receives the messages
+ *   collected so far and an `outcome` of `completed`, `aborted`, `failed`,
+ *   or `unknown`.
  * @param options.onFinish - Deprecated alias for `onEnd`.
  * @param options.generateId - A function that generates a unique ID. Defaults to the built-in ID generator.
  *
@@ -59,6 +62,11 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
    */
   onStepFinish?: UIMessageStreamOnStepFinishCallback<UI_MESSAGE>;
 
+  /**
+   * Called when the stream ends, including after abort or a mid-stream error.
+   * Receives the messages collected so far and an `outcome` describing how
+   * the stream terminated.
+   */
   onEnd?: UIMessageStreamOnEndCallback<UI_MESSAGE>;
 
   /**
