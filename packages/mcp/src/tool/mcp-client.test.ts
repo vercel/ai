@@ -3108,6 +3108,91 @@ describe('MCPClient', () => {
     });
   });
 
+  describe('tool annotation support', () => {
+    it('should preserve annotations and require approval for destructive tools', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideTools: [
+          {
+            name: 'submit-order',
+            description: 'Submit an order',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+            annotations: {
+              title: 'Submit order',
+              readOnlyHint: false,
+              destructiveHint: true,
+              idempotentHint: false,
+              openWorldHint: true,
+              customHint: 'commerce',
+            },
+          },
+        ],
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      const dynamicTools = await client.tools();
+      const typedTools = await client.tools({
+        schemas: {
+          'submit-order': {
+            inputSchema: z.object({}),
+          },
+        },
+      });
+
+      expect(dynamicTools['submit-order'].needsApproval).toBe(true);
+      expect(dynamicTools['submit-order'].metadata?.annotations).toEqual({
+        title: 'Submit order',
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: true,
+        customHint: 'commerce',
+      });
+      expect(typedTools['submit-order'].needsApproval).toBe(true);
+      expect(typedTools['submit-order'].metadata).toEqual(
+        dynamicTools['submit-order'].metadata,
+      );
+    });
+
+    it('should not derive approval from read-only annotations', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideTools: [
+          {
+            name: 'get-product',
+            description: 'Get a product',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+            annotations: {
+              readOnlyHint: true,
+              destructiveHint: false,
+              idempotentHint: true,
+            },
+          },
+        ],
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      const tools = await client.tools();
+
+      expect(tools['get-product'].needsApproval).toBeUndefined();
+      expect(tools['get-product'].metadata?.annotations).toEqual({
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+      });
+    });
+  });
+
   describe('protocol version negotiation', () => {
     it('should set protocolVersion on transport after successful init', async () => {
       const mockTransport = new MockMCPTransport();
