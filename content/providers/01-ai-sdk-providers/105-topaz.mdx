@@ -1,0 +1,233 @@
+---
+title: Topaz Labs
+description: Learn how to use the Topaz Labs provider for the AI SDK.
+---
+
+# Topaz Labs Provider
+
+The [Topaz Labs](https://www.topazlabs.com/) provider contains support for Topaz Labs' image and video enhancement models.
+
+Topaz models **enhance media you supply** — they upscale, denoise, sharpen and restore an existing image or video. They do not generate media from a text prompt, so the input file is the required part of the request and a text prompt is ignored.
+
+## Setup
+
+The Topaz Labs provider is available in the `@ai-sdk/topaz` module. You can install it with
+
+<InstallPackages packages="@ai-sdk/topaz" />
+
+## Provider Instance
+
+You can import the default provider instance `topaz` from `@ai-sdk/topaz`:
+
+```ts
+import { topaz } from '@ai-sdk/topaz';
+```
+
+If you need a customized setup, you can import `createTopaz` and create a provider instance with your settings:
+
+```ts
+import { createTopaz } from '@ai-sdk/topaz';
+
+const topaz = createTopaz({
+  apiKey: process.env.TOPAZ_API_KEY,
+});
+```
+
+You can use the following optional settings to customize the Topaz Labs provider instance:
+
+- **apiKey** _string_
+
+  API key that is being sent as the `X-API-Key` header.
+  It defaults to the `TOPAZ_API_KEY` environment variable.
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `https://api.topazlabs.com`.
+
+- **headers** _Record&lt;string, string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+
+## Image Models
+
+You can create Topaz image models using `topaz.image()`:
+
+```ts
+import { topaz } from '@ai-sdk/topaz';
+import { generateImage } from 'ai';
+
+const { images } = await generateImage({
+  model: topaz.image('wonder-3.5'),
+  prompt: {
+    images: ['https://example.com/photo.jpg'],
+  },
+});
+```
+
+The image to enhance is passed through the prompt's `images`. The Topaz image API is asynchronous: the provider submits the job, polls until it finishes, and downloads the result, so `generateImage` resolves with the enhanced image.
+
+### Model Capabilities
+
+| Model        | Topaz model  | Description                              |
+| ------------ | ------------ | ---------------------------------------- |
+| `wonder-3.5` | `Wonder 3.5` | Generative upscaling and detail recovery |
+
+Passing a raw Topaz model name (for example `Wonder 3.5`) also works — unknown ids are forwarded to the API unchanged.
+
+### Image Provider Options
+
+```ts
+import { topaz, type TopazImageModelOptions } from '@ai-sdk/topaz';
+import { generateImage } from 'ai';
+
+const { images } = await generateImage({
+  model: topaz.image('wonder-3.5'),
+  prompt: {
+    images: ['https://example.com/photo.jpg'],
+  },
+  size: '4096x4096',
+  providerOptions: {
+    topaz: {
+      enhancementStrength: 'high',
+      grain: true,
+      grainDensity: 0.3,
+      outputFormat: 'png',
+    } satisfies TopazImageModelOptions,
+  },
+});
+```
+
+- **enhancementStrength** _'low' | 'medium' | 'high'_ — how aggressively to enhance. Defaults to `high`.
+- **grain** _boolean_ — add grain to the output. Defaults to `false`.
+- **grainDensity** _number_ — grain intensity, 0 to 1. Defaults to 0.5.
+- **grainModel** _'silver' | 'gaussian' | 'grey'_ — grain model. Defaults to `silver`.
+- **grainSize** _number_ — grain particle size, 1 to 5. Defaults to 1.
+- **grainStrength** _number_ — grain effect strength, 0 to 1. Defaults to 0.5.
+- **inputWidth** / **inputHeight** _number_ — input dimensions in pixels. Topaz infers these from the upload when omitted.
+- **outputWidth** / **outputHeight** _number_ — output dimensions in pixels, 1 to 32000. These take precedence over the dimensions derived from `size`.
+- **outputFormat** _'jpeg' | 'jpg' | 'png' | 'tiff' | 'tif'_ — output format.
+- **cropToFill** _boolean_ — crop the output to fill the requested dimensions. Defaults to `false`.
+- **webhookUrl** _string_ — URL to receive job-status webhooks.
+- **pollIntervalMillis** _number_ — status poll interval. Defaults to 2000.
+- **pollTimeoutMillis** _number_ — maximum time to wait for the job. Defaults to 600000.
+
+`aspectRatio`, `seed`, `mask` and `n` greater than 1 are not supported and produce warnings.
+
+## Video Models
+
+You can create Topaz video models using `topaz.video()`:
+
+```ts
+import { topaz } from '@ai-sdk/topaz';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { videos } = await generateVideo({
+  model: topaz.video('starlight-precise-2.6'),
+  inputReferences: ['https://example.com/clip.mp4'],
+  providerOptions: {
+    topaz: {
+      source: {
+        width: 1920,
+        height: 1080,
+        duration: 10,
+        frameRate: 30,
+        frameCount: 300,
+      },
+      output: { width: 3840, height: 2160 },
+    },
+  },
+});
+```
+
+The video to enhance is passed through `inputReferences`.
+
+### Model Capabilities
+
+| Model                   | Topaz model | Description                                   |
+| ----------------------- | ----------- | --------------------------------------------- |
+| `proteus`               | `prob-4`    | Detail-preserving upscaling with fine control |
+| `starlight-precise-2.6` | `slp-2.6`   | Generative upscaling with high fidelity       |
+
+### Source Metadata
+
+Topaz creates the video request before the upload begins, and that request has to describe the input video. The AI SDK does not inspect media files, so this metadata comes from your side. The provider fills in what it can:
+
+| Field        | Where it comes from                                                 |
+| ------------ | ------------------------------------------------------------------- |
+| `size`       | Derived from the input bytes.                                       |
+| `container`  | Derived from the input's media type or URL extension.               |
+| `resolution` | The `resolution` call option, or `source.width` / `source.height`.  |
+| `duration`   | The `duration` call option, or `source.duration`.                   |
+| `frameRate`  | The `fps` call option, or `source.frameRate`.                       |
+| `frameCount` | `source.frameCount`, or `duration * frameRate` when both are known. |
+
+`source.*` always takes precedence over the corresponding call option. If anything is still missing, the provider throws an error naming the fields it needs.
+
+<Note>
+  Set `source.frameCount` explicitly for variable-frame-rate input, where
+  `duration * frameRate` is not exact.
+</Note>
+
+So the example above can also be written using the standard call options:
+
+```ts
+const { videos } = await generateVideo({
+  model: topaz.video('proteus'),
+  inputReferences: ['https://example.com/clip.mp4'],
+  resolution: '1920x1080',
+  duration: 10,
+  fps: 30,
+  providerOptions: {
+    topaz: {
+      source: { frameCount: 300 },
+    },
+  },
+});
+```
+
+### Video Provider Options
+
+Structural options:
+
+- **source** _object_ — input video metadata: `width`, `height`, `duration`, `frameRate`, `frameCount`, `container`.
+- **output** _object_ — `width`, `height`, `frameRate`, `audioCodec` (`'AAC' | 'AC3' | 'PCM'`), `audioTransfer` (`'Copy' | 'Convert' | 'None'`), `container` (`'mp4' | 'mov' | 'mkv'`), `dynamicCompressionLevel`. Each dimension and the frame rate default to the source value; audio defaults to `AAC` / `Copy`.
+- **additionalFilters** _Array&lt;Record&lt;string, unknown&gt;&gt;_ — extra `filters[]` entries, e.g. a frame-interpolation filter. Each entry must include a `model` key.
+- **filter** _Record&lt;string, unknown&gt;_ — escape hatch merged into the model's filter entry, overriding the typed options below.
+
+Proteus filter settings: `videoType`, `auto`, `fieldOrder`, `focusFixLevel`, `compression`, `details`, `prenoise`, `noise`, `halo`, `preblur`, `blur`, `grain`, `grainSigma`, `grainSize`, `grainType`, `recoverOriginalDetailValue`.
+
+Starlight Precise filter settings: `sharpness`, `videoBitDepth`, `videoCodec`, `videoProfile`, `watermark`.
+
+See the [Proteus](https://developer.topazlabs.com/video-models/proteus/proteus-1) and [Starlight Precise 2.6](https://developer.topazlabs.com/video-models/starlight/starlight-precise-2.6) references for the accepted ranges.
+
+`prompt`, `aspectRatio`, `seed`, `generateAudio`, `frameImages` and `n` greater than 1 are not supported and produce warnings.
+
+### Long-Running Operations
+
+Video enhancement takes minutes, so Topaz video models implement the AI SDK's async operation protocol. `generateVideo` polls to completion. Use `experimental_startVideo` when you would rather persist the operation and check its status later:
+
+```ts
+import { topaz } from '@ai-sdk/topaz';
+import { experimental_startVideo as startVideo } from 'ai';
+
+const operation = await startVideo({
+  model: topaz.video('starlight-precise-2.6'),
+  inputReferences: ['https://example.com/clip.mp4'],
+  providerOptions: {
+    topaz: {
+      source: {
+        width: 1920,
+        height: 1080,
+        duration: 10,
+        frameRate: 30,
+        frameCount: 300,
+      },
+    },
+  },
+});
+```
