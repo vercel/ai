@@ -2,6 +2,7 @@ import { InvalidResponseDataError } from '@ai-sdk/provider';
 import {
   createIdGenerator,
   withUserAgentSuffix,
+  type Context,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { logWarnings } from '../logger/log-warnings';
@@ -49,7 +50,7 @@ const originalGenerateCallId = createIdGenerator({
  *
  * @returns A result object that contains the embeddings, the value, and additional information.
  */
-export async function embedMany({
+export async function embedMany<RUNTIME_CONTEXT extends Context = Context>({
   model: modelArg,
   values,
   maxParallelCalls = Infinity,
@@ -59,6 +60,7 @@ export async function embedMany({
   providerOptions,
   experimental_telemetry,
   telemetry = experimental_telemetry,
+  runtimeContext,
   onStart,
   experimental_onStart,
   onEnd,
@@ -74,6 +76,11 @@ export async function embedMany({
    * The values that should be embedded.
    */
   values: Array<string>;
+
+  /**
+   * User-defined runtime context that flows through the entire embedding lifecycle.
+   */
+  runtimeContext?: RUNTIME_CONTEXT;
 
   /**
    * Maximum number of retries per embedding model call. Set to 0 to disable retries.
@@ -188,6 +195,7 @@ export async function embedMany({
     maxRetries,
     headers: headersWithUserAgent,
     providerOptions,
+    runtimeContext,
   };
 
   return await runInTracingChannelSpan({
@@ -228,6 +236,7 @@ export async function embedMany({
                   provider: model.provider,
                   modelId: model.modelId,
                   values,
+                  runtimeContext,
                 },
                 callbacks: [telemetryDispatcher.onEmbedStart],
               });
@@ -252,6 +261,7 @@ export async function embedMany({
                   values,
                   embeddings,
                   usage,
+                  runtimeContext,
                 },
                 callbacks: [telemetryDispatcher.onEmbedEnd],
               });
@@ -285,6 +295,7 @@ export async function embedMany({
               warnings,
               providerMetadata,
               response: [response],
+              runtimeContext,
             },
             callbacks: [resolvedOnEnd, telemetryDispatcher.onEnd],
           });
@@ -340,6 +351,7 @@ export async function embedMany({
                     provider: model.provider,
                     modelId: model.modelId,
                     values: chunk,
+                    runtimeContext,
                   },
                   callbacks: [telemetryDispatcher.onEmbedStart],
                 });
@@ -364,6 +376,7 @@ export async function embedMany({
                     values: chunk,
                     embeddings: chunkEmbeddings,
                     usage,
+                    runtimeContext,
                   },
                   callbacks: [telemetryDispatcher.onEmbedEnd],
                 });
@@ -426,6 +439,7 @@ export async function embedMany({
             warnings,
             providerMetadata,
             response: responses,
+            runtimeContext,
           },
           callbacks: [resolvedOnEnd, telemetryDispatcher.onEnd],
         });
@@ -439,7 +453,7 @@ export async function embedMany({
           responses,
         });
       } catch (error) {
-        await telemetryDispatcher.onError?.({ callId, error });
+        await telemetryDispatcher.onError?.({ callId, error, runtimeContext });
         throw error;
       }
     },
