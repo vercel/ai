@@ -79,6 +79,7 @@ export type GatewayModelId =
   | 'google/gemini-3.5-flash-lite'
   | 'google/gemini-3.6-flash'
   | 'google/gemini-3.7-flash'
+  | 'google/gemini-3.8-flash'
   | 'google/gemini-omni-flash-preview'
   | 'google/gemma-4-26b-a4b-it'
   | 'google/gemma-4-31b-it'
