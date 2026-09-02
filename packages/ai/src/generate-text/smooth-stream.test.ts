@@ -1,13 +1,8 @@
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { smoothStream } from './smooth-stream';
 import type { TextStreamPart } from './stream-text-result';
-<<<<<<< HEAD
 import type { ToolSet } from './tool-set';
-import { beforeEach, describe, expect, it } from 'vitest';
-=======
-import type { ToolSet } from '@ai-sdk/provider-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
->>>>>>> 84e5a79fc5 (fix: prevent smoothStream from stalling streams in background tabs (#20219))
 
 describe('smoothStream', () => {
   let events: any[] = [];
