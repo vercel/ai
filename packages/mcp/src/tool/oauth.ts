@@ -607,7 +607,12 @@ function assertMetadataIssuerMatches(
   metadata: AuthorizationServerMetadata,
   expectedIssuer: string,
 ): void {
-  if (metadata.issuer !== expectedIssuer) {
+  const issuerMatches =
+    metadata.issuer === expectedIssuer ||
+    (expectedIssuer === new URL(expectedIssuer).origin &&
+      metadata.issuer === `${expectedIssuer}/`);
+
+  if (!issuerMatches) {
     throw new MCPClientOAuthError({
       message: `OAuth authorization server metadata issuer ${metadata.issuer} does not match expected issuer ${expectedIssuer}`,
     });
