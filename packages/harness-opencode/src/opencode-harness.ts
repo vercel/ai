@@ -1,6 +1,7 @@
 import path from 'node:path';
 import {
   commonTool,
+  HARNESS_V1_BUILTIN_TOOLS,
   HarnessCapabilityUnsupportedError,
   harnessV1DiagnosticFromBridgeFrame,
   type HarnessV1,
@@ -123,6 +124,11 @@ export type OpenCodeHarnessSettings = {
 const optionalStringRecord = z.record(z.string(), z.unknown()).optional();
 
 const OPENCODE_BUILTIN_TOOLS = {
+  askUserQuestions: {
+    ...HARNESS_V1_BUILTIN_TOOLS.askUserQuestions,
+    nativeName: 'question',
+    toolUseKind: 'readonly',
+  },
   read: commonTool('read', {
     nativeName: 'view',
     toolUseKind: 'readonly',
@@ -954,6 +960,9 @@ function createSession({
           toolCallId: input.toolCallId,
           output: input.output,
           isError: input.isError,
+          ...(input.toolResult !== undefined
+            ? { toolResult: input.toolResult }
+            : {}),
         });
       },
       submitToolApproval: async input => {

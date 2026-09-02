@@ -96,7 +96,7 @@ describe('OpenCode bridge turn settlement', () => {
     createOpencodeServerMock.mockClear();
   });
 
-  it('disables the interactive question tool', async () => {
+  it('enables the interactive question tool', async () => {
     const userMessages = createUserMessages();
     bridgeMock.start = {
       type: 'start',
@@ -151,7 +151,7 @@ describe('OpenCode bridge turn settlement', () => {
     expect(createOpencodeServerMock).toHaveBeenCalledWith(
       expect.objectContaining({
         config: expect.objectContaining({
-          permission: expect.objectContaining({ question: 'deny' }),
+          permission: expect.objectContaining({ question: 'allow' }),
         }),
       }),
     );

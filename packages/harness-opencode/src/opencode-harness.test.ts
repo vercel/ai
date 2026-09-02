@@ -199,6 +199,7 @@ describe('createOpenCode adapter', () => {
     expect(harness.supportsBuiltinToolApprovals).toBe(true);
     expect(harness.supportsBuiltinToolFiltering).toBeUndefined();
     expect(Object.keys(harness.builtinTools)).toEqual([
+      'askUserQuestions',
       'read',
       'write',
       'edit',
