@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20214,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20214-smooth-stream-provider-metadata.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20214-smooth-stream-provider-metadata.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #20214: smoothStream dropped reasoning providerMetadata on an empty buffer and leaked it onto a later text delta."
+  }
+}
