@@ -102,6 +102,7 @@ function prepareUpload() {
         sizeBytes: '256',
         uri: 'https://generativelanguage.googleapis.com/v1beta/files/batch-input',
         state: 'ACTIVE',
+        expirationTime: '2026-08-27T12:00:00Z',
       },
     },
   };
@@ -228,6 +229,7 @@ describe('GoogleBatchLanguageModel', () => {
       abortSignal: abortController.signal,
     });
 
+    expect(result.providerMetadata).toBeUndefined();
     expect(result).toMatchObject({
       batchId: 'batches/batch-123',
       status: 'pending',
@@ -378,6 +380,12 @@ describe('GoogleBatchLanguageModel', () => {
     });
 
     expect(result.warnings).toEqual([]);
+    expect(result.providerMetadata).toEqual({
+      google: {
+        inputFileId: 'files/batch-input',
+        inputFileExpiresAt: '2026-08-27T12:00:00Z',
+      },
+    });
 
     expect(server.calls.map(call => call.requestUrl)).toEqual([
       urls.uploadStart,

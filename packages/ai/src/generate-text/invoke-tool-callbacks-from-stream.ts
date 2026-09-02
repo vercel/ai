@@ -2,6 +2,14 @@ import type { Context, ModelMessage, ToolSet } from '@ai-sdk/provider-utils';
 import { createIdMap } from '../util/create-id-map';
 import { getOwn } from '../util/get-own';
 import type { LanguageModelStreamPart } from './stream-language-model-call';
+import {
+  isStreamRetryAttemptBoundaryPart,
+  type StreamRetryAttemptBoundaryPart,
+} from './stream-retry-attempt-boundary';
+
+type ToolCallbackStreamPart<TOOLS extends ToolSet> =
+  | LanguageModelStreamPart<TOOLS>
+  | StreamRetryAttemptBoundaryPart;
 
 export function invokeToolCallbacksFromStream<
   TOOLS extends ToolSet,
@@ -13,12 +21,12 @@ export function invokeToolCallbacksFromStream<
   abortSignal,
   runtimeContext,
 }: {
-  stream: ReadableStream<LanguageModelStreamPart<TOOLS>>;
+  stream: ReadableStream<ToolCallbackStreamPart<TOOLS>>;
   tools: TOOLS | undefined;
   stepInputMessages: Array<ModelMessage>;
   abortSignal: AbortSignal | undefined;
   runtimeContext: RUNTIME_CONTEXT;
-}): ReadableStream<LanguageModelStreamPart<TOOLS>> {
+}): ReadableStream<ToolCallbackStreamPart<TOOLS>> {
   if (tools == null) return stream;
 
   const ongoingToolCallToolNames: Record<string, string> = createIdMap();
@@ -27,6 +35,10 @@ export function invokeToolCallbacksFromStream<
     new TransformStream({
       async transform(chunk, controller) {
         controller.enqueue(chunk);
+
+        if (isStreamRetryAttemptBoundaryPart(chunk)) {
+          return;
+        }
 
         switch (chunk.type) {
           case 'tool-input-start': {

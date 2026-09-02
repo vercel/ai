@@ -72,6 +72,10 @@ const harnessUtilsMocks = vi.hoisted(() => {
       string,
       Set<(event: { type: string; [key: string]: unknown }) => void>
     >();
+    private readonly buffered = new Map<
+      string,
+      Array<{ type: string; [key: string]: unknown }>
+    >();
     private readonly closeHandlers = new Set<
       (code: number, reason: string) => void
     >();
@@ -98,6 +102,11 @@ const harnessUtilsMocks = vi.hoisted(() => {
       const listeners = this.listeners.get(type) ?? new Set();
       listeners.add(listener);
       this.listeners.set(type, listeners);
+      const buffered = this.buffered.get(type);
+      if (buffered != null) {
+        this.buffered.delete(type);
+        for (const event of buffered) listener(event);
+      }
       return () => listeners.delete(listener);
     }
     onClose(handler: (code: number, reason: string) => void): void {
@@ -118,7 +127,14 @@ const harnessUtilsMocks = vi.hoisted(() => {
       }
     }
     emit(event: { type: string; [key: string]: unknown }): void {
-      for (const listener of this.listeners.get(event.type) ?? []) {
+      const listeners = this.listeners.get(event.type);
+      if (listeners == null || listeners.size === 0) {
+        const buffered = this.buffered.get(event.type) ?? [];
+        buffered.push(event);
+        this.buffered.set(event.type, buffered);
+        return;
+      }
+      for (const listener of listeners) {
         listener(event);
       }
     }
@@ -3075,6 +3091,67 @@ describe('createACP', () => {
     });
     await continued.done;
     expect(replayed).toEqual(['text-delta', 'text-end', 'finish']);
+    await resumedSession.doDestroy();
+  });
+
+  it('continues a terminal event replayed before the continuation is wired', async () => {
+    const sandbox = fakeSandbox({
+      runs: [],
+      spawns: [],
+      stop: async () => {},
+    });
+    const harness = createACP({
+      harnessId: 'codex-acp',
+      ...agentSettings,
+    });
+    const firstSession = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: sandbox,
+      sessionWorkDir: '/workspace/user-project',
+    });
+    const firstChannel = harnessUtilsMocks.channels[0]!;
+    const firstTurn = await firstSession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Work for a while.',
+      emit: () => {},
+    });
+    firstChannel.emit({
+      type: 'bridge-thread',
+      threadId: 'acp-session-1',
+    });
+
+    const continueFrom = await firstSession.doSuspendTurn();
+    await firstTurn.done;
+
+    const resumedSession = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: sandbox,
+      sessionWorkDir: '/workspace/user-project',
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'codex-acp',
+        specificationVersion: 'harness-v1',
+        data: continueFrom.data,
+        continueFrom,
+      },
+    });
+    const resumedChannel = harnessUtilsMocks.channels[1]!;
+    resumedChannel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+
+    const replayed: string[] = [];
+    const continued = await resumedSession.doContinueTurn({
+      skills: [],
+      tools: [],
+      emit: event => replayed.push(event.type),
+    });
+    await continued.done;
+
+    expect(replayed).toEqual(['finish']);
     await resumedSession.doDestroy();
   });
 
