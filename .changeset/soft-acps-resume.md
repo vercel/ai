@@ -5,4 +5,4 @@
 '@ai-sdk/harness-grok-build': patch
 ---
 
-fix (harness): preserve terminal events replayed during ACP continuation startup
+fix(harness-acp): preserve terminal events replayed during ACP continuation startup
