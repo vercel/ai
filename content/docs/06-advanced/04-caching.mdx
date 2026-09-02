@@ -19,6 +19,7 @@ Let's see how you can use language model middleware to cache responses.
 import { Redis } from '@upstash/redis';
 import {
   type LanguageModelV4,
+  type LanguageModelV4GenerateResult,
   type LanguageModelV4Middleware,
   type LanguageModelV4StreamPart,
   simulateReadableStream,
@@ -28,6 +29,20 @@ const redis = new Redis({
   url: process.env.KV_URL,
   token: process.env.KV_TOKEN,
 });
+
+function isValidJson(result: LanguageModelV4GenerateResult): boolean {
+  const text = result.content
+    .filter(part => part.type === 'text')
+    .map(part => part.text)
+    .join('');
+
+  try {
+    JSON.parse(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export const cacheMiddleware: LanguageModelV4Middleware = {
   wrapGenerate: async ({ doGenerate, params }) => {
@@ -50,6 +65,14 @@ export const cacheMiddleware: LanguageModelV4Middleware = {
     }
 
     const result = await doGenerate();
+
+    // Skip caching invalid JSON when JSON output was requested (e.g. via
+    // `generateObject`). Otherwise a single malformed response gets cached
+    // and replayed on every subsequent call with the same parameters, even
+    // though a fresh call to the model would likely succeed.
+    if (params.responseFormat?.type === 'json' && !isValidJson(result)) {
+      return result;
+    }
 
     redis.set(cacheKey, result);
 
@@ -108,6 +131,17 @@ export const cacheMiddleware: LanguageModelV4Middleware = {
 <Note>
   This example uses `@upstash/redis` to store and retrieve the assistant's
   responses but you can use any KV storage provider you would like.
+</Note>
+
+<Note>
+  This middleware sits below [`generateObject`](/docs/reference/ai-sdk-core/generate-object),
+  so it caches the model's raw output before `generateObject` validates it
+  against your schema. The `isValidJson` check above only guards against
+  caching output that isn't parseable JSON at all - it does not validate
+  against your schema, since the middleware doesn't have access to it. If
+  you need schema-level validation before caching, validate the result
+  yourself (e.g. with the same schema you pass to `generateObject`) before
+  calling `redis.set`.
 </Note>
 
 `LanguageModelV4Middleware` has two methods: `wrapGenerate` and `wrapStream`. `wrapGenerate` is called when using [`generateText`](/docs/reference/ai-sdk-core/generate-text), while `wrapStream` is called when using [`streamText`](/docs/reference/ai-sdk-core/stream-text).
