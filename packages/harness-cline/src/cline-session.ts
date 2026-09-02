@@ -88,7 +88,6 @@ export interface ClineSessionSettings {
   readonly isAuthenticationEnvironmentOverride: boolean;
   readonly mcpServers?: Record<string, unknown>;
   readonly providerId?: string;
-  readonly modelId?: string;
   readonly apiKey?: string;
   readonly baseUrl?: string;
   readonly headers?: Record<string, string>;
@@ -292,7 +291,7 @@ export async function createClineSession(
   const mcpRuntime = await createClineMcpRuntime({
     mcpServers: input.settings.mcpServers,
   });
-  let activeModelId = input.settings.modelId;
+  let activeModelId: string | undefined;
   let agentModel = createClineAgentModel({
     settings: input.settings,
     clientApp: input.clientApp,

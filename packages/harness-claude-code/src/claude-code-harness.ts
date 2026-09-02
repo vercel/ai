@@ -89,13 +89,6 @@ export type ClaudeCodeHarnessSettings = {
    */
   readonly mcpServers?: Record<string, unknown>;
   /**
-   * Anthropic model id the underlying `claude` CLI should use. Leaving this
-   * unset defers to the CLI's default.
-   *
-   * @deprecated Use `model` on `HarnessAgent` instead.
-   */
-  readonly model?: string;
-  /**
    * Hard cap on how many internal turns the CLI can take before yielding
    * back to the caller. Unset means the CLI's default.
    */
@@ -1020,7 +1013,6 @@ export function createClaudeCode(
             // process handle. The session lifecycle method decides whether the
             // sandbox is left running, stopped, or destroyed.
             proc: undefined,
-            model: settings.model,
             maxTurns: settings.maxTurns,
             env: sandboxClaudeEnvironment,
             thinking,
@@ -1171,7 +1163,6 @@ export function createClaudeCode(
         sessionId: startOpts.sessionId,
         channel,
         proc,
-        model: settings.model,
         maxTurns: settings.maxTurns,
         env: sandboxClaudeEnvironment,
         thinking,
@@ -1490,7 +1481,6 @@ function createSession({
   sessionId,
   channel,
   proc,
-  model,
   maxTurns,
   env,
   thinking,
@@ -1515,7 +1505,6 @@ function createSession({
   channel: ClaudeCodeChannel;
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
-  model: string | undefined;
   maxTurns: number | undefined;
   env: Readonly<Record<string, string>> | undefined;
   thinking: ClaudeCodeThinkingConfig;
@@ -1767,7 +1756,7 @@ function createSession({
         ...(promptOpts.instructions
           ? { instructions: promptOpts.instructions }
           : {}),
-        model: promptOpts.model ?? model,
+        model: promptOpts.model,
         maxTurns,
         ...(env !== undefined ? { env } : {}),
         thinking,
@@ -1850,7 +1839,7 @@ function createSession({
           ...(continueOpts.instructions
             ? { instructions: continueOpts.instructions }
             : {}),
-          model: continueOpts.model ?? model,
+          model: continueOpts.model,
           maxTurns,
           ...(env !== undefined ? { env } : {}),
           thinking,

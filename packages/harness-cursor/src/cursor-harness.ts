@@ -26,12 +26,6 @@ export type CursorHarnessSettings = {
    */
   readonly credentialForwarding?: HarnessV1CredentialForwarding;
   /**
-   * Cursor model id selected through ACP. Unset preserves Cursor's default.
-   *
-   * @deprecated Use `model` on `HarnessAgent` instead.
-   */
-  readonly model?: string;
-  /**
    * Overrides the sandbox port used by the ACP bridge.
    */
   readonly port?: number;
@@ -374,7 +368,6 @@ export function createCursor(
   return createACP({
     auth: typeof settings.auth === 'string' ? undefined : settings.auth,
     credentialForwarding: settings.credentialForwarding,
-    modelId: settings.model,
     port: settings.port,
     portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,

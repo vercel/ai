@@ -50,19 +50,4 @@ describe('createPi adapter', () => {
     expect(harness.getBootstrap).toBeUndefined();
   });
 
-  it('passes the deprecated adapter model to the session as a fallback', async () => {
-    const harness = createPi({ model: 'legacy-model' });
-
-    await harness.doStart({
-      sessionId: 'session-1',
-      sandboxSession: {} as never,
-      sessionWorkDir: '/workspace/project',
-    });
-
-    expect(mocks.createPiSession).toHaveBeenCalledWith(
-      expect.objectContaining({
-        settings: expect.objectContaining({ model: 'legacy-model' }),
-      }),
-    );
-  });
 });

@@ -54,10 +54,6 @@ export type ACPHarnessSettings<TBuiltinTools extends ToolSet = {}> = {
    * Maps the HarnessAgent model identifier to an ACP session operation.
    */
   readonly modelMapping: ACPV1Settings['modelMapping'];
-  /**
-   * @deprecated Use `model` on `HarnessAgent` instead.
-   */
-  readonly modelId?: ACPV1Settings['modelId'];
   readonly skillsDirectory?: ACPV1Settings['skillsDirectory'];
   readonly instructionMapping?: ACPV1Settings['instructionMapping'];
   readonly outputSchemaMapping?: ACPV1Settings['outputSchemaMapping'];

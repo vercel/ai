@@ -38,22 +38,6 @@ describe('createCline', () => {
     const schema = createCline().lifecycleStateSchema;
     expect(schema).toBeDefined();
   });
-
-  it('passes the deprecated adapter model to the session as a fallback', async () => {
-    const harness = createCline({ modelId: 'legacy-model' });
-
-    await harness.doStart({
-      sessionId: 'session-1',
-      sandboxSession: {} as never,
-      sessionWorkDir: '/workspace/project',
-    });
-
-    expect(mocks.createClineSession).toHaveBeenCalledWith(
-      expect.objectContaining({
-        settings: expect.objectContaining({ modelId: 'legacy-model' }),
-      }),
-    );
-  });
 });
 
 describe('resolveActiveClineBuiltinNames', () => {

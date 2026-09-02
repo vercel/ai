@@ -24,14 +24,6 @@ export type PiHarnessSettings = {
   /** Where Pi sources API keys / gateway credentials from. */
   readonly auth?: PiAuthenticationMode;
   /**
-   * Pi model id (or name). Leaving this unset falls back to the AI Gateway
-   * default when `AI_GATEWAY_API_KEY` / `VERCEL_OIDC_TOKEN` is set, and to
-   * Pi's own resolution otherwise.
-   *
-   * @deprecated Use `model` on `HarnessAgent` instead.
-   */
-  readonly model?: string;
-  /**
    * Pi's extended-thinking budget level. Maps directly to the SDK's
    * `thinkingLevel` option on `createAgentSession`.
    */
@@ -153,7 +145,6 @@ export function createPi(
         sessionWorkDir: startOpts.sessionWorkDir,
         settings: {
           ...(settings.auth ? { auth: settings.auth } : {}),
-          ...(settings.model == null ? {} : { model: settings.model }),
           ...(settings.thinkingLevel
             ? { thinkingLevel: settings.thinkingLevel }
             : {}),

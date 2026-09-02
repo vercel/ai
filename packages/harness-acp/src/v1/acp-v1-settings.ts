@@ -160,10 +160,6 @@ export type ACPV1Settings = {
    */
   readonly modelMapping: ACPModelMapping;
   /**
-   * @deprecated Use `model` on `HarnessAgent` instead.
-   */
-  readonly modelId?: string;
-  /**
    * Native skills directory relative to the ACP implementation's home
    * directory. Defaults to `.agents/skills`.
    */
