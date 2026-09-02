@@ -12,28 +12,34 @@ and I get the following error when AI responses stream in: `Maximum update depth
 
 ## Background
 
-By default, the UI is re-rendered on every chunk that arrives.
-This can overload the rendering, especially on slower devices or when complex components
-need updating (e.g. Markdown). Throttling can mitigate this.
+Frequent streaming updates can overload rendering, especially on slower devices
+or when complex components need updating (e.g. Markdown). `useChat` uses a 50ms
+message publication cadence by default. `useCompletion` remains unthrottled by
+default.
 
 ## Solution
 
-Use the `throttle` option to throttle the UI updates:
+For expensive chat interfaces, increase the `useChat` publication cadence:
 
 ### `useChat`
 
 ```tsx filename="page.tsx" highlight="2-3"
 const { messages, ... } = useChat({
-  // Throttle the messages and data updates to 50ms:
-  throttle: 50
+  // Publish message snapshots at most once every 100ms:
+  throttle: 100,
 })
 ```
+
+The default is `50`. Set `throttle: 0` only when you intentionally need to
+publish every message snapshot without throttling.
+
+For `useCompletion`, enable throttling explicitly:
 
 ### `useCompletion`
 
 ```tsx filename="page.tsx" highlight="2-3"
 const { completion, ... } = useCompletion({
   // Throttle the completion and data updates to 50ms:
-  throttle: 50
+  throttle: 50,
 })
 ```
