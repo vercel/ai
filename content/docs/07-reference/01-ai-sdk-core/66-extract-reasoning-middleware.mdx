@@ -1,18 +1,23 @@
 ---
 title: extractReasoningMiddleware
-description: Middleware that extracts XML-tagged reasoning sections from generated text
+description: Middleware that extracts reasoning sections from generated text using configurable delimiters
 ---
 
 # `extractReasoningMiddleware()`
 
-`extractReasoningMiddleware` is a middleware function that extracts XML-tagged reasoning sections from generated text and exposes them separately from the main text content. This is particularly useful when you want to separate an AI model's reasoning process from its final output.
+`extractReasoningMiddleware` is a middleware function that extracts a reasoning section from generated text and exposes it separately from the main text content. This is particularly useful when you want to separate an AI model's reasoning process from its final output.
 
 ```ts
 import { extractReasoningMiddleware } from 'ai';
 
+// XML-style tags (e.g. DeepSeek, Qwen) — pass a string
 const middleware = extractReasoningMiddleware({
-  tagName: 'reasoning',
-  separator: '\n',
+  tagName: 'think',
+});
+
+// Custom delimiters (e.g. Gemma 4) — pass an object
+const middleware = extractReasoningMiddleware({
+  tagName: { opening: '<|channel>thought\n', closing: '<channel|>' },
 });
 ```
 
@@ -31,10 +36,10 @@ const middleware = extractReasoningMiddleware({
   content={[
     {
       name: 'tagName',
-      type: 'string',
+      type: 'string | { opening: string; closing: string }',
       isOptional: false,
       description:
-        'The name of the XML tag to extract reasoning from (without angle brackets)',
+        'Specifies the reasoning delimiters. Pass a string to use symmetric XML-style tags (e.g. "think" → <think> / </think>), or an object with opening and closing strings for models that use non-XML delimiters (e.g. Gemma 4\'s { opening: \'<|channel>thought\\n\', closing: \'<channel|>\' }).',
     },
     {
       name: 'separator',
@@ -48,7 +53,7 @@ const middleware = extractReasoningMiddleware({
       type: 'boolean',
       isOptional: true,
       description:
-        'Starts with reasoning tokens. Set to true when the response always starts with reasoning and the initial tag is omitted. Defaults to false.',
+        'Starts with reasoning tokens. Set to true when the response always starts with reasoning and the opening delimiter is omitted by the model. Defaults to false.',
     },
   ]}
 />
@@ -58,8 +63,8 @@ const middleware = extractReasoningMiddleware({
 Returns a middleware object that:
 
 - Processes both streaming and non-streaming responses
-- Extracts content between specified XML tags as reasoning
-- Removes the XML tags and reasoning from the main text
+- Extracts content between the specified delimiters as reasoning
+- Removes the delimiters and reasoning from the main text
 - Adds a `reasoning` property to the result containing the extracted content
 - Maintains proper separation between text sections using the specified separator
 
