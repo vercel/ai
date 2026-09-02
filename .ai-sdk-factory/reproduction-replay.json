@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20217,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20217-smooth-stream-hidden-tab.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20217-smooth-stream-hidden-tab.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_20217_REPRODUCED: smoothStream blocked text-end and next step while document was hidden"
+  }
+}
