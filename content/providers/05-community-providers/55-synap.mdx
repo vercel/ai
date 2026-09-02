@@ -1,0 +1,133 @@
+---
+title: 'Synap'
+description: 'Learn how to use the Synap AI SDK provider for long-term memory with the AI SDK.'
+---
+
+# Synap
+
+[Synap](https://maximem.ai) is a managed long-term memory layer for AI agents and assistants. Rather than replaying raw chat history, Synap runs an extraction pipeline over each conversation turn, identifying facts, preferences, episodes, emotions, and temporal events, and stores them across a vector index and a knowledge graph. At inference time it retrieves only the entries that are semantically relevant to the current request and injects them into the system prompt.
+
+The [`@maximem/synap-vercel-adk`](https://www.npmjs.com/package/@maximem/synap-vercel-adk) package wraps any AI SDK language model, so your `generateText`, `streamText`, `generateObject`, and `streamObject` call sites stay unchanged.
+
+<Note type="warning">
+  `@maximem/synap-vercel-adk` implements the `LanguageModelV1` specification, so
+  it is compatible with AI SDK 3.x and 4.x. It has not yet been updated for AI
+  SDK 5 or later.
+</Note>
+
+## Setup
+
+<InstallPackages packages="@maximem/synap-vercel-adk" />
+
+Create an API key from the [Synap dashboard](https://synap.maximem.ai) and expose it as `SYNAP_API_KEY`.
+
+## Provider Instance
+
+`createSynap` resolves credentials and returns an initialized provider, so it must be awaited. Create it once at application startup and reuse the instance.
+
+```typescript
+import { createSynap } from '@maximem/synap-vercel-adk';
+
+export const synap = await createSynap({
+  apiKey: process.env.SYNAP_API_KEY,
+});
+```
+
+`apiKey` falls back to the `SYNAP_API_KEY` environment variable when omitted.
+
+## Wrapping a Model
+
+`synap.wrap` returns a drop-in language model. Pass it anywhere the AI SDK accepts a model.
+
+```typescript
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+import { synap } from './synap';
+
+const { text } = await generateText({
+  model: synap.wrap(anthropic('claude-sonnet-4-6'), { userId: 'user_123' }),
+  messages: [{ role: 'user', content: 'What are my dietary restrictions?' }],
+});
+```
+
+On every call, the wrapped model:
+
+1. Fetches the memories relevant to the current request
+2. Injects them into the system prompt as a `<synap_context>` block
+3. Writes the conversation turn back to Synap, where extraction runs in the background
+
+## Streaming
+
+The wrapped model behaves identically with `streamText`.
+
+```typescript
+import { streamText } from 'ai';
+import { anthropic } from '@ai-sdk/anthropic';
+import { synap } from './synap';
+
+const result = streamText({
+  model: synap.wrap(anthropic('claude-sonnet-4-6'), {
+    userId: 'user_123',
+    conversationId: 'conv_abc',
+  }),
+  messages: [{ role: 'user', content: 'Recommend a restaurant for tonight.' }],
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+## Context Scopes
+
+Synap scopes memory by user, customer, and conversation. Pass whichever identifiers apply, and Synap merges context from every applicable scope.
+
+```typescript
+// Long-term facts, preferences, and episodes for one user
+synap.wrap(model, { userId: 'user_123' });
+
+// Adds session context and recent turns for a single conversation
+synap.wrap(model, { userId: 'user_123', conversationId: 'conv_abc' });
+
+// Adds organization-level context shared across users at one customer
+synap.wrap(model, { userId: 'user_123', customerId: 'acme_corp' });
+```
+
+## Model Options
+
+The second argument to `synap.wrap` accepts the following options, all optional.
+
+| Option              | Type                                                                           | Default | Description                                                  |
+| ------------------- | ------------------------------------------------------------------------------ | ------- | ------------------------------------------------------------ |
+| `userId`            | `string`                                                                       | —       | User to fetch memory for                                     |
+| `customerId`        | `string`                                                                       | —       | Customer or organization scope                               |
+| `conversationId`    | `string`                                                                       | —       | Session scope, used for recent turns and summaries           |
+| `contextTypes`      | `Array<'facts' \| 'preferences' \| 'episodes' \| 'emotions' \| 'temporal_events'>` | all     | Restrict retrieval to specific memory categories             |
+| `maxContextResults` | `number`                                                                       | `10`    | Maximum number of memories injected into the prompt          |
+| `writeMemory`       | `boolean`                                                                      | `true`  | Write the conversation turn back to Synap after the response |
+| `injectContext`     | `boolean`                                                                      | `true`  | Inject retrieved memory into the prompt                      |
+
+## Anticipation Stream
+
+`synap.listen()` opens a persistent gRPC stream over which Synap pushes context bundles ahead of a request, so the memory for an active user is already in the in-process cache when the request arrives and no HTTP round trip is needed.
+
+This is optional. It requires the Node.js runtime and silently no-ops elsewhere, falling back to fetching context over HTTP.
+
+```typescript
+// instrumentation.ts
+export async function register() {
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    const { synap } = await import('./synap');
+    await synap.listen();
+  }
+}
+```
+
+`synap.stopListening()` closes the stream. `synap.isListening` and `synap.cacheSize` are exposed for diagnostics.
+
+## Additional Resources
+
+- [Synap documentation](https://docs.maximem.ai)
+- [AI SDK integration guide](https://docs.maximem.ai/integrations/vercel-adk)
+- [`@maximem/synap-vercel-adk` on npm](https://www.npmjs.com/package/@maximem/synap-vercel-adk)
+- [Source on GitHub](https://github.com/maximem-ai/maximem_synap_sdk/tree/main/packages/integrations)
