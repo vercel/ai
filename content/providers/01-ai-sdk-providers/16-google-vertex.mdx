@@ -1428,6 +1428,30 @@ You can use the following optional settings to customize the Google Vertex Anthr
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
+#### Billing Labels
+
+You can attach billing labels to Google Vertex Anthropic requests through the `vertex` provider options:
+
+```typescript
+import { generateText } from 'ai';
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+
+const { text } = await generateText({
+  model: vertexAnthropic('claude-3-5-sonnet-v2@20241022'),
+  prompt: 'Write a short summary of this document.',
+  providerOptions: {
+    vertex: {
+      labels: {
+        team: 'data-platform',
+        feature: 'summarization',
+      },
+    },
+  },
+});
+```
+
+The labels are JSON-encoded and sent as a base64-encoded value in the `X-Vertex-AI-Labels` request header. `providerOptions.googleVertex.labels` is also supported for consistency with the provider name.
+
 <a id="google-vertex-anthropic-edge-runtime"></a>
 #### Edge Runtime
 

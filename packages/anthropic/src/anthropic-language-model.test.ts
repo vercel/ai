@@ -11075,6 +11075,88 @@ describe('AnthropicLanguageModel', () => {
     });
   });
 
+  describe('prepareRequestHeaders', () => {
+    it('should prepare request headers in doGenerate', async () => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      const prepareHeaders = vi.fn(
+        ({
+          headers,
+          providerOptions,
+        }: {
+          headers: Record<string, string | undefined>;
+          providerOptions: Record<string, any> | undefined;
+        }) => ({
+          ...headers,
+          'x-test-provider-option': providerOptions?.test?.value,
+        }),
+      );
+
+      const { AnthropicLanguageModel } =
+        await import('./anthropic-language-model');
+      const model = new AnthropicLanguageModel('claude-3-haiku-20240307', {
+        provider: 'test-provider',
+        baseURL: 'https://api.anthropic.com/v1',
+        headers: {},
+        prepareRequestHeaders: prepareHeaders,
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: { test: { value: 'generate' } },
+      });
+
+      expect(prepareHeaders).toHaveBeenCalledWith({
+        headers: expect.objectContaining({}),
+        providerOptions: { test: { value: 'generate' } },
+      });
+      expect(server.calls[0].requestHeaders['x-test-provider-option']).toBe(
+        'generate',
+      );
+    });
+
+    it('should prepare request headers in doStream', async () => {
+      prepareChunksFixtureResponse('anthropic-text');
+
+      const prepareHeaders = vi.fn(
+        ({
+          headers,
+          providerOptions,
+        }: {
+          headers: Record<string, string | undefined>;
+          providerOptions: Record<string, any> | undefined;
+        }) => ({
+          ...headers,
+          'x-test-provider-option': providerOptions?.test?.value,
+        }),
+      );
+
+      const { AnthropicLanguageModel } =
+        await import('./anthropic-language-model');
+      const model = new AnthropicLanguageModel('claude-3-haiku-20240307', {
+        provider: 'test-provider',
+        baseURL: 'https://api.anthropic.com/v1',
+        headers: {},
+        prepareRequestHeaders: prepareHeaders,
+      });
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: { test: { value: 'stream' } },
+      });
+
+      await convertReadableStreamToArray(stream);
+
+      expect(prepareHeaders).toHaveBeenCalledWith({
+        headers: expect.objectContaining({}),
+        providerOptions: { test: { value: 'stream' } },
+      });
+      expect(server.calls[0].requestHeaders['x-test-provider-option']).toBe(
+        'stream',
+      );
+    });
+  });
+
   describe('custom provider name support', () => {
     function createCustomModel(providerName: string) {
       return createAnthropic({
