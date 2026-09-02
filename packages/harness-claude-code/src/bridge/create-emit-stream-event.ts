@@ -39,6 +39,8 @@ export type ClaudeMessage = {
   };
   result?: string;
   errors?: ReadonlyArray<string>;
+  is_error?: boolean;
+  api_error_status?: number | null;
   usage?: Record<string, unknown>;
   total_cost_usd?: number;
   structured_output?: unknown;

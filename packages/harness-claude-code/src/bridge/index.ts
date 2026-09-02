@@ -506,6 +506,18 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       emitStreamEvent(msg);
 
       if (type === 'result') {
+        if (msg.subtype === 'success' && msg.is_error === true) {
+          emitTerminalError(
+            msg.result?.trim() ||
+              (typeof msg.api_error_status === 'number'
+                ? `API Error: ${msg.api_error_status}`
+                : undefined) ||
+              streamEventState.observedTerminalError ||
+              'Unknown error',
+          );
+          continue;
+        }
+
         if (msg.subtype === 'success') {
           const emptyResult = !msg.result?.trim?.();
           if (emptyResult && streamEventState.observedTerminalError) {
