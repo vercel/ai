@@ -34,7 +34,7 @@ type InferBatchModelId<PROVIDER extends BatchProvider> =
  * The persisted reference for a text batch.
  */
 export type TextBatchReference = {
-  readonly version: 1;
+  readonly version: 2;
   readonly type: 'text';
   readonly id: string;
   readonly provider: string;

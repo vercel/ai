@@ -160,9 +160,6 @@ it('defines batch support as a standalone provider service', () => {
   expectTypeOf<TestBatchApi>().toMatchTypeOf<BatchProvider>();
   expectTypeOf<TestProvider>().toMatchTypeOf<BatchProvider>();
   expectTypeOf<LanguageModelV4>().not.toMatchTypeOf<BatchProvider>();
-  expectTypeOf<ProviderV4['experimental_batch']>().toEqualTypeOf<
-    (() => BatchV4) | undefined
-  >();
   expectTypeOf<BatchV4OperationOptions['type']>().toEqualTypeOf<'text'>();
   expectTypeOf<
     Parameters<TestBatchApi['doGetBatchResults']>[0]

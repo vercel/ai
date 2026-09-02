@@ -30,7 +30,7 @@ const testUsage: LanguageModelV4Usage = {
 };
 
 const batchReference: TextBatchReference = {
-  version: 1,
+  version: 2,
   type: 'text',
   id: 'batch-123',
   provider: 'mock-provider',
@@ -152,7 +152,7 @@ describe('startTextBatch', () => {
     });
 
     expect(result).toEqual({
-      version: 1,
+      version: 2,
       type: 'text',
       id: 'batch-456',
       provider: 'mock-provider',
@@ -388,6 +388,18 @@ describe('getBatchStatus', () => {
       getBatchStatus({
         provider: batchApi,
         batch: { ...batchReference, provider: 'different-provider' },
+      }),
+    ).rejects.toBeInstanceOf(InvalidArgumentError);
+  });
+
+  it('rejects a version 1 batch reference', async () => {
+    await expect(
+      getBatchStatus({
+        provider: createMockBatchApi(),
+        batch: {
+          ...batchReference,
+          version: 1,
+        } as unknown as TextBatchReference,
       }),
     ).rejects.toBeInstanceOf(InvalidArgumentError);
   });

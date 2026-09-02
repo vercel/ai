@@ -4,6 +4,7 @@ import {
   type Experimental_BatchV4ItemResult as BatchV4ItemResult,
   type LanguageModelV4GenerateResult,
   type LanguageModelV4ToolCall,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import { gateway } from '@ai-sdk/gateway';
 import { type ToolSet, withUserAgentSuffix } from '@ai-sdk/provider-utils';
@@ -125,7 +126,7 @@ export async function startTextBatch<
     }
 
     return {
-      version: 1,
+      version: 2,
       type: 'text',
       id: batchId,
       provider: batchApi.provider,
@@ -253,7 +254,7 @@ function resolveBatchApi(provider?: BatchProvider): BatchV4 {
     return provider;
   }
 
-  if (typeof provider.experimental_batch !== 'function') {
+  if (!hasBatchFactory(provider)) {
     throw new UnsupportedFunctionalityError({
       functionality: 'batch processing',
       message:
@@ -262,6 +263,15 @@ function resolveBatchApi(provider?: BatchProvider): BatchV4 {
   }
 
   return provider.experimental_batch();
+}
+
+function hasBatchFactory(
+  provider: ProviderV4,
+): provider is ProviderV4 & { experimental_batch(): BatchV4 } {
+  return (
+    typeof (provider as { experimental_batch?: unknown }).experimental_batch ===
+    'function'
+  );
 }
 
 function isBatchApi(provider: BatchProvider): provider is BatchV4 {
@@ -312,7 +322,7 @@ function validateBatchReference({
   batchApi: BatchV4;
   batch: BatchReference;
 }) {
-  if (batch.version !== 1 || batch.type !== 'text') {
+  if (batch.version !== 2 || batch.type !== 'text') {
     throw new InvalidArgumentError({
       parameter: 'batch',
       value: batch,
