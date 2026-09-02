@@ -1,0 +1,35 @@
+{
+  "name": "next-groq-chart-generator",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@ai-sdk/groq": "^2.0.33",
+    "@ai-sdk/openai": "^2.0.84",
+    "@ai-sdk/rsc": "^1.0.114",
+    "ai": "^5.0.112",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.560.0",
+    "next": "^16.0.10",
+    "react": "19.2.1",
+    "react-dom": "19.2.1",
+    "recharts": "^3.5.1",
+    "tailwind-merge": "^3.4.0",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20.19.27",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.0.9",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
