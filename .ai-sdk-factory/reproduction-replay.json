@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20203,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/openai-compatible-empty-tool-calls-reasoning.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/openai-compatible-empty-tool-calls-reasoning.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_20203_REPRODUCED: expected one reasoning block, received 2 reasoning-start events and 2 reasoning-end events"
+  }
+}

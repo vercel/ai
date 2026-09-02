@@ -1,0 +1,3 @@
+{"id":"chatcmpl-issue-20203","model":"test-model","object":"chat.completion.chunk","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"Think ","tool_calls":[]},"finish_reason":null}]}
+{"id":"chatcmpl-issue-20203","model":"test-model","object":"chat.completion.chunk","choices":[{"index":0,"delta":{"content":"","reasoning_content":"more...","tool_calls":[]},"finish_reason":null}]}
+{"id":"chatcmpl-issue-20203","model":"test-model","object":"chat.completion.chunk","choices":[{"index":0,"delta":{"content":"Hello","reasoning_content":"","tool_calls":[]},"finish_reason":"stop"}]}

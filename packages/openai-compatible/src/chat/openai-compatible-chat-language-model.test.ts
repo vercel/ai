@@ -2230,6 +2230,31 @@ describe('doStream', () => {
     `);
   });
 
+  it('should keep reasoning contiguous when deltas contain empty tool call arrays', async () => {
+    prepareChunksFixtureResponse('issue-20203-empty-tool-calls');
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const reasoningStarts = events.filter(
+      event => event.type === 'reasoning-start',
+    );
+    const reasoningEnds = events.filter(
+      event => event.type === 'reasoning-end',
+    );
+    const reasoningText = events
+      .filter(event => event.type === 'reasoning-delta')
+      .map(event => event.delta)
+      .join('');
+
+    expect(reasoningStarts).toHaveLength(1);
+    expect(reasoningEnds).toHaveLength(1);
+    expect(reasoningText).toBe('Think more...');
+  });
+
   it('should stream reasoning from reasoning field when reasoning_content is not provided', async () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
