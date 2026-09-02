@@ -1,5 +1,11 @@
 # @ai-sdk/langchain
 
+## 3.0.90
+
+### Patch Changes
+
+- ai@7.0.90
+
 ## 3.0.89
 
 ### Patch Changes
