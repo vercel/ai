@@ -611,8 +611,7 @@ const { text } = await generateText({
 });
 
 console.log(text);`,
-    docsUrl:
-      'https://github.com/keenableai/keenable-integrations/tree/main/vercel-ai-sdk/plugin',
+    docsUrl: 'https://docs.keenable.ai/integrations/vercel-ai-sdk',
     apiKeyUrl: 'https://keenable.ai/console',
     websiteUrl: 'https://keenable.ai',
     npmUrl: 'https://www.npmjs.com/package/@keenable/ai-sdk',
