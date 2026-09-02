@@ -1,6 +1,6 @@
 import { tool, type ModelMessage } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import z from 'zod/v4';
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
@@ -1589,6 +1589,57 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
+    });
+
+    it('should normalize undefined tool output before converting tool results', async () => {
+      const toModelOutput = vi.fn(() => {
+        return { type: 'json' as const, value: null };
+      });
+
+      await convertToModelMessages(
+        [
+          {
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-foo',
+                state: 'output-available',
+                toolCallId: 'call-1',
+                input: { value: 'value-1' },
+                output: undefined,
+              },
+              {
+                type: 'tool-foo',
+                state: 'output-available',
+                toolCallId: 'call-2',
+                input: { value: 'value-2' },
+                output: undefined,
+                providerExecuted: true,
+              },
+            ],
+          },
+        ],
+        {
+          tools: {
+            foo: {
+              inputSchema: z.object({ value: z.string() }),
+              toModelOutput,
+            },
+          },
+        },
+      );
+
+      expect(toModelOutput).toHaveBeenCalledTimes(2);
+      expect(toModelOutput).toHaveBeenCalledWith({
+        toolCallId: 'call-1',
+        input: { value: 'value-1' },
+        output: null,
+      });
+      expect(toModelOutput).toHaveBeenCalledWith({
+        toolCallId: 'call-2',
+        input: { value: 'value-2' },
+        output: null,
+      });
     });
   });
 

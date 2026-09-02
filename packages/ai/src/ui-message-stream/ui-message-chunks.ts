@@ -101,7 +101,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
       z.looseObject({
         type: z.literal('tool-output-available'),
         toolCallId: z.string(),
-        output: z.unknown(),
+        output: z.unknown().default(null),
         providerExecuted: z.boolean().optional(),
         providerMetadata: providerMetadataSchema.optional(),
         toolMetadata: toolMetadataSchema.optional(),
