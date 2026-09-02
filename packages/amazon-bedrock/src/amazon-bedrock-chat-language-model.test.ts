@@ -20,7 +20,6 @@ vi.mock('@ai-sdk/anthropic/internal', async importOriginal => {
   return {
     ...original,
     prepareTools: vi.fn(),
-    sanitizeJsonSchema: (schema: any) => schema,
     anthropicTools: {
       ...original.anthropicTools,
       bash_20241022: (args: any) => ({
