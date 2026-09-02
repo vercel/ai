@@ -110,6 +110,13 @@ const response = createUIMessageStreamResponse({
       description:
         'Optional callback to consume the Server-Sent Events stream.',
     },
+    {
+      name: 'keepAliveMs',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Interval in milliseconds at which SSE keep-alive comments are sent while the stream is idle. A keep-alive comment is also sent immediately, so the response headers are flushed before the first chunk is available. Disabled by default. See Streaming not working when deployed.',
+    },
   ]}
 />
 
