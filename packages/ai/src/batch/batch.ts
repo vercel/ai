@@ -22,41 +22,37 @@ import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { asLanguageModelUsage } from '../types/usage';
 import { asAsyncIterableStream } from '../util/async-iterable-stream';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
+import { isDeepEqualData } from '../util/is-deep-equal-data';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import { asProviderV4 } from '../model/as-provider-v4';
 import type {
   BatchOperationOptions,
+  BatchItemResult,
   BatchProvider,
   BatchReference,
   BatchStatus,
-  StartTextBatchOptions,
-  StartTextBatchResult,
+  StartBatchOptions,
+  StartBatchResult,
   TextBatchGenerationResult,
   TextBatchItemResult,
-  TextBatchRequest,
 } from './batch-types';
 
 /**
- * Starts a durable text-generation batch.
+ * Starts a batch.
  */
-export async function startTextBatch<
+export async function startBatch<
   TOOLS extends ToolSet,
   PROVIDER extends BatchProvider,
 >({
   provider,
-  model,
   requests,
-  tools,
-  toolChoice,
-  toolOrder,
-  toolsContext,
   providerOptions,
   webhookUrl,
   abortSignal,
   headers,
   timeout,
-}: StartTextBatchOptions<TOOLS, PROVIDER>): Promise<StartTextBatchResult> {
+}: StartBatchOptions<TOOLS, PROVIDER>): Promise<StartBatchResult> {
   validateRequests(requests);
 
   const batchApi = resolveBatchApi(provider);
@@ -65,34 +61,45 @@ export async function startTextBatch<
     getTotalTimeoutMs(timeout),
   );
   const supportedUrls = await batchApi.supportedUrls;
-  const preparedTools = await prepareTools({
-    tools,
-    toolOrder,
-    toolsContext,
-  });
-  const preparedToolChoice = prepareToolChoice({ toolChoice });
   operationAbortSignal?.throwIfAborted();
   const normalizedRequests = [];
+  const toolsByName = new Map<string, unknown>();
 
   for (const request of requests) {
-    const standardizedPrompt = await standardizePrompt(request);
+    switch (request.type) {
+      case 'text': {
+        const standardizedPrompt = await standardizePrompt(request);
+        const preparedTools = await prepareTools({
+          tools: request.tools,
+          toolOrder: request.toolOrder,
+          toolsContext: request.toolsContext,
+        });
+        validateCompatibleTools({
+          requestId: request.id,
+          tools: preparedTools,
+          toolsByName,
+        });
 
-    normalizedRequests.push({
-      id: request.id,
-      modelId: request.model ?? model,
-      options: {
-        ...prepareLanguageModelCallOptions(request),
-        prompt: await convertToLanguageModelPrompt({
-          prompt: standardizedPrompt,
-          supportedUrls,
-          download: undefined,
-          provider: batchApi.provider.split('.')[0],
-        }),
-        tools: preparedTools,
-        toolChoice: preparedToolChoice,
-        providerOptions: request.providerOptions,
-      },
-    });
+        normalizedRequests.push({
+          id: request.id,
+          type: request.type,
+          modelId: request.model,
+          options: {
+            ...prepareLanguageModelCallOptions(request),
+            prompt: await convertToLanguageModelPrompt({
+              prompt: standardizedPrompt,
+              supportedUrls,
+              download: undefined,
+              provider: batchApi.provider.split('.')[0],
+            }),
+            tools: preparedTools,
+            toolChoice: prepareToolChoice({ toolChoice: request.toolChoice }),
+            providerOptions: request.providerOptions,
+          },
+        });
+        break;
+      }
+    }
     operationAbortSignal?.throwIfAborted();
   }
 
@@ -102,7 +109,6 @@ export async function startTextBatch<
   );
   try {
     const result = await batchApi.doStartBatch({
-      type: 'text',
       requests: normalizedRequests,
       providerOptions,
       abortSignal: operationAbortSignal,
@@ -118,16 +124,12 @@ export async function startTextBatch<
       logWarnings({
         warnings: [warning],
         provider: batchApi.provider,
-        model:
-          requestId == null
-            ? model
-            : (modelByRequestId.get(requestId) ?? model),
+        model: requestId == null ? undefined : modelByRequestId.get(requestId),
       });
     }
 
     return {
       version: 2,
-      type: 'text',
       id: batchId,
       provider: batchApi.provider,
       ...status,
@@ -138,8 +140,32 @@ export async function startTextBatch<
   }
 }
 
+function validateCompatibleTools({
+  requestId,
+  tools,
+  toolsByName,
+}: {
+  requestId: string;
+  tools: ReadonlyArray<{ name: string }> | undefined;
+  toolsByName: Map<string, unknown>;
+}) {
+  for (const tool of tools ?? []) {
+    const previousTool = toolsByName.get(tool.name);
+
+    if (previousTool != null && !isDeepEqualData(previousTool, tool)) {
+      throw new InvalidArgumentError({
+        parameter: 'requests',
+        value: requestId,
+        message: `tool "${tool.name}" must have the same definition in every batch request`,
+      });
+    }
+
+    toolsByName.set(tool.name, tool);
+  }
+}
+
 /**
- * Retrieves the latest normalized status for a durable batch.
+ * Retrieves the latest normalized status for a batch.
  */
 export async function getBatchStatus({
   provider,
@@ -165,7 +191,6 @@ export async function getBatchStatus({
   try {
     const status = await retry(() =>
       batchApi.doGetBatchStatus({
-        type: batch.type,
         batchId: batch.id,
         providerOptions,
         abortSignal: operationAbortSignal,
@@ -180,7 +205,7 @@ export async function getBatchStatus({
 }
 
 /**
- * Streams complete terminal results for the requests in a durable batch.
+ * Streams complete terminal results for the requests in a batch.
  */
 export function getBatchResults<TOOLS extends ToolSet>({
   provider,
@@ -205,10 +230,9 @@ export function getBatchResults<TOOLS extends ToolSet>({
     maxRetries,
     abortSignal: operationAbortSignal,
   });
-  const transformer: Transformer<
-    BatchV4ItemResult,
-    TextBatchItemResult<TOOLS>
-  > & { cancel?: (reason?: unknown) => void } = {
+  const transformer: Transformer<BatchV4ItemResult, BatchItemResult<TOOLS>> & {
+    cancel?: (reason?: unknown) => void;
+  } = {
     async transform(item, controller) {
       controller.enqueue(await convertBatchItemResult({ item, tools }));
     },
@@ -221,14 +245,13 @@ export function getBatchResults<TOOLS extends ToolSet>({
   };
   const transform = new TransformStream<
     BatchV4ItemResult,
-    TextBatchItemResult<TOOLS>
+    BatchItemResult<TOOLS>
   >(transformer);
 
   void (async () => {
     try {
       const stream = await retry(() =>
         batchApi.doGetBatchResults({
-          type: batch.type,
           batchId: batch.id,
           providerOptions,
           abortSignal: operationAbortSignal,
@@ -283,7 +306,7 @@ function isBatchApi(provider: BatchProvider): provider is BatchV4 {
   );
 }
 
-function validateRequests(requests: ReadonlyArray<TextBatchRequest>) {
+function validateRequests(requests: ReadonlyArray<{ readonly id: string }>) {
   if (requests.length === 0) {
     throw new InvalidArgumentError({
       parameter: 'requests',
@@ -322,11 +345,11 @@ function validateBatchReference({
   batchApi: BatchV4;
   batch: BatchReference;
 }) {
-  if (batch.version !== 2 || batch.type !== 'text') {
+  if (batch.version !== 2) {
     throw new InvalidArgumentError({
       parameter: 'batch',
       value: batch,
-      message: 'batch must be a supported text batch reference',
+      message: 'batch must be a supported batch reference',
     });
   }
 

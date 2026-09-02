@@ -1,27 +1,30 @@
-import { openai } from '@ai-sdk/openai';
+import { xai } from '@ai-sdk/xai';
 import {
   experimental_getBatchResults as getBatchResults,
   experimental_getBatchStatus as getBatchStatus,
-  experimental_startTextBatch as startTextBatch,
+  experimental_startBatch as startBatch,
 } from 'ai';
 import { setTimeout } from 'node:timers/promises';
 import { print } from '../../lib/print';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const provider = openai;
-  const model = 'gpt-4.1-nano';
+  const provider = xai;
+  const model = 'grok-4.3';
 
-  const batch = await startTextBatch({
+  const batch = await startBatch({
     provider,
-    model,
     requests: [
       {
         id: 'capital-france',
+        type: 'text',
+        model,
         prompt: 'What is the capital of France?',
       },
       {
         id: 'capital-germany',
+        type: 'text',
+        model: 'grok-4.20-non-reasoning',
         prompt: 'What is the capital of Germany?',
       },
     ],

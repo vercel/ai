@@ -36,6 +36,7 @@ function request(
 ): BatchRequest {
   return {
     id,
+    type: 'text',
     modelId: 'gemini-2.5-flash',
     options: {
       prompt: [
@@ -158,7 +159,6 @@ describe('GoogleBatch', () => {
 
     await expect(
       batch.doStartBatch({
-        type: 'text',
         requests: [
           request('flash', 'Hello'),
           {
@@ -202,10 +202,10 @@ describe('GoogleBatch', () => {
     }).experimental_batch();
 
     const result = await model.doStartBatch({
-      type: 'text',
       requests: [
         {
           id: 'france',
+          type: 'text',
           modelId: 'gemini-2.5-flash',
           options: {
             prompt: [
@@ -379,7 +379,6 @@ describe('GoogleBatch', () => {
     }).experimental_batch();
 
     const result = await model.doStartBatch({
-      type: 'text',
       requests: [
         request('small-request', 'small'),
         request('large-request', prompt),
@@ -464,7 +463,6 @@ describe('GoogleBatch', () => {
 
     await expect(
       model.doGetBatchStatus({
-        type: 'text',
         batchId: 'batches/batch-123',
       }),
     ).resolves.toMatchObject({ status, rawStatus });
@@ -491,7 +489,6 @@ describe('GoogleBatch', () => {
 
       await expect(
         model.doGetBatchStatus({
-          type: 'text',
           batchId: 'batches/batch-123',
         }),
       ).resolves.toMatchObject({ status });
@@ -524,7 +521,6 @@ describe('GoogleBatch', () => {
 
     await expect(
       model.doGetBatchStatus({
-        type: 'text',
         batchId: 'batches/batch-123',
       }),
     ).resolves.toMatchObject({
@@ -580,7 +576,6 @@ describe('GoogleBatch', () => {
 
     await expect(
       model.doGetBatchStatus({
-        type: 'text',
         batchId: 'batches/batch-123',
       }),
     ).resolves.toMatchObject({ requestCounts });
@@ -615,7 +610,6 @@ describe('GoogleBatch', () => {
     }).experimental_batch();
 
     const stream = await model.doGetBatchResults({
-      type: 'text',
       batchId: 'batches/batch-123',
     });
     const results = await convertReadableStreamToArray(stream);
@@ -707,7 +701,6 @@ describe('GoogleBatch', () => {
     const model = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
 
     const stream = await model.doGetBatchResults({
-      type: 'text',
       batchId: 'batches/batch-123',
     });
 
@@ -740,7 +733,6 @@ describe('GoogleBatch', () => {
     const model = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
 
     const stream = await model.doGetBatchResults({
-      type: 'text',
       batchId: 'batches/batch-123',
     });
 
@@ -782,7 +774,6 @@ describe('GoogleBatch', () => {
       }).experimental_batch();
 
       const stream = await model.doGetBatchResults({
-        type: 'text',
         batchId: 'batches/batch-123',
       });
 
@@ -829,7 +820,6 @@ describe('GoogleBatch', () => {
     const model = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
 
     const stream = await model.doGetBatchResults({
-      type: 'text',
       batchId: 'batches/batch-123',
     });
 
@@ -874,7 +864,6 @@ describe('GoogleBatch', () => {
     }).experimental_batch();
 
     const stream = await model.doGetBatchResults({
-      type: 'text',
       batchId: 'batches/batch-123',
     });
 
@@ -901,7 +890,6 @@ describe('GoogleBatch', () => {
     const model = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
 
     const stream = await model.doGetBatchResults({
-      type: 'text',
       batchId: 'batches/batch-123',
     });
 
@@ -925,7 +913,6 @@ describe('GoogleBatch', () => {
 
     await expect(
       model.doGetBatchStatus({
-        type: 'text',
         batchId: 'batches/batch-123',
       }),
     ).rejects.toMatchObject({
@@ -952,7 +939,6 @@ describe('GoogleBatch', () => {
 
     await expect(
       model.doStartBatch({
-        type: 'text',
         requests: [request('france', 'What is the capital of France?')],
       }),
     ).rejects.toMatchObject({
@@ -978,7 +964,6 @@ describe('GoogleBatch', () => {
 
       await expect(
         model.doGetBatchResults({
-          type: 'text',
           batchId: 'batches/batch-123',
         }),
       ).rejects.toMatchObject({
@@ -1013,7 +998,6 @@ describe('GoogleBatch', () => {
       }).experimental_batch();
 
       const stream = await model.doGetBatchResults({
-        type: 'text',
         batchId: 'batches/batch-123',
       });
       const results = await convertReadableStreamToArray(stream);
@@ -1047,7 +1031,6 @@ describe('GoogleBatch', () => {
 
       await expect(
         model.doGetBatchResults({
-          type: 'text',
           batchId: 'batches/batch-123',
         }),
       ).rejects.toMatchObject({
@@ -1114,7 +1097,6 @@ describe('GoogleBatch', () => {
       }).experimental_batch();
 
       const stream = await model.doGetBatchResults({
-        type: 'text',
         batchId: 'batches/batch-123',
       });
       const results = await convertReadableStreamToArray(stream);

@@ -2,7 +2,7 @@ import { openai } from '@ai-sdk/openai';
 import {
   experimental_getBatchResults as getBatchResults,
   experimental_getBatchStatus as getBatchStatus,
-  experimental_startTextBatch as startTextBatch,
+  experimental_startBatch as startBatch,
 } from 'ai';
 import { setTimeout } from 'node:timers/promises';
 import { print } from '../../lib/print';
@@ -17,14 +17,15 @@ run(async () => {
     }),
   };
 
-  const batch = await startTextBatch({
+  const batch = await startBatch({
     provider,
-    model,
-    tools,
-    toolChoice: { type: 'tool', toolName: 'web_search' },
     requests: [
       {
         id: 'latest-vercel-news',
+        type: 'text',
+        model,
+        tools,
+        toolChoice: { type: 'tool', toolName: 'web_search' },
         prompt:
           'Search the web for the latest Vercel news and summarize the most recent announcement with its source.',
       },

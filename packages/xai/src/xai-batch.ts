@@ -8,7 +8,7 @@ import {
   type Experimental_BatchV4Status as BatchV4Status,
   type Experimental_LanguageModelV4BatchRequest as LanguageModelV4BatchRequest,
   type Experimental_TextBatchV4ItemResult as TextBatchV4ItemResult,
-  type Experimental_TextBatchV4StartOptions as TextBatchV4StartOptions,
+  type Experimental_BatchV4StartOptions as BatchV4StartOptions,
   type LanguageModelV4Content,
   type LanguageModelV4GenerateResult,
   type SharedV4ProviderMetadata,
@@ -131,7 +131,7 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
   }
 
   async doStartBatch(
-    options: TextBatchV4StartOptions<XaiResponsesModelId>,
+    options: BatchV4StartOptions<XaiBatchModelIds>,
   ): Promise<BatchV4StartResult> {
     const fileParts: string[] = [];
     const warnings: BatchV4StartResult['warnings'] =

@@ -2,7 +2,7 @@ import { anthropic } from '@ai-sdk/anthropic';
 import {
   experimental_getBatchResults as getBatchResults,
   experimental_getBatchStatus as getBatchStatus,
-  experimental_startTextBatch as startTextBatch,
+  experimental_startBatch as startBatch,
 } from 'ai';
 import { setTimeout } from 'node:timers/promises';
 import { print } from '../../lib/print';
@@ -12,16 +12,18 @@ run(async () => {
   const provider = anthropic;
   const model = 'claude-haiku-4-5';
 
-  const batch = await startTextBatch({
+  const batch = await startBatch({
     provider,
-    model,
     requests: [
       {
         id: 'capital-france',
+        type: 'text',
+        model,
         prompt: 'What is the capital of France?',
       },
       {
         id: 'capital-germany',
+        type: 'text',
         model: 'claude-sonnet-4-5',
         prompt: 'What is the capital of Germany?',
       },

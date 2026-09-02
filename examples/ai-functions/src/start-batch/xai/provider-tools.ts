@@ -2,7 +2,7 @@ import { xai } from '@ai-sdk/xai';
 import {
   experimental_getBatchResults as getBatchResults,
   experimental_getBatchStatus as getBatchStatus,
-  experimental_startTextBatch as startTextBatch,
+  experimental_startBatch as startBatch,
 } from 'ai';
 import { setTimeout } from 'node:timers/promises';
 import { print } from '../../lib/print';
@@ -14,13 +14,14 @@ run(async () => {
   const tools = {
     web_search: xai.tools.webSearch(),
   };
-  const batch = await startTextBatch({
+  const batch = await startBatch({
     provider,
-    model,
-    tools,
     requests: [
       {
         id: 'latest-vercel-news',
+        type: 'text',
+        model,
+        tools,
         prompt:
           'Search the web and summarize the most recent Vercel announcement with its source.',
       },

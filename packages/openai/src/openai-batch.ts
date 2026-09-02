@@ -8,7 +8,7 @@ import {
   type Experimental_BatchV4OperationOptions as BatchV4OperationOptions,
   type Experimental_BatchV4Status as BatchV4Status,
   type Experimental_TextBatchV4ItemResult as TextBatchV4ItemResult,
-  type Experimental_TextBatchV4StartOptions as TextBatchV4StartOptions,
+  type Experimental_BatchV4StartOptions as BatchV4StartOptions,
   type Experimental_LanguageModelV4BatchRequest as LanguageModelV4BatchRequest,
   type LanguageModelV4GenerateResult,
   type SharedV4ProviderMetadata,
@@ -139,7 +139,7 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
   }
 
   async doStartBatch(
-    options: TextBatchV4StartOptions<OpenAIResponsesModelId>,
+    options: BatchV4StartOptions<OpenAIBatchModelIds>,
   ): Promise<BatchV4StartResult> {
     validateSingleModel(options.requests);
 

@@ -58,23 +58,19 @@ export type BatchV4Status = {
   readonly providerMetadata?: SharedV4ProviderMetadata;
 };
 
-/**
- * Options for starting a text batch.
- */
-export type TextBatchV4StartOptions<ModelId extends string = string> =
-  BatchV4StartCallOptions & {
-    readonly type: 'text';
-    readonly requests: ReadonlyArray<LanguageModelV4BatchRequest<ModelId>>;
-  };
+export type BatchV4Request<ModelIds extends BatchV4ModelIds = BatchV4ModelIds> =
+  LanguageModelV4BatchRequest<ModelIds['text']>;
 
 /**
- * Options for starting a batch, discriminated by modality.
+ * Options for starting a batch of requests discriminated by modality.
  *
  * Additional modality-specific options can be added to this union.
  */
 export type BatchV4StartOptions<
   ModelIds extends BatchV4ModelIds = BatchV4ModelIds,
-> = TextBatchV4StartOptions<ModelIds['text']>;
+> = BatchV4StartCallOptions & {
+  readonly requests: ReadonlyArray<BatchV4Request<ModelIds>>;
+};
 
 /**
  * Result of starting a batch.
@@ -91,7 +87,6 @@ export type BatchV4StartResult = BatchV4Status & {
  * Options for a batch status or results operation.
  */
 export type BatchV4OperationOptions = {
-  readonly type: BatchV4StartOptions['type'];
   readonly batchId: string;
 } & BatchV4CallOptions;
 
@@ -130,7 +125,7 @@ export type TextBatchV4ItemResult = {
 export type BatchV4ItemResult = TextBatchV4ItemResult;
 
 /**
- * Specification for a batch processing interface that implements the batch interface version 4.
+ * Specification for a batch interface that implements batch interface version 4.
  */
 export type BatchV4<ModelIds extends BatchV4ModelIds = BatchV4ModelIds> = {
   /**

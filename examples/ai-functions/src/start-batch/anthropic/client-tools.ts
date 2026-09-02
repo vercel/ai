@@ -1,8 +1,8 @@
-import { google } from '@ai-sdk/google';
+import { anthropic } from '@ai-sdk/anthropic';
 import {
   experimental_getBatchResults as getBatchResults,
   experimental_getBatchStatus as getBatchStatus,
-  experimental_startTextBatch as startTextBatch,
+  experimental_startBatch as startBatch,
   tool,
 } from 'ai';
 import { setTimeout } from 'node:timers/promises';
@@ -11,8 +11,8 @@ import { print } from '../../lib/print';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const provider = google;
-  const model = 'gemini-3.6-flash';
+  const provider = anthropic;
+  const model = 'claude-haiku-4-5';
   let executeCallCount = 0;
   const tools = {
     get_weather: tool({
@@ -25,14 +25,15 @@ run(async () => {
     }),
   };
 
-  const batch = await startTextBatch({
+  const batch = await startBatch({
     provider,
-    model,
-    tools,
-    toolChoice: { type: 'tool', toolName: 'get_weather' },
     requests: [
       {
         id: 'weather-san-francisco',
+        type: 'text',
+        model,
+        tools,
+        toolChoice: { type: 'tool', toolName: 'get_weather' },
         prompt: 'Call get_weather for San Francisco, California.',
       },
     ],

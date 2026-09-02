@@ -5,7 +5,7 @@ import {
   type Experimental_BatchV4OperationOptions as BatchV4OperationOptions,
   type Experimental_BatchV4StartResult as BatchV4StartResult,
   type Experimental_BatchV4Status as BatchV4Status,
-  type Experimental_TextBatchV4StartOptions as TextBatchV4StartOptions,
+  type Experimental_BatchV4StartOptions as BatchV4StartOptions,
   type LanguageModelV4CallOptions,
   type SharedV4ProviderMetadata,
   type SharedV4ProviderOptions,
@@ -44,13 +44,14 @@ export class GatewayBatch implements BatchV4<{ text: GatewayModelId }> {
    * Gateway job.
    */
   async doStartBatch({
-    type,
     requests,
     providerOptions,
     headers,
     abortSignal,
     webhookUrl,
-  }: TextBatchV4StartOptions<GatewayModelId>): Promise<BatchV4StartResult> {
+  }: BatchV4StartOptions<{
+    text: GatewayModelId;
+  }>): Promise<BatchV4StartResult> {
     const modelId = validateSingleModel(requests);
 
     const resolvedHeaders = this.config.headers
@@ -73,10 +74,10 @@ export class GatewayBatch implements BatchV4<{ text: GatewayModelId }> {
             : undefined,
         ),
         body: {
-          type,
           ...(webhookUrl != null && { callbackUrl: webhookUrl }),
           requests: requests.map(request => ({
             id: request.id,
+            type: request.type,
             modelId: request.modelId,
             options: maybeEncodeBatchFileParts(request.options),
           })),
@@ -119,7 +120,6 @@ export class GatewayBatch implements BatchV4<{ text: GatewayModelId }> {
    * (`POST {baseURL}/batch/status`).
    */
   async doGetBatchStatus({
-    type,
     batchId,
     headers,
     abortSignal,
@@ -136,7 +136,7 @@ export class GatewayBatch implements BatchV4<{ text: GatewayModelId }> {
           headers,
           await resolve(this.config.o11yHeaders),
         ),
-        body: { type, batchId },
+        body: { batchId },
         successfulResponseHandler: createJsonResponseHandler(
           gatewayBatchStatusResponseSchema,
         ),
@@ -168,7 +168,6 @@ export class GatewayBatch implements BatchV4<{ text: GatewayModelId }> {
    * server-side. The route responds 400 while the batch is non-terminal.
    */
   async doGetBatchResults({
-    type,
     batchId,
     headers,
     abortSignal,
@@ -185,7 +184,7 @@ export class GatewayBatch implements BatchV4<{ text: GatewayModelId }> {
           headers,
           await resolve(this.config.o11yHeaders),
         ),
-        body: { type, batchId },
+        body: { batchId },
         successfulResponseHandler: createJsonLinesResponseHandler(
           gatewayBatchItemResultLineSchema,
         ),
@@ -252,7 +251,7 @@ function maybeBase64EncodeFileData<T extends { type: string }>(data: T): T {
 }
 
 function validateSingleModel(
-  requests: TextBatchV4StartOptions<GatewayModelId>['requests'],
+  requests: BatchV4StartOptions<{ text: GatewayModelId }>['requests'],
 ): GatewayModelId {
   const modelId = requests[0]?.modelId;
 

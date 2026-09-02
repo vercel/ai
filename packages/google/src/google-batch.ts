@@ -8,7 +8,7 @@ import {
   type Experimental_BatchV4StartResult as BatchV4StartResult,
   type Experimental_BatchV4Status as BatchV4Status,
   type Experimental_LanguageModelV4BatchRequest as LanguageModelV4BatchRequest,
-  type Experimental_TextBatchV4StartOptions as TextBatchV4StartOptions,
+  type Experimental_BatchV4StartOptions as BatchV4StartOptions,
   type LanguageModelV4GenerateResult,
 } from '@ai-sdk/provider';
 import {
@@ -151,7 +151,7 @@ export class GoogleBatch implements BatchV4<{ readonly text: GoogleModelId }> {
   }
 
   async doStartBatch(
-    options: TextBatchV4StartOptions<GoogleModelId>,
+    options: BatchV4StartOptions<{ text: GoogleModelId }>,
   ): Promise<BatchV4StartResult> {
     const modelId = getGoogleBatchModelId(options.requests);
     const warnings: BatchV4StartResult['warnings'] = [];

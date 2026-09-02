@@ -1969,18 +1969,27 @@ import { openai } from '@ai-sdk/openai';
 import {
   experimental_getBatchResults as getBatchResults,
   experimental_getBatchStatus as getBatchStatus,
-  experimental_startTextBatch as startTextBatch,
+  experimental_startBatch as startBatch,
 } from 'ai';
 import { setTimeout } from 'node:timers/promises';
 
 const model = 'gpt-4.1-nano';
 
-const batch = await startTextBatch({
+const batch = await startBatch({
   provider: openai,
-  model,
   requests: [
-    { id: 'capital-france', prompt: 'What is the capital of France?' },
-    { id: 'capital-germany', prompt: 'What is the capital of Germany?' },
+    {
+      id: 'capital-france',
+      type: 'text',
+      model,
+      prompt: 'What is the capital of France?',
+    },
+    {
+      id: 'capital-germany',
+      type: 'text',
+      model,
+      prompt: 'What is the capital of Germany?',
+    },
   ],
 });
 
@@ -1999,14 +2008,14 @@ for await (const item of getBatchResults({ provider: openai, batch })) {
 }
 ```
 
-`startTextBatch` returns a serializable batch reference. Persist this reference
+`startBatch` returns a serializable batch reference. Persist this reference
 to check the batch status or retrieve its results from another process. Results
 can arrive in a different order from the input requests, so match each result by
 its `id`.
 
-The `model` passed to `startTextBatch` is the default for all requests. OpenAI
-requires every request in a batch to use the same model and throws before
-submission when request-level model overrides differ.
+Each request specifies its `type` and `model`. OpenAI requires every text
+request in a batch to use the same model and throws before submission when the
+models differ.
 
 #### Webhooks
 

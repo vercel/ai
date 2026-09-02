@@ -1,28 +1,29 @@
-import { anthropic } from '@ai-sdk/anthropic';
+import { google } from '@ai-sdk/google';
 import {
   experimental_getBatchResults as getBatchResults,
   experimental_getBatchStatus as getBatchStatus,
-  experimental_startTextBatch as startTextBatch,
+  experimental_startBatch as startBatch,
 } from 'ai';
 import { setTimeout } from 'node:timers/promises';
 import { print } from '../../lib/print';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const provider = anthropic;
-  const model = 'claude-haiku-4-5';
+  const provider = google;
+  const model = 'gemini-3.6-flash';
   const tools = {
-    web_search: anthropic.tools.webSearch_20250305({ maxUses: 1 }),
+    google_search: google.tools.googleSearch({}),
   };
-  const batch = await startTextBatch({
+  const batch = await startBatch({
     provider,
-    model,
-    tools,
     requests: [
       {
         id: 'latest-vercel-news',
+        type: 'text',
+        model,
+        tools,
         prompt:
-          'Use web search to find and summarize the most recent Vercel announcement with its source.',
+          'Use Google Search to find and summarize the most recent Vercel announcement with its source.',
       },
     ],
   });

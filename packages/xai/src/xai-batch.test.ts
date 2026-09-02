@@ -38,6 +38,7 @@ function request(
   options: { topK?: number } = {},
 ) {
   return {
+    type: 'text' as const,
     modelId,
     options: {
       prompt: [
@@ -137,7 +138,6 @@ describe('xAI batch', () => {
     }).experimental_batch();
 
     const result = await batch.doStartBatch({
-      type: 'text',
       requests: [
         { id: 'france', ...request('What is the capital of France?') },
         {
@@ -260,7 +260,6 @@ describe('xAI batch', () => {
 
     await expect(
       batch.doGetBatchStatus({
-        type: 'text',
         batchId: 'batch_123',
       }),
     ).resolves.toEqual({
@@ -296,7 +295,6 @@ describe('xAI batch', () => {
     const batch = createXai({ apiKey: 'test-api-key' }).experimental_batch();
 
     const status = await batch.doGetBatchStatus({
-      type: 'text',
       batchId: 'batch_123',
     });
 
@@ -321,7 +319,6 @@ describe('xAI batch', () => {
 
     await expect(
       batch.doGetBatchResults({
-        type: 'text',
         batchId: 'batch_123',
       }),
     ).rejects.toMatchObject({
@@ -369,7 +366,6 @@ describe('xAI batch', () => {
     const batch = createXai({ apiKey: 'test-api-key' }).experimental_batch();
 
     const stream = await batch.doGetBatchResults({
-      type: 'text',
       batchId: 'batch_123',
     });
     const results = await convertReadableStreamToArray(stream);
@@ -473,7 +469,6 @@ describe('xAI batch', () => {
     const batch = createXai({ apiKey: 'test-api-key' }).experimental_batch();
 
     const stream = await batch.doGetBatchResults({
-      type: 'text',
       batchId: 'batch_123',
     });
     const results = await convertReadableStreamToArray(stream);
@@ -639,7 +634,6 @@ describe('xAI batch', () => {
     const batch = createXai({ apiKey: 'test-api-key' }).experimental_batch();
 
     const stream = await batch.doGetBatchResults({
-      type: 'text',
       batchId: 'batch_123',
     });
 

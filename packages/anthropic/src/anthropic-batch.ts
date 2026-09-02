@@ -9,7 +9,7 @@ import {
   type Experimental_BatchV4Status as BatchV4Status,
   type Experimental_LanguageModelV4BatchRequest as LanguageModelV4BatchRequest,
   type Experimental_TextBatchV4ItemResult as TextBatchV4ItemResult,
-  type Experimental_TextBatchV4StartOptions as TextBatchV4StartOptions,
+  type Experimental_BatchV4StartOptions as BatchV4StartOptions,
   type JSONObject,
   type LanguageModelV4GenerateResult,
   type SharedV4ProviderMetadata,
@@ -174,7 +174,9 @@ export class AnthropicBatch implements BatchV4<{
     headers,
     abortSignal,
     webhookUrl,
-  }: TextBatchV4StartOptions<AnthropicModelId>): Promise<BatchV4StartResult> {
+  }: BatchV4StartOptions<{
+    text: AnthropicModelId;
+  }>): Promise<BatchV4StartResult> {
     validateRequestIds(requests);
 
     const explicitBatchBetas = new Set(
@@ -213,7 +215,7 @@ export class AnthropicBatch implements BatchV4<{
           message:
             `Anthropic Message Batches do not support per-request betas ` +
             `(request "${request.id}"). Set providerOptions.anthropic.anthropicBeta ` +
-            `on startTextBatch instead.`,
+            `on startBatch instead.`,
         });
       }
 

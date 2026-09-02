@@ -36,6 +36,7 @@ function request(
   options: Omit<LanguageModelV4BatchRequest['options'], 'prompt'> = {},
 ) {
   return {
+    type: 'text' as const,
     modelId: 'claude-3-haiku-20240307',
     options: {
       prompt: [
@@ -116,7 +117,6 @@ describe('Anthropic batch', () => {
     }).experimental_batch();
 
     const result = await model.doStartBatch({
-      type: 'text',
       requests: [
         {
           id: 'france',
@@ -251,7 +251,6 @@ describe('Anthropic batch', () => {
 
     await expect(
       model.doStartBatch({
-        type: 'text',
         requests: [
           {
             id: 'request-1',
@@ -269,7 +268,7 @@ describe('Anthropic batch', () => {
       name: 'AI_UnsupportedFunctionalityError',
       functionality: 'per-request providerOptions.anthropic.anthropicBeta',
       message:
-        'Anthropic Message Batches do not support per-request betas (request "request-1"). Set providerOptions.anthropic.anthropicBeta on startTextBatch instead.',
+        'Anthropic Message Batches do not support per-request betas (request "request-1"). Set providerOptions.anthropic.anthropicBeta on startBatch instead.',
     });
     expect(server.calls).toHaveLength(0);
   });
@@ -281,7 +280,6 @@ describe('Anthropic batch', () => {
 
     await expect(
       model.doStartBatch({
-        type: 'text',
         requests: [
           {
             id: 'request-1',
@@ -311,7 +309,6 @@ describe('Anthropic batch', () => {
 
     await expect(
       model.doStartBatch({
-        type: 'text',
         requests: [
           {
             id: 'request-1',
@@ -345,7 +342,6 @@ describe('Anthropic batch', () => {
     }).experimental_batch();
 
     await model.doStartBatch({
-      type: 'text',
       requests: [
         {
           id: 'request-1',
@@ -384,7 +380,6 @@ describe('Anthropic batch', () => {
     }).experimental_batch();
 
     await model.doStartBatch({
-      type: 'text',
       requests: [
         {
           id: 'request-1',
@@ -453,7 +448,6 @@ describe('Anthropic batch', () => {
 
     await expect(
       model.doStartBatch({
-        type: 'text',
         requests: [
           {
             id: 'request-1',
@@ -478,7 +472,6 @@ describe('Anthropic batch', () => {
 
     await expect(
       model.doStartBatch({
-        type: 'text',
         requests: [{ id: 'invalid id', ...request('Hello') }],
       }),
     ).rejects.toMatchObject({
@@ -489,7 +482,6 @@ describe('Anthropic batch', () => {
     });
     await expect(
       model.doStartBatch({
-        type: 'text',
         requests: [{ id: 'a'.repeat(65), ...request('Hello') }],
       }),
     ).rejects.toMatchObject({
@@ -507,7 +499,6 @@ describe('Anthropic batch', () => {
 
     await expect(
       model.doStartBatch({
-        type: 'text',
         requests: [
           { id: 'duplicate', ...request('First') },
           { id: 'duplicate', ...request('Second') },
@@ -538,7 +529,6 @@ describe('Anthropic batch', () => {
 
     await expect(
       model.doGetBatchStatus({
-        type: 'text',
         batchId: 'msgbatch_123',
       }),
     ).resolves.toMatchObject({ status, rawStatus });
@@ -563,7 +553,6 @@ describe('Anthropic batch', () => {
 
     await expect(
       model.doGetBatchStatus({
-        type: 'text',
         batchId: 'msgbatch_123',
       }),
     ).resolves.toEqual({
@@ -609,7 +598,6 @@ describe('Anthropic batch', () => {
 
     await expect(
       model.doGetBatchResults({
-        type: 'text',
         batchId: 'msgbatch_123',
       }),
     ).rejects.toMatchObject({
@@ -672,7 +660,6 @@ describe('Anthropic batch', () => {
     }).experimental_batch();
 
     const stream = await model.doGetBatchResults({
-      type: 'text',
       batchId: 'msgbatch_123',
     });
     const results = await convertReadableStreamToArray(stream);
@@ -831,7 +818,6 @@ describe('Anthropic batch', () => {
     }).experimental_batch();
 
     const stream = await model.doGetBatchResults({
-      type: 'text',
       batchId: 'msgbatch_123',
     });
 
@@ -995,7 +981,6 @@ describe('Anthropic batch', () => {
     }).experimental_batch();
 
     const stream = await model.doGetBatchResults({
-      type: 'text',
       batchId: 'msgbatch_123',
     });
 
@@ -1130,7 +1115,6 @@ describe('Anthropic batch', () => {
     }).experimental_batch();
 
     const stream = await model.doGetBatchResults({
-      type: 'text',
       batchId: 'msgbatch_123',
     });
 
@@ -1262,7 +1246,6 @@ describe('Anthropic batch', () => {
     }).experimental_batch();
 
     const stream = await model.doGetBatchResults({
-      type: 'text',
       batchId: 'msgbatch_123',
     });
 
@@ -1337,7 +1320,6 @@ describe('Anthropic batch', () => {
     }).experimental_batch();
 
     const stream = await model.doGetBatchResults({
-      type: 'text',
       batchId: 'msgbatch_123',
     });
 
@@ -1384,7 +1366,6 @@ describe('Anthropic batch', () => {
     }).experimental_batch();
 
     const stream = await model.doGetBatchResults({
-      type: 'text',
       batchId: 'msgbatch_123',
     });
 
@@ -1443,7 +1424,6 @@ describe('Anthropic batch', () => {
     }).experimental_batch();
 
     const stream = await model.doGetBatchResults({
-      type: 'text',
       batchId: 'msgbatch_123',
     });
 
@@ -1495,7 +1475,6 @@ describe('Anthropic batch', () => {
     }).experimental_batch();
 
     const stream = await model.doGetBatchResults({
-      type: 'text',
       batchId: 'msgbatch_123',
       abortSignal: abortController.signal,
       headers: {
@@ -1560,7 +1539,6 @@ describe('Anthropic batch', () => {
 
       await expect(
         model.doGetBatchResults({
-          type: 'text',
           batchId: 'msgbatch_123',
         }),
       ).rejects.toMatchObject({
@@ -1599,7 +1577,6 @@ describe('Anthropic batch', () => {
       }).experimental_batch();
 
       const stream = await model.doGetBatchResults({
-        type: 'text',
         batchId: 'msgbatch_123',
       });
       const results = await convertReadableStreamToArray(stream);
@@ -1673,7 +1650,6 @@ describe('Anthropic batch', () => {
       }).experimental_batch();
 
       const stream = await model.doGetBatchResults({
-        type: 'text',
         batchId: 'msgbatch_123',
       });
       const results = await convertReadableStreamToArray(stream);
@@ -1724,7 +1700,6 @@ describe('Anthropic batch', () => {
       }).experimental_batch();
 
       const stream = await model.doGetBatchResults({
-        type: 'text',
         batchId: 'msgbatch_123',
       });
       const results = await convertReadableStreamToArray(stream);
@@ -1764,7 +1739,6 @@ describe('Anthropic batch', () => {
 
       await expect(
         model.doGetBatchResults({
-          type: 'text',
           batchId: 'msgbatch_123',
         }),
       ).rejects.toMatchObject({
@@ -1822,7 +1796,6 @@ describe('Anthropic batch', () => {
       }).experimental_batch();
 
       const stream = await model.doGetBatchResults({
-        type: 'text',
         batchId: 'msgbatch_123',
       });
       const results = await convertReadableStreamToArray(stream);

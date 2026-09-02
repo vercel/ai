@@ -26,6 +26,7 @@ const server = createTestServer({
 
 function request(prompt: string, options: { topK?: number } = {}) {
   return {
+    type: 'text' as const,
     modelId: 'gpt-5.6',
     options: {
       prompt: [
@@ -132,7 +133,6 @@ describe('OpenAI batch service', () => {
     }).experimental_batch();
 
     const result = await batch.doStartBatch({
-      type: 'text',
       requests: [
         { id: 'france', ...request('What is the capital of France?') },
         {
@@ -234,7 +234,6 @@ describe('OpenAI batch service', () => {
 
     await expect(
       batch.doStartBatch({
-        type: 'text',
         requests: [
           { id: 'first', ...request('First request') },
           {
@@ -258,7 +257,6 @@ describe('OpenAI batch service', () => {
     const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
 
     const result = await batch.doStartBatch({
-      type: 'text',
       requests: [
         {
           id: 'image',
@@ -296,10 +294,10 @@ describe('OpenAI batch service', () => {
     }).experimental_batch();
 
     await batch.doStartBatch({
-      type: 'text',
       requests: [
         {
           id: 'compact',
+          type: 'text',
           modelId: 'gpt-5.6',
           options: {
             prompt: [
@@ -341,7 +339,6 @@ describe('OpenAI batch service', () => {
     }).experimental_batch();
 
     await batch.doStartBatch({
-      type: 'text',
       requests: [
         { id: 'france', ...request('What is the capital of France?') },
       ],
@@ -372,7 +369,6 @@ describe('OpenAI batch service', () => {
 
     await expect(
       batch.doGetBatchStatus({
-        type: 'text',
         batchId: 'batch_123',
       }),
     ).resolves.toMatchObject({ status, rawStatus });
@@ -393,7 +389,6 @@ describe('OpenAI batch service', () => {
 
     await expect(
       batch.doGetBatchStatus({
-        type: 'text',
         batchId: 'batch_123',
       }),
     ).resolves.toEqual({
@@ -426,7 +421,6 @@ describe('OpenAI batch service', () => {
 
     await expect(
       batch.doGetBatchStatus({
-        type: 'text',
         batchId: 'batch_123',
       }),
     ).resolves.toMatchObject({
@@ -464,7 +458,6 @@ describe('OpenAI batch service', () => {
     const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
 
     const stream = await batch.doGetBatchResults({
-      type: 'text',
       batchId: 'batch_123',
     });
     const results = await convertReadableStreamToArray(stream);
@@ -531,7 +524,6 @@ describe('OpenAI batch service', () => {
     const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
 
     const stream = await batch.doGetBatchResults({
-      type: 'text',
       batchId: 'batch_123',
     });
 
@@ -580,7 +572,6 @@ describe('OpenAI batch service', () => {
     }).experimental_batch();
 
     const stream = await batch.doGetBatchResults({
-      type: 'text',
       batchId: 'batch_123',
       abortSignal: abortController.signal,
     });
@@ -609,7 +600,6 @@ describe('OpenAI batch service', () => {
     const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
 
     const stream = await batch.doGetBatchResults({
-      type: 'text',
       batchId: 'batch_123',
     });
     const reader = stream.getReader();
@@ -673,11 +663,9 @@ describe('OpenAI batch service', () => {
     const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
 
     await batch.doGetBatchStatus({
-      type: 'text',
       batchId: 'batch_123',
     });
     const stream = await batch.doGetBatchResults({
-      type: 'text',
       batchId: 'batch_123',
     });
     const results = await convertReadableStreamToArray(stream);
@@ -752,7 +740,6 @@ describe('OpenAI batch service', () => {
 
       await expect(
         batch.doGetBatchResults({
-          type: 'text',
           batchId: 'batch_123',
         }),
       ).rejects.toMatchObject({
@@ -779,7 +766,6 @@ describe('OpenAI batch service', () => {
       }).experimental_batch();
 
       const stream = await batch.doGetBatchResults({
-        type: 'text',
         batchId: 'batch_123',
       });
       const results = await convertReadableStreamToArray(stream);
@@ -813,7 +799,6 @@ describe('OpenAI batch service', () => {
 
       await expect(
         batch.doGetBatchResults({
-          type: 'text',
           batchId: 'batch_123',
         }),
       ).rejects.toMatchObject({
@@ -922,7 +907,6 @@ describe('OpenAI batch service', () => {
       }).experimental_batch();
 
       const stream = await batch.doGetBatchResults({
-        type: 'text',
         batchId: 'batch_123',
       });
       const results = await convertReadableStreamToArray(stream);

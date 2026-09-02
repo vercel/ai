@@ -16,19 +16,18 @@ import { expectTypeOf, it } from 'vitest';
 import {
   experimental_getBatchResults as getBatchResults,
   experimental_getBatchStatus as getBatchStatus,
-  experimental_startTextBatch as startTextBatch,
+  experimental_startBatch as startBatch,
   type GatewayProviderMetadata,
   type Experimental_BatchError as BatchError,
   type Experimental_BatchProvider as BatchProvider,
   type Experimental_BatchOperationOptions as BatchOperationOptions,
   type Experimental_BatchReference as BatchReference,
   type Experimental_BatchStatus as BatchStatus,
-  type Experimental_StartTextBatchOptions as StartTextBatchOptions,
-  type Experimental_StartTextBatchResult as StartTextBatchResult,
-  type Experimental_TextBatch as TextBatch,
+  type Experimental_StartBatchOptions as StartBatchOptions,
+  type Experimental_StartBatchResult as StartBatchResult,
+  type Experimental_Batch as Batch,
   type Experimental_TextBatchGenerationResult as TextBatchGenerationResult,
   type Experimental_TextBatchItemResult as TextBatchItemResult,
-  type Experimental_TextBatchReference as TextBatchReference,
   type Experimental_TextBatchRequest as TextBatchRequest,
 } from '../index';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
@@ -41,28 +40,29 @@ it('exposes typed Gateway async-job metadata', () => {
   >().toEqualTypeOf<string | undefined>();
 });
 
-it('keeps text batch references as the current batch reference variant', () => {
-  expectTypeOf<BatchReference>().toEqualTypeOf<TextBatchReference>();
-  expectTypeOf<TextBatch>().toMatchTypeOf<BatchReference>();
+it('uses a modality-independent batch reference', () => {
+  expectTypeOf<Batch>().toMatchTypeOf<BatchReference>();
   expectTypeOf<
     BatchOperationOptions['batch']
   >().toEqualTypeOf<BatchReference>();
 });
 
 it('keeps batch start non-retrying', () => {
-  expectTypeOf<'maxRetries'>().not.toMatchTypeOf<keyof StartTextBatchOptions>();
-  expectTypeOf<StartTextBatchOptions['timeout']>().toEqualTypeOf<
+  expectTypeOf<'maxRetries'>().not.toMatchTypeOf<keyof StartBatchOptions>();
+  expectTypeOf<StartBatchOptions['timeout']>().toEqualTypeOf<
     number | { totalMs?: number } | undefined
   >();
-  expectTypeOf<StartTextBatchOptions['webhookUrl']>().toEqualTypeOf<
+  expectTypeOf<StartBatchOptions['webhookUrl']>().toEqualTypeOf<
     string | undefined
   >();
 });
 
-it('excludes Core orchestration from batch items', () => {
-  expectTypeOf<TextBatchRequest['model']>().toEqualTypeOf<string | undefined>();
-  expectTypeOf<'tools'>().not.toMatchTypeOf<keyof TextBatchRequest>();
-  expectTypeOf<'toolChoice'>().not.toMatchTypeOf<keyof TextBatchRequest>();
+it('keeps text-specific options on text batch requests', () => {
+  expectTypeOf<TextBatchRequest['type']>().toEqualTypeOf<'text'>();
+  expectTypeOf<TextBatchRequest['model']>().toEqualTypeOf<string>();
+  expectTypeOf<TextBatchRequest['tools']>().toEqualTypeOf<
+    ToolSet | undefined
+  >();
   expectTypeOf<'stopWhen'>().not.toMatchTypeOf<keyof TextBatchRequest>();
 });
 
@@ -77,9 +77,9 @@ it('accepts shared definition-only tools when starting and reading a batch', () 
     },
   };
 
-  expectTypeOf<StartTextBatchOptions<typeof tools>['tools']>().toEqualTypeOf<
-    typeof tools | undefined
-  >();
+  expectTypeOf<
+    StartBatchOptions<typeof tools>['requests'][number]['tools']
+  >().toEqualTypeOf<typeof tools | undefined>();
   expectTypeOf<BatchOperationOptions<typeof tools>['tools']>().toEqualTypeOf<
     typeof tools | undefined
   >();
@@ -106,10 +106,10 @@ it('only exposes text-generation call options to batch providers', () => {
   >;
 
   expectTypeOf<keyof BatchV4Request>().toEqualTypeOf<
-    'id' | 'modelId' | 'options'
+    'id' | 'type' | 'modelId' | 'options'
   >();
   expectTypeOf<LanguageModelV4BatchRequest<'model-a'>>().toEqualTypeOf<
-    BatchV4Request<'model-a', ExpectedBatchCallOptions>
+    BatchV4Request<{ text: 'model-a' }>
   >();
   expectTypeOf<BatchCallOptions>().toEqualTypeOf<ExpectedBatchCallOptions>();
   expectTypeOf<
@@ -160,19 +160,16 @@ it('defines batch support as a standalone provider service', () => {
   expectTypeOf<TestBatchApi>().toMatchTypeOf<BatchProvider>();
   expectTypeOf<TestProvider>().toMatchTypeOf<BatchProvider>();
   expectTypeOf<LanguageModelV4>().not.toMatchTypeOf<BatchProvider>();
-  expectTypeOf<BatchV4OperationOptions['type']>().toEqualTypeOf<'text'>();
+  expectTypeOf<'type'>().not.toMatchTypeOf<keyof BatchV4OperationOptions>();
   expectTypeOf<
     Parameters<TestBatchApi['doGetBatchResults']>[0]
   >().toEqualTypeOf<BatchV4OperationOptions>();
   expectTypeOf<
-    StartTextBatchOptions<ToolSet, TestProvider>['provider']
+    StartBatchOptions<ToolSet, TestProvider>['provider']
   >().toEqualTypeOf<TestProvider | undefined>();
   expectTypeOf<
-    StartTextBatchOptions<ToolSet, TestProvider>['model']
+    StartBatchOptions<ToolSet, TestProvider>['requests'][number]['model']
   >().toEqualTypeOf<ModelId>();
-  expectTypeOf<
-    StartTextBatchOptions<ToolSet, TestProvider>['requests'][number]['model']
-  >().toEqualTypeOf<ModelId | undefined>();
   expectTypeOf<BatchOperationOptions['provider']>().toEqualTypeOf<
     BatchProvider | undefined
   >();
@@ -190,7 +187,7 @@ it('defines batch support as a standalone provider service', () => {
   expectTypeOf<'type'>().not.toMatchTypeOf<keyof TextBatchItemResult>();
 });
 
-it('infers default and per-request model IDs from the provider batch service', () => {
+it('infers per-request model IDs from the provider batch service', () => {
   type TestProvider = ProviderV4 & {
     experimental_batch(): BatchV4<{
       text: 'model-a' | 'model-b';
@@ -199,25 +196,19 @@ it('infers default and per-request model IDs from the provider batch service', (
   };
   const provider = {} as TestProvider;
 
-  startTextBatch({
+  startBatch({
     provider,
-    model: 'model-a',
-    requests: [{ id: 'request-1', model: 'model-b', prompt: 'hello' }],
+    requests: [
+      { id: 'request-1', type: 'text', model: 'model-b', prompt: 'hello' },
+    ],
   });
 
-  startTextBatch({
+  startBatch({
     provider,
-    // @ts-expect-error model ID is inferred from provider.experimental_batch()
-    model: 'image-model',
-    requests: [{ id: 'request-1', prompt: 'hello' }],
-  });
-
-  startTextBatch({
-    provider,
-    model: 'model-a',
     requests: [
       {
         id: 'request-1',
+        type: 'text',
         // @ts-expect-error request model ID is inferred from provider.experimental_batch()
         model: 'image-model',
         prompt: 'hello',
@@ -227,9 +218,15 @@ it('infers default and per-request model IDs from the provider batch service', (
 });
 
 it('allows the default provider to be omitted', () => {
-  startTextBatch({
-    model: 'anthropic/claude-sonnet-5',
-    requests: [{ id: 'request-1', prompt: 'hello' }],
+  startBatch({
+    requests: [
+      {
+        id: 'request-1',
+        type: 'text',
+        model: 'anthropic/claude-sonnet-5',
+        prompt: 'hello',
+      },
+    ],
   });
 
   getBatchStatus({ batch: {} as BatchReference });
@@ -237,9 +234,7 @@ it('allows the default provider to be omitted', () => {
 });
 
 it('exports the experimental batch functions with the public result types', () => {
-  expectTypeOf(
-    startTextBatch,
-  ).returns.resolves.toEqualTypeOf<StartTextBatchResult>();
+  expectTypeOf(startBatch).returns.resolves.toEqualTypeOf<StartBatchResult>();
   expectTypeOf(getBatchStatus).returns.resolves.toEqualTypeOf<BatchStatus>();
   getBatchStatus({
     provider: {} as BatchV4,
