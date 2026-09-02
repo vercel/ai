@@ -3782,8 +3782,8 @@ importers:
         specifier: ^3.0.8
         version: 3.0.8
       undici:
-        specifier: ^7.29.0
-        version: 7.29.0
+        specifier: ^8.9.0
+        version: 8.9.0
     devDependencies:
       '@types/node':
         specifier: 22.19.19
