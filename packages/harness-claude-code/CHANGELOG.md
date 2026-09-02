@@ -1,5 +1,14 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.104
+
+### Patch Changes
+
+- f21945b: fix(harness-claude-code): keep non-text tool result content and scalar MCP tool results intact instead of flattening them to a stringified or re-parsed value
+- 0c37bf0: fix(harness): avoid warning about lack of credential brokering support when `credentialForwarding` callback is used to replace all credentials with ephemeral fake secrets
+- Updated dependencies [0c37bf0]
+  - @ai-sdk/harness@1.0.100
+
 ## 1.0.103
 
 ### Patch Changes

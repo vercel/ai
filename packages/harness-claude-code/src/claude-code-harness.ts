@@ -921,12 +921,17 @@ export function createClaudeCode(
           );
         }
       } else {
-        warnCredentialBrokeringUnavailable();
         sandboxClaudeEnvironment = await applyCredentialForwarding({
           environment: sandboxClaudeEnvironment,
           credentialEnvironmentVariables:
             CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
           credentialForwarding: settings.credentialForwarding,
+        });
+        warnCredentialBrokeringUnavailable({
+          environment: claudeEnvironment,
+          forwardedEnvironment: sandboxClaudeEnvironment,
+          credentialEnvironmentVariables:
+            CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
         });
       }
       const bootstrapDir = posix.resolve(
