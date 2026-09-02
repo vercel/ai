@@ -1,0 +1,99 @@
+---
+title: Mengram
+description: Learn how to use Mengram memory with the AI SDK.
+---
+
+# Mengram
+
+[Mengram](https://mengram.io) is a memory layer for AI agents with three memory types: **semantic** (facts and preferences), **episodic** (events and decisions), and **procedural** (workflows that evolve from successes and failures). The [`mengram-ai-sdk`](https://www.npmjs.com/package/mengram-ai-sdk) package provides AI SDK-compatible tools plus a Cognitive Profile helper for system prompts.
+
+Features include:
+
+- Three memory tools: `searchMemory`, `addMemory`, and `getProcedures`
+- `getProcedures` returns learned workflows with a success/failure track record and preconditions — the assumptions that were violated when the workflow previously failed
+- `retrieveProfile` builds a ready-to-use system prompt from all three memory types
+- `saveConversation` persists finished conversations; extraction runs server-side
+- Multi-user memory isolation via `userId` — one API key, isolated memory per end-user
+- Works with `generateText` and `streamText`
+- Full TypeScript support
+
+## Setup
+
+Sign up at [mengram.io](https://mengram.io) for a free API key (no card required), or [self-host](https://github.com/alibaizhanov/mengram) the Apache 2.0 core.
+
+## Installation
+
+<InstallPackages packages="mengram-ai-sdk" />
+
+## Basic Usage
+
+### Memory tools
+
+```ts
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { mengramTools } from 'mengram-ai-sdk';
+
+const { text } = await generateText({
+  model: openai('gpt-4o'),
+  tools: mengramTools({
+    apiKey: process.env.MENGRAM_API_KEY,
+    userId: 'user-123',
+  }),
+  prompt: 'Deploy the app the way we always do.',
+});
+```
+
+The model can now search memory before answering, save durable facts, and retrieve learned workflows. A `getProcedures` call returns entries like:
+
+```json
+{
+  "name": "production deploy",
+  "version": 3,
+  "steps": [{ "step": 1, "action": "run migrations", "detail": "before push" }],
+  "track_record": { "successes": 11, "failures": 1 },
+  "preconditions": [{ "assumption": "database reachable from CI" }]
+}
+```
+
+### Cognitive Profile as system prompt
+
+```ts
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { retrieveProfile } from 'mengram-ai-sdk';
+
+const system = await retrieveProfile({
+  apiKey: process.env.MENGRAM_API_KEY,
+  userId: 'user-123',
+}); // '' when the user has no memories yet
+
+const { text } = await generateText({
+  model: openai('gpt-4o'),
+  system,
+  prompt: 'What should I work on today?',
+});
+```
+
+### Saving conversations
+
+```ts
+import { saveConversation } from 'mengram-ai-sdk';
+
+const result = await generateText({ model, tools, prompt });
+
+await saveConversation(result.response.messages, {
+  apiKey: process.env.MENGRAM_API_KEY,
+  userId: 'user-123',
+});
+```
+
+## Multi-user apps
+
+Pass your end-user's id as `userId` to isolate facts, events, workflows, and profiles per user under a single API key. See the [multi-user guide](https://mengram.io/for-agents).
+
+## Additional Resources
+
+- [Mengram documentation](https://docs.mengram.io)
+- [REST API reference](https://mengram.io/docs)
+- [GitHub repository](https://github.com/alibaizhanov/mengram)
