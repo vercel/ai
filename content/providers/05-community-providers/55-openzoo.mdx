@@ -6,9 +6,9 @@ description: Learn how to use the OpenZoo provider for the AI SDK.
 # OpenZoo Provider
 
 The [OpenZoo](https://openzoo.fun) provider gives access to pay-per-call,
-OpenAI-compatible inference with no signup and no API key required — each
-request settles via x402 or card — via the hosted endpoint
-`https://api.openzoo.fun/v1` or a local gateway (`npx openzoo`).
+OpenAI-compatible inference with no account. A small local proxy
+(`npx openzoo`) pays for each request over x402 from a local burner wallet,
+and the provider talks to that proxy at `http://localhost:8402/v1`.
 
 ## Setup
 
@@ -18,24 +18,24 @@ module. You can install it with:
 
 <InstallPackages packages="openzoo-ai-provider" />
 
+Then start the local proxy:
+
+```bash
+npx openzoo
+```
+
+`npx openzoo address` prints the proxy's wallet — fund it with USDC on Solana
+or Base; `npx openzoo balance` shows what is left.
+
 ### Credentials
 
-No signup exists. OpenZoo accepts any API key: the provider uses the
-`OPENZOO_API_KEY` environment variable if set, and otherwise sends the literal
-`sk-openzoo`. The model list is free to query at
-`https://api.openzoo.fun/v1/models`.
+No signup exists. The local proxy ignores the API key, so the provider sends
+the literal `sk-openzoo` unless `OPENZOO_API_KEY` is set. The model list is
+free to query at `http://localhost:8402/v1/models`.
 
 ## Provider Instance
 
-You can import the default provider instance `openzoo` from
-`openzoo-ai-provider`:
-
-```ts
-import { openzoo } from 'openzoo-ai-provider';
-```
-
-To use the local gateway started with `npx openzoo` (which pays per call
-automatically from a local burner wallet), create a custom instance:
+Create a provider instance pointed at the local proxy with `createOpenZoo`:
 
 ```ts
 import { createOpenZoo } from 'openzoo-ai-provider';
@@ -44,6 +44,11 @@ const openzoo = createOpenZoo({
   baseURL: 'http://localhost:8402/v1',
 });
 ```
+
+The default instance exported as `openzoo` targets the hosted endpoint
+`https://api.openzoo.fun/v1`, which answers HTTP 402 unless the caller pays
+x402 or presents an OpenZoo subscription key (`ozk_live_…` in
+`OPENZOO_API_KEY`). Without a subscription key, use the local proxy as above.
 
 ## Language Models
 
@@ -60,8 +65,10 @@ You can use OpenZoo language models to generate text with the `generateText`
 function:
 
 ```ts
-import { openzoo } from 'openzoo-ai-provider';
+import { createOpenZoo } from 'openzoo-ai-provider';
 import { generateText } from 'ai';
+
+const openzoo = createOpenZoo({ baseURL: 'http://localhost:8402/v1' });
 
 const { text } = await generateText({
   model: openzoo('z-ai/glm-5.3-flash'),
