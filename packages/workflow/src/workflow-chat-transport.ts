@@ -491,6 +491,7 @@ export class WorkflowChatTransport<
       useExplicitStartIndex = false;
 
       try {
+        let receivedChunks = 0;
         const chunkStream = parseJsonEventStream({
           stream: response.body,
           schema: uiMessageChunkSchema,
@@ -500,6 +501,7 @@ export class WorkflowChatTransport<
             throw chunk.error;
           }
 
+          receivedChunks++;
           chunkIndex++;
 
           if (orphanFilter?.shouldDrop(chunk.value)) continue;
@@ -509,6 +511,9 @@ export class WorkflowChatTransport<
           if (chunk.value.type === 'finish') {
             gotFinish = true;
           }
+        }
+        if (!gotFinish && receivedChunks === 0) {
+          throw new Error('Reconnect stream ended without receiving chunks.');
         }
         // Reset consecutive error count only after successful stream parsing
         consecutiveErrors = 0;
