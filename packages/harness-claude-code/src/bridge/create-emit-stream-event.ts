@@ -38,6 +38,9 @@ export type ClaudeMessage = {
     usage?: Record<string, unknown>;
   };
   result?: string;
+  /** Result-message error flags; distinct from `error_status` (`api_retry`). */
+  is_error?: boolean;
+  api_error_status?: number | null;
   errors?: ReadonlyArray<string>;
   usage?: Record<string, unknown>;
   total_cost_usd?: number;
