@@ -24,9 +24,12 @@ describe('createCline', () => {
     expect(harness.supportsBuiltinToolFiltering).toBe(true);
   });
 
-  it('declares the eight built-in tools', () => {
+  it('declares the built-in tools', () => {
     expect(Object.keys(createCline().builtinTools).sort()).toEqual(
-      [...CLINE_NATIVE_BUILTIN_NAMES].sort(),
+      [
+        ...CLINE_NATIVE_BUILTIN_NAMES.filter(name => name !== 'ask_question'),
+        'askUserQuestions',
+      ].sort(),
     );
   });
 
@@ -75,6 +78,15 @@ describe('resolveActiveClineBuiltinNames', () => {
   it('applies deny filtering', () => {
     expect(
       resolveActiveClineBuiltinNames({ mode: 'deny', toolNames: ['bash'] }),
-    ).toEqual(['read', 'write', 'edit', 'grep', 'glob', 'ls', 'skills']);
+    ).toEqual([
+      'ask_question',
+      'read',
+      'write',
+      'edit',
+      'grep',
+      'glob',
+      'ls',
+      'skills',
+    ]);
   });
 });
