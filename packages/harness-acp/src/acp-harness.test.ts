@@ -3380,8 +3380,10 @@ describe('createACP', () => {
       session: secondSession,
       toolResultContinuations: [
         {
+          type: 'tool-result',
           toolCallId: 'client-call',
-          output: { value: 42 },
+          toolName: 'clientTool',
+          output: { type: 'json', value: { value: 42 } },
         },
       ],
     });
@@ -3486,18 +3488,9 @@ describe('createACP', () => {
       session: secondSession,
       toolApprovalContinuations: [
         {
-          approvalResponse: {
-            type: 'tool-approval-response',
-            approvalId: 'native-approval',
-            approved: true,
-          },
-          toolCall: {
-            type: 'tool-call',
-            toolCallId: 'native-call',
-            toolName: 'bash',
-            input: { command: 'pwd' },
-            providerExecuted: true,
-          },
+          type: 'tool-approval-response',
+          approvalId: 'native-approval',
+          approved: true,
         },
       ],
     });
@@ -3975,8 +3968,10 @@ describe('createACP', () => {
       session,
       toolResultContinuations: [
         {
+          type: 'tool-result',
           toolCallId: 'client-call',
-          output: { answer: 'Ada' },
+          toolName: 'clientTool',
+          output: { type: 'json', value: { answer: 'Ada' } },
         },
       ],
     });

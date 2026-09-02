@@ -1125,18 +1125,9 @@ describe('createPiSession', () => {
         session,
         toolApprovalContinuations: [
           {
-            approvalResponse: {
-              type: 'tool-approval-response',
-              approvalId: 'approval-1',
-              approved: true,
-            },
-            toolCall: {
-              type: 'tool-call',
-              toolCallId: 'tool-1',
-              toolName: 'askUser',
-              input: { question: 'Choose an option' },
-              providerExecuted: false,
-            },
+            type: 'tool-approval-response',
+            approvalId: 'approval-1',
+            approved: true,
           },
         ],
       });

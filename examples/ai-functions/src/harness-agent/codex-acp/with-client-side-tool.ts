@@ -66,8 +66,10 @@ run(async () => {
       session,
       toolResultContinuations: [
         {
+          type: 'tool-result',
           toolCallId: toolCall.toolCallId,
-          output: { name: userName },
+          toolName: toolCall.toolName,
+          output: { type: 'json', value: { name: userName } },
         },
       ],
     });
