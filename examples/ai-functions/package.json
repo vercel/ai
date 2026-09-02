@@ -93,7 +93,7 @@
     "mathjs": "^15.2.0",
     "sharp": "^0.33.5",
     "terminal-image": "^2.0.0",
-    "undici": "^8.5.0",
+    "undici": "^8.9.0",
     "valibot": "1.1.0",
     "workflow": "5.0.0-beta.42",
     "ws": "^8.21.0",
