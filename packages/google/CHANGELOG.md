@@ -1,5 +1,13 @@
 # @ai-sdk/google
 
+## 4.0.63
+
+### Patch Changes
+
+- 18ad19c: feat(google): support agentic video processing in the Interactions API
+- 048ce06: feat(batch): surface the uploaded input file on the batch start result (`providerMetadata.<provider>.inputFileId` / `inputFileExpiresAt`) and accept an `inputFileExpiresAfter` provider option on the OpenAI and xAI batch input file upload
+- 622fa7f: feat(google): add gemini-3.8-flash model
+
 ## 4.0.62
 
 ### Patch Changes
