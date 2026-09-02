@@ -1,5 +1,14 @@
 # ai
 
+## 7.0.90
+
+### Patch Changes
+
+- Updated dependencies [4d25a08]
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/gateway@4.0.72
+  - @ai-sdk/provider-utils@5.0.36
+
 ## 7.0.89
 
 ### Patch Changes

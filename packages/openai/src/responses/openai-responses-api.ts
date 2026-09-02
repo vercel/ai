@@ -18,6 +18,37 @@ const jsonValueSchema: z.ZodType<JSONValue> = z.lazy(() =>
   ]),
 );
 
+const jsonObjectSchema = z.record(z.string(), jsonValueSchema.optional());
+
+const openaiResponsesUsageSchema = z.intersection(
+  jsonObjectSchema,
+  z.object({
+    input_tokens: z.number(),
+    input_tokens_details: z
+      .intersection(
+        jsonObjectSchema,
+        z.object({
+          cached_tokens: z.number().nullish(),
+          cache_write_tokens: z.number().nullish(),
+          orchestration_input_tokens: z.number().nullish(),
+          orchestration_input_cached_tokens: z.number().nullish(),
+        }),
+      )
+      .nullish(),
+    output_tokens: z.number(),
+    output_tokens_details: z
+      .intersection(
+        jsonObjectSchema,
+        z.object({
+          reasoning_tokens: z.number().nullish(),
+          orchestration_output_tokens: z.number().nullish(),
+        }),
+      )
+      .nullish(),
+    total_tokens: z.number().optional(),
+  }),
+);
+
 const openaiResponsesComputerSafetyCheckSchema = z.object({
   id: z.string(),
   code: z.string().nullish(),
@@ -831,26 +862,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
         type: z.enum(['response.completed', 'response.incomplete']),
         response: z.object({
           incomplete_details: z.object({ reason: z.string() }).nullish(),
-          usage: z
-            .object({
-              input_tokens: z.number(),
-              input_tokens_details: z
-                .object({
-                  cached_tokens: z.number().nullish(),
-                  cache_write_tokens: z.number().nullish(),
-                  orchestration_input_tokens: z.number().nullish(),
-                  orchestration_input_cached_tokens: z.number().nullish(),
-                })
-                .nullish(),
-              output_tokens: z.number(),
-              output_tokens_details: z
-                .object({
-                  reasoning_tokens: z.number().nullish(),
-                  orchestration_output_tokens: z.number().nullish(),
-                })
-                .nullish(),
-            })
-            .nullish(),
+          usage: openaiResponsesUsageSchema.nullish(),
           reasoning: z
             .object({
               context: z.string().nullish(),
@@ -870,26 +882,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             })
             .nullish(),
           incomplete_details: z.object({ reason: z.string() }).nullish(),
-          usage: z
-            .object({
-              input_tokens: z.number(),
-              input_tokens_details: z
-                .object({
-                  cached_tokens: z.number().nullish(),
-                  cache_write_tokens: z.number().nullish(),
-                  orchestration_input_tokens: z.number().nullish(),
-                  orchestration_input_cached_tokens: z.number().nullish(),
-                })
-                .nullish(),
-              output_tokens: z.number(),
-              output_tokens_details: z
-                .object({
-                  reasoning_tokens: z.number().nullish(),
-                  orchestration_output_tokens: z.number().nullish(),
-                })
-                .nullish(),
-            })
-            .nullish(),
+          usage: openaiResponsesUsageSchema.nullish(),
           reasoning: z
             .object({
               context: z.string().nullish(),
@@ -1745,26 +1738,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
         })
         .nullish(),
       incomplete_details: z.object({ reason: z.string() }).nullish(),
-      usage: z
-        .object({
-          input_tokens: z.number(),
-          input_tokens_details: z
-            .object({
-              cached_tokens: z.number().nullish(),
-              cache_write_tokens: z.number().nullish(),
-              orchestration_input_tokens: z.number().nullish(),
-              orchestration_input_cached_tokens: z.number().nullish(),
-            })
-            .nullish(),
-          output_tokens: z.number(),
-          output_tokens_details: z
-            .object({
-              reasoning_tokens: z.number().nullish(),
-              orchestration_output_tokens: z.number().nullish(),
-            })
-            .nullish(),
-        })
-        .nullish(),
+      usage: openaiResponsesUsageSchema.nullish(),
     }),
   ),
 );
