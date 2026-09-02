@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 15814,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-15814-generated-audio-error.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-15814-generated-audio-error.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #15814: expected malformed audio media type to throw an AISDKError; received Error: Audio format must be provided or determinable from media type"
+  }
+}
