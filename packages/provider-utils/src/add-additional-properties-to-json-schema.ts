@@ -20,9 +20,11 @@ export function addAdditionalPropertiesToJsonSchema(
 
     const { properties } = jsonSchema;
     if (properties != null) {
+      const newProperties: Record<string, JSONSchema7Definition> = {};
       for (const key of Object.keys(properties)) {
-        properties[key] = visit(properties[key]);
+        newProperties[key] = visit(properties[key]);
       }
+      jsonSchema.properties = newProperties;
     }
   }
 
@@ -46,9 +48,11 @@ export function addAdditionalPropertiesToJsonSchema(
 
   const { definitions } = jsonSchema;
   if (definitions != null) {
+    const newDefinitions: Record<string, JSONSchema7Definition> = {};
     for (const key of Object.keys(definitions)) {
-      definitions[key] = visit(definitions[key]);
+      newDefinitions[key] = visit(definitions[key]);
     }
+    jsonSchema.definitions = newDefinitions;
   }
 
   return jsonSchema;
