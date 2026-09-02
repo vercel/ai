@@ -198,7 +198,7 @@ describe('doGenerate', () => {
         files: undefined,
         mask: undefined,
         n: 1,
-        size: '1024x1024',
+        size: undefined,
         aspectRatio: '1:1',
         seed: 123,
         providerOptions: {},
@@ -213,6 +213,23 @@ describe('doGenerate', () => {
           },
         ]
       `);
+    });
+
+    it('should not return a warning when only size is provided', async () => {
+      const model = createBasicModel();
+
+      const result = await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: '1024x1024',
+        aspectRatio: undefined,
+        seed: 123,
+        providerOptions: {},
+      });
+
+      expect(result.warnings).toEqual([]);
     });
   });
 
