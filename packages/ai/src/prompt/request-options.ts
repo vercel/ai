@@ -4,9 +4,13 @@ import type { ToolSet } from '@ai-sdk/provider-utils';
  * Timeout configuration for API calls. Can be specified as:
  * - A number representing milliseconds
  * - An object with `totalMs` property for the total timeout in milliseconds
- * - An object with `stepMs` property for the timeout of each step in milliseconds
+ * - An object with `stepMs` property for the timeout of each step in milliseconds.
+ *   In `streamText`, this excludes client-side tool execution.
  * - An object with `firstChunkMs` property for the timeout until the first content chunk of each step (streaming only)
- * - An object with `chunkMs` property for the timeout between content chunks (streaming only)
+ * - An object with `chunkMs` property for the timeout between content chunks (streaming only).
+ *   Only text deltas, reasoning deltas, non-empty tool-input deltas, generated files, and tool
+ *   calls reset it; preliminary tool results and other non-content chunks do not. In `streamText`,
+ *   this stops when the model response ends, before client-side tool execution.
  * - An object with `toolMs` property for the default timeout for all tool executions
  * - An object with `tools` property for per-tool timeout overrides using `{toolName}Ms` keys
  */
