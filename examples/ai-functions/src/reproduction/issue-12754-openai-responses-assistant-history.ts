@@ -337,34 +337,41 @@ async function main() {
       : undefined;
 
     if (
-      !APICallError.isInstance(result.error) ||
-      result.error.statusCode !== 400 ||
-      !isObject(assistant) ||
-      !Array.isArray(assistant.content) ||
-      assistant.content[0]?.type !== 'output_text' ||
-      assistant.type != null ||
-      assistant.status != null
+      APICallError.isInstance(result.error) &&
+      result.error.statusCode === 400 &&
+      isObject(assistant) &&
+      Array.isArray(assistant.content) &&
+      assistant.content[0]?.type === 'output_text' &&
+      assistant.type == null &&
+      assistant.status == null
     ) {
-      if (result.error != null) {
-        throw result.error;
-      }
-      throw new Error(
-        'Expected the strict Responses endpoint to reject incomplete output_text assistant history.',
+      console.log(
+        JSON.stringify(
+          {
+            statusCode: result.error.statusCode,
+            responseBody: result.error.responseBody,
+            assistantHistory: assistant,
+          },
+          null,
+          2,
+        ),
       );
+      throw new Error(failureSignal);
     }
 
-    console.log(
-      JSON.stringify(
-        {
-          statusCode: result.error.statusCode,
-          responseBody: result.error.responseBody,
-          assistantHistory: assistant,
-        },
-        null,
-        2,
-      ),
-    );
-    throw new Error(failureSignal);
+    if (result.error != null) {
+      throw result.error;
+    }
+    if (!isObject(assistant) || !isValidAssistantInput(assistant)) {
+      throw new Error(
+        'Expected assistant history to use an EasyInputMessage or a complete ResponseOutputMessage.',
+      );
+    }
+    if (result.text !== 'compatible response') {
+      throw new Error(
+        `Expected the strict endpoint response to be consumed, received ${JSON.stringify(result.text)}.`,
+      );
+    }
   } finally {
     server.close();
     await once(server, 'close');

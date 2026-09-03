@@ -1,7 +1,8 @@
 {
   "version": 2,
   "issueId": 12754,
-  "expectationRevision": 1,
+  "expectationRevision": 2,
+  "supersedesReproductionCommitSha": "9773a39cb7694381e02044592f319fb861f2d5af",
   "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-12754-openai-responses-assistant-history.ts",
   "artifactPaths": [
     "examples/ai-functions/src/reproduction/issue-12754-openai-responses-assistant-history.ts"
