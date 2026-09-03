@@ -1,5 +1,19 @@
 # @ai-sdk/anthropic
 
+## 4.0.49
+
+### Patch Changes
+
+- 65397d7: fix(anthropic): recognize dated Google Vertex Claude 4 model IDs when selecting model capabilities
+
+## 4.0.48
+
+### Patch Changes
+
+- 4d25a08: feat(anthropic): add fable 5.1 support
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
 ## 4.0.47
 
 ### Patch Changes

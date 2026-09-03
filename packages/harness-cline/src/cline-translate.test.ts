@@ -19,6 +19,59 @@ function newState() {
 }
 
 describe('translateClineEvent', () => {
+  it('translates ask_question into a client-side canonical question call', () => {
+    const state = createClineTranslatorState({
+      builtinToolNames: ['ask_question'],
+    });
+    const [part] = translateClineEvent(
+      {
+        type: 'tool-started',
+        snapshot,
+        iteration: 1,
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'question-call',
+          toolName: 'ask_question',
+          input: {
+            question: 'Which framework?',
+            options: ['React', 'Vue'],
+          },
+        },
+      },
+      state,
+    );
+
+    expect(part).toEqual({
+      type: 'tool-call',
+      toolCallId: 'question-call',
+      toolName: 'askUserQuestions',
+      input: JSON.stringify({
+        allowPartialAnswers: false,
+        questions: [
+          {
+            id: 'question-1',
+            question: 'Which framework?',
+            options: [
+              { id: 'option-1', label: 'React' },
+              { id: 'option-2', label: 'Vue' },
+            ],
+            allowFreeForm: true,
+          },
+        ],
+      }),
+      providerExecuted: false,
+      providerMetadata: {
+        cline: {
+          nativeRequest: {
+            question: 'Which framework?',
+            options: ['React', 'Vue'],
+          },
+        },
+      },
+      nativeName: 'ask_question',
+    });
+  });
+
   it('opens a text block on the first delta and streams subsequent deltas', () => {
     const state = newState();
     const first = translateClineEvent(

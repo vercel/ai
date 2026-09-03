@@ -1,4 +1,5 @@
 import type {
+  JSONObject,
   LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
   LanguageModelV4Source,
@@ -81,6 +82,8 @@ export interface ParsedToolCall {
   input: unknown;
   providerExecuted?: boolean;
   providerMetadata?: SharedV4ProviderMetadata;
+  title?: string;
+  toolMetadata?: JSONObject;
   dynamic?: boolean;
   invalid?: boolean;
   error?: unknown;
@@ -115,6 +118,16 @@ export type DoStreamStepRawContentPart =
     };
 
 /**
+ * Compact callback replay data. The start event establishes the tool name for
+ * a call, so delta events do not repeat it and available events reuse the
+ * parsed input already present in `toolCalls`.
+ */
+export type ToolInputLifecycleEvent =
+  | ['start', toolCallId: string, toolName: string]
+  | ['delta', toolCallId: string, inputTextDelta: string]
+  | ['available', toolCallId: string];
+
+/**
  * Minimal aggregates needed to reconstruct a `StepResult` outside the step
  * boundary. By returning only these fields (instead of a fully-populated
  * StepResult plus the raw `chunks[]` array), the durable event log doesn't
@@ -139,6 +152,11 @@ export type DoStreamStepResult =
       finish: StreamFinish | undefined;
       raw: DoStreamStepRawResult;
       providerExecutedToolResults: Map<string, ProviderExecutedToolResult>;
+      /**
+       * Optional for compatibility with model-step results persisted before
+       * tool input lifecycle callback replay was added.
+       */
+      toolInputLifecycleEvents?: ToolInputLifecycleEvent[];
       /** Present when the model stream emitted an error part. */
       terminalError?: unknown;
     };
@@ -178,6 +196,7 @@ export async function doStreamStep(
   // Reconstruct tools from serializable definitions with Ajv validation.
   // Tools are serialized before crossing the step boundary because zod schemas
   // contain functions that can't be serialized by the workflow runtime.
+  const toolInputLifecycleEvents: ToolInputLifecycleEvent[] = [];
   const tools = serializedTools
     ? resolveSerializableTools(serializedTools)
     : undefined;
@@ -273,6 +292,7 @@ export async function doStreamStep(
   let warnings: unknown[] | undefined;
   let terminalError: unknown;
   let hasTerminalError = false;
+  const ongoingToolCallToolNames = new Map<string, string>();
 
   // Acquire writer once before the loop to avoid per-chunk lock overhead
   const writer = writable?.getWriter();
@@ -285,6 +305,26 @@ export async function doStreamStep(
 
     for await (const part of modelStream) {
       switch (part.type) {
+        case 'tool-input-start':
+          ongoingToolCallToolNames.set(part.id, part.toolName);
+          if (
+            serializedTools?.[part.toolName]?.hasOnInputStart ||
+            serializedTools?.[part.toolName]?.hasOnInputDelta ||
+            serializedTools?.[part.toolName]?.hasOnInputAvailable
+          ) {
+            toolInputLifecycleEvents.push(['start', part.id, part.toolName]);
+          }
+          break;
+        case 'tool-input-delta': {
+          const toolName = ongoingToolCallToolNames.get(part.id);
+          if (
+            toolName != null &&
+            serializedTools?.[toolName]?.hasOnInputDelta
+          ) {
+            toolInputLifecycleEvents.push(['delta', part.id, part.delta]);
+          }
+          break;
+        }
         case 'text-start':
           upsertTextContentPart({
             content,
@@ -331,6 +371,19 @@ export async function doStreamStep(
           // parseToolCall adds dynamic/invalid/error at runtime
           const toolCallPart = part as typeof part & Partial<ParsedToolCall>;
           const toolCallIndex = toolCalls.length;
+          const lifecycleToolName = ongoingToolCallToolNames.get(
+            toolCallPart.toolCallId,
+          );
+          ongoingToolCallToolNames.delete(toolCallPart.toolCallId);
+          if (
+            lifecycleToolName != null &&
+            serializedTools?.[lifecycleToolName]?.hasOnInputAvailable
+          ) {
+            toolInputLifecycleEvents.push([
+              'available',
+              toolCallPart.toolCallId,
+            ]);
+          }
           toolCalls.push({
             type: 'tool-call',
             toolCallId: toolCallPart.toolCallId,
@@ -338,6 +391,8 @@ export async function doStreamStep(
             input: toolCallPart.input,
             providerExecuted: toolCallPart.providerExecuted,
             providerMetadata: toolCallPart.providerMetadata,
+            title: toolCallPart.title,
+            toolMetadata: toolCallPart.toolMetadata,
             dynamic: toolCallPart.dynamic,
             invalid: toolCallPart.invalid,
             error: toolCallPart.error,
@@ -437,6 +492,7 @@ export async function doStreamStep(
       warnings,
     },
     providerExecutedToolResults,
+    toolInputLifecycleEvents,
     ...(hasTerminalError ? { terminalError } : {}),
   };
 }

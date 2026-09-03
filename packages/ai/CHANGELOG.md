@@ -1,5 +1,35 @@
 # ai
 
+## 7.0.92
+
+### Patch Changes
+
+- a51cc94: fix(ai): preserve provider metadata from empty smooth stream deltas
+- d1904d3: fix(ai): surface fallback errors for empty HTTP response bodies
+- 84e5a79: fix(ai): skip `smoothStream` delays while the document is hidden
+- a8e8ad0: fix(ai): expose call ID and abort reason in streamText onAbort callbacks
+- Updated dependencies [a7e324b]
+  - @ai-sdk/gateway@4.0.74
+
+## 7.0.91
+
+### Patch Changes
+
+- 802af1e: Add configurable recovery for provider errors received after `streamText` response streaming begins. Explicitly configuring `streamRetries` enables isolated retry attempts, including one bounded callback-directed recovery through `StreamTextOnErrorRetryCallback` with `streamRetries: 0`; recovered results and metadata reflect only the successful attempt, while the existing `StreamTextOnErrorCallback` contract and logging-only observer behavior remain compatible.
+- Updated dependencies [5484f27]
+- Updated dependencies [36eb7ee]
+- Updated dependencies [622fa7f]
+  - @ai-sdk/gateway@4.0.73
+
+## 7.0.90
+
+### Patch Changes
+
+- Updated dependencies [4d25a08]
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/gateway@4.0.72
+  - @ai-sdk/provider-utils@5.0.36
+
 ## 7.0.89
 
 ### Patch Changes

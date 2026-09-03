@@ -1,6 +1,8 @@
 import type {
   Context,
   Experimental_SandboxSession as SandboxSession,
+  ToolApprovalResponse,
+  ToolResultPart,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type {
@@ -29,8 +31,6 @@ import type {
   HarnessAgentResumeSessionState,
   HarnessAgentToolSpec,
 } from './harness-agent-types';
-import type { HarnessAgentToolApprovalContinuation } from './harness-agent-tool-approval-continuation';
-import type { HarnessAgentToolResultContinuation } from './harness-agent-tool-result-continuation';
 import { validateLifecycleStateData } from './internal/lifecycle-state-validation';
 import { runPrompt } from './internal/run-prompt';
 import { getRestrictedSandboxSession } from '../utils/get-restricted-sandbox-session';
@@ -306,12 +306,8 @@ export class HarnessAgentSession {
     output: OUTPUT | undefined;
     telemetry: TelemetryOptions | undefined;
     stopConditions: ReadonlyArray<StopCondition<TOOLS, RUNTIME_CONTEXT>>;
-    toolApprovalContinuations?:
-      | readonly HarnessAgentToolApprovalContinuation[]
-      | undefined;
-    toolResultContinuations?:
-      | readonly HarnessAgentToolResultContinuation[]
-      | undefined;
+    toolApprovalContinuations?: readonly ToolApprovalResponse[] | undefined;
+    toolResultContinuations?: readonly ToolResultPart[] | undefined;
   }): HarnessAgentTurnResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
     const session = this.requireReusableSession();
     this.requireContinuableTurn();

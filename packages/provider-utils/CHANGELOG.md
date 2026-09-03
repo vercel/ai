@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 5.0.36
+
+### Patch Changes
+
+- 6bcc0f8: Update Undici to a version patched for CVE-2026-13697.
+
 ## 5.0.35
 
 ### Patch Changes

@@ -29,6 +29,9 @@ function fakeSession(
     toolCallId: string;
     output: unknown;
     isError?: boolean;
+    toolResult?: Parameters<
+      HarnessV1PromptControl['submitToolResult']
+    >[0]['toolResult'];
   }) => void,
 ): HarnessV1Session {
   const emitScript = (emit: (event: HarnessV1StreamPart) => void) => {
@@ -79,6 +82,17 @@ const harness: HarnessV1 = {
   doStart: async () => fakeSession([]),
 };
 
+const questionsHarness: HarnessV1 = {
+  ...harness,
+  builtinTools: {
+    askUserQuestions: tool({
+      inputSchema: z.object({
+        questions: z.array(z.object({ id: z.string(), question: z.string() })),
+      }),
+    }),
+  },
+};
+
 const finishEvents: HarnessV1StreamPart[] = [
   {
     type: 'finish-step',
@@ -115,6 +129,69 @@ const resumableFinishStep: HarnessV1StreamPart = {
   >),
   finishReason: { unified: 'tool-calls', raw: 'tool_use' },
 };
+
+describe('runPrompt client-side built-in tools', () => {
+  test('pauses for askUserQuestions and persists adapter metadata as provider options', async () => {
+    const submitted: Parameters<
+      HarnessV1PromptControl['submitToolResult']
+    >[0][] = [];
+    const providerMetadata = {
+      fake: {
+        nativeRequest: {
+          questions: [{ prompt: 'Which framework?' }],
+        },
+      },
+    };
+    const pendingResults: unknown[] = [];
+    const { result, done } = runPrompt({
+      harness: questionsHarness,
+      session: fakeSession(
+        [
+          {
+            type: 'tool-call',
+            toolCallId: 'question-call',
+            toolName: 'askUserQuestions',
+            input: JSON.stringify({
+              allowPartialAnswers: true,
+              questions: [{ id: 'question-1', question: 'Which framework?' }],
+            }),
+            providerExecuted: false,
+            providerMetadata,
+          },
+        ],
+        input => submitted.push(input),
+      ),
+      prompt: 'go',
+      instructions: undefined,
+      tools: questionsHarness.builtinTools,
+      activeTools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      onPendingToolResult: pendingResult => {
+        pendingResults.push(pendingResult);
+      },
+    });
+
+    await result.consumeStream();
+    await done;
+
+    expect(submitted).toEqual([]);
+    expect(pendingResults).toEqual([
+      {
+        toolCallId: 'question-call',
+        toolName: 'askUserQuestions',
+        input: JSON.stringify({
+          allowPartialAnswers: true,
+          questions: [{ id: 'question-1', question: 'Which framework?' }],
+        }),
+        providerOptions: providerMetadata,
+      },
+    ]);
+  });
+});
 
 describe('runPrompt workDir stripping', () => {
   test('strips the workDir for consumers but executes host tools with the absolute path', async () => {
@@ -1018,8 +1095,13 @@ describe('runPrompt host tool generator results', () => {
       ],
       toolResultContinuations: [
         {
+          type: 'tool-result',
           toolCallId: 'c1',
-          output: { city: 'SF', temperature: 72 },
+          toolName: 'weather',
+          output: {
+            type: 'json',
+            value: { city: 'SF', temperature: 72 },
+          },
         },
       ],
     });
@@ -1033,6 +1115,15 @@ describe('runPrompt host tool generator results', () => {
         toolCallId: 'c1',
         output: { city: 'SF', temperature: 72 },
         isError: undefined,
+        toolResult: {
+          type: 'tool-result',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          output: {
+            type: 'json',
+            value: { city: 'SF', temperature: 72 },
+          },
+        },
       },
     ]);
     expect(
@@ -1519,18 +1610,9 @@ describe('runPrompt host tool generator results', () => {
       ],
       toolApprovalContinuations: [
         {
-          approvalResponse: {
-            type: 'tool-approval-response',
-            approvalId: 'approval-1',
-            approved: true,
-          },
-          toolCall: {
-            type: 'tool-call',
-            toolCallId: 'c1',
-            toolName: 'weather',
-            input: { city: 'SF' },
-            providerExecuted: false,
-          },
+          type: 'tool-approval-response',
+          approvalId: 'approval-1',
+          approved: true,
         },
       ],
       onToolApprovalSettled: approvalId => settled.push(approvalId),
@@ -1652,18 +1734,9 @@ describe('runPrompt host tool generator results', () => {
       ],
       toolApprovalContinuations: [
         {
-          approvalResponse: {
-            type: 'tool-approval-response',
-            approvalId: 'approval-1',
-            approved: true,
-          },
-          toolCall: {
-            type: 'tool-call',
-            toolCallId: 'c1',
-            toolName: 'bash',
-            input: { command: 'printf ok' },
-            providerExecuted: true,
-          },
+          type: 'tool-approval-response',
+          approvalId: 'approval-1',
+          approved: true,
         },
       ],
     });
@@ -1727,18 +1800,9 @@ describe('runPrompt host tool generator results', () => {
       ],
       toolApprovalContinuations: [
         {
-          approvalResponse: {
-            type: 'tool-approval-response',
-            approvalId: 'approval-1',
-            approved: true,
-          },
-          toolCall: {
-            type: 'tool-call',
-            toolCallId: 'c1',
-            toolName: 'weather',
-            input: { city: 'SF' },
-            providerExecuted: false,
-          },
+          type: 'tool-approval-response',
+          approvalId: 'approval-1',
+          approved: true,
         },
       ],
     });
@@ -1817,18 +1881,9 @@ describe('runPrompt host tool generator results', () => {
       ],
       toolApprovalContinuations: [
         {
-          approvalResponse: {
-            type: 'tool-approval-response',
-            approvalId: 'approval-1',
-            approved: true,
-          },
-          toolCall: {
-            type: 'tool-call',
-            toolCallId: 'c1',
-            toolName: 'weather',
-            input: { city: 'SF' },
-            providerExecuted: false,
-          },
+          type: 'tool-approval-response',
+          approvalId: 'approval-1',
+          approved: true,
         },
       ],
       onPendingToolApproval: approval => pending.push(approval),

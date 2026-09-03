@@ -28,6 +28,15 @@ export {
   HARNESS_V1_BUILTIN_TOOLS,
   commonTool,
 } from './harness-v1-builtin-tool';
+export type {
+  HarnessV1QuestionsTool,
+  HarnessV1QuestionsToolInput,
+  HarnessV1QuestionsToolOutput,
+} from './harness-v1-questions-tool';
+export {
+  harnessV1QuestionsToolInputSchema,
+  harnessV1QuestionsToolOutputSchema,
+} from './harness-v1-questions-tool';
 export type { HarnessV1Metadata } from './harness-v1-metadata';
 export type { HarnessV1Prompt } from './harness-v1-prompt';
 export type {

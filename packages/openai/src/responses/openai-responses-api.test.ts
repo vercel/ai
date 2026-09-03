@@ -2,7 +2,7 @@ import { safeValidateTypes, type InferSchema } from '@ai-sdk/provider-utils';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import {
   openaiResponsesChunkSchema,
-  type openaiResponsesResponseSchema,
+  openaiResponsesResponseSchema,
 } from './openai-responses-api';
 
 /**
@@ -271,4 +271,156 @@ describe('openaiResponsesChunkSchema', () => {
       });
     },
   );
+});
+
+describe('OpenAI Responses usage schemas', () => {
+  const usage = {
+    input_tokens: 12,
+    input_tokens_details: {
+      cached_tokens: 2,
+      cache_write_tokens: 1,
+      orchestration_input_tokens: 4,
+      orchestration_input_cached_tokens: 3,
+      future_input_detail: { tokens: 5 },
+    },
+    output_tokens: 8,
+    output_tokens_details: {
+      reasoning_tokens: 3,
+      orchestration_output_tokens: 2,
+      future_output_detail: ['preserved'],
+    },
+    total_tokens: 20,
+    future_usage_field: { value: true },
+  };
+
+  const cases = [
+    {
+      name: 'normal response',
+      normalResponse: true,
+      value: { usage },
+      getUsage: (value: unknown) => (value as { usage: unknown }).usage,
+    },
+    {
+      name: 'completed event',
+      normalResponse: false,
+      value: { type: 'response.completed', response: { usage } },
+      getUsage: (value: unknown) =>
+        (value as { response: { usage: unknown } }).response.usage,
+    },
+    {
+      name: 'incomplete event',
+      normalResponse: false,
+      value: { type: 'response.incomplete', response: { usage } },
+      getUsage: (value: unknown) =>
+        (value as { response: { usage: unknown } }).response.usage,
+    },
+    {
+      name: 'failed event',
+      normalResponse: false,
+      value: {
+        type: 'response.failed',
+        sequence_number: 1,
+        response: { usage },
+      },
+      getUsage: (value: unknown) =>
+        (value as { response: { usage: unknown } }).response.usage,
+    },
+  ];
+
+  function validateUsageCase({
+    normalResponse,
+    value,
+  }: {
+    normalResponse: boolean;
+    value: unknown;
+  }) {
+    return normalResponse
+      ? safeValidateTypes({
+          value,
+          schema: openaiResponsesResponseSchema,
+        })
+      : safeValidateTypes({
+          value,
+          schema: openaiResponsesChunkSchema,
+        });
+  }
+
+  it.each(cases)('preserves complete usage for $name', async testCase => {
+    const result = await validateUsageCase(testCase);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(testCase.getUsage(result.value)).toStrictEqual(usage);
+    }
+  });
+
+  it.each(cases)('rejects invalid total_tokens for $name', async testCase => {
+    const result = await validateUsageCase({
+      normalResponse: testCase.normalResponse,
+      value: {
+        ...testCase.value,
+        ...(testCase.value.type == null
+          ? { usage: { ...usage, total_tokens: '20' } }
+          : {
+              response: {
+                ...testCase.value.response,
+                usage: { ...usage, total_tokens: '20' },
+              },
+            }),
+      },
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it.each([
+    { name: 'input_tokens', value: { ...usage, input_tokens: '12' } },
+    {
+      name: 'input_tokens_details.cached_tokens',
+      value: {
+        ...usage,
+        input_tokens_details: {
+          ...usage.input_tokens_details,
+          cached_tokens: '2',
+        },
+      },
+    },
+    { name: 'output_tokens', value: { ...usage, output_tokens: '8' } },
+    {
+      name: 'output_tokens_details.reasoning_tokens',
+      value: {
+        ...usage,
+        output_tokens_details: {
+          ...usage.output_tokens_details,
+          reasoning_tokens: '3',
+        },
+      },
+    },
+  ])('rejects invalid $name values', async ({ value }) => {
+    const result = await safeValidateTypes({
+      value: { usage: value },
+      schema: openaiResponsesResponseSchema,
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts failed events with null usage', async () => {
+    const result = await safeValidateTypes({
+      value: {
+        type: 'response.failed',
+        sequence_number: 1,
+        response: { usage: null },
+      },
+      schema: openaiResponsesChunkSchema,
+    });
+
+    expect(result).toMatchObject({
+      success: true,
+      value: {
+        type: 'response.failed',
+        response: { usage: null },
+      },
+    });
+  });
 });

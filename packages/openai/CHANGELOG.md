@@ -1,5 +1,26 @@
 # @ai-sdk/openai
 
+## 4.0.58
+
+### Patch Changes
+
+- b54e551: fix(openai): support documented Responses image generation options
+- 17d3436: feat(openai): add support for ultrafast service tier
+
+## 4.0.57
+
+### Patch Changes
+
+- 048ce06: feat(batch): surface the uploaded input file on the batch start result (`providerMetadata.<provider>.inputFileId` / `inputFileExpiresAt`) and accept an `inputFileExpiresAfter` provider option on the OpenAI and xAI batch input file upload
+- 7243530: fix(openai): preserve complete Responses API raw usage objects
+
+## 4.0.56
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
 ## 4.0.55
 
 ### Patch Changes
