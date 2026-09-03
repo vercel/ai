@@ -632,10 +632,15 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
     // map response content to content array
     for (const part of response.output.message.content) {
       // text
-      if (part.text != null) {
+      const textParts =
+        part.text != null
+          ? [part.text]
+          : (part.citationsContent?.content.map(content => content.text) ?? []);
+
+      for (const text of textParts) {
         content.push({
           type: 'text',
-          text: jsonObjectTextExtractor?.process(part.text) ?? part.text,
+          text: jsonObjectTextExtractor?.process(text) ?? text,
         });
       }
 
@@ -1381,6 +1386,15 @@ const AmazonBedrockResponseSchema = z.object({
       content: z.array(
         z.object({
           text: z.string().nullish(),
+          citationsContent: z
+            .object({
+              content: z.array(
+                z.object({
+                  text: z.string(),
+                }),
+              ),
+            })
+            .nullish(),
           toolUse: AmazonBedrockToolUseSchema.nullish(),
           reasoningContent: z
             .union([
