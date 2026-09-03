@@ -134,11 +134,12 @@ vi.mock('node:fs/promises', async importOriginal => {
     readFile: vi.fn(async (input: unknown, ...rest: unknown[]) => {
       const path = typeof input === 'string' ? input : String(input);
       if (path.endsWith('/bridge/index.mjs')) return '// mock bridge\n';
-      if (path.endsWith('/bridge/package.json')) return '{"name":"mock"}';
+      if (path.endsWith('/bridge/package.json'))
+        return '{"name":"mock","dependencies":{"@anthropic-ai/claude-agent-sdk":"0.3.213"}}';
       if (path.endsWith('/bridge/pnpm-lock.yaml'))
         return 'lockfileVersion: "9.0"\n';
       if (path.endsWith('/bridge/pnpm-workspace.yaml'))
-        return "allowBuilds:\n  '@anthropic-ai/claude-code@2.1.213': true\n";
+        return '# workspace boundary\n';
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (actual.readFile as any)(input, ...rest);
     }),
@@ -170,11 +171,20 @@ function fakeNetworkSandboxSessionForStartupFailure({
 }): HarnessV1NetworkSandboxSession {
   const port = 4319;
   const session = {
-    run: async ({ command }: { command: string }) => ({
-      exitCode: 0,
-      stdout: command === 'printf "%s" "$HOME"' ? '/home/vercel-sandbox' : '',
-      stderr: '',
-    }),
+    run: async ({ command }: { command: string }) => {
+      if (command === 'command -v claude && claude --version') {
+        return {
+          exitCode: 0,
+          stdout: '/usr/local/bin/claude\n2.1.245 (Claude Code)\n',
+          stderr: '',
+        };
+      }
+      return {
+        exitCode: 0,
+        stdout: command === 'printf "%s" "$HOME"' ? '/home/vercel-sandbox' : '',
+        stderr: '',
+      };
+    },
     readTextFile: async () => null,
     writeTextFile: async () => {},
     spawn: async () => ({
@@ -220,6 +230,13 @@ function fakeNetworkSandboxSessionForStartupSuccess({
       runs.push(command);
       if (command === 'printf "%s" "$HOME"') {
         return { exitCode: 0, stdout: '/home/vercel-sandbox', stderr: '' };
+      }
+      if (command === 'command -v claude && claude --version') {
+        return {
+          exitCode: 0,
+          stdout: '/usr/local/bin/claude\n2.1.213 (Claude Code)\n',
+          stderr: '',
+        };
       }
       return { exitCode: 0, stdout: '', stderr: '' };
     },
@@ -1351,21 +1368,34 @@ describe('createClaudeCode adapter', () => {
       }
     });
 
-    it('allows the pinned Claude Code build and verifies the installed CLI', async () => {
+    it('installs the bridge dependencies only, without bundled CLI binaries', async () => {
       const harness = createClaudeCode();
       const recipe = await harness.getBootstrap!();
       const commands = recipe.commands.map(c => c.command);
-      const workspace = recipe.files.find(file =>
-        file.path.endsWith('/pnpm-workspace.yaml'),
+      const pkg = recipe.files.find(file =>
+        file.path.endsWith('/package.json'),
       );
-      expect(commands).toHaveLength(2);
-      expect(commands[0]).toBe(
-        'pnpm install --frozen-lockfile --store-dir .pnpm-store',
+
+      expect(commands).toHaveLength(1);
+      expect(commands[0]).toContain(
+        'pnpm install --frozen-lockfile --store-dir .pnpm-store --no-optional',
       );
-      expect(commands[1]).toBe('./node_modules/.bin/claude --version');
-      expect(workspace?.content).toContain(
-        "'@anthropic-ai/claude-code@2.1.213': true",
-      );
+      // The CLI is the environment's own; the bridge ships no copy at all.
+      expect(pkg?.content).not.toContain('"@anthropic-ai/claude-code"');
+      expect(pkg?.content).toContain('"@anthropic-ai/claude-agent-sdk"');
+      // The pnpm store is a build artifact, discarded without masking a
+      // failed install's exit status.
+      expect(commands[0]).toContain('install_status=$?');
+      expect(commands[0]).toContain('rm -rf .pnpm-store');
+      expect(commands[0]).toContain('exit $install_status');
+    });
+
+    it('declares how to install the CLI into an environment that lacks it', () => {
+      const harness = createClaudeCode();
+      expect(harness.installation).toEqual({
+        executable: 'claude',
+        command: 'npm install -g @anthropic-ai/claude-code@2.1.213',
+      });
     });
 
     it('caches the recipe across calls', async () => {

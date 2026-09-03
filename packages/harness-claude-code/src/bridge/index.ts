@@ -378,6 +378,12 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     options: {
       ...(start.model ? { model: start.model } : {}),
       ...(start.maxTurns !== undefined ? { maxTurns: start.maxTurns } : {}),
+      // The environment's own `claude`, resolved by the adapter. The SDK's
+      // bundled binaries are never installed (`--no-optional`), so without
+      // this the SDK has nothing to run.
+      ...(start.claudeExecutablePath
+        ? { pathToClaudeCodeExecutable: start.claudeExecutablePath }
+        : {}),
       ...(start.env !== undefined ? { env: { ...procEnv, ...start.env } } : {}),
       ...(skillsOption ? { skills: skillsOption } : {}),
       ...(nativeTools !== undefined ? { tools: nativeTools } : {}),

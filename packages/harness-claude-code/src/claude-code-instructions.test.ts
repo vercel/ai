@@ -66,11 +66,20 @@ function emptyStream(): ReadableStream<Uint8Array> {
 function fakeNetworkSandboxSession(): HarnessV1NetworkSandboxSession {
   const port = 4319;
   const session = {
-    run: async ({ command }: { command: string }) => ({
-      exitCode: 0,
-      stdout: command === 'printf "%s" "$HOME"' ? '/home/vercel-sandbox' : '',
-      stderr: '',
-    }),
+    run: async ({ command }: { command: string }) => {
+      if (command === 'command -v claude && claude --version') {
+        return {
+          exitCode: 0,
+          stdout: '/usr/local/bin/claude\n2.1.245 (Claude Code)\n',
+          stderr: '',
+        };
+      }
+      return {
+        exitCode: 0,
+        stdout: command === 'printf "%s" "$HOME"' ? '/home/vercel-sandbox' : '',
+        stderr: '',
+      };
+    },
     readTextFile: async () => null,
     writeTextFile: async () => {},
     spawn: async () => ({
