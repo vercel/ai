@@ -599,8 +599,11 @@ const agent = new WorkflowAgent({
     console.log(`Calling tool: ${toolCall.toolName}`);
   },
 
-  onToolExecutionEnd({ toolCall, toolOutput }) {
-    console.log(`Tool finished: ${toolCall.toolName}`);
+  onToolExecutionEnd({ toolCall, success, durationMs }) {
+    console.log(`Tool finished: ${toolCall.toolName}`, {
+      success,
+      durationMs,
+    });
   },
 
   onStepEnd({ usage, finishReason }) {
@@ -612,6 +615,12 @@ const agent = new WorkflowAgent({
   },
 });
 ```
+
+For concrete tool sets, `WorkflowAgentToolExecutionStartEvent` and
+`WorkflowAgentToolExecutionEndEvent` preserve the relationship between each
+tool name and its input, context, and output types. TypeScript narrows the
+nested `toolCall` directly, but use `Extract` or a user-defined type guard when
+you need to narrow the correlated `toolContext` or `output` fields by tool name.
 
 Tool input callbacks (`onInputStart`, `onInputDelta`, and
 `onInputAvailable`) are also preserved by `WorkflowAgent`. The model call runs
