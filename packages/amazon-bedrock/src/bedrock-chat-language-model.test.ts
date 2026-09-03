@@ -3745,6 +3745,66 @@ describe('doGenerate', () => {
     });
   });
 
+  describe('citations', () => {
+    it('should include generated text from citation content blocks', async () => {
+      prepareJsonFixtureResponse('bedrock-citations-content');
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(
+        result.content
+          .filter(part => part.type === 'text')
+          .map(part => part.text)
+          .join(''),
+      ).toBe(
+        'Based on the attached PDF, I cannot provide a definition of what the AI SDK is in one sentence because the document does not actually define or explain what the AI SDK is. ' +
+          'The document only mentions that "in the next section, you will learn about the difference between models providers and models, and which ones are available in the AI SDK,"' +
+          ' but it does not provide any explanation of what the AI SDK itself is.',
+      );
+    });
+
+    it('should prefer canonical text when a block also has citation content', async () => {
+      server.urls[generateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  text: 'canonical text',
+                  citationsContent: {
+                    content: [{ text: 'citation fallback' }],
+                    citations: [],
+                  },
+                },
+              ],
+            },
+          },
+          stopReason: 'end_turn',
+          usage: {
+            inputTokens: 1,
+            outputTokens: 1,
+            totalTokens: 2,
+          },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(
+        result.content
+          .filter(part => part.type === 'text')
+          .map(part => part.text)
+          .join(''),
+      ).toBe('canonical text');
+    });
+  });
+
   describe('reasoning', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('bedrock-reasoning');
