@@ -1,5 +1,14 @@
 # @ai-sdk/gateway
 
+## 2.0.146
+
+### Patch Changes
+
+- cfa33a0: feat(google): add gemini-3.8-flash model
+- 8ee6f7d: Backport: chore(provider/gateway): update gateway model settings files
+- 2287da5: Backport: chore(provider/gateway): update gateway model settings files
+- 526f371: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 2.0.145
 
 ### Patch Changes

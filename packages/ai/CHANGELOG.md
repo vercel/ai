@@ -1,5 +1,16 @@
 # ai
 
+## 5.0.252
+
+### Patch Changes
+
+- 2c12cd3: fix(ai): skip `smoothStream` delays while the document is hidden
+- Updated dependencies [cfa33a0]
+- Updated dependencies [8ee6f7d]
+- Updated dependencies [2287da5]
+- Updated dependencies [526f371]
+  - @ai-sdk/gateway@2.0.146
+
 ## 5.0.251
 
 ### Patch Changes
