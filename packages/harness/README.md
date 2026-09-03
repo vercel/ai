@@ -104,7 +104,9 @@ Use `session.detach()` to park a bridge-backed session for later attach, `sessio
 Set `model` on `HarnessAgent` to select the model used when the harness session
 starts. Model identifiers are harness-specific, so `model` accepts any string.
 
-`sandbox` is an optional `HarnessV1SandboxProvider`. When omitted, pass a `HarnessV1NetworkSandboxSession` to every `agent.createSession({ sandboxSession })` call. Use `sandboxConfig` for agent specific sandbox configuration that works independently from the sandbox provider that is used:
+`sandbox` is an optional `HarnessV1SandboxProvider` — the agent calls `provider.createSession()` when a session starts. Alternatively, pass a `HarnessV1NetworkSandboxSession` to every `agent.createSession({ sandboxSession })` call, or pass `workspace: localWorkspace({ path })` to work on a local project directory instead: the harness then runs on the local machine as the current user, reusing the CLI configuration and credentials already there, with all Harness SDK state kept in `~/.ai-sdk/harness/projects/…` rather than inside the project. A workspace provides **no isolation** — use a sandbox provider for untrusted input or output. When neither `sandbox`, `workspace`, nor a caller-owned `sandboxSession` is given, an implicit workspace at `process.cwd()` is used and a warning is emitted once per process (suppress via the `AI_SDK_LOG_WARNINGS` global).
+
+Use `sandboxConfig` for agent specific sandbox configuration that works independently from the sandbox provider that is used:
 
 - Use `sandboxConfig.onSession` to prepare the acquired sandbox before the harness adapter starts. The hook runs for fresh and resumed sessions, so keep it idempotent.
 - Use `sandboxConfig.onBootstrap` for expensive sandbox setup that should be baked into a reusable snapshot, such as installing tools or cloning a large repository. Provide `sandboxConfig.bootstrapHash` with it and change that value whenever the bootstrap output should invalidate the cached snapshot.

@@ -5,6 +5,7 @@ import {
   type HarnessV1JSONSchema,
   type HarnessV1NetworkSandboxSession,
   type HarnessV1ResponseFormat,
+  type HarnessV1SandboxProvider,
 } from '../v1';
 import {
   asArray,
@@ -220,6 +221,13 @@ export class HarnessAgent<
   ) {
     const sandboxConfig = resolveSandboxConfig(settings);
     validateSandboxBootstrapSettings(sandboxConfig);
+    if (settings.sandbox != null && settings.workspace != null) {
+      throw new Error(
+        'HarnessAgent: `sandbox` and `workspace` are mutually exclusive. ' +
+          'Pass a sandbox provider for an isolated environment, or a local ' +
+          'workspace to run on this machine — not both.',
+      );
+    }
     this.settings = settings;
     this.stopConditions =
       settings.stopWhen == null ? [] : asArray(settings.stopWhen);
@@ -259,6 +267,31 @@ export class HarnessAgent<
   /** Identifier of the harness backing this agent. */
   get harnessId(): string {
     return this.settings.harness.harnessId;
+  }
+
+  /**
+   * Provider used when the consumer supplied neither `sandbox` nor
+   * `workspace`: an implicit local workspace at `process.cwd()`, with a
+   * once-per-process warning since nothing was chosen explicitly.
+   *
+   * Imported lazily and cached so that requiring `HarnessAgent` does not pull
+   * `node:child_process` and `node:net` into the module graph of consumers
+   * who pass their own provider.
+   */
+  private implicitWorkspaceProvider: HarnessV1SandboxProvider | undefined;
+
+  private async resolveImplicitLocalWorkspace(): Promise<HarnessV1SandboxProvider> {
+    const existing = this.implicitWorkspaceProvider;
+    if (existing != null) return existing;
+    const [{ localWorkspace }, { warnAboutImplicitLocalWorkspace }] =
+      await Promise.all([
+        import('../workspace/local-workspace'),
+        import('../workspace/warn-implicit-local-workspace'),
+      ]);
+    warnAboutImplicitLocalWorkspace();
+    const provider = localWorkspace().provider;
+    this.implicitWorkspaceProvider = provider;
+    return provider;
   }
 
   /**
@@ -302,8 +335,20 @@ export class HarnessAgent<
     const providedSandboxSession = options?.sandboxSession;
     const abortSignal = options?.abortSignal;
     const harness = this.settings.harness;
-    const sandboxProvider = this.settings.sandbox;
     const ownsSandboxLifecycle = providedSandboxSession == null;
+    const sandboxProvider =
+      this.settings.sandbox ??
+      this.settings.workspace?.provider ??
+      (providedSandboxSession == null
+        ? await this.resolveImplicitLocalWorkspace()
+        : undefined);
+    // In workspace mode the project directory itself is the session's working
+    // directory: the whole point of a workspace is to work on the user's own
+    // files, and a per-session subdirectory would run the harness in an empty
+    // folder beside them. An explicit `sandboxConfig.workDir` still wins, and
+    // a caller-owned sandbox session keeps the per-session subdirectory.
+    const workspaceIsSessionWorkDir =
+      providedSandboxSession == null && this.settings.sandbox == null;
 
     if (resumeFrom != null && continueFrom != null) {
       throw new Error(
@@ -408,6 +453,7 @@ export class HarnessAgent<
           harnessId: harness.harnessId,
           sessionId,
           workDir: this.sandboxConfig.workDir,
+          workspaceIsSessionWorkDir,
         });
 
         // Ensure the harness bootstrap recipe on resumed sessions too. The
@@ -460,6 +506,7 @@ export class HarnessAgent<
           harnessId: harness.harnessId,
           sessionId,
           workDir: sandboxBootstrapPlan.workDir,
+          workspaceIsSessionWorkDir,
         });
 
         // In case the sandbox session was created with a custom sandbox, or in
