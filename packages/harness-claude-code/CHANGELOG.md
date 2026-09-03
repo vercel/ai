@@ -1,5 +1,14 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.105
+
+### Patch Changes
+
+- 951c54d: feat(harness): support `askUserQuestions` tool including support for normalization across harness adapters
+- a554cc8: fix (harness-claude-code): treat a `result` message flagged `is_error` as a terminal error
+- Updated dependencies [951c54d]
+  - @ai-sdk/harness@1.0.101
+
 ## 1.0.104
 
 ### Patch Changes
