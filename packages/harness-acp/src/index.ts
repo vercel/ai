@@ -20,6 +20,7 @@ export type {
   ACPToolKind,
 } from './acp-tool-call';
 export type {
+  ACPAskUserQuestionsSettings,
   ACPCredentialBrokering,
   ACPAuthentication,
   ACPInstallCommandSource,

@@ -55,6 +55,7 @@ describe('createGrokBuild', () => {
           "stdio",
         ],
         "builtinToolNames": [
+          "askUserQuestions",
           "bash",
           "edit",
           "grep",
@@ -75,7 +76,6 @@ describe('createGrokBuild', () => {
           "workflow",
           "enter_plan_mode",
           "exit_plan_mode",
-          "ask_user_question",
           "image_gen",
           "image_edit",
           "image_to_video",
@@ -157,6 +157,7 @@ describe('createGrokBuild', () => {
           XAI_API_KEY: 'sandbox-xai-secret',
           GROK_XAI_API_BASE_URL: 'https://api.x.ai/v1',
         },
+        headers: { 'x-tenant': 'acme' },
       }),
     ).toEqual([
       {
@@ -171,7 +172,10 @@ describe('createGrokBuild', () => {
           ],
         },
         transform: {
-          headers: { Authorization: 'Bearer xai-secret' },
+          headers: {
+            'x-tenant': 'acme',
+            Authorization: 'Bearer xai-secret',
+          },
         },
       },
     ]);

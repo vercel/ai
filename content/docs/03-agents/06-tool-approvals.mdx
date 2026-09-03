@@ -284,14 +284,17 @@ If your tools perform sensitive operations (modifying data, spending money, call
 
 ### Signing approvals with `experimental_toolApprovalSecret`
 
-When you provide a secret, the server HMAC-signs each approval request at issuance and verifies the signature when the approval is replayed. A forged or tampered approval is rejected before the tool executes.
+When you provide a secret, the server HMAC-signs each approval request at issuance and verifies the signature when the approval is replayed. A forged or tampered approval is rejected before the tool executes. Configure the secret on `ToolLoopAgent` (or pass it directly to `generateText` or `streamText`).
 
-```ts highlight="5"
-const result = await streamText({
+```ts highlight="6"
+const agent = new ToolLoopAgent({
   model: __MODEL__,
   tools: { deleteFile, runQuery },
   toolApproval: { deleteFile: 'user-approval', runQuery: 'user-approval' },
   experimental_toolApprovalSecret: process.env.TOOL_APPROVAL_SECRET,
+});
+
+const result = await agent.generate({
   messages,
 });
 ```
@@ -308,7 +311,7 @@ The signature binds the approval to the exact tool name, tool call ID, and input
    ```
    TOOL_APPROVAL_SECRET=your-generated-secret-here
    ```
-3. Pass it to `generateText` or `streamText` via `experimental_toolApprovalSecret`.
+3. Pass it to `ToolLoopAgent`, `generateText`, or `streamText` via `experimental_toolApprovalSecret`.
 
 Every serverless instance that might handle a request needs the same secret, since one instance signs the approval and a different instance may verify it on the next turn.
 

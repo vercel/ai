@@ -44,6 +44,9 @@ const state = vi.hoisted(() => ({
   turnAbortController: undefined as AbortController | undefined,
   /** Per-test error sink; defaults to a no-op. */
   emitError: undefined as ((input: unknown) => void) | undefined,
+  requestToolResult: undefined as
+    | ((input: Record<string, unknown>) => Promise<Record<string, unknown>>)
+    | undefined,
 }));
 
 vi.mock('@anthropic-ai/claude-agent-sdk', () => ({
@@ -158,7 +161,8 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
         emit: (event: Record<string, unknown>) => state.emitted.push(event),
         emitWarning: () => {},
         emitError: (input: unknown) => state.emitError?.(input),
-        requestToolResult: async () => ({ output: {} }),
+        requestToolResult: async (input: Record<string, unknown>) =>
+          state.requestToolResult?.(input) ?? { output: {} },
         requestToolApproval: async () => ({ approved: true }),
       });
     }
@@ -179,6 +183,7 @@ describe('Claude Code bridge configuration', () => {
     state.createQuery = undefined;
     state.turnAbortController = undefined;
     state.emitError = undefined;
+    state.requestToolResult = undefined;
     state.onStop = undefined;
     state.firstTurn = true;
     state.additionalTurns = [];
@@ -390,6 +395,105 @@ describe('Claude Code bridge configuration', () => {
       input: '{"libraryId":"/vercel/next.js"}',
       providerExecuted: true,
       dynamic: true,
+    });
+  });
+
+  test('routes questions through a PreToolUse hook in allow-all mode', async () => {
+    const nativeInput = {
+      questions: [
+        {
+          question: 'Which framework?',
+          header: 'Framework',
+          options: [
+            { label: 'React', description: 'React' },
+            { label: 'Vue', description: 'Vue' },
+          ],
+          multiSelect: false,
+        },
+      ],
+    };
+    state.requestToolResult = async () => ({
+      output: {
+        action: 'answered',
+        answers: {
+          'question-1': { optionIds: ['option-2'] },
+        },
+      },
+    });
+
+    await import('./index');
+
+    const hooks = state.queryArgs[0]?.options.hooks as {
+      PreToolUse: Array<{
+        matcher: string;
+        hooks: Array<
+          (
+            input: Record<string, unknown>,
+            toolUseID: string,
+            options: { signal: AbortSignal },
+          ) => Promise<unknown>
+        >;
+      }>;
+    };
+    const questionHook = hooks.PreToolUse[0];
+    expect(state.queryArgs[0]?.options).toHaveProperty('canUseTool');
+    const result = await questionHook.hooks[0](
+      {
+        hook_event_name: 'PreToolUse',
+        tool_name: 'AskUserQuestion',
+        tool_input: nativeInput,
+        tool_use_id: 'question-tool',
+      },
+      'question-tool',
+      { signal: new AbortController().signal },
+    );
+
+    expect(questionHook.matcher).toBe('AskUserQuestion');
+    expect(state.emitted.filter(event => event.type === 'tool-call'))
+      .toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{"allowPartialAnswers":true,"questions":[{"id":"question-1","question":"Which framework?","header":"Framework","options":[{"id":"option-1","label":"React","description":"React"},{"id":"option-2","label":"Vue","description":"Vue"}],"allowMultiple":false,"allowFreeForm":true}]}",
+          "nativeName": "AskUserQuestion",
+          "providerExecuted": false,
+          "providerMetadata": {
+            "claude-code": {
+              "nativeRequest": {
+                "questions": [
+                  {
+                    "header": "Framework",
+                    "multiSelect": false,
+                    "options": [
+                      {
+                        "description": "React",
+                        "label": "React",
+                      },
+                      {
+                        "description": "Vue",
+                        "label": "Vue",
+                      },
+                    ],
+                    "question": "Which framework?",
+                  },
+                ],
+              },
+            },
+          },
+          "toolCallId": "question-tool",
+          "toolName": "askUserQuestions",
+          "type": "tool-call",
+        },
+      ]
+    `);
+    expect(result).toEqual({
+      hookSpecificOutput: {
+        hookEventName: 'PreToolUse',
+        permissionDecision: 'allow',
+        updatedInput: {
+          ...nativeInput,
+          answers: { 'Which framework?': 'Vue' },
+        },
+      },
     });
   });
 
@@ -733,5 +837,73 @@ describe('Claude Code bridge configuration', () => {
     // reported as a turn failure: the stop is the host's own.
     expect(emitError).not.toHaveBeenCalled();
     expect(disposed).toHaveBeenCalled();
+  });
+  test('reports a result flagged `is_error` as a terminal error, even though its subtype is `success`', async () => {
+    const emitError = vi.fn();
+    state.emitError = emitError;
+    // What the CLI actually sends when the provider rejects the request: the
+    // `success` subtype, `is_error: true`, and the message in `result`.
+    state.messages = [
+      {
+        type: 'result',
+        subtype: 'success',
+        is_error: true,
+        api_error_status: 400,
+        result: 'API Error: 400 the request was rejected',
+      },
+    ];
+
+    await import('./index');
+
+    expect(emitError).toHaveBeenCalledWith({
+      error: 'API Error: 400 the request was rejected',
+      message: 'claude-code terminal error',
+    });
+    // The turn must not also settle as a normal finish: that is what made a
+    // hard rejection look like an agent that simply returned nothing.
+    expect(state.emitted).not.toContainEqual(
+      expect.objectContaining({ type: 'finish' }),
+    );
+  });
+
+  test('names the HTTP status when an errored result carries no message', async () => {
+    const emitError = vi.fn();
+    state.emitError = emitError;
+    state.messages = [
+      {
+        type: 'result',
+        subtype: 'success',
+        is_error: true,
+        api_error_status: 529,
+        result: '   ',
+      },
+    ];
+
+    await import('./index');
+
+    expect(emitError).toHaveBeenCalledWith({
+      error: 'Claude Code reported an API error (HTTP 529)',
+      message: 'claude-code terminal error',
+    });
+  });
+
+  test('still finishes normally when a `success` result is not flagged as an error', async () => {
+    const emitError = vi.fn();
+    state.emitError = emitError;
+    state.messages = [
+      {
+        type: 'result',
+        subtype: 'success',
+        is_error: false,
+        result: 'done',
+      },
+    ];
+
+    await import('./index');
+
+    expect(emitError).not.toHaveBeenCalled();
+    expect(state.emitted).toContainEqual(
+      expect.objectContaining({ type: 'finish' }),
+    );
   });
 });

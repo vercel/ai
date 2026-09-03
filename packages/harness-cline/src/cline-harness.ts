@@ -1,5 +1,6 @@
 import {
   commonTool,
+  HARNESS_V1_BUILTIN_TOOLS,
   type HarnessV1,
   type HarnessV1BuiltinTool,
 } from '@ai-sdk/harness';
@@ -70,6 +71,11 @@ export type ClineHarnessSettings = {
  * `cline-tools.ts` — keep the two in sync.
  */
 const CLINE_BUILTIN_TOOLS = {
+  askUserQuestions: {
+    ...HARNESS_V1_BUILTIN_TOOLS.askUserQuestions,
+    nativeName: 'ask_question',
+    toolUseKind: 'readonly',
+  },
   read: commonTool('read', {
     nativeName: 'read',
     toolUseKind: 'readonly',
@@ -187,6 +193,7 @@ export function createCline(
           ...(settings.apiKey ? { apiKey: settings.apiKey } : {}),
           ...(settings.baseUrl ? { baseUrl: settings.baseUrl } : {}),
           ...(settings.headers ? { headers: settings.headers } : {}),
+          ...(startOpts.headers ? { agentHeaders: startOpts.headers } : {}),
           ...(settings.reasoningEffort !== undefined
             ? { reasoningEffort: settings.reasoningEffort }
             : {}),
