@@ -1,5 +1,11 @@
 import type { LanguageModelV4StreamPart } from '@ai-sdk/provider';
-import { NoOutputGeneratedError, Output, ToolLoopAgent, tool } from 'ai';
+import {
+  NoOutputGeneratedError,
+  Output,
+  ToolLoopAgent,
+  tool,
+  type ToolSet,
+} from 'ai';
 import { convertArrayToReadableStream, MockLanguageModelV4 } from 'ai/test';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
@@ -218,6 +224,128 @@ describe('WorkflowAgent.generate', () => {
       responseMessages: value.responseMessages,
     });
     expect(summarizeResult(result)).toEqual(summarizeResult(toolLoopResult));
+  });
+
+  it('reuses custom tool model output for durable continuation and response messages', async () => {
+    let streamCallCount = 0;
+    let generateCallCount = 0;
+    let workflowContinuationOutput: unknown;
+    const createTools = () => {
+      let called = false;
+      const toModelOutput = vi.fn(
+        async ({ output }: { output: { answer: string } }) => {
+          if (called) {
+            throw new Error('toModelOutput called more than once');
+          }
+          called = true;
+          return {
+            type: 'text' as const,
+            value: `model sees ${output.answer}`,
+          };
+        },
+      );
+      return {
+        tools: {
+          lookup: {
+            inputSchema: z.object({ query: z.string() }),
+            execute: async ({ query }: { query: string }) => ({
+              answer: `${query}-result`,
+            }),
+            toModelOutput,
+          },
+        } satisfies ToolSet,
+        toModelOutput,
+      };
+    };
+    const workflowTools = createTools();
+    const toolLoopTools = createTools();
+    const model = new MockLanguageModelV4({
+      doGenerate: async () => {
+        if (generateCallCount++ === 0) {
+          return {
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'tool-call-1',
+                toolName: 'lookup',
+                input: '{"query":"weather"}',
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+            usage,
+            warnings: [],
+          };
+        }
+
+        return {
+          content: [{ type: 'text', text: 'sunny' }],
+          finishReason: { unified: 'stop', raw: 'stop' },
+          usage,
+          warnings: [],
+        };
+      },
+      doStream: async ({ prompt }) => {
+        if (streamCallCount++ === 0) {
+          return stream([
+            {
+              type: 'tool-call',
+              toolCallId: 'tool-call-1',
+              toolName: 'lookup',
+              input: '{"query":"weather"}',
+            },
+            {
+              type: 'finish',
+              finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+              usage,
+            },
+          ]);
+        }
+
+        workflowContinuationOutput = (
+          prompt.at(-1) as {
+            role: 'tool';
+            content: Array<{ output: unknown }>;
+          }
+        ).content[0]?.output;
+
+        return stream([
+          { type: 'text-start', id: 'text-1' },
+          { type: 'text-delta', id: 'text-1', delta: 'sunny' },
+          { type: 'text-end', id: 'text-1' },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage,
+          },
+        ]);
+      },
+    });
+    const workflowAgent = new WorkflowAgent({
+      model,
+      tools: workflowTools.tools,
+    });
+    const toolLoopAgent = new ToolLoopAgent({
+      model,
+      tools: toolLoopTools.tools,
+    });
+
+    const workflowResult = await workflowAgent.generate({
+      prompt: 'Check the weather.',
+    });
+    const toolLoopResult = await toolLoopAgent.generate({
+      prompt: 'Check the weather.',
+    });
+
+    expect(workflowTools.toModelOutput).toHaveBeenCalledTimes(1);
+    expect(toolLoopTools.toModelOutput).toHaveBeenCalledTimes(1);
+    expect(workflowContinuationOutput).toEqual({
+      type: 'text',
+      value: 'model sees weather-result',
+    });
+    expect(workflowResult.responseMessages).toEqual(
+      toolLoopResult.responseMessages,
+    );
   });
 
   it('includes pre-step approval results in responseMessages like ToolLoopAgent', async () => {

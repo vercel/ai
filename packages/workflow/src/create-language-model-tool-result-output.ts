@@ -1,5 +1,5 @@
 import type { LanguageModelV4ToolResultOutput } from '@ai-sdk/provider';
-import type { Tool } from '@ai-sdk/provider-utils';
+import type { Tool, ToolResultOutput } from '@ai-sdk/provider-utils';
 import type { ModelMessage } from 'ai';
 import {
   createDefaultDownloadFunction,
@@ -10,9 +10,13 @@ import {
 } from 'ai/internal';
 
 /**
- * Converts a single tool result into a provider-level
- * `LanguageModelV4ToolResultOutput`, honoring the tool's optional
- * `toModelOutput` hook.
+ * Creates both the AI-level output used in response messages and the
+ * provider-level output used for durable model continuation, honoring the
+ * tool's optional `toModelOutput` hook.
+ *
+ * Keeping both values lets callers reuse the result of `tool.toModelOutput`
+ * instead of invoking a user-defined transformation again when constructing
+ * response messages.
  *
  * Unlike `generateText`/`streamText`, `WorkflowAgent` assembles the
  * `LanguageModelV4` prompt incrementally — appending one tool result at a time
@@ -27,7 +31,7 @@ import {
  *   3. `mapToolResultOutput` — maps the AI-level `ToolResultOutput` to the
  *      provider-level output and converts legacy file types.
  */
-export async function createLanguageModelToolResultOutput({
+export async function createLanguageModelToolResultOutputs({
   toolCallId,
   toolName,
   input,
@@ -47,7 +51,10 @@ export async function createLanguageModelToolResultOutput({
   supportedUrls: Record<string, RegExp[]>;
   download?: DownloadFunction;
   provider?: string;
-}): Promise<LanguageModelV4ToolResultOutput> {
+}): Promise<{
+  modelOutput: ToolResultOutput;
+  languageModelOutput: LanguageModelV4ToolResultOutput;
+}> {
   const modelOutput = await createToolModelOutput({
     toolCallId,
     input,
@@ -77,9 +84,12 @@ export async function createLanguageModelToolResultOutput({
         )
       : {};
 
-  return mapToolResultOutput({
-    output: modelOutput,
-    provider,
-    downloadedAssets,
-  });
+  return {
+    modelOutput,
+    languageModelOutput: mapToolResultOutput({
+      output: modelOutput,
+      provider,
+      downloadedAssets,
+    }),
+  };
 }

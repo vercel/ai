@@ -15,6 +15,7 @@ import {
   type InferToolInput,
   type InferToolOutput,
   type InferToolSetContext,
+  type ToolResultOutput,
 } from '@ai-sdk/provider-utils';
 import {
   Output,
@@ -53,7 +54,7 @@ import {
   validateApprovedToolApprovals,
   verifyToolApprovalSignature,
 } from 'ai/internal';
-import { createLanguageModelToolResultOutput } from './create-language-model-tool-result-output.js';
+import { createLanguageModelToolResultOutputs } from './create-language-model-tool-result-output.js';
 import type {
   ModelCallStreamPart,
   ModelStopCondition,
@@ -1264,6 +1265,7 @@ export interface ToolResult {
 
 type WorkflowToolExecutionResult = {
   modelResult: LanguageModelV4ToolResultPart;
+  responseOutput: ToolResultOutput;
   rawOutput: unknown;
   isError: boolean;
 };
@@ -1324,6 +1326,49 @@ function addToolResultsToStep(
       any
     >['dynamicToolResults']),
   );
+}
+
+async function setStepResponseMessages(
+  step: StepResult<ToolSet, any> | undefined,
+  tools: ToolSet,
+  executedResults: WorkflowToolExecutionResult[],
+) {
+  if (step == null) {
+    return;
+  }
+
+  const responseOutputs = new Map(
+    executedResults.map(result => [
+      result.modelResult.toolCallId,
+      result.responseOutput,
+    ]),
+  );
+  const toolsWithPrecomputedOutputs = Object.fromEntries(
+    Object.entries(tools).map(([toolName, tool]) => [
+      toolName,
+      {
+        ...tool,
+        toModelOutput: async ({ toolCallId }: { toolCallId: string }) => {
+          const output = responseOutputs.get(toolCallId);
+          if (output == null) {
+            throw new Error(
+              `Missing precomputed model output for tool call "${toolCallId}"`,
+            );
+          }
+          return output;
+        },
+      },
+    ]),
+  ) as ToolSet;
+
+  (
+    step.response as {
+      messages: StepResult<ToolSet, any>['response']['messages'];
+    }
+  ).messages = await toResponseMessages({
+    content: step.content,
+    tools: toolsWithPrecomputedOutputs,
+  });
 }
 
 /**
@@ -1588,10 +1633,9 @@ export class WorkflowAgent<
         ? (result.steps.at(-1)?.text as TOutput)
         : result.output;
 
-    return await createWorkflowAgentGenerateResult({
+    return createWorkflowAgentGenerateResult({
       result,
       output,
-      tools: this.tools as unknown as TTools,
       initialResponseMessages,
     });
   }
@@ -1823,6 +1867,10 @@ export class WorkflowAgent<
 
     if (approvedToolApprovals.length > 0 || deniedToolApprovals.length > 0) {
       const toolResultContent: LanguageModelV4ToolResultPart[] = [];
+      const responseToolResultContent: Extract<
+        ModelMessage,
+        { role: 'tool' }
+      >['content'] = [];
       const approvedRawResults: Array<{
         toolCallId: string;
         toolName: string;
@@ -1841,20 +1889,26 @@ export class WorkflowAgent<
         if (tool && typeof tool.execute === 'function') {
           if (!tool.needsApproval) {
             const reason = `Tool "${approval.toolName}" does not require approval`;
-            toolResultContent.push({
+            const outputs = await createLanguageModelToolResultOutputs({
+              toolCallId: approval.toolCallId,
+              toolName: approval.toolName,
+              input: approval.input,
+              output: reason,
+              tool,
+              errorMode: 'text',
+              supportedUrls: {},
+              download,
+            });
+            const toolResult = {
               type: 'tool-result' as const,
               toolCallId: approval.toolCallId,
               toolName: approval.toolName,
-              output: await createLanguageModelToolResultOutput({
-                toolCallId: approval.toolCallId,
-                toolName: approval.toolName,
-                input: approval.input,
-                output: reason,
-                tool,
-                errorMode: 'text',
-                supportedUrls: {},
-                download,
-              }),
+              output: outputs.languageModelOutput,
+            };
+            toolResultContent.push(toolResult);
+            responseToolResultContent.push({
+              ...toolResult,
+              output: outputs.modelOutput,
             });
             continue;
           }
@@ -1899,20 +1953,26 @@ export class WorkflowAgent<
           }
 
           if (revalidationReason != null) {
-            toolResultContent.push({
+            const outputs = await createLanguageModelToolResultOutputs({
+              toolCallId: approval.toolCallId,
+              toolName: approval.toolName,
+              input: approval.input,
+              output: revalidationReason,
+              tool,
+              errorMode: 'text',
+              supportedUrls: {},
+              download,
+            });
+            const toolResult = {
               type: 'tool-result' as const,
               toolCallId: approval.toolCallId,
               toolName: approval.toolName,
-              output: await createLanguageModelToolResultOutput({
-                toolCallId: approval.toolCallId,
-                toolName: approval.toolName,
-                input: approval.input,
-                output: revalidationReason,
-                tool,
-                errorMode: 'text',
-                supportedUrls: {},
-                download,
-              }),
+              output: outputs.languageModelOutput,
+            };
+            toolResultContent.push(toolResult);
+            responseToolResultContent.push({
+              ...toolResult,
+              output: outputs.modelOutput,
             });
             continue;
           }
@@ -1930,6 +1990,10 @@ export class WorkflowAgent<
             sandbox,
           );
           toolResultContent.push(result.modelResult);
+          responseToolResultContent.push({
+            ...result.modelResult,
+            output: result.responseOutput,
+          });
           approvedRawResults.push({
             toolCallId: approval.toolCallId,
             toolName: approval.toolName,
@@ -1946,7 +2010,7 @@ export class WorkflowAgent<
         if (denial.providerExecuted) {
           continue;
         }
-        toolResultContent.push({
+        const toolResult = {
           type: 'tool-result' as const,
           toolCallId: denial.toolCallId,
           toolName: denial.toolName,
@@ -1954,7 +2018,9 @@ export class WorkflowAgent<
             type: 'execution-denied' as const,
             reason: denial.reason,
           },
-        });
+        };
+        toolResultContent.push(toolResult);
+        responseToolResultContent.push(toolResult);
       }
 
       // Strip approval parts that we resolved locally and inject tool results.
@@ -1996,7 +2062,7 @@ export class WorkflowAgent<
       if (toolResultContent.length > 0) {
         const toolResultMessage = {
           role: 'tool',
-          content: toolResultContent,
+          content: responseToolResultContent,
         } as GenerateTextResult<
           TTools,
           TRuntimeContext,
@@ -2566,6 +2632,13 @@ export class WorkflowAgent<
             }));
 
             addToolResultsToStep(step, executedResults);
+            if (mode === 'generate') {
+              await setStepResponseMessages(
+                step,
+                effectiveTools as ToolSet,
+                executedResults,
+              );
+            }
 
             if (resolvedResults.length > 0) {
               iterMessages.push({
@@ -2792,12 +2865,22 @@ export class WorkflowAgent<
           }));
 
           addToolResultsToStep(step, executedToolResults);
+          if (mode === 'generate') {
+            await setStepResponseMessages(
+              step,
+              effectiveTools as ToolSet,
+              executedToolResults,
+            );
+          }
 
           result = await iterator.next(continuationToolResults);
         } else {
           // Final step with no tool calls - reset tracking
           lastStepToolCalls = [];
           lastStepToolResults = [];
+          if (mode === 'generate') {
+            await setStepResponseMessages(step, effectiveTools as ToolSet, []);
+          }
           result = await iterator.next([]);
         }
       }
@@ -2972,43 +3055,30 @@ export class WorkflowAgent<
   }
 }
 
-async function createWorkflowAgentGenerateResult<
+function createWorkflowAgentGenerateResult<
   TTools extends ToolSet,
   TRuntimeContext extends Context,
   OUTPUT,
 >({
   result,
   output,
-  tools,
   initialResponseMessages,
 }: {
   result: WorkflowAgentStreamResult<TTools, OUTPUT>;
   output: OUTPUT | undefined;
-  tools: TTools;
   initialResponseMessages: GenerateTextResult<
     TTools,
     TRuntimeContext,
     never
   >['responseMessages'];
-}): Promise<WorkflowAgentGenerateResult<TTools, TRuntimeContext, OUTPUT>> {
-  const steps = await Promise.all(
-    result.steps.map(async step => ({
-      ...step,
-      response: {
-        ...step.response,
-        messages: await toResponseMessages({
-          content: step.content,
-          tools,
-        }),
-      },
-    })),
-  );
+}): WorkflowAgentGenerateResult<TTools, TRuntimeContext, OUTPUT> {
+  const steps = result.steps;
   const getFinalStep = () =>
     steps.at(-1) as StepResult<TTools, TRuntimeContext>;
 
   return {
     messages: result.messages,
-    steps: steps as StepResult<TTools, TRuntimeContext>[],
+    steps,
     totalUsage: result.totalUsage,
     get finalStep() {
       return getFinalStep();
@@ -3403,6 +3473,10 @@ async function resolveProviderToolResult(
           value: '',
         },
       },
+      responseOutput: {
+        type: 'text',
+        value: '',
+      },
       rawOutput: '',
       isError: false,
     };
@@ -3414,23 +3488,25 @@ async function resolveProviderToolResult(
       ? 'text'
       : 'json'
     : 'none';
+  const outputs = await createLanguageModelToolResultOutputs({
+    toolCallId: toolCall.toolCallId,
+    toolName: toolCall.toolName,
+    input: toolCall.input,
+    output: result,
+    tool: tools?.[toolCall.toolName],
+    errorMode,
+    supportedUrls: {},
+    download,
+  });
 
   return {
     modelResult: {
       type: 'tool-result' as const,
       toolCallId: toolCall.toolCallId,
       toolName: toolCall.toolName,
-      output: await createLanguageModelToolResultOutput({
-        toolCallId: toolCall.toolCallId,
-        toolName: toolCall.toolName,
-        input: toolCall.input,
-        output: result,
-        tool: tools?.[toolCall.toolName],
-        errorMode,
-        supportedUrls: {},
-        download,
-      }),
+      output: outputs.languageModelOutput,
     },
+    responseOutput: outputs.modelOutput,
     rawOutput: result,
     isError: streamResult.isError === true,
   };
@@ -3503,43 +3579,48 @@ async function executeTool(
     // allowing the agent to recover rather than killing the entire stream.
     // This aligns with AI SDK's streamText behavior for individual tool failures.
     const errorMessage = getErrorMessage(error);
+    const outputs = await createLanguageModelToolResultOutputs({
+      toolCallId: toolCall.toolCallId,
+      toolName: toolCall.toolName,
+      input: parsedInput,
+      output: errorMessage,
+      tool,
+      errorMode: 'text',
+      supportedUrls: {},
+      download,
+    });
     return {
       modelResult: {
         type: 'tool-result',
         toolCallId: toolCall.toolCallId,
         toolName: toolCall.toolName,
-        output: await createLanguageModelToolResultOutput({
-          toolCallId: toolCall.toolCallId,
-          toolName: toolCall.toolName,
-          input: parsedInput,
-          output: errorMessage,
-          tool,
-          errorMode: 'text',
-          supportedUrls: {},
-          download,
-        }),
+        output: outputs.languageModelOutput,
       },
+      responseOutput: outputs.modelOutput,
       rawOutput: errorMessage,
       isError: true,
     };
   }
+
+  const outputs = await createLanguageModelToolResultOutputs({
+    toolCallId: toolCall.toolCallId,
+    toolName: toolCall.toolName,
+    input: parsedInput,
+    output: toolResult,
+    tool,
+    errorMode: 'none',
+    supportedUrls: {},
+    download,
+  });
 
   return {
     modelResult: {
       type: 'tool-result' as const,
       toolCallId: toolCall.toolCallId,
       toolName: toolCall.toolName,
-      output: await createLanguageModelToolResultOutput({
-        toolCallId: toolCall.toolCallId,
-        toolName: toolCall.toolName,
-        input: parsedInput,
-        output: toolResult,
-        tool,
-        errorMode: 'none',
-        supportedUrls: {},
-        download,
-      }),
+      output: outputs.languageModelOutput,
     },
+    responseOutput: outputs.modelOutput,
     rawOutput: toolResult,
     isError: false,
   };
