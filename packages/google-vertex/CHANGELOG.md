@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 3.0.173
+
+### Patch Changes
+
+- cfa33a0: feat(google): add gemini-3.8-flash model
+- Updated dependencies [cfa33a0]
+  - @ai-sdk/google@2.0.96
+
 ## 3.0.172
 
 ### Patch Changes
