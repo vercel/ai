@@ -195,6 +195,8 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
       formData.append('response_format', 'verbose_json');
     }
 
+    const isDiarizationModel = this.modelId === 'gpt-4o-transcribe-diarize';
+
     // Add provider-specific options
     if (openAIOptions) {
       const isGpt4oTranscribeModel = [
@@ -209,7 +211,13 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
         // https://platform.openai.com/docs/api-reference/audio/createTranscription#audio_createtranscription-response_format
         // prefer verbose_json to get segments for models that support it
         ...(this.modelId !== 'whisper-1' && {
-          response_format: isGpt4oTranscribeModel ? 'json' : 'verbose_json',
+          response_format:
+            openAIOptions.responseFormat ??
+            (isDiarizationModel
+              ? 'diarized_json'
+              : isGpt4oTranscribeModel
+                ? 'json'
+                : 'verbose_json'),
         }),
         temperature: openAIOptions.temperature,
         timestamp_granularities: openAIOptions.timestampGranularities,
@@ -226,6 +234,31 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
           }
         }
       }
+
+      if (openAIOptions.chunkingStrategy != null) {
+        formData.append(
+          'chunking_strategy',
+          typeof openAIOptions.chunkingStrategy === 'string'
+            ? openAIOptions.chunkingStrategy
+            : JSON.stringify({
+                type: openAIOptions.chunkingStrategy.type,
+                ...(openAIOptions.chunkingStrategy.threshold != null && {
+                  threshold: openAIOptions.chunkingStrategy.threshold,
+                }),
+                ...(openAIOptions.chunkingStrategy.prefixPaddingMs != null && {
+                  prefix_padding_ms:
+                    openAIOptions.chunkingStrategy.prefixPaddingMs,
+                }),
+                ...(openAIOptions.chunkingStrategy.silenceDurationMs !=
+                  null && {
+                  silence_duration_ms:
+                    openAIOptions.chunkingStrategy.silenceDurationMs,
+                }),
+              }),
+        );
+      }
+    } else if (isDiarizationModel) {
+      formData.append('response_format', 'diarized_json');
     }
 
     return {
@@ -270,6 +303,19 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
         ? languageMap[response.language as keyof typeof languageMap]
         : undefined;
 
+    const diarizedSegments = response.segments?.flatMap(segment =>
+      'speaker' in segment
+        ? [
+            {
+              text: segment.text,
+              startSecond: segment.start,
+              endSecond: segment.end,
+              speaker: segment.speaker,
+            },
+          ]
+        : [],
+    );
+
     return {
       text: response.text,
       segments:
@@ -293,6 +339,14 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
         headers: responseHeaders,
         body: rawResponse,
       },
+      ...(diarizedSegments != null &&
+        diarizedSegments.length > 0 && {
+          providerMetadata: {
+            openai: {
+              segments: diarizedSegments,
+            },
+          },
+        }),
     };
   }
 
