@@ -50,15 +50,18 @@ async function makeRegistries() {
 async function registerProviders({
   options,
   resolvedEnv,
+  headers,
 }: {
   options: PiAuthenticationMode | undefined;
   resolvedEnv: Record<string, string>;
+  headers?: Readonly<Record<string, string>>;
 }) {
   const registries = await makeRegistries();
   await registerPiProviders({
     options,
     resolvedEnv,
     registries,
+    headers,
   });
   return registries;
 }
@@ -315,7 +318,14 @@ describe('registerPiProviders', () => {
       AI_GATEWAY_BASE_URL: 'https://gw.example',
     } satisfies PiAuthenticationMode;
     const resolvedEnv = resolvePiEnv({ options, env: {} });
-    const registries = await registerProviders({ options, resolvedEnv });
+    const registries = await registerProviders({
+      options,
+      resolvedEnv,
+      headers: {
+        'x-tenant': 'acme',
+        'User-Agent': 'caller-agent',
+      },
+    });
 
     expect(registries.setRuntimeApiKey).toHaveBeenCalledWith(
       'vercel-ai-gateway',
@@ -328,6 +338,7 @@ describe('registerPiProviders', () => {
         baseUrl: 'https://gw.example',
         authHeader: true,
         headers: {
+          'x-tenant': 'acme',
           'User-Agent': 'ai-sdk/harness-pi/0.0.0-test',
           'x-client-app': 'ai-sdk/harness-pi/0.0.0-test',
         },
@@ -420,6 +431,7 @@ describe('registerPiProviders', () => {
     const registries = await registerProviders({
       options: 'openai',
       resolvedEnv,
+      headers: { 'x-tenant': 'acme' },
     });
     const providers = registries.registerProvider.mock.calls.map(c => c[0]);
 
@@ -432,6 +444,7 @@ describe('registerPiProviders', () => {
       apiKey: 'sk-oai',
       baseUrl: 'https://api.openai.com/v1',
       authHeader: true,
+      headers: { 'x-tenant': 'acme' },
     });
   });
 
@@ -456,6 +469,7 @@ describe('registerPiProviders', () => {
     const registries = await registerProviders({
       options: 'anthropic',
       resolvedEnv,
+      headers: { 'x-tenant': 'acme' },
     });
     const providers = registries.registerProvider.mock.calls.map(c => c[0]);
 
@@ -463,7 +477,10 @@ describe('registerPiProviders', () => {
     expect(registries.registerProvider).toHaveBeenCalledWith('anthropic', {
       apiKey: 'sk-ant',
       baseUrl: 'https://api.anthropic.com',
-      headers: { authorization: 'Bearer tok' },
+      headers: {
+        'x-tenant': 'acme',
+        authorization: 'Bearer tok',
+      },
     });
   });
 

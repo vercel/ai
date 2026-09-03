@@ -510,6 +510,9 @@ console.log(preparation.identity);
 - `id`: optional stable agent identifier.
 - `instructions`: instructions appended to the runtime's system or developer
   prompt when supported, or prepended to the user prompt otherwise.
+- `headers`: additional headers sent with model requests. Headers are fixed at
+  construction time. `authorization`, `x-api-key`, `user-agent`, and
+  `x-client-app` are not allowed.
 - `callOptionsSchema` and `prepareCall`: validate custom call options and derive
   model, skills, instructions, and tools for each new turn.
 - `output`: typed output specification applied to every turn.

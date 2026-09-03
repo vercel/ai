@@ -191,6 +191,10 @@ or apply its own permission policy without sending an ACP permission request.
   supported, but filtering fx built-ins throws an unsupported-capability error.
 - fx ACP does not expose a structured-output metadata mapping, so schema-backed
   structured output is unsupported.
+- Custom `headers` are not natively supported and only applied via
+  sandbox-external request transformations. When a sandbox without that
+  capability is provided, custom `headers` therefore cannot be passed and are
+  ignored.
 
 ## Related
 

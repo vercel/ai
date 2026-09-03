@@ -368,6 +368,7 @@ export function createDeepAgents(
             builtinToolFiltering: startOpts.builtinToolFiltering,
             recursionLimit: settings.recursionLimit,
             mcpServers: settings.mcpServers,
+            headers: startOpts.headers,
           });
         } catch {
           // Bridge no longer reachable — recover by respawning below.
@@ -491,6 +492,7 @@ export function createDeepAgents(
         builtinToolFiltering: startOpts.builtinToolFiltering,
         recursionLimit: settings.recursionLimit,
         mcpServers: settings.mcpServers,
+        headers: startOpts.headers,
       });
     },
   };
@@ -631,6 +633,7 @@ function createSession({
   builtinToolFiltering,
   recursionLimit,
   mcpServers,
+  headers,
 }: {
   sessionId: string;
   channel: DeepAgentsChannel;
@@ -651,6 +654,7 @@ function createSession({
   builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
   recursionLimit?: number;
   mcpServers?: Record<string, unknown>;
+  headers?: Readonly<Record<string, string>>;
 }): HarnessV1Session {
   let stopped = false;
 
@@ -826,6 +830,7 @@ function createSession({
         ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
         ...(recursionLimit != null ? { recursionLimit } : {}),
         ...(mcpServers == null ? {} : { mcpServers }),
+        ...(headers == null ? {} : { headers }),
       });
 
       return control;
