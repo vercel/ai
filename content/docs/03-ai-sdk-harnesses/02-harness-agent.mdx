@@ -98,6 +98,39 @@ try {
 }
 ```
 
+## Lifecycle Callbacks
+
+Configure lifecycle callbacks on `HarnessAgent` to observe agent calls, model
+steps, and tool executions:
+
+```ts
+const agent = new HarnessAgent({
+  harness: claudeCode,
+  sandbox,
+  tools: { weather },
+  onStart: event => console.log('call started', event.callId),
+  onStepStart: event => console.log('step started', event.stepNumber),
+  onLanguageModelCallStart: event =>
+    console.log('model call started', event.modelId),
+  onLanguageModelCallEnd: event =>
+    console.log('model call ended', event.finishReason),
+  onToolExecutionStart: event =>
+    console.log('tool started', event.toolCall.toolName),
+  onToolExecutionEnd: event => console.log('tool ended', event.toolOutput.type),
+  onStepEnd: step => console.log('step ended', step.stepNumber),
+  onEnd: event => console.log('call ended', event.finishReason),
+});
+```
+
+Callbacks configured on individual `generate()` and `stream()` calls are
+invoked in addition to settings callbacks, with settings callbacks invoked
+first. Callback errors are ignored and do not change agent execution.
+
+Harness runtimes execute their built-in tools internally. For those tools,
+`onToolExecutionStart` and `onToolExecutionEnd` describe the logical tool
+lifecycle after the runtime reports the result. The callbacks are still
+delivered before the tool result is published to the result stream.
+
 ## Generate Structured Output
 
 Set `output` when constructing `HarnessAgent` to require the same typed output
