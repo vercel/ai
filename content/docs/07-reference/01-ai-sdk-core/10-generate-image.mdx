@@ -113,7 +113,8 @@ console.log(images);
       name: 'maxRetries',
       type: 'number',
       isOptional: true,
-      description: 'Maximum number of retries. Default: 2.',
+      description:
+        'Maximum number of retries per image model call, including retries after empty responses. Default: 2.',
     },
     {
       name: 'abortSignal',
