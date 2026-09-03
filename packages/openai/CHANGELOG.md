@@ -1,5 +1,12 @@
 # @ai-sdk/openai
 
+## 4.0.58
+
+### Patch Changes
+
+- b54e551: fix(openai): support documented Responses image generation options
+- 17d3436: feat(openai): add support for ultrafast service tier
+
 ## 4.0.57
 
 ### Patch Changes
