@@ -333,8 +333,6 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           'ai-gateway'
             ? {}
             : undefined;
-      } else if (settings.credentialBrokering != null) {
-        warnCredentialBrokeringUnavailable();
       }
       if (
         settings.credentialForwarding != null &&
@@ -561,6 +559,25 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               credentialForwarding: settings.credentialForwarding,
             })
           : sandboxImplementationEnvironment;
+      if (
+        settings.credentialBrokering != null &&
+        sandboxCredentialEnvironment == null
+      ) {
+        warnCredentialBrokeringUnavailable({
+          environment: {
+            ...sandboxImplementationEnvironment,
+            ...resolvedProviderAuthentication.env,
+          },
+          forwardedEnvironment: {
+            ...forwardedImplementationEnvironment,
+            ...sandboxProviderAuthenticationEnvironment,
+          },
+          credentialEnvironmentVariables: [
+            ...credentialForwardingEnvironmentVariables,
+            'AI_SDK_ACP_GATEWAY_API_KEY',
+          ],
+        });
+      }
       const port = resolveBridgePort({
         sandboxSession,
         override: portOverride,
@@ -1104,9 +1121,14 @@ function createSession({
   channel.on('bridge-thread', event => {
     latestACPSessionId = event.threadId;
   });
-  channel.on('finish', markTurnFinished);
-  channel.on('error', markTurnFinished);
-  channel.onClose(markTurnFinished);
+  // A resumed continuation replays its buffered events after the new session
+  // is created. Let `wireTurn` consume those events so it can forward a
+  // terminal replay instead of rejecting the continuation before it starts.
+  if (!turnInFlightAtStart) {
+    channel.on('finish', markTurnFinished);
+    channel.on('error', markTurnFinished);
+    channel.onClose(markTurnFinished);
+  }
 
   const wireTurn = ({
     emit,
@@ -1239,6 +1261,7 @@ function createSession({
     }
     subscriptions.push(
       channel.on('finish', event => {
+        markTurnFinished();
         closeForwardedBlock();
         forward(event);
         settle(abortRequested ? { error: abortError } : {});
@@ -1246,6 +1269,7 @@ function createSession({
     );
     subscriptions.push(
       channel.on('error', event => {
+        markTurnFinished();
         closeForwardedBlock();
         const error = deserializeBridgeError({
           error: event.error,
@@ -1256,6 +1280,7 @@ function createSession({
       }),
     );
     channel.onClose((_code, reason) => {
+      markTurnFinished();
       if (reason === 'suspended') {
         settle({});
         return;
