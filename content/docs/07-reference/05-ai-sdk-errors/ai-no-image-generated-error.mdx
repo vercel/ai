@@ -5,15 +5,13 @@ description: Learn how to fix AI_NoImageGeneratedError
 
 # AI_NoImageGeneratedError
 
-This error occurs when the AI provider fails to generate an image.
-It can arise due to the following reasons:
-
-- The model failed to generate a response.
-- The model generated an invalid response.
+This error occurs when the completed image model calls collectively return no
+images.
 
 ## Properties
 
 - `message`: The error message (optional, defaults to `'No image generated.'`).
+- `calls`: Completed image model calls, including the images, provider metadata, response metadata, warnings, and usage for each call (optional).
 - `responses`: Metadata about the image model responses, including timestamp, model, and headers (optional).
 - `cause`: The cause of the error. You can use this for more detailed error handling (optional).
 
@@ -28,9 +26,16 @@ try {
   await generateImage({ model, prompt });
 } catch (error) {
   if (NoImageGeneratedError.isInstance(error)) {
-    console.log('NoImageGeneratedError');
-    console.log('Cause:', error.cause);
-    console.log('Responses:', error.responses);
+    for (const call of error.calls ?? []) {
+      console.log('Model:', call.response.modelId);
+      console.log('Warnings:', call.warnings);
+      console.log('Usage:', call.usage);
+      console.log('Provider metadata:', call.providerMetadata);
+    }
   }
 }
 ```
+
+`calls` contains calls that completed successfully but collectively returned no
+images. If an underlying call throws after its retries are exhausted,
+`generateImage` throws that error instead.
