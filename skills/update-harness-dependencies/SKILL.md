@@ -31,6 +31,8 @@ pnpm --filter harness-cline update @cline/agents --latest --lockfile-only
 pnpm --filter harness-codex update @openai/codex-sdk --latest --lockfile-only
 # Deep Agents
 pnpm --filter harness-deepagents update @langchain/core @langchain/langgraph deepagents langchain langsmith --latest --lockfile-only
+# GitHub Copilot
+pnpm --filter harness-github-copilot update @github/copilot --latest --lockfile-only
 # Grok Build
 pnpm --filter harness-grok-build update @xai-official/grok --latest --lockfile-only
 # OpenCode
@@ -52,6 +54,8 @@ pnpm --dir packages/harness-claude-code/src/bridge update @anthropic-ai/claude-a
 pnpm --dir packages/harness-codex/src/bridge update @openai/codex-sdk --latest --ignore-workspace --config.minimumReleaseAge=4320
 # Deep Agents
 pnpm --dir packages/harness-deepagents/src/bridge update @langchain/anthropic @langchain/core @langchain/langgraph deepagents langchain langsmith --latest --ignore-workspace --config.minimumReleaseAge=4320
+# GitHub Copilot
+pnpm --dir packages/harness-github-copilot/src/bridge update @github/copilot --latest --ignore-workspace --config.minimumReleaseAge=4320
 # Grok Build
 pnpm --dir packages/harness-grok-build/src/bridge update @agentclientprotocol/sdk @modelcontextprotocol/sdk @xai-official/grok --latest --ignore-workspace --config.minimumReleaseAge=4320
 # OpenCode
@@ -63,6 +67,7 @@ version in the bridge's `pnpm-workspace.yaml` `allowBuilds` entry to match the
 new version in its `package.json`:
 
 - `packages/harness-claude-code/src/bridge/pnpm-workspace.yaml`
+- `packages/harness-github-copilot/src/bridge/pnpm-workspace.yaml`
 - `packages/harness-grok-build/src/bridge/pnpm-workspace.yaml`
 - `packages/harness-opencode/src/bridge/pnpm-workspace.yaml`
 
