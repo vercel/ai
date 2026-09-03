@@ -815,13 +815,15 @@ type WorkflowToolCall<
 };
 
 /**
- * Keeps a tool call correlated with that tool's context in each union member.
- * TypeScript can narrow the nested tool call directly; consumers that need the
- * correlated sibling fields can narrow the event itself or extract a member.
+ * Event passed to a WorkflowAgent tool-execution-start callback.
+ *
+ * For a concrete tool set, each union member correlates the tool call with that
+ * tool's context. TypeScript narrows the nested tool call directly; use
+ * `Extract` or a user-defined type guard to narrow correlated sibling fields.
  */
-type WorkflowAgentToolExecutionStartEvent<TTools extends ToolSet> = [
-  ToolSet,
-] extends [TTools]
+export type WorkflowAgentToolExecutionStartEvent<
+  TTools extends ToolSet = ToolSet,
+> = [ToolSet] extends [TTools]
   ? {
       readonly toolCall: ToolCall;
       readonly stepNumber: number;
@@ -847,12 +849,16 @@ export type WorkflowAgentOnToolExecutionStartCallback<
 ) => PromiseLike<void> | void;
 
 /**
- * Keeps a tool call correlated with that tool's context and successful output
- * in each union member.
+ * Event passed to a WorkflowAgent tool-execution-end callback.
+ *
+ * For a concrete tool set, each union member correlates the tool call with that
+ * tool's context and successful output. Check `success` to distinguish output
+ * and error events. Use `Extract` or a user-defined type guard to narrow
+ * correlated sibling fields by tool name.
  */
-type WorkflowAgentToolExecutionEndEvent<TTools extends ToolSet> = [
-  ToolSet,
-] extends [TTools]
+export type WorkflowAgentToolExecutionEndEvent<
+  TTools extends ToolSet = ToolSet,
+> = [ToolSet] extends [TTools]
   ?
       | {
           readonly toolCall: ToolCall;

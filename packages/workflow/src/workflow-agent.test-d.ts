@@ -11,6 +11,10 @@ import {
   type UIMessage,
 } from 'ai';
 import type { ModelCallStreamPart } from './do-stream-step.js';
+import type {
+  WorkflowAgentToolExecutionEndEvent as PublicWorkflowAgentToolExecutionEndEvent,
+  WorkflowAgentToolExecutionStartEvent as PublicWorkflowAgentToolExecutionStartEvent,
+} from './index.js';
 import {
   Output,
   WorkflowAgent,
@@ -372,6 +376,14 @@ describe('WorkflowAgent types', () => {
     type EndEvent = Parameters<
       WorkflowAgentOnToolExecutionEndCallback<typeof tools>
     >[0];
+
+    expectTypeOf<StartEvent>().toEqualTypeOf<
+      PublicWorkflowAgentToolExecutionStartEvent<typeof tools>
+    >();
+    expectTypeOf<EndEvent>().toEqualTypeOf<
+      PublicWorkflowAgentToolExecutionEndEvent<typeof tools>
+    >();
+
     type WeatherStartEvent = Extract<
       StartEvent,
       { toolCall: { toolName: 'weather' } }
