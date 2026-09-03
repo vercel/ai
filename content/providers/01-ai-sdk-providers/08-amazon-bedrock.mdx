@@ -228,6 +228,52 @@ const { text } = await generateText({
 Amazon Bedrock language models can also be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
+### Structured Outputs
+
+For Anthropic models, you can use the `structuredOutputMode` provider option to
+choose how Amazon Bedrock generates structured outputs:
+
+- `"outputFormat"`: Use Bedrock's native `output_config.format` parameter.
+- `"jsonTool"`: Use a special `json` tool with required tool choice.
+- `"auto"`: Use native structured output when supported and otherwise fall
+  back to the JSON tool. This is the default.
+
+In `"auto"` mode, Claude Sonnet 4.6 and Claude Haiku 4.5 use the JSON tool
+fallback because native structured output can be unreliable across workloads
+and Bedrock accounts. You can set `"outputFormat"` to opt into native structured
+output when it works for your account and workload, or use `"jsonTool"` to force
+the fallback for any model:
+
+```ts
+import {
+  amazonBedrock,
+  type AmazonBedrockLanguageModelChatOptions,
+} from '@ai-sdk/amazon-bedrock';
+import { generateText, Output } from 'ai';
+import { z } from 'zod';
+
+const { output } = await generateText({
+  model: amazonBedrock('eu.anthropic.claude-sonnet-4-6'),
+  output: Output.object({
+    schema: z.object({
+      summary: z.string(),
+      findings: z.array(z.string()),
+    }),
+  }),
+  prompt: 'Summarize the inspection report.',
+  providerOptions: {
+    amazonBedrock: {
+      structuredOutputMode: 'jsonTool',
+    } satisfies AmazonBedrockLanguageModelChatOptions,
+  },
+});
+```
+
+The legacy `providerOptions.bedrock` key remains supported. For parity with the
+Anthropic provider, `providerOptions.anthropic.structuredOutputMode` is also
+honored for Anthropic models on Bedrock. When both are provided, the
+`amazonBedrock` or legacy `bedrock` value takes precedence.
+
 ### File Inputs
 
 <Note type="warning">
@@ -291,6 +337,83 @@ if (result.providerMetadata?.bedrock.trace) {
 ```
 
 See the [Amazon Bedrock Guardrails documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails.html) for more information.
+
+#### Guard Content
+
+You can mark individual text or image parts as guard content using `providerOptions` on the part itself. This wraps the part in a [`guardContent`](https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_GuardrailConverseContentBlock.html) block, which tells Bedrock Guardrails to evaluate that content specifically.
+
+For text parts, you can also specify `guardContentQualifiers` to indicate how the content should be treated by the guardrail (e.g. as a grounding source, a query, or guard content):
+
+```ts
+const result = await generateText({
+  model: bedrock('anthropic.claude-3-sonnet-20240229-v1:0'),
+  providerOptions: {
+    bedrock: {
+      guardrailConfig: {
+        guardrailIdentifier: '1abcd2ef34gh',
+        guardrailVersion: '1',
+      },
+    },
+  },
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'London is the capital of UK. Tokyo is the capital of Japan.',
+          providerOptions: {
+            bedrock: {
+              guardContent: true,
+              guardContentQualifiers: ['grounding_source'],
+            },
+          },
+        },
+        {
+          type: 'text',
+          text: 'Some additional background information.',
+        },
+        {
+          type: 'text',
+          text: 'What is the capital of Japan?',
+          providerOptions: {
+            bedrock: {
+              guardContent: true,
+              guardContentQualifiers: ['query'],
+            },
+          },
+        },
+      ],
+    },
+  ],
+});
+```
+
+Image parts can also be marked as guard content:
+
+```ts
+{
+  type: 'file',
+  data: {
+    type: 'data',
+    data: imageBase64,
+  },
+  mediaType: 'image/png',
+  providerOptions: {
+    bedrock: {
+      guardContent: true,
+    },
+  },
+}
+```
+
+The available `guardContentQualifiers` are:
+
+- `'grounding_source'` — content used as a grounding source for the guardrail
+- `'query'` — content treated as a query to evaluate
+- `'guard_content'` — content to be evaluated by the guardrail
+
+See the [Amazon Bedrock Guardrails with Converse API documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails-use-converse-api.html) for more information.
 
 ### Citations
 
@@ -913,6 +1036,30 @@ The following provider options are available for Cohere embedding models:
 - **truncate** _string_
 
   Truncation behavior when input exceeds the model's context length. Accepts: `NONE`, `START`, `END`.
+
+### Application Inference Profiles
+
+Application inference profile ARNs do not identify their underlying model. Pass
+the model family when creating an embedding model so the provider can select
+the correct request format and batch size:
+
+```ts
+import {
+  amazonBedrock,
+  type AmazonBedrockEmbeddingModelSettings,
+} from '@ai-sdk/amazon-bedrock';
+import { embedMany } from 'ai';
+
+const profileArn =
+  'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/qibm5eutlkcy';
+
+const { embeddings } = await embedMany({
+  model: amazonBedrock.embedding(profileArn, {
+    modelFamily: 'cohere',
+  } satisfies AmazonBedrockEmbeddingModelSettings),
+  values: ['hello', 'world'],
+});
+```
 
 ### Model Capabilities
 

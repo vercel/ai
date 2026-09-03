@@ -37,6 +37,7 @@ export type { GoogleFilesUploadOptions } from './google-files';
 export type {
   GoogleLanguageModelInteractionsOptions,
   GoogleInteractionsModelId,
+  GoogleInteractionsVideoOptions,
 } from './interactions/google-interactions-language-model-options';
 export type { GoogleInteractionsProviderMetadata } from './interactions/google-interactions-provider-metadata';
 export type { GoogleInteractionsAgentName } from './interactions/google-interactions-agent';
@@ -60,11 +61,28 @@ export type {
   GoogleRealtimeModelId as Experimental_GoogleRealtimeModelId,
   GoogleRealtimeModelOptions as Experimental_GoogleRealtimeModelOptions,
 } from './realtime/google-realtime-model-options';
-export { GoogleTranslationModel as Experimental_GoogleTranslationModel } from './translation/google-translation-model';
-export type { GoogleTranslationModelConfig as Experimental_GoogleTranslationModelConfig } from './translation/google-translation-model';
+export { GoogleTranscriptionModel } from './transcription/google-transcription-model';
 export type {
-  GoogleTranslationModelId as Experimental_GoogleTranslationModelId,
-  GoogleTranslationModelOptions as Experimental_GoogleTranslationModelOptions,
-} from './translation/google-translation-model-options';
+  GoogleTranscriptionModelId,
+  GoogleTranscriptionModelOptions,
+} from './transcription/google-transcription-model-options';
+export {
+  GoogleSpeechTranslationModel as Experimental_GoogleSpeechTranslationModel,
+  /** @deprecated Use `Experimental_GoogleSpeechTranslationModel` instead. */
+  GoogleSpeechTranslationModel as Experimental_GoogleTranslationModel,
+} from './speech-translation/google-speech-translation-model';
+export type {
+  GoogleSpeechTranslationModelConfig as Experimental_GoogleSpeechTranslationModelConfig,
+  /** @deprecated Use `Experimental_GoogleSpeechTranslationModelConfig` instead. */
+  GoogleSpeechTranslationModelConfig as Experimental_GoogleTranslationModelConfig,
+} from './speech-translation/google-speech-translation-model';
+export type {
+  GoogleSpeechTranslationModelId as Experimental_GoogleSpeechTranslationModelId,
+  /** @deprecated Use `Experimental_GoogleSpeechTranslationModelId` instead. */
+  GoogleSpeechTranslationModelId as Experimental_GoogleTranslationModelId,
+  GoogleSpeechTranslationModelOptions as Experimental_GoogleSpeechTranslationModelOptions,
+  /** @deprecated Use `Experimental_GoogleSpeechTranslationModelOptions` instead. */
+  GoogleSpeechTranslationModelOptions as Experimental_GoogleTranslationModelOptions,
+} from './speech-translation/google-speech-translation-model-options';
 
 export { VERSION } from './version';

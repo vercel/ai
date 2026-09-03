@@ -20,7 +20,11 @@ import { tool } from 'ai';
 import { z } from 'zod/v4';
 
 const agent = new HarnessAgent({
-  harness: createCodex(),
+  harness: createCodex({
+    codexConfig: {
+      model_verbosity: 'low',
+    },
+  }),
   id: 'demo',
   sandbox: createVercelSandbox({
     runtime: 'node24',
@@ -38,6 +42,11 @@ const agent = new HarnessAgent({
   },
 });
 ```
+
+`codexConfig` accepts additional native Codex configuration. Values pass
+through as provided, so use the snake_case keys from Codex's `config.toml`
+reference. The adapter's managed values take precedence over conflicting
+entries.
 
 > Codex does not auto-discover a skills directory the way the `claude` CLI
 > does, so when you supply `skills: [...]` on the factory the adapter

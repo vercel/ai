@@ -18,13 +18,27 @@ import {
 } from '../generate-text';
 import type { Instructions, Prompt } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
-import type { LanguageModelRequestMetadata } from '../types';
+import type { LanguageModelRequestMetadata, ProviderMetadata } from '../types';
 import type { LanguageModelUsage } from '../types/usage';
 import type { GenerateTextEndEvent } from './generate-text-events';
 import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 
 describe('generateText types', () => {
+  describe('onLanguageModelCallEnd', () => {
+    it('should expose provider metadata', async () => {
+      await generateText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onLanguageModelCallEnd: event => {
+          expectTypeOf(event.providerMetadata).toEqualTypeOf<
+            ProviderMetadata | undefined
+          >();
+        },
+      });
+    });
+  });
+
   describe('experimental_toolCallers', () => {
     it('should accept caller-capable tool names', () => {
       const codeMode = experimental_toolCaller(

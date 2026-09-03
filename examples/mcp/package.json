@@ -7,6 +7,8 @@
     "client:sse": "tsx src/sse/client.ts",
     "server:http": "tsx src/http/server.ts",
     "client:http": "tsx src/http/client.ts",
+    "server:http-2026": "tsx src/http-2026/server.ts",
+    "client:http-2026": "tsx src/http-2026/client.ts",
     "server:mcp-with-auth": "tsx src/mcp-with-auth/server.ts",
     "client:mcp-with-auth": "tsx src/mcp-with-auth/client.ts",
     "server:mcp-prompts": "tsx src/mcp-prompts/server.ts",
@@ -32,7 +34,9 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "workspace:*",
+    "@modelcontextprotocol/node": "^2.0.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/server": "^2.0.0",
     "ai": "workspace:*",
     "dotenv": "16.4.5",
     "express": "5.0.1",
@@ -42,7 +46,7 @@
     "@ai-sdk/mcp": "workspace:*",
     "@types/express": "5.0.0",
     "@types/node": "22.19.19",
-    "tsx": "4.19.2",
+    "tsx": "4.23.12",
     "typescript": "5.8.3"
   }
 }

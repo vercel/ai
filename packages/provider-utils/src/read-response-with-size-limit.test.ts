@@ -121,6 +121,42 @@ describe('readResponseWithSizeLimit', () => {
     });
   });
 
+  it('should preserve streamed size-limit errors when cancellation fails', async () => {
+    const cancelError = new Error('cancel failed');
+    let cancelled = false;
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array([1, 2]));
+      },
+      cancel() {
+        cancelled = true;
+        return Promise.reject(cancelError);
+      },
+    });
+    const response = {
+      headers: new Headers(),
+      body,
+    } as unknown as Response;
+
+    await expect(
+      readResponseWithSizeLimit({
+        response,
+        url: 'http://example.com/streaming',
+        maxBytes: 1,
+      }),
+    ).rejects.toSatisfy((error: unknown) => {
+      expect(error).not.toBe(cancelError);
+      expect(DownloadError.isInstance(error)).toBe(true);
+      expect((error as DownloadError).message).toBe(
+        'Download of http://example.com/streaming exceeded maximum size of 1 bytes.',
+      );
+      return true;
+    });
+
+    expect(cancelled).toBe(true);
+    expect(body.locked).toBe(false);
+  });
+
   it('should handle lying Content-Length (says small, sends large)', async () => {
     const largeBody = new Uint8Array(200);
     largeBody.fill(42);

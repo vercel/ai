@@ -26,6 +26,12 @@ exports[`XaiResponsesLanguageModel > doGenerate > web_search tool > should inclu
     "type": "tool-call",
   },
   {
+    "result": {},
+    "toolCallId": "fc_25de2f84-163c-6e9e-e42e-cd1dbd6f9ed0_0",
+    "toolName": "web_search",
+    "type": "tool-result",
+  },
+  {
     "text": "xAI is an American artificial intelligence company founded by Elon Musk in July 2023. Its mission is to "understand the true nature of the universe" by advancing scientific discovery through AI. The company is based in the San Francisco Bay Area and focuses on building advanced AI systems, including the Grok chatbot (integrated with the X platform, formerly Twitter). Notable team members include former researchers from OpenAI, DeepMind, and other AI labs.
 
 xAI has raised significant funding, including a $6 billion Series B round in 2024, and is competing with major players like OpenAI and Google in the AI space.
@@ -13046,25 +13052,45 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream x
     "type": "tool-call",
   },
   {
-    "result": {},
+    "result": {
+      "action": {
+        "query": "",
+        "type": "search",
+      },
+    },
     "toolCallId": "ws_b7b464ea-cc85-d44a-0f2f-1f7320e703c3_call_09546004",
     "toolName": "web_search",
     "type": "tool-result",
   },
   {
-    "result": {},
+    "result": {
+      "action": {
+        "query": "",
+        "type": "search",
+      },
+    },
     "toolCallId": "ws_b7b464ea-cc85-d44a-0f2f-1f7320e703c3_call_45339693",
     "toolName": "web_search",
     "type": "tool-result",
   },
   {
-    "result": {},
+    "result": {
+      "action": {
+        "query": "",
+        "type": "search",
+      },
+    },
     "toolCallId": "ws_b7b464ea-cc85-d44a-0f2f-1f7320e703c3_call_55360208",
     "toolName": "web_search",
     "type": "tool-result",
   },
   {
-    "result": {},
+    "result": {
+      "action": {
+        "query": "",
+        "type": "search",
+      },
+    },
     "toolCallId": "ws_b7b464ea-cc85-d44a-0f2f-1f7320e703c3_call_63718660",
     "toolName": "web_search",
     "type": "tool-result",
@@ -21962,6 +21988,14 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream x
         "output_tokens": 3077,
         "output_tokens_details": {
           "reasoning_tokens": 1091,
+        },
+        "server_side_tool_usage_details": {
+          "code_interpreter_calls": 0,
+          "document_search_calls": 0,
+          "file_search_calls": 0,
+          "mcp_calls": 0,
+          "web_search_calls": 0,
+          "x_search_calls": 1,
         },
         "total_tokens": 30313,
       },

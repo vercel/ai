@@ -1,8 +1,10 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { openCode } from '@ai-sdk/harness-opencode';
+import { createOpenCode } from './_create';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+
+const openCode = createOpenCode();
 
 /*
  * Context compaction (OpenCode).
@@ -25,7 +27,6 @@ run(async () => {
   });
   const agent = new HarnessAgent({ harness: openCode, sandbox });
 
-  let exitCode = 0;
   const session = await agent.createSession();
   try {
     console.log('--- turn 1: build up some context ---');
@@ -47,11 +48,7 @@ run(async () => {
       prompt: 'Now write a short haiku about that explanation.',
     });
     await printFullStream({ result: second });
-  } catch (err) {
-    exitCode = 1;
-    console.error('[example] failed:', err);
   } finally {
     await session.destroy();
-    process.exit(exitCode);
   }
 });

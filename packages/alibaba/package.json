@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/alibaba",
-  "version": "2.0.26",
+  "version": "2.0.41",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -36,7 +36,6 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*"
   },

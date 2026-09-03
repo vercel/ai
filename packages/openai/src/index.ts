@@ -22,11 +22,19 @@ export type { OpenAILanguageModelCompletionOptions } from './completion/openai-c
 export type { OpenAIEmbeddingModelOptions } from './embedding/openai-embedding-model-options';
 export type { OpenAISpeechModelOptions } from './speech/openai-speech-model-options';
 export type { OpenAITranscriptionModelOptions } from './transcription/openai-transcription-model-options';
-export { OpenAITranslationModel as Experimental_OpenAITranslationModel } from './translation/openai-translation-model';
+export {
+  OpenAISpeechTranslationModel as Experimental_OpenAISpeechTranslationModel,
+  /** @deprecated Use `Experimental_OpenAISpeechTranslationModel` instead. */
+  OpenAISpeechTranslationModel as Experimental_OpenAITranslationModel,
+} from './speech-translation/openai-speech-translation-model';
 export type {
-  OpenAITranslationModelId as Experimental_OpenAITranslationModelId,
-  OpenAITranslationModelOptions as Experimental_OpenAITranslationModelOptions,
-} from './translation/openai-translation-model-options';
+  OpenAISpeechTranslationModelId as Experimental_OpenAISpeechTranslationModelId,
+  /** @deprecated Use `Experimental_OpenAISpeechTranslationModelId` instead. */
+  OpenAISpeechTranslationModelId as Experimental_OpenAITranslationModelId,
+  OpenAISpeechTranslationModelOptions as Experimental_OpenAISpeechTranslationModelOptions,
+  /** @deprecated Use `Experimental_OpenAISpeechTranslationModelOptions` instead. */
+  OpenAISpeechTranslationModelOptions as Experimental_OpenAITranslationModelOptions,
+} from './speech-translation/openai-speech-translation-model-options';
 export type { OpenAIFilesOptions } from './files/openai-files-options';
 export type {
   OpenAIComputerAction,

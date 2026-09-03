@@ -39,7 +39,19 @@ interface XaiVideoModelConfig {
   };
 }
 
+function encodePathSegment(value: string): string {
+  const encodedValue = encodeURIComponent(value);
+
+  // URL parsing normalizes both literal and percent-encoded dot segments.
+  return encodedValue === '.'
+    ? '%252E'
+    : encodedValue === '..'
+      ? '%252E%252E'
+      : encodedValue;
+}
+
 const RESOLUTION_MAP: Record<string, string> = {
+  '1920x1080': '1080p',
   '1280x720': '720p',
   '854x480': '480p',
   '640x480': '480p',
@@ -70,7 +82,12 @@ function resolveStartImage(
 const isVideoFile = (file: VideoModelV4File): boolean =>
   file.mediaType != null && getTopLevelMediaType(file.mediaType) === 'video';
 
-function fileToXaiImageUrl(file: VideoModelV4File): string {
+// References without a media type (only possible for URLs) are treated as
+// images, matching the legacy `referenceImageUrls` behavior.
+const isImageReference = (file: VideoModelV4File): boolean =>
+  file.mediaType == null || getTopLevelMediaType(file.mediaType) === 'image';
+
+function fileToXaiUrl(file: VideoModelV4File): string {
   if (file.type === 'url') {
     return file.url;
   }
@@ -84,32 +101,37 @@ function fileToXaiImageUrl(file: VideoModelV4File): string {
 
 // Resolves the reference images for R2V generation. First-class
 // `inputReferences` win over the legacy `referenceImageUrls` provider option.
-// Video references are not supported for reference-to-video and are skipped
-// with a warning.
-function resolveReferenceImages(
+// Non-image references (video or audio) are not supported for
+// reference-to-video and are skipped with a warning.
+function resolveReferences(
   options: XaiVideoCallOptions,
   xaiOptions: XaiParsedVideoModelOptions | undefined,
   warnings: SharedV4Warning[],
 ): Array<{ url: string }> | undefined {
   if (options.inputReferences != null && options.inputReferences.length > 0) {
-    const imageReferences = options.inputReferences.filter(reference => {
-      if (isVideoFile(reference)) {
+    const imageFiles: VideoModelV4File[] = [];
+
+    for (const reference of options.inputReferences) {
+      if (!isImageReference(reference)) {
         warnings.push({
           type: 'unsupported',
           feature: 'inputReferences',
-          details:
-            'xAI reference-to-video accepts image references only. The video ' +
-            'reference was ignored. Use providerOptions.xai.mode ' +
-            '"extend-video" to continue from a video.',
+          details: isVideoFile(reference)
+            ? 'xAI reference-to-video accepts image references only. The ' +
+              'video reference was ignored. Use providerOptions.xai.mode ' +
+              '"extend-video" to continue from a video.'
+            : 'xAI reference-to-video accepts image references only. The ' +
+              'non-image reference was ignored.',
         });
-        return false;
+        continue;
       }
-      return true;
-    });
 
-    return imageReferences.map(reference => ({
-      url: fileToXaiImageUrl(reference),
-    }));
+      imageFiles.push(reference);
+    }
+
+    return imageFiles.length > 0
+      ? imageFiles.map(reference => ({ url: fileToXaiUrl(reference) }))
+      : undefined;
   }
 
   if (
@@ -120,6 +142,11 @@ function resolveReferenceImages(
   }
 
   return undefined;
+}
+
+// True when at least one reference would survive as an image.
+function hasImageInputReference(options: XaiVideoCallOptions): boolean {
+  return options.inputReferences?.some(isImageReference) ?? false;
 }
 
 function resolveVideoMode(
@@ -138,13 +165,17 @@ function resolveVideoMode(
   // only auto-select reference-to-video when no frame images are provided.
   const hasFrameImages =
     options.frameImages != null && options.frameImages.length > 0;
-  const hasInputReferences =
-    options.inputReferences != null && options.inputReferences.length > 0;
   const hasLegacyReferenceUrls =
     xaiOptions?.referenceImageUrls != null &&
     xaiOptions.referenceImageUrls.length > 0;
 
-  if (!hasFrameImages && (hasInputReferences || hasLegacyReferenceUrls)) {
+  // Reference-to-video needs at least one image reference. An audio-only (or
+  // video-only) `inputReferences` array must not flip a text- or
+  // image-to-video request into R2V.
+  if (
+    !hasFrameImages &&
+    (hasImageInputReference(options) || hasLegacyReferenceUrls)
+  ) {
     return 'reference-to-video';
   }
 
@@ -290,7 +321,8 @@ export class XaiVideoModel implements VideoModelV4 {
           feature: 'resolution',
           details:
             `Unrecognized resolution "${options.resolution}". ` +
-            'Use providerOptions.xai.resolution with "480p" or "720p" instead.',
+            'Use providerOptions.xai.resolution with "480p", "720p", or ' +
+            '"1080p" instead.',
         });
       }
     }
@@ -320,7 +352,7 @@ export class XaiVideoModel implements VideoModelV4 {
             'continue from a video instead.',
         });
       } else {
-        body.image = { url: fileToXaiImageUrl(startImage) };
+        body.image = { url: fileToXaiUrl(startImage) };
       }
     }
 
@@ -342,18 +374,58 @@ export class XaiVideoModel implements VideoModelV4 {
 
     // Reference images for R2V (reference-to-video) generation
     if (hasReferenceImages) {
-      const referenceImages = resolveReferenceImages(
-        options,
-        xaiOptions,
-        warnings,
-      );
+      const referenceImages = resolveReferences(options, xaiOptions, warnings);
+
       if (referenceImages != null) {
         body.reference_images = referenceImages;
+      } else {
+        // Explicit R2V with no usable image references would silently send
+        // a plain generations request; tell the user it is no longer R2V.
+        warnings.push({
+          type: 'unsupported',
+          feature: 'referenceImages',
+          details:
+            'xAI reference-to-video requires at least one image reference. ' +
+            'The video will be generated without reference images.',
+        });
+      }
+
+      const referenceVoiceIds = xaiOptions?.referenceVoiceIds;
+      if (referenceVoiceIds != null && referenceVoiceIds.length > 0) {
+        body.reference_audios = referenceVoiceIds.map(voiceId => ({
+          voice_id: voiceId,
+        }));
+      }
+
+      // Reference-to-video is capped at 720p; downgrade a 1080p request.
+      if (body.resolution === '1080p') {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'resolution',
+          details:
+            'xAI reference-to-video is limited to 720p. The request was ' +
+            'downgraded from 1080p to 720p.',
+        });
+        body.resolution = '720p';
       }
     }
 
-    // Warn when reference images were provided but cannot be used in the
-    // resolved mode (e.g. alongside frameImages, or in edit/extend modes).
+    // 1080p requires grok-imagine-video-1.5; the original grok-imagine-video
+    // rejects it. Warn, but send the request as the user asked.
+    if (body.resolution === '1080p' && this.modelId === 'grok-imagine-video') {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'resolution',
+        details:
+          'xAI model "grok-imagine-video" does not support 1080p. Use ' +
+          '"grok-imagine-video-1.5" for 1080p, or a lower resolution. The ' +
+          'request was sent with 1080p.',
+      });
+    }
+
+    // Warn when references were provided but cannot be used in the resolved
+    // mode (e.g. alongside frameImages, in edit/extend modes, or when the
+    // references carried no usable image to drive reference-to-video).
     if (
       options.inputReferences != null &&
       options.inputReferences.length > 0 &&
@@ -362,9 +434,26 @@ export class XaiVideoModel implements VideoModelV4 {
       warnings.push({
         type: 'unsupported',
         feature: 'inputReferences',
+        details: hasImageInputReference(options)
+          ? 'xAI only supports inputReferences for reference-to-video ' +
+            'generation. The reference images were ignored.'
+          : 'xAI reference-to-video requires at least one image reference. ' +
+            'The references were ignored.',
+      });
+    }
+
+    // Preset reference voices only apply to reference-to-video generation.
+    if (
+      xaiOptions?.referenceVoiceIds != null &&
+      xaiOptions.referenceVoiceIds.length > 0 &&
+      !hasReferenceImages
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'referenceVoiceIds',
         details:
-          'xAI only supports inputReferences for reference-to-video ' +
-          'generation. The reference images were ignored.',
+          'xAI only supports reference voices for reference-to-video ' +
+          'generation. The reference voices were ignored.',
       });
     }
 
@@ -382,6 +471,7 @@ export class XaiVideoModel implements VideoModelV4 {
             'resolution',
             'videoUrl',
             'referenceImageUrls',
+            'referenceVoiceIds',
             'user',
           ].includes(key)
         ) {
@@ -459,7 +549,7 @@ export class XaiVideoModel implements VideoModelV4 {
     const baseURL = this.config.baseURL ?? 'https://api.x.ai/v1';
 
     const { value: statusResponse, responseHeaders } = await getFromApi({
-      url: `${baseURL}/videos/${requestId}`,
+      url: `${baseURL}/videos/${encodePathSegment(requestId)}`,
       validateUrl: false,
       headers: combineHeaders(this.config.headers(), options.headers),
       successfulResponseHandler: xaiVideoStatusResponseHandler,
@@ -502,19 +592,30 @@ export class XaiVideoModel implements VideoModelV4 {
       statusResponse.status === 'done' ||
       (statusResponse.status == null && statusResponse.video?.url)
     ) {
+      // Terminal outcomes, so they are reported the same way as an upstream `failed`
       if (statusResponse.video?.respect_moderation === false) {
-        throw new AISDKError({
-          name: 'XAI_VIDEO_MODERATION_ERROR',
-          message:
+        return {
+          status: 'error' as const,
+          error:
             'Video generation was blocked due to a content policy violation.',
-        });
+          response: {
+            timestamp: currentDate,
+            modelId: this.modelId,
+            headers: responseHeaders,
+          },
+        };
       }
 
       if (!statusResponse.video?.url) {
-        throw new AISDKError({
-          name: 'XAI_VIDEO_GENERATION_ERROR',
-          message: 'Video generation completed but no video URL was returned.',
-        });
+        return {
+          status: 'error' as const,
+          error: 'Video generation completed but no video URL was returned.',
+          response: {
+            timestamp: currentDate,
+            modelId: this.modelId,
+            headers: responseHeaders,
+          },
+        };
       }
 
       return {

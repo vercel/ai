@@ -1,6 +1,11 @@
-import { generateId, type ModelMessage } from '@ai-sdk/provider-utils';
+import {
+  generateId,
+  type ModelMessage,
+  type ToolSet,
+} from '@ai-sdk/provider-utils';
 import { createTelemetryDispatcher } from 'ai/internal';
 import type { LanguageModelUsage, TelemetryOptions } from 'ai';
+import type { HarnessV1ToolSpec } from '../../v1';
 
 /*
  * Drives AI SDK's pluggable `Telemetry` lifecycle from a harness turn.
@@ -13,8 +18,9 @@ import type { LanguageModelUsage, TelemetryOptions } from 'ai';
  * step boundary, tool-calls = tool executions, `finish` = operation end. The
  * model-call-only event fields the harness has no value for (sampling params,
  * standardized prompt) are left `undefined` / cast; the fields the integrations
- * actually read (`callId`, `operationId`, `provider`, `modelId`, `messages`,
- * `toolCall`, `usage`, `finishReason`) carry real values.
+ * actually read (`callId`, `operationId`, `provider`, `modelId`,
+ * `instructions`, `messages`, `tools`, `toolCall`, `usage`, `finishReason`)
+ * carry real values.
  *
  * Telemetry is opt-in: the framework only drives it when `settings.telemetry`
  * is set (the dispatcher then also honours globally-registered integrations).
@@ -160,6 +166,9 @@ export function createTurnTelemetry(opts: {
   harnessId: string;
   modelId: string | undefined;
   instructions: string | undefined;
+  tools: ToolSet;
+  activeToolNames: string[];
+  toolSpecs: HarnessV1ToolSpec[];
   promptText: string;
   runtimeContext: unknown;
 }): TurnTelemetry {
@@ -177,6 +186,19 @@ export function createTurnTelemetry(opts: {
   const inputMessages: ModelMessage[] = [
     { role: 'user', content: opts.promptText },
   ];
+  const languageModelTools =
+    opts.toolSpecs.length === 0
+      ? undefined
+      : opts.toolSpecs.map(tool => ({
+          type: 'function' as const,
+          name: tool.name,
+          ...(tool.description != null
+            ? { description: tool.description }
+            : {}),
+          ...(tool.inputSchema != null
+            ? { inputSchema: tool.inputSchema }
+            : {}),
+        }));
 
   let started = false;
   let stepOpen = false;
@@ -211,9 +233,9 @@ export function createTurnTelemetry(opts: {
         operationId: 'ai.harness',
         provider,
         modelId,
-        tools: undefined,
+        tools: opts.tools,
         toolChoice: undefined,
-        activeTools: undefined,
+        activeTools: opts.activeToolNames,
         maxRetries: 0,
         timeout: undefined,
         headers: undefined,
@@ -243,13 +265,14 @@ export function createTurnTelemetry(opts: {
         provider,
         modelId,
         stepNumber,
-        tools: undefined,
+        tools: opts.tools,
         toolChoice: undefined,
-        activeTools: undefined,
+        activeTools: opts.activeToolNames,
         steps: new Array(stepNumber),
         providerOptions: undefined,
         output: undefined,
         runtimeContext,
+        instructions: opts.instructions,
         messages: inputMessages,
       }),
     );
@@ -260,8 +283,9 @@ export function createTurnTelemetry(opts: {
         callId,
         provider,
         modelId,
+        instructions: opts.instructions,
         messages: inputMessages,
-        tools: undefined,
+        tools: languageModelTools,
       }),
     );
   };
@@ -271,6 +295,7 @@ export function createTurnTelemetry(opts: {
     finishReason: unknown;
     usage: unknown;
     content: TurnContentPart[];
+    providerMetadata?: unknown;
   }): Promise<void> => {
     const finishReason = normalizeFinishReason(info.finishReason);
     const usage = normalizeUsage(info.usage);
@@ -278,10 +303,15 @@ export function createTurnTelemetry(opts: {
     await dispatcher.onLanguageModelCallEnd?.(
       cast<'onLanguageModelCallEnd'>({
         callId,
+        provider,
+        modelId,
         finishReason,
         responseId: callId,
         usage,
         content: info.content,
+        ...(info.providerMetadata != null
+          ? { providerMetadata: info.providerMetadata }
+          : {}),
         performance: {
           responseTimeMs: undefined,
           timeToFirstOutputMs: undefined,
@@ -344,6 +374,7 @@ export function createTurnTelemetry(opts: {
         finishReason,
         usage,
         content,
+        providerMetadata: info.providerMetadata,
       });
       await dispatcher.onStepEnd?.(
         cast<'onStepEnd'>({

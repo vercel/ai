@@ -4,8 +4,10 @@ import {
   InMemorySpanExporter,
   SimpleSpanProcessor,
 } from '@opentelemetry/sdk-trace-base';
+import { tool } from '@ai-sdk/provider-utils';
 import type { Telemetry } from 'ai';
 import { describe, expect, test } from 'vitest';
+import { z } from 'zod/v4';
 import type {
   HarnessV1,
   HarnessV1NetworkSandboxSession,
@@ -79,6 +81,7 @@ function makeSandboxProvider(): HarnessV1SandboxProvider {
     id: 'sandbox',
     defaultWorkingDirectory: '/work',
     ports: [],
+    getPortEndpoint: async () => ({ url: 'ws://example.test/' }),
     getPortUrl: async () => 'ws://example.test/',
     run: async () => ({ exitCode: 0, stdout: '', stderr: '' }),
     stop: async () => {},
@@ -115,18 +118,22 @@ function recordingIntegration(): {
   integration: Telemetry;
   calls: Array<{ method: string; callId: unknown }>;
   events: Record<string, unknown>;
+  eventLists: Record<string, unknown[]>;
 } {
   const calls: Array<{ method: string; callId: unknown }> = [];
   const events: Record<string, unknown> = {};
+  const eventLists: Record<string, unknown[]> = {};
   const rec =
     (method: string) =>
     (event: unknown): void => {
       calls.push({ method, callId: (event as { callId?: unknown }).callId });
       events[method] = event;
+      (eventLists[method] ??= []).push(event);
     };
   return {
     calls,
     events,
+    eventLists,
     integration: {
       onStart: rec('onStart'),
       onStepStart: rec('onStepStart'),
@@ -164,6 +171,9 @@ describe('HarnessAgent telemetry integration', () => {
         type: 'finish-step',
         finishReason: { unified: 'stop', raw: 'stop' },
         usage,
+        harnessMetadata: {
+          gateway: { generationId: 'generation-id' },
+        },
       },
       {
         type: 'finish',
@@ -179,6 +189,7 @@ describe('HarnessAgent telemetry integration', () => {
       telemetry: { integrations: [integration] },
     });
     const session = await agent.createSession();
+    expect(calls).toEqual([]);
     await agent.generate({ session, prompt: 'go' });
     await session.destroy();
 
@@ -200,6 +211,7 @@ describe('HarnessAgent telemetry integration', () => {
       finishReason: unknown;
       usage: unknown;
       performance: unknown;
+      providerMetadata: unknown;
     };
     expect(lmEnd.content).toEqual([
       { type: 'text', text: 'hi' },
@@ -216,6 +228,9 @@ describe('HarnessAgent telemetry integration', () => {
       timeBetweenOutputChunksMs: undefined,
     });
     expect(lmEnd.finishReason).toBe('stop');
+    expect(lmEnd.providerMetadata).toEqual({
+      gateway: { generationId: 'generation-id' },
+    });
     expect(lmEnd.usage).toEqual({
       inputTokens: 5,
       inputTokenDetails: {
@@ -240,7 +255,9 @@ describe('HarnessAgent telemetry integration', () => {
     expect(end.text).toBe('hi');
     expect(end.finalStep).toEqual({
       reasoning: [],
-      providerMetadata: undefined,
+      providerMetadata: {
+        gateway: { generationId: 'generation-id' },
+      },
     });
     expect(end.toolCalls).toEqual([
       {
@@ -260,6 +277,198 @@ describe('HarnessAgent telemetry integration', () => {
     const callIds = new Set(calls.map(c => c.callId));
     expect(callIds.size).toBe(1);
     expect([...callIds][0]).toBeTruthy();
+  });
+
+  test('reports fresh turn settings without exposing skills', async () => {
+    const harness = scriptedHarness([
+      { type: 'stream-start' },
+      { type: 'text-start', id: 't1' },
+      { type: 'text-delta', id: 't1', delta: 'done' },
+      { type: 'text-end', id: 't1' },
+      {
+        type: 'finish-step',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        usage,
+      },
+      {
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        totalUsage: usage,
+      },
+    ]);
+    const echo = tool({
+      description: 'Echo a value.',
+      inputSchema: z.object({ value: z.string() }),
+    });
+    const reverse = tool({
+      description: 'Reverse a value.',
+      inputSchema: z.object({ value: z.string() }),
+    });
+    const { integration, eventLists } = recordingIntegration();
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+      telemetry: { integrations: [integration] },
+      callOptionsSchema: z.object({ tenant: z.enum(['alpha', 'beta']) }),
+      prepareCall: ({ options, ...call }) => ({
+        ...call,
+        model: `model-${options.tenant}`,
+        skills: [
+          {
+            name: `${options.tenant}-skill`,
+            description: `${options.tenant} skill`,
+            content: `${options.tenant} skill instructions`,
+          },
+        ],
+        instructions: `${options.tenant} instructions`,
+        tools: options.tenant === 'alpha' ? { echo } : { reverse },
+      }),
+    });
+    const session = await agent.createSession();
+
+    await agent.generate({
+      session,
+      prompt: 'first',
+      options: { tenant: 'alpha' },
+    });
+    await agent.generate({
+      session,
+      prompt: 'second',
+      options: { tenant: 'beta' },
+    });
+    await session.destroy();
+
+    const starts = eventLists.onStart as Array<{
+      modelId: string;
+      instructions: string;
+      tools: Record<string, unknown>;
+      activeTools: string[];
+    }>;
+    expect(
+      starts.map(({ modelId, instructions, tools, activeTools }) => ({
+        modelId,
+        instructions,
+        toolNames: Object.keys(tools),
+        activeTools,
+      })),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "activeTools": [
+            "echo",
+          ],
+          "instructions": "alpha instructions",
+          "modelId": "model-alpha",
+          "toolNames": [
+            "echo",
+          ],
+        },
+        {
+          "activeTools": [
+            "reverse",
+          ],
+          "instructions": "beta instructions",
+          "modelId": "model-beta",
+          "toolNames": [
+            "reverse",
+          ],
+        },
+      ]
+    `);
+
+    const stepStarts = eventLists.onStepStart as Array<{
+      modelId: string;
+      instructions: string;
+      tools: Record<string, unknown>;
+      activeTools: string[];
+    }>;
+    expect(
+      stepStarts.map(({ modelId, instructions, tools, activeTools }) => ({
+        modelId,
+        instructions,
+        toolNames: Object.keys(tools),
+        activeTools,
+      })),
+    ).toEqual(
+      starts.map(({ modelId, instructions, tools, activeTools }) => ({
+        modelId,
+        instructions,
+        toolNames: Object.keys(tools),
+        activeTools,
+      })),
+    );
+
+    const modelCallStarts = eventLists.onLanguageModelCallStart as Array<{
+      modelId: string;
+      instructions: string;
+      tools: unknown[];
+    }>;
+    expect(
+      modelCallStarts.map(({ modelId, instructions, tools }) => ({
+        modelId,
+        instructions,
+        tools,
+      })),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "instructions": "alpha instructions",
+          "modelId": "model-alpha",
+          "tools": [
+            {
+              "description": "Echo a value.",
+              "inputSchema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "name": "echo",
+              "type": "function",
+            },
+          ],
+        },
+        {
+          "instructions": "beta instructions",
+          "modelId": "model-beta",
+          "tools": [
+            {
+              "description": "Reverse a value.",
+              "inputSchema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "name": "reverse",
+              "type": "function",
+            },
+          ],
+        },
+      ]
+    `);
+    expect(
+      Object.values(eventLists)
+        .flat()
+        .every(
+          event =>
+            !Object.prototype.hasOwnProperty.call(event as object, 'skills'),
+        ),
+    ).toBe(true);
   });
 
   test('uses final-step text and reasoning on the telemetry end event', async () => {
@@ -351,8 +560,15 @@ describe('HarnessAgent telemetry integration', () => {
       },
     ]);
     const { exporter, tracer } = createSdkTracer();
+    const echo = tool({
+      description: 'Echo a value.',
+      inputSchema: z.object({ value: z.string() }),
+    });
     const agent = new HarnessAgent({
       harness,
+      model: 'requested-model',
+      instructions: 'Answer concisely.',
+      tools: { echo },
       sandbox: makeSandboxProvider(),
       telemetry: {
         isEnabled: true,
@@ -378,6 +594,8 @@ describe('HarnessAgent telemetry integration', () => {
     const rootSpan = getExportedSpan(exporter, 'ai.harness otel-model');
 
     expect(chatSpan!.attributes).toMatchObject({
+      'gen_ai.request.model': 'otel-model',
+      'gen_ai.response.model': 'otel-model',
       'gen_ai.input.messages': JSON.stringify([
         { role: 'user', parts: [{ type: 'text', content: 'go' }] },
       ]),
@@ -385,6 +603,40 @@ describe('HarnessAgent telemetry integration', () => {
       'gen_ai.usage.input_tokens': 5,
       'gen_ai.usage.output_tokens': 2,
     });
+    expect(chatSpan!.attributes['gen_ai.system_instructions']).toBe(
+      JSON.stringify([
+        {
+          type: 'text',
+          content: 'Answer concisely.',
+        },
+      ]),
+    );
+    expect(
+      JSON.parse(
+        chatSpan!.attributes['gen_ai.tool.definitions'] as string,
+      ) as unknown,
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "description": "Echo a value.",
+          "inputSchema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "value": {
+                "type": "string",
+              },
+            },
+            "required": [
+              "value",
+            ],
+            "type": "object",
+          },
+          "name": "echo",
+          "type": "function",
+        },
+      ]
+    `);
     expect(chatSpan!.attributes['gen_ai.output.messages']).toBe(
       JSON.stringify([
         {
@@ -396,6 +648,13 @@ describe('HarnessAgent telemetry integration', () => {
     );
 
     expect(rootSpan.attributes).toMatchObject({
+      'gen_ai.request.model': 'otel-model',
+      'gen_ai.system_instructions': JSON.stringify([
+        {
+          type: 'text',
+          content: 'Answer concisely.',
+        },
+      ]),
       'gen_ai.response.finish_reasons': ['stop'],
       'gen_ai.usage.input_tokens': 5,
       'gen_ai.usage.output_tokens': 2,
@@ -417,6 +676,53 @@ describe('HarnessAgent telemetry integration', () => {
         },
       ]),
     );
+  });
+
+  test('omits turn input attributes when recordInputs is false', async () => {
+    const harness = scriptedHarness([
+      { type: 'stream-start', modelId: 'private-model' },
+      { type: 'text-start', id: 't1' },
+      { type: 'text-delta', id: 't1', delta: 'done' },
+      { type: 'text-end', id: 't1' },
+      {
+        type: 'finish-step',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        usage,
+      },
+      {
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        totalUsage: usage,
+      },
+    ]);
+    const { exporter, tracer } = createSdkTracer();
+    const agent = new HarnessAgent({
+      harness,
+      instructions: 'Do not record.',
+      tools: {
+        secret: tool({
+          inputSchema: z.object({ value: z.string() }),
+        }),
+      },
+      sandbox: makeSandboxProvider(),
+      telemetry: {
+        isEnabled: true,
+        recordInputs: false,
+        integrations: [new OpenTelemetry({ tracer })],
+      },
+    });
+
+    const session = await agent.createSession();
+    await agent.generate({ session, prompt: 'private prompt' });
+    await session.destroy();
+
+    const chatSpan = getExportedSpan(exporter, 'chat private-model');
+    expect(chatSpan.attributes['gen_ai.request.model']).toBe('private-model');
+    expect(chatSpan.attributes).not.toHaveProperty('gen_ai.input.messages');
+    expect(chatSpan.attributes).not.toHaveProperty(
+      'gen_ai.system_instructions',
+    );
+    expect(chatSpan.attributes).not.toHaveProperty('gen_ai.tool.definitions');
   });
 
   test('fires no telemetry when settings.telemetry is unset', async () => {

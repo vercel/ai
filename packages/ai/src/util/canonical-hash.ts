@@ -15,13 +15,8 @@ export function canonicalJSON(value: unknown): string {
     return JSON.stringify(value);
   }
   if (Array.isArray(value)) {
-    // `canonicalJSON(undefined)` is the JS value `undefined` (JSON.stringify
-    // returns undefined for it). Array.prototype.join coerces undefined/null
-    // array elements to empty strings, so `[]` and `[undefined]` both become
-    // `"[]"`. Serialize undefined entries as `null` so the digests diverge
-    // (matches JSON array semantics for holes/undefined). (#18157)
     return `[${value
-      .map(v => (v === undefined ? 'null' : canonicalJSON(v)))
+      .map(element => (element === undefined ? 'null' : canonicalJSON(element)))
       .join(',')}]`;
   }
   const keys = Object.keys(value as Record<string, unknown>).sort();

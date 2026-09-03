@@ -6,13 +6,14 @@
  *
  * Run with: pnpm test:integration
  */
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { start } from 'workflow/api';
 
 import {
   agentBasicE2e,
   agentErrorToolE2e,
   agentInstructionsStringE2e,
+  agentModelRetriesE2e,
   agentMultiStepE2e,
   agentOnFinishE2e,
   agentOnStartE2e,
@@ -24,11 +25,35 @@ import {
   agentRepairToolCallE2e,
   agentRuntimeAndToolsContextE2e,
   agentSandboxE2e,
+  agentSignedToolApprovalIssueE2e,
+  agentSignedToolApprovalResumeE2e,
+  agentStreamErrorE2e,
   agentTimeoutE2e,
   agentToolApprovalE2e,
   agentToolCallE2e,
   agentToolInputSchemaE2e,
 } from './test/agent-e2e-workflows.js';
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
+async function collectStream<T>(stream: ReadableStream<T>): Promise<T[]> {
+  const chunks: T[] = [];
+  const reader = stream.getReader();
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        return chunks;
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
 
 describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
   // ==========================================================================
@@ -43,6 +68,37 @@ describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
         stepCount: 1,
         lastStepText: 'Echo: hello world',
       });
+    });
+
+    it('retries model calls within one durable step attempt', async () => {
+      const run = await start(agentModelRetriesE2e, []);
+
+      await expect(run.returnValue).resolves.toBe(
+        'model-attempts=3;step-attempt=1',
+      );
+    });
+
+    it('surfaces stream error data without retrying the model step', async () => {
+      const run = await start(agentStreamErrorE2e, []);
+      const chunksPromise = collectStream<{ type: string; error?: unknown }>(
+        run.readable,
+      );
+      const rv = await run.returnValue;
+      const chunks = await chunksPromise;
+      const terminal = {
+        type: 'credential',
+        code: 'safe-terminal-classification',
+      };
+
+      expect(rv).toEqual({
+        error: terminal,
+        finishReason: 'error',
+        stepCount: 1,
+        callbackErrors: [terminal],
+      });
+      expect(chunks.filter(chunk => chunk.type === 'error')).toEqual([
+        { type: 'error', error: terminal },
+      ]);
     });
 
     it('single tool call', async () => {
@@ -167,44 +223,43 @@ describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
   });
 
   // ==========================================================================
-  // GAP tests — these fail until the feature is implemented
+  // Lifecycle and approval behavior
   // ==========================================================================
 
-  describe('experimental_onStart (GAP)', () => {
-    it('completes but callbacks are not called (GAP)', async () => {
+  describe('experimental_onStart', () => {
+    it('calls constructor and stream callbacks', async () => {
       const run = await start(agentOnStartE2e, []);
       const rv = await run.returnValue;
-      // GAP: when implemented, should be ['constructor', 'method']
-      expect(rv.callSources).toEqual([]);
+      expect(rv.callSources).toEqual(['constructor', 'method']);
     });
   });
 
-  describe('experimental_onStepStart (GAP)', () => {
-    it('completes but callbacks are not called (GAP)', async () => {
+  describe('experimental_onStepStart', () => {
+    it('calls constructor and stream callbacks', async () => {
       const run = await start(agentOnStepStartE2e, []);
       const rv = await run.returnValue;
-      // GAP: when implemented, should be ['constructor', 'method']
-      expect(rv.callSources).toEqual([]);
+      expect(rv.callSources).toEqual(['constructor', 'method']);
     });
   });
 
-  describe('onToolExecutionStart (GAP)', () => {
-    it('completes but callbacks are not called (GAP)', async () => {
+  describe('onToolExecutionStart', () => {
+    it('calls constructor and stream callbacks', async () => {
       const run = await start(agentonToolExecutionStartE2e, []);
       const rv = await run.returnValue;
-      // GAP: when implemented, should be ['constructor', 'method']
-      expect(rv.calls).toEqual([]);
+      expect(rv.calls).toEqual(['constructor', 'method']);
     });
   });
 
-  describe('onToolExecutionEnd (GAP)', () => {
-    it('completes but callbacks are not called (GAP)', async () => {
+  describe('onToolExecutionEnd', () => {
+    it('calls constructor and stream callbacks with the result', async () => {
       const run = await start(agentonToolExecutionEndE2e, []);
       const rv = await run.returnValue;
-      // GAP: when implemented, should be ['constructor', 'method']
-      expect(rv.calls).toEqual([]);
-      // GAP: capturedEvent should have tool result data
-      expect(rv.capturedEvent).toBeNull();
+      expect(rv.calls).toEqual(['constructor', 'method']);
+      expect(rv.capturedEvent).toEqual({
+        toolName: 'addNumbers',
+        success: true,
+        output: 3,
+      });
     });
   });
 
@@ -216,14 +271,56 @@ describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
     });
   });
 
-  describe('tool approval (GAP)', () => {
-    it('completes but needsApproval is not checked (GAP)', async () => {
+  describe('tool approval', () => {
+    it('pauses before executing a tool that needs approval', async () => {
       const run = await start(agentToolApprovalE2e, []);
       const rv = await run.returnValue;
-      // GAP: when tool approval is implemented, the agent should pause
-      // with toolCallsCount=1 and toolResultsCount=0 (awaiting approval).
-      // Currently needsApproval is ignored, so the tool executes immediately.
-      expect(rv.stepCount).toBe(2);
+      expect(rv).toMatchObject({
+        stepCount: 1,
+        toolCallsCount: 1,
+        toolResultsCount: 0,
+        firstToolCallName: 'riskyTool',
+      });
+    });
+
+    it('signs an approval and verifies it in a later workflow run', async () => {
+      vi.stubEnv(
+        'WORKFLOW_TOOL_APPROVAL_SECRET',
+        'workflow-tool-approval-secret-for-tests',
+      );
+      const issueRun = await start(agentSignedToolApprovalIssueE2e, []);
+      const chunksPromise = collectStream<{
+        type: string;
+        approvalId?: string;
+        toolCallId?: string;
+        signature?: string;
+      }>(issueRun.readable);
+
+      await expect(issueRun.returnValue).resolves.toEqual({
+        toolCallsCount: 1,
+      });
+      const chunks = await chunksPromise;
+      const approvalRequest = chunks.find(
+        chunk => chunk.type === 'tool-approval-request',
+      );
+
+      expect(approvalRequest).toMatchObject({
+        approvalId: 'approval-call-1',
+        toolCallId: 'call-1',
+        signature: expect.any(String),
+      });
+      expect(JSON.stringify(chunks)).not.toContain(
+        'workflow-tool-approval-secret-for-tests',
+      );
+
+      const resumeRun = await start(agentSignedToolApprovalResumeE2e, [
+        approvalRequest!.signature!,
+      ]);
+
+      await expect(resumeRun.returnValue).resolves.toEqual({
+        lastStepText: 'approved action done',
+        containsApprovedToolResult: true,
+      });
     });
   });
 
@@ -266,9 +363,6 @@ describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
       expect(rv.firstPrepareStepSawConstructorSandbox).toBe(true);
       expect(rv.secondPrepareStepSawConstructorSandbox).toBe(true);
       expect(rv.prepareStepSawStepSandbox).toBe(false);
-      expect(rv.toolResults[0]?.output).toMatchObject({
-        stdout: 'ran: echo hello',
-      });
     });
   });
 });

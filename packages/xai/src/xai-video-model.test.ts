@@ -1,3 +1,4 @@
+import { InvalidArgumentError } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { XaiVideoModel } from './xai-video-model';
@@ -39,11 +40,13 @@ const defaultOptions = {
 function createModel({
   headers,
   currentDate,
+  modelId = 'grok-imagine-video',
 }: {
   headers?: () => Record<string, string>;
   currentDate?: () => Date;
+  modelId?: string;
 } = {}) {
-  return new XaiVideoModel('grok-imagine-video', {
+  return new XaiVideoModel(modelId, {
     provider: 'xai.video',
     baseURL: TEST_BASE_URL,
     headers: headers ?? (() => ({ 'api-key': 'test-key' })),
@@ -79,6 +82,24 @@ describe('XaiVideoModel', () => {
         body: doneStatusResponse,
       },
     },
+    [`${TEST_BASE_URL}/videos/abc%2F..%2F..%2Finternal`]: {
+      response: {
+        type: 'json-value',
+        body: doneStatusResponse,
+      },
+    },
+    [`${TEST_BASE_URL}/videos/%252E`]: {
+      response: {
+        type: 'json-value',
+        body: doneStatusResponse,
+      },
+    },
+    [`${TEST_BASE_URL}/videos/%252E%252E`]: {
+      response: {
+        type: 'json-value',
+        body: doneStatusResponse,
+      },
+    },
   });
 
   describe('constructor', () => {
@@ -89,6 +110,15 @@ describe('XaiVideoModel', () => {
       expect(model.modelId).toBe('grok-imagine-video');
       expect(model.specificationVersion).toBe('v4');
       expect(model.maxVideosPerCall).toBe(1);
+    });
+
+    it('should send the grok-imagine-video-1.5 model id in the request body', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      await model.doStart({ ...defaultOptions });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ model: 'grok-imagine-video-1.5' });
     });
   });
 
@@ -304,6 +334,84 @@ describe('XaiVideoModel', () => {
       expect(body).toMatchObject({ resolution: '480p' });
     });
 
+    it('should map SDK resolution 1920x1080 to 1080p', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      await model.doStart({ ...defaultOptions, resolution: '1920x1080' });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ resolution: '1080p' });
+    });
+
+    it('should pass through provider option resolution 1080p', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            resolution: '1080p',
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ resolution: '1080p' });
+    });
+
+    it('should warn when SDK resolution 1920x1080 is used with grok-imagine-video', async () => {
+      const model = createModel();
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        resolution: '1920x1080',
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ resolution: '1080p' });
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'resolution',
+          details: expect.stringContaining('does not support 1080p'),
+        }),
+      );
+    });
+
+    it('should warn when provider resolution 1080p is used with grok-imagine-video', async () => {
+      const model = createModel();
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            resolution: '1080p',
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ resolution: '1080p' });
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'resolution',
+          details: expect.stringContaining('does not support 1080p'),
+        }),
+      );
+    });
+
+    it('should not warn about 1080p with grok-imagine-video-1.5', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        resolution: '1920x1080',
+      });
+
+      expect(result.warnings).toEqual([]);
+    });
+
     it('should prefer provider option resolution over SDK resolution', async () => {
       const model = createModel();
 
@@ -326,7 +434,7 @@ describe('XaiVideoModel', () => {
 
       const result = await model.doStart({
         ...defaultOptions,
-        resolution: '1920x1080',
+        resolution: '2560x1440',
       });
 
       expect(result.warnings).toContainEqual(
@@ -732,6 +840,218 @@ describe('XaiVideoModel', () => {
       });
     });
 
+    it('should downgrade R2V 1080p to 720p with a warning', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'reference-to-video',
+            referenceImageUrls: ['https://example.com/ref1.jpg'],
+            resolution: '1080p',
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ resolution: '720p' });
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'resolution',
+        }),
+      );
+    });
+
+    it('should downgrade R2V 1920x1080 from the SDK resolution to 720p', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        resolution: '1920x1080',
+        providerOptions: {
+          xai: {
+            mode: 'reference-to-video',
+            referenceImageUrls: ['https://example.com/ref1.jpg'],
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ resolution: '720p' });
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'resolution',
+        }),
+      );
+    });
+
+    it('should warn and exclude an audio inputReference from reference_images', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        inputReferences: [
+          { type: 'url', url: 'https://example.com/ref1.jpg' },
+          {
+            type: 'url',
+            url: 'https://example.com/voice.mp3',
+            mediaType: 'audio/mpeg',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        reference_images: [{ url: 'https://example.com/ref1.jpg' }],
+      });
+      expect(body.reference_images).toHaveLength(1);
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'inputReferences',
+        }),
+      );
+    });
+
+    it('should drop audio-only inputReferences with a warning', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        inputReferences: [
+          {
+            type: 'url',
+            url: 'https://example.com/voice.mp3',
+            mediaType: 'audio/mpeg',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('reference_audios');
+      // Audio cannot drive R2V, so the request stays text-to-video and no
+      // empty reference_images array is sent.
+      expect(body).not.toHaveProperty('reference_images');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'inputReferences',
+        }),
+      );
+    });
+
+    it('should not send an empty reference_images array for video-only inputReferences', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      await model.doStart({
+        ...defaultOptions,
+        inputReferences: [
+          {
+            type: 'url',
+            url: 'https://example.com/clip.mp4',
+            mediaType: 'video/mp4',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('reference_images');
+    });
+
+    it('should keep image-to-video mode when an audio reference is supplied', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        image: {
+          type: 'url',
+          url: 'https://example.com/start.jpg',
+          mediaType: 'image/jpeg',
+        },
+        inputReferences: [
+          {
+            type: 'url',
+            url: 'https://example.com/voice.mp3',
+            mediaType: 'audio/mpeg',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        image: { url: 'https://example.com/start.jpg' },
+      });
+      expect(body).not.toHaveProperty('reference_images');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'inputReferences',
+        }),
+      );
+    });
+
+    it('should send no reference_images for explicit R2V without image references', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        inputReferences: [
+          {
+            type: 'url',
+            url: 'https://example.com/voice.mp3',
+            mediaType: 'audio/mpeg',
+          },
+        ],
+        providerOptions: {
+          xai: {
+            mode: 'reference-to-video',
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('reference_images');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'inputReferences',
+        }),
+      );
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'referenceImages',
+          details: expect.stringContaining('without reference images'),
+        }),
+      );
+    });
+
+    it('should warn when explicit R2V has no references at all', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'reference-to-video',
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('reference_images');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'referenceImages',
+          details: expect.stringContaining('without reference images'),
+        }),
+      );
+    });
+
     it('should fallback to reference-to-video mode when referenceImageUrls is set without mode', async () => {
       const model = createModel();
 
@@ -776,9 +1096,183 @@ describe('XaiVideoModel', () => {
         expect.objectContaining({ feature: 'aspectRatio' }),
       );
     });
+
+    it('should send reference_audios for preset reference voices', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'reference-to-video',
+            referenceImageUrls: ['https://example.com/ref1.jpg'],
+            referenceVoiceIds: ['eve'],
+          },
+        },
+      });
+
+      expect(server.calls[0].requestUrl).toBe(
+        `${TEST_BASE_URL}/videos/generations`,
+      );
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        reference_images: [{ url: 'https://example.com/ref1.jpg' }],
+        reference_audios: [{ voice_id: 'eve' }],
+      });
+    });
+
+    it('should send up to 3 preset reference voices in order', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'reference-to-video',
+            referenceImageUrls: ['https://example.com/ref1.jpg'],
+            referenceVoiceIds: ['eve', 'leo', 'rex'],
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        reference_audios: [
+          { voice_id: 'eve' },
+          { voice_id: 'leo' },
+          { voice_id: 'rex' },
+        ],
+      });
+    });
+
+    it('should reject more than 3 preset reference voices', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      await expect(
+        model.doStart({
+          ...defaultOptions,
+          providerOptions: {
+            xai: {
+              mode: 'reference-to-video',
+              referenceImageUrls: ['https://example.com/ref1.jpg'],
+              referenceVoiceIds: ['ara', 'eve', 'leo', 'rex'],
+            },
+          },
+        }),
+      ).rejects.toThrow(InvalidArgumentError);
+    });
+
+    it('should reject empty-string preset reference voice ids', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      await expect(
+        model.doStart({
+          ...defaultOptions,
+          providerOptions: {
+            xai: {
+              mode: 'reference-to-video',
+              referenceImageUrls: ['https://example.com/ref1.jpg'],
+              referenceVoiceIds: [''],
+            },
+          },
+        }),
+      ).rejects.toThrow(InvalidArgumentError);
+    });
+
+    it('should omit reference_audios for an empty referenceVoiceIds array', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'reference-to-video',
+            referenceImageUrls: ['https://example.com/ref1.jpg'],
+            referenceVoiceIds: [],
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('reference_audios');
+      expect(result.warnings).not.toContainEqual(
+        expect.objectContaining({ feature: 'referenceVoiceIds' }),
+      );
+    });
+
+    it('should warn and omit referenceVoiceIds outside reference-to-video', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            referenceVoiceIds: ['eve'],
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('reference_audios');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'referenceVoiceIds',
+        }),
+      );
+    });
+
+    it('should never forward referenceVoiceIds as a raw body key', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'reference-to-video',
+            referenceImageUrls: ['https://example.com/ref1.jpg'],
+            referenceVoiceIds: ['eve'],
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('referenceVoiceIds');
+    });
   });
 
   describe('doStatus', () => {
+    it('should encode the request ID as a single URL path segment', async () => {
+      const model = createModel();
+      const requestId = 'abc/../../internal';
+
+      await model.doStatus({
+        operation: { requestId },
+      });
+
+      expect(server.calls[0].requestUrl).toBe(
+        `${TEST_BASE_URL}/videos/${encodeURIComponent(requestId)}`,
+      );
+    });
+
+    it.each([
+      { requestId: '.', encodedRequestId: '%252E' },
+      { requestId: '..', encodedRequestId: '%252E%252E' },
+    ])(
+      'should preserve the $requestId request ID as a URL path segment',
+      async ({ requestId, encodedRequestId }) => {
+        const model = createModel();
+
+        await model.doStatus({
+          operation: { requestId },
+        });
+
+        expect(server.calls[0].requestUrl).toBe(
+          `${TEST_BASE_URL}/videos/${encodedRequestId}`,
+        );
+      },
+    );
+
     it('should return completed with video data when done', async () => {
       const model = createModel();
 
@@ -897,7 +1391,7 @@ describe('XaiVideoModel', () => {
       };
     });
 
-    it('should throw when video URL missing on done', async () => {
+    it('should report an error status when video URL missing on done', async () => {
       server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
         type: 'json-value',
         body: {
@@ -909,9 +1403,16 @@ describe('XaiVideoModel', () => {
 
       const model = createModel();
 
-      await expect(
-        model.doStatus({ operation: { requestId: 'req-123' } }),
-      ).rejects.toThrow('no video URL');
+      const result = await model.doStatus({
+        operation: { requestId: 'req-123' },
+      });
+
+      expect(result.status).toBe('error');
+      if (result.status === 'error') {
+        expect(result.error).toBe(
+          'Video generation completed but no video URL was returned.',
+        );
+      }
 
       // Reset
       server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
@@ -920,7 +1421,7 @@ describe('XaiVideoModel', () => {
       };
     });
 
-    it('should throw when respect_moderation is false', async () => {
+    it('should report an error status when respect_moderation is false', async () => {
       server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
         type: 'json-value',
         body: {
@@ -935,9 +1436,16 @@ describe('XaiVideoModel', () => {
 
       const model = createModel();
 
-      await expect(
-        model.doStatus({ operation: { requestId: 'req-123' } }),
-      ).rejects.toThrow('content policy violation');
+      const result = await model.doStatus({
+        operation: { requestId: 'req-123' },
+      });
+
+      expect(result.status).toBe('error');
+      if (result.status === 'error') {
+        expect(result.error).toBe(
+          'Video generation was blocked due to a content policy violation.',
+        );
+      }
 
       server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
         type: 'json-value',

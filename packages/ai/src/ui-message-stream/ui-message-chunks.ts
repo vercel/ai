@@ -1,5 +1,4 @@
 import type { JSONObject } from '@ai-sdk/provider';
-import { z } from 'zod/v4';
 import {
   providerMetadataSchema,
   type ProviderMetadata,
@@ -13,9 +12,10 @@ import type {
   UIMessage,
 } from '../ui/ui-messages';
 import type { ValueOf } from '../util/value-of';
+import { z, type ZodType } from '../util/zod';
 import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 
-const toolMetadataSchema: z.ZodType<JSONObject> = z.record(
+const toolMetadataSchema: ZodType<JSONObject> = z.record(
   z.string(),
   jsonValueSchema.optional(),
 );
@@ -85,6 +85,8 @@ export const uiMessageChunkSchema = lazySchema(() =>
         type: z.literal('tool-approval-request'),
         approvalId: z.string(),
         toolCallId: z.string(),
+        approvalDescriptor: z.unknown().optional(),
+        reason: z.string().optional(),
         isAutomatic: z.boolean().optional(),
         signature: z.string().optional(),
       }),
@@ -182,6 +184,9 @@ export const uiMessageChunkSchema = lazySchema(() =>
       }),
       z.looseObject({
         type: z.literal('finish-step'),
+      }),
+      z.looseObject({
+        type: z.literal('reset-step'),
       }),
       z.looseObject({
         type: z.literal('start'),
@@ -295,6 +300,8 @@ export type UIMessageChunk<
       type: 'tool-approval-request';
       approvalId: string;
       toolCallId: string;
+      approvalDescriptor?: unknown;
+      reason?: string;
       isAutomatic?: boolean;
       signature?: string;
     }
@@ -377,6 +384,12 @@ export type UIMessageChunk<
     }
   | {
       type: 'finish-step';
+    }
+  | {
+      /**
+       * Removes all message parts added during the current step.
+       */
+      type: 'reset-step';
     }
   | {
       type: 'start';

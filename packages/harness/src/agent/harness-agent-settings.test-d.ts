@@ -28,6 +28,49 @@ const sandbox = undefined as never as HarnessV1SandboxProvider;
 type Settings = HarnessAgentSettings<typeof harness, typeof userTools>;
 
 describe('HarnessAgentSettings tool filtering types', () => {
+  test('call options are typed by the appended generic', () => {
+    type CallOptions = { tenant: string };
+    type CallSettings = HarnessAgentSettings<
+      typeof harness,
+      typeof userTools,
+      Record<string, never>,
+      never,
+      CallOptions
+    >;
+    const settings: CallSettings = {
+      harness,
+      tools: userTools,
+      callOptionsSchema: z.object({ tenant: z.string() }),
+      prepareCall: ({ options, ...rest }) => {
+        expectTypeOf(options).toEqualTypeOf<CallOptions>();
+        return {
+          ...rest,
+          instructions: `Serve ${options.tenant}`,
+        };
+      },
+    };
+
+    expectTypeOf(settings).toMatchTypeOf<CallSettings>();
+  });
+
+  test('sandbox provider is optional', () => {
+    const settings: Settings = {
+      harness,
+      tools: userTools,
+    };
+
+    expectTypeOf(settings).toMatchTypeOf<Settings>();
+  });
+
+  test('model accepts any string', () => {
+    const settings: Settings = {
+      harness,
+      model: 'harness-specific-model',
+    };
+
+    expectTypeOf(settings.model).toEqualTypeOf<string | undefined>();
+  });
+
   test('activeTools accepts builtin and user tool names', () => {
     const settings: Settings = {
       harness,

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/moonshotai",
-  "version": "3.0.27",
+  "version": "3.0.45",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -36,7 +36,6 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*"
   },

@@ -21,12 +21,18 @@ Run the following commands to update each harness's primary SDK packages.
 Run these commands exactly as below:
 
 ```bash
+# ACP
+pnpm --filter harness-acp update @agentclientprotocol/sdk @modelcontextprotocol/sdk --latest --lockfile-only
 # Claude Code
 pnpm --filter harness-claude-code update @anthropic-ai/claude-agent-sdk @modelcontextprotocol/sdk --latest --lockfile-only
+# Cline
+pnpm --filter harness-cline update @cline/agents --latest --lockfile-only
 # Codex
 pnpm --filter harness-codex update @openai/codex-sdk --latest --lockfile-only
 # Deep Agents
 pnpm --filter harness-deepagents update @langchain/core @langchain/langgraph deepagents langchain langsmith --latest --lockfile-only
+# Grok Build
+pnpm --filter harness-grok-build update @xai-official/grok --latest --lockfile-only
 # OpenCode
 pnpm --filter harness-opencode update @opencode-ai/sdk --latest --lockfile-only
 # Pi
@@ -38,15 +44,32 @@ For the bridge dependencies of bridge harnesses, you must additionally run the f
 Run these commands exactly as below:
 
 ```bash
+# ACP
+pnpm --dir packages/harness-acp/src/v1/bridge update @agentclientprotocol/sdk @modelcontextprotocol/sdk --latest --ignore-workspace --config.minimumReleaseAge=4320
 # Claude Code
 pnpm --dir packages/harness-claude-code/src/bridge update @anthropic-ai/claude-agent-sdk @anthropic-ai/claude-code @modelcontextprotocol/sdk --latest --ignore-workspace --config.minimumReleaseAge=4320
 # Codex
 pnpm --dir packages/harness-codex/src/bridge update @openai/codex-sdk --latest --ignore-workspace --config.minimumReleaseAge=4320
 # Deep Agents
 pnpm --dir packages/harness-deepagents/src/bridge update @langchain/anthropic @langchain/core @langchain/langgraph deepagents langchain langsmith --latest --ignore-workspace --config.minimumReleaseAge=4320
+# Grok Build
+pnpm --dir packages/harness-grok-build/src/bridge update @agentclientprotocol/sdk @modelcontextprotocol/sdk @xai-official/grok --latest --ignore-workspace --config.minimumReleaseAge=4320
 # OpenCode
 pnpm --dir packages/harness-opencode/src/bridge update @opencode-ai/sdk opencode-ai --latest --ignore-workspace --config.minimumReleaseAge=4320
 ```
+
+For bridge CLI packages that require install scripts, also update the exact
+version in the bridge's `pnpm-workspace.yaml` `allowBuilds` entry to match the
+new version in its `package.json`:
+
+- `packages/harness-claude-code/src/bridge/pnpm-workspace.yaml`
+- `packages/harness-grok-build/src/bridge/pnpm-workspace.yaml`
+- `packages/harness-opencode/src/bridge/pnpm-workspace.yaml`
+
+The following harness adapters use an unversioned installer script instead of an NPM package for their SDK / CLI and therefore can be ignored:
+
+- `packages/harness-cursor`
+- `packages/harness-fx`
 
 #### Example dependencies
 

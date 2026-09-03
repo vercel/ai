@@ -253,6 +253,14 @@ const { video } = await generateVideo({
 });
 ```
 
+<Note>
+  When the output ratio is dictated by an input — first-frame or
+  first-and-last-frame image-to-video, video editing, and video extension — pass
+  `aspectRatio: 'adaptive'` or omit `aspectRatio` entirely. Newer Seedance
+  models reject an explicit ratio on those paths, because the output inherits
+  the ratio of the input media.
+</Note>
+
 ### Image-to-Video with Audio
 
 Seedance 1.5 Pro supports generating synchronized audio alongside the video:
@@ -432,20 +440,28 @@ type them with `ByteDanceVideoModelOptions`.
 
 #### Polling Options
 
-- **pollIntervalMs** _number_
+ByteDance video generation is task-based: the provider creates a task and the AI
+SDK polls it until it completes. Configure polling with the top-level `poll`
+option of [`generateVideo()`](/docs/reference/ai-sdk-core/generate-video):
 
-  Control how frequently the API is checked for completed videos while they are
-  being processed. Defaults to 3000ms.
+The configured ByteDance API origin is trusted for the first status request,
+while every redirect to another origin is validated before it is followed.
 
-- **pollTimeoutMs** _number_
-
-  Maximum time to wait for video generation to complete before timing out.
-  Defaults to 300000ms (5 minutes).
+```ts
+const { video } = await generateVideo({
+  model: byteDance.video('seedance-1-0-pro-250528'),
+  prompt: 'A futuristic city with flying cars',
+  poll: {
+    intervalMs: 2000, // how often to check the task (default: 5000)
+    timeoutMs: 900000, // give up after 15 minutes (default: 600000)
+  },
+});
+```
 
 <Note>
-  Video generation is an asynchronous process that can take several minutes.
-  Consider setting `pollTimeoutMs` to at least 10 minutes (600000ms) for
-  reliable operation.
+  The `pollIntervalMs` and `pollTimeoutMs` provider options are deprecated and
+  ignored. Passing either emits a warning. Video generation can take several
+  minutes, so raise `poll.timeoutMs` above the 10 minute default for long jobs.
 </Note>
 
 ### Video Model Capabilities

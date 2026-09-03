@@ -1,5 +1,6 @@
 import { createMDX } from 'fumadocs-mdx/next';
 import type { NextConfig } from 'next';
+import { exampleRedirects } from './lib/example-redirects';
 
 const withMDX = createMDX();
 
@@ -13,6 +14,18 @@ const config: NextConfig = {
     ],
   },
   redirects: () => [
+    // AI SDK 4 is archived separately so it remains available without adding
+    // its content families to this app's already memory-intensive build.
+    {
+      source: '/v4',
+      destination: 'https://v4.ai-sdk.dev/docs/introduction',
+      permanent: true,
+    },
+    {
+      source: '/v4/:path*',
+      destination: 'https://v4.ai-sdk.dev/:path*',
+      permanent: true,
+    },
     {
       source: '/v7',
       destination: '/',
@@ -92,6 +105,74 @@ const config: NextConfig = {
       destination: '/v5/providers/ai-sdk-providers',
       permanent: false,
     },
+    // Legacy resource URLs, mirroring production.
+    {
+      source: '/tools-registry',
+      destination: '/resources/tools',
+      permanent: true,
+    },
+    {
+      source: '/tools-registry/:slug',
+      destination: '/resources/tools/:slug',
+      permanent: true,
+    },
+    {
+      source: '/showcase',
+      destination: '/resources/showcase',
+      permanent: true,
+    },
+    // /examples and its deep URLs are still linked from docs content; they
+    // chain to their cookbook replacements exactly as on production.
+    ...exampleRedirects,
+    {
+      source: '/elements',
+      destination: 'https://elements.ai-sdk.dev',
+      permanent: true,
+    },
+    {
+      source: '/elements/:path*',
+      destination: 'https://elements.ai-sdk.dev/:path*',
+      permanent: true,
+    },
+    {
+      source: '/model-library',
+      destination: 'https://vercel.com/docs/ai-gateway',
+      permanent: true,
+    },
+    // The cookbook family root mirrors production (ai-sdk.dev/cookbook):
+    // the legacy app permanently redirects it to the Recipes landing page.
+    ...['', '/v6', '/v5'].flatMap(prefix => [
+      {
+        source: `${prefix}/cookbook`,
+        destination: `${prefix}/resources/recipes`,
+        permanent: true,
+      },
+      // Cookbook section landing pages have no content (the content sync
+      // drops their frontmatter-only index.mdx); the legacy app redirects
+      // each section to its first recipe.
+      ...['/cookbook', '/resources/recipes'].flatMap(family => [
+        {
+          source: `${prefix}${family}/:section(next|node|rsc)`,
+          destination: `${prefix}${family}/:section/generate-text`,
+          permanent: false,
+        },
+        {
+          source: `${prefix}${family}/:section(next|node|rsc).md`,
+          destination: `${prefix}${family}/:section/generate-text.md`,
+          permanent: false,
+        },
+        {
+          source: `${prefix}${family}/api-servers`,
+          destination: `${prefix}${family}/api-servers/node-http-server`,
+          permanent: false,
+        },
+        {
+          source: `${prefix}${family}/api-servers.md`,
+          destination: `${prefix}${family}/api-servers/node-http-server.md`,
+          permanent: false,
+        },
+      ]),
+    ]),
     {
       source: '/docs/ai-sdk-core/prompts',
       destination: '/docs/foundations/prompts',

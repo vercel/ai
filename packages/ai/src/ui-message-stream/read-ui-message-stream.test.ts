@@ -2,9 +2,10 @@ import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
 } from '@ai-sdk/provider-utils/test';
+import type { UIMessage } from '../ui/ui-messages';
 import type { UIMessageChunk } from './ui-message-chunks';
 import { readUIMessageStream } from './read-ui-message-stream';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 function createUIMessageStream(parts: UIMessageChunk[]) {
   return convertArrayToReadableStream(parts);
@@ -164,6 +165,195 @@ describe('readUIMessageStream', () => {
         callProviderMetadata: { openai: { itemId: 'fc-step-2' } },
       },
     ]);
+  });
+
+  it('should preserve independent snapshots without cloning accumulated text', async () => {
+    type TestUIMessage = UIMessage<
+      { nested: { value: string } },
+      { test: { value: string } }
+    >;
+
+    const nestedMetadata = { value: 'metadata' };
+    const nestedData = { value: 'data' };
+    const message: TestUIMessage = {
+      id: 'msg-123',
+      role: 'assistant',
+      metadata: { nested: nestedMetadata },
+      parts: [{ type: 'data-test', data: nestedData }],
+    };
+
+    const snapshots = await convertAsyncIterableToArray(
+      readUIMessageStream({
+        message,
+        stream: createUIMessageStream([
+          { type: 'text-start', id: 'text-1' },
+          { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+          { type: 'text-end', id: 'text-1' },
+        ]),
+      }),
+    );
+
+    expect(snapshots).toHaveLength(3);
+    expect(snapshots[0]).not.toBe(snapshots[1]);
+    expect(snapshots[0].parts).not.toBe(snapshots[1].parts);
+    expect(snapshots[0].parts[0]).not.toBe(snapshots[1].parts[0]);
+    expect(snapshots[0].metadata).not.toBe(snapshots[1].metadata);
+
+    expect(snapshots[0].metadata?.nested).not.toBe(nestedMetadata);
+    expect(snapshots[0].metadata?.nested).not.toBe(
+      snapshots[1].metadata?.nested,
+    );
+    const firstDataPart = snapshots[0].parts[0];
+    const secondDataPart = snapshots[1].parts[0];
+
+    expect(firstDataPart).toMatchObject({
+      type: 'data-test',
+      data: { value: 'data' },
+    });
+
+    if (
+      firstDataPart.type !== 'data-test' ||
+      secondDataPart.type !== 'data-test'
+    ) {
+      throw new Error('Expected data-test parts');
+    }
+
+    expect(firstDataPart.data).not.toBe(nestedData);
+    expect(firstDataPart.data).not.toBe(secondDataPart.data);
+
+    expect(snapshots[0].parts[1]).toMatchObject({
+      type: 'text',
+      text: '',
+      state: 'streaming',
+    });
+    expect(snapshots[1].parts[1]).toMatchObject({
+      type: 'text',
+      text: 'Hello',
+      state: 'streaming',
+    });
+    expect(snapshots[2].parts[1]).toMatchObject({
+      type: 'text',
+      text: 'Hello',
+      state: 'done',
+    });
+  });
+
+  it('should exclude accumulated text from structured cloning', async () => {
+    const originalStructuredClone = globalThis.structuredClone;
+    let clonedTextLength = 0;
+    const structuredCloneSpy = vi
+      .spyOn(globalThis, 'structuredClone')
+      .mockImplementation(value => {
+        if (
+          value != null &&
+          typeof value === 'object' &&
+          'parts' in value &&
+          Array.isArray(value.parts)
+        ) {
+          for (const part of value.parts) {
+            if (part.type === 'text' || part.type === 'reasoning') {
+              clonedTextLength += part.text.length;
+            }
+          }
+        }
+
+        return originalStructuredClone(value);
+      });
+
+    try {
+      const snapshots = await convertAsyncIterableToArray(
+        readUIMessageStream({
+          stream: createUIMessageStream([
+            { type: 'text-start', id: 'text-1' },
+            ...Array.from({ length: 10 }, () => ({
+              type: 'text-delta' as const,
+              id: 'text-1',
+              delta: 'x'.repeat(100),
+            })),
+            { type: 'text-end', id: 'text-1' },
+          ]),
+        }),
+      );
+
+      expect(snapshots.at(-1)?.parts[0]).toMatchObject({
+        type: 'text',
+        text: 'x'.repeat(1000),
+        state: 'done',
+      });
+      expect(structuredCloneSpy).toHaveBeenCalled();
+      expect(clonedTextLength).toBe(0);
+    } finally {
+      structuredCloneSpy.mockRestore();
+    }
+  });
+
+  it('should isolate nested snapshot values from other snapshots and inputs', async () => {
+    type TestMetadata = Array<{ value: string }> & {
+      custom?: { value: string };
+    };
+    type TestUIMessage = UIMessage<TestMetadata, { test: { value: string } }>;
+
+    const metadata: TestMetadata = [];
+    metadata.length = 2;
+    metadata[1] = { value: 'metadata' };
+    metadata.custom = { value: 'custom' };
+
+    const seedData = { value: 'seed' };
+    const chunkData = { value: 'chunk' };
+    const message: TestUIMessage = {
+      id: 'msg-123',
+      role: 'assistant',
+      metadata,
+      parts: [{ type: 'data-test', data: seedData }],
+    };
+
+    const snapshots = await convertAsyncIterableToArray(
+      readUIMessageStream({
+        message,
+        stream: createUIMessageStream([
+          { type: 'data-test', data: chunkData },
+          { type: 'text-start', id: 'text-1' },
+        ]),
+      }),
+    );
+
+    const firstMetadata = snapshots[0].metadata!;
+    const firstSeedPart = snapshots[0].parts[0];
+    const firstChunkPart = snapshots[0].parts[1];
+
+    if (
+      firstSeedPart.type !== 'data-test' ||
+      firstChunkPart.type !== 'data-test'
+    ) {
+      throw new Error('Expected data-test parts');
+    }
+
+    const firstSeedData = firstSeedPart.data;
+    const firstChunkData = firstChunkPart.data;
+
+    firstMetadata[1].value = 'changed';
+    firstMetadata.custom!.value = 'changed';
+    firstSeedData.value = 'changed';
+    firstChunkData.value = 'changed';
+
+    expect(0 in firstMetadata).toBe(false);
+    expect(0 in snapshots[1].metadata!).toBe(false);
+    expect(snapshots[1].metadata).toMatchObject({
+      1: { value: 'metadata' },
+      custom: { value: 'custom' },
+    });
+    expect(snapshots[1].parts[0]).toMatchObject({
+      data: { value: 'seed' },
+    });
+    expect(snapshots[1].parts[1]).toMatchObject({
+      data: { value: 'chunk' },
+    });
+    expect(metadata).toMatchObject({
+      1: { value: 'metadata' },
+      custom: { value: 'custom' },
+    });
+    expect(seedData).toEqual({ value: 'seed' });
+    expect(chunkData).toEqual({ value: 'chunk' });
   });
 
   it('should throw an error when encountering an error UI stream part', async () => {

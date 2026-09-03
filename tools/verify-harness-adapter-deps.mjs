@@ -10,6 +10,15 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 const adapterConfigs = [
   {
+    name: 'ACP',
+    packageDir: 'packages/harness-acp',
+    bridgePath: 'src/v1/bridge',
+    primarySdk: '@agentclientprotocol/sdk',
+    sdkPackages: [
+      '@modelcontextprotocol/sdk',
+    ],
+  },
+  {
     name: 'Claude Code',
     packageDir: 'packages/harness-claude-code',
     primarySdk: '@anthropic-ai/claude-agent-sdk',
@@ -20,10 +29,20 @@ const adapterConfigs = [
     ],
   },
   {
+    name: 'Cline',
+    packageDir: 'packages/harness-cline',
+    primarySdk: '@cline/agents',
+    sdkPackages: ['@cline/agents'],
+  },
+  {
     name: 'Codex',
     packageDir: 'packages/harness-codex',
     primarySdk: '@openai/codex-sdk',
     sdkPackages: ['@openai/codex-sdk'],
+  },
+  {
+    name: 'Cursor',
+    packageDir: 'packages/harness-cursor',
   },
   {
     name: 'Deep Agents',
@@ -36,6 +55,20 @@ const adapterConfigs = [
       'deepagents',
       'langchain',
       'langsmith',
+    ],
+  },
+  {
+    name: 'fx',
+    packageDir: 'packages/harness-fx',
+  },
+  {
+    name: 'Grok Build',
+    packageDir: 'packages/harness-grok-build',
+    primarySdk: '@xai-official/grok',
+    sdkPackages: [
+      '@agentclientprotocol/sdk',
+      '@modelcontextprotocol/sdk',
+      '@xai-official/grok',
     ],
   },
   {
@@ -228,6 +261,10 @@ function main() {
     }
 
     const rootManifest = readJson(rootPackageJsonPath);
+    if (adapter.primarySdk == null) {
+      continue;
+    }
+
     const primarySpec = getDependencySpec({
       manifest: rootManifest,
       packageName: adapter.primarySdk,
@@ -276,7 +313,8 @@ function main() {
     const bridgePackageJsonPath = resolve(
       repoRoot,
       adapter.packageDir,
-      'src/bridge/package.json',
+      adapter.bridgePath ?? 'src/bridge',
+      'package.json',
     );
     const bridgeManifest = existsSync(bridgePackageJsonPath)
       ? readJson(bridgePackageJsonPath)

@@ -17,7 +17,7 @@ import { streamText } from 'ai';
 const result = streamText({
   model: 'openai/gpt-4o',
   maxOutputTokens: 1024,
-  system: 'You are a helpful chatbot.',
+  instructions: 'You are a helpful chatbot.',
   messages: [
     {
       role: 'user',

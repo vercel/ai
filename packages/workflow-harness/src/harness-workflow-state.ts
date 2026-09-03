@@ -52,6 +52,13 @@ export interface HarnessWorkflowStreamContext {
     string,
     HarnessWorkflowSerializedChunk
   >;
+  readonly activeToolInputs?: Record<
+    string,
+    {
+      readonly start: HarnessWorkflowSerializedChunk;
+      readonly text: string;
+    }
+  >;
   readonly pendingToolInputs?: Record<string, HarnessWorkflowSerializedChunk>;
 }
 

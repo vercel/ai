@@ -2,7 +2,10 @@ import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
-import { XaiChatLanguageModel } from './xai-chat-language-model';
+import {
+  XaiChatLanguageModel,
+  xaiChatResponseSchema,
+} from './xai-chat-language-model';
 import { createXai } from './xai-provider';
 import * as fs from 'node:fs';
 
@@ -26,6 +29,22 @@ const model = new XaiChatLanguageModel('grok-3', testConfig);
 const server = createTestServer({
   'https://api.x.ai/v1/chat/completions': {},
 });
+
+const usageWithProviderMetadata = {
+  prompt_tokens: 12,
+  completion_tokens: 1,
+  total_tokens: 241,
+  num_sources_used: 2,
+  provider_cost: 0.001,
+  prompt_tokens_details: {
+    cached_tokens: 2,
+    provider_prompt_detail: 'prompt-detail',
+  },
+  completion_tokens_details: {
+    reasoning_tokens: 228,
+    provider_completion_detail: 'completion-detail',
+  },
+};
 
 function prepareJsonFixtureResponse(
   filename: string,
@@ -118,6 +137,8 @@ describe('XaiChatLanguageModel', () => {
               "reasoning_tokens": 228,
               "rejected_prediction_tokens": 0,
             },
+            "cost_in_usd_ticks": 1176500,
+            "num_sources_used": 0,
             "prompt_tokens": 12,
             "prompt_tokens_details": {
               "audio_tokens": 0,
@@ -129,6 +150,59 @@ describe('XaiChatLanguageModel', () => {
           },
         }
       `);
+    });
+
+    it('should preserve provider usage metadata', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'usage-metadata',
+          object: 'chat.completion',
+          created: 1699472111,
+          model: 'grok-3',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: 'Hello',
+              },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: usageWithProviderMetadata,
+        },
+      };
+
+      const { usage } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(usage).toEqual({
+        inputTokens: {
+          total: 12,
+          noCache: 10,
+          cacheRead: 2,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 229,
+          text: 1,
+          reasoning: 228,
+        },
+        raw: usageWithProviderMetadata,
+      });
+    });
+
+    it('should validate known usage fields', () => {
+      const result = xaiChatResponseSchema.safeParse({
+        usage: {
+          ...usageWithProviderMetadata,
+          prompt_tokens: '12',
+        },
+      });
+
+      expect(result.success).toBe(false);
     });
 
     it('should send additional response information', async () => {
@@ -300,6 +374,94 @@ describe('XaiChatLanguageModel', () => {
       });
     });
 
+    it('should pass serviceTier as service_tier', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          xai: {
+            serviceTier: 'priority',
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        model: 'grok-3',
+        service_tier: 'priority',
+      });
+    });
+
+    it('should expose the applied service tier as provider metadata', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'tier-id',
+          object: 'chat.completion',
+          created: 1699472111,
+          model: 'grok-4.6',
+          service_tier: 'priority',
+          choices: [
+            {
+              index: 0,
+              message: { role: 'assistant', content: 'Hello' },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: { prompt_tokens: 4, total_tokens: 34, completion_tokens: 30 },
+        },
+      };
+
+      const { providerMetadata } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: { xai: { serviceTier: 'priority' } },
+      });
+
+      expect(providerMetadata).toStrictEqual({
+        xai: { serviceTier: 'priority' },
+      });
+    });
+
+    it('should report the downgraded tier when priority capacity is unavailable', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'tier-id',
+          object: 'chat.completion',
+          created: 1699472111,
+          model: 'grok-4.6',
+          service_tier: 'default',
+          choices: [
+            {
+              index: 0,
+              message: { role: 'assistant', content: 'Hello' },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: { prompt_tokens: 4, total_tokens: 34, completion_tokens: 30 },
+        },
+      };
+
+      const { providerMetadata } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: { xai: { serviceTier: 'priority' } },
+      });
+
+      expect(providerMetadata).toStrictEqual({
+        xai: { serviceTier: 'default' },
+      });
+    });
+
+    it('should omit provider metadata when the response has no service tier', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      const { providerMetadata } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(providerMetadata).toBeUndefined();
+    });
+
     it('should pass headers', async () => {
       prepareJsonFixtureResponse('xai-text');
 
@@ -377,6 +539,7 @@ describe('XaiChatLanguageModel', () => {
             "response_format": undefined,
             "search_parameters": undefined,
             "seed": undefined,
+            "service_tier": undefined,
             "temperature": undefined,
             "tool_choice": undefined,
             "tools": undefined,
@@ -945,6 +1108,89 @@ describe('XaiChatLanguageModel', () => {
       `);
     });
 
+    it('should expose the applied service tier on the finish part', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"tier-id","object":"chat.completion.chunk","created":1699472111,"model":"grok-4.6","service_tier":"priority","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"}}]}\n\n`,
+          `data: {"id":"tier-id","object":"chat.completion.chunk","created":1699472111,"model":"grok-4.6","service_tier":"priority","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":4,"total_tokens":34,"completion_tokens":30}}\n\n`,
+          `data: [DONE]\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: { xai: { serviceTier: 'priority' } },
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+      const finish = chunks.find(chunk => chunk.type === 'finish');
+
+      expect(finish?.providerMetadata).toStrictEqual({
+        xai: { serviceTier: 'priority' },
+      });
+    });
+
+    it('should preserve provider usage metadata', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            id: 'usage-metadata',
+            object: 'chat.completion.chunk',
+            created: 1699472111,
+            model: 'grok-3',
+            choices: [
+              {
+                index: 0,
+                delta: { role: 'assistant', content: 'Hello' },
+                finish_reason: null,
+              },
+            ],
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            id: 'usage-metadata',
+            object: 'chat.completion.chunk',
+            created: 1699472111,
+            model: 'grok-3',
+            choices: [
+              {
+                index: 0,
+                delta: {},
+                finish_reason: 'stop',
+              },
+            ],
+            usage: usageWithProviderMetadata,
+          })}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+      const finish = chunks.find(chunk => chunk.type === 'finish');
+
+      expect(finish?.usage).toEqual({
+        inputTokens: {
+          total: 12,
+          noCache: 10,
+          cacheRead: 2,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 229,
+          text: 1,
+          reasoning: 228,
+        },
+        raw: usageWithProviderMetadata,
+      });
+    });
+
     it('should avoid duplication when there is a trailing assistant message', async () => {
       prepareChunksFixtureResponse('xai-text');
 
@@ -1052,6 +1298,7 @@ describe('XaiChatLanguageModel', () => {
             "response_format": undefined,
             "search_parameters": undefined,
             "seed": undefined,
+            "service_tier": undefined,
             "stream": true,
             "stream_options": {
               "include_usage": true,
@@ -1358,6 +1605,22 @@ describe('XaiChatLanguageModel', () => {
       );
     });
 
+    it('should pass reasoning_effort: "xhigh" via providerOptions for grok-4.6', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      const grok46Model = new XaiChatLanguageModel('grok-4.6', testConfig);
+      await grok46Model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          xai: { reasoningEffort: 'xhigh' },
+        },
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'xhigh',
+      );
+    });
+
     it('should coerce top-level reasoning xhigh to high', async () => {
       prepareJsonFixtureResponse('xai-text');
 
@@ -1368,6 +1631,20 @@ describe('XaiChatLanguageModel', () => {
 
       expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
         'high',
+      );
+    });
+
+    it('should map top-level reasoning xhigh to reasoning_effort: "xhigh" for grok-4.6', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      const grok46Model = new XaiChatLanguageModel('grok-4.6', testConfig);
+      await grok46Model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'xhigh',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'xhigh',
       );
     });
 
@@ -1500,6 +1777,8 @@ describe('XaiChatLanguageModel', () => {
               "reasoning_tokens": 228,
               "rejected_prediction_tokens": 0,
             },
+            "cost_in_usd_ticks": 1176500,
+            "num_sources_used": 0,
             "prompt_tokens": 12,
             "prompt_tokens_details": {
               "audio_tokens": 0,

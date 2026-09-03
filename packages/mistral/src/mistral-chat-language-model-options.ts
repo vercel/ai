@@ -58,6 +58,12 @@ export const mistralLanguageModelChatOptions = z.object({
   parallelToolCalls: z.boolean().optional(),
 
   /**
+   * A stable identifier used to route requests with shared prompt prefixes to
+   * the same cache.
+   */
+  promptCacheKey: z.string().optional(),
+
+  /**
    * Controls the reasoning effort for models that support adjustable reasoning.
    *
    * - `'high'`: Enable reasoning

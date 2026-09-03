@@ -185,3 +185,24 @@ const { messages, input, handleInputChange, handleSubmit } = useCompletion({
 ```
 
 In this example, the `useCompletion` hook sends a POST request to the `/api/completion` endpoint with the specified headers, additional body fields, and credentials for that fetch request. On your server side, you can handle the request with these additional information.
+
+You can provide a type for the additional body fields. The type applies to
+both the body configured on the hook and the body passed to `complete`:
+
+```tsx
+type CompletionBody = {
+  model: 'fast' | 'smart';
+};
+
+const { complete } = useCompletion<CompletionBody>({
+  body: {
+    model: 'fast',
+  },
+});
+
+await complete('What is a completion?', {
+  body: {
+    model: 'smart',
+  },
+});
+```

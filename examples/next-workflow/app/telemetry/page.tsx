@@ -97,7 +97,6 @@ export default function TelemetryPage() {
       new WorkflowChatTransport({
         api: '/api/telemetry-chat',
         maxConsecutiveErrors: 5,
-        initialStartIndex: -50,
         prepareSendMessagesRequest: options => {
           const body = (options.body ?? {}) as Record<string, unknown>;
           return {

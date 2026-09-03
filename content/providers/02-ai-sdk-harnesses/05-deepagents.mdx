@@ -41,6 +41,7 @@ import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
   harness: deepAgents,
+  model: 'anthropic/claude-sonnet-4-6',
   sandbox: createVercelSandbox({
     runtime: 'node24',
     ports: [4000],
@@ -79,30 +80,55 @@ Vercel Sandbox, and one of the variables listed under
 Use `createDeepAgents()` to configure the runtime:
 
 ```ts
-const harness = createDeepAgents({
-  model: 'claude-sonnet-4',
-});
+const harness = createDeepAgents({ recursionLimit: 100 });
 ```
 
 Settings:
 
-- `auth`: Anthropic or AI Gateway authentication settings.
-- `model`: model id passed to the Deep Agents (LangChain) runtime. Through AI
-  Gateway, use the `creator/model` slug (e.g. `anthropic/claude-sonnet-4-6`,
-  `google/gemini-2.5-flash`, `openai/gpt-4.1-mini`).
+- `auth`: authentication mode (`auto`, `anthropic`, or `ai-gateway`) or an
+  isolated authentication environment.
+- `credentialForwarding`: optional synchronous or asynchronous callback that
+  customizes each credential immediately before the harness adapter forwards it
+  into a sandbox process. It receives the credential value that would otherwise
+  be forwarded (either the real credential or a masked value) and the
+  environment variable name used to expose it. This callback only controls the
+  value forwarded into the sandbox process. It does not restrict which
+  credentials the harness adapter can discover, read, or otherwise access in
+  the host process.
+- `mcpServers`: MCP server definitions keyed by server name.
 - `port`: bridge port override.
 - `recursionLimit`: maximum LangGraph super-steps per turn. When omitted, the
   Deep Agents default applies.
 - `startupTimeoutMs`: maximum time to wait for the bridge to start.
+- `mintBridgeToken`: synchronous function that receives the sandbox id and
+  returns the bridge authentication token. By default, the adapter generates a
+  random 32-byte token. Custom implementations must return a suitably secret
+  token.
+
+## Structured Output
+
+Deep Agents supports schema-backed [`HarnessAgent` structured output](/docs/ai-sdk-harnesses/harness-agent#generate-structured-output).
+The adapter applies a per-turn LangChain tool strategy and returns the graph's
+validated `structuredResponse` as JSON text.
 
 ## Authentication
 
 Deep Agents always drives the Anthropic client. Non-Anthropic models reach it
 through AI Gateway's Anthropic-compatible endpoint, which translates to any
-model (Gemini, OpenAI, etc.), tool calls included. Authentication is resolved
-from the host environment and forwarded to the sandbox bridge: explicit
-Anthropic auth first, then AI Gateway credentials, then ambient Anthropic
-credentials.
+model (Gemini, OpenAI, etc.), tool calls included.
+
+The `auth` setting selects how credentials are resolved from the host
+environment:
+
+- `auto` (default): use AI Gateway credentials when available, then fall back
+  to Anthropic credentials.
+- `anthropic`: use Anthropic credentials.
+- `ai-gateway`: use AI Gateway credentials.
+
+When the sandbox supports additive request transformations, the bridge receives
+placeholders and the adapter injects credentials into matching outbound
+requests. Sandboxes without that capability retain direct credential
+forwarding.
 
 Supported environment variables:
 
@@ -113,19 +139,28 @@ Supported environment variables:
 - `ANTHROPIC_AUTH_TOKEN`
 - `ANTHROPIC_BASE_URL`
 
-You can also pass explicit auth settings (`anthropic` or `gateway`). To run a
-non-Anthropic model, route it through AI Gateway:
+To run a non-Anthropic model, select `ai-gateway`:
+
+```ts
+const harness = createDeepAgents({ auth: 'ai-gateway' });
+const agent = new HarnessAgent({
+  harness,
+  model: 'google/gemini-2.5-flash',
+  sandbox,
+});
+```
+
+Pass an authentication environment to use programmatically resolved
+credentials without reading `process.env`:
 
 ```ts
 const harness = createDeepAgents({
-  model: 'google/gemini-2.5-flash',
-  auth: {
-    gateway: {
-      apiKey: process.env.AI_GATEWAY_API_KEY,
-    },
-  },
+  auth: { ANTHROPIC_API_KEY: await resolveAnthropicToken() },
 });
 ```
+
+The supplied record replaces the host environment for authentication
+discovery. Only recognized authentication variables are forwarded.
 
 ## Sandbox
 

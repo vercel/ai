@@ -7,6 +7,23 @@ import {
 } from 'ai';
 import { throttle } from './throttle';
 
+function cloneMetadata<METADATA>(metadata: METADATA): METADATA {
+  if (Array.isArray(metadata)) {
+    return [...metadata] as METADATA;
+  }
+
+  if (
+    metadata != null &&
+    typeof metadata === 'object' &&
+    (Object.getPrototypeOf(metadata) === Object.prototype ||
+      Object.getPrototypeOf(metadata) === null)
+  ) {
+    return { ...metadata } as METADATA;
+  }
+
+  return metadata;
+}
+
 class ReactChatState<
   UI_MESSAGE extends UIMessage,
 > implements ChatState<UI_MESSAGE> {
@@ -62,14 +79,34 @@ class ReactChatState<
   replaceMessage = (index: number, message: UI_MESSAGE) => {
     this.#messages = [
       ...this.#messages.slice(0, index),
-      // We deep clone the message here to ensure the new React Compiler (currently in RC) detects deeply nested parts/metadata changes:
       this.snapshot(message),
       ...this.#messages.slice(index + 1),
     ];
     this.#callMessagesCallbacks();
   };
 
-  snapshot = <T>(value: T): T => structuredClone(value);
+  snapshot = <T>(value: T): T => {
+    if (
+      value == null ||
+      typeof value !== 'object' ||
+      !('parts' in value) ||
+      !Array.isArray(value.parts)
+    ) {
+      return value;
+    }
+
+    const message = value as UI_MESSAGE;
+    const snapshot = {
+      ...message,
+      parts: message.parts.map(part => ({ ...part })),
+    };
+
+    if ('metadata' in message) {
+      snapshot.metadata = cloneMetadata(message.metadata);
+    }
+
+    return snapshot as T;
+  };
 
   '~registerMessagesCallback' = (
     onChange: () => void,

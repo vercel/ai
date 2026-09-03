@@ -180,4 +180,57 @@ describe('HttpChatTransport', () => {
       );
     });
   });
+
+  describe('error response', () => {
+    it('should use a fallback message when sending messages returns an empty error body', async () => {
+      const transport = new MockHttpChatTransport({
+        fetch: async () => new Response(null, { status: 502 }),
+      });
+
+      await expect(
+        transport.sendMessages({
+          chatId: 'c123',
+          messageId: 'm123',
+          trigger: 'submit-message',
+          messages: [],
+          abortSignal: new AbortController().signal,
+        }),
+      ).rejects.toThrow('Failed to fetch the chat response.');
+    });
+  });
+
+  describe('reconnectToStream', () => {
+    it('should pass the abort signal to fetch', async () => {
+      const abortController = new AbortController();
+      let receivedAbortSignal: AbortSignal | null | undefined;
+
+      const transport = new MockHttpChatTransport({
+        api: 'http://localhost/api/chat',
+        fetch: async (_input, init) => {
+          receivedAbortSignal = init?.signal;
+          return new Response(null, { status: 204 });
+        },
+      });
+
+      await transport.reconnectToStream({
+        chatId: 'c123',
+        abortSignal: abortController.signal,
+      });
+
+      expect(receivedAbortSignal).toBe(abortController.signal);
+    });
+
+    it('should use a fallback message for an empty error body', async () => {
+      const transport = new MockHttpChatTransport({
+        fetch: async () => new Response(null, { status: 502 }),
+      });
+
+      await expect(
+        transport.reconnectToStream({
+          chatId: 'c123',
+          abortSignal: new AbortController().signal,
+        }),
+      ).rejects.toThrow('Failed to fetch the chat response.');
+    });
+  });
 });

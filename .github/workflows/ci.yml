@@ -16,13 +16,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
 
       - name: Use Node.js 22
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
           cache: 'pnpm'
@@ -41,13 +41,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
 
       - name: Use Node.js 22
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
           cache: 'pnpm'
@@ -68,20 +68,20 @@ jobs:
           - shard: next-core
             filters: --filter=@example/next --filter=@example/next-openai --filter=@example/next-agent
           - shard: next-integrations
-            filters: --filter=@example/next-fastapi --filter=@example/next-google-vertex --filter=@example/next-langchain --filter=@example/next-workflow
+            filters: --filter=@example/harness-e2e-next --filter=@example/next-fastapi --filter=@example/next-google-vertex --filter=@example/next-langchain --filter=@example/next-workflow
           - shard: next-telemetry
             filters: --filter=@example/next-openai-kasada-bot-protection --filter=@example/next-openai-pages --filter=@example/next-openai-rate-limits --filter=@example/next-openai-telemetry --filter=@example/next-openai-telemetry-sentry
           - shard: other-frameworks
             filters: --filter=@example/angular --filter=@example/nest --filter=@example/nuxt-openai --filter=@example/sveltekit-openai
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
 
       - name: Use Node.js 22
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
           cache: 'pnpm'
@@ -90,7 +90,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Restore build caches
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             .turbo/cache
@@ -108,13 +108,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
 
       - name: Use Node.js 22
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
           cache: 'pnpm'
@@ -130,7 +130,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -149,6 +149,7 @@ jobs:
             'apps/docs/**' \
             'content/docs/**' \
             'content/providers/**' \
+            'content/cookbook/**' \
             'package.json' \
             'pnpm-lock.yaml' \
             'pnpm-workspace.yaml'; then
@@ -159,11 +160,11 @@ jobs:
 
       - name: Setup pnpm
         if: steps.docs-changes.outputs.changed == 'true'
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
 
       - name: Use Node.js 22
         if: steps.docs-changes.outputs.changed == 'true'
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
           cache: 'pnpm'
@@ -171,6 +172,19 @@ jobs:
       - name: Install dependencies
         if: steps.docs-changes.outputs.changed == 'true'
         run: pnpm install --frozen-lockfile
+
+      # The docs build peaks above the standard runner's 16 GB of RAM
+      # (every versioned content family is compiled into one app), which
+      # OOM-kills the runner agent mid-compile. Swap absorbs the peak, the
+      # same way Vercel's build machines handle it.
+      - name: Add swap space
+        if: steps.docs-changes.outputs.changed == 'true'
+        run: |
+          sudo fallocate -l 12G /mnt/swapfile
+          sudo chmod 600 /mnt/swapfile
+          sudo mkswap /mnt/swapfile
+          sudo swapon /mnt/swapfile
+          free -h
 
       - name: Test and build docs
         if: steps.docs-changes.outputs.changed == 'true'
@@ -181,13 +195,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
 
       - name: Use Node.js 22
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
           cache: 'pnpm'
@@ -213,13 +227,13 @@ jobs:
     needs: build-packages
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
 
       - name: Use Node.js 22
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
           cache: 'pnpm'
@@ -252,7 +266,7 @@ jobs:
       node_versions: ${{ steps.node-versions.outputs.node_versions }}
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Select Node versions
         id: node-versions
@@ -283,13 +297,13 @@ jobs:
         node-version: ${{ fromJSON(needs.test_node_versions.outputs.node_versions) }}
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
 
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'pnpm'
@@ -310,9 +324,9 @@ jobs:
           SKIP_RSC_E2E: '1'
         run: pnpm test:ci
 
-  test_rsc_e2e:
-    name: 'Test RSC e2e'
-    runs-on: ubuntu-latest
+  test_mcp_windows:
+    name: 'Test MCP (Windows)'
+    runs-on: windows-latest
     needs: build-packages
     steps:
       - name: Checkout
@@ -321,8 +335,40 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
 
-      - name: Use Node.js 22
+      - name: Use Node.js 24
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download package build artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: package-build-artifacts
+
+      - name: Extract package build artifacts
+        run: tar -xzf package-build-artifacts.tgz
+
+      - name: Run MCP tests
+        working-directory: packages/mcp
+        run: pnpm test:node
+
+  test_rsc_e2e:
+    name: 'Test RSC e2e'
+    runs-on: ubuntu-latest
+    needs: build-packages
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
           cache: 'pnpm'
@@ -338,7 +384,7 @@ jobs:
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
           git fetch --no-tags --depth=1 origin "$BASE_SHA"
 
-          if git diff --name-only "$BASE_SHA" "${{ github.sha }}" | grep -E '^(packages/rsc/|pnpm-lock.yaml$|package.json$)'; then
+          if git diff --name-only "$BASE_SHA" "${{ github.sha }}" | grep -E '^(\.github/workflows/ci\.yml$|packages/rsc/|pnpm-lock.yaml$|package.json$)'; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
             echo "run=false" >> "$GITHUB_OUTPUT"
@@ -369,7 +415,7 @@ jobs:
       - name: Cache Playwright browsers
         if: steps.rsc-e2e.outputs.run == 'true'
         id: playwright-cache
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
@@ -378,32 +424,59 @@ jobs:
         if: steps.rsc-e2e.outputs.run == 'true'
         working-directory: packages/rsc
         run: |
-          # `playwright install --with-deps` shells out to apt-get. When the
-          # Ubuntu mirror is slow the command can exceed the timeout; `timeout`
-          # only kills the direct child, leaving an orphaned apt-get holding the
-          # dpkg lock so every retry fails instantly with exit code 100. Run each
-          # attempt in its own process group, kill the whole group on timeout,
-          # and wait for the dpkg lock to free before retrying.
+          # `playwright install-deps` shells out through sudo when it is run as
+          # the runner user. sudo can move apt-get outside timeout's process
+          # group, leaving it alive and holding an apt/dpkg lock after timeout
+          # exits. Run Playwright as root so apt-get stays in the process group,
+          # then wait for every apt/dpkg lock before retrying.
           ATTEMPTS=3
           PER_ATTEMPT_TIMEOUT=15m
+          APT_LOCKS=(
+            /var/lib/apt/lists/lock
+            /var/cache/apt/archives/lock
+            /var/lib/dpkg/lock
+            /var/lib/dpkg/lock-frontend
+          )
 
-          wait_for_apt_lock() {
+          # Bound stalled mirror requests so apt can fail over within an
+          # attempt instead of consuming the entire outer timeout.
+          printf '%s\n' \
+            'Acquire::Retries "1";' \
+            'Acquire::http::Timeout "30";' \
+            'Acquire::https::Timeout "30";' \
+            | sudo tee /etc/apt/apt.conf.d/81-playwright-timeouts >/dev/null
+
+          wait_for_apt_locks() {
             for _ in $(seq 1 60); do
-              if ! sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; then
+              LOCK_HELD=false
+              for lock in "${APT_LOCKS[@]}"; do
+                if sudo fuser "$lock" >/dev/null 2>&1; then
+                  LOCK_HELD=true
+                  break
+                fi
+              done
+              if [ "$LOCK_HELD" = false ]; then
                 return 0
               fi
-              echo "Waiting for dpkg lock to be released..."
+              echo "Waiting for apt/dpkg locks to be released..."
               sleep 5
             done
+            echo "::error::apt/dpkg locks were not released after 5 minutes"
+            return 1
           }
 
           for attempt in $(seq 1 "$ATTEMPTS"); do
+            wait_for_apt_locks
             STATUS=0
-            # `setsid` puts the command in a new process group; `timeout
-            # --kill-after` escalates to SIGKILL so the whole group (including
-            # apt-get) is torn down on timeout.
-            setsid timeout --signal=TERM --kill-after=30s "$PER_ATTEMPT_TIMEOUT" \
-              pnpm exec playwright install-deps chromium || STATUS=$?
+            # Preserve PATH because setup-node installs outside sudo's
+            # secure_path. Invoke the installed Playwright shim directly so
+            # pnpm does not revalidate the runner-owned modules directory as
+            # root. Running the whole process group as root keeps Playwright
+            # from spawning a nested sudo process for apt-get.
+            sudo env "PATH=$PATH" \
+              setsid timeout --signal=TERM --kill-after=30s "$PER_ATTEMPT_TIMEOUT" \
+              "$GITHUB_WORKSPACE/node_modules/.bin/playwright" \
+              install-deps chromium || STATUS=$?
             if [ "$STATUS" -eq 0 ]; then
               break
             fi
@@ -416,7 +489,6 @@ jobs:
             else
               echo "Attempt $attempt failed with exit code $STATUS, retrying..."
             fi
-            wait_for_apt_lock
           done
 
       - name: Install Playwright browsers
@@ -454,13 +526,13 @@ jobs:
         shard: ['1/4', '2/4', '3/4', '4/4']
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
 
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'pnpm'
@@ -486,13 +558,13 @@ jobs:
         shard: ['1/4', '2/4', '3/4', '4/4']
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
 
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'pnpm'
@@ -513,6 +585,7 @@ jobs:
         build-packages,
         test_node_versions,
         test_matrix,
+        test_mcp_windows,
         test_rsc_e2e,
         test_ai_matrix,
         test_codemod_matrix,
@@ -546,13 +619,13 @@ jobs:
             max-load-time: 70
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
 
       - name: Use Node.js 22
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
           cache: 'pnpm'

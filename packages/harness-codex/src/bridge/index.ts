@@ -83,7 +83,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   // Cross-process resume: the host carries the threadId we returned on stop.
   // Seed `threadState.id` so the codex SDK call below takes the `resumeThread`
   // branch.
-  if (
+  if (start.restartThread) {
+    threadState.id = undefined;
+  } else if (
     typeof start.resumeThreadId === 'string' &&
     start.resumeThreadId.length > 0
   ) {
@@ -121,6 +123,13 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   }
 
   const codexConfig: Record<string, unknown> = {
+    ...start.codexConfig,
+    developer_instructions: [
+      start.instructions,
+      'Only respond with your `final` message once you have fully addressed the user request.',
+    ]
+      .filter((instruction): instruction is string => Boolean(instruction))
+      .join('\n\n'),
     model_reasoning_summary: 'detailed',
   };
 
@@ -165,6 +174,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           : {}),
       },
     };
+  }
+  if (start.mcpServers != null) {
+    codexConfig.mcp_servers = start.mcpServers;
   }
   const usesConfiguredModelProvider =
     typeof codexConfig.model_provider === 'string';
@@ -214,6 +226,10 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   try {
     const { events } = await thread.runStreamed(userMessage, {
       signal: turn.abortSignal,
+      ...(start.responseFormat?.type === 'json' &&
+      start.responseFormat.schema != null
+        ? { outputSchema: start.responseFormat.schema }
+        : {}),
     });
     for await (const event of events as AsyncIterable<CodexEvent>) {
       if (turn.abortSignal.aborted) break;
@@ -250,8 +266,6 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     finishReason: { unified: 'stop', raw: 'stop' },
     totalUsage: turnUsage ?? defaultUsage(),
   });
-
-  void turn.pendingUserMessages; // accepted but only consumed when codex supports streamed user input
 }
 
 /**

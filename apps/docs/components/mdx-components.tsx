@@ -7,7 +7,12 @@ import { IndexCards } from '@/components/docs/index-cards';
 import { Check, Cross } from '@/components/docs/inline-icons';
 import { InstallPackages } from '@/components/docs/install-packages';
 import { InlinePrompt } from '@/components/docs/inline-prompt';
+import { Browser } from '@/components/docs/browser';
 import { BrowserIllustration } from '@/components/docs/browser-illustration';
+import { ChatGeneration } from '@/components/docs/chat-generation';
+import { ObjectGeneration } from '@/components/docs/object-generation';
+import { TextGeneration } from '@/components/docs/text-generation';
+import { WeatherCard } from '@/components/docs/weather-card';
 import {
   CardPlayer,
   WeatherSearch,
@@ -41,11 +46,6 @@ type LinkComponent = ComponentType<ComponentProps<'a'>>;
  */
 const stubNames = [
   'Frameworks',
-  'Browser',
-  'TextGeneration',
-  'ObjectGeneration',
-  'ChatGeneration',
-  'WeatherCard',
   'ReferenceTable',
   'ObjectTableList',
   'ExamplesList',
@@ -98,7 +98,12 @@ export const getMdxComponents = ({
     Cross,
     InstallPackages,
     InlinePrompt,
+    Browser,
     BrowserIllustration,
+    ChatGeneration,
+    ObjectGeneration,
+    TextGeneration,
+    WeatherCard,
     CardPlayer,
     WeatherSearch,
     Card,

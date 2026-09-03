@@ -1,16 +1,11 @@
-const versionedFamilies = ['/docs', '/providers'];
+const versionedFamilies = ['/docs', '/providers', '/cookbook'];
 
 export type ResolveHref = (href: string) => string;
 
-const externalFamilies = [
-  '/cookbook',
-  '/resources',
-  '/playground',
-  '/elements',
-  '/getting-started',
-  '/showcase',
-  '/examples',
-];
+// Route families that only exist on the production site so far.
+// /resources, /showcase, /examples, /elements, and /tools-registry resolve
+// in-app (directly or through next.config.ts redirects).
+const externalFamilies = ['/playground', '/getting-started'];
 
 export const resolveDocsHref = (href: string, versionPrefix: string) => {
   if (versionedFamilies.some(family => href.startsWith(family))) {

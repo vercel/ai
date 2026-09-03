@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/code-mode",
-  "version": "1.0.10",
+  "version": "1.0.48",
   "description": "QuickJS-backed code mode tool for AI SDK",
   "keywords": [
     "ai",
@@ -37,7 +37,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json && node scripts/embed-inline-worker.mjs",
+    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "clean": "del-cli build dist *.tsbuildinfo",
     "type-check": "tsc --build && tsc -p src/tsconfig.json",
     "test": "pnpm test:node",
@@ -52,14 +52,12 @@
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
     "ai": "workspace:*",
-    "esbuild": "^0.28.1",
-    "quickjs-emscripten": "^0.32.0",
     "tsup": "^8.5.1",
     "typescript": "5.8.3",
     "zod": "3.25.76"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.13.0"
   },
   "publishConfig": {
     "access": "public",
@@ -73,5 +71,8 @@
   },
   "bugs": {
     "url": "https://github.com/vercel/ai/issues"
+  },
+  "dependencies": {
+    "run": "^2.0.0"
   }
 }

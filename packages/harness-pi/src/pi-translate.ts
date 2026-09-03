@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import type { HarnessV1StreamPart } from '@ai-sdk/harness';
+import { secureJsonParse } from '@ai-sdk/provider-utils';
 import { extractAssistantText, type PiSessionEvent } from './pi-events';
 import { serializeToolOutput } from './pi-utils';
 
@@ -27,8 +28,17 @@ export interface PiTranslatorState {
   reasoningStarted: boolean;
   /** Tool-call id → tool name (used to fill in `toolName` on results). */
   observedToolNames: Map<string, string>;
+  /**
+   * Content-block index → tool-call id for tool inputs that are still
+   * streaming. Pi addresses `toolcall_*` events by `contentIndex`, while the
+   * harness stream parts are keyed by the tool call id, so the id is resolved
+   * once at `toolcall_start` and reused for the deltas that follow.
+   */
+  streamingToolInputIds: Map<number, string>;
   /** Tool ids requested by the current assistant message but not yet completed. */
   pendingStepToolCallIds: Set<string>;
+  /** Total tool calls requested by the current assistant message. */
+  stepToolCallCount: number | undefined;
   /** Whether the current assistant message has opened a visible step. */
   stepOpen: boolean;
   /**
@@ -43,6 +53,7 @@ export interface PiTranslatorState {
    * the matching `tool_result`/`tool_execution_end` event is translated.
    */
   hostToolResults: Map<string, unknown>;
+  dynamicToolCallIds: Set<string>;
   /**
    * Names of tools that Pi executes natively (read/write/edit/bash/grep/
    * find/ls). `tool-call` events for these get `providerExecuted: true`
@@ -50,6 +61,7 @@ export interface PiTranslatorState {
    * tools are not in this set.
    */
   readonly builtinToolNames: ReadonlySet<string>;
+  readonly hostToolNames: ReadonlySet<string>;
   /**
    * Map of native tool name → common name. `find` → `glob`, etc. Pi emits
    * native names on its events; the wire `toolName` is the common name when
@@ -60,6 +72,7 @@ export interface PiTranslatorState {
 
 export interface PiTranslatorStateOptions {
   readonly builtinToolNames?: ReadonlyArray<string>;
+  readonly hostToolNames?: ReadonlyArray<string>;
   readonly nativeToCommon?:
     | ReadonlyMap<string, string>
     | Record<string, string>;
@@ -79,10 +92,14 @@ export function createPiTranslatorState(
     currentReasoningId: undefined,
     reasoningStarted: false,
     observedToolNames: new Map(),
+    streamingToolInputIds: new Map(),
     pendingStepToolCallIds: new Set(),
+    stepToolCallCount: undefined,
     stepOpen: false,
     hostToolResults: new Map(),
+    dynamicToolCallIds: new Set(),
     builtinToolNames: new Set(options.builtinToolNames ?? []),
+    hostToolNames: new Set(options.hostToolNames ?? []),
     nativeToCommonNameMap: map,
   };
 }
@@ -128,6 +145,15 @@ function unwrapPiToolResult(event: PiSessionEvent): never {
   return (event.result ?? event.content ?? null) as never;
 }
 
+function parseMcpToolResult(content: unknown): unknown {
+  if (typeof content !== 'string') return content;
+  try {
+    return secureJsonParse(content);
+  } catch {
+    return content;
+  }
+}
+
 function resolveToolName(
   state: PiTranslatorState,
   nativeName: string,
@@ -136,10 +162,53 @@ function resolveToolName(
   return { wire: common ?? nativeName, native: nativeName };
 }
 
+/**
+ * How a tool call is dispatched, from the native tool name. Pi runs its
+ * builtin tools and MCP tools itself; everything else is handed back to the
+ * harness host. `tool-input-start` reports the same flags as the `tool-call`
+ * that follows it so a consumer does not have to wait for the call to know
+ * who will execute it.
+ */
+function resolveToolDispatch(
+  state: PiTranslatorState,
+  nativeName: string,
+): { isMcpTool: boolean; providerExecuted: boolean } {
+  const isMcpTool =
+    !state.hostToolNames.has(nativeName) &&
+    (nativeName === 'mcp' || nativeName.startsWith('mcp__'));
+  return {
+    isMcpTool,
+    providerExecuted: state.builtinToolNames.has(nativeName) || isMcpTool,
+  };
+}
+
+/**
+ * The `{ id, name }` of the tool call a `toolcall_*` event refers to, read out
+ * of the partial assistant message it carries. Returns undefined when the
+ * block is missing or not a tool call yet, in which case the input is left
+ * unstreamed — the complete `tool-call` still arrives at `tool_execution_start`.
+ */
+function readStreamingToolCall(
+  event: PiSessionEvent,
+): { contentIndex: number; id: string; name: string } | undefined {
+  const update = event.assistantMessageEvent;
+  const contentIndex = update?.contentIndex;
+  if (typeof contentIndex !== 'number') return undefined;
+  const block = update?.partial?.content?.[contentIndex];
+  if (!block || typeof block !== 'object') return undefined;
+  const record = block as Record<string, unknown>;
+  if (record.type !== 'toolCall') return undefined;
+  const { id, name } = record;
+  if (typeof id !== 'string' || id.length === 0) return undefined;
+  if (typeof name !== 'string' || name.length === 0) return undefined;
+  return { contentIndex, id, name };
+}
+
 function finishStep(state: PiTranslatorState): HarnessV1StreamPart[] {
   if (!state.stepOpen || state.pendingStepToolCallIds.size > 0) return [];
   state.stepOpen = false;
   state.pendingStepToolCallIds.clear();
+  state.stepToolCallCount = undefined;
   return [
     {
       type: 'finish-step',
@@ -200,11 +269,14 @@ export function translatePiEvent(
       if (event.type === 'message_start') {
         state.stepOpen = true;
         state.pendingStepToolCallIds.clear();
+        state.stepToolCallCount = undefined;
       }
       state.streamedAssistantText = '';
       state.currentTextId = undefined;
       state.currentReasoningId = undefined;
       state.reasoningStarted = false;
+      // Content-block indices restart with every assistant message.
+      state.streamingToolInputIds.clear();
       return [];
     }
 
@@ -262,6 +334,43 @@ export function translatePiEvent(
         });
         return parts;
       }
+      // Tool inputs stream as raw JSON text, the same way text and reasoning
+      // stream. Surfacing them lets a consumer show what the model is writing
+      // before the call is complete, instead of waiting for the whole input to
+      // land at `tool_execution_start`.
+      if (update.type === 'toolcall_start') {
+        const call = readStreamingToolCall(event);
+        if (!call) return [];
+        const { wire, native } = resolveToolName(state, call.name);
+        const { isMcpTool, providerExecuted } = resolveToolDispatch(
+          state,
+          native,
+        );
+        state.streamingToolInputIds.set(call.contentIndex, call.id);
+        return [
+          {
+            type: 'tool-input-start',
+            id: call.id,
+            toolName: wire,
+            ...(providerExecuted ? { providerExecuted: true } : {}),
+            ...(isMcpTool ? { dynamic: true } : {}),
+          },
+        ];
+      }
+      if (update.type === 'toolcall_delta' || update.type === 'toolcall_end') {
+        const contentIndex = update.contentIndex;
+        if (typeof contentIndex !== 'number') return [];
+        const id = state.streamingToolInputIds.get(contentIndex);
+        // Without a start there is no id to attach the input to. Dropping it
+        // is safe: the complete input still arrives with the `tool-call`.
+        if (id === undefined) return [];
+        if (update.type === 'toolcall_end') {
+          state.streamingToolInputIds.delete(contentIndex);
+          return [{ type: 'tool-input-end', id }];
+        }
+        if (typeof update.delta !== 'string') return [];
+        return [{ type: 'tool-input-delta', id, delta: update.delta }];
+      }
       return [];
     }
 
@@ -293,11 +402,15 @@ export function translatePiEvent(
         state.currentReasoningId = undefined;
       }
       if (event.type === 'message_end') {
-        for (const toolCallId of extractPiToolCallIds(event.message)) {
+        const toolCallIds = extractPiToolCallIds(event.message);
+        state.stepToolCallCount =
+          toolCallIds.length > 0 ? toolCallIds.length : undefined;
+        for (const toolCallId of toolCallIds) {
           state.pendingStepToolCallIds.add(toolCallId);
         }
       } else {
         state.pendingStepToolCallIds.clear();
+        state.stepToolCallCount = undefined;
         parts.push(...finishStep(state));
       }
       return parts;
@@ -307,7 +420,11 @@ export function translatePiEvent(
       if (!event.toolCallId || !event.toolName) return [];
       const { wire, native } = resolveToolName(state, event.toolName);
       state.observedToolNames.set(event.toolCallId, wire);
-      const providerExecuted = state.builtinToolNames.has(native);
+      const { isMcpTool, providerExecuted } = resolveToolDispatch(
+        state,
+        native,
+      );
+      if (isMcpTool) state.dynamicToolCallIds.add(event.toolCallId);
       const input = serializeToolOutput(event.args ?? event.input ?? {});
       return [
         {
@@ -317,6 +434,10 @@ export function translatePiEvent(
           input,
           ...(wire !== native ? { nativeName: native } : {}),
           ...(providerExecuted ? { providerExecuted: true } : {}),
+          ...(isMcpTool ? { dynamic: true } : {}),
+          ...(state.stepToolCallCount != null
+            ? { stepToolCallCount: state.stepToolCallCount }
+            : {}),
         } as HarnessV1StreamPart,
       ];
     }
@@ -330,6 +451,7 @@ export function translatePiEvent(
         recordedName ??
         (nativeName ? resolveToolName(state, nativeName).wire : undefined);
       if (!wire) return [];
+      const dynamic = state.dynamicToolCallIds.delete(event.toolCallId);
       /*
        * Prefer the exact value the host submitted for user-registered tools
        * (see `hostToolResults`). Built-in tools, whose results Pi produces and
@@ -341,7 +463,9 @@ export function translatePiEvent(
             HarnessV1StreamPart,
             { type: 'tool-result' }
           >['result'])
-        : unwrapPiToolResult(event);
+        : dynamic
+          ? parseMcpToolResult(unwrapPiToolResult(event))
+          : unwrapPiToolResult(event);
       state.hostToolResults.delete(event.toolCallId);
       state.pendingStepToolCallIds.delete(event.toolCallId);
       return [
@@ -351,6 +475,7 @@ export function translatePiEvent(
           toolName: wire,
           result,
           ...(event.isError ? { isError: true } : {}),
+          ...(dynamic ? { dynamic: true } : {}),
         } as HarnessV1StreamPart,
         ...finishStep(state),
       ];

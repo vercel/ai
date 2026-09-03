@@ -6,6 +6,7 @@ export {
   type WorkflowAgentOptions,
   type WorkflowAgentStreamOptions,
   type WorkflowAgentStreamResult,
+  type WorkflowToolApprovalSecret,
   type GenerationSettings,
   type InferWorkflowAgentTools,
   type InferWorkflowAgentUIMessage,

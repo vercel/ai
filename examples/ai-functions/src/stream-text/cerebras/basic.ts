@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: cerebras('llama3.1-8b'),
+    model: cerebras('gpt-oss-120b'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

@@ -5,11 +5,13 @@ description: Use tools with AI SDK harnesses.
 
 # Harness Tools
 
-Harnesses have two tool surfaces:
+Harnesses have three tool surfaces:
 
 - Built-in tools exposed by the underlying harness runtime, such as file reads,
   edits, shell commands, and web search.
 - AI SDK tools that you pass to `HarnessAgent` with the `tools` setting.
+- External MCP tools configured through the harness adapter's `mcpServers`
+  setting.
 
 This page covers harness-specific behavior. For general AI SDK tool concepts,
 schemas, tool results, and `tool()` usage, see [Tools](/docs/foundations/tools).

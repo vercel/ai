@@ -61,16 +61,23 @@ The Markdown body contains the actual skill content with no restrictions on stru
 
 To support skills, your agent needs:
 
-1. **Filesystem access** to discover and load skill files (read files, read directories)
+1. **Access to a skill source** to discover skills and load their content. This can be a filesystem, bundled static assets, an API, or a remote registry.
 2. **A load skill tool** that reads the `SKILL.md` content into context
 3. **Command execution** (optional) if skills bundle scripts (e.g. a full sandbox environment)
+
+The `loadSkill` tool is a standard AI SDK tool, so you can implement its
+`execute` function with any data source. A filesystem is only required when
+your implementation reads skills from one. If a skill includes references,
+assets, or scripts, give the agent tools that can access or run those resources.
 
 ## Step 1: Define a Sandbox Abstraction
 
 <Note>
   This guide uses a generic sandbox abstraction for flexibility across
   environments. If you're building for Node.js, you can use `fs/promises` and
-  `child_process` directly instead.
+  `child_process` directly instead. You can also replace this abstraction with
+  bundled asset imports or network requests when your agent does not need a
+  filesystem.
 </Note>
 
 Create a generic sandbox interface that provides a consistent way to interact with the filesystem. This abstraction lets you implement it differently depending on your environment (Node.js fs, a containerized sandbox, cloud storage, etc.):

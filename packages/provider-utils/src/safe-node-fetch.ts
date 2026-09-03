@@ -131,7 +131,11 @@ export async function getDefaultDownloadFetch(): Promise<FetchFunction> {
   return (safeNodeFetchPromise ??= Promise.resolve().then(createSafeNodeFetch));
 }
 
-function isNodeDefaultFetch(fetch: FetchFunction): boolean {
+function isNodeDefaultFetch(fetch: unknown): boolean {
+  if (typeof fetch !== 'function') {
+    return false;
+  }
+
   const source = Function.prototype.toString.call(fetch);
   return (
     source.includes('internal/deps/undici') ||

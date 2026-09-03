@@ -48,6 +48,25 @@ describe('XaiVideoModelOptions type', () => {
     expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
   });
 
+  it('should allow reference-to-video mode with referenceVoiceIds', () => {
+    const options = {
+      mode: 'reference-to-video',
+      referenceImageUrls: ['https://example.com/ref.png'],
+      referenceVoiceIds: ['eve'],
+    } satisfies XaiVideoModelOptions;
+
+    expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
+  });
+
+  it('should allow referenceVoiceIds without mode for backward compatibility', () => {
+    const options = {
+      referenceImageUrls: ['https://example.com/ref.png'],
+      referenceVoiceIds: ['eve', 'leo', 'rex'],
+    } satisfies XaiVideoModelOptions;
+
+    expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
+  });
+
   // ── Plain generation + legacy no-mode compatibility ────────────────
 
   it('should allow generic video options without mode', () => {
@@ -167,6 +186,39 @@ describe('XaiVideoModelOptions type', () => {
       videoUrl: 'https://example.com/video.mp4',
       // @ts-expect-error - extend-video does not accept referenceImageUrls
       referenceImageUrls: ['https://example.com/ref.png'],
+    };
+
+    options;
+  });
+
+  it('should not allow referenceVoiceIds with edit-video mode', () => {
+    const options: XaiVideoModelOptions = {
+      mode: 'edit-video',
+      videoUrl: 'https://example.com/video.mp4',
+      // @ts-expect-error - edit-video does not accept referenceVoiceIds
+      referenceVoiceIds: ['eve'],
+    };
+
+    options;
+  });
+
+  it('should not allow referenceVoiceIds with extend-video mode', () => {
+    const options: XaiVideoModelOptions = {
+      mode: 'extend-video',
+      videoUrl: 'https://example.com/video.mp4',
+      // @ts-expect-error - extend-video does not accept referenceVoiceIds
+      referenceVoiceIds: ['eve'],
+    };
+
+    options;
+  });
+
+  it('should require referenceVoiceIds to be a string array', () => {
+    const options: XaiVideoModelOptions = {
+      mode: 'reference-to-video',
+      referenceImageUrls: ['https://example.com/ref.png'],
+      // @ts-expect-error - referenceVoiceIds must be a string array
+      referenceVoiceIds: 'eve',
     };
 
     options;

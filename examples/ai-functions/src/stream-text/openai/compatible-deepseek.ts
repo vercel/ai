@@ -10,7 +10,7 @@ run(async () => {
       Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`,
     },
   });
-  const model = deepseek.chatModel('deepseek-chat');
+  const model = deepseek.chatModel('deepseek-v4-flash');
   const result = streamText({
     model,
     prompt:

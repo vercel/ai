@@ -12,15 +12,57 @@ describe('deepagents bridge protocol', () => {
       prompt: 'hello',
       instructions: 'be terse',
       model: 'anthropic/claude-sonnet-4',
+      thinking: { type: 'adaptive', display: 'summarized' },
+      effort: 'max',
       tools: [{ name: 'lookup', description: 'd', inputSchema: {} }],
     });
-    expect(parsed.instructions).toBe('be terse');
+    expect(parsed).toMatchInlineSnapshot(`
+      {
+        "effort": "max",
+        "instructions": "be terse",
+        "model": "anthropic/claude-sonnet-4",
+        "prompt": "hello",
+        "thinking": {
+          "display": "summarized",
+          "type": "adaptive",
+        },
+        "tools": [
+          {
+            "description": "d",
+            "inputSchema": {},
+            "name": "lookup",
+          },
+        ],
+        "type": "start",
+      }
+    `);
+  });
+
+  it('parses forced extended thinking configuration', () => {
+    const parsed = startMessageSchema.parse({
+      type: 'start',
+      prompt: 'hello',
+      thinking: {
+        type: 'enabled',
+        budget_tokens: 4096,
+        display: 'summarized',
+      },
+      tools: [],
+    });
+
+    expect(parsed.thinking).toMatchInlineSnapshot(`
+      {
+        "budget_tokens": 4096,
+        "display": "summarized",
+        "type": "enabled",
+      }
+    `);
   });
 
   it('accepts the shared inbound commands', () => {
     for (const msg of [
       { type: 'tool-result', toolCallId: 't1', output: { ok: true } },
-      { type: 'user-message', text: 'more' },
+      { type: 'user-message', messageId: 'message-1', text: 'more' },
       { type: 'abort' },
       { type: 'destroy' },
       { type: 'resume', lastSeenEventId: 3 },

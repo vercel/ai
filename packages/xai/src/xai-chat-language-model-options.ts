@@ -6,6 +6,7 @@ export type XaiChatModelId =
   | 'grok-4.20-reasoning'
   | 'grok-4.3'
   | 'grok-4.5'
+  | 'grok-4.6'
   | 'grok-latest'
   | (string & {});
 
@@ -59,15 +60,20 @@ export const xaiLanguageModelChatOptions = z.object({
    * - `low` (default): Uses some reasoning tokens, but still fast.
    * - `medium`: More thinking for less-latency-sensitive applications.
    * - `high`: Uses more reasoning tokens for deeper thinking.
+   * - `xhigh`: Uses the most reasoning tokens (supported by `grok-4.6`).
    *
    * Note: Not every Grok model accepts every value. Refer to xAI's docs for
    * the values supported by your selected model.
    *
    * @see https://docs.x.ai/docs/guides/reasoning
    */
-  reasoningEffort: z.enum(['none', 'low', 'medium', 'high']).optional(),
+  reasoningEffort: z
+    .enum(['none', 'low', 'medium', 'high', 'xhigh'])
+    .optional(),
   logprobs: z.boolean().optional(),
   topLogprobs: z.number().int().min(0).max(8).optional(),
+
+  serviceTier: z.enum(['default', 'priority']).optional(),
 
   /**
    * Whether to enable parallel function calling during tool use.

@@ -84,6 +84,8 @@ export async function readResponseWithSizeLimit({
   } finally {
     try {
       await reader.cancel();
+    } catch {
+      // Ignore cancel errors so the original rejection is preserved.
     } finally {
       reader.releaseLock();
     }

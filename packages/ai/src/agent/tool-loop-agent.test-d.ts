@@ -188,6 +188,43 @@ describe('ToolLoopAgent', () => {
       });
     });
 
+    it('should type experimental_toolApprovalSecret in settings and prepareCall', () => {
+      type PrepareCall = NonNullable<ToolLoopAgentSettings['prepareCall']>;
+
+      expectTypeOf<
+        Parameters<PrepareCall>[0]['experimental_toolApprovalSecret']
+      >().toEqualTypeOf<string | Uint8Array | undefined>();
+      expectTypeOf<
+        Awaited<ReturnType<PrepareCall>>['experimental_toolApprovalSecret']
+      >().toEqualTypeOf<string | Uint8Array | undefined>();
+
+      const stringSecret = {
+        model: new MockLanguageModelV4(),
+        experimental_toolApprovalSecret: 'secret',
+      } satisfies ToolLoopAgentSettings;
+
+      const byteSecret = {
+        model: new MockLanguageModelV4(),
+        experimental_toolApprovalSecret: new Uint8Array(32),
+      } satisfies ToolLoopAgentSettings;
+
+      new ToolLoopAgent({
+        ...stringSecret,
+        prepareCall: options => {
+          expectTypeOf(options.experimental_toolApprovalSecret).toEqualTypeOf<
+            string | Uint8Array | undefined
+          >();
+
+          return {
+            ...options,
+            experimental_toolApprovalSecret:
+              byteSecret.experimental_toolApprovalSecret,
+            prompt: 'Hello, world!',
+          };
+        },
+      });
+    });
+
     it('should support stable start callbacks', async () => {
       const agent = new ToolLoopAgent({
         model: new MockLanguageModelV4(),
@@ -532,6 +569,69 @@ describe('ToolLoopAgent', () => {
     });
 
     describe('prepareCall', () => {
+      it('should match the runtime input and override settings', () => {
+        const tools = {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+          }),
+        };
+
+        type Settings = ToolLoopAgentSettings<never, typeof tools>;
+        type PrepareCall = NonNullable<Settings['prepareCall']>;
+        type PrepareCallOptions = Parameters<PrepareCall>[0];
+        type PrepareCallResult = Awaited<ReturnType<PrepareCall>>;
+
+        expectTypeOf<PrepareCallOptions['toolChoice']>().toEqualTypeOf<
+          Settings['toolChoice']
+        >();
+        expectTypeOf<PrepareCallOptions['maxRetries']>().toEqualTypeOf<
+          Settings['maxRetries']
+        >();
+        expectTypeOf<PrepareCallOptions['prepareStep']>().toEqualTypeOf<
+          Settings['prepareStep']
+        >();
+        expectTypeOf<PrepareCallOptions['repairToolCall']>().toEqualTypeOf<
+          Settings['repairToolCall']
+        >();
+        expectTypeOf<
+          PrepareCallOptions['experimental_repairToolCall']
+        >().toEqualTypeOf<Settings['experimental_repairToolCall']>();
+
+        expectTypeOf<PrepareCallResult['toolChoice']>().toEqualTypeOf<
+          Settings['toolChoice']
+        >();
+        expectTypeOf<PrepareCallResult['maxRetries']>().toEqualTypeOf<
+          Settings['maxRetries']
+        >();
+        expectTypeOf<PrepareCallResult['prepareStep']>().toEqualTypeOf<
+          Settings['prepareStep']
+        >();
+        expectTypeOf<PrepareCallResult['repairToolCall']>().toEqualTypeOf<
+          Settings['repairToolCall']
+        >();
+        expectTypeOf<
+          PrepareCallResult['experimental_repairToolCall']
+        >().toEqualTypeOf<Settings['experimental_repairToolCall']>();
+
+        type RemovedCallField =
+          | 'abortSignal'
+          | 'timeout'
+          | 'onStart'
+          | 'experimental_onStart'
+          | 'onStepStart'
+          | 'experimental_onStepStart'
+          | 'onToolExecutionStart'
+          | 'onToolExecutionEnd'
+          | 'onStepEnd'
+          | 'onStepFinish'
+          | 'onEnd'
+          | 'onFinish';
+
+        expectTypeOf<
+          Extract<RemovedCallField, keyof PrepareCallOptions>
+        >().toEqualTypeOf<never>();
+      });
+
       it('should type reasoning in input and return values', () => {
         type PrepareCallResult = Awaited<
           ReturnType<NonNullable<ToolLoopAgentSettings['prepareCall']>>

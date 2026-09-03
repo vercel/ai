@@ -140,11 +140,20 @@ const arrayOutputStrategy = <ELEMENT>(
     // be able to generate an array directly:
     // possible future optimization: use arrays directly when model supports grammar-guided generation
     jsonSchema: async () => {
-      // remove $schema from schema.jsonSchema:
-      const { $schema: _$schema, ...itemSchema } = await schema.jsonSchema;
+      // keep root-level definitions available to root-relative references:
+      const {
+        $schema: _$schema,
+        definitions,
+        $defs,
+        ...itemSchema
+      } = (await schema.jsonSchema) as JSONSchema7 & {
+        $defs?: JSONSchema7['definitions'];
+      };
 
       return {
         $schema: 'http://json-schema.org/draft-07/schema#',
+        ...(definitions != null && { definitions }),
+        ...($defs != null && { $defs }),
         type: 'object',
         properties: {
           elements: { type: 'array', items: itemSchema },

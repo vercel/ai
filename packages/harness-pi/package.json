@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/harness-pi",
-  "version": "1.0.59",
+  "version": "1.0.102",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -37,13 +37,16 @@
   "dependencies": {
     "@ai-sdk/harness": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "@earendil-works/pi-coding-agent": "^0.80.10",
+    "@earendil-works/pi-ai": "0.74.2",
+    "@earendil-works/pi-coding-agent": "^0.84.3",
+    "pi-mcp-adapter": "2.12.1",
     "typebox": "^1.1.38"
   },
   "peerDependencies": {
     "zod": "^3.25.76 || ^4.1.8"
   },
   "devDependencies": {
+    "@ai-sdk/sandbox-just-bash": "workspace:*",
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8.5.1",

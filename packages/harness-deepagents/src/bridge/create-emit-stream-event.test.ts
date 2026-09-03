@@ -14,6 +14,7 @@ describe('createEmitStreamEvent', () => {
       state,
       configuredModel: 'configured-model',
       hostToolNames: new Set(),
+      mcpToolNames: new Set(),
       emit: event => emitted.push(event),
     });
 
@@ -94,6 +95,7 @@ describe('createEmitStreamEvent', () => {
       state,
       configuredModel: undefined,
       hostToolNames: new Set(),
+      mcpToolNames: new Set(),
       emit: event => emitted.push(event),
     });
 
@@ -135,5 +137,142 @@ describe('createEmitStreamEvent', () => {
         },
       ]
     `);
+  });
+
+  it('emits reasoning from Anthropic and normalized LangChain blocks', () => {
+    const state = createDeepAgentsStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      configuredModel: undefined,
+      hostToolNames: new Set(),
+      mcpToolNames: new Set(),
+      emit: event => emitted.push(event),
+    });
+
+    emitStreamEvent({ event: 'on_chat_model_start' });
+    emitStreamEvent({
+      event: 'on_chat_model_stream',
+      data: {
+        chunk: {
+          content: [{ type: 'thinking', thinking: 'First' }],
+        },
+      },
+    });
+    emitStreamEvent({
+      event: 'on_chat_model_stream',
+      data: {
+        chunk: {
+          content: [{ type: 'reasoning-delta', reasoning: ' second' }],
+        },
+      },
+    });
+    emitStreamEvent({ event: 'on_chat_model_end' });
+
+    expect(emitted).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+        },
+        {
+          "id": "reasoning-uuid",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "First",
+          "id": "reasoning-uuid",
+          "type": "reasoning-delta",
+        },
+        {
+          "delta": " second",
+          "id": "reasoning-uuid",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "reasoning-uuid",
+          "type": "reasoning-end",
+        },
+      ]
+    `);
+  });
+
+  it('marks only external MCP tools as dynamic', () => {
+    const state = createDeepAgentsStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      configuredModel: undefined,
+      hostToolNames: new Set(['mcp__custom__typed']),
+      mcpToolNames: new Set(['mcp__memory__search']),
+      emit: event => emitted.push(event),
+    });
+
+    emitStreamEvent({
+      event: 'on_tool_start',
+      name: 'mcp__memory__search',
+      run_id: 'mcp-run',
+      data: { input: { query: 'AI SDK' } },
+    });
+    emitStreamEvent({
+      event: 'on_tool_end',
+      name: 'mcp__memory__search',
+      run_id: 'mcp-run',
+      data: { output: 'found' },
+    });
+    emitStreamEvent({
+      event: 'on_tool_start',
+      name: 'mcp__custom__typed',
+      run_id: 'host-run',
+      data: { input: {} },
+    });
+
+    expect(emitted).toMatchInlineSnapshot(`
+      [
+        {
+          "dynamic": true,
+          "input": "{\"query\":\"AI SDK\"}",
+          "nativeName": "mcp__memory__search",
+          "providerExecuted": true,
+          "toolCallId": "mcp-run",
+          "toolName": "mcp__memory__search",
+          "type": "tool-call",
+        },
+        {
+          "dynamic": true,
+          "result": "found",
+          "toolCallId": "mcp-run",
+          "toolName": "mcp__memory__search",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
+
+  it('does not expose the internal structured output tool', () => {
+    const state = createDeepAgentsStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      configuredModel: undefined,
+      hostToolNames: new Set(),
+      mcpToolNames: new Set(),
+      structuredOutputToolNames: new Set(['StructuredOutput']),
+      emit: event => emitted.push(event),
+    });
+
+    emitStreamEvent({
+      event: 'on_tool_start',
+      name: 'StructuredOutput',
+      run_id: 'structured-output',
+      data: { input: { answer: 'yes' } },
+    });
+    emitStreamEvent({
+      event: 'on_tool_end',
+      name: 'StructuredOutput',
+      run_id: 'structured-output',
+      data: { output: { answer: 'yes' } },
+    });
+
+    expect(emitted).toEqual([]);
   });
 });

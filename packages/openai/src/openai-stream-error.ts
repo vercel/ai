@@ -1,12 +1,40 @@
 import { APICallError } from '@ai-sdk/provider';
-import type { ParseResult } from '@ai-sdk/provider-utils';
+import {
+  createProviderStreamError,
+  type ParseResult,
+  type ProviderStreamError,
+} from '@ai-sdk/provider-utils';
 
 type StreamError = {
   message: string;
   code?: string | number | null;
   type?: string | null;
-  frame: unknown;
 };
+
+/**
+ * Converts an OpenAI stream error frame into provider-owned metadata that AI
+ * SDK Core can normalize without duplicating OpenAI error-code semantics.
+ */
+export function createOpenAIProviderStreamError(
+  frame: unknown,
+): ProviderStreamError | undefined {
+  const streamError = parseStreamError(frame);
+
+  if (streamError == null) {
+    return undefined;
+  }
+
+  const statusCode = getStatusCode(streamError);
+
+  return createProviderStreamError({
+    message: streamError.message,
+    type: streamError.type ?? undefined,
+    code: streamError.code ?? undefined,
+    statusCode,
+    isRetryable: isRetryableStreamError(streamError, statusCode),
+    data: frame,
+  });
+}
 
 export async function throwIfOpenAIStreamErrorBeforeOutput<T>({
   stream,
@@ -154,17 +182,18 @@ function createOpenAIStreamError({
   requestBodyValues: unknown;
   responseHeaders?: Record<string, string>;
 }): APICallError {
-  const streamError = parseStreamError(frame);
+  const streamError = createOpenAIProviderStreamError(frame);
   return new APICallError({
     message:
       streamError?.message ??
       'OpenAI stream failed before any output was generated',
     url,
     requestBodyValues,
-    statusCode: streamError == null ? 500 : getStatusCode(streamError),
+    statusCode: streamError?.statusCode ?? 500,
     responseHeaders,
     responseBody: JSON.stringify(frame),
     data: frame,
+    isRetryable: streamError?.isRetryable,
   });
 }
 
@@ -184,7 +213,6 @@ function parseStreamError(frame: unknown): StreamError | undefined {
           message: responseError.message,
           code: getStringOrNumber(responseError.code),
           type: 'response.failed',
-          frame,
         }
       : undefined;
   }
@@ -200,21 +228,14 @@ function parseStreamError(frame: unknown): StreamError | undefined {
         message: error.message,
         code: getStringOrNumber(error.code),
         type: typeof error.type === 'string' ? error.type : undefined,
-        frame,
       }
     : undefined;
 }
 
 function getStatusCode(error: StreamError): number {
-  if (typeof error.code === 'number' && isHttpErrorStatusCode(error.code)) {
-    return error.code;
-  }
-
-  if (typeof error.code === 'string' && /^\d{3}$/.test(error.code)) {
-    const numericCode = Number(error.code);
-    if (isHttpErrorStatusCode(numericCode)) {
-      return numericCode;
-    }
+  const explicitStatusCode = getHttpStatusCode(error.code);
+  if (explicitStatusCode != null) {
+    return explicitStatusCode;
   }
 
   const discriminator = [error.code, error.type]
@@ -259,4 +280,36 @@ function getStringOrNumber(value: unknown): string | number | undefined {
 
 function isHttpErrorStatusCode(value: number): boolean {
   return Number.isInteger(value) && value >= 400 && value <= 599;
+}
+
+function getHttpStatusCode(value: string | number | null | undefined) {
+  const statusCode =
+    typeof value === 'string' && /^\d{3}$/.test(value) ? Number(value) : value;
+
+  return typeof statusCode === 'number' && isHttpErrorStatusCode(statusCode)
+    ? statusCode
+    : undefined;
+}
+
+function isRetryableStatusCode(statusCode: number): boolean {
+  return (
+    statusCode === 408 ||
+    statusCode === 409 ||
+    statusCode === 429 ||
+    statusCode >= 500
+  );
+}
+
+function isRetryableStreamError(
+  error: StreamError,
+  statusCode: number,
+): boolean {
+  if (
+    error.code === 'insufficient_quota' ||
+    error.type === 'insufficient_quota'
+  ) {
+    return false;
+  }
+
+  return isRetryableStatusCode(statusCode);
 }

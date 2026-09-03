@@ -63,7 +63,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
         part =>
           !isToolUIPart(part) ||
           part.state === 'approval-responded' ||
-          part.state === 'output-available' ||
+          (part.state === 'output-available' && part.preliminary !== true) ||
           part.state === 'output-error' ||
           part.state === 'output-denied',
       ),
@@ -233,6 +233,9 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       approvalId: part.approval.id,
                       toolCallId: part.toolCallId,
                       isAutomatic: part.approval.isAutomatic,
+                      ...(part.approval.requestReason != null
+                        ? { reason: part.approval.requestReason }
+                        : {}),
                       ...(part.approval.signature != null
                         ? { signature: part.approval.signature }
                         : {}),

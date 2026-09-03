@@ -1,5 +1,6 @@
 import type {
   EmbeddingModelV4,
+  Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
   FilesV4,
   ImageModelV4,
   LanguageModelV4,
@@ -30,25 +31,25 @@ import type { OpenAIEmbeddingModelId } from './embedding/openai-embedding-model-
 import { OpenAIImageModel } from './image/openai-image-model';
 import type { OpenAIImageModelId } from './image/openai-image-model-options';
 import { openaiTools } from './openai-tools';
+import { OpenAIResponsesBatchLanguageModel } from './openai-responses-batch';
 import { OpenAIRealtimeModel } from './realtime/openai-realtime-model';
-import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
 import type { OpenAIResponsesModelId } from './responses/openai-responses-language-model-options';
 import { OpenAISpeechModel } from './speech/openai-speech-model';
 import type { OpenAISpeechModelId } from './speech/openai-speech-model-options';
 import { OpenAITranscriptionModel } from './transcription/openai-transcription-model';
 import type { OpenAITranscriptionModelId } from './transcription/openai-transcription-model-options';
-import { OpenAITranslationModel } from './translation/openai-translation-model';
-import type { OpenAITranslationModelId } from './translation/openai-translation-model-options';
+import { OpenAISpeechTranslationModel } from './speech-translation/openai-speech-translation-model';
+import type { OpenAISpeechTranslationModelId } from './speech-translation/openai-speech-translation-model-options';
 import { OpenAISkills } from './skills/openai-skills';
 import { VERSION } from './version';
 
 export interface OpenAIProvider extends ProviderV4 {
-  (modelId: OpenAIResponsesModelId): LanguageModelV4;
+  (modelId: OpenAIResponsesModelId): BatchLanguageModelV4;
 
   /**
    * Creates an OpenAI model for text generation.
    */
-  languageModel(modelId: OpenAIResponsesModelId): LanguageModelV4;
+  languageModel(modelId: OpenAIResponsesModelId): BatchLanguageModelV4;
 
   /**
    * Creates an OpenAI chat model for text generation.
@@ -58,7 +59,7 @@ export interface OpenAIProvider extends ProviderV4 {
   /**
    * Creates an OpenAI responses API model for text generation.
    */
-  responses(modelId: OpenAIResponsesModelId): LanguageModelV4;
+  responses(modelId: OpenAIResponsesModelId): BatchLanguageModelV4;
 
   /**
    * Creates an OpenAI completion model for text generation.
@@ -103,13 +104,15 @@ export interface OpenAIProvider extends ProviderV4 {
   /**
    * Creates an experimental model for streaming speech translation.
    */
-  translation(modelId: OpenAITranslationModelId): SpeechTranslationModelV4;
+  translation(
+    modelId: OpenAISpeechTranslationModelId,
+  ): SpeechTranslationModelV4;
 
   /**
    * Creates an experimental model for streaming speech translation.
    */
   speechTranslationModel(
-    modelId: OpenAITranslationModelId,
+    modelId: OpenAISpeechTranslationModelId,
   ): SpeechTranslationModelV4;
 
   /**
@@ -257,9 +260,11 @@ export function createOpenAI(
       webSocket: options.webSocket,
     });
 
-  const createTranslationModel = (modelId: OpenAITranslationModelId) =>
-    new OpenAITranslationModel(modelId, {
-      provider: `${providerName}.translation`,
+  const createSpeechTranslationModel = (
+    modelId: OpenAISpeechTranslationModelId,
+  ) =>
+    new OpenAISpeechTranslationModel(modelId, {
+      provider: `${providerName}.speech-translation`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
@@ -301,8 +306,9 @@ export function createOpenAI(
   };
 
   const createResponsesModel = (modelId: OpenAIResponsesModelId) => {
-    return new OpenAIResponsesLanguageModel(modelId, {
+    return new OpenAIResponsesBatchLanguageModel(modelId, {
       provider: `${providerName}.responses`,
+      baseURL,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
@@ -358,8 +364,8 @@ export function createOpenAI(
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
 
-  provider.translation = createTranslationModel;
-  provider.speechTranslationModel = createTranslationModel;
+  provider.translation = createSpeechTranslationModel;
+  provider.speechTranslationModel = createSpeechTranslationModel;
 
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;

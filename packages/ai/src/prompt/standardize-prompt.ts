@@ -4,7 +4,7 @@ import {
   safeValidateTypes,
   type ModelMessage,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import { z } from '../util/zod';
 import { modelMessageSchema } from './message';
 import type { Instructions, Prompt } from './prompt';
 

@@ -59,10 +59,10 @@ You can use the following optional settings to customize the xAI provider instan
 ## Language Models
 
 You can create [xAI models](https://console.x.ai) using a provider instance. The
-first argument is the model id, e.g. `grok-4.20-non-reasoning`.
+first argument is the model id, e.g. `grok-4.6`.
 
 ```ts
-const model = xai('grok-4.20-non-reasoning');
+const model = xai('grok-4.6');
 ```
 
 <Note>
@@ -81,7 +81,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai('grok-4.20-non-reasoning'),
+  model: xai('grok-4.6'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -121,18 +121,53 @@ The AI SDK option accepts these values, but each xAI model supports a subset:
 - `'high'` — More reasoning tokens for deeper thinking. Suited for very
   challenging problems, complex math, multi-step logic, and competition-level
   tasks.
+- `'xhigh'` — Uses the most reasoning tokens for the most challenging tasks.
+  This level is only supported by `grok-4.6`.
 
 <Note>
   Support and defaults are model-specific. `grok-4.3` supports `'none'`,
   `'low'`, `'medium'`, and `'high'`. `grok-4.5` supports `'low'`, `'medium'`,
-  and `'high'`, defaults to `'high'`, and cannot disable reasoning. The
-  `grok-4.20-reasoning` and `grok-4.20-non-reasoning` variants do not accept
-  this option. For `grok-4.20-multi-agent`, `'low'`, `'medium'`, and `'high'`
-  control the number of agents instead of reasoning depth. See xAI's [reasoning
+  and `'high'`, defaults to `'high'`, and cannot disable reasoning. `grok-4.6`
+  supports `'low'`, `'medium'`, `'high'`, and `'xhigh'`, and defaults to
+  `'high'`. The `grok-4.20-reasoning` and `grok-4.20-non-reasoning` variants do
+  not accept this option. For `grok-4.20-multi-agent`, `'low'`, `'medium'`, and
+  `'high'` control the number of agents instead of reasoning depth. See xAI's
+  [reasoning
   docs](https://docs.x.ai/developers/model-capabilities/text/reasoning) and
-  [Grok 4.3 model page](https://docs.x.ai/developers/models/grok-4.3) for
+  [Grok 4.6 model page](https://docs.x.ai/developers/models/grok-4.6) for
   current details.
 </Note>
+
+### Priority Processing
+
+`providerOptions.xai.serviceTier` requests higher scheduling priority, which
+typically lowers time-to-first-token and speeds up inter-token latency. This
+works for both the Responses API (default) and the Chat Completions API
+(`xai.chat()`).
+
+```ts
+import { xai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
+
+const { providerMetadata } = await generateText({
+  model: xai('grok-4.6'),
+  prompt: 'Explain quantum entanglement.',
+  providerOptions: {
+    xai: { serviceTier: 'priority' },
+  },
+});
+
+// 'priority' when the request was served at the priority tier,
+// 'default' when priority capacity was unavailable.
+console.log(providerMetadata?.xai?.serviceTier);
+```
+
+Priority requests are billed at a premium per-token rate, and xAI only charges
+that rate when the response confirms the priority tier — so read the applied
+tier back from `providerMetadata.xai.serviceTier` rather than assuming the
+request you sent is the tier you got. Omitting the option is equivalent to
+`'default'`. See xAI's [priority processing
+docs](https://docs.x.ai/developers/advanced-api-usage/priority-processing).
 
 ## Realtime Models
 
@@ -164,7 +199,7 @@ calling pattern.
 The xAI Responses API is the default when using `xai(modelId)` (since AI SDK 7). You can also use `xai.responses(modelId)` explicitly. This enables the model to autonomously orchestrate tool calls and research on xAI's servers.
 
 ```ts
-const model = xai.responses('grok-4.20-non-reasoning');
+const model = xai.responses('grok-4.6');
 ```
 
 The Responses API provides server-side tools that the model can autonomously execute during its reasoning process:
@@ -186,7 +221,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai.responses('grok-3'),
+  model: xai.responses('grok-4.6'),
   messages: [
     {
       role: 'user',
@@ -211,7 +246,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai('grok-4.3'),
+  model: xai('grok-4.6'),
   messages: [
     {
       role: 'user',
@@ -248,7 +283,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text, sources } = await generateText({
-  model: xai.responses('grok-4.20-non-reasoning'),
+  model: xai.responses('grok-4.6'),
   prompt: 'What are the latest developments in AI?',
   tools: {
     web_search: xai.tools.webSearch({
@@ -286,7 +321,7 @@ The X search tool enables searching X (Twitter) for posts, with filtering by han
 
 ```ts
 const { text, sources } = await generateText({
-  model: xai.responses('grok-4.20-non-reasoning'),
+  model: xai.responses('grok-4.6'),
   prompt: 'What are people saying about AI on X this week?',
   tools: {
     x_search: xai.tools.xSearch({
@@ -332,7 +367,7 @@ The code execution tool enables the model to write and execute Python code for c
 
 ```ts
 const { text } = await generateText({
-  model: xai.responses('grok-4.20-non-reasoning'),
+  model: xai.responses('grok-4.6'),
   prompt:
     'Calculate the compound interest for $10,000 at 5% annually for 10 years',
   tools: {
@@ -347,7 +382,7 @@ The view image tool enables the model to view and analyze images:
 
 ```ts
 const { text } = await generateText({
-  model: xai.responses('grok-4.20-non-reasoning'),
+  model: xai.responses('grok-4.6'),
   prompt: 'Describe what you see in the image',
   tools: {
     view_image: xai.tools.viewImage(),
@@ -361,7 +396,7 @@ The view X video tool enables the model to view and analyze videos from X (Twitt
 
 ```ts
 const { text } = await generateText({
-  model: xai.responses('grok-4.20-non-reasoning'),
+  model: xai.responses('grok-4.6'),
   prompt: 'Summarize the content of this X video',
   tools: {
     view_x_video: xai.tools.viewXVideo(),
@@ -369,13 +404,54 @@ const { text } = await generateText({
 });
 ```
 
+### Image Generation Tool
+
+The image generation tool lets the model create and edit images with Grok Imagine as part of a conversation. The model decides when to call the tool, writes the image prompt, and returns the finished image alongside its text response:
+
+```ts
+import { xai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: xai.responses('grok-4.6'),
+  prompt:
+    'Generate an image of a corgi surfing a big wave, in the style of a Japanese woodblock print',
+  tools: {
+    image_generation: xai.tools.imageGeneration(),
+  },
+});
+
+for (const toolResult of result.staticToolResults) {
+  if (toolResult.toolName === 'image_generation') {
+    const base64Image = toolResult.output.result;
+  }
+}
+```
+
+The tool result also contains the prompt that the model wrote for the image model, which is useful for understanding and debugging what was generated.
+
+#### Image Generation Parameters
+
+- **action** _'auto' | 'generate' | 'edit'_
+
+  Restricts what the tool can do. Defaults to `'auto'`.
+  - `'auto'`: the model can generate and edit images.
+  - `'generate'`: text-to-image generation only.
+  - `'edit'`: image editing only (edits images already in the conversation, including images the model generated earlier).
+
+<Note>
+  The tool takes no size or format parameters; the model picks an aspect ratio
+  for each call. To control it, ask in your prompt (e.g. "in a 9:16 vertical
+  aspect ratio").
+</Note>
+
 ### MCP Server Tool
 
 The MCP server tool enables the model to connect to remote [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) servers and use their tools:
 
 ```ts
 const { text } = await generateText({
-  model: xai.responses('grok-4.20-non-reasoning'),
+  model: xai.responses('grok-4.6'),
   prompt: 'Use the weather tool to check conditions in San Francisco',
   tools: {
     weather_server: xai.tools.mcpServer({
@@ -423,7 +499,7 @@ import { xai, type XaiLanguageModelResponsesOptions } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: xai.responses('grok-4.20-reasoning'),
+  model: xai.responses('grok-4.6'),
   prompt: 'What documents do you have access to?',
   tools: {
     file_search: xai.tools.fileSearch({
@@ -470,7 +546,7 @@ import { xai } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 
 const { stream } = streamText({
-  model: xai.responses('grok-4.20-non-reasoning'),
+  model: xai.responses('grok-4.6'),
   prompt: 'Research AI safety developments and calculate risk metrics',
   tools: {
     web_search: xai.tools.webSearch(),
@@ -504,7 +580,7 @@ import { xai, type XaiLanguageModelResponsesOptions } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: xai.responses('grok-4.5'),
+  model: xai.responses('grok-4.6'),
   providerOptions: {
     xai: {
       reasoningEffort: 'high',
@@ -540,15 +616,80 @@ The following provider options are available:
 
   The ID of the previous response from the model. You can use it to continue a conversation.
 
+- **serviceTier** _'default' | 'priority'_
+
+  Scheduling priority for the request. `'priority'` buys lower time-to-first-token and faster inter-token latency at a premium per-token price. The tier xAI actually applied comes back on `providerMetadata.xai.serviceTier`, and is `'default'` when priority capacity was unavailable. See [Priority Processing](https://docs.x.ai/developers/advanced-api-usage/priority-processing).
+
 <Note>
   The Responses API only supports server-side tools. You cannot mix server-side
   tools with client-side function tools in the same request.
+</Note>
+
+## Text Batches
+
+<Note type="warning">
+  Text batch support is experimental and the API may change in patch releases.
+</Note>
+
+The xAI provider supports asynchronous text generation through the
+[Batch API](https://docs.x.ai/developers/advanced-api-usage/batch-api). Use the
+experimental text batch APIs to start a batch, poll its status, and stream its
+results:
+
+```ts
+import { xai } from '@ai-sdk/xai';
+import {
+  experimental_getBatchResults as getBatchResults,
+  experimental_getBatchStatus as getBatchStatus,
+  experimental_startTextBatch as startTextBatch,
+} from 'ai';
+import { setTimeout } from 'node:timers/promises';
+
+const model = xai('grok-4.3');
+
+const batch = await startTextBatch({
+  model,
+  requests: [
+    { id: 'capital-france', prompt: 'What is the capital of France?' },
+    { id: 'capital-germany', prompt: 'What is the capital of Germany?' },
+  ],
+});
+
+let status = batch.status;
+while (status === 'pending') {
+  await setTimeout(60_000);
+  ({ status } = await getBatchStatus({ model, batch }));
+}
+
+for await (const item of getBatchResults({ model, batch })) {
+  if (item.status === 'succeeded') {
+    console.log(item.id, item.text);
+  } else {
+    console.error(item.id, item.error);
+  }
+}
+```
+
+`startTextBatch` returns a serializable batch reference. Persist this reference
+to check the batch status or retrieve its results from another process. Results
+can arrive in a different order from the input requests, so match each result by
+its `id`.
+
+Text batches are available through `xai(modelId)` and
+`xai.responses(modelId)`. The legacy `xai.chat(modelId)` models do not expose
+the batch APIs.
+
+<Note>
+  The xAI Batch API does not support per-batch webhooks. When you provide a
+  `webhookUrl`, the provider returns an unsupported warning and starts the batch
+  without a webhook.
 </Note>
 
 ## Model Capabilities
 
 | Model                         | Image Input | Object Generation | Tool Usage | Tool Streaming | Reasoning |
 | ----------------------------- | ----------- | ----------------- | ---------- | -------------- | --------- |
+| `grok-4.6`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check /> |
 | `grok-4.5`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check /> |
 | `grok-4.20-reasoning`         | <Check />   | <Check />         | <Check />  | <Check />      | <Check /> |
 | `grok-4.20-non-reasoning`     | <Check />   | <Check />         | <Check />  | <Check />      | <Cross /> |
@@ -664,6 +805,45 @@ const result = await generateSpeech({
 - **textNormalization** _boolean_
 
   Whether to normalize written-form input text before synthesizing speech.
+
+- **withTimestamps** _boolean_
+
+  Return character-level timing metadata alongside the audio. The timing data
+  and total duration are exposed via `providerMetadata.xai` (see below).
+
+- **replace** _Record&lt;string, string&gt;_
+
+  Map of phrases to spoken substitutions applied before synthesis. Values may
+  be respellings (`{ 'Acme Mobile': 'Acme Mobull' }`) or IPA phonetics
+  (`{ nginx: '/ˈɛndʒɪn ˈɛks/' }`).
+
+### Provider Metadata
+
+xAI speech results include provider-specific metadata under
+`providerMetadata.xai`:
+
+- **traceId** _string_ — the xAI trace ID for the request, useful for
+  debugging with xAI support.
+- **duration** _number_ — total audio duration in seconds (only with
+  `withTimestamps`).
+- **contentType** _string_ — MIME type of the decoded audio, e.g.
+  `'audio/mpeg'` (only with `withTimestamps`).
+- **audioTimestamps** `{ graphChars: string[]; graphTimes: [number, number][] }` —
+  per-character alignment data (only with `withTimestamps`). `graphChars[i]`
+  is the character spoken during the `[start, end]` interval
+  `graphTimes[i]`, in seconds.
+
+```ts
+const result = await generateSpeech({
+  model: xai.speech(),
+  text: 'Hello world.',
+  providerOptions: {
+    xai: { withTimestamps: true } satisfies XaiSpeechModelOptions,
+  },
+});
+
+const { traceId, duration, audioTimestamps } = result.providerMetadata.xai;
+```
 
 ### Model Capabilities
 
@@ -1182,12 +1362,64 @@ const { video } = await generateVideo({
 });
 ```
 
+`inputReferences` accepts image references only. A reference with a non-image
+media type (for example a video or audio clip) is ignored with a warning, and a
+reference with no media type is treated as an image. If no image reference
+remains, reference-to-video is not selected and no reference images are sent.
+
+#### Reference Audio
+
+Reference-to-video can also give the subject a voice. `referenceVoiceIds` takes
+up to 3 xAI **preset** voice ids — you cannot upload your own audio clips.
+Reference the voices from the prompt with `<AUDIO_0>`, `<AUDIO_1>`, and
+`<AUDIO_2>`, in the order the voices are passed.
+
+```ts
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: xai.video('grok-imagine-video-1.5'),
+  prompt:
+    'The person from <IMAGE_0> stands in the room from <IMAGE_1> and speaks ' +
+    'to the camera with the voice from <AUDIO_0>.',
+  aspectRatio: '9:16',
+  duration: 10,
+  providerOptions: {
+    xai: {
+      mode: 'reference-to-video',
+      referenceImageUrls: [
+        'https://example.com/person.png',
+        'https://example.com/room.png',
+      ],
+      referenceVoiceIds: ['eve'],
+      resolution: '720p',
+      pollTimeoutMs: 600000,
+    } satisfies XaiVideoModelOptions,
+  },
+});
+```
+
+Valid voice ids come from the xAI
+[text-to-speech voice roster](https://docs.x.ai/developers/model-capabilities/audio/text-to-speech#voices).
+Ids are case-insensitive, and an unknown id returns a `400` response listing the
+available voices. `referenceVoiceIds` is ignored with a warning when the
+resolved operation is not reference-to-video.
+
+<Note>
+  xAI documents reference audio as available in the United States only, for
+  trusted partners. Requests from accounts without access are rejected by the
+  xAI API.
+</Note>
+
 <Note>
   Reference-to-video supports `duration`, `aspectRatio`, and `resolution`. Use
   `mode` to select the operation — each mode is mutually exclusive. When both
   are provided, `frameImages` takes precedence over `inputReferences`, and
   `inputReferences` takes precedence over the legacy `referenceImageUrls`
-  provider option. Reference-to-video requires the `grok-imagine-video` model.
+  provider option. Reference-to-video is supported by the `grok-imagine-video`
+  and `grok-imagine-video-1.5` models; native 1080p requires
+  `grok-imagine-video-1.5`.
 </Note>
 
 ### Video Provider Options
@@ -1203,11 +1435,14 @@ You can validate the provider options using the `XaiVideoModelOptions` type.
 
   Maximum wait time in milliseconds for video generation. Defaults to 600000 (10 minutes).
 
-- **resolution** _'480p' | '720p'_
+- **resolution** _'480p' | '720p' | '1080p'_
 
   Video resolution. When using the SDK's standard `resolution` parameter,
-  `1280x720` maps to `720p` and `854x480` maps to `480p`.
-  Use this provider option to pass the native format directly.
+  `1920x1080` maps to `1080p`, `1280x720` maps to `720p`, and `854x480` maps
+  to `480p`. Use this provider option to pass the native format directly.
+  `1080p` requires the `grok-imagine-video-1.5` model and is available for
+  text-to-video and image-to-video; reference-to-video is capped at `720p`
+  (a `1080p` request is downgraded with a warning).
 
 - **user** _string_
 
@@ -1239,6 +1474,17 @@ You can validate the provider options using the `XaiVideoModelOptions` type.
   `<IMAGE_1>`, `<IMAGE_2>`, etc. in the prompt to reference specific
   images. Used with `mode: 'reference-to-video'`.
 
+- **referenceVoiceIds** _string[]_
+
+  Up to 3 xAI preset voice ids that give the subject a voice in
+  reference-to-video (R2V) generation. Preset voices only — audio clips
+  cannot be uploaded. Ids are case-insensitive and come from the
+  [text-to-speech voice roster](https://docs.x.ai/developers/model-capabilities/audio/text-to-speech#voices);
+  an unknown id returns a `400` listing the available voices. Use `<AUDIO_0>`,
+  `<AUDIO_1>`, and `<AUDIO_2>` tags in the prompt to reference the voices.
+  Ignored with a warning outside reference-to-video. Reference audio is
+  documented as US-only and limited to trusted partners.
+
 <Note>
   Video generation is an asynchronous process that can take several minutes.
   Consider setting `pollTimeoutMs` to at least 10 minutes (600000ms) for
@@ -1249,7 +1495,9 @@ You can validate the provider options using the `XaiVideoModelOptions` type.
 ### Aspect Ratio and Resolution
 
 For **text-to-video**, you can specify both `aspectRatio` and `resolution`.
-The default aspect ratio is `16:9` and the default resolution is `480p`.
+The default aspect ratio is `16:9` and the default resolution is `480p`. The
+`grok-imagine-video-1.5` model additionally supports native `1080p` for
+text-to-video and image-to-video.
 
 For **image-to-video**, the output defaults to the input image's aspect ratio.
 If you specify `aspectRatio`, it will override this and stretch the image to the
@@ -1265,13 +1513,18 @@ from the source video. `duration` is supported and controls only the
 extension length.
 
 For **reference-to-video (R2V)**, you can specify `duration`, `aspectRatio`,
-and `resolution` just like text-to-video.
+and `resolution`. Unlike text-to-video, R2V is capped at `720p` — a `1080p`
+request is downgraded to `720p` with a warning.
 
 ### Video Model Capabilities
 
-| Model                | Duration | Aspect Ratios                                     | Resolution     | Image-to-Video | Editing   | Extension | R2V       |
-| -------------------- | -------- | ------------------------------------------------- | -------------- | -------------- | --------- | --------- | --------- |
-| `grok-imagine-video` | 1–15s    | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3` | `480p`, `720p` | <Check />      | <Check /> | <Check /> | <Check /> |
+| Model                    | Duration | Aspect Ratios                                     | Resolution                | Image-to-Video | Editing   | Extension | R2V       |
+| ------------------------ | -------- | ------------------------------------------------- | ------------------------- | -------------- | --------- | --------- | --------- |
+| `grok-imagine-video`     | 1–15s    | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3` | `480p`, `720p`            | <Check />      | <Check /> | <Check /> | <Check /> |
+| `grok-imagine-video-1.5` | 1–15s    | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3` | `480p`, `720p`, `1080p`\* | <Check />      | <Check /> | <Check /> | <Check /> |
+
+\* Native `1080p` applies to text-to-video and image-to-video. Reference-to-video
+is capped at `720p` — a `1080p` request is downgraded with a warning.
 
 <Note>
   You can also pass any available provider model ID as a string if needed.

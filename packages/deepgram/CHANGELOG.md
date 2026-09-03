@@ -1,5 +1,150 @@
 # @ai-sdk/deepgram
 
+## 3.1.7
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
+## 3.1.6
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+
+## 3.1.5
+
+### Patch Changes
+
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 3.1.4
+
+### Patch Changes
+
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
+## 3.1.3
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 3.1.2
+
+### Patch Changes
+
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
+## 3.1.1
+
+### Patch Changes
+
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 3.1.0
+
+### Minor Changes
+
+- 00fe856: feat(deepgram): transcription option fixes + speech voice/language composition, usage metadata, speed passthrough, and error parsing
+
+  Transcription:
+
+  - `keyterm`, `paragraphs`, `intents`, `sentiment`, and `replace` were
+    accepted in `providerOptions.deepgram` but silently dropped from the
+    `/v1/listen` request. They are now sent as query parameters. Also widens
+    the provider callable signature from `'nova-3'` to any transcription
+    model ID.
+  - **Behavior change:** `diarize` no longer defaults to `true`. Speaker
+    diarization is a paid Deepgram add-on, and the provider previously sent
+    `diarize=true` on every pre-recorded request unless explicitly opted
+    out. It is now only sent when explicitly set in
+    `providerOptions.deepgram`. Users who relied on the old default must
+    pass `providerOptions: { deepgram: { diarize: true } }`.
+
+  Speech:
+
+  - Bare voice family IDs (`aura-2`, `aura`) compose the upstream model ID
+    from the `generateSpeech` `voice` and `language` options
+    (`<family>-<voice>-<language>`, language defaults to `en`) and require
+    `voice`; full voice IDs (e.g. `aura-2-helena-en`) keep passing through
+    unchanged. The `DeepgramSpeechModelId` union is trimmed to the family
+    IDs plus the string escape hatch.
+  - `providerMetadata.deepgram` carries `modelName`, `modelUuid`,
+    `additionalModelUuids`, `charCount` (the billed character count),
+    `breaksApplied`, `pronunciationsApplied`, `pronunciationWarnings` (when
+    present), and `requestId` from the `/v1/speak` response headers.
+  - The `speed` option is passed through to Deepgram's `speed` parameter
+    (accepted range 0.7–1.5) instead of being ignored with a warning.
+  - API errors now parse Deepgram's `{ "err_code", "err_msg", "request_id" }`
+    error shape, so `APICallError.message` carries the real cause instead of
+    the HTTP reason phrase. The legacy `{ "error": { "message", "code" } }`
+    schema was dropped: no endpoint returns it.
+
+## 3.0.29
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+
+## 3.0.28
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
+## 3.0.27
+
+### Patch Changes
+
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+
+## 3.0.26
+
+### Patch Changes
+
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+
+## 3.0.25
+
+### Patch Changes
+
+- Updated dependencies [ad6a650]
+- Updated dependencies [81cd026]
+  - @ai-sdk/provider@4.0.7
+  - @ai-sdk/provider-utils@5.0.25
+
+## 3.0.24
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+
+## 3.0.23
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - @ai-sdk/provider-utils@5.0.23
+
 ## 3.0.22
 
 ### Patch Changes

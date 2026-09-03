@@ -1,6 +1,9 @@
 {
   "private": true,
   "type": "module",
+  "scripts": {
+    "test": "node --test *.test.mjs"
+  },
   "dependencies": {
     "octokit": "^5.0.0"
   }

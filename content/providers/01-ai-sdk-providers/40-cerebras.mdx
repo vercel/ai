@@ -62,7 +62,7 @@ import { cerebras } from '@ai-sdk/cerebras';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: cerebras('llama3.1-8b'),
+  model: cerebras('gpt-oss-120b'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -70,22 +70,22 @@ const { text } = await generateText({
 Cerebras language models can be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
-You can create Cerebras language models using a provider instance. The first argument is the model ID, e.g. `llama-3.3-70b`:
+You can create Cerebras language models using a provider instance. The first argument is the model ID, e.g. `gpt-oss-120b`:
 
 ```ts
-const model = cerebras('llama-3.3-70b');
+const model = cerebras('gpt-oss-120b');
 ```
 
 You can also use the `.languageModel()` and `.chat()` methods:
 
 ```ts
-const model = cerebras.languageModel('llama-3.3-70b');
-const model = cerebras.chat('llama-3.3-70b');
+const model = cerebras.languageModel('gpt-oss-120b');
+const model = cerebras.chat('gpt-oss-120b');
 ```
 
 ### Reasoning Models
 
-Cerebras offers several reasoning models including `gpt-oss-120b`, `qwen-3-32b`, and `zai-glm-4.7` that generate intermediate thinking tokens before their final response. The reasoning output is streamed through the standard AI SDK reasoning parts.
+Cerebras offers reasoning models including `gpt-oss-120b` and `gemma-4-31b` that generate intermediate thinking tokens before their final response. The reasoning output is streamed through the standard AI SDK reasoning parts.
 
 For `gpt-oss-120b`, you can control the reasoning depth using the `reasoningEffort` provider option:
 
@@ -118,9 +118,41 @@ See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details on 
 
 The following optional provider options are available for Cerebras language models:
 
-- **reasoningEffort** _'low' | 'medium' | 'high'_
+- **parallelToolCalls** _boolean_
 
-  Controls the depth of reasoning for GPT-OSS models. Defaults to `'medium'`.
+  Whether to enable parallel function calling during tool use. Defaults to `true`.
+
+- **logprobs** _boolean_
+
+  Whether to return log probabilities for generated tokens. Defaults to `false`.
+
+- **topLogprobs** _number_
+
+  Number of most likely tokens to return at each token position. Accepts values from `0` through `20`. Requires `logprobs` to be `true`.
+
+- **logitBias** _Record&lt;string, number&gt;_
+
+  Maps token IDs to bias values from `-100` through `100`.
+
+- **serviceTier** _'auto' | 'default' | 'flex' | 'priority'_
+
+  Controls request priority. Availability depends on your account and endpoint.
+
+- **reasoningEffort** _'none' | 'low' | 'medium' | 'high'_
+
+  Controls the amount of reasoning performed by supported models. Supported values and defaults depend on the model.
+
+- **reasoningFormat** _'none' | 'parsed' | 'text_parsed' | 'raw' | 'hidden'_
+
+  Controls how reasoning content appears in the response. Format support depends on the model.
+
+- **prediction** _&#123; type: 'content'; content: string | Array&lt;&#123; type: 'text'; text: string &#125;&gt; &#125;_
+
+  Supplies predicted output that can accelerate requests where most of the response is already known.
+
+- **promptCacheKey** _string_
+
+  Routes related requests to the same prompt cache. The value can contain up to 1024 characters and requires account-level enablement.
 
 - **user** _string_
 
@@ -130,23 +162,31 @@ The following optional provider options are available for Cerebras language mode
 
   Whether to use strict JSON schema validation. When `true`, the model uses constrained decoding to guarantee schema compliance. Defaults to `true`.
 
+For example:
+
+```ts
+import {
+  cerebras,
+  type CerebrasLanguageModelChatOptions,
+} from '@ai-sdk/cerebras';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: cerebras('gpt-oss-120b'),
+  prompt: 'Explain why the sky is blue.',
+  providerOptions: {
+    cerebras: {
+      reasoningEffort: 'low',
+      reasoningFormat: 'parsed',
+      promptCacheKey: 'conversation-123',
+    } satisfies CerebrasLanguageModelChatOptions,
+  },
+});
+```
+
 ## Model Capabilities
 
-| Model                            | Image Input | Object Generation | Tool Usage | Tool Streaming | Reasoning |
-| -------------------------------- | ----------- | ----------------- | ---------- | -------------- | --------- |
-| `llama3.1-8b`                    | <Cross />   | <Check />         | <Check />  | <Check />      | <Cross /> |
-| `llama-3.3-70b`                  | <Cross />   | <Check />         | <Check />  | <Check />      | <Cross /> |
-| `gpt-oss-120b`                   | <Cross />   | <Check />         | <Check />  | <Check />      | <Check /> |
-| `qwen-3-32b`                     | <Cross />   | <Check />         | <Check />  | <Check />      | <Check /> |
-| `qwen-3-235b-a22b-instruct-2507` | <Cross />   | <Check />         | <Check />  | <Check />      | <Cross /> |
-| `qwen-3-235b-a22b-thinking-2507` | <Cross />   | <Check />         | <Check />  | <Check />      | <Cross /> |
-| `zai-glm-4.6`                    | <Cross />   | <Check />         | <Check />  | <Check />      | <Cross /> |
-| `zai-glm-4.7`                    | <Cross />   | <Check />         | <Check />  | <Check />      | <Check /> |
-
-<Note>
-  The models `qwen-3-32b` and `llama-3.3-70b` are scheduled for deprecation on
-  February 16, 2026. Please see the [Cerebras
-  docs](https://inference-docs.cerebras.ai/introduction) for more details about
-  the available models and migration guidance. You can also pass any available
-  provider model ID as a string if needed.
-</Note>
+| Model          | Image Input | Object Generation | Tool Usage | Tool Streaming | Reasoning |
+| -------------- | ----------- | ----------------- | ---------- | -------------- | --------- |
+| `gpt-oss-120b` | <Cross />   | <Check />         | <Check />  | <Check />      | <Check /> |
+| `gemma-4-31b`  | <Check />   | <Check />         | <Check />  | <Check />      | <Check /> |

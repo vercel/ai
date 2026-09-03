@@ -65,3 +65,13 @@ export type AlibabaChatToolChoice =
   | 'auto'
   | 'none'
   | 'required';
+
+export type AlibabaFunctionTool = {
+  type: 'function';
+  function: {
+    name: string;
+    description: string | undefined;
+    parameters: unknown;
+    strict?: boolean;
+  };
+};

@@ -11,6 +11,7 @@ import type {
 import {
   convertBase64ToUint8Array,
   delay as defaultDelay,
+  generateId,
   withUserAgentSuffix,
   type DataContent,
   detectMediaType,
@@ -92,7 +93,7 @@ export type GenerateVideoWebhookFactory = () => PromiseLike<{
  * @param model - The video model to use.
  * @param prompt - The prompt that should be used to generate the video.
  * @param n - Number of videos to generate. Default: 1.
- * @param aspectRatio - Aspect ratio of the videos to generate. Must have the format `{width}:{height}`.
+ * @param aspectRatio - Aspect ratio of the videos to generate. Must have the format `{width}:{height}`, or `'adaptive'`.
  * @param resolution - Resolution of the videos to generate. Must have the format `{width}x{height}`.
  * @param duration - Duration of the video in seconds.
  * @param fps - Frames per second for the video.
@@ -154,9 +155,10 @@ export async function experimental_generateVideo({
   maxVideosPerCall?: number;
 
   /**
-   * Aspect ratio of the videos to generate. Must have the format `{width}:{height}`.
+   * Aspect ratio of the videos to generate. Must have the format
+   * `{width}:{height}`, or `'adaptive'` to inherit the ratio from the input media.
    */
-  aspectRatio?: `${number}:${number}`;
+  aspectRatio?: `${number}:${number}` | 'adaptive';
 
   /**
    * Resolution of the videos to generate. Must have the format `{width}x${height}`.
@@ -290,59 +292,13 @@ export async function experimental_generateVideo({
     abortSignal,
   });
 
-  const { prompt, image } = normalizePrompt(promptArg);
-
-  const normalizedFrameImages:
-    | Array<Experimental_VideoModelV4FrameImage>
-    | undefined = frameImages?.flatMap(frame => {
-    const normalizedImage = normalizeImageData(frame.image);
-    return normalizedImage != null
-      ? [{ image: normalizedImage, frameType: frame.frameType }]
-      : [];
-  });
-
-  const normalizedInputReferences:
-    | Array<Experimental_VideoModelV4File>
-    | undefined = inputReferences?.flatMap(reference => {
-    const normalized = normalizeReferenceData(reference);
-    return normalized != null ? [normalized] : [];
-  });
-
-  const effectiveInputReferences =
-    normalizedFrameImages != null && normalizedFrameImages.length > 0
-      ? undefined
-      : normalizedInputReferences;
-
-  const warnings: Array<Warning> = [];
-
-  if (
-    normalizedFrameImages != null &&
-    normalizedFrameImages.length > 0 &&
-    normalizedInputReferences != null &&
-    normalizedInputReferences.length > 0
-  ) {
-    warnings.push({
-      type: 'other',
-      message:
-        'inputReferences were ignored because frameImages were provided; ' +
-        'frameImages and inputReferences cannot be combined.',
-    });
-  }
-
-  const firstFrameImage = normalizedFrameImages?.find(
-    frame => frame.frameType === 'first_frame',
-  )?.image;
-
-  if (image != null && firstFrameImage != null) {
-    warnings.push({
-      type: 'other',
-      message:
-        'prompt.image was ignored because a first_frame frameImage was provided; ' +
-        'the first_frame frameImage takes precedence as the start image.',
-    });
-  }
-
-  const resolvedImage = firstFrameImage ?? image;
+  const {
+    prompt,
+    resolvedImage,
+    normalizedFrameImages,
+    effectiveInputReferences,
+    warnings,
+  } = normalizeVideoCallInputs({ promptArg, frameImages, inputReferences });
 
   const maxVideosPerCallWithDefault =
     maxVideosPerCall ?? (await invokeModelMaxVideosPerCall(model)) ?? 1;
@@ -553,13 +509,23 @@ async function executeStartStatusFlow({
     }
   }
 
-  // 2. Start the generation
-  const startResult = await retry(() =>
-    model.doStart!({
-      ...callOptions,
-      webhookUrl,
-    }),
+  // 2. Start the generation. `doStart` is billable: mint one idempotency token
+  // per logical start, outside the retry closure; a caller-supplied key wins.
+  const callerIdempotencyKey = Object.entries(callOptions.headers ?? {}).find(
+    ([key, value]) =>
+      key.toLowerCase() === 'idempotency-key' && value !== undefined,
   );
+  const startCallOptions = {
+    ...callOptions,
+    headers: {
+      ...callOptions.headers,
+      ...(callerIdempotencyKey
+        ? {}
+        : { 'idempotency-key': `aisdk_vid_${generateId()}` }),
+    },
+    webhookUrl,
+  };
+  const startResult = await retry(() => model.doStart!(startCallOptions));
 
   const allWarnings = [...earlyWarnings, ...startResult.warnings];
   let operationProviderMetadata =
@@ -722,6 +688,94 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
     prompt: promptArg.text,
     image:
       promptArg.image != null ? normalizeImageData(promptArg.image) : undefined,
+  };
+}
+
+/**
+ * Shared input normalization for `experimental_generateVideo` and
+ * `experimental_startVideo`: prompt/image plus the frameImages /
+ * inputReferences precedence rules and their warnings.
+ */
+export function normalizeVideoCallInputs({
+  promptArg,
+  frameImages,
+  inputReferences,
+}: {
+  promptArg: GenerateVideoPrompt;
+  frameImages?: Array<{
+    image: DataContent;
+    frameType: Experimental_VideoModelV4FrameType;
+  }>;
+  inputReferences?: Array<
+    DataContent | { data: DataContent; mediaType?: string }
+  >;
+}): {
+  prompt: string | undefined;
+  resolvedImage: Experimental_VideoModelV4File | undefined;
+  normalizedFrameImages: Array<Experimental_VideoModelV4FrameImage> | undefined;
+  effectiveInputReferences: Array<Experimental_VideoModelV4File> | undefined;
+  warnings: Array<Warning>;
+} {
+  const { prompt, image } = normalizePrompt(promptArg);
+
+  const normalizedFrameImages:
+    | Array<Experimental_VideoModelV4FrameImage>
+    | undefined = frameImages?.flatMap(frame => {
+    const normalizedImage = normalizeImageData(frame.image);
+    return normalizedImage != null
+      ? [{ image: normalizedImage, frameType: frame.frameType }]
+      : [];
+  });
+
+  const normalizedInputReferences:
+    | Array<Experimental_VideoModelV4File>
+    | undefined = inputReferences?.flatMap(reference => {
+    const normalized = normalizeReferenceData(reference);
+    return normalized != null ? [normalized] : [];
+  });
+
+  const effectiveInputReferences =
+    normalizedFrameImages != null && normalizedFrameImages.length > 0
+      ? undefined
+      : normalizedInputReferences;
+
+  const warnings: Array<Warning> = [];
+
+  if (
+    normalizedFrameImages != null &&
+    normalizedFrameImages.length > 0 &&
+    normalizedInputReferences != null &&
+    normalizedInputReferences.length > 0
+  ) {
+    warnings.push({
+      type: 'other',
+      message:
+        'inputReferences were ignored because frameImages were provided; ' +
+        'frameImages and inputReferences cannot be combined.',
+    });
+  }
+
+  const firstFrameImage = normalizedFrameImages?.find(
+    frame => frame.frameType === 'first_frame',
+  )?.image;
+
+  if (image != null && firstFrameImage != null) {
+    warnings.push({
+      type: 'other',
+      message:
+        'prompt.image was ignored because a first_frame frameImage was provided; ' +
+        'the first_frame frameImage takes precedence as the start image.',
+    });
+  }
+
+  const resolvedImage = firstFrameImage ?? image;
+
+  return {
+    prompt,
+    resolvedImage,
+    normalizedFrameImages,
+    effectiveInputReferences,
+    warnings,
   };
 }
 

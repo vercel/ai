@@ -1804,3 +1804,75 @@ describe('anthropicChunkSchema - web_fetch_tool_result', () => {
     expect(result.success).toBe(true);
   });
 });
+
+describe('anthropicChunkSchema - shared batch content variants', () => {
+  it('accepts a string MCP tool result in a streaming content block', async () => {
+    const result = await anthropicChunkSchema().validate!({
+      content_block: {
+        content: 'tool output',
+        is_error: false,
+        tool_use_id: 'mcp_123',
+        type: 'mcp_tool_result',
+      },
+      index: 0,
+      type: 'content_block_start',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts opaque MCP tool result citations', async () => {
+    const result = await anthropicChunkSchema().validate!({
+      content_block: {
+        content: [
+          {
+            citations: [
+              {
+                reference: 'opaque-reference',
+                type: 'future_citation_variant',
+              },
+            ],
+            text: 'tool output',
+            type: 'text',
+          },
+        ],
+        is_error: false,
+        tool_use_id: 'mcp_123',
+        type: 'mcp_tool_result',
+      },
+      index: 0,
+      type: 'content_block_start',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it.each([
+    {
+      cited_text: 'block',
+      document_index: 0,
+      document_title: null,
+      end_block_index: 2,
+      file_id: null,
+      start_block_index: 1,
+      type: 'content_block_location',
+    },
+    {
+      cited_text: 'result',
+      end_block_index: 2,
+      search_result_index: 0,
+      source: 'https://example.com',
+      start_block_index: 1,
+      title: null,
+      type: 'search_result_location',
+    },
+  ])('accepts $type citation deltas', async citation => {
+    const result = await anthropicChunkSchema().validate!({
+      delta: { citation, type: 'citations_delta' },
+      index: 0,
+      type: 'content_block_delta',
+    });
+
+    expect(result.success).toBe(true);
+  });
+});

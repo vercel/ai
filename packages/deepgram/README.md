@@ -71,7 +71,8 @@ import { deepgram } from '@ai-sdk/deepgram';
 import { generateSpeech } from 'ai';
 
 const { audio } = await generateSpeech({
-  model: deepgram.speech('aura-2-helena-en'),
+  model: deepgram.speech('aura-2'),
+  voice: 'helena',
   text: 'Hello, welcome to Deepgram!',
 });
 ```

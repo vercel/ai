@@ -15,6 +15,7 @@ import {
   createStreamingUIMessageState,
   processUIMessageStream,
   type StreamingUIMessageState,
+  type UIMessageStreamWriteOptions,
 } from './process-ui-message-stream';
 import {
   isToolUIPart,
@@ -135,6 +136,10 @@ type ActiveResponse<UI_MESSAGE extends UIMessage> = {
   abortController: AbortController;
 };
 
+type ActiveResumeRequest = {
+  abortController: AbortController;
+};
+
 export interface ChatState<UI_MESSAGE extends UIMessage> {
   status: ChatStatus;
 
@@ -186,7 +191,7 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
    */
   id?: string;
 
-  messageMetadataSchema?: FlexibleSchema<InferUIMessageMetadata<UI_MESSAGE>>;
+  messageMetadataSchema?: FlexibleSchema<UI_MESSAGE['metadata']>;
   dataPartSchemas?: UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>;
 
   messages?: UI_MESSAGE[];
@@ -241,7 +246,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   protected state: ChatState<UI_MESSAGE>;
 
   private messageMetadataSchema:
-    | FlexibleSchema<InferUIMessageMetadata<UI_MESSAGE>>
+    | FlexibleSchema<UI_MESSAGE['metadata']>
     | undefined;
   private dataPartSchemas:
     | UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>
@@ -253,7 +258,9 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   private onData?: ChatInit<UI_MESSAGE>['onData'];
   private sendAutomaticallyWhen?: ChatInit<UI_MESSAGE>['sendAutomaticallyWhen'];
 
+  private pendingMessagePreparations = new Set<AbortController>();
   private activeResponse: ActiveResponse<UI_MESSAGE> | undefined = undefined;
+  private activeResumeRequest: ActiveResumeRequest | undefined = undefined;
   private jobExecutor = new SerialJobExecutor();
 
   constructor({
@@ -365,9 +372,21 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     let uiMessage: CreateUIMessage<UI_MESSAGE>;
 
     if ('text' in message || 'files' in message) {
-      const fileParts = Array.isArray(message.files)
-        ? message.files
-        : await convertFileListToFileUIParts(message.files);
+      const abortController = new AbortController();
+      this.pendingMessagePreparations.add(abortController);
+
+      let fileParts: FileUIPart[];
+      try {
+        fileParts = Array.isArray(message.files)
+          ? message.files
+          : await convertFileListToFileUIParts(message.files);
+      } finally {
+        this.pendingMessagePreparations.delete(abortController);
+      }
+
+      if (abortController.signal.aborted) {
+        return;
+      }
 
       uiMessage = {
         parts: [
@@ -584,11 +603,11 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
    * Abort the current request immediately, keep the generated tokens if any.
    */
   stop = async () => {
-    if (this.status !== 'streaming' && this.status !== 'submitted') return;
-
-    if (this.activeResponse?.abortController) {
-      this.activeResponse.abortController.abort();
+    for (const controller of this.pendingMessagePreparations) {
+      controller.abort();
     }
+    this.activeResumeRequest?.abortController.abort();
+    this.activeResponse?.abortController.abort();
   };
 
   private async shouldSendAutomatically(): Promise<boolean> {
@@ -616,6 +635,25 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     trigger: 'submit-message' | 'resume-stream' | 'regenerate-message';
     messageId?: string;
   } & ChatRequestOptions) {
+    const abortController = new AbortController();
+    const activeResumeRequest =
+      trigger === 'resume-stream' ? { abortController } : undefined;
+
+    if (activeResumeRequest) {
+      this.activeResumeRequest?.abortController.abort();
+      this.activeResumeRequest = activeResumeRequest;
+    }
+
+    const isCurrentRequest = () =>
+      activeResumeRequest == null ||
+      this.activeResumeRequest === activeResumeRequest;
+
+    const clearActiveResumeRequest = () => {
+      if (this.activeResumeRequest === activeResumeRequest) {
+        this.activeResumeRequest = undefined;
+      }
+    };
+
     // For resume-stream, check if there's an active stream before
     // changing status. This avoids a brief flash of 'submitted' status
     // when there is no stream to resume (e.g. on page load).
@@ -624,21 +662,49 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       try {
         const reconnect = await this.transport.reconnectToStream({
           chatId: this.id,
+          abortSignal: abortController.signal,
           metadata,
           headers,
           body,
         });
 
+        if (abortController.signal.aborted || !isCurrentRequest()) {
+          await reconnect?.cancel().catch(() => {});
+          if (isCurrentRequest()) {
+            this.setStatus({ status: 'ready' });
+          }
+          clearActiveResumeRequest();
+          return;
+        }
+
         if (reconnect == null) {
+          this.setStatus({ status: 'ready' });
+          clearActiveResumeRequest();
           return; // no active stream found, so we do not resume
         }
 
         resumeStream = reconnect;
       } catch (err) {
+        if (
+          abortController.signal.aborted ||
+          (err as { name?: string }).name === 'AbortError'
+        ) {
+          if (isCurrentRequest()) {
+            this.setStatus({ status: 'ready' });
+          }
+          clearActiveResumeRequest();
+          return;
+        }
+
+        if (!isCurrentRequest()) {
+          return;
+        }
+
         if (this.onError && err instanceof Error) {
           this.onError(err);
         }
         this.setStatus({ status: 'error', error: err as Error });
+        clearActiveResumeRequest();
         return;
       }
     }
@@ -656,12 +722,12 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const response = {
         state: createStreamingUIMessageState({
           lastMessage:
-            trigger === 'regenerate-message'
+            trigger === 'resume-stream' || trigger === 'regenerate-message'
               ? undefined
               : this.state.snapshot(lastMessage),
           messageId: this.generateId(),
         }),
-        abortController: new AbortController(),
+        abortController,
       } as ActiveResponse<UI_MESSAGE>;
 
       activeResponse = response;
@@ -692,16 +758,25 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const runUpdateMessageJob = (
         job: (options: {
           state: StreamingUIMessageState<UI_MESSAGE>;
-          write: () => void;
+          write: (options?: UIMessageStreamWriteOptions) => void;
         }) => Promise<void>,
       ) =>
         // serialize the job execution to avoid race conditions:
-        this.jobExecutor.run(() =>
-          job({
+        this.jobExecutor.run(() => {
+          if (response.abortController.signal.aborted) {
+            return Promise.resolve();
+          }
+
+          return job({
             state: response.state,
-            write: () => {
-              // streaming is set on first write (before it should be "submitted")
-              this.setStatus({ status: 'streaming' });
+            write: ({ updateStatus = true } = {}) => {
+              if (response.abortController.signal.aborted) {
+                return;
+              }
+
+              if (updateStatus) {
+                this.setStatus({ status: 'streaming' });
+              }
 
               const replaceLastMessage =
                 response.state.message.id === this.lastMessage?.id;
@@ -715,8 +790,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
                 this.state.pushMessage(response.state.message);
               }
             },
-          }),
-        );
+          });
+        });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -730,17 +805,33 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
             throw error;
           },
         }),
+        abortSignal: response.abortController.signal,
         onError: error => {
           throw error;
         },
       });
 
-      this.setStatus({ status: 'ready' });
+      if (isAbort) {
+        if (isCurrentRequest()) {
+          this.setStatus({ status: 'ready' });
+        }
+        return null;
+      }
+
+      if (isCurrentRequest()) {
+        this.setStatus({ status: 'ready' });
+      }
     } catch (err) {
       // Ignore abort errors as they are expected.
       if (isAbort || (err as any).name === 'AbortError') {
         isAbort = true;
-        this.setStatus({ status: 'ready' });
+        if (isCurrentRequest()) {
+          this.setStatus({ status: 'ready' });
+        }
+        return null;
+      }
+
+      if (!isCurrentRequest()) {
         return null;
       }
 
@@ -772,12 +863,12 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
             finishReason: activeResponse.state.finishReason,
           });
         }
-      } catch (err) {
-        console.error(err);
-      }
+      } finally {
+        if (this.activeResponse === activeResponse) {
+          this.activeResponse = undefined;
+        }
 
-      if (this.activeResponse === activeResponse) {
-        this.activeResponse = undefined;
+        clearActiveResumeRequest();
       }
     }
 

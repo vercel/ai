@@ -4,6 +4,7 @@ import type {
   HarnessV1ResumeSessionState,
 } from '@ai-sdk/harness';
 import type { HarnessAgentSession } from '@ai-sdk/harness/agent';
+import { readUIMessageStream, type UIMessage, type UIMessageChunk } from 'ai';
 import {
   createHarnessWorkflowState,
   type HarnessWorkflowModelMessage,
@@ -136,6 +137,31 @@ function collectingWritable(): {
     },
   });
   return { writable, chunks, isClosed: () => closed };
+}
+
+async function consumeUIMessageChunks(options: {
+  chunks: HarnessWorkflowChunk[];
+  message?: UIMessage;
+}): Promise<UIMessage | undefined> {
+  let lastMessage = options.message;
+  const stream = new ReadableStream<UIMessageChunk>({
+    start(controller) {
+      for (const chunk of options.chunks) {
+        controller.enqueue(chunk as UIMessageChunk);
+      }
+      controller.close();
+    },
+  });
+
+  for await (const message of readUIMessageStream({
+    message: options.message,
+    stream,
+    terminateOnError: true,
+  })) {
+    lastMessage = message;
+  }
+
+  return lastMessage;
 }
 
 describe('runHarnessAgentTimeSlice', () => {
@@ -312,7 +338,7 @@ describe('runHarnessAgentTimeSlice', () => {
   });
 
   test('completes the time slice: suspends at the budget and carries the cursor forward', async () => {
-    const session = fakeSession();
+    const session = fakeSession({ unfinishedTurn: true });
     const { result, closeForSuspend } = streamResult({
       chunks: [{ type: 'start' }, { type: 'text-delta', id: 't', delta: 'a' }],
       blockAfter: true,
@@ -348,6 +374,69 @@ describe('runHarnessAgentTimeSlice', () => {
     // It must also NOT close the output stream — the next slice keeps writing
     // to the same run stream; closing here would end the response mid-turn.
     expect(isClosed()).toBe(false);
+  });
+
+  test('finishes normally when the turn completes before the time-slice deadline while the stream remains open', async () => {
+    vi.useFakeTimers();
+    try {
+      const sessionOptions = { unfinishedTurn: true };
+      const session = fakeSession(sessionOptions);
+      let closeStream!: () => void;
+      let resolveStreamStarted!: () => void;
+      const streamStarted = new Promise<void>(resolve => {
+        resolveStreamStarted = resolve;
+      });
+      const result: HarnessWorkflowStreamResult = {
+        toUIMessageStream() {
+          return new ReadableStream<HarnessWorkflowChunk>({
+            start(controller) {
+              controller.enqueue({ type: 'start' });
+              controller.enqueue({
+                type: 'text-delta',
+                id: 't',
+                delta: 'done',
+              });
+              closeStream = () => controller.close();
+              resolveStreamStarted();
+            },
+          });
+        },
+        finishReason: Promise.resolve('stop'),
+        totalUsage: Promise.resolve({
+          inputTokens: { total: 11 },
+          outputTokens: { total: 7 },
+        }),
+      };
+      const agent: HarnessWorkflowAgent = {
+        createSession: vi.fn(async () => session),
+        stream: vi.fn(async () => result),
+        continueStream: vi.fn(async () => result),
+      };
+
+      const { writable, isClosed } = collectingWritable();
+      const runPromise = runHarnessAgentTimeSlice({
+        agent,
+        state: createHarnessWorkflowState({
+          prompt: 'hi',
+          sessionId: 'ses_1',
+        }),
+        timeSliceSeconds: 0.1,
+        writable,
+      });
+
+      await streamStarted;
+      sessionOptions.unfinishedTurn = false;
+      await vi.advanceTimersByTimeAsync(100);
+      closeStream();
+
+      const next = await runPromise;
+      expect(next.status).toBe('finished');
+      expect(isClosed()).toBe(true);
+      expect(session.suspendCalls).toBe(0);
+      expect(session.detachCalls).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   test('mid-turn slice continues (no new prompt) and can finish', async () => {
@@ -389,8 +478,8 @@ describe('runHarnessAgentTimeSlice', () => {
     expect(chunks.map(c => c.type)).toEqual(['text-delta', 'finish']);
   });
 
-  test('continued slice reopens text and reasoning parts that were active at the time-slice boundary', async () => {
-    const firstSession = fakeSession();
+  test('continued slice reopens active parts and preserves aggregate token usage', async () => {
+    const firstSession = fakeSession({ unfinishedTurn: true });
     const { result: firstResult, closeForSuspend } = streamResult({
       chunks: [
         { type: 'start' },
@@ -446,6 +535,10 @@ describe('runHarnessAgentTimeSlice', () => {
         { type: 'reasoning-delta', id: 'r1', delta: ' more' },
         { type: 'reasoning-end', id: 'r1' },
       ],
+      totalUsage: {
+        inputTokens: 120,
+        outputTokens: 30,
+      },
     });
     const secondAgent: HarnessWorkflowAgent = {
       createSession: vi.fn(async () => secondSession),
@@ -463,6 +556,10 @@ describe('runHarnessAgentTimeSlice', () => {
     });
 
     expect(finished.status).toBe('finished');
+    expect(finished.finalResult?.usage).toEqual({
+      inputTokens: 120,
+      outputTokens: 30,
+    });
     expect(secondWritable.chunks.map(c => c.type)).toEqual([
       'text-start',
       'text-delta',
@@ -474,11 +571,12 @@ describe('runHarnessAgentTimeSlice', () => {
     ]);
   });
 
-  test('continued slice replays pending tool input before tool output', async () => {
-    const firstSession = fakeSession();
+  test('continued slice emits a pending tool input only once across the time-slice boundary', async () => {
+    const firstSession = fakeSession({ unfinishedTurn: true });
     const { result: firstResult, closeForSuspend } = streamResult({
       chunks: [
         { type: 'start' },
+        { type: 'start-step' },
         {
           type: 'tool-input-available',
           toolCallId: 'call_1',
@@ -506,17 +604,19 @@ describe('runHarnessAgentTimeSlice', () => {
       }),
     };
 
+    const firstWritable = collectingWritable();
     const readyForNextStep = await runHarnessAgentTimeSlice({
       agent: firstAgent,
       state: createHarnessWorkflowState({ prompt: 'hi', sessionId: 'ses_1' }),
       timeSliceSeconds: 0.05,
-      writable: collectingWritable().writable,
+      writable: firstWritable.writable,
     });
 
     const secondSession = fakeSession();
     const { result: secondResult } = streamResult({
       chunks: [
         { type: 'start' },
+        { type: 'start-step' },
         {
           type: 'tool-output-available',
           toolCallId: 'call_1',
@@ -541,7 +641,9 @@ describe('runHarnessAgentTimeSlice', () => {
     });
 
     expect(finished.status).toBe('finished');
-    expect(secondWritable.chunks).toEqual([
+    expect([...firstWritable.chunks, ...secondWritable.chunks]).toEqual([
+      { type: 'start' },
+      { type: 'start-step' },
       {
         type: 'tool-input-available',
         toolCallId: 'call_1',
@@ -549,6 +651,7 @@ describe('runHarnessAgentTimeSlice', () => {
         input: { path: 'app/page.tsx' },
         providerExecuted: true,
       },
+      { type: 'start-step' },
       {
         type: 'tool-output-available',
         toolCallId: 'call_1',
@@ -557,6 +660,212 @@ describe('runHarnessAgentTimeSlice', () => {
       },
       { type: 'finish' },
     ]);
+  });
+
+  test('continued slice reconstructs a partial tool input without creating a duplicate UI part', async () => {
+    const firstSession = fakeSession({ unfinishedTurn: true });
+    const { result: firstResult, closeForSuspend } = streamResult({
+      chunks: [
+        { type: 'start', messageId: 'message_1' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-start',
+          toolCallId: 'call_1',
+          toolName: 'write',
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'call_1',
+          inputTextDelta: '{"path":',
+        },
+      ],
+      blockAfter: true,
+    });
+    const suspendingSession = firstSession as unknown as {
+      suspendTurn: () => Promise<HarnessV1ContinueTurnState>;
+    };
+    const originalSuspend = suspendingSession.suspendTurn.bind(firstSession);
+    suspendingSession.suspendTurn = async () => {
+      closeForSuspend();
+      return originalSuspend();
+    };
+
+    const firstWritable = collectingWritable();
+    const readyForNextStep = await runHarnessAgentTimeSlice({
+      agent: {
+        createSession: vi.fn(async () => firstSession),
+        stream: vi.fn(async () => firstResult),
+        continueStream: vi.fn(async () => {
+          throw new Error('continue should not be called on the first slice');
+        }),
+      },
+      state: createHarnessWorkflowState({ prompt: 'hi', sessionId: 'ses_1' }),
+      timeSliceSeconds: 0.05,
+      writable: firstWritable.writable,
+    });
+
+    expect(readyForNextStep.streamContext?.activeToolInputs).toEqual({
+      call_1: {
+        start: {
+          type: 'tool-input-start',
+          toolCallId: 'call_1',
+          toolName: 'write',
+          providerExecuted: true,
+        },
+        text: '{"path":',
+      },
+    });
+
+    const firstMessage = await consumeUIMessageChunks({
+      chunks: firstWritable.chunks,
+    });
+
+    const secondSession = fakeSession({ unfinishedTurn: true });
+    const { result: secondResult, closeForSuspend: closeSecondForSuspend } =
+      streamResult({
+        chunks: [
+          { type: 'start' },
+          { type: 'start-step' },
+          {
+            type: 'tool-input-delta',
+            toolCallId: 'call_1',
+            inputTextDelta: '"app/page.tsx"}',
+          },
+          {
+            type: 'tool-input-available',
+            toolCallId: 'call_1',
+            toolName: 'write',
+            input: { path: 'app/page.tsx' },
+            providerExecuted: true,
+          },
+        ],
+        blockAfter: true,
+      });
+    const secondSuspendingSession = secondSession as unknown as {
+      suspendTurn: () => Promise<HarnessV1ContinueTurnState>;
+    };
+    const originalSecondSuspend =
+      secondSuspendingSession.suspendTurn.bind(secondSession);
+    secondSuspendingSession.suspendTurn = async () => {
+      closeSecondForSuspend();
+      return originalSecondSuspend();
+    };
+    const secondWritable = collectingWritable();
+    const secondReadyForNextStep = await runHarnessAgentTimeSlice({
+      agent: {
+        createSession: vi.fn(async () => secondSession),
+        stream: vi.fn(async () => {
+          throw new Error('stream should not be called on a continued slice');
+        }),
+        continueStream: vi.fn(async () => secondResult),
+      },
+      state: readyForNextStep,
+      timeSliceSeconds: 0.05,
+      writable: secondWritable.writable,
+    });
+
+    expect(secondReadyForNextStep.status).toBe('ready_for_next_step');
+    expect(
+      secondReadyForNextStep.streamContext?.activeToolInputs,
+    ).toBeUndefined();
+    expect(secondWritable.chunks).toEqual([
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call_1',
+        toolName: 'write',
+        providerExecuted: true,
+      },
+      {
+        type: 'tool-input-delta',
+        toolCallId: 'call_1',
+        inputTextDelta: '{"path":',
+      },
+      {
+        type: 'tool-input-delta',
+        toolCallId: 'call_1',
+        inputTextDelta: '"app/page.tsx"}',
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'call_1',
+        toolName: 'write',
+        input: { path: 'app/page.tsx' },
+        providerExecuted: true,
+      },
+    ]);
+
+    const completedMessage = await consumeUIMessageChunks({
+      chunks: secondWritable.chunks,
+      message: firstMessage,
+    });
+    const toolParts = completedMessage?.parts.filter(part =>
+      'toolCallId' in part ? part.toolCallId === 'call_1' : false,
+    );
+    expect(toolParts).toHaveLength(1);
+    expect(toolParts?.[0]).toMatchObject({
+      toolCallId: 'call_1',
+      state: 'input-available',
+      input: { path: 'app/page.tsx' },
+    });
+  });
+
+  test('tool input errors clear partial input state', async () => {
+    const session = fakeSession({ unfinishedTurn: true });
+    const { result, closeForSuspend } = streamResult({
+      chunks: [
+        {
+          type: 'tool-input-error',
+          toolCallId: 'call_1',
+          toolName: 'write',
+          input: '{"path":',
+          errorText: 'invalid input',
+          providerExecuted: true,
+        },
+      ],
+      blockAfter: true,
+    });
+    const suspendingSession = session as unknown as {
+      suspendTurn: () => Promise<HarnessV1ContinueTurnState>;
+    };
+    const originalSuspend = suspendingSession.suspendTurn.bind(session);
+    suspendingSession.suspendTurn = async () => {
+      closeForSuspend();
+      return originalSuspend();
+    };
+
+    const next = await runHarnessAgentTimeSlice({
+      agent: {
+        createSession: vi.fn(async () => session),
+        stream: vi.fn(async () => {
+          throw new Error('stream should not be called on a continued slice');
+        }),
+        continueStream: vi.fn(async () => result),
+      },
+      state: {
+        sessionId: 'ses_1',
+        prompt: 'hi',
+        status: 'ready_for_next_step',
+        continueFrom: continueState('cursor'),
+        streamContext: {
+          activeToolInputs: {
+            call_1: {
+              start: {
+                type: 'tool-input-start',
+                toolCallId: 'call_1',
+                toolName: 'write',
+              },
+              text: '{"path":',
+            },
+          },
+        },
+      },
+      timeSliceSeconds: 0.05,
+      writable: collectingWritable().writable,
+    });
+
+    expect(next.status).toBe('ready_for_next_step');
+    expect(next.streamContext?.activeToolInputs).toBeUndefined();
   });
 
   test('approval response messages resume through stream messages', async () => {
@@ -682,7 +991,7 @@ describe('runHarnessAgentStep', () => {
 
 describe('runHarnessAgentSlice', () => {
   test('supports sliceTimeoutSeconds and maps ready_for_next_step to timed_out', async () => {
-    const session = fakeSession();
+    const session = fakeSession({ unfinishedTurn: true });
     const { result, closeForSuspend } = streamResult({
       chunks: [{ type: 'start' }],
       blockAfter: true,

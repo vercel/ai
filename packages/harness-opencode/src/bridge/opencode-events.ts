@@ -22,6 +22,7 @@ export type TranslationState = {
   legacyTextPartIds: Set<string>;
   legacyReasoningPartIds: Set<string>;
   legacyStepFinishPartIds: Set<string>;
+  dynamicToolCallIds: Set<string>;
 };
 
 export function createTranslationState(): TranslationState {
@@ -40,6 +41,7 @@ export function createTranslationState(): TranslationState {
     legacyTextPartIds: new Set(),
     legacyReasoningPartIds: new Set(),
     legacyStepFinishPartIds: new Set(),
+    dynamicToolCallIds: new Set(),
   };
 }
 
@@ -98,6 +100,16 @@ export function getOpenCodeEventSessionId(
   if (typeof props.sessionId === 'string') return props.sessionId;
   if (event.type?.startsWith('session.') && typeof props.id === 'string') {
     return props.id;
+  }
+  const info = asOpenCodeObject(props.info);
+  if (typeof info?.sessionID === 'string') return info.sessionID;
+  if (
+    (event.type === 'session.created' ||
+      event.type === 'session.updated' ||
+      event.type === 'session.deleted') &&
+    typeof info?.id === 'string'
+  ) {
+    return info.id;
   }
   const part = props.part;
   const partObject = asOpenCodeObject(part);

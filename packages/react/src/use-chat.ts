@@ -135,24 +135,81 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     chatRef.current = 'chat' in options ? options.chat : new Chat(chatOptions);
   }
 
+  const chat = chatRef.current;
+  const messagesSnapshotRef = useRef({
+    chat,
+    messages: chat.messages,
+  });
+
+  if (messagesSnapshotRef.current.chat !== chat) {
+    messagesSnapshotRef.current = { chat, messages: chat.messages };
+  }
+
   const subscribeToMessages = useCallback(
-    (update: () => void) =>
-      chatRef.current['~registerMessagesCallback'](update, throttleWaitMs),
-    // `chatRef.current.id` is required to trigger re-subscription when the chat ID changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [throttleWaitMs, chatRef.current.id],
+    (update: () => void) => {
+      let isSubscribed = true;
+
+      const updateMessages = () => {
+        if (!isSubscribed || messagesSnapshotRef.current.chat !== chat) {
+          return;
+        }
+
+        messagesSnapshotRef.current = { chat, messages: chat.messages };
+        update();
+      };
+
+      const unsubscribe = chat['~registerMessagesCallback'](
+        updateMessages,
+        throttleWaitMs,
+      );
+
+      // Synchronize changes that may have happened between render and
+      // subscription. useSyncExternalStore checks the snapshot after
+      // subscribing and schedules a render when it changed.
+      messagesSnapshotRef.current = { chat, messages: chat.messages };
+
+      return () => {
+        isSubscribed = false;
+        unsubscribe();
+      };
+    },
+    [chat, throttleWaitMs],
+  );
+
+  const getMessagesSnapshot = useCallback(
+    () => messagesSnapshotRef.current.messages,
+    [],
   );
 
   const messages = useSyncExternalStore(
     subscribeToMessages,
-    () => chatRef.current.messages,
-    () => chatRef.current.messages,
+    getMessagesSnapshot,
+    getMessagesSnapshot,
   );
 
+  const subscribeToStatus = useCallback(
+    (update: () => void) =>
+      chat['~registerStatusCallback'](() => {
+        if (messagesSnapshotRef.current.chat !== chat) {
+          return;
+        }
+
+        if (chat.status === 'ready' || chat.status === 'error') {
+          // Publish the latest messages before the terminal status can render.
+          messagesSnapshotRef.current = { chat, messages: chat.messages };
+        }
+
+        update();
+      }),
+    [chat],
+  );
+
+  const getStatusSnapshot = useCallback(() => chat.status, [chat]);
+
   const status = useSyncExternalStore(
-    chatRef.current['~registerStatusCallback'],
-    () => chatRef.current.status,
-    () => chatRef.current.status,
+    subscribeToStatus,
+    getStatusSnapshot,
+    getStatusSnapshot,
   );
 
   const error = useSyncExternalStore(

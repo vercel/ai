@@ -9,7 +9,7 @@
     "analyze-ui-frameworks": "tsx src/analyze-ui-frameworks.ts"
   },
   "devDependencies": {
-    "tsx": "4.19.2",
+    "tsx": "4.23.12",
     "typescript": "5.8.3"
   }
 }

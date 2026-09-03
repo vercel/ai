@@ -256,6 +256,46 @@ export const conventions = defineConventions([
     },
   },
   {
+    name: 'provider-speech-translation-model-file-must-export-model-class',
+    description:
+      "Every provider's speech translation model file must export a model class (separated only because SpeechTranslationModelV4 type is experimental).",
+    for: {
+      files: [
+        '${providerId}-speech-translation-model.ts',
+        '*/${providerId}-speech-translation-model.ts',
+      ],
+    },
+    must: {
+      importTypes: [
+        {
+          name: 'Experimental_SpeechTranslationModelV4',
+          from: '@ai-sdk/provider',
+          alias: 'SpeechTranslationModelV4',
+        },
+      ],
+      exportClasses: [
+        {
+          name: '${providerId.toPascalCase()}SpeechTranslationModel',
+          implement: ['SpeechTranslationModelV4'],
+        },
+      ],
+    },
+  },
+  {
+    name: 'provider-speech-translation-model-file-must-have-matching-model-options-file',
+    description:
+      "Every provider's speech translation model file must have a matching model options file (separated only because SpeechTranslationModelV4 type is experimental).",
+    for: {
+      files: [
+        '${providerId}-speech-translation-model.ts',
+        '*/${providerId}-speech-translation-model.ts',
+      ],
+    },
+    must: {
+      haveFiles: ['${providerId}-speech-translation-model-options.ts'],
+    },
+  },
+  {
     name: 'provider-video-model-file-must-export-model-class',
     description:
       "Every provider's video model file must export a model class (separated only because VideoModelV4 type is experimental).",
@@ -347,6 +387,22 @@ export const conventions = defineConventions([
     must: {
       exportTypes: [
         '${providerId.toPascalCase()}${modelKind.toNthSegmentPascalCase(1)}Model${modelKind.toNthSegmentPascalCase(0)}Options',
+      ],
+    },
+  },
+  {
+    name: 'provider-speech-translation-model-options-file-must-export-model-options-type',
+    description:
+      "Every provider's model options file must export a model options type.",
+    for: {
+      files: [
+        '${providerId}-speech-translation-model-options.ts',
+        '*/${providerId}-speech-translation-model-options.ts',
+      ],
+    },
+    must: {
+      exportTypes: [
+        '${providerId.toPascalCase()}SpeechTranslationModelOptions',
       ],
     },
   },

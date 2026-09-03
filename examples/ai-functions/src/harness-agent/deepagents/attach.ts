@@ -2,8 +2,9 @@ import {
   HarnessAgent,
   type HarnessAgentResumeSessionState,
 } from '@ai-sdk/harness/agent';
-import { deepAgents } from '@ai-sdk/harness-deepagents';
+import { createDeepAgents } from './_create';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { mintBridgeToken } from '../../lib/mint-bridge-token';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
@@ -11,6 +12,7 @@ import { run } from '../../lib/run';
 // coordinates; a fresh HarnessAgent reattaches and continues mid-conversation
 // (the in-memory conversation survives because the bridge stays alive).
 run(async () => {
+  const harness = createDeepAgents({ mintBridgeToken });
   const sandbox = createVercelSandbox({
     runtime: 'node24',
     ports: [4000],
@@ -20,13 +22,13 @@ run(async () => {
   let sessionId: string;
   let resumeState: HarnessAgentResumeSessionState;
   {
-    const agent = new HarnessAgent({ harness: deepAgents, sandbox });
+    const agent = new HarnessAgent({ harness, sandbox });
     const session = await agent.createSession();
     sessionId = session.sessionId;
     console.log('--- turn 1 ---');
     const result = await agent.stream({
       session,
-      prompt: 'My name is Ada. Remember it.',
+      prompt: 'My name is Felix. Remember it.',
     });
     await printFullStream({ result });
     resumeState = await session.detach();
@@ -34,7 +36,7 @@ run(async () => {
   }
 
   {
-    const agent = new HarnessAgent({ harness: deepAgents, sandbox });
+    const agent = new HarnessAgent({ harness, sandbox });
     const session = await agent.createSession({
       sessionId,
       resumeFrom: resumeState,
@@ -47,8 +49,17 @@ run(async () => {
       session,
       prompt: 'What is my name? Answer in one word.',
     });
-    await printFullStream({ result });
+    let secondTurnText = '';
+    await printFullStream({
+      result,
+      onText: text => {
+        secondTurnText += text.text;
+      },
+    });
     await session.destroy();
+    if (!secondTurnText.includes('Felix')) {
+      throw new Error('Second turn did not retain context from previous turn');
+    }
   }
 
   process.exit(0);

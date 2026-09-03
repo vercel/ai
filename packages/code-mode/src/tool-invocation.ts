@@ -6,7 +6,6 @@ import {
   CodeModeToolApprovalRequiredError,
   CodeModeToolError,
 } from './errors.js';
-import { isCodeModeHostInterruptSignal } from './host-interrupt.js';
 import type {
   CodeModeInterruptExecutionContext,
   CodeModeInterruptPayload,
@@ -16,6 +15,7 @@ import type {
 } from './types.js';
 import {
   assertJsonSerializable,
+  fromJsonPayload,
   toJsonPayload,
 } from './utils/serialization.js';
 
@@ -67,7 +67,7 @@ export async function invokeHostTool({
     });
   }
 
-  const input = inputJson === '' ? undefined : JSON.parse(inputJson);
+  const input = fromJsonPayload(inputJson);
   assertJsonSerializable(input, maxToolInputBytes, `Tool "${toolName}" input`);
 
   const validation = await raceAgainstAbort(
@@ -149,27 +149,13 @@ export async function invokeHostTool({
     }
   }
 
-  let output: unknown;
-  try {
-    output = await raceAgainstAbort(
-      executeHostTool(hostTool.execute.bind(hostTool), {
-        input: validation.value,
-        options: executionOptions,
-      }),
-      executionOptions.abortSignal,
-    );
-  } catch (error) {
-    if (isCodeModeHostInterruptSignal(error)) {
-      return {
-        type: 'interrupted',
-        toolName,
-        input: validation.value,
-        toolCallId,
-        payload: error.payload,
-      };
-    }
-    throw error;
-  }
+  const output = await raceAgainstAbort(
+    executeHostTool(hostTool.execute.bind(hostTool), {
+      input: validation.value,
+      options: executionOptions,
+    }),
+    executionOptions.abortSignal,
+  );
   return {
     type: 'success',
     valueJson: toJsonPayload(

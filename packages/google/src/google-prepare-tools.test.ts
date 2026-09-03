@@ -1,4 +1,7 @@
-import type { LanguageModelV4ProviderTool } from '@ai-sdk/provider';
+import type {
+  JSONSchema7,
+  LanguageModelV4ProviderTool,
+} from '@ai-sdk/provider';
 import { expect, it } from 'vitest';
 import { prepareTools } from './google-prepare-tools';
 
@@ -48,6 +51,51 @@ it('should correctly prepare function tools', () => {
   ]);
   expect(result.toolConfig).toBeUndefined();
   expect(result.toolWarnings).toEqual([]);
+});
+
+it('should preserve recursive function tool schemas as JSON Schema', () => {
+  const inputSchema = {
+    type: 'object',
+    properties: {
+      condition: { $ref: '#/$defs/Condition' },
+    },
+    required: ['condition'],
+    $defs: {
+      Condition: {
+        type: 'object',
+        properties: {
+          children: {
+            type: 'array',
+            items: { $ref: '#/$defs/Condition' },
+          },
+        },
+      },
+    },
+  } as JSONSchema7;
+
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'search',
+        description: 'Search with a condition tree',
+        inputSchema,
+      },
+    ],
+    modelId: 'gemini-2.5-flash',
+  });
+
+  expect(result.tools).toEqual([
+    {
+      functionDeclarations: [
+        {
+          name: 'search',
+          description: 'Search with a condition tree',
+          parametersJsonSchema: inputSchema,
+        },
+      ],
+    },
+  ]);
 });
 
 it('should correctly prepare provider-defined tools as array', () => {
@@ -932,7 +980,7 @@ it('should use VALIDATED mode with toolChoice auto when strict: true', () => {
   });
 });
 
-it('should use VALIDATED mode with toolChoice required when strict: true', () => {
+it('should use ANY mode with toolChoice required when strict: true', () => {
   const result = prepareTools({
     tools: [
       {
@@ -952,7 +1000,45 @@ it('should use VALIDATED mode with toolChoice required when strict: true', () =>
     modelId: 'gemini-3-flash-preview',
   });
   expect(result.toolConfig).toEqual({
-    functionCallingConfig: { mode: 'VALIDATED' },
+    functionCallingConfig: { mode: 'ANY' },
+  });
+});
+
+it('should use ANY mode with named toolChoice when another tool has strict: true', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'createMeeting',
+        description: 'Create meeting',
+        inputSchema: {
+          type: 'object',
+          properties: { title: { type: 'string' } },
+          required: ['title'],
+          additionalProperties: false,
+        },
+      },
+      {
+        type: 'function',
+        name: 'getWeather',
+        description: 'Get weather',
+        inputSchema: {
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+          additionalProperties: false,
+        },
+        strict: true,
+      },
+    ],
+    toolChoice: { type: 'tool', toolName: 'createMeeting' },
+    modelId: 'gemini-3-flash-preview',
+  });
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: {
+      mode: 'ANY',
+      allowedFunctionNames: ['createMeeting'],
+    },
   });
 });
 

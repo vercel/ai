@@ -10,6 +10,7 @@ import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
 import { GoogleVertexVideoModel } from './google-vertex-video-model';
 import { GoogleVertexTranscriptionModel } from './google-vertex-transcription-model';
+import { GoogleVertexCloudTTSSpeechModel } from './google-vertex-cloud-tts-speech-model';
 
 // Mock the imported modules
 vi.mock('@ai-sdk/provider-utils', async importOriginal => {
@@ -65,6 +66,10 @@ vi.mock('./google-vertex-video-model', () => ({
 
 vi.mock('./google-vertex-transcription-model', () => ({
   GoogleVertexTranscriptionModel: vi.fn(),
+}));
+
+vi.mock('./google-vertex-cloud-tts-speech-model', () => ({
+  GoogleVertexCloudTTSSpeechModel: vi.fn(),
 }));
 
 describe('google-vertex-provider-base', () => {
@@ -184,6 +189,49 @@ describe('google-vertex-provider-base', () => {
       'gemini-2.5-pro-tts',
       expect.objectContaining({ provider: 'google.vertex.speech' }),
     );
+  });
+
+  it('should route chirp speech models to the Cloud Text-to-Speech model', () => {
+    const provider = createGoogleVertex({
+      project: 'test-project',
+      location: 'test-location',
+    });
+    provider.speech('chirp-3-hd');
+
+    expect(GoogleVertexCloudTTSSpeechModel).toHaveBeenCalledWith(
+      'chirp-3-hd',
+      expect.objectContaining({
+        provider: 'google.vertex.speech',
+        headers: expect.any(Function),
+      }),
+    );
+    expect(GoogleSpeechModel).not.toHaveBeenCalled();
+  });
+
+  it('should throw for chirp speech models when an Express Mode API key is set', () => {
+    process.env.GOOGLE_VERTEX_API_KEY = 'test-api-key';
+    const provider = createGoogleVertex({
+      project: 'test-project',
+      location: 'test-location',
+    });
+
+    expect(() => provider.speech('chirp-3-hd')).toThrow(
+      'Google Vertex Chirp speech models do not support Express Mode API keys. Use standard Google Cloud credentials instead.',
+    );
+  });
+
+  it('should keep routing gemini speech models to the Gemini speech model', () => {
+    const provider = createGoogleVertex({
+      project: 'test-project',
+      location: 'test-location',
+    });
+    provider.speechModel('gemini-2.5-flash-tts');
+
+    expect(GoogleSpeechModel).toHaveBeenCalledWith(
+      'gemini-2.5-flash-tts',
+      expect.objectContaining({ provider: 'google.vertex.speech' }),
+    );
+    expect(GoogleVertexCloudTTSSpeechModel).not.toHaveBeenCalled();
   });
 
   it('should create a transcription model with correct settings', () => {
@@ -358,10 +406,10 @@ describe('google-vertex-provider-base', () => {
       project: 'test-project',
       location: 'test-location',
     });
-    provider.image('imagen-3.0-generate-002');
+    provider.image('gemini-2.5-flash-image');
 
     expect(GoogleVertexImageModel).toHaveBeenCalledWith(
-      'imagen-3.0-generate-002',
+      'gemini-2.5-flash-image',
       expect.objectContaining({
         provider: 'google.vertex.image',
         baseURL:
@@ -413,10 +461,10 @@ describe('google-vertex-provider-base', () => {
       project: 'test-project',
       location: 'global',
     });
-    provider.image('imagen-3.0-generate-002');
+    provider.image('gemini-2.5-flash-image');
 
     expect(GoogleVertexImageModel).toHaveBeenCalledWith(
-      'imagen-3.0-generate-002',
+      'gemini-2.5-flash-image',
       expect.objectContaining({
         provider: 'google.vertex.image',
         baseURL:

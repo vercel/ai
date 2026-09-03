@@ -4,6 +4,19 @@ import { createSafeLookup } from './safe-node-fetch';
 
 type Address = { address: string; family: number };
 
+describe('module initialization', () => {
+  it('succeeds when the global fetch function is unavailable', async () => {
+    vi.resetModules();
+    vi.stubGlobal('fetch', undefined);
+
+    try {
+      await expect(import('./safe-node-fetch')).resolves.toBeDefined();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
 function createLookup(addresses: Address[]) {
   const lookup = vi.fn((_hostname, options, callback) => {
     callback(null, addresses);

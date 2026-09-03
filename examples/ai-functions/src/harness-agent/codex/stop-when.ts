@@ -1,9 +1,11 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { codex } from '@ai-sdk/harness-codex';
+import { createCodex } from './_create';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { isStepCount } from 'ai';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
+
+const codex = createCodex();
 
 const prompt = `
 Create a small TypeScript command-line program in this workspace.
@@ -26,7 +28,6 @@ run(async () => {
     stopWhen: isStepCount(1),
   });
 
-  let exitCode = 0;
   let session = await agent.createSession();
   let isFirstSlice = true;
   try {
@@ -50,11 +51,7 @@ run(async () => {
       const continueFrom = await session.suspendTurn();
       session = await agent.createSession({ sessionId, continueFrom });
     }
-  } catch (err) {
-    exitCode = 1;
-    console.error('[example] failed:', err);
   } finally {
     await session.destroy();
-    process.exit(exitCode);
   }
 });

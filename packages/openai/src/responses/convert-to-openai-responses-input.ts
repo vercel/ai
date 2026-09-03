@@ -1,6 +1,8 @@
 import {
   UnsupportedFunctionalityError,
   type LanguageModelV4Prompt,
+  type LanguageModelV4ToolResultOutput,
+  type LanguageModelV4ToolResultPart,
   type SharedV4ProviderOptions,
   type LanguageModelV4ToolApprovalResponsePart,
   type SharedV4Warning,
@@ -43,6 +45,10 @@ import {
   programmaticToolCallingInputSchema,
   programmaticToolCallingOutputSchema,
 } from '../tool/programmatic-tool-calling';
+import {
+  getParallelToolCallMetadata,
+  type ParallelToolCallMetadata,
+} from './expand-parallel-tool-call';
 
 function serializeToolCallArguments(input: unknown): string {
   return JSON.stringify(input === undefined ? {} : input);
@@ -61,6 +67,235 @@ function mapToolCaller(
       : caller;
 }
 
+async function convertFunctionToolResultOutput({
+  output,
+  toolName,
+  outputSchemaToolNames,
+  promptCacheBreakpoint,
+  providerOptionsName,
+  warnings,
+}: {
+  output: LanguageModelV4ToolResultOutput;
+  toolName: string;
+  outputSchemaToolNames: Set<string> | undefined;
+  promptCacheBreakpoint?: OpenAIPromptCacheBreakpoint;
+  providerOptionsName: string;
+  warnings: Array<SharedV4Warning>;
+}): Promise<OpenAIResponsesFunctionCallOutput['output']> {
+  // `output` is always a string, but for functions with output_schema OpenAI
+  // parses the contents of that string as JSON. Text-like results therefore
+  // need JSON.stringify to become valid JSON string literals.
+  const hasOutputSchema = outputSchemaToolNames?.has(toolName);
+  const convertScalarOutput = (
+    value: string,
+  ): OpenAIResponsesFunctionCallOutput['output'] =>
+    promptCacheBreakpoint == null
+      ? value
+      : [
+          {
+            type: 'input_text',
+            text: value,
+            prompt_cache_breakpoint: promptCacheBreakpoint,
+          },
+        ];
+
+  switch (output.type) {
+    case 'text':
+    case 'error-text':
+      return convertScalarOutput(
+        hasOutputSchema ? JSON.stringify(output.value) : output.value,
+      );
+    case 'execution-denied': {
+      const reason = output.reason ?? 'Tool call execution denied.';
+      return convertScalarOutput(
+        hasOutputSchema ? JSON.stringify(reason) : reason,
+      );
+    }
+    case 'json':
+    case 'error-json':
+      return convertScalarOutput(JSON.stringify(output.value));
+    case 'content':
+      return output.value
+        .map(item => {
+          const promptCacheBreakpoint = getPromptCacheBreakpoint(
+            item.providerOptions,
+            providerOptionsName,
+          );
+          switch (item.type) {
+            case 'text': {
+              return {
+                type: 'input_text' as const,
+                text: item.text,
+                ...(promptCacheBreakpoint != null && {
+                  prompt_cache_breakpoint: promptCacheBreakpoint,
+                }),
+              };
+            }
+
+            case 'file': {
+              const topLevel = getTopLevelMediaType(item.mediaType);
+              const imageDetail =
+                item.providerOptions?.[providerOptionsName]?.imageDetail;
+
+              if (item.data.type === 'data') {
+                const fullMediaType = resolveFullMediaType({ part: item });
+                if (topLevel === 'image') {
+                  return {
+                    type: 'input_image' as const,
+                    image_url: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
+                    detail: imageDetail,
+                    ...(promptCacheBreakpoint != null && {
+                      prompt_cache_breakpoint: promptCacheBreakpoint,
+                    }),
+                  };
+                }
+                return {
+                  type: 'input_file' as const,
+                  filename: item.filename ?? 'data',
+                  file_data: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
+                  ...(promptCacheBreakpoint != null && {
+                    prompt_cache_breakpoint: promptCacheBreakpoint,
+                  }),
+                };
+              }
+
+              if (item.data.type === 'url') {
+                if (topLevel === 'image') {
+                  return {
+                    type: 'input_image' as const,
+                    image_url: item.data.url.toString(),
+                    detail: imageDetail,
+                    ...(promptCacheBreakpoint != null && {
+                      prompt_cache_breakpoint: promptCacheBreakpoint,
+                    }),
+                  };
+                }
+                return {
+                  type: 'input_file' as const,
+                  file_url: item.data.url.toString(),
+                  ...(promptCacheBreakpoint != null && {
+                    prompt_cache_breakpoint: promptCacheBreakpoint,
+                  }),
+                };
+              }
+
+              warnings.push({
+                type: 'other',
+                message: `unsupported tool content part type: ${item.type} with data type: ${item.data.type}`,
+              });
+              return undefined;
+            }
+
+            default: {
+              warnings.push({
+                type: 'other',
+                message: `unsupported tool content part type: ${item.type}`,
+              });
+              return undefined;
+            }
+          }
+        })
+        .filter(isNonNullable);
+  }
+}
+
+type ParallelToolResultGroup = {
+  metadata: ParallelToolCallMetadata;
+  results: Array<LanguageModelV4ToolResultPart>;
+};
+
+function hasSameParallelToolCall(
+  first: ParallelToolCallMetadata,
+  second: ParallelToolCallMetadata,
+): boolean {
+  return (
+    first.itemId === second.itemId &&
+    first.toolCallId === second.toolCallId &&
+    first.toolName === second.toolName &&
+    first.input === second.input &&
+    first.count === second.count
+  );
+}
+
+function collectCompleteParallelToolResultGroups({
+  prompt,
+  providerOptionsName,
+}: {
+  prompt: LanguageModelV4Prompt;
+  providerOptionsName: string;
+}): Map<string, ParallelToolResultGroup> {
+  const pendingGroups = new Map<
+    string,
+    {
+      metadata: ParallelToolCallMetadata;
+      results: Map<number, LanguageModelV4ToolResultPart>;
+      invalid: boolean;
+    }
+  >();
+
+  for (const message of prompt) {
+    if (message.role !== 'tool') {
+      continue;
+    }
+
+    for (const part of message.content) {
+      if (part.type !== 'tool-result') {
+        continue;
+      }
+
+      const metadata = getParallelToolCallMetadata({
+        providerOptions: part.providerOptions,
+        providerOptionsName,
+      });
+
+      if (metadata == null) {
+        continue;
+      }
+
+      const existing = pendingGroups.get(metadata.toolCallId);
+      if (existing == null) {
+        pendingGroups.set(metadata.toolCallId, {
+          metadata,
+          results: new Map([[metadata.index, part]]),
+          invalid: false,
+        });
+        continue;
+      }
+
+      if (
+        !hasSameParallelToolCall(existing.metadata, metadata) ||
+        existing.results.has(metadata.index)
+      ) {
+        existing.invalid = true;
+        continue;
+      }
+
+      existing.results.set(metadata.index, part);
+    }
+  }
+
+  const completeGroups = new Map<string, ParallelToolResultGroup>();
+
+  for (const [toolCallId, group] of pendingGroups) {
+    if (group.invalid || group.results.size !== group.metadata.count) {
+      continue;
+    }
+
+    const results = Array.from({ length: group.metadata.count }, (_, index) =>
+      group.results.get(index),
+    );
+
+    if (results.every(isNonNullable)) {
+      completeGroups.set(toolCallId, {
+        metadata: group.metadata,
+        results,
+      });
+    }
+  }
+
+  return completeGroups;
+}
+
 type OpenAIPromptCacheBreakpoint = { mode: 'explicit' };
 
 function getPromptCacheBreakpoint(
@@ -70,6 +305,24 @@ function getPromptCacheBreakpoint(
   return providerOptions?.[providerOptionsName]?.promptCacheBreakpoint as
     | OpenAIPromptCacheBreakpoint
     | undefined;
+}
+
+function getScalarToolResultPromptCacheBreakpoint({
+  output,
+  toolResultProviderOptions,
+  providerOptionsName,
+}: {
+  output: LanguageModelV4ToolResultOutput;
+  toolResultProviderOptions: SharedV4ProviderOptions | undefined;
+  providerOptionsName: string;
+}): OpenAIPromptCacheBreakpoint | undefined {
+  return output.type === 'content'
+    ? undefined
+    : (getPromptCacheBreakpoint(output.providerOptions, providerOptionsName) ??
+        getPromptCacheBreakpoint(
+          toolResultProviderOptions,
+          providerOptionsName,
+        ));
 }
 
 /**
@@ -97,7 +350,9 @@ export async function convertToOpenAIResponsesInput({
   hasShellTool = false,
   hasApplyPatchTool = false,
   hasComputerTool = false,
+  toolSearchToolName,
   customProviderToolNames,
+  outputSchemaToolNames,
 }: {
   prompt: LanguageModelV4Prompt;
   toolNameMapping: ToolNameMapping;
@@ -113,7 +368,9 @@ export async function convertToOpenAIResponsesInput({
   hasShellTool?: boolean;
   hasApplyPatchTool?: boolean;
   hasComputerTool?: boolean;
+  toolSearchToolName?: string;
   customProviderToolNames?: Set<string>;
+  outputSchemaToolNames?: Set<string>;
 }): Promise<{
   input: OpenAIResponsesInput;
   warnings: Array<SharedV4Warning>;
@@ -121,6 +378,15 @@ export async function convertToOpenAIResponsesInput({
   let input: OpenAIResponsesInput = [];
   const warnings: Array<SharedV4Warning> = [];
   const processedApprovalIds = new Set<string>();
+  const parallelToolResultGroups =
+    hasConversation || hasPreviousResponseId
+      ? collectCompleteParallelToolResultGroups({
+          prompt,
+          providerOptionsName,
+        })
+      : new Map<string, ParallelToolResultGroup>();
+  const emittedParallelToolCalls = new Set<string>();
+  const emittedParallelToolResults = new Set<string>();
 
   for (const { role, content, providerOptions } of prompt) {
     switch (role) {
@@ -346,6 +612,49 @@ export async function convertToOpenAIResponsesInput({
               break;
             }
             case 'tool-call': {
+              const parallelToolCallMetadata = getParallelToolCallMetadata({
+                providerOptions: part.providerOptions,
+                providerOptionsName,
+              });
+              const parallelToolResultGroup =
+                parallelToolCallMetadata == null
+                  ? undefined
+                  : parallelToolResultGroups.get(
+                      parallelToolCallMetadata.toolCallId,
+                    );
+
+              if (
+                parallelToolCallMetadata != null &&
+                parallelToolResultGroup != null &&
+                hasSameParallelToolCall(
+                  parallelToolResultGroup.metadata,
+                  parallelToolCallMetadata,
+                )
+              ) {
+                if (
+                  !emittedParallelToolCalls.has(
+                    parallelToolResultGroup.metadata.toolCallId,
+                  )
+                ) {
+                  emittedParallelToolCalls.add(
+                    parallelToolResultGroup.metadata.toolCallId,
+                  );
+
+                  // Conversations already contain the original wrapper item.
+                  // previousResponseId chains require plain client function
+                  // calls to be reconstructed in full.
+                  if (!hasConversation) {
+                    input.push({
+                      type: 'function_call',
+                      call_id: parallelToolResultGroup.metadata.toolCallId,
+                      name: parallelToolResultGroup.metadata.toolName,
+                      arguments: parallelToolResultGroup.metadata.input,
+                    });
+                  }
+                }
+                break;
+              }
+
               const id = (part.providerOptions?.[providerOptionsName]?.itemId ??
                 (
                   part as {
@@ -382,7 +691,7 @@ export async function convertToOpenAIResponsesInput({
                 part.toolName,
               );
 
-              if (resolvedToolName === 'tool_search') {
+              if (part.toolName === toolSearchToolName) {
                 if (store && id != null) {
                   input.push({ type: 'item_reference', id });
                   break;
@@ -438,12 +747,29 @@ export async function convertToOpenAIResponsesInput({
                 if (store && id != null) {
                   input.push({ type: 'item_reference', id });
                 }
-                break;
+
+                // Without response storage, shell calls must be reconstructed
+                // together with their matching shell_call_output.
+                if (store || !hasShellTool || resolvedToolName !== 'shell') {
+                  break;
+                }
               }
+
+              const isProviderDefinedToolCall =
+                (hasLocalShellTool && resolvedToolName === 'local_shell') ||
+                (hasShellTool && resolvedToolName === 'shell') ||
+                (hasApplyPatchTool && resolvedToolName === 'apply_patch') ||
+                (hasComputerTool && resolvedToolName === 'computer') ||
+                (customProviderToolNames?.has(resolvedToolName) ?? false);
 
               // When chaining with a previous response id, items already part
               // of that response chain must not be resent.
-              if (hasPreviousResponseId && store && id != null) {
+              if (
+                hasPreviousResponseId &&
+                store &&
+                id != null &&
+                isProviderDefinedToolCall
+              ) {
                 break;
               }
 
@@ -457,13 +783,6 @@ export async function convertToOpenAIResponsesInput({
               // makes follow-up requests fail with "No tool call found for
               // function call output with call_id", most visibly with parallel
               // tool calls across multiple steps.
-              const isProviderDefinedToolCall =
-                (hasLocalShellTool && resolvedToolName === 'local_shell') ||
-                (hasShellTool && resolvedToolName === 'shell') ||
-                (hasApplyPatchTool && resolvedToolName === 'apply_patch') ||
-                (hasComputerTool && resolvedToolName === 'computer') ||
-                (customProviderToolNames?.has(resolvedToolName) ?? false);
-
               if (store && id != null && isProviderDefinedToolCall) {
                 input.push({ type: 'item_reference', id });
                 break;
@@ -627,7 +946,7 @@ export async function convertToOpenAIResponsesInput({
                 part.toolName,
               );
 
-              if (resolvedResultToolName === 'tool_search') {
+              if (part.toolName === toolSearchToolName) {
                 const itemId = (part.providerOptions?.[providerOptionsName]
                   ?.itemId ??
                   (
@@ -891,7 +1210,7 @@ export async function convertToOpenAIResponsesInput({
             }
             processedApprovalIds.add(approvalResponse.approvalId);
 
-            if (store) {
+            if (store && !hasConversation && !hasPreviousResponseId) {
               input.push({
                 type: 'item_reference',
                 id: approvalResponse.approvalId,
@@ -903,6 +1222,82 @@ export async function convertToOpenAIResponsesInput({
               approval_request_id: approvalResponse.approvalId,
               approve: approvalResponse.approved,
             });
+            continue;
+          }
+
+          const parallelToolCallMetadata = getParallelToolCallMetadata({
+            providerOptions: part.providerOptions,
+            providerOptionsName,
+          });
+          const parallelToolResultGroup =
+            parallelToolCallMetadata == null
+              ? undefined
+              : parallelToolResultGroups.get(
+                  parallelToolCallMetadata.toolCallId,
+                );
+
+          if (
+            parallelToolCallMetadata != null &&
+            parallelToolResultGroup != null &&
+            hasSameParallelToolCall(
+              parallelToolResultGroup.metadata,
+              parallelToolCallMetadata,
+            )
+          ) {
+            if (
+              !emittedParallelToolResults.has(
+                parallelToolResultGroup.metadata.toolCallId,
+              )
+            ) {
+              emittedParallelToolResults.add(
+                parallelToolResultGroup.metadata.toolCallId,
+              );
+
+              const toolOutputs = await Promise.all(
+                parallelToolResultGroup.results.map(async result => {
+                  const promptCacheBreakpoint =
+                    getScalarToolResultPromptCacheBreakpoint({
+                      output: result.output,
+                      toolResultProviderOptions: result.providerOptions,
+                      providerOptionsName,
+                    });
+
+                  return {
+                    output: await convertFunctionToolResultOutput({
+                      output: result.output,
+                      toolName: result.toolName,
+                      outputSchemaToolNames,
+                      providerOptionsName,
+                      warnings,
+                    }),
+                    promptCacheBreakpoint,
+                  };
+                }),
+              );
+              const serializedToolOutputs = toolOutputs.map(({ output }) =>
+                typeof output === 'string' ? output : JSON.stringify(output),
+              );
+              const hasPromptCacheBreakpoint = toolOutputs.some(
+                ({ promptCacheBreakpoint }) => promptCacheBreakpoint != null,
+              );
+
+              input.push({
+                type: 'function_call_output',
+                call_id: parallelToolResultGroup.metadata.toolCallId,
+                // The internal wrapper returns one output containing the child
+                // results in the same order as the original tool_uses array.
+                output: hasPromptCacheBreakpoint
+                  ? serializedToolOutputs.map((text, index) => ({
+                      type: 'input_text',
+                      text: index === 0 ? text : `\n${text}`,
+                      ...(toolOutputs[index].promptCacheBreakpoint != null && {
+                        prompt_cache_breakpoint:
+                          toolOutputs[index].promptCacheBreakpoint,
+                      }),
+                    }))
+                  : serializedToolOutputs.join('\n'),
+              });
+            }
             continue;
           }
 
@@ -923,7 +1318,7 @@ export async function convertToOpenAIResponsesInput({
             part.toolName,
           );
 
-          if (resolvedToolName === 'tool_search' && output.type === 'json') {
+          if (part.toolName === toolSearchToolName && output.type === 'json') {
             const parsedOutput = await validateTypes({
               value: output.value,
               schema: toolSearchOutputSchema,
@@ -1034,18 +1429,38 @@ export async function convertToOpenAIResponsesInput({
           }
 
           if (customProviderToolNames?.has(resolvedToolName)) {
+            const promptCacheBreakpoint =
+              getScalarToolResultPromptCacheBreakpoint({
+                output,
+                toolResultProviderOptions: part.providerOptions,
+                providerOptionsName,
+              });
+            const convertScalarOutput = (
+              value: string,
+            ): OpenAIResponsesCustomToolCallOutput['output'] =>
+              promptCacheBreakpoint == null
+                ? value
+                : [
+                    {
+                      type: 'input_text',
+                      text: value,
+                      prompt_cache_breakpoint: promptCacheBreakpoint,
+                    },
+                  ];
             let outputValue: OpenAIResponsesCustomToolCallOutput['output'];
             switch (output.type) {
               case 'text':
               case 'error-text':
-                outputValue = output.value;
+                outputValue = convertScalarOutput(output.value);
                 break;
               case 'execution-denied':
-                outputValue = output.reason ?? 'Tool call execution denied.';
+                outputValue = convertScalarOutput(
+                  output.reason ?? 'Tool call execution denied.',
+                );
                 break;
               case 'json':
               case 'error-json':
-                outputValue = JSON.stringify(output.value);
+                outputValue = convertScalarOutput(JSON.stringify(output.value));
                 break;
               case 'content':
                 outputValue = output.value
@@ -1140,106 +1555,18 @@ export async function convertToOpenAIResponsesInput({
             continue;
           }
 
-          let contentValue: OpenAIResponsesFunctionCallOutput['output'];
-          switch (output.type) {
-            case 'text':
-            case 'error-text':
-              contentValue = output.value;
-              break;
-            case 'execution-denied':
-              contentValue = output.reason ?? 'Tool call execution denied.';
-              break;
-            case 'json':
-            case 'error-json':
-              contentValue = JSON.stringify(output.value);
-              break;
-            case 'content':
-              contentValue = output.value
-                .map(item => {
-                  const promptCacheBreakpoint = getPromptCacheBreakpoint(
-                    item.providerOptions,
-                    providerOptionsName,
-                  );
-                  switch (item.type) {
-                    case 'text': {
-                      return {
-                        type: 'input_text' as const,
-                        text: item.text,
-                        ...(promptCacheBreakpoint != null && {
-                          prompt_cache_breakpoint: promptCacheBreakpoint,
-                        }),
-                      };
-                    }
-
-                    case 'file': {
-                      const topLevel = getTopLevelMediaType(item.mediaType);
-                      const imageDetail =
-                        item.providerOptions?.[providerOptionsName]
-                          ?.imageDetail;
-
-                      if (item.data.type === 'data') {
-                        const fullMediaType = resolveFullMediaType({
-                          part: item,
-                        });
-                        if (topLevel === 'image') {
-                          return {
-                            type: 'input_image' as const,
-                            image_url: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
-                            detail: imageDetail,
-                            ...(promptCacheBreakpoint != null && {
-                              prompt_cache_breakpoint: promptCacheBreakpoint,
-                            }),
-                          };
-                        }
-                        return {
-                          type: 'input_file' as const,
-                          filename: item.filename ?? 'data',
-                          file_data: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
-                          ...(promptCacheBreakpoint != null && {
-                            prompt_cache_breakpoint: promptCacheBreakpoint,
-                          }),
-                        };
-                      }
-
-                      if (item.data.type === 'url') {
-                        if (topLevel === 'image') {
-                          return {
-                            type: 'input_image' as const,
-                            image_url: item.data.url.toString(),
-                            detail: imageDetail,
-                            ...(promptCacheBreakpoint != null && {
-                              prompt_cache_breakpoint: promptCacheBreakpoint,
-                            }),
-                          };
-                        }
-                        return {
-                          type: 'input_file' as const,
-                          file_url: item.data.url.toString(),
-                          ...(promptCacheBreakpoint != null && {
-                            prompt_cache_breakpoint: promptCacheBreakpoint,
-                          }),
-                        };
-                      }
-
-                      warnings.push({
-                        type: 'other',
-                        message: `unsupported tool content part type: ${item.type} with data type: ${item.data.type}`,
-                      });
-                      return undefined;
-                    }
-
-                    default: {
-                      warnings.push({
-                        type: 'other',
-                        message: `unsupported tool content part type: ${item.type}`,
-                      });
-                      return undefined;
-                    }
-                  }
-                })
-                .filter(isNonNullable);
-              break;
-          }
+          const contentValue = await convertFunctionToolResultOutput({
+            output,
+            toolName: part.toolName,
+            outputSchemaToolNames,
+            promptCacheBreakpoint: getScalarToolResultPromptCacheBreakpoint({
+              output,
+              toolResultProviderOptions: part.providerOptions,
+              providerOptionsName,
+            }),
+            providerOptionsName,
+            warnings,
+          });
 
           const caller = mapToolCaller(
             part.providerOptions?.[providerOptionsName]?.caller as

@@ -85,7 +85,7 @@ export function createEmitStreamEvent({
     }
     if (event.type === 'turn.completed') {
       if (event.usage) setTurnUsage(mapUsage(event.usage));
-      stepTracker.finishStep();
+      stepTracker.finishTurn();
       return;
     }
     if (event.type === 'turn.failed') {
@@ -185,6 +185,7 @@ export function createEmitStreamEvent({
           nativeName: item.tool ?? 'unknown',
           input: JSON.stringify(item.arguments ?? {}),
           providerExecuted: true,
+          dynamic: true,
         });
       } else if (event.type === 'item.completed') {
         send({
@@ -192,6 +193,7 @@ export function createEmitStreamEvent({
           toolCallId: id,
           toolName: item.tool ?? 'unknown',
           result: extractMcpToolCallResult(item),
+          dynamic: true,
         });
       }
       observeStep();
