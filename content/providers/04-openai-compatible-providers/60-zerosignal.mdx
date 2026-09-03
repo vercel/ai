@@ -1,0 +1,83 @@
+---
+title: ZeroSignal
+description: Use the ZeroSignal OpenAI compatible API with the AI SDK.
+---
+
+# ZeroSignal Provider
+
+[ZeroSignal](https://zerosignal.ai) is a private, pay-per-use inference network.
+Its `zs-proxy` daemon runs on your machine and exposes the network as an OpenAI compatible API on `http://127.0.0.1:9376/v1`.
+Every request is encrypted end to end and paid from your ZeroSignal wallet, so there is no API key: the proxy ignores the `Authorization` header.
+
+## Setup
+
+The ZeroSignal provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API.
+You can install it with
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Then install and start the proxy. See the [ZeroSignal proxy quick start](https://docs.zerosignal.ai/using-the-proxy/quick-start) for Windows and Linux installs.
+
+```bash
+brew install txnlab/tap/zs-proxy
+zs-proxy wallet login
+zs-proxy proxy start
+```
+
+## Provider Instance
+
+To use ZeroSignal, you can create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const zerosignal = createOpenAICompatible({
+  name: 'zerosignal',
+  baseURL: 'http://127.0.0.1:9376/v1',
+});
+```
+
+<Note>
+  `zs-proxy` listens on port `9376` by default. Pass `--port` to `zs-proxy
+  proxy start` to change it, and update `baseURL` to match.
+</Note>
+
+## Language Models
+
+You can interact with the models served on the ZeroSignal network using a provider instance.
+The first argument is the model id as returned by `GET /v1/models`, e.g. `moonshotai/kimi-k2.7-code`.
+
+```ts
+const model = zerosignal('moonshotai/kimi-k2.7-code');
+```
+
+Models are served by independent operators, so the catalog changes over time.
+Run `curl http://127.0.0.1:9376/v1/models` for the current list, including each model's context window and price.
+
+### Example
+
+You can use ZeroSignal language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const zerosignal = createOpenAICompatible({
+  name: 'zerosignal',
+  baseURL: 'http://127.0.0.1:9376/v1',
+});
+
+const { text } = await generateText({
+  model: zerosignal('moonshotai/kimi-k2.7-code'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  maxRetries: 1, // immediately error if the proxy is not running
+});
+```
+
+ZeroSignal language models can also be used with `streamText`.
+Pass `includeUsage: true` to `createOpenAICompatible` to receive token usage on streamed responses.
+
+## Cost
+
+Each response carries the amount charged for the request in the `X-Zs-Inference-Amount` response header.
+See the [ZeroSignal pricing docs](https://docs.zerosignal.ai/pricing) for how requests are priced.
