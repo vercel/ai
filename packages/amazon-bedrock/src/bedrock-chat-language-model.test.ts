@@ -3743,6 +3743,75 @@ describe('doGenerate', () => {
         }
       `);
     });
+
+    it('should extract text from citation content blocks', async () => {
+      server.urls[generateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  citationsContent: {
+                    citations: [],
+                    content: [{ text: 'Citation ' }, { text: 'response' }],
+                  },
+                },
+              ],
+            },
+          },
+          stopReason: 'end_turn',
+          usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toEqual([
+        {
+          type: 'text',
+          text: 'Citation response',
+        },
+      ]);
+    });
+
+    it('should prefer canonical text over citation content text', async () => {
+      server.urls[generateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  text: 'Canonical response',
+                  citationsContent: {
+                    citations: [],
+                    content: [{ text: 'Citation response' }],
+                  },
+                },
+              ],
+            },
+          },
+          stopReason: 'end_turn',
+          usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toEqual([
+        {
+          type: 'text',
+          text: 'Canonical response',
+        },
+      ]);
+    });
   });
 
   describe('reasoning', () => {
