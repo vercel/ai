@@ -35,12 +35,9 @@ import { splitDataUrl } from '../prompt/split-data-url';
 type ImageModelV3Result = Awaited<ReturnType<ImageModelV3['doGenerate']>>;
 
 class RetryableNoImageResultError extends Error {
-  readonly result: ImageModelV3Result;
-
-  constructor(result: ImageModelV3Result) {
+  constructor() {
     super('No image generated.');
     this.name = 'RetryableNoImageResultError';
-    this.result = result;
   }
 }
 
@@ -183,48 +180,51 @@ export async function generateImage({
     return remainder === 0 ? maxImagesPerCallWithDefault : remainder;
   });
 
-  const results = await Promise.all(
-    callImageCounts.map(async callImageCount => {
-      try {
-        return await retry(async () => {
-          const { prompt, files, mask } = normalizePrompt(promptArg);
+  const results = (
+    await Promise.all(
+      callImageCounts.map(async callImageCount => {
+        const attemptResults: Array<ImageModelV3Result> = [];
 
-          const result = await model.doGenerate({
-            prompt,
-            files,
-            mask,
-            n: callImageCount,
-            abortSignal,
-            headers: headersWithUserAgent,
-            size,
-            aspectRatio,
-            seed,
-            providerOptions: providerOptions ?? {},
+        try {
+          await retry(async () => {
+            const { prompt, files, mask } = normalizePrompt(promptArg);
+
+            const result = await model.doGenerate({
+              prompt,
+              files,
+              mask,
+              n: callImageCount,
+              abortSignal,
+              headers: headersWithUserAgent,
+              size,
+              aspectRatio,
+              seed,
+              providerOptions: providerOptions ?? {},
+            });
+
+            attemptResults.push(result);
+
+            if (result.images.length === 0 && result.isRetryable !== false) {
+              throw new RetryableNoImageResultError();
+            }
+
+            return result;
           });
+        } catch (error) {
+          const isNoImageResultError =
+            error instanceof RetryableNoImageResultError ||
+            (RetryError.isInstance(error) &&
+              error.lastError instanceof RetryableNoImageResultError);
 
-          if (result.images.length === 0) {
-            throw new RetryableNoImageResultError(result);
+          if (!isNoImageResultError) {
+            throw error;
           }
-
-          return result;
-        });
-      } catch (error) {
-        const noImageResultError =
-          error instanceof RetryableNoImageResultError
-            ? error
-            : RetryError.isInstance(error) &&
-                error.lastError instanceof RetryableNoImageResultError
-              ? error.lastError
-              : undefined;
-
-        if (noImageResultError != null) {
-          return noImageResultError.result;
         }
 
-        throw error;
-      }
-    }),
-  );
+        return attemptResults;
+      }),
+    )
+  ).flat();
 
   // collect result images, warnings, and response metadata
   const images: Array<DefaultGeneratedFile> = [];
@@ -293,7 +293,12 @@ export async function generateImage({
   logWarnings({ warnings, provider: model.provider, model: model.modelId });
 
   if (!images.length) {
-    throw new NoImageGeneratedError({ responses });
+    throw new NoImageGeneratedError({
+      responses,
+      warnings,
+      providerMetadata,
+      usage: totalUsage,
+    });
   }
 
   return new DefaultGenerateImageResult({

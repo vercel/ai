@@ -39,6 +39,7 @@ vi.mock('../version', () => {
 
 const createMockResponse = (options: {
   images: string[] | Uint8Array[];
+  isRetryable?: boolean;
   warnings?: Warning[];
   timestamp?: Date;
   modelId?: string;
@@ -46,6 +47,7 @@ const createMockResponse = (options: {
   headers?: Record<string, string>;
 }) => ({
   images: options.images,
+  isRetryable: options.isRetryable,
   warnings: options.warnings ?? [],
   providerMetadata: options.providerMetaData ?? {
     testProvider: {
@@ -573,20 +575,71 @@ describe('generateImage', () => {
   });
 
   describe('error handling', () => {
-    it('should retry when no images are returned and a later attempt succeeds', async () => {
+    it('should retry an unclassified empty result and include all completed attempts', async () => {
       vi.useFakeTimers();
 
       try {
         let callCount = 0;
+        const firstDate = new Date('2024-01-01T00:00:00.000Z');
+        const secondDate = new Date('2024-01-02T00:00:00.000Z');
 
         const resultPromise = generateImage({
           model: new MockImageModelV3({
             doGenerate: async () => {
               callCount += 1;
 
-              return createMockResponse({
-                images: callCount === 1 ? [] : [pngBase64],
-              });
+              return callCount === 1
+                ? {
+                    ...createMockResponse({
+                      images: [],
+                      warnings: [
+                        {
+                          type: 'other',
+                          message: 'First attempt returned no images.',
+                        },
+                      ],
+                      timestamp: firstDate,
+                      modelId: 'first-model-id',
+                      headers: { 'x-attempt': 'first' },
+                      providerMetaData: {
+                        gateway: {
+                          images: [],
+                          routing: { provider: 'first-provider' },
+                          cost: '0.01',
+                        },
+                      },
+                    }),
+                    usage: {
+                      inputTokens: 10,
+                      outputTokens: 0,
+                      totalTokens: 10,
+                    },
+                  }
+                : {
+                    ...createMockResponse({
+                      images: [pngBase64],
+                      warnings: [
+                        {
+                          type: 'other',
+                          message: 'Second attempt returned an image.',
+                        },
+                      ],
+                      timestamp: secondDate,
+                      modelId: 'second-model-id',
+                      headers: { 'x-attempt': 'second' },
+                      providerMetaData: {
+                        gateway: {
+                          images: [],
+                          generationId: 'generation-id',
+                        },
+                      },
+                    }),
+                    usage: {
+                      inputTokens: 5,
+                      outputTokens: 1,
+                      totalTokens: 6,
+                    },
+                  };
             },
           }),
           prompt,
@@ -599,9 +652,71 @@ describe('generateImage', () => {
 
         expect(callCount).toBe(2);
         expect(result.images).toHaveLength(1);
+        expect(result.warnings).toStrictEqual([
+          {
+            type: 'other',
+            message: 'First attempt returned no images.',
+          },
+          {
+            type: 'other',
+            message: 'Second attempt returned an image.',
+          },
+        ]);
+        expect(result.responses).toStrictEqual([
+          {
+            timestamp: firstDate,
+            modelId: 'first-model-id',
+            headers: { 'x-attempt': 'first' },
+          },
+          {
+            timestamp: secondDate,
+            modelId: 'second-model-id',
+            headers: { 'x-attempt': 'second' },
+          },
+        ]);
+        expect(result.providerMetadata).toStrictEqual({
+          gateway: {
+            routing: { provider: 'first-provider' },
+            cost: '0.01',
+            generationId: 'generation-id',
+          },
+        });
+        expect(result.usage).toStrictEqual({
+          inputTokens: 15,
+          outputTokens: 1,
+          totalTokens: 16,
+        });
       } finally {
         vi.useRealTimers();
       }
+    });
+
+    it('should not retry an empty result classified as terminal', async () => {
+      const doGenerate = vi.fn(async () =>
+        createMockResponse({
+          images: [],
+          isRetryable: false,
+          timestamp: testDate,
+        }),
+      );
+
+      await expect(
+        generateImage({
+          model: new MockImageModelV3({ doGenerate }),
+          prompt,
+          maxRetries: 2,
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_NoImageGeneratedError',
+        responses: [
+          {
+            timestamp: testDate,
+            modelId: expect.any(String),
+          },
+        ],
+      });
+
+      expect(doGenerate).toHaveBeenCalledTimes(1);
     });
 
     it('should throw NoImageGeneratedError after no-image retries are exhausted', async () => {
@@ -609,16 +724,46 @@ describe('generateImage', () => {
 
       try {
         let callCount = 0;
+        const responseDates = [
+          new Date('2024-01-01T00:00:00.000Z'),
+          new Date('2024-01-02T00:00:00.000Z'),
+        ];
 
         const resultPromise = generateImage({
           model: new MockImageModelV3({
             doGenerate: async () => {
               callCount += 1;
 
-              return createMockResponse({
-                images: [],
-                timestamp: testDate,
-              });
+              return {
+                ...createMockResponse({
+                  images: [],
+                  timestamp: responseDates[callCount - 1],
+                  warnings: [
+                    {
+                      type: 'other',
+                      message: `Attempt ${callCount} returned no images.`,
+                    },
+                  ],
+                  providerMetaData: {
+                    gateway:
+                      callCount === 1
+                        ? {
+                            images: [],
+                            routing: { provider: 'first-provider' },
+                            cost: '0.01',
+                          }
+                        : {
+                            images: [],
+                            generationId: 'generation-id',
+                          },
+                  },
+                }),
+                usage: {
+                  inputTokens: callCount === 1 ? 10 : 5,
+                  outputTokens: callCount === 1 ? 0 : 1,
+                  totalTokens: callCount === 1 ? 10 : 6,
+                },
+              };
             },
           }),
           prompt,
@@ -630,10 +775,36 @@ describe('generateImage', () => {
           message: 'No image generated.',
           responses: [
             {
-              timestamp: testDate,
+              timestamp: responseDates[0],
+              modelId: expect.any(String),
+            },
+            {
+              timestamp: responseDates[1],
               modelId: expect.any(String),
             },
           ],
+          warnings: [
+            {
+              type: 'other',
+              message: 'Attempt 1 returned no images.',
+            },
+            {
+              type: 'other',
+              message: 'Attempt 2 returned no images.',
+            },
+          ],
+          providerMetadata: {
+            gateway: {
+              routing: { provider: 'first-provider' },
+              cost: '0.01',
+              generationId: 'generation-id',
+            },
+          },
+          usage: {
+            inputTokens: 15,
+            outputTokens: 1,
+            totalTokens: 16,
+          },
         });
 
         await vi.runAllTimersAsync();

@@ -209,6 +209,8 @@ The outer key of the returned `providerMetadata` is the provider name. The inner
 
 When `generateImage` cannot generate a valid image, it throws a [`AI_NoImageGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-image-generated-error).
 Empty image responses are retried according to `maxRetries` before this error is thrown.
+Image model providers can set `isRetryable: false` on an empty response when it
+represents a terminal result such as a content policy block.
 
 This error occurs when the AI provider fails to generate an image. It can arise due to the following reasons:
 
@@ -218,6 +220,9 @@ This error occurs when the AI provider fails to generate an image. It can arise 
 The error preserves the following information to help you log the issue:
 
 - `responses`: Metadata about the image model responses, including timestamp, model, and headers.
+- `warnings`: Warnings from completed image model calls.
+- `providerMetadata`: Provider-specific metadata from completed image model calls.
+- `usage`: Combined token usage across completed image model calls.
 - `cause`: The cause of the error. You can use this for more detailed error handling
 
 ```ts
