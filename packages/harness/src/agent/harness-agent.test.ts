@@ -604,6 +604,100 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
+  test('normalizes and snapshots headers before passing them to doStart', async () => {
+    const { harness, doStart } = mockHarness({
+      script: () => finishEvents(),
+    });
+    const headers: Record<string, string | undefined> = {
+      'X-Tenant': 'acme',
+      'X-Optional': undefined,
+    };
+    const agent = new HarnessAgent({
+      harness,
+      headers,
+      sandbox: makeSandboxProvider(),
+    });
+    headers['X-Tenant'] = 'mutated';
+
+    const session = await agent.createSession();
+
+    expect(doStart.mock.calls[0]?.[0]).toMatchObject({
+      headers: { 'x-tenant': 'acme' },
+    });
+    await session.destroy();
+  });
+
+  test.each([
+    'authorization',
+    'Authorization',
+    'x-api-key',
+    'X-API-Key',
+    'user-agent',
+    'User-Agent',
+    'x-client-app',
+    'X-Client-App',
+  ])('rejects the managed header %s', header => {
+    const { harness } = mockHarness({
+      script: () => finishEvents(),
+    });
+
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          headers: { [header]: 'caller-value' },
+          sandbox: makeSandboxProvider(),
+        }),
+    ).toThrow(
+      `HarnessAgent: \`headers\` must not include the managed header \`${header.toLowerCase()}\`.`,
+    );
+  });
+
+  test('rejects a managed header with an undefined value', () => {
+    const { harness } = mockHarness({
+      script: () => finishEvents(),
+    });
+
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          headers: { Authorization: undefined },
+          sandbox: makeSandboxProvider(),
+        }),
+    ).toThrow(
+      'HarnessAgent: `headers` must not include the managed header `authorization`.',
+    );
+  });
+
+  test('passes stable headers when resuming a session', async () => {
+    const { harness, doStart } = mockHarness({
+      script: () => finishEvents(),
+    });
+    const sandboxSession = makeSandboxSession();
+    const agent = new HarnessAgent({
+      harness,
+      headers: { 'x-tenant': 'acme' },
+      sandbox: makeSandboxProvider(sandboxSession),
+    });
+    const session = await agent.createSession({ sessionId: 'session-1' });
+    const resumeFrom = await session.stop();
+
+    const resumedSession = await agent.createSession({
+      sessionId: 'session-1',
+      resumeFrom,
+    });
+
+    expect(doStart).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        headers: { 'x-tenant': 'acme' },
+        resumeFrom,
+      }),
+    );
+    await resumedSession.destroy();
+  });
+
   test('prepares model, skills, instructions, tools, and the prompt for each fresh turn', async () => {
     const promptOptions: HarnessV1PromptTurnOptions[] = [];
     const { harness, doStart } = mockHarness({

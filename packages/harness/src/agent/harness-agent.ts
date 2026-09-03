@@ -10,6 +10,7 @@ import {
   asArray,
   asSchema,
   generateId,
+  normalizeHeaders,
   validateTypes,
   type Context,
   type Experimental_SandboxSession as SandboxSession,
@@ -205,6 +206,7 @@ export class HarnessAgent<
     | HarnessV1BuiltinToolFiltering
     | undefined;
   private readonly permissionMode: HarnessAgentPermissionMode;
+  private readonly headers: Readonly<Record<string, string>> | undefined;
 
   constructor(
     settings: HarnessAgentSettings<
@@ -221,6 +223,22 @@ export class HarnessAgent<
     this.stopConditions =
       settings.stopWhen == null ? [] : asArray(settings.stopWhen);
     this.sandboxConfig = sandboxConfig;
+    const forbiddenHeaders = new Set([
+      'authorization',
+      'x-api-key',
+      'user-agent',
+      'x-client-app',
+    ]);
+    const forbiddenHeader = Object.keys(settings.headers ?? {})
+      .map(name => name.toLowerCase())
+      .find(name => forbiddenHeaders.has(name));
+    if (forbiddenHeader != null) {
+      throw new Error(
+        `HarnessAgent: \`headers\` must not include the managed header \`${forbiddenHeader}\`.`,
+      );
+    }
+    const headers = normalizeHeaders(settings.headers);
+    this.headers = Object.keys(headers).length === 0 ? undefined : headers;
     this.id = settings.id;
     const userTools = settings.tools ?? ({} as TUserTools);
     assertNoReservedQuestionTool({
@@ -504,6 +522,7 @@ export class HarnessAgent<
     try {
       const baseStartOptions = {
         sessionId,
+        ...(this.headers == null ? {} : { headers: this.headers }),
         resumeFrom: validatedResumeFrom,
         continueFrom: effectiveContinueFrom,
         permissionMode: this.permissionMode,

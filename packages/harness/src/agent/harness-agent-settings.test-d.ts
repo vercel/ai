@@ -128,6 +128,34 @@ describe('HarnessAgentSettings tool filtering types', () => {
     expectTypeOf(settings.model).toEqualTypeOf<string | undefined>();
   });
 
+  test('headers accept undefined values', () => {
+    const settings: Settings = {
+      harness,
+      headers: {
+        'x-tenant': 'acme',
+        'x-optional': undefined,
+      },
+    };
+
+    expectTypeOf(settings.headers).toEqualTypeOf<
+      Record<string, string | undefined> | undefined
+    >();
+  });
+
+  test('prepareCall cannot modify headers', () => {
+    const settings: Settings = {
+      harness,
+      headers: { 'x-tenant': 'acme' },
+      prepareCall: call => {
+        // @ts-expect-error headers are stable construction-time settings
+        call.headers;
+        return call;
+      },
+    };
+
+    expectTypeOf(settings).toMatchTypeOf<Settings>();
+  });
+
   test('activeTools accepts builtin and user tool names', () => {
     const settings: Settings = {
       harness,
