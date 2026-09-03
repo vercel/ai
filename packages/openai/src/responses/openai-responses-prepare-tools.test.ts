@@ -453,6 +453,7 @@ describe('prepareResponsesTools', () => {
           "toolWarnings": [],
           "tools": [
             {
+              "action": undefined,
               "background": "opaque",
               "input_fidelity": undefined,
               "input_image_mask": undefined,
@@ -468,6 +469,61 @@ describe('prepareResponsesTools', () => {
           ],
         }
       `);
+    });
+
+    it('should pass action, low moderation and a gpt-image-2 size', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.image_generation',
+            name: 'image_generation',
+            args: {
+              action: 'edit',
+              model: 'gpt-image-2',
+              moderation: 'low',
+              size: '1536x864',
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.toolWarnings).toEqual([]);
+      expect(result.tools).toMatchInlineSnapshot(`
+        [
+          {
+            "action": "edit",
+            "background": undefined,
+            "input_fidelity": undefined,
+            "input_image_mask": undefined,
+            "model": "gpt-image-2",
+            "moderation": "low",
+            "output_compression": undefined,
+            "output_format": undefined,
+            "partial_images": undefined,
+            "quality": undefined,
+            "size": "1536x864",
+            "type": "image_generation",
+          },
+        ]
+      `);
+    });
+
+    it('should reject a size that is not WIDTHxHEIGHT', async () => {
+      await expect(
+        prepareResponsesTools({
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.image_generation',
+              name: 'image_generation',
+              args: { size: 'large' },
+            },
+          ],
+          toolChoice: undefined,
+        }),
+      ).rejects.toThrow();
     });
 
     it('should support tool choice selection for image_generation', async () => {
@@ -486,6 +542,7 @@ describe('prepareResponsesTools', () => {
       expect(result.tools).toMatchInlineSnapshot(`
         [
           {
+            "action": undefined,
             "background": undefined,
             "input_fidelity": undefined,
             "input_image_mask": undefined,

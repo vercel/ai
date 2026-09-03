@@ -2070,9 +2070,22 @@ To see `streamText` in action, check out [these examples](#examples).
           type: 'OnAbortResult',
           parameters: [
             {
+              name: 'callId',
+              type: 'string',
+              description:
+                'Unique identifier for this generation call, used to correlate events.',
+            },
+            {
               name: 'steps',
               type: 'Array<StepResult>',
               description: 'Details for all previously finished steps.',
+            },
+            {
+              name: 'reason',
+              type: 'unknown',
+              isOptional: true,
+              description:
+                'The raw abort reason from the AbortSignal, when one is available.',
             },
           ],
         },
@@ -3979,10 +3992,10 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'reason',
-              type: 'unknown',
+              type: 'string',
               isOptional: true,
               description:
-                'Optional abort reason (from AbortSignal.reason) when the stream is aborted.',
+                'Optional serialized abort reason when the stream is aborted.',
             },
           ],
         },

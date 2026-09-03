@@ -95,6 +95,7 @@ import {
   type ActiveToolSubset,
 } from './filter-active-tools';
 import type {
+  GenerateTextAbortEvent,
   GenerateTextEndEvent,
   GenerateTextOnStartCallback,
   GenerateTextOnStepEndCallback,
@@ -329,12 +330,7 @@ export type StreamTextOnEndCallback<
 export type StreamTextOnAbortCallback<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
-> = Callback<{
-  /**
-   * Details for all previously finished steps.
-   */
-  readonly steps: StepResult<TOOLS, RUNTIME_CONTEXT>[];
-}>;
+> = Callback<GenerateTextAbortEvent<TOOLS, RUNTIME_CONTEXT>>;
 
 /**
  * Generate a text and call tools for a given prompt using a language model.
