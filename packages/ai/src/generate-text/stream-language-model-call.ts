@@ -109,6 +109,7 @@ export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
       rawFinishReason: string | undefined;
       usage: LanguageModelUsage;
       providerMetadata?: ProviderMetadata;
+      warnings?: Array<CallWarning>;
       performance: {
         responseTimeMs: number;
         effectiveOutputTokensPerSecond: number;
@@ -618,6 +619,9 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
             rawFinishReason: chunk.finishReason.raw,
             usage,
             providerMetadata: chunk.providerMetadata,
+            ...(chunk.warnings != null && chunk.warnings.length > 0
+              ? { warnings: chunk.warnings }
+              : {}),
             performance,
           });
           break;
