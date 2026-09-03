@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 20274,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20274.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20274.ts",
+    "packages/workflow/src/reproduction-20274.integration.test.ts",
+    "packages/workflow/src/test/reproduction-20274-workflow.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Right-hand side of 'instanceof' is not callable"
+  }
+}
