@@ -613,6 +613,21 @@ const agent = new WorkflowAgent({
 });
 ```
 
+Tool input callbacks (`onInputStart`, `onInputDelta`, and
+`onInputAvailable`) are also preserved by `WorkflowAgent`. The model call runs
+inside a durable step, while callback functions remain in the workflow
+context because arbitrary functions cannot cross the step boundary. As a
+result, `WorkflowAgent` records the callback events during the model step and
+replays them in order immediately after that step completes, before tool
+execution and step lifecycle callbacks. They do not run concurrently with
+model generation and cannot provide in-flight cancellation or backpressure.
+Each callback receives its tool's `toolsContext` entry after
+`contextSchema` validation.
+
+For highly fragmented tool inputs, `onInputDelta` replay data is part of the
+durable model-step result. Only configure `onInputDelta` when each generated
+delta is needed; omit it to avoid retaining delta replay data.
+
 The deprecated `experimental_onStart` and `experimental_onStepStart` names
 remain available for backwards compatibility. When both the stable and
 experimental name are provided in the same constructor or `stream()` call, the

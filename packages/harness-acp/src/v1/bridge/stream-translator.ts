@@ -68,6 +68,7 @@ export function createACPStreamTranslator({
     output: unknown;
     isError?: boolean;
   }) => void;
+  getToolCall: (options: { toolCallId: string }) => ACPToolCall | undefined;
 } {
   let openBlock:
     | {
@@ -215,6 +216,7 @@ export function createACPStreamTranslator({
         builtinTools,
         builtinToolsByName,
       });
+      emitToolCallCandidate?.({ toolCall: createACPToolCall({ state }) });
       if (
         !forceEmit &&
         builtin?.inputSchema != null &&
@@ -238,7 +240,6 @@ export function createACPStreamTranslator({
           programmaticName,
           toolCallId: state.toolCallId,
         });
-        emitToolCallCandidate?.({ toolCall: createACPToolCall({ state }) });
       }
       emit({
         type: 'tool-call',
@@ -381,6 +382,10 @@ export function createACPStreamTranslator({
     close: closeBlock,
     hostToolCall,
     hostToolResult,
+    getToolCall: ({ toolCallId }) => {
+      const state = toolStates.get(toolCallId);
+      return state == null ? undefined : createACPToolCall({ state });
+    },
     finish: response => {
       if (finished) return;
       finished = true;

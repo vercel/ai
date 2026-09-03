@@ -369,6 +369,49 @@ describe('HarnessAgent', () => {
     expect(agent.tools).toEqual({});
   });
 
+  test('rejects a caller-defined question tool when the harness owns that name', () => {
+    const { harness } = mockHarness({
+      script: () => [],
+      builtinTools: {
+        askUserQuestions: tool({
+          inputSchema: z.object({ questions: z.array(z.unknown()) }),
+        }),
+      },
+    });
+
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          tools: {
+            askUserQuestions: tool({
+              inputSchema: z.object({}),
+            }),
+          },
+          sandbox: makeSandboxProvider(),
+        }),
+    ).toThrow(
+      "HarnessAgent tool name 'askUserQuestions' is reserved for harness question requests.",
+    );
+  });
+
+  test('allows that caller-defined name when the harness has no question tool', () => {
+    const { harness } = mockHarness({ script: () => [] });
+
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          tools: {
+            askUserQuestions: tool({
+              inputSchema: z.object({}),
+            }),
+          },
+          sandbox: makeSandboxProvider(),
+        }),
+    ).not.toThrow();
+  });
+
   test('passes the configured model to each turn', async () => {
     const promptOptions: HarnessV1PromptTurnOptions[] = [];
     const { harness, doStart } = mockHarness({
@@ -1539,8 +1582,13 @@ describe('HarnessAgent', () => {
       session,
       toolResultContinuations: [
         {
+          type: 'tool-result',
           toolCallId: 'c1',
-          output: { city: 'Lima', celsius: 19 },
+          toolName: 'weather',
+          output: {
+            type: 'json',
+            value: { city: 'Lima', celsius: 19 },
+          },
         },
       ],
     });
@@ -1554,6 +1602,15 @@ describe('HarnessAgent', () => {
         toolCallId: 'c1',
         output: { city: 'Lima', celsius: 19 },
         isError: undefined,
+        toolResult: {
+          type: 'tool-result',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          output: {
+            type: 'json',
+            value: { city: 'Lima', celsius: 19 },
+          },
+        },
       },
     ]);
     expect(continuedPartTypes).toEqual([
@@ -1630,6 +1687,15 @@ describe('HarnessAgent', () => {
         toolCallId: 'c1',
         output: { city: 'Lima', celsius: 19 },
         isError: undefined,
+        toolResult: {
+          type: 'tool-result',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          output: {
+            type: 'json',
+            value: { city: 'Lima', celsius: 19 },
+          },
+        },
       },
     ]);
     expect(session.hasUnfinishedTurn()).toBe(false);

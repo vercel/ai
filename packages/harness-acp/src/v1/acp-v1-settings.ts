@@ -3,7 +3,9 @@ import type {
   HarnessV1CredentialForwarding,
   HarnessV1PermissionMode,
   HarnessV1RequestTransformation,
+  HarnessV1StreamPart,
 } from '@ai-sdk/harness';
+import type { ToolResultPart } from '@ai-sdk/provider-utils';
 import type { ACPToolCall } from '../acp-tool-call';
 
 export type ACPSerializablePrimitive = string | number | boolean | null;
@@ -129,6 +131,25 @@ export type ACPOutputSchemaMapping = {
   readonly path: ReadonlyArray<string>;
 };
 
+export type ACPAskUserQuestionsSettings = {
+  readonly requestMethod: string;
+  readonly isNativeToolCall?: (options: {
+    nativeToolCall: ACPToolCall;
+  }) => boolean;
+  readonly fromNativeRequest: (options: {
+    nativeRequest: unknown;
+    nativeToolCall?: ACPToolCall;
+  }) => Extract<HarnessV1StreamPart, { type: 'tool-call' }> | null;
+  readonly toNativeResponse: (options: {
+    nativeRequest: unknown;
+    toolResult: ToolResultPart;
+  }) => unknown;
+  readonly matchesNativeRequest?: (options: {
+    previousNativeRequest: unknown;
+    nativeRequest: unknown;
+  }) => boolean;
+};
+
 export type ACPV1Settings = {
   readonly version?: 'v1';
   readonly harnessId: string;
@@ -179,6 +200,7 @@ export type ACPV1Settings = {
    * below the ACP session prompt's `_meta` field.
    */
   readonly outputSchemaMapping?: ACPOutputSchemaMapping;
+  readonly askUserQuestions?: ACPAskUserQuestionsSettings;
   readonly permissionModeMapping?: ACPPermissionModeMapping;
   readonly session?: {
     readonly meta?: Readonly<Record<string, ACPSerializableValue>>;

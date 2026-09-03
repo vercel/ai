@@ -1,6 +1,7 @@
 import { posix } from 'node:path';
 import {
   commonTool,
+  HARNESS_V1_BUILTIN_TOOLS,
   harnessV1DiagnosticFromBridgeFrame,
   HarnessCapabilityUnsupportedError,
   type HarnessV1,
@@ -461,39 +462,14 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       discard_changes: z.boolean().optional(),
     }),
   }),
-  AskUserQuestion: tool({
-    description: 'Ask the user multiple-choice questions via a structured UI',
-    inputSchema: z.object({
-      questions: z
-        .array(
-          z.object({
-            question: z.string(),
-            header: z.string(),
-            options: z.array(
-              z.object({
-                label: z.string(),
-                description: z.string(),
-                preview: z.string().optional(),
-              }),
-            ),
-            multiSelect: z.boolean(),
-          }),
-        )
-        .min(1)
-        .max(4),
-      answers: z.record(z.string(), z.string()).optional(),
-      annotations: z
-        .record(
-          z.string(),
-          z.object({
-            preview: z.string().optional(),
-            notes: z.string().optional(),
-          }),
-        )
-        .optional(),
-      metadata: z.object({ source: z.string().optional() }).optional(),
-    }),
-  }),
+  askUserQuestions: {
+    ...HARNESS_V1_BUILTIN_TOOLS.askUserQuestions,
+    nativeName: 'AskUserQuestion',
+    toolUseKind: 'readonly',
+  } as typeof HARNESS_V1_BUILTIN_TOOLS.askUserQuestions & {
+    readonly nativeName: 'AskUserQuestion';
+    readonly toolUseKind: 'readonly';
+  },
   Skill: {
     ...tool({
       description: 'Activate a skill by name',
@@ -921,12 +897,17 @@ export function createClaudeCode(
           );
         }
       } else {
-        warnCredentialBrokeringUnavailable();
         sandboxClaudeEnvironment = await applyCredentialForwarding({
           environment: sandboxClaudeEnvironment,
           credentialEnvironmentVariables:
             CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
           credentialForwarding: settings.credentialForwarding,
+        });
+        warnCredentialBrokeringUnavailable({
+          environment: claudeEnvironment,
+          forwardedEnvironment: sandboxClaudeEnvironment,
+          credentialEnvironmentVariables:
+            CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
         });
       }
       const bootstrapDir = posix.resolve(
@@ -1692,6 +1673,9 @@ function createSession({
           toolCallId: input.toolCallId,
           output: input.output,
           isError: input.isError,
+          ...(input.toolResult !== undefined
+            ? { toolResult: input.toolResult }
+            : {}),
         });
       },
       submitToolApproval: async input => {

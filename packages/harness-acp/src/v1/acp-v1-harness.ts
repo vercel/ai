@@ -37,6 +37,7 @@ import {
   asSchema,
   type Experimental_SandboxProcess,
   type Experimental_SandboxSession as SandboxSession,
+  type ToolResultPart,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
@@ -81,6 +82,7 @@ import {
   prependACPInstructionGuidance,
 } from './acp-v1-prompt';
 import type {
+  ACPAskUserQuestionsSettings,
   ACPInstructionMapping,
   ACPModelMapping,
   ACPOutputSchemaMapping,
@@ -333,8 +335,6 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           'ai-gateway'
             ? {}
             : undefined;
-      } else if (settings.credentialBrokering != null) {
-        warnCredentialBrokeringUnavailable();
       }
       if (
         settings.credentialForwarding != null &&
@@ -444,6 +444,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               sessionMeta: settings.session?.meta,
               instructionMapping: settings.instructionMapping,
               outputSchemaMapping: settings.outputSchemaMapping,
+              askUserQuestions: settings.askUserQuestions,
               debug: startOptions.observability?.debug,
               implementationIdentity,
               authenticationProfile,
@@ -561,6 +562,25 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               credentialForwarding: settings.credentialForwarding,
             })
           : sandboxImplementationEnvironment;
+      if (
+        settings.credentialBrokering != null &&
+        sandboxCredentialEnvironment == null
+      ) {
+        warnCredentialBrokeringUnavailable({
+          environment: {
+            ...sandboxImplementationEnvironment,
+            ...resolvedProviderAuthentication.env,
+          },
+          forwardedEnvironment: {
+            ...forwardedImplementationEnvironment,
+            ...sandboxProviderAuthenticationEnvironment,
+          },
+          credentialEnvironmentVariables: [
+            ...credentialForwardingEnvironmentVariables,
+            'AI_SDK_ACP_GATEWAY_API_KEY',
+          ],
+        });
+      }
       const port = resolveBridgePort({
         sandboxSession,
         override: portOverride,
@@ -598,6 +618,8 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               sandboxProviderEnvironment == null ? undefined : {},
             sessionMeta: settings.session?.meta,
             clientCapabilities: settings.clientCapabilities,
+            askUserQuestionsRequestMethod:
+              settings.askUserQuestions?.requestMethod,
           }),
           ...sandboxProviderAuthenticationEnvironment,
           BRIDGE_CHANNEL_TOKEN: token,
@@ -715,6 +737,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         sessionMeta: settings.session?.meta,
         instructionMapping: settings.instructionMapping,
         outputSchemaMapping: settings.outputSchemaMapping,
+        askUserQuestions: settings.askUserQuestions,
         debug: startOptions.observability?.debug,
         implementationIdentity,
         authenticationProfile,
@@ -1028,6 +1051,7 @@ function createSession({
   sessionMeta,
   instructionMapping,
   outputSchemaMapping,
+  askUserQuestions,
   debug,
   implementationIdentity,
   authenticationProfile,
@@ -1064,6 +1088,7 @@ function createSession({
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
   instructionMapping: ACPInstructionMapping | undefined;
   outputSchemaMapping: ACPOutputSchemaMapping | undefined;
+  askUserQuestions: ACPAskUserQuestionsSettings | undefined;
   debug: HarnessV1DebugConfig | undefined;
   implementationIdentity: string;
   authenticationProfile: ACPAuthenticationProfileIdentity;
@@ -1097,6 +1122,14 @@ function createSession({
   let instructionsFingerprint = instructionsFingerprintAtStart;
   let latestACPSessionId = acpSessionIdAtStart;
   let latestTurnStartConfig = turnStartConfigAtStart;
+  const bufferedQuestionResults = new Map<
+    string,
+    {
+      readonly output: unknown;
+      readonly isError?: boolean;
+      readonly toolResult: ToolResultPart;
+    }
+  >();
 
   const markTurnFinished = () => {
     turnInFlight = false;
@@ -1104,9 +1137,14 @@ function createSession({
   channel.on('bridge-thread', event => {
     latestACPSessionId = event.threadId;
   });
-  channel.on('finish', markTurnFinished);
-  channel.on('error', markTurnFinished);
-  channel.onClose(markTurnFinished);
+  // A resumed continuation replays its buffered events after the new session
+  // is created. Let `wireTurn` consume those events so it can forward a
+  // terminal replay instead of rejecting the continuation before it starts.
+  if (!turnInFlightAtStart) {
+    channel.on('finish', markTurnFinished);
+    channel.on('error', markTurnFinished);
+    channel.onClose(markTurnFinished);
+  }
 
   const wireTurn = ({
     emit,
@@ -1132,6 +1170,14 @@ function createSession({
       | undefined;
     const dynamicToolCalls = new Map<string, boolean>();
     const toolCallClassificationErrors = new Map<string, unknown>();
+    const activeQuestionRequests = new Map<
+      string,
+      {
+        readonly requestId: string;
+        readonly nativeRequest: unknown;
+      }
+    >();
+    const questionToolCallIdsByRequestId = new Map<string, string>();
     const subscriptions: Array<() => void> = [];
     const forward = (event: HarnessV1StreamPart) => {
       if (event.type === 'text-start' || event.type === 'reasoning-start') {
@@ -1198,12 +1244,120 @@ function createSession({
     subscriptions.push(
       channel.on('acp-tool-call-candidate', event => {
         try {
+          const suppress =
+            askUserQuestions?.isNativeToolCall?.({
+              nativeToolCall: event.toolCall,
+            }) === true;
           dynamicToolCalls.set(
             event.toolCall.toolCallId,
             isMcpToolCall?.(event.toolCall) === true,
           );
+          channel.send({
+            type: 'tool-result',
+            toolCallId: event.requestId,
+            output: { suppress },
+          });
         } catch (error) {
           toolCallClassificationErrors.set(event.toolCall.toolCallId, error);
+          channel.send({
+            type: 'tool-result',
+            toolCallId: event.requestId,
+            output: { suppress: false },
+          });
+        }
+      }),
+    );
+    subscriptions.push(
+      channel.on('acp-question-request', event => {
+        if (askUserQuestions == null) {
+          channel.send({
+            type: 'tool-result',
+            toolCallId: event.requestId,
+            output: { type: 'unhandled' },
+          });
+          return;
+        }
+        try {
+          const nativeToolCall = askUserQuestions.fromNativeRequest({
+            nativeRequest: event.nativeRequest,
+            nativeToolCall: event.nativeToolCall,
+          });
+          if (nativeToolCall == null) {
+            channel.send({
+              type: 'tool-result',
+              toolCallId: event.requestId,
+              output: { type: 'unhandled' },
+            });
+            return;
+          }
+          if (
+            nativeToolCall.toolName !== 'askUserQuestions' ||
+            nativeToolCall.providerExecuted !== false
+          ) {
+            throw new Error(
+              `${harnessId} ACP askUserQuestions.fromNativeRequest must return a client-executed askUserQuestions tool call.`,
+            );
+          }
+
+          const toolCall = withNativeQuestionRequest({
+            harnessId,
+            nativeRequest: event.nativeRequest,
+            toolCall: nativeToolCall,
+          });
+          const bufferedResult = takeBufferedQuestionResult({
+            bufferedQuestionResults,
+            toolCallId: toolCall.toolCallId,
+            nativeRequest: event.nativeRequest,
+            matchesNativeRequest: askUserQuestions.matchesNativeRequest,
+            harnessId,
+          });
+          activeQuestionRequests.set(toolCall.toolCallId, {
+            requestId: event.requestId,
+            nativeRequest: event.nativeRequest,
+          });
+          questionToolCallIdsByRequestId.set(
+            event.requestId,
+            toolCall.toolCallId,
+          );
+          channel.send({
+            type: 'tool-result',
+            toolCallId: event.requestId,
+            output: {
+              type: 'handled',
+              toolCallId: toolCall.toolCallId,
+            },
+          });
+
+          if (bufferedResult == null) {
+            forward(toolCall);
+            return;
+          }
+          channel.send({
+            type: 'tool-result',
+            toolCallId: toolCall.toolCallId,
+            output: askUserQuestions.toNativeResponse({
+              nativeRequest: event.nativeRequest,
+              toolResult: bufferedResult.toolResult,
+            }),
+            isError: bufferedResult.isError,
+            toolResult: bufferedResult.toolResult,
+          });
+        } catch (error) {
+          closeForwardedBlock();
+          forward({ type: 'error', error });
+          try {
+            channel.send({ type: 'abort' });
+          } catch {}
+          settle({ error });
+        }
+      }),
+    );
+    subscriptions.push(
+      channel.on('acp-question-resolved', event => {
+        const toolCallId = questionToolCallIdsByRequestId.get(event.requestId);
+        if (toolCallId != null) {
+          activeQuestionRequests.delete(toolCallId);
+          questionToolCallIdsByRequestId.delete(event.requestId);
         }
       }),
     );
@@ -1239,6 +1393,7 @@ function createSession({
     }
     subscriptions.push(
       channel.on('finish', event => {
+        markTurnFinished();
         closeForwardedBlock();
         forward(event);
         settle(abortRequested ? { error: abortError } : {});
@@ -1246,6 +1401,7 @@ function createSession({
     );
     subscriptions.push(
       channel.on('error', event => {
+        markTurnFinished();
         closeForwardedBlock();
         const error = deserializeBridgeError({
           error: event.error,
@@ -1256,6 +1412,7 @@ function createSession({
       }),
     );
     channel.onClose((_code, reason) => {
+      markTurnFinished();
       if (reason === 'suspended') {
         settle({});
         return;
@@ -1290,11 +1447,52 @@ function createSession({
         });
       },
       submitToolResult: async input => {
+        if (
+          askUserQuestions != null &&
+          input.toolResult?.toolName === 'askUserQuestions'
+        ) {
+          const activeRequest = activeQuestionRequests.get(input.toolCallId);
+          if (activeRequest == null) {
+            const previousNativeRequest =
+              input.toolResult.providerOptions?.[harnessId]?.nativeRequest;
+            if (!lossyRerun && previousNativeRequest !== undefined) {
+              channel.send({
+                type: 'tool-result',
+                toolCallId: input.toolCallId,
+                output: askUserQuestions.toNativeResponse({
+                  nativeRequest: previousNativeRequest,
+                  toolResult: input.toolResult,
+                }),
+                isError: input.isError,
+                toolResult: input.toolResult,
+              });
+              return;
+            }
+            bufferedQuestionResults.set(input.toolCallId, {
+              output: input.output,
+              ...(input.isError == null ? {} : { isError: input.isError }),
+              toolResult: input.toolResult,
+            });
+            return;
+          }
+          channel.send({
+            type: 'tool-result',
+            toolCallId: input.toolCallId,
+            output: askUserQuestions.toNativeResponse({
+              nativeRequest: activeRequest.nativeRequest,
+              toolResult: input.toolResult,
+            }),
+            isError: input.isError,
+            toolResult: input.toolResult,
+          });
+          return;
+        }
         channel.send({
           type: 'tool-result',
           toolCallId: input.toolCallId,
           output: input.output,
           isError: input.isError,
+          toolResult: input.toolResult,
         });
       },
       done,
@@ -1655,6 +1853,78 @@ function isCompletePermissionModeMapping({
     isPermissionModeMappingValue({ value: value?.['allow-edits'] }) &&
     isPermissionModeMappingValue({ value: value?.['allow-all'] })
   );
+}
+
+function withNativeQuestionRequest({
+  harnessId,
+  nativeRequest,
+  toolCall,
+}: {
+  harnessId: string;
+  nativeRequest: unknown;
+  toolCall: Extract<HarnessV1StreamPart, { type: 'tool-call' }>;
+}): Extract<HarnessV1StreamPart, { type: 'tool-call' }> {
+  const harnessMetadata = toolCall.providerMetadata?.[harnessId];
+  return {
+    ...toolCall,
+    providerMetadata: {
+      ...toolCall.providerMetadata,
+      [harnessId]: {
+        ...(harnessMetadata ?? {}),
+        nativeRequest,
+      } as NonNullable<
+        Extract<HarnessV1StreamPart, { type: 'tool-call' }>['providerMetadata']
+      >[string],
+    },
+  };
+}
+
+function takeBufferedQuestionResult({
+  bufferedQuestionResults,
+  toolCallId,
+  nativeRequest,
+  matchesNativeRequest,
+  harnessId,
+}: {
+  bufferedQuestionResults: Map<
+    string,
+    {
+      readonly output: unknown;
+      readonly isError?: boolean;
+      readonly toolResult: ToolResultPart;
+    }
+  >;
+  toolCallId: string;
+  nativeRequest: unknown;
+  matchesNativeRequest:
+    | ACPAskUserQuestionsSettings['matchesNativeRequest']
+    | undefined;
+  harnessId: string;
+}):
+  | {
+      readonly output: unknown;
+      readonly isError?: boolean;
+      readonly toolResult: ToolResultPart;
+    }
+  | undefined {
+  const exact = bufferedQuestionResults.get(toolCallId);
+  if (exact != null) {
+    bufferedQuestionResults.delete(toolCallId);
+    return exact;
+  }
+  if (matchesNativeRequest == null) return undefined;
+  for (const [bufferedToolCallId, buffered] of bufferedQuestionResults) {
+    const previousNativeRequest =
+      buffered.toolResult.providerOptions?.[harnessId]?.nativeRequest;
+    if (
+      previousNativeRequest !== undefined &&
+      matchesNativeRequest({ previousNativeRequest, nativeRequest })
+    ) {
+      bufferedQuestionResults.delete(bufferedToolCallId);
+      return buffered;
+    }
+  }
+  return undefined;
 }
 
 function isPermissionModeMappingValue({

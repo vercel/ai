@@ -38,6 +38,9 @@ export type ClaudeMessage = {
     usage?: Record<string, unknown>;
   };
   result?: string;
+  /** Result-message error flags; distinct from `error_status` (`api_retry`). */
+  is_error?: boolean;
+  api_error_status?: number | null;
   errors?: ReadonlyArray<string>;
   usage?: Record<string, unknown>;
   total_cost_usd?: number;
@@ -246,6 +249,11 @@ export function createEmitStreamEvent({
             continue;
           }
           state.nativeToolCallNames.set(block.id, block.name);
+          if (block.name === 'AskUserQuestion') {
+            state.pendingStepToolUseIds.add(block.id);
+            opensStep = true;
+            continue;
+          }
           const dynamic = isExternalMcpTool(block.name);
           if (dynamic) state.externalMcpToolUseIds.add(block.id);
           if (state.approvalRequestedToolUseIds.has(block.id)) {
@@ -298,25 +306,15 @@ export function createEmitStreamEvent({
           const toolName = toCommonName(nativeName);
           const dynamic = state.externalMcpToolUseIds.delete(block.tool_use_id);
           const isError = !!block.is_error;
-          const content = stringifyContent(block.content);
-          /*
-           * Claude Code's Bash tool does not report the command's real
-           * numeric exit code — the SDK exposes only stdout/stderr text and
-           * an is_error flag. Consumers (and the example UI) render bash
-           * failures from an `exitCode` field on a structured result, the
-           * shape Codex's shell tool provides natively. When Claude omits
-           * `tool_use_result`, derive a binary code from is_error: 1 on
-           * failure, 0 on success. This fallback is a stand-in for
-           * failed/succeeded, not the process's true exit status.
-           */
-          const contentResult =
-            toolName === 'bash'
-              ? { exitCode: isError ? 1 : 0, stdout: content }
-              : dynamic
-                ? parseMcpToolResult(content)
-                : content;
           const result =
-            toolUseResult !== undefined ? toolUseResult : contentResult;
+            toolUseResult !== undefined
+              ? toolUseResult
+              : resolveToolResult({
+                  toolName,
+                  dynamic,
+                  isError,
+                  rawContent: block.content,
+                });
           emit({
             type: 'tool-result',
             toolCallId: block.tool_use_id,
@@ -438,6 +436,9 @@ function handleStreamEvent({
       if (nativeName === 'StructuredOutput') {
         return;
       }
+      if (nativeName === 'AskUserQuestion') {
+        return;
+      }
       const hostToolName = nativeName.startsWith(HOST_TOOL_PREFIX)
         ? nativeName.slice(HOST_TOOL_PREFIX.length)
         : undefined;
@@ -501,23 +502,61 @@ function handleStreamEvent({
   }
 }
 
+function isTextEntry(entry: unknown): entry is { text?: unknown } {
+  return entry != null && typeof entry === 'object' && 'text' in entry;
+}
+
 function stringifyContent(content: unknown): string {
   if (typeof content === 'string') return content;
   if (Array.isArray(content)) {
     return content
       .map(entry =>
-        entry && typeof entry === 'object' && 'text' in entry
-          ? String((entry as { text?: unknown }).text ?? '')
-          : JSON.stringify(entry),
+        isTextEntry(entry) ? String(entry.text ?? '') : JSON.stringify(entry),
       )
       .join('');
   }
   return JSON.stringify(content);
 }
 
+function hasNonTextContent(content: unknown): boolean {
+  return Array.isArray(content) && content.some(entry => !isTextEntry(entry));
+}
+
+function resolveToolResult({
+  toolName,
+  dynamic,
+  isError,
+  rawContent,
+}: {
+  toolName: string;
+  dynamic: boolean;
+  isError: boolean;
+  rawContent: unknown;
+}): unknown {
+  /*
+   * Claude Code's Bash tool does not report the command's real numeric exit
+   * code — the SDK exposes only stdout/stderr text and an is_error flag.
+   * Consumers (and the example UI) render bash failures from an `exitCode`
+   * field on a structured result, the shape Codex's shell tool provides
+   * natively. When Claude omits `tool_use_result`, derive a binary code from
+   * is_error: 1 on failure, 0 on success. This fallback is a stand-in for
+   * failed/succeeded, not the process's true exit status.
+   */
+  if (toolName === 'bash') {
+    return { exitCode: isError ? 1 : 0, stdout: stringifyContent(rawContent) };
+  }
+  // Must precede the MCP branch: flattening a non-text block to base64 text
+  // is not recoverable by parsing it back.
+  if (hasNonTextContent(rawContent)) return rawContent;
+  const content = stringifyContent(rawContent);
+  return dynamic ? parseMcpToolResult(content) : content;
+}
+
 function parseMcpToolResult(content: string): unknown {
   try {
-    return JSON.parse(content);
+    const parsed = JSON.parse(content);
+    // `JSON.parse` also succeeds on scalars; keep those as the string sent.
+    return parsed !== null && typeof parsed === 'object' ? parsed : content;
   } catch {
     return content;
   }

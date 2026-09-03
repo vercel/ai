@@ -72,6 +72,10 @@ const harnessUtilsMocks = vi.hoisted(() => {
       string,
       Set<(event: { type: string; [key: string]: unknown }) => void>
     >();
+    private readonly buffered = new Map<
+      string,
+      Array<{ type: string; [key: string]: unknown }>
+    >();
     private readonly closeHandlers = new Set<
       (code: number, reason: string) => void
     >();
@@ -98,6 +102,11 @@ const harnessUtilsMocks = vi.hoisted(() => {
       const listeners = this.listeners.get(type) ?? new Set();
       listeners.add(listener);
       this.listeners.set(type, listeners);
+      const buffered = this.buffered.get(type);
+      if (buffered != null) {
+        this.buffered.delete(type);
+        for (const event of buffered) listener(event);
+      }
       return () => listeners.delete(listener);
     }
     onClose(handler: (code: number, reason: string) => void): void {
@@ -118,7 +127,14 @@ const harnessUtilsMocks = vi.hoisted(() => {
       }
     }
     emit(event: { type: string; [key: string]: unknown }): void {
-      for (const listener of this.listeners.get(event.type) ?? []) {
+      const listeners = this.listeners.get(event.type);
+      if (listeners == null || listeners.size === 0) {
+        const buffered = this.buffered.get(event.type) ?? [];
+        buffered.push(event);
+        this.buffered.set(event.type, buffered);
+        return;
+      }
+      for (const listener of listeners) {
         listener(event);
       }
     }
@@ -424,6 +440,119 @@ describe('createACP', () => {
     harnessUtilsMocks.nextSuspensionCursor = 0;
     harnessUtilsMocks.connectOnOpen = false;
     webSocketMocks.calls.length = 0;
+  });
+
+  it('translates ACP question requests and client results', async () => {
+    const fromNativeRequest = vi.fn(
+      ({ nativeRequest }: { nativeRequest: unknown }) => ({
+        type: 'tool-call' as const,
+        toolCallId: 'question-1',
+        toolName: 'askUserQuestions',
+        input: JSON.stringify({
+          allowPartialAnswers: false,
+          questions: [{ id: 'q1', question: 'Framework?' }],
+        }),
+        providerExecuted: false,
+        providerMetadata: {
+          test: { preserved: true },
+        },
+      }),
+    );
+    const toNativeResponse = vi.fn(
+      ({ toolResult }: { toolResult: unknown }) => ({
+        native: toolResult,
+      }),
+    );
+    const harness = createACP({
+      harnessId: 'test-acp',
+      ...agentSettings,
+      askUserQuestions: {
+        requestMethod: 'test/ask',
+        fromNativeRequest,
+        toNativeResponse,
+      },
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns: [],
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+    const events: unknown[] = [];
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Ask.',
+      emit: event => events.push(event),
+    });
+    const channel = harnessUtilsMocks.channels[0]!;
+    const nativeRequest = {
+      sessionId: 'native-session',
+      toolCallId: 'native-question-1',
+    };
+
+    channel.emit({
+      type: 'acp-question-request',
+      requestId: 'request-1',
+      nativeRequest,
+    });
+
+    expect(fromNativeRequest).toHaveBeenCalledWith({
+      nativeRequest,
+      nativeToolCall: undefined,
+    });
+    expect(events).toContainEqual({
+      type: 'tool-call',
+      toolCallId: 'question-1',
+      toolName: 'askUserQuestions',
+      input: JSON.stringify({
+        allowPartialAnswers: false,
+        questions: [{ id: 'q1', question: 'Framework?' }],
+      }),
+      providerExecuted: false,
+      providerMetadata: {
+        test: { preserved: true },
+        'test-acp': { nativeRequest },
+      },
+    });
+    expect(channel.sent).toContainEqual({
+      type: 'tool-result',
+      toolCallId: 'request-1',
+      output: { type: 'handled', toolCallId: 'question-1' },
+    });
+
+    const toolResult = {
+      type: 'tool-result' as const,
+      toolCallId: 'question-1',
+      toolName: 'askUserQuestions',
+      output: {
+        type: 'json' as const,
+        value: {
+          action: 'answered',
+          answers: { q1: { optionIds: [] } },
+        },
+      },
+    };
+    await control.submitToolResult({
+      toolCallId: 'question-1',
+      output: toolResult.output.value,
+      toolResult,
+    });
+
+    expect(toNativeResponse).toHaveBeenCalledWith({
+      nativeRequest,
+      toolResult,
+    });
+    expect(channel.sent).toContainEqual({
+      type: 'tool-result',
+      toolCallId: 'question-1',
+      output: { native: toolResult },
+      isError: undefined,
+      toolResult,
+    });
   });
 
   afterEach(() => {
@@ -1017,6 +1146,7 @@ describe('createACP', () => {
   });
 
   it('preserves real credential forwarding when additive transformations are unavailable', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.stubEnv('PROVIDER_API_KEY', 'legacy-secret');
     const credentialBrokering = vi.fn(() => []);
     const spawns: Array<{
@@ -1043,11 +1173,16 @@ describe('createACP', () => {
 
     expect(credentialBrokering).not.toHaveBeenCalled();
     expect(spawns[0]!.env.PROVIDER_API_KEY).toBe('legacy-secret');
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      'The sandbox implementation does not support configuring request transformations, so credential brokering does not work. Falling back to less secure credential forwarding.',
+    );
 
     await session.doDestroy();
+    warn.mockRestore();
   });
 
   it('customizes direct and Gateway credentials under their sandbox environment names', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.stubEnv('PROVIDER_API_KEY', 'direct-secret');
     vi.stubEnv('AI_GATEWAY_API_KEY', 'gateway-secret');
     const credentialBrokering = vi.fn(() => []);
@@ -1112,8 +1247,10 @@ describe('createACP', () => {
         providerEnvironment: {},
       },
     });
+    expect(warn).not.toHaveBeenCalled();
 
     await session.doDestroy();
+    warn.mockRestore();
   });
 
   it('aborts before spawning when credential forwarding fails', async () => {
@@ -1243,6 +1380,7 @@ describe('createACP', () => {
     });
     channel.emit({
       type: 'acp-tool-call-candidate',
+      requestId: 'candidate-1',
       toolCall: {
         toolCallId: 'call-1',
         title: 'External tool',
@@ -3070,6 +3208,67 @@ describe('createACP', () => {
     await resumedSession.doDestroy();
   });
 
+  it('continues a terminal event replayed before the continuation is wired', async () => {
+    const sandbox = fakeSandbox({
+      runs: [],
+      spawns: [],
+      stop: async () => {},
+    });
+    const harness = createACP({
+      harnessId: 'codex-acp',
+      ...agentSettings,
+    });
+    const firstSession = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: sandbox,
+      sessionWorkDir: '/workspace/user-project',
+    });
+    const firstChannel = harnessUtilsMocks.channels[0]!;
+    const firstTurn = await firstSession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Work for a while.',
+      emit: () => {},
+    });
+    firstChannel.emit({
+      type: 'bridge-thread',
+      threadId: 'acp-session-1',
+    });
+
+    const continueFrom = await firstSession.doSuspendTurn();
+    await firstTurn.done;
+
+    const resumedSession = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: sandbox,
+      sessionWorkDir: '/workspace/user-project',
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'codex-acp',
+        specificationVersion: 'harness-v1',
+        data: continueFrom.data,
+        continueFrom,
+      },
+    });
+    const resumedChannel = harnessUtilsMocks.channels[1]!;
+    resumedChannel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+
+    const replayed: string[] = [];
+    const continued = await resumedSession.doContinueTurn({
+      skills: [],
+      tools: [],
+      emit: event => replayed.push(event.type),
+    });
+    await continued.done;
+
+    expect(replayed).toEqual(['finish']);
+    await resumedSession.doDestroy();
+  });
+
   it('respawns a replay-only bridge for a coherent completed disk tail', async () => {
     const files: Record<string, string> = {};
     const spawns: Array<{
@@ -3372,8 +3571,10 @@ describe('createACP', () => {
       session: secondSession,
       toolResultContinuations: [
         {
+          type: 'tool-result',
           toolCallId: 'client-call',
-          output: { value: 42 },
+          toolName: 'clientTool',
+          output: { type: 'json', value: { value: 42 } },
         },
       ],
     });
@@ -3386,6 +3587,12 @@ describe('createACP', () => {
         toolCallId: 'client-call',
         output: { value: 42 },
         isError: undefined,
+        toolResult: {
+          type: 'tool-result',
+          toolCallId: 'client-call',
+          toolName: 'clientTool',
+          output: { type: 'json', value: { value: 42 } },
+        },
       });
     });
     secondChannel.emit({
@@ -3478,18 +3685,9 @@ describe('createACP', () => {
       session: secondSession,
       toolApprovalContinuations: [
         {
-          approvalResponse: {
-            type: 'tool-approval-response',
-            approvalId: 'native-approval',
-            approved: true,
-          },
-          toolCall: {
-            type: 'tool-call',
-            toolCallId: 'native-call',
-            toolName: 'bash',
-            input: { command: 'pwd' },
-            providerExecuted: true,
-          },
+          type: 'tool-approval-response',
+          approvalId: 'native-approval',
+          approved: true,
         },
       ],
     });
@@ -3967,8 +4165,10 @@ describe('createACP', () => {
       session,
       toolResultContinuations: [
         {
+          type: 'tool-result',
           toolCallId: 'client-call',
-          output: { answer: 'Ada' },
+          toolName: 'clientTool',
+          output: { type: 'json', value: { answer: 'Ada' } },
         },
       ],
     });
@@ -3981,6 +4181,12 @@ describe('createACP', () => {
         toolCallId: 'client-call',
         output: { answer: 'Ada' },
         isError: undefined,
+        toolResult: {
+          type: 'tool-result',
+          toolCallId: 'client-call',
+          toolName: 'clientTool',
+          output: { type: 'json', value: { answer: 'Ada' } },
+        },
       });
     });
     channel.emit({

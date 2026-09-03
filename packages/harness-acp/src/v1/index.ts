@@ -1,5 +1,6 @@
 export { createACPV1 } from './acp-v1-harness';
 export type {
+  ACPAskUserQuestionsSettings,
   ACPCredentialBrokering,
   ACPAuthentication,
   ACPAuthenticationMode,
