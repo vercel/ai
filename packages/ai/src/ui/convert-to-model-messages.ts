@@ -212,6 +212,12 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                 const toolName = getToolName(part);
 
                 if (part.state !== 'input-streaming') {
+                  const callProviderMetadata =
+                    part.callProviderMetadata ??
+                    (part.state === 'output-error'
+                      ? part.resultProviderMetadata
+                      : undefined);
+
                   content.push({
                     type: 'tool-call' as const,
                     toolCallId: part.toolCallId,
@@ -222,8 +228,8 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                           ('rawInput' in part ? part.rawInput : undefined))
                         : part.input,
                     providerExecuted: part.providerExecuted,
-                    ...(part.callProviderMetadata != null
-                      ? { providerOptions: part.callProviderMetadata }
+                    ...(callProviderMetadata != null
+                      ? { providerOptions: callProviderMetadata }
                       : {}),
                   });
 
