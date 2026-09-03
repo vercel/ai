@@ -3812,6 +3812,74 @@ describe('doGenerate', () => {
         },
       ]);
     });
+
+    it.each([
+      ['omitted content', { citations: [] }],
+      ['empty content', { citations: [], content: [] }],
+      ['generated content without text', { citations: [], content: [{}] }],
+    ])(
+      'should ignore citation content blocks with %s',
+      async (_description, citationsContent) => {
+        server.urls[generateUrl].response = {
+          type: 'json-value',
+          body: {
+            output: {
+              message: {
+                role: 'assistant',
+                content: [{ text: 'Canonical response' }, { citationsContent }],
+              },
+            },
+            stopReason: 'end_turn',
+            usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
+          },
+        };
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.content).toEqual([
+          {
+            type: 'text',
+            text: 'Canonical response',
+          },
+        ]);
+      },
+    );
+
+    it('should extract available text when citation content entries omit text', async () => {
+      server.urls[generateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  citationsContent: {
+                    citations: [],
+                    content: [{}, { text: 'Citation response' }],
+                  },
+                },
+              ],
+            },
+          },
+          stopReason: 'end_turn',
+          usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toEqual([
+        {
+          type: 'text',
+          text: 'Citation response',
+        },
+      ]);
+    });
   });
 
   describe('reasoning', () => {

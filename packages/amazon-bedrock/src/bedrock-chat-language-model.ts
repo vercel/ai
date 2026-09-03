@@ -565,11 +565,11 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     // map response content to content array
     for (const part of response.output.message.content) {
       // text
-      const text =
-        part.text ??
-        part.citationsContent?.content
-          .map(generatedContent => generatedContent.text)
-          .join('');
+      const citationText = part.citationsContent?.content
+        ?.map(generatedContent => generatedContent.text)
+        .filter((text): text is string => text != null)
+        .join('');
+      const text = part.text ?? (citationText ? citationText : undefined);
 
       if (text != null) {
         content.push({
@@ -1285,11 +1285,13 @@ const BedrockResponseSchema = z.object({
           text: z.string().nullish(),
           citationsContent: z
             .object({
-              content: z.array(
-                z.object({
-                  text: z.string(),
-                }),
-              ),
+              content: z
+                .array(
+                  z.object({
+                    text: z.string().nullish(),
+                  }),
+                )
+                .nullish(),
             })
             .nullish(),
           toolUse: BedrockToolUseSchema.nullish(),
