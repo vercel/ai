@@ -9,13 +9,23 @@ function makeSandbox({
   writes: Array<{ path: string; content: string }>;
   runs?: string[];
 }) {
+  const files = new Map<string, string>();
   return {
     async run(input: { command: string }) {
       runs.push(input.command);
+      const manifestMove = input.command.match(/^mv -f '([^']+)' '([^']+)'$/);
+      if (manifestMove != null) {
+        const content = files.get(manifestMove[1]!);
+        if (content != null) files.set(manifestMove[2]!, content);
+      }
       return { stdout: '', stderr: '', exitCode: 0 };
     },
     async writeTextFile(input: { path: string; content: string }) {
       writes.push({ path: input.path, content: input.content });
+      files.set(input.path, input.content);
+    },
+    async readTextFile(input: { path: string }) {
+      return files.get(input.path);
     },
   } as unknown as Experimental_SandboxSession;
 }
@@ -38,18 +48,22 @@ describe('writePiSkills', () => {
       ],
     });
 
-    expect(runs).toEqual(["mkdir -p '/home/vercel-sandbox/.agents/skills'"]);
-    expect(writes).toEqual([
-      {
-        path: '/home/vercel-sandbox/.agents/skills/demo/SKILL.md',
-        content:
-          '---\nname: demo\ndescription: Demo skill.\n---\n\nUse reference.md.',
-      },
-      {
-        path: '/home/vercel-sandbox/.agents/skills/demo/reference.md',
-        content: '# Reference',
-      },
-    ]);
+    expect(runs).toContain("mkdir -p '/home/vercel-sandbox/.agents/skills'");
+    const skillWrites = writes.filter(write => write.path.includes('/demo/'));
+    expect(skillWrites).toEqual(
+      expect.arrayContaining([
+        {
+          path: '/home/vercel-sandbox/.agents/skills/demo/SKILL.md',
+          content:
+            '---\nname: demo\ndescription: Demo skill.\n---\n\nUse reference.md.',
+        },
+        {
+          path: '/home/vercel-sandbox/.agents/skills/demo/reference.md',
+          content: '# Reference',
+        },
+      ]),
+    );
+    expect(skillWrites).toHaveLength(2);
   });
 
   it('rejects unsafe skill file paths before writing files', async () => {

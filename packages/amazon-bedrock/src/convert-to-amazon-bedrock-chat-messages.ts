@@ -33,7 +33,11 @@ import {
   type AmazonBedrockVideoFormat,
   type AmazonBedrockVideoMimeType,
 } from './amazon-bedrock-api-types';
-import { amazonBedrockFilePartProviderOptions } from './amazon-bedrock-chat-language-model-options';
+import {
+  amazonBedrockFilePartProviderOptions,
+  amazonBedrockImagePartProviderOptions,
+  amazonBedrockTextPartProviderOptions,
+} from './amazon-bedrock-chat-language-model-options';
 import { amazonBedrockReasoningMetadataSchema } from './amazon-bedrock-reasoning-metadata';
 import { normalizeToolCallId } from './normalize-tool-call-id';
 
@@ -110,6 +114,40 @@ async function shouldEnableCitations(
   return amazonBedrockOptions?.citations?.enabled ?? false;
 }
 
+async function getTextPartGuardContentOptions(
+  providerMetadata: SharedV4ProviderMetadata | undefined,
+) {
+  return (
+    (await parseProviderOptions({
+      provider: 'amazonBedrock',
+      providerOptions: providerMetadata,
+      schema: amazonBedrockTextPartProviderOptions,
+    })) ??
+    (await parseProviderOptions({
+      provider: 'bedrock',
+      providerOptions: providerMetadata,
+      schema: amazonBedrockTextPartProviderOptions,
+    }))
+  );
+}
+
+async function getImagePartGuardContentOptions(
+  providerMetadata: SharedV4ProviderMetadata | undefined,
+) {
+  return (
+    (await parseProviderOptions({
+      provider: 'amazonBedrock',
+      providerOptions: providerMetadata,
+      schema: amazonBedrockImagePartProviderOptions,
+    })) ??
+    (await parseProviderOptions({
+      provider: 'bedrock',
+      providerOptions: providerMetadata,
+      schema: amazonBedrockImagePartProviderOptions,
+    }))
+  );
+}
+
 export async function convertToAmazonBedrockChatMessages(
   prompt: LanguageModelV4Prompt,
   isMistral: boolean = false,
@@ -162,9 +200,24 @@ export async function convertToAmazonBedrockChatMessages(
 
                 switch (part.type) {
                   case 'text': {
-                    amazonBedrockContent.push({
-                      text: part.text,
-                    });
+                    const textOptions = await getTextPartGuardContentOptions(
+                      part.providerOptions,
+                    );
+
+                    if (textOptions?.guardContent) {
+                      amazonBedrockContent.push({
+                        guardContent: {
+                          text: {
+                            text: part.text,
+                            qualifiers: textOptions.guardContentQualifiers,
+                          },
+                        },
+                      });
+                    } else {
+                      amazonBedrockContent.push({
+                        text: part.text,
+                      });
+                    }
                     break;
                   }
 
@@ -251,7 +304,11 @@ export async function convertToAmazonBedrockChatMessages(
 
                         switch (getTopLevelMediaType(fullMediaType)) {
                           case 'image': {
-                            amazonBedrockContent.push({
+                            const imageOptions =
+                              await getImagePartGuardContentOptions(
+                                part.providerOptions,
+                              );
+                            const imageBlock: AmazonBedrockImageBlock = {
                               image: {
                                 format:
                                   getAmazonBedrockImageFormat(fullMediaType),
@@ -260,7 +317,15 @@ export async function convertToAmazonBedrockChatMessages(
                                   functionality: 'File URL data',
                                 }),
                               },
-                            });
+                            };
+
+                            if (imageOptions?.guardContent) {
+                              amazonBedrockContent.push({
+                                guardContent: imageBlock,
+                              });
+                            } else {
+                              amazonBedrockContent.push(imageBlock);
+                            }
                             break;
                           }
                           case 'video': {
@@ -520,6 +585,12 @@ export async function convertToAmazonBedrockChatMessages(
                       },
                     },
                   });
+                } else if (reasoningMetadata?.redactedContent != null) {
+                  amazonBedrockContent.push({
+                    reasoningContent: {
+                      redactedContent: reasoningMetadata.redactedContent,
+                    },
+                  });
                 } else if (reasoningMetadata?.redactedData != null) {
                   amazonBedrockContent.push({
                     reasoningContent: {
@@ -553,7 +624,7 @@ export async function convertToAmazonBedrockChatMessages(
           pushCachePoint(amazonBedrockContent, message.providerOptions);
         }
 
-        if (amazonBedrockContent.length > 0) {
+        if (amazonBedrockContent.some(block => !('cachePoint' in block))) {
           messages.push({ role: 'assistant', content: amazonBedrockContent });
         }
 

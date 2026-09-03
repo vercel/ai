@@ -12,10 +12,15 @@ import type {
   Arrayable,
   Context,
   Experimental_SandboxSession as SandboxSession,
+  FlexibleSchema,
+  MaybePromiseLike,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type {
   ActiveTools,
+  AgentCallParameters,
+  OutputInterface as Output,
+  Prompt,
   StopCondition,
   TelemetryOptions,
   ToolApprovalStatus,
@@ -73,9 +78,10 @@ type HarnessTools<TOOLS extends ToolSet> = ActiveTools<NoInfer<TOOLS>>;
 /**
  * Construction-time settings for a `HarnessAgent`.
  *
- * Per-call settings (prompt, abortSignal, callbacks) belong on the
+ * Prompt, abortSignal, callbacks, and custom call options belong on the
  * `AgentCallParameters` / `AgentStreamParameters` passed to `generate` /
- * `stream` and are not duplicated here.
+ * `stream`. `prepareCall` can derive turn-scoped model, skills, instructions,
+ * and tools from those custom call options.
  */
 type HarnessAgentToolFilteringSettings<TOOLS extends ToolSet> =
   | {
@@ -99,6 +105,8 @@ export type HarnessAgentSettings<
   THarness extends HarnessAgentAdapter<any> = HarnessAgentAdapter,
   TUserTools extends ToolSet = {},
   RUNTIME_CONTEXT extends Context = Context,
+  OUTPUT extends Output = never,
+  CALL_OPTIONS = never,
 > = {
   /**
    * The harness adapter driving the underlying agent runtime. Its
@@ -114,6 +122,13 @@ export type HarnessAgentSettings<
   readonly id?: string;
 
   /**
+   * Model identifier used by the harness adapter. Supported values are
+   * defined by the selected harness. `prepareCall` can replace it between
+   * completed turns.
+   */
+  readonly model?: string;
+
+  /**
    * Tools available to the underlying runtime in addition to the harness's
    * own builtins. The agent forwards each tool to the harness as a
    * `HarnessAgentToolSpec`; when the runtime calls one, the agent executes
@@ -125,18 +140,91 @@ export type HarnessAgentSettings<
   readonly tools?: TUserTools;
 
   /**
-   * Skills made available to the underlying runtime for the lifetime of
-   * the session. Each adapter decides how to surface skills (file in the
-   * working tree, prompt prefix, …).
+   * Skills made available to the underlying runtime. Each adapter decides how
+   * to surface skills. `prepareCall` can replace them between completed turns.
    */
   readonly skills?: ReadonlyArray<HarnessAgentSkill>;
 
   /**
-   * Instructions for the underlying agent runtime. Adapters append this to a
+   * Instructions for the underlying agent runtime. Adapters append these to a
    * native system or developer prompt when supported. Otherwise, they prepend
-   * it to the first user message of a fresh session.
+   * them to the user message. `prepareCall` can replace them between completed
+   * turns.
    */
   readonly instructions?: string;
+
+  /**
+   * Schema for validating the custom options passed to each agent call.
+   */
+  readonly callOptionsSchema?: FlexibleSchema<CALL_OPTIONS>;
+
+  /**
+   * Prepares the prompt and the settings that may vary between completed
+   * turns. The prepared values are frozen for the lifetime of the turn,
+   * including any suspended-turn continuations.
+   *
+   * Preserve the remaining arguments with the rest-spread pattern when a
+   * field should be removable by returning `undefined`:
+   *
+   * ```ts
+   * prepareCall: ({ options, ...rest }) => ({
+   *   ...rest,
+   *   instructions: options.instructions,
+   * })
+   * ```
+   */
+  readonly prepareCall?: (
+    options: Omit<
+      AgentCallParameters<
+        CALL_OPTIONS,
+        HarnessAllTools<THarness, TUserTools>,
+        RUNTIME_CONTEXT
+      >,
+      | 'abortSignal'
+      | 'timeout'
+      | 'onStart'
+      | 'experimental_onStart'
+      | 'onStepStart'
+      | 'experimental_onStepStart'
+      | 'onToolExecutionStart'
+      | 'experimental_onToolCallStart'
+      | 'onToolExecutionEnd'
+      | 'experimental_onToolCallFinish'
+      | 'onStepEnd'
+      | 'onStepFinish'
+      | 'onEnd'
+      | 'onFinish'
+      | 'experimental_sandbox'
+    > &
+      Pick<
+        HarnessAgentSettings<
+          THarness,
+          TUserTools,
+          RUNTIME_CONTEXT,
+          NoInfer<OUTPUT>,
+          CALL_OPTIONS
+        >,
+        'model' | 'skills' | 'instructions' | 'tools'
+      >,
+  ) => MaybePromiseLike<
+    Pick<
+      HarnessAgentSettings<
+        THarness,
+        TUserTools,
+        RUNTIME_CONTEXT,
+        NoInfer<OUTPUT>,
+        CALL_OPTIONS
+      >,
+      'model' | 'skills' | 'instructions' | 'tools'
+    > &
+      Omit<Prompt, 'system' | 'instructions' | 'allowSystemInMessages'>
+  >;
+
+  /**
+   * Optional specification for generating typed output. The same output
+   * requirement is active for every turn run by this agent.
+   */
+  readonly output?: OUTPUT;
 
   /**
    * Conditions that stop the current result after a completed harness tool
@@ -171,12 +259,11 @@ export type HarnessAgentSettings<
   readonly toolApproval?: HarnessAgentToolApprovalConfiguration;
 
   /**
-   * Sandbox provider whose `create()` produces the network sandbox session the
-   * harness runs against. Its `restricted()` view is also propagated to user
-   * tool `execute()` calls (as the `experimental_sandbox` field), typed as
-   * `Experimental_SandboxSession` so tools cannot reach the infra surface.
+   * Optional sandbox provider used to create or resume network sandbox
+   * sessions. When omitted, every `createSession()` call must provide an
+   * existing network sandbox session.
    */
-  readonly sandbox: HarnessV1SandboxProvider;
+  readonly sandbox?: HarnessV1SandboxProvider;
 
   /**
    * Sandbox working-directory and lifecycle hook configuration.

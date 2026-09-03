@@ -27,6 +27,20 @@ const HARNESSES = [
     ],
   },
   {
+    slug: 'cline',
+    label: 'Cline',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-only',
+      'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
+    ],
+  },
+  {
     slug: 'codex',
     label: 'Codex',
     variants: [
@@ -42,6 +56,34 @@ const HARNESSES = [
   {
     slug: 'deepagents',
     label: 'Deep Agents',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-only',
+      'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
+    ],
+  },
+  {
+    slug: 'cursor',
+    label: 'Cursor',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-only',
+      'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
+    ],
+  },
+  {
+    slug: 'fx',
+    label: 'fx',
     variants: [
       'basic',
       'basic-with-stop',

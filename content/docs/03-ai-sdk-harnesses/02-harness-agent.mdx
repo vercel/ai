@@ -28,6 +28,7 @@ import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 export const agent = new HarnessAgent({
   harness: claudeCode,
+  model: 'claude-sonnet-4-6',
   sandbox: createVercelSandbox({
     runtime: 'node24',
     ports: [4000],
@@ -39,6 +40,10 @@ export const agent = new HarnessAgent({
 
 Construct the agent at module scope. It holds configuration, not a live session.
 Live state belongs to `HarnessAgentSession`.
+
+Set `model` to select the model that the harness runtime uses. Model identifiers
+are specific to each harness. When omitted, the harness uses its default model.
+The model is applied per turn, so `prepareCall` can replace it between turns.
 
 To use this agent, ensure environment variables with sandbox and harness credentials
 are set.
@@ -93,6 +98,60 @@ try {
 }
 ```
 
+## Generate Structured Output
+
+Set `output` when constructing `HarnessAgent` to require the same typed output
+on every turn. The agent converts the output specification to JSON Schema for
+the harness adapter, validates the completed response, and returns the parsed
+value through `result.output`.
+
+```ts
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { Output } from 'ai';
+import { z } from 'zod';
+
+const agent = new HarnessAgent({
+  harness: claudeCode,
+  sandbox,
+  output: Output.object({
+    schema: z.object({
+      recipe: z.object({
+        name: z.string(),
+        ingredients: z.array(
+          z.object({
+            name: z.string(),
+            amount: z.number(),
+            unit: z.enum(['oz', 'fl oz', 'cup', 'gallon']),
+          }),
+        ),
+        steps: z.array(z.string()),
+      }),
+    }),
+  }),
+});
+
+const session = await agent.createSession();
+try {
+  const result = await agent.generate({
+    session,
+    prompt: 'Generate a lasagna recipe.',
+  });
+  console.dir(result.output, { depth: Infinity });
+} finally {
+  await session.destroy();
+}
+```
+
+With `stream()`, read `partialOutputStream` for incrementally parsed values and
+await `result.output` for the validated final value. Structured data also remains
+available as JSON in the normal text and stream surfaces; adapters do not add it
+to the `finish` part.
+
+Harness structured output requires a schema. Schema-less `Output.json()` and
+adapters or runtime configurations that cannot enforce the schema throw
+`HarnessCapabilityUnsupportedError`; see the
+[adapter capability table](/docs/ai-sdk-harnesses/harness-adapters#adapter-capabilities).
+
 ## Messages and History
 
 A harness session owns its native conversation history. When you pass `messages`
@@ -125,6 +184,92 @@ End every session explicitly:
 
 Use `destroy()` for one-off scripts and tests. Use `detach()` or `stop()` for
 HTTP routes that need multi-turn continuity.
+
+## Change Settings Between Turns
+
+Use `callOptionsSchema` and `prepareCall` to derive `model`, `skills`,
+`instructions`, and `tools` for each new turn. This follows the same
+call-options pattern as `ToolLoopAgent`:
+
+```ts
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { tool } from 'ai';
+import { z } from 'zod';
+
+const getPolicy = tool({
+  description: 'Look up the active project policy.',
+  inputSchema: z.object({}),
+  execute: async () => 'Keep public APIs backward compatible.',
+});
+
+const agent = new HarnessAgent({
+  harness: claudeCode,
+  sandbox,
+  tools: { getPolicy },
+  callOptionsSchema: z.object({
+    area: z.enum(['frontend', 'backend']),
+    enablePolicyTool: z.boolean(),
+    useCheaperModel: z.boolean(),
+  }),
+  prepareCall: ({ options, ...call }) => ({
+    ...call,
+    model: options.useCheaperModel ? 'claude-haiku-4-5' : undefined,
+    instructions: `Work as the ${options.area} specialist.`,
+    skills: [options.area === 'frontend' ? frontendSkill : backendSkill],
+    tools: options.enablePolicyTool ? { getPolicy } : undefined,
+  }),
+});
+
+const session = await agent.createSession();
+try {
+  await agent.generate({
+    session,
+    prompt: 'Review the current implementation.',
+    options: {
+      area: 'frontend',
+      enablePolicyTool: false,
+      useCheaperModel: false,
+    },
+  });
+
+  await agent.generate({
+    session,
+    prompt: 'Now review the API contract.',
+    options: {
+      area: 'backend',
+      enablePolicyTool: true,
+      useCheaperModel: true,
+    },
+  });
+} finally {
+  await session.destroy();
+}
+```
+
+`prepareCall` runs for a new prompt after its custom `options` have been
+validated. Its settings are then fixed for that whole turn. If the turn pauses
+for a tool result, approval, stop condition, or process handoff, its
+continuation reuses the same settings and does not call `prepareCall` again.
+This prevents settings from changing mid-turn.
+
+Changing `model` does not create a new harness session. Each adapter switches or
+reconfigures its runtime before the next prompt while preserving the session's
+conversation history.
+
+The Codex adapter starts a fresh native Codex thread when its skills,
+instructions, or tool catalog changes because `codex exec resume` retains the
+original native thread bootstrap. The harness session remains usable, but prior
+native conversation context does not carry across that settings-change boundary.
+Turns with unchanged settings continue the existing native thread.
+
+Pass `abortSignal` directly to `generate()` or `stream()`; it is already a
+per-call setting and is not part of `prepareCall`. `output` also stays fixed on
+the agent because its response format is tied to the agent's output schema.
+
+When you pass `sandboxSession` to `agent.createSession()`, the caller retains
+ownership of that sandbox. `session.stop()` and `session.destroy()` still end
+the harness runtime but do not stop or destroy the supplied sandbox session.
+In this case, the agent does not need a `sandbox` provider in its constructor.
 
 ```ts
 const session = await agent.createSession({ sessionId: chatId });
@@ -347,10 +492,7 @@ const sandboxFromSnapshot = await Sandbox.create({
 
 const agent = new HarnessAgent({
   harness: claudeCode,
-  sandbox: createVercelSandbox({
-    sandbox: sandboxFromSnapshot,
-    bridgePorts: [4000],
-  }),
+  sandbox: createVercelSandbox({ sandbox: sandboxFromSnapshot }),
   sandboxConfig,
 });
 
@@ -362,10 +504,15 @@ console.log(preparation.identity);
 `HarnessAgent` accepts these main settings:
 
 - `harness`: the adapter instance.
+- `model`: optional harness-specific model identifier. When omitted, the
+  harness uses its default model.
 - `sandbox`: a `HarnessV1SandboxProvider`.
 - `id`: optional stable agent identifier.
 - `instructions`: instructions appended to the runtime's system or developer
-  prompt when supported, or prepended to the first user prompt otherwise.
+  prompt when supported, or prepended to the user prompt otherwise.
+- `callOptionsSchema` and `prepareCall`: validate custom call options and derive
+  model, skills, instructions, and tools for each new turn.
+- `output`: typed output specification applied to every turn.
 - `stopWhen`: condition(s) for finishing a result slice after a completed
   harness tool step that can continue into another model step.
 - `tools`: AI SDK tools executed by the host when the harness calls them.
@@ -379,8 +526,115 @@ console.log(preparation.identity);
 - `sandboxConfig`: sandbox working-directory and lifecycle hook configuration.
 - `telemetry`, `debug`, and `onLog`: observability and diagnostics.
 
+Telemetry reports each turn's resolved model, instructions, and active
+host-defined tools. Skills are adapter context and do not have a corresponding
+AI SDK telemetry field, so they are not included in standard telemetry events.
+
 Adapter-specific settings belong on the adapter factory, for example
 `createCodex({ reasoningEffort: 'high' })`.
+
+## Custom Sandbox Orchestration
+
+When your application creates and manages sandboxes itself, prepare the network
+sandbox session first and then pass that same session to `agent.createSession()`.
+The agent does not need a sandbox provider and does not stop or destroy the
+caller-owned sandbox.
+
+```ts
+import { HarnessAgent, prepareSandboxForHarness } from '@ai-sdk/harness/agent';
+import { claudeCode } from '@ai-sdk/harness-claude-code';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { Sandbox } from '@vercel/sandbox';
+
+const sandbox = await Sandbox.create({
+  runtime: 'node24',
+  ports: [4000],
+});
+const sandboxProvider = createVercelSandbox({ sandbox });
+const sandboxSession = await sandboxProvider.createSession();
+
+await prepareSandboxForHarness({
+  session: sandboxSession.restricted(),
+  harnesses: [claudeCode],
+});
+
+const agent = new HarnessAgent({ harness: claudeCode });
+const session = await agent.createSession({ sandboxSession });
+
+try {
+  const result = await agent.stream({
+    session,
+    prompt: 'Create a short TODO.md for this repository.',
+  });
+
+  for await (const part of result.stream) {
+    if (part.type === 'text-delta') {
+      process.stdout.write(part.text);
+    }
+  }
+} finally {
+  await session.destroy();
+  await sandbox.stop();
+}
+```
+
+### Basic Sandbox Sessions Without Network Control
+
+The following example demonstrates how the basic-session API works. If your
+project can expose a full network sandbox session, passing that session is
+strongly recommended. Pass a restricted basic session only when your project
+cannot expose the full network session.
+
+A basic sandbox session only exposes filesystem and process APIs. The agent
+still leaves the sandbox lifecycle to the caller. For a bridge-backed harness,
+configure the bridge port and its externally reachable endpoint on the adapter
+because the basic session cannot resolve them.
+
+```ts
+import { HarnessAgent, prepareSandboxForHarness } from '@ai-sdk/harness/agent';
+import { createClaudeCode } from '@ai-sdk/harness-claude-code';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { Sandbox } from '@vercel/sandbox';
+
+const sandbox = await Sandbox.create({
+  runtime: 'node24',
+  ports: [4000],
+});
+const sandboxProvider = createVercelSandbox({ sandbox });
+const sandboxSession = await sandboxProvider.createSession();
+const portEndpoint = await sandboxSession.getPortEndpoint({
+  port: 4000,
+  protocol: 'ws',
+});
+const restrictedSandboxSession = sandboxSession.restricted();
+const claudeCode = createClaudeCode({ port: 4000, portEndpoint });
+
+await prepareSandboxForHarness({
+  session: restrictedSandboxSession,
+  harnesses: [claudeCode],
+});
+
+const agent = new HarnessAgent({ harness: claudeCode });
+const session = await agent.createSession({
+  sandboxSession: restrictedSandboxSession,
+});
+
+try {
+  const result = await agent.stream({
+    session,
+    prompt: 'Create a short TODO.md for this repository.',
+  });
+
+  for await (const part of result.stream) {
+    if (part.type === 'text-delta') {
+      process.stdout.write(part.text);
+    }
+  }
+} finally {
+  await session.destroy();
+  await sandbox.stop();
+}
+```
 
 ## Next Steps
 

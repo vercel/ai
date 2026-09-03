@@ -6,8 +6,9 @@ import type {
 } from '@ai-sdk/provider';
 import type { Context } from '@ai-sdk/provider-utils';
 import {
+  DefaultGeneratedFile,
   experimental_filterActiveTools as filterActiveTools,
-  type Experimental_LanguageModelStreamPart as ModelCallStreamPart,
+  type ActiveTools,
   type Experimental_SandboxSession as SandboxSession,
   type Instructions,
   type LanguageModel,
@@ -22,11 +23,14 @@ import { createRestrictedTelemetryDispatcher } from 'ai/internal';
 import {
   type DoStreamStepRawResult,
   doStreamStep,
+  type ModelCallStreamPart,
   type ModelStopCondition,
   type ParsedToolCall,
   type ProviderExecutedToolResult,
   type StreamFinish,
+  type ToolInputLifecycleEvent,
 } from './do-stream-step.js';
+import { resolveToolContext } from './resolve-tool-context.js';
 import { serializeToolSet } from './serializable-schema.js';
 import type {
   GenerationSettings,
@@ -92,6 +96,16 @@ export interface StreamTextIteratorYieldValue {
   experimental_sandbox?: SandboxSession;
 }
 
+export interface StreamTextIteratorAbortedValue {
+  aborted: true;
+  messages: LanguageModelV4Prompt;
+}
+
+export interface StreamTextIteratorErrorValue {
+  error: unknown;
+  messages: LanguageModelV4Prompt;
+}
+
 // This runs in the workflow context
 export async function* streamTextIterator({
   prompt,
@@ -112,6 +126,7 @@ export async function* streamTextIterator({
   toolsContext,
   telemetry,
   includeRawChunks = false,
+  timeoutAt,
   repairToolCall,
   responseFormat,
   experimental_sandbox: sandbox,
@@ -135,12 +150,15 @@ export async function* streamTextIterator({
   toolsContext?: Record<string, Context | undefined>;
   telemetry?: TelemetryOptions<Context, ToolSet>;
   includeRawChunks?: boolean;
+  timeoutAt?: number;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
   experimental_sandbox?: SandboxSession;
 }): AsyncGenerator<
   StreamTextIteratorYieldValue,
-  LanguageModelV4Prompt,
+  | LanguageModelV4Prompt
+  | StreamTextIteratorAbortedValue
+  | StreamTextIteratorErrorValue,
   LanguageModelV4ToolResultPart[]
 > {
   let conversationPrompt = [...prompt]; // Create a mutable copy
@@ -150,7 +168,7 @@ export async function* streamTextIterator({
   let currentRuntimeContext: Context = runtimeContext ?? {};
   let currentToolsContext: Record<string, Context | undefined> =
     toolsContext ?? {};
-  let currentActiveTools: string[] | undefined;
+  let currentActiveTools: ActiveTools<ToolSet>;
 
   const steps: StepResult<any, any>[] = [];
   let done = false;
@@ -158,6 +176,9 @@ export async function* streamTextIterator({
   let stepNumber = 0;
   let lastStep: StepResult<any, any> | undefined;
   let lastStepWasToolCalls = false;
+  let wasAborted = false;
+  let terminalError: unknown;
+  let hasTerminalError = false;
 
   // TODO(#12164): replace this AI-core telemetry bridge with a
   // WorkflowAgent-specific typed dispatcher. `streamTextIterator` widens
@@ -280,7 +301,7 @@ export async function* streamTextIterator({
     try {
       // Filter tools if activeTools is specified
       const effectiveTools =
-        currentActiveTools && currentActiveTools.length > 0
+        currentActiveTools !== undefined
           ? (filterActiveTools({
               tools,
               activeTools: currentActiveTools,
@@ -319,20 +340,48 @@ export async function* streamTextIterator({
         headers: currentGenerationSettings.headers,
       } as never);
 
-      const { toolCalls, finish, raw, providerExecutedToolResults } =
-        await doStreamStep(
-          conversationPrompt,
-          currentModel,
-          writable,
-          serializedTools,
-          {
-            ...currentGenerationSettings,
-            toolChoice: currentToolChoice,
-            includeRawChunks,
-            repairToolCall,
-            responseFormat,
-          },
-        );
+      const stepInputMessages = conversationPrompt as unknown as ModelMessage[];
+      const streamStepResult = await doStreamStep(
+        conversationPrompt,
+        currentModel,
+        writable,
+        serializedTools,
+        {
+          ...currentGenerationSettings,
+          toolChoice: currentToolChoice,
+          includeRawChunks,
+          timeoutAt,
+          repairToolCall,
+          responseFormat,
+        },
+      );
+
+      if (streamStepResult.aborted) {
+        wasAborted = true;
+        break;
+      }
+
+      if ('terminalError' in streamStepResult) {
+        terminalError = streamStepResult.terminalError;
+        hasTerminalError = true;
+      }
+
+      const {
+        toolCalls,
+        finish,
+        raw,
+        providerExecutedToolResults,
+        toolInputLifecycleEvents,
+      } = streamStepResult;
+      await invokeToolInputLifecycleCallbacks({
+        events: toolInputLifecycleEvents ?? [],
+        toolCalls,
+        tools: effectiveTools,
+        messages: stepInputMessages,
+        abortSignal: currentGenerationSettings.abortSignal,
+        toolsContext: currentToolsContext,
+        experimental_sandbox: stepSandbox,
+      });
       // Reconstruct the full StepResult outside the step boundary so the
       // durable event log doesn't carry StepResult's redundant copies (or the
       // per-chunk snapshot the step used to return).
@@ -363,14 +412,24 @@ export async function* streamTextIterator({
 
       const finishReason = finish?.finishReason;
 
-      if (finishReason === 'tool-calls') {
+      if (hasTerminalError) {
+        // The error crossed the durable step boundary as data. End the loop
+        // without throwing so WorkflowAgent can preserve the existing
+        // resolved-result contract and expose the original value.
+        done = true;
+      } else if (finishReason === 'tool-calls') {
         lastStepWasToolCalls = true;
 
-        const textContent = step.content.filter(
-          item => item.type === 'text',
-        ) as Array<{ type: 'text'; text: string }>;
+        const assistantContent = getAssistantMessageContent(step);
+        const includedToolCallIds = new Set(
+          assistantContent.flatMap(part =>
+            part.type === 'tool-call' ? [part.toolCallId] : [],
+          ),
+        );
 
-        // Add assistant message with text and tool calls to the conversation
+        // Add assistant message content in provider emission order. Invalid
+        // tool calls are not part of StepResult.content, so retain the previous
+        // behavior of appending them to the prompt.
         // Note: providerMetadata from the tool call is mapped to providerOptions
         // in the prompt format, following the AI SDK convention. This is critical
         // for providers like Gemini that require thoughtSignature to be preserved
@@ -378,24 +437,10 @@ export async function* streamTextIterator({
         conversationPrompt.push({
           role: 'assistant',
           content: [
-            ...textContent,
-            ...toolCalls.map(toolCall => {
-              const sanitizedMetadata = sanitizeProviderMetadataForToolCall(
-                toolCall.providerMetadata,
-              );
-              return {
-                type: 'tool-call' as const,
-                toolCallId: toolCall.toolCallId,
-                toolName: toolCall.toolName,
-                input: toolCall.input,
-                ...(sanitizedMetadata != null
-                  ? {
-                      providerOptions:
-                        sanitizedMetadata as SharedV4ProviderOptions,
-                    }
-                  : {}),
-              };
-            }),
+            ...assistantContent,
+            ...toolCalls
+              .filter(toolCall => !includedToolCallIds.has(toolCall.toolCallId))
+              .map(toAssistantToolCallContent),
           ],
         });
 
@@ -426,15 +471,13 @@ export async function* streamTextIterator({
           }
         }
       } else if (finishReason === 'stop') {
-        // Add assistant message with text content to the conversation
-        const textContent = step.content.filter(
-          item => item.type === 'text',
-        ) as Array<{ type: 'text'; text: string }>;
+        // Add assistant response content to the conversation
+        const assistantContent = getAssistantMessageContent(step);
 
-        if (textContent.length > 0) {
+        if (assistantContent.length > 0) {
           conversationPrompt.push({
             role: 'assistant',
-            content: textContent,
+            content: assistantContent,
           });
         }
 
@@ -488,7 +531,98 @@ export async function* streamTextIterator({
     };
   }
 
+  if (wasAborted) {
+    return { aborted: true, messages: conversationPrompt };
+  }
+
+  if (hasTerminalError) {
+    return { error: terminalError, messages: conversationPrompt };
+  }
+
   return conversationPrompt;
+}
+
+async function invokeToolInputLifecycleCallbacks({
+  events,
+  toolCalls,
+  tools,
+  messages,
+  abortSignal,
+  toolsContext,
+  experimental_sandbox,
+}: {
+  events: ToolInputLifecycleEvent[];
+  toolCalls: ParsedToolCall[];
+  tools: ToolSet;
+  messages: ModelMessage[];
+  abortSignal?: AbortSignal;
+  toolsContext: Record<string, Context | undefined>;
+  experimental_sandbox?: SandboxSession;
+}) {
+  const toolNamesByCallId = new Map<string, string>();
+  const toolCallsById = new Map(
+    toolCalls.map(toolCall => [toolCall.toolCallId, toolCall]),
+  );
+  const resolvedContexts = new Map<string, Promise<unknown>>();
+
+  for (const event of events) {
+    const [type, toolCallId, value] = event;
+    if (type === 'start') {
+      toolNamesByCallId.set(toolCallId, value);
+    }
+
+    const toolName =
+      type === 'start' ? value : toolNamesByCallId.get(toolCallId);
+    if (toolName == null) {
+      continue;
+    }
+
+    const tool = tools[toolName];
+    if (tool == null) {
+      continue;
+    }
+
+    let resolvedContext = resolvedContexts.get(toolName);
+    if (resolvedContext == null) {
+      resolvedContext = resolveToolContext({
+        toolName,
+        tool,
+        toolsContext,
+      });
+      resolvedContexts.set(toolName, resolvedContext);
+    }
+
+    const options = {
+      toolCallId,
+      messages,
+      abortSignal,
+      context: await resolvedContext,
+      experimental_sandbox,
+    };
+
+    switch (type) {
+      case 'start':
+        await tool.onInputStart?.(options);
+        break;
+      case 'delta':
+        await tool.onInputDelta?.({
+          ...options,
+          inputTextDelta: value,
+        });
+        break;
+      case 'available': {
+        const toolCall = toolCallsById.get(toolCallId);
+        if (toolCall == null) {
+          break;
+        }
+        await tool.onInputAvailable?.({
+          ...options,
+          input: toolCall.input,
+        });
+        break;
+      }
+    }
+  }
 }
 
 function getModelInfo(model: LanguageModel): {
@@ -510,9 +644,10 @@ function normalizeStepForTelemetry(step: StepResult<any, any>) {
 /**
  * Reconstruct a full `StepResult` from the minimal aggregates returned by
  * `doStreamStep`. Runs outside the step boundary so StepResult's redundant
- * fields (duplicate tool-call lists, `content`, `reasoningText`, the
- * always-empty `*ToolResults` arrays) and the per-chunk snapshot don't cross
- * it. The shape matches what the AI SDK's `streamText` exposes to callers.
+ * fields (duplicate tool-call lists, `text`, `files`, `sources`, and
+ * `reasoningText`) and the per-chunk snapshot don't cross it. Tool-result
+ * arrays are initialized here and populated after execution. The shape matches
+ * what the AI SDK's `streamText` exposes to callers.
  */
 function buildStepResult(
   raw: DoStreamStepRawResult,
@@ -524,18 +659,89 @@ function buildStepResult(
     toolsContext: Record<string, Context | undefined>;
   },
 ): StepResult<ToolSet, any> {
-  const { text, reasoning: reasoningParts, responseMetadata, warnings } = raw;
+  const {
+    content: rawContent,
+    reasoning: reasoningParts,
+    responseMetadata,
+    warnings,
+  } = raw;
   const reasoningText = reasoningParts.map(r => r.text).join('') || undefined;
+  const validToolCallsByIndex = new Map(
+    toolCalls.flatMap((tc, index) =>
+      tc.invalid
+        ? []
+        : [
+            [
+              index,
+              {
+                type: 'tool-call' as const,
+                toolCallId: tc.toolCallId,
+                toolName: tc.toolName,
+                input: tc.input,
+                ...(tc.providerExecuted != null
+                  ? { providerExecuted: tc.providerExecuted }
+                  : {}),
+                ...(tc.title != null ? { title: tc.title } : {}),
+                ...(tc.toolMetadata != null
+                  ? { toolMetadata: tc.toolMetadata }
+                  : {}),
+                ...(tc.dynamic ? { dynamic: true as const } : {}),
+                ...(tc.providerExecuted ? { providerExecuted: true } : {}),
+                ...(tc.providerMetadata != null
+                  ? { providerMetadata: tc.providerMetadata }
+                  : {}),
+              },
+            ] as const,
+          ],
+    ),
+  );
+  const validToolCalls = [...validToolCallsByIndex.values()];
+  const content: StepResult<ToolSet, any>['content'] = [];
+  const files: StepResult<ToolSet, any>['files'] = [];
+  const sources: StepResult<ToolSet, any>['sources'] = [];
+  let text = '';
 
-  const validToolCalls = toolCalls
-    .filter(tc => !tc.invalid)
-    .map(tc => ({
-      type: 'tool-call' as const,
-      toolCallId: tc.toolCallId,
-      toolName: tc.toolName,
-      input: tc.input,
-      ...(tc.dynamic ? { dynamic: true as const } : {}),
-    }));
+  for (const part of rawContent) {
+    switch (part.type) {
+      case 'text':
+        text += part.text;
+        content.push({
+          type: 'text',
+          text: part.text,
+          ...(part.providerMetadata != null
+            ? { providerMetadata: part.providerMetadata }
+            : {}),
+        });
+        break;
+      case 'file': {
+        const file = new DefaultGeneratedFile({
+          data: part.data,
+          mediaType: part.mediaType,
+          providerMetadata: part.providerMetadata,
+        });
+        files.push(file);
+        content.push({
+          type: 'file',
+          file,
+          ...(part.providerMetadata != null
+            ? { providerMetadata: part.providerMetadata }
+            : {}),
+        });
+        break;
+      }
+      case 'source':
+        sources.push(part);
+        content.push(part);
+        break;
+      case 'tool-call': {
+        const toolCall = validToolCallsByIndex.get(part.toolCallIndex);
+        if (toolCall != null) {
+          content.push(toolCall);
+        }
+        break;
+      }
+    }
+  }
 
   return {
     callId: 'workflow-agent',
@@ -548,20 +754,17 @@ function buildStepResult(
     metadata: undefined,
     runtimeContext: opts.runtimeContext ?? {},
     toolsContext: opts.toolsContext ?? {},
-    content: [
-      ...(text ? [{ type: 'text' as const, text }] : []),
-      ...validToolCalls,
-    ],
+    content,
     text,
     reasoning: reasoningParts.map(r => ({
       type: 'reasoning' as const,
       text: r.text,
     })),
     reasoningText,
-    files: [],
-    sources: [],
+    files,
+    sources,
     toolCalls: validToolCalls,
-    staticToolCalls: [],
+    staticToolCalls: validToolCalls.filter(tc => tc.dynamic !== true),
     dynamicToolCalls: validToolCalls.filter(tc => tc.dynamic),
     toolResults: [],
     staticToolResults: [],
@@ -607,6 +810,69 @@ function buildStepResult(
     },
     providerMetadata: finish?.providerMetadata ?? {},
   } as StepResult<ToolSet, any>;
+}
+
+function getAssistantMessageContent(
+  step: StepResult<any, any>,
+): Extract<LanguageModelV4Prompt[number], { role: 'assistant' }>['content'] {
+  const content: Extract<
+    LanguageModelV4Prompt[number],
+    { role: 'assistant' }
+  >['content'] = [];
+
+  for (const part of step.content) {
+    switch (part.type) {
+      case 'text':
+        if (part.text.length > 0) {
+          content.push({ type: 'text', text: part.text });
+        }
+        break;
+      case 'file':
+        content.push({
+          type: 'file',
+          data: { type: 'data', data: part.file.base64 },
+          mediaType: part.file.mediaType,
+          ...(part.providerMetadata != null
+            ? {
+                providerOptions:
+                  part.providerMetadata as SharedV4ProviderOptions,
+              }
+            : {}),
+        });
+        break;
+      case 'tool-call':
+        content.push(toAssistantToolCallContent(part));
+        break;
+    }
+  }
+
+  return content;
+}
+
+function toAssistantToolCallContent(toolCall: {
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+  providerExecuted?: boolean;
+  providerMetadata?: unknown;
+}) {
+  const sanitizedMetadata = sanitizeProviderMetadataForToolCall(
+    toolCall.providerMetadata,
+  );
+  return {
+    type: 'tool-call' as const,
+    toolCallId: toolCall.toolCallId,
+    toolName: toolCall.toolName,
+    input: toolCall.input,
+    ...(toolCall.providerExecuted != null
+      ? { providerExecuted: toolCall.providerExecuted }
+      : {}),
+    ...(sanitizedMetadata != null
+      ? {
+          providerOptions: sanitizedMetadata as SharedV4ProviderOptions,
+        }
+      : {}),
+  };
 }
 
 /**

@@ -59,10 +59,10 @@ You can use the following optional settings to customize the xAI provider instan
 ## Language Models
 
 You can create [xAI models](https://console.x.ai) using a provider instance. The
-first argument is the model id, e.g. `grok-4.20-non-reasoning`.
+first argument is the model id, e.g. `grok-4.6`.
 
 ```ts
-const model = xai('grok-4.20-non-reasoning');
+const model = xai('grok-4.6');
 ```
 
 <Note>
@@ -81,7 +81,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai('grok-4.20-non-reasoning'),
+  model: xai('grok-4.6'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -199,7 +199,7 @@ calling pattern.
 The xAI Responses API is the default when using `xai(modelId)` (since AI SDK 7). You can also use `xai.responses(modelId)` explicitly. This enables the model to autonomously orchestrate tool calls and research on xAI's servers.
 
 ```ts
-const model = xai.responses('grok-4.20-non-reasoning');
+const model = xai.responses('grok-4.6');
 ```
 
 The Responses API provides server-side tools that the model can autonomously execute during its reasoning process:
@@ -221,7 +221,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai.responses('grok-3'),
+  model: xai.responses('grok-4.6'),
   messages: [
     {
       role: 'user',
@@ -246,7 +246,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai('grok-4.3'),
+  model: xai('grok-4.6'),
   messages: [
     {
       role: 'user',
@@ -283,7 +283,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text, sources } = await generateText({
-  model: xai.responses('grok-4.20-non-reasoning'),
+  model: xai.responses('grok-4.6'),
   prompt: 'What are the latest developments in AI?',
   tools: {
     web_search: xai.tools.webSearch({
@@ -321,7 +321,7 @@ The X search tool enables searching X (Twitter) for posts, with filtering by han
 
 ```ts
 const { text, sources } = await generateText({
-  model: xai.responses('grok-4.20-non-reasoning'),
+  model: xai.responses('grok-4.6'),
   prompt: 'What are people saying about AI on X this week?',
   tools: {
     x_search: xai.tools.xSearch({
@@ -367,7 +367,7 @@ The code execution tool enables the model to write and execute Python code for c
 
 ```ts
 const { text } = await generateText({
-  model: xai.responses('grok-4.20-non-reasoning'),
+  model: xai.responses('grok-4.6'),
   prompt:
     'Calculate the compound interest for $10,000 at 5% annually for 10 years',
   tools: {
@@ -382,7 +382,7 @@ The view image tool enables the model to view and analyze images:
 
 ```ts
 const { text } = await generateText({
-  model: xai.responses('grok-4.20-non-reasoning'),
+  model: xai.responses('grok-4.6'),
   prompt: 'Describe what you see in the image',
   tools: {
     view_image: xai.tools.viewImage(),
@@ -396,7 +396,7 @@ The view X video tool enables the model to view and analyze videos from X (Twitt
 
 ```ts
 const { text } = await generateText({
-  model: xai.responses('grok-4.20-non-reasoning'),
+  model: xai.responses('grok-4.6'),
   prompt: 'Summarize the content of this X video',
   tools: {
     view_x_video: xai.tools.viewXVideo(),
@@ -413,7 +413,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: xai.responses('grok-4.5'),
+  model: xai.responses('grok-4.6'),
   prompt:
     'Generate an image of a corgi surfing a big wave, in the style of a Japanese woodblock print',
   tools: {
@@ -451,7 +451,7 @@ The MCP server tool enables the model to connect to remote [Model Context Protoc
 
 ```ts
 const { text } = await generateText({
-  model: xai.responses('grok-4.20-non-reasoning'),
+  model: xai.responses('grok-4.6'),
   prompt: 'Use the weather tool to check conditions in San Francisco',
   tools: {
     weather_server: xai.tools.mcpServer({
@@ -499,7 +499,7 @@ import { xai, type XaiLanguageModelResponsesOptions } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: xai.responses('grok-4.20-reasoning'),
+  model: xai.responses('grok-4.6'),
   prompt: 'What documents do you have access to?',
   tools: {
     file_search: xai.tools.fileSearch({
@@ -546,7 +546,7 @@ import { xai } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 
 const { stream } = streamText({
-  model: xai.responses('grok-4.20-non-reasoning'),
+  model: xai.responses('grok-4.6'),
   prompt: 'Research AI safety developments and calculate risk metrics',
   tools: {
     web_search: xai.tools.webSearch(),
@@ -580,7 +580,7 @@ import { xai, type XaiLanguageModelResponsesOptions } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: xai.responses('grok-4.5'),
+  model: xai.responses('grok-4.6'),
   providerOptions: {
     xai: {
       reasoningEffort: 'high',
@@ -623,6 +623,66 @@ The following provider options are available:
 <Note>
   The Responses API only supports server-side tools. You cannot mix server-side
   tools with client-side function tools in the same request.
+</Note>
+
+## Text Batches
+
+<Note type="warning">
+  Text batch support is experimental and the API may change in patch releases.
+</Note>
+
+The xAI provider supports asynchronous text generation through the
+[Batch API](https://docs.x.ai/developers/advanced-api-usage/batch-api). Use the
+experimental text batch APIs to start a batch, poll its status, and stream its
+results:
+
+```ts
+import { xai } from '@ai-sdk/xai';
+import {
+  experimental_getBatchResults as getBatchResults,
+  experimental_getBatchStatus as getBatchStatus,
+  experimental_startTextBatch as startTextBatch,
+} from 'ai';
+import { setTimeout } from 'node:timers/promises';
+
+const model = xai('grok-4.3');
+
+const batch = await startTextBatch({
+  model,
+  requests: [
+    { id: 'capital-france', prompt: 'What is the capital of France?' },
+    { id: 'capital-germany', prompt: 'What is the capital of Germany?' },
+  ],
+});
+
+let status = batch.status;
+while (status === 'pending') {
+  await setTimeout(60_000);
+  ({ status } = await getBatchStatus({ model, batch }));
+}
+
+for await (const item of getBatchResults({ model, batch })) {
+  if (item.status === 'succeeded') {
+    console.log(item.id, item.text);
+  } else {
+    console.error(item.id, item.error);
+  }
+}
+```
+
+`startTextBatch` returns a serializable batch reference. Persist this reference
+to check the batch status or retrieve its results from another process. Results
+can arrive in a different order from the input requests, so match each result by
+its `id`.
+
+Text batches are available through `xai(modelId)` and
+`xai.responses(modelId)`. The legacy `xai.chat(modelId)` models do not expose
+the batch APIs.
+
+<Note>
+  The xAI Batch API does not support per-batch webhooks. When you provide a
+  `webhookUrl`, the provider returns an unsupported warning and starts the batch
+  without a webhook.
 </Note>
 
 ## Model Capabilities
@@ -745,6 +805,45 @@ const result = await generateSpeech({
 - **textNormalization** _boolean_
 
   Whether to normalize written-form input text before synthesizing speech.
+
+- **withTimestamps** _boolean_
+
+  Return character-level timing metadata alongside the audio. The timing data
+  and total duration are exposed via `providerMetadata.xai` (see below).
+
+- **replace** _Record&lt;string, string&gt;_
+
+  Map of phrases to spoken substitutions applied before synthesis. Values may
+  be respellings (`{ 'Acme Mobile': 'Acme Mobull' }`) or IPA phonetics
+  (`{ nginx: '/ˈɛndʒɪn ˈɛks/' }`).
+
+### Provider Metadata
+
+xAI speech results include provider-specific metadata under
+`providerMetadata.xai`:
+
+- **traceId** _string_ — the xAI trace ID for the request, useful for
+  debugging with xAI support.
+- **duration** _number_ — total audio duration in seconds (only with
+  `withTimestamps`).
+- **contentType** _string_ — MIME type of the decoded audio, e.g.
+  `'audio/mpeg'` (only with `withTimestamps`).
+- **audioTimestamps** `{ graphChars: string[]; graphTimes: [number, number][] }` —
+  per-character alignment data (only with `withTimestamps`). `graphChars[i]`
+  is the character spoken during the `[start, end]` interval
+  `graphTimes[i]`, in seconds.
+
+```ts
+const result = await generateSpeech({
+  model: xai.speech(),
+  text: 'Hello world.',
+  providerOptions: {
+    xai: { withTimestamps: true } satisfies XaiSpeechModelOptions,
+  },
+});
+
+const { traceId, duration, audioTimestamps } = result.providerMetadata.xai;
+```
 
 ### Model Capabilities
 

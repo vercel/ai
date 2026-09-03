@@ -1,5 +1,6 @@
 import {
   APICallError,
+  TypeValidationError,
   type LanguageModelV4,
   type LanguageModelV4CallOptions,
   type LanguageModelV4FunctionTool,
@@ -11,6 +12,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  createProviderStreamError,
   delay,
   DelayedPromise,
   dynamicTool,
@@ -44,6 +46,7 @@ import {
 import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
 import { Output, type LanguageModelCallEndEvent, type Telemetry } from '..';
+import { NoOutputGeneratedError, StreamProviderError } from '../error';
 import * as logWarningsModule from '../logger/log-warnings';
 import type { Instructions, LanguageModelCallOptions } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
@@ -53,6 +56,7 @@ import {
   asLanguageModelUsage,
   createNullLanguageModelUsage,
 } from '../types/usage';
+import { readUIMessageStream } from '../ui-message-stream/read-ui-message-stream';
 import type { StepResult } from './step-result';
 import { isLoopFinished, isStepCount } from './stop-condition';
 import { streamText } from './stream-text';
@@ -1285,6 +1289,7 @@ describe('streamText', () => {
               "file": DefaultGeneratedFileWithType {
                 "base64Data": "Hello World",
                 "mediaType": "text/plain",
+                "providerMetadata": undefined,
                 "type": "file",
                 "uint8ArrayData": undefined,
               },
@@ -1309,6 +1314,7 @@ describe('streamText', () => {
               "file": DefaultGeneratedFileWithType {
                 "base64Data": "QkFVRw==",
                 "mediaType": "image/jpeg",
+                "providerMetadata": undefined,
                 "type": "file",
                 "uint8ArrayData": undefined,
               },
@@ -1398,6 +1404,7 @@ describe('streamText', () => {
             "file": DefaultGeneratedFileWithType {
               "base64Data": "Hello World",
               "mediaType": "text/plain",
+              "providerMetadata": undefined,
               "type": "file",
               "uint8ArrayData": undefined,
             },
@@ -1412,6 +1419,7 @@ describe('streamText', () => {
             "file": DefaultGeneratedFileWithType {
               "base64Data": "QkFVRw==",
               "mediaType": "image/jpeg",
+              "providerMetadata": undefined,
               "type": "file",
               "uint8ArrayData": undefined,
             },
@@ -1446,6 +1454,7 @@ describe('streamText', () => {
               "file": DefaultGeneratedFileWithType {
                 "base64Data": "reasoning-file-data-1",
                 "mediaType": "image/png",
+                "providerMetadata": undefined,
                 "type": "file",
                 "uint8ArrayData": undefined,
               },
@@ -1470,6 +1479,7 @@ describe('streamText', () => {
               "file": DefaultGeneratedFileWithType {
                 "base64Data": "reasoning-file-data-2",
                 "mediaType": "image/jpeg",
+                "providerMetadata": undefined,
                 "type": "file",
                 "uint8ArrayData": undefined,
               },
@@ -2571,6 +2581,1288 @@ describe('streamText', () => {
       );
     });
 
+    it('should retry the current step after a provider error stream part', async () => {
+      let callCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream:
+              callCount++ === 0
+                ? convertArrayToReadableStream([
+                    { type: 'text-start', id: '1' },
+                    { type: 'text-delta', id: '1', delta: 'partial ' },
+                    { type: 'error', error: new Error('provider error') },
+                  ])
+                : convertArrayToReadableStream([
+                    { type: 'text-start', id: '2' },
+                    { type: 'text-delta', id: '2', delta: 'recovered' },
+                    { type: 'text-end', id: '2' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+          }),
+        }),
+        prompt: 'test-input',
+        maxRetries: 0,
+        streamRetries: 1,
+        onError: () => {},
+      });
+
+      expect(await convertAsyncIterableToArray(result.textStream)).toEqual([
+        'partial ',
+        'recovered',
+      ]);
+      expect(callCount).toBe(2);
+      expect(await result.finishReason).toBe('stop');
+    });
+
+    it('should exclude failed-attempt text from structured output state', async () => {
+      let callCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream:
+              callCount++ === 0
+                ? convertArrayToReadableStream([
+                    { type: 'text-start', id: '1' },
+                    { type: 'text-delta', id: '1', delta: '{"x":' },
+                    { type: 'error', error: new Error('provider error') },
+                  ])
+                : convertArrayToReadableStream([
+                    { type: 'text-start', id: '2' },
+                    { type: 'text-delta', id: '2', delta: '{"x":"ok"}' },
+                    { type: 'text-end', id: '2' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+          }),
+        }),
+        prompt: 'test-input',
+        output: Output.object({
+          schema: z.object({ x: z.string() }),
+        }),
+        streamRetries: 1,
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(await result.output).toEqual({ x: 'ok' });
+      expect((await result.finalStep).text).toBe('{"x":"ok"}');
+    });
+
+    it('should preserve attempt isolation when a transform reconstructs recovered parts', async () => {
+      let callCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            const call = ++callCount;
+
+            return {
+              request: { body: `request-${call}` },
+              response: { headers: { call: `${call}` } },
+              stream:
+                call === 1
+                  ? convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'failed-id',
+                        modelId: 'failed-model',
+                        timestamp: new Date(1),
+                      },
+                      { type: 'text-start', id: 'failed-text' },
+                      {
+                        type: 'text-delta',
+                        id: 'failed-text',
+                        delta: '{"x":',
+                      },
+                      { type: 'error', error: new Error('provider error') },
+                    ])
+                  : convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'recovered-id',
+                        modelId: 'recovered-model',
+                        timestamp: new Date(2),
+                      },
+                      { type: 'text-start', id: 'recovered-text' },
+                      {
+                        type: 'text-delta',
+                        id: 'recovered-text',
+                        delta: '{"x":"ok"}',
+                      },
+                      { type: 'text-end', id: 'recovered-text' },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'stop', raw: 'stop' },
+                        usage: testUsage,
+                      },
+                    ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        output: Output.object({
+          schema: z.object({ x: z.string() }),
+        }),
+        streamRetries: 1,
+        include: { requestBody: true },
+        experimental_transform: () =>
+          new TransformStream<TextStreamPart<any>, TextStreamPart<any>>({
+            transform(chunk, controller) {
+              if (chunk.type === 'text-start') {
+                controller.enqueue({
+                  type: 'text-start',
+                  id: chunk.id,
+                  providerMetadata: chunk.providerMetadata,
+                });
+                return;
+              }
+
+              controller.enqueue(chunk);
+            },
+          }),
+        onError: () => {},
+      });
+
+      expect(
+        await convertAsyncIterableToArray(result.textStream),
+      ).toStrictEqual(['{"x":', '{"x":"ok"}']);
+      expect(await result.output).toEqual({ x: 'ok' });
+
+      const finalStep = await result.finalStep;
+      expect(finalStep.text).toBe('{"x":"ok"}');
+      expect(finalStep.request.body).toBe('request-2');
+      expect(finalStep.response).toMatchObject({
+        id: 'recovered-id',
+        modelId: 'recovered-model',
+        timestamp: new Date(2),
+        headers: { call: '2' },
+        messages: [
+          {
+            role: 'assistant',
+            content: [
+              expect.objectContaining({
+                type: 'text',
+                text: '{"x":"ok"}',
+              }),
+            ],
+          },
+        ],
+      });
+      expect(await result.responseMessages).toEqual(
+        finalStep.response.messages,
+      );
+    });
+
+    it('should reset failed-attempt state when the recovered stream ends without output', async () => {
+      let callCount = 0;
+      const onError = vi.fn();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream:
+              callCount++ === 0
+                ? convertArrayToReadableStream([
+                    { type: 'text-start', id: 'failed-text' },
+                    {
+                      type: 'text-delta',
+                      id: 'failed-text',
+                      delta: 'partial',
+                    },
+                    { type: 'error', error: new Error('provider error') },
+                  ])
+                : convertArrayToReadableStream([]),
+          }),
+        }),
+        prompt: 'test-input',
+        streamRetries: 1,
+        onError,
+      });
+
+      const parts = await convertAsyncIterableToArray(result.fullStream);
+      const terminalError = parts.find(part => part.type === 'error');
+
+      expect(callCount).toBe(2);
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'text-delta',
+          id: 'failed-text',
+          text: 'partial',
+        }),
+      );
+      expect(terminalError?.type).toBe('error');
+      if (terminalError?.type !== 'error') {
+        expect.fail('Expected a terminal error part');
+      }
+      expect(NoOutputGeneratedError.isInstance(terminalError.error)).toBe(true);
+      await expect(result.text).rejects.toThrow(
+        'No output generated. The model stream ended without a finish chunk.',
+      );
+      expect(onError).toHaveBeenNthCalledWith(1, {
+        error: new Error('provider error'),
+      });
+      expect(onError).toHaveBeenNthCalledWith(2, {
+        error: expect.objectContaining({
+          message:
+            'No output generated. The model stream ended without a finish chunk.',
+        }),
+      });
+    });
+
+    it('should recover when the first recovered provider part is frozen', async () => {
+      let callCount = 0;
+      const recoveredTextStart = Object.freeze({
+        type: 'text-start' as const,
+        id: 'recovered-text',
+      });
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream:
+              callCount++ === 0
+                ? convertArrayToReadableStream([
+                    { type: 'error', error: new Error('provider error') },
+                  ])
+                : convertArrayToReadableStream([
+                    recoveredTextStart,
+                    {
+                      type: 'text-delta',
+                      id: 'recovered-text',
+                      delta: 'recovered',
+                    },
+                    { type: 'text-end', id: 'recovered-text' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+          }),
+        }),
+        prompt: 'test-input',
+        streamRetries: 1,
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(callCount).toBe(2);
+      expect(await result.text).toBe('recovered');
+      expect(await result.finishReason).toBe('stop');
+    });
+
+    it('should use request and response metadata from the recovered attempt', async () => {
+      let callCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            const call = ++callCount;
+
+            return {
+              request: { body: `request-${call}` },
+              response: { headers: { call: `${call}` } },
+              stream:
+                call === 1
+                  ? convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'failed-id',
+                        modelId: 'failed-model',
+                        timestamp: new Date(1),
+                      },
+                      { type: 'text-start', id: '1' },
+                      { type: 'text-delta', id: '1', delta: 'partial' },
+                      { type: 'error', error: new Error('provider error') },
+                    ])
+                  : convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'recovered-id',
+                        modelId: 'recovered-model',
+                        timestamp: new Date(2),
+                      },
+                      { type: 'text-start', id: '2' },
+                      { type: 'text-delta', id: '2', delta: 'recovered' },
+                      { type: 'text-end', id: '2' },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'stop', raw: 'stop' },
+                        usage: testUsage,
+                      },
+                    ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        streamRetries: 1,
+        include: { requestBody: true },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      const finalStep = await result.finalStep;
+      expect(finalStep.request.body).toBe('request-2');
+      expect(finalStep.response).toMatchObject({
+        id: 'recovered-id',
+        modelId: 'recovered-model',
+        timestamp: new Date(2),
+        headers: { call: '2' },
+      });
+    });
+
+    it('should retry the current step when onError requests a retry', async () => {
+      let callCount = 0;
+      const onError = vi.fn(() => ({ retry: true }) as const);
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream:
+              callCount++ === 0
+                ? convertArrayToReadableStream([
+                    { type: 'error', error: new Error('provider error') },
+                  ])
+                : convertArrayToReadableStream([
+                    { type: 'text-start', id: '1' },
+                    { type: 'text-delta', id: '1', delta: 'recovered' },
+                    { type: 'text-end', id: '1' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+          }),
+        }),
+        prompt: 'test-input',
+        streamRetries: 0,
+        onError,
+      });
+
+      expect(await convertAsyncIterableToArray(result.textStream)).toEqual([
+        'recovered',
+      ]);
+      expect(callCount).toBe(2);
+      expect(onError).toHaveBeenCalledTimes(1);
+    });
+
+    it('should allow at most one callback-directed retry per logical step', async () => {
+      let callCount = 0;
+      const onError = vi.fn(() =>
+        callCount <= 2 ? ({ retry: true } as const) : undefined,
+      );
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'error',
+                error: new Error(`provider error ${++callCount}`),
+              },
+            ]),
+          }),
+        }),
+        prompt: 'test-input',
+        streamRetries: 0,
+        onError,
+      });
+
+      const parts = await convertAsyncIterableToArray(result.fullStream);
+
+      expect(callCount).toBe(2);
+      expect(onError).toHaveBeenCalledTimes(2);
+      expect(parts).toContainEqual({
+        type: 'error',
+        error: new Error('provider error 2'),
+      });
+      expect(await result.finishReason).toBe('error');
+    });
+
+    it('should use only recovered transformed content in the next step context', async () => {
+      let callCount = 0;
+      const nextStepPrompts: ModelMessage[][] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async options => {
+            switch (callCount++) {
+              case 0:
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'text-start', id: 'failed-text' },
+                    {
+                      type: 'text-delta',
+                      id: 'failed-text',
+                      delta: 'partial',
+                    },
+                    { type: 'error', error: new Error('provider error') },
+                  ]),
+                };
+              case 1:
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'text-start', id: 'recovered-text' },
+                    {
+                      type: 'text-delta',
+                      id: 'recovered-text',
+                      delta: 'recovered',
+                    },
+                    { type: 'text-end', id: 'recovered-text' },
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'tool-call-1',
+                      toolName: 'tool1',
+                      input: '{}',
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: {
+                        unified: 'tool-calls',
+                        raw: 'tool-calls',
+                      },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              default:
+                nextStepPrompts.push(options.prompt);
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'text-start', id: 'final-text' },
+                    {
+                      type: 'text-delta',
+                      id: 'final-text',
+                      delta: 'done',
+                    },
+                    { type: 'text-end', id: 'final-text' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+            }
+          },
+        }),
+        prompt: 'test-input',
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({}),
+            execute: async () => 'tool result',
+          }),
+        },
+        stopWhen: isStepCount(2),
+        streamRetries: 1,
+        experimental_transform: () =>
+          new TransformStream<TextStreamPart<any>, TextStreamPart<any>>({
+            transform(chunk, controller) {
+              if (chunk.type === 'text-start') {
+                controller.enqueue({
+                  type: 'text-start',
+                  id: chunk.id,
+                  providerMetadata: chunk.providerMetadata,
+                });
+                return;
+              }
+
+              if (chunk.type === 'text-delta') {
+                controller.enqueue({
+                  ...chunk,
+                  text: chunk.text.toUpperCase(),
+                });
+                return;
+              }
+
+              controller.enqueue(chunk);
+            },
+          }),
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(nextStepPrompts).toHaveLength(1);
+      expect(JSON.stringify(nextStepPrompts[0])).toContain('RECOVERED');
+      expect(JSON.stringify(nextStepPrompts[0])).not.toContain('partial');
+      expect((await result.steps)[0].text).toBe('RECOVERED');
+      expect((await result.steps)[1].text).toBe('DONE');
+    });
+
+    it('should preserve completed steps when retrying a later step', async () => {
+      let callCount = 0;
+      const execute = vi.fn(async () => 'tool result');
+      const prepareStep = vi.fn();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            switch (callCount++) {
+              case 0:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'tool-call-1',
+                      toolName: 'tool1',
+                      input: '{}',
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: {
+                        unified: 'tool-calls',
+                        raw: 'tool-calls',
+                      },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              case 1:
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'error', error: new Error('provider error') },
+                  ]),
+                };
+              default:
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'text-start', id: '1' },
+                    { type: 'text-delta', id: '1', delta: 'recovered' },
+                    { type: 'text-end', id: '1' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+            }
+          },
+        }),
+        prompt: 'test-input',
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({}),
+            execute,
+          }),
+        },
+        stopWhen: isStepCount(2),
+        prepareStep,
+        streamRetries: 1,
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(callCount).toBe(3);
+      expect(execute).toHaveBeenCalledTimes(1);
+      expect(prepareStep).toHaveBeenCalledTimes(2);
+      expect(await result.steps).toHaveLength(2);
+      expect((await result.steps)[0].toolResults).toHaveLength(1);
+      expect((await result.steps)[1].text).toBe('recovered');
+    });
+
+    it('should discard tool calls from a failed attempt', async () => {
+      let callCount = 0;
+      const execute = vi.fn(async () => 'tool result');
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream:
+              callCount++ === 0
+                ? convertArrayToReadableStream([
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'failed-tool-call',
+                      toolName: 'tool1',
+                      input: '{}',
+                    },
+                    { type: 'error', error: new Error('provider error') },
+                  ])
+                : convertArrayToReadableStream([
+                    { type: 'text-start', id: '1' },
+                    { type: 'text-delta', id: '1', delta: 'recovered' },
+                    { type: 'text-end', id: '1' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+          }),
+        }),
+        prompt: 'test-input',
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({}),
+            execute,
+          }),
+        },
+        streamRetries: 1,
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(callCount).toBe(2);
+      expect(execute).not.toHaveBeenCalled();
+      expect((await result.finalStep).toolCalls).toEqual([]);
+      expect((await result.finalStep).toolResults).toEqual([]);
+    });
+
+    it('should execute a repeated tool call id only from the recovered attempt', async () => {
+      let callCount = 0;
+      const execute = vi.fn(async () => 'tool result');
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream:
+              callCount++ === 0
+                ? convertArrayToReadableStream([
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'shared-tool-call',
+                      toolName: 'tool1',
+                      input: '{}',
+                    },
+                    { type: 'error', error: new Error('provider error') },
+                  ])
+                : convertArrayToReadableStream([
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'shared-tool-call',
+                      toolName: 'tool1',
+                      input: '{}',
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: {
+                        unified: 'tool-calls',
+                        raw: 'tool-calls',
+                      },
+                      usage: testUsage,
+                    },
+                  ]),
+          }),
+        }),
+        prompt: 'test-input',
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({}),
+            execute,
+          }),
+        },
+        streamRetries: 1,
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(callCount).toBe(2);
+      expect(execute).toHaveBeenCalledTimes(1);
+      expect((await result.finalStep).toolCalls).toHaveLength(1);
+      expect((await result.finalStep).toolResults).toHaveLength(1);
+    });
+
+    it('should discard tool callbacks and approvals from a failed attempt', async () => {
+      let callCount = 0;
+      const onInputStart = vi.fn();
+      const onInputDelta = vi.fn();
+      const onInputAvailable = vi.fn();
+      const toolApproval = vi.fn(() => 'approved' as const);
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream:
+              callCount++ === 0
+                ? convertArrayToReadableStream([
+                    {
+                      type: 'tool-input-start',
+                      id: 'failed-tool-call',
+                      toolName: 'tool1',
+                    },
+                    {
+                      type: 'tool-input-delta',
+                      id: 'failed-tool-call',
+                      delta: '{}',
+                    },
+                    {
+                      type: 'tool-input-end',
+                      id: 'failed-tool-call',
+                    },
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'failed-tool-call',
+                      toolName: 'tool1',
+                      input: '{}',
+                    },
+                    { type: 'error', error: new Error('provider error') },
+                  ])
+                : convertArrayToReadableStream([
+                    { type: 'text-start', id: '1' },
+                    { type: 'text-delta', id: '1', delta: 'recovered' },
+                    { type: 'text-end', id: '1' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+          }),
+        }),
+        prompt: 'test-input',
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({}),
+            onInputStart,
+            onInputDelta,
+            onInputAvailable,
+          }),
+        },
+        toolApproval,
+        streamRetries: 1,
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(onInputStart).not.toHaveBeenCalled();
+      expect(onInputDelta).not.toHaveBeenCalled();
+      expect(onInputAvailable).not.toHaveBeenCalled();
+      expect(toolApproval).not.toHaveBeenCalled();
+    });
+
+    it('should scope lifecycle callbacks to logical steps and completed model calls', async () => {
+      let callCount = 0;
+      const onStepStart = vi.fn();
+      const onLanguageModelCallStart = vi.fn();
+      const onLanguageModelCallEnd = vi.fn();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream:
+              callCount++ === 0
+                ? convertArrayToReadableStream([
+                    { type: 'error', error: new Error('provider error') },
+                  ])
+                : convertArrayToReadableStream([
+                    { type: 'text-start', id: '1' },
+                    { type: 'text-delta', id: '1', delta: 'recovered' },
+                    { type: 'text-end', id: '1' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+          }),
+        }),
+        prompt: 'test-input',
+        streamRetries: 1,
+        onStepStart,
+        onLanguageModelCallStart,
+        onLanguageModelCallEnd,
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(onStepStart).toHaveBeenCalledTimes(1);
+      expect(onLanguageModelCallStart).toHaveBeenCalledTimes(2);
+      expect(onLanguageModelCallEnd).toHaveBeenCalledTimes(1);
+      expect(await result.steps).toHaveLength(1);
+    });
+
+    it('should close partial text and reasoning before recovered UI output', async () => {
+      let callCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream:
+              callCount++ === 0
+                ? convertArrayToReadableStream([
+                    { type: 'text-start', id: 'failed-text' },
+                    {
+                      type: 'text-delta',
+                      id: 'failed-text',
+                      delta: 'partial text',
+                    },
+                    { type: 'reasoning-start', id: 'failed-reasoning' },
+                    {
+                      type: 'reasoning-delta',
+                      id: 'failed-reasoning',
+                      delta: 'partial reasoning',
+                    },
+                    { type: 'error', error: new Error('provider error') },
+                  ])
+                : convertArrayToReadableStream([
+                    { type: 'text-start', id: 'recovered-text' },
+                    {
+                      type: 'text-delta',
+                      id: 'recovered-text',
+                      delta: 'recovered text',
+                    },
+                    { type: 'text-end', id: 'recovered-text' },
+                    {
+                      type: 'reasoning-start',
+                      id: 'recovered-reasoning',
+                    },
+                    {
+                      type: 'reasoning-delta',
+                      id: 'recovered-reasoning',
+                      delta: 'recovered reasoning',
+                    },
+                    {
+                      type: 'reasoning-end',
+                      id: 'recovered-reasoning',
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+          }),
+        }),
+        prompt: 'test-input',
+        streamRetries: 1,
+        onError: () => {},
+      });
+
+      const messages = await convertAsyncIterableToArray(
+        readUIMessageStream({ stream: result.toUIMessageStream() }),
+      );
+
+      expect(messages.at(-1)?.parts).toEqual([
+        {
+          type: 'step-start',
+        },
+        {
+          type: 'text',
+          text: 'partial text',
+          providerMetadata: undefined,
+          state: 'done',
+        },
+        {
+          type: 'reasoning',
+          id: 'failed-reasoning',
+          text: 'partial reasoning',
+          providerMetadata: undefined,
+          state: 'done',
+        },
+        {
+          type: 'text',
+          text: 'recovered text',
+          providerMetadata: undefined,
+          state: 'done',
+        },
+        {
+          type: 'reasoning',
+          id: 'recovered-reasoning',
+          text: 'recovered reasoning',
+          providerMetadata: undefined,
+          state: 'done',
+        },
+      ]);
+    });
+
+    it('should stream tool parts incrementally when recovery is not configured', async () => {
+      let providerController!: ReadableStreamDefaultController<LanguageModelV4StreamPart>;
+      const providerStream = new ReadableStream<LanguageModelV4StreamPart>({
+        start(controller) {
+          providerController = controller;
+        },
+      });
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({ stream: providerStream }),
+        }),
+        prompt: 'test-input',
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+          }),
+        },
+      });
+
+      const reader = result.fullStream.getReader();
+      const readUntil = async (type: TextStreamPart<ToolSet>['type']) => {
+        while (true) {
+          const readResult = await Promise.race([
+            reader.read(),
+            delay(100).then(() => {
+              throw new Error(`Timed out waiting for ${type}`);
+            }),
+          ]);
+
+          if (readResult.done || readResult.value.type === type) {
+            return readResult;
+          }
+        }
+      };
+
+      providerController.enqueue({
+        type: 'tool-input-start',
+        id: 'tool-call-1',
+        toolName: 'tool1',
+      });
+      expect((await readUntil('tool-input-start')).value).toEqual({
+        type: 'tool-input-start',
+        id: 'tool-call-1',
+        toolName: 'tool1',
+        providerExecuted: undefined,
+        dynamic: false,
+      });
+
+      providerController.enqueue({
+        type: 'tool-call',
+        toolCallId: 'tool-call-1',
+        toolName: 'tool1',
+        input: '{"value":"test"}',
+      });
+      expect((await readUntil('tool-call')).value).toEqual(
+        expect.objectContaining({
+          type: 'tool-call',
+          toolCallId: 'tool-call-1',
+          toolName: 'tool1',
+          input: { value: 'test' },
+        }),
+      );
+
+      providerController.enqueue({
+        type: 'finish',
+        finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+        usage: testUsage,
+      });
+      providerController.close();
+
+      while (!(await reader.read()).done) {}
+    });
+
+    it('should stream tool parts incrementally for an existing onError observer', async () => {
+      let providerController!: ReadableStreamDefaultController<LanguageModelV4StreamPart>;
+      const providerStream = new ReadableStream<LanguageModelV4StreamPart>({
+        start(controller) {
+          providerController = controller;
+        },
+      });
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({ stream: providerStream }),
+        }),
+        prompt: 'test-input',
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+          }),
+        },
+        onError: () => {},
+      });
+
+      const reader = result.fullStream.getReader();
+      const readUntil = async (type: TextStreamPart<ToolSet>['type']) => {
+        while (true) {
+          const readResult = await Promise.race([
+            reader.read(),
+            delay(100).then(() => {
+              throw new Error(`Timed out waiting for ${type}`);
+            }),
+          ]);
+
+          if (readResult.done || readResult.value.type === type) {
+            return readResult;
+          }
+        }
+      };
+
+      providerController.enqueue({
+        type: 'tool-input-start',
+        id: 'tool-call-1',
+        toolName: 'tool1',
+      });
+      expect((await readUntil('tool-input-start')).value).toEqual({
+        type: 'tool-input-start',
+        id: 'tool-call-1',
+        toolName: 'tool1',
+        providerExecuted: undefined,
+        dynamic: false,
+      });
+
+      providerController.enqueue({
+        type: 'tool-call',
+        toolCallId: 'tool-call-1',
+        toolName: 'tool1',
+        input: '{"value":"test"}',
+      });
+      expect((await readUntil('tool-call')).value).toEqual(
+        expect.objectContaining({
+          type: 'tool-call',
+          toolCallId: 'tool-call-1',
+          toolName: 'tool1',
+          input: { value: 'test' },
+        }),
+      );
+
+      providerController.enqueue({
+        type: 'finish',
+        finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+        usage: testUsage,
+      });
+      providerController.close();
+
+      while (!(await reader.read()).done) {}
+    });
+
+    it('should not retry from an existing onError observer without streamRetries', async () => {
+      let callCount = 0;
+      const onError = vi.fn(() => ({ retry: true }) as const);
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream:
+              callCount++ === 0
+                ? convertArrayToReadableStream([
+                    { type: 'error', error: new Error('provider error') },
+                  ])
+                : convertArrayToReadableStream([
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+          }),
+        }),
+        prompt: 'test-input',
+        onError,
+      });
+
+      await result.consumeStream();
+
+      expect(callCount).toBe(1);
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(await result.finishReason).toBe('error');
+    });
+
+    it('should preserve onChunk before onError ordering when retries are disabled', async () => {
+      const callbackOrder: string[] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'error', error: new Error('provider error') },
+            ]),
+          }),
+        }),
+        prompt: 'test-input',
+        onChunk: ({ chunk }) => {
+          if (chunk.type === 'error') {
+            callbackOrder.push('onChunk');
+          }
+        },
+        onError: () => {
+          callbackOrder.push('onError');
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(callbackOrder).toEqual(['onChunk', 'onError']);
+    });
+
+    it('should emit the final error after stream retries are exhausted', async () => {
+      let callCount = 0;
+      const onError = vi.fn();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'error',
+                error: new Error(`provider error ${++callCount}`),
+              },
+            ]),
+          }),
+        }),
+        prompt: 'test-input',
+        streamRetries: 1,
+        onError,
+      });
+
+      const parts = await convertAsyncIterableToArray(result.fullStream);
+
+      expect(callCount).toBe(2);
+      expect(onError).toHaveBeenCalledTimes(2);
+      expect(parts).toContainEqual({
+        type: 'error',
+        error: new Error('provider error 2'),
+      });
+      expect(await result.finishReason).toBe('error');
+    });
+
+    it('should emit a normal terminal error when a recovery call fails to start', async () => {
+      let callCount = 0;
+      const onError = vi.fn();
+      const onFinish = vi.fn();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            if (callCount++ === 0) {
+              return {
+                stream: convertArrayToReadableStream([
+                  { type: 'text-start', id: 'failed-text' },
+                  {
+                    type: 'text-delta',
+                    id: 'failed-text',
+                    delta: 'partial',
+                  },
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'failed-tool-call',
+                    toolName: 'tool1',
+                    input: '{}',
+                  },
+                  { type: 'error', error: new Error('provider error') },
+                ]),
+              };
+            }
+
+            throw new Error('recovery startup error');
+          },
+        }),
+        prompt: 'test-input',
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({}),
+            execute: vi.fn(),
+          }),
+        },
+        maxRetries: 0,
+        streamRetries: 1,
+        onError,
+        onFinish,
+      });
+
+      const parts = await convertAsyncIterableToArray(result.fullStream);
+
+      expect(callCount).toBe(2);
+      expect(parts).toContainEqual({
+        type: 'error',
+        error: new Error('recovery startup error'),
+      });
+      expect(parts).not.toContainEqual(
+        expect.objectContaining({
+          type: 'tool-call',
+          toolCallId: 'failed-tool-call',
+        }),
+      );
+      expect(onError).toHaveBeenNthCalledWith(1, {
+        error: new Error('provider error'),
+      });
+      expect(onError).toHaveBeenNthCalledWith(2, {
+        error: new Error('recovery startup error'),
+      });
+      expect(onFinish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          finishReason: 'error',
+          text: 'partial',
+          toolCalls: [],
+          toolResults: [],
+        }),
+      );
+      expect(await result.finishReason).toBe('error');
+      expect(await result.text).toBe('partial');
+      expect((await result.finalStep).toolCalls).toEqual([]);
+    });
+
+    it('should reject invalid streamRetries values', () => {
+      expect(() =>
+        streamText({
+          model: new MockLanguageModelV4(),
+          prompt: 'test-input',
+          streamRetries: -1,
+        }),
+      ).toThrow('streamRetries must be >= 0');
+    });
+
+    it('should expose the same normalized provider error to onError and stream consumers', async () => {
+      let onErrorValue: unknown;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          provider: 'anthropic.messages',
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              {
+                type: 'error',
+                error: createProviderStreamError({
+                  message: 'Overloaded',
+                  type: 'overloaded_error',
+                  code: 'provider_overloaded',
+                  statusCode: 529,
+                  isRetryable: true,
+                  data: {
+                    type: 'overloaded_error',
+                    message: 'Overloaded',
+                  },
+                }),
+              },
+            ]),
+          }),
+        }),
+        prompt: 'test-input',
+        onError: ({ error }) => {
+          onErrorValue = error;
+        },
+      });
+
+      const parts = await convertAsyncIterableToArray(result.stream);
+      const errorPart = parts.find(part => part.type === 'error');
+
+      expect(errorPart?.type).toBe('error');
+      if (errorPart?.type !== 'error') {
+        expect.fail('Expected an error part');
+      }
+
+      expect(StreamProviderError.isInstance(errorPart.error)).toBe(true);
+      expect(errorPart.error).toMatchObject({
+        message: 'Overloaded',
+        type: 'overloaded_error',
+        code: 'provider_overloaded',
+        statusCode: 529,
+        isRetryable: true,
+      });
+      expect(onErrorValue).toBe(errorPart.error);
+    });
+
     it('should invoke onError callback when error is thrown in 2nd step', async () => {
       const onError = vi.fn();
       let responseCount = 0;
@@ -2638,6 +3930,14 @@ describe('streamText', () => {
       await expect(result.text).rejects.toThrow(
         'No output generated. Check the stream for errors.',
       );
+      await expect(
+        Promise.race([
+          Promise.resolve(result.output),
+          delay(100).then(() => {
+            throw new Error('output did not settle');
+          }),
+        ]),
+      ).rejects.toThrow('No output generated. Check the stream for errors.');
     });
 
     it('should reject when provider stream closes before finish chunk', async () => {
@@ -2676,6 +3976,16 @@ describe('streamText', () => {
         'No output generated. The model stream ended without a finish chunk.',
       );
       await expect(result.totalUsage).rejects.toThrow(
+        'No output generated. The model stream ended without a finish chunk.',
+      );
+      await expect(
+        Promise.race([
+          Promise.resolve(result.output),
+          delay(100).then(() => {
+            throw new Error('output did not settle');
+          }),
+        ]),
+      ).rejects.toThrow(
         'No output generated. The model stream ended without a finish chunk.',
       );
       expect(onError).toHaveBeenCalledWith({
@@ -6774,6 +8084,7 @@ describe('streamText', () => {
                 "file": DefaultGeneratedFileWithType {
                   "base64Data": "Hello World",
                   "mediaType": "text/plain",
+                  "providerMetadata": undefined,
                   "type": "file",
                   "uint8ArrayData": undefined,
                 },
@@ -6788,6 +8099,7 @@ describe('streamText', () => {
                 "file": DefaultGeneratedFileWithType {
                   "base64Data": "QkFVRw==",
                   "mediaType": "image/jpeg",
+                  "providerMetadata": undefined,
                   "type": "file",
                   "uint8ArrayData": undefined,
                 },
@@ -6892,6 +8204,7 @@ describe('streamText', () => {
                 "file": DefaultGeneratedFileWithType {
                   "base64Data": "reasoning-file-data-1",
                   "mediaType": "image/png",
+                  "providerMetadata": undefined,
                   "type": "file",
                   "uint8ArrayData": undefined,
                 },
@@ -6906,6 +8219,7 @@ describe('streamText', () => {
                 "file": DefaultGeneratedFileWithType {
                   "base64Data": "reasoning-file-data-2",
                   "mediaType": "image/jpeg",
+                  "providerMetadata": undefined,
                   "type": "file",
                   "uint8ArrayData": undefined,
                 },
@@ -10182,6 +11496,42 @@ describe('streamText', () => {
         ]
       `);
     });
+
+    it('should continue stream processing when onChunk throws', async () => {
+      const onStepFinish = vi.fn();
+      const onFinish = vi.fn();
+
+      const resultObject = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onChunk({ chunk }) {
+          if (chunk.type === 'text-delta') {
+            throw new Error('callback error');
+          }
+        },
+        onStepFinish,
+        onFinish,
+      });
+
+      await expect(
+        convertAsyncIterableToArray(resultObject.textStream),
+      ).resolves.toStrictEqual(['Hello']);
+      await expect(resultObject.finishReason).resolves.toBe('stop');
+      await expect(resultObject.steps).resolves.toHaveLength(1);
+      expect(onStepFinish).toHaveBeenCalledOnce();
+      expect(onFinish).toHaveBeenCalledOnce();
+    });
   });
 
   describe('options.onError', () => {
@@ -10203,6 +11553,42 @@ describe('streamText', () => {
       await resultObject.consumeStream();
 
       expect(result).toStrictEqual([{ error: new Error('test error') }]);
+    });
+
+    it('should preserve error parts and finish callbacks when onError throws', async () => {
+      const error = new Error('provider error');
+      const onStepFinish = vi.fn();
+      const onFinish = vi.fn();
+
+      const resultObject = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'error', error },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'error', raw: 'error' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onError() {
+          throw new Error('callback error');
+        },
+        onStepFinish,
+        onFinish,
+      });
+
+      await expect(
+        convertAsyncIterableToArray(resultObject.fullStream),
+      ).resolves.toContainEqual({ type: 'error', error });
+      await expect(resultObject.finishReason).resolves.toBe('error');
+      await expect(resultObject.steps).resolves.toHaveLength(1);
+      expect(onStepFinish).toHaveBeenCalledOnce();
+      expect(onFinish).toHaveBeenCalledOnce();
     });
   });
 
@@ -11138,6 +12524,7 @@ describe('streamText', () => {
               "file": DefaultGeneratedFileWithType {
                 "base64Data": "Hello World",
                 "mediaType": "text/plain",
+                "providerMetadata": undefined,
                 "type": "file",
                 "uint8ArrayData": undefined,
               },
@@ -11152,6 +12539,7 @@ describe('streamText', () => {
               "file": DefaultGeneratedFileWithType {
                 "base64Data": "QkFVRw==",
                 "mediaType": "image/jpeg",
+                "providerMetadata": undefined,
                 "type": "file",
                 "uint8ArrayData": undefined,
               },
@@ -11164,12 +12552,14 @@ describe('streamText', () => {
             DefaultGeneratedFileWithType {
               "base64Data": "Hello World",
               "mediaType": "text/plain",
+              "providerMetadata": undefined,
               "type": "file",
               "uint8ArrayData": undefined,
             },
             DefaultGeneratedFileWithType {
               "base64Data": "QkFVRw==",
               "mediaType": "image/jpeg",
+              "providerMetadata": undefined,
               "type": "file",
               "uint8ArrayData": undefined,
             },
@@ -11181,6 +12571,7 @@ describe('streamText', () => {
                 "file": DefaultGeneratedFileWithType {
                   "base64Data": "Hello World",
                   "mediaType": "text/plain",
+                  "providerMetadata": undefined,
                   "type": "file",
                   "uint8ArrayData": undefined,
                 },
@@ -11195,6 +12586,7 @@ describe('streamText', () => {
                 "file": DefaultGeneratedFileWithType {
                   "base64Data": "QkFVRw==",
                   "mediaType": "image/jpeg",
+                  "providerMetadata": undefined,
                   "type": "file",
                   "uint8ArrayData": undefined,
                 },
@@ -11360,6 +12752,7 @@ describe('streamText', () => {
                   "file": DefaultGeneratedFileWithType {
                     "base64Data": "Hello World",
                     "mediaType": "text/plain",
+                    "providerMetadata": undefined,
                     "type": "file",
                     "uint8ArrayData": undefined,
                   },
@@ -11374,6 +12767,7 @@ describe('streamText', () => {
                   "file": DefaultGeneratedFileWithType {
                     "base64Data": "QkFVRw==",
                     "mediaType": "image/jpeg",
+                    "providerMetadata": undefined,
                     "type": "file",
                     "uint8ArrayData": undefined,
                   },
@@ -15771,6 +17165,334 @@ describe('streamText', () => {
 
       expect(await result.text).toBe('Done!');
       expect((await result.steps).length).toBe(2);
+    });
+  });
+
+  describe('multi-step part IDs', () => {
+    it('should emit unique text part IDs across steps when providers reuse IDs', async () => {
+      let responseCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'text-start', id: '0' },
+                    { type: 'text-delta', id: '0', delta: 'Let me check.' },
+                    { type: 'text-end', id: '0' },
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: `{ "value": "test" }`,
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'tool-calls', raw: undefined },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              case 1:
+                return {
+                  stream: convertArrayToReadableStream([
+                    // provider part IDs restart at 0 on the new model call:
+                    { type: 'text-start', id: '0' },
+                    { type: 'text-delta', id: '0', delta: 'It is sunny.' },
+                    { type: 'text-end', id: '0' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          },
+        },
+        prompt: 'test-input',
+        stopWhen: isStepCount(2),
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+        },
+      });
+
+      const parts = await convertAsyncIterableToArray(result.stream);
+
+      // no mismatched part errors were recorded:
+      expect(parts.filter(part => part.type === 'error')).toEqual([]);
+
+      // the first provider ID is kept, the collision is remapped, and
+      // delta/end parts carry the same ID as their start part:
+      expect(
+        parts.filter(
+          part =>
+            part.type === 'text-start' ||
+            part.type === 'text-delta' ||
+            part.type === 'text-end',
+        ),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "0",
+            "type": "text-start",
+          },
+          {
+            "id": "0",
+            "providerMetadata": undefined,
+            "text": "Let me check.",
+            "type": "text-delta",
+          },
+          {
+            "id": "0",
+            "type": "text-end",
+          },
+          {
+            "id": "id-2",
+            "type": "text-start",
+          },
+          {
+            "id": "id-2",
+            "providerMetadata": undefined,
+            "text": "It is sunny.",
+            "type": "text-delta",
+          },
+          {
+            "id": "id-2",
+            "type": "text-end",
+          },
+        ]
+      `);
+
+      // the recorded step content is unchanged:
+      const steps = await result.steps;
+      expect(steps[0].text).toBe('Let me check.');
+      expect(steps[1].text).toBe('It is sunny.');
+    });
+
+    it('should emit unique reasoning part IDs across steps when providers reuse IDs', async () => {
+      let responseCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'reasoning-start', id: '0' },
+                    { type: 'reasoning-delta', id: '0', delta: 'thinking' },
+                    { type: 'reasoning-end', id: '0' },
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: `{ "value": "test" }`,
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'tool-calls', raw: undefined },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              case 1:
+                return {
+                  stream: convertArrayToReadableStream([
+                    // provider part IDs restart at 0 on the new model call:
+                    { type: 'reasoning-start', id: '0' },
+                    {
+                      type: 'reasoning-delta',
+                      id: '0',
+                      delta: 'thinking more',
+                    },
+                    { type: 'reasoning-end', id: '0' },
+                    { type: 'text-start', id: '1' },
+                    { type: 'text-delta', id: '1', delta: 'It is sunny.' },
+                    { type: 'text-end', id: '1' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          },
+        },
+        prompt: 'test-input',
+        stopWhen: isStepCount(2),
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+        },
+      });
+
+      const parts = await convertAsyncIterableToArray(result.stream);
+
+      // no mismatched part errors were recorded:
+      expect(parts.filter(part => part.type === 'error')).toEqual([]);
+
+      // the first provider ID is kept, the collision is remapped, and
+      // delta/end parts carry the same ID as their start part:
+      expect(
+        parts.filter(
+          part =>
+            part.type === 'reasoning-start' ||
+            part.type === 'reasoning-delta' ||
+            part.type === 'reasoning-end',
+        ),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "0",
+            "type": "reasoning-start",
+          },
+          {
+            "id": "0",
+            "providerMetadata": undefined,
+            "text": "thinking",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "0",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "id-2",
+            "type": "reasoning-start",
+          },
+          {
+            "id": "id-2",
+            "providerMetadata": undefined,
+            "text": "thinking more",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "id-2",
+            "type": "reasoning-end",
+          },
+        ]
+      `);
+
+      // the recorded step content is unchanged:
+      const steps = await result.steps;
+      expect(steps[0].reasoningText).toBe('thinking');
+      expect(steps[1].reasoningText).toBe('thinking more');
+    });
+
+    it('should keep provider part IDs as-is when they are unique across steps', async () => {
+      let responseCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'text-start', id: '0' },
+                    { type: 'text-delta', id: '0', delta: 'Hello' },
+                    { type: 'text-end', id: '0' },
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: `{ "value": "test" }`,
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'tool-calls', raw: undefined },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              case 1:
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'text-start', id: '1' },
+                    { type: 'text-delta', id: '1', delta: 'World' },
+                    { type: 'text-end', id: '1' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          },
+        },
+        prompt: 'test-input',
+        stopWhen: isStepCount(2),
+      });
+
+      const parts = await convertAsyncIterableToArray(result.stream);
+
+      expect(
+        parts.filter(
+          part =>
+            part.type === 'text-start' ||
+            part.type === 'text-delta' ||
+            part.type === 'text-end',
+        ),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "0",
+            "type": "text-start",
+          },
+          {
+            "id": "0",
+            "providerMetadata": undefined,
+            "text": "Hello",
+            "type": "text-delta",
+          },
+          {
+            "id": "0",
+            "type": "text-end",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "World",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+        ]
+      `);
     });
   });
 
@@ -20394,6 +22116,196 @@ describe('streamText', () => {
         expect(await result.output).toStrictEqual({ value: 'Hello, world!' });
       });
 
+      it('should expose parsed output to onEnd after the stream completes', async () => {
+        let callbackOutput: { value: string } | undefined;
+
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{ "value": "Hello, world!" }',
+              },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
+          prompt: 'prompt',
+          onEnd: ({ output }) => {
+            callbackOutput = output;
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(callbackOutput).toStrictEqual({ value: 'Hello, world!' });
+      });
+
+      it('should not delay output for an active onEnd callback', async () => {
+        const callbackStarted = new DelayedPromise<void>();
+        const finishCallback = new DelayedPromise<void>();
+
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{ "value": "Hello, world!" }',
+              },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
+          prompt: 'prompt',
+          onEnd: async () => {
+            callbackStarted.resolve();
+            await finishCallback.promise;
+          },
+        });
+
+        const outputPromise = Promise.resolve(result.output);
+        await callbackStarted.promise;
+
+        expect(await outputPromise).toStrictEqual({ value: 'Hello, world!' });
+
+        finishCallback.resolve();
+        await result.consumeStream();
+      });
+
+      it('should parse complete output once for onEnd and the output promise', async () => {
+        const output = Output.object({
+          schema: z.object({ value: z.string() }),
+        });
+        const parseCompleteOutput = vi.spyOn(output, 'parseCompleteOutput');
+        let callbackOutput: { value: string } | undefined;
+
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{ "value": "Hello, world!" }',
+              },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          output,
+          prompt: 'prompt',
+          onEnd: async ({ output }) => {
+            callbackOutput = output;
+          },
+        });
+
+        const [resultOutput] = await Promise.all([
+          result.output,
+          result.consumeStream(),
+        ]);
+
+        expect(resultOutput).toStrictEqual({ value: 'Hello, world!' });
+        expect(callbackOutput).toStrictEqual({ value: 'Hello, world!' });
+        expect(parseCompleteOutput).toHaveBeenCalledTimes(1);
+      });
+
+      it('should provide undefined output to onEnd when parsing fails', async () => {
+        let callbackOutput: { value: string } | undefined;
+
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{ "value": 42 }',
+              },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
+          prompt: 'prompt',
+          onEnd: ({ output }) => {
+            callbackOutput = output;
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(callbackOutput).toBeUndefined();
+        await expect(result.output).rejects.toThrow(
+          'No object generated: response did not match schema.',
+        );
+      });
+
+      it('should allow onEnd to await the output promise after asynchronous work', async () => {
+        const output = Output.object({
+          schema: z.object({ value: z.string() }),
+        });
+        let callbackOutput: { value: string } | undefined;
+        let result!: StreamTextResult<any, any, typeof output>;
+
+        result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{ "value": "Hello, world!" }',
+              },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          output,
+          prompt: 'prompt',
+          onEnd: async () => {
+            await delay(1);
+            callbackOutput = await result.output;
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(callbackOutput).toStrictEqual({ value: 'Hello, world!' });
+        expect(await result.output).toStrictEqual({ value: 'Hello, world!' });
+      });
+
       it('should call onFinish with the correct content', async () => {
         let result!: Parameters<
           Required<Parameters<typeof streamText>[0]>['onFinish']
@@ -20526,6 +22438,9 @@ describe('streamText', () => {
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
+            },
+            "output": {
+              "value": "Hello, world!",
             },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
@@ -20884,6 +22799,54 @@ describe('streamText', () => {
           expect(await result!.text).toMatchInlineSnapshot(
             `"{"elements":[{"content":"element 1"},{"content":"element 2"}]}"`,
           );
+        });
+      });
+
+      it('should error elementStream when the model exceeds maxItems', async () => {
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{"elements":[' },
+              { type: 'text-delta', id: '1', delta: '"element 1",' },
+              { type: 'text-delta', id: '1', delta: '"element 2",' },
+              { type: 'text-delta', id: '1', delta: '"element 3"]}' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          output: Output.array({
+            element: z.string(),
+            maxItems: 2,
+          }),
+          prompt: 'prompt',
+        });
+
+        const elements: string[] = [];
+        let streamError: unknown;
+
+        try {
+          for await (const element of result.elementStream) {
+            elements.push(element);
+          }
+        } catch (error) {
+          streamError = error;
+        }
+
+        expect(elements).toStrictEqual(['element 1', 'element 2']);
+        expect(TypeValidationError.isInstance(streamError)).toBe(true);
+        expect((streamError as TypeValidationError).message).toContain(
+          'elements array must contain at most 2 items',
+        );
+        await expect(result.output).rejects.toMatchObject({
+          name: 'AI_NoObjectGeneratedError',
+          cause: {
+            name: 'AI_TypeValidationError',
+          },
         });
       });
     });
@@ -24255,6 +26218,83 @@ describe('streamText', () => {
   });
 
   describe('programmatic tool calling', () => {
+    it('should stop for client tool approval while a provider tool result is deferred', async () => {
+      const execute = vi.fn();
+      let modelCallCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            modelCallCount++;
+
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'program-call',
+                  toolName: 'program',
+                  input: '{"code":"getHours()"}',
+                  providerExecuted: true,
+                },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'get-hours-call',
+                  toolName: 'getHours',
+                  input: '{"member":"Ada"}',
+                },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        tools: {
+          program: {
+            type: 'provider',
+            isProviderExecuted: true,
+            id: 'test.program',
+            inputSchema: z.object({ code: z.string() }),
+            args: {},
+            supportsDeferredResults: true,
+          },
+          getHours: tool({
+            inputSchema: z.object({ member: z.string() }),
+            execute,
+          }),
+        },
+        toolApproval: {
+          getHours: 'user-approval',
+        },
+        prompt: 'Get Ada hours with a program.',
+        stopWhen: isStepCount(3),
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
+        },
+      });
+
+      const parts = await convertAsyncIterableToArray(result.fullStream);
+
+      expect(modelCallCount).toBe(1);
+      expect(execute).not.toHaveBeenCalled();
+      expect(await result.steps).toHaveLength(1);
+      expect(parts.filter(part => part.type === 'error')).toEqual([]);
+      expect(
+        parts.filter(part => part.type === 'tool-approval-request'),
+      ).toMatchObject([
+        {
+          toolCall: {
+            toolCallId: 'get-hours-call',
+            toolName: 'getHours',
+          },
+        },
+      ]);
+    });
+
     describe('5 steps: code_execution triggers client tool across multiple turns (dice game fixture)', () => {
       let result: StreamTextResult<any, any, any>;
       let onFinishResult: Parameters<GenerateTextOnEndCallback<any, any>>[0];
@@ -26273,6 +28313,164 @@ describe('streamText', () => {
   });
 
   describe('tool execution approval', () => {
+    it('should surface the reason for streamed user approval requests', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start', warnings: [] },
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              input: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: { unified: 'tool-calls', raw: undefined },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+          }),
+        },
+        toolApproval: {
+          tool1: {
+            type: 'user-approval',
+            reason: 'requires operator review',
+          },
+        },
+        prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
+        },
+      });
+
+      expect(
+        (await result.content).find(
+          part => part.type === 'tool-approval-request',
+        ),
+      ).toMatchObject({
+        type: 'tool-approval-request',
+        approvalId: 'id-1',
+        reason: 'requires operator review',
+      });
+      expect(
+        await convertAsyncIterableToArray(result.toUIMessageStream()),
+      ).toContainEqual({
+        type: 'tool-approval-request',
+        approvalId: 'id-1',
+        toolCallId: 'call-1',
+        reason: 'requires operator review',
+      });
+      expect((await result.responseMessages)[0].content).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-approval-request',
+          approvalId: 'id-1',
+          reason: 'requires operator review',
+        }),
+      );
+    });
+
+    it('should stream invalid approved input as a tool error and continue', async () => {
+      const executeFunction = vi.fn().mockReturnValue('result1');
+      const prompts: LanguageModelV4Prompt[] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async ({ prompt }) => {
+            prompts.push(prompt);
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Recovered.' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        tools: {
+          deleteFile: tool({
+            inputSchema: z.object({ path: z.string() }),
+            execute: executeFunction,
+          }),
+        },
+        toolApproval: {
+          deleteFile: 'user-approval',
+        },
+        messages: [
+          { role: 'user', content: 'test-input' },
+          {
+            role: 'assistant',
+            content: [
+              {
+                input: { path: 42 },
+                toolCallId: 'call-1',
+                toolName: 'deleteFile',
+                type: 'tool-call',
+              },
+              {
+                approvalId: 'id-1',
+                toolCallId: 'call-1',
+                type: 'tool-approval-request',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                approvalId: 'id-1',
+                type: 'tool-approval-response',
+                approved: true,
+              },
+            ],
+          },
+        ],
+      });
+
+      const parts = await convertAsyncIterableToArray(result.stream);
+
+      expect(executeFunction).not.toHaveBeenCalled();
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-error',
+          toolCallId: 'call-1',
+          toolName: 'deleteFile',
+          error: expect.stringMatching(/Invalid input for tool deleteFile/),
+        }),
+      );
+      expect(
+        parts.find(
+          part => part.type === 'tool-error' && part.toolCallId === 'call-1',
+        ),
+      ).not.toHaveProperty('dynamic');
+      expect(await result.text).toBe('Recovered.');
+      expect(prompts[0].at(-1)).toMatchObject({
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'deleteFile',
+            output: {
+              type: 'error-text',
+              value: expect.stringMatching(/Invalid input for tool deleteFile/),
+            },
+          },
+        ],
+      });
+    });
+
     describe('when a single tool needs approval (user-defined)', () => {
       let result: StreamTextResult<any, any, any>;
 

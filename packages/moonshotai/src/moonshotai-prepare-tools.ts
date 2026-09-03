@@ -3,25 +3,20 @@ import {
   type LanguageModelV4CallOptions,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
+import type { MoonshotAIFunctionTool } from './moonshotai-chat-api-types';
+import type { MoonshotAIChatModelId } from './moonshotai-chat-options';
+import { normalizeJsonSchemaForMFJS } from './normalize-json-schema-for-mfjs';
 
 export function prepareTools({
   tools,
   toolChoice,
+  modelId,
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice?: LanguageModelV4CallOptions['toolChoice'];
+  modelId: MoonshotAIChatModelId;
 }): {
-  tools:
-    | undefined
-    | Array<{
-        type: 'function';
-        function: {
-          name: string;
-          description: string | undefined;
-          parameters: unknown;
-          strict?: boolean;
-        };
-      }>;
+  tools: undefined | Array<MoonshotAIFunctionTool>;
   toolChoice:
     | { type: 'function'; function: { name: string } }
     | 'auto'
@@ -39,15 +34,7 @@ export function prepareTools({
     return { tools: undefined, toolChoice: undefined, toolWarnings };
   }
 
-  const moonshotTools: Array<{
-    type: 'function';
-    function: {
-      name: string;
-      description: string | undefined;
-      parameters: unknown;
-      strict?: boolean;
-    };
-  }> = [];
+  const moonshotTools: Array<MoonshotAIFunctionTool> = [];
 
   for (const tool of tools) {
     if (tool.type === 'provider') {
@@ -61,7 +48,7 @@ export function prepareTools({
         function: {
           name: tool.name,
           description: tool.description,
-          parameters: tool.inputSchema,
+          parameters: normalizeJsonSchemaForMFJS(tool.inputSchema),
           ...(tool.strict != null ? { strict: tool.strict } : {}),
         },
       });
@@ -77,7 +64,25 @@ export function prepareTools({
   switch (type) {
     case 'auto':
     case 'none':
+      return { tools: moonshotTools, toolChoice: type, toolWarnings };
     case 'required':
+      if (
+        modelId === 'kimi-k2.6' ||
+        modelId === 'kimi-k2.7-code' ||
+        modelId === 'kimi-k2.7-code-highspeed'
+      ) {
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: `tool choice "required" for model "${modelId}"`,
+          details:
+            'Moonshot AI rejects required tool choice for this model. The setting has been omitted; use "auto" or select a specific tool instead.',
+        });
+        return {
+          tools: moonshotTools,
+          toolChoice: undefined,
+          toolWarnings,
+        };
+      }
       return { tools: moonshotTools, toolChoice: type, toolWarnings };
     case 'tool':
       return {

@@ -1,5 +1,90 @@
 # @ai-sdk/open-responses
 
+## 2.0.38
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
+## 2.0.37
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+
+## 2.0.36
+
+### Patch Changes
+
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 2.0.35
+
+### Patch Changes
+
+- 9a68261: add experimental codecs for Open Responses extension tools, items, and events, including lossless history replay
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
+## 2.0.34
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 2.0.33
+
+### Patch Changes
+
+- a0d2e8c: Stream Open Responses reasoning summary text deltas as reasoning output.
+
+## 2.0.32
+
+### Patch Changes
+
+- 35841f5: feat: normalize mid-stream provider error events across supported providers into public StreamProviderError instances and preserve provider-owned type, code, status, retry, and raw payload metadata
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
+## 2.0.31
+
+### Patch Changes
+
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 2.0.30
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+
+## 2.0.29
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
+## 2.0.28
+
+### Patch Changes
+
+- 3b9f025: Add a provider-native `reasoningEffort` option for Open Responses endpoints.
+- 1c1a9d1: Preserve Open Responses output item order, text annotations, reasoning state, and reasoning part boundaries when replaying manually managed history.
+- 6fe187f: fix(open-responses): close unfinished reasoning stream parts with their original IDs
+- 1d0bdaa: Warn when provider-defined tools are unsupported instead of silently dropping them.
+
 ## 2.0.27
 
 ### Patch Changes

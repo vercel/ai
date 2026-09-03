@@ -77,6 +77,7 @@ interface CallState {
   stepContext: OpenTelemetryContext | undefined;
   inferenceSpan: Span | undefined;
   inferenceContext: OpenTelemetryContext | undefined;
+  inferenceToolDefinitions?: ReadonlyArray<Record<string, unknown>>;
   embedSpans: Map<string, { span: Span; context: OpenTelemetryContext }>;
   rerankSpan: { span: Span; context: OpenTelemetryContext } | undefined;
   toolSpans: Map<string, { span: Span; context: OpenTelemetryContext }>;
@@ -582,9 +583,10 @@ export class OpenTelemetry implements Telemetry {
     );
     const value = event.value;
     const isMany = event.operationId === 'ai.embedMany';
+    const operationName = mapOperationName(event.operationId);
 
     const attributes = selectAttributes(telemetry, {
-      'gen_ai.operation.name': 'embeddings',
+      'gen_ai.operation.name': operationName,
       'gen_ai.provider.name': providerName,
       'gen_ai.request.model': event.modelId,
       ...baseSupplementalAttributes,
@@ -603,7 +605,7 @@ export class OpenTelemetry implements Telemetry {
       }),
     });
 
-    const spanName = `embeddings ${event.modelId}`;
+    const spanName = `${operationName} ${event.modelId}`;
     const rootSpan = this.tracer.startSpan(spanName, {
       attributes: this.getSpanAttributes({
         attributes,
@@ -682,6 +684,7 @@ export class OpenTelemetry implements Telemetry {
 
     const { telemetry } = state;
     const providerName = mapProviderName(event.provider);
+    state.inferenceToolDefinitions = event.tools;
 
     const inferenceAttributes = selectAttributes(telemetry, {
       'gen_ai.operation.name': 'chat',
@@ -753,6 +756,30 @@ export class OpenTelemetry implements Telemetry {
     if (!state?.inferenceSpan) return;
 
     const { telemetry } = state;
+    const toolDefinitions = [...(state.inferenceToolDefinitions ?? [])];
+    const definedToolNames = new Set(
+      toolDefinitions.flatMap(tool =>
+        typeof tool.name === 'string' ? [tool.name] : [],
+      ),
+    );
+    let hasObservedProviderTools = false;
+
+    for (const part of event.content) {
+      if (
+        part.type !== 'tool-call' ||
+        !part.providerExecuted ||
+        definedToolNames.has(part.toolName)
+      ) {
+        continue;
+      }
+
+      toolDefinitions.push({
+        type: 'extension',
+        name: part.toolName,
+      });
+      definedToolNames.add(part.toolName);
+      hasObservedProviderTools = true;
+    }
 
     state.inferenceSpan.setAttributes(
       selectAttributes(telemetry, {
@@ -777,6 +804,9 @@ export class OpenTelemetry implements Telemetry {
                     .join('') || undefined,
                 reasoning: event.content.filter(p => p.type === 'reasoning'),
                 toolCalls: event.content.filter(p => p.type === 'tool-call'),
+                toolResults: event.content.filter(
+                  p => p.type === 'tool-result',
+                ),
                 files: event.content
                   .filter(p => p.type === 'file')
                   .map(p => p.file),
@@ -784,6 +814,11 @@ export class OpenTelemetry implements Telemetry {
               }),
             ),
         },
+        'gen_ai.tool.definitions': hasObservedProviderTools
+          ? {
+              input: () => JSON.stringify(toolDefinitions),
+            }
+          : undefined,
         ...selectSupplementalAttributes(
           telemetry,
           this.supplementalAttributes,
@@ -799,9 +834,80 @@ export class OpenTelemetry implements Telemetry {
       }),
     );
 
+    const finalToolOutputs = new Map<
+      string,
+      Extract<
+        (typeof event.content)[number],
+        { type: 'tool-result' | 'tool-error' }
+      >
+    >();
+    for (const part of event.content) {
+      if (
+        part.type === 'tool-error' ||
+        (part.type === 'tool-result' && part.preliminary !== true)
+      ) {
+        finalToolOutputs.set(part.toolCallId, part);
+      }
+    }
+
+    const recordedToolCallIds = new Set<string>();
+    for (const part of event.content) {
+      if (
+        part.type !== 'tool-call' ||
+        !part.providerExecuted ||
+        recordedToolCallIds.has(part.toolCallId)
+      ) {
+        continue;
+      }
+      recordedToolCallIds.add(part.toolCallId);
+
+      const toolSpan = this.tracer.startSpan(
+        `execute_tool ${part.toolName}`,
+        {
+          attributes: this.getSpanAttributes({
+            attributes: selectAttributes(telemetry, {
+              'gen_ai.operation.name': 'execute_tool',
+              'gen_ai.tool.name': part.toolName,
+              'gen_ai.tool.call.id': part.toolCallId,
+              'gen_ai.tool.type': 'extension',
+              'gen_ai.tool.call.arguments': {
+                input: () => JSON.stringify(part.input),
+              },
+            }),
+            spanType: 'tool',
+            operationId: state.operationId,
+            callId: event.callId,
+            runtimeContext: state.runtimeContext,
+          }),
+          kind: SpanKind.INTERNAL,
+        },
+        state.inferenceContext,
+      );
+
+      const toolOutput = finalToolOutputs.get(part.toolCallId);
+      if (toolOutput?.type === 'tool-result') {
+        try {
+          toolSpan.setAttributes(
+            selectAttributes(telemetry, {
+              'gen_ai.tool.call.result': {
+                output: () => JSON.stringify(toolOutput.output),
+              },
+            }),
+          );
+        } catch {
+          // JSON.stringify might fail for non-serializable results
+        }
+      } else if (toolOutput?.type === 'tool-error') {
+        recordErrorOnSpan(toolSpan, toolOutput.error);
+      }
+
+      toolSpan.end();
+    }
+
     state.inferenceSpan.end();
     state.inferenceSpan = undefined;
     state.inferenceContext = undefined;
+    state.inferenceToolDefinitions = undefined;
   }
 
   onToolExecutionStart(event: ToolExecutionStartEvent<ToolSet>): void {
@@ -816,7 +922,7 @@ export class OpenTelemetry implements Telemetry {
       'gen_ai.operation.name': 'execute_tool',
       'gen_ai.tool.name': toolCall.toolName,
       'gen_ai.tool.call.id': toolCall.toolCallId,
-      'gen_ai.tool.type': 'function',
+      'gen_ai.tool.type': toolCall.providerExecuted ? 'extension' : 'function',
       'gen_ai.tool.call.arguments': {
         input: () => JSON.stringify(toolCall.input),
       },
@@ -967,6 +1073,7 @@ export class OpenTelemetry implements Telemetry {
                   text?: string;
                 }>,
                 toolCalls: event.toolCalls,
+                toolResults: event.toolResults,
                 files: event.files,
                 finishReason: event.finishReason,
               }),
@@ -1043,7 +1150,6 @@ export class OpenTelemetry implements Telemetry {
 
     state.rootSpan.setAttributes(
       selectAttributes(telemetry, {
-        'gen_ai.usage.input_tokens': event.usage.tokens,
         ...selectSupplementalAttributes(
           telemetry,
           this.supplementalAttributes,

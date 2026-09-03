@@ -15,6 +15,7 @@ import {
   createStreamingUIMessageState,
   processUIMessageStream,
   type StreamingUIMessageState,
+  type UIMessageStreamWriteOptions,
 } from './process-ui-message-stream';
 import {
   isToolUIPart,
@@ -190,7 +191,7 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
    */
   id?: string;
 
-  messageMetadataSchema?: FlexibleSchema<InferUIMessageMetadata<UI_MESSAGE>>;
+  messageMetadataSchema?: FlexibleSchema<UI_MESSAGE['metadata']>;
   dataPartSchemas?: UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>;
 
   messages?: UI_MESSAGE[];
@@ -245,7 +246,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   protected state: ChatState<UI_MESSAGE>;
 
   private messageMetadataSchema:
-    | FlexibleSchema<InferUIMessageMetadata<UI_MESSAGE>>
+    | FlexibleSchema<UI_MESSAGE['metadata']>
     | undefined;
   private dataPartSchemas:
     | UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>
@@ -757,7 +758,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const runUpdateMessageJob = (
         job: (options: {
           state: StreamingUIMessageState<UI_MESSAGE>;
-          write: () => void;
+          write: (options?: UIMessageStreamWriteOptions) => void;
         }) => Promise<void>,
       ) =>
         // serialize the job execution to avoid race conditions:
@@ -768,13 +769,14 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
           return job({
             state: response.state,
-            write: () => {
+            write: ({ updateStatus = true } = {}) => {
               if (response.abortController.signal.aborted) {
                 return;
               }
 
-              // streaming is set on first write (before it should be "submitted")
-              this.setStatus({ status: 'streaming' });
+              if (updateStatus) {
+                this.setStatus({ status: 'streaming' });
+              }
 
               const replaceLastMessage =
                 response.state.message.id === this.lastMessage?.id;

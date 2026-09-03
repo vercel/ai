@@ -1,8 +1,10 @@
 import { createProxy } from '@vercel/geistdocs/proxy';
 import { config as geistdocsConfig } from '@/lib/geistdocs/config';
+import { trackMdRequest } from '@/lib/geistdocs/md-tracking';
 
 const proxy = createProxy({
   config: geistdocsConfig,
+  trackMarkdownRequest: trackMdRequest,
   markdownRoutes: [
     { from: '/docs/*path', to: '/[lang]/llms.mdx/*path' },
     { from: '/v6/docs/*path', to: '/[lang]/v6/llms.mdx/*path' },

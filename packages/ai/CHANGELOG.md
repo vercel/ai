@@ -1,5 +1,266 @@
 # ai
 
+## 7.0.92
+
+### Patch Changes
+
+- a51cc94: fix(ai): preserve provider metadata from empty smooth stream deltas
+- d1904d3: fix(ai): surface fallback errors for empty HTTP response bodies
+- 84e5a79: fix(ai): skip `smoothStream` delays while the document is hidden
+- a8e8ad0: fix(ai): expose call ID and abort reason in streamText onAbort callbacks
+- Updated dependencies [a7e324b]
+  - @ai-sdk/gateway@4.0.74
+
+## 7.0.91
+
+### Patch Changes
+
+- 802af1e: Add configurable recovery for provider errors received after `streamText` response streaming begins. Explicitly configuring `streamRetries` enables isolated retry attempts, including one bounded callback-directed recovery through `StreamTextOnErrorRetryCallback` with `streamRetries: 0`; recovered results and metadata reflect only the successful attempt, while the existing `StreamTextOnErrorCallback` contract and logging-only observer behavior remain compatible.
+- Updated dependencies [5484f27]
+- Updated dependencies [36eb7ee]
+- Updated dependencies [622fa7f]
+  - @ai-sdk/gateway@4.0.73
+
+## 7.0.90
+
+### Patch Changes
+
+- Updated dependencies [4d25a08]
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/gateway@4.0.72
+  - @ai-sdk/provider-utils@5.0.36
+
+## 7.0.89
+
+### Patch Changes
+
+- 5190b67: feat(provider): extend the FilesV4 interface with optional `getFileMetadata`, `downloadFile` (streaming), and `deleteFile` operations, plus `abortSignal`/`headers` call options and a `{ type: 'stream' }` upload data variant; upload results now expose `byteSize`, `createdAt`, and `expiresAt` (also surfaced by the core `uploadFile()` helper, which now forwards `abortSignal`/`headers`); add `postMultipartStreamToApi` (streaming multipart uploads with deterministic part ordering and failure-path stream teardown), `deleteFromApi`, and `createBinaryStreamResponseHandler` to provider-utils
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+  - @ai-sdk/gateway@4.0.71
+
+## 7.0.88
+
+### Patch Changes
+
+- 8b6b756: fix(ai): prevent generateText from accepting responses that violate required tool choices
+- e07b577: feat: add tool calling support to batch
+
+## 7.0.87
+
+### Patch Changes
+
+- 850d863: fix(ai): preserve approval descriptors in UI message streams
+
+## 7.0.86
+
+### Patch Changes
+
+- 11109ae: feat(ai): support signed tool approvals in WorkflowAgent
+- Updated dependencies [1329d5a]
+  - @ai-sdk/gateway@4.0.70
+
+## 7.0.85
+
+### Patch Changes
+
+- 55a9981: Ensure canonical hashes preserve undefined array element positions.
+- dd32de2: fix(ai): sum Gateway image-generation costs across split requests
+- aa45741: fix(provider/anthropic): preserve native message batch request counts in provider metadata and support the full language-model option surface in batch requests
+- cc29073: feat(ai): expose individual image generation calls
+- Updated dependencies [d2507af]
+- Updated dependencies [aa45741]
+  - @ai-sdk/gateway@4.0.69
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 7.0.84
+
+### Patch Changes
+
+- 6669d69: Expose parsed structured output in `streamText` end callbacks.
+- a6463ca: fix(ai): allow tool approval secrets in ToolLoopAgent settings and prepareCall
+- e604532: fix(ai): handle stateful and empty-match regular expressions in smoothStream
+- Updated dependencies [805bbfc]
+- Updated dependencies [90192f1]
+  - @ai-sdk/gateway@4.0.68
+  - @ai-sdk/provider-utils@5.0.33
+
+## 7.0.83
+
+### Patch Changes
+
+- 8dd86a9: Validate persisted typed tool calls against current input and output schemas.
+  Schema-incompatible empty or error inputs and terminal history from unavailable
+  tools remain loadable as dynamic tool parts instead of exposing unvalidated
+  values under current static tool types.
+- fda13b3: Allow chats to continue automatically after tool approval denials reach the `output-denied` state.
+- 957146c: add operation-level outcomes to UI message stream end callbacks
+- ce6849a: fix(ai): handle stitchable stream cancellation before an inner stream is registered
+
+## 7.0.82
+
+### Patch Changes
+
+- 3e125ba: Allow manual tool approval statuses to include a reason and preserve it across
+  core, model, and UI approval requests. OPA `requires-approval` decisions now
+  surface their reason to human approvers. UI request chunks serialize the
+  optional `reason`, while UI messages retain it as `approval.requestReason`
+  separately from an approver's response `reason`.
+- Updated dependencies [0e7994c]
+- Updated dependencies [3e125ba]
+  - @ai-sdk/gateway@4.0.67
+  - @ai-sdk/provider-utils@5.0.32
+
+## 7.0.81
+
+### Patch Changes
+
+- Updated dependencies [81bebaf]
+  - @ai-sdk/gateway@4.0.66
+
+## 7.0.80
+
+### Patch Changes
+
+- 35841f5: feat: normalize mid-stream provider error events across supported providers into public StreamProviderError instances and preserve provider-owned type, code, status, retry, and raw payload metadata
+- d2f3353: Split OpenAI and Azure OpenAI embedding requests by a conservative UTF-8 byte budget derived from their aggregate token limit, in addition to input count limits.
+- eed7950: Expose structured output parsing diagnostics from `generateText` when generation stops because of the output token limit.
+- Updated dependencies [80227cf]
+- Updated dependencies [a9782e1]
+- Updated dependencies [5533946]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/gateway@4.0.65
+  - @ai-sdk/provider-utils@5.0.31
+
+## 7.0.79
+
+### Patch Changes
+
+- b251584: Preserve active text and reasoning parts when another merged UI message stream finishes a step, and align workflow stream normalization with the explicit part end chunks.
+- 591d25b: feat: add batch completion webhooks. `experimental_startTextBatch` accepts a `webhookUrl`, and the gateway provider registers it through the batch `callbackUrl` contract and exports typed async-job metadata. Direct Anthropic and OpenAI batch providers return an unsupported warning when the option is provided.
+- 9de0baf: Parse structured generateText output when providers omit finishReason but return text.
+- Updated dependencies [591d25b]
+  - @ai-sdk/gateway@4.0.64
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 7.0.78
+
+### Patch Changes
+
+- 96970bb: Continue approved `generateText`, `streamText`, and `WorkflowAgent` turns with a model-visible tool error when revalidated tool input is invalid.
+- Updated dependencies [e12e068]
+  - @ai-sdk/gateway@4.0.63
+
+## 7.0.77
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+- Updated dependencies [a371615]
+  - @ai-sdk/provider-utils@5.0.29
+  - @ai-sdk/gateway@4.0.62
+
+## 7.0.76
+
+### Patch Changes
+
+- c6d57f3: fix(ai): prevent duplicate text and reasoning part ids
+- 677a707: fix(ai): allow nullish metadata schemas for UI messages with branded IDs
+
+## 7.0.75
+
+### Patch Changes
+
+- 8978ad8: feat(ai): add `experimental_startVideo` and `experimental_videoStatus` — user-facing fire-and-forget wrappers over the video model `doStart`/`doStatus` spec methods, with the same sparse-options DX as `generateVideo`
+- Updated dependencies [dedac59]
+  - @ai-sdk/gateway@4.0.61
+
+## 7.0.74
+
+### Patch Changes
+
+- Updated dependencies [5941bd6]
+- Updated dependencies [9a4337d]
+  - @ai-sdk/gateway@4.0.60
+
+## 7.0.73
+
+### Patch Changes
+
+- Updated dependencies [f607a12]
+  - @ai-sdk/gateway@4.0.59
+
+## 7.0.72
+
+### Patch Changes
+
+- Updated dependencies [fdcc814]
+  - @ai-sdk/gateway@4.0.58
+
+## 7.0.71
+
+### Patch Changes
+
+- 9a37469: Prevent exceptions in streaming `onChunk` and `onError` callbacks from terminating the stream or masking provider errors.
+- Updated dependencies [936719b]
+  - @ai-sdk/gateway@4.0.57
+
+## 7.0.70
+
+### Patch Changes
+
+- 9566914: Stop multi-step text generation for client tool approval even when a provider-executed tool has a deferred result.
+- b181020: fix: reject `streamObject` result promises and report failed completion when the provider stream errors
+- 7054073: Filter preliminary tool outputs when `ignoreIncompleteToolCalls` is enabled.
+- a828527: Prevent automatic tool execution when a model call ends with an unsafe finish reason.
+- d3cc3fe: Clear partial UI message parts when a WorkflowAgent model-call step is retried.
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+  - @ai-sdk/gateway@4.0.56
+
+## 7.0.69
+
+### Patch Changes
+
+- Updated dependencies [1f7a464]
+  - @ai-sdk/gateway@4.0.55
+
+## 7.0.68
+
+### Patch Changes
+
+- Updated dependencies [257632b]
+  - @ai-sdk/gateway@4.0.54
+
+## 7.0.67
+
+### Patch Changes
+
+- Updated dependencies [a0b1ffc]
+  - @ai-sdk/gateway@4.0.53
+
+## 7.0.66
+
+### Patch Changes
+
+- 0782259: Keep chat status submitted until response content begins streaming.
+- 2fd1214: Fix declaration emit for exported values that infer an `Output` type.
+
+## 7.0.65
+
+### Patch Changes
+
+- dc8caae: Avoid repeatedly cloning accumulated text in `readUIMessageStream` while
+  preserving independent snapshots for mutable nested values.
+- 72ec74f: Preserve root-level JSON Schema definitions when wrapping array output schemas.
+- c5b0515: Propagate errors thrown by the Chat `onFinish` callback to the initiating request.
+- Updated dependencies [16650e9]
+  - @ai-sdk/gateway@4.0.52
+
 ## 7.0.64
 
 ### Patch Changes

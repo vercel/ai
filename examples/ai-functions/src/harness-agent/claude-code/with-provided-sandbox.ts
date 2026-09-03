@@ -13,13 +13,14 @@ run(async () => {
     ports: [4000],
     timeout: 10 * 60 * 1000,
   });
+  const sandboxProvider = createVercelSandbox({ sandbox });
+  const sandboxSession = await sandboxProvider.createSession();
 
   const agent = new HarnessAgent({
     harness: claudeCode,
-    sandbox: createVercelSandbox({ sandbox }),
   });
 
-  const session = await agent.createSession();
+  const session = await agent.createSession({ sandboxSession });
   try {
     const result = await agent.stream({
       session,

@@ -217,12 +217,13 @@ The following provider options are available:
   `.nullable()`.
 </Note>
 
-- **serviceTier** _'auto' | 'flex' | 'priority' | 'fast' | 'default'_
+- **serviceTier** _'auto' | 'flex' | 'priority' | 'fast' | 'ultrafast' | 'default'_
   Service tier for the request. Set to 'flex' for 50% cheaper processing
   at the cost of increased latency (available for o3, o4-mini, and gpt-5 models).
   Set to 'priority' for faster processing with Enterprise access (available for gpt-4, gpt-5, gpt-5-mini, o3, o4-mini; gpt-5-nano is not supported).
   'fast' is OpenAI's newer name for the 'priority' tier; the two are interchangeable, and responses from
   gpt-5.6 and earlier report `serviceTier: 'priority'` for either.
+  Set to 'ultrafast' for access-controlled Ultrafast processing (available only for gpt-5.6-sol).
 
   Defaults to 'auto'.
 
@@ -263,6 +264,9 @@ The following provider options are available:
   Enable server-side context management (compaction). When configured, the server automatically compresses conversation context when token usage crosses a specified threshold. Each object in the array should have:
   - `type`: `'compaction'`
   - `compactThreshold`: _number_ — the token count at which compaction is triggered
+
+- **compactionTrigger** _boolean_
+  Request explicit server-side compaction. When `true`, the provider appends a terminal `{ type: 'compaction_trigger' }` item to the Responses input. Support depends on the configured Responses-compatible endpoint and model.
 
 The OpenAI responses provider also returns provider-specific metadata:
 
@@ -1400,6 +1404,64 @@ The custom tool can be configured with:
   - **definition** _string_ - (grammar only) The grammar definition string (a regex pattern or Lark grammar).
 - **execute** _function_ (optional) - An async function that receives the raw string input and returns a string result. Enables multi-turn tool calling.
 
+#### Restricting Callable Tools
+
+The `allowedTools` provider option restricts which of the tools you declared the model is allowed to
+call, while still sending the full `tools` list to OpenAI. Because the tools list stays byte-identical
+across requests, the prompt cache is preserved — unlike `activeTools`, which removes tools from the
+request and invalidates the cache whenever the allow-list changes.
+
+`allowedTools` is only supported by the Responses API, and it overrides the request-level `toolChoice`.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai.responses('gpt-5.5'),
+  tools: {
+    weather: weatherTool,
+    cityAttractions: cityAttractionsTool,
+    search: openai.tools.webSearch(),
+  },
+  providerOptions: {
+    openai: {
+      allowedTools: { toolNames: ['weather', 'search'], mode: 'auto' },
+    },
+  },
+  prompt: 'What is the weather in San Francisco?',
+});
+```
+
+- **toolNames** _string[]_ - The tools the model may call, named as you declared them in `tools`. For
+  provider-defined tools you may also use the canonical OpenAI name (for example `web_search`).
+- **mode** _'auto' | 'required'_ (optional) - `'auto'` (default) lets the model pick one of the allowed
+  tools or answer with a message; `'required'` forces it to call at least one of them.
+
+Both function tools and provider-defined tools can be allow-listed, including web search, file search,
+image generation, code interpreter, computer, apply patch, shell, programmatic tool calling, custom
+tools, and MCP servers.
+
+If a name matches both a tool you declared and the canonical OpenAI name of a different tool, the tool
+you declared under that name wins, and a warning reports the ambiguity. If several tools share the same
+canonical name — two MCP servers, for example — that name is ambiguous, so it is dropped with a warning;
+name those tools as you declared them instead.
+
+<Note>
+  Three kinds of tools cannot be allow-listed, because OpenAI's `allowed_tools`
+  only sees the eagerly-loaded tool list: the [tool search tool](#tool-search),
+  tools marked with `deferLoading`, and tools grouped into a namespace. Naming
+  one of these in `allowedTools` removes it from the allow-list and emits a
+  warning; if that leaves no tools at all, the request fails with an error
+  instead of silently sending no restriction.
+</Note>
+
+<Note>
+  An MCP server is allow-listed as a whole: the entry carries the server label,
+  so every tool on that server is callable. To restrict which tools on a server
+  the model may call, use the MCP tool's own `allowedTools` argument.
+</Note>
+
 #### Image Inputs
 
 The OpenAI Responses API supports Image inputs for appropriate models.
@@ -1776,6 +1838,38 @@ const result = await generateText({
   requests.
 </Note>
 
+##### Explicit Compaction
+
+For Responses-compatible endpoints that support explicit compaction, set
+`compactionTrigger: true`. The provider appends the required
+`{ type: 'compaction_trigger' }` request control after all converted messages
+and input items.
+
+```ts highlight="9"
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai.responses('gpt-5.3-codex'),
+  messages: conversationHistory,
+  providerOptions: {
+    openai: {
+      store: false,
+      compactionTrigger: true,
+    } satisfies OpenAILanguageModelResponsesOptions,
+  },
+});
+```
+
+This is distinct from `contextManagement`, which configures automatic,
+threshold-based compaction. When omitted or `false`, `compactionTrigger` does
+not add an input item. The resulting compaction output uses the existing
+`openai.compaction` custom part representation. Endpoint and model support can
+vary.
+
 ##### Detecting Compaction in Streams
 
 When using `streamText`, you can detect compaction by checking the `providerMetadata` on `text-start` and `text-end` events:
@@ -1863,40 +1957,60 @@ The metadata includes the following fields:
 ### Text Batches
 
 <Note type="warning">
-  Text batch APIs are experimental and may change in future releases.
+  Text batch support is experimental and the API may change in patch releases.
 </Note>
 
-The OpenAI provider supports the [Batch API](https://developers.openai.com/api/docs/guides/batch) for text generation.
+The OpenAI provider supports asynchronous text generation through the
+[Batch API](https://developers.openai.com/api/docs/guides/batch). Use the
+experimental text batch APIs to start a batch, poll its status, and stream its
+results:
 
 ```ts
 import { openai } from '@ai-sdk/openai';
 import {
-  experimental_startTextBatch as startTextBatch,
   experimental_getBatchResults as getBatchResults,
   experimental_getBatchStatus as getBatchStatus,
+  experimental_startTextBatch as startTextBatch,
 } from 'ai';
+import { setTimeout } from 'node:timers/promises';
 
 const model = openai('gpt-4.1-nano');
 
 const batch = await startTextBatch({
   model,
   requests: [
-    { id: 'france', prompt: 'What is the capital of France?' },
-    { id: 'germany', prompt: 'What is the capital of Germany?' },
+    { id: 'capital-france', prompt: 'What is the capital of France?' },
+    { id: 'capital-germany', prompt: 'What is the capital of Germany?' },
   ],
 });
 
-// Persist `batch` and check its status later, or poll for status updates.
-const { status } = await getBatchStatus({ model, batch });
+let status = batch.status;
+while (status === 'pending') {
+  await setTimeout(60_000);
+  ({ status } = await getBatchStatus({ model, batch }));
+}
 
-if (status !== 'pending') {
-  for await (const result of getBatchResults({ model, batch })) {
-    console.log(result);
+for await (const item of getBatchResults({ model, batch })) {
+  if (item.status === 'succeeded') {
+    console.log(item.id, item.text);
+  } else {
+    console.error(item.id, item.error);
   }
 }
 ```
 
-Starting a batch returns a serializable reference that can be persisted and used to retrieve the batch results later, or poll for status updates.
+`startTextBatch` returns a serializable batch reference. Persist this reference
+to check the batch status or retrieve its results from another process. Results
+can arrive in a different order from the input requests, so match each result by
+its `id`.
+
+#### Webhooks
+
+<Note>
+  The OpenAI Batch API does not support per-batch webhooks. When you provide a
+  `webhookUrl`, the provider returns an unsupported warning and starts the batch
+  without a webhook.
+</Note>
 
 ### Chat Models
 
@@ -1993,13 +2107,14 @@ The following optional provider options are available for OpenAI chat models:
 
   Parameters for prediction mode.
 
-- **serviceTier** _'auto' | 'flex' | 'priority' | 'fast' | 'default'_
+- **serviceTier** _'auto' | 'flex' | 'priority' | 'fast' | 'ultrafast' | 'default'_
 
   Service tier for the request. Set to 'flex' for 50% cheaper processing
   at the cost of increased latency (available for o3, o4-mini, and gpt-5 models).
   Set to 'priority' for faster processing with Enterprise access (available for gpt-4, gpt-5, gpt-5-mini, o3, o4-mini; gpt-5-nano is not supported).
   'fast' is OpenAI's newer name for the 'priority' tier; the two are interchangeable, and responses from
   gpt-5.6 and earlier report `serviceTier: 'priority'` for either.
+  Set to 'ultrafast' for access-controlled Ultrafast processing (available only for gpt-5.6-sol).
 
   Defaults to 'auto'.
 

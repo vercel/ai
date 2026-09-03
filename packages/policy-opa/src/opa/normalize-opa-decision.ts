@@ -12,9 +12,10 @@ import type { PolicyDecision } from '../policy-decision';
  * - **Legacy (boolean):** `{ "allow": boolean, "reason"?: string }`. `true`
  *   maps to `approved`, `false` to `denied`.
  *
- * Unknown shapes and `undefined` are treated as `not-applicable` so that a
- * Rego rule that does not match any branch defaults to "no opinion" rather
- * than blocking.
+ * `null` and `undefined` are treated as `not-applicable` so that a Rego rule
+ * that does not match any branch defaults to "no opinion" rather than
+ * blocking. Any other unrecognized result is denied so malformed policy
+ * output cannot silently bypass the approval gate.
  */
 export function normalizeOpaDecision(result: unknown): PolicyDecision {
   if (result == null) {
@@ -22,7 +23,7 @@ export function normalizeOpaDecision(result: unknown): PolicyDecision {
   }
 
   if (typeof result !== 'object') {
-    return { type: 'not-applicable' };
+    return unrecognizedDecision();
   }
 
   const record = result as Record<string, unknown>;
@@ -35,7 +36,7 @@ export function normalizeOpaDecision(result: unknown): PolicyDecision {
       case 'deny':
         return withReason('denied', reason);
       case 'requires-approval':
-        return { type: 'user-approval' };
+        return withReason('user-approval', reason);
       case 'not-applicable':
         return { type: 'not-applicable' };
     }
@@ -45,11 +46,18 @@ export function normalizeOpaDecision(result: unknown): PolicyDecision {
     return withReason(record.allow ? 'approved' : 'denied', reason);
   }
 
-  return { type: 'not-applicable' };
+  return unrecognizedDecision();
+}
+
+function unrecognizedDecision(): PolicyDecision {
+  return {
+    type: 'denied',
+    reason: 'unrecognized OPA policy decision',
+  };
 }
 
 function withReason(
-  type: 'approved' | 'denied',
+  type: 'approved' | 'denied' | 'user-approval',
   reason: string | undefined,
 ): PolicyDecision {
   return reason ? { type, reason } : { type };

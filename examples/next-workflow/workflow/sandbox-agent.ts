@@ -104,6 +104,9 @@ export async function sandboxChat(
 
 export function toUIMessageStream(
   readable: ReadableStream<ModelCallStreamPart>,
+  uiStartIndex = 0,
 ) {
-  return readable.pipeThrough(createModelCallToUIChunkTransform());
+  return readable.pipeThrough(
+    createModelCallToUIChunkTransform({ uiStartIndex }),
+  );
 }

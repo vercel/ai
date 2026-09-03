@@ -173,7 +173,7 @@ const problem =
 
 const { text: answer } = await generateText({
   model: deepInfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
-  system:
+  instructions:
     'You are solving math problems. Reason step by step. Use the calculator when necessary.',
   prompt: problem,
   tools: {

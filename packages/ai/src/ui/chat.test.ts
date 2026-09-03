@@ -1746,6 +1746,77 @@ describe('Chat', () => {
     expect((chat as any).activeResponse).toBeUndefined();
   });
 
+  it.each([
+    {
+      name: 'a message id',
+      chunk: { type: 'start', messageId: 'response-id' } as const,
+    },
+    {
+      name: 'message metadata',
+      chunk: {
+        type: 'start',
+        messageMetadata: { model: 'test-model' },
+      } as const,
+    },
+    {
+      name: 'no message fields',
+      chunk: { type: 'start' } as const,
+    },
+  ])(
+    'should remain submitted after a start chunk with $name until content arrives',
+    async ({ chunk }) => {
+      let controller!: ReadableStreamDefaultController<UIMessageChunk>;
+      const startProcessed = createResolvablePromise<void>();
+      const contentProcessed = createResolvablePromise<void>();
+      const stream = new ReadableStream<UIMessageChunk>({
+        start(streamController) {
+          controller = streamController;
+        },
+      });
+
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        transport: {
+          sendMessages: async () => stream,
+          reconnectToStream: async () => null,
+        },
+      });
+
+      const sendPromise = chat.sendMessage({ text: 'Hello' });
+
+      controller.enqueue(chunk);
+      controller.enqueue({
+        get type() {
+          startProcessed.resolve();
+          return 'start-step' as const;
+        },
+      });
+
+      await startProcessed.promise;
+
+      expect(chat.status).toBe('submitted');
+
+      controller.enqueue({ type: 'text-start', id: 'text-1' });
+      controller.enqueue({
+        get type() {
+          contentProcessed.resolve();
+          return 'start-step' as const;
+        },
+      });
+
+      await contentProcessed.promise;
+
+      expect(chat.status).toBe('streaming');
+
+      controller.enqueue({ type: 'text-end', id: 'text-1' });
+      controller.enqueue({ type: 'finish', finishReason: 'stop' });
+      controller.close();
+
+      await sendPromise;
+    },
+  );
+
   it('should handle error parts', async () => {
     server.urls['http://localhost:3000/api/chat'].response = {
       type: 'stream-chunks',
@@ -3088,6 +3159,7 @@ describe('Chat', () => {
                 approval: {
                   id: 'approval-1',
                   isAutomatic: false,
+                  requestReason: 'requires operator review',
                   signature: 'signed-approval-envelope',
                 },
               },
@@ -3107,6 +3179,7 @@ describe('Chat', () => {
         approval: {
           id: 'approval-1',
           approved: true,
+          requestReason: 'requires operator review',
           reason: 'looks good',
           isAutomatic: false,
           signature: 'signed-approval-envelope',

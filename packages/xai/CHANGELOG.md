@@ -1,5 +1,129 @@
 # @ai-sdk/xai
 
+## 4.0.54
+
+### Patch Changes
+
+- 048ce06: feat(batch): surface the uploaded input file on the batch start result (`providerMetadata.<provider>.inputFileId` / `inputFileExpiresAt`) and accept an `inputFileExpiresAfter` provider option on the OpenAI and xAI batch input file upload
+
+## 4.0.53
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
+## 4.0.52
+
+### Patch Changes
+
+- f1513f0: feat(xai): implement `getFileMetadata`, `downloadFile` (streaming), and `deleteFile` on the xAI files interface, support `expiresAfter` upload TTLs (integer 3600–2592000 seconds, emitted before the file part as xAI requires) and streaming uploads via `{ type: 'stream' }` data, expose `byteSize`/`createdAt`/`expiresAt` on upload results, and thread `abortSignal`/`headers` through all file operations; blank and dot-segment file ids are rejected/encoded so they cannot retarget request paths
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+
+## 4.0.51
+
+### Patch Changes
+
+- e07b577: feat: add tool calling support to batch
+
+## 4.0.50
+
+### Patch Changes
+
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 4.0.49
+
+### Patch Changes
+
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
+## 4.0.48
+
+### Patch Changes
+
+- 6843788: fix(xai): preserve web_search action (query, sources, open_page) in responses tool results
+
+## 4.0.47
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 4.0.46
+
+### Patch Changes
+
+- 41e7760: Preserve complete xAI Responses usage objects in raw usage metadata.
+
+## 4.0.45
+
+### Patch Changes
+
+- 7de3612: Encode provider-returned identifiers before using them in credentialed follow-up request paths.
+- 35841f5: feat: normalize mid-stream provider error events across supported providers into public StreamProviderError instances and preserve provider-owned type, code, status, retry, and raw payload metadata
+- 3f8fa93: feat(xai): batch API support
+- dfa7305: Preserve complete xAI Chat Completions usage objects in generated and streamed results.
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
+## 4.0.44
+
+### Patch Changes
+
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 4.0.43
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+
+## 4.0.42
+
+### Patch Changes
+
+- ef05760: fix(provider/xai): report image moderation blocks as content policy errors
+
+## 4.0.41
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
+## 4.0.40
+
+### Patch Changes
+
+- 1ffa1d2: feat(xai): speech timestamps, pronunciation replacements, provider metadata, and error parsing
+
+  - Add `withTimestamps` and `replace` provider options for text to speech. With
+    `withTimestamps`, the JSON envelope is decoded and the audio returned as
+    usual, while duration, content type, and character-level alignment are
+    exposed via `providerMetadata.xai`.
+  - Return `providerMetadata.xai.traceId` (from the `x-trace-id` response
+    header) on every speech response.
+  - Parse the text to speech error shape (`{"error":"..."}`) so `APICallError`
+    messages carry xAI's real error detail instead of the HTTP reason phrase.
+
+## 4.0.39
+
+### Patch Changes
+
+- 646c86e: fix(provider/xai): report video moderation blocks and missing URLs as an error status instead of throwing
+
 ## 4.0.38
 
 ### Patch Changes

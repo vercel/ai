@@ -109,17 +109,19 @@ classDiagram
       id
       defaultWorkingDirectory
       ports
+      getPortEndpoint(options)
       getPortUrl(options)
       stop()
       destroy()
       setNetworkPolicy(policy)
+      setRequestTransformations(transformations)
+      addRequestTransformations(transformations)
       setPorts(ports, options)
       restricted()
     }
     class HarnessV1SandboxProvider {
       specificationVersion
       providerId
-      bridgePorts
       createSession(options)
       resumeSession(options)
     }
@@ -185,6 +187,14 @@ flowchart TD
     provider --> network
 ```
 
+`getPortEndpoint()` returns the public URL together with any headers required
+to connect to it. `getPortUrl()` remains available for compatibility but is
+deprecated because it drops those headers.
+
+`destroy()` stops the sandbox session before performing any additional cleanup,
+such as deleting the backing resource or freeing resources. Implementations
+with no additional cleanup can implement `destroy()` by calling `stop()`.
+
 `restricted()` is the boundary between infrastructure code and user/tool code.
 `HarnessAgent` owns the network sandbox session, while host-executed tools receive only the restricted basic session.
 
@@ -197,7 +207,7 @@ sequenceDiagram
 
     Agent->>Provider: createSession({ sessionId, identity })
     Provider-->>Agent: networkSandboxSession
-    Agent->>Network: stop() / destroy() / getPortUrl()
+    Agent->>Network: stop() / destroy() / getPortEndpoint()
     Agent->>Network: restricted()
     Network-->>Agent: Experimental_SandboxSession
     Agent->>Tool: execute({ experimental_sandbox })

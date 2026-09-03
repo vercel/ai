@@ -4,9 +4,14 @@ import {
   type Experimental_BatchV4ItemResult as BatchV4ItemResult,
   type LanguageModelV4,
   type LanguageModelV4GenerateResult,
+  type LanguageModelV4ToolCall,
 } from '@ai-sdk/provider';
-import { withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import { type ToolSet, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
+import { convertLanguageModelContent } from '../generate-text/convert-language-model-content';
+import { parseToolCall } from '../generate-text/parse-tool-call';
+import { prepareToolChoice } from '../prompt/prepare-tool-choice';
+import { prepareTools } from '../prompt/prepare-tools';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -33,14 +38,19 @@ import type {
 /**
  * Starts a durable text-generation batch.
  */
-export async function startTextBatch({
+export async function startTextBatch<TOOLS extends ToolSet>({
   model: modelArg,
   requests,
+  tools,
+  toolChoice,
+  toolOrder,
+  toolsContext,
   providerOptions,
+  webhookUrl,
   abortSignal,
   headers,
   timeout,
-}: StartTextBatchOptions): Promise<StartTextBatchResult> {
+}: StartTextBatchOptions<TOOLS>): Promise<StartTextBatchResult> {
   validateRequests(requests);
 
   const model = resolveBatchLanguageModel(modelArg);
@@ -49,6 +59,12 @@ export async function startTextBatch({
     getTotalTimeoutMs(timeout),
   );
   const supportedUrls = await model.supportedUrls;
+  const preparedTools = await prepareTools({
+    tools,
+    toolOrder,
+    toolsContext,
+  });
+  const preparedToolChoice = prepareToolChoice({ toolChoice });
   operationAbortSignal?.throwIfAborted();
   const normalizedRequests = [];
 
@@ -65,6 +81,8 @@ export async function startTextBatch({
           download: undefined,
           provider: model.provider.split('.')[0],
         }),
+        tools: preparedTools,
+        toolChoice: preparedToolChoice,
         providerOptions: request.providerOptions,
       },
     });
@@ -81,6 +99,7 @@ export async function startTextBatch({
       providerOptions,
       abortSignal: operationAbortSignal,
       headers: headersWithUserAgent,
+      ...(webhookUrl != null && { webhookUrl }),
     });
     const { batchId, warnings, ...status } = result;
 
@@ -115,7 +134,7 @@ export async function getBatchStatus({
   abortSignal,
   headers,
   timeout,
-}: BatchOperationOptions): Promise<BatchStatus> {
+}: Omit<BatchOperationOptions, 'tools'>): Promise<BatchStatus> {
   const model = resolveBatchLanguageModel(modelArg);
   validateBatchReference({ model, batch });
 
@@ -147,15 +166,16 @@ export async function getBatchStatus({
 /**
  * Streams complete terminal results for the requests in a durable batch.
  */
-export function getBatchResults({
+export function getBatchResults<TOOLS extends ToolSet>({
   model: modelArg,
   batch,
+  tools,
   providerOptions,
   maxRetries,
   abortSignal,
   headers,
   timeout,
-}: BatchOperationOptions) {
+}: BatchOperationOptions<TOOLS>) {
   const model = resolveBatchLanguageModel(modelArg);
   validateBatchReference({ model, batch });
 
@@ -171,10 +191,10 @@ export function getBatchResults({
   });
   const transformer: Transformer<
     BatchV4ItemResult<LanguageModelV4GenerateResult>,
-    TextBatchItemResult
+    TextBatchItemResult<TOOLS>
   > & { cancel?: (reason?: unknown) => void } = {
-    transform(item, controller) {
-      controller.enqueue(convertBatchItemResult(item));
+    async transform(item, controller) {
+      controller.enqueue(await convertBatchItemResult({ item, tools }));
     },
 
     cancel(reason) {
@@ -185,7 +205,7 @@ export function getBatchResults({
   };
   const transform = new TransformStream<
     BatchV4ItemResult<LanguageModelV4GenerateResult>,
-    TextBatchItemResult
+    TextBatchItemResult<TOOLS>
   >(transformer);
 
   void (async () => {
@@ -294,9 +314,13 @@ function validateBatchReference({
   }
 }
 
-function convertBatchItemResult(
-  item: BatchV4ItemResult<LanguageModelV4GenerateResult>,
-): TextBatchItemResult {
+async function convertBatchItemResult<TOOLS extends ToolSet>({
+  item,
+  tools,
+}: {
+  item: BatchV4ItemResult<LanguageModelV4GenerateResult>;
+  tools: TOOLS | undefined;
+}): Promise<TextBatchItemResult<TOOLS>> {
   if (item.status !== 'succeeded') {
     return item;
   }
@@ -304,14 +328,44 @@ function convertBatchItemResult(
   return {
     id: item.id,
     status: 'succeeded',
-    ...convertGenerateResult(item.result),
+    ...(await convertGenerateResult({ result: item.result, tools })),
   };
 }
 
-function convertGenerateResult(
-  result: LanguageModelV4GenerateResult,
-): TextBatchGenerationResult {
+async function convertGenerateResult<TOOLS extends ToolSet>({
+  result,
+  tools,
+}: {
+  result: LanguageModelV4GenerateResult;
+  tools: TOOLS | undefined;
+}): Promise<TextBatchGenerationResult<TOOLS>> {
+  const toolCalls = await Promise.all(
+    result.content
+      .filter(
+        (part): part is LanguageModelV4ToolCall => part.type === 'tool-call',
+      )
+      .map(toolCall =>
+        parseToolCall<TOOLS>({
+          toolCall,
+          tools,
+          repairToolCall: undefined,
+          refineToolInput: undefined,
+          instructions: undefined,
+          messages: [],
+        }),
+      ),
+  );
+  const content = convertLanguageModelContent<TOOLS>({
+    content: result.content,
+    toolCalls,
+    toolOutputs: [],
+    toolApprovalRequests: [],
+    toolApprovalResponses: [],
+    tools,
+  });
+
   return {
+    content,
     text: result.content
       .filter(
         (part): part is Extract<typeof part, { type: 'text' }> =>

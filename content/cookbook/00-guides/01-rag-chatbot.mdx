@@ -539,7 +539,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: 'openai/gpt-4o',
-    system: `You are a helpful assistant. Check your knowledge base before answering any questions.
+    instructions: `You are a helpful assistant. Check your knowledge base before answering any questions.
     Only respond to questions using information from tool calls.
     if no relevant information is found in the tool calls, respond, "Sorry, I don't know."`,
     messages: await convertToModelMessages(messages),
@@ -585,7 +585,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: 'openai/gpt-4o',
-    system: `You are a helpful assistant. Check your knowledge base before answering any questions.
+    instructions: `You are a helpful assistant. Check your knowledge base before answering any questions.
     Only respond to questions using information from tool calls.
     if no relevant information is found in the tool calls, respond, "Sorry, I don't know."`,
     messages: await convertToModelMessages(messages),
@@ -718,7 +718,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: 'openai/gpt-4o',
-    system: `You are a helpful assistant. Check your knowledge base before answering any questions.
+    instructions: `You are a helpful assistant. Check your knowledge base before answering any questions.
     Only respond to questions using information from tool calls.
     if no relevant information is found in the tool calls, respond, "Sorry, I don't know."`,
     messages: await convertToModelMessages(messages),
@@ -835,7 +835,7 @@ export async function POST(req: Request) {
     model: 'openai/gpt-4o',
     messages: await convertToModelMessages(messages),
     stopWhen: isStepCount(5),
-    system: `You are a helpful assistant. Check your knowledge base before answering any questions.
+    instructions: `You are a helpful assistant. Check your knowledge base before answering any questions.
     Only respond to questions using information from tool calls.
     if no relevant information is found in the tool calls, respond, "Sorry, I don't know."`,
     tools: {

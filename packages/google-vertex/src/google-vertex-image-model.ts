@@ -2,27 +2,17 @@ import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { GoogleLanguageModel } from '@ai-sdk/google/internal';
 import type {
   ImageModelV4,
-  ImageModelV4File,
   LanguageModelV4Prompt,
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
-  combineHeaders,
   convertToBase64,
-  convertUint8ArrayToBase64,
-  createJsonResponseHandler,
   generateId as defaultGenerateId,
-  parseProviderOptions,
-  postJsonToApi,
-  resolve,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
-import { googleVertexFailedResponseHandler } from './google-vertex-error';
-import { googleVertexImageModelOptionsSchema } from './google-vertex-image-model-options';
 import type { GoogleVertexImageModelId } from './google-vertex-image-settings';
 
 interface GoogleVertexImageModelConfig {
@@ -36,7 +26,6 @@ interface GoogleVertexImageModelConfig {
   };
 }
 
-// https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images
 export class GoogleVertexImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -54,12 +43,7 @@ export class GoogleVertexImageModel implements ImageModelV4 {
     return new GoogleVertexImageModel(options.modelId, options.config);
   }
 
-  get maxImagesPerCall(): number {
-    if (isGeminiModel(this.modelId)) {
-      return 10;
-    }
-    return 4;
-  }
+  readonly maxImagesPerCall = 10;
 
   get provider(): string {
     return this.config.provider;
@@ -73,176 +57,24 @@ export class GoogleVertexImageModel implements ImageModelV4 {
   async doGenerate(
     options: Parameters<ImageModelV4['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<ImageModelV4['doGenerate']>>> {
-    if (isGeminiModel(this.modelId)) {
-      return this.doGenerateGemini(options);
-    }
-    return this.doGenerateImagen(options);
-  }
-
-  private async doGenerateImagen({
-    prompt,
-    n,
-    size,
-    aspectRatio,
-    seed,
-    providerOptions,
-    headers,
-    abortSignal,
-    files,
-    mask,
-  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV4['doGenerate']>>
-  > {
-    const warnings: Array<SharedV4Warning> = [];
-
-    if (size != null) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'size',
-        details:
-          'This model does not support the `size` option. Use `aspectRatio` instead.',
-      });
+    if (!this.modelId.startsWith('gemini-')) {
+      throw new Error(
+        'Google image models other than Gemini are no longer supported. Use a model ID that starts with `gemini-`.',
+      );
     }
 
-    const googleVertexImageOptions =
-      (await parseProviderOptions({
-        provider: 'googleVertex',
-        providerOptions,
-        schema: googleVertexImageModelOptionsSchema,
-      })) ??
-      (await parseProviderOptions({
-        provider: 'vertex',
-        providerOptions,
-        schema: googleVertexImageModelOptionsSchema,
-      }));
-
-    // Extract edit-specific options from provider options
-    const { edit, ...otherOptions } = googleVertexImageOptions ?? {};
-    const { mode: editMode, baseSteps, maskMode, maskDilation } = edit ?? {};
-
-    // Build the request body based on whether we're editing or generating
-    const isEditMode = files != null && files.length > 0;
-
-    let body: Record<string, unknown>;
-
-    if (isEditMode) {
-      // Build reference images for editing
-      const referenceImages: Array<Record<string, unknown>> = [];
-
-      // Add the source image(s)
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        referenceImages.push({
-          referenceType: 'REFERENCE_TYPE_RAW',
-          referenceId: i + 1,
-          referenceImage: {
-            bytesBase64Encoded: getBase64Data(file),
-          },
-        });
-      }
-
-      // Add mask if provided
-      if (mask != null) {
-        referenceImages.push({
-          referenceType: 'REFERENCE_TYPE_MASK',
-          referenceId: files.length + 1,
-          referenceImage: {
-            bytesBase64Encoded: getBase64Data(mask),
-          },
-          maskImageConfig: {
-            maskMode: maskMode ?? 'MASK_MODE_USER_PROVIDED',
-            ...(maskDilation != null ? { dilation: maskDilation } : {}),
-          },
-        });
-      }
-
-      body = {
-        instances: [
-          {
-            prompt,
-            referenceImages,
-          },
-        ],
-        parameters: {
-          sampleCount: n,
-          ...(aspectRatio != null ? { aspectRatio } : {}),
-          ...(seed != null ? { seed } : {}),
-          editMode: editMode ?? 'EDIT_MODE_INPAINT_INSERTION',
-          ...(baseSteps != null ? { editConfig: { baseSteps } } : {}),
-          ...otherOptions,
-        },
-      };
-    } else {
-      // Standard image generation
-      body = {
-        instances: [{ prompt }],
-        parameters: {
-          sampleCount: n,
-          ...(aspectRatio != null ? { aspectRatio } : {}),
-          ...(seed != null ? { seed } : {}),
-          ...otherOptions,
-        },
-      };
-    }
-
-    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { value: response, responseHeaders } = await postJsonToApi({
-      url: `${this.config.baseURL}/models/${this.modelId}:predict`,
-      headers: combineHeaders(
-        this.config.headers ? await resolve(this.config.headers) : undefined,
-        headers,
-      ),
-      body,
-      failedResponseHandler: googleVertexFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        googleVertexImageResponseSchema,
-      ),
+    const {
+      prompt,
+      n,
+      size,
+      aspectRatio,
+      seed,
+      providerOptions,
+      headers,
       abortSignal,
-      fetch: this.config.fetch,
-    });
-
-    return {
-      images:
-        response.predictions?.map(
-          ({ bytesBase64Encoded }) => bytesBase64Encoded,
-        ) ?? [],
-      warnings,
-      response: {
-        timestamp: currentDate,
-        modelId: this.modelId,
-        headers: responseHeaders,
-      },
-      providerMetadata: (() => {
-        const payload = {
-          images:
-            response.predictions?.map(prediction => {
-              const {
-                // normalize revised prompt property
-                prompt: revisedPrompt,
-              } = prediction;
-
-              return { ...(revisedPrompt != null && { revisedPrompt }) };
-            }) ?? [],
-        };
-        return { googleVertex: payload, vertex: payload };
-      })(),
-    };
-  }
-
-  private async doGenerateGemini({
-    prompt,
-    n,
-    size,
-    aspectRatio,
-    seed,
-    providerOptions,
-    headers,
-    abortSignal,
-    files,
-    mask,
-  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV4['doGenerate']>>
-  > {
+      files,
+      mask,
+    } = options;
     const warnings: Array<SharedV4Warning> = [];
 
     if (mask != null) {
@@ -320,20 +152,29 @@ export class GoogleVertexImageModel implements ImageModelV4 {
       }),
     });
 
-    const userVertexOptions = (providerOptions?.googleVertex ??
-      providerOptions?.vertex) as
-      | Omit<GoogleLanguageModelOptions, 'responseModalities' | 'imageConfig'>
-      | undefined;
+    const {
+      responseModalities: _strippedResponseModalities,
+      imageConfig: userImageConfig,
+      ...userVertexOptions
+    } = ((providerOptions?.googleVertex ?? providerOptions?.vertex) as
+      | GoogleLanguageModelOptions
+      | undefined) ?? {};
     const innerVertexOptions: GoogleLanguageModelOptions = {
+      ...userVertexOptions,
       responseModalities: ['IMAGE'],
-      imageConfig: aspectRatio
-        ? {
-            aspectRatio: aspectRatio as NonNullable<
-              GoogleLanguageModelOptions['imageConfig']
-            >['aspectRatio'],
-          }
-        : undefined,
-      ...(userVertexOptions ?? {}),
+      imageConfig:
+        aspectRatio != null || userImageConfig != null
+          ? {
+              ...userImageConfig,
+              ...(aspectRatio != null
+                ? {
+                    aspectRatio: aspectRatio as NonNullable<
+                      GoogleLanguageModelOptions['imageConfig']
+                    >['aspectRatio'],
+                  }
+                : {}),
+            }
+          : undefined,
     };
     const result = await languageModel.doGenerate({
       prompt: languageModelPrompt,
@@ -385,40 +226,4 @@ export class GoogleVertexImageModel implements ImageModelV4 {
         : undefined,
     };
   }
-}
-
-function isGeminiModel(modelId: string): boolean {
-  return modelId.startsWith('gemini-');
-}
-
-// minimal version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const googleVertexImageResponseSchema = z.object({
-  predictions: z
-    .array(
-      z.object({
-        bytesBase64Encoded: z.string(),
-        mimeType: z.string(),
-        prompt: z.string().nullish(),
-      }),
-    )
-    .nullish(),
-});
-
-/**
- * Helper to convert ImageModelV4File data to base64 string
- */
-function getBase64Data(file: ImageModelV4File): string {
-  if (file.type === 'url') {
-    throw new Error(
-      'URL-based images are not supported for Google Vertex image editing. Please provide the image data directly.',
-    );
-  }
-
-  if (typeof file.data === 'string') {
-    return file.data;
-  }
-
-  // Convert Uint8Array to base64
-  return convertUint8ArrayToBase64(file.data);
 }

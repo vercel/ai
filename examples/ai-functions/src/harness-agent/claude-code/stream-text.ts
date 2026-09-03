@@ -11,7 +11,7 @@ run(async () => {
     timeout: 10 * 60 * 1000,
   });
   const agent = new HarnessAgent({
-    harness: createClaudeCode({ model: 'claude-sonnet-4-5' }),
+    harness: createClaudeCode(),
     sandbox,
   });
 

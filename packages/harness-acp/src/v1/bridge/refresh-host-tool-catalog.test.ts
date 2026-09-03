@@ -1,8 +1,36 @@
 import { HarnessBridgeCapabilityUnsupportedError } from '@ai-sdk/harness/bridge';
 import { describe, expect, it, vi } from 'vitest';
-import { refreshHostToolCatalog } from './refresh-host-tool-catalog';
+import {
+  promptAndRefreshInitialHostToolCatalog,
+  refreshHostToolCatalog,
+} from './refresh-host-tool-catalog';
 
 describe('refreshHostToolCatalog', () => {
+  it('starts the initial prompt before waiting for lazy MCP discovery', async () => {
+    let promptStarted = false;
+    const startPrompt = vi.fn(async () => {
+      promptStarted = true;
+    });
+    const waitForCatalogRefresh = vi.fn(async () => promptStarted);
+
+    await promptAndRefreshInitialHostToolCatalog({
+      startPrompt,
+      relay: {
+        updateCatalog: () => ({ changed: false, revision: 1 }),
+        waitForCatalogRefresh,
+      },
+      tools: [{ name: 'weather', inputSchema: { type: 'object' } }],
+      harnessId: 'lazy-acp',
+      timeoutMs: 100,
+    });
+
+    expect(startPrompt).toHaveBeenCalledOnce();
+    expect(waitForCatalogRefresh).toHaveBeenCalledWith({
+      revision: 1,
+      timeoutMs: 100,
+    });
+  });
+
   it('waits when a non-empty catalog is unchanged but may not be loaded', async () => {
     const waitForCatalogRefresh = vi.fn(async () => true);
 

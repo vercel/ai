@@ -247,4 +247,32 @@ describe('createEmitStreamEvent', () => {
       ]
     `);
   });
+
+  it('does not expose the internal structured output tool', () => {
+    const state = createDeepAgentsStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      configuredModel: undefined,
+      hostToolNames: new Set(),
+      mcpToolNames: new Set(),
+      structuredOutputToolNames: new Set(['StructuredOutput']),
+      emit: event => emitted.push(event),
+    });
+
+    emitStreamEvent({
+      event: 'on_tool_start',
+      name: 'StructuredOutput',
+      run_id: 'structured-output',
+      data: { input: { answer: 'yes' } },
+    });
+    emitStreamEvent({
+      event: 'on_tool_end',
+      name: 'StructuredOutput',
+      run_id: 'structured-output',
+      data: { output: { answer: 'yes' } },
+    });
+
+    expect(emitted).toEqual([]);
+  });
 });

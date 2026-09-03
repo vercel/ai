@@ -2,7 +2,7 @@ import ChatIdProvider from '@/components/chat-id-provider';
 import WeatherACPHarnessChat from '@/components/weather-acp-harness-chat';
 
 export const metadata = {
-  title: 'ACP: Grok Build — Weather Only',
+  title: 'Grok Build — Weather Only',
 };
 
 const STORAGE_KEY = 'harness-grok-build-weather-only-chat-id';
@@ -13,7 +13,7 @@ export default function GrokBuildWeatherOnlyPage() {
       <WeatherACPHarnessChat
         apiRoute="/api/harness/grok-build/weather-only"
         exampleLabel="Weather Only"
-        harnessLabel="ACP: Grok Build"
+        harnessLabel="Grok Build"
       />
     </ChatIdProvider>
   );

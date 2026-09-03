@@ -6,6 +6,10 @@ export type ACPActiveSession = {
   readonly sessionId: string;
   readonly newSessionResponse: acp.NewSessionResponse;
   prompt(prompt: Array<acp.ContentBlock>): Promise<acp.PromptResponse>;
+  promptWithMeta?(options: {
+    prompt: Array<acp.ContentBlock>;
+    meta: Record<string, unknown>;
+  }): Promise<acp.PromptResponse>;
   nextUpdate(): Promise<acp.ActiveSessionMessage>;
   dispose(): void;
 };
@@ -57,6 +61,27 @@ export function createACPRecoveredSession({
       const response = agent.request<acp.PromptResponse, acp.PromptRequest>(
         acp.methods.agent.session.prompt,
         { sessionId, prompt },
+      );
+      void response.then(
+        value => {
+          updates.enqueue({
+            kind: 'stop',
+            response: value,
+            stopReason: value.stopReason,
+          });
+        },
+        error => updates.reject(error),
+      );
+      return response;
+    },
+    promptWithMeta: async ({ prompt, meta }) => {
+      if (disposed) {
+        throw new Error('Recovered ACP session is disposed.');
+      }
+      updates.clearErrors();
+      const response = agent.request<acp.PromptResponse, acp.PromptRequest>(
+        acp.methods.agent.session.prompt,
+        { sessionId, prompt, _meta: meta },
       );
       void response.then(
         value => {

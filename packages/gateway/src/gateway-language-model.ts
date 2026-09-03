@@ -25,7 +25,7 @@ import type { GatewayModelId } from './gateway-language-model-settings';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 
-type GatewayChatConfig = GatewayConfig & {
+export type GatewayChatConfig = GatewayConfig & {
   provider: string;
   o11yHeaders: Resolvable<Record<string, string>>;
 };
@@ -50,7 +50,7 @@ export class GatewayLanguageModel implements LanguageModelV4 {
 
   constructor(
     readonly modelId: GatewayModelId,
-    private readonly config: GatewayChatConfig,
+    protected readonly config: GatewayChatConfig,
   ) {}
 
   get provider(): string {
@@ -196,7 +196,9 @@ export class GatewayLanguageModel implements LanguageModelV4 {
    * @param options - The options to encode.
    * @returns The options with the file data encoded.
    */
-  private maybeEncodeFileParts(options: LanguageModelV4CallOptions) {
+  protected maybeEncodeFileParts<
+    T extends Pick<LanguageModelV4CallOptions, 'prompt'>,
+  >(options: T): T {
     for (const message of options.prompt) {
       if (!Array.isArray(message.content)) {
         continue;

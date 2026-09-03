@@ -39,6 +39,17 @@ interface XaiVideoModelConfig {
   };
 }
 
+function encodePathSegment(value: string): string {
+  const encodedValue = encodeURIComponent(value);
+
+  // URL parsing normalizes both literal and percent-encoded dot segments.
+  return encodedValue === '.'
+    ? '%252E'
+    : encodedValue === '..'
+      ? '%252E%252E'
+      : encodedValue;
+}
+
 const RESOLUTION_MAP: Record<string, string> = {
   '1920x1080': '1080p',
   '1280x720': '720p',
@@ -538,7 +549,7 @@ export class XaiVideoModel implements VideoModelV4 {
     const baseURL = this.config.baseURL ?? 'https://api.x.ai/v1';
 
     const { value: statusResponse, responseHeaders } = await getFromApi({
-      url: `${baseURL}/videos/${requestId}`,
+      url: `${baseURL}/videos/${encodePathSegment(requestId)}`,
       validateUrl: false,
       headers: combineHeaders(this.config.headers(), options.headers),
       successfulResponseHandler: xaiVideoStatusResponseHandler,
@@ -581,19 +592,30 @@ export class XaiVideoModel implements VideoModelV4 {
       statusResponse.status === 'done' ||
       (statusResponse.status == null && statusResponse.video?.url)
     ) {
+      // Terminal outcomes, so they are reported the same way as an upstream `failed`
       if (statusResponse.video?.respect_moderation === false) {
-        throw new AISDKError({
-          name: 'XAI_VIDEO_MODERATION_ERROR',
-          message:
+        return {
+          status: 'error' as const,
+          error:
             'Video generation was blocked due to a content policy violation.',
-        });
+          response: {
+            timestamp: currentDate,
+            modelId: this.modelId,
+            headers: responseHeaders,
+          },
+        };
       }
 
       if (!statusResponse.video?.url) {
-        throw new AISDKError({
-          name: 'XAI_VIDEO_GENERATION_ERROR',
-          message: 'Video generation completed but no video URL was returned.',
-        });
+        return {
+          status: 'error' as const,
+          error: 'Video generation completed but no video URL was returned.',
+          response: {
+            timestamp: currentDate,
+            modelId: this.modelId,
+            headers: responseHeaders,
+          },
+        };
       }
 
       return {

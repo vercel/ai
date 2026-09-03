@@ -42,9 +42,15 @@ export async function validateApprovedToolApprovals<
 }): Promise<{
   approvedToolApprovals: Array<CollectedToolApprovals<TOOLS>>;
   deniedToolApprovals: Array<CollectedToolApprovals<TOOLS>>;
+  invalidToolApprovals: Array<
+    CollectedToolApprovals<TOOLS> & { error: InvalidToolInputError }
+  >;
 }> {
   const approved: Array<CollectedToolApprovals<TOOLS>> = [];
   const denied: Array<CollectedToolApprovals<TOOLS>> = [];
+  const invalid: Array<
+    CollectedToolApprovals<TOOLS> & { error: InvalidToolInputError }
+  > = [];
 
   for (const approval of approvedToolApprovals) {
     const { toolCall, approvalRequest } = approval;
@@ -88,11 +94,15 @@ export async function validateApprovedToolApprovals<
       });
 
       if (!validation.success) {
-        throw new InvalidToolInputError({
-          toolName: toolCall.toolName,
-          toolInput: JSON.stringify(toolCall.input),
-          cause: validation.error,
+        invalid.push({
+          ...approval,
+          error: new InvalidToolInputError({
+            toolName: toolCall.toolName,
+            toolInput: JSON.stringify(toolCall.input),
+            cause: validation.error,
+          }),
         });
+        continue;
       }
     }
 
@@ -119,5 +129,9 @@ export async function validateApprovedToolApprovals<
     }
   }
 
-  return { approvedToolApprovals: approved, deniedToolApprovals: denied };
+  return {
+    approvedToolApprovals: approved,
+    deniedToolApprovals: denied,
+    invalidToolApprovals: invalid,
+  };
 }

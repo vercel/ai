@@ -1,18 +1,17 @@
-import { randomBytes } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import {
   commonTool,
   HarnessCapabilityUnsupportedError,
   harnessV1DiagnosticFromBridgeFrame,
   type HarnessV1,
-  type HarnessV1Bootstrap,
   type HarnessV1DebugConfig,
   type HarnessV1BuiltinTool,
   type HarnessV1ContinueTurnState,
+  type HarnessV1CredentialForwarding,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
+  type HarnessV1PortEndpoint,
   type HarnessV1ResumeSessionState,
   type HarnessV1NetworkSandboxSession,
   type HarnessV1PermissionMode,
@@ -21,25 +20,44 @@ import {
   type HarnessV1StreamPart,
 } from '@ai-sdk/harness';
 import {
+  applyCredentialForwarding,
   classifyDiskLog,
+  createBridgeToken,
+  createSandboxCredentialEnvironment,
   createBridgeErrorHandler,
   createBridgeStartupError,
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
+  getRestrictedSandboxSession,
   markBridgeStarting,
+  resolveSandboxDefaultWorkingDirectory,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
+  warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
+  withBridgeToken,
   writeSkills as writeHarnessSkills,
+  type WriteSkillsResult,
 } from '@ai-sdk/harness/utils';
 import {
   type Experimental_SandboxProcess,
-  type Experimental_SandboxSession,
+  type Experimental_SandboxSession as SandboxSession,
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
 import { z } from 'zod/v4';
-import { resolveCodexEnv, type CodexAuthOptions } from './codex-auth';
+import {
+  CODEX_BOOTSTRAP_DIR as BOOTSTRAP_DIR,
+  getCodexBootstrap,
+} from './codex-bootstrap';
+import {
+  CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES,
+  createCodexRequestTransformations,
+  DEFAULT_OPENAI_BASE_URL,
+  resolveCodexAuthenticationMode,
+  resolveCodexEnv,
+  type CodexAuthenticationMode,
+} from './codex-auth';
 import {
   outboundMessageSchema,
   type InboundMessage,
@@ -50,11 +68,6 @@ import { VERSION } from './version';
 
 type CodexChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 type CodexRespawnStrategy = 'replay' | 'rerun';
-
-type WriteSkillsResult = {
-  readonly homeDir: string;
-  readonly codexHomeDir: string;
-};
 
 /*
  * This intentionally is not the latest Codex model. Newer GPT-5.6 models use
@@ -74,7 +87,19 @@ const DEFAULT_CODEX_MODEL = 'gpt-5.5';
 const CODEX_CLIENT_APP = `ai-sdk/harness-codex/${VERSION}`;
 
 export type CodexHarnessSettings = {
-  readonly auth?: CodexAuthOptions;
+  readonly auth?: CodexAuthenticationMode;
+  /**
+   * Customizes each credential value before it is forwarded into a sandbox
+   * process. This does not restrict which credentials the harness adapter can
+   * discover, read, or otherwise access in the host process.
+   */
+  readonly credentialForwarding?: HarnessV1CredentialForwarding;
+  /**
+   * Additional configuration passed through to Codex as-is. Codex config keys
+   * typically use snake_case and must be provided in that form. Values managed
+   * by this adapter take precedence over conflicting entries.
+   */
+  readonly codexConfig?: Record<string, unknown>;
   /**
    * MCP server definitions keyed by server name. Each definition uses the
    * underlying runtime's native MCP server configuration format.
@@ -83,13 +108,15 @@ export type CodexHarnessSettings = {
   /**
    * OpenAI model id the underlying `codex` CLI should use. Leaving this unset
    * pins the adapter default (`DEFAULT_CODEX_MODEL`).
+   *
+   * @deprecated Use `model` on `HarnessAgent` instead.
    */
   readonly model?: string;
   /**
    * Reasoning effort for reasoning-capable models. Leaving this unset
    * defers to the CLI's default.
    */
-  readonly reasoningEffort?: 'low' | 'medium' | 'high';
+  readonly reasoningEffort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
   /**
    * When `true`, allow the underlying runtime to use live web search.
    */
@@ -101,6 +128,11 @@ export type CodexHarnessSettings = {
    * is reserved for something else.
    */
   readonly port?: number;
+  /**
+   * Override the host endpoint used to connect to the sandbox bridge. Required
+   * together with `port` when using a basic sandbox session.
+   */
+  readonly portEndpoint?: HarnessV1PortEndpoint;
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
   /**
@@ -135,19 +167,6 @@ const CODEX_BUILTIN_TOOLS = {
   }),
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
 
-/*
- * Bootstrap is derived state stored under the sandbox's default working
- * directory so snapshot-capable providers can preserve the installed CLI,
- * bridge, and recipe marker without requiring root filesystem access.
- *
- * The session work dir (`startOpts.sessionWorkDir`) lives under the sandbox's
- * default working directory — the provider's persistent mount — so any files
- * the agent edits survive both detach -> attach and stop -> snapshot -> resume
- * cycles. Harness infra derived from `sandboxSession.defaultWorkingDirectory`
- * lives under `.agent-runs`, outside the agent workdir.
- */
-const BOOTSTRAP_DIR = '.harness-bootstrap/codex';
-
 /**
  * Live bridge coordinates returned by `doDetach()` and `doSuspendTurn()`. A
  * future process uses them to reopen a socket to the still-running bridge
@@ -170,7 +189,9 @@ const codexBridgeCoordsSchema = z.object({
  */
 const codexResumeStateSchema = z.object({
   threadId: z.string().optional(),
+  turnConfigurationFingerprint: z.string().optional(),
   bridge: codexBridgeCoordsSchema.optional(),
+  sandboxCredentialEnvironment: z.record(z.string(), z.string()).optional(),
 });
 
 type CodexBridgeCoords = z.infer<typeof codexBridgeCoordsSchema>;
@@ -178,38 +199,15 @@ type CodexBridgeCoords = z.infer<typeof codexBridgeCoordsSchema>;
 export function createCodex(
   settings: CodexHarnessSettings = {},
 ): HarnessV1<typeof CODEX_BUILTIN_TOOLS> {
-  let cachedBootstrap: HarnessV1Bootstrap | undefined;
-
   return {
     specificationVersion: 'harness-v1',
     harnessId: 'codex',
     builtinTools: CODEX_BUILTIN_TOOLS,
     supportsBuiltinToolApprovals: false,
     lifecycleStateSchema: codexResumeStateSchema,
-    getBootstrap: async () => {
-      if (cachedBootstrap != null) return cachedBootstrap;
-      const [pkg, lock, bridge] = await Promise.all([
-        readBridgeAsset('package.json'),
-        readBridgeAsset('pnpm-lock.yaml'),
-        readBridgeAsset('index.mjs'),
-      ]);
-      cachedBootstrap = {
-        harnessId: 'codex',
-        bootstrapDir: BOOTSTRAP_DIR,
-        files: [
-          { path: `${BOOTSTRAP_DIR}/package.json`, content: pkg },
-          { path: `${BOOTSTRAP_DIR}/pnpm-lock.yaml`, content: lock },
-          { path: `${BOOTSTRAP_DIR}/bridge.mjs`, content: bridge },
-        ],
-        commands: [
-          {
-            command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
-          },
-        ],
-      };
-      return cachedBootstrap;
-    },
+    getBootstrap: getCodexBootstrap,
     doStart: async startOpts => {
+      const model = settings.model ?? DEFAULT_CODEX_MODEL;
       if (startOpts.builtinToolFiltering != null) {
         throw new HarnessCapabilityUnsupportedError({
           message:
@@ -228,12 +226,26 @@ export function createCodex(
         });
       }
       const sandboxSession = startOpts.sandboxSession;
-      const session = sandboxSession.restricted();
-      const sandboxId = sandboxSession.id;
-      const bootstrapDir = path.posix.resolve(
-        sandboxSession.defaultWorkingDirectory,
-        BOOTSTRAP_DIR,
-      );
+      const toolSafeSandboxSession =
+        getRestrictedSandboxSession(sandboxSession);
+      const sandboxId = 'id' in sandboxSession ? sandboxSession.id : undefined;
+      validateBasicSandboxSettings({
+        sandboxSession,
+        port: settings.port,
+        portEndpoint: settings.portEndpoint,
+      });
+      if (settings.mintBridgeToken != null && sandboxId == null) {
+        throw new HarnessCapabilityUnsupportedError({
+          harnessId: 'codex',
+          message:
+            'The codex harness cannot use `mintBridgeToken` with a sandbox session that does not expose an id.',
+        });
+      }
+      const defaultWorkingDirectory =
+        await resolveSandboxDefaultWorkingDirectory({
+          sandboxSession,
+          abortSignal: startOpts.abortSignal,
+        });
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
       const isContinue = startOpts.continueFrom != null;
@@ -241,7 +253,9 @@ export function createCodex(
         isResume && typeof lifecycleState?.data === 'object'
           ? (lifecycleState.data as {
               threadId?: unknown;
+              turnConfigurationFingerprint?: unknown;
               bridge?: CodexBridgeCoords;
+              sandboxCredentialEnvironment?: Record<string, string>;
             })
           : undefined;
       const resumeThreadId = resumeData?.threadId;
@@ -249,10 +263,68 @@ export function createCodex(
         typeof resumeThreadId === 'string' && resumeThreadId.length > 0
           ? resumeThreadId
           : undefined;
+      const turnConfigurationFingerprint =
+        typeof resumeData?.turnConfigurationFingerprint === 'string'
+          ? resumeData.turnConfigurationFingerprint
+          : undefined;
       const coords = resumeData?.bridge;
+      const authenticationMode = resolveCodexAuthenticationMode(settings.auth);
+      const resolvedAuthEnvironment = resolveCodexEnv(settings.auth);
+      let sandboxAuthEnvironment = resolvedAuthEnvironment;
+      let sandboxCredentialEnvironment: Record<string, string> | undefined;
+      let credentialsBrokered = false;
+      if (
+        'addRequestTransformations' in sandboxSession &&
+        sandboxSession.addRequestTransformations != null
+      ) {
+        sandboxCredentialEnvironment =
+          resumeData?.sandboxCredentialEnvironment ??
+          (await createSandboxCredentialEnvironment({
+            environment: resolvedAuthEnvironment,
+            credentialEnvironmentVariables:
+              CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES,
+            credentialForwarding: settings.credentialForwarding,
+          }));
+        sandboxAuthEnvironment = {
+          ...resolvedAuthEnvironment,
+          ...sandboxCredentialEnvironment,
+        };
+        const requestTransformations = createCodexRequestTransformations({
+          env: resolvedAuthEnvironment,
+          sandboxEnv: sandboxAuthEnvironment,
+          auth: authenticationMode,
+        });
+        if (requestTransformations.length > 0) {
+          await sandboxSession.addRequestTransformations(
+            requestTransformations,
+          );
+        }
+        credentialsBrokered = true;
+        if (
+          requestTransformations.length > 0 &&
+          authenticationMode === 'direct' &&
+          resolvedAuthEnvironment.OPENAI_BASE_URL == null
+        ) {
+          /*
+           * Vercel Sandbox request transformations apply only to HTTP traffic.
+           * Materializing Codex's standard OpenAI URL makes the bridge select
+           * its custom provider, where WebSockets are disabled, while keeping
+           * the non-brokered path on Codex's built-in OpenAI provider.
+           */
+          sandboxAuthEnvironment.OPENAI_BASE_URL = DEFAULT_OPENAI_BASE_URL;
+        }
+      }
+      const bootstrapDir = path.posix.resolve(
+        defaultWorkingDirectory,
+        BOOTSTRAP_DIR,
+      );
 
       const workDir = startOpts.sessionWorkDir;
-      const sessionDataDir = `${sandboxSession.defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
+      const sandboxHomeDir = await resolveSandboxHomeDir({
+        sandbox: toolSafeSandboxSession,
+        abortSignal: startOpts.abortSignal,
+      });
+      const sessionDataDir = `${defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const cliShimDir = `${sessionDataDir}/codex`;
       const cliShimPath = `${cliShimDir}/${CLI_SHIM_FILENAME}`;
@@ -286,13 +358,17 @@ export function createCodex(
        */
       if (coords) {
         try {
-          const attachUrl =
-            (await sandboxSession.getPortUrl({
-              port: coords.port,
-              protocol: 'ws',
-            })) + `?agent_bridge_token=${encodeURIComponent(coords.token)}`;
+          const endpoint = await resolveBridgeEndpoint({
+            sandboxSession,
+            override: settings.portEndpoint,
+            port: coords.port,
+          });
+          const attachEndpoint = withBridgeToken({
+            endpoint,
+            token: coords.token,
+          });
           const attachChannel: CodexChannel = new SandboxChannel({
-            connect: () => openWebSocket(attachUrl),
+            connect: () => openWebSocket(attachEndpoint),
             outboundSchema: outboundMessageSchema,
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
@@ -305,9 +381,10 @@ export function createCodex(
             cliShimPath,
             // The live bridge was spawned by another process; no process handle.
             proc: undefined,
-            model: settings.model ?? DEFAULT_CODEX_MODEL,
+            model,
             reasoningEffort: settings.reasoningEffort,
             webSearch: settings.webSearch,
+            codexConfig: settings.codexConfig,
             mcpServers: settings.mcpServers,
             resumeThreadId: resumeThreadIdString,
             isResume: true,
@@ -316,8 +393,12 @@ export function createCodex(
             bridgePort: coords.port,
             bridgeToken: coords.token,
             sandboxId,
+            sandboxCredentialEnvironment,
             debug: startOpts.observability?.debug,
             permissionMode: startOpts.permissionMode,
+            sandbox: toolSafeSandboxSession,
+            sandboxHomeDir,
+            turnConfigurationFingerprint,
           });
         } catch {
           // Bridge no longer reachable — recover by respawning below.
@@ -337,7 +418,7 @@ export function createCodex(
         : undefined;
       if (coords && isContinue) {
         const logRaw = await Promise.resolve(
-          session.readTextFile({
+          toolSafeSandboxSession.readTextFile({
             path: `${bridgeStateDir}/event-log.ndjson`,
             abortSignal: startOpts.abortSignal,
           }),
@@ -347,50 +428,55 @@ export function createCodex(
         }
       }
 
-      const port = resolveBridgePort(sandboxSession, settings.port);
+      const port = resolveBridgePort({
+        sandboxSession,
+        override: settings.port,
+      });
       const token =
         settings.mintBridgeToken == null
-          ? randomBytes(32).toString('hex')
-          : settings.mintBridgeToken(sandboxId);
-      const codexSkillSetup =
-        startOpts.skills && startOpts.skills.length > 0
-          ? await writeCodexSkills({
-              sandbox: session,
-              skills: startOpts.skills,
-              abortSignal: startOpts.abortSignal,
-            })
-          : undefined;
+          ? createBridgeToken()
+          : settings.mintBridgeToken(sandboxId!);
+      const forwardedAuthEnvironment = credentialsBrokered
+        ? sandboxAuthEnvironment
+        : await applyCredentialForwarding({
+            environment: sandboxAuthEnvironment,
+            credentialEnvironmentVariables:
+              CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES,
+            credentialForwarding: settings.credentialForwarding,
+          });
+      if (!credentialsBrokered) {
+        warnCredentialBrokeringUnavailable({
+          environment: resolvedAuthEnvironment,
+          forwardedEnvironment: forwardedAuthEnvironment,
+          credentialEnvironmentVariables:
+            CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES,
+        });
+      }
       const env = {
-        ...resolveCodexEnv(settings.auth),
+        ...forwardedAuthEnvironment,
         AI_SDK_HARNESS_CLIENT_APP: CODEX_CLIENT_APP,
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
-        ...(codexSkillSetup
-          ? {
-              HOME: codexSkillSetup.homeDir,
-              CODEX_HOME: codexSkillSetup.codexHomeDir,
-            }
-          : {}),
         ...(respawnStrategy === 'replay'
           ? { BRIDGE_REPLAY_FROM_DISK: '1' }
           : {}),
       };
 
       if (respawnStrategy === undefined) {
-        await session.run({
+        await toolSafeSandboxSession.run({
           command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
           abortSignal: startOpts.abortSignal,
         });
       }
 
       await markBridgeStarting({
-        sandbox: session,
+        sandbox: toolSafeSandboxSession,
         bridgeStateDir,
         bridgeType: 'codex',
         abortSignal: startOpts.abortSignal,
       });
 
-      const proc = await session.spawn({
+      const proc = await toolSafeSandboxSession.spawn({
         command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --cli-shim-dir ${shellQuote(cliShimDir)}`,
         env,
         abortSignal: startOpts.abortSignal,
@@ -405,7 +491,7 @@ export function createCodex(
 
       const { port: boundPort } = await waitForBridgeReady({
         proc,
-        sandbox: session,
+        sandbox: toolSafeSandboxSession,
         bridgeStateDir,
         bridgeType: 'codex',
         timeoutMs,
@@ -429,14 +515,15 @@ export function createCodex(
       });
       void drainBridgeProcessStream(proc.stdout);
 
-      const wsUrl =
-        (await sandboxSession.getPortUrl({
-          port: boundPort,
-          protocol: 'ws',
-        })) + `?agent_bridge_token=${encodeURIComponent(token)}`;
+      const endpoint = await resolveBridgeEndpoint({
+        sandboxSession,
+        override: settings.portEndpoint,
+        port: boundPort,
+      });
+      const bridgeEndpoint = withBridgeToken({ endpoint, token });
 
       const channel: CodexChannel = new SandboxChannel({
-        connect: () => openWebSocket(wsUrl),
+        connect: () => openWebSocket(bridgeEndpoint),
         outboundSchema: outboundMessageSchema,
         onDiagnostic,
         onBridgeError,
@@ -456,9 +543,10 @@ export function createCodex(
         channel,
         cliShimPath,
         proc,
-        model: settings.model ?? DEFAULT_CODEX_MODEL,
+        model,
         reasoningEffort: settings.reasoningEffort,
         webSearch: settings.webSearch,
+        codexConfig: settings.codexConfig,
         mcpServers: settings.mcpServers,
         resumeThreadId: resumeThreadIdString,
         isResume: respawnStrategy !== undefined,
@@ -467,19 +555,28 @@ export function createCodex(
         bridgePort: boundPort,
         bridgeToken: token,
         sandboxId,
+        sandboxCredentialEnvironment,
         debug: startOpts.observability?.debug,
         permissionMode: startOpts.permissionMode,
+        sandbox: toolSafeSandboxSession,
+        sandboxHomeDir,
+        turnConfigurationFingerprint,
       });
     },
   };
 }
 
-function resolveBridgePort(
-  sandboxSession: HarnessV1NetworkSandboxSession,
-  override: number | undefined,
-): number {
+function resolveBridgePort({
+  sandboxSession,
+  override,
+}: {
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  override: number | undefined;
+}): number {
   if (override !== undefined) return override;
-  if (sandboxSession.ports.length > 0) return sandboxSession.ports[0];
+  if ('ports' in sandboxSession && sandboxSession.ports.length > 0) {
+    return sandboxSession.ports[0];
+  }
   throw new HarnessCapabilityUnsupportedError({
     harnessId: 'codex',
     message:
@@ -488,42 +585,65 @@ function resolveBridgePort(
   });
 }
 
-async function readBridgeAsset(name: string): Promise<string> {
-  const candidates = [
-    new URL(`./bridge/${name}`, import.meta.url),
-    new URL(`../bridge/${name}`, import.meta.url),
-  ];
-  let lastErr: unknown;
-  for (const url of candidates) {
-    try {
-      return await readFile(fileURLToPath(url), 'utf8');
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException).code;
-      if (code !== 'ENOENT') throw err;
-      lastErr = err;
-    }
+function validateBasicSandboxSettings({
+  sandboxSession,
+  port,
+  portEndpoint,
+}: {
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  port: number | undefined;
+  portEndpoint: HarnessV1PortEndpoint | undefined;
+}): void {
+  if ('getPortEndpoint' in sandboxSession) return;
+  if (port == null) {
+    throw new HarnessCapabilityUnsupportedError({
+      harnessId: 'codex',
+      message:
+        'The codex harness requires an explicit `port` when using a basic sandbox session.',
+    });
   }
-  throw lastErr ?? new Error(`bridge asset not found: ${name}`);
+  if (portEndpoint == null) {
+    throw new HarnessCapabilityUnsupportedError({
+      harnessId: 'codex',
+      message:
+        'The codex harness requires an explicit `portEndpoint` when using a basic sandbox session.',
+    });
+  }
+}
+
+async function resolveBridgeEndpoint({
+  sandboxSession,
+  override,
+  port,
+}: {
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  override: HarnessV1PortEndpoint | undefined;
+  port: number;
+}): Promise<HarnessV1PortEndpoint> {
+  if (override != null) return override;
+  if ('getPortEndpoint' in sandboxSession) {
+    return sandboxSession.getPortEndpoint({ port, protocol: 'ws' });
+  }
+  throw new HarnessCapabilityUnsupportedError({
+    harnessId: 'codex',
+    message:
+      'The codex harness requires an explicit `portEndpoint` when using a basic sandbox session.',
+  });
 }
 
 async function writeCodexSkills({
   sandbox,
+  sandboxHomeDir,
   skills,
   abortSignal,
 }: {
-  sandbox: Experimental_SandboxSession;
+  sandbox: SandboxSession;
+  sandboxHomeDir: string;
   skills: ReadonlyArray<HarnessV1Skill>;
   abortSignal?: AbortSignal;
 }): Promise<WriteSkillsResult> {
-  const homeDir = await resolveSandboxHomeDir({ sandbox, abortSignal });
-  const codexHomeDir = path.posix.join(homeDir, '.codex');
-  await sandbox.run({
-    command: `mkdir -p ${shellQuote(codexHomeDir)}`,
-    abortSignal,
-  });
-
-  const rootDir = path.posix.join(homeDir, '.agents', 'skills');
-  await writeHarnessSkills({
+  const rootDir = path.posix.join(sandboxHomeDir, '.agents', 'skills');
+  return writeHarnessSkills({
     sandbox,
     rootDir,
     skills,
@@ -532,16 +652,16 @@ async function writeCodexSkills({
     invalidSkillFilePathMessage: ({ skillName, filePath }) =>
       `Invalid Codex skill file path for ${skillName}: ${filePath}`,
   });
-
-  return {
-    homeDir,
-    codexHomeDir,
-  };
 }
 
-function openWebSocket(url: string): Promise<WebSocket> {
+function openWebSocket({
+  url,
+  headers,
+}: HarnessV1PortEndpoint): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(url);
+    const ws = new WebSocket(url, {
+      headers: headers == null ? undefined : { ...headers },
+    });
     const onOpen = () => {
       ws.off('error', onError);
       resolve(ws);
@@ -563,6 +683,7 @@ function createSession({
   model,
   reasoningEffort,
   webSearch,
+  codexConfig,
   mcpServers,
   resumeThreadId,
   isResume,
@@ -571,8 +692,12 @@ function createSession({
   bridgePort,
   bridgeToken,
   sandboxId,
+  sandboxCredentialEnvironment,
   debug,
   permissionMode,
+  sandbox,
+  sandboxHomeDir,
+  turnConfigurationFingerprint,
 }: {
   sessionId: string;
   channel: CodexChannel;
@@ -580,8 +705,9 @@ function createSession({
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
   model: string | undefined;
-  reasoningEffort: 'low' | 'medium' | 'high' | undefined;
+  reasoningEffort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
   webSearch: boolean | undefined;
+  codexConfig: Record<string, unknown> | undefined;
   mcpServers: Record<string, unknown> | undefined;
   resumeThreadId: string | undefined;
   isResume: boolean;
@@ -589,9 +715,13 @@ function createSession({
   rerunContinue: boolean;
   bridgePort: number;
   bridgeToken: string;
-  sandboxId: string;
+  sandboxId: string | undefined;
+  sandboxCredentialEnvironment: Record<string, string> | undefined;
   debug: HarnessV1DebugConfig | undefined;
   permissionMode: HarnessV1PermissionMode | undefined;
+  sandbox: SandboxSession;
+  sandboxHomeDir: string;
+  turnConfigurationFingerprint: string | undefined;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
@@ -618,9 +748,54 @@ function createSession({
    * can include a thread id even before this process has run a turn.
    */
   let latestThreadId = resumeThreadId;
+  let latestTurnConfigurationFingerprint = turnConfigurationFingerprint;
   channel.on('bridge-thread', msg => {
     latestThreadId = msg.threadId;
   });
+
+  const synchronizeTurnConfiguration = async ({
+    skills,
+    instructions,
+    tools,
+    abortSignal,
+  }: {
+    skills: ReadonlyArray<HarnessV1Skill>;
+    instructions: string | undefined;
+    tools: ReadonlyArray<{
+      name: string;
+      description?: string;
+      inputSchema: unknown;
+    }>;
+    abortSignal?: AbortSignal;
+  }): Promise<{ restartThread: boolean }> => {
+    const skillsResult = await writeCodexSkills({
+      sandbox,
+      sandboxHomeDir,
+      skills,
+      abortSignal,
+    });
+    const nextFingerprint = fingerprintCodexTurnConfiguration({
+      instructions,
+      tools,
+    });
+    const restartThread =
+      latestThreadId != null &&
+      (skillsResult.changed ||
+        (latestTurnConfigurationFingerprint != null &&
+          latestTurnConfigurationFingerprint !== nextFingerprint));
+    latestTurnConfigurationFingerprint = nextFingerprint;
+    if (restartThread) {
+      /*
+       * `codex exec resume` retains the native thread's original developer
+       * instructions and skill catalog. A fresh native thread is therefore
+       * required for replacement semantics. Host-tool guidance is framed
+       * again because that guidance also belongs to the new native thread.
+       */
+      initialPromptGuidanceApplied = false;
+      pendingResumeThreadId = undefined;
+    }
+    return { restartThread };
+  };
 
   /*
    * Wire the channel into one turn's worth of events and return the control
@@ -752,9 +927,6 @@ function createSession({
           reason: input.reason,
         });
       },
-      submitUserMessage: async text => {
-        channel.send({ type: 'user-message', text });
-      },
       done,
     };
 
@@ -782,18 +954,33 @@ function createSession({
   return {
     sessionId,
     isResume,
-    modelId: model,
     doPromptTurn: async promptOpts => {
-      const turn = wireTurn({
-        emit: promptOpts.emit,
-        abortSignal: promptOpts.abortSignal,
-      });
-
+      if (
+        promptOpts.responseFormat?.type === 'json' &&
+        promptOpts.responseFormat.schema == null
+      ) {
+        throw new HarnessCapabilityUnsupportedError({
+          message:
+            "Harness 'codex' requires a JSON schema for structured output.",
+          harnessId: 'codex',
+        });
+      }
       const tools = (promptOpts.tools ?? []).map(t => ({
         name: t.name,
         description: t.description,
         inputSchema: t.inputSchema,
       }));
+      const { restartThread } = await synchronizeTurnConfiguration({
+        skills: promptOpts.skills,
+        instructions: promptOpts.instructions,
+        tools,
+        abortSignal: promptOpts.abortSignal,
+      });
+      const turn = wireTurn({
+        emit: promptOpts.emit,
+        abortSignal: promptOpts.abortSignal,
+      });
+
       let promptText = extractUserText(promptOpts.prompt);
       if (!initialPromptGuidanceApplied) {
         promptText = frameInitialPromptGuidance({
@@ -813,17 +1000,22 @@ function createSession({
         type: 'start' as const,
         prompt: promptText,
         tools,
+        ...(promptOpts.responseFormat == null
+          ? {}
+          : { responseFormat: promptOpts.responseFormat }),
         ...(promptOpts.instructions
           ? { instructions: promptOpts.instructions }
           : {}),
-        model,
+        model: promptOpts.model ?? model,
         reasoningEffort,
         webSearch,
+        ...(codexConfig == null ? {} : { codexConfig }),
         ...(mcpServers == null ? {} : { mcpServers }),
         ...(permissionMode ? { permissionMode } : {}),
         ...(pendingResumeThreadId
           ? { resumeThreadId: pendingResumeThreadId }
           : {}),
+        ...(restartThread ? { restartThread: true } : {}),
         ...(debug ? { debug } : {}),
       };
       pendingResumeThreadId = undefined;
@@ -832,6 +1024,27 @@ function createSession({
       return turn.control;
     },
     doContinueTurn: async continueOpts => {
+      if (
+        continueOpts.responseFormat?.type === 'json' &&
+        continueOpts.responseFormat.schema == null
+      ) {
+        throw new HarnessCapabilityUnsupportedError({
+          message:
+            "Harness 'codex' requires a JSON schema for structured output.",
+          harnessId: 'codex',
+        });
+      }
+      const tools = (continueOpts.tools ?? []).map(t => ({
+        name: t.name,
+        description: t.description,
+        inputSchema: t.inputSchema,
+      }));
+      const { restartThread } = await synchronizeTurnConfiguration({
+        skills: continueOpts.skills,
+        instructions: continueOpts.instructions,
+        tools,
+        abortSignal: continueOpts.abortSignal,
+      });
       const turn = wireTurn({
         emit: continueOpts.emit,
         abortSignal: continueOpts.abortSignal,
@@ -863,20 +1076,21 @@ function createSession({
              * empty text block trips the Anthropic API's `cache_control` rule).
              */
             prompt: 'Continue.',
-            tools: (continueOpts.tools ?? []).map(t => ({
-              name: t.name,
-              description: t.description,
-              inputSchema: t.inputSchema,
-            })),
+            tools,
+            ...(continueOpts.responseFormat == null
+              ? {}
+              : { responseFormat: continueOpts.responseFormat }),
             ...(continueOpts.instructions
               ? { instructions: continueOpts.instructions }
               : {}),
-            model,
+            model: continueOpts.model ?? model,
             reasoningEffort,
             webSearch,
+            ...(codexConfig == null ? {} : { codexConfig }),
             ...(mcpServers == null ? {} : { mcpServers }),
             ...(permissionMode ? { permissionMode } : {}),
             ...(threadId ? { resumeThreadId: threadId } : {}),
+            ...(restartThread ? { restartThread: true } : {}),
             ...(debug ? { debug } : {}),
           }),
         );
@@ -912,11 +1126,20 @@ function createSession({
         specificationVersion: 'harness-v1',
         data: {
           ...(latestThreadId ? { threadId: latestThreadId } : {}),
+          ...(latestTurnConfigurationFingerprint
+            ? {
+                turnConfigurationFingerprint:
+                  latestTurnConfigurationFingerprint,
+              }
+            : {}),
+          ...(sandboxCredentialEnvironment == null
+            ? {}
+            : { sandboxCredentialEnvironment }),
           bridge: {
             port: bridgePort,
             token: bridgeToken,
             lastSeenEventId,
-            sandboxId,
+            ...(sandboxId == null ? {} : { sandboxId }),
           },
         },
       };
@@ -1020,11 +1243,26 @@ function createSession({
         channel.close();
       }
 
+      const lifecycleData =
+        data != null && typeof data === 'object' && !Array.isArray(data)
+          ? { ...(data as Record<string, unknown>) }
+          : {};
       const payload: HarnessV1ResumeSessionState = {
         type: 'resume-session',
         harnessId: 'codex',
         specificationVersion: 'harness-v1',
-        data: (data ?? {}) as HarnessV1ResumeSessionState['data'],
+        data: {
+          ...lifecycleData,
+          ...(latestTurnConfigurationFingerprint
+            ? {
+                turnConfigurationFingerprint:
+                  latestTurnConfigurationFingerprint,
+              }
+            : {}),
+          ...(sandboxCredentialEnvironment == null
+            ? {}
+            : { sandboxCredentialEnvironment }),
+        } as HarnessV1ResumeSessionState['data'],
       };
       return payload;
     },
@@ -1050,17 +1288,42 @@ function createSession({
         specificationVersion: 'harness-v1',
         data: {
           ...(latestThreadId ? { threadId: latestThreadId } : {}),
+          ...(latestTurnConfigurationFingerprint
+            ? {
+                turnConfigurationFingerprint:
+                  latestTurnConfigurationFingerprint,
+              }
+            : {}),
+          ...(sandboxCredentialEnvironment == null
+            ? {}
+            : { sandboxCredentialEnvironment }),
           bridge: {
             port: bridgePort,
             token: bridgeToken,
             lastSeenEventId,
-            sandboxId,
+            ...(sandboxId == null ? {} : { sandboxId }),
           },
         },
       };
       return payload;
     },
   };
+}
+
+function fingerprintCodexTurnConfiguration({
+  instructions,
+  tools,
+}: {
+  instructions: string | undefined;
+  tools: ReadonlyArray<{
+    name: string;
+    description?: string;
+    inputSchema: unknown;
+  }>;
+}): string {
+  return createHash('sha256')
+    .update(JSON.stringify({ instructions: instructions ?? null, tools }))
+    .digest('hex');
 }
 
 /*

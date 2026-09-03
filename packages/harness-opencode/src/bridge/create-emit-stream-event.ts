@@ -19,6 +19,11 @@ import {
 
 type Emit = (message: Record<string, unknown>) => void;
 
+type SubagentSession = {
+  parentSessionId: string;
+  sessionId: string;
+};
+
 export function createEmitStreamEvent({
   state,
   emit,
@@ -28,6 +33,7 @@ export function createEmitStreamEvent({
   nativeNameField,
   getHostToolName,
   authorizeHostToolCall,
+  onSubagentSession,
   isMcpToolName,
   stripWorkDir,
   formatError,
@@ -49,6 +55,7 @@ export function createEmitStreamEvent({
     toolName: string;
     input: unknown;
   }) => void;
+  onSubagentSession?: (session: SubagentSession) => void;
   isMcpToolName: (toolName: string) => boolean;
   stripWorkDir: (file: string) => string;
   formatError: (error: unknown) => string;
@@ -83,6 +90,7 @@ export function createEmitStreamEvent({
         nativeNameField,
         getHostToolName,
         authorizeHostToolCall,
+        onSubagentSession,
         isMcpToolName,
       });
       return;
@@ -194,6 +202,9 @@ export function createEmitStreamEvent({
     if (type === 'session.next.tool.called') {
       const callID = String(props.callID ?? event.id);
       const rawToolName = String(props.tool ?? 'unknown');
+      if (rawToolName === 'StructuredOutput' || rawToolName === 'question') {
+        return;
+      }
       const toolName = toWireToolName(rawToolName);
       state.toolNames.set(callID, { rawToolName, toolName });
       const hostToolName = getHostToolName(toolName, props.tool);
@@ -229,6 +240,9 @@ export function createEmitStreamEvent({
       const rawToolName =
         cachedTool?.rawToolName ??
         String((props as { tool?: unknown }).tool ?? '');
+      if (rawToolName === 'StructuredOutput' || rawToolName === 'question') {
+        return;
+      }
       const toolName =
         cachedTool?.toolName ?? toWireToolName(rawToolName || 'unknown');
       if (getHostToolName(toolName, rawToolName)) return;
@@ -357,6 +371,7 @@ function emitLegacyToolPart({
   nativeNameField,
   getHostToolName,
   authorizeHostToolCall,
+  onSubagentSession,
   isMcpToolName,
 }: {
   part: unknown;
@@ -375,6 +390,7 @@ function emitLegacyToolPart({
     toolName: string;
     input: unknown;
   }) => void;
+  onSubagentSession?: (session: SubagentSession) => void;
   isMcpToolName: (toolName: string) => boolean;
 }): void {
   const toolPart = legacyToolPartFromValue(part);
@@ -385,7 +401,19 @@ function emitLegacyToolPart({
   }
   const callID = toolPart.callID;
   const rawToolName = toolPart.tool;
+  if (rawToolName === 'StructuredOutput' || rawToolName === 'question') return;
   const toolName = toWireToolName(rawToolName);
+  if (toolName === 'agent') {
+    const metadata = {
+      ...(toolPart.metadata ?? {}),
+      ...(toolPart.state?.metadata ?? {}),
+    };
+    const parentSessionId = stringValue(metadata.parentSessionId);
+    const sessionId = stringValue(metadata.sessionId);
+    if (parentSessionId && sessionId) {
+      onSubagentSession?.({ parentSessionId, sessionId });
+    }
+  }
   state.toolNames.set(callID, { rawToolName, toolName });
   const hostToolName = getHostToolName(toolName, rawToolName);
   if (hostToolName) {

@@ -1,15 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import type { ThreadOptions } from '@openai/codex-sdk';
 
 type CodexOptions = {
-  config?: {
-    base_instructions?: unknown;
-    developer_instructions?: unknown;
-    mcp_servers?: unknown;
-    model_reasoning_summary?: unknown;
-    model_supports_reasoning_summaries?: unknown;
-  };
+  config?: Record<string, unknown>;
 };
-type ThreadOptions = { model?: string };
+type TurnOptions = { outputSchema?: Record<string, unknown> };
 const CODEX_ENV_KEYS = [
   'AI_GATEWAY_API_KEY',
   'AI_GATEWAY_BASE_URL',
@@ -20,9 +15,20 @@ const CODEX_ENV_KEYS = [
 const state = vi.hoisted(() => ({
   codexOptions: [] as CodexOptions[],
   threadOptions: [] as ThreadOptions[],
+  turnOptions: [] as TurnOptions[],
   startModel: 'gpt-5.5',
+  startResponseFormat: undefined as
+    | { type: 'json'; schema: Record<string, unknown> }
+    | undefined,
   startInstructions: undefined as string | undefined,
+  startReasoningEffort: undefined as
+    | ThreadOptions['modelReasoningEffort']
+    | undefined,
+  startResumeThreadId: undefined as string | undefined,
+  startRestartThread: false,
+  startCodexConfig: undefined as Record<string, unknown> | undefined,
   startMcpServers: undefined as Record<string, unknown> | undefined,
+  resumeThreadCalls: [] as string[],
   originalArgv: [] as string[],
   originalEnv: {} as Record<
     (typeof CODEX_ENV_KEYS)[number],
@@ -39,15 +45,19 @@ vi.mock('@openai/codex-sdk', () => ({
     startThread(options: ThreadOptions = {}) {
       state.threadOptions.push(options);
       return {
-        runStreamed: async () => ({
-          events: (async function* () {
-            yield { type: 'turn.completed' };
-          })(),
-        }),
+        runStreamed: async (...[, options]: [string, TurnOptions]) => {
+          state.turnOptions.push(options);
+          return {
+            events: (async function* () {
+              yield { type: 'turn.completed' };
+            })(),
+          };
+        },
       };
     }
 
-    resumeThread() {
+    resumeThread(id: string) {
+      state.resumeThreadCalls.push(id);
       return this.startThread();
     }
   },
@@ -62,10 +72,19 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
     await onStart(
       {
         prompt: 'Use the weather tool.',
+        responseFormat: state.startResponseFormat,
         ...(state.startInstructions
           ? { instructions: state.startInstructions }
           : {}),
+        ...(state.startReasoningEffort
+          ? { reasoningEffort: state.startReasoningEffort }
+          : {}),
+        ...(state.startResumeThreadId
+          ? { resumeThreadId: state.startResumeThreadId }
+          : {}),
+        ...(state.startRestartThread ? { restartThread: true } : {}),
         model: state.startModel,
+        codexConfig: state.startCodexConfig,
         mcpServers: state.startMcpServers,
         tools: [
           {
@@ -79,7 +98,11 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
         emit: () => {},
         requestToolResult: async () => ({ output: {} }),
         abortSignal: new AbortController().signal,
-        pendingUserMessages: [],
+        experimental_userMessages: {
+          pendingCount: 0,
+          close: () => {},
+          [Symbol.asyncIterator]: async function* () {},
+        },
       },
     );
   },
@@ -89,9 +112,16 @@ describe('Codex bridge config', () => {
   beforeEach(() => {
     state.codexOptions = [];
     state.threadOptions = [];
+    state.turnOptions = [];
     state.startModel = 'gpt-5.5';
+    state.startResponseFormat = undefined;
     state.startInstructions = undefined;
+    state.startReasoningEffort = undefined;
+    state.startResumeThreadId = undefined;
+    state.startRestartThread = false;
+    state.startCodexConfig = undefined;
     state.startMcpServers = undefined;
+    state.resumeThreadCalls = [];
     state.originalArgv = [...process.argv];
     state.originalEnv = Object.fromEntries(
       CODEX_ENV_KEYS.map(key => [key, process.env[key]]),
@@ -145,6 +175,40 @@ describe('Codex bridge config', () => {
     );
   });
 
+  test('passes through native config without mutating it and preserves adapter-owned values', async () => {
+    const codexConfig = {
+      model_verbosity: 'low',
+      features: { multi_agent: false },
+      developer_instructions: 'Caller instructions.',
+      model_reasoning_summary: 'none',
+    };
+    state.startCodexConfig = codexConfig;
+
+    await import('./index');
+
+    expect(state.codexOptions[0]?.config).not.toBe(codexConfig);
+    expect(state.codexOptions[0]?.config).toMatchInlineSnapshot(`
+      {
+        "developer_instructions": "Only respond with your \`final\` message once you have fully addressed the user request.",
+        "features": {
+          "multi_agent": false,
+        },
+        "model_reasoning_summary": "detailed",
+        "model_verbosity": "low",
+      }
+    `);
+    expect(codexConfig).toMatchInlineSnapshot(`
+      {
+        "developer_instructions": "Caller instructions.",
+        "features": {
+          "multi_agent": false,
+        },
+        "model_reasoning_summary": "none",
+        "model_verbosity": "low",
+      }
+    `);
+  });
+
   test('requests detailed reasoning summaries by default', async () => {
     await import('./index');
 
@@ -153,6 +217,46 @@ describe('Codex bridge config', () => {
       {
         "developer_instructions": "Only respond with your \`final\` message once you have fully addressed the user request.",
         "model_reasoning_summary": "detailed",
+      }
+    `);
+  });
+
+  test.each(['xhigh', 'max'] as const)(
+    'passes %s reasoning effort to Codex',
+    async reasoningEffort => {
+      state.startReasoningEffort = reasoningEffort;
+
+      await import('./index');
+
+      expect(state.threadOptions[0]?.modelReasoningEffort).toBe(
+        reasoningEffort,
+      );
+    },
+  );
+
+  test('disables WebSockets for a configured direct OpenAI endpoint', async () => {
+    process.env.CODEX_API_KEY = 'CODEX_API_KEY';
+    process.env.OPENAI_BASE_URL = 'https://api.openai.com/v1';
+
+    await import('./index');
+
+    expect({
+      modelProvider: state.codexOptions[0]?.config?.model_provider,
+      modelProviders: state.codexOptions[0]?.config?.model_providers,
+      preferredAuthMethod: state.codexOptions[0]?.config?.preferred_auth_method,
+    }).toMatchInlineSnapshot(`
+      {
+        "modelProvider": "agent_bridge_openai",
+        "modelProviders": {
+          "agent_bridge_openai": {
+            "base_url": "https://api.openai.com/v1",
+            "env_key": "CODEX_API_KEY",
+            "name": "Agent Bridge OpenAI",
+            "supports_websockets": false,
+            "wire_api": "responses",
+          },
+        },
+        "preferredAuthMethod": "apikey",
       }
     `);
   });
@@ -167,6 +271,16 @@ describe('Codex bridge config', () => {
       'Answer every question in German.\n\n' +
         'Only respond with your `final` message once you have fully addressed the user request.',
     );
+  });
+
+  test('starts a fresh thread when the host requests a configuration restart', async () => {
+    state.startResumeThreadId = 'thread-previous';
+    state.startRestartThread = true;
+
+    await import('./index');
+
+    expect(state.resumeThreadCalls).toEqual([]);
+    expect(state.threadOptions).toHaveLength(1);
   });
 
   test('uses the creator-qualified model and forces summaries for AI Gateway', async () => {
@@ -197,5 +311,22 @@ describe('Codex bridge config', () => {
     await import('./index');
 
     expect(state.threadOptions[0]?.model).toBe('openai/gpt-5.5');
+  });
+
+  test('passes the requested JSON schema to Codex', async () => {
+    state.startResponseFormat = {
+      type: 'json',
+      schema: {
+        type: 'object',
+        properties: { answer: { type: 'string' } },
+        required: ['answer'],
+      },
+    };
+
+    await import('./index');
+
+    expect(state.turnOptions[0]?.outputSchema).toEqual(
+      state.startResponseFormat.schema,
+    );
   });
 });

@@ -21,17 +21,31 @@ export type ClaudeMessage = {
   event?: {
     type?: string;
     index?: number;
-    content_block?: { type?: string };
-    delta?: { type?: string; text?: string; thinking?: string };
+    content_block?: {
+      type?: string;
+      id?: string;
+      name?: string;
+    };
+    delta?: {
+      type?: string;
+      text?: string;
+      thinking?: string;
+      partial_json?: string;
+    };
   };
   message?: {
     content?: ReadonlyArray<MessageBlock>;
     usage?: Record<string, unknown>;
   };
   result?: string;
+  /** Result-message error flags; distinct from `error_status` (`api_retry`). */
+  is_error?: boolean;
+  api_error_status?: number | null;
   errors?: ReadonlyArray<string>;
   usage?: Record<string, unknown>;
   total_cost_usd?: number;
+  structured_output?: unknown;
+  tool_use_result?: unknown;
 };
 
 type MessageBlock = {
@@ -55,7 +69,7 @@ export type ClaudeStreamEventState = {
    */
   nativeToolCallNames: Map<string, string>;
   approvalRequestedToolUseIds: Set<string>;
-  partialBlocks: Map<number, { id: string; kind: 'text' | 'thinking' }>;
+  partialBlocks: Map<number, PartialBlock>;
   stepUsage: Record<string, unknown> | undefined;
   pendingStepToolUseIds: Set<string>;
   pendingStepUsage: Record<string, unknown> | undefined;
@@ -63,14 +77,18 @@ export type ClaudeStreamEventState = {
   /*
    * Tool-use ids that originated from the MCP server hosting user-supplied
    * tools. The MCP handler emits its own `tool-call`/`tool-result` pair with
-   * the user-facing tool name and a synthetic id, so the duplicate
-   * `tool_result` block Claude reports for the underlying native id must be
-   * suppressed.
+   * the user-facing tool name, so the duplicate `tool_result` block Claude
+   * reports for the underlying native id must be suppressed.
    */
   mcpToolUseIds: Set<string>;
   externalMcpToolUseIds: Set<string>;
+  structuredOutputToolUseIds: Set<string>;
   observedTerminalError: string | undefined;
 };
+
+type PartialBlock =
+  | { id: string; kind: 'text' | 'thinking' }
+  | { id: string; kind: 'tool-input' };
 
 export function createClaudeStreamEventState(): ClaudeStreamEventState {
   return {
@@ -83,11 +101,19 @@ export function createClaudeStreamEventState(): ClaudeStreamEventState {
     stepOpen: false,
     mcpToolUseIds: new Set(),
     externalMcpToolUseIds: new Set(),
+    structuredOutputToolUseIds: new Set(),
     observedTerminalError: undefined,
   };
 }
 
 const UNRECOVERABLE_API_RETRY_STATUSES = new Set([401, 403, 404]);
+const HOST_TOOL_PREFIX = 'mcp__harness-tools__';
+
+export function isExternalMcpTool(nativeName: string): boolean {
+  return (
+    nativeName.startsWith('mcp__') && !nativeName.startsWith(HOST_TOOL_PREFIX)
+  );
+}
 
 export function createEmitStreamEvent({
   state,
@@ -192,7 +218,12 @@ export function createEmitStreamEvent({
     }
 
     if (type === 'stream_event') {
-      handleStreamEvent(msg.event, state.partialBlocks, emit);
+      handleStreamEvent({
+        event: msg.event,
+        state,
+        send: emit,
+        toCommonName,
+      });
       return;
     }
 
@@ -207,15 +238,23 @@ export function createEmitStreamEvent({
           typeof block.name === 'string'
         ) {
           toolUseIds.push(block.id);
-          const mcpPrefix = 'mcp__harness-tools__';
-          if (block.name.startsWith(mcpPrefix)) {
+          if (block.name === 'StructuredOutput') {
+            state.structuredOutputToolUseIds.add(block.id);
+            continue;
+          }
+          if (block.name.startsWith(HOST_TOOL_PREFIX)) {
             state.pendingStepToolUseIds.add(block.id);
             state.mcpToolUseIds.add(block.id);
             opensStep = true;
             continue;
           }
           state.nativeToolCallNames.set(block.id, block.name);
-          const dynamic = block.name.startsWith('mcp__');
+          if (block.name === 'AskUserQuestion') {
+            state.pendingStepToolUseIds.add(block.id);
+            opensStep = true;
+            continue;
+          }
+          const dynamic = isExternalMcpTool(block.name);
           if (dynamic) state.externalMcpToolUseIds.add(block.id);
           if (state.approvalRequestedToolUseIds.has(block.id)) {
             continue;
@@ -241,11 +280,20 @@ export function createEmitStreamEvent({
     }
 
     if (type === 'user' && msg.message?.content) {
+      const toolResultBlocks = msg.message.content.filter(
+        block => block.type === 'tool_result',
+      );
+      const toolUseResult =
+        toolResultBlocks.length === 1 ? msg.tool_use_result : undefined;
+
       for (const block of msg.message.content) {
         if (
           block.type === 'tool_result' &&
           typeof block.tool_use_id === 'string'
         ) {
+          if (state.structuredOutputToolUseIds.delete(block.tool_use_id)) {
+            continue;
+          }
           if (state.mcpToolUseIds.has(block.tool_use_id)) {
             state.mcpToolUseIds.delete(block.tool_use_id);
             state.pendingStepToolUseIds.delete(block.tool_use_id);
@@ -258,23 +306,15 @@ export function createEmitStreamEvent({
           const toolName = toCommonName(nativeName);
           const dynamic = state.externalMcpToolUseIds.delete(block.tool_use_id);
           const isError = !!block.is_error;
-          const content = stringifyContent(block.content);
-          /*
-           * Claude Code's Bash tool does not report the command's real
-           * numeric exit code — the SDK exposes only stdout/stderr text and
-           * an is_error flag. Consumers (and the example UI) render bash
-           * failures from an `exitCode` field on a structured result, the
-           * shape Codex's shell tool provides natively. To match it, derive
-           * a binary code from is_error: 1 on failure, 0 on success. This is
-           * a stand-in for failed/succeeded, not the process's true exit
-           * status.
-           */
           const result =
-            toolName === 'bash'
-              ? { exitCode: isError ? 1 : 0, stdout: content }
-              : dynamic
-                ? parseMcpToolResult(content)
-                : content;
+            toolUseResult !== undefined
+              ? toolUseResult
+              : resolveToolResult({
+                  toolName,
+                  dynamic,
+                  isError,
+                  rawContent: block.content,
+                });
           emit({
             type: 'tool-result',
             toolCallId: block.tool_use_id,
@@ -361,13 +401,20 @@ function formatApiRetryWarning(msg: ClaudeMessage): string {
     : 'Claude Code API retry';
 }
 
-function handleStreamEvent(
-  event: ClaudeMessage['event'] | undefined,
-  partialBlocks: Map<number, { id: string; kind: 'text' | 'thinking' }>,
-  send: Emit,
-): void {
+function handleStreamEvent({
+  event,
+  state,
+  send,
+  toCommonName,
+}: {
+  event: ClaudeMessage['event'] | undefined;
+  state: ClaudeStreamEventState;
+  send: Emit;
+  toCommonName: (nativeName: string) => string;
+}): void {
   if (!event || typeof event.index !== 'number') return;
   const index = event.index;
+  const partialBlocks = state.partialBlocks;
 
   if (event.type === 'content_block_start') {
     const blockType = event.content_block?.type;
@@ -379,6 +426,31 @@ function handleStreamEvent(
       const id = randomUUID();
       partialBlocks.set(index, { id, kind: 'thinking' });
       send({ type: 'reasoning-start', id });
+    } else if (
+      blockType === 'tool_use' &&
+      typeof event.content_block?.id === 'string' &&
+      typeof event.content_block.name === 'string'
+    ) {
+      const id = event.content_block.id;
+      const nativeName = event.content_block.name;
+      if (nativeName === 'StructuredOutput') {
+        return;
+      }
+      if (nativeName === 'AskUserQuestion') {
+        return;
+      }
+      const hostToolName = nativeName.startsWith(HOST_TOOL_PREFIX)
+        ? nativeName.slice(HOST_TOOL_PREFIX.length)
+        : undefined;
+      const dynamic = isExternalMcpTool(nativeName);
+      partialBlocks.set(index, { id, kind: 'tool-input' });
+      send({
+        type: 'tool-input-start',
+        id,
+        toolName: hostToolName ?? toCommonName(nativeName),
+        providerExecuted: hostToolName === undefined,
+        ...(dynamic ? { dynamic: true } : {}),
+      });
     }
     return;
   }
@@ -402,6 +474,16 @@ function handleStreamEvent(
         id: block.id,
         delta: event.delta.thinking,
       });
+    } else if (
+      block.kind === 'tool-input' &&
+      event.delta?.type === 'input_json_delta' &&
+      typeof event.delta.partial_json === 'string'
+    ) {
+      send({
+        type: 'tool-input-delta',
+        id: block.id,
+        delta: event.delta.partial_json,
+      });
     }
     return;
   }
@@ -412,10 +494,16 @@ function handleStreamEvent(
     partialBlocks.delete(index);
     if (block.kind === 'text') {
       send({ type: 'text-end', id: block.id });
-    } else {
+    } else if (block.kind === 'thinking') {
       send({ type: 'reasoning-end', id: block.id });
+    } else {
+      send({ type: 'tool-input-end', id: block.id });
     }
   }
+}
+
+function isTextEntry(entry: unknown): entry is { text?: unknown } {
+  return entry != null && typeof entry === 'object' && 'text' in entry;
 }
 
 function stringifyContent(content: unknown): string {
@@ -423,18 +511,52 @@ function stringifyContent(content: unknown): string {
   if (Array.isArray(content)) {
     return content
       .map(entry =>
-        entry && typeof entry === 'object' && 'text' in entry
-          ? String((entry as { text?: unknown }).text ?? '')
-          : JSON.stringify(entry),
+        isTextEntry(entry) ? String(entry.text ?? '') : JSON.stringify(entry),
       )
       .join('');
   }
   return JSON.stringify(content);
 }
 
+function hasNonTextContent(content: unknown): boolean {
+  return Array.isArray(content) && content.some(entry => !isTextEntry(entry));
+}
+
+function resolveToolResult({
+  toolName,
+  dynamic,
+  isError,
+  rawContent,
+}: {
+  toolName: string;
+  dynamic: boolean;
+  isError: boolean;
+  rawContent: unknown;
+}): unknown {
+  /*
+   * Claude Code's Bash tool does not report the command's real numeric exit
+   * code — the SDK exposes only stdout/stderr text and an is_error flag.
+   * Consumers (and the example UI) render bash failures from an `exitCode`
+   * field on a structured result, the shape Codex's shell tool provides
+   * natively. When Claude omits `tool_use_result`, derive a binary code from
+   * is_error: 1 on failure, 0 on success. This fallback is a stand-in for
+   * failed/succeeded, not the process's true exit status.
+   */
+  if (toolName === 'bash') {
+    return { exitCode: isError ? 1 : 0, stdout: stringifyContent(rawContent) };
+  }
+  // Must precede the MCP branch: flattening a non-text block to base64 text
+  // is not recoverable by parsing it back.
+  if (hasNonTextContent(rawContent)) return rawContent;
+  const content = stringifyContent(rawContent);
+  return dynamic ? parseMcpToolResult(content) : content;
+}
+
 function parseMcpToolResult(content: string): unknown {
   try {
-    return JSON.parse(content);
+    const parsed = JSON.parse(content);
+    // `JSON.parse` also succeeds on scalars; keep those as the string sent.
+    return parsed !== null && typeof parsed === 'object' ? parsed : content;
   } catch {
     return content;
   }

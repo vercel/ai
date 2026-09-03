@@ -119,6 +119,43 @@ The following optional provider options are available for Mistral models:
 
   Defaults to `true`.
 
+- **promptCacheKey** _string_
+
+  A stable identifier used to improve cache affinity for requests that share a prompt prefix.
+
+### Prompt Cache Affinity
+
+[Mistral prompt caching](https://docs.mistral.ai/studio/conversations/advanced/prompt-caching)
+reuses shared prompt prefixes. Set `promptCacheKey` to a stable workflow,
+session, or conversation identifier to improve cache affinity. The provider
+sends it as Mistral's `prompt_cache_key` request field:
+
+```ts
+import { mistral, type MistralLanguageModelChatOptions } from '@ai-sdk/mistral';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: mistral('mistral-medium-3.5'),
+  system: 'Classify each support request as account, billing, or technical.',
+  prompt: 'The dashboard shows an error when I open an invoice.',
+  providerOptions: {
+    mistral: {
+      promptCacheKey: 'support-classification-workflow-v1',
+    } satisfies MistralLanguageModelChatOptions,
+  },
+});
+
+console.log(result.usage.inputTokenDetails.cacheReadTokens);
+```
+
+Use the same key for requests with the same stable prefix. Multi-step
+`generateText` and `streamText` calls reuse their provider options for every
+step, so a single key applies across the complete tool loop. Prompt cache
+affinity is best-effort and does not guarantee a cache hit.
+
+Treat cache keys as opaque identifiers. Do not include API keys, secrets, email
+addresses, or other sensitive personal data.
+
 ### Document OCR
 
 Mistral chat models support document OCR for PDF files.

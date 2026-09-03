@@ -1,0 +1,23 @@
+FROM node:24-bookworm-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates git procps \
+  && rm -rf /var/lib/apt/lists/* \
+  && npm install -g bun@1.2.21 pnpm@11.23.0 turbo@2.9.14
+
+WORKDIR /workspace
+COPY json/ .
+COPY pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile \
+  --filter ai... \
+  --filter @ai-sdk/anthropic... \
+  --filter @ai-sdk/google... \
+  --filter @ai-sdk/mcp... \
+  --filter @ai-sdk/openai... \
+  --filter @ai-sdk/openai-compatible...
+RUN mkdir -p tools/memory-benchmark/.repos/neovate-code \
+  && git -C tools/memory-benchmark/.repos/neovate-code init \
+  && git -C tools/memory-benchmark/.repos/neovate-code remote add origin https://github.com/neovateai/neovate-code.git \
+  && git -C tools/memory-benchmark/.repos/neovate-code fetch --depth 1 origin 0a24b363ecbe24eb87a0190a88fcb78c80593b4b \
+  && git -C tools/memory-benchmark/.repos/neovate-code checkout --detach FETCH_HEAD \
+  && pnpm --dir tools/memory-benchmark/.repos/neovate-code install --frozen-lockfile
+COPY full/ .

@@ -222,6 +222,111 @@ describe('result.embedding', () => {
 
     assert.deepStrictEqual(result.embeddings, dummyEmbeddings);
   });
+
+  it('should split calls when the UTF-8 input byte budget is exceeded', async () => {
+    const model = new MockEmbeddingModelV4({
+      maxEmbeddingsPerCall: 5,
+      maxInputBytesPerCall: 7,
+      doEmbed: async ({ values }) => ({
+        embeddings: values.map(value => [value.length]),
+        warnings: [],
+      }),
+    });
+
+    const result = await embedMany({
+      model,
+      values: ['éé', 'éé', 'abc'],
+    });
+
+    expect(model.doEmbedCalls.map(call => call.values)).toStrictEqual([
+      ['éé'],
+      ['éé', 'abc'],
+    ]);
+    expect(result.embeddings).toStrictEqual([[2], [2], [3]]);
+  });
+
+  it('should split by input bytes without an embedding count limit', async () => {
+    const model = new MockEmbeddingModelV4({
+      maxEmbeddingsPerCall: null,
+      maxInputBytesPerCall: 4,
+      doEmbed: async ({ values }) => ({
+        embeddings: values.map(value => [value.length]),
+        warnings: [],
+      }),
+    });
+
+    await embedMany({
+      model,
+      values: ['ab', 'cd', 'é'],
+    });
+
+    expect(model.doEmbedCalls.map(call => call.values)).toStrictEqual([
+      ['ab', 'cd'],
+      ['é'],
+    ]);
+  });
+
+  it('should combine embedding count and input byte limits in one pass', async () => {
+    const model = new MockEmbeddingModelV4({
+      maxEmbeddingsPerCall: 3,
+      maxInputBytesPerCall: 10,
+      doEmbed: async ({ values }) => ({
+        embeddings: values.map(value => [value.length]),
+        warnings: [],
+      }),
+    });
+
+    await embedMany({
+      model,
+      values: ['12345678', '12', '12', '12345678'],
+    });
+
+    expect(model.doEmbedCalls.map(call => call.values)).toStrictEqual([
+      ['12345678', '12'],
+      ['12', '12345678'],
+    ]);
+  });
+
+  it('should treat an infinite input byte budget as unlimited', async () => {
+    const model = new MockEmbeddingModelV4({
+      maxEmbeddingsPerCall: null,
+      maxInputBytesPerCall: Infinity,
+      doEmbed: async ({ values }) => ({
+        embeddings: values.map(value => [value.length]),
+        warnings: [],
+      }),
+    });
+
+    await embedMany({
+      model,
+      values: ['a', 'b'],
+    });
+
+    expect(model.doEmbedCalls.map(call => call.values)).toStrictEqual([
+      ['a', 'b'],
+    ]);
+  });
+
+  it('should send a value larger than the input byte budget by itself', async () => {
+    const model = new MockEmbeddingModelV4({
+      maxEmbeddingsPerCall: null,
+      maxInputBytesPerCall: 3,
+      doEmbed: async ({ values }) => ({
+        embeddings: values.map(value => [value.length]),
+        warnings: [],
+      }),
+    });
+
+    await embedMany({
+      model,
+      values: ['abcd', 'e'],
+    });
+
+    expect(model.doEmbedCalls.map(call => call.values)).toStrictEqual([
+      ['abcd'],
+      ['e'],
+    ]);
+  });
 });
 
 describe('result.responses', () => {

@@ -292,59 +292,13 @@ export async function experimental_generateVideo({
     abortSignal,
   });
 
-  const { prompt, image } = normalizePrompt(promptArg);
-
-  const normalizedFrameImages:
-    | Array<Experimental_VideoModelV4FrameImage>
-    | undefined = frameImages?.flatMap(frame => {
-    const normalizedImage = normalizeImageData(frame.image);
-    return normalizedImage != null
-      ? [{ image: normalizedImage, frameType: frame.frameType }]
-      : [];
-  });
-
-  const normalizedInputReferences:
-    | Array<Experimental_VideoModelV4File>
-    | undefined = inputReferences?.flatMap(reference => {
-    const normalized = normalizeReferenceData(reference);
-    return normalized != null ? [normalized] : [];
-  });
-
-  const effectiveInputReferences =
-    normalizedFrameImages != null && normalizedFrameImages.length > 0
-      ? undefined
-      : normalizedInputReferences;
-
-  const warnings: Array<Warning> = [];
-
-  if (
-    normalizedFrameImages != null &&
-    normalizedFrameImages.length > 0 &&
-    normalizedInputReferences != null &&
-    normalizedInputReferences.length > 0
-  ) {
-    warnings.push({
-      type: 'other',
-      message:
-        'inputReferences were ignored because frameImages were provided; ' +
-        'frameImages and inputReferences cannot be combined.',
-    });
-  }
-
-  const firstFrameImage = normalizedFrameImages?.find(
-    frame => frame.frameType === 'first_frame',
-  )?.image;
-
-  if (image != null && firstFrameImage != null) {
-    warnings.push({
-      type: 'other',
-      message:
-        'prompt.image was ignored because a first_frame frameImage was provided; ' +
-        'the first_frame frameImage takes precedence as the start image.',
-    });
-  }
-
-  const resolvedImage = firstFrameImage ?? image;
+  const {
+    prompt,
+    resolvedImage,
+    normalizedFrameImages,
+    effectiveInputReferences,
+    warnings,
+  } = normalizeVideoCallInputs({ promptArg, frameImages, inputReferences });
 
   const maxVideosPerCallWithDefault =
     maxVideosPerCall ?? (await invokeModelMaxVideosPerCall(model)) ?? 1;
@@ -734,6 +688,94 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
     prompt: promptArg.text,
     image:
       promptArg.image != null ? normalizeImageData(promptArg.image) : undefined,
+  };
+}
+
+/**
+ * Shared input normalization for `experimental_generateVideo` and
+ * `experimental_startVideo`: prompt/image plus the frameImages /
+ * inputReferences precedence rules and their warnings.
+ */
+export function normalizeVideoCallInputs({
+  promptArg,
+  frameImages,
+  inputReferences,
+}: {
+  promptArg: GenerateVideoPrompt;
+  frameImages?: Array<{
+    image: DataContent;
+    frameType: Experimental_VideoModelV4FrameType;
+  }>;
+  inputReferences?: Array<
+    DataContent | { data: DataContent; mediaType?: string }
+  >;
+}): {
+  prompt: string | undefined;
+  resolvedImage: Experimental_VideoModelV4File | undefined;
+  normalizedFrameImages: Array<Experimental_VideoModelV4FrameImage> | undefined;
+  effectiveInputReferences: Array<Experimental_VideoModelV4File> | undefined;
+  warnings: Array<Warning>;
+} {
+  const { prompt, image } = normalizePrompt(promptArg);
+
+  const normalizedFrameImages:
+    | Array<Experimental_VideoModelV4FrameImage>
+    | undefined = frameImages?.flatMap(frame => {
+    const normalizedImage = normalizeImageData(frame.image);
+    return normalizedImage != null
+      ? [{ image: normalizedImage, frameType: frame.frameType }]
+      : [];
+  });
+
+  const normalizedInputReferences:
+    | Array<Experimental_VideoModelV4File>
+    | undefined = inputReferences?.flatMap(reference => {
+    const normalized = normalizeReferenceData(reference);
+    return normalized != null ? [normalized] : [];
+  });
+
+  const effectiveInputReferences =
+    normalizedFrameImages != null && normalizedFrameImages.length > 0
+      ? undefined
+      : normalizedInputReferences;
+
+  const warnings: Array<Warning> = [];
+
+  if (
+    normalizedFrameImages != null &&
+    normalizedFrameImages.length > 0 &&
+    normalizedInputReferences != null &&
+    normalizedInputReferences.length > 0
+  ) {
+    warnings.push({
+      type: 'other',
+      message:
+        'inputReferences were ignored because frameImages were provided; ' +
+        'frameImages and inputReferences cannot be combined.',
+    });
+  }
+
+  const firstFrameImage = normalizedFrameImages?.find(
+    frame => frame.frameType === 'first_frame',
+  )?.image;
+
+  if (image != null && firstFrameImage != null) {
+    warnings.push({
+      type: 'other',
+      message:
+        'prompt.image was ignored because a first_frame frameImage was provided; ' +
+        'the first_frame frameImage takes precedence as the start image.',
+    });
+  }
+
+  const resolvedImage = firstFrameImage ?? image;
+
+  return {
+    prompt,
+    resolvedImage,
+    normalizedFrameImages,
+    effectiveInputReferences,
+    warnings,
   };
 }
 

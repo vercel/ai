@@ -1,5 +1,270 @@
 # @ai-sdk/workflow
 
+## 2.0.23
+
+### Patch Changes
+
+- Updated dependencies [a51cc94]
+- Updated dependencies [d1904d3]
+- Updated dependencies [84e5a79]
+- Updated dependencies [a8e8ad0]
+  - ai@7.0.92
+
+## 2.0.22
+
+### Patch Changes
+
+- Updated dependencies [802af1e]
+  - ai@7.0.91
+
+## 2.0.21
+
+### Patch Changes
+
+- 180ce77: fix(workflow): preserve tool behavior across workflow step boundaries
+- 82a16c9: fix(workflow): retain model files and sources in provider order across durable agent results and message history
+- 30306cf: fix(workflow): include executed tool results in completed agent steps
+- 19d8f30: fix(workflow): infer constructor-level structured output in stream results
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+  - ai@7.0.90
+
+## 2.0.20
+
+### Patch Changes
+
+- 85d2081: fix(workflow): preserve configured tool and runtime context types in stop conditions
+
+## 2.0.19
+
+### Patch Changes
+
+- 902ce3b: fix(workflow): respect empty activeTools lists
+- c143af4: fix(workflow): propagate agent abort signals to local tool executions
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+  - ai@7.0.89
+
+## 2.0.18
+
+### Patch Changes
+
+- 238aff0: fix(workflow): preserve context and lifecycle callbacks for approved tools
+- 05672ad: fix(workflow): stream failed tool executions as tool errors
+- 3b6ef0c: fix(workflow): infer configured tool parts in WorkflowAgent UI messages
+- d3b1ffb: feat(workflow): add stable onStart and onStepStart callbacks to WorkflowAgent
+- 33d185e: fix(workflow): restrict prepareStep activeTools to configured tool names
+- Updated dependencies [8b6b756]
+- Updated dependencies [e07b577]
+  - ai@7.0.88
+
+## 2.0.17
+
+### Patch Changes
+
+- Updated dependencies [850d863]
+  - ai@7.0.87
+
+## 2.0.16
+
+### Patch Changes
+
+- 11109ae: feat(ai): support signed tool approvals in WorkflowAgent
+- Updated dependencies [11109ae]
+  - ai@7.0.86
+
+## 2.0.15
+
+### Patch Changes
+
+- Updated dependencies [55a9981]
+- Updated dependencies [dd32de2]
+- Updated dependencies [aa45741]
+- Updated dependencies [cc29073]
+  - ai@7.0.85
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 2.0.14
+
+### Patch Changes
+
+- Updated dependencies [6669d69]
+- Updated dependencies [a6463ca]
+- Updated dependencies [e604532]
+- Updated dependencies [90192f1]
+  - ai@7.0.84
+  - @ai-sdk/provider-utils@5.0.33
+
+## 2.0.13
+
+### Patch Changes
+
+- Updated dependencies [8dd86a9]
+- Updated dependencies [fda13b3]
+- Updated dependencies [957146c]
+- Updated dependencies [ce6849a]
+  - ai@7.0.83
+
+## 2.0.12
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - ai@7.0.82
+  - @ai-sdk/provider-utils@5.0.32
+
+## 2.0.11
+
+### Patch Changes
+
+- aed8ff3: Add durable video generation that waits for a Workflow webhook and returns provider video data without downloading hosted URLs.
+  - ai@7.0.81
+
+## 2.0.10
+
+### Patch Changes
+
+- e21bde7: Preserve function tool input examples and provider options across workflow step boundaries.
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+- Updated dependencies [eed7950]
+  - @ai-sdk/provider-utils@5.0.31
+  - ai@7.0.80
+
+## 2.0.9
+
+### Patch Changes
+
+- b251584: Preserve active text and reasoning parts when another merged UI message stream finishes a step, and align workflow stream normalization with the explicit part end chunks.
+- Updated dependencies [b251584]
+- Updated dependencies [591d25b]
+- Updated dependencies [9de0baf]
+  - ai@7.0.79
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 2.0.8
+
+### Patch Changes
+
+- 96970bb: Continue approved `generateText`, `streamText`, and `WorkflowAgent` turns with a model-visible tool error when revalidated tool input is invalid.
+- Updated dependencies [96970bb]
+  - ai@7.0.78
+
+## 2.0.7
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+  - ai@7.0.77
+
+## 2.0.6
+
+### Patch Changes
+
+- Updated dependencies [c6d57f3]
+- Updated dependencies [677a707]
+  - ai@7.0.76
+
+## 2.0.5
+
+### Patch Changes
+
+- Updated dependencies [8978ad8]
+  - ai@7.0.75
+
+## 2.0.4
+
+### Patch Changes
+
+- ai@7.0.74
+
+## 2.0.3
+
+### Patch Changes
+
+- ai@7.0.73
+
+## 2.0.2
+
+### Patch Changes
+
+- ai@7.0.72
+
+## 2.0.1
+
+### Patch Changes
+
+- 4233a40: Resume transformed WorkflowAgent streams using UI message chunk indexes.
+- Updated dependencies [9a37469]
+  - ai@7.0.71
+
+## 2.0.0
+
+### Major Changes
+
+- 3238c04: Upgrade to Workflow 5 and drop Workflow 4 support. Applications must now install Workflow 5, which is currently available under the `beta` tag.
+
+### Patch Changes
+
+- d3cc3fe: Clear partial UI message parts when a WorkflowAgent model-call step is retried.
+- Updated dependencies [e6087c9]
+- Updated dependencies [9566914]
+- Updated dependencies [b181020]
+- Updated dependencies [7054073]
+- Updated dependencies [a828527]
+- Updated dependencies [d3cc3fe]
+  - @ai-sdk/provider-utils@5.0.28
+  - ai@7.0.70
+
+## 1.0.70
+
+### Patch Changes
+
+- ai@7.0.69
+
+## 1.0.69
+
+### Patch Changes
+
+- ai@7.0.68
+
+## 1.0.68
+
+### Patch Changes
+
+- e6064c5: Honor `WorkflowAgent` model-call retry settings without stacking workflow step retries.
+- 83f9b12: Expose the original value from model stream error parts on resolved WorkflowAgent results without retrying the durable model step.
+  - ai@7.0.67
+
+## 1.0.67
+
+### Patch Changes
+
+- e3325bd: Fix `WorkflowAgent` timeout handling by enforcing absolute deadlines inside durable model-call steps and routing timeouts through abort handling.
+
+## 1.0.66
+
+### Patch Changes
+
+- c661693: Fix the Workflow integration test harness by aligning `@workflow/vitest` with the installed Workflow runtime.
+- Updated dependencies [0782259]
+- Updated dependencies [2fd1214]
+  - ai@7.0.66
+
+## 1.0.65
+
+### Patch Changes
+
+- Updated dependencies [dc8caae]
+- Updated dependencies [72ec74f]
+- Updated dependencies [c5b0515]
+  - ai@7.0.65
+
 ## 1.0.64
 
 ### Patch Changes

@@ -35,12 +35,23 @@ export type GoogleInteractionsDocumentContent = {
   uri?: string;
 };
 
+export type GoogleInteractionsVideoProcessing =
+  | 'agentic'
+  | 'static'
+  | {
+      type: 'static';
+      start_offset?: number;
+      end_offset?: number;
+      fps?: number;
+    };
+
 export type GoogleInteractionsVideoContent = {
   type: 'video';
   data?: string;
   mime_type?: string;
   uri?: string;
   resolution?: 'low' | 'medium' | 'high' | 'ultra_high';
+  processing?: GoogleInteractionsVideoProcessing;
 };
 
 export type GoogleInteractionsThoughtSummaryItem =
@@ -125,6 +136,16 @@ export type GoogleInteractionsFunctionCallStepPayload = {
 export type GoogleInteractionsThoughtStepPayload = {
   signature?: string;
   summary?: Array<GoogleInteractionsThoughtSummaryItem>;
+};
+
+export type GoogleInteractionsProcessingCallStepPayload = {
+  id: string;
+  signature?: string;
+};
+
+export type GoogleInteractionsProcessingResultStepPayload = {
+  call_id: string;
+  signature?: string;
 };
 
 export type GoogleInteractionsCodeExecutionCallStepPayload = {
@@ -255,6 +276,14 @@ export type GoogleInteractionsThoughtStep = {
   type: 'thought';
 } & GoogleInteractionsThoughtStepPayload;
 
+export type GoogleInteractionsProcessingCallStep = {
+  type: 'processing_call';
+} & GoogleInteractionsProcessingCallStepPayload;
+
+export type GoogleInteractionsProcessingResultStep = {
+  type: 'processing_result';
+} & GoogleInteractionsProcessingResultStepPayload;
+
 export type GoogleInteractionsBuiltinToolCallStep =
   | ({
       type: 'google_search_call';
@@ -294,6 +323,8 @@ export type GoogleInteractionsStep =
   | GoogleInteractionsModelOutputStep
   | GoogleInteractionsFunctionCallStep
   | GoogleInteractionsThoughtStep
+  | GoogleInteractionsProcessingCallStep
+  | GoogleInteractionsProcessingResultStep
   | GoogleInteractionsBuiltinToolCallStep
   | GoogleInteractionsBuiltinToolResultStep
   | { type: string; [k: string]: unknown };
@@ -434,6 +465,10 @@ export type GoogleInteractionsImageSize = '1K' | '2K' | '4K' | '512';
  *
  *   { type: 'image', mime_type, aspect_ratio?, image_size? }
  *     -- image generation. `mime_type` defaults to `image/png`.
+ *
+ *   { type: 'video', aspect_ratio?, resolution?, duration?, delivery?,
+ *     gcs_uri? }
+ *     -- video generation and delivery configuration.
  */
 export type GoogleInteractionsResponseFormatTextEntry = {
   type: 'text';
@@ -453,10 +488,20 @@ export type GoogleInteractionsResponseFormatAudioEntry = {
   mime_type?: string;
 };
 
+export type GoogleInteractionsResponseFormatVideoEntry = {
+  type: 'video';
+  aspect_ratio?: '16:9' | '9:16';
+  resolution?: '360p' | '720p' | '1080p' | '4k';
+  duration?: string;
+  delivery?: 'inline' | 'uri';
+  gcs_uri?: string;
+};
+
 export type GoogleInteractionsResponseFormatEntry =
   | GoogleInteractionsResponseFormatTextEntry
   | GoogleInteractionsResponseFormatImageEntry
-  | GoogleInteractionsResponseFormatAudioEntry;
+  | GoogleInteractionsResponseFormatAudioEntry
+  | GoogleInteractionsResponseFormatVideoEntry;
 
 export type GoogleInteractionsGenerationConfig = {
   temperature?: number;

@@ -10,7 +10,7 @@ describe('createEmitStreamEvent', () => {
     const threadIds: string[] = [];
     const stepTracker = {
       observeEvent: input => observed.push(input),
-      finishStep: () => observed.push('finish'),
+      finishTurn: () => observed.push('finish'),
     } as CodexStepTracker;
     const emitStreamEvent = createEmitStreamEvent({
       send: event => emitted.push(event),
@@ -119,7 +119,7 @@ describe('createEmitStreamEvent', () => {
     const emitted: Record<string, unknown>[] = [];
     const stepTracker = {
       observeEvent: () => {},
-      finishStep: () => {},
+      finishTurn: () => {},
     } as CodexStepTracker;
     const emitStreamEvent = createEmitStreamEvent({
       send: event => emitted.push(event),
@@ -175,7 +175,7 @@ describe('createEmitStreamEvent', () => {
     const emitted: Record<string, unknown>[] = [];
     const stepTracker = {
       observeEvent: () => {},
-      finishStep: () => {},
+      finishTurn: () => {},
     } as CodexStepTracker;
     const emitStreamEvent = createEmitStreamEvent({
       send: event => emitted.push(event),

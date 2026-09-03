@@ -43,7 +43,7 @@ function toZodType(schema: JsonSchemaObject | undefined): z.ZodTypeAny {
   let zType =
     zodForConst(schema) ??
     zodForEnum(schema) ??
-    zodForNullableUnion(schema) ??
+    zodForUnion(schema) ??
     zodForType(schema);
 
   if (isNullable(schema)) zType = zType.nullable();
@@ -90,16 +90,16 @@ function zodForEnum(schema: JsonSchemaObject): z.ZodTypeAny | undefined {
   return zodForLiterals(schema.enum);
 }
 
-function zodForNullableUnion(
-  schema: JsonSchemaObject,
-): z.ZodTypeAny | undefined {
+function zodForUnion(schema: JsonSchemaObject): z.ZodTypeAny | undefined {
   const unionSchemas = schema.anyOf ?? schema.oneOf;
   if (!unionSchemas || unionSchemas.length < 2) return undefined;
 
-  const nonNullSchemas = unionSchemas.filter(item => !isNullOnlySchema(item));
-  if (nonNullSchemas.length !== 1) return undefined;
-
-  return toZodType(nonNullSchemas[0]).nullable();
+  const options = unionSchemas.map(item => toZodType(item)) as unknown as [
+    z.ZodTypeAny,
+    z.ZodTypeAny,
+    ...z.ZodTypeAny[],
+  ];
+  return z.union(options);
 }
 
 function zodForLiterals(values: JsonLiteral[]): z.ZodTypeAny {
@@ -124,19 +124,6 @@ function isNullable(schema: JsonSchemaObject): boolean {
   return (
     schema.nullable === true ||
     (Array.isArray(schema.type) && schema.type.includes('null'))
-  );
-}
-
-function isNullOnlySchema(schema: JsonSchemaObject): boolean {
-  return (
-    schema.type === 'null' ||
-    (Array.isArray(schema.type) &&
-      schema.type.length === 1 &&
-      schema.type[0] === 'null') ||
-    schema.const === null ||
-    (Array.isArray(schema.enum) &&
-      schema.enum.length === 1 &&
-      schema.enum[0] === null)
   );
 }
 

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type DeepAgentOptions = {
   middleware?: Array<{
+    name?: string;
     wrapModelCall?: (request: any, handler: any) => Promise<unknown>;
   }>;
   model?: unknown;
@@ -17,6 +18,9 @@ type ChatAnthropicOptions = {
 const state = vi.hoisted(() => ({
   createDeepAgentOptions: [] as DeepAgentOptions[],
   originalArgv: [] as string[],
+  responseFormat: undefined as
+    | { type: 'json'; schema: Record<string, unknown> }
+    | undefined,
 }));
 
 vi.mock('deepagents', () => ({
@@ -43,6 +47,7 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
         thinking: { type: 'adaptive', display: 'summarized' },
         effort: 'max',
         tools: [],
+        responseFormat: state.responseFormat,
       },
       {
         emit: () => {},
@@ -88,11 +93,19 @@ vi.mock('@langchain/mcp-adapters', () => ({
 
 vi.mock('langchain', () => ({
   createMiddleware: <Middleware>(middleware: Middleware) => middleware,
+  toolStrategy: (schema: Record<string, unknown>) => [
+    {
+      kind: 'tool-strategy',
+      name: 'StructuredOutput',
+      schema,
+    },
+  ],
 }));
 
 describe('Deep Agents bridge instructions', () => {
   beforeEach(() => {
     state.createDeepAgentOptions = [];
+    state.responseFormat = undefined;
     state.originalArgv = [...process.argv];
     process.argv.splice(
       0,
@@ -127,8 +140,9 @@ describe('Deep Agents bridge instructions', () => {
       model: 'upstream-selected-model',
     });
     const handler = vi.fn(async request => request.model);
-    const wrapModelCall =
-      state.createDeepAgentOptions[0]?.middleware?.[0]?.wrapModelCall;
+    const wrapModelCall = state.createDeepAgentOptions[0]?.middleware?.find(
+      middleware => middleware.name === 'harnessModel',
+    )?.wrapModelCall;
 
     expect(state.createDeepAgentOptions[0]?.model).toBeUndefined();
     expect(wrapModelCall).toBeDefined();
@@ -148,5 +162,29 @@ describe('Deep Agents bridge instructions', () => {
       thinking: { type: 'adaptive', display: 'summarized' },
     });
     expect(handler).toHaveBeenCalledWith({ model: configuredModel });
+  });
+
+  it('applies the requested JSON schema for the active turn', async () => {
+    const schema = {
+      type: 'object',
+      properties: { answer: { type: 'string' } },
+      required: ['answer'],
+    };
+    state.responseFormat = { type: 'json', schema };
+
+    await import('./index');
+
+    const wrapModelCall = state.createDeepAgentOptions[0]?.middleware?.find(
+      middleware => middleware.name === 'HarnessResponseFormat',
+    )?.wrapModelCall;
+    const handler = vi.fn(async request => request);
+    await wrapModelCall?.({ model: 'model' }, handler);
+
+    expect(handler).toHaveBeenCalledWith({
+      model: 'model',
+      responseFormat: [
+        { kind: 'tool-strategy', name: 'StructuredOutput', schema },
+      ],
+    });
   });
 });

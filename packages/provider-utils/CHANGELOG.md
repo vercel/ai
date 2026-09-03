@@ -1,5 +1,69 @@
 # @ai-sdk/provider-utils
 
+## 5.0.36
+
+### Patch Changes
+
+- 6bcc0f8: Update Undici to a version patched for CVE-2026-13697.
+
+## 5.0.35
+
+### Patch Changes
+
+- 5190b67: feat(provider): extend the FilesV4 interface with optional `getFileMetadata`, `downloadFile` (streaming), and `deleteFile` operations, plus `abortSignal`/`headers` call options and a `{ type: 'stream' }` upload data variant; upload results now expose `byteSize`, `createdAt`, and `expiresAt` (also surfaced by the core `uploadFile()` helper, which now forwards `abortSignal`/`headers`); add `postMultipartStreamToApi` (streaming multipart uploads with deterministic part ordering and failure-path stream teardown), `deleteFromApi`, and `createBinaryStreamResponseHandler` to provider-utils
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+
+## 5.0.34
+
+### Patch Changes
+
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+
+## 5.0.33
+
+### Patch Changes
+
+- 90192f1: Mark transient network errors that occur while reading successful response bodies as retryable.
+
+## 5.0.32
+
+### Patch Changes
+
+- 3e125ba: Allow manual tool approval statuses to include a reason and preserve it across
+  core, model, and UI approval requests. OPA `requires-approval` decisions now
+  surface their reason to human approvers. UI request chunks serialize the
+  optional `reason`, while UI messages retain it as `approval.requestReason`
+  separately from an approver's response `reason`.
+
+## 5.0.31
+
+### Patch Changes
+
+- a9782e1: fix: align batch result parsing, request counts, and lifecycle behavior across providers
+- 35841f5: feat: normalize mid-stream provider error events across supported providers into public StreamProviderError instances and preserve provider-owned type, code, status, retry, and raw payload metadata
+- d2f3353: Split OpenAI and Azure OpenAI embedding requests by a conservative UTF-8 byte budget derived from their aggregate token limit, in addition to input count limits.
+
+## 5.0.30
+
+### Patch Changes
+
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+
+## 5.0.29
+
+### Patch Changes
+
+- b74971f: Preserve schema-valued additional properties when converting Zod 4 schemas.
+
+## 5.0.28
+
+### Patch Changes
+
+- e6087c9: fix: handle empty string tool call IDs
+
 ## 5.0.27
 
 ### Patch Changes

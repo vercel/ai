@@ -6,6 +6,7 @@ import {
 } from '@ai-sdk/harness/agent';
 import type { HarnessV1NetworkSandboxSession } from '@ai-sdk/harness';
 import { createClaudeCode } from './claude-code/_create';
+import { createCline } from './cline/_create';
 import { createCodex } from './codex/_create';
 import { createDeepAgents } from './deepagents/_create';
 import { createOpenCode } from './opencode/_create';
@@ -25,11 +26,14 @@ const codex = createCodex();
 
 const claudeCode = createClaudeCode();
 
+const cline = createCline();
+
 const sandboxTimeout = 10 * 60 * 1000;
 const bridgePort = 4000;
 
 const harnesses = [
   { name: 'claude-code', harness: claudeCode },
+  { name: 'cline', harness: cline },
   { name: 'codex', harness: codex },
   { name: 'deepagents', harness: deepAgents },
   { name: 'opencode', harness: openCode },
@@ -117,10 +121,7 @@ async function runHarnessFromSnapshot({
     ports: [bridgePort],
     timeout: sandboxTimeout,
   });
-  const provider = createVercelSandbox({
-    sandbox,
-    bridgePorts: [bridgePort],
-  });
+  const provider = createVercelSandbox({ sandbox });
   const restoredSession = await provider.createSession();
   await assertBootstrapAssets({
     session: restoredSession,

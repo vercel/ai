@@ -672,31 +672,36 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
 }
 
 // XAI API Response Schemas
-const xaiUsageSchema = z.object({
-  prompt_tokens: z.number(),
-  completion_tokens: z.number(),
-  total_tokens: z.number(),
-  prompt_tokens_details: z
-    .object({
-      text_tokens: z.number().nullish(),
-      audio_tokens: z.number().nullish(),
-      image_tokens: z.number().nullish(),
-      cached_tokens: z.number().nullish(),
-    })
-    .nullish(),
-  completion_tokens_details: z
-    .object({
-      reasoning_tokens: z.number().nullish(),
-      audio_tokens: z.number().nullish(),
-      accepted_prediction_tokens: z.number().nullish(),
-      rejected_prediction_tokens: z.number().nullish(),
-    })
-    .nullish(),
-});
+const xaiUsageSchema = z
+  .object({
+    prompt_tokens: z.number(),
+    completion_tokens: z.number(),
+    total_tokens: z.number(),
+    cost_in_usd_ticks: z.number().nullish(),
+    prompt_tokens_details: z
+      .object({
+        text_tokens: z.number().nullish(),
+        audio_tokens: z.number().nullish(),
+        image_tokens: z.number().nullish(),
+        cached_tokens: z.number().nullish(),
+      })
+      .catchall(z.json())
+      .nullish(),
+    completion_tokens_details: z
+      .object({
+        reasoning_tokens: z.number().nullish(),
+        audio_tokens: z.number().nullish(),
+        accepted_prediction_tokens: z.number().nullish(),
+        rejected_prediction_tokens: z.number().nullish(),
+      })
+      .catchall(z.json())
+      .nullish(),
+  })
+  .catchall(z.json());
 
 export type XaiChatUsage = z.infer<typeof xaiUsageSchema>;
 
-const xaiChatResponseSchema = z.object({
+export const xaiChatResponseSchema = z.object({
   id: z.string().nullish(),
   created: z.number().nullish(),
   model: z.string().nullish(),
@@ -704,7 +709,7 @@ const xaiChatResponseSchema = z.object({
     .array(
       z.object({
         message: z.object({
-          role: z.literal('assistant'),
+          role: z.enum(['assistant', 'tool']),
           content: z.string().nullish(),
           reasoning_content: z.string().nullish(),
           tool_calls: z
@@ -732,6 +737,8 @@ const xaiChatResponseSchema = z.object({
   code: z.string().nullish(),
   error: z.string().nullish(),
 });
+
+export type XaiChatResponse = z.infer<typeof xaiChatResponseSchema>;
 
 const xaiChatChunkSchema = z.object({
   id: z.string().nullish(),

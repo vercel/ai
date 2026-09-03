@@ -1,5 +1,115 @@
 # @ai-sdk/openai-compatible
 
+## 3.0.43
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
+## 3.0.42
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+
+## 3.0.41
+
+### Patch Changes
+
+- 23eb659: Support text and thinking parts in array-based chat completion content while ignoring unknown part types.
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 3.0.40
+
+### Patch Changes
+
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
+## 3.0.39
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 3.0.38
+
+### Patch Changes
+
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
+## 3.0.37
+
+### Patch Changes
+
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 3.0.36
+
+### Patch Changes
+
+- ece5bdb: fix: send `reasoning_effort: "none"` when top-level reasoning is disabled
+
+## 3.0.35
+
+### Patch Changes
+
+- 7dd9ec3: feat(openai-compatible): convert video file parts to `video_url` content parts
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+
+## 3.0.34
+
+### Patch Changes
+
+- 99989ba: feat(provider/openai-compatible): report image generation token usage
+
+## 3.0.33
+
+### Patch Changes
+
+- d68139c: fix(openai-compatible): report truncated chat streams as errors
+
+## 3.0.32
+
+### Patch Changes
+
+- e6087c9: fix: handle empty string tool call IDs
+- 2f77de8: Preserve Gemini thought signatures for custom OpenAI-compatible provider names
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
+## 3.0.31
+
+### Patch Changes
+
+- 86892f3: fix(openai-compatible): preserve unmapped usage fields in `usage.raw`
+
+  `usage.raw` is specified as usage "in the shape that the provider returns",
+  and the chat model already parsed the usage object loosely so that extra
+  top-level fields survived. The nested `prompt_tokens_details` and
+  `completion_tokens_details` objects were still strict, so anything a provider
+  reported inside them was dropped — which is where providers put their most
+  distinguishing detail. The existing "should preserve extra usage fields"
+  fixture was itself losing `audio_tokens`, `image_tokens` and `text_tokens`
+  this way.
+
+  Both nested objects are now parsed loosely, as is the completion model's usage
+  schema, which was strict throughout despite feeding the same `raw` field.
+
+  Only `usage.raw` changes. The mapped token counts are unaffected.
+
 ## 3.0.30
 
 ### Patch Changes

@@ -5,6 +5,7 @@ import {
   type LanguageModelV4GenerateResult,
   type LanguageModelV4Usage,
 } from '@ai-sdk/provider';
+import { jsonSchema } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it, vi } from 'vitest';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
@@ -170,6 +171,76 @@ describe('startTextBatch', () => {
       }),
     ).rejects.toBeInstanceOf(UnsupportedFunctionalityError);
   });
+
+  it('forwards the webhook URL to the batch model', async () => {
+    const calls: Array<
+      Parameters<BatchLanguageModelV4['experimental_doStartBatch']>[0]
+    > = [];
+    const model = createMockBatchModel({
+      doStartBatch: async options => {
+        calls.push(options);
+        return { batchId: 'batch-123', status: 'pending', warnings: [] };
+      },
+    });
+
+    const result = await startTextBatch({
+      model,
+      requests: [{ id: 'request-1', prompt: 'hello' }],
+      webhookUrl: 'https://example.com/batch-webhook',
+    });
+
+    expect(calls[0].webhookUrl).toBe('https://example.com/batch-webhook');
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('forwards definition-only tools without executing them', async () => {
+    const execute = vi.fn(async () => ({ temperature: 20 }));
+    const calls: Array<
+      Parameters<BatchLanguageModelV4['experimental_doStartBatch']>[0]
+    > = [];
+    const model = createMockBatchModel({
+      doStartBatch: async options => {
+        calls.push(options);
+        return { batchId: 'batch-123', status: 'pending', warnings: [] };
+      },
+    });
+
+    await startTextBatch({
+      model,
+      requests: [{ id: 'request-1', prompt: 'What is the weather in Paris?' }],
+      tools: {
+        weather: {
+          description: 'Get the weather for a city.',
+          inputSchema: jsonSchema({
+            type: 'object',
+            properties: { city: { type: 'string' } },
+            required: ['city'],
+            additionalProperties: false,
+          }),
+          execute,
+        },
+      },
+      toolChoice: 'required',
+    });
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(calls[0].requests[0].options).toMatchObject({
+      tools: [
+        {
+          type: 'function',
+          name: 'weather',
+          description: 'Get the weather for a city.',
+          inputSchema: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+            required: ['city'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      toolChoice: { type: 'required' },
+    });
+  });
 });
 
 describe('getBatchStatus', () => {
@@ -271,6 +342,7 @@ describe('getBatchResults', () => {
 
     expect(items).toMatchObject([
       {
+        content: [{ text: 'Paris', type: 'text' }],
         id: 'request-1',
         status: 'succeeded',
         text: 'Paris',
@@ -292,6 +364,158 @@ describe('getBatchResults', () => {
         id: 'request-2',
         status: 'failed',
         error: { message: 'request failed', code: 'bad_request' },
+      },
+    ]);
+  });
+
+  it('normalizes provider-executed tool content and preserves usage', async () => {
+    const model = createMockBatchModel({
+      doGetBatchResults: async () =>
+        convertArrayToReadableStream([
+          {
+            id: 'request-1',
+            status: 'succeeded',
+            result: {
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'weather',
+                  input: '{"city":"Paris"}',
+                  providerExecuted: true,
+                  dynamic: true,
+                },
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call-1',
+                  toolName: 'weather',
+                  result: { temperature: 20 },
+                  providerExecuted: true,
+                  dynamic: true,
+                },
+              ],
+              finishReason: { unified: 'tool-calls', raw: 'tool_use' },
+              usage: testUsage,
+              warnings: [],
+              providerMetadata: { mock: { result: true } },
+            },
+          },
+        ]),
+    });
+
+    const items = [];
+    for await (const item of getBatchResults({
+      model,
+      batch: batchReference,
+      maxRetries: 0,
+    })) {
+      items.push(item);
+    }
+
+    expect(items).toEqual([
+      {
+        content: [
+          {
+            dynamic: true,
+            input: { city: 'Paris' },
+            providerExecuted: true,
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            type: 'tool-call',
+          },
+          {
+            dynamic: true,
+            input: { city: 'Paris' },
+            output: { temperature: 20 },
+            providerExecuted: true,
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            type: 'tool-result',
+          },
+        ],
+        finishReason: 'tool-calls',
+        id: 'request-1',
+        providerMetadata: { mock: { result: true } },
+        rawFinishReason: 'tool_use',
+        status: 'succeeded',
+        text: '',
+        usage: {
+          inputTokenDetails: {
+            cacheReadTokens: 1,
+            cacheWriteTokens: undefined,
+            noCacheTokens: 2,
+          },
+          inputTokens: 3,
+          outputTokenDetails: {
+            reasoningTokens: 1,
+            textTokens: 4,
+          },
+          outputTokens: 5,
+          raw: undefined,
+          totalTokens: 8,
+        },
+      },
+    ]);
+  });
+
+  it('normalizes client tool calls with their definitions without executing them', async () => {
+    const execute = vi.fn(async () => ({ temperature: 20 }));
+    const model = createMockBatchModel({
+      doGetBatchResults: async () =>
+        convertArrayToReadableStream([
+          {
+            id: 'request-1',
+            status: 'succeeded',
+            result: {
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'weather',
+                  input: '{"city":"Paris"}',
+                },
+              ],
+              finishReason: { unified: 'tool-calls', raw: 'tool_use' },
+              usage: testUsage,
+              warnings: [],
+            },
+          },
+        ]),
+    });
+
+    const items = [];
+    for await (const item of getBatchResults({
+      model,
+      batch: batchReference,
+      maxRetries: 0,
+      tools: {
+        weather: {
+          inputSchema: jsonSchema({
+            type: 'object',
+            properties: { city: { type: 'string' } },
+            required: ['city'],
+            additionalProperties: false,
+          }),
+          execute,
+        },
+      },
+    })) {
+      items.push(item);
+    }
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(items).toMatchObject([
+      {
+        id: 'request-1',
+        status: 'succeeded',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: { city: 'Paris' },
+          },
+        ],
       },
     ]);
   });

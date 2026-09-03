@@ -1,11 +1,106 @@
-import type { ToolNameMapping } from '../../../provider-utils/src/create-tool-name-mapping';
-import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
+import type { ToolNameMapping } from '@ai-sdk/provider-utils';
+import type {
+  LanguageModelV4Prompt,
+  LanguageModelV4ToolResultOutput,
+  LanguageModelV4ToolResultPart,
+} from '@ai-sdk/provider';
 import { describe, it, expect } from 'vitest';
+import { convertToOpenAIResponsesInput as convertToOpenAIResponsesInputBase } from './convert-to-openai-responses-input';
 
 const testToolNameMapping: ToolNameMapping = {
   toProviderToolName: (customToolName: string) => customToolName,
   toCustomToolName: (providerToolName: string) => providerToolName,
 };
+
+const convertToOpenAIResponsesInput = (
+  options: Parameters<typeof convertToOpenAIResponsesInputBase>[0],
+) =>
+  convertToOpenAIResponsesInputBase({
+    toolSearchToolName: 'tool_search',
+    ...options,
+  });
+
+const parallelToolCallInput =
+  '{"tool_uses":[{"recipient_name":"functions.weather","parameters":{"location":"San Francisco"}},{"recipient_name":"functions.cityAttractions","parameters":{"city":"Rome"}}]}';
+
+function createExpandedParallelToolCallPrompt({
+  withPromptCacheBreakpoints = false,
+}: {
+  withPromptCacheBreakpoints?: boolean;
+} = {}): LanguageModelV4Prompt {
+  const promptCacheBreakpoint = { mode: 'explicit' } as const;
+  const providerOptions = (index: number) => ({
+    openai: {
+      parallelToolCall: {
+        itemId: 'fc_parallel',
+        toolCallId: 'call_parallel',
+        toolName: 'parallel',
+        input: parallelToolCallInput,
+        index,
+        count: 2,
+      },
+    },
+  });
+
+  return [
+    {
+      role: 'assistant',
+      content: [
+        {
+          type: 'tool-call',
+          toolCallId: 'call_parallel_0',
+          toolName: 'weather',
+          input: { location: 'San Francisco' },
+          providerOptions: providerOptions(0),
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_parallel_1',
+          toolName: 'cityAttractions',
+          input: { city: 'Rome' },
+          providerOptions: providerOptions(1),
+        },
+      ],
+    },
+    {
+      role: 'tool',
+      content: [
+        {
+          type: 'tool-result',
+          toolCallId: 'call_parallel_0',
+          toolName: 'weather',
+          output: {
+            type: 'json',
+            value: { temperature: 72 },
+            ...(withPromptCacheBreakpoints && {
+              providerOptions: {
+                openai: { promptCacheBreakpoint },
+              },
+            }),
+          },
+          providerOptions: providerOptions(0),
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'call_parallel_1',
+          toolName: 'cityAttractions',
+          output: { type: 'text', value: 'Colosseum' },
+          providerOptions: {
+            ...providerOptions(1),
+            ...(withPromptCacheBreakpoints && {
+              openai: {
+                ...providerOptions(1).openai,
+                promptCacheBreakpoint,
+              },
+            }),
+          },
+        },
+      ],
+    },
+  ];
+}
+
+const parallelToolCallOutput = '{"temperature":72}\nColosseum';
 
 describe('convertToOpenAIResponsesInput', () => {
   describe('system messages', () => {
@@ -2702,6 +2797,82 @@ describe('convertToOpenAIResponsesInput', () => {
   });
 
   describe('tool messages', () => {
+    it('should preserve prompt cache breakpoints on scalar tool results', async () => {
+      const promptCacheBreakpoint = { mode: 'explicit' } as const;
+      const providerOptions = {
+        openai: { promptCacheBreakpoint },
+      };
+      const scalarOutputs: Array<{
+        output: LanguageModelV4ToolResultOutput;
+        expectedText: string;
+      }> = [
+        {
+          output: { type: 'text', value: 'stable tool output' },
+          expectedText: 'stable tool output',
+        },
+        {
+          output: { type: 'json', value: { stable: true } },
+          expectedText: '{"stable":true}',
+        },
+        {
+          output: { type: 'error-text', value: 'tool error' },
+          expectedText: 'tool error',
+        },
+        {
+          output: { type: 'error-json', value: { error: 'boom' } },
+          expectedText: '{"error":"boom"}',
+        },
+        {
+          output: {
+            type: 'execution-denied',
+            reason: 'execution denied',
+          },
+          expectedText: 'execution denied',
+        },
+      ];
+      const toolResults = scalarOutputs.flatMap(
+        ({ output }, outputIndex): LanguageModelV4ToolResultPart[] =>
+          (['output', 'tool-result'] as const).map(placement => ({
+            type: 'tool-result',
+            toolCallId: `call_${outputIndex}_${placement}`,
+            toolName: 'lookup',
+            output:
+              placement === 'output'
+                ? ({
+                    ...output,
+                    providerOptions,
+                  } as LanguageModelV4ToolResultOutput)
+                : output,
+            ...(placement === 'tool-result' && { providerOptions }),
+          })),
+      );
+
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [{ role: 'tool', content: toolResults }],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual(
+        scalarOutputs.flatMap(({ expectedText }, outputIndex) =>
+          (['output', 'tool-result'] as const).map(placement => ({
+            type: 'function_call_output',
+            call_id: `call_${outputIndex}_${placement}`,
+            output: [
+              {
+                type: 'input_text',
+                text: expectedText,
+                prompt_cache_breakpoint: promptCacheBreakpoint,
+              },
+            ],
+          })),
+        ),
+      );
+      expect(result.warnings).toEqual([]);
+    });
+
     it('should convert single tool result part with json value', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
@@ -2773,6 +2944,7 @@ describe('convertToOpenAIResponsesInput', () => {
     });
 
     it('should JSON-encode text outputs only for tools with an output schema', async () => {
+      const promptCacheBreakpoint = { mode: 'explicit' } as const;
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
         prompt: [
@@ -2815,6 +2987,18 @@ describe('convertToOpenAIResponsesInput', () => {
                   value: 'Error: unchanged',
                 },
               },
+              {
+                type: 'tool-result',
+                toolCallId: 'call_schema_breakpoint',
+                toolName: 'search',
+                output: {
+                  type: 'text',
+                  value: 'Structured output',
+                  providerOptions: {
+                    openai: { promptCacheBreakpoint },
+                  },
+                },
+              },
             ],
           },
         ],
@@ -2844,6 +3028,17 @@ describe('convertToOpenAIResponsesInput', () => {
           type: 'function_call_output',
           call_id: 'call_without_schema',
           output: 'Error: unchanged',
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_schema_breakpoint',
+          output: [
+            {
+              type: 'input_text',
+              text: '"Structured output"',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+          ],
         },
       ]);
     });
@@ -4964,6 +5159,60 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
+    it('should send expanded parallel tool results back to the stored wrapper call', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: createExpandedParallelToolCallPrompt(),
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasConversation: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_parallel',
+          output: parallelToolCallOutput,
+        },
+      ]);
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should preserve scalar prompt cache breakpoints on expanded parallel tool results', async () => {
+      const promptCacheBreakpoint = { mode: 'explicit' } as const;
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: createExpandedParallelToolCallPrompt({
+          withPromptCacheBreakpoints: true,
+        }),
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasConversation: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_parallel',
+          output: [
+            {
+              type: 'input_text',
+              text: '{"temperature":72}',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+            {
+              type: 'input_text',
+              text: '\nColosseum',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+          ],
+        },
+      ]);
+      expect(result.warnings).toEqual([]);
+    });
+
     it('should include assistant messages without item IDs when hasConversation is true', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
@@ -5105,6 +5354,32 @@ describe('convertToOpenAIResponsesInput', () => {
   });
 
   describe('hasPreviousResponseId', () => {
+    it('should reconstruct expanded parallel tool calls with one wrapper output', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: createExpandedParallelToolCallPrompt(),
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasPreviousResponseId: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call',
+          call_id: 'call_parallel',
+          name: 'parallel',
+          arguments: parallelToolCallInput,
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_parallel',
+          output: parallelToolCallOutput,
+        },
+      ]);
+      expect(result.warnings).toEqual([]);
+    });
+
     it('should keep client-executed function calls paired with their outputs when hasPreviousResponseId is true', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
@@ -5557,6 +5832,83 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ]
       `);
+    });
+
+    it('should preserve prompt cache breakpoints on scalar custom tool results', async () => {
+      const promptCacheBreakpoint = { mode: 'explicit' } as const;
+      const providerOptions = {
+        openai: { promptCacheBreakpoint },
+      };
+      const scalarOutputs: Array<{
+        output: LanguageModelV4ToolResultOutput;
+        expectedText: string;
+      }> = [
+        {
+          output: { type: 'text', value: 'stable tool output' },
+          expectedText: 'stable tool output',
+        },
+        {
+          output: { type: 'json', value: { stable: true } },
+          expectedText: '{"stable":true}',
+        },
+        {
+          output: { type: 'error-text', value: 'tool error' },
+          expectedText: 'tool error',
+        },
+        {
+          output: { type: 'error-json', value: { error: 'boom' } },
+          expectedText: '{"error":"boom"}',
+        },
+        {
+          output: {
+            type: 'execution-denied',
+            reason: 'execution denied',
+          },
+          expectedText: 'execution denied',
+        },
+      ];
+      const toolResults = scalarOutputs.flatMap(
+        ({ output }, outputIndex): LanguageModelV4ToolResultPart[] =>
+          (['output', 'tool-result'] as const).map(placement => ({
+            type: 'tool-result',
+            toolCallId: `call_custom_${outputIndex}_${placement}`,
+            toolName: 'write_sql',
+            output:
+              placement === 'output'
+                ? ({
+                    ...output,
+                    providerOptions,
+                  } as LanguageModelV4ToolResultOutput)
+                : output,
+            ...(placement === 'tool-result' && { providerOptions }),
+          })),
+      );
+
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [{ role: 'tool', content: toolResults }],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toEqual(
+        scalarOutputs.flatMap(({ expectedText }, outputIndex) =>
+          (['output', 'tool-result'] as const).map(placement => ({
+            type: 'custom_tool_call_output',
+            call_id: `call_custom_${outputIndex}_${placement}`,
+            output: [
+              {
+                type: 'input_text',
+                text: expectedText,
+                prompt_cache_breakpoint: promptCacheBreakpoint,
+              },
+            ],
+          })),
+        ),
+      );
+      expect(result.warnings).toEqual([]);
     });
 
     it('should convert custom tool result to custom_tool_call_output with text value', async () => {

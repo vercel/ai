@@ -34,8 +34,11 @@
     "@ai-sdk/harness": "workspace:*",
     "@ai-sdk/harness-acp": "workspace:*",
     "@ai-sdk/harness-claude-code": "workspace:*",
+    "@ai-sdk/harness-cline": "workspace:*",
     "@ai-sdk/harness-codex": "workspace:*",
+    "@ai-sdk/harness-cursor": "workspace:*",
     "@ai-sdk/harness-deepagents": "workspace:*",
+    "@ai-sdk/harness-fx": "workspace:*",
     "@ai-sdk/harness-grok-build": "workspace:*",
     "@ai-sdk/harness-opencode": "workspace:*",
     "@ai-sdk/harness-pi": "workspace:*",
@@ -66,7 +69,9 @@
     "@ai-sdk/tui": "workspace:*",
     "@ai-sdk/valibot": "workspace:*",
     "@ai-sdk/voyage": "workspace:*",
+    "@ai-sdk/workflow": "workspace:*",
     "@ai-sdk/xai": "workspace:*",
+    "@ai-sdk/zai": "workspace:*",
     "@basetenlabs/performance-client": "0.0.10",
     "@google/generative-ai": "0.21.0",
     "@langchain/core": "^1.1.46",
@@ -76,7 +81,7 @@
     "@opentelemetry/sdk-trace-node": "^2.7.1",
     "@standard-schema/spec": "1.1.0",
     "@valibot/to-json-schema": "^1.7.0",
-    "@vercel/sandbox": "^2.0.1",
+    "@vercel/sandbox": "^3.0.0",
     "ai": "workspace:*",
     "arktype": "2.1.28",
     "dotenv": "16.4.5",
@@ -88,8 +93,9 @@
     "mathjs": "^15.2.0",
     "sharp": "^0.33.5",
     "terminal-image": "^2.0.0",
-    "undici": "^8.5.0",
+    "undici": "^8.9.0",
     "valibot": "1.1.0",
+    "workflow": "5.0.0-beta.42",
     "ws": "^8.21.0",
     "zod": "3.25.76"
   },
@@ -101,7 +107,7 @@
   "devDependencies": {
     "@types/node": "22.19.19",
     "@types/ws": "^8.5.13",
-    "tsx": "4.19.2",
+    "tsx": "4.23.12",
     "typescript": "5.8.3"
   }
 }

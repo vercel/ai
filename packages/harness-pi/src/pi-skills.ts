@@ -1,6 +1,6 @@
 import path from 'node:path';
 import type { HarnessV1Skill } from '@ai-sdk/harness';
-import { writeSkills } from '@ai-sdk/harness/utils';
+import { writeSkills, type WriteSkillsResult } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 
 /**
@@ -12,8 +12,8 @@ export async function writePiSkills(args: {
   readonly sandboxHomeDir: string;
   readonly skills: ReadonlyArray<HarnessV1Skill>;
   readonly abortSignal?: AbortSignal;
-}): Promise<void> {
-  await writeSkills({
+}): Promise<WriteSkillsResult> {
+  return writeSkills({
     sandbox: args.sandbox,
     rootDir: path.posix.join(args.sandboxHomeDir, '.agents', 'skills'),
     skills: args.skills,

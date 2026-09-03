@@ -168,6 +168,33 @@ describe('AnthropicLanguageModel', () => {
         `);
       });
 
+      it('should preserve container upload response blocks as custom content', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_container_upload',
+            type: 'message',
+            role: 'assistant',
+            content: [
+              { type: 'text', text: 'Done' },
+              { type: 'container_upload', file_id: 'file_123' },
+            ],
+            model: 'claude-3-haiku-20240307',
+            stop_reason: 'end_turn',
+            stop_sequence: null,
+            usage: { input_tokens: 4, output_tokens: 2 },
+          },
+        };
+
+        const { content } = await model.doGenerate({ prompt: TEST_PROMPT });
+
+        expect(content).toContainEqual({
+          type: 'custom',
+          kind: 'anthropic.container_upload',
+          providerMetadata: { anthropic: { fileId: 'file_123' } },
+        });
+      });
+
       it('should use default budget when thinking type is enabled without budgetTokens', async () => {
         prepareJsonFixtureResponse('anthropic-text');
 
@@ -1171,6 +1198,36 @@ describe('AnthropicLanguageModel', () => {
           }
         `);
       });
+    });
+
+    it('should use native structured output by default for claude-fable-5', async () => {
+      prepareJsonFixtureResponse('anthropic-json-output-format.1');
+
+      await provider('claude-fable-5').doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { name: { type: 'string' } },
+            required: ['name'],
+            additionalProperties: false,
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.output_config?.format).toEqual({
+        type: 'json_schema',
+        schema: {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+          required: ['name'],
+          additionalProperties: false,
+        },
+      });
+      expect(requestBody.tools).toBeUndefined();
+      expect(requestBody.tool_choice).toBeUndefined();
     });
 
     it('should sanitize unsupported JSON schema keywords for output format', async () => {
@@ -3877,6 +3934,32 @@ describe('AnthropicLanguageModel', () => {
 
         it('should include web fetch 20260209 tool call and result in content', async () => {
           expect(result.content).toMatchSnapshot();
+        });
+
+        it('should preserve dynamic filtering callers', async () => {
+          const codeExecutionCall = result.content.find(
+            part =>
+              part.type === 'tool-call' && part.toolName === 'code_execution',
+          );
+          const webFetchCall = result.content.find(
+            part => part.type === 'tool-call' && part.toolName === 'web_fetch',
+          );
+          const webFetchResult = result.content.find(
+            part =>
+              part.type === 'tool-result' && part.toolName === 'web_fetch',
+          );
+
+          expect(
+            codeExecutionCall?.providerMetadata?.anthropic?.caller,
+          ).toEqual({ type: 'direct', toolId: undefined });
+          expect(webFetchCall?.providerMetadata?.anthropic?.caller).toEqual({
+            type: 'code_execution_20260120',
+            toolId: 'srvtoolu_015CSHH7X69AhdK9gNzotEeh',
+          });
+          expect(webFetchResult?.providerMetadata?.anthropic?.caller).toEqual({
+            type: 'code_execution_20260120',
+            toolId: 'srvtoolu_015CSHH7X69AhdK9gNzotEeh',
+          });
         });
       });
 
@@ -7432,6 +7515,69 @@ describe('AnthropicLanguageModel', () => {
       `);
     });
 
+    it('should stream thinking updates between tool calls', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_updates","type":"message","role":"assistant","content":[],"model":"claude-fable-5","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":10,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"thinking","thinking":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"First update"}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"signature_delta","signature":"sig-1"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"tool-1","name":"lookup","input":{}}}\n\n`,
+          `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{}"}}\n\n`,
+          `data: {"type":"content_block_stop","index":1}\n\n`,
+          `data: {"type":"content_block_start","index":2,"content_block":{"type":"thinking","thinking":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":2,"delta":{"type":"thinking_delta","thinking":"Second update"}}\n\n`,
+          `data: {"type":"content_block_delta","index":2,"delta":{"type":"signature_delta","signature":"sig-2"}}\n\n`,
+          `data: {"type":"content_block_stop","index":2}\n\n`,
+          `data: {"type":"content_block_start","index":3,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":"Done"}}\n\n`,
+          `data: {"type":"content_block_stop","index":3}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":20}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const { stream } = await provider('claude-fable-5').doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'lookup',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        providerOptions: {
+          anthropic: {
+            thinking: { type: 'adaptive', display: 'updates' },
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+      expect(
+        result.flatMap<{
+          type: 'reasoning-start' | 'reasoning-delta';
+          id: string;
+          delta?: string;
+        }>(part => {
+          if (part.type === 'reasoning-start') {
+            return [{ type: part.type, id: part.id }];
+          }
+          if (part.type === 'reasoning-delta' && part.delta !== '') {
+            return [{ type: part.type, id: part.id, delta: part.delta }];
+          }
+          return [];
+        }),
+      ).toEqual([
+        { type: 'reasoning-start', id: '0' },
+        { type: 'reasoning-delta', id: '0', delta: 'First update' },
+        { type: 'reasoning-start', id: '2' },
+        { type: 'reasoning-delta', id: '2', delta: 'Second update' },
+      ]);
+    });
+
     it('should stream redacted reasoning', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
@@ -8137,7 +8283,14 @@ describe('AnthropicLanguageModel', () => {
           },
           {
             "error": {
+              "code": undefined,
+              "data": {
+                "message": "test error",
+                "type": "error",
+              },
+              "isRetryable": undefined,
               "message": "test error",
+              "statusCode": undefined,
               "type": "error",
             },
             "type": "error",
@@ -10291,6 +10444,36 @@ describe('AnthropicLanguageModel', () => {
             await convertReadableStreamToArray(result.stream),
           ).toMatchSnapshot();
         });
+
+        it('should preserve dynamic filtering callers', async () => {
+          const streamArray = await convertReadableStreamToArray(result.stream);
+          const codeExecutionCall = streamArray.find(
+            (part): part is LanguageModelV4StreamPart & { type: 'tool-call' } =>
+              part.type === 'tool-call' && part.toolName === 'code_execution',
+          );
+          const webFetchCall = streamArray.find(
+            (part): part is LanguageModelV4StreamPart & { type: 'tool-call' } =>
+              part.type === 'tool-call' && part.toolName === 'web_fetch',
+          );
+          const webFetchResult = streamArray.find(
+            (
+              part,
+            ): part is LanguageModelV4StreamPart & { type: 'tool-result' } =>
+              part.type === 'tool-result' && part.toolName === 'web_fetch',
+          );
+
+          expect(
+            codeExecutionCall?.providerMetadata?.anthropic?.caller,
+          ).toEqual({ type: 'direct', toolId: undefined });
+          expect(webFetchCall?.providerMetadata?.anthropic?.caller).toEqual({
+            type: 'code_execution_20260120',
+            toolId: 'srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK',
+          });
+          expect(webFetchResult?.providerMetadata?.anthropic?.caller).toEqual({
+            type: 'code_execution_20260120',
+            toolId: 'srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK',
+          });
+        });
       });
     });
 
@@ -10653,49 +10836,103 @@ describe('AnthropicLanguageModel', () => {
       }
     });
 
-    it('should forward overloaded error during streaming', async () => {
+    it.each([
+      {
+        type: 'overloaded_error',
+        message: 'Overloaded',
+        statusCode: 529,
+        isRetryable: true,
+      },
+      {
+        type: 'api_error',
+        message: 'Internal server error',
+        statusCode: 500,
+        isRetryable: true,
+      },
+      {
+        type: 'request_too_large',
+        message: 'Request too large',
+        statusCode: 413,
+        isRetryable: false,
+      },
+    ])(
+      'should attach provider-owned metadata to a mid-stream $type error',
+      async ({ type, message, statusCode, isRetryable }) => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
+            `event: error\n`,
+            `data: ${JSON.stringify({
+              type: 'error',
+              error: { type, message },
+            })}\n\n`,
+          ],
+        };
+
+        const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+        const chunks = await convertReadableStreamToArray(stream);
+        const errorPart = chunks.find(chunk => chunk.type === 'error');
+
+        expect(chunks).toMatchObject([
+          { type: 'stream-start', warnings: [] },
+          {
+            type: 'response-metadata',
+            id: 'msg_01KfpJoAEabmH2iHRRFjQMAG',
+            modelId: 'claude-3-haiku-20240307',
+          },
+          { type: 'text-start', id: '0' },
+          { type: 'text-delta', id: '0', delta: 'Hello' },
+          { type: 'error' },
+        ]);
+        expect(errorPart?.type).toBe('error');
+        if (errorPart?.type !== 'error') {
+          expect.fail('Expected an error part');
+        }
+        expect(errorPart.error).toMatchObject({
+          message,
+          type,
+          statusCode,
+          isRetryable,
+          data: { message, type },
+        });
+      },
+    );
+
+    it('should preserve explicit metadata from an Anthropic-compatible transport', async () => {
+      const data = {
+        message: 'The model stream failed',
+        originalStatusCode: 503,
+      };
+      const error = {
+        type: 'modelStreamErrorException',
+        code: 'bedrock_stream_error',
+        message: data.message,
+        statusCode: 424,
+        isRetryable: true,
+        data,
+      };
+
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
         chunks: [
           `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
-          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
-          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
           `event: error\n`,
-          `data: {"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}\n\n`,
+          `data: ${JSON.stringify({ type: 'error', error })}\n\n`,
         ],
       };
 
       const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const chunks = await convertReadableStreamToArray(stream);
+      const errorPart = chunks.find(chunk => chunk.type === 'error');
 
-      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
-        [
-          {
-            "type": "stream-start",
-            "warnings": [],
-          },
-          {
-            "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
-            "modelId": "claude-3-haiku-20240307",
-            "type": "response-metadata",
-          },
-          {
-            "id": "0",
-            "type": "text-start",
-          },
-          {
-            "delta": "Hello",
-            "id": "0",
-            "type": "text-delta",
-          },
-          {
-            "error": {
-              "message": "Overloaded",
-              "type": "overloaded_error",
-            },
-            "type": "error",
-          },
-        ]
-      `);
+      expect(errorPart?.type).toBe('error');
+      if (errorPart?.type !== 'error') {
+        expect.fail('Expected an error part');
+      }
+      expect(errorPart.error).toMatchObject(error);
     });
   });
 
@@ -11247,6 +11484,16 @@ describe('getModelCapabilities', () => {
     `);
   });
 
+  it.each([
+    ['claude-sonnet-4@20250514', 64000],
+    ['claude-opus-4@20250514', 32000],
+  ])('should recognize the Vertex model ID %s', (modelId, maxOutputTokens) => {
+    expect(getModelCapabilities(modelId)).toMatchObject({
+      isKnownModel: true,
+      maxOutputTokens,
+    });
+  });
+
   it('should return conservative capabilities for an unknown non-Claude model', () => {
     expect(getModelCapabilities('third-party-future-model'))
       .toMatchInlineSnapshot(`
@@ -11401,6 +11648,42 @@ describe('mid-conversation tool changes', () => {
     });
     expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
       'mid-conversation-tool-changes-2026-07-01',
+    );
+  });
+
+  it('should send clearAt and per-turn effort with their beta headers', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    await provider('claude-fable-5').doGenerate({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Draft an answer.' }] },
+        { role: 'assistant', content: [{ type: 'text', text: 'Draft.' }] },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            anthropic: {
+              clearAt: 'next_user_message',
+              effort: 'xhigh',
+            },
+          },
+        },
+        { role: 'user', content: [{ type: 'text', text: 'Now finalize it.' }] },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.messages).toContainEqual({
+      role: 'system',
+      content: [],
+      clear_at: 'next_user_message',
+      output_config: { effort: 'xhigh' },
+    });
+    expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+      'mid-conversation-system-clear-at-2026-08-21',
+    );
+    expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+      'mid-conversation-effort-2026-08-01',
     );
   });
 });
@@ -11559,5 +11842,54 @@ describe('claude-opus-4-7 specific behavior', () => {
       type: 'adaptive',
       display: 'summarized',
     });
+  });
+
+  it('should include the updates thinking display mode', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    await opusModel.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'adaptive', display: 'updates' },
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({
+      type: 'adaptive',
+      display: 'updates',
+    });
+    expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+      'thinking-display-updates-2026-08-18',
+    );
+  });
+
+  it('should serialize thinking binding controls and add the beta header', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    await provider('claude-fable-5').doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      providerOptions: {
+        anthropic: {
+          thinking: {
+            blockBinding: {
+              prefixMismatchBehavior: 'drop_block',
+            },
+          },
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({
+      block_binding: {
+        prefix_mismatch_behavior: 'drop_block',
+      },
+    });
+    expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+      'thinking-binding-controls-2026-08-01',
+    );
   });
 });

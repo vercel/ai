@@ -422,6 +422,9 @@ describe('createUIMessageStream', () => {
               "role": "assistant",
             },
           ],
+          "outcome": {
+            "status": "unknown",
+          },
           "responseMessage": {
             "id": "response-message-id",
             "metadata": undefined,
@@ -538,6 +541,9 @@ describe('createUIMessageStream', () => {
               "role": "assistant",
             },
           ],
+          "outcome": {
+            "status": "unknown",
+          },
           "responseMessage": {
             "id": "1",
             "parts": [
@@ -609,6 +615,9 @@ describe('createUIMessageStream', () => {
               "role": "assistant",
             },
           ],
+          "outcome": {
+            "status": "unknown",
+          },
           "responseMessage": {
             "id": "response-message-id",
             "metadata": undefined,
@@ -669,6 +678,9 @@ describe('createUIMessageStream', () => {
               "role": "assistant",
             },
           ],
+          "outcome": {
+            "status": "unknown",
+          },
           "responseMessage": {
             "id": "existing-message-id",
             "metadata": undefined,
@@ -678,5 +690,271 @@ describe('createUIMessageStream', () => {
         },
       ]
     `);
+  });
+
+  it('reports operation outcomes without inferring failure from error chunks', async () => {
+    const observe = async (
+      execute: Parameters<typeof createUIMessageStream>[0]['execute'],
+    ) => {
+      let onEndCalls = 0;
+      let observation:
+        | {
+            isAborted: boolean;
+            status: string;
+            errorMessage: string | undefined;
+          }
+        | undefined;
+
+      const stream = createUIMessageStream({
+        execute,
+        onError: error =>
+          error instanceof Error ? error.message : 'unknown error',
+        onEnd: ({ isAborted, outcome }) => {
+          onEndCalls++;
+          observation = {
+            isAborted,
+            status: outcome.status,
+            errorMessage:
+              outcome.status === 'failed' && outcome.error instanceof Error
+                ? outcome.error.message
+                : undefined,
+          };
+        },
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+
+      return {
+        chunkTypes: chunks.map(chunk => chunk.type),
+        onEndCalls,
+        ...observation!,
+      };
+    };
+
+    expect({
+      undeclaredEof: await observe(() => {}),
+      errorChunk: await observe(({ writer }) => {
+        writer.write({ type: 'error', errorText: 'recoverable error' });
+      }),
+      declaredCompleted: await observe(({ writer }) => {
+        writer.setOutcome({ status: 'completed' });
+      }),
+      declaredCompletedBeforeFailed: await observe(({ writer }) => {
+        writer.setOutcome({ status: 'completed' });
+        writer.setOutcome({ status: 'failed', error: new Error('ignored') });
+      }),
+      declaredFailed: await observe(({ writer }) => {
+        writer.setOutcome({
+          status: 'failed',
+          error: new Error('declared failure'),
+        });
+      }),
+      declaredAborted: await observe(({ writer }) => {
+        writer.setOutcome({ status: 'aborted' });
+      }),
+      executeRejection: await observe(async () => {
+        throw new Error('execute failure');
+      }),
+      executeRejectionAfterCompleted: await observe(async ({ writer }) => {
+        writer.setOutcome({ status: 'completed' });
+        throw new Error('execute failure after completion');
+      }),
+      mergedStreamRejection: await observe(({ writer }) => {
+        writer.merge(
+          new ReadableStream({
+            start(controller) {
+              controller.error(new Error('merged stream failure'));
+            },
+          }),
+        );
+      }),
+      mergedStreamRejectionAfterCompleted: await observe(({ writer }) => {
+        writer.setOutcome({ status: 'completed' });
+        writer.merge(
+          new ReadableStream({
+            start(controller) {
+              controller.error(
+                new Error('merged stream failure after completion'),
+              );
+            },
+          }),
+        );
+      }),
+    }).toMatchInlineSnapshot(`
+      {
+        "declaredAborted": {
+          "chunkTypes": [],
+          "errorMessage": undefined,
+          "isAborted": true,
+          "onEndCalls": 1,
+          "status": "aborted",
+        },
+        "declaredCompleted": {
+          "chunkTypes": [],
+          "errorMessage": undefined,
+          "isAborted": false,
+          "onEndCalls": 1,
+          "status": "completed",
+        },
+        "declaredCompletedBeforeFailed": {
+          "chunkTypes": [],
+          "errorMessage": undefined,
+          "isAborted": false,
+          "onEndCalls": 1,
+          "status": "completed",
+        },
+        "declaredFailed": {
+          "chunkTypes": [],
+          "errorMessage": "declared failure",
+          "isAborted": false,
+          "onEndCalls": 1,
+          "status": "failed",
+        },
+        "errorChunk": {
+          "chunkTypes": [
+            "error",
+          ],
+          "errorMessage": undefined,
+          "isAborted": false,
+          "onEndCalls": 1,
+          "status": "unknown",
+        },
+        "executeRejection": {
+          "chunkTypes": [
+            "error",
+          ],
+          "errorMessage": "execute failure",
+          "isAborted": false,
+          "onEndCalls": 1,
+          "status": "failed",
+        },
+        "executeRejectionAfterCompleted": {
+          "chunkTypes": [
+            "error",
+          ],
+          "errorMessage": "execute failure after completion",
+          "isAborted": false,
+          "onEndCalls": 1,
+          "status": "failed",
+        },
+        "mergedStreamRejection": {
+          "chunkTypes": [
+            "error",
+          ],
+          "errorMessage": "merged stream failure",
+          "isAborted": false,
+          "onEndCalls": 1,
+          "status": "failed",
+        },
+        "mergedStreamRejectionAfterCompleted": {
+          "chunkTypes": [
+            "error",
+          ],
+          "errorMessage": "merged stream failure after completion",
+          "isAborted": false,
+          "onEndCalls": 1,
+          "status": "failed",
+        },
+        "undeclaredEof": {
+          "chunkTypes": [],
+          "errorMessage": undefined,
+          "isAborted": false,
+          "onEndCalls": 1,
+          "status": "unknown",
+        },
+      }
+    `);
+  });
+
+  it('reports errors thrown by onError as failed exactly once', async () => {
+    for (const execute of [
+      async () => {
+        throw new Error('execute failure');
+      },
+      ({
+        writer,
+      }: Parameters<
+        Parameters<typeof createUIMessageStream>[0]['execute']
+      >[0]) => {
+        writer.merge(
+          new ReadableStream({
+            start(controller) {
+              controller.error(new Error('merged stream failure'));
+            },
+          }),
+        );
+      },
+    ]) {
+      const onErrorError = new Error('onError failure');
+      const onEnd = vi.fn();
+      const stream = createUIMessageStream({
+        execute,
+        onError: () => {
+          throw onErrorError;
+        },
+        onEnd,
+      });
+
+      await expect(convertReadableStreamToArray(stream)).rejects.toBe(
+        onErrorError,
+      );
+      expect(onEnd).toHaveBeenCalledTimes(1);
+      expect(onEnd.mock.calls[0][0].outcome).toEqual({
+        status: 'failed',
+        error: onErrorError,
+      });
+    }
+  });
+
+  it('reports invalid chunk processing as failed after completion was declared', async () => {
+    const onEnd = vi.fn();
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        writer.setOutcome({ status: 'completed' });
+        writer.write({ type: 'finish' });
+        writer.write({
+          type: 'text-delta',
+          id: 'missing',
+          delta: 'text',
+        });
+      },
+      onEnd,
+    });
+
+    let processingError: unknown;
+    try {
+      await convertReadableStreamToArray(stream);
+    } catch (error) {
+      processingError = error;
+    }
+
+    expect(processingError).toBeInstanceOf(Error);
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    expect(onEnd.mock.calls[0][0].outcome).toEqual({
+      status: 'failed',
+      error: processingError,
+    });
+  });
+
+  it('injects message IDs without mutating frozen start chunks', async () => {
+    const onEnd = vi.fn();
+    const startChunk = Object.freeze({ type: 'start' } as const);
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        writer.setOutcome({ status: 'completed' });
+        writer.write(startChunk);
+      },
+      generateId: () => 'generated-message-id',
+      onEnd,
+    });
+
+    await expect(convertReadableStreamToArray(stream)).resolves.toEqual([
+      { type: 'start', messageId: 'generated-message-id' },
+    ]);
+    expect(startChunk).toEqual({ type: 'start' });
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    expect(onEnd.mock.calls[0][0].outcome).toEqual({
+      status: 'completed',
+    });
   });
 });

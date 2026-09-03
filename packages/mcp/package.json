@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/mcp",
-  "version": "2.0.31",
+  "version": "2.0.44",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -44,10 +44,12 @@
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
+    "cross-spawn": "^7.0.6",
     "pkce-challenge": "^5.0.1"
   },
   "devDependencies": {
     "@ai-sdk/test-server": "workspace:*",
+    "@types/cross-spawn": "^6.0.6",
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8.5.1",

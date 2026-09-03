@@ -1,5 +1,5 @@
 export { createACP } from './acp-harness';
-export type { ACPAuthOptions, ACPClientApp } from './acp-auth';
+export type { ACPAuthenticationMode, ACPClientApp } from './acp-auth';
 export type { ACPHarnessSettings } from './acp-harness';
 export type {
   ACPAnnotations,
@@ -20,15 +20,19 @@ export type {
   ACPToolKind,
 } from './acp-tool-call';
 export type {
+  ACPAskUserQuestionsSettings,
+  ACPCredentialBrokering,
   ACPAuthentication,
+  ACPInstallCommandSource,
   ACPInstructionMapping,
+  ACPModelMapping,
   ACPNpmLockedSource,
   ACPNpmSimpleSource,
+  ACPOutputSchemaMapping,
   ACPPermissionModeMapping,
   ACPPermissionModeTarget,
   ACPProfileValue,
   ACPProviderAuthentication,
-  ACPProviderAuthenticationMode,
   ACPSerializablePrimitive,
   ACPSerializableValue,
   ACPSource,

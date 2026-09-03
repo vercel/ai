@@ -13,6 +13,7 @@ import {
   experimental_getBatchResults as getBatchResults,
   experimental_getBatchStatus as getBatchStatus,
   experimental_startTextBatch as startTextBatch,
+  type GatewayProviderMetadata,
   type Experimental_BatchError as BatchError,
   type Experimental_BatchLanguageModel as BatchLanguageModel,
   type Experimental_BatchOperationOptions as BatchOperationOptions,
@@ -27,6 +28,14 @@ import {
   type Experimental_TextBatchRequest as TextBatchRequest,
 } from '../index';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
+import type { ContentPart } from '../generate-text/content-part';
+import { jsonSchema, type ToolSet } from '@ai-sdk/provider-utils';
+
+it('exposes typed Gateway async-job metadata', () => {
+  expectTypeOf<
+    NonNullable<GatewayProviderMetadata['asyncJob']>['webhookSigningSecret']
+  >().toEqualTypeOf<string | undefined>();
+});
 
 it('keeps text batch references as the current batch reference variant', () => {
   expectTypeOf<BatchReference>().toEqualTypeOf<TextBatchReference>();
@@ -41,12 +50,34 @@ it('keeps batch start non-retrying', () => {
   expectTypeOf<StartTextBatchOptions['timeout']>().toEqualTypeOf<
     number | { totalMs?: number } | undefined
   >();
+  expectTypeOf<StartTextBatchOptions['webhookUrl']>().toEqualTypeOf<
+    string | undefined
+  >();
 });
 
-it('excludes Core orchestration and tool execution from batch items', () => {
+it('excludes Core orchestration from batch items', () => {
   expectTypeOf<'tools'>().not.toMatchTypeOf<keyof TextBatchRequest>();
   expectTypeOf<'toolChoice'>().not.toMatchTypeOf<keyof TextBatchRequest>();
   expectTypeOf<'stopWhen'>().not.toMatchTypeOf<keyof TextBatchRequest>();
+});
+
+it('accepts shared definition-only tools when starting and reading a batch', () => {
+  const tools = {
+    weather: {
+      inputSchema: jsonSchema({
+        type: 'object',
+        properties: { city: { type: 'string' } },
+      }),
+      execute: async () => ({ temperature: 20 }),
+    },
+  };
+
+  expectTypeOf<StartTextBatchOptions<typeof tools>['tools']>().toEqualTypeOf<
+    typeof tools | undefined
+  >();
+  expectTypeOf<BatchOperationOptions<typeof tools>['tools']>().toEqualTypeOf<
+    typeof tools | undefined
+  >();
 });
 
 it('only exposes text-generation call options to batch providers', () => {
@@ -63,6 +94,9 @@ it('only exposes text-generation call options to batch providers', () => {
     | 'frequencyPenalty'
     | 'seed'
     | 'reasoning'
+    | 'responseFormat'
+    | 'toolChoice'
+    | 'tools'
     | 'providerOptions'
   >;
 
@@ -70,12 +104,7 @@ it('only exposes text-generation call options to batch providers', () => {
   expectTypeOf<
     Extract<
       keyof BatchCallOptions,
-      | 'responseFormat'
-      | 'tools'
-      | 'toolChoice'
-      | 'includeRawChunks'
-      | 'abortSignal'
-      | 'headers'
+      'includeRawChunks' | 'abortSignal' | 'headers'
     >
   >().toEqualTypeOf<never>();
 });
@@ -84,6 +113,12 @@ it('uses serializable response timestamps', () => {
   expectTypeOf<
     NonNullable<TextBatchGenerationResult['response']>['timestamp']
   >().toEqualTypeOf<string | undefined>();
+});
+
+it('exposes Core content in successful batch results', () => {
+  expectTypeOf<TextBatchGenerationResult['content']>().toEqualTypeOf<
+    Array<ContentPart<ToolSet>>
+  >();
 });
 
 it('flattens successful Core items while reusing provider status and errors', () => {
@@ -126,6 +161,12 @@ it('exports the experimental batch functions with the public result types', () =
     startTextBatch,
   ).returns.resolves.toEqualTypeOf<StartTextBatchResult>();
   expectTypeOf(getBatchStatus).returns.resolves.toEqualTypeOf<BatchStatus>();
+  getBatchStatus({
+    model: {} as BatchLanguageModelV4,
+    batch: {} as BatchReference,
+    // @ts-expect-error tools are only used when retrieving batch results
+    tools: {},
+  });
   expectTypeOf(getBatchResults).returns.toEqualTypeOf<
     AsyncIterableStream<TextBatchItemResult>
   >();

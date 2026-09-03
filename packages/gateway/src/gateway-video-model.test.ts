@@ -1,5 +1,5 @@
 import type { Experimental_VideoModelV4 } from '@ai-sdk/provider';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { GatewayVideoModel } from './gateway-video-model';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import type { GatewayConfig } from './gateway-config';
@@ -1180,6 +1180,25 @@ describe('GatewayVideoModel', () => {
     });
   });
 
+  describe('handleWebhookOption', () => {
+    it('should pass the factory URL and received promise straight through', async () => {
+      const received = Promise.resolve({
+        headers: { 'x-ai-gateway-signature': 't=1,v1=abc' },
+        body: { type: 'video.generation.completed' },
+      });
+      const webhook = vi.fn(async () => ({
+        url: 'https://example.com/hook',
+        received,
+      }));
+
+      const result = await createTestModel().handleWebhookOption!({ webhook });
+
+      expect(webhook).toHaveBeenCalledOnce();
+      expect(result.webhookUrl).toBe('https://example.com/hook');
+      expect(result.received).toBe(received);
+    });
+  });
+
   describe('doStart', () => {
     const baseCallOptions = {
       prompt: 'A beautiful sunset over mountains',
@@ -1437,11 +1456,6 @@ describe('GatewayVideoModel', () => {
       await expect(
         createTestModel().doStatus({ operation: { gatewayJobId: 'job_123' } }),
       ).rejects.toThrow();
-    });
-
-    it('does not implement handleWebhookOption (polling-only gateway)', () => {
-      const model: Experimental_VideoModelV4 = createTestModel();
-      expect(model.handleWebhookOption).toBeUndefined();
     });
   });
 });

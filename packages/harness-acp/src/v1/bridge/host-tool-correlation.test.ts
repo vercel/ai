@@ -67,6 +67,36 @@ describe('createHostToolCorrelation', () => {
     expect(raw).toHaveLength(1);
   });
 
+  it('matches Cursor MCP updates by provider, tool, and nested args', () => {
+    const { correlation, semantic, raw } = setup();
+    register({
+      correlation,
+      token: 'cursor-token',
+      toolName: 'weather',
+      input: { city: 'Lima' },
+      order: 1,
+    });
+    const rawUpdate = {
+      sessionUpdate: 'tool_call',
+      toolCallId: 'cursor-mcp-call',
+      title: 'ai-sdk-harness-tools: weather',
+      kind: 'other',
+      status: 'completed',
+      rawInput: {
+        providerIdentifier: 'ai-sdk-harness-tools',
+        toolName: 'weather',
+        args: { city: 'Lima' },
+      },
+    } as const;
+    correlation.update({
+      message: update(rawUpdate),
+      rawUpdate,
+    });
+
+    expect(semantic).toEqual([]);
+    expect(raw).toEqual([rawUpdate]);
+  });
+
   it('uses an exact result token as the strongest correlation evidence', () => {
     const { correlation, semantic, raw } = setup();
     const rawUpdate = {

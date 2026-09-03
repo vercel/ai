@@ -1,0 +1,207 @@
+---
+title: Cline
+description: Learn how to use the Cline harness adapter.
+---
+
+# Cline Harness
+
+The Cline harness adapter connects `HarnessAgent` to the
+[Cline SDK](https://docs.cline.bot/sdk/overview) agent runtime
+(`@cline/agents`). The runtime runs as an in-process Node library on the host
+— no bridge — while its built-in tools execute against the session sandbox,
+so the workspace the model reasons about lives entirely inside the sandbox.
+
+<Note>
+  Harness packages are **experimental**. Expect breaking changes between
+  releases as this early API gets further refined.
+</Note>
+
+## Setup
+
+<InstallPackages packages="@ai-sdk/harness @ai-sdk/harness-cline @ai-sdk/sandbox-vercel" />
+
+The Cline runtime has no bootstrap step: nothing is installed inside the
+sandbox when a session starts.
+
+## Import
+
+```ts
+import { cline, createCline } from '@ai-sdk/harness-cline';
+```
+
+`cline` is equivalent to `createCline()` with its default configuration.
+
+## Basic Usage
+
+```ts
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { cline } from '@ai-sdk/harness-cline';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+
+const agent = new HarnessAgent({
+  harness: cline,
+  model: 'anthropic/claude-opus-5',
+  sandbox: createVercelSandbox({
+    runtime: 'node24',
+  }),
+});
+
+const session = await agent.createSession();
+
+let exitCode = 0;
+try {
+  const result = await agent.stream({
+    session,
+    prompt: 'Check the test failures and fix the production code.',
+  });
+
+  for await (const part of result.stream) {
+    if (part.type === 'text-delta') {
+      process.stdout.write(part.text);
+    }
+  }
+} catch (err) {
+  exitCode = 1;
+  console.error(err);
+} finally {
+  await session.destroy();
+  process.exit(exitCode);
+}
+```
+
+To use this agent, ensure environment variables include `VERCEL_OIDC_TOKEN`
+for Vercel Sandbox. The same token authenticates model calls through AI
+Gateway when the default `auto` authentication mode is used.
+
+## Adapter Settings
+
+Use `createCline()` to configure the runtime:
+
+```ts
+const harness = createCline({
+  auth: 'direct',
+});
+```
+
+Settings:
+
+- `auth`: authentication mode (`auto`, `direct`, or `ai-gateway`) or an
+  isolated authentication environment.
+- `mcpServers`: MCP server definitions keyed by server name.
+- `providerId`: Cline LLM provider id (e.g. `anthropic`, `openai`, `gemini`).
+  When omitted, direct authentication uses the Cline backend. Explicit custom
+  providers apply only to direct authentication.
+- `apiKey`: provider API key. When omitted, the Cline gateway falls back to
+  the configured provider's environment variable.
+- `baseUrl`: custom provider endpoint.
+- `headers`: extra headers sent to the provider.
+- `reasoningEffort`: reasoning effort for reasoning-capable models. Supports
+  `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, and `max`. `none`
+  disables reasoning; every other value enables reasoning at that effort.
+  When omitted, the Cline SDK selects the reasoning behavior.
+- `maxIterations`: safety cap on agent-loop iterations per turn.
+
+To provide additional operating guidance, use the `instructions` setting on
+`HarnessAgent`. The adapter appends it to Cline's system prompt.
+
+## Structured Output
+
+Cline supports schema-backed [`HarnessAgent` structured output](/docs/ai-sdk-harnesses/harness-agent#generate-structured-output)
+by requiring a terminal tool whose argument uses the requested JSON Schema.
+This requires a provider/model route with external tool support;
+`providerId: 'openai-codex-cli'` throws `HarnessCapabilityUnsupportedError`.
+
+## Authentication
+
+The `auth` setting selects which credentials Cline reads from the host
+environment:
+
+- `auto` (default): use AI Gateway credentials when available, otherwise use
+  direct Cline credentials.
+- `direct`: use `CLINE_API_KEY` and the optional `CLINE_API_BASE_URL`.
+- `ai-gateway`: use `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` and the
+  optional `AI_GATEWAY_BASE_URL`.
+
+```ts
+const harness = createCline({ auth: 'ai-gateway' });
+```
+
+Pass an authentication environment when the host resolves credentials at
+runtime:
+
+```ts
+const harness = createCline({
+  auth: {
+    AI_GATEWAY_API_KEY: await resolveGatewayToken(),
+    AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh',
+  },
+});
+```
+
+The supplied record replaces the host environment for authentication
+discovery, so it can also select direct authentication with `CLINE_API_KEY`.
+
+`CLINE_API_BASE_URL` is Cline's backend root URL; the SDK's `/api/v1` provider
+path is appended to it. For AI Gateway, the adapter instead overrides Cline's
+in-process provider configuration with the Gateway credential and its `/v1`
+endpoint. Direct Cline credentials are never used as a fallback in explicit
+Gateway mode or when a supplied authentication environment selects Gateway.
+
+## Sandbox
+
+The Cline runtime runs on the host and does not need sandbox ports, so any
+network sandbox works — including port-less configurations:
+
+```ts
+const sandbox = createVercelSandbox({
+  runtime: 'node24',
+});
+```
+
+All built-in tools operate on the sandbox filesystem through the sandbox
+session's file and exec surface.
+
+## Built-in Tools
+
+The adapter exposes these built-ins through `agent.tools`:
+
+- `read`
+- `write`
+- `edit`
+- `bash`
+- `grep`
+- `glob`
+- `ls`
+
+All built-ins are sandbox-backed: `bash` runs in the session working
+directory, and relative file paths resolve against it.
+
+Cline supports built-in tool approval requests when `permissionMode` is
+`allow-reads` or `allow-edits`, native built-in tool filtering via
+`activeTools`/`inactiveTools`, and host-executed AI SDK tool approvals.
+
+## Skills
+
+Harness-provided skills are written into the sandbox HOME
+(`~/.agents/skills/<name>/SKILL.md`) and advertised to the model through a
+system prompt section; the model loads a skill's full content with the `read`
+tool when the task calls for it.
+
+## Session Lifecycle
+
+Conversation state lives in the host-process runtime. On `detach`/`stop` the
+adapter persists the conversation history into the sandbox workspace
+(`.cline-harness/history.json` in the session working directory), so a future
+process can resume the session after the sandbox provider reattaches. Because
+the runtime is host-resident, suspended turns are rerun-continued from the
+persisted history rather than losslessly attached (same trade-off as the
+[Pi adapter](/providers/ai-sdk-harnesses/pi)).
+
+Manual compaction (`doCompact`) is not supported by the standalone Cline
+runtime and throws `HarnessCapabilityUnsupportedError`.
+
+## Related
+
+- [HarnessAgent](/docs/ai-sdk-harnesses/harness-agent)
+- [Harness tools](/docs/ai-sdk-harnesses/tools)
+- [Harness adapters](/docs/ai-sdk-harnesses/harness-adapters)

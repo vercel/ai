@@ -31,7 +31,7 @@ import {
   type GatewayGenerationInfoParams,
   type GatewayGenerationInfo,
 } from './gateway-generation-info';
-import { GatewayLanguageModel } from './gateway-language-model';
+import { GatewayBatchLanguageModel } from './gateway-language-model-batch';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
 import { GatewayVideoModel } from './gateway-video-model';
@@ -53,8 +53,8 @@ import { gatewayTools } from './gateway-tools';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import type {
-  LanguageModelV4,
   EmbeddingModelV4,
+  Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
   ImageModelV4,
   RerankingModelV4,
   SpeechModelV4,
@@ -67,17 +67,17 @@ import type {
 import { VERSION } from './version';
 
 export interface GatewayProvider extends ProviderV4 {
-  (modelId: GatewayModelId): LanguageModelV4;
+  (modelId: GatewayModelId): BatchLanguageModelV4;
 
   /**
    * Creates a model for text generation.
    */
-  chat(modelId: GatewayModelId): LanguageModelV4;
+  chat(modelId: GatewayModelId): BatchLanguageModelV4;
 
   /**
    * Creates a model for text generation.
    */
-  languageModel(modelId: GatewayModelId): LanguageModelV4;
+  languageModel(modelId: GatewayModelId): BatchLanguageModelV4;
 
   /**
    * Returns available providers and models for use with the remote provider.
@@ -417,7 +417,7 @@ export function createGateway(
   };
 
   const createLanguageModel = (modelId: GatewayModelId) => {
-    return new GatewayLanguageModel(modelId, {
+    return new GatewayBatchLanguageModel(modelId, {
       provider: 'gateway',
       baseURL,
       headers: getHeaders,

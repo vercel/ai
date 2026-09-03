@@ -2,7 +2,7 @@ import ChatIdProvider from '@/components/chat-id-provider';
 import ACPHarnessChat from '@/components/acp-harness-chat';
 
 export const metadata = {
-  title: 'ACP: Grok Build — Basic (with stop)',
+  title: 'Grok Build — Basic (with stop)',
 };
 
 const STORAGE_KEY = 'harness-grok-build-basic-with-stop-chat-id';
@@ -13,7 +13,7 @@ export default function GrokBuildBasicWithStopPage() {
       <ACPHarnessChat
         apiRoute="/api/harness/grok-build/basic-with-stop"
         exampleLabel="Basic (with stop)"
-        harnessLabel="ACP: Grok Build"
+        harnessLabel="Grok Build"
       />
     </ChatIdProvider>
   );

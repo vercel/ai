@@ -23,6 +23,7 @@ authentication:
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createACP } from '@ai-sdk/harness-acp';
+import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 const codexACP = createACP({
@@ -33,7 +34,28 @@ const codexACP = createACP({
     packageVersion: '1.1.4',
   },
   executable: 'codex-acp',
-  forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
+  modelMapping: {
+    type: 'session-config-option',
+    path: 'model',
+  },
+  credentialEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
+  credentialBrokering: ({ env, sandboxEnv }) => {
+    const environmentVariableName = env.CODEX_API_KEY
+      ? 'CODEX_API_KEY'
+      : 'OPENAI_API_KEY';
+    const credential = env[environmentVariableName];
+    const sandboxCredential = sandboxEnv?.[environmentVariableName];
+    if (!credential || !sandboxCredential) return [];
+    return [
+      createCredentialRequestTransformation({
+        matchUrl: 'https://api.openai.com/v1',
+        matchHeaders: {
+          Authorization: `Bearer ${sandboxCredential}`,
+        },
+        transformHeaders: { Authorization: `Bearer ${credential}` },
+      }),
+    ];
+  },
   instructionMapping: {
     type: 'launch-env-json',
     variable: 'CODEX_CONFIG',
@@ -69,11 +91,21 @@ try {
 }
 ```
 
-Set `CODEX_API_KEY` or `OPENAI_API_KEY` in the host environment. The adapter
-resolves the value when the ACP process starts and does not store it in the
-profile. Codex ACP supports only `permissionMode: 'allow-all'` because its
+Set `CODEX_API_KEY` or `OPENAI_API_KEY` in the host environment. Sandboxes that
+support additive request transformations receive only credential placeholders;
+the real value is injected only when a matching outbound request contains the
+expected placeholder. Other sandboxes
+retain the legacy behavior of forwarding the value to the ACP process. Codex
+ACP supports only `permissionMode: 'allow-all'` because its
 restrictive modes enable Codex's internal sandbox. A bridge-backed ACP harness
 requires a sandbox with at least one exposed port.
+
+`modelMapping` is required because ACP implementations expose different model
+selection operations. Use `session-config-option` with the ACP configuration
+option ID as `path`, or `session-model` with the JSON-RPC request property as
+`path` for implementations such as Grok Build that use the legacy
+`session/set_model` method. No model operation is sent when `HarnessAgent` has
+no model and the deprecated `modelId` fallback is also unset.
 
 Use `instructionMapping` when the ACP implementation exposes a native system
 or developer prompt. A `session-meta` mapping writes `HarnessAgent`
@@ -82,3 +114,8 @@ instructions below the ACP session request's `_meta` field. A
 the implementation starts. Without a mapping, the adapter preserves its
 backward-compatible behavior and prepends instructions to the first user
 prompt.
+
+Skills are written to `.agents/skills` below the ACP implementation's effective
+`$HOME` and discovered natively by the implementation. Set `skillsDirectory`
+to another relative path, such as `.claude/skills`, when required by the
+implementation.

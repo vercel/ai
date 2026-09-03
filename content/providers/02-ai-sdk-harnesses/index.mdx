@@ -17,9 +17,24 @@ and response primitives.
       href: '/providers/ai-sdk-harnesses/claude-code',
     },
     {
+      title: 'Cline',
+      description: 'Use the Cline SDK through the AI SDK harness abstraction.',
+      href: '/providers/ai-sdk-harnesses/cline',
+    },
+    {
       title: 'Codex',
       description: 'Use Codex through the AI SDK harness abstraction.',
       href: '/providers/ai-sdk-harnesses/codex',
+    },
+    {
+      title: 'Cursor',
+      description: 'Use Cursor through the AI SDK harness abstraction.',
+      href: '/providers/ai-sdk-harnesses/cursor',
+    },
+    {
+      title: 'fx',
+      description: 'Use fx through the AI SDK harness abstraction.',
+      href: '/providers/ai-sdk-harnesses/fx',
     },
     {
       title: 'Grok Build',
@@ -56,6 +71,7 @@ import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
   harness: codex,
+  model: 'gpt-5.6-luna',
   sandbox: createVercelSandbox({
     runtime: 'node24',
     ports: [4000],

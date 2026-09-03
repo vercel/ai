@@ -7,6 +7,7 @@ import {
   GatewayModelNotFoundError,
   modelNotFoundParamSchema,
 } from './gateway-model-not-found-error';
+import { GatewayNotFoundError } from './gateway-not-found-error';
 import { GatewayInternalServerError } from './gateway-internal-server-error';
 import { GatewayFailedDependencyError } from './gateway-failed-dependency-error';
 import {
@@ -26,12 +27,14 @@ export async function createGatewayErrorFromResponse({
   defaultMessage = 'Gateway request failed',
   cause,
   authMethod,
+  isRetryable,
 }: {
   response: unknown;
   statusCode: number;
   defaultMessage?: string;
   cause?: unknown;
   authMethod?: 'api-key' | 'oidc';
+  isRetryable?: boolean;
 }): Promise<GatewayError> {
   const parseResult = await safeValidateTypes({
     value: response,
@@ -54,6 +57,7 @@ export async function createGatewayErrorFromResponse({
       validationError: parseResult.error,
       cause,
       generationId: rawGenerationId,
+      isRetryable,
     });
   }
 
@@ -99,6 +103,13 @@ export async function createGatewayErrorFromResponse({
         generationId,
       });
     }
+    case 'not_found':
+      return new GatewayNotFoundError({
+        message,
+        statusCode,
+        cause,
+        generationId,
+      });
     case 'internal_server_error':
       return new GatewayInternalServerError({
         message,

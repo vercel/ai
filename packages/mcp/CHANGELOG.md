@@ -1,5 +1,103 @@
 # @ai-sdk/mcp
 
+## 2.0.44
+
+### Patch Changes
+
+- 809e922: fix(mcp): accept trailing slashes on origin-only OAuth issuers
+
+## 2.0.43
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
+## 2.0.42
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+
+## 2.0.41
+
+### Patch Changes
+
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 2.0.40
+
+### Patch Changes
+
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
+## 2.0.39
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 2.0.38
+
+### Patch Changes
+
+- bf591f0: Apply MCP scope selection to dynamic client registration as well as authorization.
+- fe69342: fix(mcp): reject private OAuth endpoints before sending credentials
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
+## 2.0.37
+
+### Patch Changes
+
+- 1175434: Fetch all paginated tool definitions when creating an MCP tool set.
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 2.0.36
+
+### Patch Changes
+
+- b352a6a: fix(mcp): support spawning command shims such as `npx` on Windows
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+
+## 2.0.35
+
+### Patch Changes
+
+- 76fb75d: fix(mcp): reject SSE requests when POST responses are unsuccessful
+
+## 2.0.34
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
+## 2.0.33
+
+### Patch Changes
+
+- 1f29230: feat(mcp): harden oauth client registration according to latest protocol
+- 0c60a40: feat(mcp): add mcp 2026 streamable HTTP support
+- e6a9927: feat(mcp): add the latest 2026 protocol discovery foundation
+
+## 2.0.32
+
+### Patch Changes
+
+- 1011e33: Select MCP OAuth authorization scopes from `WWW-Authenticate` challenges or Protected Resource Metadata.
+
 ## 2.0.31
 
 ### Patch Changes

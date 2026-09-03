@@ -40,6 +40,7 @@ import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
   harness: grokBuild,
+  model: 'grok-build-0.1',
   sandbox: createVercelSandbox({
     runtime: 'node24',
     ports: [4000],
@@ -80,7 +81,7 @@ Use `createGrokBuild()` to configure the runtime:
 ```ts
 const harness = createGrokBuild({
   auth: 'ai-gateway',
-  model: 'grok-code-fast-1',
+  reasoningEffort: 'high',
   port: 4001,
   startupTimeoutMs: 180_000,
 });
@@ -88,11 +89,21 @@ const harness = createGrokBuild({
 
 Settings:
 
-- `auth`: selects `auto`, `direct`, or `ai-gateway` authentication. The default
-  is `auto`, which selects AI Gateway when Gateway credentials are present and
-  direct xAI authentication otherwise.
-- `model`: Grok model id selected through ACP. When omitted, Grok Build chooses
-  its own default model.
+- `auth`: selects `auto`, `direct`, or `ai-gateway` authentication, or accepts
+  an isolated authentication environment. The default is `auto`, which selects
+  AI Gateway when Gateway credentials are present and direct xAI
+  authentication otherwise.
+- `credentialForwarding`: optional synchronous or asynchronous callback that
+  customizes each credential immediately before the harness adapter forwards it
+  into a sandbox process. It receives the credential value that would otherwise
+  be forwarded (either the real credential or a masked value) and the
+  environment variable name used to expose it. This callback only controls the
+  value forwarded into the sandbox process. It does not restrict which
+  credentials the harness adapter can discover, read, or otherwise access in
+  the host process.
+- `reasoningEffort`: reasoning effort for reasoning-capable models. Supported
+  values are `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, and `max`.
+  When omitted, Grok Build uses its configured default.
 - `mcpServers`: MCP server definitions keyed by server name.
 - `port`: ACP bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the ACP bridge to start.
@@ -104,10 +115,18 @@ Settings:
 The adapter pins the Grok Build CLI and ACP launch command. These implementation
 details cannot be overridden through `createGrokBuild()`.
 
+## Structured Output
+
+Grok Build supports schema-backed [`HarnessAgent` structured output](/docs/ai-sdk-harnesses/harness-agent#generate-structured-output).
+Its profile maps the JSON Schema to Grok Build's private ACP prompt metadata,
+which the runtime enforces through its provider structured-output mechanism.
+
 ## Authentication
 
-By default, authentication is resolved from the host environment and forwarded
-to the Grok Build process in the sandbox.
+By default, authentication is resolved from the host environment. When the
+sandbox supports additive request transformations, Grok Build receives a
+placeholder and the adapter injects the credential into matching outbound
+requests. Other sandboxes retain direct credential forwarding.
 
 Supported environment variables:
 
@@ -116,8 +135,8 @@ Supported environment variables:
 - `AI_GATEWAY_BASE_URL`
 - `XAI_API_KEY`
 
-With direct authentication, the adapter forwards `XAI_API_KEY`. With AI
-Gateway, it supplies the Gateway credential as `XAI_API_KEY`, maps the Gateway
+With direct authentication, the adapter uses `XAI_API_KEY`. With AI Gateway,
+it supplies the Gateway credential as `XAI_API_KEY`, maps the Gateway
 base URL ending in `/v1` to `GROK_XAI_API_BASE_URL` and
 `GROK_MODELS_BASE_URL`, and sets `GROK_CLIENT_NAME` and
 `GROK_CLIENT_VERSION` for client attribution.
@@ -129,6 +148,21 @@ available:
 const directHarness = createGrokBuild({ auth: 'direct' });
 const gatewayHarness = createGrokBuild({ auth: 'ai-gateway' });
 ```
+
+Pass an authentication environment when the host resolves credentials at
+runtime:
+
+```ts
+const gatewayHarness = createGrokBuild({
+  auth: {
+    AI_GATEWAY_API_KEY: await resolveGatewayToken(),
+    AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh',
+  },
+});
+```
+
+The supplied record replaces the host environment for authentication
+discovery, so it can also select direct authentication with `XAI_API_KEY`.
 
 ## Sandbox
 
@@ -144,7 +178,7 @@ const sandbox = createVercelSandbox({
 ```
 
 The first session requires network egress so the ACP harness can install
-`@xai-official/grok@0.2.111` inside the sandbox.
+`@xai-official/grok@1.0.5` inside the sandbox.
 
 ## Built-in Tools
 

@@ -554,6 +554,7 @@ export function formatOutputMessages({
   text,
   reasoning,
   toolCalls,
+  toolResults,
   files,
   finishReason,
 }: {
@@ -563,6 +564,10 @@ export function formatOutputMessages({
     toolCallId: string;
     toolName: string;
     input: unknown;
+  }>;
+  toolResults?: ReadonlyArray<{
+    toolCallId: string;
+    output: unknown;
   }>;
   files?: ReadonlyArray<{ mediaType: string; base64: string }>;
   finishReason: string;
@@ -588,6 +593,16 @@ export function formatOutputMessages({
         id: tc.toolCallId,
         name: tc.toolName,
         arguments: tc.input,
+      });
+    }
+  }
+
+  if (toolResults) {
+    for (const toolResult of toolResults) {
+      parts.push({
+        type: 'tool_call_response',
+        id: toolResult.toolCallId,
+        response: toolResult.output,
       });
     }
   }

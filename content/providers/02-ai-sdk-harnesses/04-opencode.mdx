@@ -40,6 +40,7 @@ import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
   harness: openCode,
+  model: 'anthropic/claude-sonnet-4-6',
   sandbox: createVercelSandbox({
     runtime: 'node24',
     ports: [4000],
@@ -79,18 +80,35 @@ Use `createOpenCode()` to configure the runtime:
 
 ```ts
 const harness = createOpenCode({
-  model: 'anthropic/claude-sonnet-4-6',
   reasoningVariant: 'high',
+  openCodeConfig: {
+    agent: {
+      general: {
+        model: 'openai/gpt-5.4-mini',
+      },
+    },
+  },
 });
 ```
 
 Settings:
 
-- `auth`: authentication mode: `auto`, `anthropic`, `openai`, or `ai-gateway`.
+- `auth`: authentication mode (`auto`, `anthropic`, `openai`, or `ai-gateway`)
+  or an isolated authentication environment.
+- `credentialForwarding`: optional synchronous or asynchronous callback that
+  customizes each credential immediately before the harness adapter forwards it
+  into a sandbox process. It receives the credential value that would otherwise
+  be forwarded (either the real credential or a masked value) and the
+  environment variable name used to expose it. This callback only controls the
+  value forwarded into the sandbox process. It does not restrict which
+  credentials the harness adapter can discover, read, or otherwise access in
+  the host process.
 - `mcpServers`: MCP server definitions keyed by server name.
-- `model`: OpenCode model id. Provider-prefixed values such as
-  `anthropic/claude-sonnet-4-6` are passed through to OpenCode.
-- `provider`: provider id to use with an unprefixed `model`.
+- `openCodeConfig`: additional native OpenCode configuration. Adapter-managed
+  settings take precedence. Agent-local `permission` and deprecated `tools`
+  settings are ignored so they cannot bypass harness permissions or built-in
+  tool filtering.
+- `provider`: provider id to use when `model` on `HarnessAgent` is unprefixed.
 - `reasoningVariant`: OpenCode reasoning/thinking variant for supported models,
   such as `low`, `medium`, or `high`.
 - `port`: bridge port override.
@@ -99,6 +117,12 @@ Settings:
   returns the bridge authentication token. By default, the adapter generates a
   random 32-byte token. Custom implementations must return a suitably secret
   token.
+
+## Structured Output
+
+OpenCode supports schema-backed [`HarnessAgent` structured output](/docs/ai-sdk-harnesses/harness-agent#generate-structured-output).
+The adapter uses OpenCode's `json_schema` prompt format and returns the
+validated `structured` result as JSON text.
 
 ## Authentication
 
@@ -110,6 +134,11 @@ environment:
 - `anthropic`: use Anthropic credentials.
 - `openai`: use OpenAI credentials.
 - `ai-gateway`: use AI Gateway credentials.
+
+When the sandbox supports additive request transformations, the bridge receives
+placeholders and the adapter injects credentials into matching outbound
+requests. Sandboxes without that capability retain direct credential
+forwarding.
 
 Supported environment variables:
 
@@ -131,6 +160,19 @@ const anthropicHarness = createOpenCode({ auth: 'anthropic' });
 const openAIHarness = createOpenCode({ auth: 'openai' });
 const gatewayHarness = createOpenCode({ auth: 'ai-gateway' });
 ```
+
+Pass an authentication environment to use programmatically resolved
+credentials without reading `process.env`:
+
+```ts
+const harness = createOpenCode({
+  auth: { OPENAI_API_KEY: await resolveOpenAIToken() },
+  provider: 'openai',
+});
+```
+
+The supplied record replaces the host environment for authentication
+discovery. Only recognized authentication variables are forwarded.
 
 For OpenAI-compatible endpoints, select `openai` and set `OPENAI_BASE_URL`.
 

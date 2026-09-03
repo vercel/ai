@@ -162,6 +162,12 @@ export class XaiImageModel implements ImageModelV4 {
       fetch: this.config.fetch,
     });
 
+    if (response.data.some(image => image.respect_moderation === false)) {
+      throw new Error(
+        'Image generation was blocked due to a content policy violation.',
+      );
+    }
+
     const hasAllBase64 = response.data.every(image => image.b64_json != null);
 
     const images = hasAllBase64
@@ -219,6 +225,7 @@ const xaiImageResponseSchema = z.object({
       url: z.string().nullish(),
       b64_json: z.string().nullish(),
       revised_prompt: z.string().nullish(),
+      respect_moderation: z.boolean().nullish(),
     }),
   ),
   usage: z

@@ -34,7 +34,7 @@ export async function POST(req: Request) {
       // step 1 example: forced tool call
       const result1 = streamText({
         model: 'openai/gpt-4o-mini',
-        system: 'Extract the user goal from the conversation.',
+        instructions: 'Extract the user goal from the conversation.',
         messages,
         toolChoice: 'required', // force the model to call a tool
         tools: {
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
       const result2 = streamText({
         // different system prompt, different model, no tools:
         model: 'openai/gpt-4o',
-        system:
+        instructions:
           'You are a helpful assistant with a different system prompt. Repeat the extract user goal in your answer.',
         // continue the workflow stream with the messages from the previous step:
         messages: [

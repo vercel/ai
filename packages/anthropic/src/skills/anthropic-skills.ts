@@ -22,6 +22,17 @@ interface AnthropicSkillsConfig {
   fetch?: FetchFunction;
 }
 
+function encodePathSegment(value: string): string {
+  const encodedValue = encodeURIComponent(value);
+
+  // URL parsing normalizes both literal and percent-encoded dot segments.
+  return encodedValue === '.'
+    ? '%252E'
+    : encodedValue === '..'
+      ? '%252E%252E'
+      : encodedValue;
+}
+
 export class AnthropicSkills implements SkillsV4 {
   readonly specificationVersion = 'v4';
 
@@ -47,7 +58,7 @@ export class AnthropicSkills implements SkillsV4 {
     headers: Record<string, string | undefined>;
   }): Promise<{ name?: string; description?: string }> {
     const { value: versionResponse } = await getFromApi({
-      url: `${this.config.baseURL}/skills/${skillId}/versions/${version}`,
+      url: `${this.config.baseURL}/skills/${encodePathSegment(skillId)}/versions/${encodePathSegment(version)}`,
       validateUrl: false,
       headers,
       failedResponseHandler: anthropicFailedResponseHandler,

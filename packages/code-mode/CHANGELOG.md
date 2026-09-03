@@ -1,5 +1,217 @@
 # @ai-sdk/code-mode
 
+## 1.0.49
+
+### Patch Changes
+
+- Updated dependencies [a51cc94]
+- Updated dependencies [d1904d3]
+- Updated dependencies [84e5a79]
+- Updated dependencies [a8e8ad0]
+  - ai@7.0.92
+
+## 1.0.48
+
+### Patch Changes
+
+- Updated dependencies [802af1e]
+  - ai@7.0.91
+
+## 1.0.47
+
+### Patch Changes
+
+- ai@7.0.90
+
+## 1.0.46
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - ai@7.0.89
+
+## 1.0.45
+
+### Patch Changes
+
+- Updated dependencies [8b6b756]
+- Updated dependencies [e07b577]
+  - ai@7.0.88
+
+## 1.0.44
+
+### Patch Changes
+
+- Updated dependencies [850d863]
+  - ai@7.0.87
+
+## 1.0.43
+
+### Patch Changes
+
+- Updated dependencies [11109ae]
+  - ai@7.0.86
+
+## 1.0.42
+
+### Patch Changes
+
+- Updated dependencies [55a9981]
+- Updated dependencies [dd32de2]
+- Updated dependencies [aa45741]
+- Updated dependencies [cc29073]
+  - ai@7.0.85
+
+## 1.0.41
+
+### Patch Changes
+
+- Updated dependencies [6669d69]
+- Updated dependencies [a6463ca]
+- Updated dependencies [e604532]
+  - ai@7.0.84
+
+## 1.0.40
+
+### Patch Changes
+
+- Updated dependencies [8dd86a9]
+- Updated dependencies [fda13b3]
+- Updated dependencies [957146c]
+- Updated dependencies [ce6849a]
+  - ai@7.0.83
+
+## 1.0.39
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - ai@7.0.82
+
+## 1.0.38
+
+### Patch Changes
+
+- ai@7.0.81
+
+## 1.0.37
+
+### Patch Changes
+
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+- Updated dependencies [eed7950]
+  - ai@7.0.80
+
+## 1.0.36
+
+### Patch Changes
+
+- Updated dependencies [b251584]
+- Updated dependencies [591d25b]
+- Updated dependencies [9de0baf]
+  - ai@7.0.79
+
+## 1.0.35
+
+### Patch Changes
+
+- Updated dependencies [96970bb]
+  - ai@7.0.78
+
+## 1.0.34
+
+### Patch Changes
+
+- ai@7.0.77
+
+## 1.0.33
+
+### Patch Changes
+
+- Updated dependencies [c6d57f3]
+- Updated dependencies [677a707]
+  - ai@7.0.76
+
+## 1.0.32
+
+### Patch Changes
+
+- Updated dependencies [8978ad8]
+  - ai@7.0.75
+
+## 1.0.31
+
+### Patch Changes
+
+- ai@7.0.74
+
+## 1.0.30
+
+### Patch Changes
+
+- ai@7.0.73
+
+## 1.0.29
+
+### Patch Changes
+
+- ai@7.0.72
+
+## 1.0.28
+
+### Patch Changes
+
+- Updated dependencies [9a37469]
+  - ai@7.0.71
+
+## 1.0.27
+
+### Patch Changes
+
+- Updated dependencies [9566914]
+- Updated dependencies [b181020]
+- Updated dependencies [7054073]
+- Updated dependencies [a828527]
+- Updated dependencies [d3cc3fe]
+  - ai@7.0.70
+
+## 1.0.26
+
+### Patch Changes
+
+- ai@7.0.69
+
+## 1.0.25
+
+### Patch Changes
+
+- ai@7.0.68
+
+## 1.0.24
+
+### Patch Changes
+
+- ai@7.0.67
+
+## 1.0.23
+
+### Patch Changes
+
+- Updated dependencies [0782259]
+- Updated dependencies [2fd1214]
+  - ai@7.0.66
+
+## 1.0.22
+
+### Patch Changes
+
+- 0438749: feat(code-mode): use run package for code-mode execution
+- Updated dependencies [dc8caae]
+- Updated dependencies [72ec74f]
+- Updated dependencies [c5b0515]
+  - ai@7.0.65
+
 ## 1.0.21
 
 ### Patch Changes

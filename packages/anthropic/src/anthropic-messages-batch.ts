@@ -1,6 +1,6 @@
 import {
-  EmptyResponseBodyError,
   InvalidArgumentError,
+  InvalidResponseDataError,
   UnsupportedFunctionalityError,
   type Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
   type Experimental_BatchV4ItemResult as BatchV4ItemResult,
@@ -14,11 +14,13 @@ import {
 import {
   combineHeaders,
   convertAsyncIteratorToReadableStream,
+  createJsonLinesResponseHandler,
   createJsonResponseHandler,
   getFromApi,
+  isRecord,
   lazySchema,
+  normalizeBatchRequestCounts,
   normalizeHeaders,
-  parseJSON,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -27,7 +29,6 @@ import {
   WORKFLOW_SERIALIZE,
   zodSchema,
   type InferSchema,
-  type ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
@@ -39,6 +40,7 @@ import {
 import { anthropicFailedResponseHandler } from './anthropic-error';
 import {
   AnthropicLanguageModel,
+  createCitationSource,
   type AnthropicLanguageModelConfig,
 } from './anthropic-language-model';
 import {
@@ -78,6 +80,8 @@ const anthropicBatchResponseSchema = lazySchema(() =>
       created_at: z.string(),
       expires_at: z.string(),
       archived_at: z.string().nullish(),
+      cancel_initiated_at: z.string().nullish(),
+      ended_at: z.string().nullish(),
       results_url: z.string().nullish(),
     }),
   ),
@@ -85,29 +89,55 @@ const anthropicBatchResponseSchema = lazySchema(() =>
 
 type AnthropicBatchResponse = InferSchema<typeof anthropicBatchResponseSchema>;
 
+const knownAnthropicBatchContentTypes = new Set([
+  'advisor_tool_result',
+  'bash_code_execution_tool_result',
+  'code_execution_tool_result',
+  'compaction',
+  'container_upload',
+  'fallback',
+  'mcp_tool_result',
+  'mcp_tool_use',
+  'redacted_thinking',
+  'server_tool_use',
+  'text',
+  'text_editor_code_execution_tool_result',
+  'thinking',
+  'tool_search_tool_result',
+  'tool_use',
+  'web_fetch_tool_result',
+  'web_search_tool_result',
+]);
+
+const anthropicBatchResultSchema = lazySchema(() =>
+  zodSchema(
+    z.discriminatedUnion('type', [
+      z.object({
+        type: z.literal('succeeded'),
+        message: z.unknown(),
+      }),
+      z.object({
+        type: z.literal('errored'),
+        error: z.object({
+          type: z.literal('error'),
+          error: z.object({
+            type: z.string(),
+            message: z.string(),
+          }),
+          request_id: z.string().nullish(),
+        }),
+      }),
+      z.object({ type: z.literal('canceled') }),
+      z.object({ type: z.literal('expired') }),
+    ]),
+  ),
+);
+
 const anthropicBatchResultLineSchema = lazySchema(() =>
   zodSchema(
     z.object({
       custom_id: z.string(),
-      result: z.discriminatedUnion('type', [
-        z.object({
-          type: z.literal('succeeded'),
-          message: z.unknown(),
-        }),
-        z.object({
-          type: z.literal('errored'),
-          error: z.object({
-            type: z.literal('error'),
-            error: z.object({
-              type: z.string(),
-              message: z.string(),
-            }),
-            request_id: z.string().nullish(),
-          }),
-        }),
-        z.object({ type: z.literal('canceled') }),
-        z.object({ type: z.literal('expired') }),
-      ]),
+      result: z.unknown(),
     }),
   ),
 );
@@ -145,6 +175,7 @@ export class AnthropicMessagesBatchLanguageModel
     providerOptions,
     headers,
     abortSignal,
+    webhookUrl,
   }: Parameters<
     BatchLanguageModelV4['experimental_doStartBatch']
   >[0]): Promise<BatchV4StartResult> {
@@ -161,7 +192,19 @@ export class AnthropicMessagesBatchLanguageModel
       custom_id: string;
       params: Record<string, unknown>;
     }> = [];
-    const batchWarnings: BatchV4StartResult['warnings'] = [];
+    const batchWarnings: BatchV4StartResult['warnings'] =
+      webhookUrl == null
+        ? []
+        : [
+            {
+              warning: {
+                type: 'unsupported',
+                feature: 'webhookUrl',
+                details:
+                  'The Anthropic Message Batches API does not support completion webhooks.',
+              },
+            },
+          ];
 
     for (const request of requests) {
       const requestBetas = await getAnthropicBatchProviderBetas({
@@ -183,6 +226,29 @@ export class AnthropicMessagesBatchLanguageModel
         stream: false,
         userSuppliedBetas: new Set(explicitBatchBetas),
       });
+      if (prepared.usesJsonResponseTool) {
+        throw new UnsupportedFunctionalityError({
+          functionality: 'batch responseFormat JSON-tool fallback',
+          message:
+            `Anthropic Message Batches cannot decode the JSON-tool structured-output fallback ` +
+            `(request "${request.id}") because batch results are retrieved independently of the start call. ` +
+            `Use a model that supports native output_format structured outputs.`,
+        });
+      }
+      const aliasedProviderTool = request.options.tools?.find(
+        tool =>
+          tool.type === 'provider' &&
+          prepared.toolNameMapping.toProviderToolName(tool.name) !== tool.name,
+      );
+      if (aliasedProviderTool != null) {
+        throw new UnsupportedFunctionalityError({
+          functionality: 'aliased provider tool names in batches',
+          message:
+            `Anthropic Message Batches cannot restore the custom provider-tool name ` +
+            `"${aliasedProviderTool.name}" when results are retrieved independently of the start call ` +
+            `(request "${request.id}"). Use the provider's canonical tool name.`,
+        });
+      }
       const body = this.transformRequestBody(prepared.args, prepared.betas);
       validateAnthropicBatchBody({
         body,
@@ -243,26 +309,28 @@ export class AnthropicMessagesBatchLanguageModel
     }
 
     if (batch.results_url == null) {
-      throw new InvalidArgumentError({
-        argument: 'batchId',
-        message: `Anthropic batch "${options.batchId}" does not have a results URL.`,
+      throw new InvalidResponseDataError({
+        data: batch,
+        message: `Anthropic batch "${options.batchId}" completed without batch output.`,
       });
     }
 
-    const { value: stream } = await getFromApi({
+    const { value: lines } = await getFromApi({
       url: batch.results_url,
       validateUrl: true,
       credentialedOrigin: this.config.baseURL,
       trustedOrigin: this.config.baseURL,
       headers: await this.getBatchHeaders(options.headers),
       failedResponseHandler: anthropicFailedResponseHandler,
-      successfulResponseHandler: rawStreamResponseHandler,
+      successfulResponseHandler: createJsonLinesResponseHandler(
+        anthropicBatchResultLineSchema,
+      ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
 
     return convertAsyncIteratorToReadableStream(
-      this.iterateBatchResults(stream),
+      this.iterateBatchResults(lines),
     );
   }
 
@@ -285,10 +353,10 @@ export class AnthropicMessagesBatchLanguageModel
   }
 
   private async *iterateBatchResults(
-    stream: ReadableStream<Uint8Array>,
+    lines: AsyncIterable<AnthropicBatchResultLine>,
   ): AsyncGenerator<BatchV4ItemResult<LanguageModelV4GenerateResult>> {
-    for await (const line of parseJsonLines(stream)) {
-      yield await convertAnthropicBatchResult(line);
+    for await (const line of lines) {
+      yield await convertAnthropicBatchResult(line, this.generateId);
     }
   }
 
@@ -423,6 +491,15 @@ function convertAnthropicBatchStatus(
     ...(requestCounts != null ? { requestCounts } : {}),
     createdAt: batch.created_at,
     expiresAt: batch.expires_at,
+    providerMetadata: {
+      anthropic: {
+        archivedAt: batch.archived_at ?? null,
+        cancelInitiatedAt: batch.cancel_initiated_at ?? null,
+        endedAt: batch.ended_at ?? null,
+        requestCounts: batch.request_counts,
+        resultsUrl: batch.results_url ?? null,
+      },
+    },
   };
 }
 
@@ -440,42 +517,47 @@ function mapAnthropicBatchStatus(rawStatus: string): BatchV4Status['status'] {
 function convertAnthropicRequestCounts(
   counts: AnthropicBatchResponse['request_counts'],
 ): BatchV4Status['requestCounts'] | undefined {
-  const values = [
-    counts.processing,
-    counts.succeeded,
-    counts.errored,
-    counts.canceled,
-    counts.expired,
-  ];
-
-  if (values.some(value => !Number.isFinite(value) || value < 0)) {
-    return undefined;
-  }
-
-  return {
-    total: values.reduce((total, value) => total + value, 0),
+  return normalizeBatchRequestCounts({
+    total:
+      counts.processing +
+      counts.succeeded +
+      counts.errored +
+      counts.canceled +
+      counts.expired,
     pending: counts.processing,
     completed: counts.succeeded,
     failed: counts.errored + counts.canceled + counts.expired,
-  };
+  });
 }
 
 async function convertAnthropicBatchResult(
   line: AnthropicBatchResultLine,
+  generateId: () => string,
 ): Promise<BatchV4ItemResult<LanguageModelV4GenerateResult>> {
-  switch (line.result.type) {
+  const resultValidation = await safeValidateTypes({
+    value: line.result,
+    schema: anthropicBatchResultSchema,
+  });
+
+  if (!resultValidation.success) {
+    return invalidAnthropicBatchResult(line.custom_id);
+  }
+
+  const result = resultValidation.value;
+
+  switch (result.type) {
     case 'canceled':
       return { id: line.custom_id, status: 'cancelled' };
     case 'expired':
       return { id: line.custom_id, status: 'expired' };
     case 'errored': {
-      const requestId = line.result.error.request_id;
+      const requestId = result.error.request_id;
       return {
         id: line.custom_id,
         status: 'failed',
         error: {
-          message: line.result.error.error.message,
-          type: line.result.error.error.type,
+          message: result.error.error.message,
+          type: result.error.error.type,
         },
         ...(requestId != null
           ? {
@@ -487,69 +569,117 @@ async function convertAnthropicBatchResult(
       };
     }
     case 'succeeded': {
-      const validation = await safeValidateTypes({
-        value: line.result.message,
-        schema: anthropicResponseSchema,
-      });
+      const response = await parseAnthropicBatchResponse(result.message);
 
-      if (!validation.success) {
-        return {
-          id: line.custom_id,
-          status: 'failed',
-          error: {
-            message: 'Anthropic returned an invalid Message batch result.',
-            code: 'invalid_response',
-          },
-        };
-      }
-
-      const response = validation.value;
-
-      const unsupportedPart = response.content.find(
-        part => !supportedBatchContentTypes.has(part.type),
-      );
-
-      if (unsupportedPart != null) {
-        return {
-          id: line.custom_id,
-          status: 'failed',
-          error: {
-            message:
-              `Anthropic returned a "${unsupportedPart.type}" content block, ` +
-              'but tool content is not supported in AI SDK text batches.',
-            code: 'unsupported_tool_content',
-          },
-        };
+      if (response == null) {
+        return invalidAnthropicBatchResult(line.custom_id);
       }
 
       return {
         id: line.custom_id,
         status: 'succeeded',
-        result: convertAnthropicBatchResponse(response),
+        result: convertAnthropicBatchResponse(response, generateId),
       };
     }
   }
 }
 
-const supportedBatchContentTypes = new Set([
-  'text',
-  'thinking',
-  'redacted_thinking',
-  'compaction',
-  // The normal Anthropic response conversion intentionally drops this marker;
-  // the fallback hop remains available through usage.iterations metadata.
-  'fallback',
-]);
+function invalidAnthropicBatchResult(
+  id: string,
+): BatchV4ItemResult<LanguageModelV4GenerateResult> {
+  return {
+    id,
+    status: 'failed',
+    error: {
+      message: 'Anthropic returned an invalid Message batch result.',
+      code: 'invalid_response',
+    },
+  };
+}
+
+async function parseAnthropicBatchResponse(
+  message: unknown,
+): Promise<AnthropicResponse | undefined> {
+  const validation = await safeValidateTypes({
+    value: message,
+    schema: anthropicResponseSchema,
+  });
+
+  if (validation.success) {
+    return validation.value;
+  }
+
+  if (!isRecord(message) || !Array.isArray(message.content)) {
+    return undefined;
+  }
+
+  const content: AnthropicResponse['content'] = [];
+  for (const part of message.content) {
+    const partValidation = await safeValidateTypes({
+      value: { ...message, content: [part] },
+      schema: anthropicResponseSchema,
+    });
+
+    if (partValidation.success) {
+      const [validatedPart] = partValidation.value.content;
+      if (validatedPart != null) {
+        content.push(validatedPart);
+      }
+    } else if (
+      !isRecord(part) ||
+      typeof part.type !== 'string' ||
+      knownAnthropicBatchContentTypes.has(part.type)
+    ) {
+      return undefined;
+    }
+  }
+
+  const recovered = await safeValidateTypes({
+    value: { ...message, content },
+    schema: anthropicResponseSchema,
+  });
+
+  return recovered.success ? recovered.value : undefined;
+}
 
 function convertAnthropicBatchResponse(
   response: AnthropicResponse,
+  generateId: () => string,
 ): LanguageModelV4GenerateResult {
   const content: LanguageModelV4GenerateResult['content'] = [];
+  const mcpToolCalls: Record<
+    string,
+    Extract<
+      LanguageModelV4GenerateResult['content'][number],
+      { type: 'tool-call' }
+    >
+  > = {};
+  const serverToolCalls: Record<string, string> = {};
 
   for (const part of response.content) {
     switch (part.type) {
       case 'text':
-        content.push({ type: 'text', text: part.text });
+        const citations = part.citations;
+
+        content.push({
+          type: 'text',
+          text: part.text,
+          ...(citations != null &&
+            citations.length > 0 && {
+              providerMetadata: {
+                anthropic: { citations },
+              },
+            }),
+        });
+        for (const citation of part.citations ?? []) {
+          // Batch result retrieval does not include the original prompt's
+          // document ordering, so indexed document citations cannot be
+          // normalized safely. Preserve them above as provider metadata.
+          const source = createCitationSource(citation, [], generateId);
+          if (source != null) {
+            content.push(source);
+          }
+        }
         break;
       case 'thinking':
         content.push({
@@ -573,12 +703,262 @@ function convertAnthropicBatchResponse(
           },
         });
         break;
+      case 'container_upload':
+        content.push({
+          type: 'custom',
+          kind: 'anthropic.container_upload',
+          providerMetadata: { anthropic: { fileId: part.file_id } },
+        });
+        break;
       case 'compaction':
         content.push({
           type: 'text',
           text: part.content,
           providerMetadata: { anthropic: { type: 'compaction' } },
         });
+        break;
+      case 'tool_use':
+        content.push({
+          type: 'tool-call',
+          toolCallId: part.id,
+          toolName: part.name,
+          input: JSON.stringify(part.input),
+          ...anthropicCallerMetadata(part.caller),
+        });
+        break;
+      case 'server_tool_use': {
+        const isCodeExecutionAlias =
+          part.name === 'bash_code_execution' ||
+          part.name === 'text_editor_code_execution';
+        const isCodeExecution =
+          isCodeExecutionAlias || part.name === 'code_execution';
+        const toolName = isCodeExecutionAlias ? 'code_execution' : part.name;
+        if (
+          part.name === 'tool_search_tool_bm25' ||
+          part.name === 'tool_search_tool_regex'
+        ) {
+          serverToolCalls[part.id] = part.name;
+        }
+        content.push({
+          type: 'tool-call',
+          toolCallId: part.id,
+          toolName,
+          input: JSON.stringify(
+            isCodeExecutionAlias
+              ? { type: part.name, ...(part.input ?? {}) }
+              : part.name === 'code_execution' &&
+                  part.input != null &&
+                  'code' in part.input &&
+                  !('type' in part.input)
+                ? { type: 'programmatic-tool-call', ...part.input }
+                : part.input,
+          ),
+          providerExecuted: true,
+          // Batch results are retrieved without the original request tools, so
+          // implicitly provisioned code execution must remain self-describing.
+          ...(isCodeExecution ? { dynamic: true } : {}),
+          ...anthropicCallerMetadata(part.caller),
+        });
+        break;
+      }
+      case 'mcp_tool_use': {
+        const toolCall = {
+          type: 'tool-call' as const,
+          toolCallId: part.id,
+          toolName: part.name,
+          input: JSON.stringify(part.input),
+          providerExecuted: true,
+          dynamic: true,
+          providerMetadata: {
+            anthropic: {
+              serverName: part.server_name,
+              type: 'mcp-tool-use',
+            },
+          },
+        };
+        mcpToolCalls[part.id] = toolCall;
+        content.push(toolCall);
+        break;
+      }
+      case 'mcp_tool_result': {
+        const toolCall = mcpToolCalls[part.tool_use_id];
+        content.push({
+          type: 'tool-result',
+          toolCallId: part.tool_use_id,
+          toolName: toolCall?.toolName ?? 'mcp',
+          isError: part.is_error,
+          result: part.content,
+          dynamic: true,
+          ...(toolCall?.providerMetadata != null && {
+            providerMetadata: toolCall.providerMetadata,
+          }),
+        });
+        break;
+      }
+      case 'web_fetch_tool_result':
+        content.push({
+          type: 'tool-result',
+          toolCallId: part.tool_use_id,
+          toolName: 'web_fetch',
+          ...(part.content.type === 'web_fetch_tool_result_error'
+            ? {
+                isError: true,
+                result: {
+                  errorCode: part.content.error_code,
+                  type: part.content.type,
+                },
+              }
+            : {
+                result: {
+                  content: {
+                    citations: part.content.content.citations,
+                    source: {
+                      data: part.content.content.source.data,
+                      mediaType: part.content.content.source.media_type,
+                      type: part.content.content.source.type,
+                    },
+                    title: part.content.content.title,
+                    type: part.content.content.type,
+                  },
+                  retrievedAt: part.content.retrieved_at,
+                  type: part.content.type,
+                  url: part.content.url,
+                },
+              }),
+          ...anthropicCallerMetadata(part.caller),
+        });
+        break;
+      case 'web_search_tool_result':
+        content.push({
+          type: 'tool-result',
+          toolCallId: part.tool_use_id,
+          toolName: 'web_search',
+          ...(Array.isArray(part.content)
+            ? {
+                result: part.content.map(result => ({
+                  encryptedContent: result.encrypted_content,
+                  pageAge: result.page_age ?? null,
+                  ...(result.title != null ? { title: result.title } : {}),
+                  type: result.type,
+                  url: result.url,
+                })),
+              }
+            : {
+                isError: true,
+                result: {
+                  errorCode: part.content.error_code,
+                  type: part.content.type,
+                },
+              }),
+          ...anthropicCallerMetadata(part.caller),
+        });
+        if (Array.isArray(part.content)) {
+          for (const result of part.content) {
+            content.push({
+              type: 'source',
+              sourceType: 'url',
+              id: generateId(),
+              url: result.url,
+              ...(result.title != null ? { title: result.title } : {}),
+              providerMetadata: {
+                anthropic: {
+                  pageAge: result.page_age ?? null,
+                },
+              },
+            });
+          }
+        }
+        break;
+      case 'code_execution_tool_result':
+        content.push({
+          type: 'tool-result',
+          toolCallId: part.tool_use_id,
+          toolName: 'code_execution',
+          ...(part.content.type === 'code_execution_tool_result_error'
+            ? {
+                isError: true,
+                result: {
+                  errorCode: part.content.error_code,
+                  type: part.content.type,
+                },
+              }
+            : { result: part.content }),
+        });
+        break;
+      case 'bash_code_execution_tool_result':
+      case 'text_editor_code_execution_tool_result':
+        content.push({
+          type: 'tool-result',
+          toolCallId: part.tool_use_id,
+          toolName: 'code_execution',
+          result: part.content,
+        });
+        break;
+      case 'tool_search_tool_result': {
+        const toolName =
+          serverToolCalls[part.tool_use_id] ?? 'tool_search_tool_regex';
+        content.push({
+          type: 'tool-result',
+          toolCallId: part.tool_use_id,
+          toolName,
+          ...(part.content.type === 'tool_search_tool_result_error'
+            ? {
+                isError: true,
+                result: {
+                  errorCode: part.content.error_code,
+                  type: part.content.type,
+                },
+              }
+            : {
+                result: part.content.tool_references.map(reference => ({
+                  toolName: reference.tool_name,
+                  type: reference.type,
+                })),
+              }),
+        });
+        break;
+      }
+      case 'advisor_tool_result':
+        if (part.content.type === 'advisor_result') {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.tool_use_id,
+            toolName: 'advisor',
+            result: {
+              type: part.content.type,
+              text: part.content.text,
+              ...(part.content.stop_reason != null
+                ? { stopReason: part.content.stop_reason }
+                : {}),
+            },
+          });
+        } else if (part.content.type === 'advisor_redacted_result') {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.tool_use_id,
+            toolName: 'advisor',
+            result: {
+              type: part.content.type,
+              encryptedContent: part.content.encrypted_content,
+              ...(part.content.stop_reason != null
+                ? { stopReason: part.content.stop_reason }
+                : {}),
+            },
+          });
+        } else {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.tool_use_id,
+            toolName: 'advisor',
+            isError: true,
+            result: {
+              errorCode: part.content.error_code,
+              type: part.content.type,
+            },
+          });
+        }
+        break;
+      case 'fallback':
         break;
     }
   }
@@ -601,6 +981,23 @@ function convertAnthropicBatchResponse(
       anthropic: convertAnthropicMessageMetadata(response),
     },
   };
+}
+
+function anthropicCallerMetadata(
+  caller: { type: string; tool_id?: string } | null | undefined,
+) {
+  return caller == null
+    ? {}
+    : {
+        providerMetadata: {
+          anthropic: {
+            caller: {
+              type: caller.type,
+              toolId: caller.tool_id,
+            },
+          },
+        },
+      };
 }
 
 function convertAnthropicMessageMetadata(response: AnthropicResponse) {
@@ -692,65 +1089,4 @@ function mapAnthropicStopDetails(
       ? { recommendedModel: stopDetails.recommended_model }
       : {}),
   };
-}
-
-const rawStreamResponseHandler: ResponseHandler<
-  ReadableStream<Uint8Array>
-> = async ({ response }) => {
-  if (response.body == null) {
-    throw new EmptyResponseBodyError();
-  }
-
-  return { value: response.body };
-};
-
-async function* parseJsonLines(
-  stream: ReadableStream<Uint8Array>,
-): AsyncGenerator<AnthropicBatchResultLine> {
-  const reader = stream.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  let finished = false;
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-
-      if (done) {
-        finished = true;
-        buffer += decoder.decode();
-        break;
-      }
-
-      buffer += decoder.decode(value, { stream: true });
-
-      let lineEnd = buffer.indexOf('\n');
-      while (lineEnd !== -1) {
-        const line = buffer.slice(0, lineEnd).replace(/\r$/, '');
-        buffer = buffer.slice(lineEnd + 1);
-
-        if (line.trim().length > 0) {
-          yield await parseJSON({
-            text: line,
-            schema: anthropicBatchResultLineSchema,
-          });
-        }
-
-        lineEnd = buffer.indexOf('\n');
-      }
-    }
-
-    const finalLine = buffer.replace(/\r$/, '');
-    if (finalLine.trim().length > 0) {
-      yield await parseJSON({
-        text: finalLine,
-        schema: anthropicBatchResultLineSchema,
-      });
-    }
-  } finally {
-    if (!finished) {
-      await reader.cancel().catch(() => {});
-    }
-    reader.releaseLock();
-  }
 }
