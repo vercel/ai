@@ -59,6 +59,7 @@ export async function convertToOpenAIResponsesInput({
 }> {
   let input: OpenAIResponsesInput = [];
   const warnings: Array<LanguageModelV2CallWarning> = [];
+  let generatedAssistantMessageId = 0;
 
   for (const { role, content, providerOptions } of prompt) {
     switch (role) {
@@ -218,9 +219,18 @@ export async function convertToOpenAIResponsesInput({
               }
 
               input.push({
+                type: 'message',
                 role: 'assistant',
-                content: [{ type: 'output_text', text: part.text }],
-                id,
+                content: [
+                  {
+                    type: 'output_text',
+                    text: part.text,
+                    annotations: [],
+                    logprobs: [],
+                  },
+                ],
+                id: id ?? `msg_ai_sdk_${generatedAssistantMessageId++}`,
+                status: 'completed',
                 ...(phase != null && { phase }),
               });
 

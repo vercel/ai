@@ -83,9 +83,16 @@ export type OpenAIResponsesUserMessage = {
 };
 
 export type OpenAIResponsesAssistantMessage = {
+  type: 'message';
   role: 'assistant';
-  content: Array<{ type: 'output_text'; text: string }>;
-  id?: string;
+  content: Array<{
+    type: 'output_text';
+    text: string;
+    annotations: Array<never>;
+    logprobs: Array<never>;
+  }>;
+  id: string;
+  status: 'completed';
   phase?: 'commentary' | 'final_answer' | null;
 };
 
