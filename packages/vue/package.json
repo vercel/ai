@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/vue",
-  "version": "3.0.275",
+  "version": "3.0.276",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
