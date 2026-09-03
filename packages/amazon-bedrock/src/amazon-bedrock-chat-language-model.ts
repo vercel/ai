@@ -635,7 +635,9 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       const textParts =
         part.text != null
           ? [part.text]
-          : (part.citationsContent?.content.map(content => content.text) ?? []);
+          : (part.citationsContent?.content?.flatMap(content =>
+              content.text == null ? [] : [content.text],
+            ) ?? []);
 
       for (const text of textParts) {
         content.push({
@@ -1388,11 +1390,13 @@ const AmazonBedrockResponseSchema = z.object({
           text: z.string().nullish(),
           citationsContent: z
             .object({
-              content: z.array(
-                z.object({
-                  text: z.string(),
-                }),
-              ),
+              content: z
+                .array(
+                  z.object({
+                    text: z.string().nullish(),
+                  }),
+                )
+                .nullish(),
             })
             .nullish(),
           toolUse: AmazonBedrockToolUseSchema.nullish(),
