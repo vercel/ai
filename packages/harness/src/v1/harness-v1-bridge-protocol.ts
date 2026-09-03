@@ -295,6 +295,7 @@ export const harnessV1BridgeToolResultInboundSchema = z.object({
   toolCallId: z.string(),
   output: z.unknown(),
   isError: z.boolean().optional(),
+  toolResult: z.unknown().optional(),
 });
 
 export const harnessV1BridgeToolApprovalResponseInboundSchema = z.object({

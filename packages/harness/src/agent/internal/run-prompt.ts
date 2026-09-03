@@ -21,6 +21,8 @@ import {
   safeParseJSON,
   type Context,
   type Experimental_SandboxSession as SandboxSession,
+  type ToolApprovalResponse,
+  type ToolResultPart,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
@@ -39,8 +41,6 @@ import type {
   TelemetryOptions,
   TextStreamPart,
 } from 'ai';
-import type { HarnessAgentToolApprovalContinuation } from '../harness-agent-tool-approval-continuation';
-import type { HarnessAgentToolResultContinuation } from '../harness-agent-tool-result-continuation';
 import type { HarnessAgentToolApprovalConfiguration } from '../harness-agent-settings';
 import { HarnessStreamTextResult } from './harness-stream-text-result';
 import { translateStreamPart } from './translate-stream-part';
@@ -53,6 +53,29 @@ import {
 import { resolveCustomToolApproval } from './permission-mode';
 import { logBridgeError } from '../../utils/bridge-diagnostics';
 import { pinSandboxChannelEventCheckpoint } from '../../utils/sandbox-channel';
+
+function unwrapToolResultOutput(toolResult: ToolResultPart): {
+  output: unknown;
+  isError?: boolean;
+} {
+  switch (toolResult.output.type) {
+    case 'text':
+    case 'json':
+      return { output: toolResult.output.value };
+    case 'error-text':
+    case 'error-json':
+      return { output: toolResult.output.value, isError: true };
+    case 'execution-denied':
+      return {
+        output: {
+          type: toolResult.output.type,
+          reason: toolResult.output.reason,
+        },
+      };
+    case 'content':
+      return { output: toolResult.output };
+  }
+}
 
 /**
  * Drive one prompt turn end-to-end:
@@ -99,12 +122,8 @@ export function runPrompt<
   toolApproval?: HarnessAgentToolApprovalConfiguration | undefined;
   pendingToolApprovals?: readonly HarnessV1PendingToolApproval[];
   pendingToolResults?: readonly HarnessV1PendingToolResult[];
-  toolApprovalContinuations?:
-    | readonly HarnessAgentToolApprovalContinuation[]
-    | undefined;
-  toolResultContinuations?:
-    | readonly HarnessAgentToolResultContinuation[]
-    | undefined;
+  toolApprovalContinuations?: readonly ToolApprovalResponse[] | undefined;
+  toolResultContinuations?: readonly ToolResultPart[] | undefined;
   onPendingToolApproval?: (approval: HarnessV1PendingToolApproval) => void;
   onToolApprovalSettled?: (approvalId: string) => void;
   onPendingToolResult?: (pendingResult: HarnessV1PendingToolResult) => void;
@@ -267,7 +286,7 @@ export function runPrompt<
     );
     const continuationsByApprovalId = new Map(
       (input.toolApprovalContinuations ?? []).map(continuation => [
-        continuation.approvalResponse.approvalId,
+        continuation.approvalId,
         continuation,
       ]),
     );
@@ -433,15 +452,16 @@ export function runPrompt<
     };
     const enqueueApprovalResponse = (
       approval: HarnessV1PendingToolApproval,
-      continuation: HarnessAgentToolApprovalContinuation,
+      continuation: ToolApprovalResponse,
+      toolCall: ToolCallTextStreamPart,
     ): void => {
       result.enqueueContinuation({
         type: 'tool-approval-response',
         approvalId: approval.approvalId,
-        toolCall: continuation.toolCall,
-        approved: continuation.approvalResponse.approved,
-        ...(continuation.approvalResponse.reason !== undefined
-          ? { reason: continuation.approvalResponse.reason }
+        toolCall,
+        approved: continuation.approved,
+        ...(continuation.reason !== undefined
+          ? { reason: continuation.reason }
           : {}),
         ...(approval.providerExecuted !== undefined
           ? { providerExecuted: approval.providerExecuted }
@@ -457,6 +477,9 @@ export function runPrompt<
           toolCallId: options.toolCall.toolCallId,
           toolName: options.toolCall.toolName,
           input: options.toolCall.input,
+          ...(options.toolCall.providerMetadata !== undefined
+            ? { providerOptions: options.toolCall.providerMetadata }
+            : {}),
         } satisfies HarnessV1PendingToolResult);
       pendingResultsByToolCallId.set(pendingResult.toolCallId, pendingResult);
       onPendingToolResult(pendingResult);
@@ -464,19 +487,28 @@ export function runPrompt<
     };
     const processPendingToolResultContinuation = async (
       pendingResult: HarnessV1PendingToolResult,
-      continuation: HarnessAgentToolResultContinuation,
+      continuation: ToolResultPart,
     ): Promise<void> => {
+      const result = unwrapToolResultOutput(continuation);
       onToolResultSettled(pendingResult.toolCallId);
       pendingResultsByToolCallId.delete(pendingResult.toolCallId);
       settledHostToolCallIds.add(pendingResult.toolCallId);
       await control.submitToolResult({
         toolCallId: pendingResult.toolCallId,
-        output: continuation.output,
-        isError: continuation.isError,
+        output: result.output,
+        isError: result.isError,
+        toolResult: {
+          ...continuation,
+          toolName: pendingResult.toolName,
+          ...(continuation.providerOptions == null &&
+          pendingResult.providerOptions != null
+            ? { providerOptions: pendingResult.providerOptions }
+            : {}),
+        },
       });
     };
     const enqueueHostToolOutcome = (options: {
-      toolCall: HarnessAgentToolApprovalContinuation['toolCall'];
+      toolCall: ToolCallTextStreamPart;
       outcome: HostToolOutcome;
     }): void => {
       if (options.outcome.ok) {
@@ -512,9 +544,30 @@ export function runPrompt<
     };
     const processPendingApprovalContinuation = async (
       approval: HarnessV1PendingToolApproval,
-      continuation: HarnessAgentToolApprovalContinuation,
+      continuation: ToolApprovalResponse,
     ): Promise<'continued' | 'awaiting-tool-result'> => {
-      enqueueApprovalResponse(approval, continuation);
+      const rawToolCall =
+        rawToolCallsByToolCallId.get(approval.toolCallId) ??
+        ({
+          type: 'tool-call',
+          toolCallId: approval.toolCallId,
+          toolName: approval.toolName,
+          input: approval.input,
+          providerExecuted: approval.providerExecuted,
+          nativeName: approval.nativeName,
+        } satisfies Extract<HarnessV1StreamPart, { type: 'tool-call' }>);
+      const parsedInput = await safeParseJSON({ text: rawToolCall.input });
+      const toolCall: ToolCallTextStreamPart = {
+        type: 'tool-call',
+        toolCallId: rawToolCall.toolCallId,
+        toolName: rawToolCall.toolName,
+        input: parsedInput.success ? parsedInput.value : rawToolCall.input,
+        ...(rawToolCall.providerExecuted !== undefined
+          ? { providerExecuted: rawToolCall.providerExecuted }
+          : {}),
+      };
+
+      enqueueApprovalResponse(approval, continuation, toolCall);
       onToolApprovalSettled(approval.approvalId);
       pendingApprovalsByApprovalId.delete(approval.approvalId);
       pendingApprovalsByToolCallId.delete(approval.toolCallId);
@@ -528,32 +581,23 @@ export function runPrompt<
         }
         await control.submitToolApproval({
           approvalId: approval.approvalId,
-          approved: continuation.approvalResponse.approved,
-          reason: continuation.approvalResponse.reason,
+          approved: continuation.approved,
+          reason: continuation.reason,
         });
         return 'continued';
       }
 
       settledHostToolCallIds.add(approval.toolCallId);
-      if (!continuation.approvalResponse.approved) {
+      if (!continuation.approved) {
         await control.submitToolResult({
           toolCallId: approval.toolCallId,
           output: {
             type: 'execution-denied',
-            reason: continuation.approvalResponse.reason,
+            reason: continuation.reason,
           },
         });
         return 'continued';
       }
-
-      const rawToolCall =
-        rawToolCallsByToolCallId.get(approval.toolCallId) ??
-        ({
-          type: 'tool-call',
-          toolCallId: approval.toolCallId,
-          toolName: approval.toolName,
-          input: approval.input,
-        } satisfies Extract<HarnessV1StreamPart, { type: 'tool-call' }>);
 
       await telemetry.start(input.model);
       await telemetry.toolStart({
@@ -597,7 +641,7 @@ export function runPrompt<
         return 'awaiting-tool-result';
       }
       enqueueHostToolOutcome({
-        toolCall: continuation.toolCall,
+        toolCall,
         outcome: execution.outcome,
       });
       await telemetry.toolEnd(rawToolCall.toolCallId, execution.outcome);
@@ -940,7 +984,16 @@ export function runPrompt<
               `Harness '${input.harness.harnessId}' could not find parsed tool call '${toolCall.toolCallId}' for custom tool approval.`,
             );
           }
-          if (!hasTool({ tools: activeTools, toolName: toolCall.toolName })) {
+          const isClientExecutedBuiltin =
+            toolCall.toolName === 'askUserQuestions' &&
+            Object.prototype.hasOwnProperty.call(
+              input.harness.builtinTools,
+              toolCall.toolName,
+            );
+          if (
+            !isClientExecutedBuiltin &&
+            !hasTool({ tools: activeTools, toolName: toolCall.toolName })
+          ) {
             const output = {
               type: 'execution-denied',
               reason: getHarnessV1BuiltinToolFilteringDenialReason({
@@ -953,6 +1006,18 @@ export function runPrompt<
             });
             await telemetry.toolEnd(toolCall.toolCallId, { ok: true, output });
             continue;
+          }
+          if (isClientExecutedBuiltin) {
+            recordPendingToolResult({ toolCall });
+            if (
+              expectedStepToolCallCount != null &&
+              observedStepToolCallCount < expectedStepToolCallCount
+            ) {
+              pauseAfterStepToolCalls = true;
+              continue;
+            }
+            await finishForHostInputPause({ completeCurrentStep: true });
+            return;
           }
           const customToolApprovalDecision = resolveCustomToolApproval({
             toolName: toolCall.toolName,

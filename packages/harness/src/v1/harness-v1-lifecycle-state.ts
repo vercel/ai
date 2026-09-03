@@ -1,4 +1,5 @@
 import type { JSONValue } from '@ai-sdk/provider';
+import type { ProviderOptions } from '@ai-sdk/provider-utils';
 import type { HarnessV1Skill } from './harness-v1-skill';
 import type { HarnessV1ToolSpec } from './harness-v1-tool-spec';
 
@@ -16,6 +17,7 @@ export type HarnessV1PendingToolResult = {
   readonly toolCallId: string;
   readonly toolName: string;
   readonly input: string;
+  readonly providerOptions?: ProviderOptions;
 };
 
 /**

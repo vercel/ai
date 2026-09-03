@@ -333,7 +333,7 @@ describe('createClaudeCode adapter', () => {
       'EnterPlanMode',
       'EnterWorktree',
       'ExitWorktree',
-      'AskUserQuestion',
+      'askUserQuestions',
       'Skill',
       'ToolSearch',
       'Artifact',
@@ -556,6 +556,7 @@ describe('createClaudeCode adapter', () => {
   });
 
   it('customizes real credentials when request transformations are unavailable', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const forwardedCredentials: Array<{
       credential: string;
@@ -598,8 +599,30 @@ describe('createClaudeCode adapter', () => {
       env: { ANTHROPIC_API_KEY: 'caller-managed-credential' },
     });
     expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('anthropic-secret');
+    expect(warn).not.toHaveBeenCalled();
 
     await session.doDestroy();
+
+    const identityHarness = createClaudeCode({
+      auth: { ANTHROPIC_API_KEY: 'anthropic-secret' },
+      credentialForwarding: ({ credential }) => credential,
+    });
+    const identitySession = await identityHarness.doStart({
+      sessionId: 's2',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        spawnEnvs: [],
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s2',
+    });
+
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      'The sandbox implementation does not support configuring request transformations, so credential brokering does not work. Falling back to less secure credential forwarding.',
+    );
+
+    await identitySession.doDestroy();
   });
 
   it('customizes credentials forwarded through the Claude process environment', async () => {

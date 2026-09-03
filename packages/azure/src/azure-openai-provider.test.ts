@@ -1227,6 +1227,7 @@ describe('responses', () => {
             "output_tokens_details": {
               "reasoning_tokens": 0,
             },
+            "total_tokens": 22,
           },
         }
       `);
@@ -2013,6 +2014,7 @@ describe('responses', () => {
                 "output_tokens_details": {
                   "reasoning_tokens": 0,
                 },
+                "total_tokens": 75,
               },
             },
           },

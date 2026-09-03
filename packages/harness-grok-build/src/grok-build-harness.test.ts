@@ -55,6 +55,7 @@ describe('createGrokBuild', () => {
           "stdio",
         ],
         "builtinToolNames": [
+          "askUserQuestions",
           "bash",
           "edit",
           "grep",
@@ -75,7 +76,6 @@ describe('createGrokBuild', () => {
           "workflow",
           "enter_plan_mode",
           "exit_plan_mode",
-          "ask_user_question",
           "image_gen",
           "image_edit",
           "image_to_video",

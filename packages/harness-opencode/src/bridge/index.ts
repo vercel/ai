@@ -44,6 +44,12 @@ import {
   type OpenCodeObject,
 } from './opencode-types';
 import { startAuthorizedToolRelay, type ToolRelay } from './tool-relay';
+import {
+  openCodeQuestionKey,
+  toHarnessQuestionsInput,
+  toOpenCodeQuestionResponse,
+  type OpenCodeQuestionRequest,
+} from './question-tool';
 
 type Emit = (msg: Record<string, unknown>) => void;
 
@@ -65,7 +71,8 @@ type CommonBuiltinToolName =
   | 'edit'
   | 'bash'
   | 'glob'
-  | 'grep';
+  | 'grep'
+  | 'askUserQuestions';
 
 const NATIVE_TO_COMMON: Readonly<Record<string, CommonBuiltinToolName>> = {
   view: 'read',
@@ -75,6 +82,7 @@ const NATIVE_TO_COMMON: Readonly<Record<string, CommonBuiltinToolName>> = {
   bash: 'bash',
   glob: 'glob',
   grep: 'grep',
+  question: 'askUserQuestions',
 };
 
 const OPENCODE_TO_WIRE: Readonly<Record<string, string>> = {
@@ -83,6 +91,7 @@ const OPENCODE_TO_WIRE: Readonly<Record<string, string>> = {
   webfetch: 'webfetch',
   task: 'agent',
   agent: 'agent',
+  askUserQuestions: 'question',
   subtask: 'agent',
 };
 
@@ -256,7 +265,7 @@ function buildOpenCodeConfig({
       webfetch: 'ask',
       doom_loop: 'ask',
       task: 'ask',
-      question: 'deny',
+      question: 'allow',
     },
   };
   if (start.model) config.model = start.model;
@@ -1035,7 +1044,14 @@ async function consumeEvents({
           : undefined;
     if (!scopedSessionId) continue;
     const isDescendant = scopedSessionId !== sessionId;
-    if (event.type === 'permission.v2.asked') {
+    if (event.type === 'question.asked') {
+      await handleQuestion({
+        client,
+        turn,
+        emit,
+        event,
+      });
+    } else if (event.type === 'permission.v2.asked') {
       await handlePermissionV2({
         client,
         sessionId: scopedSessionId,
@@ -1073,6 +1089,79 @@ function getSubagentStepId(event: OpenCodeEvent | undefined) {
   }
   if (event?.type !== 'session.next.step.ended') return undefined;
   return stringValue(event.properties?.stepID) ?? event.id;
+}
+
+async function handleQuestion({
+  client,
+  turn,
+  emit,
+  event,
+}: {
+  client: OpenCodeClient;
+  turn: BridgeTurn;
+  emit: Emit;
+  event: OpenCodeEvent;
+}): Promise<void> {
+  const nativeRequest = event.properties as OpenCodeQuestionRequest | undefined;
+  if (
+    nativeRequest == null ||
+    typeof nativeRequest.id !== 'string' ||
+    typeof nativeRequest.sessionID !== 'string' ||
+    !Array.isArray(nativeRequest.questions)
+  ) {
+    return;
+  }
+  const toolCallId = nativeRequest.tool?.callID ?? nativeRequest.id;
+
+  emit({
+    type: 'tool-call',
+    toolCallId,
+    toolName: 'askUserQuestions',
+    nativeName: 'question',
+    input: JSON.stringify(toHarnessQuestionsInput(nativeRequest)),
+    providerExecuted: false,
+    providerMetadata: {
+      opencode: {
+        nativeRequest,
+      },
+    },
+  });
+
+  const questionKey = openCodeQuestionKey(nativeRequest);
+  const result = await turn.requestToolResult({
+    toolCallId,
+    matches: candidate => {
+      const continuedRequest = candidate.toolResult?.providerOptions?.opencode
+        ?.nativeRequest as OpenCodeQuestionRequest | undefined;
+      return (
+        continuedRequest != null &&
+        openCodeQuestionKey(continuedRequest) === questionKey
+      );
+    },
+  });
+  const nativeResponse = toOpenCodeQuestionResponse({
+    nativeRequest,
+    output: result.output as Parameters<
+      typeof toOpenCodeQuestionResponse
+    >[0]['output'],
+  });
+
+  const response =
+    nativeResponse.action === 'reject'
+      ? await client.question.reject({
+          requestID: nativeRequest.id,
+          directory: workdir,
+        })
+      : await client.question.reply({
+          requestID: nativeRequest.id,
+          directory: workdir,
+          answers: nativeResponse.answers,
+        });
+  if (response.error != null) {
+    throw new Error(
+      `OpenCode question response failed: ${formatError(response.error)}`,
+    );
+  }
 }
 
 function sanitizeMcpToolName(value: string): string {
