@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 9823,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-9823-bedrock-citations.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-9823-bedrock-citations.ts",
+    "packages/amazon-bedrock/src/__fixtures__/bedrock-citations-content.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_9823_REPRODUCED: AI SDK omitted Bedrock citation text from the generated response"
+  }
+}
