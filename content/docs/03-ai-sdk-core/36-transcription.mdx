@@ -269,7 +269,8 @@ This error can arise for any of the following reasons:
 
 The error preserves the following information to help you log the issue:
 
-- `responses`: Metadata about the transcription model responses, including timestamp, model, and headers.
+- `responses`: Metadata about the transcription model responses, including timestamp, model, headers, and body when available.
+- `providerMetadata`: Provider-specific metadata reported by the model.
 - `cause`: The cause of the error. You can use this for more detailed error handling.
 
 ```ts
@@ -287,6 +288,7 @@ try {
     console.log('NoTranscriptGeneratedError');
     console.log('Cause:', error.cause);
     console.log('Responses:', error.responses);
+    console.log('Provider metadata:', error.providerMetadata);
   }
 }
 ```

@@ -54,6 +54,7 @@ const createMockResponse = (options: {
   modelId?: string;
   headers?: Record<string, string>;
   providerMetadata?: Record<string, JSONObject>;
+  body?: unknown;
 }) => ({
   text: options.text,
   segments: options.segments,
@@ -64,6 +65,7 @@ const createMockResponse = (options: {
     timestamp: options.timestamp ?? new Date(),
     modelId: options.modelId ?? 'test-model-id',
     headers: options.headers ?? {},
+    ...(options.body !== undefined && { body: options.body }),
   },
   providerMetadata: options.providerMetadata ?? {},
 });
@@ -266,6 +268,10 @@ describe('transcribe', () => {
                 language: 'en',
                 durationInSeconds: 0,
                 timestamp: testDate,
+                body: { text: '' },
+                providerMetadata: {
+                  testProvider: { requestId: 'request-1' },
+                },
               }),
           }),
           audio: audioData,
@@ -277,8 +283,12 @@ describe('transcribe', () => {
           {
             timestamp: testDate,
             modelId: expect.any(String),
+            body: { text: '' },
           },
         ],
+        providerMetadata: {
+          testProvider: { requestId: 'request-1' },
+        },
       });
     });
 

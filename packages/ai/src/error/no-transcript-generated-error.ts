@@ -1,4 +1,4 @@
-import { AISDKError } from '@ai-sdk/provider';
+import { AISDKError, type SharedV4ProviderMetadata } from '@ai-sdk/provider';
 import type { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 
 const name = 'AI_NoTranscriptGeneratedError';
@@ -12,16 +12,27 @@ export class NoTranscriptGeneratedError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
 
   readonly responses: Array<TranscriptionModelResponseMetadata>;
+  readonly providerMetadata: SharedV4ProviderMetadata | undefined;
 
-  constructor(options: {
+  constructor({
+    message = 'No transcript generated.',
+    cause,
+    responses,
+    providerMetadata,
+  }: {
+    message?: string;
+    cause?: unknown;
     responses: Array<TranscriptionModelResponseMetadata>;
+    providerMetadata?: SharedV4ProviderMetadata;
   }) {
     super({
       name,
-      message: 'No transcript generated.',
+      message,
+      cause,
     });
 
-    this.responses = options.responses;
+    this.responses = responses;
+    this.providerMetadata = providerMetadata;
   }
 
   static isInstance(error: unknown): error is NoTranscriptGeneratedError {

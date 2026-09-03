@@ -1574,6 +1574,7 @@ export async function generateText<
             response: lastStep.response,
             usage: lastStep.usage,
             finishReason: lastStep.finishReason,
+            providerMetadata: lastStep.providerMetadata,
           },
         );
       }
@@ -1768,7 +1769,12 @@ class DefaultGenerateTextResult<
 
   get output() {
     if (this._output == null) {
-      throw new NoOutputGeneratedError();
+      throw new NoOutputGeneratedError({
+        response: this.response,
+        usage: this.finalStep.usage,
+        finishReason: this.finishReason,
+        providerMetadata: this.providerMetadata,
+      });
     }
 
     return this._output;

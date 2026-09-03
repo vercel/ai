@@ -14,6 +14,7 @@ import type { Callback } from '../util/callback';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { splitArray } from '../util/split-array';
+import { NoEmbeddingGeneratedError } from '../error/no-embedding-generated-error';
 import type { EmbedEndEvent, EmbedStartEvent } from './embed-events';
 import type { EmbedManyResult } from './embed-many-result';
 import { VERSION } from '../version';
@@ -264,6 +265,16 @@ export async function embedMany({
               };
             });
 
+          if (embeddings.length !== values.length) {
+            throw new NoEmbeddingGeneratedError({
+              values,
+              embeddings,
+              responses: [response],
+              usage,
+              providerMetadata,
+            });
+          }
+
           logWarnings({
             warnings,
             provider: model.provider,
@@ -325,8 +336,8 @@ export async function embedMany({
 
         for (const parallelChunk of parallelChunks) {
           const results = await Promise.all(
-            parallelChunk.map(chunk => {
-              return retry(async () => {
+            parallelChunk.map(async chunk => {
+              const result = await retry(async () => {
                 const embedCallId = generateCallId();
 
                 await notify({
@@ -373,6 +384,18 @@ export async function embedMany({
                   response: modelResponse.response,
                 };
               });
+
+              if (result.embeddings.length !== chunk.length) {
+                throw new NoEmbeddingGeneratedError({
+                  values: chunk,
+                  embeddings: result.embeddings,
+                  responses: [result.response],
+                  usage: result.usage,
+                  providerMetadata: result.providerMetadata,
+                });
+              }
+
+              return result;
             }),
           );
 
@@ -403,6 +426,16 @@ export async function embedMany({
           provider: model.provider,
           model: model.modelId,
         });
+
+        if (embeddings.length !== values.length) {
+          throw new NoEmbeddingGeneratedError({
+            values,
+            embeddings,
+            responses,
+            usage: { tokens },
+            providerMetadata,
+          });
+        }
 
         await notify({
           event: {

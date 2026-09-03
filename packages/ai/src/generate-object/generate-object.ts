@@ -428,6 +428,7 @@ export async function generateObject<
         response: responseData,
         usage: asLanguageModelUsage(generateResult.usage),
         finishReason: generateResult.finishReason.unified,
+        providerMetadata: generateResult.providerMetadata,
       });
     }
 
@@ -475,6 +476,7 @@ export async function generateObject<
         response,
         usage,
         finishReason,
+        providerMetadata: resultProviderMetadata,
       },
     );
 

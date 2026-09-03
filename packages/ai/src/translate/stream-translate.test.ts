@@ -32,12 +32,14 @@ const testDate = new Date(2024, 0, 1);
 
 const createStreamResponse = (
   parts: SpeechTranslationModelV4StreamPart[],
+  body?: unknown,
 ): Awaited<ReturnType<SpeechTranslationModelV4['doStream']>> => ({
   stream: convertArrayToReadableStream(parts),
   response: {
     timestamp: testDate,
     modelId: 'test-model-id',
     headers: { 'x-test': 'value' },
+    ...(body !== undefined && { body }),
   },
 });
 
@@ -249,10 +251,21 @@ describe('experimental_streamTranslate', () => {
     const result = streamTranslate({
       model: new MockSpeechTranslationModelV4({
         doStream: async () =>
-          createStreamResponse([
-            { type: 'stream-start', warnings: [] },
-            { type: 'finish', sourceText: 'Hello', outputText: '' },
-          ]),
+          createStreamResponse(
+            [
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'finish',
+                sourceText: 'Hello',
+                outputText: '',
+                usage: { inputAudioSeconds: 1.5 },
+                providerMetadata: {
+                  testProvider: { requestId: 'request-1' },
+                },
+              },
+            ],
+            { translation: '' },
+          ),
       }),
       audio,
       inputAudioFormat,
@@ -270,6 +283,11 @@ describe('experimental_streamTranslate', () => {
       response: {
         timestamp: testDate,
         modelId: 'test-model-id',
+        body: { translation: '' },
+      },
+      usage: { inputAudioSeconds: 1.5 },
+      providerMetadata: {
+        testProvider: { requestId: 'request-1' },
       },
     });
   });

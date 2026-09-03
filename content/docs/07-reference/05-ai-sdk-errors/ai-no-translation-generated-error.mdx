@@ -12,6 +12,9 @@ ended without a finish event.
 ## Properties
 
 - `response`: Speech translation model response metadata (required in constructor)
+- `usage`: Usage reported by the model (optional)
+- `providerMetadata`: Provider-specific metadata reported by the model (optional)
+- `cause`: The underlying cause (optional)
 
 ## Checking for this Error
 
@@ -21,6 +24,8 @@ You can check if an error is an instance of `AI_NoTranslationGeneratedError` usi
 import { NoTranslationGeneratedError } from 'ai';
 
 if (NoTranslationGeneratedError.isInstance(error)) {
-  // Handle the error
+  console.log(error.response);
+  console.log(error.usage);
+  console.log(error.providerMetadata);
 }
 ```

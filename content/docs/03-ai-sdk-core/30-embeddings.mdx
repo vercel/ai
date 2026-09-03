@@ -185,6 +185,33 @@ const { embedding, response } = await embed({
 console.log(response); // Raw provider response
 ```
 
+## Error Handling
+
+`embed` and `embedMany` throw
+[`AI_NoEmbeddingGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-embedding-generated-error)
+when an embedding model does not return exactly one embedding for every
+requested value. An empty `embedMany` input remains valid.
+
+The error includes the requested values, any returned embeddings, expected and
+actual counts, raw responses, usage, and provider metadata when available.
+
+```ts
+import { embedMany, NoEmbeddingGeneratedError } from 'ai';
+
+try {
+  await embedMany({
+    model: 'openai/text-embedding-3-small',
+    values: ['sunny day at the beach', 'rainy afternoon in the city'],
+  });
+} catch (error) {
+  if (NoEmbeddingGeneratedError.isInstance(error)) {
+    console.log(error.expectedCount, error.actualCount);
+    console.log(error.responses);
+    console.log(error.providerMetadata);
+  }
+}
+```
+
 ## Embedding Middleware
 
 You can enhance embedding models, e.g. to set default values, using

@@ -19,6 +19,7 @@ import {
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockImageModelV4 } from '../test/mock-image-model-v4';
 import type { Warning } from '../types/warning';
+import type { ImageModelUsage } from '../types/usage';
 import { generateImage } from './generate-image';
 
 const prompt = 'sunny day at the beach';
@@ -43,6 +44,7 @@ const createMockResponse = (options: {
   modelId?: string;
   providerMetaData?: ImageModelV4ProviderMetadata;
   headers?: Record<string, string>;
+  usage?: ImageModelUsage;
 }) => ({
   images: options.images,
   warnings: options.warnings ?? [],
@@ -56,6 +58,7 @@ const createMockResponse = (options: {
     modelId: options.modelId ?? 'test-model-id',
     headers: options.headers ?? {},
   },
+  usage: options.usage,
 });
 
 describe('generateImage', () => {
@@ -580,6 +583,14 @@ describe('generateImage', () => {
               createMockResponse({
                 images: [],
                 timestamp: testDate,
+                usage: {
+                  inputTokens: 2,
+                  outputTokens: 3,
+                  totalTokens: 5,
+                },
+                providerMetaData: {
+                  testProvider: { images: [] },
+                },
               }),
           }),
           prompt,
@@ -593,6 +604,27 @@ describe('generateImage', () => {
             modelId: expect.any(String),
           },
         ],
+        calls: [
+          {
+            images: [],
+            providerMetadata: {
+              testProvider: { images: [] },
+            },
+            usage: {
+              inputTokens: 2,
+              outputTokens: 3,
+              totalTokens: 5,
+            },
+          },
+        ],
+        usage: {
+          inputTokens: 2,
+          outputTokens: 3,
+          totalTokens: 5,
+        },
+        providerMetadata: {
+          testProvider: { images: [] },
+        },
       });
     });
 

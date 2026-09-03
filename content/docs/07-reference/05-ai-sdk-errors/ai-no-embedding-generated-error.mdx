@@ -1,0 +1,41 @@
+---
+title: AI_NoEmbeddingGeneratedError
+description: Learn how to fix AI_NoEmbeddingGeneratedError
+---
+
+# AI_NoEmbeddingGeneratedError
+
+This error occurs when an embedding model does not return exactly one
+embedding for every requested value. `embedMany` allows an empty input batch,
+but non-empty and partially fulfilled batches must have matching input and
+output counts.
+
+## Properties
+
+- `message`: The error message. By default, it includes the expected and actual embedding counts.
+- `values`: The values sent in the failed embedding model call.
+- `embeddings`: Any embeddings returned by the model.
+- `expectedCount`: The number of embeddings required for the values.
+- `actualCount`: The number of embeddings returned by the model.
+- `responses`: Raw response data, including headers and body, when available.
+- `usage`: Token usage reported by the model, when available.
+- `providerMetadata`: Provider-specific metadata, when available.
+- `cause`: The underlying cause, when available.
+
+## Checking for this Error
+
+```ts
+import { embedMany, NoEmbeddingGeneratedError } from 'ai';
+
+try {
+  await embedMany({ model, values });
+} catch (error) {
+  if (NoEmbeddingGeneratedError.isInstance(error)) {
+    console.log(`Expected ${error.expectedCount} embeddings`);
+    console.log(`Received ${error.actualCount} embeddings`);
+    console.log('Responses:', error.responses);
+    console.log('Usage:', error.usage);
+    console.log('Provider metadata:', error.providerMetadata);
+  }
+}
+```

@@ -302,3 +302,10 @@ const { embedding } = await embed({
     },
   ]}
 />
+
+## Error Handling
+
+If the model does not return one embedding, `embed` throws
+[`AI_NoEmbeddingGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-embedding-generated-error).
+The error includes the input value, returned embeddings, expected and actual
+counts, response data, usage, and provider metadata when available.

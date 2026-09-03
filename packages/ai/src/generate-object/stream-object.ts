@@ -822,6 +822,7 @@ class DefaultStreamObjectResult<
                         response: fullResponse,
                         usage,
                         finishReason,
+                        providerMetadata,
                       },
                     );
                     self._object.resolve(object);

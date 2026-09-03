@@ -304,3 +304,13 @@ const { embeddings } = await embedMany({
     },
   ]}
 />
+
+## Error Handling
+
+If the model does not return exactly one embedding per input value, `embedMany`
+throws
+[`AI_NoEmbeddingGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-embedding-generated-error).
+The error includes the affected values, returned embeddings, expected and
+actual counts, response data, usage, and provider metadata when available.
+Passing an empty `values` array remains valid when the model returns no
+embeddings.

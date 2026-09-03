@@ -18,6 +18,7 @@ import {
   vitest,
 } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
+import { NoVideoGeneratedError } from '../error/no-video-generated-error';
 import { MockVideoModelV4 } from '../test/mock-video-model-v4';
 import type { Warning } from '../types/warning';
 import { experimental_generateVideo } from './generate-video';
@@ -517,6 +518,9 @@ describe('experimental_generateVideo', () => {
             modelId: expect.any(String),
           },
         ],
+        providerMetadata: {
+          testProvider: { videos: [] },
+        },
       });
     });
 
@@ -1442,19 +1446,25 @@ describe('experimental_generateVideo', () => {
       expect(delay).toHaveBeenCalledWith(5000, { abortSignal: undefined });
     });
 
-    it('should throw timeout error when polling exceeds timeoutMs', async () => {
-      await expect(
-        experimental_generateVideo({
+    it('should throw NoVideoGeneratedError with start diagnostics when polling times out', async () => {
+      const startResponse = {
+        timestamp: testDate,
+        modelId: 'test-model-id',
+        headers: { 'x-request-id': 'request-1' },
+      };
+      const providerMetadata = {
+        testProvider: { operationId: 'operation-1' },
+      };
+
+      try {
+        await experimental_generateVideo({
           model: new MockVideoModelV4({
             doGenerate: undefined,
             doStart: async () => ({
               operation: 'op-1',
               warnings: [],
-              response: {
-                timestamp: new Date(),
-                modelId: 'test-model-id',
-                headers: {},
-              },
+              response: startResponse,
+              providerMetadata,
             }),
             doStatus: async () => ({
               status: 'pending' as const,
@@ -1466,9 +1476,85 @@ describe('experimental_generateVideo', () => {
             }),
           }),
           prompt,
-          poll: { intervalMs: 10, timeoutMs: 50 },
+          poll: { intervalMs: 20, timeoutMs: 20 },
+        });
+        expect.unreachable();
+      } catch (error) {
+        expect(NoVideoGeneratedError.isInstance(error)).toBe(true);
+        expect(error).toMatchObject({
+          message: 'Video generation timed out after 20ms.',
+          responses: [
+            {
+              ...startResponse,
+              providerMetadata,
+            },
+          ],
+          providerMetadata,
+        });
+      }
+    });
+
+    it('should throw NoVideoGeneratedError with status diagnostics when the provider reports failure', async () => {
+      const startResponse = {
+        timestamp: testDate,
+        modelId: 'test-model-id',
+        headers: { 'x-request-id': 'start-request' },
+      };
+      const statusResponse = {
+        timestamp: testDate,
+        modelId: 'test-model-id',
+        headers: { 'x-request-id': 'status-request' },
+      };
+
+      await expect(
+        experimental_generateVideo({
+          model: new MockVideoModelV4({
+            doGenerate: undefined,
+            doStart: async () => ({
+              operation: 'op-1',
+              warnings: [],
+              response: startResponse,
+              providerMetadata: {
+                testProvider: { operationId: 'operation-1' },
+              },
+            }),
+            doStatus: async () => ({
+              status: 'error' as const,
+              error: 'provider generation failed',
+              response: statusResponse,
+              providerMetadata: {
+                testProvider: { failureCode: 'unsafe-content' },
+              },
+            }),
+          }),
+          prompt,
+          poll: { intervalMs: 0 },
         }),
-      ).rejects.toThrow('Video generation timed out after 50ms.');
+      ).rejects.toMatchObject({
+        name: 'AI_NoVideoGeneratedError',
+        message: 'provider generation failed',
+        cause: new Error('provider generation failed'),
+        responses: [
+          {
+            ...startResponse,
+            providerMetadata: {
+              testProvider: { operationId: 'operation-1' },
+            },
+          },
+          {
+            ...statusResponse,
+            providerMetadata: {
+              testProvider: { failureCode: 'unsafe-content' },
+            },
+          },
+        ],
+        providerMetadata: {
+          testProvider: {
+            operationId: 'operation-1',
+            failureCode: 'unsafe-content',
+          },
+        },
+      });
     });
 
     it('should merge warnings from doStart and doStatus', async () => {
@@ -1793,7 +1879,7 @@ describe('experimental_generateVideo', () => {
       expect(result.videos.length).toBe(1);
     });
 
-    it('should timeout when webhook notification is not received', async () => {
+    it('should throw NoVideoGeneratedError when webhook notification is not received', async () => {
       await expect(
         experimental_generateVideo({
           model: new MockVideoModelV4({
@@ -1822,7 +1908,10 @@ describe('experimental_generateVideo', () => {
             received: new Promise<VideoModelV4OperationWebhook>(() => {}),
           }),
         }),
-      ).rejects.toThrow('Video generation timed out after 20ms.');
+      ).rejects.toMatchObject({
+        name: 'AI_NoVideoGeneratedError',
+        message: 'Video generation timed out after 20ms.',
+      });
     });
 
     it('should abort while waiting for webhook notification', async () => {

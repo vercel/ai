@@ -16,6 +16,10 @@ with a `stop` reason, for example when it finishes with `tool-calls`. The
 
 - `message`: The error message (optional, defaults to `'No output generated.'`)
 - `cause`: The underlying error that caused no output to be generated (optional)
+- `response`: Language model response metadata, when available.
+- `usage`: Language model usage, when available.
+- `finishReason`: The finish reason, when available.
+- `providerMetadata`: Provider-specific metadata, when available.
 
 ## Checking for this Error
 
@@ -25,6 +29,9 @@ You can check if an error is an instance of `AI_NoOutputGeneratedError` using:
 import { NoOutputGeneratedError } from 'ai';
 
 if (NoOutputGeneratedError.isInstance(error)) {
-  // Handle the error
+  console.log(error.response);
+  console.log(error.usage);
+  console.log(error.finishReason);
+  console.log(error.providerMetadata);
 }
 ```

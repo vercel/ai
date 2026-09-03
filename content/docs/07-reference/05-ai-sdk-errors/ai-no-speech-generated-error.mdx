@@ -10,6 +10,8 @@ This error occurs when no audio could be generated from the input.
 ## Properties
 
 - `responses`: Array of speech model response metadata (required in constructor)
+- `providerMetadata`: Provider-specific metadata reported by the model (optional)
+- `cause`: The underlying cause (optional)
 
 ## Checking for this Error
 
@@ -19,6 +21,7 @@ You can check if an error is an instance of `AI_NoSpeechGeneratedError` using:
 import { NoSpeechGeneratedError } from 'ai';
 
 if (NoSpeechGeneratedError.isInstance(error)) {
-  // Handle the error
+  console.log(error.responses);
+  console.log(error.providerMetadata);
 }
 ```

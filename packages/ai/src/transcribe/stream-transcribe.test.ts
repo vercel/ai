@@ -32,12 +32,14 @@ const testDate = new Date(2024, 0, 1);
 
 const createStreamResponse = (
   parts: TranscriptionModelV4StreamPart[],
+  body?: unknown,
 ): Awaited<ReturnType<NonNullable<TranscriptionModelV4['doStream']>>> => ({
   stream: convertArrayToReadableStream(parts),
   response: {
     timestamp: testDate,
     modelId: 'test-model-id',
     headers: { 'x-test': 'value' },
+    ...(body !== undefined && { body }),
   },
 });
 
@@ -175,10 +177,20 @@ describe('experimental_streamTranscribe', () => {
     const result = streamTranscribe({
       model: new MockTranscriptionModelV4({
         doStream: async () =>
-          createStreamResponse([
-            { type: 'stream-start', warnings: [] },
-            { type: 'finish', text: '', segments: [] },
-          ]),
+          createStreamResponse(
+            [
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'finish',
+                text: '',
+                segments: [],
+                providerMetadata: {
+                  testProvider: { requestId: 'request-1' },
+                },
+              },
+            ],
+            { transcript: '' },
+          ),
       }),
       audio,
       inputAudioFormat,
@@ -196,8 +208,12 @@ describe('experimental_streamTranscribe', () => {
         {
           timestamp: testDate,
           modelId: 'test-model-id',
+          body: { transcript: '' },
         },
       ],
+      providerMetadata: {
+        testProvider: { requestId: 'request-1' },
+      },
     });
   });
 

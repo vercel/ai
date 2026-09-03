@@ -10,6 +10,7 @@ import {
   vitest,
 } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
+import { NoEmbeddingGeneratedError } from '../error/no-embedding-generated-error';
 import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
 import type { Embedding, EmbeddingModelUsage, Warning } from '../types';
@@ -34,6 +35,83 @@ const testValues = [
   'rainy afternoon in the city',
   'snowy night in the mountains',
 ];
+
+describe('error handling', () => {
+  it('should throw NoEmbeddingGeneratedError with diagnostics when a single call returns the wrong number of embeddings', async () => {
+    const providerMetadata = {
+      testProvider: { requestId: 'request-1' },
+    };
+    const response = {
+      headers: { 'x-request-id': 'request-1' },
+      body: { data: [] },
+    };
+
+    try {
+      await embedMany({
+        model: new MockEmbeddingModelV4({
+          maxEmbeddingsPerCall: Infinity,
+          doEmbed: mockEmbed(
+            testValues,
+            [],
+            { tokens: 7 },
+            response,
+            providerMetadata,
+          ),
+        }),
+        values: testValues,
+      });
+      expect.unreachable();
+    } catch (error) {
+      expect(NoEmbeddingGeneratedError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({
+        name: 'AI_NoEmbeddingGeneratedError',
+        message: 'No embeddings generated: expected 3, received 0.',
+        values: testValues,
+        embeddings: [],
+        expectedCount: 3,
+        actualCount: 0,
+        responses: [response],
+        usage: { tokens: 7 },
+        providerMetadata,
+      });
+    }
+  });
+
+  it('should validate the result cardinality of each chunk', async () => {
+    await expect(
+      embedMany({
+        model: new MockEmbeddingModelV4({
+          maxEmbeddingsPerCall: 1,
+          doEmbed: async ({ values }) => ({
+            embeddings: values[0] === testValues[1] ? [] : [[1, 2, 3]],
+            warnings: [],
+            response: {
+              body: { value: values[0] },
+            },
+          }),
+        }),
+        values: testValues,
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_NoEmbeddingGeneratedError',
+      values: [testValues[1]],
+      expectedCount: 1,
+      actualCount: 0,
+      responses: [{ body: { value: testValues[1] } }],
+    });
+  });
+
+  it('should allow an empty input batch with an empty result', async () => {
+    const result = await embedMany({
+      model: new MockEmbeddingModelV4({
+        doEmbed: mockEmbed([], []),
+      }),
+      values: [],
+    });
+
+    expect(result.embeddings).toStrictEqual([]);
+  });
+});
 
 describe('model.supportsParallelCalls', () => {
   it('should not parallelize when false', async () => {
@@ -341,7 +419,7 @@ describe('result.responses', () => {
             case 0:
               assert.deepStrictEqual(values, [testValues[0]]);
               return {
-                embeddings: dummyEmbeddings,
+                embeddings: [dummyEmbeddings[0]],
                 response: {
                   body: { first: true },
                 },
@@ -350,7 +428,7 @@ describe('result.responses', () => {
             case 1:
               assert.deepStrictEqual(values, [testValues[1]]);
               return {
-                embeddings: dummyEmbeddings,
+                embeddings: [dummyEmbeddings[1]],
                 response: {
                   body: { second: true },
                 },
@@ -359,7 +437,7 @@ describe('result.responses', () => {
             case 2:
               assert.deepStrictEqual(values, [testValues[2]]);
               return {
-                embeddings: dummyEmbeddings,
+                embeddings: [dummyEmbeddings[2]],
                 response: {
                   body: { third: true },
                 },

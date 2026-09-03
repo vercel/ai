@@ -231,6 +231,9 @@ This error occurs when the AI provider fails to generate an image. It can arise 
 The error preserves the following information to help you log the issue:
 
 - `responses`: Metadata about the image model responses, including timestamp, model, and headers.
+- `calls`: Per-call images, response metadata, provider metadata, warnings, and usage.
+- `usage`: Combined token usage across calls.
+- `providerMetadata`: Combined provider-specific metadata.
 - `cause`: The cause of the error. You can use this for more detailed error handling
 
 ```ts
@@ -243,6 +246,9 @@ try {
     console.log('NoImageGeneratedError');
     console.log('Cause:', error.cause);
     console.log('Responses:', error.responses);
+    console.log('Calls:', error.calls);
+    console.log('Usage:', error.usage);
+    console.log('Provider metadata:', error.providerMetadata);
   }
 }
 ```

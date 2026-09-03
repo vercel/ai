@@ -19,4 +19,9 @@ export type SpeechTranslationModelResponseMetadata = {
    * Response headers.
    */
   headers?: Record<string, string>;
+
+  /**
+   * Response body.
+   */
+  body?: unknown;
 };

@@ -33,6 +33,7 @@ import {
   vitest,
 } from 'vitest';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
+import { NoOutputGeneratedError } from '../error/no-output-generated-error';
 import { ToolChoiceViolationError } from '../error/tool-choice-violation-error';
 import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { signToolApproval } from './tool-approval-signature';
@@ -8400,9 +8401,19 @@ describe('generateText', () => {
       expect(result.text).toBe(explanatoryText);
 
       // output should be unavailable when finish reason is tool-calls
-      expect(() => {
+      try {
         result.output;
-      }).toThrow('No output generated');
+        expect.unreachable();
+      } catch (error) {
+        expect(NoOutputGeneratedError.isInstance(error)).toBe(true);
+        expect(error).toMatchObject({
+          message: 'No output generated.',
+          response: result.response,
+          usage: result.usage,
+          finishReason: result.finishReason,
+          providerMetadata: result.providerMetadata,
+        });
+      }
 
       // But tool calls should work normally
       expect(result.toolCalls).toHaveLength(1);

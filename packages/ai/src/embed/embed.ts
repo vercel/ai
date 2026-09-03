@@ -12,6 +12,7 @@ import type { Callback } from '../util/callback';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
+import { NoEmbeddingGeneratedError } from '../error/no-embedding-generated-error';
 import type { EmbedEndEvent, EmbedStartEvent } from './embed-events';
 import type { EmbedResult } from './embed-result';
 
@@ -181,7 +182,7 @@ export async function embed({
       });
 
       try {
-        const { embedding, usage, warnings, response, providerMetadata } =
+        const { embeddings, usage, warnings, response, providerMetadata } =
           await retry(async () => {
             const embedCallId = generateCallId();
 
@@ -204,7 +205,6 @@ export async function embed({
               providerOptions,
             });
 
-            const embedding = modelResponse.embeddings[0];
             const usage = modelResponse.usage ?? { tokens: NaN };
 
             await notify({
@@ -222,13 +222,25 @@ export async function embed({
             });
 
             return {
-              embedding,
+              embeddings: modelResponse.embeddings,
               usage,
               warnings: modelResponse.warnings ?? [],
               providerMetadata: modelResponse.providerMetadata,
               response: modelResponse.response,
             };
           });
+
+        if (embeddings.length !== 1) {
+          throw new NoEmbeddingGeneratedError({
+            values: [value],
+            embeddings,
+            responses: [response],
+            usage,
+            providerMetadata,
+          });
+        }
+
+        const embedding = embeddings[0];
 
         logWarnings({
           warnings,
