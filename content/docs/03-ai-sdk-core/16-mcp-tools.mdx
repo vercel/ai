@@ -408,7 +408,7 @@ This approach provides full TypeScript type safety and IDE autocompletion, letti
 
 ### Typed Tool Outputs
 
-When MCP servers return `structuredContent` (per the [MCP specification](https://modelcontextprotocol.io/specification/2025-06-18/server/tools#structured-content)), you can define an `outputSchema` to get typed tool results:
+When MCP servers return `structuredContent` (per the [MCP specification](https://modelcontextprotocol.io/specification/2026-07-28/server/tools#structured-content)), you can define an `outputSchema` to get typed tool results:
 
 ```typescript
 import { z } from 'zod';
@@ -444,6 +444,8 @@ When `outputSchema` is provided:
 - You get full TypeScript type safety for the result
 
 If the server doesn't return `structuredContent`, the client falls back to parsing JSON from the text content. If neither is available or validation fails, an error is thrown.
+
+If a server returns `structuredContent` without the backwards-compatible `content` field, the client adds a text content block containing the serialized JSON before returning the result. This compatibility behavior handles servers that omit the text mirror recommended by the MCP specification.
 
 <Note>
   Without `outputSchema`, the tool returns the raw `CallToolResult` object

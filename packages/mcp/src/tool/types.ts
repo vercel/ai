@@ -282,24 +282,55 @@ const ResourceLinkContentSchema = z
     mimeType: z.optional(z.string()),
   })
   .loose();
+const UnknownContentSchema = z
+  .object({ type: z.string() })
+  .loose()
+  .refine(
+    content =>
+      !['text', 'image', 'resource', 'resource_link'].includes(content.type),
+    { message: 'Known content types must match their schema' },
+  );
 
-export const CallToolResultSchema = ResultSchema.extend({
+const CallToolResultWithContentSchema = ResultSchema.extend({
   content: z.array(
     z.union([
       TextContentSchema,
       ImageContentSchema,
       EmbeddedResourceSchema,
       ResourceLinkContentSchema,
+      UnknownContentSchema,
     ]),
   ),
   /**
-   * @see https://modelcontextprotocol.io/specification/2025-06-18/server/tools#structured-content
+   * @see https://modelcontextprotocol.io/specification/2026-07-28/server/tools#structured-content
    */
   structuredContent: z.optional(z.unknown()),
   isError: z.boolean().default(false).optional(),
-}).or(
+});
+
+const CallToolResultWithStructuredContentSchema = ResultSchema.extend({
+  content: z.never().optional(),
+  structuredContent: z.json(),
+  isError: z.boolean().default(false).optional(),
+})
+  .transform(
+    (result): z.infer<typeof CallToolResultWithContentSchema> => ({
+      ...result,
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(result.structuredContent),
+        },
+      ],
+    }),
+  )
+  .pipe(CallToolResultWithContentSchema);
+
+export const CallToolResultSchema = CallToolResultWithContentSchema.or(
+  CallToolResultWithStructuredContentSchema,
+).or(
   ResultSchema.extend({
-    toolResult: z.unknown(),
+    toolResult: z.unknown().nonoptional(),
   }),
 );
 export type CallToolResult = z.infer<typeof CallToolResultSchema>;
