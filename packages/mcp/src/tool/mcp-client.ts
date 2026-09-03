@@ -948,6 +948,44 @@ class DefaultMCPClient implements MCPClient {
       const self = this;
       const outputSchema =
         schemas !== 'automatic' ? schemas[name]?.outputSchema : undefined;
+<<<<<<< HEAD
+=======
+      const appMeta = getMCPAppToolMeta({ _meta });
+      const metadata = {
+        clientName: this.clientInfo.name,
+        toolName: name,
+        ...(resolvedTitle != null ? { title: resolvedTitle } : {}),
+        ...(annotations != null
+          ? {
+              annotations: {
+                ...(annotations.title != null
+                  ? { title: annotations.title }
+                  : {}),
+                ...(annotations.readOnlyHint != null
+                  ? { readOnlyHint: annotations.readOnlyHint }
+                  : {}),
+                ...(annotations.destructiveHint != null
+                  ? { destructiveHint: annotations.destructiveHint }
+                  : {}),
+                ...(annotations.idempotentHint != null
+                  ? { idempotentHint: annotations.idempotentHint }
+                  : {}),
+                ...(annotations.openWorldHint != null
+                  ? { openWorldHint: annotations.openWorldHint }
+                  : {}),
+              },
+            }
+          : {}),
+        ...(appMeta?.resourceUri != null
+          ? {
+              app: {
+                ...appMeta,
+                mimeType: MCP_APP_MIME_TYPE,
+              } as JSONObject,
+            }
+          : {}),
+      } satisfies McpProviderMetadata;
+>>>>>>> 33ba8fd5ba (feat(mcp): surface server-provided tool annotations in tool metadata (#20287))
 
       const execute = async (
         args: any,

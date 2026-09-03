@@ -10,6 +10,32 @@ export const SUPPORTED_PROTOCOL_VERSIONS = [
   '2024-11-05',
 ];
 
+<<<<<<< HEAD
+=======
+export type McpProviderMetadata = {
+  clientName?: string;
+  title?: string;
+  toolName?: string;
+  annotations?: McpToolAnnotations;
+  app?: JSONObject;
+};
+
+/**
+ * Behavioral hints reported by an MCP server for a tool.
+ *
+ * These annotations are untrusted unless the server itself is trusted.
+ *
+ * @see https://modelcontextprotocol.io/specification/2026-07-28/schema#toolannotations
+ */
+export type McpToolAnnotations = {
+  title?: string;
+  readOnlyHint?: boolean;
+  destructiveHint?: boolean;
+  idempotentHint?: boolean;
+  openWorldHint?: boolean;
+};
+
+>>>>>>> 33ba8fd5ba (feat(mcp): surface server-provided tool annotations in tool metadata (#20287))
 /** MCP tool metadata - keys should follow MCP _meta key format specification */
 const ToolMetaSchema = z.optional(z.record(z.string(), z.unknown()));
 export type ToolMeta = z.infer<typeof ToolMetaSchema>;
@@ -161,6 +187,10 @@ const ToolSchema = z
       z
         .object({
           title: z.optional(z.string()),
+          readOnlyHint: z.optional(z.boolean()),
+          destructiveHint: z.optional(z.boolean()),
+          idempotentHint: z.optional(z.boolean()),
+          openWorldHint: z.optional(z.boolean()),
         })
         .loose(),
     ),

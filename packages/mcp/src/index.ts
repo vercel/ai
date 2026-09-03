@@ -22,6 +22,11 @@ export type {
   ElicitationRequest,
   ElicitResult,
   ListToolsResult,
+<<<<<<< HEAD
+=======
+  McpProviderMetadata,
+  McpToolAnnotations,
+>>>>>>> 33ba8fd5ba (feat(mcp): surface server-provided tool annotations in tool metadata (#20287))
   ClientCapabilities as MCPClientCapabilities,
 } from './tool/types';
 export { auth, UnauthorizedError } from './tool/oauth';
