@@ -2718,6 +2718,57 @@ describe('MCPClient', () => {
     });
   });
 
+  describe('tool annotations support', () => {
+    it('should expose MCP tool annotations on dynamic and typed tools', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideTools: [
+          {
+            name: 'annotated-tool',
+            description: 'A tool with behavioral annotations',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+            annotations: {
+              title: 'Annotated Tool',
+              readOnlyHint: false,
+              destructiveHint: true,
+              idempotentHint: false,
+              openWorldHint: true,
+            },
+          },
+        ],
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      const dynamicTools = await client.tools();
+      const typedTools = await client.tools({
+        schemas: {
+          'annotated-tool': {
+            inputSchema: z.object({}),
+          },
+        },
+      });
+
+      expect(dynamicTools['annotated-tool'].metadata).toEqual({
+        clientName: 'ai-sdk-mcp-client',
+        annotations: {
+          title: 'Annotated Tool',
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: false,
+          openWorldHint: true,
+        },
+      });
+      expect(typedTools['annotated-tool'].metadata).toEqual(
+        dynamicTools['annotated-tool'].metadata,
+      );
+    });
+  });
+
   describe('tool title support', () => {
     it('should use top-level title when provided (MCP spec-compliant)', async () => {
       const mockTransport = new MockMCPTransport({
