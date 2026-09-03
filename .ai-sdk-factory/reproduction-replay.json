@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 12754,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-12754-openai-responses-assistant-history.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-12754-openai-responses-assistant-history.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_12754_REPRODUCED: strict Responses endpoint rejected AI SDK assistant history with HTTP 400"
+  }
+}
