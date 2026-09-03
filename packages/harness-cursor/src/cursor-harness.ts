@@ -223,28 +223,6 @@ const CURSOR_BUILTIN_TOOLS = {
     nativeName: 'applyAgentDiffToolCall',
     toolUseKind: 'edit',
   },
-  askQuestion: {
-    ...tool({
-      inputSchema: z.looseObject({
-        _toolName: z.literal('askQuestion'),
-        title: z.string().optional(),
-        questions: z
-          .array(
-            z.looseObject({
-              id: z.string(),
-              prompt: z.string(),
-              options: z.array(
-                z.looseObject({ id: z.string(), label: z.string() }),
-              ),
-              allowMultiple: z.boolean().optional(),
-            }),
-          )
-          .optional(),
-      }),
-    }),
-    nativeName: 'askQuestionToolCall',
-    toolUseKind: 'readonly',
-  },
   fetch: {
     ...tool({
       title: 'Fetch',
