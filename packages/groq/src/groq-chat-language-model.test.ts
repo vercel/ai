@@ -498,6 +498,11 @@ describe('doGenerate', () => {
     });
 
     const result = await model.doGenerate({
+      providerOptions: {
+        groq: {
+          parallelToolCalls: true,
+        },
+      },
       tools: [
         {
           type: 'function',
@@ -532,7 +537,7 @@ describe('doGenerate', () => {
     const requestBody = await server.calls[0].requestBodyJson;
 
     expect(requestBody).toMatchObject({
-      parallel_tool_calls: false,
+      parallel_tool_calls: true,
       tool_choice: 'required',
       tools: [
         {
@@ -543,7 +548,8 @@ describe('doGenerate', () => {
         {
           function: {
             name: 'json',
-            description: 'Respond with a JSON value.',
+            description:
+              'Return the final response. The arguments must be an object with exactly one "output" property containing the complete JSON value; never pass the value directly as the arguments.',
             parameters: {
               type: 'object',
               properties: {
@@ -566,6 +572,111 @@ describe('doGenerate', () => {
       },
     ]);
     expect(result.finishReason).toBe('stop');
+  });
+
+  it('should only allow the response tool when toolChoice is none', async () => {
+    prepareJsonResponse({
+      tool_calls: [
+        {
+          id: 'json-call-id',
+          type: 'function',
+          function: {
+            name: 'json',
+            arguments: '{"output":{"date":"2026-09-04"}}',
+          },
+        },
+      ],
+      finish_reason: 'tool_calls',
+    });
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'resolve-date',
+          inputSchema: {
+            type: 'object',
+            properties: { input: { type: 'string' } },
+          },
+        },
+      ],
+      toolChoice: { type: 'none' },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { date: { type: 'string' } },
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      tool_choice: {
+        type: 'function',
+        function: { name: 'json' },
+      },
+      tools: [
+        {
+          function: {
+            name: 'json',
+          },
+        },
+      ],
+    });
+  });
+
+  it('should preserve a specific user tool choice with a response tool', async () => {
+    prepareJsonResponse({
+      tool_calls: [
+        {
+          id: 'resolve-date-call-id',
+          type: 'function',
+          function: {
+            name: 'resolve-date',
+            arguments: '{"input":"tomorrow"}',
+          },
+        },
+      ],
+      finish_reason: 'tool_calls',
+    });
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'resolve-date',
+          inputSchema: {
+            type: 'object',
+            properties: { input: { type: 'string' } },
+          },
+        },
+      ],
+      toolChoice: { type: 'tool', toolName: 'resolve-date' },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { date: { type: 'string' } },
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      tool_choice: {
+        type: 'function',
+        function: { name: 'resolve-date' },
+      },
+      tools: [
+        {
+          function: { name: 'resolve-date' },
+        },
+        {
+          function: { name: 'json' },
+        },
+      ],
+    });
   });
 
   it('should pass response format information as json_object when structuredOutputs explicitly disabled', async () => {

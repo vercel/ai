@@ -1299,7 +1299,8 @@ describe('doGenerate', () => {
       { name: 'resolve-date' },
       {
         name: 'json',
-        description: 'Respond with a JSON value.',
+        description:
+          'Return the final response. The arguments must be an object with exactly one "output" property containing the complete JSON value; never pass the value directly as the arguments.',
         parameters: {
           type: 'object',
           properties: {
@@ -1318,6 +1319,123 @@ describe('doGenerate', () => {
       },
     ]);
     expect(result.finishReason).toBe('stop');
+  });
+
+  it('should only allow the response tool when toolChoice is none', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  functionCall: {
+                    id: 'json-call-id',
+                    name: 'json',
+                    args: { output: { date: '2026-09-04' } },
+                  },
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+          },
+        ],
+      },
+    };
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'resolve-date',
+          inputSchema: {
+            type: 'object',
+            properties: { input: { type: 'string' } },
+          },
+        },
+      ],
+      toolChoice: { type: 'none' },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { date: { type: 'string' } },
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.toolConfig).toEqual({
+      functionCallingConfig: {
+        mode: 'ANY',
+        allowedFunctionNames: ['json'],
+      },
+    });
+    expect(requestBody.tools[0].functionDeclarations).toMatchObject([
+      { name: 'json' },
+    ]);
+  });
+
+  it('should preserve a specific user tool choice with a response tool', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  functionCall: {
+                    id: 'resolve-date-call-id',
+                    name: 'resolve-date',
+                    args: { input: 'tomorrow' },
+                  },
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+          },
+        ],
+      },
+    };
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'resolve-date',
+          inputSchema: {
+            type: 'object',
+            properties: { input: { type: 'string' } },
+          },
+        },
+      ],
+      toolChoice: { type: 'tool', toolName: 'resolve-date' },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { date: { type: 'string' } },
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.toolConfig).toEqual({
+      functionCallingConfig: {
+        mode: 'ANY',
+        allowedFunctionNames: ['resolve-date'],
+      },
+    });
+    expect(requestBody.tools[0].functionDeclarations).toMatchObject([
+      { name: 'resolve-date' },
+      { name: 'json' },
+    ]);
   });
 
   it('should inline local JSON Schema references in response schemas', async () => {

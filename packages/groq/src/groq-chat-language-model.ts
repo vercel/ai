@@ -129,7 +129,8 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
         ? {
             type: 'function',
             name: jsonResponseToolName,
-            description: 'Respond with a JSON value.',
+            description:
+              'Return the final response. The arguments must be an object with exactly one "output" property containing the complete JSON value; never pass the value directly as the arguments.',
             inputSchema: {
               type: 'object',
               properties: {
@@ -168,12 +169,18 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
       toolWarnings,
     } = prepareTools({
       tools:
-        jsonResponseTool != null ? [...(tools ?? []), jsonResponseTool] : tools,
+        jsonResponseTool == null
+          ? tools
+          : toolChoice?.type === 'none'
+            ? [jsonResponseTool]
+            : [...(tools ?? []), jsonResponseTool],
       toolChoice:
         jsonResponseTool != null
           ? toolChoice?.type === 'tool'
             ? toolChoice
-            : { type: 'required' }
+            : toolChoice?.type === 'none'
+              ? { type: 'tool', toolName: jsonResponseToolName }
+              : { type: 'required' }
           : toolChoice,
       modelId: this.modelId,
     });
@@ -185,8 +192,7 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
 
         // model specific settings:
         user: groqOptions?.user,
-        parallel_tool_calls:
-          jsonResponseTool != null ? false : groqOptions?.parallelToolCalls,
+        parallel_tool_calls: groqOptions?.parallelToolCalls,
 
         // standardized settings:
         max_tokens: maxOutputTokens,

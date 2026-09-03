@@ -1,6 +1,7 @@
 ---
 '@ai-sdk/google': patch
 '@ai-sdk/groq': patch
+'ai': patch
 ---
 
-fix(groq): support structured output alongside function tools
+fix: support structured output alongside function tools
