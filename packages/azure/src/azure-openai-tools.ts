@@ -1,4 +1,5 @@
 import {
+  applyPatch,
   codeInterpreter,
   fileSearch,
   imageGeneration,
@@ -7,12 +8,14 @@ import {
 } from '@ai-sdk/openai/internal';
 
 export const azureOpenaiTools: {
+  applyPatch: typeof applyPatch;
   codeInterpreter: typeof codeInterpreter;
   fileSearch: typeof fileSearch;
   imageGeneration: typeof imageGeneration;
   webSearch: typeof webSearch;
   webSearchPreview: typeof webSearchPreview;
 } = {
+  applyPatch,
   codeInterpreter,
   fileSearch,
   imageGeneration,
