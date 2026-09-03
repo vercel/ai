@@ -53,6 +53,7 @@ import {
   type ListResourcesResult,
   type ListPromptsResult,
   type ListToolsResult,
+  type McpProviderMetadata,
   type McpToolSet,
   type Notification,
   type PaginatedRequest,
@@ -948,13 +949,8 @@ class DefaultMCPClient implements MCPClient {
       const self = this;
       const outputSchema =
         schemas !== 'automatic' ? schemas[name]?.outputSchema : undefined;
-<<<<<<< HEAD
-=======
-      const appMeta = getMCPAppToolMeta({ _meta });
       const metadata = {
         clientName: this.clientInfo.name,
-        toolName: name,
-        ...(resolvedTitle != null ? { title: resolvedTitle } : {}),
         ...(annotations != null
           ? {
               annotations: {
@@ -976,16 +972,7 @@ class DefaultMCPClient implements MCPClient {
               },
             }
           : {}),
-        ...(appMeta?.resourceUri != null
-          ? {
-              app: {
-                ...appMeta,
-                mimeType: MCP_APP_MIME_TYPE,
-              } as JSONObject,
-            }
-          : {}),
       } satisfies McpProviderMetadata;
->>>>>>> 33ba8fd5ba (feat(mcp): surface server-provided tool annotations in tool metadata (#20287))
 
       const execute = async (
         args: any,
@@ -1010,9 +997,7 @@ class DefaultMCPClient implements MCPClient {
           ? dynamicTool({
               description,
               title: resolvedTitle,
-              metadata: {
-                clientName: this.clientInfo.name,
-              },
+              metadata,
               inputSchema: jsonSchema({
                 ...inputSchema,
                 properties: inputSchema.properties ?? {},
@@ -1024,9 +1009,7 @@ class DefaultMCPClient implements MCPClient {
           : tool({
               description,
               title: resolvedTitle,
-              metadata: {
-                clientName: this.clientInfo.name,
-              },
+              metadata,
               inputSchema: schemas[name].inputSchema,
               ...(outputSchema != null ? { outputSchema } : {}),
               execute,

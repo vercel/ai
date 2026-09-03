@@ -2755,8 +2755,6 @@ describe('MCPClient', () => {
 
       expect(dynamicTools['annotated-tool'].metadata).toEqual({
         clientName: 'ai-sdk-mcp-client',
-        toolName: 'annotated-tool',
-        title: 'Annotated Tool',
         annotations: {
           title: 'Annotated Tool',
           readOnlyHint: false,

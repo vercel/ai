@@ -250,7 +250,8 @@ on the resulting tool call's `toolMetadata.annotations`.
 Annotations are untrusted, server-provided hints. The MCP client does not turn
 them into an approval policy automatically. Applications should combine them
 with deterministic controls such as tool allowlists, scoped credentials, and
-their own [`toolApproval`](/docs/agents/tool-approvals) policy.
+their own [`needsApproval`](/docs/ai-sdk-core/tools-and-tool-calling#tool-execution-approval)
+policy.
 
 The following conservative policy allows tools to run automatically only when
 the server explicitly marks them as read-only. Tools with `readOnlyHint: false`
@@ -259,24 +260,25 @@ or no `readOnlyHint` require user approval:
 ```typescript
 import { type McpProviderMetadata } from '@ai-sdk/mcp';
 
+const mcpTools = await mcpClient.tools();
+const tools = Object.fromEntries(
+  Object.entries(mcpTools).map(([name, mcpTool]) => {
+    const annotations = (mcpTool.metadata as McpProviderMetadata | undefined)
+      ?.annotations;
+
+    return [
+      name,
+      {
+        ...mcpTool,
+        needsApproval: annotations?.readOnlyHint !== true,
+      },
+    ];
+  }),
+);
+
 const result = streamText({
   model: __MODEL__,
   tools,
-  toolApproval: ({ toolCall }) => {
-    const annotations = (
-      toolCall.toolMetadata as McpProviderMetadata | undefined
-    )?.annotations;
-
-    return annotations?.readOnlyHint === true
-      ? 'not-applicable'
-      : {
-          type: 'user-approval',
-          reason:
-            annotations?.destructiveHint === true
-              ? 'The MCP server marks this tool as destructive.'
-              : 'The MCP server does not mark this tool as read-only.',
-        };
-  },
   prompt,
 });
 ```
