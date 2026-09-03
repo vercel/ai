@@ -511,6 +511,10 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       // text
       if (part.text) {
         content.push({ type: 'text', text: part.text });
+      } else if (part.text == null && part.citationsContent) {
+        for (const generatedContent of part.citationsContent.content) {
+          content.push({ type: 'text', text: generatedContent.text });
+        }
       }
 
       // reasoning
@@ -1085,6 +1089,14 @@ const BedrockToolUseSchema = z.object({
   input: z.unknown(),
 });
 
+const BedrockCitationsContentSchema = z.object({
+  content: z.array(
+    z.object({
+      text: z.string(),
+    }),
+  ),
+});
+
 const BedrockReasoningTextSchema = z.object({
   signature: z.string().nullish(),
   text: z.string(),
@@ -1107,6 +1119,7 @@ const BedrockResponseSchema = z.object({
       content: z.array(
         z.object({
           text: z.string().nullish(),
+          citationsContent: BedrockCitationsContentSchema.nullish(),
           toolUse: BedrockToolUseSchema.nullish(),
           reasoningContent: z
             .union([
