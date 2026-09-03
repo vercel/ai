@@ -869,6 +869,7 @@ describe('createACP', () => {
 
     const session = await harness.doStart({
       sessionId: 'session-1',
+      headers: { 'x-tenant': 'acme' },
       sandboxSession: fakeSandbox({
         runs: [],
         spawns,
@@ -887,6 +888,7 @@ describe('createACP', () => {
         PROVIDER_API_KEY: 'ephemeral-PROVIDER_API_KEY',
         PROVIDER_BASE_URL: 'https://gateway.example/v1',
       },
+      headers: { 'x-tenant': 'acme' },
     });
     expect(addRequestTransformations).toHaveBeenCalledWith([
       {

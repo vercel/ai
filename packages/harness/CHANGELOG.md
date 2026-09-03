@@ -1,5 +1,16 @@
 # @ai-sdk/harness
 
+## 1.0.101
+
+### Patch Changes
+
+- 951c54d: feat(harness): support `askUserQuestions` tool including support for normalization across harness adapters
+- Updated dependencies [a51cc94]
+- Updated dependencies [d1904d3]
+- Updated dependencies [84e5a79]
+- Updated dependencies [a8e8ad0]
+  - ai@7.0.92
+
 ## 1.0.100
 
 ### Patch Changes

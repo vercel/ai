@@ -1,5 +1,13 @@
 # @ai-sdk/harness-acp
 
+## 1.0.39
+
+### Patch Changes
+
+- 951c54d: feat(harness): support `askUserQuestions` tool including support for normalization across harness adapters
+- Updated dependencies [951c54d]
+  - @ai-sdk/harness@1.0.101
+
 ## 1.0.38
 
 ### Patch Changes

@@ -27,6 +27,32 @@ it('should remove additionalProperties and $schema', () => {
   expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
 });
 
+it('should preserve array length constraints', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      elements: {
+        type: 'array',
+        items: { type: 'string' },
+        minItems: 2,
+        maxItems: 4,
+      },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual({
+    type: 'object',
+    properties: {
+      elements: {
+        type: 'array',
+        items: { type: 'string' },
+        minItems: 2,
+        maxItems: 4,
+      },
+    },
+  });
+});
+
 it('should inline direct references to root-level $defs', () => {
   const input = {
     type: 'object',

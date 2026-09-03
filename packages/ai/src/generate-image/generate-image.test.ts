@@ -803,6 +803,64 @@ describe('generateImage', () => {
       });
     });
 
+    it('should preserve per-call diagnostics when no images are returned', async () => {
+      const providerMetadata = {
+        google: {
+          images: [],
+          promptFeedback: {
+            blockReason: 'SAFETY',
+          },
+        },
+      };
+      const warnings = [
+        {
+          type: 'other' as const,
+          message: 'prompt was blocked',
+        },
+      ];
+      const usage = {
+        inputTokens: 7,
+        outputTokens: 0,
+        totalTokens: 7,
+      };
+
+      await expect(
+        generateImage({
+          model: new MockImageModelV4({
+            doGenerate: async () => ({
+              ...createMockResponse({
+                images: [],
+                providerMetaData: providerMetadata,
+                timestamp: testDate,
+                headers: {
+                  'x-request-id': 'request-id',
+                },
+                warnings,
+              }),
+              usage,
+            }),
+          }),
+          prompt,
+        }),
+      ).rejects.toMatchObject({
+        calls: [
+          {
+            images: [],
+            providerMetadata,
+            response: {
+              timestamp: testDate,
+              modelId: expect.any(String),
+              headers: {
+                'x-request-id': 'request-id',
+              },
+            },
+            warnings,
+            usage,
+          },
+        ],
+      });
+    });
+
     it('should include response headers in error when no images generated', async () => {
       await expect(
         generateImage({

@@ -324,6 +324,9 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         const requestTransformations = settings.credentialBrokering({
           env: brokeringEnvironment,
           sandboxEnv: sandboxImplementationEnvironment,
+          ...(startOptions.headers == null
+            ? {}
+            : { headers: startOptions.headers }),
         });
         if (requestTransformations.length > 0) {
           await sandboxSession.addRequestTransformations(

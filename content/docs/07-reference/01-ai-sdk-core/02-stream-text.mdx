@@ -1273,6 +1273,20 @@ To see `streamText` in action, check out [these examples](#examples).
                         'The schema of the array elements to generate.',
                     },
                     {
+                      name: 'minItems',
+                      type: 'number',
+                      isOptional: true,
+                      description:
+                        'Optional minimum number of array elements. Must be a non-negative integer.',
+                    },
+                    {
+                      name: 'maxItems',
+                      type: 'number',
+                      isOptional: true,
+                      description:
+                        'Optional maximum number of array elements. Must be a non-negative integer and greater than or equal to minItems.',
+                    },
+                    {
                       name: 'name',
                       type: 'string',
                       isOptional: true,
@@ -4017,7 +4031,7 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'elementStream',
       type: 'AsyncIterableStream<ELEMENT_OUTPUT>',
       description:
-        'A stream of individual array elements as they complete. Only available when using `output: Output.array()`. Each element is complete and validated against the element schema. AsyncIterableStream is defined as AsyncIterable<T> & ReadableStream<T>.',
+        'A stream of individual array elements as they complete. Only available when using `output: Output.array()`. Each element is complete and validated against the element schema. When `maxItems` is set, the stream errors before emitting the first excess element. AsyncIterableStream is defined as AsyncIterable<T> & ReadableStream<T>.',
     },
     {
       name: 'output',

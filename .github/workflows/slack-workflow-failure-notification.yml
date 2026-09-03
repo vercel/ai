@@ -12,7 +12,6 @@ on:
 
 permissions:
   actions: read
-  checks: read
   contents: read
 
 jobs:
@@ -37,56 +36,31 @@ jobs:
         with:
           github-token: ${{ github.token }}
           script: |
-            const approvalExpiredMessage =
-              'This workflow run required approval but was not approved before it expired.';
             const { owner, repo } = context.repo;
             let approvalExpired = false;
 
             try {
+              // An unapproved fork PR run has no jobs. When its PR is closed,
+              // GitHub completes the run as a failure and renders the expiration
+              // message in the UI without creating a job or check annotation.
               const jobs = await github.paginate(
                 github.rest.actions.listJobsForWorkflowRun,
                 {
                   owner,
                   repo,
                   run_id: context.payload.workflow_run.id,
-                  filter: 'latest',
+                  filter: 'all',
                   per_page: 100,
                 },
               );
+              const workflowRun = context.payload.workflow_run;
+              const isForkPullRequest =
+                workflowRun.event === 'pull_request' &&
+                workflowRun.head_repository?.full_name != null &&
+                workflowRun.head_repository.full_name !==
+                  workflowRun.repository.full_name;
 
-              for (const job of jobs) {
-                const checkRunId = Number(job.check_run_url.split('/').at(-1));
-
-                if (!Number.isInteger(checkRunId)) {
-                  core.warning(`Could not determine the check run for ${job.name}.`);
-                  continue;
-                }
-
-                try {
-                  const annotations = await github.paginate(
-                    github.rest.checks.listAnnotations,
-                    {
-                      owner,
-                      repo,
-                      check_run_id: checkRunId,
-                      per_page: 100,
-                    },
-                  );
-
-                  if (
-                    annotations.some(
-                      annotation => annotation.message === approvalExpiredMessage,
-                    )
-                  ) {
-                    approvalExpired = true;
-                    break;
-                  }
-                } catch (error) {
-                  core.warning(
-                    `Could not inspect annotations for ${job.name}: ${error.message}`,
-                  );
-                }
-              }
+              approvalExpired = isForkPullRequest && jobs.length === 0;
             } catch (error) {
               core.warning(
                 `Could not inspect jobs for the Backport workflow: ${error.message}`,
