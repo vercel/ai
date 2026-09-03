@@ -806,40 +806,6 @@ type WorkflowToolContext<TOOL extends ToolSet[keyof ToolSet]> = [
   ? undefined
   : InferToolContext<TOOL>;
 
-type UnionKeys<UNION> = UNION extends UNION ? keyof UNION : never;
-
-/**
- * Preserves each property's value type while making properties from object
- * union members readable in callbacks. TypeScript narrows the nested
- * `toolCall`, but does not propagate that narrowing to sibling properties.
- */
-type MergeObjectUnion<UNION extends object> = {
-  readonly [KEY in UnionKeys<UNION>]: UNION extends UNION
-    ? KEY extends keyof UNION
-      ? UNION[KEY]
-      : never
-    : never;
-};
-
-type WorkflowToolContexts<TTools extends ToolSet> =
-  Exclude<
-    WorkflowToolContext<TTools[keyof TTools]>,
-    undefined
-  > extends infer CONTEXTS extends object
-    ? [CONTEXTS] extends [never]
-      ? undefined
-      : undefined extends WorkflowToolContext<TTools[keyof TTools]>
-        ? MergeObjectUnion<CONTEXTS> | undefined
-        : MergeObjectUnion<CONTEXTS>
-    : undefined;
-
-type WorkflowToolOutputs<TTools extends ToolSet> =
-  InferToolOutput<TTools[keyof TTools]> extends infer OUTPUTS
-    ? [OUTPUTS] extends [object]
-      ? MergeObjectUnion<OUTPUTS>
-      : OUTPUTS
-    : never;
-
 type WorkflowToolCall<
   TTools extends ToolSet,
   NAME extends keyof TTools,
@@ -848,6 +814,11 @@ type WorkflowToolCall<
   readonly input: InferToolInput<TTools[NAME]>;
 };
 
+/**
+ * Keeps a tool call correlated with that tool's context in each union member.
+ * TypeScript can narrow the nested tool call directly; consumers that need the
+ * correlated sibling fields can narrow the event itself or extract a member.
+ */
 type WorkflowAgentToolExecutionStartEvent<TTools extends ToolSet> = [
   ToolSet,
 ] extends [TTools]
@@ -862,7 +833,7 @@ type WorkflowAgentToolExecutionStartEvent<TTools extends ToolSet> = [
         readonly toolCall: WorkflowToolCall<TTools, NAME>;
         readonly stepNumber: number;
         readonly messages: ModelMessage[];
-        readonly toolContext: WorkflowToolContexts<TTools>;
+        readonly toolContext: WorkflowToolContext<TTools[NAME]>;
       };
     }[keyof TTools];
 
@@ -875,6 +846,10 @@ export type WorkflowAgentOnToolExecutionStartCallback<
   event: WorkflowAgentToolExecutionStartEvent<TTools>,
 ) => PromiseLike<void> | void;
 
+/**
+ * Keeps a tool call correlated with that tool's context and successful output
+ * in each union member.
+ */
 type WorkflowAgentToolExecutionEndEvent<TTools extends ToolSet> = [
   ToolSet,
 ] extends [TTools]
@@ -906,9 +881,9 @@ type WorkflowAgentToolExecutionEndEvent<TTools extends ToolSet> = [
             readonly stepNumber: number;
             readonly durationMs: number;
             readonly messages: ModelMessage[];
-            readonly toolContext: WorkflowToolContexts<TTools>;
+            readonly toolContext: WorkflowToolContext<TTools[NAME]>;
             readonly success: true;
-            readonly output: WorkflowToolOutputs<TTools>;
+            readonly output: InferToolOutput<TTools[NAME]>;
             readonly error?: never;
           }
         | {
@@ -916,7 +891,7 @@ type WorkflowAgentToolExecutionEndEvent<TTools extends ToolSet> = [
             readonly stepNumber: number;
             readonly durationMs: number;
             readonly messages: ModelMessage[];
-            readonly toolContext: WorkflowToolContexts<TTools>;
+            readonly toolContext: WorkflowToolContext<TTools[NAME]>;
             readonly success: false;
             readonly error: unknown;
             readonly output?: never;

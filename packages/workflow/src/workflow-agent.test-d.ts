@@ -1,11 +1,13 @@
 import { expectTypeOf, describe, it } from 'vitest';
 import { z } from 'zod/v4';
 import {
+  dynamicTool,
   tool,
   type Experimental_SandboxSession as SandboxSession,
   type InferUITools,
   type Instructions,
   type ModelMessage,
+  type ToolSet,
   type UIMessage,
 } from 'ai';
 import type { ModelCallStreamPart } from './do-stream-step.js';
@@ -13,6 +15,9 @@ import {
   Output,
   WorkflowAgent,
   type InferWorkflowAgentUIMessage,
+  type ToolCall,
+  type WorkflowAgentOnToolExecutionEndCallback,
+  type WorkflowAgentOnToolExecutionStartCallback,
   type WorkflowAgentOptions,
   type WorkflowAgentStreamOptions,
 } from './workflow-agent.js';
@@ -339,19 +344,92 @@ describe('WorkflowAgent types', () => {
     const tools = {
       weather: tool({
         inputSchema: z.object({ city: z.string() }),
-        outputSchema: z.object({ temperature: z.number() }),
+        outputSchema: z.object({
+          value: z.number(),
+          temperature: z.number(),
+        }),
         contextSchema: z.object({ units: z.enum(['c', 'f']) }),
-        execute: async () => ({ temperature: 20 }),
+        execute: async () => ({ value: 20, temperature: 20 }),
       }),
       stocks: tool({
         inputSchema: z.object({ symbol: z.string() }),
-        outputSchema: z.object({ price: z.number() }),
+        outputSchema: z.object({ value: z.string(), price: z.number() }),
         contextSchema: z.object({
           exchange: z.enum(['nasdaq', 'nyse']),
         }),
-        execute: async () => ({ price: 100 }),
+        execute: async () => ({ value: '$100', price: 100 }),
+      }),
+      isHealthy: tool({
+        inputSchema: z.object({}),
+        outputSchema: z.boolean(),
+        execute: async () => true,
       }),
     };
+
+    type StartEvent = Parameters<
+      WorkflowAgentOnToolExecutionStartCallback<typeof tools>
+    >[0];
+    type EndEvent = Parameters<
+      WorkflowAgentOnToolExecutionEndCallback<typeof tools>
+    >[0];
+    type WeatherStartEvent = Extract<
+      StartEvent,
+      { toolCall: { toolName: 'weather' } }
+    >;
+    type WeatherSuccessEvent = Extract<
+      EndEvent,
+      { toolCall: { toolName: 'weather' }; success: true }
+    >;
+    type StocksSuccessEvent = Extract<
+      EndEvent,
+      { toolCall: { toolName: 'stocks' }; success: true }
+    >;
+    type HealthSuccessEvent = Extract<
+      EndEvent,
+      { toolCall: { toolName: 'isHealthy' }; success: true }
+    >;
+    type WeatherFailureEvent = Extract<
+      EndEvent,
+      { toolCall: { toolName: 'weather' }; success: false }
+    >;
+
+    expectTypeOf<WeatherStartEvent['toolCall']['input']>().toEqualTypeOf<{
+      city: string;
+    }>();
+    expectTypeOf<WeatherStartEvent['toolContext']>().toEqualTypeOf<{
+      units: 'c' | 'f';
+    }>();
+    expectTypeOf<WeatherSuccessEvent['output']>().toEqualTypeOf<{
+      value: number;
+      temperature: number;
+    }>();
+    expectTypeOf<StocksSuccessEvent['output']>().toEqualTypeOf<{
+      value: string;
+      price: number;
+    }>();
+    expectTypeOf<
+      HealthSuccessEvent['toolContext']
+    >().toEqualTypeOf<undefined>();
+    expectTypeOf<HealthSuccessEvent['output']>().toEqualTypeOf<boolean>();
+    expectTypeOf<WeatherFailureEvent['toolContext']>().toEqualTypeOf<{
+      units: 'c' | 'f';
+    }>();
+    expectTypeOf<WeatherFailureEvent['error']>().toEqualTypeOf<unknown>();
+    expectTypeOf<WeatherFailureEvent['output']>().toEqualTypeOf<undefined>();
+
+    const checkWeatherEvent = (event: WeatherSuccessEvent) => {
+      event.toolCall.input.city;
+      event.toolContext.units;
+      event.output.temperature;
+      // @ts-expect-error weather input does not contain a stock symbol
+      event.toolCall.input.symbol;
+      // @ts-expect-error weather context does not contain a stock exchange
+      event.toolContext.exchange;
+      // @ts-expect-error weather output does not contain a stock price
+      event.output.price;
+    };
+
+    expectTypeOf(checkWeatherEvent).toBeFunction();
 
     new WorkflowAgent({
       model,
@@ -363,25 +441,55 @@ describe('WorkflowAgent types', () => {
       onToolExecutionStart: event => {
         if (event.toolCall.toolName === 'weather') {
           const city: string = event.toolCall.input.city;
-          const units: 'c' | 'f' = event.toolContext.units;
           // @ts-expect-error weather input does not contain a stock symbol
           event.toolCall.input.symbol;
           expectTypeOf(city).toEqualTypeOf<string>();
-          expectTypeOf(units).toEqualTypeOf<'c' | 'f'>();
         }
       },
       onToolExecutionEnd: event => {
         if (event.toolCall.toolName === 'weather' && event.success) {
           const city: string = event.toolCall.input.city;
-          const units: 'c' | 'f' = event.toolContext.units;
-          const temperature: number = event.output.temperature;
           // @ts-expect-error weather input does not contain a stock symbol
           event.toolCall.input.symbol;
           expectTypeOf(city).toEqualTypeOf<string>();
-          expectTypeOf(units).toEqualTypeOf<'c' | 'f'>();
-          expectTypeOf(temperature).toEqualTypeOf<number>();
         }
       },
     });
+  });
+
+  it('uses broad callback fields for broad and dynamic tool sets', () => {
+    type BroadStartEvent = Parameters<
+      WorkflowAgentOnToolExecutionStartCallback<ToolSet>
+    >[0];
+    type BroadEndEvent = Parameters<
+      WorkflowAgentOnToolExecutionEndCallback<ToolSet>
+    >[0];
+    type BroadSuccessEvent = Extract<BroadEndEvent, { success: true }>;
+
+    expectTypeOf<BroadStartEvent['toolCall']>().toEqualTypeOf<ToolCall>();
+    expectTypeOf<BroadStartEvent['toolContext']>().toEqualTypeOf<unknown>();
+    expectTypeOf<BroadSuccessEvent['output']>().toEqualTypeOf<unknown>();
+
+    const tools = {
+      runtime: dynamicTool({
+        description: 'Runtime-defined tool',
+        inputSchema: z.unknown(),
+        execute: async input => input,
+      }),
+    };
+    type DynamicStartEvent = Extract<
+      Parameters<WorkflowAgentOnToolExecutionStartCallback<typeof tools>>[0],
+      { toolCall: { toolName: 'runtime' } }
+    >;
+    type DynamicSuccessEvent = Extract<
+      Parameters<WorkflowAgentOnToolExecutionEndCallback<typeof tools>>[0],
+      { toolCall: { toolName: 'runtime' }; success: true }
+    >;
+
+    expectTypeOf<
+      DynamicStartEvent['toolCall']['input']
+    >().toEqualTypeOf<unknown>();
+    expectTypeOf<DynamicStartEvent['toolContext']>().toEqualTypeOf<undefined>();
+    expectTypeOf<DynamicSuccessEvent['output']>().toEqualTypeOf<unknown>();
   });
 });
