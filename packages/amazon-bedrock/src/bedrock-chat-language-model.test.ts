@@ -2651,6 +2651,154 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should extract text from citations content', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                citationsContent: {
+                  citations: [
+                    {
+                      title: 'document-1',
+                      sourceContent: [{ text: 'Source text' }],
+                    },
+                  ],
+                  content: [
+                    { text: 'First cited response. ' },
+                    { text: 'Second cited response.' },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "First cited response. ",
+          "type": "text",
+        },
+        {
+          "text": "Second cited response.",
+          "type": "text",
+        },
+      ]
+    `);
+  });
+
+  it('should ignore citations content without generated content', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                citationsContent: {
+                  citations: [],
+                },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 0, totalTokens: 4 },
+        stopReason: 'stop_sequence',
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toStrictEqual([]);
+  });
+
+  it('should skip citation generated content without text', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                citationsContent: {
+                  citations: [],
+                  content: [
+                    {},
+                    {
+                      image: {
+                        format: 'png',
+                        source: { bytes: 'base64-data' },
+                      },
+                    },
+                    { text: 'Supported cited response.' },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 3, totalTokens: 7 },
+        stopReason: 'stop_sequence',
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toStrictEqual([
+      { type: 'text', text: 'Supported cited response.' },
+    ]);
+  });
+
+  it('should prefer canonical text over citations content in the same block', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                text: 'Canonical response.',
+                citationsContent: {
+                  citations: [],
+                  content: [{ text: 'Citation fallback.' }],
+                },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toStrictEqual([
+      { type: 'text', text: 'Canonical response.' },
+    ]);
+  });
+
   it('should extract usage', async () => {
     prepareJsonResponse({
       usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
