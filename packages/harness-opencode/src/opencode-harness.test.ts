@@ -711,7 +711,6 @@ describe('createOpenCode adapter', () => {
       agent: { general: { model: 'openai/gpt-5.4-mini' } },
     };
     const harness = createOpenCode({
-      model: 'legacy-model',
       openCodeConfig,
       reasoningVariant: 'high',
       mcpServers,
@@ -927,8 +926,8 @@ describe('createOpenCode adapter', () => {
     });
 
     it('shares the getter across configured harness instances', () => {
-      const first = createOpenCode({ model: 'first-model' });
-      const second = createOpenCode({ model: 'second-model' });
+      const first = createOpenCode({ reasoningVariant: 'low' });
+      const second = createOpenCode({ reasoningVariant: 'high' });
 
       expect(first.getBootstrap).toBe(second.getBootstrap);
     });

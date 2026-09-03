@@ -105,7 +105,7 @@ selection operations. Use `session-config-option` with the ACP configuration
 option ID as `path`, or `session-model` with the JSON-RPC request property as
 `path` for implementations such as Grok Build that use the legacy
 `session/set_model` method. No model operation is sent when `HarnessAgent` has
-no model and the deprecated `modelId` fallback is also unset.
+no model configured.
 
 Use `instructionMapping` when the ACP implementation exposes a native system
 or developer prompt. A `session-meta` mapping writes `HarnessAgent`

@@ -221,8 +221,8 @@ describe('createDeepAgents', () => {
   });
 
   it('shares the getter across configured harness instances', () => {
-    const first = createDeepAgents({ model: 'first-model' });
-    const second = createDeepAgents({ model: 'second-model' });
+    const first = createDeepAgents({ effort: 'low' });
+    const second = createDeepAgents({ effort: 'high' });
 
     expect(first.getBootstrap).toBe(second.getBootstrap);
   });
@@ -235,7 +235,7 @@ describe('createDeepAgents', () => {
   it('passes the harness client app to the bridge environment', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const spawns: string[] = [];
-    const harness = createDeepAgents({ model: 'legacy-model' });
+    const harness = createDeepAgents();
     const session = await harness.doStart({
       sessionId: 'test-session',
       sessionWorkDir: '/vercel/sandbox/deepagents-test-session',

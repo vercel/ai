@@ -430,8 +430,8 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
-  it('prefers the per-turn model over the deprecated adapter model', async () => {
-    const harness = createClaudeCode({ model: 'legacy-model' });
+  it('sends the per-turn model to the CLI', async () => {
+    const harness = createClaudeCode();
     const session = await harness.doStart({
       sessionId: 's1',
       sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
@@ -1376,8 +1376,8 @@ describe('createClaudeCode adapter', () => {
     });
 
     it('shares the getter across configured harness instances', () => {
-      const first = createClaudeCode({ model: 'first-model' });
-      const second = createClaudeCode({ model: 'second-model' });
+      const first = createClaudeCode({ maxTurns: 1 });
+      const second = createClaudeCode({ maxTurns: 2 });
 
       expect(first.getBootstrap).toBe(second.getBootstrap);
     });

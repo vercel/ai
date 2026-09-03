@@ -188,7 +188,6 @@ describe('createGrokBuild', () => {
     createGrokBuild({
       auth: 'direct',
       credentialForwarding,
-      model: 'grok-code-fast-1',
       reasoningEffort: 'high',
       port: 4319,
       portEndpoint,
@@ -202,7 +201,6 @@ describe('createGrokBuild', () => {
     expect({
       auth: settings.auth,
       credentialForwarding: settings.credentialForwarding,
-      modelId: settings.modelId,
       modelMapping: settings.modelMapping,
       args: settings.args,
       port: settings.port,
@@ -213,7 +211,6 @@ describe('createGrokBuild', () => {
     }).toEqual({
       auth: 'direct',
       credentialForwarding,
-      modelId: 'grok-code-fast-1',
       modelMapping: {
         type: 'session-model',
         path: 'modelId',
@@ -232,7 +229,6 @@ describe('createGrokBuild', () => {
 
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
 
-    expect(settings.modelId).toBeUndefined();
     expect(settings.args).toEqual([
       'agent',
       '--reasoning-effort',
@@ -250,20 +246,7 @@ describe('createGrokBuild', () => {
 
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
 
-    expect(settings.modelId).toBeUndefined();
     expect(settings.args).toEqual(['agent', 'stdio']);
-    expect(settings.modelMapping).toEqual({
-      type: 'session-model',
-      path: 'modelId',
-    });
-  });
-
-  it('configures a model without a reasoning effort override', () => {
-    createGrokBuild({ model: 'grok-4.5-build' });
-
-    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
-
-    expect(settings.modelId).toBe('grok-4.5-build');
     expect(settings.modelMapping).toEqual({
       type: 'session-model',
       path: 'modelId',

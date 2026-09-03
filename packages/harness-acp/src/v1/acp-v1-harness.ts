@@ -438,7 +438,6 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               channel: attachChannel,
               proc: undefined,
               modelMapping: settings.modelMapping,
-              defaultModelId: settings.modelId,
               sessionMeta: settings.session?.meta,
               instructionMapping: settings.instructionMapping,
               outputSchemaMapping: settings.outputSchemaMapping,
@@ -728,7 +727,6 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         channel,
         proc,
         modelMapping: settings.modelMapping,
-        defaultModelId: settings.modelId,
         sessionMeta: settings.session?.meta,
         instructionMapping: settings.instructionMapping,
         outputSchemaMapping: settings.outputSchemaMapping,
@@ -1041,7 +1039,6 @@ function createSession({
   channel,
   proc,
   modelMapping,
-  defaultModelId,
   sessionMeta,
   instructionMapping,
   outputSchemaMapping,
@@ -1077,7 +1074,6 @@ function createSession({
   channel: ACPChannel;
   proc: Experimental_SandboxProcess | undefined;
   modelMapping: ACPModelMapping;
-  defaultModelId: string | undefined;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
   instructionMapping: ACPInstructionMapping | undefined;
   outputSchemaMapping: ACPOutputSchemaMapping | undefined;
@@ -1444,7 +1440,7 @@ function createSession({
         prompt: options.prompt,
         harnessId,
       });
-      const model = options.model ?? defaultModelId;
+      const model = options.model;
       const turnStartConfig = createACPTurnStartConfig({
         prompt,
         tools: options.tools ?? [],

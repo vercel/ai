@@ -517,46 +517,6 @@ describe('createACP', () => {
     await session.doDestroy();
   });
 
-  it('uses the deprecated ACP modelId as a model fallback', async () => {
-    const harness = createACP({
-      harnessId: 'legacy-model-mapping-acp',
-      ...agentSettings,
-      modelId: 'legacy-model',
-    });
-
-    const session = await harness.doStart({
-      sessionId: 'session-1',
-      sandboxSession: fakeSandbox({
-        runs: [],
-        spawns: [],
-        stop: async () => {},
-      }),
-      sessionWorkDir: '/workspace/user-project',
-    });
-    const control = await session.doPromptTurn({
-      skills: [],
-      tools: [],
-      prompt: 'Hello',
-      emit: () => {},
-    });
-
-    expect(harnessUtilsMocks.channels[0]!.sent[0]).toMatchObject({
-      type: 'start',
-      model: 'legacy-model',
-      modelMapping: {
-        type: 'session-config-option',
-        path: 'model',
-      },
-    });
-    harnessUtilsMocks.channels[0]!.emit({
-      type: 'finish',
-      finishReason: { unified: 'stop', raw: 'end_turn' },
-      totalUsage: unknownUsage(),
-    });
-    await control.done;
-    await session.doDestroy();
-  });
-
   it('requires credential environment and brokering settings together', () => {
     expect(() =>
       createACP({
@@ -2529,7 +2489,6 @@ describe('createACP', () => {
       auth: 'ai-gateway',
       ...agentSettings,
       forwardEnv: [],
-      modelId: 'gpt-5.1-codex',
       session: {
         meta: {
           profile: 'restored',

@@ -96,13 +96,6 @@ export type DeepAgentsHarnessSettings = {
    */
   readonly credentialForwarding?: HarnessV1CredentialForwarding;
   /**
-   * Model id for the DeepAgents runtime, e.g. `claude-sonnet-4` (converted to
-   * `provider:model`).
-   *
-   * @deprecated Use `model` on `HarnessAgent` instead.
-   */
-  readonly model?: string;
-  /**
    * Controls Anthropic extended thinking for the Deep Agents model. Unset
    * preserves the Deep Agents runtime default.
    */
@@ -353,7 +346,6 @@ export function createDeepAgents(
             sessionId: startOpts.sessionId,
             channel: attachChannel,
             proc: undefined,
-            model: settings.model,
             thinking: settings.thinking,
             effort: settings.effort,
             bridgePort: coords.port,
@@ -476,7 +468,6 @@ export function createDeepAgents(
         sessionId: startOpts.sessionId,
         channel,
         proc,
-        model: settings.model,
         thinking: settings.thinking,
         effort: settings.effort,
         bridgePort: boundPort,
@@ -616,7 +607,6 @@ function createSession({
   sessionId,
   channel,
   proc,
-  model,
   thinking,
   effort,
   bridgePort,
@@ -636,7 +626,6 @@ function createSession({
   channel: DeepAgentsChannel;
   // Undefined on attach — the live bridge was spawned by another process.
   proc: Experimental_SandboxProcess | undefined;
-  model: string | undefined;
   thinking: DeepAgentsThinkingConfig | undefined;
   effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
   bridgePort: number;
@@ -815,9 +804,7 @@ function createSession({
         ...(promptOpts.responseFormat == null
           ? {}
           : { responseFormat: promptOpts.responseFormat }),
-        ...((promptOpts.model ?? model)
-          ? { model: promptOpts.model ?? model }
-          : {}),
+        ...(promptOpts.model ? { model: promptOpts.model } : {}),
         ...(thinking ? { thinking } : {}),
         ...(effort ? { effort } : {}),
         ...(skillsPaths?.length ? { skillsPaths } : {}),
