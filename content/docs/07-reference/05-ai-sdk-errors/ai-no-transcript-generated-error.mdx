@@ -14,12 +14,16 @@ This error occurs when no transcript could be generated from the input.
 
 ## Checking for this Error
 
-You can check if an error is an instance of `AI_NoTranscriptGeneratedError` using:
+AI SDK 5 does not export the `NoTranscriptGeneratedError` class. Use the base
+`AISDKError` guard and check the error name:
 
 ```typescript
-import { NoTranscriptGeneratedError } from 'ai';
+import { AISDKError } from 'ai';
 
-if (NoTranscriptGeneratedError.isInstance(error)) {
+if (
+  AISDKError.isInstance(error) &&
+  error.name === 'AI_NoTranscriptGeneratedError'
+) {
   // Handle the error
 }
 ```
