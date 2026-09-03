@@ -69,6 +69,21 @@ export type HarnessV1StartOptions = {
    * consumer has not enabled diagnostics.
    */
   readonly observability?: HarnessV1Observability;
+
+  /**
+   * Ask the host for permission to install the runtime's executable (the one
+   * the adapter declared in `HarnessV1.installation`) into the session's
+   * environment. Populated by the framework from the consumer's
+   * `onInstallRequest` setting and the environment's ownership: installs into
+   * provider-owned (throwaway) sandboxes are permitted by default, installs
+   * into a user-owned environment are denied by default.
+   *
+   * Adapters call this only after discovering the executable is missing.
+   * `false` means the adapter must throw `HarnessExecutableMissingError`
+   * rather than install.
+   */
+  readonly requestInstallConsent?: () => PromiseLike<boolean>;
+
   /**
    * Sandbox session the adapter operates against. Network sandbox sessions
    * expose optional infrastructure capabilities for bridge wiring; caller-

@@ -50,6 +50,7 @@ import {
   collectHarnessAgentToolResultContinuations,
   type HarnessAgentToolResultContinuation,
 } from './harness-agent-tool-result-continuation';
+import { buildRequestInstallConsent } from './internal/install-consent';
 import {
   applyBootstrapRecipe,
   hashHarnessBootstrap,
@@ -527,6 +528,11 @@ export class HarnessAgent<
         ...baseStartOptions,
         sandboxSession,
         sessionWorkDir,
+        requestInstallConsent: buildRequestInstallConsent({
+          harness,
+          sandboxSession,
+          onInstallRequest: this.settings.onInstallRequest,
+        }),
       });
       return new HarnessAgentSession({
         sessionId,
