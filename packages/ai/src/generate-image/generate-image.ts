@@ -76,7 +76,7 @@ export type GenerateImagePrompt =
  * @param seed - Seed for the image generation.
  * @param providerOptions - Additional provider-specific options that are passed through to the provider
  * as body parameters.
- * @param maxRetries - Maximum number of retries per image model call, including retries after unclassified empty responses. Provider-classified terminal responses are not retried. Set to 0 to disable retries. Default: 2.
+ * @param maxRetries - Maximum number of retries per image model call, including retries after unclassified empty responses. Empty responses marked as not retryable by the provider are not retried. Set to 0 to disable retries. Default: 2.
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
@@ -148,8 +148,8 @@ export async function generateImage({
 
   /**
    * Maximum number of retries per image model call, including retries after
-   * unclassified empty responses. Provider-classified terminal responses are
-   * not retried. Set to 0 to disable retries.
+   * unclassified empty responses. Empty responses marked as not retryable by
+   * the provider are not retried. Set to 0 to disable retries.
    *
    * @default 2
    */
@@ -219,7 +219,7 @@ export async function generateImage({
 
           callResults.push(result);
 
-          if (result.images.length === 0 && !isTerminalNoImageResult(result)) {
+          if (result.images.length === 0 && result.isRetryable !== false) {
             throw new RetryableNoImageResultError();
           }
 
@@ -400,21 +400,6 @@ function getImageProviderMetadata(
   }
 
   return imageMetadata;
-}
-
-function isTerminalNoImageResult(result: ImageModelV4Result): boolean {
-  const googleMetadata = result.providerMetadata?.google;
-
-  if (!isJSONObject(googleMetadata)) {
-    return false;
-  }
-
-  const promptFeedback = googleMetadata.promptFeedback;
-
-  return (
-    isJSONObject(promptFeedback) &&
-    typeof promptFeedback.blockReason === 'string'
-  );
 }
 
 async function invokeModelMaxImagesPerCall(model: ImageModelV4) {

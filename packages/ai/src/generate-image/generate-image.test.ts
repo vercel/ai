@@ -1,6 +1,7 @@
 import type {
   ImageModelV4,
   ImageModelV4ProviderMetadata,
+  ImageModelV4Result,
   ImageModelV4Usage,
 } from '@ai-sdk/provider';
 import {
@@ -45,8 +46,10 @@ const createMockResponse = (options: {
   providerMetaData?: ImageModelV4ProviderMetadata;
   headers?: Record<string, string>;
   usage?: ImageModelV4Usage;
+  isRetryable?: ImageModelV4Result['isRetryable'];
 }) => ({
   images: options.images,
+  isRetryable: options.isRetryable,
   warnings: options.warnings ?? [],
   providerMetadata: options.providerMetaData ?? {
     testProvider: {
@@ -693,7 +696,7 @@ describe('generateImage', () => {
       }
     });
 
-    it('should not retry provider-classified prompt blocks', async () => {
+    it('should not retry provider-classified terminal empty results', async () => {
       let callCount = 0;
 
       await expect(
@@ -705,12 +708,11 @@ describe('generateImage', () => {
               return createMockResponse({
                 images: [],
                 timestamp: testDate,
+                isRetryable: false,
                 providerMetaData: {
-                  google: {
+                  testProvider: {
                     images: [],
-                    promptFeedback: {
-                      blockReason: 'PROHIBITED_CONTENT',
-                    },
+                    reason: 'content-filter',
                   },
                 },
               });
@@ -830,6 +832,7 @@ describe('generateImage', () => {
             doGenerate: async () => ({
               ...createMockResponse({
                 images: [],
+                isRetryable: false,
                 providerMetaData: providerMetadata,
                 timestamp: testDate,
                 headers: {

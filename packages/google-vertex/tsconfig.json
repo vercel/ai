@@ -20,6 +20,9 @@
   ],
   "references": [
     {
+      "path": "../ai"
+    },
+    {
       "path": "../anthropic"
     },
     {
