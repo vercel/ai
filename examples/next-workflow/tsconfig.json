@@ -50,9 +50,6 @@
       "path": "../../packages/devtools"
     },
     {
-      "path": "../../packages/fal"
-    },
-    {
       "path": "../../packages/provider-utils"
     },
     {
@@ -60,6 +57,9 @@
     },
     {
       "path": "../../packages/workflow"
+    },
+    {
+      "path": "../../packages/fal"
     }
   ]
 }

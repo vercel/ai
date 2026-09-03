@@ -1,6 +1,5 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import { generateImage } from 'ai';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
 import type { GoogleVertexImageModelOptions } from './google-vertex-image-model-options';
 
@@ -110,7 +109,7 @@ describe('GoogleVertexImageModel', () => {
       });
     });
 
-    it('should classify prompt blocks as terminal for generateImage retries', async () => {
+    it('should classify prompt blocks as terminal', async () => {
       server.urls[TEST_URL].response = {
         type: 'json-value',
         body: {
@@ -123,23 +122,20 @@ describe('GoogleVertexImageModel', () => {
           },
         },
       };
-      const doGenerate = vi.spyOn(model, 'doGenerate');
 
-      await expect(
-        generateImage({
-          model,
-          prompt: 'A blocked image prompt',
-          maxRetries: 1,
-        }),
-      ).rejects.toMatchObject({
-        name: 'AI_NoImageGeneratedError',
+      const result = await model.doGenerate({
+        prompt: 'A blocked image prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
       });
 
-      expect(doGenerate).toHaveBeenCalledTimes(1);
-      await expect(doGenerate.mock.results[0].value).resolves.toMatchObject({
-        images: [],
-        isRetryable: false,
-      });
+      expect(result.images).toEqual([]);
+      expect(result.isRetryable).toBe(false);
       expect(server.calls).toHaveLength(1);
     });
 

@@ -88,9 +88,6 @@
       "path": "../../packages/fireworks"
     },
     {
-      "path": "../../packages/fish-audio"
-    },
-    {
       "path": "../../packages/gateway"
     },
     {
@@ -163,9 +160,6 @@
       "path": "../../packages/mcp"
     },
     {
-      "path": "../../packages/minimax"
-    },
-    {
       "path": "../../packages/mistral"
     },
     {
@@ -221,9 +215,6 @@
     },
     {
       "path": "../../packages/voyage"
-    },
-    {
-      "path": "../../packages/workflow"
     },
     {
       "path": "../../packages/xai"
