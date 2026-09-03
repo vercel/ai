@@ -1991,6 +1991,94 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should use a JSON response tool when structured output is combined with function tools', async () => {
+    server.urls[TEST_URL_GEMINI_2_5_FLASH_LITE].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              role: 'model',
+              parts: [
+                {
+                  functionCall: {
+                    id: 'json-call',
+                    name: 'json',
+                    args: { date: '2026-09-04' },
+                  },
+                },
+              ],
+            },
+            finishReason: 'STOP',
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 1,
+          candidatesTokenCount: 1,
+          totalTokenCount: 2,
+        },
+      },
+    };
+
+    const result = await provider
+      .languageModel('gemini-2.5-flash-lite')
+      .doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { date: { type: 'string' } },
+            required: ['date'],
+            additionalProperties: false,
+          },
+        },
+        tools: [
+          {
+            type: 'function',
+            name: 'resolveDate',
+            description: 'Resolve a relative date.',
+            inputSchema: {
+              type: 'object',
+              properties: { expression: { type: 'string' } },
+              required: ['expression'],
+              additionalProperties: false,
+            },
+          },
+        ],
+        toolChoice: { type: 'tool', toolName: 'resolveDate' },
+      });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {},
+      toolConfig: {
+        functionCallingConfig: { mode: 'ANY' },
+      },
+      tools: [
+        {
+          functionDeclarations: [
+            { name: 'resolveDate' },
+            {
+              name: 'json',
+              parameters: {
+                type: 'object',
+                properties: { date: { type: 'string' } },
+                required: ['date'],
+              },
+            },
+          ],
+        },
+      ],
+    });
+    expect(result.content).toEqual([
+      { type: 'text', text: '{"date":"2026-09-04"}' },
+    ]);
+    expect(result.finishReason).toEqual({
+      unified: 'stop',
+      raw: 'STOP',
+    });
+  });
+
   it('should pass headers', async () => {
     prepareJsonFixtureResponse('google-text');
 
@@ -4629,6 +4717,73 @@ describe('doStream', () => {
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+    });
+  });
+
+  it('should stream a JSON response tool as text for structured output', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                role: 'model',
+                parts: [
+                  {
+                    functionCall: {
+                      id: 'json-call',
+                      name: 'json',
+                      args: { date: '2026-09-04' },
+                    },
+                  },
+                ],
+              },
+              finishReason: 'STOP',
+            },
+          ],
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { date: { type: 'string' } },
+          required: ['date'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          type: 'function',
+          name: 'resolveDate',
+          inputSchema: {
+            type: 'object',
+            properties: { expression: { type: 'string' } },
+            required: ['expression'],
+            additionalProperties: false,
+          },
+        },
+      ],
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(events).toContainEqual({
+      type: 'text-delta',
+      id: 'json-call',
+      delta: '{"date":"2026-09-04"}',
+    });
+    expect(events).not.toContainEqual(
+      expect.objectContaining({ type: 'tool-call', toolName: 'json' }),
+    );
+    expect(events.at(-1)).toMatchObject({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'STOP' },
     });
   });
 
