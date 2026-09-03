@@ -196,6 +196,9 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
     }
 
     const isDiarizationModel = this.modelId === 'gpt-4o-transcribe-diarize';
+    const chunkingStrategy =
+      openAIOptions?.chunkingStrategy ??
+      (isDiarizationModel ? 'auto' : undefined);
 
     // Add provider-specific options
     if (openAIOptions) {
@@ -234,31 +237,28 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
           }
         }
       }
-
-      if (openAIOptions.chunkingStrategy != null) {
-        formData.append(
-          'chunking_strategy',
-          typeof openAIOptions.chunkingStrategy === 'string'
-            ? openAIOptions.chunkingStrategy
-            : JSON.stringify({
-                type: openAIOptions.chunkingStrategy.type,
-                ...(openAIOptions.chunkingStrategy.threshold != null && {
-                  threshold: openAIOptions.chunkingStrategy.threshold,
-                }),
-                ...(openAIOptions.chunkingStrategy.prefixPaddingMs != null && {
-                  prefix_padding_ms:
-                    openAIOptions.chunkingStrategy.prefixPaddingMs,
-                }),
-                ...(openAIOptions.chunkingStrategy.silenceDurationMs !=
-                  null && {
-                  silence_duration_ms:
-                    openAIOptions.chunkingStrategy.silenceDurationMs,
-                }),
-              }),
-        );
-      }
     } else if (isDiarizationModel) {
       formData.append('response_format', 'diarized_json');
+    }
+
+    if (chunkingStrategy != null) {
+      formData.append(
+        'chunking_strategy',
+        typeof chunkingStrategy === 'string'
+          ? chunkingStrategy
+          : JSON.stringify({
+              type: chunkingStrategy.type,
+              ...(chunkingStrategy.threshold != null && {
+                threshold: chunkingStrategy.threshold,
+              }),
+              ...(chunkingStrategy.prefixPaddingMs != null && {
+                prefix_padding_ms: chunkingStrategy.prefixPaddingMs,
+              }),
+              ...(chunkingStrategy.silenceDurationMs != null && {
+                silence_duration_ms: chunkingStrategy.silenceDurationMs,
+              }),
+            }),
+      );
     }
 
     return {

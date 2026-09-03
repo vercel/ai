@@ -3023,21 +3023,15 @@ console.log(result.segments); // Array of segments with startSecond/endSecond
 ```
 
 `gpt-4o-transcribe-diarize` identifies speakers in a recording. It defaults to
-the `diarized_json` response format. For audio longer than 30 seconds, set
-`chunkingStrategy` to `'auto'`:
+the `diarized_json` response format and automatic chunking:
 
-```ts highlight="9"
+```ts
 import { transcribe } from 'ai';
-import { openai, type OpenAITranscriptionModelOptions } from '@ai-sdk/openai';
+import { openai } from '@ai-sdk/openai';
 
 const result = await transcribe({
   model: openai.transcription('gpt-4o-transcribe-diarize'),
   audio: new Uint8Array([1, 2, 3, 4]),
-  providerOptions: {
-    openai: {
-      chunkingStrategy: 'auto',
-    } satisfies OpenAITranscriptionModelOptions,
-  },
 });
 
 console.log(result.providerMetadata.openai.segments);
@@ -3071,7 +3065,7 @@ The following provider options are available:
   The format of the transcription response. `gpt-4o-transcribe-diarize` defaults to `diarized_json`.
 
 - **chunkingStrategy** _'auto' | object_
-  Controls how the audio is split into chunks. `gpt-4o-transcribe-diarize` requires this option for inputs longer than 30 seconds. The object form configures OpenAI server-side VAD with `type: 'server_vad'` and optional `threshold`, `prefixPaddingMs`, and `silenceDurationMs` fields.
+  Controls how the audio is split into chunks. `gpt-4o-transcribe-diarize` defaults to `'auto'`; provide this option to override the default. The object form configures OpenAI server-side VAD with `type: 'server_vad'` and optional `threshold`, `prefixPaddingMs`, and `silenceDurationMs` fields.
 
 - **streaming** _object_
   Options for streaming transcription models such as `gpt-realtime-whisper`.

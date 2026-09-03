@@ -283,6 +283,7 @@ describe('doGenerate', () => {
     const { file: _, ...rest } = body!;
     expect(rest).toMatchInlineSnapshot(`
       {
+        "chunking_strategy": "auto",
         "model": "gpt-4o-transcribe-diarize",
         "response_format": "diarized_json",
       }
