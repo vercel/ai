@@ -1,5 +1,6 @@
 import type { HarnessV1, HarnessV1SandboxProvider } from '../v1';
 import type { HarnessAgentSettings } from './harness-agent-settings';
+import type { HarnessAllTools } from './harness-agent-tool-types';
 import { tool } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, test } from 'vitest';
 import { z } from 'zod/v4';
@@ -28,6 +29,62 @@ const sandbox = undefined as never as HarnessV1SandboxProvider;
 type Settings = HarnessAgentSettings<typeof harness, typeof userTools>;
 
 describe('HarnessAgentSettings tool filtering types', () => {
+  test('lifecycle callbacks use merged tools and runtime context', () => {
+    type RuntimeContext = { tenantId: string };
+    type LifecycleSettings = HarnessAgentSettings<
+      typeof harness,
+      typeof userTools,
+      RuntimeContext
+    >;
+    const settings: LifecycleSettings = {
+      harness,
+      tools: userTools,
+      onStart: event => {
+        expectTypeOf(event.runtimeContext).toEqualTypeOf<RuntimeContext>();
+        expectTypeOf(event.tools).toMatchTypeOf<
+          HarnessAllTools<typeof harness, typeof userTools> | undefined
+        >();
+      },
+      onStepStart: event => {
+        expectTypeOf(event.runtimeContext).toEqualTypeOf<RuntimeContext>();
+      },
+      onLanguageModelCallStart: event => {
+        expectTypeOf(event.modelId).toEqualTypeOf<string>();
+      },
+      onLanguageModelCallEnd: event => {
+        expectTypeOf(event.content).toMatchTypeOf<readonly unknown[]>();
+      },
+      onToolExecutionStart: event => {
+        if (event.toolCall.toolName === 'echo') {
+          expectTypeOf(event.toolCall.input).not.toBeAny();
+        }
+      },
+      onToolExecutionEnd: event => {
+        expectTypeOf(event.toolCall.toolName).toEqualTypeOf<string>();
+      },
+      onStepEnd: event => {
+        expectTypeOf(event.runtimeContext).toEqualTypeOf<RuntimeContext>();
+      },
+      onEnd: event => {
+        expectTypeOf(
+          event.finalStep.runtimeContext,
+        ).toEqualTypeOf<RuntimeContext>();
+      },
+    };
+
+    expectTypeOf(settings).toMatchTypeOf<LifecycleSettings>();
+  });
+
+  test('deprecated lifecycle aliases are not settings', () => {
+    const settings: Settings = {
+      harness,
+      // @ts-expect-error deprecated lifecycle aliases are call-only
+      onFinish: () => {},
+    };
+
+    expectTypeOf(settings).toMatchTypeOf<Settings>();
+  });
+
   test('call options are typed by the appended generic', () => {
     type CallOptions = { tenant: string };
     type CallSettings = HarnessAgentSettings<
