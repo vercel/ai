@@ -1,0 +1,239 @@
+---
+title: GitHub Copilot
+description: Learn how to use the GitHub Copilot harness adapter.
+---
+
+# GitHub Copilot Harness
+
+The GitHub Copilot harness adapter connects `HarnessAgent` to
+[GitHub Copilot CLI](https://github.com/github/copilot-cli) through the Agent
+Client Protocol (ACP). The adapter delegates ACP installation, sessions,
+streaming, tools, approvals, and lifecycle management to
+`@ai-sdk/harness-acp`.
+
+<Note>
+  Harness packages are **experimental**. Expect breaking changes between
+  releases as this early API gets further refined.
+</Note>
+
+## Setup
+
+<InstallPackages packages="@ai-sdk/harness @ai-sdk/harness-github-copilot @ai-sdk/sandbox-vercel" />
+
+The ACP harness installs the pinned GitHub Copilot CLI inside the sandbox when
+the first session starts. It never uses a host or globally installed Copilot
+CLI. The launch command disables GitHub Copilot's automatic updates so the
+installed version remains fixed for that bootstrap.
+
+## Import
+
+```ts
+import {
+  createGitHubCopilot,
+  githubCopilot,
+} from '@ai-sdk/harness-github-copilot';
+```
+
+`githubCopilot` is equivalent to `createGitHubCopilot()` with its default
+configuration.
+
+## Basic Usage
+
+```ts
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { githubCopilot } from '@ai-sdk/harness-github-copilot';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+
+const agent = new HarnessAgent({
+  harness: githubCopilot,
+  model: 'gpt-5.4',
+  sandbox: createVercelSandbox({
+    runtime: 'node24',
+    ports: [4000],
+  }),
+});
+
+const session = await agent.createSession();
+
+let exitCode = 0;
+try {
+  const result = await agent.stream({
+    session,
+    prompt: 'Check the test failures and fix the production code.',
+  });
+
+  for await (const part of result.stream) {
+    if (part.type === 'text-delta') {
+      process.stdout.write(part.text);
+    }
+  }
+} catch (err) {
+  exitCode = 1;
+  console.error(err);
+} finally {
+  await session.destroy();
+  process.exit(exitCode);
+}
+```
+
+To use this agent with Vercel Sandbox, provide `VERCEL_OIDC_TOKEN` and one of
+the variables listed under [authentication](#authentication) in the host
+environment.
+
+Sessions support multiple turns, attach and detach, cold stop and resume, turn
+suspension and continuation, and `stopWhen` slicing through the shared ACP
+bridge lifecycle.
+
+## Adapter Settings
+
+Use `createGitHubCopilot()` to configure the runtime:
+
+```ts
+const harness = createGitHubCopilot({
+  auth: 'ai-gateway',
+  reasoningEffort: 'high',
+  port: 4001,
+  startupTimeoutMs: 180_000,
+});
+```
+
+Settings:
+
+- `auth`: selects `auto`, `direct`, or `ai-gateway` authentication, or accepts
+  an isolated authentication environment. The default is `auto`, which selects
+  AI Gateway when Gateway credentials are present and direct GitHub Copilot
+  authentication otherwise.
+- `credentialForwarding`: optional synchronous or asynchronous callback that
+  customizes each credential immediately before the harness adapter forwards it
+  into a sandbox process. It receives the credential value that would otherwise
+  be forwarded (either the real credential or a masked value) and the
+  environment variable name used to expose it. This callback only controls the
+  value forwarded into the sandbox process. It does not restrict which
+  credentials the harness adapter can discover, read, or otherwise access in
+  the host process.
+- `model`: deprecated model fallback. Use `model` on `HarnessAgent` instead.
+  Per-call model selection takes precedence over both values.
+- `reasoningEffort`: reasoning effort for reasoning-capable models. Supported
+  values are `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, and `max`.
+  When omitted, GitHub Copilot uses its configured default.
+- `mcpServers`: ACP-native stdio, HTTP, or SSE MCP server definitions keyed by
+  server name.
+- `port`: ACP bridge port override.
+- `portEndpoint`: host endpoint for the ACP bridge when the sandbox session
+  cannot expose ports directly.
+- `startupTimeoutMs`: maximum time to wait for the ACP bridge to start.
+- `mintBridgeToken`: synchronous function that receives the sandbox id and
+  returns the ACP bridge authentication token. By default, the adapter generates
+  a random 32-byte token. Custom implementations must return a suitably secret
+  token.
+
+`reasoningEffort` is fixed for the launched GitHub Copilot server and applies
+to every session it creates.
+
+The adapter pins the GitHub Copilot CLI, executable, launch command, and ACP
+version. These implementation details cannot be overridden through
+`createGitHubCopilot()`.
+
+## Authentication
+
+GitHub Copilot supports direct GitHub authentication and AI Gateway
+authentication. Set one or more of these environment variables:
+
+- `COPILOT_GITHUB_TOKEN`
+- `GH_TOKEN`
+- `GITHUB_TOKEN`
+- `VERCEL_OIDC_TOKEN`
+- `AI_GATEWAY_API_KEY`
+- `AI_GATEWAY_BASE_URL`
+
+For direct authentication, GitHub Copilot checks the three GitHub token
+variables in the listed order. Fine-grained personal access tokens require the
+**Copilot Requests** permission; classic personal access tokens are unsupported.
+For AI Gateway, the adapter uses `VERCEL_OIDC_TOKEN` or `AI_GATEWAY_API_KEY` and
+honors `AI_GATEWAY_BASE_URL`.
+
+When the sandbox supports request transformations, the adapter brokers each
+credential only to matching outbound requests. Other sandboxes retain direct
+credential forwarding after applying `credentialForwarding`.
+
+Pass an authentication environment when the host resolves credentials at
+runtime:
+
+```ts
+const gatewayHarness = createGitHubCopilot({
+  auth: {
+    AI_GATEWAY_API_KEY: await resolveGatewayToken(),
+    AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh',
+  },
+});
+```
+
+The supplied record replaces the host environment for authentication
+discovery. The adapter does not add its credentials to `process.env` or include
+their values in persisted ACP lifecycle identity.
+
+Force a specific authentication route when both kinds of credentials are
+available:
+
+```ts
+const directHarness = createGitHubCopilot({ auth: 'direct' });
+const gatewayHarness = createGitHubCopilot({ auth: 'ai-gateway' });
+```
+
+Use direct GitHub Copilot model IDs such as `gpt-5.4` and provider-qualified
+Gateway model IDs such as `openai/gpt-5.4`. Gateway model requests do not
+require GitHub authentication, but built-in GitHub MCP capabilities do.
+
+## Sandbox
+
+GitHub Copilot runs inside the sandbox through `@ai-sdk/harness-acp`. It
+requires a network sandbox with at least one exposed port:
+
+```ts
+const sandbox = createVercelSandbox({
+  runtime: 'node24',
+  ports: [4000],
+});
+```
+
+The first session requires network egress to install GitHub Copilot CLI.
+Subsequent model, GitHub, web, and MCP requests also require network access.
+
+## Built-in Tools
+
+The adapter maps `bash`, `grep`, and `glob` to the corresponding common harness
+tools.
+
+Other tools remain available under their native GitHub Copilot names, including
+`read_bash`, `stop_bash`, `list_bash`, `view`, `create`, `edit`, `web_fetch`,
+`skill`, `sql`, agent tools, and `task`. GitHub and user-configured MCP tools
+remain dynamic.
+
+The shared ACP harness applies the configured Harness `permissionMode` when
+GitHub Copilot sends a permission request. `allow-reads` approves read
+operations, `allow-edits` also approves file mutations, and `allow-all` approves
+every request. Shell execution still requires approval under `allow-edits`.
+
+## Known Limitations
+
+- ACP does not expose a stable programmatic name for every native tool event.
+  The adapter uses standard title, kind, and schema matching and leaves
+  unmatched tools dynamic.
+- ACP v1 does not expose model-step boundaries or per-step usage. The adapter
+  infers boundaries and reports unknown per-step usage when GitHub Copilot does
+  not provide totals.
+- ACP v1 has no portable manual compaction or mid-turn steering API.
+- ACP v1 has no portable built-in tool filtering API. Filtering host tools is
+  supported, but filtering GitHub Copilot built-ins throws an
+  unsupported-capability error.
+- GitHub Copilot ACP does not expose a structured-output metadata mapping, so
+  schema-backed structured output is unsupported.
+- GitHub Copilot ACP does not expose any question tool, so `askUserQuestions`
+  is unsupported.
+
+## Related
+
+- [HarnessAgent](/docs/ai-sdk-harnesses/harness-agent)
+- [Harness tools](/docs/ai-sdk-harnesses/tools)
+- [Harness adapters](/docs/ai-sdk-harnesses/harness-adapters)
+- [Agent Client Protocol](/providers/ai-sdk-harnesses/acp)
