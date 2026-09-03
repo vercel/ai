@@ -4,11 +4,15 @@ import {
   getRuntimeEnvironmentUserAgent,
   type ParseResult,
 } from '@ai-sdk/provider-utils';
+import { EmptyResponseBodyError } from '@ai-sdk/provider';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
+import { UIMessageStreamError } from '../error/ui-message-stream-error';
 import {
   uiMessageChunkSchema,
   type UIMessageChunk,
 } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
+import { createUIApiCallError } from './create-ui-api-call-error';
 import { processTextStream } from './process-text-stream';
 import { VERSION } from '../version';
 
@@ -75,13 +79,17 @@ export async function callCompletionApi({
     });
 
     if (!response.ok) {
-      throw new Error(
-        (await response.text()) || 'Failed to fetch the chat response.',
-      );
+      throw await createUIApiCallError({
+        response,
+        url: api,
+        fallbackMessage: 'Failed to fetch the chat response.',
+      });
     }
 
     if (!response.body) {
-      throw new Error('The response body is empty.');
+      throw new EmptyResponseBodyError({
+        message: 'The response body is empty.',
+      });
     }
 
     let result = '';
@@ -114,7 +122,11 @@ export async function callCompletionApi({
                   result += streamPart.delta;
                   setCompletion(result);
                 } else if (streamPart.type === 'error') {
-                  throw new Error(streamPart.errorText);
+                  throw new UIMessageStreamError({
+                    chunkType: 'error',
+                    chunkId: '',
+                    message: streamPart.errorText,
+                  });
                 }
               },
             }),
@@ -127,7 +139,11 @@ export async function callCompletionApi({
       }
       default: {
         const exhaustiveCheck: never = streamProtocol;
-        throw new Error(`Unknown stream protocol: ${exhaustiveCheck}`);
+        throw new InvalidArgumentError({
+          parameter: 'streamProtocol',
+          value: exhaustiveCheck,
+          message: `Unknown stream protocol: ${exhaustiveCheck}`,
+        });
       }
     }
 

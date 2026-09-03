@@ -18,6 +18,10 @@ This error occurs when an API call fails.
 - `data`: Any additional data associated with the error (optional)
 - `cause`: The underlying error that caused the API call to fail (optional)
 
+When this error is created for an AI SDK UI chat transport or completion
+request, `requestBodyValues` is `undefined` so prompts and messages are not
+copied into the client-facing error object.
+
 ## Checking for this Error
 
 You can check if an error is an instance of `AI_APICallError` using:
