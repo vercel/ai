@@ -158,6 +158,39 @@ describe('createCursor', () => {
     });
   });
 
+  it('applies headers only for explicit AI Gateway routing', () => {
+    createCursor({ auth: 'ai-gateway' });
+    const gatewaySettings = mocks.createACP.mock
+      .calls[0]?.[0] as ACPHarnessSettings;
+    expect(
+      gatewaySettings.credentialBrokering?.({
+        env: {},
+        headers: { 'x-tenant': 'acme' },
+        isAiGateway: true,
+      }),
+    ).toEqual([
+      {
+        match: {
+          host: 'ai-gateway.vercel.sh',
+          path: { startsWith: '/cursor/v1' },
+        },
+        transform: { headers: { 'x-tenant': 'acme' } },
+      },
+    ]);
+
+    mocks.createACP.mockClear();
+    createCursor();
+    const autoSettings = mocks.createACP.mock
+      .calls[0]?.[0] as ACPHarnessSettings;
+    expect(
+      autoSettings.credentialBrokering?.({
+        env: {},
+        headers: { 'x-tenant': 'acme' },
+        isAiGateway: true,
+      }),
+    ).toEqual([]);
+  });
+
   it.each(['direct', 'ai-gateway'] as const)(
     'accepts %s auth and warns that Cursor configuration controls routing',
     auth => {

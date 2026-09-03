@@ -487,6 +487,56 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
+  it('sets custom headers only for AI Gateway auth', async () => {
+    const gateway = createClaudeCode({
+      auth: { AI_GATEWAY_API_KEY: 'gateway-key' },
+    });
+    const gatewaySession = await gateway.doStart({
+      sessionId: 'gateway',
+      headers: { 'x-tenant': 'acme' },
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-gateway',
+    });
+    await gatewaySession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    expect(sentMessages.at(-1)).toMatchObject({
+      env: { ANTHROPIC_CUSTOM_HEADERS: 'x-tenant: acme' },
+    });
+    await gatewaySession.doDestroy();
+
+    const direct = createClaudeCode({
+      auth: { ANTHROPIC_API_KEY: 'anthropic-key' },
+    });
+    const directSession = await direct.doStart({
+      sessionId: 'direct',
+      headers: { 'x-tenant': 'acme' },
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-direct',
+    });
+    await directSession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    expect(sentMessages.at(-1)).not.toHaveProperty(
+      'env.ANTHROPIC_CUSTOM_HEADERS',
+    );
+    await directSession.doDestroy();
+  });
+
   it('brokers credentials when the sandbox supports additive request transformations', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const forwardedCredentials: Array<{

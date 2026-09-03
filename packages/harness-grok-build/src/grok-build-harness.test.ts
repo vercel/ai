@@ -157,6 +157,8 @@ describe('createGrokBuild', () => {
           XAI_API_KEY: 'sandbox-xai-secret',
           GROK_XAI_API_BASE_URL: 'https://api.x.ai/v1',
         },
+        headers: { 'x-tenant': 'acme' },
+        isAiGateway: true,
       }),
     ).toEqual([
       {
@@ -171,7 +173,10 @@ describe('createGrokBuild', () => {
           ],
         },
         transform: {
-          headers: { Authorization: 'Bearer xai-secret' },
+          headers: {
+            'x-tenant': 'acme',
+            Authorization: 'Bearer xai-secret',
+          },
         },
       },
     ]);

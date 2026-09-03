@@ -388,10 +388,10 @@ export function createCursor(
       _meta: { parameterizedModelPicker: true },
     },
     credentialEnv: ['CURSOR_API_KEY'],
-    credentialBrokering: ({ env, sandboxEnv }) => {
-      if (!env.CURSOR_API_KEY || !sandboxEnv?.CURSOR_API_KEY) return [];
-      return [
-        {
+    credentialBrokering: ({ env, sandboxEnv, headers }) => {
+      const transformations = [];
+      if (env.CURSOR_API_KEY && sandboxEnv?.CURSOR_API_KEY) {
+        transformations.push({
           match: {
             host: 'api2.cursor.sh',
             path: { exact: '/auth/exchange_user_api_key' },
@@ -410,8 +410,23 @@ export function createCursor(
               Authorization: `Bearer ${env.CURSOR_API_KEY}`,
             },
           },
-        },
-      ];
+        });
+      }
+      if (settings.auth === 'ai-gateway' && headers != null) {
+        const safeHeaders = Object.fromEntries(
+          Object.entries(headers).filter(
+            ([name]) => name !== 'authorization' && name !== 'x-api-key',
+          ),
+        );
+        transformations.push({
+          match: {
+            host: 'ai-gateway.vercel.sh',
+            path: { startsWith: '/cursor/v1' },
+          },
+          transform: { headers: safeHeaders },
+        });
+      }
+      return transformations;
     },
   });
 }

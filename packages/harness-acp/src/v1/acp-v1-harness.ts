@@ -324,6 +324,14 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         const requestTransformations = settings.credentialBrokering({
           env: brokeringEnvironment,
           sandboxEnv: sandboxImplementationEnvironment,
+          ...(startOptions.headers == null
+            ? {}
+            : {
+                headers: startOptions.headers,
+                isAiGateway:
+                  resolvedProviderAuthentication.providerAuthentication
+                    ?.type === 'ai-gateway',
+              }),
         });
         if (requestTransformations.length > 0) {
           await sandboxSession.addRequestTransformations(

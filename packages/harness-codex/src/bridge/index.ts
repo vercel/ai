@@ -164,11 +164,16 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         env_key: 'CODEX_API_KEY',
         wire_api: 'responses',
         supports_websockets: false,
-        ...(hasGatewayAuth && HARNESS_CLIENT_APP
+        ...(hasGatewayAuth && (start.headers != null || HARNESS_CLIENT_APP)
           ? {
               http_headers: {
-                'User-Agent': HARNESS_CLIENT_APP,
-                'x-client-app': HARNESS_CLIENT_APP,
+                ...start.headers,
+                ...(HARNESS_CLIENT_APP
+                  ? {
+                      'User-Agent': HARNESS_CLIENT_APP,
+                      'x-client-app': HARNESS_CLIENT_APP,
+                    }
+                  : {}),
               },
             }
           : {}),

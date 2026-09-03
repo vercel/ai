@@ -217,6 +217,7 @@ export type PiThinkingLevel =
 
 export interface PiSessionSettings {
   readonly auth?: PiAuthenticationMode;
+  readonly headers?: Readonly<Record<string, string>>;
   readonly model?: string;
   readonly thinkingLevel?: PiThinkingLevel;
   readonly mcpServers?: Record<string, unknown>;
@@ -410,6 +411,7 @@ export async function createPiSession(
       modelRuntime,
     },
     clientApp: input.clientApp,
+    headers: input.settings.headers,
   });
   const resolveModel = createPiModelResolver({
     modelRegistry,

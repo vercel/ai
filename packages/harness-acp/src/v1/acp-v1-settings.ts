@@ -90,9 +90,13 @@ export type ACPModelMapping =
 export type ACPCredentialBrokering = ({
   env,
   sandboxEnv,
+  headers,
+  isAiGateway,
 }: {
   env: Readonly<Record<string, string>>;
   sandboxEnv?: Readonly<Record<string, string>>;
+  headers?: Readonly<Record<string, string>>;
+  isAiGateway?: boolean;
 }) => ReadonlyArray<HarnessV1RequestTransformation>;
 
 export type ACPPermissionModeTarget =

@@ -342,8 +342,15 @@ function buildProviderConfig(
           apiKey: procEnv.AI_GATEWAY_API_KEY,
           baseURL: toOpenCodeGatewayBaseUrl(procEnv.AI_GATEWAY_BASE_URL),
           ...(HARNESS_CLIENT_APP
-            ? { headers: { 'x-client-app': HARNESS_CLIENT_APP } }
-            : {}),
+            ? {
+                headers: {
+                  ...start.headers,
+                  'x-client-app': HARNESS_CLIENT_APP,
+                },
+              }
+            : start.headers
+              ? { headers: start.headers }
+              : {}),
         },
         ...(modelID
           ? {

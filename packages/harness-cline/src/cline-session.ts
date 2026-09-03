@@ -97,6 +97,7 @@ export interface ClineSessionSettings {
   readonly apiKey?: string;
   readonly baseUrl?: string;
   readonly headers?: Record<string, string>;
+  readonly agentHeaders?: Readonly<Record<string, string>>;
   readonly reasoningEffort?: ClineReasoningEffort;
   readonly maxIterations?: number;
 }
@@ -203,6 +204,7 @@ function createClineAgentModel({
   const headers = isAiGateway
     ? {
         ...settings.headers,
+        ...settings.agentHeaders,
         'User-Agent': clientApp,
         'x-client-app': clientApp,
       }

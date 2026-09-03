@@ -22,6 +22,12 @@ import type { HarnessV1BuiltinToolFiltering } from './harness-v1-tool-filtering'
  */
 export type HarnessV1StartOptions = {
   /**
+   * Additional normalized HTTP headers to send with model requests when the
+   * adapter uses AI Gateway.
+   */
+  readonly headers?: Readonly<Record<string, string>>;
+
+  /**
    * Stable identifier for this harness session. Used as the underlying
    * resource name where the adapter has a notion of a named session
    * (sandbox name, native session id, …).
