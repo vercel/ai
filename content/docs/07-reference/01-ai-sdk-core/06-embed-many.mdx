@@ -81,7 +81,7 @@ const { embeddings } = await embedMany({
       type: 'number',
       isOptional: true,
       description:
-        'Maximum number of concurrent requests to the provider. Default: Infinity.',
+        'Maximum number of concurrent requests when a request is split into multiple model calls. Must be greater than 0 when chunking is active and the model supports parallel calls; invalid values throw AI_InvalidArgumentError. Default: Infinity.',
     },
     {
       name: 'telemetry',

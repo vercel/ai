@@ -9,6 +9,7 @@ import {
   vi,
   vitest,
 } from 'vitest';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
@@ -183,6 +184,34 @@ describe('model.supportsParallelCalls', () => {
 
     expect(embeddings).toStrictEqual(dummyEmbeddings);
   });
+
+  it.each([0, -1])(
+    'should throw InvalidArgumentError when maxParallelCalls is %s',
+    async maxParallelCalls => {
+      let error: unknown;
+
+      try {
+        await embedMany({
+          maxParallelCalls,
+          model: new MockEmbeddingModelV4({
+            supportsParallelCalls: true,
+            maxEmbeddingsPerCall: 1,
+          }),
+          values: testValues,
+        });
+      } catch (caughtError) {
+        error = caughtError;
+      }
+
+      expect(InvalidArgumentError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({
+        parameter: 'chunkSize',
+        value: maxParallelCalls,
+        message:
+          'Invalid argument for parameter chunkSize: chunkSize must be greater than 0',
+      });
+    },
+  );
 });
 
 describe('result.embedding', () => {

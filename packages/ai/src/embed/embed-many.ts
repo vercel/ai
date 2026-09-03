@@ -38,7 +38,9 @@ const originalGenerateCallId = createIdGenerator({
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
- * @param maxParallelCalls - Maximum number of concurrent requests. Default: Infinity.
+ * @param maxParallelCalls - Maximum number of concurrent requests when a request is split into
+ * multiple model calls. Must be greater than 0 when the model supports parallel calls.
+ * Default: Infinity.
  *
  * @param telemetry - Optional telemetry configuration.
  *
@@ -112,7 +114,8 @@ export async function embedMany({
   providerOptions?: ProviderOptions;
 
   /**
-   * Maximum number of concurrent requests.
+   * Maximum number of concurrent requests when a request is split into multiple model calls.
+   * Must be greater than 0 when the model supports parallel calls.
    *
    * @default Infinity
    */
