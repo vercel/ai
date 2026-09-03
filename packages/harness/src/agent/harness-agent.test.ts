@@ -356,6 +356,157 @@ function makeLifecycleSession(options: {
 }
 
 describe('HarnessAgent', () => {
+  test('runs lifecycle callbacks in order and merges settings before call callbacks', async () => {
+    const builtinTools = {
+      bash: tool({
+        inputSchema: z.object({ command: z.string() }),
+      }),
+    };
+    const { harness } = mockHarness({
+      builtinTools,
+      script: () => [
+        { type: 'stream-start', modelId: 'resolved-model' },
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'bash',
+          input: JSON.stringify({ command: 'pwd' }),
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'bash',
+          result: { output: '/work' },
+        },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          usage: zeroUsage(),
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          totalUsage: zeroUsage(),
+        },
+      ],
+    });
+    const events: string[] = [];
+    const callIds: string[] = [];
+    let stepFromCallback: unknown;
+    let finalStepFromCallback: unknown;
+    const record = (name: string) => (event: { callId: string }) => {
+      events.push(name);
+      callIds.push(event.callId);
+    };
+    const agent = new HarnessAgent({
+      harness,
+      model: 'requested-model',
+      sandbox: makeSandboxProvider(),
+      onStart: record('settings:start'),
+      onStepStart: record('settings:step-start'),
+      onLanguageModelCallStart: event => {
+        events.push(`model-start:${event.modelId}`);
+        callIds.push(event.callId);
+      },
+      onLanguageModelCallEnd: event => {
+        events.push(`model-end:${event.content.at(-1)?.type}`);
+        callIds.push(event.callId);
+      },
+      onToolExecutionStart: record('settings:tool-start'),
+      onToolExecutionEnd: event => {
+        events.push(`settings:tool-end:${event.toolOutput.type}`);
+        callIds.push(event.callId);
+      },
+      onStepEnd: step => {
+        events.push('settings:step-end');
+        callIds.push(step.callId);
+        stepFromCallback = step;
+      },
+      onEnd: event => {
+        events.push('settings:end');
+        callIds.push(event.callId);
+        finalStepFromCallback = event.finalStep;
+      },
+    });
+    const session = await agent.createSession();
+
+    const result = await agent.generate({
+      session,
+      prompt: 'run pwd',
+      onStart: record('call:start'),
+      onStepStart: record('call:step-start'),
+      onToolExecutionStart: record('call:tool-start'),
+      onToolExecutionEnd: record('call:tool-end'),
+      onStepEnd: record('call:step-end'),
+      onEnd: record('call:end'),
+    });
+
+    expect(events).toEqual([
+      'settings:start',
+      'call:start',
+      'settings:step-start',
+      'call:step-start',
+      'model-start:resolved-model',
+      'model-end:tool-result',
+      'settings:tool-start',
+      'call:tool-start',
+      'settings:tool-end:tool-result',
+      'call:tool-end',
+      'settings:step-end',
+      'call:step-end',
+      'settings:end',
+      'call:end',
+    ]);
+    expect(new Set(callIds).size).toBe(1);
+    expect(result.steps[0]).toBe(stepFromCallback);
+    expect(result.finalStep).toBe(finalStepFromCallback);
+    expect(result.finalStep.model).toEqual({
+      provider: 'harness:mock',
+      modelId: 'resolved-model',
+    });
+    await session.destroy();
+  });
+
+  test('ignores lifecycle callback failures', async () => {
+    const { harness } = mockHarness({
+      script: () => [
+        { type: 'text-delta', id: 'text-1', delta: 'done' },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          usage: zeroUsage(),
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          totalUsage: zeroUsage(),
+        },
+      ],
+    });
+    const fail = () => {
+      throw new Error('listener failed');
+    };
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+      onStart: fail,
+      onStepStart: fail,
+      onLanguageModelCallStart: fail,
+      onLanguageModelCallEnd: fail,
+      onStepEnd: fail,
+      onEnd: fail,
+    });
+    const session = await agent.createSession();
+
+    await expect(
+      agent.generate({ session, prompt: 'go' }),
+    ).resolves.toMatchObject({
+      text: 'done',
+    });
+    await session.destroy();
+  });
+
   test('exposes the AI SDK Agent contract surface', () => {
     const { harness } = mockHarness({ script: () => [] });
     const agent = new HarnessAgent({
