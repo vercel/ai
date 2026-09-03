@@ -663,6 +663,7 @@ describe('createClineSession model configuration', () => {
         apiKey: 'anthropic-key',
         baseUrl: 'https://anthropic.example',
         headers: { 'x-custom': 'custom' },
+        agentHeaders: { 'x-agent': 'agent' },
       },
     });
 
@@ -672,7 +673,10 @@ describe('createClineSession model configuration', () => {
           providerId: 'anthropic',
           apiKey: 'anthropic-key',
           baseUrl: 'https://anthropic.example',
-          headers: { 'x-custom': 'custom' },
+          headers: {
+            'x-custom': 'custom',
+            'x-agent': 'agent',
+          },
         },
       ]);
       expect(clineMock.modelSelections).toEqual([
@@ -695,6 +699,7 @@ describe('createClineSession model configuration', () => {
         apiKey: 'anthropic-key',
         baseUrl: 'https://anthropic.example',
         headers: { 'x-custom': 'custom' },
+        agentHeaders: { 'x-agent': 'agent' },
       },
     });
 
@@ -707,6 +712,7 @@ describe('createClineSession model configuration', () => {
           baseUrl: 'https://gateway.example/v1',
           headers: {
             'x-custom': 'custom',
+            'x-agent': 'agent',
             'User-Agent': 'ai-sdk/harness-cline/0.0.0-test',
             'x-client-app': 'ai-sdk/harness-cline/0.0.0-test',
           },
