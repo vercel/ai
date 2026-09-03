@@ -60,7 +60,9 @@ const configurableSafetySettingCategories = [
 ] as const;
 
 const gemini25ModelPattern = /(^|\/)gemini-2\.5(?:[.-]|$)/i;
-const jsonResponseToolName = 'json';
+const jsonResponseToolMetadata = {
+  'ai-sdk': { jsonResponseTool: true },
+} as const;
 
 type GoogleGenerativeAIConfig = {
   provider: string;
@@ -251,10 +253,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     }
 
     const { usesGemini3Features } = getGoogleModelCapabilities(this.modelId);
+    const toolsForRequest = toolChoice?.type === 'none' ? undefined : tools;
+    const jsonResponseToolName = getJsonResponseToolName(toolsForRequest);
     const jsonResponseTool: LanguageModelV3FunctionTool | undefined =
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
-      tools?.some(tool => tool.type === 'function')
+      toolsForRequest?.some(tool => tool.type === 'function')
         ? {
             type: 'function',
             name: jsonResponseToolName,
@@ -281,8 +285,15 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       toolWarnings,
     } = prepareTools({
       tools:
-        jsonResponseTool != null ? [...(tools ?? []), jsonResponseTool] : tools,
-      toolChoice: jsonResponseTool != null ? { type: 'required' } : toolChoice,
+        jsonResponseTool != null
+          ? [...(toolsForRequest ?? []), jsonResponseTool]
+          : toolsForRequest,
+      toolChoice:
+        toolChoice?.type === 'none'
+          ? undefined
+          : jsonResponseTool != null
+            ? { type: 'required' }
+            : toolChoice,
       modelId: this.modelId,
       isVertexProvider,
     });
@@ -376,7 +387,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       warnings: [...warnings, ...toolWarnings],
       providerOptionsName,
       extraHeaders: vertexPaygoHeaders,
-      usesJsonResponseTool: jsonResponseTool != null,
+      jsonResponseToolName: jsonResponseTool?.name,
     };
   }
 
@@ -388,7 +399,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       warnings,
       providerOptionsName,
       extraHeaders,
-      usesJsonResponseTool,
+      jsonResponseToolName,
     } = await this.getArgs(options);
 
     const mergedHeaders = combineHeaders(
@@ -465,7 +476,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
             }
           : undefined;
 
-        if (usesJsonResponseTool) {
+        if (jsonResponseToolName != null) {
           continue;
         } else if (part.text.length === 0) {
           if (thoughtSignatureMetadata != null && content.length > 0) {
@@ -481,13 +492,14 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
         }
       } else if ('functionCall' in part && part.functionCall.name != null) {
         if (
-          usesJsonResponseTool &&
+          jsonResponseToolName != null &&
           part.functionCall.name === jsonResponseToolName
         ) {
           isJsonResponseFromTool = true;
           content.push({
             type: 'text',
             text: JSON.stringify(part.functionCall.args ?? {}),
+            providerMetadata: jsonResponseToolMetadata,
           });
         } else {
           content.push({
@@ -633,7 +645,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       warnings,
       providerOptionsName,
       extraHeaders,
-      usesJsonResponseTool,
+      jsonResponseToolName,
     } = await this.getArgs(options, { isStreaming: true });
 
     const headers = combineHeaders(
@@ -1219,9 +1231,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     );
 
     return {
-      stream: usesJsonResponseTool
-        ? convertJsonResponseToolStream(stream)
-        : stream,
+      stream:
+        jsonResponseToolName != null
+          ? convertJsonResponseToolStream(stream, jsonResponseToolName)
+          : stream,
       response: { headers: responseHeaders },
       request: { body: args },
     };
@@ -1230,6 +1243,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 
 function convertJsonResponseToolStream(
   stream: ReadableStream<LanguageModelV3StreamPart>,
+  jsonResponseToolName: string,
 ): ReadableStream<LanguageModelV3StreamPart> {
   const jsonToolCallIds = new Set<string>();
   let hasJsonResponse = false;
@@ -1292,6 +1306,27 @@ function convertJsonResponseToolStream(
       },
     }),
   );
+}
+
+function getJsonResponseToolName(
+  tools: LanguageModelV3CallOptions['tools'],
+): string {
+  const toolNames = new Set(
+    tools
+      ?.filter(
+        (tool): tool is LanguageModelV3FunctionTool => tool.type === 'function',
+      )
+      .map(tool => tool.name),
+  );
+
+  let name = 'json';
+  let suffix = 1;
+
+  while (toolNames.has(name)) {
+    name = `json_${suffix++}`;
+  }
+
+  return name;
 }
 
 function getToolCallsFromParts({

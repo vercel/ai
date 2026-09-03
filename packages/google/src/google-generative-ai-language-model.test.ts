@@ -2071,12 +2071,137 @@ describe('doGenerate', () => {
       ],
     });
     expect(result.content).toEqual([
-      { type: 'text', text: '{"date":"2026-09-04"}' },
+      {
+        type: 'text',
+        text: '{"date":"2026-09-04"}',
+        providerMetadata: {
+          'ai-sdk': { jsonResponseTool: true },
+        },
+      },
     ]);
     expect(result.finishReason).toEqual({
       unified: 'stop',
       raw: 'STOP',
     });
+  });
+
+  it('should omit tools and preserve native structured output when toolChoice is none', async () => {
+    prepareJsonFixtureResponse('google-text', {
+      url: TEST_URL_GEMINI_2_5_FLASH_LITE,
+    });
+
+    await provider.languageModel('gemini-2.5-flash-lite').doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { date: { type: 'string' } },
+          required: ['date'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          type: 'function',
+          name: 'resolveDate',
+          inputSchema: {
+            type: 'object',
+            properties: { expression: { type: 'string' } },
+            required: ['expression'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      toolChoice: { type: 'none' },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.generationConfig).toMatchObject({
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: 'object',
+        properties: { date: { type: 'string' } },
+        required: ['date'],
+      },
+    });
+    expect(requestBody).not.toHaveProperty('tools');
+    expect(requestBody).not.toHaveProperty('toolConfig');
+  });
+
+  it('should keep a user-defined json tool distinct from the response tool', async () => {
+    server.urls[TEST_URL_GEMINI_2_5_FLASH_LITE].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              role: 'model',
+              parts: [
+                {
+                  functionCall: {
+                    id: 'user-json-call',
+                    name: 'json',
+                    args: { value: 'test' },
+                  },
+                },
+              ],
+            },
+            finishReason: 'STOP',
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 1,
+          candidatesTokenCount: 1,
+          totalTokenCount: 2,
+        },
+      },
+    };
+
+    const result = await provider
+      .languageModel('gemini-2.5-flash-lite')
+      .doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { date: { type: 'string' } },
+            required: ['date'],
+            additionalProperties: false,
+          },
+        },
+        tools: [
+          {
+            type: 'function',
+            name: 'json',
+            inputSchema: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+            },
+          },
+        ],
+      });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(
+      requestBody.tools[0].functionDeclarations.map(
+        (tool: { name: string }) => tool.name,
+      ),
+    ).toEqual(['json', 'json_1']);
+    expect(result.content).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'user-json-call',
+        toolName: 'json',
+        input: '{"value":"test"}',
+        providerMetadata: undefined,
+      },
+    ]);
   });
 
   it('should pass headers', async () => {
@@ -4720,7 +4845,7 @@ describe('doStream', () => {
     });
   });
 
-  it('should stream a JSON response tool as text for structured output', async () => {
+  it('should stream a collision-free JSON response tool as text', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'stream-chunks',
       chunks: [
@@ -4733,7 +4858,7 @@ describe('doStream', () => {
                   {
                     functionCall: {
                       id: 'json-call',
-                      name: 'json',
+                      name: 'json_1',
                       args: { date: '2026-09-04' },
                     },
                   },
@@ -4760,7 +4885,7 @@ describe('doStream', () => {
       tools: [
         {
           type: 'function',
-          name: 'resolveDate',
+          name: 'json',
           inputSchema: {
             type: 'object',
             properties: { expression: { type: 'string' } },
@@ -4772,6 +4897,7 @@ describe('doStream', () => {
     });
 
     const events = await convertReadableStreamToArray(stream);
+    const requestBody = await server.calls[0].requestBodyJson;
 
     expect(events).toContainEqual({
       type: 'text-delta',
@@ -4779,12 +4905,17 @@ describe('doStream', () => {
       delta: '{"date":"2026-09-04"}',
     });
     expect(events).not.toContainEqual(
-      expect.objectContaining({ type: 'tool-call', toolName: 'json' }),
+      expect.objectContaining({ type: 'tool-call', toolName: 'json_1' }),
     );
     expect(events.at(-1)).toMatchObject({
       type: 'finish',
       finishReason: { unified: 'stop', raw: 'STOP' },
     });
+    expect(
+      requestBody.tools[0].functionDeclarations.map(
+        (tool: { name: string }) => tool.name,
+      ),
+    ).toEqual(['json', 'json_1']);
   });
 
   describe('reasoning', () => {

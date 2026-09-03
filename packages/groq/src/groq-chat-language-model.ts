@@ -40,7 +40,9 @@ type GroqChatConfig = {
   fetch?: FetchFunction;
 };
 
-const jsonResponseToolName = 'json';
+const jsonResponseToolMetadata = {
+  'ai-sdk': { jsonResponseTool: true },
+} as const;
 
 export class GroqChatLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
@@ -90,10 +92,12 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
 
     const structuredOutputs = groqOptions?.structuredOutputs ?? true;
     const strictJsonSchema = groqOptions?.strictJsonSchema ?? true;
+    const toolsForRequest = toolChoice?.type === 'none' ? undefined : tools;
+    const jsonResponseToolName = getJsonResponseToolName(toolsForRequest);
     const jsonResponseTool: LanguageModelV3FunctionTool | undefined =
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
-      tools?.some(tool => tool.type === 'function')
+      toolsForRequest?.some(tool => tool.type === 'function')
         ? {
             type: 'function',
             name: jsonResponseToolName,
@@ -126,8 +130,15 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
       toolWarnings,
     } = prepareTools({
       tools:
-        jsonResponseTool != null ? [...(tools ?? []), jsonResponseTool] : tools,
-      toolChoice: jsonResponseTool != null ? { type: 'required' } : toolChoice,
+        jsonResponseTool != null
+          ? [...(toolsForRequest ?? []), jsonResponseTool]
+          : toolsForRequest,
+      toolChoice:
+        toolChoice?.type === 'none'
+          ? undefined
+          : jsonResponseTool != null
+            ? { type: 'required' }
+            : toolChoice,
       modelId: this.modelId,
     });
 
@@ -179,14 +190,14 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
         tool_choice: groqToolChoice,
       },
       warnings: [...warnings, ...toolWarnings],
-      usesJsonResponseTool: jsonResponseTool != null,
+      jsonResponseToolName: jsonResponseTool?.name,
     };
   }
 
   async doGenerate(
     options: LanguageModelV3CallOptions,
   ): Promise<LanguageModelV3GenerateResult> {
-    const { args, warnings, usesJsonResponseTool } = await this.getArgs({
+    const { args, warnings, jsonResponseToolName } = await this.getArgs({
       ...options,
       stream: false,
     });
@@ -218,7 +229,7 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
 
     // text content:
     const text = choice.message.content;
-    if (!usesJsonResponseTool && text != null && text.length > 0) {
+    if (jsonResponseToolName == null && text != null && text.length > 0) {
       content.push({ type: 'text', text: text });
     }
 
@@ -235,13 +246,14 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
     if (choice.message.tool_calls != null) {
       for (const toolCall of choice.message.tool_calls) {
         if (
-          usesJsonResponseTool &&
+          jsonResponseToolName != null &&
           toolCall.function.name === jsonResponseToolName
         ) {
           isJsonResponseFromTool = true;
           content.push({
             type: 'text',
             text: toolCall.function.arguments!,
+            providerMetadata: jsonResponseToolMetadata,
           });
         } else {
           content.push({
@@ -276,7 +288,7 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
   async doStream(
     options: LanguageModelV3CallOptions,
   ): Promise<LanguageModelV3StreamResult> {
-    const { args, warnings, usesJsonResponseTool } = await this.getArgs({
+    const { args, warnings, jsonResponseToolName } = await this.getArgs({
       ...options,
       stream: true,
     });
@@ -571,9 +583,10 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
     );
 
     return {
-      stream: usesJsonResponseTool
-        ? convertJsonResponseToolStream(stream)
-        : stream,
+      stream:
+        jsonResponseToolName != null
+          ? convertJsonResponseToolStream(stream, jsonResponseToolName)
+          : stream,
       request: { body },
       response: { headers: responseHeaders },
     };
@@ -582,6 +595,7 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
 
 function convertJsonResponseToolStream(
   stream: ReadableStream<LanguageModelV3StreamPart>,
+  jsonResponseToolName: string,
 ): ReadableStream<LanguageModelV3StreamPart> {
   const jsonToolCallIds = new Set<string>();
   let hasJsonResponse = false;
@@ -644,6 +658,27 @@ function convertJsonResponseToolStream(
       },
     }),
   );
+}
+
+function getJsonResponseToolName(
+  tools: LanguageModelV3CallOptions['tools'],
+): string {
+  const toolNames = new Set(
+    tools
+      ?.filter(
+        (tool): tool is LanguageModelV3FunctionTool => tool.type === 'function',
+      )
+      .map(tool => tool.name),
+  );
+
+  let name = 'json';
+  let suffix = 1;
+
+  while (toolNames.has(name)) {
+    name = `json_${suffix++}`;
+  }
+
+  return name;
 }
 
 // limited version of the schema, focussed on what is needed for the implementation

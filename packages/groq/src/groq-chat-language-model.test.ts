@@ -567,12 +567,132 @@ describe('doGenerate', () => {
       ],
     });
     expect(result.content).toEqual([
-      { type: 'text', text: '{"date":"2026-09-04"}' },
+      {
+        type: 'text',
+        text: '{"date":"2026-09-04"}',
+        providerMetadata: {
+          'ai-sdk': { jsonResponseTool: true },
+        },
+      },
     ]);
     expect(result.finishReason).toEqual({
       unified: 'stop',
       raw: 'tool_calls',
     });
+  });
+
+  it('should omit tools and preserve native structured output when toolChoice is none', async () => {
+    prepareJsonFixtureResponse('groq-text');
+
+    await provider('openai/gpt-oss-120b').doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { date: { type: 'string' } },
+          required: ['date'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          type: 'function',
+          name: 'resolveDate',
+          inputSchema: {
+            type: 'object',
+            properties: { expression: { type: 'string' } },
+            required: ['expression'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      toolChoice: { type: 'none' },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody).toHaveProperty('response_format.json_schema');
+    expect(requestBody).not.toHaveProperty('tools');
+    expect(requestBody).not.toHaveProperty('tool_choice');
+  });
+
+  it('should keep a user-defined json tool distinct from the response tool', async () => {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
+      type: 'json-value',
+      body: {
+        id: 'completion-id',
+        object: 'chat.completion',
+        created: 0,
+        model: 'openai/gpt-oss-120b',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: null,
+              tool_calls: [
+                {
+                  id: 'user-json-call',
+                  type: 'function',
+                  function: {
+                    name: 'json',
+                    arguments: '{"value":"test"}',
+                  },
+                },
+              ],
+            },
+            finish_reason: 'tool_calls',
+          },
+        ],
+        usage: {
+          prompt_tokens: 1,
+          completion_tokens: 1,
+          total_tokens: 2,
+        },
+      },
+    };
+
+    const result = await provider('openai/gpt-oss-120b').doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { date: { type: 'string' } },
+          required: ['date'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          type: 'function',
+          name: 'json',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+          },
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(
+      requestBody.tools.map(
+        (tool: { function: { name: string } }) => tool.function.name,
+      ),
+    ).toEqual(['json', 'json_1']);
+    expect(result.content).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'user-json-call',
+        toolName: 'json',
+        input: '{"value":"test"}',
+      },
+    ]);
   });
 
   it('should pass headers', async () => {
@@ -1085,7 +1205,7 @@ describe('doStream', () => {
     });
   });
 
-  it('should stream a JSON response tool as text for structured output', async () => {
+  it('should stream a collision-free JSON response tool as text', async () => {
     server.urls[CHAT_COMPLETIONS_URL].response = {
       type: 'stream-chunks',
       chunks: [
@@ -1105,7 +1225,7 @@ describe('doStream', () => {
                     id: 'json-call',
                     type: 'function',
                     function: {
-                      name: 'json',
+                      name: 'json_1',
                       arguments: '{"date":"2026-09-04"}',
                     },
                   },
@@ -1146,7 +1266,7 @@ describe('doStream', () => {
       tools: [
         {
           type: 'function',
-          name: 'resolveDate',
+          name: 'json',
           inputSchema: {
             type: 'object',
             properties: { expression: { type: 'string' } },
@@ -1158,6 +1278,7 @@ describe('doStream', () => {
     });
 
     const events = await convertReadableStreamToArray(stream);
+    const requestBody = await server.calls[0].requestBodyJson;
 
     expect(events).toContainEqual({
       type: 'text-delta',
@@ -1165,12 +1286,17 @@ describe('doStream', () => {
       delta: '{"date":"2026-09-04"}',
     });
     expect(events).not.toContainEqual(
-      expect.objectContaining({ type: 'tool-call', toolName: 'json' }),
+      expect.objectContaining({ type: 'tool-call', toolName: 'json_1' }),
     );
     expect(events.at(-1)).toMatchObject({
       type: 'finish',
       finishReason: { unified: 'stop', raw: 'tool_calls' },
     });
+    expect(
+      requestBody.tools.map(
+        (tool: { function: { name: string } }) => tool.function.name,
+      ),
+    ).toEqual(['json', 'json_1']);
   });
 
   describe('reasoning', () => {

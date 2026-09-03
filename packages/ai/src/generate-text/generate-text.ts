@@ -967,24 +967,17 @@ export async function generateText<
               stepToolChoice?.type === 'tool'
                 ? stepToolChoice
                 : undefined;
-            const hasPreviouslySatisfiedToolChoice =
-              enforcedToolChoice != null &&
+            const isJsonResponseToolResult =
               output != null &&
-              currentModelResponse.finishReason.unified === 'stop' &&
               currentModelResponse.content.some(
-                part => part.type === 'text' && part.text.length > 0,
-              ) &&
-              steps.some(step =>
-                step.toolCalls.some(
-                  toolCall =>
-                    enforcedToolChoice.type === 'required' ||
-                    toolCall.toolName === enforcedToolChoice.toolName,
-                ),
+                part =>
+                  part.type === 'text' &&
+                  part.providerMetadata?.['ai-sdk']?.jsonResponseTool === true,
               );
 
             if (
               enforcedToolChoice != null &&
-              !hasPreviouslySatisfiedToolChoice &&
+              !isJsonResponseToolResult &&
               !stepToolCalls.some(
                 toolCall =>
                   enforcedToolChoice.type === 'required' ||

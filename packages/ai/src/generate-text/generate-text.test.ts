@@ -880,7 +880,44 @@ describe('generateText', () => {
       });
     });
 
-    it('should accept structured output after the required tool was called in an earlier step', async () => {
+    it.each([
+      ['required', 'required' as const],
+      ['named', { type: 'tool', toolName: 'tool1' } as const],
+    ])(
+      'should accept a structured output response tool for %s tool choice',
+      async (_, toolChoice) => {
+        const result = await generateText({
+          model: new MockLanguageModelV3({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'text',
+                  text: `{ "result": "done" }`,
+                  providerMetadata: {
+                    'ai-sdk': { jsonResponseTool: true },
+                  },
+                },
+              ],
+            }),
+          }),
+          tools: {
+            tool1: {
+              inputSchema: z.object({ value: z.string() }),
+            },
+          },
+          toolChoice,
+          output: Output.object({
+            schema: z.object({ result: z.string() }),
+          }),
+          prompt: 'test-input',
+        });
+
+        expect(result.output).toEqual({ result: 'done' });
+      },
+    );
+
+    it('should accept structured output from a provider response tool after a user tool call', async () => {
       let callCount = 0;
 
       const result = await generateText({
@@ -907,7 +944,15 @@ describe('generateText', () => {
                 }
               : {
                   ...dummyResponseValues,
-                  content: [{ type: 'text', text: `{ "result": "done" }` }],
+                  content: [
+                    {
+                      type: 'text',
+                      text: `{ "result": "done" }`,
+                      providerMetadata: {
+                        'ai-sdk': { jsonResponseTool: true },
+                      },
+                    },
+                  ],
                 };
           },
         }),
@@ -927,6 +972,57 @@ describe('generateText', () => {
 
       expect(result.output).toEqual({ result: 'done' });
       expect(result.steps).toHaveLength(2);
+    });
+
+    it('should enforce a named tool choice from prepareStep on every step', async () => {
+      let callCount = 0;
+
+      const result = generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => {
+            callCount++;
+
+            return callCount === 1
+              ? {
+                  ...dummyResponseValues,
+                  finishReason: {
+                    unified: 'tool-calls',
+                    raw: 'tool_calls',
+                  },
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: `{ "value": "value" }`,
+                    },
+                  ],
+                }
+              : {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'No tool call.' }],
+                };
+          },
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'tool result',
+          },
+        },
+        toolChoice: 'auto',
+        prepareStep: async () => ({
+          toolChoice: { type: 'tool', toolName: 'tool1' },
+        }),
+        stopWhen: stepCountIs(3),
+        prompt: 'test-input',
+      });
+
+      await expect(result).rejects.toMatchObject({
+        name: 'AI_ToolChoiceViolationError',
+        toolChoice: { type: 'tool', toolName: 'tool1' },
+      });
     });
 
     it('should enforce the tool choice returned by prepareStep', async () => {
