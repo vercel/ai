@@ -1,0 +1,8 @@
+{
+  "error": {
+    "message": "Invalid request body: [INVALID_ARGUMENT] input must be string or input items",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "invalid_request"
+  }
+}

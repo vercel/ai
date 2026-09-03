@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 12754,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-12754-openai-responses-assistant-history.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-12754-openai-responses-assistant-history.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #12754: strict Responses input validation rejected AI SDK assistant history serialized as an incomplete output_text message."
+  }
+}
