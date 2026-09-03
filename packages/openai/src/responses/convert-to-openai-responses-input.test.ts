@@ -1246,7 +1246,7 @@ describe('convertToOpenAIResponsesInput', () => {
   });
 
   describe('assistant messages', () => {
-    it('should convert messages with only a text part to a string content', async () => {
+    it('should convert text without an item ID to a complete output message', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
           { role: 'assistant', content: [{ type: 'text', text: 'Hello' }] },
@@ -1259,13 +1259,23 @@ describe('convertToOpenAIResponsesInput', () => {
 
       expect(result.input).toEqual([
         {
+          type: 'message',
           role: 'assistant',
-          content: [{ type: 'output_text', text: 'Hello' }],
+          content: [
+            {
+              type: 'output_text',
+              text: 'Hello',
+              annotations: [],
+              logprobs: [],
+            },
+          ],
+          id: 'msg_ai_sdk_0',
+          status: 'completed',
         },
       ]);
     });
 
-    it('should include phase from providerOptions on assistant text messages', async () => {
+    it('should convert text with an item ID to a complete output message', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
@@ -1292,9 +1302,18 @@ describe('convertToOpenAIResponsesInput', () => {
 
       expect(result.input).toEqual([
         {
+          type: 'message',
           role: 'assistant',
-          content: [{ type: 'output_text', text: 'I will search for that' }],
+          content: [
+            {
+              type: 'output_text',
+              text: 'I will search for that',
+              annotations: [],
+              logprobs: [],
+            },
+          ],
           id: 'msg_001',
+          status: 'completed',
           phase: 'commentary',
         },
       ]);
@@ -1327,11 +1346,18 @@ describe('convertToOpenAIResponsesInput', () => {
 
       expect(result.input).toEqual([
         {
+          type: 'message',
           role: 'assistant',
           content: [
-            { type: 'output_text', text: 'The capital of France is Paris.' },
+            {
+              type: 'output_text',
+              text: 'The capital of France is Paris.',
+              annotations: [],
+              logprobs: [],
+            },
           ],
           id: 'msg_002',
+          status: 'completed',
           phase: 'final_answer',
         },
       ]);
@@ -1363,9 +1389,18 @@ describe('convertToOpenAIResponsesInput', () => {
 
       expect(result.input).toEqual([
         {
+          type: 'message',
           role: 'assistant',
-          content: [{ type: 'output_text', text: 'Hello' }],
+          content: [
+            {
+              type: 'output_text',
+              text: 'Hello',
+              annotations: [],
+              logprobs: [],
+            },
+          ],
           id: 'msg_003',
+          status: 'completed',
         },
       ]);
     });
@@ -1394,13 +1429,18 @@ describe('convertToOpenAIResponsesInput', () => {
 
       expect(result.input).toEqual([
         {
+          type: 'message',
           role: 'assistant',
           content: [
             {
               type: 'output_text',
               text: 'I will search for that information.',
+              annotations: [],
+              logprobs: [],
             },
           ],
+          id: 'msg_ai_sdk_0',
+          status: 'completed',
         },
         {
           type: 'function_call',
@@ -2273,12 +2313,16 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 "content": [
                   {
+                    "annotations": [],
+                    "logprobs": [],
                     "text": "First response",
                     "type": "output_text",
                   },
                 ],
-                "id": undefined,
+                "id": "msg_ai_sdk_0",
                 "role": "assistant",
+                "status": "completed",
+                "type": "message",
               },
               {
                 "content": [
@@ -2296,12 +2340,16 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 "content": [
                   {
+                    "annotations": [],
+                    "logprobs": [],
                     "text": "Second response",
                     "type": "output_text",
                   },
                 ],
-                "id": undefined,
+                "id": "msg_ai_sdk_1",
                 "role": "assistant",
+                "status": "completed",
+                "type": "message",
               },
             ]
           `);
@@ -2397,12 +2445,16 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 "content": [
                   {
+                    "annotations": [],
+                    "logprobs": [],
                     "text": "First response",
                     "type": "output_text",
                   },
                 ],
-                "id": undefined,
+                "id": "msg_ai_sdk_0",
                 "role": "assistant",
+                "status": "completed",
+                "type": "message",
               },
               {
                 "content": [
@@ -2427,12 +2479,16 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 "content": [
                   {
+                    "annotations": [],
+                    "logprobs": [],
                     "text": "Second response",
                     "type": "output_text",
                   },
                 ],
-                "id": undefined,
+                "id": "msg_ai_sdk_1",
                 "role": "assistant",
+                "status": "completed",
+                "type": "message",
               },
             ]
           `);
@@ -2631,13 +2687,18 @@ describe('convertToOpenAIResponsesInput', () => {
             },
             // Final text output
             {
+              type: 'message',
               role: 'assistant',
               content: [
                 {
                   type: 'output_text',
                   text: 'Based on my analysis and calculations, here is the final answer.',
+                  annotations: [],
+                  logprobs: [],
                 },
               ],
+              id: 'msg_ai_sdk_0',
+              status: 'completed',
             },
           ]);
 
@@ -3973,22 +4034,30 @@ describe('convertToOpenAIResponsesInput', () => {
             {
               "content": [
                 {
+                  "annotations": [],
+                  "logprobs": [],
                   "text": "Let me search for recent news from San Francisco.",
                   "type": "output_text",
                 },
               ],
-              "id": undefined,
+              "id": "msg_ai_sdk_0",
               "role": "assistant",
+              "status": "completed",
+              "type": "message",
             },
             {
               "content": [
                 {
+                  "annotations": [],
+                  "logprobs": [],
                   "text": "Based on the search results, several significant events took place in San Francisco yesterday (June 22, 2025).",
                   "type": "output_text",
                 },
               ],
-              "id": undefined,
+              "id": "msg_ai_sdk_1",
               "role": "assistant",
+              "status": "completed",
+              "type": "message",
             },
           ],
           "warnings": [
@@ -4036,24 +4105,32 @@ describe('convertToOpenAIResponsesInput', () => {
       expect(result).toEqual({
         input: [
           {
+            type: 'message',
             role: 'assistant',
             content: [
               {
                 type: 'output_text',
                 text: 'I need approval before running that tool.',
+                annotations: [],
+                logprobs: [],
               },
             ],
-            id: undefined,
+            id: 'msg_ai_sdk_0',
+            status: 'completed',
           },
           {
+            type: 'message',
             role: 'assistant',
             content: [
               {
                 type: 'output_text',
                 text: 'The tool was not run.',
+                annotations: [],
+                logprobs: [],
               },
             ],
-            id: undefined,
+            id: 'msg_ai_sdk_1',
+            status: 'completed',
           },
         ],
         warnings: [],
@@ -4098,24 +4175,32 @@ describe('convertToOpenAIResponsesInput', () => {
       expect(result).toEqual({
         input: [
           {
+            type: 'message',
             role: 'assistant',
             content: [
               {
                 type: 'output_text',
                 text: 'I need approval before running that tool.',
+                annotations: [],
+                logprobs: [],
               },
             ],
-            id: undefined,
+            id: 'msg_ai_sdk_0',
+            status: 'completed',
           },
           {
+            type: 'message',
             role: 'assistant',
             content: [
               {
                 type: 'output_text',
                 text: 'The tool was not run.',
+                annotations: [],
+                logprobs: [],
               },
             ],
-            id: undefined,
+            id: 'msg_ai_sdk_1',
+            status: 'completed',
           },
         ],
         warnings: [],
@@ -5253,12 +5338,16 @@ describe('convertToOpenAIResponsesInput', () => {
           {
             "content": [
               {
+                "annotations": [],
+                "logprobs": [],
                 "text": "Hi there!",
                 "type": "output_text",
               },
             ],
-            "id": undefined,
+            "id": "msg_ai_sdk_0",
             "role": "assistant",
+            "status": "completed",
+            "type": "message",
           },
         ]
       `);
@@ -5658,12 +5747,16 @@ describe('convertToOpenAIResponsesInput', () => {
           {
             "content": [
               {
+                "annotations": [],
+                "logprobs": [],
                 "text": "Here is my response.",
                 "type": "output_text",
               },
             ],
             "id": "msg_001",
             "role": "assistant",
+            "status": "completed",
+            "type": "message",
           },
           {
             "encrypted_content": "encrypted_state",
