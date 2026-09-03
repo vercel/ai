@@ -1,6 +1,23 @@
-import { NoSuchProviderReferenceError } from '@ai-sdk/provider';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import {
+  NoSuchProviderReferenceError,
+  type JSONObject,
+  type JSONSchema7,
+} from '@ai-sdk/provider';
+import { describe, expect, it } from 'vitest';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
-import { describe, it, expect } from 'vitest';
+
+const zodV4StringFormatSchema = JSON.parse(
+  readFileSync(
+    join(
+      dirname(fileURLToPath(import.meta.url)),
+      '__fixtures__/zod-v4-string-format-schema.json',
+    ),
+    'utf8',
+  ),
+) as JSONSchema7;
 
 describe('prepareResponsesTools', () => {
   describe('function tools strict mode', () => {
@@ -168,6 +185,65 @@ describe('prepareResponsesTools', () => {
           ],
         }
       `);
+    });
+  });
+
+  describe('zod v4 string-format patterns', () => {
+    it('strips pattern from function tool parameters and keeps format', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'createContact',
+            description: 'Create a contact',
+            inputSchema: zodV4StringFormatSchema,
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      const parameters = (
+        result.tools?.[0] as { parameters?: Record<string, unknown> }
+      )?.parameters;
+
+      expect(JSON.stringify(parameters)).not.toContain('"pattern"');
+      expect(parameters).toMatchObject({
+        properties: {
+          email: { type: 'string', format: 'email' },
+          kidId: { type: 'string', format: 'uuid' },
+          birthDate: { type: 'string', format: 'date' },
+        },
+      });
+    });
+
+    it('strips pattern from function tool output_schema and keeps format', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'createContact',
+            description: 'Create a contact',
+            inputSchema: { type: 'object', properties: {} },
+            providerOptions: {
+              openai: {
+                outputSchema: zodV4StringFormatSchema as JSONObject,
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      const outputSchema = (
+        result.tools?.[0] as { output_schema?: Record<string, unknown> }
+      )?.output_schema;
+
+      expect(JSON.stringify(outputSchema)).not.toContain('"pattern"');
+      expect(outputSchema).toMatchObject({
+        properties: {
+          email: { type: 'string', format: 'email' },
+        },
+      });
     });
   });
 

@@ -26,6 +26,7 @@ import type {
   OpenAIResponsesFunctionTool,
   OpenAIResponsesTool,
 } from './openai-responses-api';
+import { removePatternKeyword } from './openai-responses-sanitize-schema';
 
 type AllowedToolResolution =
   | { supported: true; entry: OpenAIResponsesAllowedTool }
@@ -616,14 +617,18 @@ function prepareFunctionTool({
     type: 'function',
     name: tool.name,
     description: tool.description,
-    parameters: tool.inputSchema,
+    parameters: removePatternKeyword(tool.inputSchema),
     ...(tool.strict != null ? { strict: tool.strict } : {}),
     ...(deferLoading != null ? { defer_loading: deferLoading } : {}),
     ...(options?.allowedCallers != null
       ? { allowed_callers: options.allowedCallers }
       : {}),
     ...(options?.outputSchema != null
-      ? { output_schema: options.outputSchema as JSONSchema7 }
+      ? {
+          output_schema: removePatternKeyword(
+            options.outputSchema,
+          ) as JSONSchema7,
+        }
       : {}),
   };
 }
