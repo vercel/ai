@@ -1,9 +1,10 @@
 import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-unsupported-error';
-import type {
-  HarnessV1BuiltinToolFiltering,
-  HarnessV1JSONSchema,
-  HarnessV1NetworkSandboxSession,
-  HarnessV1ResponseFormat,
+import {
+  harnessV1StateDirectory,
+  type HarnessV1BuiltinToolFiltering,
+  type HarnessV1JSONSchema,
+  type HarnessV1NetworkSandboxSession,
+  type HarnessV1ResponseFormat,
 } from '../v1';
 import {
   asArray,
@@ -361,7 +362,15 @@ export class HarnessAgent<
             session: toolSafeSandboxSession,
             recipe,
             identity: recipeIdentity,
-            defaultWorkingDirectory,
+            // State, not workspace: providers that separate the two keep the
+            // recipe's dependencies out of the session's working directory.
+            defaultWorkingDirectory: harnessV1StateDirectory({
+              stateDirectory:
+                'stateDirectory' in sandboxSession
+                  ? sandboxSession.stateDirectory
+                  : undefined,
+              defaultWorkingDirectory,
+            }),
             abortSignal,
           });
         } catch (err) {
@@ -414,8 +423,11 @@ export class HarnessAgent<
               session: resumedSandboxSession.restricted(),
               recipe,
               identity: recipeIdentity,
-              defaultWorkingDirectory:
-                resumedSandboxSession.defaultWorkingDirectory,
+              // State, not workspace: providers that separate the two keep
+              // the recipe's dependencies out of the working directory.
+              defaultWorkingDirectory: harnessV1StateDirectory(
+                resumedSandboxSession,
+              ),
               abortSignal,
             });
           } catch (err) {
@@ -462,8 +474,11 @@ export class HarnessAgent<
               session: createdSandboxSession.restricted(),
               recipe: sandboxBootstrapPlan.recipe,
               identity: sandboxBootstrapPlan.recipeIdentity,
-              defaultWorkingDirectory:
-                createdSandboxSession.defaultWorkingDirectory,
+              // State, not workspace: providers that separate the two keep
+              // the recipe's dependencies out of the working directory.
+              defaultWorkingDirectory: harnessV1StateDirectory(
+                createdSandboxSession,
+              ),
               abortSignal,
             });
           } catch (err) {
