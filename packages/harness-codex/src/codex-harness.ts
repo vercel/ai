@@ -313,8 +313,6 @@ export function createCodex(
            */
           sandboxAuthEnvironment.OPENAI_BASE_URL = DEFAULT_OPENAI_BASE_URL;
         }
-      } else {
-        warnCredentialBrokeringUnavailable();
       }
       const bootstrapDir = path.posix.resolve(
         defaultWorkingDirectory,
@@ -446,6 +444,14 @@ export function createCodex(
               CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES,
             credentialForwarding: settings.credentialForwarding,
           });
+      if (!credentialsBrokered) {
+        warnCredentialBrokeringUnavailable({
+          environment: resolvedAuthEnvironment,
+          forwardedEnvironment: forwardedAuthEnvironment,
+          credentialEnvironmentVariables:
+            CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES,
+        });
+      }
       const env = {
         ...forwardedAuthEnvironment,
         AI_SDK_HARNESS_CLIENT_APP: CODEX_CLIENT_APP,

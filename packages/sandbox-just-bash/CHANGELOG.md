@@ -1,5 +1,28 @@
 # @ai-sdk/sandbox-just-bash
 
+## 1.0.100
+
+### Patch Changes
+
+- Updated dependencies [0c37bf0]
+  - @ai-sdk/harness@1.0.100
+
+## 1.0.99
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+  - @ai-sdk/harness@1.0.99
+
+## 1.0.98
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider-utils@5.0.35
+  - @ai-sdk/harness@1.0.98
+
 ## 1.0.97
 
 ### Patch Changes

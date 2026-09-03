@@ -343,6 +343,7 @@ describe('createDeepAgents', () => {
   });
 
   it('customizes real credentials when request transformations are unavailable', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const forwardedCredentials: Array<{
       credential: string;
@@ -372,8 +373,26 @@ describe('createDeepAgents', () => {
       'caller-managed-credential',
     );
     expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('anthropic-secret');
+    expect(warn).not.toHaveBeenCalled();
 
     await session.doDestroy();
+
+    const identityHarness = createDeepAgents({
+      auth: { ANTHROPIC_API_KEY: 'anthropic-secret' },
+      credentialForwarding: ({ credential }) => credential,
+    });
+    const identitySession = await identityHarness.doStart({
+      sessionId: 'identity-session',
+      sessionWorkDir: '/vercel/sandbox/deepagents-identity-session',
+      sandboxSession: fakeSandboxSession(),
+    } as unknown as Parameters<typeof identityHarness.doStart>[0]);
+
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      'The sandbox implementation does not support configuring request transformations, so credential brokering does not work. Falling back to less secure credential forwarding.',
+    );
+
+    await identitySession.doDestroy();
+    warn.mockRestore();
   });
 
   it('passes configured MCP servers to the bridge', async () => {

@@ -1,5 +1,41 @@
 # @ai-sdk/workflow
 
+## 2.0.22
+
+### Patch Changes
+
+- Updated dependencies [802af1e]
+  - ai@7.0.91
+
+## 2.0.21
+
+### Patch Changes
+
+- 180ce77: fix(workflow): preserve tool behavior across workflow step boundaries
+- 82a16c9: fix(workflow): retain model files and sources in provider order across durable agent results and message history
+- 30306cf: fix(workflow): include executed tool results in completed agent steps
+- 19d8f30: fix(workflow): infer constructor-level structured output in stream results
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+  - ai@7.0.90
+
+## 2.0.20
+
+### Patch Changes
+
+- 85d2081: fix(workflow): preserve configured tool and runtime context types in stop conditions
+
+## 2.0.19
+
+### Patch Changes
+
+- 902ce3b: fix(workflow): respect empty activeTools lists
+- c143af4: fix(workflow): propagate agent abort signals to local tool executions
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+  - ai@7.0.89
+
 ## 2.0.18
 
 ### Patch Changes

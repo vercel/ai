@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/rsc",
-  "version": "3.0.88",
+  "version": "3.0.91",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -47,7 +47,7 @@
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
     "ai": "workspace:*",
-    "jsondiffpatch": "0.7.3"
+    "jsondiffpatch": "0.7.6"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",

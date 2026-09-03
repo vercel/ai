@@ -302,6 +302,7 @@ export async function prepareResponsesTools({
 
             openaiTools.push({
               type: 'image_generation',
+              action: args.action,
               background: args.background,
               input_fidelity: args.inputFidelity,
               input_image_mask: args.inputImageMask

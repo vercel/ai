@@ -1,5 +1,38 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.73
+
+### Patch Changes
+
+- Updated dependencies [048ce06]
+- Updated dependencies [65397d7]
+- Updated dependencies [7243530]
+  - @ai-sdk/openai@4.0.57
+  - @ai-sdk/anthropic@4.0.49
+
+## 5.0.72
+
+### Patch Changes
+
+- Updated dependencies [4d25a08]
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/anthropic@4.0.48
+  - @ai-sdk/provider-utils@5.0.36
+  - @ai-sdk/openai@4.0.56
+
+## 5.0.71
+
+### Patch Changes
+
+- bd74b49: Use the JSON tool fallback by default for structured output with Claude Sonnet 4.6 and Claude Haiku 4.5 while preserving strict tool support.
+- 6aa2401: Add a `structuredOutputMode` provider option for choosing between native structured output and the JSON tool fallback for Anthropic models.
+- Updated dependencies [5190b67]
+- Updated dependencies [3fc40db]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+  - @ai-sdk/anthropic@4.0.47
+  - @ai-sdk/openai@4.0.55
+
 ## 5.0.70
 
 ### Patch Changes

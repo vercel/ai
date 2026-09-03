@@ -589,7 +589,8 @@ export class MiniMaxVideoModel implements VideoModelV4 {
       const { value: statusResponse, responseHeaders: pollHeaders } =
         await getFromApi({
           url: `${baseURL}/v2/query/video_generation/${taskId}`,
-          validateUrl: false,
+          validateUrl: true,
+          trustedOrigin: baseURL,
           headers: combineHeaders(
             await resolve(this.config.headers),
             options.headers,

@@ -1,5 +1,30 @@
 # @ai-sdk/harness-acp
 
+## 1.0.38
+
+### Patch Changes
+
+- 74d252a: fix(harness-acp): preserve terminal events replayed during ACP continuation startup
+- 0c37bf0: fix(harness): avoid warning about lack of credential brokering support when `credentialForwarding` callback is used to replace all credentials with ephemeral fake secrets
+- Updated dependencies [0c37bf0]
+  - @ai-sdk/harness@1.0.100
+
+## 1.0.37
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+  - @ai-sdk/harness@1.0.99
+
+## 1.0.36
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider-utils@5.0.35
+  - @ai-sdk/harness@1.0.98
+
 ## 1.0.35
 
 ### Patch Changes

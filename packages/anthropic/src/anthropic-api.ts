@@ -24,6 +24,10 @@ export type AnthropicCacheControl = {
 export interface AnthropicSystemMessage {
   role: 'system';
   content: Array<AnthropicTextContent | AnthropicToolChangeContent>;
+  clear_at?: 'next_user_message';
+  output_config?: {
+    effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+  };
 }
 
 /**

@@ -63,7 +63,10 @@ export class GoogleFiles implements FilesV4 {
       schema: googleFilesUploadOptionsSchema,
     })) as GoogleFilesUploadOptions | undefined;
 
-    const resolvedHeaders = this.config.headers();
+    const resolvedHeaders = combineHeaders(
+      this.config.headers(),
+      options.headers,
+    );
     const fetchFn = this.config.fetch ?? globalThis.fetch;
 
     const warnings: Array<SharedV4Warning> = [];
@@ -93,6 +96,7 @@ export class GoogleFiles implements FilesV4 {
           ...(displayName != null ? { display_name: displayName } : {}),
         },
       }),
+      signal: options.abortSignal,
     });
 
     if (!initResponse.ok) {
@@ -118,6 +122,7 @@ export class GoogleFiles implements FilesV4 {
         'X-Goog-Upload-Command': 'upload, finalize',
       },
       body: ensureArrayBufferBacked(fileBytes),
+      signal: options.abortSignal,
     });
 
     if (!uploadResponse.ok) {
@@ -146,7 +151,7 @@ export class GoogleFiles implements FilesV4 {
         });
       }
 
-      await delay(pollIntervalMs);
+      await delay(pollIntervalMs, { abortSignal: options.abortSignal });
 
       const fileNameMatch = /^files\/([^/]+)$/.exec(file.name);
       const filePath =
@@ -162,6 +167,7 @@ export class GoogleFiles implements FilesV4 {
           googleFileResponseSchema,
         ),
         failedResponseHandler: googleFailedResponseHandler,
+        abortSignal: options.abortSignal,
         fetch: this.config.fetch,
       });
 

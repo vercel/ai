@@ -1,5 +1,25 @@
 # @ai-sdk/tui
 
+## 1.0.92
+
+### Patch Changes
+
+- Updated dependencies [802af1e]
+  - ai@7.0.91
+
+## 1.0.91
+
+### Patch Changes
+
+- ai@7.0.90
+
+## 1.0.90
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - ai@7.0.89
+
 ## 1.0.89
 
 ### Patch Changes
