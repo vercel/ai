@@ -144,6 +144,27 @@ try {
 }
 ```
 
+If the SDK cannot determine a generated audio file's format from its media
+type, it throws an
+[`AI_InvalidArgumentError`](/docs/reference/ai-sdk-errors/ai-invalid-argument-error)
+for the `mediaType` parameter. Use the static `isInstance` method to guard the
+error:
+
+```ts
+import { InvalidArgumentError } from 'ai';
+
+try {
+  // Generate or process speech audio.
+} catch (error) {
+  if (
+    InvalidArgumentError.isInstance(error) &&
+    error.parameter === 'mediaType'
+  ) {
+    console.log('The generated audio media type does not identify a format.');
+  }
+}
+```
+
 ## Speech Models
 
 | Provider                                                                 | Model                               |
