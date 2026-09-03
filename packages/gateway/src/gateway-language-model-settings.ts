@@ -102,6 +102,8 @@ export type GatewayModelId =
   | 'meta/muse-spark-1.1'
   | 'meta/muse-spark-1.2'
   | 'meta/muse-spark-1.2-contributor'
+  | 'meta/muse-spark-1.3'
+  | 'meta/muse-spark-1.3-contributor'
   | 'minimax/minimax-m2'
   | 'minimax/minimax-m2.1'
   | 'minimax/minimax-m2.1-lightning'
@@ -240,6 +242,8 @@ export type GatewayModelId =
   | 'zai/glm-5.2'
   | 'zai/glm-5.2-fast'
   | 'zai/glm-5.3'
+  | 'zai/glm-5.3-fast'
   | 'zai/glm-5.3-flash'
+  | 'zai/glm-5.3-promo-50'
   | 'zai/glm-5v-turbo'
   | (string & {});
