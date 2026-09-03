@@ -26,8 +26,9 @@ async function main() {
     const mcpTools = await mcpClient.tools();
     const tools = Object.fromEntries(
       Object.entries(mcpTools).map(([name, mcpTool]) => {
-        const annotations = (mcpTool.metadata as McpProviderMetadata | undefined)
-          ?.annotations;
+        const annotations = (
+          mcpTool.metadata as McpProviderMetadata | undefined
+        )?.annotations;
 
         // Only an explicit read-only hint bypasses approval. False or missing
         // hints require approval because server annotations are untrusted.
@@ -79,10 +80,7 @@ async function main() {
               | undefined;
             const annotations = metadata?.annotations;
 
-            console.log(
-              '\nServer annotations:',
-              annotations ?? '(none)',
-            );
+            console.log('\nServer annotations:', annotations ?? '(none)');
             console.log(
               `Requested ${part.toolCall.toolName}:`,
               part.toolCall.input,
@@ -99,8 +97,7 @@ async function main() {
               type: 'tool-approval-response',
               approvalId: part.approvalId,
               approved:
-                answer.toLowerCase() === 'y' ||
-                answer.toLowerCase() === 'yes',
+                answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes',
             });
             break;
           }
