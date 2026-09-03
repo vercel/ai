@@ -362,8 +362,24 @@ const result = streamText({
 ```
 
 See the
-[Shopify MCP example](https://github.com/vercel/ai/blob/main/examples/mcp/src/shopify-mcp/client.ts)
-for a complete application-layer approval configuration.
+[local tool annotations example](https://github.com/vercel/ai/tree/main/examples/mcp/src/tool-annotations)
+for a complete annotated MCP server and application-layer approval
+configuration. Start the server and client in separate terminals:
+
+```bash
+cd examples/mcp
+pnpm server:tool-annotations
+```
+
+```bash
+cd examples/mcp
+pnpm client:tool-annotations read-note
+pnpm client:tool-annotations delete-note
+pnpm client:tool-annotations create-note
+```
+
+The read-only tool executes immediately. The destructive and unannotated tools
+produce approval requests without executing.
 
 ### Schema Definition
 

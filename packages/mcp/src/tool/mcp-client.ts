@@ -1217,6 +1217,27 @@ class DefaultMCPClient implements MCPClient {
         clientName: this.clientInfo.name,
         toolName: name,
         ...(resolvedTitle != null ? { title: resolvedTitle } : {}),
+        ...(annotations != null
+          ? {
+              annotations: {
+                ...(annotations.title != null
+                  ? { title: annotations.title }
+                  : {}),
+                ...(annotations.readOnlyHint != null
+                  ? { readOnlyHint: annotations.readOnlyHint }
+                  : {}),
+                ...(annotations.destructiveHint != null
+                  ? { destructiveHint: annotations.destructiveHint }
+                  : {}),
+                ...(annotations.idempotentHint != null
+                  ? { idempotentHint: annotations.idempotentHint }
+                  : {}),
+                ...(annotations.openWorldHint != null
+                  ? { openWorldHint: annotations.openWorldHint }
+                  : {}),
+              },
+            }
+          : {}),
         ...(appMeta?.resourceUri != null
           ? {
               app: {
