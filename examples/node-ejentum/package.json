@@ -1,0 +1,23 @@
+{
+  "name": "@example/node-ejentum",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "harness:reasoning": "tsx src/harness-reasoning.ts",
+    "harness:anti-deception": "tsx src/harness-anti-deception.ts",
+    "harness:streaming": "tsx src/harness-streaming.ts",
+    "type-check": "tsc --build"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "workspace:*",
+    "ai": "workspace:*",
+    "dotenv": "16.4.5",
+    "ejentum-ai": "0.1.0",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.19",
+    "tsx": "4.19.2",
+    "typescript": "5.8.3"
+  }
+}
