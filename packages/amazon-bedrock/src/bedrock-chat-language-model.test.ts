@@ -2651,6 +2651,23 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should extract generated text from a citations content block', async () => {
+    prepareJsonFixtureResponse('bedrock-citations-content-only.1');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(
+      result.content
+        .filter(part => part.type === 'text')
+        .map(part => part.text)
+        .join(''),
+    ).toBe(
+      "Generative artificial intelligence refers to models that predict and generate various types of outputs (such as text, images, or audio) based on what's statistically likely, pulling from patterns they've learned from their training data.",
+    );
+  });
+
   it('should extract usage', async () => {
     prepareJsonResponse({
       usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },

@@ -1,0 +1,49 @@
+{
+  "metrics": {
+    "latencyMs": 2068
+  },
+  "output": {
+    "message": {
+      "content": [
+        {
+          "citationsContent": {
+            "citations": [
+              {
+                "location": {
+                  "documentPage": {
+                    "documentIndex": 0,
+                    "end": 2,
+                    "start": 1
+                  }
+                },
+                "sourceContent": [
+                  {
+                    "text": "AI 1\r\nAI\r\nGenerative artificial intelligence\u00a0refers to models that predict and generate\r\nvarious types of outputs (such as text, images, or audio) based on what\u2019s\r\nstatistically likely, pulling from patterns they\u2019ve learned from their training data.\r\n"
+                  }
+                ],
+                "title": "document-1"
+              }
+            ],
+            "content": [
+              {
+                "text": "Generative artificial intelligence refers to models that predict and generate various types of outputs (such as text, images, or audio) based on what's statistically likely, pulling from patterns they've learned from their training data."
+              }
+            ]
+          }
+        }
+      ],
+      "role": "assistant"
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "cacheReadInputTokenCount": 0,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokenCount": 0,
+    "cacheWriteInputTokens": 0,
+    "inputTokens": 2788,
+    "outputTokens": 64,
+    "serverToolUsage": {},
+    "totalTokens": 2852
+  }
+}
