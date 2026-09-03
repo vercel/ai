@@ -2703,110 +2703,6 @@ describe('convertToLanguageModelMessage', () => {
         });
       });
 
-      it('should emit DeprecationWarning for image-file-id with object fileId and emit type: "file" with mediaType "image"', () => {
-        const result = convertToLanguageModelMessage({
-          message: {
-            role: 'tool',
-            content: [
-              {
-                type: 'tool-result',
-                toolName: 'toolName',
-                toolCallId: 'toolCallId',
-                output: {
-                  type: 'content',
-                  value: [
-                    {
-                      type: 'image-file-id',
-                      fileId: { 'test-provider': 'fileId' },
-                    },
-                  ],
-                },
-              },
-            ],
-          },
-          downloadedAssets: {},
-        });
-
-        expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
-        expect(mockProcessEmitWarning).toHaveBeenCalledWith(
-          'AI SDK Warning: Deprecated: ""tool-result" content of type "image-file-id"". The "image-file-id" type for tool result content is deprecated. Use the "file" type with mediaType and { type: \'reference\', reference } instead.',
-          { type: 'DeprecationWarning' },
-        );
-        expect(
-          (
-            result.content[0] as Extract<
-              (typeof result.content)[number],
-              { type: 'tool-result' }
-            >
-          ).output,
-        ).toEqual({
-          type: 'content',
-          value: [
-            {
-              type: 'file',
-              data: {
-                type: 'reference',
-                reference: { 'test-provider': 'fileId' },
-              },
-              mediaType: 'image',
-              providerOptions: undefined,
-            },
-          ],
-        });
-      });
-
-      it('should emit DeprecationWarning for file-id with object fileId and emit type: "file" with application default', () => {
-        const result = convertToLanguageModelMessage({
-          message: {
-            role: 'tool',
-            content: [
-              {
-                type: 'tool-result',
-                toolName: 'toolName',
-                toolCallId: 'toolCallId',
-                output: {
-                  type: 'content',
-                  value: [
-                    {
-                      type: 'file-id',
-                      fileId: { 'test-provider': 'fileId' },
-                    },
-                  ],
-                },
-              },
-            ],
-          },
-          downloadedAssets: {},
-        });
-
-        expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
-        expect(mockProcessEmitWarning).toHaveBeenCalledWith(
-          'AI SDK Warning: Deprecated: ""tool-result" content of type "file-id"". The "file-id" type for tool result content is deprecated. Use the "file" type with mediaType and { type: \'reference\', reference } instead.',
-          { type: 'DeprecationWarning' },
-        );
-        expect(
-          (
-            result.content[0] as Extract<
-              (typeof result.content)[number],
-              { type: 'tool-result' }
-            >
-          ).output,
-        ).toEqual({
-          type: 'content',
-          value: [
-            {
-              type: 'file',
-              data: {
-                type: 'reference',
-                reference: { 'test-provider': 'fileId' },
-              },
-              mediaType: 'application',
-              providerOptions: undefined,
-            },
-          ],
-        });
-      });
-
       it('should emit DeprecationWarning for file-url with mediaType', () => {
         convertToLanguageModelMessage({
           message: {
@@ -3041,7 +2937,7 @@ describe('convertToLanguageModelMessage', () => {
         expect(mockProcessEmitWarning).not.toHaveBeenCalled();
       });
 
-      it('should pass the new "file" shape through unchanged', () => {
+      it('should preserve canonical file parts with explicit provider references', () => {
         const result = convertToLanguageModelMessage({
           message: {
             role: 'tool',

@@ -25,7 +25,7 @@ import {
  *   2. `downloadAssets` — for `content`-type outputs, downloads any file/image
  *      assets so URLs become bytes the provider can consume.
  *   3. `mapToolResultOutput` — maps the AI-level `ToolResultOutput` to the
- *      provider-level output and converts legacy file types.
+ *      provider-level output.
  */
 export async function createLanguageModelToolResultOutput({
   toolCallId,
@@ -36,7 +36,6 @@ export async function createLanguageModelToolResultOutput({
   errorMode,
   supportedUrls,
   download = createDefaultDownloadFunction(),
-  provider,
 }: {
   toolCallId: string;
   toolName: string;
@@ -46,7 +45,6 @@ export async function createLanguageModelToolResultOutput({
   errorMode: 'none' | 'text' | 'json';
   supportedUrls: Record<string, RegExp[]>;
   download?: DownloadFunction;
-  provider?: string;
 }): Promise<LanguageModelV4ToolResultOutput> {
   const modelOutput = await createToolModelOutput({
     toolCallId,
@@ -79,7 +77,6 @@ export async function createLanguageModelToolResultOutput({
 
   return mapToolResultOutput({
     output: modelOutput,
-    provider,
     downloadedAssets,
   });
 }

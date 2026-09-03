@@ -303,7 +303,6 @@ export async function streamLanguageModelCall<
     },
     supportedUrls: await resolvedModel.supportedUrls,
     download,
-    provider: resolvedModel.provider.split('.')[0],
   });
 
   const stepTools = await prepareTools({
