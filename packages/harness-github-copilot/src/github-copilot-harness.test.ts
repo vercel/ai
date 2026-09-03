@@ -242,7 +242,6 @@ describe('createGitHubCopilot', () => {
     createGitHubCopilot({
       auth: 'direct',
       credentialForwarding,
-      model: 'gpt-5.4',
       reasoningEffort: 'high',
       mcpServers,
       port: 4319,
@@ -255,7 +254,6 @@ describe('createGitHubCopilot', () => {
     expect(settings).toMatchObject({
       auth: 'direct',
       credentialForwarding,
-      modelId: 'gpt-5.4',
       args: ['--acp', '--stdio', '--no-auto-update', '--reasoning-effort=high'],
       mcpServers,
       port: 4319,

@@ -32,10 +32,6 @@ export type GitHubCopilotAuthenticationMode = ACPAuthenticationMode;
 export type GitHubCopilotHarnessSettings = {
   readonly auth?: GitHubCopilotAuthenticationMode;
   readonly credentialForwarding?: HarnessV1CredentialForwarding;
-  /**
-   * @deprecated Use `model` on `HarnessAgent` instead.
-   */
-  readonly model?: string;
   readonly reasoningEffort?:
     | 'none'
     | 'minimal'
@@ -432,7 +428,6 @@ export function createGitHubCopilot(
       type: 'session-config-option',
       path: 'model',
     },
-    modelId: settings.model,
     skillsDirectory: '.copilot/skills',
     builtinTools: GITHUB_COPILOT_BUILTIN_TOOLS,
     mcpServers: settings.mcpServers,
