@@ -573,6 +573,78 @@ describe('generateImage', () => {
   });
 
   describe('error handling', () => {
+    it('should retry when no images are returned and a later attempt succeeds', async () => {
+      vi.useFakeTimers();
+
+      try {
+        let callCount = 0;
+
+        const resultPromise = generateImage({
+          model: new MockImageModelV3({
+            doGenerate: async () => {
+              callCount += 1;
+
+              return createMockResponse({
+                images: callCount === 1 ? [] : [pngBase64],
+              });
+            },
+          }),
+          prompt,
+          maxRetries: 2,
+        });
+
+        await vi.runAllTimersAsync();
+
+        const result = await resultPromise;
+
+        expect(callCount).toBe(2);
+        expect(result.images).toHaveLength(1);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('should throw NoImageGeneratedError after no-image retries are exhausted', async () => {
+      vi.useFakeTimers();
+
+      try {
+        let callCount = 0;
+
+        const resultPromise = generateImage({
+          model: new MockImageModelV3({
+            doGenerate: async () => {
+              callCount += 1;
+
+              return createMockResponse({
+                images: [],
+                timestamp: testDate,
+              });
+            },
+          }),
+          prompt,
+          maxRetries: 1,
+        });
+
+        const errorAssertion = expect(resultPromise).rejects.toMatchObject({
+          name: 'AI_NoImageGeneratedError',
+          message: 'No image generated.',
+          responses: [
+            {
+              timestamp: testDate,
+              modelId: expect.any(String),
+            },
+          ],
+        });
+
+        await vi.runAllTimersAsync();
+        await errorAssertion;
+
+        expect(callCount).toBe(2);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it('should throw NoImageGeneratedError when no images are returned', async () => {
       await expect(
         generateImage({
@@ -584,6 +656,7 @@ describe('generateImage', () => {
               }),
           }),
           prompt,
+          maxRetries: 0,
         }),
       ).rejects.toMatchObject({
         name: 'AI_NoImageGeneratedError',
@@ -612,6 +685,7 @@ describe('generateImage', () => {
               }),
           }),
           prompt,
+          maxRetries: 0,
         }),
       ).rejects.toMatchObject({
         name: 'AI_NoImageGeneratedError',
