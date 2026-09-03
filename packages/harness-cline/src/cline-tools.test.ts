@@ -133,7 +133,6 @@ describe('Cline question translation', () => {
           question: 'Which framework?',
           options: ['React', 'Vue'],
         },
-        toolResult: undefined,
         output: {
           action: 'answered',
           answers: {
@@ -151,7 +150,6 @@ describe('Cline question translation', () => {
           question: 'Which framework?',
           options: ['React', 'Vue'],
         },
-        toolResult: undefined,
         output: { action: 'declined' },
       }),
     ).toBe('The user declined the question.');

@@ -72,7 +72,6 @@ describe('OpenCode question translation', () => {
     expect(
       toOpenCodeQuestionResponse({
         nativeRequest,
-        toolResult: undefined,
         output: {
           action: 'partially-answered',
           answers: {
@@ -93,7 +92,6 @@ describe('OpenCode question translation', () => {
     expect(
       toOpenCodeQuestionResponse({
         nativeRequest,
-        toolResult: undefined,
         output: { action: 'cancelled' },
       }),
     ).toEqual({ action: 'reject' });

@@ -550,7 +550,6 @@ export async function createClineSession(
           pendingQuestion.resolve(
             toClineQuestionResult({
               nativeInput: pendingQuestion.input,
-              toolResult: args.toolResult,
               output: args.output as HarnessV1QuestionsToolOutput,
             }),
           );
@@ -562,7 +561,6 @@ export async function createClineSession(
           if (nativeRequest == null) return;
           pendingQuestionResults.set(clineQuestionKey(nativeRequest), {
             output: args.output as HarnessV1QuestionsToolOutput,
-            toolResult: args.toolResult,
           });
           return;
         }

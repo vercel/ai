@@ -2,7 +2,6 @@ import type {
   HarnessV1QuestionsToolInput,
   HarnessV1QuestionsToolOutput,
 } from '@ai-sdk/harness';
-import type { ToolResultPart } from '@ai-sdk/provider-utils';
 import type { QuestionInfo } from '@opencode-ai/sdk/v2';
 
 export type OpenCodeQuestionRequest = {
@@ -44,7 +43,6 @@ export function toHarnessQuestionsInput(
 
 export function toOpenCodeQuestionResponse(input: {
   nativeRequest: OpenCodeQuestionRequest;
-  toolResult: ToolResultPart | undefined;
   output: HarnessV1QuestionsToolOutput;
 }): { action: 'reply'; answers: string[][] } | { action: 'reject' } {
   if (
@@ -77,7 +75,6 @@ export function toOpenCodeQuestionResponse(input: {
     },
   );
 
-  void input.toolResult;
   return { action: 'reply', answers };
 }
 

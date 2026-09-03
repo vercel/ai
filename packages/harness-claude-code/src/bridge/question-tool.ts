@@ -2,7 +2,6 @@ import type {
   HarnessV1QuestionsToolInput,
   HarnessV1QuestionsToolOutput,
 } from '@ai-sdk/harness';
-import type { ToolResultPart } from '@ai-sdk/provider-utils';
 import type { AskUserQuestionInput } from '@anthropic-ai/claude-agent-sdk/sdk-tools.js';
 
 type ClaudeCodeQuestion = AskUserQuestionInput['questions'][number];
@@ -36,7 +35,6 @@ export function toHarnessQuestionsInput(
 
 export function toClaudeCodeQuestionResult(input: {
   nativeInput: AskUserQuestionInput;
-  toolResult: ToolResultPart | undefined;
   output: HarnessV1QuestionsToolOutput;
 }):
   | {
@@ -71,7 +69,6 @@ export function toClaudeCodeQuestionResult(input: {
     }),
   );
 
-  void input.toolResult;
   return {
     behavior: 'allow',
     updatedInput: { ...input.nativeInput, answers },

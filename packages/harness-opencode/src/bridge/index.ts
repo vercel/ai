@@ -1141,7 +1141,6 @@ async function handleQuestion({
   });
   const nativeResponse = toOpenCodeQuestionResponse({
     nativeRequest,
-    toolResult: result.toolResult,
     output: result.output as Parameters<
       typeof toOpenCodeQuestionResponse
     >[0]['output'],

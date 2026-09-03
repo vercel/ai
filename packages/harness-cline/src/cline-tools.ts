@@ -3,7 +3,6 @@ import type {
   HarnessV1QuestionsToolOutput,
   HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
-import type { ToolResultPart } from '@ai-sdk/provider-utils';
 import {
   createTool,
   type AgentTool,
@@ -90,7 +89,6 @@ export interface PendingClineQuestion {
 
 export interface PendingClineQuestionResult {
   readonly output: HarnessV1QuestionsToolOutput;
-  readonly toolResult: ToolResultPart | undefined;
 }
 
 export function clineQuestionKey(input: {
@@ -188,7 +186,6 @@ export function buildBuiltinAgentTools({
             pendingQuestionResults.delete(questionKey);
             return toClineQuestionResult({
               nativeInput: { question, options },
-              toolResult: pendingResult.toolResult,
               output: pendingResult.output,
             });
           }
@@ -394,7 +391,6 @@ export function buildBuiltinAgentTools({
 
 export function toClineQuestionResult(input: {
   nativeInput: PendingClineQuestion['input'];
-  toolResult: ToolResultPart | undefined;
   output: HarnessV1QuestionsToolOutput;
 }): string {
   if (
@@ -413,7 +409,6 @@ export function toClineQuestionResult(input: {
     })
     .filter((value): value is string => value != null)
     .join(', ');
-  void input.toolResult;
   return result;
 }
 

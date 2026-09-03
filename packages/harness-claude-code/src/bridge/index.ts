@@ -282,7 +282,6 @@ function createQuestionPreToolUseHook(input: {
     });
     const nativeResult = toClaudeCodeQuestionResult({
       nativeInput,
-      toolResult: result.toolResult,
       output: result.output as Parameters<
         typeof toClaudeCodeQuestionResult
       >[0]['output'],

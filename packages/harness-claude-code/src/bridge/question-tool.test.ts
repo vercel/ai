@@ -52,7 +52,6 @@ describe('Claude Code question translation', () => {
     expect(
       toClaudeCodeQuestionResult({
         nativeInput,
-        toolResult: undefined,
         output: {
           action: 'answered',
           answers: {
@@ -73,7 +72,6 @@ describe('Claude Code question translation', () => {
     expect(
       toClaudeCodeQuestionResult({
         nativeInput,
-        toolResult: undefined,
         output: { action: 'declined' },
       }),
     ).toEqual({
