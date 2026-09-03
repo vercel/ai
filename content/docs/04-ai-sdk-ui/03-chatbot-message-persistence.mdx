@@ -92,6 +92,39 @@ export async function loadChat(id: string): Promise<UIMessage[]> {
 
 When processing messages on the server that contain tool calls, custom metadata, or data parts, you should validate them using `validateUIMessages` before sending them to the model.
 
+### Migrating deprecated tool `rawInput`
+
+Older persisted tool parts in the `output-error` state may contain `rawInput`.
+This field is deprecated and will be removed in the next major version. Store
+tool arguments in `input` instead. AI SDK emits a deprecation warning when
+`validateUIMessages`, `safeValidateUIMessages`, or `convertToModelMessages`
+encounters a defined `rawInput` value.
+
+Migrate each legacy part by copying `rawInput` to `input` only when `input` is
+`undefined`, then remove `rawInput`:
+
+```ts
+import { isToolUIPart } from 'ai';
+
+const migratedParts = message.parts.map(part => {
+  if (
+    !isToolUIPart(part) ||
+    part.state !== 'output-error' ||
+    !('rawInput' in part) ||
+    part.rawInput === undefined
+  ) {
+    return part;
+  }
+
+  const { rawInput, ...partWithoutRawInput } = part;
+
+  return {
+    ...partWithoutRawInput,
+    input: part.input !== undefined ? part.input : rawInput,
+  };
+});
+```
+
 ### Validation with tools
 
 When your messages include tool calls, validate them against your tool definitions:

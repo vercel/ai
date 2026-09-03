@@ -5,9 +5,25 @@ import {
   validateUIMessages,
   validateUIMessagesForAgent,
 } from './validate-ui-messages';
-import { describe, it, expect, expectTypeOf } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  it,
+  expect,
+  expectTypeOf,
+  vi,
+} from 'vitest';
 
 describe('validateUIMessages', () => {
+  beforeEach(() => {
+    globalThis.AI_SDK_LOG_WARNINGS = false;
+  });
+
+  afterEach(() => {
+    delete globalThis.AI_SDK_LOG_WARNINGS;
+  });
+
   describe('parameter validation', () => {
     it('should throw InvalidArgumentError when messages parameter is null', async () => {
       await expect(
@@ -1559,6 +1575,9 @@ describe('validateUIMessages', () => {
     });
 
     it('should preserve rawInput when state is output-error', async () => {
+      const warningLogger = vi.fn();
+      globalThis.AI_SDK_LOG_WARNINGS = warningLogger;
+
       const inputMessages = [
         {
           id: '1',
@@ -1585,6 +1604,17 @@ describe('validateUIMessages', () => {
       });
 
       expect(result).toEqual(inputMessages);
+      expect(warningLogger).toHaveBeenCalledOnce();
+      expect(warningLogger).toHaveBeenCalledWith({
+        warnings: [
+          {
+            type: 'deprecated',
+            setting: 'rawInput in output-error UI message parts',
+            message:
+              'Use the "input" field instead. The "rawInput" field will be removed in the next major version.',
+          },
+        ],
+      });
     });
 
     it('should throw error when no tool schema is found', async () => {

@@ -52,6 +52,19 @@ describe('UIMessagePart', () => {
     type _ = AssertAssignable<ToolUIPart<TestTools>, Part>;
   });
 
+  it('keeps deprecated rawInput assignable on static output-error tool parts', () => {
+    type Part = {
+      type: 'tool-weather';
+      state: 'output-error';
+      toolCallId: 'call-1';
+      input: undefined;
+      rawInput: '{"city":';
+      errorText: 'Invalid tool input';
+    };
+
+    type _ = AssertAssignable<ToolUIPart<TestTools>, Part>;
+  });
+
   it('keeps approval request and response reasons distinct', () => {
     type RequestedPart = {
       type: 'tool-weather';
