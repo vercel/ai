@@ -416,7 +416,7 @@ export function createGitHubCopilot(
             $source: 'gateway-api-key',
           },
           COPILOT_PROVIDER_WIRE_API: 'responses',
-          COPILOT_MODEL: 'openai/gpt-5.4',
+          COPILOT_MODEL: 'openai/gpt-5.5',
           COPILOT_PROVIDER_HEADERS: {
             $source: 'client-app',
             prefix: 'x-client-app: ',

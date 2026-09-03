@@ -46,7 +46,7 @@ import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
   harness: githubCopilot,
-  model: 'gpt-5.4',
+  model: 'gpt-5.5',
   sandbox: createVercelSandbox({
     runtime: 'node24',
     ports: [4000],
@@ -178,9 +178,8 @@ const directHarness = createGitHubCopilot({ auth: 'direct' });
 const gatewayHarness = createGitHubCopilot({ auth: 'ai-gateway' });
 ```
 
-Use direct GitHub Copilot model IDs such as `gpt-5.4` and provider-qualified
-Gateway model IDs such as `openai/gpt-5.4`. Gateway model requests do not
-require GitHub authentication, but built-in GitHub MCP capabilities do.
+AI Gateway model requests do not require GitHub authentication, but built-in
+GitHub MCP capabilities do.
 
 ## Sandbox
 

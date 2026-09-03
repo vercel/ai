@@ -86,7 +86,7 @@ describe('createGitHubCopilot', () => {
         "providerAuthentication": {
           "gateway": {
             "env": {
-              "COPILOT_MODEL": "openai/gpt-5.4",
+              "COPILOT_MODEL": "openai/gpt-5.5",
               "COPILOT_PROVIDER_API_KEY": {
                 "$source": "gateway-api-key",
               },

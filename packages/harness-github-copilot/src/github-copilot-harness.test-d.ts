@@ -35,7 +35,7 @@ test('preserves GitHub Copilot built-in tool types', () => {
   createGitHubCopilot({ reasoningEffort: 'extreme' });
 
   // @ts-expect-error model is configured on HarnessAgent
-  createGitHubCopilot({ model: 'gpt-5.4' });
+  createGitHubCopilot({ model: 'gpt-5.5' });
 });
 
 test('narrows built-in tool call inputs', () => {
