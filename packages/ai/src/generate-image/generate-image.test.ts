@@ -18,6 +18,7 @@ import {
 } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockImageModelV4 } from '../test/mock-image-model-v4';
+import type { ImageModelUsage } from '../types/usage';
 import type { Warning } from '../types/warning';
 import { generateImage } from './generate-image';
 
@@ -43,6 +44,7 @@ const createMockResponse = (options: {
   modelId?: string;
   providerMetaData?: ImageModelV4ProviderMetadata;
   headers?: Record<string, string>;
+  usage?: ImageModelUsage;
 }) => ({
   images: options.images,
   warnings: options.warnings ?? [],
@@ -56,6 +58,7 @@ const createMockResponse = (options: {
     modelId: options.modelId ?? 'test-model-id',
     headers: options.headers ?? {},
   },
+  usage: options.usage,
 });
 
 describe('generateImage', () => {
@@ -572,7 +575,25 @@ describe('generateImage', () => {
   });
 
   describe('error handling', () => {
-    it('should throw NoImageGeneratedError when no images are returned', async () => {
+    it('should include completed call diagnostics when no images are returned', async () => {
+      const warnings: Warning[] = [
+        {
+          type: 'other',
+          message: 'The provider returned no image.',
+        },
+      ];
+      const providerMetadata = {
+        testProvider: {
+          images: [],
+          requestId: 'request-1',
+        },
+      };
+      const usage = {
+        inputTokens: 10,
+        outputTokens: 0,
+        totalTokens: 10,
+      };
+
       await expect(
         generateImage({
           model: new MockImageModelV4({
@@ -580,6 +601,9 @@ describe('generateImage', () => {
               createMockResponse({
                 images: [],
                 timestamp: testDate,
+                providerMetaData: providerMetadata,
+                warnings,
+                usage,
               }),
           }),
           prompt,
@@ -591,6 +615,18 @@ describe('generateImage', () => {
           {
             timestamp: testDate,
             modelId: expect.any(String),
+          },
+        ],
+        calls: [
+          {
+            images: [],
+            providerMetadata,
+            response: {
+              timestamp: testDate,
+              modelId: expect.any(String),
+            },
+            warnings,
+            usage,
           },
         ],
       });
@@ -622,6 +658,94 @@ describe('generateImage', () => {
             headers: {
               'custom-response-header': 'response-header-value',
               'user-agent': 'ai/0.0.0-test',
+            },
+          },
+        ],
+      });
+    });
+
+    it('should preserve completed call diagnostics in request order when calls are split', async () => {
+      const timestamps = [
+        new Date('2024-01-01T00:00:00.000Z'),
+        new Date('2024-01-02T00:00:00.000Z'),
+      ];
+      let callCount = 0;
+
+      await expect(
+        generateImage({
+          model: new MockImageModelV4({
+            maxImagesPerCall: 1,
+            doGenerate: async () => {
+              const callIndex = callCount++;
+
+              return createMockResponse({
+                images: [],
+                timestamp: timestamps[callIndex],
+                modelId: `test-model-${callIndex + 1}`,
+                headers: { 'x-call': String(callIndex + 1) },
+                providerMetaData: {
+                  testProvider: {
+                    images: [],
+                    requestId: `request-${callIndex + 1}`,
+                  },
+                },
+                warnings: [
+                  {
+                    type: 'other',
+                    message: `warning-${callIndex + 1}`,
+                  },
+                ],
+                usage: {
+                  inputTokens: (callIndex + 1) * 10,
+                  outputTokens: callIndex + 1,
+                  totalTokens: (callIndex + 1) * 10 + callIndex + 1,
+                },
+              });
+            },
+          }),
+          prompt,
+          n: 2,
+        }),
+      ).rejects.toMatchObject({
+        calls: [
+          {
+            images: [],
+            providerMetadata: {
+              testProvider: {
+                images: [],
+                requestId: 'request-1',
+              },
+            },
+            response: {
+              timestamp: timestamps[0],
+              modelId: 'test-model-1',
+              headers: { 'x-call': '1' },
+            },
+            warnings: [{ type: 'other', message: 'warning-1' }],
+            usage: {
+              inputTokens: 10,
+              outputTokens: 1,
+              totalTokens: 11,
+            },
+          },
+          {
+            images: [],
+            providerMetadata: {
+              testProvider: {
+                images: [],
+                requestId: 'request-2',
+              },
+            },
+            response: {
+              timestamp: timestamps[1],
+              modelId: 'test-model-2',
+              headers: { 'x-call': '2' },
+            },
+            warnings: [{ type: 'other', message: 'warning-2' }],
+            usage: {
+              inputTokens: 20,
+              outputTokens: 2,
+              totalTokens: 22,
             },
           },
         ],
