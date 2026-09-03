@@ -60,6 +60,7 @@ export type ACPBridgeConfiguration = {
   readonly providerEnvironment?: Readonly<Record<string, string>>;
   readonly sessionMeta?: Readonly<Record<string, ACPSerializableValue>>;
   readonly clientCapabilities?: Readonly<Record<string, ACPSerializableValue>>;
+  readonly askUserQuestionsRequestMethod?: string;
 };
 
 const bridgeConfigurationSchema: z.ZodType<ACPBridgeConfiguration> = z.object({
@@ -68,6 +69,7 @@ const bridgeConfigurationSchema: z.ZodType<ACPBridgeConfiguration> = z.object({
   providerEnvironment: z.record(z.string(), z.string()).optional(),
   sessionMeta: serializableRecordSchema.optional(),
   clientCapabilities: serializableRecordSchema.optional(),
+  askUserQuestionsRequestMethod: z.string().optional(),
 });
 
 export function createACPBridgeEnvironment({
@@ -76,6 +78,7 @@ export function createACPBridgeEnvironment({
   providerEnvironment,
   sessionMeta,
   clientCapabilities,
+  askUserQuestionsRequestMethod,
 }: ACPBridgeConfiguration): Record<string, string> {
   return {
     [ACP_BRIDGE_CONFIGURATION_ENV]: JSON.stringify({
@@ -84,6 +87,9 @@ export function createACPBridgeEnvironment({
       ...(providerEnvironment == null ? {} : { providerEnvironment }),
       ...(sessionMeta == null ? {} : { sessionMeta }),
       ...(clientCapabilities == null ? {} : { clientCapabilities }),
+      ...(askUserQuestionsRequestMethod == null
+        ? {}
+        : { askUserQuestionsRequestMethod }),
     }),
   };
 }

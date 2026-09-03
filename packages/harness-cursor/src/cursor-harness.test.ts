@@ -55,7 +55,6 @@ describe('createCursor', () => {
           "listMcpResources",
           "readMcpResource",
           "applyAgentDiff",
-          "askQuestion",
           "fetch",
           "switchMode",
           "generateImage",

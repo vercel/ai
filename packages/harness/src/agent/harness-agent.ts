@@ -1,5 +1,6 @@
 import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-unsupported-error';
 import type {
+  HarnessV1,
   HarnessV1BuiltinToolFiltering,
   HarnessV1JSONSchema,
   HarnessV1NetworkSandboxSession,
@@ -13,6 +14,8 @@ import {
   type Context,
   type Experimental_SandboxSession as SandboxSession,
   type ModelMessage,
+  type ToolApprovalResponse,
+  type ToolResultPart,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import type {
@@ -41,14 +44,8 @@ import type {
   HarnessAgentSkill,
   HarnessAgentToolSpec,
 } from './harness-agent-types';
-import {
-  collectHarnessAgentToolApprovalContinuations,
-  type HarnessAgentToolApprovalContinuation,
-} from './harness-agent-tool-approval-continuation';
-import {
-  collectHarnessAgentToolResultContinuations,
-  type HarnessAgentToolResultContinuation,
-} from './harness-agent-tool-result-continuation';
+import { collectHarnessAgentToolApprovalContinuations } from './harness-agent-tool-approval-continuation';
+import { collectHarnessAgentToolResultContinuations } from './harness-agent-tool-result-continuation';
 import {
   applyBootstrapRecipe,
   hashHarnessBootstrap,
@@ -86,8 +83,8 @@ export interface HarnessAgentCallExtensions {
 }
 
 type HarnessAgentContinueTurnInput = {
-  toolApprovalContinuations: readonly HarnessAgentToolApprovalContinuation[];
-  toolResultContinuations: readonly HarnessAgentToolResultContinuation[];
+  toolApprovalContinuations: readonly ToolApprovalResponse[];
+  toolResultContinuations: readonly ToolResultPart[];
 };
 
 type PreparedHarnessAgentTurnSettings<
@@ -114,8 +111,8 @@ type PreparedHarnessAgentContinueTurnInput<
   THarness extends HarnessAgentAdapter<any>,
   TUserTools extends ToolSet,
 > = PreparedHarnessAgentTurnSettings<THarness, TUserTools> & {
-  toolApprovalContinuations: readonly HarnessAgentToolApprovalContinuation[];
-  toolResultContinuations: readonly HarnessAgentToolResultContinuation[];
+  toolApprovalContinuations: readonly ToolApprovalResponse[];
+  toolResultContinuations: readonly ToolResultPart[];
 };
 
 type HarnessAgentTurnResult<
@@ -224,6 +221,10 @@ export class HarnessAgent<
     this.sandboxConfig = sandboxConfig;
     this.id = settings.id;
     const userTools = settings.tools ?? ({} as TUserTools);
+    assertNoReservedQuestionTool({
+      harness: settings.harness,
+      userTools,
+    });
     this.permissionMode = resolvePermissionMode({
       permissionMode: settings.permissionMode,
     });
@@ -609,8 +610,8 @@ export class HarnessAgent<
    */
   async continueGenerate(options: {
     session: HarnessAgentSession;
-    toolApprovalContinuations?: readonly HarnessAgentToolApprovalContinuation[];
-    toolResultContinuations?: readonly HarnessAgentToolResultContinuation[];
+    toolApprovalContinuations?: readonly ToolApprovalResponse[];
+    toolResultContinuations?: readonly ToolResultPart[];
     abortSignal?: AbortSignal;
   }): Promise<
     GenerateTextResult<
@@ -643,8 +644,8 @@ export class HarnessAgent<
    */
   async continueStream(options: {
     session: HarnessAgentSession;
-    toolApprovalContinuations?: readonly HarnessAgentToolApprovalContinuation[];
-    toolResultContinuations?: readonly HarnessAgentToolResultContinuation[];
+    toolApprovalContinuations?: readonly ToolApprovalResponse[];
+    toolResultContinuations?: readonly ToolResultPart[];
     abortSignal?: AbortSignal;
   }): Promise<
     StreamTextResult<
@@ -903,8 +904,8 @@ export class HarnessAgent<
   }
 
   private _prepareContinueTurnInput(options: {
-    toolApprovalContinuations?: readonly HarnessAgentToolApprovalContinuation[];
-    toolResultContinuations?: readonly HarnessAgentToolResultContinuation[];
+    toolApprovalContinuations?: readonly ToolApprovalResponse[];
+    toolResultContinuations?: readonly ToolResultPart[];
   }): PreparedHarnessAgentContinueTurnInput<THarness, TUserTools> {
     return {
       ...this._prepareTurnSettings({
@@ -925,6 +926,10 @@ export class HarnessAgent<
     tools?: TUserTools;
   }): PreparedHarnessAgentTurnSettings<THarness, TUserTools> {
     const userTools = options.tools ?? ({} as TUserTools);
+    assertNoReservedQuestionTool({
+      harness: this.settings.harness,
+      userTools,
+    });
     const tools = {
       ...this.settings.harness.builtinTools,
       ...userTools,
@@ -1025,6 +1030,23 @@ export class HarnessAgent<
         ? {}
         : { description: responseFormat.description }),
     };
+  }
+}
+
+function assertNoReservedQuestionTool(input: {
+  harness: HarnessV1;
+  userTools: ToolSet;
+}): void {
+  if (
+    Object.prototype.hasOwnProperty.call(
+      input.harness.builtinTools,
+      'askUserQuestions',
+    ) &&
+    Object.prototype.hasOwnProperty.call(input.userTools, 'askUserQuestions')
+  ) {
+    throw new Error(
+      "HarnessAgent tool name 'askUserQuestions' is reserved for harness question requests.",
+    );
   }
 }
 

@@ -7,6 +7,7 @@ import {
   type HarnessV1PermissionMode,
   type HarnessV1PromptControl,
   type HarnessV1PromptTurnOptions,
+  type HarnessV1QuestionsToolOutput,
   type HarnessV1ResumeSessionState,
   type HarnessV1Session,
   type HarnessV1Skill,
@@ -45,8 +46,12 @@ import {
   CLINE_NATIVE_TOOL_KINDS,
   createClineToolResult,
   isClineBuiltinToolName,
+  clineQuestionKey,
   resolveActiveClineBuiltinNames,
   type PendingToolResult,
+  type PendingClineQuestion,
+  type PendingClineQuestionResult,
+  toClineQuestionResult,
   unwrapClineToolResult,
 } from './cline-tools';
 import {
@@ -320,6 +325,8 @@ export async function createClineSession(
   // Emit channel set at the start of every turn and cleared on end.
   let currentEmit: ((part: HarnessV1StreamPart) => void) | undefined;
   let translatorState: ClineTranslatorState | undefined;
+  const pendingQuestions = new Map<string, PendingClineQuestion>();
+  const pendingQuestionResults = new Map<string, PendingClineQuestionResult>();
   let activeTurn: ActiveClineTurn | undefined;
 
   function settlePendingToolResults(reason: string): void {
@@ -353,6 +360,14 @@ export async function createClineSession(
       pending.reject(error);
     }
     pendingUserMessages.length = 0;
+  }
+
+  function settlePendingQuestions(reason: string): void {
+    for (const pending of pendingQuestions.values()) {
+      pending.resolve(reason);
+    }
+    pendingQuestions.clear();
+    pendingQuestionResults.clear();
   }
 
   async function persistHistory(): Promise<void> {
@@ -414,7 +429,12 @@ export async function createClineSession(
         ? { maxIterations: input.settings.maxIterations }
         : {}),
       tools: [
-        ...buildBuiltinAgentTools({ ops, activeNames: activeBuiltinNames }),
+        ...buildBuiltinAgentTools({
+          ops,
+          activeNames: activeBuiltinNames,
+          pendingQuestions,
+          pendingQuestionResults,
+        }),
         ...(rebuildInput.skillsRuntime.tool &&
         activeBuiltinNames.includes('skills')
           ? [rebuildInput.skillsRuntime.tool]
@@ -505,6 +525,7 @@ export async function createClineSession(
       // executions do not dangle, then abort the loop itself.
       settlePendingToolResults('Turn aborted');
       settlePendingToolApprovals('Turn aborted');
+      settlePendingQuestions('The question was cancelled.');
       agent?.abort('Turn aborted by caller');
     };
     if (controlInput.abortSignal) {
@@ -523,6 +544,26 @@ export async function createClineSession(
 
     return {
       async submitToolResult(args) {
+        const pendingQuestion = pendingQuestions.get(args.toolCallId);
+        if (pendingQuestion != null) {
+          pendingQuestions.delete(args.toolCallId);
+          pendingQuestion.resolve(
+            toClineQuestionResult({
+              nativeInput: pendingQuestion.input,
+              output: args.output as HarnessV1QuestionsToolOutput,
+            }),
+          );
+          return;
+        }
+        if (args.toolResult?.toolName === 'askUserQuestions') {
+          const nativeRequest = args.toolResult.providerOptions?.cline
+            ?.nativeRequest as PendingClineQuestion['input'] | undefined;
+          if (nativeRequest == null) return;
+          pendingQuestionResults.set(clineQuestionKey(nativeRequest), {
+            output: args.output as HarnessV1QuestionsToolOutput,
+          });
+          return;
+        }
         const pending = pendingToolResults.get(args.toolCallId);
         if (!pending) return;
         pendingToolResults.delete(args.toolCallId);
@@ -784,6 +825,7 @@ export async function createClineSession(
     parkedClineSessions.delete(input.sessionId);
     settlePendingToolResults('Cline session stopped');
     settlePendingToolApprovals('Cline session stopped');
+    settlePendingQuestions('The question was cancelled.');
 
     // Persist the conversation into the sandbox so a future process can pick
     // it up after the sandbox provider reattaches.
@@ -889,7 +931,11 @@ export async function createClineSession(
     doStop,
 
     doDetach: async (): Promise<HarnessV1ResumeSessionState> => {
-      if (activeTurn != null || pendingToolResults.size > 0) {
+      if (
+        activeTurn != null ||
+        pendingToolResults.size > 0 ||
+        pendingQuestions.size > 0
+      ) {
         parkedClineSessions.set(input.sessionId, sessionImpl);
         try {
           await persistHistory();
@@ -916,7 +962,9 @@ export async function createClineSession(
       }
       if (
         activeTurn != null &&
-        (pendingToolResults.size > 0 || pendingToolApprovals.size > 0)
+        (pendingToolResults.size > 0 ||
+          pendingToolApprovals.size > 0 ||
+          pendingQuestions.size > 0)
       ) {
         parkedClineSessions.set(input.sessionId, sessionImpl);
         try {
