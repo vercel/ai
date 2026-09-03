@@ -320,6 +320,51 @@ const tools = await mcpClient.tools();
 
 This approach is simpler to implement and automatically stays in sync with server changes. However, you won't have TypeScript type safety during development, and all tools from the server will be loaded
 
+### Tool Annotations and Approval
+
+MCP servers can describe tool behavior with annotations such as
+`readOnlyHint`, `destructiveHint`, `idempotentHint`, and `openWorldHint`. The
+MCP client exposes these annotations on each tool's `metadata.annotations` and
+on the resulting tool call's `toolMetadata.annotations`.
+
+Annotations are untrusted, server-provided hints. The MCP client does not turn
+them into an approval policy automatically. Applications should combine them
+with deterministic controls such as tool allowlists, scoped credentials, and
+their own [`toolApproval`](/docs/agents/tool-approvals) policy.
+
+The following conservative policy allows tools to run automatically only when
+the server explicitly marks them as read-only. Tools with `readOnlyHint: false`
+or no `readOnlyHint` require user approval:
+
+```typescript
+import { type McpProviderMetadata } from '@ai-sdk/mcp';
+
+const result = streamText({
+  model: __MODEL__,
+  tools,
+  toolApproval: ({ toolCall }) => {
+    const annotations = (
+      toolCall.toolMetadata as McpProviderMetadata | undefined
+    )?.annotations;
+
+    return annotations?.readOnlyHint === true
+      ? 'not-applicable'
+      : {
+          type: 'user-approval',
+          reason:
+            annotations?.destructiveHint === true
+              ? 'The MCP server marks this tool as destructive.'
+              : 'The MCP server does not mark this tool as read-only.',
+        };
+  },
+  prompt,
+});
+```
+
+See the
+[Shopify MCP example](https://github.com/vercel/ai/blob/main/examples/mcp/src/shopify-mcp/client.ts)
+for a complete application-layer approval configuration.
+
 ### Schema Definition
 
 For better type safety and control, you can define the tools and their input schemas explicitly in your client code:
