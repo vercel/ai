@@ -1,7 +1,7 @@
 # AI SDK - Amazon Bedrock Provider
 
 The **[Amazon Bedrock provider](https://ai-sdk.dev/providers/ai-sdk-providers/amazon-bedrock)** for the [AI SDK](https://ai-sdk.dev/docs)
-contains language model support for the Amazon Bedrock [converse API](https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_Converse.html).
+contains language model support for the Amazon Bedrock [Converse API](https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_Converse.html) and native model APIs where required, such as TwelveLabs Pegasus through InvokeModel.
 
 > **Deploying to Vercel?** With Vercel's AI Gateway you can access Amazon Bedrock (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
 
