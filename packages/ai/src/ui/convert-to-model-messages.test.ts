@@ -717,6 +717,46 @@ describe('convertToModelMessages', () => {
     });
 
     describe('tool output error', () => {
+      it('should preserve result provider metadata on the failed tool call when call metadata is absent', async () => {
+        const result = await convertToModelMessages([
+          {
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-create_widget',
+                state: 'output-error',
+                toolCallId: 'call1',
+                input: {},
+                errorText: 'Input validation failed',
+                resultProviderMetadata: {
+                  openai: {
+                    itemId: 'fc_123',
+                    namespace: 'widget_tools',
+                  },
+                },
+              },
+            ],
+          },
+        ]);
+
+        expect(result[0]).toMatchObject({
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call1',
+              toolName: 'create_widget',
+              providerOptions: {
+                openai: {
+                  itemId: 'fc_123',
+                  namespace: 'widget_tools',
+                },
+              },
+            },
+          ],
+        });
+      });
+
       it('should handle assistant message with tool output error that has raw input', async () => {
         const result = await convertToModelMessages([
           {

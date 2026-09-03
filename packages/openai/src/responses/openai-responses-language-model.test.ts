@@ -262,6 +262,89 @@ describe('OpenAIResponsesLanguageModel', () => {
   }
 
   describe('doGenerate', () => {
+    it('should surface OpenAI rejection when replayed function call history omits its namespace', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'error',
+        status: 400,
+        body: fs.readFileSync(
+          'src/responses/__fixtures__/openai-missing-function-call-namespace-error.1.json',
+          'utf8',
+        ),
+      };
+
+      await expect(
+        createModel('gpt-5.4').doGenerate({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call1',
+                  toolName: 'create_widget',
+                  input: {},
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call1',
+                  toolName: 'create_widget',
+                  output: {
+                    type: 'error-text',
+                    value: 'Input validation failed',
+                  },
+                },
+              ],
+            },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Continue.' }],
+            },
+          ],
+          tools: [
+            {
+              type: 'function',
+              name: 'create_widget',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  widgetType: { type: 'string' },
+                },
+                required: ['widgetType'],
+                additionalProperties: false,
+              },
+              providerOptions: {
+                openai: {
+                  deferLoading: true,
+                  namespace: {
+                    name: 'widget_tools',
+                    description: 'Synthetic widget tools.',
+                  },
+                },
+              },
+            },
+          ],
+        }),
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        message: expect.stringContaining(
+          "Missing namespace for function_call 'create_widget'",
+        ),
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(
+        requestBody.input.find(
+          (item: { type?: string; name?: string }) =>
+            item.type === 'function_call' && item.name === 'create_widget',
+        ),
+      ).not.toHaveProperty('namespace');
+    });
+
     it('should throw a descriptive error when the response has no output', async () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'json-value',
