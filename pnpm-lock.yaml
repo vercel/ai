@@ -238,6 +238,25 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
 
+  examples/ai-functions:
+    dependencies:
+      '@ai-sdk/groq':
+        specifier: workspace:*
+        version: link:../../packages/groq
+      ai:
+        specifier: workspace:*
+        version: link:../../packages/ai
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+    devDependencies:
+      tsx:
+        specifier: 4.19.2
+        version: 4.19.2
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+
   examples/angular:
     dependencies:
       '@ai-sdk/angular':
