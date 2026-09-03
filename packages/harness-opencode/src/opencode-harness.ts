@@ -412,6 +412,7 @@ export function createOpenCode(
             reasoningVariant: settings.reasoningVariant,
             openCodeConfig: settings.openCodeConfig,
             mcpServers: settings.mcpServers,
+            headers: startOpts.headers,
             openCodeSessionId: resumeSessionId,
             isResume: true,
             seedResumeSessionOnFirstPrompt: false,
@@ -569,6 +570,7 @@ export function createOpenCode(
         reasoningVariant: settings.reasoningVariant,
         openCodeConfig: settings.openCodeConfig,
         mcpServers: settings.mcpServers,
+        headers: startOpts.headers,
         openCodeSessionId: resumeSessionId,
         isResume: respawnStrategy !== undefined,
         seedResumeSessionOnFirstPrompt: respawnStrategy !== undefined,
@@ -786,6 +788,7 @@ function createSession({
   reasoningVariant,
   openCodeConfig,
   mcpServers,
+  headers,
   openCodeSessionId,
   isResume,
   seedResumeSessionOnFirstPrompt,
@@ -809,6 +812,7 @@ function createSession({
   reasoningVariant: string | undefined;
   openCodeConfig: Record<string, unknown> | undefined;
   mcpServers: Record<string, unknown> | undefined;
+  headers: Readonly<Record<string, string>> | undefined;
   openCodeSessionId: string | undefined;
   isResume: boolean;
   seedResumeSessionOnFirstPrompt: boolean;
@@ -990,6 +994,7 @@ function createSession({
     ...(reasoningVariant ? { variant: reasoningVariant } : {}),
     ...(openCodeConfig == null ? {} : { openCodeConfig }),
     ...(mcpServers == null ? {} : { mcpServers }),
+    ...(headers == null ? {} : { headers }),
     ...(permissionMode ? { permissionMode } : {}),
     ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
     ...(pendingResumeSessionId
@@ -1116,6 +1121,7 @@ function createSession({
         debug,
         openCodeConfig,
         mcpServers,
+        headers,
         resumeSessionId: latestOpenCodeSessionId,
         onCompaction: part => pendingCompactionParts.push(part),
       });
@@ -1289,6 +1295,7 @@ async function runCompactOperation({
   debug,
   openCodeConfig,
   mcpServers,
+  headers,
   resumeSessionId,
   onCompaction,
 }: {
@@ -1299,6 +1306,7 @@ async function runCompactOperation({
   debug: HarnessV1DebugConfig | undefined;
   openCodeConfig: Record<string, unknown> | undefined;
   mcpServers: Record<string, unknown> | undefined;
+  headers: Readonly<Record<string, string>> | undefined;
   resumeSessionId: string | undefined;
   onCompaction: (part: HarnessV1StreamPart) => void;
 }): Promise<void> {
@@ -1328,6 +1336,7 @@ async function runCompactOperation({
     provider,
     ...(openCodeConfig == null ? {} : { openCodeConfig }),
     ...(mcpServers == null ? {} : { mcpServers }),
+    ...(headers == null ? {} : { headers }),
     ...(permissionMode ? { permissionMode } : {}),
     ...(resumeSessionId ? { resumeSessionId } : {}),
     ...(debug ? { debug } : {}),

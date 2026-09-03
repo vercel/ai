@@ -193,6 +193,7 @@ export function createCline(
           ...(settings.apiKey ? { apiKey: settings.apiKey } : {}),
           ...(settings.baseUrl ? { baseUrl: settings.baseUrl } : {}),
           ...(settings.headers ? { headers: settings.headers } : {}),
+          ...(startOpts.headers ? { agentHeaders: startOpts.headers } : {}),
           ...(settings.reasoningEffort !== undefined
             ? { reasoningEffort: settings.reasoningEffort }
             : {}),
