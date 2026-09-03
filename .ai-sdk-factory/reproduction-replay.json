@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 11197,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-11197-bedrock-nonstandard-region.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-11197-bedrock-nonstandard-region.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #11197: region us-iso-east-1 resolved Bedrock Runtime to https://bedrock-runtime.us-iso-east-1.amazonaws.com instead of https://bedrock-runtime.us-iso-east-1.c2s.ic.gov and ignored AWS_ENDPOINT_URL_BEDROCK_RUNTIME."
+  }
+}
