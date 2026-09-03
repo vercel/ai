@@ -884,9 +884,9 @@ describe('generateText', () => {
       ['required', 'required' as const],
       ['named', { type: 'tool', toolName: 'tool1' } as const],
     ])(
-      'should accept a structured output response tool for %s tool choice',
+      'should reject a structured output response tool before the %s tool choice is satisfied',
       async (_, toolChoice) => {
-        const result = await generateText({
+        const result = generateText({
           model: new MockLanguageModelV3({
             doGenerate: async () => ({
               ...dummyResponseValues,
@@ -913,66 +913,79 @@ describe('generateText', () => {
           prompt: 'test-input',
         });
 
-        expect(result.output).toEqual({ result: 'done' });
+        await expect(result).rejects.toMatchObject({
+          name: 'AI_ToolChoiceViolationError',
+          toolChoice:
+            toolChoice === 'required' ? { type: 'required' } : toolChoice,
+        });
       },
     );
 
-    it('should accept structured output from a provider response tool after a user tool call', async () => {
-      let callCount = 0;
+    it.each([
+      ['required', 'required' as const],
+      ['named', { type: 'tool', toolName: 'tool1' } as const],
+    ])(
+      'should accept structured output from a provider response tool after the %s tool choice is satisfied',
+      async (_, toolChoice) => {
+        let callCount = 0;
+        const toolChoiceSatisfiedValues: Array<boolean | undefined> = [];
 
-      const result = await generateText({
-        model: new MockLanguageModelV3({
-          doGenerate: async () => {
-            callCount++;
+        const result = await generateText({
+          model: new MockLanguageModelV3({
+            doGenerate: async options => {
+              callCount++;
+              toolChoiceSatisfiedValues.push(options.toolChoiceSatisfied);
 
-            return callCount === 1
-              ? {
-                  ...dummyResponseValues,
-                  finishReason: {
-                    unified: 'tool-calls',
-                    raw: 'tool_calls',
-                  },
-                  content: [
-                    {
-                      type: 'tool-call',
-                      toolCallType: 'function',
-                      toolCallId: 'call-1',
-                      toolName: 'tool1',
-                      input: `{ "value": "value" }`,
+              return callCount === 1
+                ? {
+                    ...dummyResponseValues,
+                    finishReason: {
+                      unified: 'tool-calls',
+                      raw: 'tool_calls',
                     },
-                  ],
-                }
-              : {
-                  ...dummyResponseValues,
-                  content: [
-                    {
-                      type: 'text',
-                      text: `{ "result": "done" }`,
-                      providerMetadata: {
-                        'ai-sdk': { jsonResponseTool: true },
+                    content: [
+                      {
+                        type: 'tool-call',
+                        toolCallType: 'function',
+                        toolCallId: 'call-1',
+                        toolName: 'tool1',
+                        input: `{ "value": "value" }`,
                       },
-                    },
-                  ],
-                };
+                    ],
+                  }
+                : {
+                    ...dummyResponseValues,
+                    content: [
+                      {
+                        type: 'text',
+                        text: `{ "result": "done" }`,
+                        providerMetadata: {
+                          'ai-sdk': { jsonResponseTool: true },
+                        },
+                      },
+                    ],
+                  };
+            },
+          }),
+          tools: {
+            tool1: {
+              inputSchema: z.object({ value: z.string() }),
+              execute: async () => 'tool result',
+            },
           },
-        }),
-        tools: {
-          tool1: {
-            inputSchema: z.object({ value: z.string() }),
-            execute: async () => 'tool result',
-          },
-        },
-        toolChoice: { type: 'tool', toolName: 'tool1' },
-        output: Output.object({
-          schema: z.object({ result: z.string() }),
-        }),
-        stopWhen: stepCountIs(3),
-        prompt: 'test-input',
-      });
+          toolChoice,
+          output: Output.object({
+            schema: z.object({ result: z.string() }),
+          }),
+          stopWhen: stepCountIs(3),
+          prompt: 'test-input',
+        });
 
-      expect(result.output).toEqual({ result: 'done' });
-      expect(result.steps).toHaveLength(2);
-    });
+        expect(result.output).toEqual({ result: 'done' });
+        expect(result.steps).toHaveLength(2);
+        expect(toolChoiceSatisfiedValues).toEqual([undefined, true]);
+      },
+    );
 
     it('should enforce a named tool choice from prepareStep on every step', async () => {
       let callCount = 0;

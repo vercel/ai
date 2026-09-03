@@ -16,6 +16,32 @@ const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
+const PROMPT_WITH_RESOLVE_DATE_RESULT: LanguageModelV3Prompt = [
+  ...TEST_PROMPT,
+  {
+    role: 'assistant',
+    content: [
+      {
+        type: 'tool-call',
+        toolCallId: 'resolve-date-call',
+        toolName: 'resolveDate',
+        input: { expression: 'tomorrow' },
+      },
+    ],
+  },
+  {
+    role: 'tool',
+    content: [
+      {
+        type: 'tool-result',
+        toolCallId: 'resolve-date-call',
+        toolName: 'resolveDate',
+        output: { type: 'text', value: '2026-09-04' },
+      },
+    ],
+  },
+];
+
 const CHAT_COMPLETIONS_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 const provider = createGroq({ apiKey: 'test-api-key' });
@@ -538,7 +564,6 @@ describe('doGenerate', () => {
           },
         },
       ],
-      toolChoice: { type: 'tool', toolName: 'resolveDate' },
     });
 
     const requestBody = await server.calls[0].requestBodyJson;
@@ -579,6 +604,237 @@ describe('doGenerate', () => {
       unified: 'stop',
       raw: 'tool_calls',
     });
+  });
+
+  it('should preserve a named tool choice until the selected tool has a result', async () => {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
+      type: 'json-value',
+      body: {
+        id: 'completion-id',
+        object: 'chat.completion',
+        created: 0,
+        model: 'openai/gpt-oss-120b',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: null,
+              tool_calls: [
+                {
+                  id: 'resolve-date-call',
+                  type: 'function',
+                  function: {
+                    name: 'resolveDate',
+                    arguments: '{"expression":"tomorrow"}',
+                  },
+                },
+              ],
+            },
+            finish_reason: 'tool_calls',
+          },
+        ],
+        usage: {
+          prompt_tokens: 1,
+          completion_tokens: 1,
+          total_tokens: 2,
+        },
+      },
+    };
+
+    const result = await provider('openai/gpt-oss-120b').doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { date: { type: 'string' } },
+          required: ['date'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          type: 'function',
+          name: 'resolveDate',
+          inputSchema: {
+            type: 'object',
+            properties: { expression: { type: 'string' } },
+            required: ['expression'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      toolChoice: { type: 'tool', toolName: 'resolveDate' },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody).not.toHaveProperty('response_format');
+    expect(requestBody.tool_choice).toEqual({
+      type: 'function',
+      function: { name: 'resolveDate' },
+    });
+    expect(
+      requestBody.tools.map(
+        (tool: { function: { name: string } }) => tool.function.name,
+      ),
+    ).toEqual(['resolveDate']);
+    expect(result.content).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'resolve-date-call',
+        toolName: 'resolveDate',
+        input: '{"expression":"tomorrow"}',
+      },
+    ]);
+  });
+
+  it('should use native structured output after a named tool result', async () => {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
+      type: 'json-value',
+      body: {
+        id: 'completion-id',
+        object: 'chat.completion',
+        created: 0,
+        model: 'openai/gpt-oss-120b',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: '{"date":"2026-09-04"}',
+            },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 1,
+          completion_tokens: 1,
+          total_tokens: 2,
+        },
+      },
+    };
+
+    const result = await provider('openai/gpt-oss-120b').doGenerate({
+      prompt: PROMPT_WITH_RESOLVE_DATE_RESULT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { date: { type: 'string' } },
+          required: ['date'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          type: 'function',
+          name: 'resolveDate',
+          inputSchema: {
+            type: 'object',
+            properties: { expression: { type: 'string' } },
+            required: ['expression'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      toolChoice: { type: 'tool', toolName: 'resolveDate' },
+      toolChoiceSatisfied: true,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody).toHaveProperty('response_format.json_schema');
+    expect(requestBody).not.toHaveProperty('tools');
+    expect(requestBody).not.toHaveProperty('tool_choice');
+    expect(result.content).toEqual([
+      {
+        type: 'text',
+        text: '{"date":"2026-09-04"}',
+      },
+    ]);
+  });
+
+  it('should wrap and unwrap a root array JSON response tool', async () => {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
+      type: 'json-value',
+      body: {
+        id: 'completion-id',
+        object: 'chat.completion',
+        created: 0,
+        model: 'openai/gpt-oss-120b',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: null,
+              tool_calls: [
+                {
+                  id: 'json-call',
+                  type: 'function',
+                  function: {
+                    name: 'json',
+                    arguments: '{"value":["2026-09-04","2026-09-05"]}',
+                  },
+                },
+              ],
+            },
+            finish_reason: 'tool_calls',
+          },
+        ],
+        usage: {
+          prompt_tokens: 1,
+          completion_tokens: 1,
+          total_tokens: 2,
+        },
+      },
+    };
+
+    const result = await provider('openai/gpt-oss-120b').doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+      },
+      tools: [
+        {
+          type: 'function',
+          name: 'resolveDate',
+          inputSchema: {
+            type: 'object',
+            properties: { expression: { type: 'string' } },
+          },
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.tools[1].function.parameters).toEqual({
+      type: 'object',
+      properties: {
+        value: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+      },
+      required: ['value'],
+      additionalProperties: false,
+    });
+    expect(result.content).toEqual([
+      {
+        type: 'text',
+        text: '["2026-09-04","2026-09-05"]',
+        providerMetadata: {
+          'ai-sdk': { jsonResponseTool: true },
+        },
+      },
+    ]);
   });
 
   it('should omit tools and preserve native structured output when toolChoice is none', async () => {
@@ -1284,6 +1540,9 @@ describe('doStream', () => {
       type: 'text-delta',
       id: 'json-call',
       delta: '{"date":"2026-09-04"}',
+      providerMetadata: {
+        'ai-sdk': { jsonResponseTool: true },
+      },
     });
     expect(events).not.toContainEqual(
       expect.objectContaining({ type: 'tool-call', toolName: 'json_1' }),
@@ -1297,6 +1556,107 @@ describe('doStream', () => {
         (tool: { function: { name: string } }) => tool.function.name,
       ),
     ).toEqual(['json', 'json_1']);
+  });
+
+  it('should stream an unwrapped root array JSON response tool as text', async () => {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          id: 'completion-id',
+          object: 'chat.completion.chunk',
+          created: 0,
+          model: 'openai/gpt-oss-120b',
+          choices: [
+            {
+              index: 0,
+              delta: {
+                role: 'assistant',
+                tool_calls: [
+                  {
+                    index: 0,
+                    id: 'json-call',
+                    type: 'function',
+                    function: {
+                      name: 'json',
+                      arguments: '{"value":["2026-09-04"',
+                    },
+                  },
+                ],
+              },
+              finish_reason: null,
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          id: 'completion-id',
+          object: 'chat.completion.chunk',
+          created: 0,
+          model: 'openai/gpt-oss-120b',
+          choices: [
+            {
+              index: 0,
+              delta: {
+                tool_calls: [
+                  {
+                    index: 0,
+                    function: {
+                      arguments: ',"2026-09-05"]}',
+                    },
+                  },
+                ],
+              },
+              finish_reason: 'tool_calls',
+            },
+          ],
+        })}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await provider('openai/gpt-oss-120b').doStream({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+      },
+      tools: [
+        {
+          type: 'function',
+          name: 'resolveDate',
+          inputSchema: {
+            type: 'object',
+            properties: { expression: { type: 'string' } },
+          },
+        },
+      ],
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(events).toContainEqual({
+      type: 'text-delta',
+      id: 'json-call',
+      delta: '["2026-09-04","2026-09-05"]',
+      providerMetadata: {
+        'ai-sdk': { jsonResponseTool: true },
+      },
+    });
+    expect(events.at(-1)).toMatchObject({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'tool_calls' },
+    });
+    expect(requestBody.tools[1].function.parameters).toMatchObject({
+      type: 'object',
+      properties: {
+        value: { type: 'array', items: { type: 'string' } },
+      },
+      required: ['value'],
+    });
   });
 
   describe('reasoning', () => {
