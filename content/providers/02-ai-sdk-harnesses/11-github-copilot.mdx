@@ -227,6 +227,10 @@ every request. Shell execution still requires approval under `allow-edits`.
   schema-backed structured output is unsupported.
 - GitHub Copilot ACP does not expose any question tool, so `askUserQuestions`
   is unsupported.
+- Custom `headers` are not natively supported and only applied via
+  sandbox-external request transformations. When a sandbox without that
+  capability is provided, custom `headers` therefore cannot be passed and are
+  ignored.
 
 ## Related
 

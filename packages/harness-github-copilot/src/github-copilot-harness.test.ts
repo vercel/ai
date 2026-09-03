@@ -215,6 +215,7 @@ describe('createGitHubCopilot', () => {
           COPILOT_PROVIDER_API_KEY: 'gateway-placeholder',
           COPILOT_PROVIDER_BASE_URL: 'https://gateway.example/v1',
         },
+        headers: { 'x-tenant': 'acme' },
       }),
     ).toContainEqual({
       match: {
@@ -228,9 +229,32 @@ describe('createGitHubCopilot', () => {
         ],
       },
       transform: {
-        headers: { Authorization: 'Bearer gateway-secret' },
+        headers: {
+          'x-tenant': 'acme',
+          Authorization: 'Bearer gateway-secret',
+        },
       },
     });
+  });
+
+  it('applies headers to direct Copilot model request routes', () => {
+    createGitHubCopilot({ auth: 'direct' });
+
+    expect(
+      lastSettings().credentialBrokering?.({
+        env: {},
+        headers: { 'x-tenant': 'acme' },
+      }),
+    ).toEqual([
+      {
+        match: { host: 'githubcopilot.com' },
+        transform: { headers: { 'x-tenant': 'acme' } },
+      },
+      {
+        match: { host: '*.githubcopilot.com' },
+        transform: { headers: { 'x-tenant': 'acme' } },
+      },
+    ]);
   });
 
   it('forwards launch and bridge settings', () => {

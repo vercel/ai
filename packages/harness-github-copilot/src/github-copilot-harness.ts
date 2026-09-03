@@ -262,7 +262,7 @@ export function createGitHubCopilot(
     auth: settings.auth,
     forwardEnv: ['COPILOT_GH_HOST', 'GH_HOST'],
     credentialEnv: ['COPILOT_GITHUB_TOKEN', 'GH_TOKEN', 'GITHUB_TOKEN'],
-    credentialBrokering: ({ env, sandboxEnv }) => {
+    credentialBrokering: ({ env, sandboxEnv, headers }) => {
       const transformations: HarnessV1RequestTransformation[] = [];
       const githubHost = normalizeGitHubHost(
         env.COPILOT_GH_HOST ?? env.GH_HOST ?? 'github.com',
@@ -395,10 +395,22 @@ export function createGitHubCopilot(
               Authorization: `Bearer ${sandboxProviderCredential}`,
             },
             transformHeaders: {
+              ...headers,
               Authorization: `Bearer ${providerCredential}`,
             },
           }),
         );
+      } else if (headers != null) {
+        const copilotHosts =
+          githubHost === 'github.com'
+            ? ['githubcopilot.com', '*.githubcopilot.com']
+            : [githubHost, `*.${githubHost}`];
+        for (const host of copilotHosts) {
+          transformations.push({
+            match: { host },
+            transform: { headers },
+          });
+        }
       }
 
       return transformations;
