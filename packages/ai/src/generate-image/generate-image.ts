@@ -50,12 +50,9 @@ type GatewayCostMetadata = {
 };
 
 class RetryableNoImageResultError extends Error {
-  readonly result: ImageModelV4Result;
-
-  constructor(result: ImageModelV4Result) {
+  constructor() {
     super('No image generated.');
     this.name = 'RetryableNoImageResultError';
-    this.result = result;
   }
 }
 
@@ -79,7 +76,7 @@ export type GenerateImagePrompt =
  * @param seed - Seed for the image generation.
  * @param providerOptions - Additional provider-specific options that are passed through to the provider
  * as body parameters.
- * @param maxRetries - Maximum number of retries per image model call, including retries after empty responses. Set to 0 to disable retries. Default: 2.
+ * @param maxRetries - Maximum number of retries per image model call, including retries after unclassified empty responses. Provider-classified terminal responses are not retried. Set to 0 to disable retries. Default: 2.
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
@@ -151,7 +148,8 @@ export async function generateImage({
 
   /**
    * Maximum number of retries per image model call, including retries after
-   * empty responses. Set to 0 to disable retries.
+   * unclassified empty responses. Provider-classified terminal responses are
+   * not retried. Set to 0 to disable retries.
    *
    * @default 2
    */
@@ -198,10 +196,12 @@ export async function generateImage({
     return remainder === 0 ? maxImagesPerCallWithDefault : remainder;
   });
 
-  const results = await Promise.all(
+  const resultGroups = await Promise.all(
     callImageCounts.map(async callImageCount => {
+      const callResults: Array<ImageModelV4Result> = [];
+
       try {
-        return await retry(async () => {
+        await retry(async () => {
           const { prompt, files, mask } = normalizePrompt(promptArg);
 
           const result = await model.doGenerate({
@@ -217,12 +217,16 @@ export async function generateImage({
             providerOptions: providerOptions ?? {},
           });
 
-          if (result.images.length === 0) {
-            throw new RetryableNoImageResultError(result);
+          callResults.push(result);
+
+          if (result.images.length === 0 && !isTerminalNoImageResult(result)) {
+            throw new RetryableNoImageResultError();
           }
 
           return result;
         });
+
+        return callResults;
       } catch (error) {
         const noImageResultError =
           error instanceof RetryableNoImageResultError
@@ -233,13 +237,14 @@ export async function generateImage({
               : undefined;
 
         if (noImageResultError != null) {
-          return noImageResultError.result;
+          return callResults;
         }
 
         throw error;
       }
     }),
   );
+  const results = resultGroups.flat();
 
   // collect result images, warnings, and response metadata
   const images: Array<GeneratedFile> = [];
@@ -395,6 +400,21 @@ function getImageProviderMetadata(
   }
 
   return imageMetadata;
+}
+
+function isTerminalNoImageResult(result: ImageModelV4Result): boolean {
+  const googleMetadata = result.providerMetadata?.google;
+
+  if (!isJSONObject(googleMetadata)) {
+    return false;
+  }
+
+  const promptFeedback = googleMetadata.promptFeedback;
+
+  return (
+    isJSONObject(promptFeedback) &&
+    typeof promptFeedback.blockReason === 'string'
+  );
 }
 
 async function invokeModelMaxImagesPerCall(model: ImageModelV4) {

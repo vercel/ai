@@ -222,7 +222,8 @@ for (const call of calls) {
 ### Error Handling
 
 When `generateImage` cannot generate a valid image, it throws a [`AI_NoImageGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-image-generated-error).
-Empty image responses are retried according to `maxRetries` before this error is thrown.
+Unclassified empty image responses are retried according to `maxRetries` before this error is thrown.
+Provider-classified terminal responses, such as moderation blocks, are not retried.
 
 This error occurs when the AI provider fails to generate an image. It can arise due to the following reasons:
 

@@ -10,21 +10,15 @@ import { retryWithExponentialBackoffRespectingRetryHeaders } from '../util/retry
 export function prepareRetries({
   maxRetries,
   abortSignal,
-<<<<<<< HEAD
   additionalRetryableError,
-}: {
-  maxRetries: number | undefined;
-  abortSignal: AbortSignal | undefined;
-  additionalRetryableError?: ShouldRetryFunction;
-=======
   parameter = 'maxRetries',
   defaultMaxRetries = 2,
 }: {
   maxRetries: number | undefined;
   abortSignal: AbortSignal | undefined;
+  additionalRetryableError?: ShouldRetryFunction;
   parameter?: string;
   defaultMaxRetries?: number;
->>>>>>> origin/main
 }): {
   maxRetries: number;
   retry: RetryFunction;
