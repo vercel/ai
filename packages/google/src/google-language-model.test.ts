@@ -1848,6 +1848,44 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should pass array length constraints in response schemas', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    await model.doGenerate({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            elements: {
+              type: 'array',
+              items: { type: 'string' },
+              minItems: 2,
+              maxItems: 4,
+            },
+          },
+          required: ['elements'],
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(
+      (await server.calls[0].requestBodyJson).generationConfig.responseSchema,
+    ).toEqual({
+      type: 'object',
+      properties: {
+        elements: {
+          type: 'array',
+          items: { type: 'string' },
+          minItems: 2,
+          maxItems: 4,
+        },
+      },
+      required: ['elements'],
+    });
+  });
+
   it('should inline local JSON Schema references in response schemas', async () => {
     prepareJsonFixtureResponse('google-text');
 
