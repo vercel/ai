@@ -1,5 +1,12 @@
 # @ai-sdk/openai
 
+## 3.0.107
+
+### Patch Changes
+
+- 8844beb: fix(openai): flatten mid-stream Responses error events
+- cf1ba03: fix(openai): preserve complete Responses API raw usage objects
+
 ## 3.0.106
 
 ### Patch Changes

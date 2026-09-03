@@ -1,5 +1,17 @@
 # ai
 
+## 6.0.276
+
+### Patch Changes
+
+- 760ac87: fix(ai): preserve provider metadata from empty smooth stream deltas
+- 5e43974: fix(ai): skip `smoothStream` delays while the document is hidden
+- Updated dependencies [13507cb]
+- Updated dependencies [7782fec]
+- Updated dependencies [978e084]
+- Updated dependencies [d0c255c]
+  - @ai-sdk/gateway@3.0.188
+
 ## 6.0.275
 
 ### Patch Changes

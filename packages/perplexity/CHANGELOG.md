@@ -1,5 +1,11 @@
 # @ai-sdk/perplexity
 
+## 3.0.59
+
+### Patch Changes
+
+- 7ec1367: fix(perplexity): preserve complete raw chat usage objects
+
 ## 3.0.58
 
 ### Patch Changes
