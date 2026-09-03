@@ -47,6 +47,7 @@ function mockHarness(options: {
   promptDone?: (options: HarnessV1PromptTurnOptions) => Promise<void>;
   supportsSteering?: boolean;
   onSuspendTurn?: () => void | Promise<void>;
+  doReadHistory?: HarnessV1Session['doReadHistory'];
   continueScript?: (
     submitToolResult: (input: {
       toolCallId: string;
@@ -168,6 +169,9 @@ function mockHarness(options: {
     doDestroy,
     doContinueTurn,
     doSuspendTurn,
+    ...(options.doReadHistory != null
+      ? { doReadHistory: options.doReadHistory }
+      : {}),
   };
 
   return {
@@ -2124,6 +2128,74 @@ describe('HarnessAgent', () => {
     );
 
     await session.destroy();
+  });
+
+  test('readHistory() reads the runtime history through the adapter', async () => {
+    const history = {
+      messages: [
+        {
+          role: 'user' as const,
+          parts: [{ type: 'text' as const, text: 'hello' }],
+        },
+        {
+          role: 'assistant' as const,
+          parts: [
+            { type: 'reasoning' as const, text: 'thinking it over' },
+            {
+              type: 'tool-call' as const,
+              toolName: 'bash',
+              nativeName: 'Bash',
+              input: { command: 'ls' },
+            },
+            {
+              type: 'tool-result' as const,
+              toolName: 'bash',
+              output: 'README.md',
+            },
+            { type: 'text' as const, text: 'done' },
+          ],
+        },
+      ],
+      cursor: 'cursor-1',
+    };
+    const doReadHistory = vi.fn(async () => history);
+    const { harness } = mockHarness({ script: () => [], doReadHistory });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession();
+
+    expect(session.supportsHistory).toBe(true);
+    await expect(session.readHistory()).resolves.toEqual(history);
+    await session.readHistory({ since: 'cursor-1' });
+    expect(doReadHistory).toHaveBeenLastCalledWith({ since: 'cursor-1' });
+
+    await session.destroy();
+  });
+
+  test('readHistory() throws HarnessCapabilityUnsupportedError when the adapter lacks it', async () => {
+    const { harness } = mockHarness({ script: () => [] });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession();
+
+    expect(session.supportsHistory).toBe(false);
+    await expect(session.readHistory()).rejects.toSatisfy(error =>
+      HarnessCapabilityUnsupportedError.isInstance(error),
+    );
+
+    await session.destroy();
+  });
+
+  test('readHistory() rejects once the session is no longer active', async () => {
+    const { harness } = mockHarness({
+      script: () => [],
+      doReadHistory: async () => ({ messages: [], cursor: 'c' }),
+    });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession();
+    await session.destroy();
+
+    await expect(session.readHistory()).rejects.toThrow(
+      /not active and cannot read history/,
+    );
   });
 
   test('applies the bootstrap recipe in the provider state directory when the session declares one', async () => {
