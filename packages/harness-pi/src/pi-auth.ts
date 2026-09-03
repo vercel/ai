@@ -499,6 +499,7 @@ async function registerCustomProviders({
         apiKey: customEnv.OPENAI_API_KEY,
         baseUrl,
         authHeader: true,
+        ...(headers ? { headers } : {}),
       },
     });
   }
@@ -512,10 +513,15 @@ async function registerCustomProviders({
       config: {
         apiKey: customEnv.ANTHROPIC_API_KEY,
         baseUrl,
-        ...(customEnv.ANTHROPIC_AUTH_TOKEN
+        ...(headers || customEnv.ANTHROPIC_AUTH_TOKEN
           ? {
               headers: {
-                authorization: `Bearer ${customEnv.ANTHROPIC_AUTH_TOKEN}`,
+                ...headers,
+                ...(customEnv.ANTHROPIC_AUTH_TOKEN
+                  ? {
+                      authorization: `Bearer ${customEnv.ANTHROPIC_AUTH_TOKEN}`,
+                    }
+                  : {}),
               },
             }
           : {}),
@@ -548,6 +554,7 @@ async function registerCustomProviders({
         apiKey,
         baseUrl,
         authHeader: true,
+        ...(headers ? { headers } : {}),
       },
     });
   }

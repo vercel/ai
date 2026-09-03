@@ -175,9 +175,9 @@ describe('Deep Agents bridge instructions', () => {
     expect(handler).toHaveBeenCalledWith({ model: configuredModel });
   });
 
-  it('passes headers to the AI Gateway Anthropic client', async () => {
+  it('passes headers to a direct Anthropic client', async () => {
     state.headers = { 'x-tenant': 'acme' };
-    vi.stubEnv('AI_GATEWAY_API_KEY', 'gateway-key');
+    vi.stubEnv('ANTHROPIC_API_KEY', 'anthropic-key');
 
     await import('./index');
 

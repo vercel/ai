@@ -331,7 +331,6 @@ describe('createFx', () => {
           AI_GATEWAY_API_KEY: 'sandbox-gateway-secret',
         },
         headers: { 'x-tenant': 'acme' },
-        isAiGateway: true,
       }),
     ).toEqual([
       {

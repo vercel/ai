@@ -487,7 +487,7 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
-  it('sets custom headers only for AI Gateway auth', async () => {
+  it('sets custom headers for Gateway and direct auth', async () => {
     const gateway = createClaudeCode({
       auth: { AI_GATEWAY_API_KEY: 'gateway-key' },
     });
@@ -531,9 +531,9 @@ describe('createClaudeCode adapter', () => {
       prompt: 'Hello',
       emit: () => {},
     });
-    expect(sentMessages.at(-1)).not.toHaveProperty(
-      'env.ANTHROPIC_CUSTOM_HEADERS',
-    );
+    expect(sentMessages.at(-1)).toMatchObject({
+      env: { ANTHROPIC_CUSTOM_HEADERS: 'x-tenant: acme' },
+    });
     await directSession.doDestroy();
   });
 

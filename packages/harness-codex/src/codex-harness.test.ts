@@ -413,7 +413,7 @@ describe('createCodex adapter', () => {
     await session.doDestroy();
   });
 
-  it('passes headers to the bridge only for AI Gateway auth', async () => {
+  it('passes headers to the bridge for Gateway and direct auth', async () => {
     const gatewaySession = await createCodex({
       auth: { AI_GATEWAY_API_KEY: 'gateway-key' },
     }).doStart({
@@ -465,7 +465,10 @@ describe('createCodex adapter', () => {
     void Promise.resolve(directControl.done).catch(() => {});
 
     await vi.waitFor(() => {
-      expect(sentMessages.at(-1)).not.toHaveProperty('headers');
+      expect(sentMessages.at(-1)).toMatchObject({
+        type: 'start',
+        headers: { 'x-tenant': 'acme' },
+      });
     });
     await directSession.doDestroy();
   });

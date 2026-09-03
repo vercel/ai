@@ -158,7 +158,7 @@ describe('createCursor', () => {
     });
   });
 
-  it('applies headers only for explicit AI Gateway routing', () => {
+  it('applies headers to configured model request routes', () => {
     createCursor({ auth: 'ai-gateway' });
     const gatewaySettings = mocks.createACP.mock
       .calls[0]?.[0] as ACPHarnessSettings;
@@ -166,7 +166,6 @@ describe('createCursor', () => {
       gatewaySettings.credentialBrokering?.({
         env: {},
         headers: { 'x-tenant': 'acme' },
-        isAiGateway: true,
       }),
     ).toEqual([
       {
@@ -186,9 +185,13 @@ describe('createCursor', () => {
       autoSettings.credentialBrokering?.({
         env: {},
         headers: { 'x-tenant': 'acme' },
-        isAiGateway: true,
       }),
-    ).toEqual([]);
+    ).toEqual([
+      {
+        match: { host: 'api2.cursor.sh' },
+        transform: { headers: { 'x-tenant': 'acme' } },
+      },
+    ]);
   });
 
   it.each(['direct', 'ai-gateway'] as const)(

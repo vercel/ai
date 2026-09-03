@@ -208,7 +208,12 @@ function createClineAgentModel({
         'User-Agent': clientApp,
         'x-client-app': clientApp,
       }
-    : settings.headers;
+    : settings.headers != null || settings.agentHeaders != null
+      ? {
+          ...settings.headers,
+          ...settings.agentHeaders,
+        }
+      : undefined;
   const gateway = Llms.createGateway({
     providerConfigs: [
       {

@@ -431,6 +431,7 @@ describe('registerPiProviders', () => {
     const registries = await registerProviders({
       options: 'openai',
       resolvedEnv,
+      headers: { 'x-tenant': 'acme' },
     });
     const providers = registries.registerProvider.mock.calls.map(c => c[0]);
 
@@ -443,6 +444,7 @@ describe('registerPiProviders', () => {
       apiKey: 'sk-oai',
       baseUrl: 'https://api.openai.com/v1',
       authHeader: true,
+      headers: { 'x-tenant': 'acme' },
     });
   });
 
@@ -467,6 +469,7 @@ describe('registerPiProviders', () => {
     const registries = await registerProviders({
       options: 'anthropic',
       resolvedEnv,
+      headers: { 'x-tenant': 'acme' },
     });
     const providers = registries.registerProvider.mock.calls.map(c => c[0]);
 
@@ -474,7 +477,10 @@ describe('registerPiProviders', () => {
     expect(registries.registerProvider).toHaveBeenCalledWith('anthropic', {
       apiKey: 'sk-ant',
       baseUrl: 'https://api.anthropic.com',
-      headers: { authorization: 'Bearer tok' },
+      headers: {
+        'x-tenant': 'acme',
+        authorization: 'Bearer tok',
+      },
     });
   });
 

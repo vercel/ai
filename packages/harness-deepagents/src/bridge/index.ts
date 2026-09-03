@@ -75,12 +75,12 @@ function buildModel({
     ...(effort ? { outputConfig: { effort } } : {}),
     ...(procEnv.ANTHROPIC_API_KEY ? { apiKey: procEnv.ANTHROPIC_API_KEY } : {}),
     ...(baseUrl ? { anthropicApiUrl: baseUrl } : {}),
-    ...(procEnv.AI_GATEWAY_API_KEY
+    ...(headers != null || procEnv.AI_GATEWAY_API_KEY
       ? {
           clientOptions: {
             defaultHeaders: {
               ...headers,
-              ...(HARNESS_CLIENT_APP
+              ...(procEnv.AI_GATEWAY_API_KEY && HARNESS_CLIENT_APP
                 ? {
                     'User-Agent': HARNESS_CLIENT_APP,
                     'x-client-app': HARNESS_CLIENT_APP,

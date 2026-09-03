@@ -889,7 +889,6 @@ describe('createACP', () => {
         PROVIDER_BASE_URL: 'https://gateway.example/v1',
       },
       headers: { 'x-tenant': 'acme' },
-      isAiGateway: true,
     });
     expect(addRequestTransformations).toHaveBeenCalledWith([
       {

@@ -663,7 +663,7 @@ describe('createClineSession model configuration', () => {
         apiKey: 'anthropic-key',
         baseUrl: 'https://anthropic.example',
         headers: { 'x-custom': 'custom' },
-        agentHeaders: { 'x-agent-ignored': 'agent' },
+        agentHeaders: { 'x-agent': 'agent' },
       },
     });
 
@@ -673,7 +673,10 @@ describe('createClineSession model configuration', () => {
           providerId: 'anthropic',
           apiKey: 'anthropic-key',
           baseUrl: 'https://anthropic.example',
-          headers: { 'x-custom': 'custom' },
+          headers: {
+            'x-custom': 'custom',
+            'x-agent': 'agent',
+          },
         },
       ]);
       expect(clineMock.modelSelections).toEqual([

@@ -412,10 +412,7 @@ export function createOpenCode(
             reasoningVariant: settings.reasoningVariant,
             openCodeConfig: settings.openCodeConfig,
             mcpServers: settings.mcpServers,
-            headers:
-              authenticationMode === 'ai-gateway'
-                ? startOpts.headers
-                : undefined,
+            headers: startOpts.headers,
             openCodeSessionId: resumeSessionId,
             isResume: true,
             seedResumeSessionOnFirstPrompt: false,
@@ -573,8 +570,7 @@ export function createOpenCode(
         reasoningVariant: settings.reasoningVariant,
         openCodeConfig: settings.openCodeConfig,
         mcpServers: settings.mcpServers,
-        headers:
-          authenticationMode === 'ai-gateway' ? startOpts.headers : undefined,
+        headers: startOpts.headers,
         openCodeSessionId: resumeSessionId,
         isResume: respawnStrategy !== undefined,
         seedResumeSessionOnFirstPrompt: respawnStrategy !== undefined,

@@ -368,10 +368,7 @@ export function createDeepAgents(
             builtinToolFiltering: startOpts.builtinToolFiltering,
             recursionLimit: settings.recursionLimit,
             mcpServers: settings.mcpServers,
-            headers:
-              authenticationMode === 'ai-gateway'
-                ? startOpts.headers
-                : undefined,
+            headers: startOpts.headers,
           });
         } catch {
           // Bridge no longer reachable — recover by respawning below.
@@ -495,8 +492,7 @@ export function createDeepAgents(
         builtinToolFiltering: startOpts.builtinToolFiltering,
         recursionLimit: settings.recursionLimit,
         mcpServers: settings.mcpServers,
-        headers:
-          authenticationMode === 'ai-gateway' ? startOpts.headers : undefined,
+        headers: startOpts.headers,
       });
     },
   };

@@ -288,7 +288,7 @@ describe('createDeepAgents', () => {
     await session.doDestroy();
   });
 
-  it('passes headers to the bridge only for AI Gateway auth', async () => {
+  it('passes headers to the bridge for Gateway and direct auth', async () => {
     sentMessages.length = 0;
     const gatewaySession = await createDeepAgents({
       auth: { AI_GATEWAY_API_KEY: 'gateway-key' },
@@ -331,7 +331,10 @@ describe('createDeepAgents', () => {
       prompt: 'Hello',
       emit: () => {},
     });
-    expect(sentMessages.at(-1)).not.toHaveProperty('headers');
+    expect(sentMessages.at(-1)).toMatchObject({
+      type: 'start',
+      headers: { 'x-tenant': 'acme' },
+    });
     await directSession.doDestroy();
   });
 

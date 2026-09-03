@@ -376,6 +376,7 @@ function buildProviderConfig(
           ...(procEnv.OPENAI_BASE_URL
             ? { baseURL: procEnv.OPENAI_BASE_URL }
             : {}),
+          ...(start.headers ? { headers: start.headers } : {}),
           ...parseOpenAIQueryParams(),
         },
         ...(modelID
@@ -407,6 +408,7 @@ function buildProviderConfig(
           ...(procEnv.ANTHROPIC_BASE_URL
             ? { baseURL: procEnv.ANTHROPIC_BASE_URL }
             : {}),
+          ...(start.headers ? { headers: start.headers } : {}),
         },
       },
     };
@@ -429,6 +431,7 @@ function buildProviderConfig(
           ...(procEnv.OPENAI_PROJECT
             ? { project: procEnv.OPENAI_PROJECT }
             : {}),
+          ...(start.headers ? { headers: start.headers } : {}),
           ...parseOpenAIQueryParams(),
         },
       },

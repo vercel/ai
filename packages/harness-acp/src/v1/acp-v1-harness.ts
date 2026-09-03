@@ -326,12 +326,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           sandboxEnv: sandboxImplementationEnvironment,
           ...(startOptions.headers == null
             ? {}
-            : {
-                headers: startOptions.headers,
-                isAiGateway:
-                  resolvedProviderAuthentication.providerAuthentication
-                    ?.type === 'ai-gateway',
-              }),
+            : { headers: startOptions.headers }),
         });
         if (requestTransformations.length > 0) {
           await sandboxSession.addRequestTransformations(

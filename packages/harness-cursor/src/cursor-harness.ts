@@ -412,18 +412,16 @@ export function createCursor(
           },
         });
       }
-      if (settings.auth === 'ai-gateway' && headers != null) {
-        const safeHeaders = Object.fromEntries(
-          Object.entries(headers).filter(
-            ([name]) => name !== 'authorization' && name !== 'x-api-key',
-          ),
-        );
+      if (headers != null) {
         transformations.push({
-          match: {
-            host: 'ai-gateway.vercel.sh',
-            path: { startsWith: '/cursor/v1' },
-          },
-          transform: { headers: safeHeaders },
+          match:
+            settings.auth === 'ai-gateway'
+              ? {
+                  host: 'ai-gateway.vercel.sh',
+                  path: { startsWith: '/cursor/v1' },
+                }
+              : { host: 'api2.cursor.sh' },
+          transform: { headers },
         });
       }
       return transformations;

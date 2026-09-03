@@ -306,10 +306,9 @@ describe('Codex bridge config', () => {
     `);
   });
 
-  test('passes headers to the AI Gateway model provider', async () => {
+  test('passes headers to a direct model provider', async () => {
     state.startHeaders = { 'x-tenant': 'acme' };
-    process.env.AI_GATEWAY_API_KEY = 'gateway-key';
-    process.env.AI_GATEWAY_BASE_URL = 'https://ai-gateway.test/v1';
+    process.env.CODEX_API_KEY = 'openai-key';
 
     await import('./index');
 
@@ -317,7 +316,7 @@ describe('Codex bridge config', () => {
       .toMatchInlineSnapshot(`
       {
         "agent_bridge_openai": {
-          "base_url": "https://ai-gateway.test/v1",
+          "base_url": "https://api.openai.com/v1",
           "env_key": "CODEX_API_KEY",
           "http_headers": {
             "x-tenant": "acme",

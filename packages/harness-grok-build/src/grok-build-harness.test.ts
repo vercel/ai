@@ -158,7 +158,6 @@ describe('createGrokBuild', () => {
           GROK_XAI_API_BASE_URL: 'https://api.x.ai/v1',
         },
         headers: { 'x-tenant': 'acme' },
-        isAiGateway: true,
       }),
     ).toEqual([
       {

@@ -594,7 +594,7 @@ export function createFx(
       path: 'model',
     },
     credentialEnv: ['VERCEL_OIDC_TOKEN', 'AI_GATEWAY_API_KEY'],
-    credentialBrokering: ({ env, sandboxEnv, headers, isAiGateway }) => {
+    credentialBrokering: ({ env, sandboxEnv, headers }) => {
       const environmentVariableName = suppliedAuthenticationEnvironment
         ? env.AI_GATEWAY_API_KEY
           ? 'AI_GATEWAY_API_KEY'
@@ -612,7 +612,7 @@ export function createFx(
             Authorization: `Bearer ${sandboxCredential}`,
           },
           transformHeaders: {
-            ...(isAiGateway ? headers : undefined),
+            ...headers,
             Authorization: `Bearer ${credential}`,
             'x-client-app': FX_CLIENT_APP,
           },

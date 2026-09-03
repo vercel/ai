@@ -867,7 +867,7 @@ export function createClaudeCode(
           ? { CLAUDE_AGENT_SDK_CLIENT_APP: CLAUDE_CODE_CLIENT_APP }
           : {}),
         ...settings.env,
-        ...(authenticationMode === 'ai-gateway' && startOpts.headers != null
+        ...(startOpts.headers != null
           ? {
               ANTHROPIC_CUSTOM_HEADERS: Object.entries(startOpts.headers)
                 .map(([name, value]) => `${name}: ${value}`)

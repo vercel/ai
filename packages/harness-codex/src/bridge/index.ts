@@ -140,7 +140,10 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       'AI Gateway auth was selected but AI_GATEWAY_BASE_URL is missing from the Codex bridge environment.',
     );
   }
-  const apiBaseUrl = hasGatewayAuth ? gatewayBaseUrl : procEnv.OPENAI_BASE_URL;
+  const apiBaseUrl = hasGatewayAuth
+    ? gatewayBaseUrl
+    : (procEnv.OPENAI_BASE_URL ??
+      (start.headers != null ? 'https://api.openai.com/v1' : undefined));
   const codexModel =
     start.model && hasGatewayAuth && !start.model.includes('/')
       ? `openai/${start.model}`
@@ -164,11 +167,11 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         env_key: 'CODEX_API_KEY',
         wire_api: 'responses',
         supports_websockets: false,
-        ...(hasGatewayAuth && (start.headers != null || HARNESS_CLIENT_APP)
+        ...(start.headers != null || (hasGatewayAuth && HARNESS_CLIENT_APP)
           ? {
               http_headers: {
                 ...start.headers,
-                ...(HARNESS_CLIENT_APP
+                ...(hasGatewayAuth && HARNESS_CLIENT_APP
                   ? {
                       'User-Agent': HARNESS_CLIENT_APP,
                       'x-client-app': HARNESS_CLIENT_APP,

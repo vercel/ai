@@ -337,7 +337,7 @@ export function createGrokBuild(
       'stdio',
     ],
     credentialEnv: ['XAI_API_KEY'],
-    credentialBrokering: ({ env, sandboxEnv, headers, isAiGateway }) => {
+    credentialBrokering: ({ env, sandboxEnv, headers }) => {
       if (!env.XAI_API_KEY || !sandboxEnv?.XAI_API_KEY) return [];
       return [
         createCredentialRequestTransformation({
@@ -346,7 +346,7 @@ export function createGrokBuild(
             Authorization: `Bearer ${sandboxEnv.XAI_API_KEY}`,
           },
           transformHeaders: {
-            ...(isAiGateway ? headers : undefined),
+            ...headers,
             Authorization: `Bearer ${env.XAI_API_KEY}`,
           },
         }),

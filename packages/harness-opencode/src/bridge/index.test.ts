@@ -158,7 +158,7 @@ describe('OpenCode bridge turn settlement', () => {
     );
   });
 
-  it('passes headers to the AI Gateway provider', async () => {
+  it('passes headers to a direct provider', async () => {
     const userMessages = createUserMessages();
     bridgeMock.start = {
       type: 'start',
@@ -208,8 +208,8 @@ describe('OpenCode bridge turn settlement', () => {
         },
       },
     };
-    vi.stubEnv('AI_GATEWAY_API_KEY', 'gateway-key');
-    vi.stubEnv('AI_GATEWAY_BASE_URL', 'https://ai-gateway.test/v1');
+    vi.stubEnv('OPENAI_API_KEY', 'openai-key');
+    vi.stubEnv('OPENAI_BASE_URL', 'https://api.openai.test/v1');
     setBridgeArgv();
 
     await import('./index');
@@ -219,8 +219,8 @@ describe('OpenCode bridge turn settlement', () => {
         provider: {
           openai: {
             options: {
-              apiKey: 'gateway-key',
-              baseURL: 'https://ai-gateway.test/v1',
+              apiKey: 'openai-key',
+              baseURL: 'https://api.openai.test/v1',
               headers: {
                 'x-tenant': 'acme',
               },
