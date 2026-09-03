@@ -269,6 +269,115 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should support gpt-4o-transcribe-diarize', async () => {
+    prepareJsonFixtureResponse('openai-diarized-transcription');
+
+    const model = provider.transcription('gpt-4o-transcribe-diarize');
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/mpeg',
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body!.file).toBeInstanceOf(File);
+    const { file: _, ...rest } = body!;
+    expect(rest).toMatchInlineSnapshot(`
+      {
+        "model": "gpt-4o-transcribe-diarize",
+        "response_format": "diarized_json",
+      }
+    `);
+
+    expect(result).toMatchObject({
+      text: 'Hello from Alice. Hello from Bob.',
+      durationInSeconds: 3.2,
+      segments: [
+        {
+          text: 'Hello from Alice.',
+          startSecond: 0,
+          endSecond: 1.5,
+        },
+        {
+          text: 'Hello from Bob.',
+          startSecond: 1.5,
+          endSecond: 3.2,
+        },
+      ],
+      providerMetadata: {
+        openai: {
+          segments: [
+            {
+              text: 'Hello from Alice.',
+              startSecond: 0,
+              endSecond: 1.5,
+              speaker: 'A',
+            },
+            {
+              text: 'Hello from Bob.',
+              startSecond: 1.5,
+              endSecond: 3.2,
+              speaker: 'B',
+            },
+          ],
+        },
+      },
+    });
+  });
+
+  it('should pass diarization response format and chunking strategy provider options', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    const model = provider.transcription('gpt-4o-transcribe-diarize');
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/mpeg',
+      providerOptions: {
+        openai: {
+          responseFormat: 'json',
+          chunkingStrategy: 'auto',
+        },
+      },
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body!.file).toBeInstanceOf(File);
+    const { file: _, ...rest } = body!;
+    expect(rest).toMatchInlineSnapshot(`
+      {
+        "chunking_strategy": "auto",
+        "model": "gpt-4o-transcribe-diarize",
+        "response_format": "json",
+        "temperature": "0",
+        "timestamp_granularities[]": "segment",
+      }
+    `);
+  });
+
+  it('should serialize a server VAD chunking strategy', async () => {
+    prepareJsonFixtureResponse('openai-diarized-transcription');
+
+    const model = provider.transcription('gpt-4o-transcribe-diarize');
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/mpeg',
+      providerOptions: {
+        openai: {
+          chunkingStrategy: {
+            type: 'server_vad',
+            threshold: 0.7,
+            prefixPaddingMs: 400,
+            silenceDurationMs: 300,
+          },
+        },
+      },
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body!.chunking_strategy).toBe(
+      '{"type":"server_vad","threshold":0.7,"prefix_padding_ms":400,"silence_duration_ms":300}',
+    );
+  });
+
   it('should pass timestamp_granularities when specified', async () => {
     prepareJsonFixtureResponse('openai-transcription');
 
