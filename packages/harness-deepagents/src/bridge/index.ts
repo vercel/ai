@@ -59,10 +59,12 @@ function buildModel({
   rawModel,
   thinking,
   effort,
+  headers,
 }: {
   rawModel: string | undefined;
   thinking: StartMessage['thinking'];
   effort: StartMessage['effort'];
+  headers: StartMessage['headers'];
 }) {
   if (!rawModel) return undefined;
   const baseUrl = procEnv.ANTHROPIC_BASE_URL;
@@ -73,12 +75,17 @@ function buildModel({
     ...(effort ? { outputConfig: { effort } } : {}),
     ...(procEnv.ANTHROPIC_API_KEY ? { apiKey: procEnv.ANTHROPIC_API_KEY } : {}),
     ...(baseUrl ? { anthropicApiUrl: baseUrl } : {}),
-    ...(procEnv.AI_GATEWAY_API_KEY && HARNESS_CLIENT_APP
+    ...(headers != null || procEnv.AI_GATEWAY_API_KEY
       ? {
           clientOptions: {
             defaultHeaders: {
-              'User-Agent': HARNESS_CLIENT_APP,
-              'x-client-app': HARNESS_CLIENT_APP,
+              ...headers,
+              ...(procEnv.AI_GATEWAY_API_KEY && HARNESS_CLIENT_APP
+                ? {
+                    'User-Agent': HARNESS_CLIENT_APP,
+                    'x-client-app': HARNESS_CLIENT_APP,
+                  }
+                : {}),
             },
           },
         }
@@ -90,7 +97,7 @@ function createModelMiddleware() {
   return createMiddleware({
     name: 'harnessModel',
     wrapModelCall: async (request, handler) => {
-      if (!activeModel && !activeThinking && !activeEffort) {
+      if (!activeModel && !activeThinking && !activeEffort && !activeHeaders) {
         return handler(request);
       }
 
@@ -99,6 +106,7 @@ function createModelMiddleware() {
           rawModel: activeModel,
           thinking: activeThinking,
           effort: activeEffort,
+          headers: activeHeaders,
         });
         if (!configuredModel) throw new Error('Deep Agents model is missing');
         return handler({ ...request, model: configuredModel });
@@ -120,6 +128,7 @@ function createModelMiddleware() {
         rawModel: model.model,
         thinking: activeThinking,
         effort: activeEffort,
+        headers: activeHeaders,
       });
       if (!configuredModel) throw new Error('Deep Agents model is missing');
 
@@ -157,6 +166,7 @@ let agentConfigurationSignature: string | undefined;
 let activeModel: string | undefined;
 let activeThinking: StartMessage['thinking'];
 let activeEffort: StartMessage['effort'];
+let activeHeaders: StartMessage['headers'];
 const modelMiddleware = createModelMiddleware();
 
 type DeepAgentsJsonSchema = Record<string, unknown> & {
@@ -214,6 +224,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   if (start.model) activeModel = start.model;
   activeThinking = start.thinking;
   activeEffort = start.effort;
+  activeHeaders = start.headers;
   currentResponseFormat =
     start.responseFormat?.type === 'json' && start.responseFormat.schema != null
       ? toolStrategy(start.responseFormat.schema as DeepAgentsJsonSchema)

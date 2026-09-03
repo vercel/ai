@@ -413,6 +413,66 @@ describe('createCodex adapter', () => {
     await session.doDestroy();
   });
 
+  it('passes headers to the bridge for Gateway and direct auth', async () => {
+    const gatewaySession = await createCodex({
+      auth: { AI_GATEWAY_API_KEY: 'gateway-key' },
+    }).doStart({
+      sessionId: 'gateway',
+      headers: { 'x-tenant': 'acme' },
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        runs: [],
+        spawns: [],
+        writes: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/codex-gateway',
+    });
+    const gatewayControl = await gatewaySession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    void Promise.resolve(gatewayControl.done).catch(() => {});
+
+    await vi.waitFor(() => {
+      expect(sentMessages.at(-1)).toMatchObject({
+        type: 'start',
+        headers: { 'x-tenant': 'acme' },
+      });
+    });
+    await gatewaySession.doDestroy();
+
+    const directSession = await createCodex({
+      auth: { OPENAI_API_KEY: 'openai-key' },
+    }).doStart({
+      sessionId: 'direct',
+      headers: { 'x-tenant': 'acme' },
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        runs: [],
+        spawns: [],
+        writes: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/codex-direct',
+    });
+    const directControl = await directSession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    void Promise.resolve(directControl.done).catch(() => {});
+
+    await vi.waitFor(() => {
+      expect(sentMessages.at(-1)).toMatchObject({
+        type: 'start',
+        headers: { 'x-tenant': 'acme' },
+      });
+    });
+    await directSession.doDestroy();
+  });
+
   it('brokers credentials when the sandbox supports additive request transformations', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const forwardedCredentials: Array<{

@@ -154,6 +154,14 @@ export type HarnessAgentSettings<
   readonly instructions?: string;
 
   /**
+   * Additional HTTP headers to be sent with every model request.
+   *
+   * `authorization`, `x-api-key`, `user-agent`, and `x-client-app` are
+   * managed by the harness and are not allowed.
+   */
+  readonly headers?: Record<string, string | undefined>;
+
+  /**
    * Schema for validating the custom options passed to each agent call.
    */
   readonly callOptionsSchema?: FlexibleSchema<CALL_OPTIONS>;
