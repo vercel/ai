@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 9823,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-9823.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-9823.ts",
+    "packages/amazon-bedrock/src/__fixtures__/anthropic-citations-content.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_9823: Bedrock citation text is missing from the AI SDK response"
+  }
+}
