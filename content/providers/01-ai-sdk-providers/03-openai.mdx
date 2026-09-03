@@ -3022,6 +3022,27 @@ const result = await transcribe({
 console.log(result.segments); // Array of segments with startSecond/endSecond
 ```
 
+`gpt-4o-transcribe-diarize` identifies speakers in a recording. It defaults to
+the `diarized_json` response format. For audio longer than 30 seconds, set
+`chunkingStrategy` to `'auto'`:
+
+```ts highlight="9"
+import { transcribe } from 'ai';
+import { openai, type OpenAITranscriptionModelOptions } from '@ai-sdk/openai';
+
+const result = await transcribe({
+  model: openai.transcription('gpt-4o-transcribe-diarize'),
+  audio: new Uint8Array([1, 2, 3, 4]),
+  providerOptions: {
+    openai: {
+      chunkingStrategy: 'auto',
+    } satisfies OpenAITranscriptionModelOptions,
+  },
+});
+
+console.log(result.providerMetadata.openai.segments);
+```
+
 The following provider options are available:
 
 - **timestampGranularities** _string[]_
@@ -3046,6 +3067,12 @@ The following provider options are available:
 - **include** _string[]_
   Additional information to include in the transcription response.
 
+- **responseFormat** _'json' | 'verbose_json' | 'diarized_json'_
+  The format of the transcription response. `gpt-4o-transcribe-diarize` defaults to `diarized_json`.
+
+- **chunkingStrategy** _'auto' | object_
+  Controls how the audio is split into chunks. `gpt-4o-transcribe-diarize` requires this option for inputs longer than 30 seconds. The object form configures OpenAI server-side VAD with `type: 'server_vad'` and optional `threshold`, `prefixPaddingMs`, and `silenceDurationMs` fields.
+
 - **streaming** _object_
   Options for streaming transcription models such as `gpt-realtime-whisper`.
   Use with `experimental_streamTranscribe`.
@@ -3057,12 +3084,13 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model                    | Transcription | Streaming | Duration  | Segments  | Language  |
-| ------------------------ | ------------- | --------- | --------- | --------- | --------- |
-| `whisper-1`              | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
-| `gpt-4o-mini-transcribe` | <Check />     | <Cross /> | <Cross /> | <Cross /> | <Cross /> |
-| `gpt-4o-transcribe`      | <Check />     | <Cross /> | <Cross /> | <Cross /> | <Cross /> |
-| `gpt-realtime-whisper`   | <Cross />     | <Check /> | <Cross /> | <Cross /> | <Cross /> |
+| Model                       | Transcription | Streaming | Duration  | Segments  | Language  |
+| --------------------------- | ------------- | --------- | --------- | --------- | --------- |
+| `whisper-1`                 | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
+| `gpt-4o-mini-transcribe`    | <Check />     | <Cross /> | <Cross /> | <Cross /> | <Cross /> |
+| `gpt-4o-transcribe`         | <Check />     | <Cross /> | <Cross /> | <Cross /> | <Cross /> |
+| `gpt-4o-transcribe-diarize` | <Check />     | <Cross /> | <Check /> | <Check /> | <Cross /> |
+| `gpt-realtime-whisper`      | <Cross />     | <Check /> | <Cross /> | <Cross /> | <Cross /> |
 
 ## Translation Models
 
