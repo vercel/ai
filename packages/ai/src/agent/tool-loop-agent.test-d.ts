@@ -9,6 +9,7 @@ import {
   Output,
   type GenerateTextOnEndCallback,
   type Experimental_ToolCallers,
+  type LanguageModelCallEndEvent,
   type ToolApprovalConfiguration,
   type ToolInputRefinement,
 } from '../generate-text';
@@ -243,6 +244,27 @@ describe('ToolLoopAgent', () => {
         },
         onStepStart: event => {
           expectTypeOf(event.runtimeContext).toEqualTypeOf<Context>();
+        },
+      });
+    });
+
+    it('should support language model call callbacks in settings', () => {
+      const tools = {
+        calculator: tool({
+          inputSchema: z.object({ expression: z.string() }),
+        }),
+      };
+
+      new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        tools,
+        onLanguageModelCallStart: event => {
+          expectTypeOf(event.callId).toEqualTypeOf<string>();
+        },
+        onLanguageModelCallEnd: event => {
+          expectTypeOf(event.content).toEqualTypeOf<
+            LanguageModelCallEndEvent<typeof tools>['content']
+          >();
         },
       });
     });
