@@ -64,3 +64,15 @@ export {
 } from './errors';
 export type { GatewayErrorResponse } from './errors';
 export { VERSION } from './version';
+
+/**
+ * Executable tool definitions, for hosts that execute Gateway tools rather
+ * than declare them. Clients should keep using `gateway.tools.*`.
+ */
+export { exaSearchServerTool } from './tool/exa-search';
+export type {
+  ExaSearchConfig,
+  ExaSearchInput,
+  ExaSearchOutput,
+  ExaSearchResponse,
+} from './tool/exa-search';

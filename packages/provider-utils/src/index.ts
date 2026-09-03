@@ -103,6 +103,21 @@ export { serializeModelOptions } from './serialize-model-options';
 export { SerializationError } from './serialization-error';
 export { secureJsonParse } from './secure-json-parse';
 export {
+  createServerToolFactory,
+  mapServerToolConfig,
+  resolveServerToolModelSchema,
+  type ServerToolAdapter,
+  type ServerToolAuth,
+  type ServerToolBillingDimension,
+  type ServerToolErrorCode,
+  type ServerToolModelFacing,
+  type ServerToolOutcome,
+  type ServerToolRequestPlan,
+  type ServerToolResponse,
+  type ServerToolUsage,
+  type ServerToolV1,
+} from './server-tool-v1';
+export {
   StreamingToolCallTracker,
   type StreamingToolCallDelta,
   type StreamingToolCallTrackerOptions,

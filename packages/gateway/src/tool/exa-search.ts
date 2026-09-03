@@ -1,6 +1,7 @@
 import {
-  createProviderExecutedToolFactory,
+  createServerToolFactory,
   lazySchema,
+  type ServerToolV1,
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from '../zod';
@@ -337,15 +338,206 @@ const exaSearchOutputSchema = lazySchema(() =>
   ),
 );
 
-export const exaSearchToolFactory = createProviderExecutedToolFactory<
+const EXA_SEARCH_ORIGIN = 'https://api.exa.ai';
+
+/**
+ * Exa's wire format is camelCase while the model-facing input is snake_case,
+ * and every field name differs only by that convention. Input has already been
+ * validated against `exaSearchInputSchema`, which strips unknown keys, so the
+ * schema is the allowlist and a mechanical conversion cannot leak a field Exa
+ * would reject.
+ */
+function toCamelCaseDeep(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(toCamelCaseDeep);
+  }
+
+  if (typeof value !== 'object' || value === null) {
+    return value;
+  }
+
+  const result: Record<string, unknown> = {};
+  for (const [key, nested] of Object.entries(value)) {
+    const camelKey = key.replace(/_([a-z])/g, (_, character: string) =>
+      character.toUpperCase(),
+    );
+    result[camelKey] = toCamelCaseDeep(nested);
+  }
+  return result;
+}
+
+function extractErrorMessage(body: unknown, status: number): string {
+  if (typeof body === 'string') {
+    return body.slice(0, 200) || `HTTP ${status}`;
+  }
+
+  if (typeof body === 'object' && body !== null) {
+    const record = body as {
+      error?: string | { message?: unknown };
+      message?: unknown;
+    };
+    if (typeof record.error === 'string') {
+      return record.error;
+    }
+    if (
+      typeof record.error === 'object' &&
+      record.error !== null &&
+      typeof record.error.message === 'string'
+    ) {
+      return record.error.message;
+    }
+    if (typeof record.message === 'string') {
+      return record.message;
+    }
+  }
+
+  return `HTTP ${status}`;
+}
+
+/**
+ * Executable definition of the Exa Search tool.
+ *
+ * Consumed two ways from this single source: clients declare the tool through
+ * `exaSearch()` below, and a host that executes it (the AI Gateway, or any
+ * server holding an Exa key) reads `modelFacing` to build the schema the model
+ * sees and `adapter` to make the call.
+ */
+export const exaSearchServerTool: ServerToolV1<
+  ExaSearchInput,
+  ExaSearchOutput
+> = {
+  specificationVersion: 'server-tool-v1',
+  id: 'gateway.exa_search',
+  vendor: 'exa',
+  contractVersion: 1,
+  origins: [EXA_SEARCH_ORIGIN],
+  inputSchema: exaSearchInputSchema,
+  outputSchema: exaSearchOutputSchema,
+
+  modelFacing: {
+    description:
+      'Search the web using Exa to find current information and LLM-friendly page excerpts. You MUST provide a query parameter.',
+    annotations: {
+      query: {
+        description:
+          'Natural-language web search query. This is REQUIRED. Example: "latest AI regulation updates in 2026"',
+      },
+      type: {
+        description:
+          'Search mode. Use auto for the default balance of speed and quality, or fast/instant for lower latency.',
+      },
+      num_results: {
+        description:
+          'Maximum number of results to return (1-100, default: 10).',
+        default: 10,
+      },
+      category: {
+        description:
+          'Optional content category to focus results, such as news, company, research paper, or financial report.',
+      },
+      user_location: {
+        description:
+          "Two-letter ISO country code for location-aware search results (e.g., 'US').",
+      },
+      include_domains: {
+        description:
+          'Only return results from these domains. Example: ["reuters.com", "arxiv.org"].',
+      },
+      exclude_domains: {
+        description:
+          'Exclude results from these domains. Example: ["reddit.com"].',
+      },
+      start_published_date: {
+        description: 'Only return links published after this ISO 8601 date.',
+      },
+      end_published_date: {
+        description: 'Only return links published before this ISO 8601 date.',
+      },
+      contents: {
+        description:
+          'Controls extracted page content. If omitted, highlights are requested by default for token-efficient agent use.',
+      },
+      'contents.max_age_hours': {
+        description:
+          'Maximum age of cached content in hours. Use 0 to always livecrawl and -1 to never livecrawl.',
+      },
+      'contents.livecrawl_timeout': {
+        description: 'Livecrawl timeout in milliseconds.',
+      },
+      'contents.subpages': {
+        description: 'Number of subpages to crawl per result.',
+      },
+      'contents.subpage_target': {
+        description: 'Keywords to prioritize when selecting subpages.',
+      },
+    },
+  },
+
+  billingDimensions: ['calls', 'requestedResults'],
+  lenientFields: ['include_domains', 'exclude_domains'],
+
+  adapter: {
+    buildRequest(input) {
+      const { contents, ...rest } = input;
+      const body = toCamelCaseDeep({
+        ...rest,
+        type: input.type ?? 'auto',
+      }) as Record<string, unknown>;
+
+      // Default to highlights rather than full text: excerpts are what make
+      // this tool token-efficient for agent loops.
+      body.contents =
+        contents === undefined
+          ? { highlights: true }
+          : toCamelCaseDeep(contents);
+
+      return {
+        url: `${EXA_SEARCH_ORIGIN}/search`,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        auth: { kind: 'header', name: 'x-api-key' },
+      };
+    },
+
+    parseResponse(response, input) {
+      if (response.status === 429) {
+        return {
+          ok: false,
+          error: 'rate_limit',
+          message: extractErrorMessage(response.body, response.status),
+          retryAfter: response.header('retry-after'),
+        };
+      }
+
+      if (response.status < 200 || response.status >= 300) {
+        return {
+          ok: false,
+          error: 'api_error',
+          message: extractErrorMessage(response.body, response.status),
+        };
+      }
+
+      const output = response.body as ExaSearchResponse;
+      return {
+        ok: true,
+        output,
+        usage: {
+          resultCount: output.results?.length ?? 0,
+          // Exa's own default when the caller does not ask for a count, and
+          // also the number included in the base price.
+          requestedResults: input.num_results ?? 10,
+        },
+      };
+    },
+  },
+};
+
+export const exaSearchToolFactory = createServerToolFactory<
   ExaSearchInput,
   ExaSearchOutput,
   ExaSearchConfig
->({
-  id: 'gateway.exa_search',
-  inputSchema: exaSearchInputSchema,
-  outputSchema: exaSearchOutputSchema,
-});
+>(exaSearchServerTool);
 
 export const exaSearch = (
   config: ExaSearchConfig = {},
