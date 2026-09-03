@@ -601,6 +601,19 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 
       if (type === 'result') {
         if (msg.subtype === 'success') {
+          // `success` does not mean the turn succeeded: the CLI flags a rejected
+          // request with `is_error` and puts the message in `result`, which the
+          // empty-result rescue below cannot catch.
+          if (msg.is_error) {
+            emitTerminalError(
+              msg.result?.trim() ||
+                streamEventState.observedTerminalError ||
+                (typeof msg.api_error_status === 'number'
+                  ? `Claude Code reported an API error (HTTP ${msg.api_error_status})`
+                  : 'Claude Code reported a failed result'),
+            );
+            continue;
+          }
           const emptyResult = !msg.result?.trim?.();
           if (emptyResult && streamEventState.observedTerminalError) {
             emitTerminalError(streamEventState.observedTerminalError);

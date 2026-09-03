@@ -838,4 +838,72 @@ describe('Claude Code bridge configuration', () => {
     expect(emitError).not.toHaveBeenCalled();
     expect(disposed).toHaveBeenCalled();
   });
+  test('reports a result flagged `is_error` as a terminal error, even though its subtype is `success`', async () => {
+    const emitError = vi.fn();
+    state.emitError = emitError;
+    // What the CLI actually sends when the provider rejects the request: the
+    // `success` subtype, `is_error: true`, and the message in `result`.
+    state.messages = [
+      {
+        type: 'result',
+        subtype: 'success',
+        is_error: true,
+        api_error_status: 400,
+        result: 'API Error: 400 the request was rejected',
+      },
+    ];
+
+    await import('./index');
+
+    expect(emitError).toHaveBeenCalledWith({
+      error: 'API Error: 400 the request was rejected',
+      message: 'claude-code terminal error',
+    });
+    // The turn must not also settle as a normal finish: that is what made a
+    // hard rejection look like an agent that simply returned nothing.
+    expect(state.emitted).not.toContainEqual(
+      expect.objectContaining({ type: 'finish' }),
+    );
+  });
+
+  test('names the HTTP status when an errored result carries no message', async () => {
+    const emitError = vi.fn();
+    state.emitError = emitError;
+    state.messages = [
+      {
+        type: 'result',
+        subtype: 'success',
+        is_error: true,
+        api_error_status: 529,
+        result: '   ',
+      },
+    ];
+
+    await import('./index');
+
+    expect(emitError).toHaveBeenCalledWith({
+      error: 'Claude Code reported an API error (HTTP 529)',
+      message: 'claude-code terminal error',
+    });
+  });
+
+  test('still finishes normally when a `success` result is not flagged as an error', async () => {
+    const emitError = vi.fn();
+    state.emitError = emitError;
+    state.messages = [
+      {
+        type: 'result',
+        subtype: 'success',
+        is_error: false,
+        result: 'done',
+      },
+    ];
+
+    await import('./index');
+
+    expect(emitError).not.toHaveBeenCalled();
+    expect(state.emitted).toContainEqual(
+      expect.objectContaining({ type: 'finish' }),
+    );
+  });
 });
