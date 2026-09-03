@@ -1,4 +1,4 @@
-import { asSchema } from '@ai-sdk/provider-utils';
+import { asSchema, safeValidateTypes } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
 import { browserbaseFetch } from './browserbase-fetch';
 
@@ -37,5 +37,68 @@ describe('browserbaseFetch', () => {
         schema: { type: 'object' },
       },
     });
+  });
+
+  it('validates a Browserbase Fetch API success response', async () => {
+    const result = await safeValidateTypes({
+      value: {
+        id: 'fetch_9f8e7d6c5b4a',
+        statusCode: 200,
+        headers: {
+          'content-type': 'text/html; charset=utf-8',
+          'cache-control': 'max-age=0',
+        },
+        content: '<!DOCTYPE html><html><body>Example</body></html>',
+        contentType: 'text/html; charset=utf-8',
+        encoding: 'utf-8',
+      },
+      schema: asSchema(browserbaseFetch().outputSchema),
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('validates a JSON-extraction success response', async () => {
+    const result = await safeValidateTypes({
+      value: {
+        id: 'fetch_1a2b3c4d5e6f',
+        statusCode: 200,
+        headers: { 'content-type': 'text/html' },
+        content: { title: 'Example Domain', price: 42 },
+        contentType: 'text/html',
+        encoding: 'utf-8',
+      },
+      schema: asSchema(browserbaseFetch().outputSchema),
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('validates a Browserbase Fetch API error response', async () => {
+    const result = await safeValidateTypes({
+      value: {
+        error: 'rate_limit',
+        statusCode: 429,
+        message: 'Rate limit exceeded',
+      },
+      schema: asSchema(browserbaseFetch().outputSchema),
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects a success response missing id', async () => {
+    const result = await safeValidateTypes({
+      value: {
+        statusCode: 200,
+        headers: { 'content-type': 'text/html' },
+        content: '<!DOCTYPE html><html><body>Example</body></html>',
+        contentType: 'text/html; charset=utf-8',
+        encoding: 'utf-8',
+      },
+      schema: asSchema(browserbaseFetch().outputSchema),
+    });
+
+    expect(result.success).toBe(false);
   });
 });
