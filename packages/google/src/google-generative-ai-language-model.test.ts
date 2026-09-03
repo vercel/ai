@@ -5,11 +5,13 @@ import type {
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
+import { Output, streamText, tool } from 'ai';
 import {
   GoogleGenerativeAILanguageModel,
   getGroundingMetadataSchema,
   getUrlContextMetadataSchema,
 } from './google-generative-ai-language-model';
+import { z } from 'zod/v4';
 
 import type {
   GoogleGenerativeAIGroundingMetadata,
@@ -3332,6 +3334,151 @@ describe('doStream', () => {
     expect(events.at(-1)).toMatchObject({
       type: 'finish',
       finishReason: 'stop',
+    });
+  });
+
+  it('should suppress prose from earlier chunks before streaming a JSON response tool call', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'Here is the requested result:' }],
+                role: 'model',
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    functionCall: {
+                      id: 'json-call-id',
+                      name: 'json',
+                      args: {
+                        output: {
+                          date: '2026-09-04',
+                          activity: 'review pull request',
+                        },
+                      },
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+            },
+          ],
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'resolve-date',
+          inputSchema: {
+            type: 'object',
+            properties: { input: { type: 'string' } },
+          },
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            date: { type: 'string' },
+            activity: { type: 'string' },
+          },
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const text = events
+      .filter(event => event.type === 'text-delta')
+      .map(event => event.delta)
+      .join('');
+
+    expect(text).toBe('{"date":"2026-09-04","activity":"review pull request"}');
+    expect(JSON.parse(text)).toEqual({
+      date: '2026-09-04',
+      activity: 'review pull request',
+    });
+  });
+
+  it('should provide valid structured output to streamText from a JSON response tool call', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'Here is the requested result:' }],
+                role: 'model',
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    functionCall: {
+                      id: 'json-call-id',
+                      name: 'json',
+                      args: {
+                        output: {
+                          date: '2026-09-04',
+                          activity: 'review pull request',
+                        },
+                      },
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+            },
+          ],
+        })}\n\n`,
+      ],
+    };
+
+    const result = streamText({
+      model,
+      tools: {
+        resolveDate: tool({
+          inputSchema: z.object({ input: z.string() }),
+          execute: async () => '2026-09-04',
+        }),
+      },
+      experimental_output: Output.object({
+        schema: z.object({
+          date: z.string(),
+          activity: z.string(),
+        }),
+      }),
+      prompt: 'Resolve tomorrow and return the planned activity.',
+    });
+
+    const text = await result.text;
+
+    expect(text).toBe('{"date":"2026-09-04","activity":"review pull request"}');
+    expect(JSON.parse(text)).toEqual({
+      date: '2026-09-04',
+      activity: 'review pull request',
     });
   });
 

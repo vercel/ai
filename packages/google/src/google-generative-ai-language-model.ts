@@ -649,11 +649,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
             if (content != null) {
               // Process all parts in a single loop to preserve original order
               const parts = content.parts ?? [];
-              const hasJsonResponseToolCall = parts.some(
-                part =>
-                  'functionCall' in part &&
-                  part.functionCall.name === jsonResponseToolName,
-              );
               for (const part of parts) {
                 if ('executableCode' in part && part.executableCode?.code) {
                   const toolCallId = generateId();
@@ -734,7 +729,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                       delta: part.text,
                       providerMetadata: thoughtSignatureMetadata,
                     });
-                  } else if (!hasJsonResponseToolCall) {
+                  } else if (jsonResponseToolName == null) {
                     // End any active reasoning block before starting text
                     if (currentReasoningBlockId !== null) {
                       controller.enqueue({
