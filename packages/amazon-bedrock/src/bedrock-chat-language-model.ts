@@ -565,10 +565,16 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     // map response content to content array
     for (const part of response.output.message.content) {
       // text
-      if (part.text != null) {
+      const citationText = part.citationsContent?.content
+        ?.map(generatedContent => generatedContent.text)
+        .filter((text): text is string => text != null)
+        .join('');
+      const text = part.text ?? (citationText ? citationText : undefined);
+
+      if (text != null) {
         content.push({
           type: 'text',
-          text: jsonObjectTextExtractor?.process(part.text) ?? part.text,
+          text: jsonObjectTextExtractor?.process(text) ?? text,
         });
       }
 
@@ -1277,6 +1283,17 @@ const BedrockResponseSchema = z.object({
       content: z.array(
         z.object({
           text: z.string().nullish(),
+          citationsContent: z
+            .object({
+              content: z
+                .array(
+                  z.object({
+                    text: z.string().nullish(),
+                  }),
+                )
+                .nullish(),
+            })
+            .nullish(),
           toolUse: BedrockToolUseSchema.nullish(),
           reasoningContent: z
             .union([
