@@ -373,13 +373,13 @@ pnpm server:tool-annotations
 
 ```bash
 cd examples/mcp
-pnpm client:tool-annotations read-note
-pnpm client:tool-annotations delete-note
-pnpm client:tool-annotations create-note
+pnpm client:tool-annotations
 ```
 
-The read-only tool executes immediately. The destructive and unannotated tools
-produce approval requests without executing.
+Ask the client to read, delete, or create a note. The read-only tool executes
+immediately. The destructive and unannotated tools prompt for approval; after
+you enter `y` or `n`, the client sends the decision back and prints the model's
+response.
 
 ### Schema Definition
 
