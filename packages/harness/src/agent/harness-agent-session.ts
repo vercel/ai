@@ -34,6 +34,7 @@ import type {
 import { validateLifecycleStateData } from './internal/lifecycle-state-validation';
 import { runPrompt } from './internal/run-prompt';
 import { getRestrictedSandboxSession } from '../utils/get-restricted-sandbox-session';
+import type { HarnessAgentLifecycleCallbacks } from './internal/turn-telemetry';
 
 type HarnessAgentTurnResult<
   TOOLS extends ToolSet,
@@ -207,6 +208,7 @@ export class HarnessAgentSession {
     responseFormat: HarnessV1ResponseFormat | undefined;
     output: OUTPUT | undefined;
     telemetry: TelemetryOptions | undefined;
+    callbacks: HarnessAgentLifecycleCallbacks<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
     stopConditions: ReadonlyArray<StopCondition<TOOLS, RUNTIME_CONTEXT>>;
   }): HarnessAgentTurnResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
     const session = this.requireReusableSession();
@@ -246,6 +248,7 @@ export class HarnessAgentSession {
         responseFormat: options.responseFormat,
         output: options.output,
         telemetry: options.telemetry,
+        callbacks: options.callbacks,
         stopConditions: options.stopConditions,
         toolApproval: this.toolApproval,
         pendingToolApprovals: this.getPendingToolApprovals(),
@@ -305,6 +308,7 @@ export class HarnessAgentSession {
     responseFormat: HarnessV1ResponseFormat | undefined;
     output: OUTPUT | undefined;
     telemetry: TelemetryOptions | undefined;
+    callbacks: HarnessAgentLifecycleCallbacks<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
     stopConditions: ReadonlyArray<StopCondition<TOOLS, RUNTIME_CONTEXT>>;
     toolApprovalContinuations?: readonly ToolApprovalResponse[] | undefined;
     toolResultContinuations?: readonly ToolResultPart[] | undefined;
@@ -341,6 +345,7 @@ export class HarnessAgentSession {
         responseFormat: options.responseFormat,
         output: options.output,
         telemetry: options.telemetry,
+        callbacks: options.callbacks,
         stopConditions: options.stopConditions,
         toolApproval: this.toolApproval,
         pendingToolApprovals: this.getPendingToolApprovals(),
