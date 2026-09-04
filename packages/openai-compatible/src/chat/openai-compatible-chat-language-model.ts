@@ -353,6 +353,12 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     });
 
     const choice = responseBody.choices[0];
+    if (choice == null) {
+      throw new InvalidResponseDataError({
+        data: responseBody,
+        message: 'Response contained no choices.',
+      });
+    }
     const content: Array<LanguageModelV4Content> = [];
 
     content.push(...convertOpenAICompatibleContent(choice.message.content));

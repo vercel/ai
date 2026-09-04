@@ -1,13 +1,14 @@
-import type {
-  LanguageModelV4,
-  LanguageModelV4CallOptions,
-  LanguageModelV4Content,
-  LanguageModelV4FinishReason,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4StreamPart,
-  LanguageModelV4StreamResult,
-  SharedV4ProviderMetadata,
-  SharedV4Warning,
+import {
+  InvalidResponseDataError,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4StreamResult,
+  type SharedV4ProviderMetadata,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   StreamingToolCallTracker,
@@ -368,6 +369,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     });
 
     const choice = response.choices[0];
+    if (choice == null) {
+      throw new InvalidResponseDataError({
+        data: response,
+        message: 'Response contained no choices.',
+      });
+    }
     const content: Array<LanguageModelV4Content> = [];
 
     // text content:
