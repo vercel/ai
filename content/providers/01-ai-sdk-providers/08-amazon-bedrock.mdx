@@ -228,6 +228,40 @@ const { text } = await generateText({
 Amazon Bedrock language models can also be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
+### TwelveLabs Pegasus video analysis
+
+TwelveLabs Pegasus 1.2 is automatically detected from its Bedrock model ID and
+uses the model's native `InvokeModel` API rather than the Converse API. Provide
+exactly one video as inline data or an `s3://` URL, alongside the analysis
+prompt:
+
+```ts
+import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: amazonBedrock('us.twelvelabs.pegasus-1-2-v1:0'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Summarize this video.' },
+        {
+          type: 'file',
+          mediaType: 'video/mp4',
+          url: 's3://my-bucket/videos/example.mp4',
+        },
+      ],
+    },
+  ],
+});
+```
+
+Pegasus also supports AI SDK structured output through its native JSON-schema
+response format. Tool calling and conversational history are not supported by
+the Pegasus API. You can use `streamText` for incremental video-analysis
+responses.
+
 ### Structured Outputs
 
 For Anthropic models, you can use the `structuredOutputMode` provider option to
