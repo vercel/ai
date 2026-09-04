@@ -341,7 +341,7 @@ describe('result.responses', () => {
             case 0:
               assert.deepStrictEqual(values, [testValues[0]]);
               return {
-                embeddings: dummyEmbeddings,
+                embeddings: dummyEmbeddings.slice(0, 1),
                 response: {
                   body: { first: true },
                 },
@@ -350,7 +350,7 @@ describe('result.responses', () => {
             case 1:
               assert.deepStrictEqual(values, [testValues[1]]);
               return {
-                embeddings: dummyEmbeddings,
+                embeddings: dummyEmbeddings.slice(1, 2),
                 response: {
                   body: { second: true },
                 },
@@ -359,7 +359,7 @@ describe('result.responses', () => {
             case 2:
               assert.deepStrictEqual(values, [testValues[2]]);
               return {
-                embeddings: dummyEmbeddings,
+                embeddings: dummyEmbeddings.slice(2, 3),
                 response: {
                   body: { third: true },
                 },
