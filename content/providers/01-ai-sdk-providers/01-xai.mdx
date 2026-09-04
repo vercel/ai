@@ -632,48 +632,9 @@ The following provider options are available:
 </Note>
 
 The xAI provider supports asynchronous text generation through the
-[Batch API](https://docs.x.ai/developers/advanced-api-usage/batch-api). Use the
-experimental text batch APIs to start a batch, poll its status, and stream its
-results:
-
-```ts
-import { xai } from '@ai-sdk/xai';
-import {
-  experimental_getBatchResults as getBatchResults,
-  experimental_getBatchStatus as getBatchStatus,
-  experimental_startTextBatch as startTextBatch,
-} from 'ai';
-import { setTimeout } from 'node:timers/promises';
-
-const model = xai('grok-4.3');
-
-const batch = await startTextBatch({
-  model,
-  requests: [
-    { id: 'capital-france', prompt: 'What is the capital of France?' },
-    { id: 'capital-germany', prompt: 'What is the capital of Germany?' },
-  ],
-});
-
-let status = batch.status;
-while (status === 'pending') {
-  await setTimeout(60_000);
-  ({ status } = await getBatchStatus({ model, batch }));
-}
-
-for await (const item of getBatchResults({ model, batch })) {
-  if (item.status === 'succeeded') {
-    console.log(item.id, item.text);
-  } else {
-    console.error(item.id, item.error);
-  }
-}
-```
-
-`startTextBatch` returns a serializable batch reference. Persist this reference
-to check the batch status or retrieve its results from another process. Results
-can arrive in a different order from the input requests, so match each result by
-its `id`.
+[Batch API](https://docs.x.ai/developers/advanced-api-usage/batch-api). Pass an
+xAI Responses model to the AI SDK's [Text Batches](/docs/ai-sdk-core/text-batches)
+API for the complete workflow, including polling, persistence, and result handling.
 
 Text batches are available through `xai(modelId)` and
 `xai.responses(modelId)`. The legacy `xai.chat(modelId)` models do not expose
