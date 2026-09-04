@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.147
+
+### Patch Changes
+
+- b436246: feat(gateway): add support for gpt-6-astra
+
 ## 2.0.146
 
 ### Patch Changes

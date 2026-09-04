@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.129
+
+### Patch Changes
+
+- 1a80de8: fix(amazon-bedrock): return text from non-streaming citation responses
+
 ## 3.0.128
 
 ### Patch Changes
