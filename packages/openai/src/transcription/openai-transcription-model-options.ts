@@ -51,6 +51,28 @@ export const openAITranscriptionModelOptions = lazySchema(() =>
         .optional(),
 
       /**
+       * The format of the transcription response.
+       */
+      responseFormat: z
+        .enum(['json', 'verbose_json', 'diarized_json'])
+        .optional(),
+
+      /**
+       * Controls how the audio is split into chunks before transcription.
+       */
+      chunkingStrategy: z
+        .union([
+          z.literal('auto'),
+          z.object({
+            type: z.literal('server_vad'),
+            threshold: z.number().min(0).max(1).optional(),
+            prefixPaddingMs: z.number().int().min(0).optional(),
+            silenceDurationMs: z.number().int().min(0).optional(),
+          }),
+        ])
+        .optional(),
+
+      /**
        * Options for streaming transcription models such as `gpt-realtime-whisper`.
        */
       streaming: z

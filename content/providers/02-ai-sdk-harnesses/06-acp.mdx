@@ -87,6 +87,11 @@ try {
 - `builtinTools`: optional native tool definitions for static typing and exact
   name matching.
 - `mcpServers`: MCP server definitions keyed by server name.
+- `hostToolMcpTransport`: transport used for the harness-owned MCP server that
+  exposes host tools to the ACP implementation. It defaults to `'stdio'`. Set
+  this to `'http'` for implementations that only accept HTTP or SSE MCP servers
+  from the client, which requires the implementation to advertise
+  `agentCapabilities.mcpCapabilities.http`.
 - `authentication`: advertised ACP authentication method, metadata, and client
   capabilities.
 - `auth`: downstream provider authentication mode:
