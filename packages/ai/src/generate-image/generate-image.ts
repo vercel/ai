@@ -257,32 +257,41 @@ export async function generateImage({
     }
 
     if (result.providerMetadata) {
-      for (const [providerName, metadata] of Object.entries<{
-        images: unknown;
-      }>(result.providerMetadata)) {
-        if (providerName === 'gateway') {
-          const currentEntry = providerMetadata[providerName];
-          if (currentEntry != null && typeof currentEntry === 'object') {
-            providerMetadata[providerName] = {
-              ...(currentEntry as object),
-              ...metadata,
-            } as ImageModelV3ProviderMetadata[string];
-          } else {
-            providerMetadata[providerName] =
-              metadata as ImageModelV3ProviderMetadata[string];
-          }
-          const imagesValue = (
-            providerMetadata[providerName] as { images?: unknown }
-          ).images;
-          if (Array.isArray(imagesValue) && imagesValue.length === 0) {
-            delete (providerMetadata[providerName] as { images?: unknown })
-              .images;
-          }
-        } else {
-          providerMetadata[providerName] ??= { images: [] };
-          providerMetadata[providerName].images.push(
-            ...result.providerMetadata[providerName].images,
-          );
+      for (const [providerName, metadata] of Object.entries(
+        result.providerMetadata,
+      )) {
+        const currentEntry = providerMetadata[providerName];
+        const currentMetadata: Record<string, unknown> =
+          currentEntry != null &&
+          typeof currentEntry === 'object' &&
+          !Array.isArray(currentEntry)
+            ? (currentEntry as Record<string, unknown>)
+            : {};
+        const nextMetadata: Record<string, unknown> =
+          metadata != null &&
+          typeof metadata === 'object' &&
+          !Array.isArray(metadata)
+            ? (metadata as Record<string, unknown>)
+            : {};
+        const currentImages = Array.isArray(currentMetadata.images)
+          ? currentMetadata.images
+          : [];
+        const metadataImages = Array.isArray(nextMetadata.images)
+          ? nextMetadata.images
+          : [];
+
+        providerMetadata[providerName] = {
+          ...currentMetadata,
+          ...nextMetadata,
+          images: [...currentImages, ...metadataImages],
+        } as ImageModelV3ProviderMetadata[string];
+
+        if (
+          providerName === 'gateway' &&
+          providerMetadata[providerName].images.length === 0
+        ) {
+          delete (providerMetadata[providerName] as { images?: unknown })
+            .images;
         }
       }
     }

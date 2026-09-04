@@ -1,4 +1,5 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { generateImage } from 'ai';
 import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
 import { describe, it, expect } from 'vitest';
 
@@ -586,6 +587,7 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
       });
 
       expect(result.images).toEqual([]);
+      expect(result.isRetryable).toBe(false);
       expect(result.providerMetadata?.google).toMatchObject({
         promptFeedback: {
           blockReason: 'PROHIBITED_CONTENT',
@@ -598,6 +600,48 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
         },
         serviceTier: 'standard',
       });
+    });
+
+    it('should not retry a prompt block through generateImage', async () => {
+      geminiServer.urls[TEST_URL_GEMINI_IMAGE].response = {
+        type: 'json-value',
+        body: {
+          promptFeedback: {
+            blockReason: 'PROHIBITED_CONTENT',
+          },
+          usageMetadata: {
+            promptTokenCount: 9,
+            totalTokenCount: 9,
+            serviceTier: 'standard',
+          },
+        },
+      };
+
+      await expect(
+        generateImage({
+          model: geminiModel,
+          prompt: 'A blocked image prompt',
+          maxRetries: 2,
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_NoImageGeneratedError',
+        providerMetadata: {
+          google: {
+            images: [],
+            promptFeedback: {
+              blockReason: 'PROHIBITED_CONTENT',
+            },
+            usageMetadata: {
+              promptTokenCount: 9,
+              totalTokenCount: 9,
+              serviceTier: 'standard',
+            },
+            serviceTier: 'standard',
+          },
+        },
+      });
+
+      expect(geminiServer.calls).toHaveLength(1);
     });
 
     it('should send correct request body with responseModalities', async () => {

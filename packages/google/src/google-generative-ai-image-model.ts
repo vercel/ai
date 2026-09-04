@@ -338,9 +338,16 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
       (result.providerMetadata?.google as
         | Record<string, unknown>
         | undefined) ?? {};
+    const promptFeedback = languageModelGoogleMetadata.promptFeedback;
+    const hasPromptBlockReason =
+      promptFeedback != null &&
+      typeof promptFeedback === 'object' &&
+      'blockReason' in promptFeedback &&
+      promptFeedback.blockReason != null;
 
     return {
       images,
+      isRetryable: hasPromptBlockReason ? false : undefined,
       warnings,
       providerMetadata: {
         google: {

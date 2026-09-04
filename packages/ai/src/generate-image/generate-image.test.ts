@@ -873,6 +873,48 @@ describe('generateImage', () => {
         ],
       });
     });
+
+    it('should preserve non-image provider metadata when no images are generated', async () => {
+      await expect(
+        generateImage({
+          model: new MockImageModelV3({
+            doGenerate: async () =>
+              createMockResponse({
+                images: [],
+                isRetryable: false,
+                providerMetaData: {
+                  google: {
+                    images: [],
+                    promptFeedback: {
+                      blockReason: 'PROHIBITED_CONTENT',
+                    },
+                    usageMetadata: {
+                      promptTokenCount: 9,
+                      totalTokenCount: 9,
+                    },
+                  },
+                },
+              }),
+          }),
+          prompt,
+          maxRetries: 2,
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_NoImageGeneratedError',
+        providerMetadata: {
+          google: {
+            images: [],
+            promptFeedback: {
+              blockReason: 'PROHIBITED_CONTENT',
+            },
+            usageMetadata: {
+              promptTokenCount: 9,
+              totalTokenCount: 9,
+            },
+          },
+        },
+      });
+    });
   });
 
   it('should return response metadata', async () => {
@@ -1124,7 +1166,7 @@ describe('generateImage', () => {
       expect(result.providerMetadata.gateway).not.toHaveProperty('images');
     });
 
-    it('should not drop empty images array for non-gateway providers', async () => {
+    it('should preserve non-image metadata for non-gateway providers', async () => {
       const result = await generateImage({
         model: new MockImageModelV3({
           doGenerate: async () =>
@@ -1143,6 +1185,7 @@ describe('generateImage', () => {
 
       expect(result.providerMetadata.openai).toStrictEqual({
         images: [],
+        usage: { tokens: 100 },
       });
     });
 
