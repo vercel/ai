@@ -223,6 +223,9 @@ every request. Shell execution still requires approval under `allow-edits`.
 - ACP v1 has no portable built-in tool filtering API. Filtering host tools is
   supported, but filtering GitHub Copilot built-ins throws an
   unsupported-capability error.
+- GitHub Copilot does not currently support built-in tool approval requests. Use
+  `permissionMode: 'allow-all'` with this adapter. Host-executed AI SDK tool
+  approvals still work.
 - GitHub Copilot ACP does not expose a structured-output metadata mapping, so
   schema-backed structured output is unsupported.
 - GitHub Copilot ACP does not expose any question tool, so `askUserQuestions`
