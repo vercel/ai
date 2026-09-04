@@ -420,7 +420,7 @@ describe('user messages', () => {
       'a b',
       'a'.repeat(200),
       'document-2',
-      'report (final) [v2]_draft',
+      'report (final) [v2]draft',
     ]);
   });
 

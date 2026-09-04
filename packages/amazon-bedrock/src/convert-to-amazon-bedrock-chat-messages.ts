@@ -75,7 +75,7 @@ function sanitizeToolName(toolName: string): string {
 function sanitizeDocumentName(filename: string): string {
   return stripFileExtension(filename)
     .replace(/\s+/g, ' ')
-    .replace(/[^a-zA-Z0-9 _()[\]-]/g, '')
+    .replace(/[^a-zA-Z0-9 ()[\]-]/g, '')
     .trim()
     .slice(0, 200)
     .trim();
