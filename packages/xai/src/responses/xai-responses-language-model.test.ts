@@ -2597,6 +2597,166 @@ describe('XaiResponsesLanguageModel', () => {
         expect(parts).toMatchSnapshot();
       });
 
+      it('should start a new text block when a provider tool call interrupts the text', async () => {
+        // xai streams one message output item for the whole response and interleaves the tool call
+        // items with its text deltas, instead of closing the message item and opening a new one
+        // after the tool call (event order captured from grok-4.6 with the web_search tool).
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_1',
+              object: 'response',
+              model: 'grok-4-fast-reasoning',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'message',
+              id: 'msg_1',
+              role: 'assistant',
+              status: 'in_progress',
+              content: [],
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.output_text.delta',
+            item_id: 'msg_1',
+            output_index: 0,
+            content_index: 0,
+            delta: 'Let me search. ',
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'web_search_call',
+              id: 'fc_1',
+              name: 'web_search',
+              call_id: '',
+              arguments: '{"query":"xai"}',
+              status: 'completed',
+            },
+            output_index: 1,
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'web_search_call',
+              id: 'fc_1',
+              name: 'web_search',
+              call_id: '',
+              arguments: '{"query":"xai"}',
+              status: 'completed',
+            },
+            output_index: 1,
+          }),
+          JSON.stringify({
+            type: 'response.output_text.delta',
+            item_id: 'msg_1',
+            output_index: 0,
+            content_index: 0,
+            delta: 'Found it.',
+          }),
+          JSON.stringify({
+            type: 'response.output_text.done',
+            item_id: 'msg_1',
+            output_index: 0,
+            content_index: 0,
+            text: 'Let me search. Found it.',
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'message',
+              id: 'msg_1',
+              role: 'assistant',
+              status: 'completed',
+              content: [
+                { type: 'output_text', text: 'Let me search. Found it.' },
+              ],
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.completed',
+            response: {
+              id: 'resp_1',
+              object: 'response',
+              model: 'grok-4-fast-reasoning',
+              output: [],
+              usage: {
+                input_tokens: 10,
+                output_tokens: 20,
+                total_tokens: 30,
+              },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.web_search',
+              name: 'web_search',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(
+          parts.filter(
+            part =>
+              part.type === 'text-start' ||
+              part.type === 'text-delta' ||
+              part.type === 'text-end' ||
+              part.type === 'tool-call',
+          ),
+        ).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "text-msg_1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Let me search. ",
+              "id": "text-msg_1",
+              "type": "text-delta",
+            },
+            {
+              "id": "text-msg_1",
+              "type": "text-end",
+            },
+            {
+              "input": "{"query":"xai"}",
+              "providerExecuted": true,
+              "toolCallId": "fc_1",
+              "toolName": "web_search",
+              "type": "tool-call",
+            },
+            {
+              "id": "text-msg_1-1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Found it.",
+              "id": "text-msg_1-1",
+              "type": "text-delta",
+            },
+            {
+              "id": "text-msg_1-1",
+              "type": "text-end",
+            },
+          ]
+        `);
+      });
+
       it('should stream text deltas', async () => {
         prepareChunksFixtureResponse('xai-text-streaming.1');
 

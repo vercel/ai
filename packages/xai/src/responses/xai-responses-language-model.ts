@@ -690,8 +690,15 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     let costInUsdTicks: number | undefined = undefined;
     let serviceTier: string | undefined = undefined;
     let isFirstChunk = true;
-    const contentBlocks: Record<string, { type: 'text' }> = {};
+    const contentBlocks: Record<string, { type: 'text'; ended: boolean }> = {};
     const seenToolCalls = new Set<string>();
+
+    // xai keeps a single message output item open for the whole response and interleaves tool call
+    // items with its text deltas, instead of closing the message and opening a new one after a tool
+    // call. The active text block is therefore closed whenever another output item starts, and the
+    // text that follows the tool call gets its own block id.
+    let activeTextBlockId: string | undefined = undefined;
+    const textBlockCounts: Record<string, number> = {};
 
     // Track ongoing function calls by output_index so we can stream
     // arguments via response.function_call_arguments.delta events.
@@ -706,6 +713,22 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     > = {};
 
     const self = this;
+
+    const endActiveTextBlock = (
+      controller: TransformStreamDefaultController<LanguageModelV4StreamPart>,
+    ) => {
+      if (activeTextBlockId == null) {
+        return;
+      }
+
+      const block = contentBlocks[activeTextBlockId];
+      if (block != null && !block.ended) {
+        block.ended = true;
+        controller.enqueue({ type: 'text-end', id: activeTextBlockId });
+      }
+
+      activeTextBlockId = undefined;
+    };
 
     return {
       stream: response.pipeThrough(
@@ -816,19 +839,27 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             }
 
             if (event.type === 'response.output_text.delta') {
-              const blockId = `text-${event.item_id}`;
+              if (activeTextBlockId == null) {
+                const blockIndex = textBlockCounts[event.item_id] ?? 0;
+                textBlockCounts[event.item_id] = blockIndex + 1;
+                activeTextBlockId =
+                  blockIndex === 0
+                    ? `text-${event.item_id}`
+                    : `text-${event.item_id}-${blockIndex}`;
 
-              if (contentBlocks[blockId] == null) {
-                contentBlocks[blockId] = { type: 'text' };
+                contentBlocks[activeTextBlockId] = {
+                  type: 'text',
+                  ended: false,
+                };
                 controller.enqueue({
                   type: 'text-start',
-                  id: blockId,
+                  id: activeTextBlockId,
                 });
               }
 
               controller.enqueue({
                 type: 'text-delta',
-                id: blockId,
+                id: activeTextBlockId,
                 delta: event.delta,
               });
 
@@ -980,6 +1011,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             ) {
               if (!seenToolCalls.has(event.item_id)) {
                 seenToolCalls.add(event.item_id);
+                endActiveTextBlock(controller);
 
                 const toolName = imageGenerationToolName ?? 'image_generation';
 
@@ -1017,6 +1049,13 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
               event.type === 'response.output_item.done'
             ) {
               const part = event.item;
+
+              // reasoning and tool call items are streamed while the message item stays open, so
+              // the text that came before them has to be closed here.
+              if (part.type !== 'message') {
+                endActiveTextBlock(controller);
+              }
+
               if (part.type === 'reasoning') {
                 if (event.type === 'response.output_item.done') {
                   const blockId = `reasoning-${part.id}`;
@@ -1269,7 +1308,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
 
                     // Only emit text if we haven't already streamed it via output_text.delta events
                     if (contentBlocks[blockId] == null) {
-                      contentBlocks[blockId] = { type: 'text' };
+                      contentBlocks[blockId] = { type: 'text', ended: false };
                       controller.enqueue({
                         type: 'text-start',
                         id: blockId,
@@ -1336,7 +1375,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
 
           flush(controller) {
             for (const [blockId, block] of Object.entries(contentBlocks)) {
-              if (block.type === 'text') {
+              if (block.type === 'text' && !block.ended) {
                 controller.enqueue({
                   type: 'text-end',
                   id: blockId,
