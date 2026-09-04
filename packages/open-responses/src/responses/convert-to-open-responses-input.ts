@@ -13,8 +13,12 @@ import type {
 
 export async function convertToOpenResponsesInput({
   prompt,
+  providerOptionsName = 'open-responses',
+  strictResponseInput = false,
 }: {
   prompt: LanguageModelV3Prompt;
+  providerOptionsName?: string;
+  strictResponseInput?: boolean;
 }): Promise<{
   input: OpenResponsesRequestBody['input'];
   instructions: string | undefined;
@@ -77,14 +81,72 @@ export async function convertToOpenResponsesInput({
       }
 
       case 'assistant': {
-        const assistantContent: Array<
+        let assistantContent: Array<
           OutputTextContentParam | RefusalContentParam
         > = [];
         const toolCalls: Array<FunctionCallItemParam> = [];
+        let assistantMessageId: string | undefined;
+
+        const flushAssistantContent = () => {
+          if (assistantContent.length === 0) {
+            return;
+          }
+
+          if (strictResponseInput && assistantMessageId == null) {
+            input.push({
+              type: 'message',
+              role: 'assistant',
+              content: assistantContent
+                .map(part =>
+                  part.type === 'output_text' ? part.text : part.refusal,
+                )
+                .join(''),
+            });
+          } else if (strictResponseInput) {
+            input.push({
+              id: assistantMessageId,
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: assistantContent.map(part =>
+                part.type === 'output_text'
+                  ? {
+                      ...part,
+                      annotations: part.annotations ?? [],
+                      logprobs: part.logprobs ?? [],
+                    }
+                  : part,
+              ),
+            });
+          } else {
+            input.push({
+              type: 'message',
+              role: 'assistant',
+              content: assistantContent,
+              ...(assistantMessageId != null && { id: assistantMessageId }),
+            });
+          }
+          assistantContent = [];
+          assistantMessageId = undefined;
+        };
 
         for (const part of content) {
           switch (part.type) {
             case 'text': {
+              const providerData = part.providerOptions?.[providerOptionsName];
+              const itemId =
+                typeof providerData?.itemId === 'string'
+                  ? providerData.itemId
+                  : undefined;
+
+              if (
+                assistantContent.length > 0 &&
+                assistantMessageId !== itemId
+              ) {
+                flushAssistantContent();
+              }
+
+              assistantMessageId = itemId;
               assistantContent.push({ type: 'output_text', text: part.text });
               break;
             }
@@ -104,14 +166,7 @@ export async function convertToOpenResponsesInput({
           }
         }
 
-        // Push assistant message with text content if any
-        if (assistantContent.length > 0) {
-          input.push({
-            type: 'message',
-            role: 'assistant',
-            content: assistantContent,
-          });
-        }
+        flushAssistantContent();
 
         // Push function calls as separate items
         for (const toolCall of toolCalls) {

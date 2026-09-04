@@ -353,6 +353,65 @@ describe('convertToOpenResponsesInput', () => {
         ]
       `);
     });
+    it('should use an easy input message without generating an ID in strict mode', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello from assistant' }],
+          },
+        ],
+        strictResponseInput: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'message',
+          role: 'assistant',
+          content: 'Hello from assistant',
+        },
+      ]);
+    });
+
+    it('should preserve a genuine item ID as a complete output message in strict mode', async () => {
+      const result = await convertToOpenResponsesInput({
+        providerOptionsName: 'test-provider',
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Hello from assistant',
+                providerOptions: {
+                  'test-provider': {
+                    itemId: 'msg_123',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        strictResponseInput: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          id: 'msg_123',
+          type: 'message',
+          status: 'completed',
+          role: 'assistant',
+          content: [
+            {
+              type: 'output_text',
+              text: 'Hello from assistant',
+              annotations: [],
+              logprobs: [],
+            },
+          ],
+        },
+      ]);
+    });
   });
 
   describe('assistant messages with tool calls', () => {

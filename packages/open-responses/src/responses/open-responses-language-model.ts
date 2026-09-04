@@ -91,6 +91,8 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
       warnings: inputWarnings,
     } = await convertToOpenResponsesInput({
       prompt,
+      providerOptionsName: this.config.providerOptionsName,
+      strictResponseInput: this.config.strictResponseInput,
     });
 
     warnings.push(...inputWarnings);
