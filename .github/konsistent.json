@@ -22,7 +22,7 @@
           "use": "aisdk/package-must-have-changelog"
         },
         {
-          "use": "aisdk/package-must-have-tsup-config",
+          "use": "aisdk/package-must-have-tsdown-config",
           "excludeFiles": ["packages/svelte"]
         }
       ]

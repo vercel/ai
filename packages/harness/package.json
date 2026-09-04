@@ -21,8 +21,8 @@
     "README.md"
   ],
   "scripts": {
-    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
-    "build:watch": "pnpm clean && tsup --watch",
+    "build": "pnpm clean && tsdown --tsconfig tsconfig.build.json",
+    "build:watch": "pnpm clean && tsdown --watch",
     "clean": "del-cli dist *.tsbuildinfo",
     "type-check": "tsc --build",
     "test": "pnpm test:node && pnpm test:edge",
@@ -73,7 +73,7 @@
     "@types/node": "22.19.19",
     "@types/ws": "^8.5.13",
     "@vercel/ai-tsconfig": "workspace:*",
-    "tsup": "^8.5.1",
+    "tsdown": "^0.22.14",
     "typescript": "5.8.3",
     "ws": "^8.21.0",
     "zod": "3.25.76"

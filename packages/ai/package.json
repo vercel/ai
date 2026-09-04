@@ -24,8 +24,8 @@
     "doc": "./docs"
   },
   "scripts": {
-    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
-    "build:watch": "pnpm clean && tsup --watch --tsconfig tsconfig.build.json",
+    "build": "pnpm clean && tsdown --tsconfig tsconfig.build.json",
+    "build:watch": "pnpm clean && tsdown --watch --tsconfig tsconfig.build.json",
     "clean": "del-cli dist docs *.tsbuildinfo",
     "prepack": "cp -r ../../content/docs ./docs",
     "postpack": "del-cli docs",
@@ -77,7 +77,7 @@
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
     "esbuild": "^0.28.1",
-    "tsup": "^8.5.1",
+    "tsdown": "^0.22.14",
     "tsx": "4.23.12",
     "typescript": "5.8.3",
     "zod": "3.25.76"
