@@ -230,6 +230,13 @@ every request. Shell execution still requires approval under `allow-edits`.
   schema-backed structured output is unsupported.
 - GitHub Copilot ACP does not expose any question tool, so `askUserQuestions`
   is unsupported.
+- GitHub Copilot CLI does not surface reasoning content over ACP for any
+  model. `reasoningEffort` controls reasoning depth, not visibility: emitting
+  a reasoning summary requires a parameter that ACP's `session/new` and
+  `session/set_config_option` (limited to `mode`, `model`, `reasoning_effort`,
+  `allow_all`, and `agent`) never expose to a client. The only code path that
+  sets it lives in GitHub Copilot's interactive terminal UI, which does not
+  run in headless `--acp --stdio` mode.
 - Custom `headers` are not natively supported and only applied via
   sandbox-external request transformations. When a sandbox without that
   capability is provided, custom `headers` therefore cannot be passed and are
