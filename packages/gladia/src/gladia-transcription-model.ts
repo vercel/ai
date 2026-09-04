@@ -205,8 +205,8 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
     const formData = new FormData();
     const blob =
       options.audio instanceof Uint8Array
-        ? new Blob([options.audio])
-        : new Blob([convertBase64ToUint8Array(options.audio)]);
+        ? new Blob([options.audio as BlobPart])
+        : new Blob([convertBase64ToUint8Array(options.audio) as BlobPart]);
 
     const fileExtension = mediaTypeToExtension(options.mediaType);
     formData.append(

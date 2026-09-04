@@ -11,7 +11,7 @@
     "strict": true,
     "moduleResolution": "bundler",
     "module": "esnext",
-    "target": "esnext",
+    "target": "ES2022",
     "declaration": true,
     "declarationMap": true,
     "stripInternal": true,

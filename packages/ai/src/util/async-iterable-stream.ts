@@ -117,7 +117,7 @@ export function asAsyncIterableStream<T>(
         throw err;
       },
     };
-  };
+  } as unknown as AsyncIterableStream<T>[typeof Symbol.asyncIterator];
 
   return stream as AsyncIterableStream<T>;
 }

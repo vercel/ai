@@ -43,7 +43,7 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "ai": "workspace:*",
     "tsup": "^8.5.1",
-    "typescript": "5.8.3"
+    "typescript": "6.0.3"
   },
   "peerDependencies": {
     "ai": "workspace:*",

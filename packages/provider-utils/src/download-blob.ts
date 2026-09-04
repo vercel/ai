@@ -45,7 +45,10 @@ export async function downloadBlob(
     });
 
     const contentType = response.headers.get('content-type') ?? undefined;
-    return new Blob([data], contentType ? { type: contentType } : undefined);
+    return new Blob(
+      [data as BlobPart],
+      contentType ? { type: contentType } : undefined,
+    );
   } catch (error) {
     if (DownloadError.isInstance(error)) {
       throw error;

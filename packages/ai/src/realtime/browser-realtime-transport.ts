@@ -100,7 +100,7 @@ export class BrowserRealtimeTransport {
         ArrayBuffer.isView(data) ||
         data instanceof Blob
       ) {
-        this.ws.send(data);
+        this.ws.send(data as string | Blob | BufferSource);
       } else {
         this.ws.send(JSON.stringify(data));
       }

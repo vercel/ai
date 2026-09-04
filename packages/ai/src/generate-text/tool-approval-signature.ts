@@ -11,7 +11,7 @@ async function importKey(secret: string | Uint8Array): Promise<CryptoKey> {
   const keyData = typeof secret === 'string' ? encoder.encode(secret) : secret;
   return crypto.subtle.importKey(
     'raw',
-    keyData,
+    keyData as BufferSource,
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign', 'verify'],
@@ -71,7 +71,7 @@ export async function signToolApproval({
   const key = await importKey(secret);
   const inputDigest = await hashCanonical(input);
   const payload = buildPayload(approvalId, toolCallId, toolName, inputDigest);
-  const sig = await crypto.subtle.sign('HMAC', key, payload);
+  const sig = await crypto.subtle.sign('HMAC', key, payload as BufferSource);
   return toBase64url(new Uint8Array(sig));
 }
 
@@ -95,7 +95,14 @@ export async function verifyToolApprovalSignature({
   const sigBytes = fromBase64url(signature);
 
   const payload = buildPayload(approvalId, toolCallId, toolName, inputDigest);
-  if (await crypto.subtle.verify('HMAC', key, sigBytes, payload)) {
+  if (
+    await crypto.subtle.verify(
+      'HMAC',
+      key,
+      sigBytes as BufferSource,
+      payload as BufferSource,
+    )
+  ) {
     return true;
   }
 
@@ -117,7 +124,12 @@ export async function verifyToolApprovalSignature({
       toolName,
       inputDigest,
     );
-    return crypto.subtle.verify('HMAC', key, sigBytes, legacyPayload);
+    return crypto.subtle.verify(
+      'HMAC',
+      key,
+      sigBytes as BufferSource,
+      legacyPayload as BufferSource,
+    );
   }
 
   return false;
