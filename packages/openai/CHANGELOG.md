@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.108
+
+### Patch Changes
+
+- 019eec8: feat(openai): add support for the gpt-6-astra
+
 ## 3.0.107
 
 ### Patch Changes
