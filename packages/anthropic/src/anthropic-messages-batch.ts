@@ -1006,6 +1006,7 @@ function convertAnthropicMessageMetadata(response: AnthropicResponse) {
   return {
     usage: response.usage as JSONObject,
     stopSequence: response.stop_sequence ?? null,
+    serviceTier: response.service_tier ?? null,
     ...(stopDetails != null ? { stopDetails } : {}),
     iterations: response.usage.iterations
       ? response.usage.iterations.map(

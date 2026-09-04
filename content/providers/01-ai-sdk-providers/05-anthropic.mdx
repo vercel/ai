@@ -124,6 +124,15 @@ The following optional provider options are available for Anthropic models:
 
   Optional. See [Data Residency section](#data-residency) for more details.
 
+- `serviceTier` _"auto" | "standard_only"_
+
+  Optional. Determines whether to use priority capacity (if available) or
+  standard capacity for this request, sent as `service_tier`. Anthropic accepts
+  `"auto"` and `"standard_only"` (see
+  [service tiers](https://platform.claude.com/docs/en/api/service-tiers)).
+  Other values are omitted with an unsupported-setting warning. Anthropic-compatible
+  providers such as MiniMax document their own accepted values.
+
 - `thinking` _object_
 
   Optional. See [Reasoning section](#reasoning) for more details.

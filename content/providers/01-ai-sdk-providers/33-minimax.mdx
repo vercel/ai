@@ -135,6 +135,12 @@ The following optional provider options are available for MiniMax language model
     think, so `'disabled'` has no effect on them.
   </Note>
 
+- **serviceTier** _'standard' | 'priority'_
+
+  Request admission tier, sent as `service_tier`. `'priority'` ensures priority
+  admission so the request is processed ahead of other requests, at 1.5x the
+  standard price. Defaults to `'standard'` when omitted.
+
 ## Video Models
 
 You can generate videos with the MiniMax-H3 and MiniMax-H3-Max models using

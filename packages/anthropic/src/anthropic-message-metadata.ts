@@ -51,6 +51,13 @@ export interface AnthropicMessageMetadata {
   stopSequence: string | null;
 
   /**
+   * The service tier the request was actually served at, echoed back by the
+   * API as `service_tier` (e.g. `'standard'`, `'priority'`). Null when the
+   * provider does not return it.
+   */
+  serviceTier: string | null;
+
+  /**
    * Details about why the request stopped. Present only when the API returns
    * a `refusal` stop reason together with a `stop_details` object (a
    * classifier block or a model refusal).
