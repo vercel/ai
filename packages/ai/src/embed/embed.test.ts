@@ -638,6 +638,20 @@ describe('options.onStart and onEnd together', () => {
   });
 });
 
+describe('empty provider response (#20355)', () => {
+  it('should throw InvalidResponseDataError instead of resolving undefined', async () => {
+    await assert.rejects(
+      embed({
+        model: new MockEmbeddingModelV4({
+          doEmbed: mockEmbed([testValue], []),
+        }),
+        value: testValue,
+      }),
+      /Response contained no embeddings/,
+    );
+  });
+});
+
 function mockEmbed(
   expectedValues: Array<string>,
   embeddings: Array<Embedding>,
