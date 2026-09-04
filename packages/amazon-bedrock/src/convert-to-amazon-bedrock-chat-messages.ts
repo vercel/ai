@@ -72,6 +72,15 @@ function sanitizeToolName(toolName: string): string {
   return toolName.replace(/[^a-zA-Z0-9_-]/g, '') || '_';
 }
 
+function sanitizeDocumentName(filename: string): string {
+  return stripFileExtension(filename)
+    .replace(/\s+/g, ' ')
+    .replace(/[^a-zA-Z0-9 ()[\]-]/g, '')
+    .trim()
+    .slice(0, 200)
+    .trim();
+}
+
 function getAmazonBedrockMediaSource({
   data,
   functionality,
@@ -162,6 +171,8 @@ export async function convertToAmazonBedrockChatMessages(
 
   let documentCounter = 0;
   const generateDocumentName = () => `document-${++documentCounter}`;
+  const getDocumentName = (filename: string | undefined) =>
+    (filename && sanitizeDocumentName(filename)) || generateDocumentName();
 
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i];
@@ -284,9 +295,7 @@ export async function convertToAmazonBedrockChatMessages(
                           document: {
                             format:
                               getAmazonBedrockDocumentFormat(textMediaType),
-                            name: part.filename
-                              ? stripFileExtension(part.filename)
-                              : generateDocumentName(),
+                            name: getDocumentName(part.filename),
                             source: {
                               bytes: convertToBase64(
                                 new TextEncoder().encode(part.data.text),
@@ -350,9 +359,7 @@ export async function convertToAmazonBedrockChatMessages(
                               document: {
                                 format:
                                   getAmazonBedrockDocumentFormat(fullMediaType),
-                                name: part.filename
-                                  ? stripFileExtension(part.filename)
-                                  : generateDocumentName(),
+                                name: getDocumentName(part.filename),
                                 source: {
                                   bytes: convertToBase64(part.data.data),
                                 },
@@ -453,9 +460,7 @@ export async function convertToAmazonBedrockChatMessages(
                                       getAmazonBedrockDocumentFormat(
                                         fullMediaType,
                                       ),
-                                    name: contentPart.filename
-                                      ? stripFileExtension(contentPart.filename)
-                                      : generateDocumentName(),
+                                    name: getDocumentName(contentPart.filename),
                                     source: {
                                       bytes: convertToBase64(
                                         contentPart.data.data,

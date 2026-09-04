@@ -31,11 +31,13 @@ export async function convertToOpenResponsesInput({
   providerOptionsName = 'open-responses',
   extensionRegistry,
   providerToolsByName = new Map(),
+  strictResponseInput = false,
 }: {
   prompt: LanguageModelV4Prompt;
   providerOptionsName?: string;
   extensionRegistry?: OpenResponsesExtensionRegistry;
   providerToolsByName?: Map<string, LanguageModelV4ProviderTool>;
+  strictResponseInput?: boolean;
 }): Promise<{
   input: OpenResponsesRequestBody['input'];
   instructions: string | undefined;
@@ -126,12 +128,40 @@ export async function convertToOpenResponsesInput({
             return;
           }
 
-          input.push({
-            type: 'message',
-            role: 'assistant',
-            content: assistantContent,
-            ...(assistantMessageId != null && { id: assistantMessageId }),
-          });
+          if (strictResponseInput && assistantMessageId == null) {
+            input.push({
+              type: 'message',
+              role: 'assistant',
+              content: assistantContent
+                .map(part =>
+                  part.type === 'output_text' ? part.text : part.refusal,
+                )
+                .join(''),
+            });
+          } else if (strictResponseInput) {
+            input.push({
+              id: assistantMessageId,
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: assistantContent.map(part =>
+                part.type === 'output_text'
+                  ? {
+                      ...part,
+                      annotations: part.annotations ?? [],
+                      logprobs: part.logprobs ?? [],
+                    }
+                  : part,
+              ),
+            });
+          } else {
+            input.push({
+              type: 'message',
+              role: 'assistant',
+              content: assistantContent,
+              ...(assistantMessageId != null && { id: assistantMessageId }),
+            });
+          }
           assistantContent = [];
           assistantMessageId = undefined;
         };
