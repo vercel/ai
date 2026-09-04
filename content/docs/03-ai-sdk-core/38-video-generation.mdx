@@ -365,7 +365,10 @@ provided interval and timeout.
 ### Custom Headers
 
 `experimental_generateVideo` accepts an optional `headers` parameter of type `Record<string, string>`
-that you can use to add custom headers to the video generation request.
+that you can use to add custom headers to the video generation request. The same
+headers are also forwarded when the SDK downloads URL-type videos, which is
+required for authenticated provider media URLs (for example OpenRouter
+`/videos/{id}/content`).
 
 ```ts highlight={"7"}
 import { experimental_generateVideo as generateVideo } from 'ai';

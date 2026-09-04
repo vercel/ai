@@ -105,7 +105,7 @@ export type GenerateVideoWebhookFactory = () => PromiseLike<{
  * as body parameters.
  * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
- * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
+ * @param headers - Additional HTTP headers to be sent with the request and with URL-type video downloads. Only applicable for HTTP-based providers.
  * @param poll - Polling configuration for models that support the start/status flow.
  * @param webhook - Webhook factory for models that support the start/status flow.
  *
@@ -241,7 +241,9 @@ export async function experimental_generateVideo({
   abortSignal?: AbortSignal;
 
   /**
-   * Additional headers to include in the request.
+   * Additional headers to include in the request and in downloads
+   * of URL-type videos. Use this for authenticated provider media URLs
+   * (for example OpenRouter `/videos/{id}/content`).
    * Only applicable for HTTP-based providers.
    */
   headers?: Record<string, string>;
@@ -255,6 +257,7 @@ export async function experimental_generateVideo({
   download?: (options: {
     url: URL;
     abortSignal?: AbortSignal;
+    headers?: Record<string, string>;
   }) => Promise<{ data: Uint8Array; mediaType: string | undefined }>;
 
   /**
@@ -382,6 +385,7 @@ export async function experimental_generateVideo({
         case 'url': {
           const { data, mediaType: downloadedMediaType } = await downloadFn({
             url: new URL(videoData.url),
+            headers: headersWithUserAgent,
             abortSignal,
           });
 

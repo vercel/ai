@@ -8,6 +8,19 @@ import { download as internalDownload } from './download';
  * @returns A download function that can be passed to `transcribe()` or `experimental_generateVideo()`.
  */
 export function createDownload(options?: { maxBytes?: number }) {
-  return ({ url, abortSignal }: { url: URL; abortSignal?: AbortSignal }) =>
-    internalDownload({ url, maxBytes: options?.maxBytes, abortSignal });
+  return ({
+    url,
+    abortSignal,
+    headers,
+  }: {
+    url: URL;
+    abortSignal?: AbortSignal;
+    headers?: Record<string, string>;
+  }) =>
+    internalDownload({
+      url,
+      maxBytes: options?.maxBytes,
+      abortSignal,
+      headers,
+    });
 }
