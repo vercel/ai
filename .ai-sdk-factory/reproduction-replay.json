@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20365,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/amazon-bedrock-invalid-document-filenames.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/amazon-bedrock-invalid-document-filenames.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "BUG: Amazon Bedrock rejected 10/10 uploaded filenames after @ai-sdk/amazon-bedrock forwarded invalid document.name values"
+  }
+}
