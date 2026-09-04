@@ -31,6 +31,7 @@ describe('createFx', () => {
       args: settings.args,
       credentialEnv: settings.credentialEnv,
       providerAuthentication: settings.providerAuthentication,
+      instructionMapping: settings.instructionMapping,
       permissionModeMapping: settings.permissionModeMapping,
       builtinTools: Object.fromEntries(
         Object.entries(
@@ -191,6 +192,10 @@ describe('createFx', () => {
         ],
         "executable": "fx",
         "harnessId": "fx",
+        "instructionMapping": {
+          "path": ".fx/AGENTS.md",
+          "type": "filesystem",
+        },
         "permissionModeMapping": {
           "allow-all": {
             "modeId": "code",

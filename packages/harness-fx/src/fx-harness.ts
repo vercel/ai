@@ -593,6 +593,10 @@ export function createFx(
       type: 'session-config-option',
       path: 'model',
     },
+    instructionMapping: {
+      type: 'filesystem',
+      path: '.fx/AGENTS.md',
+    },
     credentialEnv: ['VERCEL_OIDC_TOKEN', 'AI_GATEWAY_API_KEY'],
     credentialBrokering: ({ env, sandboxEnv, headers }) => {
       const environmentVariableName = suppliedAuthenticationEnvironment
