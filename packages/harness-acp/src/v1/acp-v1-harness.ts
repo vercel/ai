@@ -32,6 +32,7 @@ import {
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
   withBridgeToken,
+  writeSkills,
 } from '@ai-sdk/harness/utils';
 import {
   asSchema,
@@ -93,9 +94,11 @@ import type {
   ACPV1Settings,
 } from './acp-v1-settings';
 import {
-  materializeACPSkills,
+  ACP_SKILL_NAME_PATTERN,
+  DEFAULT_ACP_SKILLS_DIRECTORY,
   resolveACPPrivateSessionDirectory,
   resolveACPSkillsDirectory,
+  validateACPSkills,
 } from './acp-v1-skills';
 
 const HARNESS_ID_REGEXP = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -375,17 +378,18 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       });
       const privateSessionDir = resolveACPPrivateSessionDirectory({
         sandboxHomeDir,
-        sessionWorkDir: workDir,
         harnessId: settings.harnessId,
         sessionId: startOptions.sessionId,
       });
+      const implementationHomeDir =
+        implementation.source.type === 'install-command'
+          ? `${resolvedImplementationDir}/home`
+          : sandboxHomeDir;
+      const skillsDir =
+        settings.skillsDirectory ?? DEFAULT_ACP_SKILLS_DIRECTORY;
       const skillsDirectory = resolveACPSkillsDirectory({
-        implementationHomeDir:
-          implementation.source.type === 'install-command'
-            ? `${resolvedImplementationDir}/home`
-            : sandboxHomeDir,
+        implementationHomeDir,
         skillsDirectory: settings.skillsDirectory,
-        sessionWorkDir: workDir,
       });
       const bridgeStateDir = `${privateSessionDir}/bridge`;
       const report = startOptions.observability?.report;
@@ -462,7 +466,8 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               }),
               instructionsFingerprint: lifecycleData.instructionsFingerprint,
               sandbox: toolSafeSandboxSession,
-              sessionWorkDir: workDir,
+              skillsHomeDir: implementationHomeDir,
+              skillsDir,
               skillsDirectory,
               acpSessionId: lifecycleData.acpSessionId,
               bridgePort: coords.port,
@@ -756,7 +761,8 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         }),
         instructionsFingerprint: lifecycleData?.instructionsFingerprint,
         sandbox: toolSafeSandboxSession,
-        sessionWorkDir: workDir,
+        skillsHomeDir: implementationHomeDir,
+        skillsDir,
         skillsDirectory,
         acpSessionId: lifecycleData?.acpSessionId,
         bridgePort: boundPort,
@@ -1067,7 +1073,8 @@ function createSession({
   initialGuidanceApplied: initialGuidanceAppliedAtStart,
   instructionsFingerprint: instructionsFingerprintAtStart,
   sandbox,
-  sessionWorkDir,
+  skillsHomeDir,
+  skillsDir,
   skillsDirectory,
   acpSessionId: acpSessionIdAtStart,
   bridgePort,
@@ -1104,7 +1111,8 @@ function createSession({
   initialGuidanceApplied: boolean;
   instructionsFingerprint: string | undefined;
   sandbox: SandboxSession;
-  sessionWorkDir: string;
+  skillsHomeDir: string;
+  skillsDir: string;
   skillsDirectory: string;
   acpSessionId: string | undefined;
   bridgePort: number;
@@ -1575,12 +1583,20 @@ function createSession({
     skills: ReadonlyArray<HarnessV1Skill>;
     abortSignal?: AbortSignal;
   }): Promise<void> => {
-    await materializeACPSkills({
+    validateACPSkills({ skills });
+    await writeSkills({
       sandbox,
-      rootDir: skillsDirectory,
-      sessionWorkDir,
+      homePath: skillsHomeDir,
+      skillsDir,
       skills,
       abortSignal,
+      skillNamePattern: ACP_SKILL_NAME_PATTERN,
+      invalidSkillNameMessage: ({ name }) =>
+        `Invalid ACP skill name ${JSON.stringify(name)}: expected a kebab-case slug.`,
+      invalidSkillFilePathMessage: ({ skillName, filePath }) =>
+        `Invalid ACP skill file path ${JSON.stringify(filePath)} for skill ${JSON.stringify(
+          skillName,
+        )}: expected a relative POSIX path without traversal.`,
     });
   };
 

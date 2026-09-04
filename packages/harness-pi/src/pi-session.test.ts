@@ -289,6 +289,60 @@ describe('createPiSession', () => {
     }
   });
 
+  it('materializes skills under sandbox HOME on prompt turn', async () => {
+    piMock.session = {
+      abort: vi.fn(async () => {}),
+      compact: vi.fn(async () => {}),
+      dispose: vi.fn(),
+      getSessionStats: () => ({
+        tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      }),
+      prompt: vi.fn(async () => {}),
+      steer: vi.fn(async () => {}),
+      subscribe: vi.fn(() => () => {}),
+    } as unknown as AgentSession;
+    const sandboxSession = createSandboxSession();
+    const session = await createPiSession({
+      sessionId: 'session-skills',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+      isResume: false,
+    });
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [
+          {
+            name: 'demo-skill',
+            description: 'Demo skill description',
+            content: 'Skill instructions content',
+          },
+        ],
+        prompt: 'test prompt',
+        tools: [],
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      expect(sandboxSession.run).toHaveBeenCalledWith(
+        expect.objectContaining({
+          command: "mkdir -p '/sandbox/home/.agents/skills'",
+        }),
+      );
+      expect(sandboxSession.writeTextFile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: '/sandbox/home/.agents/skills/demo-skill/SKILL.md',
+          content:
+            '---\nname: demo-skill\ndescription: Demo skill description\n---\n\nSkill instructions content',
+        }),
+      );
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('steers the active Pi session', async () => {
     let finishPrompt!: () => void;
     const promptDone = new Promise<void>(resolve => {
