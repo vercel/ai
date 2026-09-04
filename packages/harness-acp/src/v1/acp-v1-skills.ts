@@ -32,23 +32,29 @@ export function resolveACPPrivateSessionDirectory({
 
 export async function materializeACPSkills({
   sandbox,
-  rootDir,
+  homePath,
+  skillsDir,
   sessionWorkDir,
   skills,
   abortSignal,
 }: {
   sandbox: Experimental_SandboxSession;
-  rootDir: string;
+  homePath: string;
+  skillsDir: string;
   sessionWorkDir: string;
   skills: ReadonlyArray<HarnessV1Skill>;
   abortSignal?: AbortSignal;
 }): Promise<WriteSkillsResult> {
   validateACPSkills({ skills });
-  assertOutsideSessionWorkDir({ rootDir, sessionWorkDir });
+  assertOutsideSessionWorkDir({
+    rootDir: path.posix.join(homePath, skillsDir),
+    sessionWorkDir,
+  });
 
   return writeSkills({
     sandbox,
-    rootDir,
+    homePath,
+    skillsDir,
     skills,
     abortSignal,
     skillNamePattern: ACP_SKILL_NAME_PATTERN,

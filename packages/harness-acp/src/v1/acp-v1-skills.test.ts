@@ -53,7 +53,8 @@ describe('materializeACPSkills', () => {
     const rootDir = '/home/agent/.agents/skills';
     const result = await materializeACPSkills({
       sandbox: makeSandbox({ runs, writes }),
-      rootDir,
+      homePath: '/home/agent',
+      skillsDir: '.agents/skills',
       sessionWorkDir: '/workspace/project',
       skills: [skill],
     });
@@ -128,7 +129,8 @@ describe('materializeACPSkills', () => {
     await expect(
       materializeACPSkills({
         sandbox: makeSandbox({ runs, writes }),
-        rootDir: '/home/agent/.agents/skills',
+        homePath: '/home/agent',
+        skillsDir: '.agents/skills',
         sessionWorkDir: '/workspace/project',
         skills: [{ ...skill, files }],
       }),
@@ -145,7 +147,8 @@ describe('materializeACPSkills', () => {
     await expect(
       materializeACPSkills({
         sandbox,
-        rootDir: '/home/agent/.agents/skills',
+        homePath: '/home/agent',
+        skillsDir: '.agents/skills',
         sessionWorkDir: '/workspace/project',
         skills: [{ ...skill, name: '../release-notes' }],
       }),
@@ -153,7 +156,8 @@ describe('materializeACPSkills', () => {
     await expect(
       materializeACPSkills({
         sandbox,
-        rootDir: '/home/agent/.agents/skills',
+        homePath: '/home/agent',
+        skillsDir: '.agents/skills',
         sessionWorkDir: '/workspace/project',
         skills: [skill, skill],
       }),
@@ -166,7 +170,8 @@ describe('materializeACPSkills', () => {
     await expect(
       materializeACPSkills({
         sandbox: makeSandbox({ runs: [], writes: [] }),
-        rootDir: '/workspace/project/.agents/skills',
+        homePath: '/workspace/project',
+        skillsDir: '.agents/skills',
         sessionWorkDir: '/workspace/project',
         skills: [skill],
       }),
@@ -179,7 +184,8 @@ describe('materializeACPSkills', () => {
     const sandbox = makeSandbox({ runs, writes });
     const input = {
       sandbox,
-      rootDir: '/home/agent/.agents/skills',
+      homePath: '/home/agent',
+      skillsDir: '.agents/skills',
       sessionWorkDir: '/workspace/project',
       skills: [skill],
     } as const;

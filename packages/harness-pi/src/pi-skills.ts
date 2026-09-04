@@ -1,4 +1,3 @@
-import path from 'node:path';
 import type { HarnessV1Skill } from '@ai-sdk/harness';
 import { writeSkills, type WriteSkillsResult } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
@@ -15,7 +14,8 @@ export async function writePiSkills(args: {
 }): Promise<WriteSkillsResult> {
   return writeSkills({
     sandbox: args.sandbox,
-    rootDir: path.posix.join(args.sandboxHomeDir, '.agents', 'skills'),
+    homePath: args.sandboxHomeDir,
+    skillsDir: '.agents/skills',
     skills: args.skills,
     abortSignal: args.abortSignal,
     invalidSkillNameMessage: ({ name }) => `Invalid Pi skill name: ${name}`,

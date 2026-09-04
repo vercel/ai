@@ -666,10 +666,10 @@ async function writeOpenCodeSkills({
   homeDir: string;
   abortSignal?: AbortSignal;
 }): Promise<WriteSkillsResult> {
-  const skillsDir = path.posix.join(homeDir, '.agents', 'skills');
   return writeHarnessSkills({
     sandbox,
-    rootDir: skillsDir,
+    homePath: homeDir,
+    skillsDir: '.agents/skills',
     skills,
     abortSignal,
     invalidSkillNameMessage: ({ name }) =>

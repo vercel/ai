@@ -644,10 +644,10 @@ async function writeCodexSkills({
   skills: ReadonlyArray<HarnessV1Skill>;
   abortSignal?: AbortSignal;
 }): Promise<WriteSkillsResult> {
-  const rootDir = path.posix.join(sandboxHomeDir, '.agents', 'skills');
   return writeHarnessSkills({
     sandbox,
-    rootDir,
+    homePath: sandboxHomeDir,
+    skillsDir: '.agents/skills',
     skills,
     abortSignal,
     invalidSkillNameMessage: ({ name }) => `Invalid Codex skill name: ${name}`,

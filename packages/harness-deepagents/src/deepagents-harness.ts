@@ -362,7 +362,7 @@ export function createDeepAgents(
             sandboxCredentialEnvironment,
             isResume: true,
             sandbox: toolSafeSandboxSession,
-            homeSkillsRoot,
+            homeDir,
             skillsPaths,
             permissionMode,
             builtinToolFiltering: startOpts.builtinToolFiltering,
@@ -486,7 +486,7 @@ export function createDeepAgents(
         sandboxCredentialEnvironment,
         isResume,
         sandbox: toolSafeSandboxSession,
-        homeSkillsRoot,
+        homeDir,
         skillsPaths,
         permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
@@ -566,12 +566,14 @@ async function resolveBridgeEndpoint({
 // Materialize each skill as a native deepagents `<name>/SKILL.md` folder (+ attached files) under the given root, so skills load on demand and file references resolve.
 async function writeSkills({
   sandbox,
-  root,
+  homePath,
+  skillsDir,
   skills,
   abortSignal,
 }: {
   sandbox: SandboxSession;
-  root: string;
+  homePath: string;
+  skillsDir: string;
   skills: ReadonlyArray<HarnessV1Skill>;
   abortSignal?: AbortSignal;
 }): Promise<WriteSkillsResult> {
@@ -581,7 +583,8 @@ async function writeSkills({
    */
   return writeHarnessSkills({
     sandbox,
-    rootDir: root,
+    homePath,
+    skillsDir,
     skills,
     abortSignal,
     skillNamePattern: /^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/,
@@ -627,7 +630,7 @@ function createSession({
   sandboxCredentialEnvironment,
   isResume,
   sandbox,
-  homeSkillsRoot,
+  homeDir,
   skillsPaths,
   permissionMode,
   builtinToolFiltering,
@@ -648,7 +651,7 @@ function createSession({
   sandboxCredentialEnvironment: Record<string, string> | undefined;
   isResume: boolean;
   sandbox: SandboxSession;
-  homeSkillsRoot: string;
+  homeDir: string;
   skillsPaths?: string[];
   permissionMode?: HarnessV1PermissionMode;
   builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
@@ -796,7 +799,8 @@ function createSession({
       }
       const skillWriteResult = await writeSkills({
         sandbox,
-        root: homeSkillsRoot,
+        homePath: homeDir,
+        skillsDir: '.agents/skills',
         skills: promptOpts.skills,
         abortSignal: promptOpts.abortSignal,
       });

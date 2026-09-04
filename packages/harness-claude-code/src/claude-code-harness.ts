@@ -1264,7 +1264,8 @@ async function writeClaudeCodeSkills({
 }): Promise<void> {
   await writeHarnessSkills({
     sandbox,
-    rootDir: `${homeDir}/.claude/skills`,
+    homePath: homeDir,
+    skillsDir: '.claude/skills',
     skills,
     abortSignal,
     invalidSkillNameMessage: ({ name }) =>

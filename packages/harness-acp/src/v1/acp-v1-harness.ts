@@ -93,6 +93,7 @@ import type {
   ACPV1Settings,
 } from './acp-v1-settings';
 import {
+  DEFAULT_ACP_SKILLS_DIRECTORY,
   materializeACPSkills,
   resolveACPPrivateSessionDirectory,
   resolveACPSkillsDirectory,
@@ -379,11 +380,14 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         harnessId: settings.harnessId,
         sessionId: startOptions.sessionId,
       });
+      const implementationHomeDir =
+        implementation.source.type === 'install-command'
+          ? `${resolvedImplementationDir}/home`
+          : sandboxHomeDir;
+      const skillsDir =
+        settings.skillsDirectory ?? DEFAULT_ACP_SKILLS_DIRECTORY;
       const skillsDirectory = resolveACPSkillsDirectory({
-        implementationHomeDir:
-          implementation.source.type === 'install-command'
-            ? `${resolvedImplementationDir}/home`
-            : sandboxHomeDir,
+        implementationHomeDir,
         skillsDirectory: settings.skillsDirectory,
         sessionWorkDir: workDir,
       });
@@ -463,6 +467,8 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               instructionsFingerprint: lifecycleData.instructionsFingerprint,
               sandbox: toolSafeSandboxSession,
               sessionWorkDir: workDir,
+              skillsHomeDir: implementationHomeDir,
+              skillsDir,
               skillsDirectory,
               acpSessionId: lifecycleData.acpSessionId,
               bridgePort: coords.port,
@@ -757,6 +763,8 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         instructionsFingerprint: lifecycleData?.instructionsFingerprint,
         sandbox: toolSafeSandboxSession,
         sessionWorkDir: workDir,
+        skillsHomeDir: implementationHomeDir,
+        skillsDir,
         skillsDirectory,
         acpSessionId: lifecycleData?.acpSessionId,
         bridgePort: boundPort,
@@ -1068,6 +1076,8 @@ function createSession({
   instructionsFingerprint: instructionsFingerprintAtStart,
   sandbox,
   sessionWorkDir,
+  skillsHomeDir,
+  skillsDir,
   skillsDirectory,
   acpSessionId: acpSessionIdAtStart,
   bridgePort,
@@ -1105,6 +1115,8 @@ function createSession({
   instructionsFingerprint: string | undefined;
   sandbox: SandboxSession;
   sessionWorkDir: string;
+  skillsHomeDir: string;
+  skillsDir: string;
   skillsDirectory: string;
   acpSessionId: string | undefined;
   bridgePort: number;
@@ -1577,7 +1589,8 @@ function createSession({
   }): Promise<void> => {
     await materializeACPSkills({
       sandbox,
-      rootDir: skillsDirectory,
+      homePath: skillsHomeDir,
+      skillsDir,
       sessionWorkDir,
       skills,
       abortSignal,
