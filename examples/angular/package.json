@@ -15,7 +15,7 @@
     "@ai-sdk/angular": "workspace:*",
     "@ai-sdk/openai": "workspace:*",
     "@angular/common": "^20.3.27",
-    "@angular/compiler": "^20.3.27",
+    "@angular/compiler": "^20.3.28",
     "@angular/core": "^20.3.27",
     "@angular/forms": "^20.3.25",
     "@angular/platform-browser": "^20.3.25",
