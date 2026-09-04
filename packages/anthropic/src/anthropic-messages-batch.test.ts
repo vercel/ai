@@ -15,12 +15,14 @@ vi.mock('./version', () => ({
 const urls = {
   batches: 'https://api.anthropic.com/v1/messages/batches',
   batch: 'https://api.anthropic.com/v1/messages/batches/msgbatch_123',
+  cancel: 'https://api.anthropic.com/v1/messages/batches/msgbatch_123/cancel',
   results: 'https://api.anthropic.com/v1/messages/batches/msgbatch_123/results',
 } as const;
 
 const server = createTestServer({
   [urls.batches]: {},
   [urls.batch]: {},
+  [urls.cancel]: {},
   [urls.results]: {},
 });
 
@@ -529,6 +531,35 @@ describe('Anthropic Messages batch language model', () => {
     await expect(
       model.experimental_doGetBatchStatus({ batchId: 'msgbatch_123' }),
     ).resolves.toMatchObject({ status, rawStatus });
+  });
+
+  it('cancels a batch and returns its normalized status', async () => {
+    server.urls[urls.cancel].response = {
+      type: 'json-value',
+      body: batchResponse({
+        cancel_initiated_at: '2024-09-24T18:38:00.000Z',
+        processing_status: 'canceling',
+        results_url: null,
+      }),
+    };
+    const model = createAnthropic({ apiKey: 'test-api-key' })(
+      'claude-3-haiku-20240307',
+    );
+
+    await expect(
+      model.experimental_doCancelBatch?.({
+        batchId: 'msgbatch_123',
+        headers: { 'Operation-Header': 'operation' },
+      }),
+    ).resolves.toMatchObject({
+      rawStatus: 'canceling',
+      status: 'pending',
+    });
+    expect(await server.calls[0].requestBodyJson).toEqual({});
+    expect(server.calls[0].requestHeaders).toMatchObject({
+      'operation-header': 'operation',
+      'x-api-key': 'test-api-key',
+    });
   });
 
   it('normalizes request counts', async () => {

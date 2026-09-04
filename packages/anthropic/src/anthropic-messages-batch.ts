@@ -289,6 +289,24 @@ export class AnthropicMessagesBatchLanguageModel
     return convertAnthropicBatchStatus(await this.retrieveBatch(options));
   }
 
+  async experimental_doCancelBatch(
+    options: BatchV4OperationOptions,
+  ): Promise<BatchV4Status> {
+    const { value: batch } = await postJsonToApi({
+      url: this.getBatchUrl(`/${encodeURIComponent(options.batchId)}/cancel`),
+      headers: await this.getBatchHeaders(options.headers),
+      body: {},
+      failedResponseHandler: anthropicFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        anthropicBatchResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    return convertAnthropicBatchStatus(batch);
+  }
+
   async experimental_doGetBatchResults(
     options: BatchV4OperationOptions,
   ): Promise<ReadableStream<BatchV4ItemResult<LanguageModelV4GenerateResult>>> {
