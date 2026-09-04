@@ -1,5 +1,21 @@
 # ai
 
+## 7.0.93
+
+### Patch Changes
+
+- df6c009: fix(ai): use new message ID when replacing a message in `sendMessage`
+- 6ee74a3: fix(ai): preserve tool part titles when validating UI messages
+- f13d371: fix(ai): preserve provider metadata when converting failed tool calls
+- d4485fe: feat(ai): support minItems and maxItems in array outputs
+- 4f201cc: chore(ai): formally include already supported `onLanguageModelCallStart` and `onLanguageModelCallEnd` in `ToolLoopAgentSettings` type
+- 8cdb2a7: fix(ai): decode text data URLs in Node.js
+- 0f2281e: fix(ai): reject embedding responses whose count does not match the input values
+- fc8e8ac: fix(ai): preserve image call diagnostics when no image is generated
+- ee8391e: fix(ai): support abort signals when the global AbortSignal is not a constructor
+- Updated dependencies [3cfc1fc]
+  - @ai-sdk/gateway@4.0.75
+
 ## 7.0.92
 
 ### Patch Changes

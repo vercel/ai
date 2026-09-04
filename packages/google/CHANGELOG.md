@@ -1,5 +1,12 @@
 # @ai-sdk/google
 
+## 4.0.64
+
+### Patch Changes
+
+- d4485fe: feat(ai): support minItems and maxItems in array outputs
+- 63533eb: fix(google): map code execution tool name- #20260
+
 ## 4.0.63
 
 ### Patch Changes

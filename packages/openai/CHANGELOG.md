@@ -1,5 +1,12 @@
 # @ai-sdk/openai
 
+## 4.0.59
+
+### Patch Changes
+
+- 4af00d1: feat(openai): add support for the gpt-6-astra
+- abb9ebf: feat(openai): support `gpt-4o-transcribe-diarize`, including chunking and diarized speaker metadata
+
 ## 4.0.58
 
 ### Patch Changes
