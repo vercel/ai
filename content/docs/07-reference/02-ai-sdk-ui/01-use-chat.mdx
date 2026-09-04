@@ -408,7 +408,7 @@ Allows you to easily create a conversational user interface for your chatbot app
       name: 'sendMessage',
       type: '(message?: { text: string; files?: FileList | FileUIPart[]; metadata?; messageId?: string } | CreateUIMessage, options?: ChatRequestOptions) => Promise<void>',
       description:
-        'Function to send a new message to the chat. This will trigger an API call to generate the assistant response. If a messageId is provided, the message will be replaced (useful for editing). If no message is provided, resubmits the current messages (useful after adding tool outputs).',
+        'Function to send a new message to the chat. This will trigger an API call to generate the assistant response. If a messageId is provided, the message will be replaced (useful for editing). When replacing with a CreateUIMessage, provide its id to assign a new ID to the replacement. If no message is provided, resubmits the current messages (useful after adding tool outputs).',
       properties: [
         {
           type: 'ChatRequestOptions',
