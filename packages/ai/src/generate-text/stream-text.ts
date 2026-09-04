@@ -2826,9 +2826,9 @@ class DefaultStreamTextResult<
                     case 'custom':
                     case 'source':
                     case 'reasoning-file':
-                    case 'tool-input-start':
                     case 'tool-input-end':
                     case 'tool-input-delta':
+                    case 'tool-input-start':
                     case 'tool-approval-request': {
                       enqueueStepPart(controller, chunk);
                       break;

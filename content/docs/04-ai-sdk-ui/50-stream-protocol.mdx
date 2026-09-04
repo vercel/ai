@@ -323,12 +323,16 @@ data: {"type":"error","errorText":"error message"}
 
 Indicates the beginning of tool input streaming.
 
+The optional `inputFormat` field describes how subsequent input deltas are
+encoded. It is `"json"` by default. Providers that stream unencoded freeform
+text set it to `"text"`.
+
 Format: Server-Sent Event with JSON object
 
 Example:
 
 ```
-data: {"type":"tool-input-start","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar","toolName":"getWeatherInformation"}
+data: {"type":"tool-input-start","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar","toolName":"getWeatherInformation","inputFormat":"json"}
 
 ```
 

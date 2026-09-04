@@ -475,6 +475,12 @@ export type TextStreamToolInputStartPart = {
   type: 'tool-input-start';
   id: string;
   toolName: string;
+  /**
+   * Encoding used by subsequent tool input deltas.
+   *
+   * Defaults to `json` when omitted.
+   */
+  inputFormat?: 'json' | 'text';
   providerMetadata?: ProviderMetadata;
   toolMetadata?: JSONObject;
   providerExecuted?: boolean;

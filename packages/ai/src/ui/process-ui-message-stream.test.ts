@@ -3466,6 +3466,160 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  describe('freeform tool input streaming', () => {
+    async function processFreeformToolInput({
+      toolName,
+      inputTextDeltas,
+      input,
+    }: {
+      toolName: string;
+      inputTextDeltas: string[];
+      input: string;
+    }) {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-start',
+          toolCallId: 'tool-call-0',
+          toolName,
+          inputFormat: 'text',
+        },
+        ...inputTextDeltas.map(
+          inputTextDelta =>
+            ({
+              type: 'tool-input-delta',
+              toolCallId: 'tool-call-0',
+              inputTextDelta,
+            }) satisfies UIMessageChunk,
+        ),
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-0',
+          toolName,
+          input,
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    }
+
+    it('should expose accumulated text during input streaming', async () => {
+      await processFreeformToolInput({
+        toolName: 'write_sql',
+        inputTextDeltas: ['SELECT * ', 'FROM users'],
+        input: 'SELECT * FROM users',
+      });
+
+      expect(writeCalls[2].message.parts[1]).toMatchObject({
+        state: 'input-streaming',
+        input: 'SELECT * ',
+      });
+      expect(writeCalls[3].message.parts[1]).toMatchObject({
+        state: 'input-streaming',
+        input: 'SELECT * FROM users',
+      });
+      expect(writeCalls[4].message.parts[1]).toMatchObject({
+        state: 'input-available',
+        input: 'SELECT * FROM users',
+      });
+    });
+
+    it('should preserve JSON-like text during input streaming', async () => {
+      await processFreeformToolInput({
+        toolName: 'run_shell',
+        inputTextDeltas: ['true', ' && echo ok'],
+        input: 'true && echo ok',
+      });
+
+      expect(writeCalls[2].message.parts[1]).toMatchObject({
+        state: 'input-streaming',
+        input: 'true',
+      });
+      expect(writeCalls[3].message.parts[1]).toMatchObject({
+        state: 'input-streaming',
+        input: 'true && echo ok',
+      });
+      expect(writeCalls[4].message.parts[1]).toMatchObject({
+        state: 'input-available',
+        input: 'true && echo ok',
+      });
+    });
+
+    it('should continue parsing JSON-encoded string input while streaming', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-start',
+          toolCallId: 'tool-call-0',
+          toolName: 'write_text',
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'tool-call-0',
+          inputTextDelta: '"hello',
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'tool-call-0',
+          inputTextDelta: ' world"',
+        },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-0',
+          toolName: 'write_text',
+          input: 'hello world',
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(writeCalls[2].message.parts[1]).toMatchObject({
+        state: 'input-streaming',
+        input: 'hello',
+      });
+      expect(writeCalls[3].message.parts[1]).toMatchObject({
+        state: 'input-streaming',
+        input: 'hello world',
+      });
+      expect(writeCalls[4].message.parts[1]).toMatchObject({
+        state: 'input-available',
+        input: 'hello world',
+      });
+    });
+  });
+
   describe('start with message id', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([

@@ -1528,6 +1528,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   type: 'tool-input-start',
                   id: value.item.call_id,
                   toolName,
+                  inputFormat: 'text',
                 });
               } else if (value.item.type === 'web_search_call') {
                 ongoingToolCalls[value.output_index] = {

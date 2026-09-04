@@ -5083,6 +5083,74 @@ describe('streamText', () => {
       ).toMatchSnapshot();
     });
 
+    it('should preserve provider-declared tool input formats without inspecting provider tool schemas', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'tool-input-start',
+              id: 'text-call',
+              toolName: 'textTool',
+              inputFormat: 'text',
+            },
+            {
+              type: 'tool-input-start',
+              id: 'json-call',
+              toolName: 'jsonTool',
+            },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        tools: {
+          textTool: tool({
+            type: 'provider',
+            id: 'test.text-tool',
+            args: {},
+            isProviderExecuted: false,
+            inputSchema: {
+              '~standard': {
+                version: 1,
+                vendor: 'validation-only',
+                validate: (value: unknown) => ({ value: value as string }),
+              },
+            },
+            execute: async input => input,
+          }),
+          jsonTool: tool({
+            type: 'provider',
+            id: 'test.json-tool',
+            args: {},
+            isProviderExecuted: false,
+            inputSchema: z.string(),
+            execute: async input => input,
+          }),
+        },
+        ...defaultSettings(),
+      });
+
+      expect(
+        (await convertReadableStreamToArray(result.stream)).filter(
+          part => part.type === 'tool-input-start',
+        ),
+      ).toMatchObject([
+        {
+          type: 'tool-input-start',
+          id: 'text-call',
+          toolName: 'textTool',
+          inputFormat: 'text',
+        },
+        {
+          type: 'tool-input-start',
+          id: 'json-call',
+          toolName: 'jsonTool',
+        },
+      ]);
+    });
+
     it('should send message metadata as defined in the metadata function', async () => {
       const result = streamText({
         model: createTestModel(),
@@ -17842,6 +17910,7 @@ describe('streamText', () => {
                 "type": "start-step",
               },
               {
+                "inputFormat": "json",
                 "providerExecuted": true,
                 "toolCallId": "call-1",
                 "toolName": "web_search",
@@ -18402,6 +18471,7 @@ describe('streamText', () => {
               },
               {
                 "dynamic": true,
+                "inputFormat": "json",
                 "toolCallId": "call-1",
                 "toolName": "dynamicTool",
                 "type": "tool-input-start",
@@ -25460,6 +25530,7 @@ describe('streamText', () => {
                 "type": "start-step",
               },
               {
+                "inputFormat": "json",
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
                 "type": "tool-input-start",
@@ -26118,6 +26189,7 @@ describe('streamText', () => {
               },
               {
                 "dynamic": true,
+                "inputFormat": "json",
                 "providerExecuted": true,
                 "providerMetadata": {
                   "anthropic": {
