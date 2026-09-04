@@ -1,0 +1,36 @@
+{
+  "recordedAt": "2026-09-04",
+  "modelId": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+  "responses": {
+    "characterSet": {
+      "status": 400,
+      "documentNames": [
+        "John's report",
+        "invoice #123",
+        "a&b",
+        "report,2026",
+        "résumé",
+        "분기보고서",
+        "Report -  Final",
+        "a\tb"
+      ],
+      "body": {
+        "message": "The document file name can only contain alphanumeric characters, whitespace characters, hyphens, parentheses, and square brackets. The name can't contain more than one consecutive whitespace character. Check that the file name conforms to these restrictions and retry your request."
+      }
+    },
+    "maximumLength": {
+      "status": 400,
+      "documentNameLength": 201,
+      "body": {
+        "message": "1 validation error detected: Value at 'messages.1.member.content.2.member.document.name' failed to satisfy constraint: Member must have length less than or equal to 200"
+      }
+    },
+    "minimumLength": {
+      "status": 400,
+      "documentName": "",
+      "body": {
+        "message": "1 validation error detected: Value at 'messages.1.member.content.2.member.document.name' failed to satisfy constraint: Member must have length greater than or equal to 1"
+      }
+    }
+  }
+}
