@@ -29,6 +29,7 @@ import {
   type AmazonBedrockImageMimeType,
   type AmazonBedrockMessages,
   type AmazonBedrockSystemMessages,
+  type AmazonBedrockToolResultBlock,
   type AmazonBedrockUserMessage,
   type AmazonBedrockVideoBlock,
   type AmazonBedrockVideoFormat,
@@ -165,9 +166,7 @@ export async function convertToAmazonBedrockChatMessages(
   system: AmazonBedrockSystemMessages;
   messages: AmazonBedrockMessages;
 }> {
-  const blocks = groupIntoBlocks(
-    moveAssistantToolResultsToToolMessages(prompt),
-  );
+  const blocks = groupIntoBlocks(prompt);
 
   let system: AmazonBedrockSystemMessages = [];
   const messages: AmazonBedrockMessages = [];
@@ -391,124 +390,14 @@ export async function convertToAmazonBedrockChatMessages(
                 if (part.type === 'tool-approval-response') {
                   continue;
                 }
-                let toolResultContent;
-
-                const output = part.output;
-                switch (output.type) {
-                  case 'content': {
-                    toolResultContent = await Promise.all(
-                      output.value.map(async contentPart => {
-                        switch (contentPart.type) {
-                          case 'text':
-                            return { text: contentPart.text };
-                          case 'file': {
-                            if (
-                              contentPart.data.type !== 'data' &&
-                              (contentPart.data.type !== 'url' ||
-                                contentPart.data.url.protocol !== 's3:')
-                            ) {
-                              throw new UnsupportedFunctionalityError({
-                                functionality: `tool result file data of type "${contentPart.data.type}"`,
-                              });
-                            }
-
-                            const fullMediaType = resolveFullMediaType({
-                              part: contentPart,
-                            });
-
-                            switch (getTopLevelMediaType(fullMediaType)) {
-                              case 'image': {
-                                return {
-                                  image: {
-                                    format:
-                                      getAmazonBedrockImageFormat(
-                                        fullMediaType,
-                                      ),
-                                    source: getAmazonBedrockMediaSource({
-                                      data: contentPart.data,
-                                      functionality: `tool result file data of type "${contentPart.data.type}"`,
-                                    }),
-                                  },
-                                };
-                              }
-                              case 'video': {
-                                return {
-                                  video: {
-                                    format:
-                                      getAmazonBedrockVideoFormat(
-                                        fullMediaType,
-                                      ),
-                                    source: getAmazonBedrockMediaSource({
-                                      data: contentPart.data,
-                                      functionality: `tool result file data of type "${contentPart.data.type}"`,
-                                    }),
-                                  },
-                                };
-                              }
-                              default: {
-                                if (contentPart.data.type !== 'data') {
-                                  throw new UnsupportedFunctionalityError({
-                                    functionality: `tool result file data of type "${contentPart.data.type}"`,
-                                  });
-                                }
-
-                                const enableCitations =
-                                  await shouldEnableCitations(
-                                    contentPart.providerOptions,
-                                  );
-
-                                return {
-                                  document: {
-                                    format:
-                                      getAmazonBedrockDocumentFormat(
-                                        fullMediaType,
-                                      ),
-                                    name: getDocumentName(contentPart.filename),
-                                    source: {
-                                      bytes: convertToBase64(
-                                        contentPart.data.data,
-                                      ),
-                                    },
-                                    ...(enableCitations && {
-                                      citations: { enabled: true },
-                                    }),
-                                  },
-                                };
-                              }
-                            }
-                          }
-                          default: {
-                            throw new UnsupportedFunctionalityError({
-                              functionality: `unsupported tool content part type: ${contentPart.type}`,
-                            });
-                          }
-                        }
-                      }),
-                    );
-                    break;
-                  }
-                  case 'text':
-                  case 'error-text':
-                    toolResultContent = [{ text: output.value }];
-                    break;
-                  case 'execution-denied':
-                    toolResultContent = [
-                      { text: output.reason ?? 'Tool call execution denied.' },
-                    ];
-                    break;
-                  case 'json':
-                  case 'error-json':
-                  default:
-                    toolResultContent = [
-                      { text: JSON.stringify(output.value) },
-                    ];
-                    break;
-                }
 
                 amazonBedrockContent.push({
                   toolResult: {
                     toolUseId: normalizeToolCallId(part.toolCallId, isMistral),
-                    content: toolResultContent,
+                    content: await convertToolResultOutput({
+                      output: part.output,
+                      getDocumentName,
+                    }),
                   },
                 });
                 pushCachePoint(amazonBedrockContent, part.providerOptions);
@@ -525,15 +414,28 @@ export async function convertToAmazonBedrockChatMessages(
           pushCachePoint(amazonBedrockContent, providerOptions);
         }
 
-        messages.push({ role: 'user', content: amazonBedrockContent });
+        appendToUserMessage(messages, amazonBedrockContent);
 
         break;
       }
 
       case 'assistant': {
-        // combines multiple assistant messages in this block into a single message:
-        const amazonBedrockContent: AmazonBedrockAssistantMessage['content'] =
-          [];
+        let assistantContent: AmazonBedrockAssistantMessage['content'] = [];
+        let toolResultContent: AmazonBedrockUserMessage['content'] = [];
+
+        const flushAssistantContent = () => {
+          if (assistantContent.some(block => !('cachePoint' in block))) {
+            messages.push({ role: 'assistant', content: assistantContent });
+          }
+          assistantContent = [];
+        };
+
+        const flushToolResultContent = () => {
+          if (toolResultContent.length > 0) {
+            appendToUserMessage(messages, toolResultContent);
+            toolResultContent = [];
+          }
+        };
 
         for (let j = 0; j < block.messages.length; j++) {
           const message = block.messages[j];
@@ -547,6 +449,10 @@ export async function convertToAmazonBedrockChatMessages(
             const part = content[k];
             const isLastContentPart = k === content.length - 1;
 
+            if (part.type !== 'tool-result') {
+              flushToolResultContent();
+            }
+
             switch (part.type) {
               case 'text': {
                 // Skip empty text blocks unless reasoning blocks are present
@@ -554,7 +460,7 @@ export async function convertToAmazonBedrockChatMessages(
                   break;
                 }
 
-                amazonBedrockContent.push({
+                assistantContent.push({
                   text:
                     // trim the last text part if it's the last message in the block
                     // because Bedrock does not allow trailing whitespace
@@ -585,7 +491,7 @@ export async function convertToAmazonBedrockChatMessages(
                 if (reasoningMetadata?.signature != null) {
                   // do not trim reasoning text when a signature is present:
                   // the signature validates the exact original bytes
-                  amazonBedrockContent.push({
+                  assistantContent.push({
                     reasoningContent: {
                       reasoningText: {
                         text: part.text,
@@ -594,13 +500,13 @@ export async function convertToAmazonBedrockChatMessages(
                     },
                   });
                 } else if (reasoningMetadata?.redactedContent != null) {
-                  amazonBedrockContent.push({
+                  assistantContent.push({
                     reasoningContent: {
                       redactedContent: reasoningMetadata.redactedContent,
                     },
                   });
                 } else if (reasoningMetadata?.redactedData != null) {
-                  amazonBedrockContent.push({
+                  assistantContent.push({
                     reasoningContent: {
                       redactedReasoning: {
                         data: reasoningMetadata.redactedData,
@@ -616,7 +522,7 @@ export async function convertToAmazonBedrockChatMessages(
               }
 
               case 'tool-call': {
-                amazonBedrockContent.push({
+                assistantContent.push({
                   toolUse: {
                     toolUseId: normalizeToolCallId(part.toolCallId, isMistral),
                     name: sanitizeToolName(part.toolName),
@@ -625,16 +531,40 @@ export async function convertToAmazonBedrockChatMessages(
                 });
                 break;
               }
+
+              case 'tool-result': {
+                flushAssistantContent();
+                toolResultContent.push({
+                  toolResult: {
+                    toolUseId: normalizeToolCallId(part.toolCallId, isMistral),
+                    content: await convertToolResultOutput({
+                      output: part.output,
+                      getDocumentName,
+                    }),
+                  },
+                });
+                break;
+              }
             }
 
-            pushCachePoint(amazonBedrockContent, part.providerOptions);
+            pushCachePoint(
+              part.type === 'tool-result'
+                ? toolResultContent
+                : assistantContent,
+              part.providerOptions,
+            );
           }
-          pushCachePoint(amazonBedrockContent, message.providerOptions);
+
+          pushCachePoint(
+            content[content.length - 1]?.type === 'tool-result'
+              ? toolResultContent
+              : assistantContent,
+            message.providerOptions,
+          );
         }
 
-        if (amazonBedrockContent.some(block => !('cachePoint' in block))) {
-          messages.push({ role: 'assistant', content: amazonBedrockContent });
-        }
+        flushToolResultContent();
+        flushAssistantContent();
 
         break;
       }
@@ -649,43 +579,116 @@ export async function convertToAmazonBedrockChatMessages(
   return { system, messages };
 }
 
-/**
- * Bedrock requires tool results in the user message immediately following the
- * assistant message that contains their tool uses. Core represents completed
- * provider-executed tools as both a tool call and a tool result in the
- * assistant message, so move those results into a synthetic tool message
- * before grouping the prompt into Bedrock messages.
- */
-function moveAssistantToolResultsToToolMessages(
-  prompt: LanguageModelV4Prompt,
-): LanguageModelV4Prompt {
-  const normalizedPrompt: LanguageModelV4Prompt = [];
+// A trailing assistant tool result and the following user content must share a
+// single Bedrock user message so that conversation roles continue to alternate.
+function appendToUserMessage(
+  messages: AmazonBedrockMessages,
+  content: AmazonBedrockUserMessage['content'],
+) {
+  const lastMessage = messages[messages.length - 1];
 
-  for (const message of prompt) {
-    if (message.role !== 'assistant') {
-      normalizedPrompt.push(message);
-      continue;
-    }
-
-    const assistantContent: typeof message.content = [];
-    const toolResults: Array<LanguageModelV4ToolResultPart> = [];
-
-    for (const part of message.content) {
-      if (part.type === 'tool-result') {
-        toolResults.push(part);
-      } else {
-        assistantContent.push(part);
-      }
-    }
-
-    normalizedPrompt.push({ ...message, content: assistantContent });
-
-    if (toolResults.length > 0) {
-      normalizedPrompt.push({ role: 'tool', content: toolResults });
-    }
+  if (
+    lastMessage?.role === 'user' &&
+    lastMessage.content.some(block => 'toolResult' in block)
+  ) {
+    lastMessage.content.push(...content);
+  } else {
+    messages.push({ role: 'user', content });
   }
+}
 
-  return normalizedPrompt;
+async function convertToolResultOutput({
+  output,
+  getDocumentName,
+}: {
+  output: LanguageModelV4ToolResultPart['output'];
+  getDocumentName: (filename: string | undefined) => string;
+}): Promise<AmazonBedrockToolResultBlock['toolResult']['content']> {
+  switch (output.type) {
+    case 'content': {
+      return Promise.all(
+        output.value.map(async contentPart => {
+          switch (contentPart.type) {
+            case 'text':
+              return { text: contentPart.text };
+            case 'file': {
+              if (
+                contentPart.data.type !== 'data' &&
+                (contentPart.data.type !== 'url' ||
+                  contentPart.data.url.protocol !== 's3:')
+              ) {
+                throw new UnsupportedFunctionalityError({
+                  functionality: `tool result file data of type "${contentPart.data.type}"`,
+                });
+              }
+
+              const fullMediaType = resolveFullMediaType({ part: contentPart });
+
+              switch (getTopLevelMediaType(fullMediaType)) {
+                case 'image':
+                  return {
+                    image: {
+                      format: getAmazonBedrockImageFormat(fullMediaType),
+                      source: getAmazonBedrockMediaSource({
+                        data: contentPart.data,
+                        functionality: `tool result file data of type "${contentPart.data.type}"`,
+                      }),
+                    },
+                  };
+                case 'video':
+                  return {
+                    video: {
+                      format: getAmazonBedrockVideoFormat(fullMediaType),
+                      source: getAmazonBedrockMediaSource({
+                        data: contentPart.data,
+                        functionality: `tool result file data of type "${contentPart.data.type}"`,
+                      }),
+                    },
+                  };
+                default: {
+                  if (contentPart.data.type !== 'data') {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: `tool result file data of type "${contentPart.data.type}"`,
+                    });
+                  }
+
+                  const enableCitations = await shouldEnableCitations(
+                    contentPart.providerOptions,
+                  );
+
+                  return {
+                    document: {
+                      format: getAmazonBedrockDocumentFormat(fullMediaType),
+                      name: getDocumentName(contentPart.filename),
+                      source: {
+                        bytes: convertToBase64(contentPart.data.data),
+                      },
+                      ...(enableCitations && {
+                        citations: { enabled: true },
+                      }),
+                    },
+                  };
+                }
+              }
+            }
+            default:
+              throw new UnsupportedFunctionalityError({
+                functionality: `unsupported tool content part type: ${contentPart.type}`,
+              });
+          }
+        }),
+      );
+    }
+    case 'text':
+    case 'error-text':
+      return [{ text: output.value }];
+    case 'execution-denied':
+      return [{ text: output.reason ?? 'Tool call execution denied.' }];
+    case 'json':
+    case 'error-json':
+    default:
+      return [{ text: JSON.stringify(output.value) }];
+  }
 }
 
 // wrap invalid tool call input because Bedrock requires it to be an object

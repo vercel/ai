@@ -945,7 +945,7 @@ describe('user messages', () => {
 });
 
 describe('assistant messages', () => {
-  it('should move assistant tool results to the following user message', async () => {
+  it('should preserve the order of provider-executed tool calls and results', async () => {
     const result = await convertToAmazonBedrockChatMessages([
       {
         role: 'user',
@@ -1008,14 +1008,6 @@ describe('assistant messages', () => {
                 input: { a: 2, b: 2 },
               },
             },
-            {
-              toolUse: {
-                toolUseId: 'call-2',
-                name: 'add',
-                input: { a: 3, b: 3 },
-              },
-            },
-            { text: 'The sums are 4 and 6.' },
           ],
         },
         {
@@ -1027,13 +1019,94 @@ describe('assistant messages', () => {
                 content: [{ text: '{"sum":4}' }],
               },
             },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              toolUse: {
+                toolUseId: 'call-2',
+                name: 'add',
+                input: { a: 3, b: 3 },
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
             {
               toolResult: {
                 toolUseId: 'call-2',
                 content: [{ text: '{"sum":6}' }],
               },
             },
-            { text: 'Now add those sums together.' },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [{ text: 'The sums are 4 and 6.' }],
+        },
+        {
+          role: 'user',
+          content: [{ text: 'Now add those sums together.' }],
+        },
+      ],
+    });
+  });
+
+  it('should combine a trailing provider-executed tool result with the next user message', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'add',
+            input: { a: 2, b: 2 },
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'add',
+            output: { type: 'json', value: { sum: 4 } },
+          },
+        ],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Now double that.' }],
+      },
+    ]);
+
+    expect(result).toEqual({
+      system: [],
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              toolUse: {
+                toolUseId: 'call-1',
+                name: 'add',
+                input: { a: 2, b: 2 },
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              toolResult: {
+                toolUseId: 'call-1',
+                content: [{ text: '{"sum":4}' }],
+              },
+            },
+            { text: 'Now double that.' },
           ],
         },
       ],
