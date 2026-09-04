@@ -53,6 +53,19 @@ const result = await generateText({
   prompt: 'Generate a lasagna recipe.',
 });
 
+// Check this before attempting repair. jsonrepair closes an unterminated
+// string or array as-is, so a response cut off mid-value can come back
+// looking like a complete, valid object — the repair "succeeds" while
+// silently dropping content the model never got to generate. finishReason
+// is the one signal that actually distinguishes "malformed" from
+// "truncated"; the JSON text alone can't.
+if (result.finishReason === 'length') {
+  throw new Error(
+    'Response was cut off by maxOutputTokens. Retry with a higher limit ' +
+      'or a smaller schema rather than repairing a truncated value.',
+  );
+}
+
 const repairedText = jsonrepair(result.text);
 const parseResult = safeParseJSON({ text: repairedText });
 
@@ -66,11 +79,12 @@ console.log(output.recipe);
 
 ## How it Works
 
-This flow has three steps:
+This flow has four steps:
 
 1. Generate plain text from the model (`Output.text()`).
-2. Repair malformed JSON with `jsonrepair`.
-3. Parse safely and validate with your schema.
+2. Check `finishReason` and bail out before repairing if the response was truncated (see [Considerations](#considerations)).
+3. Repair malformed JSON with `jsonrepair`.
+4. Parse safely and validate with your schema.
 
 ## What jsonrepair Can Fix
 
@@ -86,5 +100,5 @@ The `jsonrepair` library can automatically fix many common issues:
 ## Considerations
 
 1. **Repair is Best-Effort** - While `jsonrepair` handles many cases, it cannot fix all malformed JSON (e.g., semantically incorrect data that happens to be valid JSON)
-2. **Schema Validation** - Even after repair, the object must still match your schema. If the model produces structurally wrong data, repair won't help
-3. **Truncated Content** - For severely truncated responses, consider increasing `maxOutputTokens` or simplifying your schema
+2. **Schema Validation** - Even after repair, the object must still match your schema. If the model produces structurally wrong data, repair won't help. Note that schema validation alone doesn't catch truncation either — a string field cut off mid-sentence is still a syntactically valid, schema-conforming string, just the wrong one
+3. **Truncated Content is a Different Problem Than Malformed Content** - `jsonrepair` fixes JSON *syntax* (quotes, brackets, commas). It has no way to know whether a value's *content* is what the model intended or was cut off mid-generation — closing an unterminated string produces a shorter string that still parses and validates successfully. For output with real side effects (writing a file, executing a command, sending a message), don't repair a `finishReason === 'length'` response and treat the result as trustworthy; retry with a higher `maxOutputTokens` or a smaller schema instead, as shown above
