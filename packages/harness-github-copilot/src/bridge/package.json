@@ -1,0 +1,9 @@
+{
+  "name": "harness-github-copilot-bridge",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@github/copilot": "1.0.82"
+  }
+}

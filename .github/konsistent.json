@@ -393,6 +393,7 @@
           "excludeFiles": [
             "cursor-harness.ts",
             "fx-harness.ts",
+            "github-copilot-harness.ts",
             "grok-build-harness.ts"
           ],
           "must": {
@@ -696,6 +697,7 @@
     "deepinfra": "DeepInfra",
     "deepseek": "DeepSeek",
     "elevenlabs": "ElevenLabs",
+    "github-copilot": "GitHubCopilot",
     "huggingface": "HuggingFace",
     "klingai": "KlingAI",
     "lmnt": "LMNT",
@@ -709,6 +711,7 @@
   },
   "kebabToCamelMap": {
     "acp": "acp",
+    "github-copilot": "githubCopilot",
     "lmnt": "lmnt",
     "minimax": "minimax"
   }

@@ -177,6 +177,9 @@ MCP payload and correlates the call with the host-side tool execution.
 - ACP v1 has no portable built-in tool filtering API. Filtering host tools is
   supported, but filtering Cursor built-ins throws an unsupported-capability
   error.
+- Cursor does not currently support built-in tool approval requests. Use
+  `permissionMode: 'allow-all'` with this adapter. Host-executed AI SDK tool
+  approvals still work.
 - Cursor ACP does not expose a structured-output metadata mapping, so schema-backed
   structured output is unsupported.
 - Custom `headers` are not natively supported and only applied via
