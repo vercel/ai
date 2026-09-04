@@ -16,7 +16,8 @@ import { z } from 'zod';
 const app = express();
 app.use(express.json({ strict: false })); // Allow primitives (for analyze endpoint)
 
-const defaultModel = 'openai/gpt-5.6';
+// Use a broadly available Gateway model that supports tool calls.
+const defaultModel = 'openai/gpt-4o-mini';
 
 app.post('/api/chat', async (req: Request, res: Response) => {
   const { messages, selectedModel } = req.body;
@@ -46,6 +47,9 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           return `${city}: ${condition}`;
         },
       },
+    },
+    toolApproval: {
+      getWeatherInformation: 'user-approval',
     },
   });
 

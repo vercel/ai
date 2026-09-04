@@ -32,9 +32,10 @@ This runs both the Angular frontend (localhost:4200) and Express backend (localh
 - Real-time chat interface
 - Completion + structured object examples
 - Message streaming
-- Fake weather tool (server-side)
+- Fake weather tool (server-side) with user approval
+- Automatic chat continuation after tool approval
 - Reasoning stream (supported models only)
 - Proxy configuration for API requests
 
 Set your preferred model in `chat.component.ts` by changing the `selectedModel` parameter.
-Use AI Gateway model IDs like `openai/gpt-5.4`.
+Use AI Gateway model IDs like `openai/gpt-4o-mini`.
