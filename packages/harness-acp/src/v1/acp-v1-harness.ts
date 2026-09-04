@@ -32,6 +32,7 @@ import {
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
   withBridgeToken,
+  writeInstructions,
 } from '@ai-sdk/harness/utils';
 import {
   asSchema,
@@ -379,11 +380,12 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         harnessId: settings.harnessId,
         sessionId: startOptions.sessionId,
       });
+      const implementationHomeDir =
+        implementation.source.type === 'install-command'
+          ? `${resolvedImplementationDir}/home`
+          : sandboxHomeDir;
       const skillsDirectory = resolveACPSkillsDirectory({
-        implementationHomeDir:
-          implementation.source.type === 'install-command'
-            ? `${resolvedImplementationDir}/home`
-            : sandboxHomeDir,
+        implementationHomeDir,
         skillsDirectory: settings.skillsDirectory,
         sessionWorkDir: workDir,
       });
@@ -462,6 +464,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               }),
               instructionsFingerprint: lifecycleData.instructionsFingerprint,
               sandbox: toolSafeSandboxSession,
+              homePath: implementationHomeDir,
               sessionWorkDir: workDir,
               skillsDirectory,
               acpSessionId: lifecycleData.acpSessionId,
@@ -756,6 +759,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         }),
         instructionsFingerprint: lifecycleData?.instructionsFingerprint,
         sandbox: toolSafeSandboxSession,
+        homePath: implementationHomeDir,
         sessionWorkDir: workDir,
         skillsDirectory,
         acpSessionId: lifecycleData?.acpSessionId,
@@ -1067,6 +1071,7 @@ function createSession({
   initialGuidanceApplied: initialGuidanceAppliedAtStart,
   instructionsFingerprint: instructionsFingerprintAtStart,
   sandbox,
+  homePath,
   sessionWorkDir,
   skillsDirectory,
   acpSessionId: acpSessionIdAtStart,
@@ -1104,6 +1109,7 @@ function createSession({
   initialGuidanceApplied: boolean;
   instructionsFingerprint: string | undefined;
   sandbox: SandboxSession;
+  homePath: string;
   sessionWorkDir: string;
   skillsDirectory: string;
   acpSessionId: string | undefined;
@@ -1584,12 +1590,34 @@ function createSession({
     });
   };
 
+  const synchronizeInstructions = async ({
+    instructions,
+    abortSignal,
+  }: {
+    instructions: string | undefined;
+    abortSignal?: AbortSignal;
+  }): Promise<void> => {
+    if (instructionMapping?.type === 'filesystem') {
+      await writeInstructions({
+        sandbox,
+        homePath,
+        instructionsFile: instructionMapping.path,
+        instructions,
+        abortSignal,
+      });
+    }
+  };
+
   return {
     sessionId,
     isResume,
     doPromptTurn: async options => {
       await synchronizeSkills({
         skills: options.skills,
+        abortSignal: options.abortSignal,
+      });
+      await synchronizeInstructions({
+        instructions: options.instructions,
         abortSignal: options.abortSignal,
       });
       if (options.responseFormat?.type === 'json') {
@@ -1654,6 +1682,7 @@ function createSession({
           channel.send({
             type: 'start',
             prompt:
+              instructionMapping?.type !== 'filesystem' &&
               instructionsFingerprint !== nextInstructionsFingerprint &&
               (instructionMapping == null || initialGuidanceApplied)
                 ? prependACPInstructionGuidance({
@@ -1694,6 +1723,10 @@ function createSession({
     doContinueTurn: async options => {
       await synchronizeSkills({
         skills: options.skills,
+        abortSignal: options.abortSignal,
+      });
+      await synchronizeInstructions({
+        instructions: options.instructions,
         abortSignal: options.abortSignal,
       });
       if (options.responseFormat?.type === 'json') {
