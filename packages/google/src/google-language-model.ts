@@ -164,20 +164,26 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       });
     }
 
-    // Add warning if Vertex rag tools are used with a non-Vertex Google provider
+    // Add warning if Vertex retrieval tools are used with a non-Vertex Google provider
     const isVertexProvider = this.config.provider.startsWith('google.vertex.');
+
+    const vertexRetrievalToolIds = [
+      'google.vertex_rag_store',
+      'google.vertex_ai_search',
+      'google.external_api',
+    ];
 
     if (
       tools?.some(
         tool =>
-          tool.type === 'provider' && tool.id === 'google.vertex_rag_store',
+          tool.type === 'provider' && vertexRetrievalToolIds.includes(tool.id),
       ) &&
       !isVertexProvider
     ) {
       warnings.push({
         type: 'other',
         message:
-          "The 'vertex_rag_store' tool is only supported with the Google Vertex provider " +
+          'Vertex retrieval tools are only supported with the Google Vertex provider ' +
           'and might not be supported or could behave unexpectedly with the current Google provider ' +
           `(${this.config.provider}).`,
       });
