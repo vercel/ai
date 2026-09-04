@@ -1848,6 +1848,73 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should use a JSON response tool when response format is combined with function tools', async () => {
+    server.urls[TEST_URL_GEMINI_2_5_FLASH_LITE].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  functionCall: {
+                    id: 'response-call',
+                    name: 'json',
+                    args: { date: '2026-09-04' },
+                  },
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+          },
+        ],
+      },
+    };
+
+    const result = await provider
+      .languageModel('gemini-2.5-flash-lite')
+      .doGenerate({
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { date: { type: 'string' } },
+            required: ['date'],
+            additionalProperties: false,
+          },
+        },
+        tools: [
+          {
+            type: 'function',
+            name: 'resolveDate',
+            inputSchema: {
+              type: 'object',
+              properties: { expression: { type: 'string' } },
+              required: ['expression'],
+              additionalProperties: false,
+            },
+          },
+        ],
+        prompt: TEST_PROMPT,
+      });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.generationConfig.responseMimeType).toBeUndefined();
+    expect(requestBody.generationConfig.responseSchema).toBeUndefined();
+    expect(requestBody.toolConfig.functionCallingConfig.mode).toBe('ANY');
+    expect(
+      requestBody.tools[0].functionDeclarations.map((tool: any) => tool.name),
+    ).toEqual(['resolveDate', 'json']);
+    expect(result.content).toEqual([
+      { type: 'text', text: '{"date":"2026-09-04"}' },
+    ]);
+    expect(result.finishReason).toEqual({
+      unified: 'stop',
+      raw: 'STOP',
+    });
+  });
+
   it('should pass array length constraints in response schemas', async () => {
     prepareJsonFixtureResponse('google-text');
 
@@ -5232,6 +5299,71 @@ describe('doStream', () => {
 
       expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
     });
+  });
+
+  it('should stream a JSON response tool as text', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    functionCall: {
+                      id: 'response-call',
+                      name: 'json',
+                      args: { date: '2026-09-04' },
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+            },
+          ],
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { date: { type: 'string' } },
+          required: ['date'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          type: 'function',
+          name: 'resolveDate',
+          inputSchema: {
+            type: 'object',
+            properties: { expression: { type: 'string' } },
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchObject([
+      { type: 'stream-start', warnings: [] },
+      { type: 'text-start', id: 'response-call' },
+      {
+        type: 'text-delta',
+        id: 'response-call',
+        delta: '{"date":"2026-09-04"}',
+      },
+      { type: 'text-end', id: 'response-call' },
+      {
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'STOP' },
+      },
+    ]);
   });
 
   describe('reasoning', () => {

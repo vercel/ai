@@ -648,6 +648,74 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should use a JSON response tool when response format is combined with function tools', async () => {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
+      type: 'json-value',
+      body: {
+        choices: [
+          {
+            index: 0,
+            message: {
+              content: null,
+              tool_calls: [
+                {
+                  id: 'response-call',
+                  type: 'function',
+                  function: {
+                    name: 'json',
+                    arguments: '{"date":"2026-09-04"}',
+                  },
+                },
+              ],
+            },
+            finish_reason: 'tool_calls',
+          },
+        ],
+      },
+    };
+
+    const result = await provider('openai/gpt-oss-120b').doGenerate({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { date: { type: 'string' } },
+          required: ['date'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          type: 'function',
+          name: 'resolveDate',
+          inputSchema: {
+            type: 'object',
+            properties: { expression: { type: 'string' } },
+            required: ['expression'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.response_format).toBeUndefined();
+    expect(requestBody.parallel_tool_calls).toBe(false);
+    expect(requestBody.tool_choice).toBe('required');
+    expect(requestBody.tools.map((tool: any) => tool.function.name)).toEqual([
+      'resolveDate',
+      'json',
+    ]);
+    expect(result.content).toEqual([
+      { type: 'text', text: '{"date":"2026-09-04"}' },
+    ]);
+    expect(result.finishReason).toEqual({
+      unified: 'stop',
+      raw: 'tool_calls',
+    });
+  });
+
   it('should pass response format information as json_object when structuredOutputs explicitly disabled', async () => {
     prepareJsonFixtureResponse('groq-text');
 
@@ -1071,6 +1139,81 @@ describe('doStream', () => {
         await convertReadableStreamToArray(result.stream),
       ).toMatchSnapshot();
     });
+  });
+
+  it('should stream a JSON response tool as text', async () => {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
+      type: 'stream-chunks',
+      chunks: [
+        'data: {"id":"response-id","created":1770000000,"model":"openai/gpt-oss-120b","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"response-call","type":"function","function":{"name":"json","arguments":"{\\"date\\":\\""}}]},"finish_reason":null}]}\n\n',
+        'data: {"id":"response-id","created":1770000000,"model":"openai/gpt-oss-120b","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"2026-09-04\\"}"}}]},"finish_reason":null}]}\n\n',
+        'data: {"id":"response-id","created":1770000000,"model":"openai/gpt-oss-120b","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}\n\n',
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await provider('openai/gpt-oss-120b').doStream({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { date: { type: 'string' } },
+          required: ['date'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          type: 'function',
+          name: 'resolveDate',
+          inputSchema: {
+            type: 'object',
+            properties: { expression: { type: 'string' } },
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toEqual([
+      { type: 'stream-start', warnings: [] },
+      {
+        type: 'response-metadata',
+        id: 'response-id',
+        modelId: 'openai/gpt-oss-120b',
+        timestamp: new Date(1770000000 * 1000),
+      },
+      { type: 'text-start', id: 'response-call' },
+      {
+        type: 'text-delta',
+        id: 'response-call',
+        delta: '{"date":"',
+      },
+      {
+        type: 'text-delta',
+        id: 'response-call',
+        delta: '2026-09-04"}',
+      },
+      { type: 'text-end', id: 'response-call' },
+      {
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'tool_calls' },
+        usage: {
+          inputTokens: {
+            total: undefined,
+            noCache: undefined,
+            cacheRead: undefined,
+            cacheWrite: undefined,
+          },
+          outputTokens: {
+            total: undefined,
+            text: undefined,
+            reasoning: undefined,
+          },
+          raw: undefined,
+        },
+      },
+    ]);
   });
 
   describe('reasoning', () => {
