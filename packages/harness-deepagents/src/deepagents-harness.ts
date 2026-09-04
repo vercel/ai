@@ -15,7 +15,6 @@ import {
   type HarnessV1PortEndpoint,
   type HarnessV1ResumeSessionState,
   type HarnessV1Session,
-  type HarnessV1Skill,
   type HarnessV1StreamPart,
 } from '@ai-sdk/harness';
 import {
@@ -35,8 +34,7 @@ import {
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
   withBridgeToken,
-  writeSkills as writeHarnessSkills,
-  type WriteSkillsResult,
+  writeSkills,
 } from '@ai-sdk/harness/utils';
 import {
   tool,
@@ -362,7 +360,7 @@ export function createDeepAgents(
             sandboxCredentialEnvironment,
             isResume: true,
             sandbox: toolSafeSandboxSession,
-            homeSkillsRoot,
+            homeDir,
             skillsPaths,
             permissionMode,
             builtinToolFiltering: startOpts.builtinToolFiltering,
@@ -486,7 +484,7 @@ export function createDeepAgents(
         sandboxCredentialEnvironment,
         isResume,
         sandbox: toolSafeSandboxSession,
-        homeSkillsRoot,
+        homeDir,
         skillsPaths,
         permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
@@ -563,36 +561,6 @@ async function resolveBridgeEndpoint({
   });
 }
 
-// Materialize each skill as a native deepagents `<name>/SKILL.md` folder (+ attached files) under the given root, so skills load on demand and file references resolve.
-async function writeSkills({
-  sandbox,
-  root,
-  skills,
-  abortSignal,
-}: {
-  sandbox: SandboxSession;
-  root: string;
-  skills: ReadonlyArray<HarnessV1Skill>;
-  abortSignal?: AbortSignal;
-}): Promise<WriteSkillsResult> {
-  /*
-   * DeepAgents requires each `SKILL.md` frontmatter name to match the parent
-   * directory name, so keep the stricter lowercase skill-name policy here.
-   */
-  return writeHarnessSkills({
-    sandbox,
-    rootDir: root,
-    skills,
-    abortSignal,
-    skillNamePattern: /^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/,
-    invalidSkillNameMessage: ({ name }) =>
-      `Invalid deepagents skill name '${name}': must be lowercase alphanumeric with hyphens, 1-64 chars.`,
-    filePathMode: 'strip-leading-slashes',
-    invalidSkillFilePathMessage: ({ skillName, filePath }) =>
-      `Invalid skill file path for '${skillName}': ${filePath}`,
-  });
-}
-
 function openWebSocket({
   url,
   headers,
@@ -627,7 +595,7 @@ function createSession({
   sandboxCredentialEnvironment,
   isResume,
   sandbox,
-  homeSkillsRoot,
+  homeDir,
   skillsPaths,
   permissionMode,
   builtinToolFiltering,
@@ -648,7 +616,7 @@ function createSession({
   sandboxCredentialEnvironment: Record<string, string> | undefined;
   isResume: boolean;
   sandbox: SandboxSession;
-  homeSkillsRoot: string;
+  homeDir: string;
   skillsPaths?: string[];
   permissionMode?: HarnessV1PermissionMode;
   builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
@@ -796,9 +764,16 @@ function createSession({
       }
       const skillWriteResult = await writeSkills({
         sandbox,
-        root: homeSkillsRoot,
+        homePath: homeDir,
+        skillsDir: '.agents/skills',
         skills: promptOpts.skills,
         abortSignal: promptOpts.abortSignal,
+        skillNamePattern: /^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/,
+        invalidSkillNameMessage: ({ name }) =>
+          `Invalid deepagents skill name '${name}': must be lowercase alphanumeric with hyphens, 1-64 chars.`,
+        filePathMode: 'strip-leading-slashes',
+        invalidSkillFilePathMessage: ({ skillName, filePath }) =>
+          `Invalid skill file path for '${skillName}': ${filePath}`,
       });
       const control = wireTurn({
         emit: promptOpts.emit,
