@@ -5,6 +5,7 @@ import {
   type JSONValue,
   type LanguageModelV4Message,
   type LanguageModelV4Prompt,
+  type LanguageModelV4ToolResultPart,
   type SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
@@ -164,7 +165,9 @@ export async function convertToAmazonBedrockChatMessages(
   system: AmazonBedrockSystemMessages;
   messages: AmazonBedrockMessages;
 }> {
-  const blocks = groupIntoBlocks(prompt);
+  const blocks = groupIntoBlocks(
+    moveAssistantToolResultsToToolMessages(prompt),
+  );
 
   let system: AmazonBedrockSystemMessages = [];
   const messages: AmazonBedrockMessages = [];
@@ -644,6 +647,45 @@ export async function convertToAmazonBedrockChatMessages(
   }
 
   return { system, messages };
+}
+
+/**
+ * Bedrock requires tool results in the user message immediately following the
+ * assistant message that contains their tool uses. Core represents completed
+ * provider-executed tools as both a tool call and a tool result in the
+ * assistant message, so move those results into a synthetic tool message
+ * before grouping the prompt into Bedrock messages.
+ */
+function moveAssistantToolResultsToToolMessages(
+  prompt: LanguageModelV4Prompt,
+): LanguageModelV4Prompt {
+  const normalizedPrompt: LanguageModelV4Prompt = [];
+
+  for (const message of prompt) {
+    if (message.role !== 'assistant') {
+      normalizedPrompt.push(message);
+      continue;
+    }
+
+    const assistantContent: typeof message.content = [];
+    const toolResults: Array<LanguageModelV4ToolResultPart> = [];
+
+    for (const part of message.content) {
+      if (part.type === 'tool-result') {
+        toolResults.push(part);
+      } else {
+        assistantContent.push(part);
+      }
+    }
+
+    normalizedPrompt.push({ ...message, content: assistantContent });
+
+    if (toolResults.length > 0) {
+      normalizedPrompt.push({ role: 'tool', content: toolResults });
+    }
+  }
+
+  return normalizedPrompt;
 }
 
 // wrap invalid tool call input because Bedrock requires it to be an object
