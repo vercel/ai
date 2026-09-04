@@ -1,5 +1,4 @@
 ---
-"@ai-sdk/harness-cursor": patch
 "@ai-sdk/harness-acp": patch
 "@ai-sdk/harness-fx": patch
 "@ai-sdk/harness-grok-build": patch

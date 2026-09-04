@@ -29,7 +29,6 @@ describe('createCursor', () => {
       credentialEnv: settings.credentialEnv,
       authentication: settings.authentication,
       providerAuthentication: settings.providerAuthentication,
-      instructionMapping: settings.instructionMapping,
       builtinToolNames: Object.keys(settings.builtinTools ?? {}),
     }).toMatchInlineSnapshot(`
       {
@@ -79,10 +78,6 @@ describe('createCursor', () => {
         ],
         "executable": "agent",
         "harnessId": "cursor",
-        "instructionMapping": {
-          "path": ".cursor/rules/AGENTS.md",
-          "type": "filesystem",
-        },
         "providerAuthentication": undefined,
         "source": {
           "command": "curl https://cursor.com/install -fsS | bash",
