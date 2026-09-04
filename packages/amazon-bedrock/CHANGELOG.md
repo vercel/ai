@@ -1,5 +1,13 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.171
+
+### Patch Changes
+
+- 0465c7e: fix(amazon-bedrock): return generated text from citation content blocks
+- Updated dependencies [019eec8]
+  - @ai-sdk/openai@3.0.108
+
 ## 4.0.170
 
 ### Patch Changes

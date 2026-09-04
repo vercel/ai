@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 1.0.78
+
+### Patch Changes
+
+- 172d3c0: feat(mcp): surface server-provided tool annotations in tool metadata
+
 ## 1.0.77
 
 ### Patch Changes
