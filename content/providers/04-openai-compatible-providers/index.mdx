@@ -77,6 +77,11 @@ You can use the following optional settings to customize the provider instance:
 
   Set to true if the provider supports structured outputs. Only relevant for `provider()`, `provider.chatModel()`, and `provider.languageModel()`.
 
+- **supportsBatch** _boolean_
+
+  Set to `true` only if the provider implements the OpenAI-style Files and
+  Batches APIs and accepts JSONL requests for `/v1/chat/completions`.
+
 - **supportedUrls** _() =&gt; Record&lt;string, RegExp[]&gt;_
 
   Defines URLs that chat models can access directly, grouped by media type.
@@ -119,6 +124,68 @@ Chat models created with this provider support the following capabilities:
 - **Reasoning content** - Support for models that return reasoning/thinking tokens (e.g., DeepSeek R1)
 - **System messages** - Support for system prompts
 - **Multi-modal inputs** - Support for images and other content types (provider-dependent)
+
+### Text Batches
+
+<Note type="warning">
+  Text batch support is experimental and the API may change in patch releases.
+</Note>
+
+Some OpenAI-compatible providers support asynchronous text generation through
+the OpenAI-style Files and Batches APIs. Enable batch support explicitly because
+OpenAI compatibility does not include these endpoints by default.
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import {
+  experimental_getBatchResults as getBatchResults,
+  experimental_getBatchStatus as getBatchStatus,
+  experimental_startTextBatch as startTextBatch,
+} from 'ai';
+import { setTimeout } from 'node:timers/promises';
+
+const provider = createOpenAICompatible({
+  name: 'providerName',
+  apiKey: process.env.PROVIDER_API_KEY,
+  baseURL: 'https://api.provider.com/v1',
+  supportsBatch: true,
+});
+const model = provider('model-id');
+
+const batch = await startTextBatch({
+  model,
+  requests: [
+    { id: 'capital-france', prompt: 'What is the capital of France?' },
+    { id: 'capital-germany', prompt: 'What is the capital of Germany?' },
+  ],
+});
+
+let status = batch.status;
+while (status === 'pending') {
+  await setTimeout(60_000);
+  ({ status } = await getBatchStatus({ model, batch }));
+}
+
+for await (const item of getBatchResults({ model, batch })) {
+  if (item.status === 'succeeded') {
+    console.log(item.id, item.text);
+  } else {
+    console.error(item.id, item.error);
+  }
+}
+```
+
+`startTextBatch` returns a serializable batch reference. Persist this reference
+to check status or retrieve results from another process. Results can arrive in
+a different order from the input requests, so match each result by its `id`.
+
+The shared implementation requires OpenAI-style `/files` and `/batches`
+endpoints. It uploads JSONL lines for `/v1/chat/completions` and reads OpenAI-style
+output and error files. A provider with a different batch protocol needs its own
+batch model implementation.
+
+When you provide a `webhookUrl`, the provider returns an unsupported warning and
+starts the batch without a webhook.
 
 ### Example
 
