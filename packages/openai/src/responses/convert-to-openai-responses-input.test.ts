@@ -6149,6 +6149,80 @@ describe('convertToOpenAIResponsesInput', () => {
   });
 
   describe('programmatic tool calling', () => {
+    it('should not serialize a denied program-owned tool call as its fulfilled value', async () => {
+      const denialReason = 'ACCESS_DENIED_SENTINEL';
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'program_call_1',
+                toolName: 'program',
+                input: {
+                  code: 'await tools.get_secret({});',
+                  fingerprint: 'fingerprint_1',
+                },
+                providerExecuted: true,
+                providerOptions: {
+                  openai: { itemId: 'program_item_1' },
+                },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'function_call_1',
+                toolName: 'get_secret',
+                input: {},
+                providerOptions: {
+                  openai: {
+                    itemId: 'function_item_1',
+                    caller: {
+                      type: 'program',
+                      callerId: 'program_call_1',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'function_call_1',
+                toolName: 'get_secret',
+                output: {
+                  type: 'execution-denied',
+                  reason: denialReason,
+                },
+              },
+            ],
+          },
+        ],
+        toolNameMapping: {
+          toProviderToolName: name =>
+            name === 'program' ? 'programmatic_tool_calling' : name,
+          toCustomToolName: name =>
+            name === 'programmatic_tool_calling' ? 'program' : name,
+        },
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      const denialWasSerializedAsFulfilledValue = result.input.some(
+        item =>
+          'type' in item &&
+          item.type === 'function_call_output' &&
+          item.call_id === 'function_call_1' &&
+          item.output === denialReason,
+      );
+
+      expect(denialWasSerializedAsFulfilledValue).toBe(false);
+    });
+
     it('should preserve the program output item reference from provider metadata', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
