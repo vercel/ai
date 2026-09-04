@@ -1,80 +1,35 @@
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import type { HarnessV1Skill } from '@ai-sdk/harness';
-import { writeSkills, type WriteSkillsResult } from '@ai-sdk/harness/utils';
-import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 
-const ACP_SKILL_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+export const ACP_SKILL_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const DEFAULT_ACP_SKILLS_DIRECTORY = '.agents/skills';
 
 export function resolveACPPrivateSessionDirectory({
   sandboxHomeDir,
-  sessionWorkDir,
   harnessId,
   sessionId,
 }: {
   sandboxHomeDir: string;
-  sessionWorkDir: string;
   harnessId: string;
   sessionId: string;
 }): string {
   const sessionKey = createHash('sha256').update(sessionId).digest('hex');
-  const rootDir = path.posix.join(
+  return path.posix.join(
     sandboxHomeDir,
     '.ai-sdk',
     'harness-acp',
     harnessId,
     sessionKey,
   );
-  assertOutsideSessionWorkDir({ rootDir, sessionWorkDir });
-  return rootDir;
-}
-
-export async function materializeACPSkills({
-  sandbox,
-  homePath,
-  skillsDir,
-  sessionWorkDir,
-  skills,
-  abortSignal,
-}: {
-  sandbox: Experimental_SandboxSession;
-  homePath: string;
-  skillsDir: string;
-  sessionWorkDir: string;
-  skills: ReadonlyArray<HarnessV1Skill>;
-  abortSignal?: AbortSignal;
-}): Promise<WriteSkillsResult> {
-  validateACPSkills({ skills });
-  assertOutsideSessionWorkDir({
-    rootDir: path.posix.join(homePath, skillsDir),
-    sessionWorkDir,
-  });
-
-  return writeSkills({
-    sandbox,
-    homePath,
-    skillsDir,
-    skills,
-    abortSignal,
-    skillNamePattern: ACP_SKILL_NAME_PATTERN,
-    invalidSkillNameMessage: ({ name }) =>
-      `Invalid ACP skill name ${JSON.stringify(name)}: expected a kebab-case slug.`,
-    invalidSkillFilePathMessage: ({ skillName, filePath }) =>
-      `Invalid ACP skill file path ${JSON.stringify(filePath)} for skill ${JSON.stringify(
-        skillName,
-      )}: expected a relative POSIX path without traversal.`,
-  });
 }
 
 export function resolveACPSkillsDirectory({
   implementationHomeDir,
   skillsDirectory = DEFAULT_ACP_SKILLS_DIRECTORY,
-  sessionWorkDir,
 }: {
   implementationHomeDir: string;
   skillsDirectory?: string;
-  sessionWorkDir: string;
 }): string {
   const containsTraversal = skillsDirectory
     .split(/[\\/]/)
@@ -96,12 +51,10 @@ export function resolveACPSkillsDirectory({
     );
   }
 
-  const rootDir = path.posix.join(implementationHomeDir, normalizedDirectory);
-  assertOutsideSessionWorkDir({ rootDir, sessionWorkDir });
-  return rootDir;
+  return path.posix.join(implementationHomeDir, normalizedDirectory);
 }
 
-function validateACPSkills({
+export function validateACPSkills({
   skills,
 }: {
   skills: ReadonlyArray<HarnessV1Skill>;
@@ -179,24 +132,4 @@ function validateACPAttachedFilePath({
     );
   }
   return normalizedPath;
-}
-
-function assertOutsideSessionWorkDir({
-  rootDir,
-  sessionWorkDir,
-}: {
-  rootDir: string;
-  sessionWorkDir: string;
-}): void {
-  const relative = path.posix.relative(sessionWorkDir, rootDir);
-  const isInside =
-    relative === '' ||
-    (!relative.startsWith('../') && !path.posix.isAbsolute(relative));
-  if (isInside) {
-    throw new Error(
-      `ACP skill directory ${JSON.stringify(rootDir)} must be outside sessionWorkDir ${JSON.stringify(
-        sessionWorkDir,
-      )}.`,
-    );
-  }
 }

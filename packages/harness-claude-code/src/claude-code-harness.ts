@@ -13,6 +13,7 @@ import {
   type HarnessV1PermissionMode,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
+  type HarnessV1ResponseFormat,
   type HarnessV1PortEndpoint,
   type HarnessV1ResumeSessionState,
   type HarnessV1NetworkSandboxSession,
@@ -39,7 +40,7 @@ import {
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
   withBridgeToken,
-  writeSkills as writeHarnessSkills,
+  writeSkills,
 } from '@ai-sdk/harness/utils';
 import {
   safeParseJSON,
@@ -1251,31 +1252,6 @@ async function resolveBridgeEndpoint({
  * be in place before the bridge is spawned without mutating the session
  * workdir. Each file uses the YAML-frontmatter shape the CLI expects.
  */
-async function writeClaudeCodeSkills({
-  sandbox,
-  homeDir,
-  skills,
-  abortSignal,
-}: {
-  sandbox: SandboxSession;
-  homeDir: string;
-  skills: ReadonlyArray<HarnessV1Skill>;
-  abortSignal?: AbortSignal;
-}): Promise<void> {
-  await writeHarnessSkills({
-    sandbox,
-    homePath: homeDir,
-    skillsDir: '.claude/skills',
-    skills,
-    abortSignal,
-    invalidSkillNameMessage: ({ name }) =>
-      `Invalid Claude Code skill name: ${name}`,
-    invalidSkillFilePathMessage: ({ skillName, filePath }) =>
-      `Invalid Claude Code skill file path for ${skillName}: ${filePath}`,
-    trailingNewline: true,
-  });
-}
-
 /**
  * Wait for the bridge's `bridge-hello` message to arrive on the freshly
  * opened WebSocket before any other host-side code touches it.
@@ -1705,30 +1681,45 @@ function createSession({
     };
   };
 
+  const prepareTurn = async (turnOpts: {
+    responseFormat?: HarnessV1ResponseFormat;
+    skills: ReadonlyArray<HarnessV1Skill>;
+    emit: (event: HarnessV1StreamPart) => void;
+    abortSignal?: AbortSignal;
+  }): Promise<HarnessV1PromptControl> => {
+    if (
+      turnOpts.responseFormat?.type === 'json' &&
+      turnOpts.responseFormat.schema == null
+    ) {
+      throw new HarnessCapabilityUnsupportedError({
+        message:
+          "Harness 'claude-code' requires a JSON schema for structured output.",
+        harnessId: 'claude-code',
+      });
+    }
+    await writeSkills({
+      sandbox,
+      homePath: sandboxHomeDir,
+      skillsDir: '.claude/skills',
+      skills: turnOpts.skills,
+      abortSignal: turnOpts.abortSignal,
+      invalidSkillNameMessage: ({ name }) =>
+        `Invalid Claude Code skill name: ${name}`,
+      invalidSkillFilePathMessage: ({ skillName, filePath }) =>
+        `Invalid Claude Code skill file path for ${skillName}: ${filePath}`,
+      trailingNewline: true,
+    });
+    return wireTurn({
+      emit: turnOpts.emit,
+      abortSignal: turnOpts.abortSignal,
+    });
+  };
+
   return {
     sessionId,
     isResume,
     doPromptTurn: async promptOpts => {
-      if (
-        promptOpts.responseFormat?.type === 'json' &&
-        promptOpts.responseFormat.schema == null
-      ) {
-        throw new HarnessCapabilityUnsupportedError({
-          message:
-            "Harness 'claude-code' requires a JSON schema for structured output.",
-          harnessId: 'claude-code',
-        });
-      }
-      await writeClaudeCodeSkills({
-        sandbox,
-        homeDir: sandboxHomeDir,
-        skills: promptOpts.skills,
-        abortSignal: promptOpts.abortSignal,
-      });
-      const control = wireTurn({
-        emit: promptOpts.emit,
-        abortSignal: promptOpts.abortSignal,
-      });
+      const control = await prepareTurn(promptOpts);
 
       /*
        * A signal that was already aborted has settled the turn inside
@@ -1778,26 +1769,7 @@ function createSession({
       return control;
     },
     doContinueTurn: async continueOpts => {
-      if (
-        continueOpts.responseFormat?.type === 'json' &&
-        continueOpts.responseFormat.schema == null
-      ) {
-        throw new HarnessCapabilityUnsupportedError({
-          message:
-            "Harness 'claude-code' requires a JSON schema for structured output.",
-          harnessId: 'claude-code',
-        });
-      }
-      await writeClaudeCodeSkills({
-        sandbox,
-        homeDir: sandboxHomeDir,
-        skills: continueOpts.skills,
-        abortSignal: continueOpts.abortSignal,
-      });
-      const control = wireTurn({
-        emit: continueOpts.emit,
-        abortSignal: continueOpts.abortSignal,
-      });
+      const control = await prepareTurn(continueOpts);
 
       /*
        * attach / replay: the still-running (or disk-replayed) turn streams into

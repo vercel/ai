@@ -37,8 +37,7 @@ import {
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
   withBridgeToken,
-  writeSkills as writeHarnessSkills,
-  type WriteSkillsResult,
+  writeSkills,
 } from '@ai-sdk/harness/utils';
 import {
   type Experimental_SandboxProcess,
@@ -633,29 +632,6 @@ async function resolveBridgeEndpoint({
   });
 }
 
-async function writeCodexSkills({
-  sandbox,
-  sandboxHomeDir,
-  skills,
-  abortSignal,
-}: {
-  sandbox: SandboxSession;
-  sandboxHomeDir: string;
-  skills: ReadonlyArray<HarnessV1Skill>;
-  abortSignal?: AbortSignal;
-}): Promise<WriteSkillsResult> {
-  return writeHarnessSkills({
-    sandbox,
-    homePath: sandboxHomeDir,
-    skillsDir: '.agents/skills',
-    skills,
-    abortSignal,
-    invalidSkillNameMessage: ({ name }) => `Invalid Codex skill name: ${name}`,
-    invalidSkillFilePathMessage: ({ skillName, filePath }) =>
-      `Invalid Codex skill file path for ${skillName}: ${filePath}`,
-  });
-}
-
 function openWebSocket({
   url,
   headers,
@@ -772,11 +748,16 @@ function createSession({
     }>;
     abortSignal?: AbortSignal;
   }): Promise<{ restartThread: boolean }> => {
-    const skillsResult = await writeCodexSkills({
+    const skillsResult = await writeSkills({
       sandbox,
-      sandboxHomeDir,
+      homePath: sandboxHomeDir,
+      skillsDir: '.agents/skills',
       skills,
       abortSignal,
+      invalidSkillNameMessage: ({ name }) =>
+        `Invalid Codex skill name: ${name}`,
+      invalidSkillFilePathMessage: ({ skillName, filePath }) =>
+        `Invalid Codex skill file path for ${skillName}: ${filePath}`,
     });
     const nextFingerprint = fingerprintCodexTurnConfiguration({
       instructions,
