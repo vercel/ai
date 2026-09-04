@@ -1104,6 +1104,37 @@ describe('options.onStart and onEnd together', () => {
   });
 });
 
+describe('response length validation (#20359)', () => {
+  it('should throw on empty embeddings (fast path)', async () => {
+    await assert.rejects(
+      embedMany({
+        model: new MockEmbeddingModelV4({
+          maxEmbeddingsPerCall: null,
+          doEmbed: mockEmbed(testValues, []),
+        }),
+        values: testValues,
+      }),
+      /does not match values count/,
+    );
+  });
+
+  it('should throw on short chunk embeddings (chunked path)', async () => {
+    await assert.rejects(
+      embedMany({
+        model: new MockEmbeddingModelV4({
+          maxEmbeddingsPerCall: 2,
+          doEmbed: (async () => ({
+            embeddings: dummyEmbeddings.slice(0, 1),
+            warnings: [],
+          })) as never,
+        }),
+        values: testValues,
+      }),
+      /does not match values count/,
+    );
+  });
+});
+
 function mockEmbed(
   expectedValues: Array<string>,
   embeddings: Array<Embedding>,

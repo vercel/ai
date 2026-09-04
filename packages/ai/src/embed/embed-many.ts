@@ -3,6 +3,7 @@ import {
   withUserAgentSuffix,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
+import { InvalidResponseDataError } from '@ai-sdk/provider';
 import { logWarnings } from '../logger/log-warnings';
 import { getEmbeddingModelMaxInputBytesPerCall } from '../model/get-embedding-model-max-input-bytes-per-call';
 import { resolveEmbeddingModel } from '../model/resolve-model';
@@ -239,6 +240,12 @@ export async function embedMany({
               });
 
               const embeddings = modelResponse.embeddings;
+              if (embeddings.length !== values.length) {
+                throw new InvalidResponseDataError({
+                  data: modelResponse,
+                  message: `Response embeddings count (${embeddings.length}) does not match values count (${values.length}).`,
+                });
+              }
               const usage = modelResponse.usage ?? { tokens: NaN };
 
               await notify({
@@ -349,6 +356,12 @@ export async function embedMany({
                 });
 
                 const chunkEmbeddings = modelResponse.embeddings;
+                if (chunkEmbeddings.length !== chunk.length) {
+                  throw new InvalidResponseDataError({
+                    data: modelResponse,
+                    message: `Response embeddings count (${chunkEmbeddings.length}) does not match values count (${chunk.length}).`,
+                  });
+                }
                 const usage = modelResponse.usage ?? { tokens: NaN };
 
                 await notify({
