@@ -1,7 +1,13 @@
-import { randomBytes, timingSafeEqual } from 'node:crypto';
+import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import type { HarnessV1BridgeToolWire } from '@ai-sdk/harness';
+import type { ACPHostToolMCPTransport } from '../acp-v1-settings';
+import {
+  createHostToolMCPHttpEndpoint,
+  HOST_TOOL_MCP_ENDPOINT_PATH,
+  type HostToolMCPHttpEndpoint,
+} from './host-tool-mcp-http';
 
 export type HostToolCorrelationInvocation = {
   readonly token: string;
@@ -34,6 +40,11 @@ export type HostToolRelayTurn = {
 
 export type HostToolRelay = {
   readonly url: string;
+  /**
+   * MCP endpoint that exposes the host tool catalog over Streamable HTTP.
+   * Only present when the relay was started with the `http` MCP transport.
+   */
+  readonly mcpUrl?: string;
   readonly credential: string;
   bindTurn(options: { turn: HostToolRelayTurn }): void;
   unbindTurn(options: { turn: HostToolRelayTurn }): void;
@@ -64,9 +75,11 @@ type CatalogState = {
 export async function startHostToolRelay({
   tools,
   serverName,
+  mcpTransport = 'stdio',
 }: {
   tools: ReadonlyArray<HarnessV1BridgeToolWire>;
   serverName: string;
+  mcpTransport?: ACPHostToolMCPTransport;
 }): Promise<HostToolRelay> {
   const state: CatalogState = {
     tools: [...tools],
@@ -81,8 +94,52 @@ export async function startHostToolRelay({
   let activeTurn: HostToolRelayTurn | undefined;
   let invocationOrder = 0;
   let closePromise: Promise<void> | undefined;
+  const mcpEndpoint: HostToolMCPHttpEndpoint | undefined =
+    mcpTransport === 'http'
+      ? createHostToolMCPHttpEndpoint({
+          tools: state.tools,
+          revision: state.revision,
+          invoke: ({ toolName, input, catalogRevision }) =>
+            handleInvocation({
+              body: {
+                requestId: randomUUID(),
+                toolName,
+                input,
+                catalogRevision,
+              },
+              state,
+              serverName,
+              turn: activeTurn,
+              nextInvocationOrder: () => ++invocationOrder,
+            }),
+          onListTools: async ({ revision }) => {
+            acknowledgeCatalog({ state, revision });
+          },
+        })
+      : undefined;
   const server = createServer(async (request, response) => {
     try {
+      if (mcpEndpoint != null && request.url === HOST_TOOL_MCP_ENDPOINT_PATH) {
+        if (
+          !credentialsMatch({
+            expected: credential,
+            actual: request.headers.authorization,
+          })
+        ) {
+          throw new RelayRequestError({
+            status: 401,
+            message: 'Invalid host tool relay credential.',
+          });
+        }
+        await mcpEndpoint.handleRequest({
+          request,
+          response,
+          ...(request.method === 'POST'
+            ? { body: await readJSONBody({ request }) }
+            : {}),
+        });
+        return;
+      }
       const result = await handleRequest({
         request,
         credential,
@@ -94,6 +151,10 @@ export async function startHostToolRelay({
       response.writeHead(200, { 'content-type': 'application/json' });
       response.end(JSON.stringify(result));
     } catch (error) {
+      if (response.headersSent) {
+        response.end();
+        return;
+      }
       const status = error instanceof RelayRequestError ? error.status : 500;
       response.writeHead(status, { 'content-type': 'application/json' });
       response.end(
@@ -108,6 +169,11 @@ export async function startHostToolRelay({
 
   return {
     url: `http://127.0.0.1:${address.port}/invoke`,
+    ...(mcpEndpoint == null
+      ? {}
+      : {
+          mcpUrl: `http://127.0.0.1:${address.port}${HOST_TOOL_MCP_ENDPOINT_PATH}`,
+        }),
     credential,
     bindTurn: ({ turn }) => {
       if (activeTurn != null && activeTurn !== turn) {
@@ -127,6 +193,10 @@ export async function startHostToolRelay({
       state.fingerprint = fingerprint;
       state.revision += 1;
       resolveCatalogChanges({ state });
+      void mcpEndpoint?.updateCatalog({
+        revision: state.revision,
+        tools: state.tools,
+      });
       return { changed: true, revision: state.revision };
     },
     waitForCatalogRefresh: ({ revision, timeoutMs }) =>
@@ -136,7 +206,10 @@ export async function startHostToolRelay({
       state.closed = true;
       resolveCatalogChanges({ state });
       resolveRefreshWaiters({ state, closing: true });
-      closePromise = closeServer({ server });
+      closePromise = (async () => {
+        await mcpEndpoint?.close();
+        await closeServer({ server });
+      })();
       return closePromise;
     },
   };
@@ -243,12 +316,19 @@ function handleCatalogSeen({
       message: 'Invalid host tool catalog acknowledgment.',
     });
   }
-  state.servedRevision = Math.max(
-    state.servedRevision,
-    body.revision as number,
-  );
-  resolveRefreshWaiters({ state, closing: false });
+  acknowledgeCatalog({ state, revision: body.revision as number });
   return { acknowledged: true };
+}
+
+function acknowledgeCatalog({
+  state,
+  revision,
+}: {
+  state: CatalogState;
+  revision: number;
+}): void {
+  state.servedRevision = Math.max(state.servedRevision, revision);
+  resolveRefreshWaiters({ state, closing: false });
 }
 
 async function handleInvocation({

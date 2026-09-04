@@ -74,6 +74,14 @@ export type ACPHarnessSettings<
   readonly skillsDirectory?: ACPV1Settings['skillsDirectory'];
   readonly instructionMapping?: ACPV1Settings['instructionMapping'];
   readonly outputSchemaMapping?: ACPV1Settings['outputSchemaMapping'];
+  /**
+   * Transport used for the harness-owned MCP server that exposes host tools to
+   * the ACP implementation. Defaults to `stdio`. Set this to `http` for
+   * implementations that only accept HTTP or SSE MCP servers from the client,
+   * which requires the implementation to advertise
+   * `agentCapabilities.mcpCapabilities.http`.
+   */
+  readonly hostToolMcpTransport?: ACPV1Settings['hostToolMcpTransport'];
   readonly askUserQuestions?: TAskUserQuestions;
   readonly permissionModeMapping?: ACPV1Settings['permissionModeMapping'];
   readonly session?: ACPV1Settings['session'];
