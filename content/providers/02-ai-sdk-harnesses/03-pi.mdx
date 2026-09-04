@@ -116,6 +116,23 @@ factories you explicitly provide. Filesystem extension discovery remains
 disabled, including user, project, and settings-based extensions. Themes and
 prompt templates also remain disabled.
 
+## Low-level Event Translation
+
+Use the `@ai-sdk/harness-pi/translate` subpath when consuming Pi session events
+outside the harness session implementation:
+
+```ts
+import {
+  createPiTranslatorState,
+  translatePiEvent,
+} from '@ai-sdk/harness-pi/translate';
+
+const state = createPiTranslatorState();
+const streamParts = translatePiEvent(event, state);
+```
+
+Reuse the same translator state for every event in a turn.
+
 ## Authentication
 
 The `auth` setting selects which credentials Pi reads from the host environment:
