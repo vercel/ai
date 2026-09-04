@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20355,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20355-empty-embedding.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20355-empty-embedding.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #20355 REPRODUCED: embed() resolved with undefined embedding after an empty provider response"
+  }
+}
