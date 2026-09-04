@@ -2441,6 +2441,90 @@ describe('createACP', () => {
     await session.doDestroy();
   });
 
+  it('materializes instructions into the filesystem and never prepends prompt guidance', async () => {
+    const writes: Array<{ path: string; content: string }> = [];
+    const harness = createACP({
+      harnessId: 'cursor-acp',
+      ...agentSettings,
+      instructionMapping: {
+        type: 'filesystem',
+        path: '.cursor/rules/AGENTS.md',
+      },
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns: [],
+        writes,
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+    const channel = harnessUtilsMocks.channels[0]!;
+
+    const first = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Draft release notes.',
+      instructions: 'Always run tests.',
+      emit: () => {},
+    });
+    expect(channel.sent[0]).toMatchObject({
+      type: 'start',
+      instructions: 'Always run tests.',
+      instructionMapping: {
+        type: 'filesystem',
+        path: '.cursor/rules/AGENTS.md',
+      },
+      prompt: [{ type: 'text', text: 'Draft release notes.' }],
+    });
+    expect(writes).toContainEqual({
+      path: '/home/agent/.cursor/rules/AGENTS.md',
+      content: 'Always run tests.\n',
+    });
+    expect(
+      JSON.stringify(Reflect.get(channel.sent[0]!, 'prompt')),
+    ).not.toContain('Always run tests.');
+    channel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+    await first.done;
+
+    const second = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Revise them.',
+      instructions: 'Answer every question in French.',
+      emit: () => {},
+    });
+    expect(channel.sent[1]).toMatchObject({
+      type: 'start',
+      instructions: 'Answer every question in French.',
+      instructionMapping: {
+        type: 'filesystem',
+        path: '.cursor/rules/AGENTS.md',
+      },
+      prompt: [{ type: 'text', text: 'Revise them.' }],
+    });
+    expect(writes).toContainEqual({
+      path: '/home/agent/.cursor/rules/AGENTS.md',
+      content: 'Answer every question in French.\n',
+    });
+    expect(
+      JSON.stringify(Reflect.get(channel.sent[1]!, 'prompt')),
+    ).not.toContain('Answer every question in French.');
+    channel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+    await second.done;
+    await session.doDestroy();
+  });
+
   it('replaces changed skills before starting the next turn', async () => {
     const runs: string[] = [];
     const writes: Array<{ path: string; content: string }> = [];

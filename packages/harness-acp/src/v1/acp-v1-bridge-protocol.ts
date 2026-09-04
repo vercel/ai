@@ -113,6 +113,10 @@ const instructionMappingSchema: z.ZodType<ACPInstructionMapping> =
       variable: z.string().min(1),
       path: instructionMappingPathSchema,
     }),
+    z.object({
+      type: z.literal('filesystem'),
+      path: z.string().min(1),
+    }),
   ]);
 
 type ACPSerializableOutputSchemaMapping = {

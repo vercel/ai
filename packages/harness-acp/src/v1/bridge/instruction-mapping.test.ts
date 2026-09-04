@@ -109,4 +109,37 @@ describe('ACP instruction mapping', () => {
       'ACP instruction mapping path must contain only safe, non-empty property names.',
     );
   });
+
+  it('leaves session metadata and environment unchanged for filesystem mapping', async () => {
+    const result = await resolveACPInstructionConfiguration({
+      instructions: 'Be concise.',
+      instructionMapping: {
+        type: 'filesystem',
+        path: '.cursor/rules/AGENTS.md',
+      },
+      sessionMeta: { profile: 'default' },
+      environment: { EXISTING: 'value' },
+    });
+
+    expect(result).toEqual({
+      sessionMeta: { profile: 'default' },
+      environment: { EXISTING: 'value' },
+    });
+  });
+
+  it('rejects empty filesystem paths', async () => {
+    await expect(
+      resolveACPInstructionConfiguration({
+        instructions: 'Be concise.',
+        instructionMapping: {
+          type: 'filesystem',
+          path: '   ',
+        },
+        sessionMeta: undefined,
+        environment: {},
+      }),
+    ).rejects.toThrow(
+      'ACP instruction mapping filesystem path must be a non-empty string.',
+    );
+  });
 });

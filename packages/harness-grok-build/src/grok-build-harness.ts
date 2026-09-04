@@ -353,8 +353,8 @@ export function createGrokBuild(
       ];
     },
     instructionMapping: {
-      type: 'session-meta',
-      path: ['rules'],
+      type: 'filesystem',
+      path: '.grok/AGENTS.md',
     },
     outputSchemaMapping: {
       type: 'session-prompt-meta',
