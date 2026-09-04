@@ -146,6 +146,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       providerOptionsName: this.config.providerOptionsName,
       extensionRegistry: this.extensionRegistry,
       providerToolsByName,
+      strictResponseInput: this.config.strictResponseInput,
     });
 
     warnings.push(...inputWarnings);
