@@ -268,6 +268,10 @@
               {
                 "name": "withBridgeToken",
                 "from": "@ai-sdk/harness/utils"
+              },
+              {
+                "name": "writeSkills",
+                "from": "@ai-sdk/harness/utils"
               }
             ],
             "exportTypes": [
@@ -320,7 +324,6 @@
             "declareTypes": ["${harnessId.toPascalCase()}BridgeCoords"]
           }
         },
-
         {
           "name": "versioned-harness-file-with-nested-bridge-must-declare-bridge-contracts",
           "description": "Every harness file for a bridge harness must declare its bridge contracts.",
@@ -338,6 +341,34 @@
               },
               {
                 "name": "withBridgeToken",
+                "from": "@ai-sdk/harness/utils"
+              }
+            ]
+          }
+        },
+        {
+          "name": "harness-file-with-bridge-must-materialize-skills",
+          "description": "Every harness file for a bridge harness must support materializing skills.",
+          "for": { "files": ["${harnessId}-harness.ts"] },
+          "if": { "hasFile": "bridge/index.ts" },
+          "must": {
+            "importValues": [
+              {
+                "name": "writeSkills",
+                "from": "@ai-sdk/harness/utils"
+              }
+            ]
+          }
+        },
+        {
+          "name": "versioned-harness-file-with-nested-bridge-must-materialize-skills",
+          "description": "Every harness file for a bridge harness must support materializing skills.",
+          "for": { "files": ["{version}/${harnessId}-{version}-harness.ts"] },
+          "if": { "hasFile": "v1/bridge/index.ts" },
+          "must": {
+            "importValues": [
+              {
+                "name": "writeSkills",
                 "from": "@ai-sdk/harness/utils"
               }
             ]
