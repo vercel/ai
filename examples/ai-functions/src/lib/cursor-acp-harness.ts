@@ -34,6 +34,10 @@ export function createCursorACP({
       type: 'session-config-option',
       path: 'model',
     },
+    instructionMapping: {
+      type: 'filesystem',
+      path: '.cursor/rules/AGENTS.md',
+    },
     clientCapabilities: {
       _meta: { parameterizedModelPicker: true },
     },

@@ -114,9 +114,11 @@ try {
   that use a different location.
 - `instructionMapping`: optional mapping from `HarnessAgent` instructions to
   an implementation's native system or developer prompt. Use `session-meta`
-  for a path below the ACP session request's `_meta` field, or
-  `launch-env-json` for a path within a JSON launch environment variable. When
-  omitted, instructions are prepended to the first user prompt.
+  for a path below the ACP session request's `_meta` field, `launch-env-json`
+  for a path within a JSON launch environment variable, or `filesystem` with a
+  relative `path` to write instructions to a file under the implementation's
+  effective `$HOME`. When omitted, instructions are prepended to the first user
+  prompt.
 - `outputSchemaMapping`: optional implementation-specific mapping from a
   structured output JSON Schema to a path below the ACP `session/prompt`
   request's `_meta` field. ACP does not standardize structured output, so omit
@@ -565,6 +567,10 @@ export const cursorACPHarness = createACP({
   },
   clientCapabilities: {
     _meta: { parameterizedModelPicker: true },
+  },
+  instructionMapping: {
+    type: 'filesystem',
+    path: '.cursor/rules/AGENTS.md',
   },
   credentialEnv: ['CURSOR_API_KEY'],
   credentialBrokering: ({ env, sandboxEnv }) => {
