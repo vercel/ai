@@ -375,6 +375,155 @@ describe('user messages', () => {
     `);
   });
 
+  it('should remove characters that Bedrock rejects in document names', async () => {
+    const fileData = new Uint8Array([0, 1, 2, 3]);
+
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(fileData).toString('base64'),
+            },
+            mediaType: 'application/pdf',
+            filename: "John's résumé_v2 (draft) [#2], final.pdf",
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "document": {
+                "format": "pdf",
+                "name": "Johns rsum_v2 (draft) [2] final",
+                "source": {
+                  "bytes": "AAECAw==",
+                },
+              },
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
+  it('should collapse consecutive whitespace in document names', async () => {
+    const fileData = new Uint8Array([0, 1, 2, 3]);
+
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(fileData).toString('base64'),
+            },
+            mediaType: 'application/pdf',
+            filename: 'Report -  Final\tDraft.pdf',
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "document": {
+                "format": "pdf",
+                "name": "Report - Final Draft",
+                "source": {
+                  "bytes": "AAECAw==",
+                },
+              },
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
+  it('should truncate document names to 200 characters', async () => {
+    const fileData = new Uint8Array([0, 1, 2, 3]);
+
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(fileData).toString('base64'),
+            },
+            mediaType: 'application/pdf',
+            filename: `${'a'.repeat(250)}.pdf`,
+          },
+        ],
+      },
+    ]);
+
+    expect(messages[0].content[0]).toEqual({
+      document: {
+        format: 'pdf',
+        name: 'a'.repeat(200),
+        source: { bytes: 'AAECAw==' },
+      },
+    });
+  });
+
+  it('should fall back to a generated document name when no allowed characters remain', async () => {
+    const fileData = new Uint8Array([0, 1, 2, 3]);
+
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(fileData).toString('base64'),
+            },
+            mediaType: 'application/pdf',
+            filename: '분기보고서.pdf',
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "document": {
+                "format": "pdf",
+                "name": "document-1",
+                "source": {
+                  "bytes": "AAECAw==",
+                },
+              },
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
   it('should use consistent document names for prompt cache effectiveness', async () => {
     const fileData1 = new Uint8Array([0, 1, 2, 3]);
     const fileData2 = new Uint8Array([4, 5, 6, 7]);
@@ -2224,6 +2373,52 @@ describe('tool messages', () => {
                 document: {
                   format: 'pdf',
                   name: 'tool-result',
+                  source: { bytes: 'base64data' },
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
+  });
+
+  it('should sanitize document names in tool result content', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-123',
+            toolName: 'document-reader',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'file',
+                  data: { type: 'data', data: 'base64data' },
+                  mediaType: 'application/pdf',
+                  filename: "tool's  result.pdf",
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.messages[0]).toEqual({
+      role: 'user',
+      content: [
+        {
+          toolResult: {
+            toolUseId: 'call-123',
+            content: [
+              {
+                document: {
+                  format: 'pdf',
+                  name: 'tools result',
                   source: { bytes: 'base64data' },
                 },
               },
