@@ -1781,11 +1781,6 @@ function createSession({
           `${harnessId} ACP session ${sessionId} is stopped; cannot suspend.`,
         );
       }
-      if (!turnInFlight) {
-        throw new Error(
-          `${harnessId} ACP session ${sessionId} has no in-flight turn to suspend.`,
-        );
-      }
       stopped = true;
       const lastSeenEventId = await channel.suspend();
       return {
