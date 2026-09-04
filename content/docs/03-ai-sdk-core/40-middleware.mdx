@@ -294,6 +294,31 @@ const model = wrapLanguageModel({
 
 Find more examples at this [link](https://github.com/minpeter/ai-sdk-tool-call-middleware/tree/main/examples/core/src).
 
+### EU AI Act Article 50 disclosure
+
+The [EU AI Act disclosure middleware](https://github.com/PatrickPi1312/eucompliance-ai-act-ts) attaches an Article 50 transparency disclosure to generated content. Article 50 of the EU AI Act has applied since 2 August 2026: if you build someone else's model into your product, you are the deployer and the disclosure obligation is yours, not the model provider's.
+
+The middleware produces the disclosure text you have to show your users, plus a signed provenance record — content hash, model, deployer, timestamp — for your own files. The content itself is hashed locally with `crypto.subtle` and never leaves your system; only the hash is transmitted.
+
+```ts
+import { wrapLanguageModel } from 'ai';
+import { euComplianceMiddleware } from 'eucompliance-ai-act/middleware';
+
+const model = wrapLanguageModel({
+  model: openai('gpt-4o'),
+  middleware: euComplianceMiddleware({ deployer: 'Your Company GmbH' }),
+});
+```
+
+By default the disclosure is produced alongside the call and never delays it. Pass `await: true` to receive it in `providerMetadata.eucompliance` within the same call, or `onDisclosure` to write it straight into your own logging. It works with both `generateText` and `streamText`.
+
+<Note>
+  This is a technical attestation of origin, not legal advice. A record proves
+  that this exact content was declared AI-generated at that time and is
+  unchanged since; it does not prove that content *without* a record is
+  human-made. Classifying your own system remains your responsibility.
+</Note>
+
 ## Implementing Language Model Middleware
 
 <Note>
