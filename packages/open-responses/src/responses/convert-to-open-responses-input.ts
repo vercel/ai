@@ -85,6 +85,7 @@ export async function convertToOpenResponsesInput({
                   if (topLevel === 'image') {
                     userContent.push({
                       type: 'input_image',
+                      detail: 'auto',
                       ...(part.data.type === 'url'
                         ? { image_url: part.data.url.toString() }
                         : {
@@ -413,6 +414,7 @@ export async function convertToOpenResponsesInput({
                         if (topLevel === 'image') {
                           contentParts.push({
                             type: 'input_image',
+                            detail: 'auto',
                             image_url: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
                           });
                         } else {
@@ -426,6 +428,7 @@ export async function convertToOpenResponsesInput({
                         if (topLevel === 'image') {
                           contentParts.push({
                             type: 'input_image',
+                            detail: 'auto',
                             image_url: item.data.url.toString(),
                           });
                         } else {
