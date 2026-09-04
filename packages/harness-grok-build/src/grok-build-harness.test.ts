@@ -91,10 +91,8 @@ describe('createGrokBuild', () => {
         "executable": "grok",
         "harnessId": "grok-build",
         "instructionMapping": {
-          "path": [
-            "rules",
-          ],
-          "type": "session-meta",
+          "path": ".grok/AGENTS.md",
+          "type": "filesystem",
         },
         "outputSchemaMapping": {
           "path": [

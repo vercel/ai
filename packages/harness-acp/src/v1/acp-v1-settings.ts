@@ -126,6 +126,10 @@ export type ACPInstructionMapping =
       readonly type: 'launch-env-json';
       readonly variable: string;
       readonly path: ReadonlyArray<string>;
+    }
+  | {
+      readonly type: 'filesystem';
+      readonly path: string;
     };
 
 export type ACPOutputSchemaMapping = {
