@@ -268,10 +268,6 @@
               {
                 "name": "withBridgeToken",
                 "from": "@ai-sdk/harness/utils"
-              },
-              {
-                "name": "writeSkills",
-                "from": "@ai-sdk/harness/utils"
               }
             ],
             "exportTypes": [
