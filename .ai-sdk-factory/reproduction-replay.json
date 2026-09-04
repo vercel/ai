@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20351,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20351-empty-chat-choices.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20351-empty-chat-choices.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #20351: OpenAI and OpenAI-compatible doGenerate returned raw TypeError for HTTP 200 empty choices[] instead of AISDKError"
+  }
+}
