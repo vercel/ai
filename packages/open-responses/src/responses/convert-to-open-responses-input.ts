@@ -13,21 +13,12 @@ import type {
 
 export async function convertToOpenResponsesInput({
   prompt,
-<<<<<<< HEAD
-}: {
-  prompt: LanguageModelV3Prompt;
-=======
   providerOptionsName = 'open-responses',
-  extensionRegistry,
-  providerToolsByName = new Map(),
   strictResponseInput = false,
 }: {
-  prompt: LanguageModelV4Prompt;
+  prompt: LanguageModelV3Prompt;
   providerOptionsName?: string;
-  extensionRegistry?: OpenResponsesExtensionRegistry;
-  providerToolsByName?: Map<string, LanguageModelV4ProviderTool>;
   strictResponseInput?: boolean;
->>>>>>> 4210d0b502 (feat(open-responses): add strict assistant history serialization without synthetic item IDs (#20376))
 }): Promise<{
   input: OpenResponsesRequestBody['input'];
   instructions: string | undefined;
@@ -90,12 +81,10 @@ export async function convertToOpenResponsesInput({
       }
 
       case 'assistant': {
-        const assistantContent: Array<
+        let assistantContent: Array<
           OutputTextContentParam | RefusalContentParam
         > = [];
-<<<<<<< HEAD
         const toolCalls: Array<FunctionCallItemParam> = [];
-=======
         let assistantMessageId: string | undefined;
 
         const flushAssistantContent = () => {
@@ -140,11 +129,24 @@ export async function convertToOpenResponsesInput({
           assistantContent = [];
           assistantMessageId = undefined;
         };
->>>>>>> 4210d0b502 (feat(open-responses): add strict assistant history serialization without synthetic item IDs (#20376))
 
         for (const part of content) {
           switch (part.type) {
             case 'text': {
+              const providerData = part.providerOptions?.[providerOptionsName];
+              const itemId =
+                typeof providerData?.itemId === 'string'
+                  ? providerData.itemId
+                  : undefined;
+
+              if (
+                assistantContent.length > 0 &&
+                assistantMessageId !== itemId
+              ) {
+                flushAssistantContent();
+              }
+
+              assistantMessageId = itemId;
               assistantContent.push({ type: 'output_text', text: part.text });
               break;
             }
@@ -164,14 +166,7 @@ export async function convertToOpenResponsesInput({
           }
         }
 
-        // Push assistant message with text content if any
-        if (assistantContent.length > 0) {
-          input.push({
-            type: 'message',
-            role: 'assistant',
-            content: assistantContent,
-          });
-        }
+        flushAssistantContent();
 
         // Push function calls as separate items
         for (const toolCall of toolCalls) {
