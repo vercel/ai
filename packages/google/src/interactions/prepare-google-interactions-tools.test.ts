@@ -161,6 +161,20 @@ describe('prepareGoogleInteractionsTools', () => {
         },
       },
       {
+        title: 'google.vertex_ai_search',
+        id: 'google.vertex_ai_search',
+        args: {
+          datastore: 'projects/p/locations/l/dataStores/d',
+        },
+        expected: {
+          type: 'retrieval',
+          retrieval_types: ['vertex_ai_search'],
+          vertex_ai_search_config: {
+            datastores: ['projects/p/locations/l/dataStores/d'],
+          },
+        },
+      },
+      {
         title: 'google.retrieval',
         id: 'google.retrieval',
         args: {

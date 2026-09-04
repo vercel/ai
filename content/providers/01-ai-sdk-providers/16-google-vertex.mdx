@@ -551,6 +551,61 @@ const result = await generateText({
 
 The optional `retrievalConfig.latLng` provider option provides location context for queries about nearby places. This configuration applies to any grounding tools that support location context.
 
+#### Vertex AI Search
+
+[Vertex AI Search grounding](https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/grounding-with-vertex-ai-search)
+retrieves information from a Vertex AI Search data store or engine. Provide one
+fully-qualified `datastore` or `engine` resource name:
+
+```ts
+import { googleVertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: googleVertex('gemini-2.5-flash'),
+  tools: {
+    vertex_ai_search: googleVertex.tools.vertexAiSearch({
+      datastore:
+        'projects/PROJECT_ID/locations/global/collections/default_collection/dataStores/DATA_STORE_ID',
+      maxResults: 5,
+    }),
+  },
+  prompt: 'What is our return policy?',
+});
+```
+
+When using an engine, you can additionally configure `dataStoreSpecs` to apply
+filters to individual data stores.
+
+#### External API Grounding
+
+[External API grounding](https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/grounding-with-your-search-api)
+lets Gemini retrieve information from a search endpoint that implements
+Vertex AI's simple search or Elasticsearch-compatible specification:
+
+```ts
+import { googleVertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: googleVertex('gemini-2.5-flash'),
+  tools: {
+    external_api: googleVertex.tools.externalApi({
+      apiSpec: 'SIMPLE_SEARCH',
+      endpoint: 'https://example.com/search',
+      authConfig: {
+        apiKeyConfig: { apiKeyString: process.env.SEARCH_API_KEY! },
+      },
+    }),
+  },
+  prompt: 'What is our return policy?',
+});
+```
+
+For an Elasticsearch-compatible endpoint, set `apiSpec` to `ELASTIC_SEARCH`
+and provide `elasticSearchParams` with the index, search template, and number
+of hits.
+
 #### Streaming Function Call Arguments
 
 For Gemini 3 Pro and later models on Vertex AI, you can stream function call
