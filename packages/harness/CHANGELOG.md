@@ -1,5 +1,24 @@
 # @ai-sdk/harness
 
+## 1.0.102
+
+### Patch Changes
+
+- fe86f8f: feat(harness): support established lifecycle callbacks from `ToolLoopAgent` on `HarnessAgent` too
+- 255cccf: feat(harness): add `writeInstructions` helper and support filesystem based `instructionsMapping` in ACP backed harness adapters
+- eeed977: feat(harness): allow passing arbitrary headers with inference requests via `headers` property in `HarnessAgentSettings`
+- a39c8bf: chore(harness): clarify `writeSkills` helper intent to require materializing skills in HOME directory
+- Updated dependencies [df6c009]
+- Updated dependencies [6ee74a3]
+- Updated dependencies [f13d371]
+- Updated dependencies [d4485fe]
+- Updated dependencies [4f201cc]
+- Updated dependencies [8cdb2a7]
+- Updated dependencies [0f2281e]
+- Updated dependencies [fc8e8ac]
+- Updated dependencies [ee8391e]
+  - ai@7.0.93
+
 ## 1.0.101
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @ai-sdk/mcp
 
+## 2.0.45
+
+### Patch Changes
+
+- 33ba8fd: feat(mcp): surface server-provided tool annotations in tool metadata
+- 3da84fd: Accept MCP tool results that return `structuredContent` without `content` by adding the serialized structured result as text.
+
 ## 2.0.44
 
 ### Patch Changes

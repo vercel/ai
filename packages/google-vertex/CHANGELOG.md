@@ -1,5 +1,16 @@
 # @ai-sdk/google-vertex
 
+## 5.0.76
+
+### Patch Changes
+
+- 2d1f05d: fix(vertex): default Llama 4 output tokens
+- Updated dependencies [e5a22f0]
+- Updated dependencies [d4485fe]
+- Updated dependencies [63533eb]
+  - @ai-sdk/openai-compatible@3.0.44
+  - @ai-sdk/google@4.0.64
+
 ## 5.0.75
 
 ### Patch Changes
