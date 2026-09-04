@@ -375,6 +375,79 @@ describe('user messages', () => {
     `);
   });
 
+  it('should sanitize document filenames to Bedrock-compatible names', async () => {
+    const filenames = [
+      "John's report.txt",
+      'invoice #123.txt',
+      'a&b.txt',
+      'report,2026.txt',
+      'résumé.txt',
+      '분기보고서.txt',
+      'Report -  Final.txt',
+      'a\tb.txt',
+      `${'a'.repeat(201)}.txt`,
+      '.txt',
+      'report (final) [v2]_draft.txt',
+    ];
+
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: filenames.map(filename => ({
+          type: 'file' as const,
+          data: {
+            type: 'data' as const,
+            data: 'base64data',
+          },
+          mediaType: 'application/pdf',
+          filename,
+        })),
+      },
+    ]);
+
+    expect(
+      messages[0].content.map(content =>
+        'document' in content ? content.document.name : undefined,
+      ),
+    ).toEqual([
+      'Johns report',
+      'invoice 123',
+      'ab',
+      'report2026',
+      'rsum',
+      'document-1',
+      'Report - Final',
+      'a b',
+      'a'.repeat(200),
+      'document-2',
+      'report (final) [v2]draft',
+    ]);
+  });
+
+  it('should sanitize filenames for text document data', async () => {
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: { type: 'text', text: 'Hello' },
+            mediaType: 'text/plain',
+            filename: "John's  report.txt",
+          },
+        ],
+      },
+    ]);
+
+    expect(messages[0].content[0]).toEqual({
+      document: {
+        format: 'txt',
+        name: 'Johns report',
+        source: { bytes: 'SGVsbG8=' },
+      },
+    });
+  });
+
   it('should use consistent document names for prompt cache effectiveness', async () => {
     const fileData1 = new Uint8Array([0, 1, 2, 3]);
     const fileData2 = new Uint8Array([4, 5, 6, 7]);
@@ -2204,7 +2277,7 @@ describe('tool messages', () => {
                   type: 'file',
                   data: { type: 'data', data: 'base64data' },
                   mediaType: 'application/pdf',
-                  filename: 'tool-result.pdf',
+                  filename: "tool's  result.pdf",
                 },
               ],
             },
@@ -2223,7 +2296,7 @@ describe('tool messages', () => {
               {
                 document: {
                   format: 'pdf',
-                  name: 'tool-result',
+                  name: 'tools result',
                   source: { bytes: 'base64data' },
                 },
               },
