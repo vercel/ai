@@ -1,0 +1,203 @@
+---
+title: Claude Code
+description: Learn how to use the Claude Code harness adapter.
+---
+
+# Claude Code Harness
+
+The Claude Code harness adapter connects `HarnessAgent` to Claude Code through
+`@anthropic-ai/claude-agent-sdk`. The adapter runs a bridge inside the sandbox
+and streams Claude Code events back to the host over a sandbox-exposed
+WebSocket.
+
+<Note>
+  Harness packages are **experimental**. Expect breaking changes between
+  releases as this early API gets further refined.
+</Note>
+
+## Setup
+
+<InstallPackages packages="@ai-sdk/harness @ai-sdk/harness-claude-code @ai-sdk/sandbox-vercel" />
+
+The adapter bootstraps the Claude Code bridge dependencies inside the sandbox
+when the first session starts.
+
+## Import
+
+```ts
+import { claudeCode, createClaudeCode } from '@ai-sdk/harness-claude-code';
+```
+
+`claudeCode` is equivalent to `createClaudeCode()` with its default configuration.
+
+## Basic Usage
+
+```ts
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { claudeCode } from '@ai-sdk/harness-claude-code';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+
+const agent = new HarnessAgent({
+  harness: claudeCode,
+  model: 'claude-sonnet-4-6',
+  sandbox: createVercelSandbox({
+    runtime: 'node24',
+    ports: [4000],
+  }),
+});
+
+const session = await agent.createSession();
+
+let exitCode = 0;
+try {
+  const result = await agent.stream({
+    session,
+    prompt: 'Check the test failures and fix the production code.',
+  });
+
+  for await (const part of result.stream) {
+    if (part.type === 'text-delta') {
+      process.stdout.write(part.text);
+    }
+  }
+} catch (err) {
+  exitCode = 1;
+  console.error(err);
+} finally {
+  await session.destroy();
+  process.exit(exitCode);
+}
+```
+
+To use this agent, ensure environment variables include `VERCEL_OIDC_TOKEN` for
+Vercel Sandbox, and one of the variables listed under [authentication](#authentication)
+for Claude Code.
+
+## Adapter Settings
+
+Use `createClaudeCode()` to configure the runtime:
+
+```ts
+const harness = createClaudeCode({
+  maxTurns: 10,
+  env: {
+    DEPLOYMENT_ENV: 'staging',
+  },
+  thinking: {
+    type: 'adaptive',
+    display: 'summarized',
+  },
+});
+```
+
+Settings:
+
+- `auth`: authentication mode (`auto`, `direct`, or `ai-gateway`) or an
+  isolated authentication environment.
+- `credentialForwarding`: optional synchronous or asynchronous callback that
+  customizes each credential immediately before the harness adapter forwards it
+  into a sandbox process. It receives the credential value that would otherwise
+  be forwarded (either the real credential or a masked value) and the
+  environment variable name used to expose it. This callback only controls the
+  value forwarded into the sandbox process. It does not restrict which
+  credentials the harness adapter can discover, read, or otherwise access in
+  the host process.
+- `mcpServers`: MCP server definitions keyed by server name.
+- `maxTurns`: maximum internal turns before yielding.
+- `env`: environment variables for the Claude Code process. Values are merged
+  over the sandbox bridge process environment and take precedence.
+- `thinking`: extended-thinking configuration. `type` can be `enabled`,
+  `disabled`, or `adaptive`. For enabled or adaptive thinking, `display` can be
+  `summarized` or `omitted`. Defaults to
+  `{ type: 'adaptive', display: 'summarized' }`.
+- `port`: bridge port override.
+- `startupTimeoutMs`: maximum time to wait for the bridge to start.
+- `mintBridgeToken`: synchronous function that receives the sandbox id and
+  returns the bridge authentication token. By default, the adapter generates a
+  random 32-byte token. Custom implementations must return a suitably secret
+  token.
+
+## Structured Output
+
+Claude Code supports schema-backed [`HarnessAgent` structured output](/docs/ai-sdk-harnesses/harness-agent#generate-structured-output).
+The adapter passes the JSON Schema through the Agent SDK's native
+`outputFormat` option and returns its `structured_output` value as JSON text.
+
+## Authentication
+
+The `auth` setting selects how credentials are resolved from the host
+environment:
+
+- `auto` (default): use AI Gateway credentials when available, then fall back
+  to direct Anthropic credentials.
+- `direct`: use Anthropic credentials.
+- `ai-gateway`: use AI Gateway credentials.
+
+When the sandbox supports additive request transformations, the bridge receives
+placeholders and the adapter injects credentials into matching outbound
+requests. Sandboxes without that capability retain direct credential
+forwarding.
+
+Supported environment variables:
+
+- `VERCEL_OIDC_TOKEN`
+- `AI_GATEWAY_API_KEY`
+- `AI_GATEWAY_BASE_URL`
+- `ANTHROPIC_API_KEY`
+- `ANTHROPIC_AUTH_TOKEN`
+- `ANTHROPIC_BASE_URL`
+
+Select a specific authentication mode when you do not want automatic detection:
+
+```ts
+const directHarness = createClaudeCode({ auth: 'direct' });
+const gatewayHarness = createClaudeCode({ auth: 'ai-gateway' });
+```
+
+Pass an authentication environment to use programmatically resolved
+credentials without reading `process.env`:
+
+```ts
+const harness = createClaudeCode({
+  auth: { ANTHROPIC_API_KEY: await resolveAnthropicToken() },
+});
+```
+
+The supplied record replaces the host environment for authentication
+discovery. Only recognized authentication variables are forwarded.
+
+## Sandbox
+
+Claude Code requires a network sandbox with at least one exposed port,
+e.g. `@ai-sdk/sandbox-vercel`:
+
+```ts
+const sandbox = createVercelSandbox({
+  runtime: 'node24',
+  ports: [4000],
+});
+```
+
+## Built-in Tools
+
+The adapter exposes these common Claude Code built-ins through `agent.tools`:
+
+- `read`
+- `write`
+- `edit`
+- `bash`
+- `glob`
+- `grep`
+- `webSearch`
+
+Additional Claude Code built-ins may also appear in `agent.tools` when they do
+not fit a common tool shape.
+
+Claude Code supports built-in tool approval requests when `permissionMode` is
+`allow-reads` or `allow-edits`.
+
+## Related
+
+- [HarnessAgent](/docs/ai-sdk-harnesses/harness-agent)
+- [Harness tools](/docs/ai-sdk-harnesses/tools)
+- [Harness adapters](/docs/ai-sdk-harnesses/harness-adapters)

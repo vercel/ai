@@ -1,0 +1,506 @@
+---
+title: DeepSeek
+description: Learn how to use DeepSeek's models with the AI SDK.
+---
+
+# DeepSeek Provider
+
+The [DeepSeek](https://www.deepseek.com) provider offers access to powerful language models through the DeepSeek API.
+
+API keys can be obtained from the [DeepSeek Platform](https://platform.deepseek.com/api_keys).
+
+## Setup
+
+The DeepSeek provider is available via the `@ai-sdk/deepseek` module. You can install it with:
+
+<InstallPackages packages="@ai-sdk/deepseek" />
+
+## Provider Instance
+
+You can import the default provider instance `deepSeek` from `@ai-sdk/deepseek`:
+
+```ts
+import { deepSeek } from '@ai-sdk/deepseek';
+```
+
+For custom configuration, you can import `createDeepSeek` and create a provider instance with your settings:
+
+```ts
+import { createDeepSeek } from '@ai-sdk/deepseek';
+
+const deepSeek = createDeepSeek({
+  apiKey: process.env.DEEPSEEK_API_KEY ?? '',
+});
+```
+
+You can use the following optional settings to customize the DeepSeek provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls.
+  The default prefix is `https://api.deepseek.com`.
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header. It defaults to
+  the `DEEPSEEK_API_KEY` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+
+## Language Models
+
+You can create language models using a provider instance:
+
+```ts
+import { deepSeek } from '@ai-sdk/deepseek';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: deepSeek('deepseek-v4-flash'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+You can also use the `.chat()` or `.languageModel()` factory methods:
+
+```ts
+const model = deepSeek.chat('deepseek-v4-flash');
+// or
+const model = deepSeek.languageModel('deepseek-v4-flash');
+```
+
+DeepSeek language models can be used in the `streamText` function
+(see [AI SDK Core](/docs/ai-sdk-core)).
+
+DeepSeek retired the `deepseek-chat` and `deepseek-reasoner` aliases on July 24, 2026. Use `deepseek-v4-flash` or `deepseek-v4-pro` for the current API. Custom
+and legacy model IDs remain accepted as strings for compatibility with custom
+endpoints.
+
+The following optional provider options are available for DeepSeek models:
+
+- `logprobs` _boolean_
+
+  Optional. Returns log probabilities for generated content and reasoning
+  tokens in `providerMetadata.deepseek.logprobs`.
+
+- `topLogprobs` _number_
+
+  Optional. Returns the specified number of most likely tokens at each token
+  position. Accepts values from `0` through `20` and automatically enables
+  `logprobs`.
+
+- `userId` _string_
+
+  Optional. An opaque end-user identifier that DeepSeek uses for content-safety
+  tracing, KV-cache isolation, and scheduling isolation. The value must match
+  `^[a-zA-Z0-9_-]+$` and contain at most 512 characters. Do not include names,
+  email addresses, or other private user information.
+
+- `thinking` _object_
+
+  Optional. Controls thinking mode (chain-of-thought reasoning) for DeepSeek V4 models.
+  - `type`: `'enabled' | 'disabled'` - Enable or disable thinking mode. See [DeepSeek's thinking mode docs](https://api-docs.deepseek.com/guides/thinking_mode).
+
+- `reasoningEffort` _'low' | 'high' | 'max'_
+
+  Optional. Controls thinking strength for DeepSeek V4 reasoning models. When
+  using the top-level `reasoning` setting, `minimal` is sent as `low`,
+  `medium` is sent as `high`, and `xhigh` is sent as `max`. A compatibility
+  warning is returned whenever the requested value is mapped.
+
+For backwards compatibility, legacy provider options supplied at runtime are
+also mapped to documented values: `thinking.type: 'adaptive'` becomes
+`'enabled'`, `reasoningEffort: 'medium'` becomes `'high'`, and
+`reasoningEffort: 'xhigh'` becomes `'max'`. Each mapping returns a compatibility
+warning so callers can migrate to a canonical value.
+
+DeepSeek has deprecated the top-level `frequencyPenalty` and `presencePenalty`
+settings. The provider omits these settings and returns a deprecation warning
+when they are used. `temperature` and `topP` have no effect while thinking is
+enabled, including the default thinking mode for DeepSeek V4 models, so the
+provider omits them with an unsupported warning. Explicitly set
+`thinking.type` to `'disabled'` to use `temperature` and `topP`.
+
+```ts highlight="7-15"
+import {
+  deepSeek,
+  type DeepSeekLanguageModelChatOptions,
+} from '@ai-sdk/deepseek';
+import { generateText } from 'ai';
+
+const { text, reasoning } = await generateText({
+  model: deepSeek('deepseek-v4-flash'),
+  prompt: 'How many "r"s are in the word "strawberry"?',
+  providerOptions: {
+    deepseek: {
+      userId: 'tenant_123-user',
+      thinking: { type: 'enabled' },
+      reasoningEffort: 'high',
+    } satisfies DeepSeekLanguageModelChatOptions,
+  },
+});
+```
+
+### Message Names
+
+DeepSeek supports optional participant names on system, user, and assistant
+messages. Set `providerOptions.deepseek.name` on each message that should
+include a name:
+
+```ts
+import {
+  deepSeek,
+  type DeepSeekMessageProviderOptions,
+} from '@ai-sdk/deepseek';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: deepSeek('deepseek-chat'),
+  instructions: {
+    role: 'system',
+    content: 'Help the customer plan a short trip.',
+    providerOptions: {
+      deepseek: {
+        name: 'travel_planner',
+      } satisfies DeepSeekMessageProviderOptions,
+    },
+  },
+  messages: [
+    {
+      role: 'user',
+      content: 'I want to visit Lisbon for a weekend.',
+      providerOptions: {
+        deepseek: {
+          name: 'customer',
+        } satisfies DeepSeekMessageProviderOptions,
+      },
+    },
+    {
+      role: 'assistant',
+      content: 'What kinds of activities do you enjoy?',
+      providerOptions: {
+        deepseek: {
+          name: 'travel_planner',
+        } satisfies DeepSeekMessageProviderOptions,
+      },
+    },
+    {
+      role: 'user',
+      content: 'Food, architecture, and walking.',
+      providerOptions: {
+        deepseek: {
+          name: 'customer',
+        } satisfies DeepSeekMessageProviderOptions,
+      },
+    },
+  ],
+});
+```
+
+The same message option works with `streamText`:
+
+```ts
+import {
+  deepSeek,
+  type DeepSeekMessageProviderOptions,
+} from '@ai-sdk/deepseek';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: deepSeek('deepseek-chat'),
+  messages: [
+    {
+      role: 'user',
+      content: 'Suggest a name for my neighborhood book club.',
+      providerOptions: {
+        deepseek: {
+          name: 'organizer',
+        } satisfies DeepSeekMessageProviderOptions,
+      },
+    },
+  ],
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+Names are omitted when the option is not set. The `name` value must be a
+string. DeepSeek does not support names on tool messages, so the provider
+ignores that placement and returns an unsupported-feature warning. Avoid
+including unnecessary personal or identifying information in message names.
+
+### Reasoning
+
+DeepSeek V4 models support reasoning. The reasoning is exposed through streaming:
+
+```ts
+import { deepSeek } from '@ai-sdk/deepseek';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: deepSeek('deepseek-v4-pro'),
+  prompt: 'How many "r"s are in the word "strawberry"?',
+});
+
+for await (const part of result.stream) {
+  if (part.type === 'reasoning') {
+    // This is the reasoning text
+    console.log('Reasoning:', part.text);
+  } else if (part.type === 'text') {
+    // This is the final answer
+    console.log('Answer:', part.text);
+  }
+}
+```
+
+See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
+on how to integrate reasoning into your chatbot.
+
+### Chat Prefix Completion
+
+DeepSeek's beta [chat prefix completion](https://api-docs.deepseek.com/guides/chat_prefix_completion/)
+continues the content of a final assistant message. Create a provider with a
+beta base URL and set `prefix: true` in that assistant message's provider
+options:
+
+```ts highlight="8,20-26"
+import {
+  createDeepSeek,
+  type DeepSeekAssistantMessageProviderOptions,
+} from '@ai-sdk/deepseek';
+import { generateText } from 'ai';
+
+const deepSeek = createDeepSeek({
+  baseURL: 'https://api.deepseek.com/beta',
+});
+
+const { text } = await generateText({
+  model: deepSeek('deepseek-v4-flash'),
+  messages: [
+    {
+      role: 'user',
+      content: 'Write a short sentence about the color of the sky.',
+    },
+    {
+      role: 'assistant',
+      content: 'The sky is',
+      providerOptions: {
+        deepseek: {
+          prefix: true,
+        } satisfies DeepSeekAssistantMessageProviderOptions,
+      },
+    },
+  ],
+});
+```
+
+The prefixed message must be an assistant message and the final message in the
+prompt. The configured `baseURL` must end in `/beta`, including when using a
+proxy. Invalid placement or a non-beta base URL causes the request to fail
+before it is sent.
+
+<Note>
+  Chat prefix completion is a DeepSeek beta feature and its behavior may change.
+</Note>
+
+### Strict Tool Calls
+
+DeepSeek's strict tool-call mode is a beta feature. Create the provider with a
+beta base URL and set `strict: true` on every function tool in the request:
+
+```ts highlight="5,14"
+import { createDeepSeek } from '@ai-sdk/deepseek';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const deepSeek = createDeepSeek({
+  baseURL: 'https://api.deepseek.com/beta',
+});
+
+const result = await generateText({
+  model: deepSeek('deepseek-chat'),
+  prompt: 'What is the weather in San Francisco?',
+  tools: {
+    weather: tool({
+      description: 'Get the weather for a location.',
+      inputSchema: z.object({ location: z.string() }),
+      strict: true,
+      execute: async ({ location }) => ({ location, temperature: 18 }),
+    }),
+  },
+});
+```
+
+Strict tools fail locally when the base URL does not end in `/beta`. When any
+function tool is strict, every function tool in the same request must set
+`strict: true`.
+
+### Provider Metadata
+
+DeepSeek exposes the response system fingerprint and context cache usage through
+the `providerMetadata` property:
+
+```ts
+import { deepSeek } from '@ai-sdk/deepseek';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: deepSeek('deepseek-v4-flash'),
+  prompt: 'Your prompt here',
+});
+
+console.log(result.providerMetadata);
+// Example output:
+// {
+//   deepseek: {
+//     systemFingerprint: 'fp_eaab8d114b_prod0820_fp8_kvcache',
+//     promptCacheHitTokens: 1856,
+//     promptCacheMissTokens: 5,
+//   },
+// }
+```
+
+The metadata includes:
+
+- `systemFingerprint`: The backend configuration fingerprint for the response
+- `promptCacheHitTokens`: Number of input tokens that were cached
+- `promptCacheMissTokens`: Number of input tokens that were not cached
+
+For streamed responses, the latest non-null fingerprint from the response
+chunks is returned.
+
+<Note>
+  For more details about DeepSeek's caching system, see the [DeepSeek caching
+  documentation](https://api-docs.deepseek.com/guides/kv_cache#checking-cache-hit-status).
+</Note>
+
+### Chat Response Metadata
+
+DeepSeek preserves provider-specific response fields in
+`providerMetadata.deepseek` for generated and streamed responses:
+
+- `responseObject`: `chat.completion` or `chat.completion.chunk`
+- `choiceIndex`: the selected response choice index
+- `messageRole`: the response message role, when supplied
+- `toolCallTypes`: the tool-call type for each returned call
+
+These fields remain in provider metadata because they are specific to
+DeepSeek's Chat Completions response rather than shared AI SDK result fields.
+
+### File Uploads
+
+For inline images or image URLs, use file-part provider options to select the
+image processing detail. DeepSeek supports `low`, `high`, `original`, and
+`auto`:
+
+```ts highlight="2,13-17"
+import {
+  deepSeek,
+  type DeepSeekFilePartProviderOptions,
+} from '@ai-sdk/deepseek';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: deepSeek('deepseek-v4-flash-vision-exp'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Describe this image.' },
+        {
+          type: 'file',
+          data: new URL('https://example.com/image.webp'),
+          mediaType: 'image/webp',
+          providerOptions: {
+            deepseek: {
+              imageDetail: 'low',
+            } satisfies DeepSeekFilePartProviderOptions,
+          },
+        },
+      ],
+    },
+  ],
+});
+```
+
+Set `fileData: true` on an inline image file part to use DeepSeek's
+`file_data` content-part representation. This preserves the file part's
+`filename`. `fileData` cannot be used with image URLs or `imageDetail`.
+
+DeepSeek accepts JPEG, PNG, GIF, and WebP image inputs. HTTP image URLs can be
+at most 8,192 characters.
+
+You can upload images using the [DeepSeek Files API](https://api-docs.deepseek.com/guides/files_api) and pass the returned provider reference to `deepseek-v4-flash-vision-exp`. This avoids sending the image bytes again in each request.
+
+```ts
+import { deepSeek, type DeepSeekFilesOptions } from '@ai-sdk/deepseek';
+import { generateText, uploadFile } from 'ai';
+import { readFile } from 'node:fs/promises';
+
+const { providerReference, mediaType } = await uploadFile({
+  api: deepSeek.files(),
+  data: await readFile('./image.png'),
+  filename: 'image.png',
+  providerOptions: {
+    deepseek: {
+      expiresAfter: 3600,
+    } satisfies DeepSeekFilesOptions,
+  },
+});
+
+const { text } = await generateText({
+  model: deepSeek('deepseek-v4-flash-vision-exp'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Describe this image.' },
+        {
+          type: 'file',
+          mediaType: mediaType ?? 'image/png',
+          data: providerReference,
+        },
+      ],
+    },
+  ],
+});
+```
+
+The optional `expiresAfter` setting specifies the lifetime in seconds. DeepSeek accepts values from 3,600 seconds (one hour) through 2,592,000 seconds (30 days). Files are permanent when no expiration is specified.
+
+The provider requires a valid file ID in successful upload responses. It also
+validates returned `object` and `purpose` discriminators and numeric metadata.
+Other response metadata remains optional for compatibility with incomplete
+responses; omitted values are not included in `providerMetadata`, and an
+omitted response filename falls back to the filename supplied to `uploadFile`.
+
+DeepSeek file uploads support JPEG (`.jpg` and `.jpeg`), PNG, GIF, and WebP
+images. Each file can be at most 64 MiB, and filenames can contain at most 512
+characters. The AI SDK validates these constraints before sending the upload
+request. The `image/jpg` media type alias is accepted, and a supported filename
+extension is used as a fallback when the media type is generic (for example,
+`application/octet-stream`). Recognizable non-image content is rejected even
+when its declared media type or filename indicates a supported image format.
+
+## Model Capabilities
+
+| Model                          | Text Generation | Object Generation | Image Input | Tool Usage | Tool Streaming |
+| ------------------------------ | --------------- | ----------------- | ----------- | ---------- | -------------- |
+| `deepseek-v4-flash`            | <Check />       | <Check />         | <Cross />   | <Check />  | <Check />      |
+| `deepseek-v4-pro`              | <Check />       | <Check />         | <Cross />   | <Check />  | <Check />      |
+| `deepseek-v4-flash-vision-exp` | <Check />       | <Check />         | <Check />   | <Check />  | <Check />      |
+
+<Note>
+  Please see the [DeepSeek
+  docs](https://api-docs.deepseek.com/quick_start/pricing) for a full list of
+  available models. You can also pass any available provider model ID as a
+  string if needed.
+</Note>

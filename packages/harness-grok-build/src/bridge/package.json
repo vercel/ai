@@ -1,0 +1,13 @@
+{
+  "name": "harness-grok-build-bridge",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@agentclientprotocol/sdk": "1.4.0",
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "@xai-official/grok": "1.0.5",
+    "ws": "8.21.0",
+    "zod": "4.4.3"
+  }
+}

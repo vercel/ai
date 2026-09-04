@@ -1,0 +1,181 @@
+{
+  "id": "resp_0742d30c1d273351016a6145f48170819f9d1cdfc7d5d7887a",
+  "object": "response",
+  "created_at": 1784759796,
+  "status": "completed",
+  "background": false,
+  "billing": {
+    "payer": "developer"
+  },
+  "completed_at": 1784759800,
+  "error": null,
+  "frequency_penalty": 0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": null,
+  "max_tool_calls": null,
+  "model": "gpt-5.6-sol",
+  "moderation": null,
+  "output": [
+    {
+      "id": "cmo_0742d30c1d273351016a6145f6ba7c819f93fcba5b06569347",
+      "type": "program_output",
+      "status": "completed",
+      "call_id": "call_O2IvSLQcJ0bwIvJZ2ovGV69M",
+      "result": "{\"sku\":\"sku_123\",\"availableUnits\":42,\"requestedUnits\":31,\"sufficient\":true}"
+    },
+    {
+      "id": "msg_0742d30c1d273351016a6145f7472c819f97ce2f7cb4e3a86a",
+      "type": "message",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "Inventory is sufficient for `sku_123`: **42 units available** versus **31 units requested**, leaving a **surplus of 11 units**.\n\n*Note: The tools were called sequentially because `getDemand` cannot be called in parallel with other tools.*"
+        }
+      ],
+      "phase": "final_answer",
+      "role": "assistant"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": "24h",
+  "reasoning": {
+    "context": "all_turns",
+    "effort": "medium",
+    "mode": "standard",
+    "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": false,
+  "temperature": 1,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": "medium"
+  },
+  "tool_choice": "auto",
+  "tool_usage": {
+    "image_gen": {
+      "input_tokens": 0,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "output_tokens": 0,
+      "output_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "total_tokens": 0
+    },
+    "web_search": {
+      "num_requests": 0
+    }
+  },
+  "tools": [
+    {
+      "type": "programmatic_tool_calling"
+    },
+    {
+      "type": "function",
+      "allowed_callers": [
+        "programmatic"
+      ],
+      "description": "Get available inventory for a SKU.",
+      "name": "getInventory",
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "sku": {
+            "type": "string"
+          },
+          "availableUnits": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "sku",
+          "availableUnits"
+        ],
+        "additionalProperties": false
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "sku": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sku"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "strict": true
+    },
+    {
+      "type": "function",
+      "allowed_callers": [
+        "programmatic"
+      ],
+      "description": "Get requested units for a SKU.",
+      "name": "getDemand",
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "sku": {
+            "type": "string"
+          },
+          "requestedUnits": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "sku",
+          "requestedUnits"
+        ],
+        "additionalProperties": false
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "sku": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sku"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "strict": true
+    }
+  ],
+  "top_logprobs": 0,
+  "top_p": 0.98,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 802,
+    "input_tokens_details": {
+      "cache_write_tokens": 0,
+      "cached_tokens": 0
+    },
+    "output_tokens": 58,
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "total_tokens": 860
+  },
+  "user": null,
+  "metadata": {}
+}

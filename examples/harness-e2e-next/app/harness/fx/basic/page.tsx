@@ -1,0 +1,20 @@
+import ChatIdProvider from '@/components/chat-id-provider';
+import ACPHarnessChat from '@/components/acp-harness-chat';
+
+export const metadata = {
+  title: 'fx — Basic',
+};
+
+const STORAGE_KEY = 'harness-fx-basic-chat-id';
+
+export default function FxBasicPage() {
+  return (
+    <ChatIdProvider storageKey={STORAGE_KEY}>
+      <ACPHarnessChat
+        apiRoute="/api/harness/fx/basic"
+        exampleLabel="Basic"
+        harnessLabel="fx"
+      />
+    </ChatIdProvider>
+  );
+}

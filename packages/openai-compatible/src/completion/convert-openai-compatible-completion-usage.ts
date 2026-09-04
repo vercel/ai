@@ -1,0 +1,34 @@
+import type { LanguageModelV4Usage } from '@ai-sdk/provider';
+import { createNullLanguageModelUsage } from '@ai-sdk/provider-utils';
+
+export function convertOpenAICompatibleCompletionUsage(
+  usage:
+    | {
+        prompt_tokens?: number | null;
+        completion_tokens?: number | null;
+      }
+    | undefined
+    | null,
+): LanguageModelV4Usage {
+  if (usage == null) {
+    return createNullLanguageModelUsage();
+  }
+
+  const promptTokens = usage.prompt_tokens ?? 0;
+  const completionTokens = usage.completion_tokens ?? 0;
+
+  return {
+    inputTokens: {
+      total: promptTokens,
+      noCache: promptTokens,
+      cacheRead: undefined,
+      cacheWrite: undefined,
+    },
+    outputTokens: {
+      total: completionTokens,
+      text: completionTokens,
+      reasoning: undefined,
+    },
+    raw: usage,
+  };
+}

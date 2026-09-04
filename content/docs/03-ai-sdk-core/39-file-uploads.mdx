@@ -1,0 +1,180 @@
+---
+title: File Uploads
+description: Learn how to upload files and use provider references with the AI SDK.
+---
+
+# File Uploads
+
+The AI SDK provides the [`uploadFile`](/docs/reference/ai-sdk-core/upload-file)
+function to upload files to a provider and get back a `ProviderReference` that can be
+used in subsequent API calls.
+
+In the AI SDK, the uploaded file is identified by a `ProviderReference` — a
+`Record<string, string>` mapping provider names to provider-specific identifiers.
+This concept is used for other provider specific asset references too, such as
+uploaded skills.
+
+```ts
+import { uploadFile, generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import fs from 'node:fs';
+
+const { providerReference } = await uploadFile({
+  api: openai.files(),
+  data: fs.readFileSync('./photo.png'),
+  filename: 'photo.png',
+});
+
+const { text } = await generateText({
+  model: openai.responses('gpt-4o-mini'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Describe what you see in this image.' },
+        { type: 'file', mediaType: 'image', data: providerReference },
+      ],
+    },
+  ],
+});
+```
+
+As a shorthand, you can pass a provider instance directly to `api` instead of calling `.files()` explicitly — the SDK will call `.files()` for you:
+
+```ts highlight="3"
+const { providerReference } = await uploadFile({
+  api: openai, // shorthand for openai.files()
+  data: fs.readFileSync('./photo.png'),
+  filename: 'photo.png',
+});
+```
+
+## Supported File Types
+
+You can upload images, PDFs, text files, and other documents depending on the provider.
+The media type is auto-detected from the file bytes when not specified explicitly:
+
+```ts highlight="4"
+const { providerReference } = await uploadFile({
+  api: anthropic.files(),
+  data: fs.readFileSync('./document.pdf'),
+  mediaType: 'application/pdf', // optional, auto-detected if omitted
+  filename: 'document.pdf',
+});
+```
+
+Use the `providerReference` in a file content part with its media type:
+
+```ts
+{
+  role: 'user',
+  content: [
+    { type: 'text', text: 'Summarize this document.' },
+    { type: 'file', data: providerReference, mediaType: 'application/pdf' },
+  ],
+}
+```
+
+## Provider-Specific Options
+
+Some providers accept additional options through `providerOptions`.
+For example, OpenAI requires a `purpose` field:
+
+```ts highlight="5-9"
+import { openai, type OpenAIFilesOptions } from '@ai-sdk/openai';
+
+const { providerReference } = await uploadFile({
+  api: openai.files(),
+  data: fs.readFileSync('./photo.png'),
+  providerOptions: {
+    openai: {
+      purpose: 'assistants',
+    } satisfies OpenAIFilesOptions,
+  },
+});
+```
+
+## Streaming Uploads
+
+Providers that support streaming uploads (e.g. OpenAI, xAI) accept a tagged
+`{ type: 'stream', stream }` shape, sending the bytes without buffering the
+full file in memory. Providers without streaming support reject stream data
+with an `UnsupportedFunctionalityError`.
+
+```ts
+const { providerReference } = await uploadFile({
+  api: openai.files(),
+  data: { type: 'stream', stream: fileStream },
+  mediaType: 'application/jsonl',
+  filename: 'batch.jsonl',
+});
+```
+
+The provider consumes the stream: any failed upload — including validation
+failures before a request is made — cancels it, and it must not be reused. Stream data cannot be sniffed, so `mediaType` defaults to
+`application/octet-stream` when omitted, and multipart-based providers default
+the filename to `"blob"`.
+
+Uploads can be cancelled with `abortSignal` and carry request-specific
+`headers`. Results include `byteSize`, `createdAt`, and `expiresAt` (the
+provider-applied retention expiry) when the provider reports them.
+
+## Provider References
+
+A `ProviderReference` is a `Record<string, string>` that maps provider names to
+provider-specific file identifiers:
+
+```ts
+// Example ProviderReference
+{
+  openai: 'file-abc123',
+}
+```
+
+When you pass a `ProviderReference` as the `data` or `image` field of a message content
+part, the provider looks up its own file ID from the reference. If the reference doesn't
+contain an entry for the current provider, an error is thrown.
+
+## Multi-Provider Usage
+
+If you switch providers mid-conversation (for example, continuing a chat started with
+OpenAI using Anthropic), you need to upload the file to both providers and merge the
+references:
+
+```ts
+const openaiResult = await uploadFile({
+  api: openai.files(),
+  data: imageBytes,
+  filename: 'photo.png',
+});
+
+const anthropicResult = await uploadFile({
+  api: anthropic.files(),
+  data: imageBytes,
+  filename: 'photo.png',
+});
+
+const mergedReference = {
+  ...openaiResult.providerReference,
+  ...anthropicResult.providerReference,
+};
+
+// mergedReference: { openai: 'file-abc123', anthropic: 'file-xyz789' }
+```
+
+The merged reference can then be used in messages regardless of which provider processes
+the request — each provider will find its own file ID.
+
+## Supported Providers
+
+The following providers support `files()` and file uploads:
+
+| Provider  | Factory Method      |
+| --------- | ------------------- |
+| Anthropic | `anthropic.files()` |
+| Google    | `google.files()`    |
+| OpenAI    | `openai.files()`    |
+| xAI       | `xai.files()`       |
+
+Providers without file upload support will throw an `UnsupportedFunctionalityError`
+if they encounter a provider reference in a message.

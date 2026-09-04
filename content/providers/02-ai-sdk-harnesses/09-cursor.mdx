@@ -1,0 +1,192 @@
+---
+title: Cursor
+description: Learn how to use the Cursor harness adapter.
+---
+
+# Cursor Harness
+
+The Cursor harness adapter connects `HarnessAgent` to
+[Cursor CLI](https://cursor.com/cli) through the Agent Client Protocol (ACP).
+The adapter delegates ACP sessions, streaming, tools, and lifecycle management
+to `@ai-sdk/harness-acp`.
+
+<Note>
+  Harness packages are **experimental**. Expect breaking changes between
+  releases as this early API gets further refined.
+</Note>
+
+## Setup
+
+<InstallPackages packages="@ai-sdk/harness @ai-sdk/harness-cursor @ai-sdk/sandbox-vercel" />
+
+Create a Cursor user API key and set `CURSOR_API_KEY`. The key authenticates
+Cursor CLI in the sandbox regardless of how Cursor authenticates to the model
+provider.
+
+The adapter installs Cursor CLI inside the sandbox with the official Cursor
+install command when the first session starts.
+
+## Import
+
+```ts
+import { createCursor, cursor } from '@ai-sdk/harness-cursor';
+```
+
+`cursor` is equivalent to `createCursor()` with its default configuration.
+
+## Basic Usage
+
+```ts
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { cursor } from '@ai-sdk/harness-cursor';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+
+const agent = new HarnessAgent({
+  harness: cursor,
+  model: 'gpt-5.6-luna',
+  sandbox: createVercelSandbox({
+    runtime: 'node24',
+    ports: [4000],
+  }),
+});
+
+const session = await agent.createSession();
+
+try {
+  const result = await agent.generate({
+    session,
+    prompt: 'Inspect this project and summarize its purpose.',
+  });
+  console.log(result.text);
+} finally {
+  await session.destroy();
+}
+```
+
+To use this agent with Vercel Sandbox, provide `VERCEL_OIDC_TOKEN` and
+`CURSOR_API_KEY` in the host environment.
+
+## Adapter Settings
+
+Use `createCursor()` to configure the runtime:
+
+```ts
+const harness = createCursor({
+  auth: 'ai-gateway',
+  port: 4001,
+  startupTimeoutMs: 180_000,
+});
+```
+
+Settings:
+
+- `auth`: accepts the shared ACP modes `auto`, `direct`, or `ai-gateway`, or an
+  isolated authentication environment for `CURSOR_API_KEY`. This cannot change
+  Cursor's provider authentication route. Explicit `direct` and `ai-gateway`
+  values emit a configuration reminder; `auto` does not because it does not
+  declare an expected route.
+- `credentialForwarding`: optional synchronous or asynchronous callback that
+  customizes each credential immediately before the harness adapter forwards it
+  into a sandbox process. It receives the credential value that would otherwise
+  be forwarded (either the real credential or a masked value) and the
+  environment variable name used to expose it. This callback only controls the
+  value forwarded into the sandbox process. It does not restrict which
+  credentials the harness adapter can discover, read, or otherwise access in
+  the host process.
+- `mcpServers`: MCP server definitions keyed by server name.
+- `port`: ACP bridge port override.
+- `startupTimeoutMs`: maximum time to wait for the ACP bridge to start.
+- `mintBridgeToken`: synchronous function that receives the sandbox id and
+  returns the ACP bridge authentication token. By default, the adapter generates
+  a random 32-byte token. Custom implementations must return a suitably secret
+  token.
+
+The adapter fixes the install command and ACP launch command. These
+implementation details cannot be overridden through `createCursor()`.
+
+## Authentication
+
+Cursor has two independent authentication layers:
+
+1. `CURSOR_API_KEY` authenticates Cursor CLI to the Cursor account. The harness
+   requires this key for every `auth` mode.
+2. Cursor's account settings determine how Cursor authenticates to the model
+   provider. The harness cannot read or change this setting.
+
+For direct routing, configure the model provider in Cursor. For AI Gateway,
+configure Cursor's OpenAI API key with an AI Gateway API key and set
+**Override OpenAI Base URL** to
+`https://ai-gateway.vercel.sh/cursor/v1` in Cursor settings. Cursor resolves that
+credential from its account configuration; the harness does not use
+`AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` for model-provider authentication.
+
+Explicit `direct` and `ai-gateway` values emit a warning that the selected route
+must be configured in Cursor. `auto` is accepted without a warning:
+
+```ts
+const automaticHarness = createCursor({ auth: 'auto' });
+const directHarness = createCursor({ auth: 'direct' });
+const gatewayHarness = createCursor({ auth: 'ai-gateway' });
+```
+
+Supply a programmatically resolved Cursor account credential without mutating
+or reading `process.env`:
+
+```ts
+const harness = createCursor({
+  auth: { CURSOR_API_KEY: await resolveCursorToken() },
+});
+```
+
+This record configures Cursor CLI authentication only. Cursor's account
+settings still control model-provider routing.
+
+## Sandbox
+
+Cursor runs inside the sandbox through `@ai-sdk/harness-acp`. It requires a
+network sandbox with at least one exposed port, such as
+`@ai-sdk/sandbox-vercel`:
+
+```ts
+const sandbox = createVercelSandbox({
+  runtime: 'node24',
+  ports: [4000],
+});
+```
+
+The first session requires network egress to run Cursor's official installer.
+
+## Built-in Tools
+
+The adapter maps Cursor's terminal, glob, and grep tools to the common `bash`,
+`glob`, and `grep` tools. It also exposes Cursor's remaining built-ins under
+stable names, including `read`, `edit`, `ls`, `semanticSearch`, `webSearch`,
+`task`, and the Cursor planning, MCP, browser, and environment tools.
+
+Cursor host-tool calls use ACP MCP transport. The adapter recognizes Cursor's
+MCP payload and correlates the call with the host-side tool execution.
+
+## Known Limitations
+
+- Cursor's model-provider authentication route must be configured in Cursor.
+  The `auth` adapter setting cannot switch it programmatically.
+- ACP v1 does not expose model-step boundaries or per-step usage. The adapter
+  infers boundaries and reports unknown per-step usage when Cursor does not
+  provide totals.
+- ACP v1 has no portable manual compaction or mid-turn steering API.
+- ACP v1 has no portable built-in tool filtering API. Filtering host tools is
+  supported, but filtering Cursor built-ins throws an unsupported-capability
+  error.
+- Cursor ACP does not expose a structured-output metadata mapping, so schema-backed
+  structured output is unsupported.
+- Custom `headers` are not natively supported and only applied via
+  sandbox-external request transformations. When a sandbox without that
+  capability is provided, custom `headers` therefore cannot be passed and are
+  ignored.
+
+## Related
+
+- [HarnessAgent](/docs/ai-sdk-harnesses/harness-agent)
+- [Harness tools](/docs/ai-sdk-harnesses/tools)
+- [Harness adapters](/docs/ai-sdk-harnesses/harness-adapters)
+- [Agent Client Protocol](/providers/ai-sdk-harnesses/acp)

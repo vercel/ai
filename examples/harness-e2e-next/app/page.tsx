@@ -1,0 +1,213 @@
+import Link from 'next/link';
+
+const VARIANTS = [
+  { slug: 'basic', label: 'Basic' },
+  { slug: 'basic-with-stop', label: 'Basic (with stop)' },
+  { slug: 'ai-sdk-coding', label: 'AI SDK Coding' },
+  { slug: 'weather', label: 'Weather' },
+  { slug: 'weather-only', label: 'Weather Only' },
+  { slug: 'weather-approval', label: 'Weather Approval' },
+  { slug: 'workflow-timed', label: 'Workflow (Timed)' },
+  { slug: 'workflow-stepped', label: 'Workflow (Stepped)' },
+] as const;
+
+const HARNESSES = [
+  {
+    slug: 'claude-code',
+    label: 'Claude Code',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-only',
+      'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
+    ],
+  },
+  {
+    slug: 'cline',
+    label: 'Cline',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-only',
+      'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
+    ],
+  },
+  {
+    slug: 'codex',
+    label: 'Codex',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
+    ],
+  },
+  {
+    slug: 'deepagents',
+    label: 'Deep Agents',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-only',
+      'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
+    ],
+  },
+  {
+    slug: 'cursor',
+    label: 'Cursor',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-only',
+      'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
+    ],
+  },
+  {
+    slug: 'fx',
+    label: 'fx',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-only',
+      'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
+    ],
+  },
+  {
+    slug: 'grok-build',
+    label: 'Grok Build',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-only',
+      'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
+    ],
+  },
+  {
+    slug: 'opencode',
+    label: 'OpenCode',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-only',
+      'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
+    ],
+  },
+  {
+    slug: 'pi',
+    label: 'Pi',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-only',
+      'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
+    ],
+  },
+  {
+    slug: 'acp-claude-code',
+    label: 'ACP: Claude Code',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-only',
+      'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
+    ],
+  },
+  {
+    slug: 'acp-codex',
+    label: 'ACP: Codex',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-only',
+      'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
+    ],
+  },
+  {
+    slug: 'acp-grok-build',
+    label: 'ACP: Grok Build',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-only',
+      'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
+    ],
+  },
+] as const;
+
+const VARIANT_LABELS: Record<string, string> = Object.fromEntries(
+  VARIANTS.map(v => [v.slug, v.label]),
+);
+
+export default function Home() {
+  return (
+    <main className="flex flex-col gap-4 pt-12 pb-24 mx-auto w-full max-w-5xl">
+      <h1 className="text-xl font-bold">Harness examples</h1>
+      <ul className="flex flex-col gap-4 pl-0 list-none">
+        {HARNESSES.map(h => (
+          <li key={h.slug}>
+            <span className="font-semibold">{h.label}</span>
+            <ul className="list-disc pl-6">
+              {h.variants.map(variant => (
+                <li key={variant}>
+                  <Link
+                    href={`/harness/${h.slug}/${variant}`}
+                    className="text-blue-600 underline"
+                  >
+                    {VARIANT_LABELS[variant] ?? variant}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))}
+      </ul>
+    </main>
+  );
+}

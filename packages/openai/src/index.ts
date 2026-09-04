@@ -1,0 +1,50 @@
+export { createOpenAI, openai } from './openai-provider';
+export type { OpenAIProvider, OpenAIProviderSettings } from './openai-provider';
+export { OpenAIRealtimeModel as Experimental_OpenAIRealtimeModel } from './realtime/openai-realtime-model';
+export type { OpenAIRealtimeModelConfig as Experimental_OpenAIRealtimeModelConfig } from './realtime/openai-realtime-model';
+export type {
+  OpenAILanguageModelResponsesOptions,
+  /** @deprecated Use `OpenAILanguageModelResponsesOptions` instead. */
+  OpenAILanguageModelResponsesOptions as OpenAIResponsesProviderOptions,
+} from './responses/openai-responses-language-model-options';
+export type { OpenAIToolOptions } from './responses/openai-responses-prepare-tools';
+export type {
+  OpenAILanguageModelChatOptions,
+  /** @deprecated Use `OpenAILanguageModelChatOptions` instead. */
+  OpenAILanguageModelChatOptions as OpenAIChatLanguageModelOptions,
+} from './chat/openai-chat-language-model-options';
+export type {
+  OpenAIImageModelOptions,
+  OpenAIImageModelGenerationOptions,
+  OpenAIImageModelEditOptions,
+} from './image/openai-image-model-options';
+export type { OpenAILanguageModelCompletionOptions } from './completion/openai-completion-language-model-options';
+export type { OpenAIEmbeddingModelOptions } from './embedding/openai-embedding-model-options';
+export type { OpenAISpeechModelOptions } from './speech/openai-speech-model-options';
+export type { OpenAITranscriptionModelOptions } from './transcription/openai-transcription-model-options';
+export {
+  OpenAISpeechTranslationModel as Experimental_OpenAISpeechTranslationModel,
+  /** @deprecated Use `Experimental_OpenAISpeechTranslationModel` instead. */
+  OpenAISpeechTranslationModel as Experimental_OpenAITranslationModel,
+} from './speech-translation/openai-speech-translation-model';
+export type {
+  OpenAISpeechTranslationModelId as Experimental_OpenAISpeechTranslationModelId,
+  /** @deprecated Use `Experimental_OpenAISpeechTranslationModelId` instead. */
+  OpenAISpeechTranslationModelId as Experimental_OpenAITranslationModelId,
+  OpenAISpeechTranslationModelOptions as Experimental_OpenAISpeechTranslationModelOptions,
+  /** @deprecated Use `Experimental_OpenAISpeechTranslationModelOptions` instead. */
+  OpenAISpeechTranslationModelOptions as Experimental_OpenAITranslationModelOptions,
+} from './speech-translation/openai-speech-translation-model-options';
+export type { OpenAIFilesOptions } from './files/openai-files-options';
+export type {
+  OpenAIComputerAction,
+  OpenAIComputerSafetyCheck,
+} from './tool/computer';
+export type {
+  OpenaiResponsesCompactionProviderMetadata,
+  OpenaiResponsesProviderMetadata,
+  OpenaiResponsesReasoningProviderMetadata,
+  OpenaiResponsesTextProviderMetadata,
+  OpenaiResponsesSourceDocumentProviderMetadata,
+} from './responses/openai-responses-provider-metadata';
+export { VERSION } from './version';

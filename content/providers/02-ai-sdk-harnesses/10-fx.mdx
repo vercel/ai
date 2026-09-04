@@ -1,0 +1,204 @@
+---
+title: fx
+description: Learn how to use the fx harness adapter.
+---
+
+# fx Harness
+
+The fx harness adapter connects `HarnessAgent` to [fx](https://fx.sh) through
+the Agent Client Protocol (ACP). The adapter delegates installation, sessions,
+streaming, tools, and lifecycle management to `@ai-sdk/harness-acp`.
+
+<Note>
+  Harness packages are **experimental**. Expect breaking changes between
+  releases as this early API gets further refined.
+</Note>
+
+## Setup
+
+<InstallPackages packages="@ai-sdk/harness @ai-sdk/harness-fx @ai-sdk/sandbox-vercel" />
+
+The ACP harness runs the [canonical fx installer](https://fx.sh/docs/getting-started/installation)
+inside the sandbox when the first session starts. The installer tracks the
+latest fx release and installs the executable into the ACP implementation's
+private home directory.
+
+## Import
+
+```ts
+import { createFx, fx } from '@ai-sdk/harness-fx';
+```
+
+`fx` is equivalent to `createFx()` with its default configuration.
+
+## Basic Usage
+
+```ts
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { fx } from '@ai-sdk/harness-fx';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+
+const agent = new HarnessAgent({
+  harness: fx,
+  model: 'openai/gpt-5.6-luna',
+  sandbox: createVercelSandbox({
+    runtime: 'node24',
+    ports: [4000],
+  }),
+});
+
+const session = await agent.createSession();
+
+let exitCode = 0;
+try {
+  const result = await agent.stream({
+    session,
+    prompt: 'Check the test failures and fix the production code.',
+  });
+
+  for await (const part of result.stream) {
+    if (part.type === 'text-delta') {
+      process.stdout.write(part.text);
+    }
+  }
+} catch (err) {
+  exitCode = 1;
+  console.error(err);
+} finally {
+  await session.destroy();
+  process.exit(exitCode);
+}
+```
+
+## Adapter Settings
+
+Use `createFx()` to configure the runtime:
+
+```ts
+const harness = createFx({
+  auth: 'ai-gateway',
+  port: 4001,
+  startupTimeoutMs: 180_000,
+});
+```
+
+Settings:
+
+- `auth`: selects `auto`, `direct`, or `ai-gateway` authentication, or accepts
+  an authentication environment for programmatically resolved credentials. fx
+  always sends model requests through Vercel AI Gateway, so
+  `direct` and `ai-gateway` differ only in how the harness passes the Gateway
+  credential into the sandbox.
+- `credentialForwarding`: optional synchronous or asynchronous callback that
+  customizes each credential immediately before the harness adapter forwards it
+  into a sandbox process. It receives the credential value that would otherwise
+  be forwarded (either the real credential or a masked value) and the
+  environment variable name used to expose it. This callback only controls the
+  value forwarded into the sandbox process. It does not restrict which
+  credentials the harness adapter can discover, read, or otherwise access in
+  the host process.
+- `mcpServers`: MCP server definitions keyed by server name. fx ACP sessions
+  use only the servers supplied by the ACP client.
+- `port`: ACP bridge port override.
+- `portEndpoint`: host endpoint for the ACP bridge when the sandbox session
+  cannot expose ports directly.
+- `startupTimeoutMs`: maximum time to wait for the ACP bridge to start.
+- `mintBridgeToken`: synchronous function that receives the sandbox id and
+  returns the ACP bridge authentication token. By default, the adapter generates
+  a random 32-byte token.
+
+The adapter fixes the installation source, executable, launch command, and ACP
+version. These implementation details cannot be overridden through
+`createFx()`.
+
+## Authentication
+
+fx uses [Vercel AI Gateway authentication](https://fx.sh/docs/getting-started/authentication).
+Set one of these environment variables:
+
+- `VERCEL_OIDC_TOKEN`
+- `AI_GATEWAY_API_KEY`
+
+fx prefers `VERCEL_OIDC_TOKEN` when both are available. The adapter brokers the
+selected credential only to the configured Gateway origin when the sandbox
+supports request transformations. Other sandboxes retain direct credential
+forwarding.
+
+Pass an authentication environment when the host resolves credentials at
+runtime instead of exposing them through `process.env`:
+
+```ts
+const gatewayHarness = createFx({
+  auth: {
+    AI_GATEWAY_API_KEY: await resolveGatewayToken(),
+    AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh',
+  },
+});
+```
+
+The supplied record replaces the host environment for authentication
+discovery. The adapter does not add its credentials to `process.env` or include
+their values in persisted ACP lifecycle identity.
+
+Both authentication configurations reach AI Gateway:
+
+```ts
+const directHarness = createFx({ auth: 'direct' });
+const gatewayHarness = createFx({ auth: 'ai-gateway' });
+```
+
+## Sandbox
+
+fx runs inside the sandbox through `@ai-sdk/harness-acp`. It requires a network
+sandbox with at least one exposed port:
+
+```ts
+const sandbox = createVercelSandbox({
+  runtime: 'node24',
+  ports: [4000],
+});
+```
+
+The first session requires network egress to download fx. Subsequent model and
+web requests also require network access.
+
+## Built-in Tools
+
+The adapter maps `glob_files`, `grep_files`, and `web_search` to the common
+`glob`, `grep`, and `webSearch` harness tool names.
+
+Other tools remain available under their native fx names, including
+`list_files`, `read_file`, `write_file`, `edit_file`, file mutation and metadata
+tools, `terminal`, `semantic_search`, `web_fetch`, skill tools, subagents, MCP
+discovery tools, `ask_user_question`, `vision`, and `read_tool_result`.
+
+The adapter maps `allow-reads` and `allow-edits` to fx's `ask` ACP mode.
+`allow-all` maps to fx's `code` ACP mode. The `allow-edits` mapping is
+conservative because fx does not provide a mode that allows file edits while
+still requiring approval for terminal commands. fx may resolve safe operations
+or apply its own permission policy without sending an ACP permission request.
+
+## Known Limitations
+
+- fx's ACP v1 tool updates omit the programmatic tool name and raw input except
+  when requesting permission. Native tools still execute, but ordinary native
+  tool events cannot always be associated with a typed built-in tool name.
+- ACP v1 does not expose model-step boundaries or per-step usage. The adapter
+  infers boundaries and reports unknown per-step usage when fx does not provide
+  totals.
+- ACP v1 has no portable manual compaction or mid-turn steering API.
+- ACP v1 has no portable built-in tool filtering API. Filtering host tools is
+  supported, but filtering fx built-ins throws an unsupported-capability error.
+- fx ACP does not expose a structured-output metadata mapping, so schema-backed
+  structured output is unsupported.
+- Custom `headers` are not natively supported and only applied via
+  sandbox-external request transformations. When a sandbox without that
+  capability is provided, custom `headers` therefore cannot be passed and are
+  ignored.
+
+## Related
+
+- [HarnessAgent](/docs/ai-sdk-harnesses/harness-agent)
+- [Harness tools](/docs/ai-sdk-harnesses/tools)
+- [Harness adapters](/docs/ai-sdk-harnesses/harness-adapters)
+- [Agent Client Protocol](/providers/ai-sdk-harnesses/acp)

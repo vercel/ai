@@ -1,0 +1,195 @@
+---
+title: Pi
+description: Learn how to use the Pi harness adapter.
+---
+
+# Pi Harness
+
+The Pi harness adapter connects `HarnessAgent` to
+`@earendil-works/pi-coding-agent`. Pi runs in the host Node.js process and uses
+the sandbox as a remote filesystem and shell. It does not install a bridge
+inside the sandbox.
+
+<Note>
+  Harness packages are **experimental**. Expect breaking changes between
+  releases as this early API gets further refined.
+</Note>
+
+## Setup
+
+<InstallPackages packages="@ai-sdk/harness @ai-sdk/harness-pi @ai-sdk/sandbox-vercel" />
+
+## Import
+
+```ts
+import { pi, createPi } from '@ai-sdk/harness-pi';
+```
+
+`pi` is equivalent to `createPi()` with its default configuration.
+
+## Basic Usage
+
+```ts
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { pi } from '@ai-sdk/harness-pi';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+
+const agent = new HarnessAgent({
+  harness: pi,
+  model: 'anthropic/claude-sonnet-4.6',
+  sandbox: createVercelSandbox({
+    runtime: 'node24',
+  }),
+});
+
+const session = await agent.createSession();
+
+let exitCode = 0;
+try {
+  const result = await agent.stream({
+    session,
+    prompt: 'Check the test failures and fix the production code.',
+  });
+
+  for await (const part of result.stream) {
+    if (part.type === 'text-delta') {
+      process.stdout.write(part.text);
+    }
+  }
+} catch (err) {
+  exitCode = 1;
+  console.error(err);
+} finally {
+  await session.destroy();
+  process.exit(exitCode);
+}
+```
+
+To use this agent, ensure environment variables include `VERCEL_OIDC_TOKEN` for
+Vercel Sandbox, and one of the variables listed under [authentication](#authentication)
+for Pi.
+
+## Adapter Settings
+
+Use `createPi()` to configure the runtime:
+
+```ts
+const harness = createPi({
+  thinkingLevel: 'medium',
+});
+```
+
+Settings:
+
+- `auth`: authentication mode (`auto`, `openai`, `anthropic`, `custom`, or
+  `ai-gateway`) or an isolated authentication environment.
+- `extensionFactories`: trusted inline Pi extension factories that run in the
+  host Node.js process.
+- `mcpServers`: MCP server definitions keyed by server name.
+- `thinkingLevel`: Pi thinking level (`off`, `minimal`, `low`, `medium`,
+  `high`, `xhigh`, or `max`).
+
+## Inline Extensions
+
+Use `extensionFactories` to load trusted inline Pi extensions for each harness
+session:
+
+```ts
+const harness = createPi({
+  extensionFactories: [
+    pi => {
+      pi.on('agent_start', () => {
+        console.log('Pi agent started');
+      });
+    },
+  ],
+});
+```
+
+Routine resource refreshes between turns reuse the active extension runtime and
+do not reinitialize factories. If the underlying Pi session is rebuilt, the
+factories initialize again for the new Pi runtime.
+
+Extension factories execute in the host Node.js process with access to the host
+environment, so only pass factories you trust. This setting enables only the
+factories you explicitly provide. Filesystem extension discovery remains
+disabled, including user, project, and settings-based extensions. Themes and
+prompt templates also remain disabled.
+
+## Authentication
+
+The `auth` setting selects which credentials Pi reads from the host environment:
+
+- `auto` (default): use AI Gateway credentials when available, then fall back
+  to all provider credentials found in the environment.
+- `openai`: use `OPENAI_API_KEY` and the optional `OPENAI_BASE_URL`.
+- `anthropic`: use `ANTHROPIC_API_KEY` and the optional
+  `ANTHROPIC_AUTH_TOKEN` and `ANTHROPIC_BASE_URL`.
+- `custom`: register all providers configured through environment variables.
+- `ai-gateway`: use `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` and the
+  optional `AI_GATEWAY_BASE_URL`.
+
+```ts
+const harness = createPi({ auth: 'ai-gateway' });
+```
+
+Pass an authentication environment to use programmatically resolved
+credentials without reading `process.env`:
+
+```ts
+const harness = createPi({
+  auth: {
+    MISTRAL_API_KEY: await resolveMistralToken(),
+    MISTRAL_BASE_URL: 'https://api.mistral.ai',
+  },
+});
+```
+
+The supplied record replaces the host environment for authentication
+discovery. Pi parses provider API keys and base URLs from that record.
+
+With `custom`, standard providers use environment variables such as
+`OPENAI_API_KEY`, `OPENAI_BASE_URL`, `ANTHROPIC_API_KEY`, and
+`ANTHROPIC_BASE_URL`. Other providers use a `<PREFIX>_API_KEY` and matching
+`<PREFIX>_BASE_URL` pair.
+
+## Sandbox
+
+Pi needs a `HarnessV1SandboxProvider`, but it does not require exposed ports.
+You can use a network sandbox adapter like `@ai-sdk/sandbox-vercel`, or a
+local emulation like `@ai-sdk/sandbox-just-bash`:
+
+```ts
+const sandbox = createVercelSandbox({
+  runtime: 'node24',
+});
+```
+
+## Built-in Tools
+
+The adapter exposes these common Pi built-ins through `agent.tools`:
+
+- `read`
+- `write`
+- `edit`
+- `bash`
+- `grep`
+- `glob`
+- `ls`
+
+Additional Pi built-ins may also appear in `agent.tools` when they do not fit a
+common tool shape.
+
+Pi supports built-in tool approval requests when `permissionMode` is
+`allow-reads` or `allow-edits`.
+
+## Known Limitations
+
+Pi does not support structured output. Supplying `output` to `HarnessAgent`
+causes the turn to throw `HarnessCapabilityUnsupportedError`.
+
+## Related
+
+- [HarnessAgent](/docs/ai-sdk-harnesses/harness-agent)
+- [Harness tools](/docs/ai-sdk-harnesses/tools)
+- [Harness adapters](/docs/ai-sdk-harnesses/harness-adapters)
