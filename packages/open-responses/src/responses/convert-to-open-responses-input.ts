@@ -13,8 +13,21 @@ import type {
 
 export async function convertToOpenResponsesInput({
   prompt,
+<<<<<<< HEAD
 }: {
   prompt: LanguageModelV3Prompt;
+=======
+  providerOptionsName = 'open-responses',
+  extensionRegistry,
+  providerToolsByName = new Map(),
+  strictResponseInput = false,
+}: {
+  prompt: LanguageModelV4Prompt;
+  providerOptionsName?: string;
+  extensionRegistry?: OpenResponsesExtensionRegistry;
+  providerToolsByName?: Map<string, LanguageModelV4ProviderTool>;
+  strictResponseInput?: boolean;
+>>>>>>> 4210d0b502 (feat(open-responses): add strict assistant history serialization without synthetic item IDs (#20376))
 }): Promise<{
   input: OpenResponsesRequestBody['input'];
   instructions: string | undefined;
@@ -80,7 +93,54 @@ export async function convertToOpenResponsesInput({
         const assistantContent: Array<
           OutputTextContentParam | RefusalContentParam
         > = [];
+<<<<<<< HEAD
         const toolCalls: Array<FunctionCallItemParam> = [];
+=======
+        let assistantMessageId: string | undefined;
+
+        const flushAssistantContent = () => {
+          if (assistantContent.length === 0) {
+            return;
+          }
+
+          if (strictResponseInput && assistantMessageId == null) {
+            input.push({
+              type: 'message',
+              role: 'assistant',
+              content: assistantContent
+                .map(part =>
+                  part.type === 'output_text' ? part.text : part.refusal,
+                )
+                .join(''),
+            });
+          } else if (strictResponseInput) {
+            input.push({
+              id: assistantMessageId,
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: assistantContent.map(part =>
+                part.type === 'output_text'
+                  ? {
+                      ...part,
+                      annotations: part.annotations ?? [],
+                      logprobs: part.logprobs ?? [],
+                    }
+                  : part,
+              ),
+            });
+          } else {
+            input.push({
+              type: 'message',
+              role: 'assistant',
+              content: assistantContent,
+              ...(assistantMessageId != null && { id: assistantMessageId }),
+            });
+          }
+          assistantContent = [];
+          assistantMessageId = undefined;
+        };
+>>>>>>> 4210d0b502 (feat(open-responses): add strict assistant history serialization without synthetic item IDs (#20376))
 
         for (const part of content) {
           switch (part.type) {

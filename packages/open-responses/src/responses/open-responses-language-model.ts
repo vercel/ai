@@ -91,6 +91,13 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
       warnings: inputWarnings,
     } = await convertToOpenResponsesInput({
       prompt,
+<<<<<<< HEAD
+=======
+      providerOptionsName: this.config.providerOptionsName,
+      extensionRegistry: this.extensionRegistry,
+      providerToolsByName,
+      strictResponseInput: this.config.strictResponseInput,
+>>>>>>> 4210d0b502 (feat(open-responses): add strict assistant history serialization without synthetic item IDs (#20376))
     });
 
     warnings.push(...inputWarnings);

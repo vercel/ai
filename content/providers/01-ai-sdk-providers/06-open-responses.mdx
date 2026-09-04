@@ -64,6 +64,44 @@ You can use the following optional settings to customize the Open Responses prov
   Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
   Defaults to the global `fetch` function.
 
+<<<<<<< HEAD
+=======
+- **strictResponseInput** _boolean_
+
+  Serializes assistant history using strict OpenAI Responses input schemas.
+  Assistant messages without an item ID are sent as easy input messages, while
+  messages with a genuine provider item ID are sent as complete output items.
+  Defaults to `false`.
+
+### Endpoint Examples
+
+For a local LM Studio server that does not require authentication:
+
+```ts
+import { createOpenResponses } from '@ai-sdk/open-responses';
+
+const lmstudio = createOpenResponses({
+  name: 'lmstudio',
+  url: 'http://localhost:1234/v1/responses',
+});
+```
+
+For the OpenAI Responses API:
+
+```ts
+import { createOpenResponses } from '@ai-sdk/open-responses';
+
+const openAIResponses = createOpenResponses({
+  name: 'openai',
+  url: 'https://api.openai.com/v1/responses',
+  apiKey: process.env.OPENAI_API_KEY,
+});
+```
+
+You can use the same setup with another compatible service by changing the
+`name`, `url`, authentication, and model ID.
+
+>>>>>>> 4210d0b502 (feat(open-responses): add strict assistant history serialization without synthetic item IDs (#20376))
 ## Language Models
 
 The Open Responses provider instance is a function that you can invoke to create a language model:

@@ -42,6 +42,25 @@ export interface OpenResponsesProviderSettings {
    * or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+<<<<<<< HEAD
+=======
+
+  /**
+   * Whether to serialize assistant history using the strict OpenAI Responses
+   * input schemas. Assistant messages without an item ID are sent as easy input
+   * messages, while messages with an item ID are sent as complete output items.
+   *
+   * @default false
+   */
+  strictResponseInput?: boolean;
+
+  /**
+   * Codecs for Open Responses extension tools, items, and streaming events.
+   *
+   * @experimental This API may change in a future release.
+   */
+  experimental_extensions?: readonly OpenResponsesExtension[];
+>>>>>>> 4210d0b502 (feat(open-responses): add strict assistant history serialization without synthetic item IDs (#20376))
 }
 
 export function createOpenResponses(
@@ -70,6 +89,11 @@ export function createOpenResponses(
       url: options.url,
       fetch: options.fetch,
       generateId: () => generateId(),
+<<<<<<< HEAD
+=======
+      extensionRegistry,
+      strictResponseInput: options.strictResponseInput,
+>>>>>>> 4210d0b502 (feat(open-responses): add strict assistant history serialization without synthetic item IDs (#20376))
     });
   };
 
