@@ -1081,27 +1081,37 @@ import { google } from '@ai-sdk/google';
 import {
   experimental_getBatchResults as getBatchResults,
   experimental_getBatchStatus as getBatchStatus,
-  experimental_startTextBatch as startTextBatch,
+  experimental_startBatch as startBatch,
 } from 'ai';
 import { setTimeout } from 'node:timers/promises';
 
-const model = google('gemini-3.6-flash');
+const model = 'gemini-3.6-flash';
 
-const batch = await startTextBatch({
-  model,
+const batch = await startBatch({
+  provider: google,
   requests: [
-    { id: 'capital-france', prompt: 'What is the capital of France?' },
-    { id: 'capital-germany', prompt: 'What is the capital of Germany?' },
+    {
+      id: 'capital-france',
+      type: 'text',
+      model,
+      prompt: 'What is the capital of France?',
+    },
+    {
+      id: 'capital-germany',
+      type: 'text',
+      model,
+      prompt: 'What is the capital of Germany?',
+    },
   ],
 });
 
 let status = batch.status;
 while (status === 'pending') {
   await setTimeout(60_000);
-  ({ status } = await getBatchStatus({ model, batch }));
+  ({ status } = await getBatchStatus({ provider: google, batch }));
 }
 
-for await (const item of getBatchResults({ model, batch })) {
+for await (const item of getBatchResults({ provider: google, batch })) {
   if (item.status === 'succeeded') {
     console.log(item.id, item.text);
   } else {
@@ -1110,21 +1120,35 @@ for await (const item of getBatchResults({ model, batch })) {
 }
 ```
 
-`startTextBatch` returns a serializable batch reference. Persist this reference
+`startBatch` returns a serializable batch reference. Persist this reference
 to check the batch status or retrieve its results from another process. Results
 can arrive in a different order from the input requests, so match each result by
 its `id`.
+
+Each request specifies its `type` and `model`. Google requires every text
+request in a batch to use the same model and throws before submission when the
+models differ.
 
 #### Webhooks
 
 You can pass a `webhookUrl` to receive a notification when the batch reaches a terminal state:
 
 ```ts
-const batch = await startTextBatch({
-  model,
+const batch = await startBatch({
+  provider: google,
   requests: [
-    { id: 'capital-france', prompt: 'What is the capital of France?' },
-    { id: 'capital-germany', prompt: 'What is the capital of Germany?' },
+    {
+      id: 'capital-france',
+      type: 'text',
+      model,
+      prompt: 'What is the capital of France?',
+    },
+    {
+      id: 'capital-germany',
+      type: 'text',
+      model,
+      prompt: 'What is the capital of Germany?',
+    },
   ],
   webhookUrl: 'https://example.com/api/google-batch-webhook',
 });

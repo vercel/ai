@@ -1,13 +1,15 @@
 import {
   InvalidArgumentError,
   InvalidResponseDataError,
-  type Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
-  type Experimental_BatchV4StartOptions as BatchV4StartOptions,
+  type Experimental_BatchV4 as BatchV4,
   type Experimental_BatchV4StartResult as BatchV4StartResult,
   type Experimental_BatchV4Error as BatchV4Error,
   type Experimental_BatchV4ItemResult as BatchV4ItemResult,
   type Experimental_BatchV4OperationOptions as BatchV4OperationOptions,
   type Experimental_BatchV4Status as BatchV4Status,
+  type Experimental_TextBatchV4ItemResult as TextBatchV4ItemResult,
+  type Experimental_BatchV4StartOptions as BatchV4StartOptions,
+  type Experimental_TextBatchV4Request as TextBatchV4Request,
   type LanguageModelV4GenerateResult,
   type SharedV4ProviderMetadata,
   type SharedV4Warning,
@@ -24,8 +26,6 @@ import {
   postJsonToApi,
   postToApi,
   safeValidateTypes,
-  WORKFLOW_DESERIALIZE,
-  WORKFLOW_SERIALIZE,
   zodSchema,
   type InferSchema,
 } from '@ai-sdk/provider-utils';
@@ -34,10 +34,7 @@ import {
   openaiErrorDataSchema,
   openaiFailedResponseHandler,
 } from './openai-error';
-import {
-  prepareOpenAIConfigForWorkflowDeserialize,
-  type OpenAIConfig,
-} from './openai-config';
+import type { OpenAIConfig } from './openai-config';
 import { openaiFilesResponseSchema } from './files/openai-files-api';
 import { convertOpenAIResponsesUsage } from './responses/convert-openai-responses-usage';
 import { mapOpenAIResponseFinishReason } from './responses/map-openai-responses-finish-reason';
@@ -48,6 +45,7 @@ import {
 import {
   mapWebSearchOutput,
   OpenAIResponsesLanguageModel,
+  openaiResponsesSupportedUrls,
 } from './responses/openai-responses-language-model';
 import type { OpenAIResponsesModelId } from './responses/openai-responses-language-model-options';
 import type { ResponsesReasoningProviderMetadata } from './responses/openai-responses-provider-metadata';
@@ -73,16 +71,18 @@ const openaiBatchProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-type OpenAIBatchRequest = Parameters<
-  BatchLanguageModelV4['experimental_doStartBatch']
->[0]['requests'][number];
+type OpenAIBatchModelIds = {
+  readonly text: OpenAIResponsesModelId;
+};
+
+type OpenAIBatchRequest = TextBatchV4Request<OpenAIResponsesModelId>;
 
 type OpenAIBatchPreparedRequest = {
   body: unknown;
   warnings: SharedV4Warning[];
 };
 
-type OpenAIBatchResponseConversion =
+type OpenAIBatchResultConversion =
   | { success: true; result: LanguageModelV4GenerateResult }
   | { success: false; error: BatchV4Error };
 
@@ -143,20 +143,25 @@ const openaiBatchResultLineSchema = lazySchema(() =>
 
 type OpenAIBatchResultLine = InferSchema<typeof openaiBatchResultLineSchema>;
 
-class OpenAIResponsesBatch {
+export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
+  readonly specificationVersion = 'v4' as const;
+  readonly provider: string;
+  readonly supportedUrls = openaiResponsesSupportedUrls;
+
   constructor(
     private readonly options: {
-      modelId: string;
+      provider: string;
       config: OpenAIConfig;
-      prepareRequest: (
-        request: OpenAIBatchRequest,
-      ) => PromiseLike<OpenAIBatchPreparedRequest>;
     },
-  ) {}
+  ) {
+    this.provider = options.provider;
+  }
 
-  async startBatch(
-    options: BatchV4StartOptions<OpenAIBatchRequest>,
+  async doStartBatch(
+    options: BatchV4StartOptions<OpenAIBatchModelIds>,
   ): Promise<BatchV4StartResult> {
+    validateSingleModel(options.requests);
+
     const fileParts: string[] = [];
     const warnings: BatchV4StartResult['warnings'] =
       options.webhookUrl == null
@@ -180,7 +185,7 @@ class OpenAIResponsesBatch {
       openaiBatchInputFileDefaultExpiresAfterSeconds;
 
     for (const request of options.requests) {
-      const preparedRequest = await this.options.prepareRequest(request);
+      const preparedRequest = await this.prepareRequest(request);
 
       fileParts.push(
         JSON.stringify({
@@ -285,7 +290,7 @@ class OpenAIResponsesBatch {
   }
 
   private async parseBatchProviderOptions(
-    providerOptions: BatchV4StartOptions<OpenAIBatchRequest>['providerOptions'],
+    providerOptions: BatchV4StartOptions<OpenAIBatchModelIds>['providerOptions'],
   ) {
     const providerOptionsName = this.options.config.provider.includes('azure')
       ? 'azure'
@@ -307,16 +312,16 @@ class OpenAIResponsesBatch {
     return batchOptions;
   }
 
-  async getBatchStatus(
+  async doGetBatchStatus(
     options: BatchV4OperationOptions,
   ): Promise<BatchV4Status> {
     const batch = await this.retrieveBatch(options);
     return convertOpenAIBatchStatus(batch);
   }
 
-  async getBatchResults(
+  async doGetBatchResults(
     options: BatchV4OperationOptions,
-  ): Promise<ReadableStream<BatchV4ItemResult<LanguageModelV4GenerateResult>>> {
+  ): Promise<ReadableStream<BatchV4ItemResult>> {
     const batch = await this.retrieveBatch(options);
 
     const batchStatus = convertOpenAIBatchStatus(batch);
@@ -368,7 +373,7 @@ class OpenAIResponsesBatch {
   }: {
     fileIds: string[];
     options: BatchV4OperationOptions;
-  }): AsyncGenerator<BatchV4ItemResult<LanguageModelV4GenerateResult>> {
+  }): AsyncGenerator<BatchV4ItemResult> {
     for (const fileId of fileIds) {
       const { value: lines } = await getFromApi({
         url: this.getUrl(`/files/${encodeURIComponent(fileId)}/content`),
@@ -393,7 +398,7 @@ class OpenAIResponsesBatch {
 
   private async convertResultLine(
     line: OpenAIBatchResultLine,
-  ): Promise<BatchV4ItemResult<LanguageModelV4GenerateResult>> {
+  ): Promise<TextBatchV4ItemResult> {
     if (line.error != null) {
       const error = {
         message: line.error.message,
@@ -401,18 +406,19 @@ class OpenAIResponsesBatch {
       };
 
       if (line.error.code === 'batch_cancelled') {
-        return { id: line.custom_id, status: 'cancelled', error };
+        return { type: 'text', id: line.custom_id, status: 'cancelled', error };
       }
 
       if (line.error.code === 'batch_expired') {
-        return { id: line.custom_id, status: 'expired', error };
+        return { type: 'text', id: line.custom_id, status: 'expired', error };
       }
 
-      return { id: line.custom_id, status: 'failed', error };
+      return { type: 'text', id: line.custom_id, status: 'failed', error };
     }
 
     if (line.response == null) {
       return {
+        type: 'text',
         id: line.custom_id,
         status: 'failed',
         error: {
@@ -425,6 +431,7 @@ class OpenAIResponsesBatch {
 
     if (line.response.status_code < 200 || line.response.status_code >= 300) {
       return {
+        type: 'text',
         id: line.custom_id,
         status: 'failed',
         error: await convertOpenAIErrorResponse({
@@ -434,11 +441,10 @@ class OpenAIResponsesBatch {
       };
     }
 
-    const conversion = await convertOpenAIResponsesBatchResponse(
-      line.response.body,
-    );
+    const conversion = await convertOpenAIBatchResult(line.response.body);
     if (!conversion.success) {
       return {
+        type: 'text',
         id: line.custom_id,
         status: 'failed',
         error: conversion.error,
@@ -446,17 +452,43 @@ class OpenAIResponsesBatch {
     }
 
     return {
+      type: 'text',
       id: line.custom_id,
       status: 'succeeded',
       result: conversion.result,
     };
   }
 
+  private async prepareRequest(
+    request: OpenAIBatchRequest,
+  ): Promise<OpenAIBatchPreparedRequest> {
+    const { args: body, warnings } =
+      await OpenAIResponsesLanguageModel.prepareRequest({
+        modelId: request.modelId,
+        config: this.options.config,
+        options: request.options,
+      });
+
+    return { body, warnings };
+  }
+
   private getUrl(path: string) {
-    return this.options.config.url({
-      modelId: this.options.modelId,
-      path,
-    });
+    return this.options.config.url({ path, modelId: '' });
+  }
+}
+
+function validateSingleModel(requests: ReadonlyArray<OpenAIBatchRequest>) {
+  const modelId = requests[0]?.modelId;
+
+  for (const request of requests) {
+    if (request.modelId !== modelId) {
+      throw new InvalidArgumentError({
+        argument: 'requests',
+        message:
+          'The OpenAI Batch API requires all requests in a batch to use the ' +
+          `same model. Found "${modelId}" and "${request.modelId}".`,
+      });
+    }
   }
 }
 
@@ -467,54 +499,6 @@ const openAIBatchConvertibleProviderToolIds = new Set([
   'openai.web_search',
   'openai.web_search_preview',
 ]);
-
-export class OpenAIResponsesBatchLanguageModel
-  extends OpenAIResponsesLanguageModel
-  implements BatchLanguageModelV4
-{
-  private readonly batch: OpenAIResponsesBatch;
-
-  static [WORKFLOW_SERIALIZE](model: OpenAIResponsesLanguageModel) {
-    return OpenAIResponsesLanguageModel[WORKFLOW_SERIALIZE](model);
-  }
-
-  static [WORKFLOW_DESERIALIZE](options: {
-    modelId: string;
-    config: Parameters<typeof prepareOpenAIConfigForWorkflowDeserialize>[0];
-  }) {
-    return new OpenAIResponsesBatchLanguageModel(
-      options.modelId as OpenAIResponsesModelId,
-      prepareOpenAIConfigForWorkflowDeserialize(options.config),
-    );
-  }
-
-  constructor(modelId: OpenAIResponsesModelId, config: OpenAIConfig) {
-    super(modelId, config);
-    this.batch = new OpenAIResponsesBatch({
-      modelId,
-      config,
-      prepareRequest: async request => {
-        const { args: body, warnings } = await this.getArgs(request.options);
-
-        return { body, warnings };
-      },
-    });
-  }
-
-  experimental_doStartBatch(
-    options: Parameters<BatchLanguageModelV4['experimental_doStartBatch']>[0],
-  ) {
-    return this.batch.startBatch(options);
-  }
-
-  experimental_doGetBatchStatus(options: BatchV4OperationOptions) {
-    return this.batch.getBatchStatus(options);
-  }
-
-  experimental_doGetBatchResults(options: BatchV4OperationOptions) {
-    return this.batch.getBatchResults(options);
-  }
-}
 
 function convertOpenAIBatchStatus(batch: OpenAIBatchResponse): BatchV4Status {
   const status = mapOpenAIBatchStatus(batch.status);
@@ -616,9 +600,9 @@ async function convertOpenAIErrorResponse({
   };
 }
 
-async function convertOpenAIResponsesBatchResponse(
+async function convertOpenAIBatchResult(
   body: unknown,
-): Promise<OpenAIBatchResponseConversion> {
+): Promise<OpenAIBatchResultConversion> {
   const validation = await safeValidateTypes({
     value: body,
     schema: openaiResponsesResponseSchema,

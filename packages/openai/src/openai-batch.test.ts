@@ -1,22 +1,14 @@
 import { JSONParseError } from '@ai-sdk/provider';
-import {
-  WORKFLOW_DESERIALIZE,
-  WORKFLOW_SERIALIZE,
-} from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it, vi } from 'vitest';
-import { OpenAIChatLanguageModel } from './chat/openai-chat-language-model';
-import { OpenAIResponsesBatchLanguageModel } from './openai-responses-batch';
 import { createOpenAI } from './openai-provider';
-import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
 
 const urls = {
-  responses: 'https://api.openai.com/v1/responses',
   files: 'https://api.openai.com/v1/files',
   batches: 'https://api.openai.com/v1/batches',
   batch: 'https://api.openai.com/v1/batches/batch_123',
@@ -25,7 +17,6 @@ const urls = {
 } as const;
 
 const server = createTestServer({
-  [urls.responses]: {},
   [urls.files]: {},
   [urls.batches]: {},
   [urls.batch]: {},
@@ -33,14 +24,10 @@ const server = createTestServer({
   [urls.errors]: {},
 });
 
-const config = {
-  provider: 'openai.responses',
-  url: ({ path }: { path: string }) => `https://api.openai.com/v1${path}`,
-  headers: () => ({ Authorization: 'Bearer test-api-key' }),
-};
-
 function request(prompt: string, options: { topK?: number } = {}) {
   return {
+    type: 'text' as const,
+    modelId: 'gpt-5.6',
     options: {
       prompt: [
         {
@@ -135,18 +122,18 @@ function resultLine({ id, body }: { id: string; body: unknown }) {
   });
 }
 
-describe('OpenAI batch language models', () => {
+describe('OpenAI batch service', () => {
   it('creates a Responses batch from prepared JSONL requests', async () => {
     prepareCreateResponse({
       status: 'validating',
       request_counts: { total: 2, completed: 0, failed: 0 },
     });
-    const model = createOpenAI({
+    const batch = createOpenAI({
       apiKey: 'test-api-key',
       headers: { 'Provider-Header': 'provider' },
-    }).responses('gpt-5.6');
+    }).experimental_batch();
 
-    const result = await model.experimental_doStartBatch({
+    const result = await batch.doStartBatch({
       requests: [
         { id: 'france', ...request('What is the capital of France?') },
         {
@@ -224,6 +211,10 @@ describe('OpenAI batch language models', () => {
         ],
       },
     });
+    expect(lines[1]).toMatchObject({
+      custom_id: 'germany',
+      body: { model: 'gpt-5.6' },
+    });
     expect(await server.calls[1].requestBodyJson).toEqual({
       input_file_id: 'file-input',
       endpoint: '/v1/responses',
@@ -241,11 +232,40 @@ describe('OpenAI batch language models', () => {
     });
   });
 
+  it('rejects mixed models before uploading the batch input file', async () => {
+    const fetchMock = vi.fn();
+    const batch = createOpenAI({
+      apiKey: 'test-api-key',
+      fetch: fetchMock,
+    }).experimental_batch();
+
+    await expect(
+      batch.doStartBatch({
+        requests: [
+          { id: 'first', ...request('First request') },
+          {
+            id: 'second',
+            ...request('Second request'),
+            modelId: 'gpt-5-mini',
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_InvalidArgumentError',
+      argument: 'requests',
+      message:
+        'The OpenAI Batch API requires all requests in a batch to use the same model. Found "gpt-5.6" and "gpt-5-mini".',
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('applies the inputFileExpiresAfter provider option to the input file upload', async () => {
     prepareCreateResponse();
-    const model = createOpenAI({ apiKey: 'test-api-key' }).responses('gpt-5.6');
+    const batch = createOpenAI({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
-    await model.experimental_doStartBatch({
+    await batch.doStartBatch({
       requests: [
         { id: 'france', ...request('What is the capital of France?') },
       ],
@@ -263,9 +283,11 @@ describe('OpenAI batch language models', () => {
       type: 'json-value',
       body: { id: 'file-input', object: 'file' },
     };
-    const model = createOpenAI({ apiKey: 'test-api-key' }).responses('gpt-5.6');
+    const batch = createOpenAI({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
-    const result = await model.experimental_doStartBatch({
+    const result = await batch.doStartBatch({
       requests: [
         { id: 'france', ...request('What is the capital of France?') },
       ],
@@ -278,9 +300,9 @@ describe('OpenAI batch language models', () => {
 
   it('warns when a provider tool can return unsupported batch output', async () => {
     prepareCreateResponse();
-    const model = createOpenAI({ apiKey: 'test-api-key' }).responses('gpt-5.6');
+    const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
 
-    const result = await model.experimental_doStartBatch({
+    const result = await batch.doStartBatch({
       requests: [
         {
           id: 'image',
@@ -313,14 +335,16 @@ describe('OpenAI batch language models', () => {
 
   it('appends an explicit compaction trigger to batch request input', async () => {
     prepareCreateResponse();
-    const model = createOpenAI({
+    const batch = createOpenAI({
       apiKey: 'test-api-key',
-    }).responses('gpt-5.6');
+    }).experimental_batch();
 
-    await model.experimental_doStartBatch({
+    await batch.doStartBatch({
       requests: [
         {
           id: 'compact',
+          type: 'text',
+          modelId: 'gpt-5.6',
           options: {
             prompt: [
               {
@@ -355,12 +379,12 @@ describe('OpenAI batch language models', () => {
     prepareCreateResponse();
     const mockFetch = vi.fn().mockImplementation(globalThis.fetch);
     const abortController = new AbortController();
-    const model = createOpenAI({
+    const batch = createOpenAI({
       apiKey: 'test-api-key',
       fetch: mockFetch,
-    })('gpt-5.6');
+    }).experimental_batch();
 
-    await model.experimental_doStartBatch({
+    await batch.doStartBatch({
       requests: [
         { id: 'france', ...request('What is the capital of France?') },
       ],
@@ -387,10 +411,12 @@ describe('OpenAI batch language models', () => {
       type: 'json-value',
       body: batchResponse({ status: rawStatus }),
     };
-    const model = createOpenAI({ apiKey: 'test-api-key' })('gpt-5.6');
+    const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
 
     await expect(
-      model.experimental_doGetBatchStatus({ batchId: 'batch_123' }),
+      batch.doGetBatchStatus({
+        batchId: 'batch_123',
+      }),
     ).resolves.toMatchObject({ status, rawStatus });
   });
 
@@ -405,10 +431,12 @@ describe('OpenAI batch language models', () => {
         },
       }),
     };
-    const model = createOpenAI({ apiKey: 'test-api-key' })('gpt-5.6');
+    const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
 
     await expect(
-      model.experimental_doGetBatchStatus({ batchId: 'batch_123' }),
+      batch.doGetBatchStatus({
+        batchId: 'batch_123',
+      }),
     ).resolves.toEqual({
       status: 'failed',
       rawStatus: 'failed',
@@ -435,10 +463,12 @@ describe('OpenAI batch language models', () => {
         errors: { data: [{ code: 'invalid_request' }] },
       }),
     };
-    const model = createOpenAI({ apiKey: 'test-api-key' })('gpt-5.6');
+    const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
 
     await expect(
-      model.experimental_doGetBatchStatus({ batchId: 'batch_123' }),
+      batch.doGetBatchStatus({
+        batchId: 'batch_123',
+      }),
     ).resolves.toMatchObject({
       status: 'failed',
       error: {
@@ -471,9 +501,9 @@ describe('OpenAI batch language models', () => {
         second.slice(31),
       ],
     };
-    const model = createOpenAI({ apiKey: 'test-api-key' })('gpt-5.6');
+    const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await batch.doGetBatchResults({
       batchId: 'batch_123',
     });
     const results = await convertReadableStreamToArray(stream);
@@ -537,9 +567,9 @@ describe('OpenAI batch language models', () => {
         }),
       ],
     };
-    const model = createOpenAI({ apiKey: 'test-api-key' })('gpt-5.6');
+    const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await batch.doGetBatchResults({
       batchId: 'batch_123',
     });
 
@@ -582,12 +612,12 @@ describe('OpenAI batch language models', () => {
     };
     const mockFetch = vi.fn().mockImplementation(globalThis.fetch);
     const abortController = new AbortController();
-    const model = createOpenAI({
+    const batch = createOpenAI({
       apiKey: 'test-api-key',
       fetch: mockFetch,
-    })('gpt-5.6');
+    }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await batch.doGetBatchResults({
       batchId: 'batch_123',
       abortSignal: abortController.signal,
     });
@@ -613,9 +643,9 @@ describe('OpenAI batch language models', () => {
         '{not json}\n',
       ],
     };
-    const model = createOpenAI({ apiKey: 'test-api-key' })('gpt-5.6');
+    const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await batch.doGetBatchResults({
       batchId: 'batch_123',
     });
     const reader = stream.getReader();
@@ -676,16 +706,19 @@ describe('OpenAI batch language models', () => {
         }),
       ],
     };
-    const model = createOpenAI({ apiKey: 'test-api-key' })('gpt-5.6');
+    const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
 
-    await model.experimental_doGetBatchStatus({ batchId: 'batch_123' });
-    const stream = await model.experimental_doGetBatchResults({
+    await batch.doGetBatchStatus({
+      batchId: 'batch_123',
+    });
+    const stream = await batch.doGetBatchResults({
       batchId: 'batch_123',
     });
     const results = await convertReadableStreamToArray(stream);
 
     expect(results).toEqual([
       {
+        type: 'text',
         id: 'http-error',
         status: 'failed',
         error: {
@@ -696,16 +729,19 @@ describe('OpenAI batch language models', () => {
         },
       },
       {
+        type: 'text',
         id: 'cancelled',
         status: 'cancelled',
         error: { message: 'Batch cancelled.', code: 'batch_cancelled' },
       },
       {
+        type: 'text',
         id: 'expired',
         status: 'expired',
         error: { message: 'Batch expired.', code: 'batch_expired' },
       },
       {
+        type: 'text',
         id: 'failed',
         status: 'failed',
         error: { message: 'Request timed out.', code: 'request_timeout' },
@@ -719,60 +755,20 @@ describe('OpenAI batch language models', () => {
     ]);
   });
 
-  it('only exposes batch support on OpenAI Responses models', () => {
+  it('exposes batch support on the provider instead of its models', () => {
     const provider = createOpenAI({ apiKey: 'test-api-key' });
 
-    for (const model of [provider('gpt-5.6'), provider.responses('gpt-5.6')]) {
-      expect(model.experimental_doStartBatch).toBeTypeOf('function');
-      expect(model.experimental_doGetBatchStatus).toBeTypeOf('function');
-      expect(model.experimental_doGetBatchResults).toBeTypeOf('function');
-    }
+    const batch = provider.experimental_batch();
+    expect(batch.doStartBatch).toBeTypeOf('function');
+    expect(batch.doGetBatchStatus).toBeTypeOf('function');
+    expect(batch.doGetBatchResults).toBeTypeOf('function');
 
+    expect((provider('gpt-5.6') as any).doStartBatch).toBeUndefined();
+    expect((provider.responses('gpt-5.6') as any).doStartBatch).toBeUndefined();
+    expect((provider.chat('gpt-5.6') as any).doStartBatch).toBeUndefined();
     expect(
-      (provider.chat('gpt-5.6') as any).experimental_doStartBatch,
+      (provider.completion('gpt-3.5-turbo-instruct') as any).doStartBatch,
     ).toBeUndefined();
-    expect(
-      (provider.completion('gpt-3.5-turbo-instruct') as any)
-        .experimental_doStartBatch,
-    ).toBeUndefined();
-    expect(
-      (new OpenAIResponsesLanguageModel('gpt-5.6', config) as any)
-        .experimental_doStartBatch,
-    ).toBeUndefined();
-    expect(
-      (
-        new OpenAIChatLanguageModel('gpt-5.6', {
-          ...config,
-          provider: 'openai.chat',
-        }) as any
-      ).experimental_doStartBatch,
-    ).toBeUndefined();
-  });
-
-  it('preserves Responses config and batch support across a workflow round trip', async () => {
-    server.urls[urls.responses].response = {
-      type: 'json-value',
-      body: responsesResultBody('Paris'),
-    };
-    const model = createOpenAI({ apiKey: 'test-api-key' })(
-      'gpt-5.6',
-    ) as OpenAIResponsesBatchLanguageModel;
-    const serialized =
-      OpenAIResponsesBatchLanguageModel[WORKFLOW_SERIALIZE](model);
-    const responsesModel =
-      OpenAIResponsesBatchLanguageModel[WORKFLOW_DESERIALIZE](serialized);
-
-    expect(responsesModel.experimental_doStartBatch).toBeTypeOf('function');
-    await expect(
-      responsesModel.doGenerate(
-        request('What is the capital of France?').options,
-      ),
-    ).resolves.toMatchObject({
-      content: [{ type: 'text', text: 'Paris' }],
-    });
-    expect(server.calls[0].requestHeaders.authorization).toBe(
-      'Bearer test-api-key',
-    );
   });
 
   describe('batch result lifecycle', () => {
@@ -784,10 +780,14 @@ describe('OpenAI batch language models', () => {
           request_counts: { total: 2, completed: 1, failed: 0 },
         }),
       };
-      const model = createOpenAI({ apiKey: 'test-api-key' })('gpt-5.6');
+      const batch = createOpenAI({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
       await expect(
-        model.experimental_doGetBatchResults({ batchId: 'batch_123' }),
+        batch.doGetBatchResults({
+          batchId: 'batch_123',
+        }),
       ).rejects.toMatchObject({
         name: 'AI_InvalidArgumentError',
         argument: 'batchId',
@@ -807,9 +807,11 @@ describe('OpenAI batch language models', () => {
           resultLine({ id: 'valid', body: responsesResultBody('Paris') }),
         ],
       };
-      const model = createOpenAI({ apiKey: 'test-api-key' })('gpt-5.6');
+      const batch = createOpenAI({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
-      const stream = await model.experimental_doGetBatchResults({
+      const stream = await batch.doGetBatchResults({
         batchId: 'batch_123',
       });
       const results = await convertReadableStreamToArray(stream);
@@ -837,10 +839,14 @@ describe('OpenAI batch language models', () => {
         type: 'json-value',
         body: batchResponse(),
       };
-      const model = createOpenAI({ apiKey: 'test-api-key' })('gpt-5.6');
+      const batch = createOpenAI({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
       await expect(
-        model.experimental_doGetBatchResults({ batchId: 'batch_123' }),
+        batch.doGetBatchResults({
+          batchId: 'batch_123',
+        }),
       ).rejects.toMatchObject({
         name: 'AI_InvalidResponseDataError',
         message: 'OpenAI batch "batch_123" completed without batch output.',
@@ -942,9 +948,11 @@ describe('OpenAI batch language models', () => {
           resultLine({ id: 'valid', body: responsesResultBody('Paris') }),
         ],
       };
-      const model = createOpenAI({ apiKey: 'test-api-key' })('gpt-5.6');
+      const batch = createOpenAI({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
-      const stream = await model.experimental_doGetBatchResults({
+      const stream = await batch.doGetBatchResults({
         batchId: 'batch_123',
       });
       const results = await convertReadableStreamToArray(stream);

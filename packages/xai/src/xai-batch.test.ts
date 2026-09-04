@@ -1,12 +1,10 @@
-import { WORKFLOW_DESERIALIZE } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it, vi } from 'vitest';
-import { createXai } from '../xai-provider';
-import { XaiResponsesBatchLanguageModel } from './xai-responses-batch';
-import { XaiResponsesLanguageModel } from './xai-responses-language-model';
+import { XaiResponsesLanguageModel } from './responses/xai-responses-language-model';
+import { createXai } from './xai-provider';
 
-vi.mock('../version', () => ({
+vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
 
@@ -34,8 +32,14 @@ const config = {
   generateId: () => 'generated-id',
 };
 
-function request(prompt: string, options: { topK?: number } = {}) {
+function request(
+  prompt: string,
+  modelId: 'grok-4.3' | 'grok-4.20-non-reasoning' = 'grok-4.3',
+  options: { topK?: number } = {},
+) {
   return {
+    type: 'text' as const,
+    modelId,
     options: {
       prompt: [
         {
@@ -110,7 +114,7 @@ function successfulResult(id: string, text: string) {
   };
 }
 
-describe('xAI Responses batch language model', () => {
+describe('xAI batch', () => {
   it('uploads prepared JSONL requests and creates a file-backed batch', async () => {
     server.urls[urls.files].response = {
       type: 'json-value',
@@ -132,17 +136,21 @@ describe('xAI Responses batch language model', () => {
         },
       }),
     };
-    const model = createXai({
+    const batch = createXai({
       apiKey: 'test-api-key',
       headers: { 'Provider-Header': 'provider' },
-    }).responses('grok-4.3');
+    }).experimental_batch();
 
-    const result = await model.experimental_doStartBatch({
+    const result = await batch.doStartBatch({
       requests: [
         { id: 'france', ...request('What is the capital of France?') },
         {
           id: 'germany',
-          ...request('What is the capital of Germany?', { topK: 10 }),
+          ...request(
+            'What is the capital of Germany?',
+            'grok-4.20-non-reasoning',
+            { topK: 10 },
+          ),
         },
       ],
       headers: { 'Operation-Header': 'operation' },
@@ -216,7 +224,7 @@ describe('xAI Responses batch language model', () => {
         method: 'POST',
         url: '/v1/responses',
         body: {
-          model: 'grok-4.3',
+          model: 'grok-4.20-non-reasoning',
           input: [
             {
               role: 'user',
@@ -253,9 +261,11 @@ describe('xAI Responses batch language model', () => {
       type: 'json-value',
       body: batchResponse(),
     };
-    const model = createXai({ apiKey: 'test-api-key' }).responses('grok-4.3');
+    const batch = createXai({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
-    const result = await model.experimental_doStartBatch({
+    const result = await batch.doStartBatch({
       requests: [
         { id: 'france', ...request('What is the capital of France?') },
       ],
@@ -290,10 +300,12 @@ describe('xAI Responses batch language model', () => {
         },
       }),
     };
-    const model = createXai({ apiKey: 'test-api-key' })('grok-4.3');
+    const batch = createXai({ apiKey: 'test-api-key' }).experimental_batch();
 
     await expect(
-      model.experimental_doGetBatchStatus({ batchId: 'batch_123' }),
+      batch.doGetBatchStatus({
+        batchId: 'batch_123',
+      }),
     ).resolves.toEqual({
       status: 'failed',
       requestCounts: {
@@ -324,9 +336,9 @@ describe('xAI Responses batch language model', () => {
         },
       }),
     };
-    const model = createXai({ apiKey: 'test-api-key' })('grok-4.3');
+    const batch = createXai({ apiKey: 'test-api-key' }).experimental_batch();
 
-    const status = await model.experimental_doGetBatchStatus({
+    const status = await batch.doGetBatchStatus({
       batchId: 'batch_123',
     });
 
@@ -347,10 +359,12 @@ describe('xAI Responses batch language model', () => {
         },
       }),
     };
-    const model = createXai({ apiKey: 'test-api-key' })('grok-4.3');
+    const batch = createXai({ apiKey: 'test-api-key' }).experimental_batch();
 
     await expect(
-      model.experimental_doGetBatchResults({ batchId: 'batch_123' }),
+      batch.doGetBatchResults({
+        batchId: 'batch_123',
+      }),
     ).rejects.toMatchObject({
       name: 'AI_InvalidArgumentError',
       argument: 'batchId',
@@ -393,15 +407,16 @@ describe('xAI Responses batch language model', () => {
               pagination_token: null,
             },
           };
-    const model = createXai({ apiKey: 'test-api-key' })('grok-4.3');
+    const batch = createXai({ apiKey: 'test-api-key' }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await batch.doGetBatchResults({
       batchId: 'batch_123',
     });
     const results = await convertReadableStreamToArray(stream);
 
     expect(results).toMatchObject([
       {
+        type: 'text',
         id: 'france',
         status: 'succeeded',
         result: {
@@ -425,11 +440,13 @@ describe('xAI Responses batch language model', () => {
         },
       },
       {
+        type: 'text',
         id: 'failed',
         status: 'failed',
         error: { message: 'Invalid request.', code: '3' },
       },
       {
+        type: 'text',
         id: 'cancelled',
         status: 'cancelled',
         error: { message: 'Cancelled.', code: '1' },
@@ -493,20 +510,22 @@ describe('xAI Responses batch language model', () => {
         pagination_token: null,
       },
     };
-    const model = createXai({ apiKey: 'test-api-key' })('grok-4.3');
+    const batch = createXai({ apiKey: 'test-api-key' }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await batch.doGetBatchResults({
       batchId: 'batch_123',
     });
     const results = await convertReadableStreamToArray(stream);
 
     expect(results).toMatchObject([
       {
+        type: 'text',
         id: 'invalid',
         status: 'failed',
         error: { code: 'invalid_response' },
       },
       {
+        type: 'text',
         id: 'tool-call',
         status: 'succeeded',
         result: {
@@ -526,6 +545,7 @@ describe('xAI Responses batch language model', () => {
         },
       },
       {
+        type: 'text',
         id: 'valid',
         status: 'succeeded',
         result: {
@@ -655,14 +675,15 @@ describe('xAI Responses batch language model', () => {
         pagination_token: null,
       },
     };
-    const model = createXai({ apiKey: 'test-api-key' })('grok-4.3');
+    const batch = createXai({ apiKey: 'test-api-key' }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await batch.doGetBatchResults({
       batchId: 'batch_123',
     });
 
     await expect(convertReadableStreamToArray(stream)).resolves.toMatchObject([
       {
+        type: 'text',
         id: 'provider-tool',
         status: 'succeeded',
         result: {
@@ -693,6 +714,7 @@ describe('xAI Responses batch language model', () => {
         },
       },
       {
+        type: 'text',
         id: 'client-tool-with-provider-name',
         status: 'succeeded',
         result: {
@@ -715,33 +737,23 @@ describe('xAI Responses batch language model', () => {
     ]);
   });
 
-  it('only exposes batch support on xAI Responses models', () => {
+  it('exposes batch support on the provider', () => {
     const provider = createXai({ apiKey: 'test-api-key' });
+    const batch = provider.experimental_batch();
+
+    expect(batch.doStartBatch).toBeTypeOf('function');
+    expect(batch.doGetBatchStatus).toBeTypeOf('function');
+    expect(batch.doGetBatchResults).toBeTypeOf('function');
 
     for (const model of [
       provider('grok-4.3'),
       provider.responses('grok-4.3'),
+      provider.chat('grok-4.3'),
     ]) {
-      expect(model.experimental_doStartBatch).toBeTypeOf('function');
-      expect(model.experimental_doGetBatchStatus).toBeTypeOf('function');
-      expect(model.experimental_doGetBatchResults).toBeTypeOf('function');
+      expect((model as any).doStartBatch).toBeUndefined();
     }
-
     expect(
-      (provider.chat('grok-4.3') as any).experimental_doStartBatch,
+      (new XaiResponsesLanguageModel('grok-4.3', config) as any).doStartBatch,
     ).toBeUndefined();
-    expect(
-      (new XaiResponsesLanguageModel('grok-4.3', config) as any)
-        .experimental_doStartBatch,
-    ).toBeUndefined();
-  });
-
-  it('preserves batch support when workflow deserializes a model', () => {
-    const model = XaiResponsesBatchLanguageModel[WORKFLOW_DESERIALIZE]({
-      modelId: 'grok-4.3',
-      config,
-    });
-
-    expect(model.experimental_doStartBatch).toBeTypeOf('function');
   });
 });

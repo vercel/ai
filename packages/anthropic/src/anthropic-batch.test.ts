@@ -1,11 +1,9 @@
-import type { Experimental_LanguageModelV4BatchRequest as LanguageModelV4BatchRequest } from '@ai-sdk/provider';
-import { WORKFLOW_DESERIALIZE } from '@ai-sdk/provider-utils';
+import type { Experimental_TextBatchV4Request as TextBatchV4Request } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it, vi } from 'vitest';
 import { AnthropicLanguageModel } from './anthropic-language-model';
 import type { AnthropicLanguageModelOptions } from './anthropic-language-model-options';
-import { AnthropicMessagesBatchLanguageModel } from './anthropic-messages-batch';
 import { createAnthropic } from './anthropic-provider';
 
 vi.mock('./version', () => ({
@@ -35,9 +33,11 @@ const config = {
 
 function request(
   prompt: string,
-  options: Omit<LanguageModelV4BatchRequest['options'], 'prompt'> = {},
+  options: Omit<TextBatchV4Request['options'], 'prompt'> = {},
 ) {
   return {
+    type: 'text' as const,
+    modelId: 'claude-3-haiku-20240307',
     options: {
       prompt: [
         {
@@ -92,7 +92,7 @@ function messageResultBody(text: string) {
   };
 }
 
-describe('Anthropic Messages batch language model', () => {
+describe('Anthropic batch', () => {
   it('starts a batch from prepared requests and combines batch and inferred betas', async () => {
     server.urls[urls.batches].response = {
       type: 'json-value',
@@ -114,9 +114,9 @@ describe('Anthropic Messages batch language model', () => {
         'Provider-Header': 'provider',
         'Anthropic-Beta': 'provider-header-beta',
       },
-    })('claude-3-haiku-20240307');
+    }).experimental_batch();
 
-    const result = await model.experimental_doStartBatch({
+    const result = await model.doStartBatch({
       requests: [
         {
           id: 'france',
@@ -143,6 +143,7 @@ describe('Anthropic Messages batch language model', () => {
               } satisfies AnthropicLanguageModelOptions,
             },
           }),
+          modelId: 'claude-sonnet-4-5',
         },
       ],
       providerOptions: {
@@ -205,7 +206,7 @@ describe('Anthropic Messages batch language model', () => {
         {
           custom_id: 'germany',
           params: {
-            model: 'claude-3-haiku-20240307',
+            model: 'claude-sonnet-4-5',
             max_tokens: 200,
             fallbacks: [
               {
@@ -244,12 +245,12 @@ describe('Anthropic Messages batch language model', () => {
   });
 
   it('rejects per-request betas before making an API request', async () => {
-    const model = createAnthropic({ apiKey: 'test-api-key' })(
-      'claude-3-haiku-20240307',
-    );
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
     await expect(
-      model.experimental_doStartBatch({
+      model.doStartBatch({
         requests: [
           {
             id: 'request-1',
@@ -267,18 +268,18 @@ describe('Anthropic Messages batch language model', () => {
       name: 'AI_UnsupportedFunctionalityError',
       functionality: 'per-request providerOptions.anthropic.anthropicBeta',
       message:
-        'Anthropic Message Batches do not support per-request betas (request "request-1"). Set providerOptions.anthropic.anthropicBeta on startTextBatch instead.',
+        'Anthropic Message Batches do not support per-request betas (request "request-1"). Set providerOptions.anthropic.anthropicBeta on startBatch instead.',
     });
     expect(server.calls).toHaveLength(0);
   });
 
   it('rejects structured-output modes that require start-call context', async () => {
-    const model = createAnthropic({ apiKey: 'test-api-key' }).languageModel(
-      'claude-3-haiku-20240307',
-    );
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
     await expect(
-      model.experimental_doStartBatch({
+      model.doStartBatch({
         requests: [
           {
             id: 'request-1',
@@ -302,12 +303,12 @@ describe('Anthropic Messages batch language model', () => {
   });
 
   it('rejects aliased provider tool names that cannot be restored later', async () => {
-    const model = createAnthropic({ apiKey: 'test-api-key' })(
-      'claude-3-haiku-20240307',
-    );
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
     await expect(
-      model.experimental_doStartBatch({
+      model.doStartBatch({
         requests: [
           {
             id: 'request-1',
@@ -336,11 +337,11 @@ describe('Anthropic Messages batch language model', () => {
       type: 'json-value',
       body: batchResponse({ processing_status: 'in_progress' }),
     };
-    const model = createAnthropic({ apiKey: 'test-api-key' })(
-      'claude-3-haiku-20240307',
-    );
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
-    await model.experimental_doStartBatch({
+    await model.doStartBatch({
       requests: [
         {
           id: 'request-1',
@@ -374,11 +375,11 @@ describe('Anthropic Messages batch language model', () => {
       type: 'json-value',
       body: batchResponse({ processing_status: 'in_progress' }),
     };
-    const model = createAnthropic({ apiKey: 'test-api-key' })(
-      'claude-3-haiku-20240307',
-    );
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
-    await model.experimental_doStartBatch({
+    await model.doStartBatch({
       requests: [
         {
           id: 'request-1',
@@ -441,12 +442,12 @@ describe('Anthropic Messages batch language model', () => {
         'Anthropic Message Batches do not support fallback speed (request "request-1").',
     },
   ])('rejects unsupported $feature', async ({ feature, options, message }) => {
-    const model = createAnthropic({ apiKey: 'test-api-key' })(
-      'claude-3-haiku-20240307',
-    );
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
     await expect(
-      model.experimental_doStartBatch({
+      model.doStartBatch({
         requests: [
           {
             id: 'request-1',
@@ -465,12 +466,12 @@ describe('Anthropic Messages batch language model', () => {
   });
 
   it('rejects invalid request IDs before making an API request', async () => {
-    const model = createAnthropic({ apiKey: 'test-api-key' })(
-      'claude-3-haiku-20240307',
-    );
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
     await expect(
-      model.experimental_doStartBatch({
+      model.doStartBatch({
         requests: [{ id: 'invalid id', ...request('Hello') }],
       }),
     ).rejects.toMatchObject({
@@ -480,7 +481,7 @@ describe('Anthropic Messages batch language model', () => {
         'Anthropic batch request ID "invalid id" must match ^[A-Za-z0-9_-]{1,64}$.',
     });
     await expect(
-      model.experimental_doStartBatch({
+      model.doStartBatch({
         requests: [{ id: 'a'.repeat(65), ...request('Hello') }],
       }),
     ).rejects.toMatchObject({
@@ -492,12 +493,12 @@ describe('Anthropic Messages batch language model', () => {
   });
 
   it('rejects duplicate request IDs before making an API request', async () => {
-    const model = createAnthropic({ apiKey: 'test-api-key' })(
-      'claude-3-haiku-20240307',
-    );
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
     await expect(
-      model.experimental_doStartBatch({
+      model.doStartBatch({
         requests: [
           { id: 'duplicate', ...request('First') },
           { id: 'duplicate', ...request('Second') },
@@ -522,12 +523,14 @@ describe('Anthropic Messages batch language model', () => {
       type: 'json-value',
       body: batchResponse({ processing_status: rawStatus }),
     };
-    const model = createAnthropic({ apiKey: 'test-api-key' })(
-      'claude-3-haiku-20240307',
-    );
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
     await expect(
-      model.experimental_doGetBatchStatus({ batchId: 'msgbatch_123' }),
+      model.doGetBatchStatus({
+        batchId: 'msgbatch_123',
+      }),
     ).resolves.toMatchObject({ status, rawStatus });
   });
 
@@ -544,12 +547,14 @@ describe('Anthropic Messages batch language model', () => {
         },
       }),
     };
-    const model = createAnthropic({ apiKey: 'test-api-key' })(
-      'claude-3-haiku-20240307',
-    );
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
     await expect(
-      model.experimental_doGetBatchStatus({ batchId: 'msgbatch_123' }),
+      model.doGetBatchStatus({
+        batchId: 'msgbatch_123',
+      }),
     ).resolves.toEqual({
       status: 'completed',
       rawStatus: 'ended',
@@ -587,12 +592,14 @@ describe('Anthropic Messages batch language model', () => {
         results_url: null,
       }),
     };
-    const model = createAnthropic({ apiKey: 'test-api-key' })(
-      'claude-3-haiku-20240307',
-    );
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
     await expect(
-      model.experimental_doGetBatchResults({ batchId: 'msgbatch_123' }),
+      model.doGetBatchResults({
+        batchId: 'msgbatch_123',
+      }),
     ).rejects.toMatchObject({
       name: 'AI_InvalidArgumentError',
       argument: 'batchId',
@@ -648,16 +655,17 @@ describe('Anthropic Messages batch language model', () => {
         expired.slice(11),
       ],
     };
-    const model = createAnthropic({ apiKey: 'test-api-key' })(
-      'claude-3-haiku-20240307',
-    );
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       batchId: 'msgbatch_123',
     });
     const results = await convertReadableStreamToArray(stream);
 
     expect(results[0]).toEqual({
+      type: 'text',
       id: 'france',
       status: 'succeeded',
       result: {
@@ -705,6 +713,7 @@ describe('Anthropic Messages batch language model', () => {
     });
     expect(results.slice(1)).toEqual([
       {
+        type: 'text',
         id: 'invalid',
         status: 'failed',
         error: {
@@ -715,8 +724,8 @@ describe('Anthropic Messages batch language model', () => {
           anthropic: { requestId: 'req_123' },
         },
       },
-      { id: 'canceled', status: 'cancelled' },
-      { id: 'expired', status: 'expired' },
+      { type: 'text', id: 'canceled', status: 'cancelled' },
+      { type: 'text', id: 'expired', status: 'expired' },
     ]);
     expect(server.calls.map(call => call.requestUrl)).toEqual([
       urls.batch,
@@ -806,9 +815,9 @@ describe('Anthropic Messages batch language model', () => {
     const model = createAnthropic({
       apiKey: 'test-api-key',
       generateId: () => 'source-1',
-    })('claude-3-haiku-20240307');
+    }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       batchId: 'msgbatch_123',
     });
 
@@ -969,9 +978,9 @@ describe('Anthropic Messages batch language model', () => {
     const model = createAnthropic({
       apiKey: 'test-api-key',
       generateId: () => 'citation-source',
-    })('claude-3-haiku-20240307');
+    }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       batchId: 'msgbatch_123',
     });
 
@@ -1103,9 +1112,9 @@ describe('Anthropic Messages batch language model', () => {
     const model = createAnthropic({
       apiKey: 'test-api-key',
       generateId: () => 'nullable-source',
-    })('claude-3-haiku-20240307');
+    }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       batchId: 'msgbatch_123',
     });
 
@@ -1232,11 +1241,11 @@ describe('Anthropic Messages batch language model', () => {
         }),
       ],
     };
-    const model = createAnthropic({ apiKey: 'test-api-key' })(
-      'claude-3-haiku-20240307',
-    );
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       batchId: 'msgbatch_123',
     });
 
@@ -1306,11 +1315,11 @@ describe('Anthropic Messages batch language model', () => {
         }),
       ],
     };
-    const model = createAnthropic({ apiKey: 'test-api-key' })(
-      'claude-3-haiku-20240307',
-    );
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       batchId: 'msgbatch_123',
     });
 
@@ -1352,11 +1361,11 @@ describe('Anthropic Messages batch language model', () => {
         }),
       ],
     };
-    const model = createAnthropic({ apiKey: 'test-api-key' })(
-      'claude-3-haiku-20240307',
-    );
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       batchId: 'msgbatch_123',
     });
 
@@ -1410,11 +1419,11 @@ describe('Anthropic Messages batch language model', () => {
         }),
       ],
     };
-    const model = createAnthropic({ apiKey: 'test-api-key' })(
-      'claude-3-haiku-20240307',
-    );
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       batchId: 'msgbatch_123',
     });
 
@@ -1463,9 +1472,9 @@ describe('Anthropic Messages batch language model', () => {
         'Provider-Header': 'provider',
       },
       fetch: mockFetch,
-    })('claude-3-haiku-20240307');
+    }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       batchId: 'msgbatch_123',
       abortSignal: abortController.signal,
       headers: {
@@ -1485,8 +1494,13 @@ describe('Anthropic Messages batch language model', () => {
     }
   });
 
-  it('exposes batch support on every Anthropic Messages model factory', () => {
+  it('exposes batch support on the provider', () => {
     const provider = createAnthropic({ apiKey: 'test-api-key' });
+    const batch = provider.experimental_batch();
+
+    expect(batch.doStartBatch).toBeTypeOf('function');
+    expect(batch.doGetBatchStatus).toBeTypeOf('function');
+    expect(batch.doGetBatchResults).toBeTypeOf('function');
 
     for (const model of [
       provider('claude-3-haiku-20240307'),
@@ -1494,27 +1508,13 @@ describe('Anthropic Messages batch language model', () => {
       provider.chat('claude-3-haiku-20240307'),
       provider.messages('claude-3-haiku-20240307'),
     ]) {
-      expect(model.experimental_doStartBatch).toBeTypeOf('function');
-      expect(model.experimental_doGetBatchStatus).toBeTypeOf('function');
-      expect(model.experimental_doGetBatchResults).toBeTypeOf('function');
+      expect((model as any).doStartBatch).toBeUndefined();
     }
 
     expect(
       (new AnthropicLanguageModel('claude-3-haiku-20240307', config) as any)
-        .experimental_doStartBatch,
+        .doStartBatch,
     ).toBeUndefined();
-  });
-
-  it('preserves batch support when workflow deserializes a model', () => {
-    const model = AnthropicMessagesBatchLanguageModel[WORKFLOW_DESERIALIZE]({
-      modelId: 'claude-3-haiku-20240307',
-      config,
-    });
-
-    expect(model.experimental_doStartBatch).toBeTypeOf('function');
-    expect(model.experimental_doGetBatchStatus).toBeTypeOf('function');
-    expect(model.experimental_doGetBatchResults).toBeTypeOf('function');
-    expect(model.doGenerate).toBeTypeOf('function');
   });
 
   describe('batch result lifecycle', () => {
@@ -1533,12 +1533,14 @@ describe('Anthropic Messages batch language model', () => {
           results_url: null,
         }),
       };
-      const model = createAnthropic({ apiKey: 'test-api-key' })(
-        'claude-3-haiku-20240307',
-      );
+      const model = createAnthropic({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
       await expect(
-        model.experimental_doGetBatchResults({ batchId: 'msgbatch_123' }),
+        model.doGetBatchResults({
+          batchId: 'msgbatch_123',
+        }),
       ).rejects.toMatchObject({
         name: 'AI_InvalidArgumentError',
         argument: 'batchId',
@@ -1570,11 +1572,11 @@ describe('Anthropic Messages batch language model', () => {
           }),
         ],
       };
-      const model = createAnthropic({ apiKey: 'test-api-key' })(
-        'claude-3-haiku-20240307',
-      );
+      const model = createAnthropic({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
-      const stream = await model.experimental_doGetBatchResults({
+      const stream = await model.doGetBatchResults({
         batchId: 'msgbatch_123',
       });
       const results = await convertReadableStreamToArray(stream);
@@ -1643,11 +1645,11 @@ describe('Anthropic Messages batch language model', () => {
           }),
         ],
       };
-      const model = createAnthropic({ apiKey: 'test-api-key' })(
-        'claude-3-haiku-20240307',
-      );
+      const model = createAnthropic({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
-      const stream = await model.experimental_doGetBatchResults({
+      const stream = await model.doGetBatchResults({
         batchId: 'msgbatch_123',
       });
       const results = await convertReadableStreamToArray(stream);
@@ -1693,11 +1695,11 @@ describe('Anthropic Messages batch language model', () => {
           }),
         ],
       };
-      const model = createAnthropic({ apiKey: 'test-api-key' })(
-        'claude-3-haiku-20240307',
-      );
+      const model = createAnthropic({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
-      const stream = await model.experimental_doGetBatchResults({
+      const stream = await model.doGetBatchResults({
         batchId: 'msgbatch_123',
       });
       const results = await convertReadableStreamToArray(stream);
@@ -1731,12 +1733,14 @@ describe('Anthropic Messages batch language model', () => {
         type: 'json-value',
         body: batchResponse({ results_url: null }),
       };
-      const model = createAnthropic({ apiKey: 'test-api-key' })(
-        'claude-3-haiku-20240307',
-      );
+      const model = createAnthropic({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
       await expect(
-        model.experimental_doGetBatchResults({ batchId: 'msgbatch_123' }),
+        model.doGetBatchResults({
+          batchId: 'msgbatch_123',
+        }),
       ).rejects.toMatchObject({
         name: 'AI_InvalidResponseDataError',
         message:
@@ -1787,11 +1791,11 @@ describe('Anthropic Messages batch language model', () => {
           }),
         ],
       };
-      const model = createAnthropic({ apiKey: 'test-api-key' })(
-        'claude-3-haiku-20240307',
-      );
+      const model = createAnthropic({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
-      const stream = await model.experimental_doGetBatchResults({
+      const stream = await model.doGetBatchResults({
         batchId: 'msgbatch_123',
       });
       const results = await convertReadableStreamToArray(stream);

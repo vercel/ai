@@ -16,15 +16,20 @@ import { GatewaySpeechModel } from './gateway-speech-model';
 import { GatewayTranscriptionModel } from './gateway-transcription-model';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import { resolve } from '@ai-sdk/provider-utils';
-import { GatewayBatchLanguageModel } from './gateway-language-model-batch';
+import { GatewayBatch } from './gateway-batch';
+import { GatewayLanguageModel } from './gateway-language-model';
 import {
   GatewayAuthenticationError,
   GatewayInternalServerError,
 } from './errors';
 import { fail } from 'node:assert';
 
-vi.mock('./gateway-language-model-batch', () => ({
-  GatewayBatchLanguageModel: vi.fn(function () {}),
+vi.mock('./gateway-batch', () => ({
+  GatewayBatch: vi.fn(function () {}),
+}));
+
+vi.mock('./gateway-language-model', () => ({
+  GatewayLanguageModel: vi.fn(function () {}),
 }));
 
 const mockGetSpendReport = vi.fn();
@@ -270,7 +275,7 @@ describe('GatewayProvider', () => {
       const provider = createGateway(options);
       provider('test-model');
 
-      expect(GatewayBatchLanguageModel).toHaveBeenCalledWith(
+      expect(GatewayLanguageModel).toHaveBeenCalledWith(
         'test-model',
         expect.objectContaining({
           provider: 'gateway',
@@ -281,8 +286,7 @@ describe('GatewayProvider', () => {
       );
 
       // Verify headers function
-      const constructorCall = vi.mocked(GatewayBatchLanguageModel).mock
-        .calls[0];
+      const constructorCall = vi.mocked(GatewayLanguageModel).mock.calls[0];
       const config = constructorCall[1];
       const headers = await resolve(config.headers);
 
@@ -295,6 +299,25 @@ describe('GatewayProvider', () => {
       });
     });
 
+    it('should create a provider-owned batch service', () => {
+      const provider = createGateway({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-api-key',
+      });
+
+      provider.experimental_batch();
+
+      expect(GatewayBatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          provider: 'gateway',
+          baseURL: 'https://api.example.com',
+          headers: expect.any(Function),
+          fetch: undefined,
+          o11yHeaders: expect.any(Function),
+        }),
+      );
+    });
+
     it('should use OIDC token when no API key is provided', async () => {
       const options = {
         baseURL: 'https://api.example.com',
@@ -304,8 +327,7 @@ describe('GatewayProvider', () => {
       const provider = createGateway(options);
       provider('test-model');
 
-      const constructorCall = vi.mocked(GatewayBatchLanguageModel).mock
-        .calls[0];
+      const constructorCall = vi.mocked(GatewayLanguageModel).mock.calls[0];
       const config = constructorCall[1];
       const headers = (await resolve(config.headers))!;
 
@@ -327,8 +349,7 @@ describe('GatewayProvider', () => {
 
       provider('test-model');
 
-      const constructorCall = vi.mocked(GatewayBatchLanguageModel).mock
-        .calls[0];
+      const constructorCall = vi.mocked(GatewayLanguageModel).mock.calls[0];
       const config = constructorCall[1];
       const headers = (await resolve(config.headers))!;
 
@@ -374,8 +395,7 @@ describe('GatewayProvider', () => {
 
       provider('test-model');
 
-      const constructorCall = vi.mocked(GatewayBatchLanguageModel).mock
-        .calls[0];
+      const constructorCall = vi.mocked(GatewayLanguageModel).mock.calls[0];
       const config = constructorCall[1];
       const headers = (await resolve(config.headers))!;
 
@@ -387,8 +407,7 @@ describe('GatewayProvider', () => {
 
       provider('test-model');
 
-      const constructorCall = vi.mocked(GatewayBatchLanguageModel).mock
-        .calls[0];
+      const constructorCall = vi.mocked(GatewayLanguageModel).mock.calls[0];
       const config = constructorCall[1];
       const headers = (await resolve(config.headers))!;
 
@@ -401,8 +420,7 @@ describe('GatewayProvider', () => {
 
       provider('test-model');
 
-      const constructorCall = vi.mocked(GatewayBatchLanguageModel).mock
-        .calls[0];
+      const constructorCall = vi.mocked(GatewayLanguageModel).mock.calls[0];
       const config = constructorCall[1];
       const headers = (await resolve(config.headers))!;
 
@@ -761,7 +779,7 @@ describe('GatewayProvider', () => {
       });
     });
 
-    it('should pass o11y headers to GatewayBatchLanguageModel when environment variables are set', async () => {
+    it('should pass o11y headers to GatewayLanguageModel when environment variables are set', async () => {
       const originalEnv = process.env;
       process.env = {
         ...originalEnv,
@@ -779,8 +797,7 @@ describe('GatewayProvider', () => {
         });
         provider('test-model');
 
-        const constructorCall = vi.mocked(GatewayBatchLanguageModel).mock
-          .calls[0];
+        const constructorCall = vi.mocked(GatewayLanguageModel).mock.calls[0];
         const config = constructorCall[1];
 
         expect(config).toEqual(
@@ -822,8 +839,7 @@ describe('GatewayProvider', () => {
         provider('test-model');
 
         // Get the constructor call to check o11yHeaders
-        const constructorCall = vi.mocked(GatewayBatchLanguageModel).mock
-          .calls[0];
+        const constructorCall = vi.mocked(GatewayLanguageModel).mock.calls[0];
         const config = constructorCall[1];
 
         expect(config).toEqual(
@@ -1258,7 +1274,7 @@ describe('GatewayProvider', () => {
 
           provider('test-model');
           const constructorCall = vi
-            .mocked(GatewayBatchLanguageModel)
+            .mocked(GatewayLanguageModel)
             .mock.calls.at(-1)!;
           const config = constructorCall[1];
 
@@ -1351,8 +1367,7 @@ describe('GatewayProvider', () => {
 
         const provider = createGateway();
         provider('test-model');
-        const constructorCall = vi.mocked(GatewayBatchLanguageModel).mock
-          .calls[0];
+        const constructorCall = vi.mocked(GatewayLanguageModel).mock.calls[0];
         const config = constructorCall[1];
 
         try {
@@ -1434,8 +1449,7 @@ describe('GatewayProvider', () => {
         const provider = createGateway();
         provider('test-model');
 
-        const constructorCall = vi.mocked(GatewayBatchLanguageModel).mock
-          .calls[0];
+        const constructorCall = vi.mocked(GatewayLanguageModel).mock.calls[0];
         const config = constructorCall[1];
         const headers = (await resolve(config.headers))!;
 
@@ -1800,7 +1814,7 @@ describe('GatewayProvider', () => {
       expect(model).toBeDefined();
 
       // Verify the model was created with the correct parameters
-      expect(GatewayBatchLanguageModel).toHaveBeenCalledWith(
+      expect(GatewayLanguageModel).toHaveBeenCalledWith(
         'test-model',
         expect.objectContaining({
           provider: 'gateway',
@@ -1844,7 +1858,7 @@ describe('GatewayProvider', () => {
       const model = provider('any-model-id');
 
       // The model should be created successfully
-      expect(GatewayBatchLanguageModel).toHaveBeenCalledWith(
+      expect(GatewayLanguageModel).toHaveBeenCalledWith(
         'any-model-id',
         expect.objectContaining({
           provider: 'gateway',
@@ -1868,7 +1882,7 @@ describe('GatewayProvider', () => {
       const model = provider('non-existent-model');
 
       // The model should be created successfully (validation happens at API call time)
-      expect(GatewayBatchLanguageModel).toHaveBeenCalledWith(
+      expect(GatewayLanguageModel).toHaveBeenCalledWith(
         'non-existent-model',
         expect.objectContaining({
           provider: 'gateway',

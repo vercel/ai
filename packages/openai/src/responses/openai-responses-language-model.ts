@@ -202,6 +202,11 @@ function mapComputerCallInput({
   };
 }
 
+export const openaiResponsesSupportedUrls: Record<string, RegExp[]> = {
+  'image/*': [/^https?:\/\/.*$/],
+  'application/pdf': [/^https?:\/\/.*$/],
+};
+
 export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -231,33 +236,38 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     this.config = config;
   }
 
-  readonly supportedUrls: Record<string, RegExp[]> = {
-    'image/*': [/^https?:\/\/.*$/],
-    'application/pdf': [/^https?:\/\/.*$/],
-  };
+  readonly supportedUrls = openaiResponsesSupportedUrls;
 
   get provider(): string {
     return this.config.provider;
   }
 
-  protected async getArgs({
-    maxOutputTokens,
-    temperature,
-    stopSequences,
-    topP,
-    topK,
-    presencePenalty,
-    frequencyPenalty,
-    seed,
-    prompt,
-    reasoning,
-    providerOptions,
-    tools,
-    toolChoice,
-    responseFormat,
-  }: LanguageModelV4CallOptions) {
+  static async prepareRequest({
+    modelId,
+    config,
+    options: {
+      maxOutputTokens,
+      temperature,
+      stopSequences,
+      topP,
+      topK,
+      presencePenalty,
+      frequencyPenalty,
+      seed,
+      prompt,
+      reasoning,
+      providerOptions,
+      tools,
+      toolChoice,
+      responseFormat,
+    },
+  }: {
+    modelId: OpenAIResponsesModelId;
+    config: OpenAIConfig;
+    options: LanguageModelV4CallOptions;
+  }) {
     const warnings: SharedV4Warning[] = [];
-    const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
+    const modelCapabilities = getOpenAILanguageModelCapabilities(modelId);
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
@@ -279,7 +289,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'stopSequences' });
     }
 
-    const providerOptionsName = this.config.provider.includes('azure')
+    const providerOptionsName = config.provider.includes('azure')
       ? 'azure'
       : 'openai';
     let openaiOptions = await parseProviderOptions({
@@ -363,7 +373,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             ? 'developer'
             : modelCapabilities.systemMessageMode),
         providerOptionsName,
-        fileIdPrefixes: this.config.fileIdPrefixes,
+        fileIdPrefixes: config.fileIdPrefixes,
         passThroughUnsupportedFiles:
           openaiOptions?.passThroughUnsupportedFiles ?? false,
         store: openaiOptions?.store ?? true,
@@ -451,7 +461,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     }
 
     const baseArgs = {
-      model: this.modelId,
+      model: modelId,
       input,
       temperature,
       top_p: topP,
@@ -643,6 +653,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       providerOptionsName,
       isShellProviderExecuted,
     };
+  }
+
+  private getArgs(options: LanguageModelV4CallOptions) {
+    return OpenAIResponsesLanguageModel.prepareRequest({
+      modelId: this.modelId,
+      config: this.config,
+      options,
+    });
   }
 
   async doGenerate(

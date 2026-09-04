@@ -1,6 +1,6 @@
 import {
   UnsupportedFunctionalityError,
-  type Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
+  type Experimental_BatchV4 as BatchV4,
   type Experimental_BatchV4OperationOptions as BatchV4OperationOptions,
   type LanguageModelV4GenerateResult,
   type LanguageModelV4Usage,
@@ -9,9 +9,9 @@ import { jsonSchema } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it, vi } from 'vitest';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
-import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
-import { getBatchResults, getBatchStatus, startTextBatch } from './batch';
-import type { TextBatchReference } from './batch-types';
+import { MockProviderV4 } from '../test/mock-provider-v4';
+import { getBatchResults, getBatchStatus, startBatch } from './batch';
+import type { BatchReference } from './batch-types';
 
 vi.mock('../version', () => ({ VERSION: '0.0.0-test' }));
 
@@ -29,15 +29,13 @@ const testUsage: LanguageModelV4Usage = {
   },
 };
 
-const batchReference: TextBatchReference = {
-  version: 1,
-  type: 'text',
+const batchReference: BatchReference = {
+  version: 2,
   id: 'batch-123',
   provider: 'mock-provider',
-  modelId: 'mock-model-id',
 };
 
-function createMockBatchModel({
+function createMockBatchApi({
   doStartBatch = async () => ({
     batchId: 'batch-123',
     status: 'pending' as const,
@@ -46,23 +44,93 @@ function createMockBatchModel({
   doGetBatchStatus = async () => ({ status: 'pending' as const }),
   doGetBatchResults = async () => convertArrayToReadableStream([]),
 }: {
-  doStartBatch?: BatchLanguageModelV4['experimental_doStartBatch'];
-  doGetBatchStatus?: BatchLanguageModelV4['experimental_doGetBatchStatus'];
-  doGetBatchResults?: BatchLanguageModelV4['experimental_doGetBatchResults'];
-} = {}): BatchLanguageModelV4 {
-  return Object.assign(new MockLanguageModelV4(), {
-    experimental_doStartBatch: doStartBatch,
-    experimental_doGetBatchStatus: doGetBatchStatus,
-    experimental_doGetBatchResults: doGetBatchResults,
-  });
+  doStartBatch?: BatchV4['doStartBatch'];
+  doGetBatchStatus?: BatchV4['doGetBatchStatus'];
+  doGetBatchResults?: BatchV4['doGetBatchResults'];
+} = {}): BatchV4 {
+  return {
+    specificationVersion: 'v4',
+    provider: 'mock-provider',
+    supportedUrls: {},
+    doStartBatch: doStartBatch,
+    doGetBatchStatus: doGetBatchStatus,
+    doGetBatchResults: doGetBatchResults,
+  };
 }
 
-describe('startTextBatch', () => {
+describe('startBatch', () => {
+  it('uses the global default provider when provider is omitted', async () => {
+    const calls: Array<Parameters<BatchV4['doStartBatch']>[0]> = [];
+    const batchApi = createMockBatchApi({
+      doStartBatch: async options => {
+        calls.push(options);
+        return { batchId: 'batch-123', status: 'pending', warnings: [] };
+      },
+    });
+    globalThis.AI_SDK_DEFAULT_PROVIDER = Object.assign(new MockProviderV4(), {
+      experimental_batch: () => batchApi,
+    });
+
+    try {
+      await startBatch({
+        requests: [
+          {
+            id: 'request-1',
+            type: 'text',
+            model: 'anthropic/claude-sonnet-5',
+            prompt: 'hello',
+          },
+        ],
+      });
+    } finally {
+      delete globalThis.AI_SDK_DEFAULT_PROVIDER;
+    }
+
+    expect(calls[0]).toMatchObject({
+      requests: [
+        {
+          id: 'request-1',
+          type: 'text',
+          modelId: 'anthropic/claude-sonnet-5',
+        },
+      ],
+    });
+  });
+
+  it('resolves the batch service from a provider', async () => {
+    const calls: Array<Parameters<BatchV4['doStartBatch']>[0]> = [];
+    const batchApi = createMockBatchApi({
+      doStartBatch: async options => {
+        calls.push(options);
+        return { batchId: 'batch-123', status: 'pending', warnings: [] };
+      },
+    });
+    const provider = Object.assign(new MockProviderV4(), {
+      experimental_batch: () => batchApi,
+    });
+
+    await startBatch({
+      provider,
+      requests: [
+        {
+          id: 'request-1',
+          type: 'text',
+          model: 'default-model-id',
+          prompt: 'hello',
+        },
+      ],
+    });
+
+    expect(calls[0]).toMatchObject({
+      requests: [
+        { id: 'request-1', type: 'text', modelId: 'default-model-id' },
+      ],
+    });
+  });
+
   it('normalizes requests and returns the acknowledged batch', async () => {
-    const calls: Array<
-      Parameters<BatchLanguageModelV4['experimental_doStartBatch']>[0]
-    > = [];
-    const model = createMockBatchModel({
+    const calls: Array<Parameters<BatchV4['doStartBatch']>[0]> = [];
+    const batchApi = createMockBatchApi({
       doStartBatch: async options => {
         calls.push(options);
         return {
@@ -76,11 +144,13 @@ describe('startTextBatch', () => {
       },
     });
 
-    const result = await startTextBatch({
-      model,
+    const result = await startBatch({
+      provider: batchApi,
       requests: [
         {
           id: 'request-1',
+          type: 'text',
+          model: 'request-model-id',
           prompt: 'What is the capital of France?',
           maxOutputTokens: 100,
           temperature: 0,
@@ -99,11 +169,9 @@ describe('startTextBatch', () => {
     });
 
     expect(result).toEqual({
-      version: 1,
-      type: 'text',
+      version: 2,
       id: 'batch-456',
       provider: 'mock-provider',
-      modelId: 'mock-model-id',
       status: 'pending',
       rawStatus: 'validating',
       requestCounts: { total: 1, pending: 1, completed: 0, failed: 0 },
@@ -115,6 +183,8 @@ describe('startTextBatch', () => {
       requests: [
         {
           id: 'request-1',
+          type: 'text',
+          modelId: 'request-model-id',
           options: {
             prompt: [
               {
@@ -146,46 +216,71 @@ describe('startTextBatch', () => {
   });
 
   it('rejects empty and duplicate request IDs', async () => {
-    const model = createMockBatchModel();
+    const batchApi = createMockBatchApi();
 
     await expect(
-      startTextBatch({ model, requests: [] }),
+      startBatch({
+        provider: batchApi,
+        requests: [],
+      }),
     ).rejects.toBeInstanceOf(InvalidArgumentError);
 
     await expect(
-      startTextBatch({
-        model,
+      startBatch({
+        provider: batchApi,
         requests: [
-          { id: 'duplicate', prompt: 'one' },
-          { id: 'duplicate', prompt: 'two' },
+          {
+            id: 'duplicate',
+            type: 'text',
+            model: 'mock-model-id',
+            prompt: 'one',
+          },
+          {
+            id: 'duplicate',
+            type: 'text',
+            model: 'mock-model-id',
+            prompt: 'two',
+          },
         ],
       }),
     ).rejects.toThrow('request IDs must be unique');
   });
 
-  it('rejects models without batch support', async () => {
+  it('rejects providers without batch support', async () => {
     await expect(
-      startTextBatch({
-        model: new MockLanguageModelV4() as unknown as BatchLanguageModelV4,
-        requests: [{ id: 'request-1', prompt: 'hello' }],
+      startBatch({
+        provider: new MockProviderV4(),
+        requests: [
+          {
+            id: 'request-1',
+            type: 'text',
+            model: 'mock-model-id',
+            prompt: 'hello',
+          },
+        ],
       }),
     ).rejects.toBeInstanceOf(UnsupportedFunctionalityError);
   });
 
-  it('forwards the webhook URL to the batch model', async () => {
-    const calls: Array<
-      Parameters<BatchLanguageModelV4['experimental_doStartBatch']>[0]
-    > = [];
-    const model = createMockBatchModel({
+  it('forwards the webhook URL to the batch service', async () => {
+    const calls: Array<Parameters<BatchV4['doStartBatch']>[0]> = [];
+    const batchApi = createMockBatchApi({
       doStartBatch: async options => {
         calls.push(options);
         return { batchId: 'batch-123', status: 'pending', warnings: [] };
       },
     });
 
-    const result = await startTextBatch({
-      model,
-      requests: [{ id: 'request-1', prompt: 'hello' }],
+    const result = await startBatch({
+      provider: batchApi,
+      requests: [
+        {
+          id: 'request-1',
+          type: 'text',
+          model: 'mock-model-id',
+          prompt: 'hello',
+        },
+      ],
       webhookUrl: 'https://example.com/batch-webhook',
     });
 
@@ -193,34 +288,84 @@ describe('startTextBatch', () => {
     expect(result.warnings).toEqual([]);
   });
 
+  it('logs request warnings with the request model', async () => {
+    const warningLogger = vi.fn();
+    globalThis.AI_SDK_LOG_WARNINGS = warningLogger;
+    const batchApi = createMockBatchApi({
+      doStartBatch: async () => ({
+        batchId: 'batch-123',
+        status: 'pending',
+        warnings: [
+          {
+            requestId: 'request-2',
+            warning: { type: 'other', message: 'request warning' },
+          },
+        ],
+      }),
+    });
+
+    try {
+      await startBatch({
+        provider: batchApi,
+        requests: [
+          {
+            id: 'request-1',
+            type: 'text',
+            model: 'default-model',
+            prompt: 'hello',
+          },
+          {
+            id: 'request-2',
+            type: 'text',
+            model: 'override-model',
+            prompt: 'hello',
+          },
+        ],
+      });
+
+      expect(warningLogger).toHaveBeenCalledWith({
+        warnings: [{ type: 'other', message: 'request warning' }],
+        provider: 'mock-provider',
+        model: 'override-model',
+      });
+    } finally {
+      delete globalThis.AI_SDK_LOG_WARNINGS;
+    }
+  });
+
   it('forwards definition-only tools without executing them', async () => {
     const execute = vi.fn(async () => ({ temperature: 20 }));
-    const calls: Array<
-      Parameters<BatchLanguageModelV4['experimental_doStartBatch']>[0]
-    > = [];
-    const model = createMockBatchModel({
+    const calls: Array<Parameters<BatchV4['doStartBatch']>[0]> = [];
+    const batchApi = createMockBatchApi({
       doStartBatch: async options => {
         calls.push(options);
         return { batchId: 'batch-123', status: 'pending', warnings: [] };
       },
     });
 
-    await startTextBatch({
-      model,
-      requests: [{ id: 'request-1', prompt: 'What is the weather in Paris?' }],
-      tools: {
-        weather: {
-          description: 'Get the weather for a city.',
-          inputSchema: jsonSchema({
-            type: 'object',
-            properties: { city: { type: 'string' } },
-            required: ['city'],
-            additionalProperties: false,
-          }),
-          execute,
+    await startBatch({
+      provider: batchApi,
+      requests: [
+        {
+          id: 'request-1',
+          type: 'text',
+          model: 'mock-model-id',
+          prompt: 'What is the weather in Paris?',
+          tools: {
+            weather: {
+              description: 'Get the weather for a city.',
+              inputSchema: jsonSchema({
+                type: 'object',
+                properties: { city: { type: 'string' } },
+                required: ['city'],
+                additionalProperties: false,
+              }),
+              execute,
+            },
+          },
+          toolChoice: 'required',
         },
-      },
-      toolChoice: 'required',
+      ],
     });
 
     expect(execute).not.toHaveBeenCalled();
@@ -241,12 +386,48 @@ describe('startTextBatch', () => {
       toolChoice: { type: 'required' },
     });
   });
+
+  it('rejects incompatible definitions for the same tool name', async () => {
+    const batchApi = createMockBatchApi();
+
+    await expect(
+      startBatch({
+        provider: batchApi,
+        requests: [
+          {
+            id: 'request-1',
+            type: 'text',
+            model: 'mock-model-id',
+            prompt: 'hello',
+            tools: {
+              lookup: {
+                inputSchema: jsonSchema({ type: 'string' }),
+              },
+            },
+          },
+          {
+            id: 'request-2',
+            type: 'text',
+            model: 'mock-model-id',
+            prompt: 'hello',
+            tools: {
+              lookup: {
+                inputSchema: jsonSchema({ type: 'number' }),
+              },
+            },
+          },
+        ],
+      }),
+    ).rejects.toThrow(
+      'tool "lookup" must have the same definition in every batch request',
+    );
+  });
 });
 
 describe('getBatchStatus', () => {
   it('returns the latest status without the batch reference', async () => {
     const calls: BatchV4OperationOptions[] = [];
-    const model = createMockBatchModel({
+    const batchApi = createMockBatchApi({
       doGetBatchStatus: async options => {
         calls.push(options);
         return {
@@ -266,7 +447,7 @@ describe('getBatchStatus', () => {
     };
 
     const result = await getBatchStatus({
-      model,
+      provider: batchApi,
       batch: staleBatch,
       maxRetries: 0,
     });
@@ -286,13 +467,25 @@ describe('getBatchStatus', () => {
     ]);
   });
 
-  it('rejects an incompatible model', async () => {
-    const model = createMockBatchModel();
+  it('rejects an incompatible provider', async () => {
+    const batchApi = createMockBatchApi();
 
     await expect(
       getBatchStatus({
-        model,
-        batch: { ...batchReference, modelId: 'different-model' },
+        provider: batchApi,
+        batch: { ...batchReference, provider: 'different-provider' },
+      }),
+    ).rejects.toBeInstanceOf(InvalidArgumentError);
+  });
+
+  it('rejects a version 1 batch reference', async () => {
+    await expect(
+      getBatchStatus({
+        provider: createMockBatchApi(),
+        batch: {
+          ...batchReference,
+          version: 1,
+        } as unknown as BatchReference,
       }),
     ).rejects.toBeInstanceOf(InvalidArgumentError);
   });
@@ -313,12 +506,18 @@ describe('getBatchResults', () => {
       },
       providerMetadata: { mock: { result: true } },
     };
-    const model = createMockBatchModel({
+    const batchApi = createMockBatchApi({
       doGetBatchResults: async () => {
         callCount++;
         return convertArrayToReadableStream([
-          { id: 'request-1', status: 'succeeded', result: generateResult },
           {
+            type: 'text',
+            id: 'request-1',
+            status: 'succeeded',
+            result: generateResult,
+          },
+          {
+            type: 'text',
             id: 'request-2',
             status: 'failed',
             error: { message: 'request failed', code: 'bad_request' },
@@ -328,7 +527,7 @@ describe('getBatchResults', () => {
     });
 
     const stream = getBatchResults({
-      model,
+      provider: batchApi,
       batch: batchReference,
       maxRetries: 0,
     });
@@ -340,6 +539,7 @@ describe('getBatchResults', () => {
       items.push(item);
     }
 
+    expect(items.every(item => !('type' in item))).toBe(true);
     expect(items).toMatchObject([
       {
         content: [{ text: 'Paris', type: 'text' }],
@@ -369,10 +569,11 @@ describe('getBatchResults', () => {
   });
 
   it('normalizes provider-executed tool content and preserves usage', async () => {
-    const model = createMockBatchModel({
+    const batchApi = createMockBatchApi({
       doGetBatchResults: async () =>
         convertArrayToReadableStream([
           {
+            type: 'text',
             id: 'request-1',
             status: 'succeeded',
             result: {
@@ -405,7 +606,7 @@ describe('getBatchResults', () => {
 
     const items = [];
     for await (const item of getBatchResults({
-      model,
+      provider: batchApi,
       batch: batchReference,
       maxRetries: 0,
     })) {
@@ -460,10 +661,11 @@ describe('getBatchResults', () => {
 
   it('normalizes client tool calls with their definitions without executing them', async () => {
     const execute = vi.fn(async () => ({ temperature: 20 }));
-    const model = createMockBatchModel({
+    const batchApi = createMockBatchApi({
       doGetBatchResults: async () =>
         convertArrayToReadableStream([
           {
+            type: 'text',
             id: 'request-1',
             status: 'succeeded',
             result: {
@@ -485,7 +687,7 @@ describe('getBatchResults', () => {
 
     const items = [];
     for await (const item of getBatchResults({
-      model,
+      provider: batchApi,
       batch: batchReference,
       maxRetries: 0,
       tools: {

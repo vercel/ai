@@ -1,6 +1,6 @@
 import type {
+  Experimental_BatchV4 as BatchV4,
   EmbeddingModelV4,
-  Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
   FilesV4,
   ImageModelV4,
   LanguageModelV4,
@@ -31,7 +31,8 @@ import type { OpenAIEmbeddingModelId } from './embedding/openai-embedding-model-
 import { OpenAIImageModel } from './image/openai-image-model';
 import type { OpenAIImageModelId } from './image/openai-image-model-options';
 import { openaiTools } from './openai-tools';
-import { OpenAIResponsesBatchLanguageModel } from './openai-responses-batch';
+import { OpenAIBatch } from './openai-batch';
+import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
 import { OpenAIRealtimeModel } from './realtime/openai-realtime-model';
 import type { OpenAIResponsesModelId } from './responses/openai-responses-language-model-options';
 import { OpenAISpeechModel } from './speech/openai-speech-model';
@@ -44,12 +45,12 @@ import { OpenAISkills } from './skills/openai-skills';
 import { VERSION } from './version';
 
 export interface OpenAIProvider extends ProviderV4 {
-  (modelId: OpenAIResponsesModelId): BatchLanguageModelV4;
+  (modelId: OpenAIResponsesModelId): LanguageModelV4;
 
   /**
    * Creates an OpenAI model for text generation.
    */
-  languageModel(modelId: OpenAIResponsesModelId): BatchLanguageModelV4;
+  languageModel(modelId: OpenAIResponsesModelId): LanguageModelV4;
 
   /**
    * Creates an OpenAI chat model for text generation.
@@ -59,7 +60,7 @@ export interface OpenAIProvider extends ProviderV4 {
   /**
    * Creates an OpenAI responses API model for text generation.
    */
-  responses(modelId: OpenAIResponsesModelId): BatchLanguageModelV4;
+  responses(modelId: OpenAIResponsesModelId): LanguageModelV4;
 
   /**
    * Creates an OpenAI completion model for text generation.
@@ -135,6 +136,11 @@ export interface OpenAIProvider extends ProviderV4 {
    * Returns a SkillsV4 interface for uploading skills to OpenAI.
    */
   skills(): SkillsV4;
+
+  /**
+   * Returns a BatchV4 interface for processing batches with OpenAI.
+   */
+  experimental_batch(): BatchV4<{ text: OpenAIResponsesModelId }>;
 
   /**
    * OpenAI-specific tools.
@@ -306,7 +312,7 @@ export function createOpenAI(
   };
 
   const createResponsesModel = (modelId: OpenAIResponsesModelId) => {
-    return new OpenAIResponsesBatchLanguageModel(modelId, {
+    return new OpenAIResponsesLanguageModel(modelId, {
       provider: `${providerName}.responses`,
       baseURL,
       url: ({ path }) => `${baseURL}${path}`,
@@ -316,6 +322,20 @@ export function createOpenAI(
       fileIdPrefixes: ['file-'],
     });
   };
+
+  const createBatch = () =>
+    new OpenAIBatch({
+      provider: `${providerName}.batch`,
+      config: {
+        provider: `${providerName}.responses`,
+        baseURL,
+        url: ({ path }) => `${baseURL}${path}`,
+        headers: getHeaders,
+        fetch: options.fetch,
+        // Soft-deprecated. TODO: remove in v8
+        fileIdPrefixes: ['file-'],
+      },
+    });
 
   const createRealtimeModel = (modelId: string) =>
     new OpenAIRealtimeModel(modelId, {
@@ -371,6 +391,7 @@ export function createOpenAI(
   provider.speechModel = createSpeechModel;
   provider.files = createFiles;
   provider.skills = createSkills;
+  provider.experimental_batch = createBatch;
 
   provider.experimental_realtime = experimentalRealtimeFactory;
 

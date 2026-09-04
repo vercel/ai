@@ -2,24 +2,29 @@ import { xai } from '@ai-sdk/xai';
 import {
   experimental_getBatchResults as getBatchResults,
   experimental_getBatchStatus as getBatchStatus,
-  experimental_startTextBatch as startTextBatch,
+  experimental_startBatch as startBatch,
 } from 'ai';
 import { setTimeout } from 'node:timers/promises';
 import { print } from '../../lib/print';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const model = xai('grok-4.3');
+  const provider = xai;
+  const model = 'grok-4.3';
 
-  const batch = await startTextBatch({
-    model,
+  const batch = await startBatch({
+    provider,
     requests: [
       {
         id: 'capital-france',
+        type: 'text',
+        model,
         prompt: 'What is the capital of France?',
       },
       {
         id: 'capital-germany',
+        type: 'text',
+        model: 'grok-4.20-non-reasoning',
         prompt: 'What is the capital of Germany?',
       },
     ],
@@ -28,7 +33,7 @@ run(async () => {
   print('Started batch:', batch);
 
   while (true) {
-    const { status } = await getBatchStatus({ model, batch });
+    const { status } = await getBatchStatus({ provider, batch });
     print('Batch status:', status);
 
     if (status !== 'pending') {
@@ -38,7 +43,7 @@ run(async () => {
     await setTimeout(10_000);
   }
 
-  for await (const item of getBatchResults({ model, batch })) {
+  for await (const item of getBatchResults({ provider, batch })) {
     if (item.status === 'succeeded') {
       print('Result:', { id: item.id, text: item.text });
     } else {
