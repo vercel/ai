@@ -263,6 +263,15 @@ describe('createGitHubCopilot', () => {
     expect(lastSettings().hostToolMcpTransport).toBe('http');
   });
 
+  it('routes instructions to the home-directory copilot-instructions.md file', () => {
+    createGitHubCopilot();
+
+    expect(lastSettings().instructionMapping).toEqual({
+      type: 'filesystem',
+      path: '.copilot/copilot-instructions.md',
+    });
+  });
+
   it('forwards launch and bridge settings', () => {
     const credentialForwarding = vi.fn();
     const mintBridgeToken = (sandboxId: string) => sandboxId;

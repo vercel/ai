@@ -447,6 +447,10 @@ export function createGitHubCopilot(
       path: 'model',
     },
     skillsDirectory: '.copilot/skills',
+    instructionMapping: {
+      type: 'filesystem',
+      path: '.copilot/copilot-instructions.md',
+    },
     builtinTools: GITHUB_COPILOT_BUILTIN_TOOLS,
     mcpServers: settings.mcpServers,
     isMcpToolCall: toolCall =>
