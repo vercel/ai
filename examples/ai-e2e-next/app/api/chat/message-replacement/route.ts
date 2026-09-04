@@ -1,12 +1,6 @@
 import { createUIMessageStreamResponse, simulateReadableStream } from 'ai';
 
-export async function POST(req: Request) {
-  const { messageId, messages } = (await req.json()) as {
-    messageId: string | undefined;
-    messages: Array<{ id: string }>;
-  };
-  const replacementId = messages.at(-1)?.id ?? 'missing';
-
+export function POST() {
   return createUIMessageStreamResponse({
     stream: simulateReadableStream({
       initialDelayInMs: 0,
@@ -18,7 +12,7 @@ export async function POST(req: Request) {
         {
           type: 'text-delta',
           id: '0',
-          delta: `Replaced ${messageId} with ${replacementId}`,
+          delta: 'Replacement request completed.',
         },
         { type: 'text-end', id: '0' },
         { type: 'finish-step' },
