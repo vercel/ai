@@ -62,7 +62,7 @@ describe('getFromApi', () => {
         method: 'GET',
         headers: {
           authorization: 'Bearer test',
-          'user-agent': 'ai-sdk/provider-utils/0.0.0-test runtime/test-env',
+          'user-agent': 'ai-sdk-provider-utils/0.0.0-test runtime/test-env',
         },
       }),
     );
@@ -154,7 +154,7 @@ describe('getFromApi', () => {
       expect.objectContaining({
         headers: {
           authorization: 'Bearer test',
-          'user-agent': 'ai-sdk/provider-utils/0.0.0-test runtime/test-env',
+          'user-agent': 'ai-sdk-provider-utils/0.0.0-test runtime/test-env',
         },
       }),
     );
@@ -302,7 +302,7 @@ describe('getFromApi', () => {
       expect(sentHeaders.get('cookie')).toBeNull();
       // Authorization and user-agent are preserved on the initial hop.
       expect(sentHeaders.get('authorization')).toBe('Bearer secret');
-      expect(sentHeaders.get('user-agent')).toContain('ai-sdk/provider-utils');
+      expect(sentHeaders.get('user-agent')).toContain('ai-sdk-provider-utils');
     });
 
     it('drops all caller headers except user-agent when a redirect crosses origin', async () => {
@@ -329,7 +329,7 @@ describe('getFromApi', () => {
       expect(secondHopHeaders.get('x-key')).toBeNull();
       // the user-agent suffix still identifies the SDK on the redirected hop.
       expect(secondHopHeaders.get('user-agent')).toContain(
-        'ai-sdk/provider-utils',
+        'ai-sdk-provider-utils',
       );
     });
 
@@ -419,7 +419,7 @@ describe('getFromApi', () => {
       const sent = mockFetch.mock.calls[0][1].headers as Headers;
       expect(sent.get('authorization')).toBeNull();
       // user-agent is still applied even when caller headers are withheld.
-      expect(sent.get('user-agent')).toContain('ai-sdk/provider-utils');
+      expect(sent.get('user-agent')).toContain('ai-sdk-provider-utils');
     });
 
     it('sends headers when the URL is same-origin with credentialedOrigin', async () => {
