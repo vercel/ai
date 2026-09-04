@@ -87,6 +87,11 @@ try {
 - `builtinTools`: optional native tool definitions for static typing and exact
   name matching.
 - `mcpServers`: MCP server definitions keyed by server name.
+- `hostToolMcpTransport`: transport used for the harness-owned MCP server that
+  exposes host tools to the ACP implementation. It defaults to `'stdio'`. Set
+  this to `'http'` for implementations that only accept HTTP or SSE MCP servers
+  from the client, which requires the implementation to advertise
+  `agentCapabilities.mcpCapabilities.http`.
 - `authentication`: advertised ACP authentication method, metadata, and client
   capabilities.
 - `auth`: downstream provider authentication mode:
@@ -116,6 +121,10 @@ try {
   structured output JSON Schema to a path below the ACP `session/prompt`
   request's `_meta` field. ACP does not standardize structured output, so omit
   this unless the selected implementation documents that private extension.
+- `askUserQuestions`: optional translation between an implementation-specific
+  ACP client request for questions and the Harness `askUserQuestions` tool.
+  Configure it only when the ACP implementation exposes a native request that
+  waits for the client's response.
 - `permissionModeMapping`: mappings from all three Harness permission modes to
   advertised ACP session modes or configuration options. Set an entry to
   `null` when the ACP implementation does not support that mode. When omitted,

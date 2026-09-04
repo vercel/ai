@@ -202,7 +202,9 @@ export function createEmitStreamEvent({
     if (type === 'session.next.tool.called') {
       const callID = String(props.callID ?? event.id);
       const rawToolName = String(props.tool ?? 'unknown');
-      if (rawToolName === 'StructuredOutput') return;
+      if (rawToolName === 'StructuredOutput' || rawToolName === 'question') {
+        return;
+      }
       const toolName = toWireToolName(rawToolName);
       state.toolNames.set(callID, { rawToolName, toolName });
       const hostToolName = getHostToolName(toolName, props.tool);
@@ -238,7 +240,9 @@ export function createEmitStreamEvent({
       const rawToolName =
         cachedTool?.rawToolName ??
         String((props as { tool?: unknown }).tool ?? '');
-      if (rawToolName === 'StructuredOutput') return;
+      if (rawToolName === 'StructuredOutput' || rawToolName === 'question') {
+        return;
+      }
       const toolName =
         cachedTool?.toolName ?? toWireToolName(rawToolName || 'unknown');
       if (getHostToolName(toolName, rawToolName)) return;
@@ -397,7 +401,7 @@ function emitLegacyToolPart({
   }
   const callID = toolPart.callID;
   const rawToolName = toolPart.tool;
-  if (rawToolName === 'StructuredOutput') return;
+  if (rawToolName === 'StructuredOutput' || rawToolName === 'question') return;
   const toolName = toWireToolName(rawToolName);
   if (toolName === 'agent') {
     const metadata = {

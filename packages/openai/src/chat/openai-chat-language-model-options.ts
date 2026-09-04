@@ -70,6 +70,7 @@ export type OpenAIChatModelId =
   | 'gpt-5.6-luna'
   | 'gpt-5.6-sol'
   | 'gpt-5.6-terra'
+  | 'gpt-6-astra'
   | (string & {});
 
 export const openaiLanguageModelChatOptions = lazySchema(() =>
@@ -139,12 +140,13 @@ export const openaiLanguageModelChatOptions = lazySchema(() =>
        * - 'flex': 50% cheaper processing at the cost of increased latency. Only available for o3 and o4-mini models.
        * - 'priority': Higher-speed processing with predictably low latency at premium cost. Available for Enterprise customers.
        * - 'fast': OpenAI's newer name for the 'priority' tier. Interchangeable with it.
+       * - 'ultrafast': Access-controlled Ultrafast processing. Only available for gpt-5.6-sol.
        * - 'default': The request will be processed with the standard pricing and performance for the selected model.
        *
        * @default 'auto'
        */
       serviceTier: z
-        .enum(['auto', 'flex', 'priority', 'fast', 'default'])
+        .enum(['auto', 'flex', 'priority', 'fast', 'ultrafast', 'default'])
         .optional(),
 
       /**

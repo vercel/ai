@@ -238,10 +238,10 @@ const googleVertex = createGoogleVertex({
 ### Language Models
 
 You can create models that call the Vertex API using the provider instance.
-The first argument is the model id, e.g. `gemini-3.7-flash`.
+The first argument is the model id, e.g. `gemini-3.8-flash`.
 
 ```ts
-const model = googleVertex('gemini-3.7-flash');
+const model = googleVertex('gemini-3.8-flash');
 ```
 
 <Note>
@@ -516,7 +516,7 @@ import { googleVertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: googleVertex('gemini-3.7-flash'),
+  model: googleVertex('gemini-3.8-flash'),
   tools: {
     enterprise_web_search: googleVertex.tools.enterpriseWebSearch({}),
   },
@@ -534,7 +534,7 @@ import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: googleVertex('gemini-3.7-flash'),
+  model: googleVertex('gemini-3.8-flash'),
   tools: {
     google_maps: googleVertex.tools.googleMaps({}),
   },
@@ -907,6 +907,7 @@ The following Zod features are known to not work with Google Vertex:
 
 | Model                   | Image Input | Object Generation | Tool Usage | Tool Streaming |
 | ----------------------- | ----------- | ----------------- | ---------- | -------------- |
+| `gemini-3.8-flash`      | <Check />   | <Check />         | <Check />  | <Check />      |
 | `gemini-3.7-flash`      | <Check />   | <Check />         | <Check />  | <Check />      |
 | `gemini-3.6-flash`      | <Check />   | <Check />         | <Check />  | <Check />      |
 | `gemini-3.5-flash`      | <Check />   | <Check />         | <Check />  | <Check />      |

@@ -1,6 +1,7 @@
 import path from 'node:path';
 import {
   commonTool,
+  HARNESS_V1_BUILTIN_TOOLS,
   HarnessCapabilityUnsupportedError,
   harnessV1DiagnosticFromBridgeFrame,
   type HarnessV1,
@@ -123,6 +124,11 @@ export type OpenCodeHarnessSettings = {
 const optionalStringRecord = z.record(z.string(), z.unknown()).optional();
 
 const OPENCODE_BUILTIN_TOOLS = {
+  askUserQuestions: {
+    ...HARNESS_V1_BUILTIN_TOOLS.askUserQuestions,
+    nativeName: 'question',
+    toolUseKind: 'readonly',
+  },
   read: commonTool('read', {
     nativeName: 'view',
     toolUseKind: 'readonly',
@@ -336,8 +342,6 @@ export function createOpenCode(
           );
         }
         credentialsBrokered = true;
-      } else {
-        warnCredentialBrokeringUnavailable();
       }
       const bootstrapDir = path.posix.resolve(
         defaultWorkingDirectory,
@@ -408,6 +412,7 @@ export function createOpenCode(
             reasoningVariant: settings.reasoningVariant,
             openCodeConfig: settings.openCodeConfig,
             mcpServers: settings.mcpServers,
+            headers: startOpts.headers,
             openCodeSessionId: resumeSessionId,
             isResume: true,
             seedResumeSessionOnFirstPrompt: false,
@@ -457,6 +462,14 @@ export function createOpenCode(
               OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
             credentialForwarding: settings.credentialForwarding,
           });
+      if (!credentialsBrokered) {
+        warnCredentialBrokeringUnavailable({
+          environment: resolvedAuthEnvironment,
+          forwardedEnvironment: forwardedAuthEnvironment,
+          credentialEnvironmentVariables:
+            OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
+        });
+      }
       const env = {
         ...forwardedAuthEnvironment,
         AI_SDK_HARNESS_CLIENT_APP: OPENCODE_CLIENT_APP,
@@ -557,6 +570,7 @@ export function createOpenCode(
         reasoningVariant: settings.reasoningVariant,
         openCodeConfig: settings.openCodeConfig,
         mcpServers: settings.mcpServers,
+        headers: startOpts.headers,
         openCodeSessionId: resumeSessionId,
         isResume: respawnStrategy !== undefined,
         seedResumeSessionOnFirstPrompt: respawnStrategy !== undefined,
@@ -774,6 +788,7 @@ function createSession({
   reasoningVariant,
   openCodeConfig,
   mcpServers,
+  headers,
   openCodeSessionId,
   isResume,
   seedResumeSessionOnFirstPrompt,
@@ -797,6 +812,7 @@ function createSession({
   reasoningVariant: string | undefined;
   openCodeConfig: Record<string, unknown> | undefined;
   mcpServers: Record<string, unknown> | undefined;
+  headers: Readonly<Record<string, string>> | undefined;
   openCodeSessionId: string | undefined;
   isResume: boolean;
   seedResumeSessionOnFirstPrompt: boolean;
@@ -948,6 +964,9 @@ function createSession({
           toolCallId: input.toolCallId,
           output: input.output,
           isError: input.isError,
+          ...(input.toolResult !== undefined
+            ? { toolResult: input.toolResult }
+            : {}),
         });
       },
       submitToolApproval: async input => {
@@ -975,6 +994,7 @@ function createSession({
     ...(reasoningVariant ? { variant: reasoningVariant } : {}),
     ...(openCodeConfig == null ? {} : { openCodeConfig }),
     ...(mcpServers == null ? {} : { mcpServers }),
+    ...(headers == null ? {} : { headers }),
     ...(permissionMode ? { permissionMode } : {}),
     ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
     ...(pendingResumeSessionId
@@ -1101,6 +1121,7 @@ function createSession({
         debug,
         openCodeConfig,
         mcpServers,
+        headers,
         resumeSessionId: latestOpenCodeSessionId,
         onCompaction: part => pendingCompactionParts.push(part),
       });
@@ -1274,6 +1295,7 @@ async function runCompactOperation({
   debug,
   openCodeConfig,
   mcpServers,
+  headers,
   resumeSessionId,
   onCompaction,
 }: {
@@ -1284,6 +1306,7 @@ async function runCompactOperation({
   debug: HarnessV1DebugConfig | undefined;
   openCodeConfig: Record<string, unknown> | undefined;
   mcpServers: Record<string, unknown> | undefined;
+  headers: Readonly<Record<string, string>> | undefined;
   resumeSessionId: string | undefined;
   onCompaction: (part: HarnessV1StreamPart) => void;
 }): Promise<void> {
@@ -1313,6 +1336,7 @@ async function runCompactOperation({
     provider,
     ...(openCodeConfig == null ? {} : { openCodeConfig }),
     ...(mcpServers == null ? {} : { mcpServers }),
+    ...(headers == null ? {} : { headers }),
     ...(permissionMode ? { permissionMode } : {}),
     ...(resumeSessionId ? { resumeSessionId } : {}),
     ...(debug ? { debug } : {}),

@@ -313,8 +313,6 @@ export function createCodex(
            */
           sandboxAuthEnvironment.OPENAI_BASE_URL = DEFAULT_OPENAI_BASE_URL;
         }
-      } else {
-        warnCredentialBrokeringUnavailable();
       }
       const bootstrapDir = path.posix.resolve(
         defaultWorkingDirectory,
@@ -388,6 +386,7 @@ export function createCodex(
             webSearch: settings.webSearch,
             codexConfig: settings.codexConfig,
             mcpServers: settings.mcpServers,
+            headers: startOpts.headers,
             resumeThreadId: resumeThreadIdString,
             isResume: true,
             seedResumeThreadOnFirstPrompt: false,
@@ -446,6 +445,14 @@ export function createCodex(
               CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES,
             credentialForwarding: settings.credentialForwarding,
           });
+      if (!credentialsBrokered) {
+        warnCredentialBrokeringUnavailable({
+          environment: resolvedAuthEnvironment,
+          forwardedEnvironment: forwardedAuthEnvironment,
+          credentialEnvironmentVariables:
+            CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES,
+        });
+      }
       const env = {
         ...forwardedAuthEnvironment,
         AI_SDK_HARNESS_CLIENT_APP: CODEX_CLIENT_APP,
@@ -542,6 +549,7 @@ export function createCodex(
         webSearch: settings.webSearch,
         codexConfig: settings.codexConfig,
         mcpServers: settings.mcpServers,
+        headers: startOpts.headers,
         resumeThreadId: resumeThreadIdString,
         isResume: respawnStrategy !== undefined,
         seedResumeThreadOnFirstPrompt: respawnStrategy !== undefined,
@@ -679,6 +687,7 @@ function createSession({
   webSearch,
   codexConfig,
   mcpServers,
+  headers,
   resumeThreadId,
   isResume,
   seedResumeThreadOnFirstPrompt,
@@ -703,6 +712,7 @@ function createSession({
   webSearch: boolean | undefined;
   codexConfig: Record<string, unknown> | undefined;
   mcpServers: Record<string, unknown> | undefined;
+  headers: Readonly<Record<string, string>> | undefined;
   resumeThreadId: string | undefined;
   isResume: boolean;
   seedResumeThreadOnFirstPrompt: boolean;
@@ -1005,6 +1015,7 @@ function createSession({
         webSearch,
         ...(codexConfig == null ? {} : { codexConfig }),
         ...(mcpServers == null ? {} : { mcpServers }),
+        ...(headers == null ? {} : { headers }),
         ...(permissionMode ? { permissionMode } : {}),
         ...(pendingResumeThreadId
           ? { resumeThreadId: pendingResumeThreadId }
@@ -1082,6 +1093,7 @@ function createSession({
             webSearch,
             ...(codexConfig == null ? {} : { codexConfig }),
             ...(mcpServers == null ? {} : { mcpServers }),
+            ...(headers == null ? {} : { headers }),
             ...(permissionMode ? { permissionMode } : {}),
             ...(threadId ? { resumeThreadId: threadId } : {}),
             ...(restartThread ? { restartThread: true } : {}),

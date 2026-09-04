@@ -80,15 +80,17 @@ describe('normalizeOpaDecision', () => {
       });
     });
 
-    it('treats unrecognized shape as not-applicable', () => {
-      expect(normalizeOpaDecision({ result: 'maybe' })).toEqual({
-        type: 'not-applicable',
+    it.each([
+      ['an unknown decision value', { decision: 'blocked' }],
+      ['a non-boolean legacy value', { allow: 'false' }],
+      ['an unknown key', { verdict: 'deny' }],
+      ['an unexpected nested shape', { result: { decision: 'deny' } }],
+      ['a primitive', 'yes'],
+    ])('denies %s', (_description, result) => {
+      expect(normalizeOpaDecision(result)).toEqual({
+        type: 'denied',
+        reason: 'unrecognized OPA policy decision',
       });
-    });
-
-    it('treats primitives as not-applicable', () => {
-      expect(normalizeOpaDecision('yes')).toEqual({ type: 'not-applicable' });
-      expect(normalizeOpaDecision(42)).toEqual({ type: 'not-applicable' });
     });
   });
 });

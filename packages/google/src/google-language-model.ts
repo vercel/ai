@@ -13,6 +13,7 @@ import type {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  createToolNameMapping,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
@@ -297,6 +298,12 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       modelId: this.modelId,
       isVertexProvider,
     });
+    const toolNameMapping = createToolNameMapping({
+      tools,
+      providerToolNames: {
+        'google.code_execution': 'code_execution',
+      },
+    });
 
     const resolvedThinking = resolveThinkingConfig({
       reasoning,
@@ -394,6 +401,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       warnings: [...warnings, ...toolWarnings],
       providerOptionsNames,
       extraHeaders: vertexPaygoHeaders,
+      toolNameMapping,
     };
   }
 
@@ -401,10 +409,12 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     response,
     warnings,
     providerOptionsNames,
+    toolNameMapping,
   }: {
     response: InferSchema<typeof responseSchema>;
     warnings: SharedV4Warning[];
     providerOptionsNames: readonly string[];
+    toolNameMapping?: ReturnType<typeof createToolNameMapping>;
   }): LanguageModelV4GenerateResult {
     const wrapProviderMetadata = (payload: Record<string, unknown>) =>
       Object.fromEntries(
@@ -437,7 +447,9 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         content.push({
           type: 'tool-call',
           toolCallId,
-          toolName: 'code_execution',
+          toolName:
+            toolNameMapping?.toCustomToolName('code_execution') ??
+            'code_execution',
           input: JSON.stringify(part.executableCode),
           providerExecuted: true,
         });
@@ -446,7 +458,9 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           type: 'tool-result',
           // Results correspond to the most recent executable code part.
           toolCallId: lastCodeExecutionToolCallId!,
-          toolName: 'code_execution',
+          toolName:
+            toolNameMapping?.toCustomToolName('code_execution') ??
+            'code_execution',
           result: {
             outcome: part.codeExecutionResult.outcome,
             output: part.codeExecutionResult.output ?? '',
@@ -586,8 +600,13 @@ export class GoogleLanguageModel implements LanguageModelV4 {
   async doGenerate(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
-    const { args, warnings, providerOptionsNames, extraHeaders } =
-      await this.getArgs(options);
+    const {
+      args,
+      warnings,
+      providerOptionsNames,
+      extraHeaders,
+      toolNameMapping,
+    } = await this.getArgs(options);
 
     const mergedHeaders = combineHeaders(
       this.config.headers ? await resolve(this.config.headers) : undefined,
@@ -615,6 +634,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       response,
       warnings,
       providerOptionsNames,
+      toolNameMapping,
     });
 
     return {
@@ -631,8 +651,13 @@ export class GoogleLanguageModel implements LanguageModelV4 {
   async doStream(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4StreamResult> {
-    const { args, warnings, providerOptionsNames, extraHeaders } =
-      await this.getArgs(options, { isStreaming: true });
+    const {
+      args,
+      warnings,
+      providerOptionsNames,
+      extraHeaders,
+      toolNameMapping,
+    } = await this.getArgs(options, { isStreaming: true });
     const wrapProviderMetadata = (payload: Record<string, unknown>) =>
       Object.fromEntries(
         providerOptionsNames.map(name => [name, payload]),
@@ -820,7 +845,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                   controller.enqueue({
                     type: 'tool-call',
                     toolCallId,
-                    toolName: 'code_execution',
+                    toolName:
+                      toolNameMapping.toCustomToolName('code_execution'),
                     input: JSON.stringify(part.executableCode),
                     providerExecuted: true,
                   });
@@ -835,7 +861,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                     controller.enqueue({
                       type: 'tool-result',
                       toolCallId,
-                      toolName: 'code_execution',
+                      toolName:
+                        toolNameMapping.toCustomToolName('code_execution'),
                       result: {
                         outcome: part.codeExecutionResult.outcome,
                         output: part.codeExecutionResult.output ?? '',

@@ -11,6 +11,7 @@ on:
       - completed
 
 permissions:
+  actions: read
   contents: read
 
 jobs:
@@ -28,7 +29,48 @@ jobs:
       }}
 
     steps:
+      - name: Detect expired Backport approval
+        id: expired-backport-approval
+        if: github.event.workflow_run.name == 'Backport'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const { owner, repo } = context.repo;
+            let approvalExpired = false;
+
+            try {
+              // An unapproved fork PR run has no jobs. When its PR is closed,
+              // GitHub completes the run as a failure and renders the expiration
+              // message in the UI without creating a job or check annotation.
+              const jobs = await github.paginate(
+                github.rest.actions.listJobsForWorkflowRun,
+                {
+                  owner,
+                  repo,
+                  run_id: context.payload.workflow_run.id,
+                  filter: 'all',
+                  per_page: 100,
+                },
+              );
+              const workflowRun = context.payload.workflow_run;
+              const isForkPullRequest =
+                workflowRun.event === 'pull_request' &&
+                workflowRun.head_repository?.full_name != null &&
+                workflowRun.head_repository.full_name !==
+                  workflowRun.repository.full_name;
+
+              approvalExpired = isForkPullRequest && jobs.length === 0;
+            } catch (error) {
+              core.warning(
+                `Could not inspect jobs for the Backport workflow: ${error.message}`,
+              );
+            }
+
+            core.setOutput('expired', String(approvalExpired));
+
       - name: Send Slack notification
+        if: steps.expired-backport-approval.outputs.expired != 'true'
         run: |
           payload=$(jq -n \
             --arg channel_id "$CHANNEL_ID" \

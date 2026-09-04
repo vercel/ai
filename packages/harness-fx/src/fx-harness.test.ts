@@ -330,6 +330,7 @@ describe('createFx', () => {
           VERCEL_OIDC_TOKEN: 'sandbox-oidc-secret',
           AI_GATEWAY_API_KEY: 'sandbox-gateway-secret',
         },
+        headers: { 'x-tenant': 'acme' },
       }),
     ).toEqual([
       {
@@ -344,6 +345,7 @@ describe('createFx', () => {
         },
         transform: {
           headers: {
+            'x-tenant': 'acme',
             Authorization: 'Bearer oidc-secret',
             'x-client-app': 'ai-sdk/harness-fx/0.0.0-test',
           },

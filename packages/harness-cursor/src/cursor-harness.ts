@@ -223,28 +223,6 @@ const CURSOR_BUILTIN_TOOLS = {
     nativeName: 'applyAgentDiffToolCall',
     toolUseKind: 'edit',
   },
-  askQuestion: {
-    ...tool({
-      inputSchema: z.looseObject({
-        _toolName: z.literal('askQuestion'),
-        title: z.string().optional(),
-        questions: z
-          .array(
-            z.looseObject({
-              id: z.string(),
-              prompt: z.string(),
-              options: z.array(
-                z.looseObject({ id: z.string(), label: z.string() }),
-              ),
-              allowMultiple: z.boolean().optional(),
-            }),
-          )
-          .optional(),
-      }),
-    }),
-    nativeName: 'askQuestionToolCall',
-    toolUseKind: 'readonly',
-  },
   fetch: {
     ...tool({
       title: 'Fetch',
@@ -410,10 +388,10 @@ export function createCursor(
       _meta: { parameterizedModelPicker: true },
     },
     credentialEnv: ['CURSOR_API_KEY'],
-    credentialBrokering: ({ env, sandboxEnv }) => {
-      if (!env.CURSOR_API_KEY || !sandboxEnv?.CURSOR_API_KEY) return [];
-      return [
-        {
+    credentialBrokering: ({ env, sandboxEnv, headers }) => {
+      const transformations = [];
+      if (env.CURSOR_API_KEY && sandboxEnv?.CURSOR_API_KEY) {
+        transformations.push({
           match: {
             host: 'api2.cursor.sh',
             path: { exact: '/auth/exchange_user_api_key' },
@@ -432,8 +410,21 @@ export function createCursor(
               Authorization: `Bearer ${env.CURSOR_API_KEY}`,
             },
           },
-        },
-      ];
+        });
+      }
+      if (headers != null) {
+        transformations.push({
+          match:
+            settings.auth === 'ai-gateway'
+              ? {
+                  host: 'ai-gateway.vercel.sh',
+                  path: { startsWith: '/cursor/v1' },
+                }
+              : { host: 'api2.cursor.sh' },
+          transform: { headers },
+        });
+      }
+      return transformations;
     },
   });
 }

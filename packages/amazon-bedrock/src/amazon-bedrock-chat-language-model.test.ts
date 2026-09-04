@@ -3952,6 +3952,131 @@ describe('doGenerate', () => {
       expect(result).toMatchSnapshot();
     });
 
+    it('should extract text from citation content', async () => {
+      server.urls[generateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  citationsContent: {
+                    content: [{ text: 'Citation ' }, { text: 'response' }],
+                    citations: [],
+                  },
+                },
+              ],
+            },
+          },
+          stopReason: 'end_turn',
+          usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toEqual([
+        { type: 'text', text: 'Citation ' },
+        { type: 'text', text: 'response' },
+      ]);
+    });
+
+    it.each([undefined, null])(
+      'should ignore citation content when generated content is %s',
+      async generatedContent => {
+        server.urls[generateUrl].response = {
+          type: 'json-value',
+          body: {
+            output: {
+              message: {
+                role: 'assistant',
+                content: [
+                  {
+                    citationsContent: {
+                      content: generatedContent,
+                      citations: [],
+                    },
+                  },
+                ],
+              },
+            },
+            stopReason: 'end_turn',
+            usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
+          },
+        };
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.content).toEqual([]);
+      },
+    );
+
+    it('should ignore citation generated content without text', async () => {
+      server.urls[generateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  citationsContent: {
+                    content: [{}, { text: null }, { text: 'Response' }],
+                    citations: [],
+                  },
+                },
+              ],
+            },
+          },
+          stopReason: 'end_turn',
+          usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toEqual([{ type: 'text', text: 'Response' }]);
+    });
+
+    it('should prefer regular text when citation content is also present', async () => {
+      server.urls[generateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  text: 'Canonical response',
+                  citationsContent: {
+                    content: [{ text: 'Duplicate response' }],
+                    citations: [],
+                  },
+                },
+              ],
+            },
+          },
+          stopReason: 'end_turn',
+          usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toEqual([
+        { type: 'text', text: 'Canonical response' },
+      ]);
+    });
+
     it('should extract usage', async () => {
       const { usage } = await model.doGenerate({
         prompt: TEST_PROMPT,

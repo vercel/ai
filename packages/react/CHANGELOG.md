@@ -1,5 +1,25 @@
 # @ai-sdk/react
 
+## 4.0.95
+
+### Patch Changes
+
+- d1904d3: fix(ai): surface fallback errors for empty HTTP response bodies
+- Updated dependencies [a51cc94]
+- Updated dependencies [809e922]
+- Updated dependencies [d1904d3]
+- Updated dependencies [84e5a79]
+- Updated dependencies [a8e8ad0]
+  - ai@7.0.92
+  - @ai-sdk/mcp@2.0.44
+
+## 4.0.94
+
+### Patch Changes
+
+- Updated dependencies [802af1e]
+  - ai@7.0.91
+
 ## 4.0.93
 
 ### Patch Changes
