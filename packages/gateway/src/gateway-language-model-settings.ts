@@ -187,6 +187,7 @@ export type GatewayModelId =
   | 'openai/gpt-5.6-sol-fast'
   | 'openai/gpt-5.6-terra'
   | 'openai/gpt-5.6-terra-fast'
+  | 'openai/gpt-6-astra'
   | 'openai/gpt-oss-120b'
   | 'openai/gpt-oss-20b'
   | 'openai/gpt-oss-safeguard-120b'
