@@ -623,6 +623,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
             clientCapabilities: settings.clientCapabilities,
             askUserQuestionsRequestMethod:
               settings.askUserQuestions?.requestMethod,
+            hostToolMcpTransport: settings.hostToolMcpTransport,
           }),
           ...sandboxProviderAuthenticationEnvironment,
           BRIDGE_CHANNEL_TOKEN: token,

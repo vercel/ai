@@ -133,6 +133,12 @@ export type ACPOutputSchemaMapping = {
   readonly path: ReadonlyArray<string>;
 };
 
+/**
+ * Transport used for the harness-owned MCP server that exposes host tools to
+ * an ACP implementation.
+ */
+export type ACPHostToolMCPTransport = 'stdio' | 'http';
+
 export type ACPAskUserQuestionsSettings = {
   readonly requestMethod: string;
   readonly isNativeToolCall?: (options: {
@@ -202,6 +208,14 @@ export type ACPV1Settings = {
    * below the ACP session prompt's `_meta` field.
    */
   readonly outputSchemaMapping?: ACPOutputSchemaMapping;
+  /**
+   * Transport used for the harness-owned MCP server that exposes host tools to
+   * the ACP implementation. Defaults to `stdio`. Set this to `http` for
+   * implementations that only accept HTTP or SSE MCP servers from the client,
+   * which requires the implementation to advertise
+   * `agentCapabilities.mcpCapabilities.http`.
+   */
+  readonly hostToolMcpTransport?: ACPHostToolMCPTransport;
   readonly askUserQuestions?: ACPAskUserQuestionsSettings;
   readonly permissionModeMapping?: ACPPermissionModeMapping;
   readonly session?: {

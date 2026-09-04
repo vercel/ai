@@ -23,6 +23,7 @@ export type {
   ACPAskUserQuestionsSettings,
   ACPCredentialBrokering,
   ACPAuthentication,
+  ACPHostToolMCPTransport,
   ACPInstallCommandSource,
   ACPInstructionMapping,
   ACPModelMapping,

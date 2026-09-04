@@ -4,6 +4,7 @@ export type {
   ACPCredentialBrokering,
   ACPAuthentication,
   ACPAuthenticationMode,
+  ACPHostToolMCPTransport,
   ACPInstallCommandSource,
   ACPInstructionMapping,
   ACPModelMapping,
