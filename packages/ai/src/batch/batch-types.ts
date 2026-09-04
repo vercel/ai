@@ -4,12 +4,19 @@ import type {
   Experimental_BatchV4Status as BatchV4Status,
   Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
 } from '@ai-sdk/provider';
-import type { ProviderOptions } from '@ai-sdk/provider-utils';
+import type {
+  InferToolSetContext,
+  ProviderOptions,
+  ToolSet,
+} from '@ai-sdk/provider-utils';
+import type { ContentPart } from '../generate-text/content-part';
+import type { ToolOrder } from '../generate-text/tool-order';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import type { Prompt } from '../prompt/prompt';
 import type {
   FinishReason,
   GlobalProviderModelId,
+  ToolChoice,
 } from '../types/language-model';
 import type { ProviderMetadata } from '../types/provider-metadata';
 import type { LanguageModelUsage } from '../types/usage';
@@ -73,9 +80,34 @@ type BatchRequestOptions = {
 /**
  * Options for starting a text batch.
  */
-export type StartTextBatchOptions = {
+export type StartTextBatchOptions<TOOLS extends ToolSet = ToolSet> = {
   model: BatchLanguageModel;
   requests: ReadonlyArray<TextBatchRequest>;
+
+  /**
+   * Tools that the model can call for every request in the batch.
+   *
+   * Tool definitions are sent to the provider, but their `execute` functions
+   * are never invoked by batch processing.
+   */
+  tools?: TOOLS;
+
+  /**
+   * The tool choice strategy. Default: 'auto'.
+   */
+  toolChoice?: ToolChoice<NoInfer<TOOLS>>;
+
+  /**
+   * Controls the order in which tools are sent to the provider. Tools not
+   * listed are appended alphabetically.
+   */
+  toolOrder?: ToolOrder<TOOLS>;
+
+  /**
+   * Context used when resolving dynamic tool descriptions.
+   */
+  toolsContext?: InferToolSetContext<TOOLS>;
+
   providerOptions?: ProviderOptions;
 
   /**
@@ -96,9 +128,18 @@ export type StartTextBatchResult = TextBatch & {
 /**
  * Options shared by batch status and result retrieval operations.
  */
-export type BatchOperationOptions = {
+export type BatchOperationOptions<TOOLS extends ToolSet = ToolSet> = {
   model: BatchLanguageModel;
   batch: BatchReference;
+
+  /**
+   * Definitions for client tools that were provided to `startTextBatch`.
+   *
+   * The definitions are used only to validate and normalize returned tool
+   * calls. Their `execute` functions are never invoked.
+   */
+  tools?: TOOLS;
+
   providerOptions?: ProviderOptions;
   maxRetries?: number;
 } & BatchRequestOptions;
@@ -106,7 +147,9 @@ export type BatchOperationOptions = {
 /**
  * A normalized result for a successful text batch item.
  */
-export type TextBatchGenerationResult = {
+export type TextBatchGenerationResult<TOOLS extends ToolSet = ToolSet> = {
+  /** Ordered normalized content, including citations, sources, and tool data. */
+  readonly content: Array<ContentPart<TOOLS>>;
   readonly text: string;
   readonly finishReason: FinishReason;
   readonly rawFinishReason?: string;
@@ -122,8 +165,8 @@ export type TextBatchGenerationResult = {
 /**
  * A complete terminal result for one request in a text batch.
  */
-export type TextBatchItemResult =
-  | (TextBatchGenerationResult & {
+export type TextBatchItemResult<TOOLS extends ToolSet = ToolSet> =
+  | (TextBatchGenerationResult<TOOLS> & {
       readonly id: string;
       readonly status: 'succeeded';
     })

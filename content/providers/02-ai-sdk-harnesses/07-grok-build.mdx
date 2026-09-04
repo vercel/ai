@@ -40,6 +40,7 @@ import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
   harness: grokBuild,
+  model: 'grok-build-0.1',
   sandbox: createVercelSandbox({
     runtime: 'node24',
     ports: [4000],
@@ -80,7 +81,7 @@ Use `createGrokBuild()` to configure the runtime:
 ```ts
 const harness = createGrokBuild({
   auth: 'ai-gateway',
-  model: 'grok-code-fast-1',
+  reasoningEffort: 'high',
   port: 4001,
   startupTimeoutMs: 180_000,
 });
@@ -88,9 +89,10 @@ const harness = createGrokBuild({
 
 Settings:
 
-- `auth`: selects `auto`, `direct`, or `ai-gateway` authentication. The default
-  is `auto`, which selects AI Gateway when Gateway credentials are present and
-  direct xAI authentication otherwise.
+- `auth`: selects `auto`, `direct`, or `ai-gateway` authentication, or accepts
+  an isolated authentication environment. The default is `auto`, which selects
+  AI Gateway when Gateway credentials are present and direct xAI
+  authentication otherwise.
 - `credentialForwarding`: optional synchronous or asynchronous callback that
   customizes each credential immediately before the harness adapter forwards it
   into a sandbox process. It receives the credential value that would otherwise
@@ -99,8 +101,9 @@ Settings:
   value forwarded into the sandbox process. It does not restrict which
   credentials the harness adapter can discover, read, or otherwise access in
   the host process.
-- `model`: Grok model id selected through ACP. When omitted, Grok Build chooses
-  its own default model.
+- `reasoningEffort`: reasoning effort for reasoning-capable models. Supported
+  values are `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, and `max`.
+  When omitted, Grok Build uses its configured default.
 - `mcpServers`: MCP server definitions keyed by server name.
 - `port`: ACP bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the ACP bridge to start.
@@ -146,6 +149,21 @@ const directHarness = createGrokBuild({ auth: 'direct' });
 const gatewayHarness = createGrokBuild({ auth: 'ai-gateway' });
 ```
 
+Pass an authentication environment when the host resolves credentials at
+runtime:
+
+```ts
+const gatewayHarness = createGrokBuild({
+  auth: {
+    AI_GATEWAY_API_KEY: await resolveGatewayToken(),
+    AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh',
+  },
+});
+```
+
+The supplied record replaces the host environment for authentication
+discovery, so it can also select direct authentication with `XAI_API_KEY`.
+
 ## Sandbox
 
 Grok Build runs inside the sandbox through `@ai-sdk/harness-acp`. It requires a
@@ -160,7 +178,7 @@ const sandbox = createVercelSandbox({
 ```
 
 The first session requires network egress so the ACP harness can install
-`@xai-official/grok@0.2.111` inside the sandbox.
+`@xai-official/grok@1.0.5` inside the sandbox.
 
 ## Built-in Tools
 
@@ -192,6 +210,10 @@ safe built-in operations internally without sending a permission request.
   error.
 - A changed host-tool catalog requires Grok Build to refresh its ACP MCP tool
   list. If the implementation retains stale tools, the turn fails explicitly.
+- Custom `headers` are not natively supported and only applied via
+  sandbox-external request transformations. When a sandbox without that
+  capability is provided, custom `headers` therefore cannot be passed and are
+  ignored.
 
 ## Related
 

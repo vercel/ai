@@ -11,7 +11,7 @@ run(async () => {
     timeout: 10 * 60 * 1000,
   });
   const agent = new HarnessAgent({
-    harness: createCodex({ reasoningEffort: 'high' }),
+    harness: createCodex({ reasoningEffort: 'max' }),
     sandbox,
   });
 

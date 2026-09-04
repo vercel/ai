@@ -1,5 +1,91 @@
 # @ai-sdk/openai
 
+## 4.0.58
+
+### Patch Changes
+
+- b54e551: fix(openai): support documented Responses image generation options
+- 17d3436: feat(openai): add support for ultrafast service tier
+
+## 4.0.57
+
+### Patch Changes
+
+- 048ce06: feat(batch): surface the uploaded input file on the batch start result (`providerMetadata.<provider>.inputFileId` / `inputFileExpiresAt`) and accept an `inputFileExpiresAfter` provider option on the OpenAI and xAI batch input file upload
+- 7243530: fix(openai): preserve complete Responses API raw usage objects
+
+## 4.0.56
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
+## 4.0.55
+
+### Patch Changes
+
+- 3fc40db: feat(openai): implement `getFileMetadata`, `downloadFile` (streaming), and `deleteFile` on the OpenAI files interface, support streaming uploads via `{ type: 'stream' }` data, expose `byteSize`/`createdAt`/`expiresAt` on upload results, and thread `abortSignal`/`headers` through all file operations; blank and dot-segment file ids are rejected/encoded so they cannot retarget request paths
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+
+## 4.0.54
+
+### Patch Changes
+
+- f6fac50: fix(openai): handle null usage in responses
+- e07b577: feat: add tool calling support to batch
+
+## 4.0.53
+
+### Patch Changes
+
+- 7439d7a: Fix workflow deserialization for OpenAI Responses models.
+
+## 4.0.52
+
+### Patch Changes
+
+- 1c68540: Preserve explicit prompt cache breakpoints on scalar Responses tool results.
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 4.0.51
+
+### Patch Changes
+
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
+## 4.0.50
+
+### Patch Changes
+
+- e6a2992: Fix Responses history serialization for regular functions named `tool_search`.
+
+## 4.0.49
+
+### Patch Changes
+
+- 2523403: Normalize non-object replayed Chat Completions tool arguments to empty objects.
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 4.0.48
+
+### Patch Changes
+
+- a9782e1: fix: align batch result parsing, request counts, and lifecycle behavior across providers
+- eee6200: Signal schema-invalid known Responses stream events and preserve the error finish reason.
+- 35841f5: feat: normalize mid-stream provider error events across supported providers into public StreamProviderError instances and preserve provider-owned type, code, status, retry, and raw payload metadata
+- d2f3353: Split OpenAI and Azure OpenAI embedding requests by a conservative UTF-8 byte budget derived from their aggregate token limit, in addition to input count limits.
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
 ## 4.0.47
 
 ### Patch Changes

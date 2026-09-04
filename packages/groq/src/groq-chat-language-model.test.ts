@@ -1475,12 +1475,16 @@ describe('doStream', () => {
   });
 
   it('should handle error stream parts', async () => {
+    const data = {
+      error: {
+        message: 'Rate limit reached',
+        type: 'rate_limit_error',
+      },
+    };
+
     server.urls[CHAT_COMPLETIONS_URL].response = {
       type: 'stream-chunks',
-      chunks: [
-        `data: {"error":{"message": "The server had an error processing your request. Sorry about that!","type":"invalid_request_error"}}\n\n`,
-        'data: [DONE]\n\n',
-      ],
+      chunks: [`data: ${JSON.stringify(data)}\n\n`, 'data: [DONE]\n\n'],
     };
 
     const { stream } = await model.doStream({
@@ -1495,8 +1499,17 @@ describe('doStream', () => {
         },
         {
           "error": {
-            "message": "The server had an error processing your request. Sorry about that!",
-            "type": "invalid_request_error",
+            "code": undefined,
+            "data": {
+              "error": {
+                "message": "Rate limit reached",
+                "type": "rate_limit_error",
+              },
+            },
+            "isRetryable": true,
+            "message": "Rate limit reached",
+            "statusCode": 429,
+            "type": "rate_limit_error",
           },
           "type": "error",
         },

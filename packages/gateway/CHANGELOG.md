@@ -1,5 +1,88 @@
 # @ai-sdk/gateway
 
+## 4.0.74
+
+### Patch Changes
+
+- a7e324b: chore(provider/gateway): update gateway model settings files
+
+## 4.0.73
+
+### Patch Changes
+
+- 5484f27: chore(provider/gateway): update gateway model settings files
+- 36eb7ee: chore(provider/gateway): update gateway model settings files
+- 622fa7f: feat(google): add gemini-3.8-flash model
+
+## 4.0.72
+
+### Patch Changes
+
+- 4d25a08: feat(anthropic): add fable 5.1 support
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
+## 4.0.71
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+
+## 4.0.70
+
+### Patch Changes
+
+- 1329d5a: chore(provider/gateway): update gateway model settings files
+
+## 4.0.69
+
+### Patch Changes
+
+- d2507af: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 4.0.68
+
+### Patch Changes
+
+- 805bbfc: chore(provider/gateway): update gateway model settings files
+- 90192f1: Mark transient network errors that occur while reading successful response bodies as retryable.
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
+## 4.0.67
+
+### Patch Changes
+
+- 0e7994c: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 4.0.66
+
+### Patch Changes
+
+- 81bebaf: Add GLM-5.3-Flash model support to the Z.AI provider and AI Gateway.
+
+## 4.0.65
+
+### Patch Changes
+
+- 80227cf: chore(provider/gateway): update gateway model settings files
+- a9782e1: fix: align batch result parsing, request counts, and lifecycle behavior across providers
+- 5533946: Remove the internal-only `relevance_score` and `citation_number` fields from
+  published Tako Search response types and schemas. Code that reads either field
+  must be updated; Gateway responses still pass the values through at runtime,
+  but they are no longer typed. Also document data surcharge controls.
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
 ## 4.0.64
 
 ### Patch Changes

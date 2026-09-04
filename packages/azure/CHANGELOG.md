@@ -1,5 +1,114 @@
 # @ai-sdk/azure
 
+## 4.0.61
+
+### Patch Changes
+
+- Updated dependencies [b54e551]
+- Updated dependencies [17d3436]
+  - @ai-sdk/openai@4.0.58
+
+## 4.0.60
+
+### Patch Changes
+
+- Updated dependencies [048ce06]
+- Updated dependencies [7243530]
+  - @ai-sdk/openai@4.0.57
+
+## 4.0.59
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+  - @ai-sdk/deepseek@3.0.39
+  - @ai-sdk/openai@4.0.56
+
+## 4.0.58
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+- Updated dependencies [3fc40db]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+  - @ai-sdk/deepseek@3.0.38
+  - @ai-sdk/openai@4.0.55
+
+## 4.0.57
+
+### Patch Changes
+
+- Updated dependencies [f6fac50]
+- Updated dependencies [e07b577]
+  - @ai-sdk/openai@4.0.54
+
+## 4.0.56
+
+### Patch Changes
+
+- Updated dependencies [7439d7a]
+  - @ai-sdk/openai@4.0.53
+
+## 4.0.55
+
+### Patch Changes
+
+- 993e900: Construct OpenAI v1 URLs for Azure AI Foundry (`*.services.ai.azure.com`) and Cognitive Services (`*.cognitiveservices.azure.com`) hostnames while preserving complete v1 and Foundry project base URLs.
+
+## 4.0.54
+
+### Patch Changes
+
+- Updated dependencies [1c68540]
+- Updated dependencies [aa45741]
+  - @ai-sdk/openai@4.0.52
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/deepseek@3.0.37
+  - @ai-sdk/provider-utils@5.0.34
+
+## 4.0.53
+
+### Patch Changes
+
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+  - @ai-sdk/deepseek@3.0.36
+  - @ai-sdk/openai@4.0.51
+
+## 4.0.52
+
+### Patch Changes
+
+- Updated dependencies [e6a2992]
+- Updated dependencies [41f016e]
+  - @ai-sdk/openai@4.0.50
+  - @ai-sdk/deepseek@3.0.35
+
+## 4.0.51
+
+### Patch Changes
+
+- Updated dependencies [2523403]
+- Updated dependencies [3e125ba]
+  - @ai-sdk/openai@4.0.49
+  - @ai-sdk/provider-utils@5.0.32
+  - @ai-sdk/deepseek@3.0.34
+
+## 4.0.50
+
+### Patch Changes
+
+- d2f3353: Split OpenAI and Azure OpenAI embedding requests by a conservative UTF-8 byte budget derived from their aggregate token limit, in addition to input count limits.
+- Updated dependencies [a9782e1]
+- Updated dependencies [eee6200]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/openai@4.0.48
+  - @ai-sdk/provider-utils@5.0.31
+  - @ai-sdk/deepseek@3.0.33
+
 ## 4.0.49
 
 ### Patch Changes

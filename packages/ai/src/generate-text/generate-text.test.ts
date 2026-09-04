@@ -13,6 +13,7 @@ import {
   dynamicTool,
   experimental_toolCaller,
   jsonSchema,
+  safeParseJSON,
   tool,
   type ModelMessage,
   type Experimental_SandboxSession as SandboxSession,
@@ -32,6 +33,7 @@ import {
   vitest,
 } from 'vitest';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
+import { ToolChoiceViolationError } from '../error/tool-choice-violation-error';
 import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { signToolApproval } from './tool-approval-signature';
 import { z } from 'zod/v4';
@@ -742,6 +744,7 @@ describe('generateText', () => {
             "file": DefaultGeneratedFile {
               "base64Data": "AQID",
               "mediaType": "image/png",
+              "providerMetadata": undefined,
               "uint8ArrayData": Uint8Array [
                 1,
                 2,
@@ -859,6 +862,7 @@ describe('generateText', () => {
             "file": DefaultGeneratedFile {
               "base64Data": "ChQe",
               "mediaType": "image/png",
+              "providerMetadata": undefined,
               "uint8ArrayData": Uint8Array [
                 10,
                 20,
@@ -876,6 +880,7 @@ describe('generateText', () => {
             "file": DefaultGeneratedFile {
               "base64Data": "KDI8",
               "mediaType": "image/jpeg",
+              "providerMetadata": undefined,
               "uint8ArrayData": Uint8Array [
                 40,
                 50,
@@ -892,6 +897,7 @@ describe('generateText', () => {
           DefaultGeneratedFile {
             "base64Data": "KDI8",
             "mediaType": "image/jpeg",
+            "providerMetadata": undefined,
             "uint8ArrayData": Uint8Array [
               40,
               50,
@@ -1482,6 +1488,252 @@ describe('generateText', () => {
         },
         timeToFirstOutputMs: undefined,
       });
+    });
+  });
+
+  describe('tool choice enforcement', () => {
+    it('should reject when a required tool choice produces no tool call', async () => {
+      const result = generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              { type: 'reasoning', text: 'I will not call the tool.' },
+              { type: 'text', text: 'No tool call.' },
+            ],
+          }),
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+          },
+        },
+        toolChoice: 'required',
+        prompt: 'test-input',
+      });
+
+      const error = await result.catch(error => error);
+
+      expect(ToolChoiceViolationError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({
+        name: 'AI_ToolChoiceViolationError',
+        message:
+          'Model response did not contain a tool call even though tool choice was required.',
+        toolChoice: { type: 'required' },
+        finishReason: 'stop',
+        provider: 'mock-provider',
+        modelId: 'mock-model-id',
+        content: [
+          { type: 'reasoning', text: 'I will not call the tool.' },
+          { type: 'text', text: 'No tool call.' },
+        ],
+      });
+    });
+
+    it('should report the completed model call before rejecting a tool choice violation', async () => {
+      const onLanguageModelCallStart = vi.fn();
+      const onLanguageModelCallEnd = vi.fn();
+      const telemetryOnLanguageModelCallStart = vi.fn();
+      const telemetryOnLanguageModelCallEnd = vi.fn();
+
+      const result = generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'No tool call.' }],
+            providerMetadata: {
+              testProvider: { requestId: 'request-1' },
+            },
+            response: {
+              id: 'response-1',
+              timestamp: new Date(0),
+              modelId: 'response-model-id',
+            },
+          }),
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+          },
+        },
+        toolChoice: 'required',
+        prompt: 'test-input',
+        onLanguageModelCallStart,
+        onLanguageModelCallEnd,
+        telemetry: {
+          integrations: {
+            onLanguageModelCallStart: telemetryOnLanguageModelCallStart,
+            onLanguageModelCallEnd: telemetryOnLanguageModelCallEnd,
+          },
+        },
+        _internal: {
+          generateCallId: () => 'test-call-id',
+          now: mockValues(1000, 1500),
+        },
+      });
+
+      const error = await result.catch(error => error);
+
+      expect(ToolChoiceViolationError.isInstance(error)).toBe(true);
+      expect(onLanguageModelCallStart).toHaveBeenCalledOnce();
+      expect(telemetryOnLanguageModelCallStart).toHaveBeenCalledOnce();
+      expect(onLanguageModelCallEnd).toHaveBeenCalledOnce();
+      expect(telemetryOnLanguageModelCallEnd).toHaveBeenCalledOnce();
+
+      const expectedEndEvent = {
+        callId: 'test-call-id',
+        provider: 'mock-provider',
+        modelId: 'response-model-id',
+        finishReason: 'stop',
+        content: [{ type: 'text', text: 'No tool call.' }],
+        responseId: 'response-1',
+        providerMetadata: {
+          testProvider: { requestId: 'request-1' },
+        },
+        performance: expect.objectContaining({
+          responseTimeMs: 500,
+        }),
+        usage: expect.objectContaining({
+          inputTokens: 3,
+          outputTokens: 10,
+          totalTokens: 13,
+        }),
+      };
+
+      expect(onLanguageModelCallEnd).toHaveBeenCalledWith(
+        expect.objectContaining(expectedEndEvent),
+      );
+      expect(telemetryOnLanguageModelCallEnd).toHaveBeenCalledWith(
+        expect.objectContaining(expectedEndEvent),
+      );
+    });
+
+    it('should expose a tool call serialized as text for opt-in recovery', async () => {
+      const serializedToolCall =
+        '{"toolName":"tool1","input":{"value":"value"}}';
+
+      const result = generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: serializedToolCall }],
+          }),
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+          },
+        },
+        toolChoice: 'required',
+        prompt: 'test-input',
+      });
+
+      const error = await result.catch(error => error);
+
+      assert(ToolChoiceViolationError.isInstance(error));
+      expect(error.content).toEqual([
+        { type: 'text', text: serializedToolCall },
+      ]);
+
+      const text = error.content.find(part => part.type === 'text')?.text;
+      assert(text != null);
+
+      await expect(
+        safeParseJSON({
+          text,
+          schema: z.object({
+            toolName: z.literal('tool1'),
+            input: z.object({ value: z.string() }),
+          }),
+        }),
+      ).resolves.toMatchObject({
+        success: true,
+        value: {
+          toolName: 'tool1',
+          input: { value: 'value' },
+        },
+      });
+    });
+
+    it('should reject when a different tool is called instead of the required tool', async () => {
+      const result = generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool2',
+                input: `{ "value": "value" }`,
+              },
+            ],
+          }),
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+          },
+          tool2: {
+            inputSchema: z.object({ value: z.string() }),
+          },
+        },
+        toolChoice: { type: 'tool', toolName: 'tool1' },
+        prompt: 'test-input',
+      });
+
+      await expect(result).rejects.toMatchObject({
+        name: 'AI_ToolChoiceViolationError',
+        message:
+          "Model response did not contain a call to the required tool 'tool1'.",
+        toolChoice: { type: 'tool', toolName: 'tool1' },
+      });
+    });
+
+    it('should enforce the tool choice returned by prepareStep', async () => {
+      const result = generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'No tool call.' }],
+          }),
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+          },
+        },
+        toolChoice: 'auto',
+        prepareStep: async () => ({ toolChoice: 'required' }),
+        prompt: 'test-input',
+      });
+
+      await expect(result).rejects.toMatchObject({
+        name: 'AI_ToolChoiceViolationError',
+        toolChoice: { type: 'required' },
+      });
+    });
+
+    it('should allow prepareStep to replace a required tool choice', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'No tool call.' }],
+          }),
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+          },
+        },
+        toolChoice: 'required',
+        prepareStep: async () => ({ toolChoice: 'auto' }),
+        prompt: 'test-input',
+      });
+
+      expect(result.text).toBe('No tool call.');
     });
   });
 
@@ -10683,6 +10935,56 @@ describe('generateText', () => {
   });
 
   describe('tool execution approval', () => {
+    it('should surface the reason for user approval requests', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: `{ "value": "value" }`,
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: undefined },
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+          }),
+        },
+        toolApproval: {
+          tool1: {
+            type: 'user-approval',
+            reason: 'requires operator review',
+          },
+        },
+        prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
+        },
+      });
+
+      expect(
+        result.content.find(part => part.type === 'tool-approval-request'),
+      ).toMatchObject({
+        type: 'tool-approval-request',
+        approvalId: 'id-1',
+        reason: 'requires operator review',
+      });
+      expect(result.responseMessages[0].content).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-approval-request',
+          approvalId: 'id-1',
+          reason: 'requires operator review',
+        }),
+      );
+    });
+
     describe('when a single tool needs approval (user-defined)', () => {
       let result: GenerateTextResult<any, any, any>;
 

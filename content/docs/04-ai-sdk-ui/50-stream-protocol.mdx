@@ -367,11 +367,15 @@ Format: Server-Sent Event with JSON object
 Example:
 
 ```
-data: {"type":"tool-approval-request","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar","approvalId":"approval_123","isAutomatic":true}
+data: {"type":"tool-approval-request","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar","approvalId":"approval_123","approvalDescriptor":{"scope":"account:delete"},"reason":"Requires operator review"}
 
 ```
 
-When `isAutomatic` is omitted, the request expects an explicit approval response from the client.
+When `isAutomatic` is omitted, the request expects an explicit approval response
+from the client. `reason` is optional and explains why the tool call requires
+approval. `approvalDescriptor` is optional opaque metadata for the approval.
+When the stream is processed into UI messages, it is available as
+`part.approval.descriptor` and is retained through subsequent approval states.
 
 ### Tool Approval Response Part
 

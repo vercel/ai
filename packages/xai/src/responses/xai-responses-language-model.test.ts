@@ -1509,6 +1509,126 @@ describe('XaiResponsesLanguageModel', () => {
           }
         `);
       });
+
+      it('should forward web_search_call action and sources to tool-result', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast-non-reasoning',
+          output: [
+            {
+              type: 'web_search_call',
+              id: 'ws_action_1',
+              name: 'web_search',
+              call_id: '',
+              status: 'completed',
+              action: {
+                type: 'search',
+                query: 'latest AI news',
+                sources: [
+                  { type: 'url', url: 'https://example.com/a' },
+                  { type: 'url', url: 'https://example.com/b' },
+                ],
+              },
+            },
+            {
+              type: 'web_search_call',
+              id: 'ws_action_2',
+              name: 'web_search',
+              call_id: '',
+              status: 'completed',
+              action: { type: 'open_page', url: 'https://example.com/a' },
+            },
+            {
+              type: 'web_search_call',
+              id: 'ws_action_3',
+              name: 'web_search',
+              call_id: '',
+              status: 'completed',
+              action: {
+                type: 'find_in_page',
+                url: 'https://example.com/a',
+                pattern: 'climate',
+              },
+            },
+            {
+              type: 'web_search_call',
+              id: 'ws_action_4',
+              name: 'web_search',
+              call_id: '',
+              status: 'completed',
+              action: { type: 'search', query: null, sources: null },
+            },
+            {
+              type: 'web_search_call',
+              id: 'ws_action_5',
+              name: 'web_search',
+              call_id: '',
+              status: 'completed',
+              action: { type: 'open_page', url: null },
+            },
+          ],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.web_search',
+              name: 'web_search',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'ws_action_1',
+          toolName: 'web_search',
+          result: {
+            action: { type: 'search', query: 'latest AI news' },
+            sources: [
+              { type: 'url', url: 'https://example.com/a' },
+              { type: 'url', url: 'https://example.com/b' },
+            ],
+          },
+        });
+        expect(result.content).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'ws_action_2',
+          toolName: 'web_search',
+          result: {
+            action: { type: 'openPage', url: 'https://example.com/a' },
+          },
+        });
+        expect(result.content).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'ws_action_3',
+          toolName: 'web_search',
+          result: {
+            action: {
+              type: 'findInPage',
+              url: 'https://example.com/a',
+              pattern: 'climate',
+            },
+          },
+        });
+        expect(result.content).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'ws_action_4',
+          toolName: 'web_search',
+          result: { action: { type: 'search' } },
+        });
+        expect(result.content).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'ws_action_5',
+          toolName: 'web_search',
+          result: { action: { type: 'openPage', url: null } },
+        });
+      });
     });
 
     describe('x_search tool', () => {
@@ -2192,9 +2312,10 @@ describe('XaiResponsesLanguageModel', () => {
           ],
         });
 
-        expect(result.content).toHaveLength(2);
+        expect(result.content).toHaveLength(3);
         expect(result.content[0].type).toBe('tool-call');
-        expect(result.content[1].type).toBe('tool-call');
+        expect(result.content[1].type).toBe('tool-result');
+        expect(result.content[2].type).toBe('tool-call');
       });
     });
 
@@ -2237,6 +2358,12 @@ describe('XaiResponsesLanguageModel', () => {
             toolName: 'web_search',
             input: '{"query":"test"}',
             providerExecuted: true,
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'ws_123',
+            toolName: 'web_search',
+            result: {},
           },
         ]);
       });
@@ -2405,6 +2532,12 @@ describe('XaiResponsesLanguageModel', () => {
             toolName: 'my_custom_search',
             input: '{}',
             providerExecuted: true,
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'ws_123',
+            toolName: 'my_custom_search',
+            result: {},
           },
         ]);
       });
@@ -3209,6 +3342,170 @@ describe('XaiResponsesLanguageModel', () => {
         });
       });
 
+      it('should forward web_search_call action and sources to tool-result', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'web_search_call',
+              id: 'ws_action',
+              name: 'web_search',
+              call_id: '',
+              status: 'in_progress',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'web_search_call',
+              id: 'ws_action',
+              name: 'web_search',
+              call_id: '',
+              status: 'completed',
+              action: {
+                type: 'search',
+                query: 'latest AI news',
+                sources: [{ type: 'url', url: 'https://example.com/a' }],
+              },
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.web_search',
+              name: 'web_search',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'ws_action',
+          toolName: 'web_search',
+          result: {
+            action: { type: 'search', query: 'latest AI news' },
+            sources: [{ type: 'url', url: 'https://example.com/a' }],
+          },
+        });
+      });
+
+      it('should map open_page and find_in_page actions in stream tool-results', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'web_search_call',
+              id: 'ws_open',
+              name: 'web_search',
+              call_id: '',
+              status: 'completed',
+              action: { type: 'open_page', url: 'https://example.com/a' },
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'web_search_call',
+              id: 'ws_find',
+              name: 'web_search',
+              call_id: '',
+              status: 'completed',
+              action: {
+                type: 'find_in_page',
+                url: 'https://example.com/a',
+                pattern: 'climate',
+              },
+            },
+            output_index: 1,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.web_search',
+              name: 'web_search',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'ws_open',
+          toolName: 'web_search',
+          result: {
+            action: { type: 'openPage', url: 'https://example.com/a' },
+          },
+        });
+        expect(parts).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'ws_find',
+          toolName: 'web_search',
+          result: {
+            action: {
+              type: 'findInPage',
+              url: 'https://example.com/a',
+              pattern: 'climate',
+            },
+          },
+        });
+      });
+
       it('should stream image_generation tool calls from chunks fixture', async () => {
         prepareChunksFixtureResponse('xai-image-generation-tool.1');
 
@@ -3381,6 +3678,10 @@ describe('XaiResponsesLanguageModel', () => {
                   "total": 50,
                 },
                 "raw": {
+                  "context_details": {
+                    "input_tokens": 80,
+                    "output_tokens": 20,
+                  },
                   "cost_in_usd_ticks": 123456,
                   "input_tokens": 100,
                   "input_tokens_details": {
@@ -3391,6 +3692,15 @@ describe('XaiResponsesLanguageModel', () => {
                   "output_tokens": 50,
                   "output_tokens_details": {
                     "reasoning_tokens": 30,
+                  },
+                  "server_side_tool_usage_details": {
+                    "code_interpreter_calls": 0,
+                    "document_search_calls": 0,
+                    "file_search_calls": 0,
+                    "image_generation_calls": 1,
+                    "mcp_calls": 0,
+                    "web_search_calls": 0,
+                    "x_search_calls": 0,
                   },
                   "total_tokens": 150,
                 },
@@ -4764,6 +5074,17 @@ describe('XaiResponsesLanguageModel', () => {
 
   describe('response.failed handling', () => {
     it('should set finish reason to error', async () => {
+      const responseFailedEvent = {
+        type: 'response.failed',
+        response: {
+          error: {
+            code: 'server_error',
+            message: 'Internal server error',
+          },
+          usage: { input_tokens: 50, output_tokens: 0 },
+        },
+      } as const;
+
       prepareStreamChunks([
         JSON.stringify({
           type: 'response.created',
@@ -4774,16 +5095,7 @@ describe('XaiResponsesLanguageModel', () => {
             output: [],
           },
         }),
-        JSON.stringify({
-          type: 'response.failed',
-          response: {
-            error: {
-              code: 'server_error',
-              message: 'Internal server error',
-            },
-            usage: { input_tokens: 50, output_tokens: 0 },
-          },
-        }),
+        JSON.stringify(responseFailedEvent),
       ]);
 
       const { stream } = await createModel().doStream({
@@ -4792,6 +5104,7 @@ describe('XaiResponsesLanguageModel', () => {
 
       const parts = await convertReadableStreamToArray(stream);
       const finish = parts.find(part => part.type === 'finish');
+      const errorPart = parts.find(part => part.type === 'error');
 
       expect(finish).toMatchObject({
         type: 'finish',
@@ -4803,6 +5116,62 @@ describe('XaiResponsesLanguageModel', () => {
           inputTokens: expect.objectContaining({ total: 50 }),
           outputTokens: expect.objectContaining({ total: 0 }),
         }),
+      });
+      expect(errorPart).toMatchObject({
+        type: 'error',
+        error: {
+          message: responseFailedEvent.response.error.message,
+          type: responseFailedEvent.type,
+          code: responseFailedEvent.response.error.code,
+          statusCode: 500,
+          isRetryable: true,
+          data: responseFailedEvent,
+        },
+      });
+    });
+
+    it('should classify insufficient quota as non-retryable', async () => {
+      const responseFailedEvent = {
+        type: 'response.failed',
+        response: {
+          error: {
+            code: 'insufficient_quota',
+            message: 'You exceeded your current quota.',
+          },
+          usage: { input_tokens: 50, output_tokens: 0 },
+        },
+      } as const;
+
+      prepareStreamChunks([
+        JSON.stringify({
+          type: 'response.created',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+          },
+        }),
+        JSON.stringify(responseFailedEvent),
+      ]);
+
+      const { stream } = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const errorPart = parts.find(part => part.type === 'error');
+
+      expect(errorPart).toMatchObject({
+        type: 'error',
+        error: {
+          message: responseFailedEvent.response.error.message,
+          type: responseFailedEvent.type,
+          code: responseFailedEvent.response.error.code,
+          statusCode: 429,
+          isRetryable: false,
+          data: responseFailedEvent,
+        },
       });
     });
 
@@ -4849,6 +5218,13 @@ describe('XaiResponsesLanguageModel', () => {
 
   describe('error event handling', () => {
     it('should emit error chunk for server error events', async () => {
+      const errorEvent = {
+        type: 'error',
+        code: 'server_error',
+        message: 'Internal server error',
+        param: null,
+      } as const;
+
       prepareStreamChunks([
         JSON.stringify({
           type: 'response.created',
@@ -4859,13 +5235,7 @@ describe('XaiResponsesLanguageModel', () => {
             output: [],
           },
         }),
-        JSON.stringify({
-          type: 'error',
-          code: null,
-          message:
-            'Service temporarily unavailable. The model did not respond to this request.',
-          param: null,
-        }),
+        JSON.stringify(errorEvent),
       ]);
 
       const { stream } = await createModel().doStream({
@@ -4878,11 +5248,12 @@ describe('XaiResponsesLanguageModel', () => {
       expect(errorPart).toMatchObject({
         type: 'error',
         error: {
-          type: 'error',
-          code: null,
-          message:
-            'Service temporarily unavailable. The model did not respond to this request.',
-          param: null,
+          message: errorEvent.message,
+          type: errorEvent.type,
+          code: errorEvent.code,
+          statusCode: 500,
+          isRetryable: true,
+          data: errorEvent,
         },
       });
     });

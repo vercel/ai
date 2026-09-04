@@ -14,6 +14,7 @@ import { z } from 'zod/v4';
 import type { ACPToolCall } from '../acp-tool-call';
 import type {
   ACPInstructionMapping,
+  ACPModelMapping,
   ACPPermissionModeMapping,
 } from './acp-v1-settings';
 import { acpTextContentBlockSchema } from './acp-v1-prompt';
@@ -125,6 +126,20 @@ const outputSchemaMappingSchema: z.ZodType<ACPSerializableOutputSchemaMapping> =
     path: z.array(z.string().min(1)).min(1),
   });
 
+const modelMappingSchema: z.ZodType<ACPModelMapping> = z.discriminatedUnion(
+  'type',
+  [
+    z.object({
+      type: z.literal('session-config-option'),
+      path: z.string().min(1),
+    }),
+    z.object({
+      type: z.literal('session-model'),
+      path: z.string().min(1),
+    }),
+  ],
+);
+
 export type ACPTurnStartConfig = {
   readonly version: 1;
   readonly configurationFingerprint: string;
@@ -133,6 +148,8 @@ export type ACPTurnStartConfig = {
   readonly builtinTools: Array<ACPBuiltinToolMapping>;
   readonly permissionMode: HarnessV1PermissionMode;
   readonly permissionModeMapping?: ACPPermissionModeMapping;
+  readonly model?: string;
+  readonly modelMapping?: ACPModelMapping;
   readonly debug?: HarnessV1DebugConfig;
   readonly responseFormat?: z.infer<
     typeof harnessV1BridgeStartBaseSchema
@@ -148,6 +165,8 @@ export const acpTurnStartConfigSchema = z.object({
   builtinTools: z.array(builtinToolSchema).default([]),
   permissionMode: harnessV1BridgeStartBaseSchema.shape.permissionMode.unwrap(),
   permissionModeMapping: permissionModeMappingSchema.optional(),
+  model: harnessV1BridgeStartBaseSchema.shape.model.optional(),
+  modelMapping: modelMappingSchema.optional(),
   debug: harnessV1BridgeStartBaseSchema.shape.debug.optional(),
   responseFormat:
     harnessV1BridgeStartBaseSchema.shape.responseFormat.optional(),
@@ -156,14 +175,15 @@ export const acpTurnStartConfigSchema = z.object({
 
 export type ACPColdSessionState = Omit<
   ACPTurnStartConfig,
-  'prompt' | 'debug'
-> & {
-  readonly modelId?: string;
-};
+  'prompt' | 'debug' | 'model' | 'modelMapping'
+>;
 
 export const acpColdSessionStateSchema: z.ZodType<ACPColdSessionState> =
-  acpTurnStartConfigSchema.omit({ prompt: true, debug: true }).extend({
-    modelId: z.string().optional(),
+  acpTurnStartConfigSchema.omit({
+    prompt: true,
+    debug: true,
+    model: true,
+    modelMapping: true,
   });
 
 const lossyRecoverySchema = z.object({
@@ -179,6 +199,7 @@ const coldRestoreSchema = z.object({
 
 const acpToolCallCandidateSchema = z.object({
   type: z.literal('acp-tool-call-candidate'),
+  requestId: z.string(),
   toolCall: z.custom<ACPToolCall>(
     value =>
       value != null &&
@@ -188,9 +209,23 @@ const acpToolCallCandidateSchema = z.object({
   ),
 });
 
+const acpQuestionRequestSchema = z.object({
+  type: z.literal('acp-question-request'),
+  requestId: z.string(),
+  nativeRequest: z.unknown(),
+  nativeToolCall: acpToolCallCandidateSchema.shape.toolCall.optional(),
+});
+
+const acpQuestionResolvedSchema = z.object({
+  type: z.literal('acp-question-resolved'),
+  requestId: z.string(),
+});
+
 export const outboundMessageSchema = z.union([
   harnessV1BridgeOutboundMessageSchema,
   acpToolCallCandidateSchema,
+  acpQuestionRequestSchema,
+  acpQuestionResolvedSchema,
 ]);
 export type OutboundMessage = z.infer<typeof outboundMessageSchema>;
 
@@ -203,6 +238,7 @@ export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   tools: z.array(acpSerializableToolSpecSchema).optional(),
   builtinTools: z.array(builtinToolSchema).readonly().default([]),
   permissionModeMapping: permissionModeMappingSchema.optional(),
+  modelMapping: modelMappingSchema.optional(),
   turnStartConfig: acpTurnStartConfigSchema,
   recoveryMode: z
     .discriminatedUnion('type', [lossyRecoverySchema, coldRestoreSchema])

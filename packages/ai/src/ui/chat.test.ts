@@ -3159,6 +3159,7 @@ describe('Chat', () => {
                 approval: {
                   id: 'approval-1',
                   isAutomatic: false,
+                  requestReason: 'requires operator review',
                   signature: 'signed-approval-envelope',
                 },
               },
@@ -3178,6 +3179,7 @@ describe('Chat', () => {
         approval: {
           id: 'approval-1',
           approved: true,
+          requestReason: 'requires operator review',
           reason: 'looks good',
           isAutomatic: false,
           signature: 'signed-approval-envelope',

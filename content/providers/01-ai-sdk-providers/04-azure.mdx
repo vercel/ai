@@ -32,6 +32,15 @@ const azure = createAzure({
 });
 ```
 
+You can also use a complete [Microsoft Foundry OpenAI v1 base URL](https://learn.microsoft.com/en-us/azure/foundry/openai/api-version-lifecycle#model-support):
+
+```ts
+const azure = createAzure({
+  baseURL: 'https://your-resource.services.ai.azure.com/openai/v1',
+  apiKey: 'your-api-key',
+});
+```
+
 For Microsoft Entra ID authentication, you can provide a token provider.
 Install `@azure/identity` separately if you want to use its credential helpers:
 
@@ -76,6 +85,8 @@ You can use the following optional settings to customize the OpenAI provider ins
 
   Sets a custom [api version](https://learn.microsoft.com/en-us/azure/ai-services/openai/api-version-deprecation).
   Defaults to `v1`.
+  This setting is applied when the provider constructs the v1 path or uses
+  deployment-based URLs. Complete v1 base URLs are used as-is.
 
 - **baseURL** _string_
 
@@ -84,7 +95,18 @@ You can use the following optional settings to customize the OpenAI provider ins
   Either this or `resourceName` can be used.
   When a baseURL is provided, the resourceName is ignored.
 
-  With an Azure OpenAI baseURL, the resolved URL is `{baseURL}/v1{path}`.
+  For Azure-hosted URLs ending in `.openai.azure.com`,
+  `.services.ai.azure.com`, or `.cognitiveservices.azure.com`, you can pass
+  either an unversioned OpenAI prefix such as `https://your-resource.services.ai.azure.com/openai`
+  or a complete v1 base URL such as `https://your-resource.services.ai.azure.com/openai/v1`.
+  The provider appends `/v1` and the configured `api-version` to unversioned
+  resource URLs. Complete v1 URLs are used as-is.
+
+  Complete Microsoft Foundry project v1 URLs, such as
+  `https://your-resource.services.ai.azure.com/api/projects/your-project/openai/v1`,
+  are also used as-is. If `/v1` is omitted from a Foundry project URL, the
+  provider appends it without adding an `api-version` query parameter.
+
   With a non-Azure custom gateway baseURL, the resolved URL is `{baseURL}{path}`;
   the SDK does not append `/v1` or an `api-version` query parameter in this mode.
 

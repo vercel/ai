@@ -45,6 +45,35 @@ describe('resolveClineEnv', () => {
     });
   });
 
+  it('uses a supplied authentication environment without reading the host environment', () => {
+    const env = { AI_GATEWAY_API_KEY: 'ambient-gateway-key' };
+
+    expect(
+      resolveClineEnv({
+        auth: {
+          AI_GATEWAY_API_KEY: 'explicit-gateway-key',
+          AI_GATEWAY_BASE_URL: 'https://explicit.example',
+        },
+        env,
+      }),
+    ).toEqual({
+      AI_GATEWAY_API_KEY: 'explicit-gateway-key',
+      AI_GATEWAY_BASE_URL: 'https://explicit.example',
+    });
+    expect(env).toEqual({ AI_GATEWAY_API_KEY: 'ambient-gateway-key' });
+  });
+
+  it('rejects nested authentication objects before reading ambient credentials', () => {
+    expect(() =>
+      resolveClineEnv({
+        auth: { gateway: { apiKey: 'legacy-key' } } as never,
+        env: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+      }),
+    ).toThrow(
+      'Invalid auth: expected an authentication mode or a flat record with string values.',
+    );
+  });
+
   it('prefers AI Gateway credentials in auto mode', () => {
     expect(
       resolveClineEnv({

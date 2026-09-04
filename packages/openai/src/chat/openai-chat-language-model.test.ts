@@ -2306,6 +2306,34 @@ describe('doGenerate', () => {
     expect(requestBody.service_tier).toBe('fast');
     expect(result.warnings).toEqual([]);
   });
+
+  it('should send serviceTier ultrafast processing setting', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('gpt-5.6-sol');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'ultrafast',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "gpt-5.6-sol",
+        "service_tier": "ultrafast",
+      }
+    `);
+  });
 });
 
 describe('doStream', () => {
@@ -3347,9 +3375,16 @@ describe('doStream', () => {
         },
         {
           "error": {
-            "code": null,
+            "code": undefined,
+            "data": {
+              "code": null,
+              "message": "stream failed after output",
+              "param": null,
+              "type": "server_error",
+            },
+            "isRetryable": true,
             "message": "stream failed after output",
-            "param": null,
+            "statusCode": 500,
             "type": "server_error",
           },
           "type": "error",

@@ -55,7 +55,6 @@ describe('createCursor', () => {
           "listMcpResources",
           "readMcpResource",
           "applyAgentDiff",
-          "askQuestion",
           "fetch",
           "switchMode",
           "generateImage",
@@ -91,6 +90,7 @@ describe('createCursor', () => {
     expect(
       settings.credentialBrokering?.({
         env: { CURSOR_API_KEY: 'cursor-secret' },
+        sandboxEnv: { CURSOR_API_KEY: 'sandbox-cursor-secret' },
       }),
     ).toEqual([
       {
@@ -98,6 +98,12 @@ describe('createCursor', () => {
           host: 'api2.cursor.sh',
           path: { exact: '/auth/exchange_user_api_key' },
           method: ['POST'],
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-cursor-secret' },
+            },
+          ],
         },
         transform: {
           headers: { Authorization: 'Bearer cursor-secret' },
@@ -105,6 +111,13 @@ describe('createCursor', () => {
       },
     ]);
     expect(settings.credentialBrokering?.({ env: {} })).toEqual([]);
+    expect(settings.modelMapping).toEqual({
+      type: 'session-config-option',
+      path: 'model',
+    });
+    expect(settings.clientCapabilities).toEqual({
+      _meta: { parameterizedModelPicker: true },
+    });
   });
 
   it('forwards user-configurable settings', () => {
@@ -145,6 +158,42 @@ describe('createCursor', () => {
     });
   });
 
+  it('applies headers to configured model request routes', () => {
+    createCursor({ auth: 'ai-gateway' });
+    const gatewaySettings = mocks.createACP.mock
+      .calls[0]?.[0] as ACPHarnessSettings;
+    expect(
+      gatewaySettings.credentialBrokering?.({
+        env: {},
+        headers: { 'x-tenant': 'acme' },
+      }),
+    ).toEqual([
+      {
+        match: {
+          host: 'ai-gateway.vercel.sh',
+          path: { startsWith: '/cursor/v1' },
+        },
+        transform: { headers: { 'x-tenant': 'acme' } },
+      },
+    ]);
+
+    mocks.createACP.mockClear();
+    createCursor();
+    const autoSettings = mocks.createACP.mock
+      .calls[0]?.[0] as ACPHarnessSettings;
+    expect(
+      autoSettings.credentialBrokering?.({
+        env: {},
+        headers: { 'x-tenant': 'acme' },
+      }),
+    ).toEqual([
+      {
+        match: { host: 'api2.cursor.sh' },
+        transform: { headers: { 'x-tenant': 'acme' } },
+      },
+    ]);
+  });
+
   it.each(['direct', 'ai-gateway'] as const)(
     'accepts %s auth and warns that Cursor configuration controls routing',
     auth => {
@@ -172,6 +221,16 @@ describe('createCursor', () => {
     expect(settings.auth).toBeUndefined();
     expect(settings.providerAuthentication).toBeUndefined();
     warn.mockRestore();
+  });
+
+  it('forwards a supplied authentication environment for Cursor credentials', () => {
+    const auth = { CURSOR_API_KEY: 'programmatic-cursor-key' };
+
+    createCursor({ auth });
+
+    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+    expect(settings.auth).toBe(auth);
+    expect(settings.providerAuthentication).toBeUndefined();
   });
 
   it('classifies Cursor MCP calls from their raw input', () => {

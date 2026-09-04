@@ -61,6 +61,13 @@ You can use the following optional settings to customize the Open Responses prov
   Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
   Defaults to the global `fetch` function.
 
+- **strictResponseInput** _boolean_
+
+  Serializes assistant history using strict OpenAI Responses input schemas.
+  Assistant messages without an item ID are sent as easy input messages, while
+  messages with a genuine provider item ID are sent as complete output items.
+  Defaults to `false`.
+
 ### Endpoint Examples
 
 For a local LM Studio server that does not require authentication:
@@ -239,10 +246,124 @@ file's media type. Provider file references, such as OpenAI file IDs, and
 file data in `{ type: 'text', text: '...' }` format are not supported by this
 provider.
 
+## Experimental Extensions
+
+Open Responses implementations can add namespaced tools, items, and streaming
+events. Use `Experimental_OpenResponsesExtension` to encode and decode an
+implementation's extension wire formats. Unregistered provider tools are
+omitted from requests with an `unsupported` warning.
+
+This API is experimental and may change in a future release.
+
+The AI SDK provider-tool ID uses dot notation (`acme.document_search`), while
+Open Responses wire types use colon notation (`acme:document_search`). The
+namespace in `id` must match the namespace in every registered wire type.
+
+```ts
+import {
+  createOpenResponses,
+  type Experimental_OpenResponsesExtension,
+} from '@ai-sdk/open-responses';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const documentSearchExtension: Experimental_OpenResponsesExtension = {
+  id: 'acme.document_search',
+  toolType: 'acme:document_search',
+  itemTypes: ['acme:document_search_receipt'],
+  encodeTool: ({ name, args }) => ({
+    name,
+    index: args.index as string,
+  }),
+
+  decodeItem: ({ item }) => [
+    {
+      type: 'tool-call',
+      toolCallId: item.call_id as string,
+      toolName: item.name as string,
+      input: JSON.stringify(item.query),
+      providerExecuted: true,
+    },
+    {
+      type: 'tool-result',
+      toolCallId: item.call_id as string,
+      toolName: item.name as string,
+      result: item.result!,
+    },
+  ],
+};
+
+const acme = createOpenResponses({
+  name: 'acme',
+  url: 'https://api.acme.example/v1/responses',
+  experimental_extensions: [documentSearchExtension],
+});
+
+const documentSearch = tool({
+  type: 'provider',
+  id: 'acme.document_search',
+  args: { index: 'documentation' },
+  isProviderExecuted: true,
+  inputSchema: z.object({ text: z.string() }),
+  outputSchema: z.object({
+    documents: z.array(
+      z.object({
+        id: z.string(),
+        title: z.string(),
+      }),
+    ),
+  }),
+});
+
+const result = await generateText({
+  model: acme('your-model-id'),
+  prompt: 'Find the extension documentation.',
+  tools: { documentSearch },
+});
+```
+
+Set `providerExecuted` on each decoded `tool-call` or `tool-input-start` part.
+It can vary by item or event.
+
+An extension codec can define:
+
+- `encodeTool`: Encodes a provider tool. Returning `undefined` omits the tool
+  with an `unsupported` warning. A `toolChoice` that selects the omitted tool is
+  also omitted.
+- `encodeToolChoice`: Encodes a specific `toolChoice`. The default is
+  `{ type: toolType }`.
+- `decodeItem`: Maps a completed item to AI SDK content parts. `mode` is either
+  `'generate'` or `'stream'`.
+- `encodeInputItem`: Encodes tool-call or tool-result history when the original
+  wire item is unavailable. Returned items must include `id`, `status`, and a
+  registered namespaced `type`.
+- `decodeEvent`: Maps a streaming event to AI SDK stream parts. Its `state` map
+  lasts for one response stream.
+
+Tool, item, and event capabilities are independent. An item-only extension, for
+example, defines `itemTypes` and `decodeItem` without `toolType` or `encodeTool`.
+Capability fields must be provided in pairs.
+
+Each decoded item adds an `open-responses.extension-replay` custom part that
+stores the original JSON in provider metadata. Other decoded parts reference
+that custom part instead of copying the item. Passing `result.response.messages`
+to a later call replays the original item once, including opaque fields. This
+also preserves items that decode only to response-only source parts.
+
+The adapter validates only the extension discriminator fields. Validate other
+item and event fields in the codec before returning AI SDK parts. The original
+item is stored in provider metadata and may appear in persisted messages,
+telemetry, logs, or UI payloads.
+
+Extension callbacks cannot be serialized across workflow step boundaries.
+Create the provider inside the workflow step. Serializing a model configured
+with extensions throws a `SerializationError`.
+
 ## Limitations
 
 - Stop sequences, `topK`, and `seed` are not supported and are ignored with warnings.
 - The provider supports language models only. It does not provide embedding or
   image generation models.
-- AI SDK function tools are supported. Provider-specific built-in tools and
-  options require a dedicated provider implementation.
+- AI SDK function tools and registered Open Responses extensions are supported.
+  Other provider-specific tools and options require a dedicated provider
+  implementation.

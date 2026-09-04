@@ -211,6 +211,9 @@ describe('createFx', () => {
               "AI_GATEWAY_API_KEY": {
                 "$source": "gateway-api-key",
               },
+              "AI_GATEWAY_BASE_URL": {
+                "$source": "gateway-base-url",
+              },
             },
           },
         },
@@ -262,6 +265,10 @@ describe('createFx', () => {
       startupTimeoutMs: 45_000,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
+    });
+    expect(settings.modelMapping).toEqual({
+      type: 'session-config-option',
+      path: 'model',
     });
   });
 
@@ -319,12 +326,26 @@ describe('createFx', () => {
           VERCEL_OIDC_TOKEN: 'oidc-secret',
           AI_GATEWAY_API_KEY: 'gateway-secret',
         },
+        sandboxEnv: {
+          VERCEL_OIDC_TOKEN: 'sandbox-oidc-secret',
+          AI_GATEWAY_API_KEY: 'sandbox-gateway-secret',
+        },
+        headers: { 'x-tenant': 'acme' },
       }),
     ).toEqual([
       {
-        match: { host: 'ai-gateway.vercel.sh' },
+        match: {
+          host: 'ai-gateway.vercel.sh',
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-oidc-secret' },
+            },
+          ],
+        },
         transform: {
           headers: {
+            'x-tenant': 'acme',
             Authorization: 'Bearer oidc-secret',
             'x-client-app': 'ai-sdk/harness-fx/0.0.0-test',
           },
@@ -335,10 +356,19 @@ describe('createFx', () => {
     expect(
       settings.credentialBrokering?.({
         env: { AI_GATEWAY_API_KEY: 'gateway-secret' },
+        sandboxEnv: { AI_GATEWAY_API_KEY: 'sandbox-gateway-secret' },
       }),
     ).toEqual([
       {
-        match: { host: 'ai-gateway.vercel.sh' },
+        match: {
+          host: 'ai-gateway.vercel.sh',
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-gateway-secret' },
+            },
+          ],
+        },
         transform: {
           headers: {
             Authorization: 'Bearer gateway-secret',
@@ -348,7 +378,84 @@ describe('createFx', () => {
       },
     ]);
 
-    expect(settings.credentialBrokering?.({ env: {} })).toEqual([]);
+    expect(
+      settings.credentialBrokering?.({
+        env: {
+          AI_GATEWAY_API_KEY: 'gateway-secret',
+          AI_GATEWAY_BASE_URL: 'https://gateway.example/v1',
+        },
+        sandboxEnv: {
+          AI_GATEWAY_API_KEY: 'sandbox-gateway-secret',
+        },
+      }),
+    ).toEqual([
+      {
+        match: {
+          host: 'gateway.example',
+          path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-gateway-secret' },
+            },
+          ],
+        },
+        transform: {
+          headers: {
+            Authorization: 'Bearer gateway-secret',
+            'x-client-app': 'ai-sdk/harness-fx/0.0.0-test',
+          },
+        },
+      },
+    ]);
+
+    expect(settings.credentialBrokering?.({ env: {}, sandboxEnv: {} })).toEqual(
+      [],
+    );
+  });
+
+  it('brokers the Gateway key selected from a supplied authentication environment', () => {
+    createFx({
+      auth: {
+        AI_GATEWAY_API_KEY: 'explicit-gateway-key',
+        AI_GATEWAY_BASE_URL: 'https://gateway.example/v1',
+      },
+    });
+
+    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+
+    expect(
+      settings.credentialBrokering?.({
+        env: {
+          AI_GATEWAY_API_KEY: 'explicit-gateway-key',
+          AI_GATEWAY_BASE_URL: 'https://gateway.example/v1',
+          VERCEL_OIDC_TOKEN: 'ambient-oidc-token',
+        },
+        sandboxEnv: {
+          AI_GATEWAY_API_KEY: 'sandbox-explicit-gateway-key',
+          VERCEL_OIDC_TOKEN: 'sandbox-ambient-oidc-token',
+        },
+      }),
+    ).toEqual([
+      {
+        match: {
+          host: 'gateway.example',
+          path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-explicit-gateway-key' },
+            },
+          ],
+        },
+        transform: {
+          headers: {
+            Authorization: 'Bearer explicit-gateway-key',
+            'x-client-app': 'ai-sdk/harness-fx/0.0.0-test',
+          },
+        },
+      },
+    ]);
   });
 
   it('exposes a test version outside the bundle', () => {

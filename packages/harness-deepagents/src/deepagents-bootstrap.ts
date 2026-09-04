@@ -1,6 +1,9 @@
-import { readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 import type { HarnessV1Bootstrap } from '@ai-sdk/harness';
+import { createReadBridgeAsset } from '@ai-sdk/harness/utils';
+
+const readBridgeAsset = createReadBridgeAsset({
+  resolveAssetUrl: name => new URL(`./bridge/${name}`, import.meta.url),
+});
 
 /*
  * Bootstrap is derived state stored under the sandbox's default working
@@ -66,22 +69,4 @@ function installRipgrepCommand(): string {
     `&& mv "/tmp/ripgrep-${v}-$a/rg" /usr/local/bin/rg && chmod +x /usr/local/bin/rg;`,
     '}',
   ].join(' ');
-}
-
-async function readBridgeAsset(name: string): Promise<string> {
-  const candidates = [
-    new URL(`./bridge/${name}`, import.meta.url),
-    new URL(`../bridge/${name}`, import.meta.url),
-  ];
-  let lastErr: unknown;
-  for (const url of candidates) {
-    try {
-      return await readFile(fileURLToPath(url), 'utf8');
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException).code;
-      if (code !== 'ENOENT') throw err;
-      lastErr = err;
-    }
-  }
-  throw lastErr ?? new Error(`bridge asset not found: ${name}`);
 }

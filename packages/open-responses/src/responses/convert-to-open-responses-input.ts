@@ -1,5 +1,6 @@
 import {
   UnsupportedFunctionalityError,
+  type LanguageModelV4ProviderTool,
   type LanguageModelV4Prompt,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
@@ -8,6 +9,12 @@ import {
   getTopLevelMediaType,
   resolveFullMediaType,
 } from '@ai-sdk/provider-utils';
+import {
+  isOpenResponsesExtensionItem,
+  type OpenResponsesExtensionInputPart,
+  type OpenResponsesExtensionItem,
+  type OpenResponsesExtensionRegistry,
+} from '../open-responses-extension';
 import type {
   FunctionCallOutputItemParam,
   InputFileContentParam,
@@ -22,9 +29,15 @@ import type {
 export async function convertToOpenResponsesInput({
   prompt,
   providerOptionsName = 'open-responses',
+  extensionRegistry,
+  providerToolsByName = new Map(),
+  strictResponseInput = false,
 }: {
   prompt: LanguageModelV4Prompt;
   providerOptionsName?: string;
+  extensionRegistry?: OpenResponsesExtensionRegistry;
+  providerToolsByName?: Map<string, LanguageModelV4ProviderTool>;
+  strictResponseInput?: boolean;
 }): Promise<{
   input: OpenResponsesRequestBody['input'];
   instructions: string | undefined;
@@ -33,6 +46,7 @@ export async function convertToOpenResponsesInput({
   const input: OpenResponsesRequestBody['input'] = [];
   const warnings: Array<SharedV4Warning> = [];
   const systemMessages: string[] = [];
+  const replayedExtensionItems = new Set<string>();
 
   for (const { role, content } of prompt) {
     switch (role) {
@@ -114,17 +128,91 @@ export async function convertToOpenResponsesInput({
             return;
           }
 
-          input.push({
-            type: 'message',
-            role: 'assistant',
-            content: assistantContent,
-            ...(assistantMessageId != null && { id: assistantMessageId }),
-          });
+          if (strictResponseInput && assistantMessageId == null) {
+            input.push({
+              type: 'message',
+              role: 'assistant',
+              content: assistantContent
+                .map(part =>
+                  part.type === 'output_text' ? part.text : part.refusal,
+                )
+                .join(''),
+            });
+          } else if (strictResponseInput) {
+            input.push({
+              id: assistantMessageId,
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: assistantContent.map(part =>
+                part.type === 'output_text'
+                  ? {
+                      ...part,
+                      annotations: part.annotations ?? [],
+                      logprobs: part.logprobs ?? [],
+                    }
+                  : part,
+              ),
+            });
+          } else {
+            input.push({
+              type: 'message',
+              role: 'assistant',
+              content: assistantContent,
+              ...(assistantMessageId != null && { id: assistantMessageId }),
+            });
+          }
           assistantContent = [];
           assistantMessageId = undefined;
         };
 
         for (const part of content) {
+          const extensionReplay = getExtensionReplay({
+            part,
+            providerOptionsName,
+            extensionRegistry,
+          });
+
+          if (extensionReplay != null) {
+            flushAssistantContent();
+            const replayItem = extensionReplay.item;
+            if (replayItem != null) {
+              const replayKey = `${replayItem.type}:${replayItem.id}`;
+              if (!replayedExtensionItems.has(replayKey)) {
+                input.push(replayItem);
+                replayedExtensionItems.add(replayKey);
+              }
+            }
+            continue;
+          }
+
+          if (part.type === 'tool-call' || part.type === 'tool-result') {
+            const providerTool = providerToolsByName.get(part.toolName);
+            const extension =
+              providerTool == null
+                ? undefined
+                : extensionRegistry?.byProviderToolId.get(providerTool.id);
+
+            if (providerTool != null && extension != null) {
+              flushAssistantContent();
+              const encoded = await encodeExtensionInputPart({
+                extensionRegistry,
+                part,
+                providerTool,
+              });
+
+              if (encoded == null) {
+                warnings.push({
+                  type: 'unsupported',
+                  feature: `provider-defined tool ${providerTool.id} ${part.type} history`,
+                });
+              } else {
+                input.push(...encoded);
+              }
+              continue;
+            }
+          }
+
           switch (part.type) {
             case 'reasoning': {
               flushAssistantContent();
@@ -243,6 +331,48 @@ export async function convertToOpenResponsesInput({
       case 'tool': {
         for (const part of content) {
           if (part.type === 'tool-result') {
+            const extensionReplay = getExtensionReplay({
+              part,
+              providerOptionsName,
+              extensionRegistry,
+            });
+
+            if (extensionReplay != null) {
+              const replayItem = extensionReplay.item;
+              if (replayItem != null) {
+                const replayKey = `${replayItem.type}:${replayItem.id}`;
+                if (!replayedExtensionItems.has(replayKey)) {
+                  input.push(replayItem);
+                  replayedExtensionItems.add(replayKey);
+                }
+              }
+              continue;
+            }
+
+            const providerTool = providerToolsByName.get(part.toolName);
+            const extension =
+              providerTool == null
+                ? undefined
+                : extensionRegistry?.byProviderToolId.get(providerTool.id);
+
+            if (providerTool != null && extension != null) {
+              const encoded = await encodeExtensionInputPart({
+                extensionRegistry,
+                part,
+                providerTool,
+              });
+
+              if (encoded == null) {
+                warnings.push({
+                  type: 'unsupported',
+                  feature: `provider-defined tool ${providerTool.id} tool-result history`,
+                });
+              } else {
+                input.push(...encoded);
+              }
+              continue;
+            }
+
             const output = part.output;
             let contentValue: FunctionCallOutputItemParam['output'];
 
@@ -344,6 +474,99 @@ export async function convertToOpenResponsesInput({
       systemMessages.length > 0 ? systemMessages.join('\n') : undefined,
     warnings,
   };
+}
+
+async function encodeExtensionInputPart({
+  extensionRegistry,
+  part,
+  providerTool,
+}: {
+  extensionRegistry: OpenResponsesExtensionRegistry | undefined;
+  part: OpenResponsesExtensionInputPart;
+  providerTool: LanguageModelV4ProviderTool;
+}): Promise<OpenResponsesExtensionItem[] | undefined> {
+  const extension = extensionRegistry?.byProviderToolId.get(providerTool.id);
+  const encodeInputItem = extension?.encodeInputItem;
+  const itemTypes = extension?.itemTypes;
+  if (encodeInputItem == null || itemTypes == null) {
+    return undefined;
+  }
+
+  try {
+    const value = await encodeInputItem({
+      part,
+      tool: providerTool,
+    });
+    const items =
+      value == null ? undefined : Array.isArray(value) ? value : [value];
+
+    if (
+      items == null ||
+      items.length === 0 ||
+      !items.every(
+        item =>
+          isOpenResponsesExtensionItem(item) && itemTypes.includes(item.type),
+      )
+    ) {
+      return undefined;
+    }
+
+    return items;
+  } catch {
+    return undefined;
+  }
+}
+
+function getExtensionReplay({
+  part,
+  providerOptionsName,
+  extensionRegistry,
+}: {
+  part: {
+    providerOptions?: Record<string, unknown>;
+  };
+  providerOptionsName: string;
+  extensionRegistry: OpenResponsesExtensionRegistry | undefined;
+}): { item?: OpenResponsesExtensionItem } | undefined {
+  const extensionData = getProviderData(
+    part,
+    providerOptionsName,
+  )?.openResponsesExtension;
+
+  if (
+    extensionData == null ||
+    typeof extensionData !== 'object' ||
+    Array.isArray(extensionData)
+  ) {
+    return undefined;
+  }
+
+  const { id, item, itemId } = extensionData as {
+    id?: unknown;
+    item?: unknown;
+    itemId?: unknown;
+  };
+
+  if (typeof id !== 'string') {
+    return undefined;
+  }
+
+  const extension = extensionRegistry?.byExtensionId.get(
+    id as LanguageModelV4ProviderTool['id'],
+  );
+
+  if (extension == null) {
+    return undefined;
+  }
+
+  if (
+    isOpenResponsesExtensionItem(item) &&
+    extension.itemTypes?.includes(item.type)
+  ) {
+    return { item };
+  }
+
+  return typeof itemId === 'string' ? {} : undefined;
 }
 
 function getProviderData(

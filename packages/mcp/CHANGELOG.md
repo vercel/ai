@@ -1,5 +1,59 @@
 # @ai-sdk/mcp
 
+## 2.0.44
+
+### Patch Changes
+
+- 809e922: fix(mcp): accept trailing slashes on origin-only OAuth issuers
+
+## 2.0.43
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
+## 2.0.42
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+
+## 2.0.41
+
+### Patch Changes
+
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 2.0.40
+
+### Patch Changes
+
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
+## 2.0.39
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 2.0.38
+
+### Patch Changes
+
+- bf591f0: Apply MCP scope selection to dynamic client registration as well as authorization.
+- fe69342: fix(mcp): reject private OAuth endpoints before sending credentials
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
 ## 2.0.37
 
 ### Patch Changes

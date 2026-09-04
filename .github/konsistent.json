@@ -260,6 +260,16 @@
               "${harnessId}-bridge-protocol.ts",
               "${harnessId}-bootstrap.ts"
             ],
+            "importValues": [
+              {
+                "name": "createBridgeToken",
+                "from": "@ai-sdk/harness/utils"
+              },
+              {
+                "name": "withBridgeToken",
+                "from": "@ai-sdk/harness/utils"
+              }
+            ],
             "exportTypes": [
               {
                 "name": "${harnessId.toPascalCase()}HarnessSettings",
@@ -286,12 +296,8 @@
           "name": "harness-file-with-nested-bridge-must-declare-bridge-contracts",
           "description": "Every harness file for a bridge harness must declare its bridge contracts.",
           "for": { "files": ["${harnessId}-harness.ts"] },
-          "if": { "hasFile": "*/bridge/index.ts" },
+          "if": { "hasFile": "v1/bridge/index.ts" },
           "must": {
-            "haveFiles": [
-              "${harnessId}-bridge-protocol.ts",
-              "${harnessId}-bootstrap.ts"
-            ],
             "exportTypes": [
               {
                 "name": "${harnessId.toPascalCase()}HarnessSettings",
@@ -312,6 +318,29 @@
               "${harnessId.toCamelCase()}ResumeStateSchema"
             ],
             "declareTypes": ["${harnessId.toPascalCase()}BridgeCoords"]
+          }
+        },
+
+        {
+          "name": "versioned-harness-file-with-nested-bridge-must-declare-bridge-contracts",
+          "description": "Every harness file for a bridge harness must declare its bridge contracts.",
+          "for": { "files": ["{version}/${harnessId}-{version}-harness.ts"] },
+          "if": { "hasFile": "v1/bridge/index.ts" },
+          "must": {
+            "haveFiles": [
+              "${harnessId}-${version}-bridge-protocol.ts",
+              "${harnessId}-${version}-bootstrap.ts"
+            ],
+            "importValues": [
+              {
+                "name": "createBridgeToken",
+                "from": "@ai-sdk/harness/utils"
+              },
+              {
+                "name": "withBridgeToken",
+                "from": "@ai-sdk/harness/utils"
+              }
+            ]
           }
         },
         {
@@ -354,7 +383,7 @@
                 "from": "@ai-sdk/harness/utils"
               }
             ],
-            "exportTypes": ["${harnessId.toPascalCase()}AuthOptions"],
+            "exportTypes": ["${harnessId.toPascalCase()}AuthenticationMode"],
             "exportFunctions": [
               {
                 "name": "resolve${harnessId.toPascalCase()}Env",
@@ -362,7 +391,7 @@
               }
             ],
             "useDeclarationOrder": [
-              "${harnessId.toPascalCase()}AuthOptions",
+              "${harnessId.toPascalCase()}AuthenticationMode",
               "resolve${harnessId.toPascalCase()}Env"
             ]
           }
@@ -377,6 +406,10 @@
               {
                 "name": "HarnessV1RequestTransformation",
                 "from": "@ai-sdk/harness"
+              },
+              {
+                "name": "HarnessV1RequestTransformationSources",
+                "from": "@ai-sdk/harness"
               }
             ],
             "exportConstants": [
@@ -386,8 +419,7 @@
               {
                 "name": "create${harnessId.toPascalCase()}RequestTransformations",
                 "receiveParamsOfTypes": [
-                  "Record<string, string>",
-                  "${harnessId.toPascalCase()}ResolvedAuthenticationMode"
+                  "HarnessV1RequestTransformationSources<${harnessId.toPascalCase()}ResolvedAuthenticationMode>"
                 ],
                 "returnValueOfType": "HarnessV1RequestTransformation[]"
               }
@@ -428,12 +460,19 @@
           "description": "Every harness sandbox bootstrap file must export the relevant symbols.",
           "for": { "files": ["${harnessId}-bootstrap.ts"] },
           "must": {
+            "importValues": [
+              {
+                "name": "createReadBridgeAsset",
+                "from": "@ai-sdk/harness/utils"
+              }
+            ],
             "importTypes": [
               {
                 "name": "HarnessV1Bootstrap",
                 "from": "@ai-sdk/harness"
               }
             ],
+            "declareConstants": ["readBridgeAsset"],
             "exportConstants": ["${harnessId.toConstantCase()}_BOOTSTRAP_DIR"],
             "exportFunctions": [
               {

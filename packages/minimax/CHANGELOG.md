@@ -1,5 +1,69 @@
 # @ai-sdk/minimax
 
+## 3.0.25
+
+### Patch Changes
+
+- Updated dependencies [65397d7]
+  - @ai-sdk/anthropic@4.0.49
+
+## 3.0.24
+
+### Patch Changes
+
+- a580ec8: feat(minimax): validate video status polling redirects for MiniMax, Kling AI, and ByteDance
+- Updated dependencies [4d25a08]
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/anthropic@4.0.48
+  - @ai-sdk/provider-utils@5.0.36
+
+## 3.0.23
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+  - @ai-sdk/anthropic@4.0.47
+
+## 3.0.22
+
+### Patch Changes
+
+- 5366b7b: Add model-aware MiniMax 480P and 768P video resolutions, duration limits, and reference-input validation.
+- 5366b7b: Map MiniMax 480P and 768P frame sizes onto their named video resolution tiers, so a typed top-level `resolution` can reach them.
+- Updated dependencies [aa45741]
+  - @ai-sdk/anthropic@4.0.46
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 3.0.21
+
+### Patch Changes
+
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+  - @ai-sdk/anthropic@4.0.45
+
+## 3.0.20
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+  - @ai-sdk/anthropic@4.0.44
+
+## 3.0.19
+
+### Patch Changes
+
+- Updated dependencies [7de3612]
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/anthropic@4.0.43
+  - @ai-sdk/provider-utils@5.0.31
+
 ## 3.0.18
 
 ### Patch Changes

@@ -1,5 +1,63 @@
 # @ai-sdk/anthropic
 
+## 4.0.49
+
+### Patch Changes
+
+- 65397d7: fix(anthropic): recognize dated Google Vertex Claude 4 model IDs when selecting model capabilities
+
+## 4.0.48
+
+### Patch Changes
+
+- 4d25a08: feat(anthropic): add fable 5.1 support
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
+## 4.0.47
+
+### Patch Changes
+
+- 5190b67: feat(provider): extend the FilesV4 interface with optional `getFileMetadata`, `downloadFile` (streaming), and `deleteFile` operations, plus `abortSignal`/`headers` call options and a `{ type: 'stream' }` upload data variant; upload results now expose `byteSize`, `createdAt`, and `expiresAt` (also surfaced by the core `uploadFile()` helper, which now forwards `abortSignal`/`headers`); add `postMultipartStreamToApi` (streaming multipart uploads with deterministic part ordering and failure-path stream teardown), `deleteFromApi`, and `createBinaryStreamResponseHandler` to provider-utils
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+
+## 4.0.46
+
+### Patch Changes
+
+- aa45741: fix(provider/anthropic): preserve native message batch request counts in provider metadata and support the full language-model option surface in batch requests
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 4.0.45
+
+### Patch Changes
+
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
+## 4.0.44
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 4.0.43
+
+### Patch Changes
+
+- 7de3612: Encode provider-returned identifiers before using them in credentialed follow-up request paths.
+- a9782e1: fix: align batch result parsing, request counts, and lifecycle behavior across providers
+- 35841f5: feat: normalize mid-stream provider error events across supported providers into public StreamProviderError instances and preserve provider-owned type, code, status, retry, and raw payload metadata
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
 ## 4.0.42
 
 ### Patch Changes

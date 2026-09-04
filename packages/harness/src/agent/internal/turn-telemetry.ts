@@ -1,489 +1,364 @@
-import { generateId, type ModelMessage } from '@ai-sdk/provider-utils';
+import type {
+  Context,
+  InferToolSetContext,
+  ModelMessage,
+  ToolSet,
+} from '@ai-sdk/provider-utils';
 import { createTelemetryDispatcher } from 'ai/internal';
-import type { LanguageModelUsage, TelemetryOptions } from 'ai';
+import type {
+  ContentPart,
+  GenerateTextOnEndCallback,
+  GenerateTextOnStartCallback,
+  GenerateTextOnStepEndCallback,
+  GenerateTextOnStepStartCallback,
+  LanguageModelUsage,
+  OnLanguageModelCallEndCallback,
+  OnLanguageModelCallStartCallback,
+  OnToolExecutionEndCallback,
+  OnToolExecutionStartCallback,
+  OutputInterface as Output,
+  StepResult,
+  TelemetryOptions,
+  ToolExecutionEndEvent,
+  ToolExecutionStartEvent,
+  TypedToolCall,
+  TypedToolError,
+  TypedToolResult,
+} from 'ai';
+import type { HarnessV1ToolSpec } from '../../v1';
 
-/*
- * Drives AI SDK's pluggable `Telemetry` lifecycle from a harness turn.
- *
- * A harness turn is not a `streamText` call — it has no language model, prompt
- * standardization, or sampling settings — but the AI SDK telemetry contract is
- * shaped around `generateText`/`streamText` events, and `@ai-sdk/otel` (the
- * main integration) only produces spans when the full lifecycle fires. So we
- * map the turn onto that contract: turn = operation, each `finish-step` = a
- * step boundary, tool-calls = tool executions, `finish` = operation end. The
- * model-call-only event fields the harness has no value for (sampling params,
- * standardized prompt) are left `undefined` / cast; the fields the integrations
- * actually read (`callId`, `operationId`, `provider`, `modelId`, `messages`,
- * `toolCall`, `usage`, `finishReason`) carry real values.
- *
- * Telemetry is opt-in: the framework only drives it when `settings.telemetry`
- * is set (the dispatcher then also honours globally-registered integrations).
- */
+export type HarnessAgentLifecycleCallbacks<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context,
+  OUTPUT extends Output,
+> = {
+  onStart?: GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
+  onStepStart?: GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
+  onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
+  onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<TOOLS>;
+  onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
+  onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
+  onStepEnd?: GenerateTextOnStepEndCallback<TOOLS, RUNTIME_CONTEXT>;
+  onEnd?: GenerateTextOnEndCallback<TOOLS, RUNTIME_CONTEXT>;
+};
 
 type Dispatcher = ReturnType<typeof createTelemetryDispatcher>;
-type EventArg<K extends keyof Dispatcher> = Dispatcher[K] extends
-  | ((event: infer E) => unknown)
-  | undefined
-  ? E
-  : never;
 
-/**
- * An output content part accumulated over a step — the model's assistant turn.
- * Shaped for the gen_ai output-message conventions `@ai-sdk/otel` reads.
- */
-export type TurnContentPart =
-  | { type: 'text'; text: string }
-  | { type: 'reasoning'; text: string }
-  | { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown };
-
-export interface TurnTelemetry {
-  /**
-   * Begin the operation span. Called on `stream-start`, optionally with the
-   * model the runtime resolved to (overriding the session's configured id).
-   * Idempotent — the first call wins.
-   */
+export interface TurnLifecycle<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context,
+> {
   start(modelId?: string): Promise<void>;
-  /** Open a step span lazily, before the first content of a step. */
   ensureStepOpen(): Promise<void>;
-  /** Close the current step (on a harness `finish-step`). */
-  stepFinish(info: {
-    finishReason: unknown;
-    usage: unknown;
-    providerMetadata?: unknown;
-    /** The model's output content for this step (text/reasoning/tool-calls). */
-    content?: TurnContentPart[];
+  languageModelCallEnd(input: {
+    finishReason: StepResult<TOOLS, RUNTIME_CONTEXT>['finishReason'];
+    usage: LanguageModelUsage;
+    content: ContentPart<TOOLS>[];
+    providerMetadata: StepResult<TOOLS, RUNTIME_CONTEXT>['providerMetadata'];
   }): Promise<void>;
-  /** A tool execution began (on a `tool-call`). */
-  toolStart(call: {
-    toolCallId: string;
-    toolName: string;
-    input: unknown;
+  toolExecutionStart(input: { toolCall: TypedToolCall<TOOLS> }): Promise<void>;
+  toolExecutionEnd(input: {
+    toolCall: TypedToolCall<TOOLS>;
+    toolOutput: TypedToolResult<TOOLS> | TypedToolError<TOOLS>;
+    toolExecutionMs: number;
   }): Promise<void>;
-  /** Execute a host tool through each telemetry integration's context wrapper. */
+  stepEnd(step: StepResult<TOOLS, RUNTIME_CONTEXT>): Promise<void>;
+  end(input: {
+    steps: StepResult<TOOLS, RUNTIME_CONTEXT>[];
+    usage: LanguageModelUsage;
+  }): Promise<void>;
   executeTool<T>(input: {
     toolCallId: string;
     execute: () => PromiseLike<T>;
   }): Promise<T>;
-  /**
-   * A tool execution completed (on its `tool-result` or after host execution).
-   * Idempotent per `toolCallId` — the first caller wins, so provider-executed
-   * and host-executed paths can both call it without double-counting.
-   */
-  toolEnd(
-    toolCallId: string,
-    output: { ok: true; output: unknown } | { ok: false; error: unknown },
-  ): Promise<void>;
-  /** The turn ended (on a harness `finish`). */
-  end(info: { finishReason: unknown; usage: unknown }): Promise<void>;
-  /** The turn failed. */
-  error(err: unknown): Promise<void>;
+  error(error: unknown): Promise<void>;
 }
 
-const NOOP: TurnTelemetry = {
-  async start() {},
-  async ensureStepOpen() {},
-  async stepFinish() {},
-  async toolStart() {},
-  async executeTool({ execute }) {
-    return await execute();
-  },
-  async toolEnd() {},
-  async end() {},
-  async error() {},
-};
-
-function normalizeFinishReason(finishReason: unknown): unknown {
-  if (
-    finishReason != null &&
-    typeof finishReason === 'object' &&
-    'unified' in finishReason
-  ) {
-    return (finishReason as { unified: unknown }).unified;
-  }
-
-  return finishReason;
+async function notify<EVENT>(
+  event: EVENT,
+  ...callbacks: Array<((event: EVENT) => unknown) | undefined>
+): Promise<void> {
+  await Promise.allSettled(
+    callbacks.map(async callback => {
+      await callback?.(event);
+    }),
+  );
 }
 
-function addTokenCounts(
-  tokenCount1: number | undefined,
-  tokenCount2: number | undefined,
-): number | undefined {
-  return tokenCount1 == null && tokenCount2 == null
-    ? undefined
-    : (tokenCount1 ?? 0) + (tokenCount2 ?? 0);
-}
-
-function normalizeUsage(usage: unknown): LanguageModelUsage | unknown {
-  if (
-    usage == null ||
-    typeof usage !== 'object' ||
-    !('inputTokens' in usage) ||
-    !('outputTokens' in usage)
-  ) {
-    return usage;
-  }
-
-  const inputTokens = (usage as { inputTokens: unknown }).inputTokens;
-  const outputTokens = (usage as { outputTokens: unknown }).outputTokens;
-
-  if (
-    inputTokens == null ||
-    typeof inputTokens !== 'object' ||
-    outputTokens == null ||
-    typeof outputTokens !== 'object'
-  ) {
-    return usage;
-  }
-
-  const input = inputTokens as Record<string, number | undefined>;
-  const output = outputTokens as Record<string, number | undefined>;
-
-  return {
-    inputTokens: input.total,
-    inputTokenDetails: {
-      noCacheTokens: input.noCache,
-      cacheReadTokens: input.cacheRead,
-      cacheWriteTokens: input.cacheWrite,
-    },
-    outputTokens: output.total,
-    outputTokenDetails: {
-      textTokens: output.text,
-      reasoningTokens: output.reasoning,
-    },
-    totalTokens: addTokenCounts(input.total, output.total),
-    raw: (usage as { raw?: LanguageModelUsage['raw'] }).raw,
-  };
-}
-
-export function createTurnTelemetry(opts: {
+export function createTurnLifecycle<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context,
+  OUTPUT extends Output,
+>(options: {
+  callId: string;
   telemetry: TelemetryOptions | undefined;
+  callbacks: HarnessAgentLifecycleCallbacks<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
   harnessId: string;
   modelId: string | undefined;
   instructions: string | undefined;
-  promptText: string;
-  runtimeContext: unknown;
-}): TurnTelemetry {
-  // Opt-in: with no telemetry settings we do no work and construct no events.
-  if (opts.telemetry == null) return NOOP;
-
-  const dispatcher = createTelemetryDispatcher({ telemetry: opts.telemetry });
-
-  const callId = generateId();
-  const provider = opts.harnessId;
-  // The configured session model; `start(modelId)` may override it with the
-  // model the runtime actually resolved to.
-  let modelId = opts.modelId ?? '';
-  const runtimeContext = opts.runtimeContext;
-  const inputMessages: ModelMessage[] = [
-    { role: 'user', content: opts.promptText },
-  ];
-
+  tools: TOOLS;
+  toolsContext: InferToolSetContext<TOOLS>;
+  activeToolNames: string[];
+  toolSpecs: HarnessV1ToolSpec[];
+  messages: ModelMessage[];
+  runtimeContext: RUNTIME_CONTEXT;
+  output: OUTPUT | undefined;
+}): TurnLifecycle<TOOLS, RUNTIME_CONTEXT> {
+  const telemetry =
+    options.telemetry == null
+      ? ({} as Dispatcher)
+      : createTelemetryDispatcher({ telemetry: options.telemetry });
+  const provider = `harness:${options.harnessId}`;
+  let modelId = options.modelId ?? '';
   let started = false;
   let stepOpen = false;
   let stepNumber = 0;
   let ended = false;
-  let finalStepText = '';
-  let finalStepReasoning: Array<{ text: string }> = [];
-  let finalStepProviderMetadata: unknown;
-  let outputToolCalls: Array<{
-    type: 'tool-call';
-    toolCallId: string;
-    toolName: string;
-    input: unknown;
-  }> = [];
-  /** Tool calls started in the current turn and not yet ended. */
-  const openTools = new Map<
-    string,
-    { toolCallId: string; toolName: string; input: unknown }
-  >();
-
-  const cast = <K extends keyof Dispatcher>(event: unknown): EventArg<K> =>
-    event as EventArg<K>;
-
-  // onStart — open the operation (root) span. Deferred until `start()` so the
-  // runtime-resolved model can be attached to the operation span + trace label.
-  const fireStart = async (): Promise<void> => {
-    if (started) return;
-    started = true;
-    await dispatcher.onStart?.(
-      cast<'onStart'>({
-        callId,
-        operationId: 'ai.harness',
-        provider,
-        modelId,
-        tools: undefined,
-        toolChoice: undefined,
-        activeTools: undefined,
-        maxRetries: 0,
-        timeout: undefined,
-        headers: undefined,
-        providerOptions: undefined,
-        output: undefined,
-        toolsContext: undefined,
-        runtimeContext,
-        instructions: opts.instructions,
-        messages: inputMessages,
-      }),
-    );
-  };
+  let modelCallStartedAt = 0;
+  const completedSteps: StepResult<TOOLS, RUNTIME_CONTEXT>[] = [];
+  const languageModelTools =
+    options.toolSpecs.length === 0
+      ? undefined
+      : options.toolSpecs.map(tool => ({
+          type: 'function' as const,
+          name: tool.name,
+          ...(tool.description == null
+            ? {}
+            : { description: tool.description }),
+          ...(tool.inputSchema == null
+            ? {}
+            : { inputSchema: tool.inputSchema }),
+        }));
 
   const start = async (overrideModelId?: string): Promise<void> => {
     if (started) return;
-    if (overrideModelId) modelId = overrideModelId;
-    await fireStart();
+    if (overrideModelId != null) modelId = overrideModelId;
+    started = true;
+    const event = {
+      callId: options.callId,
+      operationId: 'ai.harness',
+      provider,
+      modelId,
+      tools: options.tools,
+      toolChoice: undefined,
+      activeTools: options.activeToolNames,
+      toolOrder: [],
+      maxRetries: 0,
+      timeout: undefined,
+      headers: undefined,
+      providerOptions: undefined,
+      output: options.output,
+      toolsContext: options.toolsContext,
+      runtimeContext: options.runtimeContext,
+      instructions: options.instructions,
+      messages: options.messages,
+    };
+    await notify(
+      event,
+      options.callbacks.onStart,
+      telemetry.onStart as typeof options.callbacks.onStart,
+    );
   };
 
   const ensureStepOpen = async (): Promise<void> => {
-    if (!started) await fireStart();
+    if (!started) await start();
     if (stepOpen || ended) return;
     stepOpen = true;
-    await dispatcher.onStepStart?.(
-      cast<'onStepStart'>({
-        callId,
-        provider,
-        modelId,
-        stepNumber,
-        tools: undefined,
-        toolChoice: undefined,
-        activeTools: undefined,
-        steps: new Array(stepNumber),
-        providerOptions: undefined,
-        output: undefined,
-        runtimeContext,
-        messages: inputMessages,
-      }),
+    const stepStartEvent = {
+      callId: options.callId,
+      provider,
+      modelId,
+      stepNumber,
+      tools: options.tools,
+      toolChoice: undefined,
+      activeTools: options.activeToolNames,
+      toolOrder: [],
+      steps: [...completedSteps],
+      providerOptions: undefined,
+      output: options.output,
+      runtimeContext: options.runtimeContext,
+      toolsContext: options.toolsContext,
+      instructions: options.instructions,
+      messages: options.messages,
+    };
+    await notify(
+      stepStartEvent,
+      options.callbacks.onStepStart,
+      telemetry.onStepStart as typeof options.callbacks.onStepStart,
     );
-    // Open the inference (language-model call) span — the gen_ai home for the
-    // step's input and (on end) output messages.
-    await dispatcher.onLanguageModelCallStart?.(
-      cast<'onLanguageModelCallStart'>({
-        callId,
-        provider,
-        modelId,
-        messages: inputMessages,
-        tools: undefined,
-      }),
+
+    const modelStartEvent = {
+      callId: options.callId,
+      provider,
+      modelId,
+      instructions: options.instructions,
+      messages: options.messages,
+      tools: languageModelTools,
+    };
+    modelCallStartedAt = Date.now();
+    await notify(
+      modelStartEvent,
+      options.callbacks.onLanguageModelCallStart,
+      telemetry.onLanguageModelCallStart as typeof options.callbacks.onLanguageModelCallStart,
     );
-  };
-
-  /** Close the inference span with the step's output content. */
-  const inferenceEnd = async (info: {
-    finishReason: unknown;
-    usage: unknown;
-    content: TurnContentPart[];
-    providerMetadata?: unknown;
-  }): Promise<void> => {
-    const finishReason = normalizeFinishReason(info.finishReason);
-    const usage = normalizeUsage(info.usage);
-
-    await dispatcher.onLanguageModelCallEnd?.(
-      cast<'onLanguageModelCallEnd'>({
-        callId,
-        finishReason,
-        responseId: callId,
-        usage,
-        content: info.content,
-        ...(info.providerMetadata != null
-          ? { providerMetadata: info.providerMetadata }
-          : {}),
-        performance: {
-          responseTimeMs: undefined,
-          timeToFirstOutputMs: undefined,
-          timeBetweenOutputChunksMs: undefined,
-        },
-      }),
-    );
-  };
-
-  const recordOutputContent = (content: TurnContentPart[]): void => {
-    finalStepText = '';
-    finalStepReasoning = [];
-
-    for (const part of content) {
-      if (part.type === 'text') {
-        finalStepText += part.text;
-      } else if (part.type === 'reasoning') {
-        finalStepReasoning.push({ text: part.text });
-      } else if (part.type === 'tool-call') {
-        outputToolCalls.push(part);
-      }
-    }
-  };
-
-  const closeOpenTools = async (): Promise<void> => {
-    for (const call of openTools.values()) {
-      await dispatcher.onToolExecutionEnd?.(
-        cast<'onToolExecutionEnd'>({
-          callId,
-          toolExecutionMs: 0,
-          messages: [],
-          toolCall: {
-            type: 'tool-call',
-            toolCallId: call.toolCallId,
-            toolName: call.toolName,
-            input: call.input,
-            dynamic: true,
-          },
-          toolContext: undefined,
-          toolOutput: { type: 'error', error: new Error('tool span unclosed') },
-        }),
-      );
-    }
-    openTools.clear();
   };
 
   return {
     start,
     ensureStepOpen,
 
-    async stepFinish(info) {
-      if (!stepOpen) return;
-      const content = info.content ?? [];
-      const finishReason = normalizeFinishReason(info.finishReason);
-      const usage = normalizeUsage(info.usage);
-      recordOutputContent(content);
-      finalStepProviderMetadata = info.providerMetadata;
-      await closeOpenTools();
-      await inferenceEnd({
-        finishReason,
-        usage,
-        content,
-        providerMetadata: info.providerMetadata,
-      });
-      await dispatcher.onStepEnd?.(
-        cast<'onStepEnd'>({
-          callId,
-          stepNumber,
-          finishReason,
-          usage,
-          providerMetadata: info.providerMetadata,
-          content,
-          response: {
-            id: callId,
-            modelId,
-            timestamp: new Date(0),
-            messages: [],
-          },
-        }),
+    async languageModelCallEnd(input) {
+      await ensureStepOpen();
+      const event = {
+        callId: options.callId,
+        provider,
+        modelId,
+        finishReason: input.finishReason,
+        usage: input.usage,
+        content: input.content,
+        responseId: `${options.callId}-${stepNumber}`,
+        providerMetadata: input.providerMetadata,
+        performance: {
+          responseTimeMs: Math.max(0, Date.now() - modelCallStartedAt),
+          effectiveOutputTokensPerSecond: 0,
+          outputTokensPerSecond: undefined,
+          inputTokensPerSecond: undefined,
+          effectiveTotalTokensPerSecond: 0,
+          timeToFirstOutputMs: undefined,
+          timeBetweenOutputChunksMs: undefined,
+        },
+      };
+      await notify(
+        event,
+        options.callbacks.onLanguageModelCallEnd,
+        telemetry.onLanguageModelCallEnd as typeof options.callbacks.onLanguageModelCallEnd,
       );
+    },
+
+    async toolExecutionStart({ toolCall }) {
+      const event = {
+        callId: options.callId,
+        messages: options.messages,
+        toolCall,
+        toolContext: undefined,
+      } as ToolExecutionStartEvent<TOOLS>;
+      await notify(
+        event,
+        options.callbacks.onToolExecutionStart,
+        telemetry.onToolExecutionStart as typeof options.callbacks.onToolExecutionStart,
+      );
+    },
+
+    async toolExecutionEnd({ toolCall, toolOutput, toolExecutionMs }) {
+      const event = {
+        callId: options.callId,
+        messages: options.messages,
+        toolCall,
+        toolContext: undefined,
+        toolOutput,
+        toolExecutionMs,
+      } as ToolExecutionEndEvent<TOOLS>;
+      await notify(
+        event,
+        options.callbacks.onToolExecutionEnd,
+        telemetry.onToolExecutionEnd as typeof options.callbacks.onToolExecutionEnd,
+      );
+    },
+
+    async stepEnd(step) {
+      if (!stepOpen) return;
+      completedSteps.push(step);
+      const telemetryStepEndEvent = Object.assign(Object.create(null), {
+        callId: step.callId,
+        stepNumber: step.stepNumber,
+        model: step.model,
+        toolsContext: step.toolsContext,
+        runtimeContext: step.runtimeContext,
+        content: step.content,
+        finishReason: step.finishReason,
+        rawFinishReason: step.rawFinishReason,
+        usage: step.usage,
+        performance: step.performance,
+        warnings: step.warnings,
+        request: step.request,
+        response: step.response,
+        providerMetadata: step.providerMetadata,
+        text: step.text,
+        reasoning: step.reasoning,
+        reasoningText: step.reasoningText,
+        files: step.files,
+        sources: step.sources,
+        toolCalls: step.toolCalls,
+        staticToolCalls: step.staticToolCalls,
+        dynamicToolCalls: step.dynamicToolCalls,
+        toolResults: step.toolResults,
+        staticToolResults: step.staticToolResults,
+        dynamicToolResults: step.dynamicToolResults,
+      });
+      await Promise.allSettled([
+        options.callbacks.onStepEnd?.(step),
+        telemetry.onStepEnd?.(telemetryStepEndEvent),
+      ]);
       stepOpen = false;
       stepNumber += 1;
     },
 
-    async toolStart(call) {
-      await ensureStepOpen();
-      if (openTools.has(call.toolCallId)) return;
-      openTools.set(call.toolCallId, call);
-      await dispatcher.onToolExecutionStart?.(
-        cast<'onToolExecutionStart'>({
-          callId,
-          messages: [],
-          toolCall: {
-            type: 'tool-call',
-            toolCallId: call.toolCallId,
-            toolName: call.toolName,
-            input: call.input,
-            dynamic: true,
-          },
-          toolContext: undefined,
-        }),
+    async end({ steps, usage }) {
+      if (!started) await start();
+      if (ended || steps.length === 0) return;
+      ended = true;
+      const finalStep = steps[steps.length - 1]!;
+      const event = {
+        callId: options.callId,
+        stepNumber: finalStep.stepNumber,
+        model: finalStep.model,
+        toolsContext: finalStep.toolsContext,
+        runtimeContext: finalStep.runtimeContext,
+        content: steps.flatMap(step => step.content),
+        text: finalStep.text,
+        reasoning: finalStep.reasoning,
+        reasoningText: finalStep.reasoningText,
+        files: steps.flatMap(step => step.files),
+        sources: steps.flatMap(step => step.sources),
+        toolCalls: steps.flatMap(step => step.toolCalls),
+        staticToolCalls: steps.flatMap(step => step.staticToolCalls),
+        dynamicToolCalls: steps.flatMap(step => step.dynamicToolCalls),
+        toolResults: steps.flatMap(step => step.toolResults),
+        staticToolResults: steps.flatMap(step => step.staticToolResults),
+        dynamicToolResults: steps.flatMap(step => step.dynamicToolResults),
+        finishReason: finalStep.finishReason,
+        rawFinishReason: finalStep.rawFinishReason,
+        usage,
+        totalUsage: usage,
+        warnings: steps.flatMap(step => step.warnings ?? []),
+        request: finalStep.request,
+        response: finalStep.response,
+        providerMetadata: finalStep.providerMetadata,
+        responseMessages: steps.flatMap(step => step.response.messages),
+        steps,
+        finalStep,
+      };
+      await notify(
+        event,
+        options.callbacks.onEnd,
+        telemetry.onEnd as typeof options.callbacks.onEnd,
       );
     },
 
     async executeTool({ toolCallId, execute }) {
-      if (dispatcher.executeTool == null) return await execute();
-      return await dispatcher.executeTool({ callId, toolCallId, execute });
+      if (telemetry.executeTool == null) return await execute();
+      return await telemetry.executeTool({
+        callId: options.callId,
+        toolCallId,
+        execute,
+      });
     },
 
-    async toolEnd(toolCallId, output) {
-      const call = openTools.get(toolCallId);
-      const normalizedOutput = output.ok
-        ? { type: 'tool-result' as const, output: output.output }
-        : { type: 'error' as const, error: output.error };
-      if (call == null) return;
-      openTools.delete(toolCallId);
-      await dispatcher.onToolExecutionEnd?.(
-        cast<'onToolExecutionEnd'>({
-          callId,
-          toolExecutionMs: 0,
-          messages: [],
-          toolCall: {
-            type: 'tool-call',
-            toolCallId: call.toolCallId,
-            toolName: call.toolName,
-            input: call.input,
-            dynamic: true,
-          },
-          toolContext: undefined,
-          toolOutput: normalizedOutput,
-        }),
-      );
-    },
-
-    async end(info) {
+    async error(error) {
       if (ended) return;
-      const finishReason = normalizeFinishReason(info.finishReason);
-      const usage = normalizeUsage(info.usage);
-      if (!started) await fireStart();
-      if (stepOpen) {
-        await closeOpenTools();
-        await inferenceEnd({
-          finishReason,
-          usage,
-          content: [],
-        });
-        await dispatcher.onStepEnd?.(
-          cast<'onStepEnd'>({
-            callId,
-            stepNumber,
-            finishReason,
-            usage,
-            providerMetadata: undefined,
-            content: [],
-            response: {
-              id: callId,
-              modelId,
-              timestamp: new Date(0),
-              messages: [],
-            },
-          }),
-        );
-        stepOpen = false;
-      }
+      if (!started) await start();
       ended = true;
-      await dispatcher.onEnd?.(
-        cast<'onEnd'>({
-          callId,
-          operationId: 'ai.harness',
-          finishReason,
-          usage,
-          totalUsage: usage,
-          content: [],
-          text: finalStepText,
-          finalStep: {
-            reasoning: finalStepReasoning,
-            providerMetadata: finalStepProviderMetadata,
-          },
-          toolCalls: outputToolCalls,
-          files: [],
-          steps: new Array(stepNumber),
-          response: {
-            id: callId,
-            modelId,
-            timestamp: new Date(0),
-            messages: [],
-          },
-          runtimeContext,
-        }),
-      );
-    },
-
-    async error(err) {
-      if (ended) return;
-      if (!started) await fireStart();
-      await closeOpenTools();
-      ended = true;
-      await dispatcher.onError?.(err);
+      await telemetry.onError?.(error);
     },
   };
 }

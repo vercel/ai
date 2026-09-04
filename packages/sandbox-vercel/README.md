@@ -94,5 +94,8 @@ await networkSandboxSession.setNetworkPolicy?.({
 
 Vercel Sandbox supports outbound request transformations for use cases such as
 credential brokering. `setRequestTransformations()` replaces the managed rules,
-while `addRequestTransformations()` adds rules without replacing them. Network
-access policies remain authoritative over which hosts can be reached.
+while `addRequestTransformations()` adds rules without replacing unrelated
+rules. Re-adding a managed rule with the same request matcher and transformed
+header names refreshes that rule in place, which keeps resumed credential
+brokering idempotent. Network access policies remain authoritative over which
+hosts can be reached.

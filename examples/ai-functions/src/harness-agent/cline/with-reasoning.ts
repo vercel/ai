@@ -11,6 +11,9 @@ run(async () => {
   });
   const agent = new HarnessAgent({
     harness: createCline({
+      // This Gemini model is more likely than others to actually emit reasoning,
+      // that's why it's here. Simply allows more reliably verifying whether
+      // reasoning technically works correctly or not.
       modelId: 'google/gemini-3.1-pro-preview',
       reasoningEffort: 'high',
     }),

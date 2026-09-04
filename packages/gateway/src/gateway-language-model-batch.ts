@@ -1,5 +1,4 @@
 import {
-  APICallError,
   type Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
   type Experimental_BatchV4ItemResult as BatchV4ItemResult,
   type Experimental_BatchV4OperationOptions as BatchV4OperationOptions,
@@ -15,9 +14,10 @@ import {
   combineHeaders,
   convertAsyncIteratorToReadableStream,
   createJsonErrorResponseHandler,
+  createJsonLinesResponseHandler,
   createJsonResponseHandler,
   getErrorMessage,
-  parseJSON,
+  normalizeBatchRequestCounts,
   postJsonToApi,
   resolve,
   WORKFLOW_SERIALIZE,
@@ -190,7 +190,7 @@ export class GatewayBatchLanguageModel
       : undefined;
 
     try {
-      const { value: stream } = await postJsonToApi({
+      const { value: lines } = await postJsonToApi({
         url: this.getBatchUrl('results'),
         headers: combineHeaders(
           resolvedHeaders,
@@ -199,28 +199,9 @@ export class GatewayBatchLanguageModel
           await resolve(this.config.o11yHeaders),
         ),
         body: { batchId },
-        successfulResponseHandler: async ({
-          response,
-          url,
-          requestBodyValues,
-        }: {
-          url: string;
-          requestBodyValues: unknown;
-          response: Response;
-        }) => {
-          if (response.body == null) {
-            throw new APICallError({
-              message: 'Batch results response body is empty',
-              url,
-              requestBodyValues,
-              statusCode: response.status,
-            });
-          }
-          return {
-            value: response.body,
-            responseHeaders: Object.fromEntries([...response.headers]),
-          };
-        },
+        successfulResponseHandler: createJsonLinesResponseHandler(
+          gatewayBatchItemResultLineSchema,
+        ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
           errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
@@ -230,7 +211,7 @@ export class GatewayBatchLanguageModel
       });
 
       return convertAsyncIteratorToReadableStream(
-        parseGatewayBatchResultLines(stream),
+        convertGatewayBatchResultLines(lines),
       );
     } catch (error) {
       if (isAbortOrTimeoutError(error)) {
@@ -342,7 +323,12 @@ function convertGatewayBatchStatus(body: {
   expiresAt?: string | null;
   providerMetadata?: Record<string, Record<string, unknown>> | null;
 }): BatchV4Status {
-  const requestCounts = convertGatewayBatchRequestCounts(body.requestCounts);
+  const requestCounts = normalizeBatchRequestCounts({
+    total: body.requestCounts?.total,
+    pending: body.requestCounts?.pending,
+    completed: body.requestCounts?.completed,
+    failed: body.requestCounts?.failed,
+  });
 
   return {
     status: body.status,
@@ -367,112 +353,27 @@ function convertGatewayBatchStatus(body: {
 }
 
 /**
- * The spec's `requestCounts` requires all four counters; the Gateway's
- * persisted descriptor allows partial counts. Only forward counts when the
- * full set is present rather than fabricating zeros.
- */
-function convertGatewayBatchRequestCounts(
-  counts:
-    | {
-        total?: number | null;
-        pending?: number | null;
-        completed?: number | null;
-        failed?: number | null;
-      }
-    | null
-    | undefined,
-): BatchV4Status['requestCounts'] | undefined {
-  if (
-    counts == null ||
-    typeof counts.total !== 'number' ||
-    typeof counts.pending !== 'number' ||
-    typeof counts.completed !== 'number' ||
-    typeof counts.failed !== 'number'
-  ) {
-    return undefined;
-  }
-
-  return {
-    total: counts.total,
-    pending: counts.pending,
-    completed: counts.completed,
-    failed: counts.failed,
-  };
-}
-
-/**
- * Incremental NDJSON line splitter for the batch results stream: buffers
- * partial lines across chunks and flushes a trailing line without a final
- * newline. Each non-empty line is one `BatchV4ItemResult` JSON object.
+ * Converts the minimally validated Gateway batch result lines. The Gateway
+ * already sanitizes the complete result objects server-side.
  *
- * @param stream - The raw NDJSON byte stream from the batch results route.
- * @yields One minimally-validated `BatchV4ItemResult` per non-empty line.
+ * @yields Each Gateway batch item result.
  */
-async function* parseGatewayBatchResultLines(
-  stream: ReadableStream<Uint8Array>,
+async function* convertGatewayBatchResultLines(
+  lines: AsyncIterable<unknown>,
 ): AsyncGenerator<BatchV4ItemResult<LanguageModelV4GenerateResult>> {
-  const reader = stream.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  let finished = false;
+  for await (const line of lines) {
+    const item = line as BatchV4ItemResult<LanguageModelV4GenerateResult>;
 
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-
-      if (done) {
-        finished = true;
-        buffer += decoder.decode();
-        break;
-      }
-
-      buffer += decoder.decode(value, { stream: true });
-
-      let lineEnd = buffer.indexOf('\n');
-      while (lineEnd !== -1) {
-        const line = buffer.slice(0, lineEnd).replace(/\r$/, '');
-        buffer = buffer.slice(lineEnd + 1);
-
-        if (line.trim().length > 0) {
-          yield await parseGatewayBatchResultLine(line);
-        }
-
-        lineEnd = buffer.indexOf('\n');
+    // JSON carries `response.timestamp` as an ISO string; core expects a Date.
+    if (item.status === 'succeeded') {
+      const response = item.result?.response;
+      if (response !== undefined && typeof response.timestamp === 'string') {
+        response.timestamp = new Date(response.timestamp);
       }
     }
 
-    const finalLine = buffer.replace(/\r$/, '');
-    if (finalLine.trim().length > 0) {
-      yield await parseGatewayBatchResultLine(finalLine);
-    }
-  } finally {
-    if (!finished) {
-      await reader.cancel().catch(() => {});
-    }
-    reader.releaseLock();
+    yield item;
   }
-}
-
-async function parseGatewayBatchResultLine(
-  line: string,
-): Promise<BatchV4ItemResult<LanguageModelV4GenerateResult>> {
-  // Minimal validation (id + status); items pass through otherwise — the
-  // Gateway already sanitizes them server-side.
-  const parsed = await parseJSON({
-    text: line,
-    schema: gatewayBatchItemResultLineSchema,
-  });
-  const item =
-    parsed as unknown as BatchV4ItemResult<LanguageModelV4GenerateResult>;
-  // JSON carries `response.timestamp` as an ISO string; core expects a Date
-  // (`GeneratedFile`-style consumers call `.toISOString()`).
-  if (item.status === 'succeeded') {
-    const response = item.result?.response;
-    if (response !== undefined && typeof response.timestamp === 'string') {
-      response.timestamp = new Date(response.timestamp);
-    }
-  }
-  return item;
 }
 
 const gatewayBatchItemResultLineSchema = z

@@ -27,15 +27,26 @@ export const codexACPHarness = createACP({
     packageVersion: '1.1.4',
   },
   executable: 'codex-acp',
+  modelMapping: {
+    type: 'session-config-option',
+    path: 'model',
+  },
   forwardEnv: ['CODEX_CONFIG'],
   credentialEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
-  credentialBrokering: ({ env }) => {
-    const credential = env.CODEX_API_KEY ?? env.OPENAI_API_KEY;
-    if (!credential) return [];
+  credentialBrokering: ({ env, sandboxEnv }) => {
+    const environmentVariableName = env.CODEX_API_KEY
+      ? 'CODEX_API_KEY'
+      : 'OPENAI_API_KEY';
+    const credential = env[environmentVariableName];
+    const sandboxCredential = sandboxEnv?.[environmentVariableName];
+    if (!credential || !sandboxCredential) return [];
     return [
       createCredentialRequestTransformation({
-        baseUrl: resolveCodexACPBaseUrl({ env }),
-        headers: { Authorization: `Bearer ${credential}` },
+        matchUrl: resolveCodexACPBaseUrl({ env }),
+        matchHeaders: {
+          Authorization: `Bearer ${sandboxCredential}`,
+        },
+        transformHeaders: { Authorization: `Bearer ${credential}` },
       }),
     ];
   },

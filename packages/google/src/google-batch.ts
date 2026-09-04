@@ -1,5 +1,4 @@
 import {
-  EmptyResponseBodyError,
   InvalidArgumentError,
   InvalidResponseDataError,
   type Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
@@ -14,11 +13,12 @@ import {
 import {
   combineHeaders,
   convertAsyncIteratorToReadableStream,
+  createJsonLinesResponseHandler,
   createJsonResponseHandler,
   generateId,
   getFromApi,
   lazySchema,
-  parseJSON,
+  normalizeBatchRequestCounts,
   postJsonToApi,
   postToApi,
   resolve,
@@ -43,7 +43,7 @@ const googleBatchInputFileMaxBytes = 2 * 1024 * 1024 * 1024;
 const googleBatchInlineCreationMaxBytes = 20_000_000;
 const supportedGoogleBatchContentTypes = new Set<
   LanguageModelV4GenerateResult['content'][number]['type']
->(['text', 'reasoning', 'source']);
+>(['text', 'reasoning', 'source', 'tool-call', 'tool-result']);
 
 type GoogleBatchRequest = Parameters<
   BatchLanguageModelV4['experimental_doStartBatch']
@@ -105,6 +105,7 @@ const googleFileUploadResponseSchema = lazySchema(() =>
     z.object({
       file: z.object({
         name: z.string(),
+        expirationTime: z.string().nullish(),
       }),
     }),
   ),
@@ -243,10 +244,9 @@ export class GoogleBatchLanguageModel
     const createUrl = `${this.batchConfig.baseURL}/${getModelPath(
       this.modelId,
     )}:batchGenerateContent`;
-    let operation: GoogleBatchOperation;
 
     if (fileParts == null) {
-      const { value } = await postJsonToApi({
+      const { value: operation } = await postJsonToApi({
         url: createUrl,
         headers,
         body: inlineBatchBody,
@@ -257,86 +257,98 @@ export class GoogleBatchLanguageModel
         abortSignal: options.abortSignal,
         fetch: this.batchConfig.fetch,
       });
-      operation = value;
-    } else {
-      const inputFile = new Blob(fileParts, { type: 'application/jsonl' });
-      // Blob snapshots the strings, so release the potentially large input array.
-      fileParts.length = 0;
-      if (inputFile.size > googleBatchInputFileMaxBytes) {
-        throw new InvalidArgumentError({
-          argument: 'requests',
-          message: 'Google batch input files must not exceed 2 GB.',
-        });
-      }
 
-      const { value: uploadUrl } = await postJsonToApi({
-        url: `${this.getBaseOrigin()}/upload/v1beta/files`,
-        headers: combineHeaders(headers, {
-          'X-Goog-Upload-Protocol': 'resumable',
-          'X-Goog-Upload-Command': 'start',
-          'X-Goog-Upload-Header-Content-Length': String(inputFile.size),
-          'X-Goog-Upload-Header-Content-Type': 'application/jsonl',
-        }),
-        body: {
-          file: {
-            display_name: `${displayName}-input`,
-          },
-        },
-        failedResponseHandler: googleFailedResponseHandler,
-        successfulResponseHandler: googleUploadUrlResponseHandler,
-        abortSignal: options.abortSignal,
-        fetch: this.batchConfig.fetch,
-      });
-
-      const { value: uploadedFile } = await postToApi({
-        url: uploadUrl,
-        headers: {
-          'X-Goog-Upload-Offset': '0',
-          'X-Goog-Upload-Command': 'upload, finalize',
-          'Content-Type': 'application/jsonl',
-        },
-        body: {
-          content: inputFile,
-          values: {
-            byteLength: inputFile.size,
-            mediaType: 'application/jsonl',
-          },
-        },
-        failedResponseHandler: googleFailedResponseHandler,
-        successfulResponseHandler: createJsonResponseHandler(
-          googleFileUploadResponseSchema,
-        ),
-        abortSignal: options.abortSignal,
-        fetch: this.batchConfig.fetch,
-      });
-
-      const { value } = await postJsonToApi({
-        url: createUrl,
-        headers,
-        body: {
-          batch: {
-            displayName,
-            ...(options.webhookUrl != null && {
-              webhookConfig: { uris: [options.webhookUrl] },
-            }),
-            inputConfig: {
-              fileName: uploadedFile.file.name,
-            },
-          },
-        },
-        failedResponseHandler: googleFailedResponseHandler,
-        successfulResponseHandler: createJsonResponseHandler(
-          googleBatchOperationSchema,
-        ),
-        abortSignal: options.abortSignal,
-        fetch: this.batchConfig.fetch,
-      });
-      operation = value;
+      return {
+        batchId: operation.name,
+        ...convertGoogleBatchStatus(operation),
+        warnings,
+      };
     }
+
+    const inputFile = new Blob(fileParts, { type: 'application/jsonl' });
+    // Blob snapshots the strings, so release the potentially large input array.
+    fileParts.length = 0;
+    if (inputFile.size > googleBatchInputFileMaxBytes) {
+      throw new InvalidArgumentError({
+        argument: 'requests',
+        message: 'Google batch input files must not exceed 2 GB.',
+      });
+    }
+
+    const { value: uploadUrl } = await postJsonToApi({
+      url: `${this.getBaseOrigin()}/upload/v1beta/files`,
+      headers: combineHeaders(headers, {
+        'X-Goog-Upload-Protocol': 'resumable',
+        'X-Goog-Upload-Command': 'start',
+        'X-Goog-Upload-Header-Content-Length': String(inputFile.size),
+        'X-Goog-Upload-Header-Content-Type': 'application/jsonl',
+      }),
+      body: {
+        file: {
+          display_name: `${displayName}-input`,
+        },
+      },
+      failedResponseHandler: googleFailedResponseHandler,
+      successfulResponseHandler: googleUploadUrlResponseHandler,
+      abortSignal: options.abortSignal,
+      fetch: this.batchConfig.fetch,
+    });
+
+    const { value: uploadedFile } = await postToApi({
+      url: uploadUrl,
+      headers: {
+        'X-Goog-Upload-Offset': '0',
+        'X-Goog-Upload-Command': 'upload, finalize',
+        'Content-Type': 'application/jsonl',
+      },
+      body: {
+        content: inputFile,
+        values: {
+          byteLength: inputFile.size,
+          mediaType: 'application/jsonl',
+        },
+      },
+      failedResponseHandler: googleFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        googleFileUploadResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.batchConfig.fetch,
+    });
+
+    const { value: operation } = await postJsonToApi({
+      url: createUrl,
+      headers,
+      body: {
+        batch: {
+          displayName,
+          ...(options.webhookUrl != null && {
+            webhookConfig: { uris: [options.webhookUrl] },
+          }),
+          inputConfig: {
+            fileName: uploadedFile.file.name,
+          },
+        },
+      },
+      failedResponseHandler: googleFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        googleBatchOperationSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.batchConfig.fetch,
+    });
 
     return {
       batchId: operation.name,
       ...convertGoogleBatchStatus(operation),
+      providerMetadata: {
+        google: {
+          inputFileId: uploadedFile.file.name,
+          ...(uploadedFile.file.expirationTime != null
+            ? { inputFileExpiresAt: uploadedFile.file.expirationTime }
+            : {}),
+        },
+      },
       warnings,
     };
   }
@@ -399,18 +411,20 @@ export class GoogleBatchLanguageModel
       .map(segment => encodeURIComponent(segment))
       .join('/');
 
-    const { value: stream } = await getFromApi({
+    const { value: lines } = await getFromApi({
       url: `${this.getBaseOrigin()}/download/v1beta/${encodedResponsesFile}:download?alt=media`,
       headers: await this.getHeaders(options.headers),
       failedResponseHandler: googleFailedResponseHandler,
-      successfulResponseHandler: rawStreamResponseHandler,
+      successfulResponseHandler: createJsonLinesResponseHandler(
+        googleBatchResultLineSchema,
+      ),
       abortSignal: options.abortSignal,
       fetch: this.batchConfig.fetch,
       validateUrl: false,
     });
 
     return convertAsyncIteratorToReadableStream(
-      this.iterateBatchResults(parseJsonLines(stream)),
+      this.iterateBatchResults(lines),
     );
   }
 
@@ -626,22 +640,12 @@ function convertGoogleRequestCounts(
   const failed = parseCount(counts?.failedRequestCount ?? 0);
   const pending = parseCount(counts?.pendingRequestCount ?? 0);
 
-  if (
-    total == null ||
-    completed == null ||
-    failed == null ||
-    pending == null ||
-    completed + failed + pending !== total
-  ) {
-    return undefined;
-  }
-
-  return {
+  return normalizeBatchRequestCounts({
     total,
     pending,
     completed,
     failed,
-  };
+  });
 }
 
 function parseCount(value: string | number | null | undefined) {
@@ -676,64 +680,3 @@ const googleUploadUrlResponseHandler: ResponseHandler<string> = async ({
 
   return { value: uploadUrl };
 };
-
-const rawStreamResponseHandler: ResponseHandler<
-  ReadableStream<Uint8Array>
-> = async ({ response }) => {
-  if (response.body == null) {
-    throw new EmptyResponseBodyError();
-  }
-
-  return { value: response.body };
-};
-
-async function* parseJsonLines(
-  stream: ReadableStream<Uint8Array>,
-): AsyncGenerator<GoogleBatchResultLine> {
-  const reader = stream.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  let finished = false;
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-
-      if (done) {
-        finished = true;
-        buffer += decoder.decode();
-        break;
-      }
-
-      buffer += decoder.decode(value, { stream: true });
-
-      let lineEnd = buffer.indexOf('\n');
-      while (lineEnd !== -1) {
-        const line = buffer.slice(0, lineEnd).replace(/\r$/, '');
-        buffer = buffer.slice(lineEnd + 1);
-
-        if (line.trim().length > 0) {
-          yield await parseJSON({
-            text: line,
-            schema: googleBatchResultLineSchema,
-          });
-        }
-
-        lineEnd = buffer.indexOf('\n');
-      }
-    }
-
-    const finalLine = buffer.replace(/\r$/, '');
-    if (finalLine.trim().length > 0) {
-      yield await parseJSON({
-        text: finalLine,
-        schema: googleBatchResultLineSchema,
-      });
-    }
-  } finally {
-    if (!finished) {
-      await reader.cancel().catch(() => {});
-    }
-    reader.releaseLock();
-  }
-}

@@ -717,6 +717,63 @@ describe('convertToModelMessages', () => {
     });
 
     describe('tool output error', () => {
+      it('should preserve result provider metadata on a failed tool call when call metadata is unavailable', async () => {
+        const result = await convertToModelMessages([
+          {
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-createWidget',
+                state: 'output-error',
+                toolCallId: 'call1',
+                input: undefined,
+                rawInput: {},
+                errorText: 'Invalid input',
+                resultProviderMetadata: {
+                  openai: {
+                    namespace: 'widget_tools',
+                  },
+                },
+              },
+            ],
+          },
+        ]);
+
+        expect(result).toEqual([
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call1',
+                toolName: 'createWidget',
+                input: {},
+                providerExecuted: undefined,
+                providerOptions: {
+                  openai: {
+                    namespace: 'widget_tools',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call1',
+                toolName: 'createWidget',
+                output: {
+                  type: 'error-text',
+                  value: 'Invalid input',
+                },
+              },
+            ],
+          },
+        ]);
+      });
+
       it('should handle assistant message with tool output error that has raw input', async () => {
         const result = await convertToModelMessages([
           {
@@ -734,7 +791,7 @@ describe('convertToModelMessages', () => {
                 toolCallId: 'call1',
                 errorText: 'Error: Invalid input',
                 input: undefined,
-                rawInput: { operation: 'add', numbers: [1, 2] },
+                rawInput: '{"operation":"add","numbers":[1,2]',
               },
             ],
           },
@@ -749,13 +806,7 @@ describe('convertToModelMessages', () => {
                 "type": "text",
               },
               {
-                "input": {
-                  "numbers": [
-                    1,
-                    2,
-                  ],
-                  "operation": "add",
-                },
+                "input": "{\"operation\":\"add\",\"numbers\":[1,2]",
                 "providerExecuted": undefined,
                 "toolCallId": "call1",
                 "toolName": "calculator",
@@ -2679,6 +2730,83 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
+    });
+
+    it('should propagate reason from a pending approval request', async () => {
+      const result = await convertToModelMessages([
+        {
+          parts: [
+            {
+              approval: {
+                id: 'a1',
+                requestReason: 'requires operator review',
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              state: 'approval-requested',
+              toolCallId: 'call-1',
+              type: 'tool-weather',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      const assistantMessage = result.find(
+        message => message.role === 'assistant',
+      );
+      expect(assistantMessage?.content).toContainEqual({
+        type: 'tool-approval-request',
+        approvalId: 'a1',
+        toolCallId: 'call-1',
+        isAutomatic: undefined,
+        reason: 'requires operator review',
+      });
+    });
+
+    it('should keep request and response reasons separate after approval', async () => {
+      const result = await convertToModelMessages([
+        {
+          parts: [
+            {
+              approval: {
+                approved: true,
+                id: 'a1',
+                requestReason: 'requires operator review',
+                reason: 'approved by on-call operator',
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              state: 'approval-responded',
+              toolCallId: 'call-1',
+              type: 'tool-weather',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      const assistantMessage = result.find(
+        message => message.role === 'assistant',
+      );
+      expect(assistantMessage?.content).toContainEqual({
+        type: 'tool-approval-request',
+        approvalId: 'a1',
+        toolCallId: 'call-1',
+        isAutomatic: undefined,
+        reason: 'requires operator review',
+      });
+
+      const toolMessage = result.find(message => message.role === 'tool');
+      expect(toolMessage?.content).toContainEqual({
+        type: 'tool-approval-response',
+        approvalId: 'a1',
+        approved: true,
+        providerExecuted: undefined,
+        reason: 'approved by on-call operator',
+      });
     });
 
     it('should propagate signature from approval to tool-approval-request part', async () => {

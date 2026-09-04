@@ -1,5 +1,117 @@
 # @ai-sdk/sandbox-just-bash
 
+## 1.0.101
+
+### Patch Changes
+
+- Updated dependencies [951c54d]
+  - @ai-sdk/harness@1.0.101
+
+## 1.0.100
+
+### Patch Changes
+
+- Updated dependencies [0c37bf0]
+  - @ai-sdk/harness@1.0.100
+
+## 1.0.99
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+  - @ai-sdk/harness@1.0.99
+
+## 1.0.98
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider-utils@5.0.35
+  - @ai-sdk/harness@1.0.98
+
+## 1.0.97
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.97
+
+## 1.0.96
+
+### Patch Changes
+
+- Updated dependencies [c0c7fac]
+  - @ai-sdk/harness@1.0.96
+
+## 1.0.95
+
+### Patch Changes
+
+- Updated dependencies [371e954]
+- Updated dependencies [87b4858]
+  - @ai-sdk/harness@1.0.95
+
+## 1.0.94
+
+### Patch Changes
+
+- Updated dependencies [8961fde]
+- Updated dependencies [eb59f2a]
+  - @ai-sdk/harness@1.0.94
+  - @ai-sdk/provider-utils@5.0.34
+
+## 1.0.93
+
+### Patch Changes
+
+- 24fcc92: fix(sandbox-just-bash): make per-command environment variables available to run and spawn
+- Updated dependencies [cc9f6ce]
+- Updated dependencies [7608210]
+- Updated dependencies [6f8a2d7]
+- Updated dependencies [14d4fc0]
+- Updated dependencies [90192f1]
+  - @ai-sdk/harness@1.0.93
+  - @ai-sdk/provider-utils@5.0.33
+
+## 1.0.92
+
+### Patch Changes
+
+- Updated dependencies [e0d7cfb]
+  - @ai-sdk/harness@1.0.92
+
+## 1.0.91
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.91
+
+## 1.0.90
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+- Updated dependencies [0e590d2]
+  - @ai-sdk/provider-utils@5.0.32
+  - @ai-sdk/harness@1.0.90
+
+## 1.0.89
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.89
+
+## 1.0.88
+
+### Patch Changes
+
+- Updated dependencies [32349cc]
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/harness@1.0.88
+  - @ai-sdk/provider-utils@5.0.31
+
 ## 1.0.87
 
 ### Patch Changes

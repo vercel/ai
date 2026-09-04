@@ -8,7 +8,7 @@ The **[@ai-sdk/harness-cursor](https://www.npmjs.com/package/@ai-sdk/harness-cur
 npm install @ai-sdk/harness @ai-sdk/harness-cursor @ai-sdk/sandbox-vercel
 ```
 
-Create a Cursor user API key and set `CURSOR_API_KEY`. The key authenticates Cursor CLI in the sandbox regardless of how Cursor is configured to authenticate to the model provider.
+Create a Cursor user API key and set `CURSOR_API_KEY`, or pass it directly with `createCursor({ auth: { CURSOR_API_KEY: token } })`. The key authenticates Cursor CLI in the sandbox regardless of how Cursor is configured to authenticate to the model provider.
 
 ## Usage
 

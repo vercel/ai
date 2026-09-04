@@ -12,9 +12,15 @@ export {
 } from './bridge-user-message-submitter';
 export { classifyDiskLog, type DiskLogRecoveryMode } from './classify-disk-log';
 export { getAiGatewayAuthFromEnv } from './ai-gateway-auth';
-export { applyCredentialForwarding } from './credential-forwarding';
+export { isHarnessAuthenticationEnvironment } from './authentication-environment';
+export {
+  applyCredentialForwarding,
+  createSandboxCredentialEnvironment,
+} from './credential-forwarding';
 export {
   createCredentialRequestTransformation,
+  generateSandboxCredentialPlaceholder,
+  isSandboxCredentialPlaceholder,
   maskSandboxCredentials,
   warnCredentialBrokeringUnavailable,
 } from './sandbox-credential-brokering';
@@ -24,6 +30,7 @@ export {
   writeSkills,
   type SkillFilePathMode,
   type WriteSkillsOptions,
+  type WriteSkillsResult,
 } from './write-skills';
 export {
   markBridgeStarting,
@@ -33,6 +40,8 @@ export {
   type WaitForBridgeReadyOptions,
   type WaitForBridgeReadyResult,
 } from './bridge-ready';
+export { createBridgeToken, withBridgeToken } from './bridge-token';
+export { createReadBridgeAsset } from './bridge-asset';
 export {
   createBridgeErrorHandler,
   createBridgeStartupError,

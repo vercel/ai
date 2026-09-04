@@ -2,7 +2,7 @@ import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 /**
- * Aspect ratios supported by the MiniMax-H3 video model.
+ * Aspect ratios supported by the MiniMax video models.
  */
 export const minimaxVideoRatios = [
   'adaptive',
@@ -15,9 +15,10 @@ export const minimaxVideoRatios = [
 ] as const;
 
 /**
- * Output resolutions supported by the MiniMax-H3 video model.
+ * Output resolutions supported by MiniMax video models. Availability depends
+ * on the selected model.
  */
-export const minimaxVideoResolutions = ['2K'] as const;
+export const minimaxVideoResolutions = ['480P', '768P', '2K'] as const;
 
 /**
  * Provider options for MiniMax video generation.

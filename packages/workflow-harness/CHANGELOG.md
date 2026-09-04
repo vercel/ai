@@ -1,5 +1,105 @@
 # @ai-sdk/workflow-harness
 
+## 1.0.101
+
+### Patch Changes
+
+- Updated dependencies [951c54d]
+  - @ai-sdk/harness@1.0.101
+
+## 1.0.100
+
+### Patch Changes
+
+- Updated dependencies [0c37bf0]
+  - @ai-sdk/harness@1.0.100
+
+## 1.0.99
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.99
+
+## 1.0.98
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.98
+
+## 1.0.97
+
+### Patch Changes
+
+- 4c64779: fix(workflow-harness): preserve partial tool inputs across time slices
+  - @ai-sdk/harness@1.0.97
+
+## 1.0.96
+
+### Patch Changes
+
+- Updated dependencies [c0c7fac]
+  - @ai-sdk/harness@1.0.96
+
+## 1.0.95
+
+### Patch Changes
+
+- Updated dependencies [371e954]
+- Updated dependencies [87b4858]
+  - @ai-sdk/harness@1.0.95
+
+## 1.0.94
+
+### Patch Changes
+
+- Updated dependencies [8961fde]
+- Updated dependencies [eb59f2a]
+  - @ai-sdk/harness@1.0.94
+
+## 1.0.93
+
+### Patch Changes
+
+- Updated dependencies [cc9f6ce]
+- Updated dependencies [7608210]
+- Updated dependencies [6f8a2d7]
+- Updated dependencies [14d4fc0]
+  - @ai-sdk/harness@1.0.93
+
+## 1.0.92
+
+### Patch Changes
+
+- Updated dependencies [e0d7cfb]
+  - @ai-sdk/harness@1.0.92
+
+## 1.0.91
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.91
+
+## 1.0.90
+
+### Patch Changes
+
+- Updated dependencies [0e590d2]
+  - @ai-sdk/harness@1.0.90
+
+## 1.0.89
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.89
+
+## 1.0.88
+
+### Patch Changes
+
+- 309ba00: fix(workflow-harness): prevent time-slice deadlines from suspending harness turns that have already completed.
+- Updated dependencies [32349cc]
+  - @ai-sdk/harness@1.0.88
+
 ## 1.0.87
 
 ### Patch Changes

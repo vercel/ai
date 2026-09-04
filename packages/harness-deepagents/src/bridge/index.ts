@@ -9,7 +9,7 @@ import {
 } from '@ai-sdk/harness/bridge';
 import { ChatAnthropic } from '@langchain/anthropic';
 import { tool } from '@langchain/core/tools';
-import { Command, MemorySaver } from '@langchain/langgraph';
+import { Command, MemorySaver, Overwrite } from '@langchain/langgraph';
 import {
   MultiServerMCPClient,
   type ClientConfig,
@@ -29,6 +29,11 @@ import {
 } from './create-emit-stream-event';
 import { jsonSchemaToZodObject } from './json-schema-to-zod';
 import { createLocalShellBackend } from './local-shell-backend';
+import {
+  loadMemorySaver,
+  removeMemorySaverSnapshot,
+  saveMemorySaver,
+} from './persistent-memory-saver';
 import { createBuiltinToolFilteringMiddleware } from './tool-filtering';
 
 const HARNESS_CLIENT_APP = procEnv.AI_SDK_HARNESS_CLIENT_APP;
@@ -54,10 +59,12 @@ function buildModel({
   rawModel,
   thinking,
   effort,
+  headers,
 }: {
   rawModel: string | undefined;
   thinking: StartMessage['thinking'];
   effort: StartMessage['effort'];
+  headers: StartMessage['headers'];
 }) {
   if (!rawModel) return undefined;
   const baseUrl = procEnv.ANTHROPIC_BASE_URL;
@@ -68,12 +75,17 @@ function buildModel({
     ...(effort ? { outputConfig: { effort } } : {}),
     ...(procEnv.ANTHROPIC_API_KEY ? { apiKey: procEnv.ANTHROPIC_API_KEY } : {}),
     ...(baseUrl ? { anthropicApiUrl: baseUrl } : {}),
-    ...(procEnv.AI_GATEWAY_API_KEY && HARNESS_CLIENT_APP
+    ...(headers != null || procEnv.AI_GATEWAY_API_KEY
       ? {
           clientOptions: {
             defaultHeaders: {
-              'User-Agent': HARNESS_CLIENT_APP,
-              'x-client-app': HARNESS_CLIENT_APP,
+              ...headers,
+              ...(procEnv.AI_GATEWAY_API_KEY && HARNESS_CLIENT_APP
+                ? {
+                    'User-Agent': HARNESS_CLIENT_APP,
+                    'x-client-app': HARNESS_CLIENT_APP,
+                  }
+                : {}),
             },
           },
         }
@@ -81,18 +93,25 @@ function buildModel({
   });
 }
 
-function createReasoningMiddleware({
-  thinking,
-  effort,
-}: {
-  thinking: StartMessage['thinking'];
-  effort: StartMessage['effort'];
-}) {
-  if (!thinking && !effort) return undefined;
-
+function createModelMiddleware() {
   return createMiddleware({
-    name: 'harnessReasoning',
+    name: 'harnessModel',
     wrapModelCall: async (request, handler) => {
+      if (!activeModel && !activeThinking && !activeEffort && !activeHeaders) {
+        return handler(request);
+      }
+
+      if (activeModel) {
+        const configuredModel = buildModel({
+          rawModel: activeModel,
+          thinking: activeThinking,
+          effort: activeEffort,
+          headers: activeHeaders,
+        });
+        if (!configuredModel) throw new Error('Deep Agents model is missing');
+        return handler({ ...request, model: configuredModel });
+      }
+
       let model = request.model;
       if (
         '_getModelInstance' in model &&
@@ -107,8 +126,9 @@ function createReasoningMiddleware({
 
       const configuredModel = buildModel({
         rawModel: model.model,
-        thinking,
-        effort,
+        thinking: activeThinking,
+        effort: activeEffort,
+        headers: activeHeaders,
       });
       if (!configuredModel) throw new Error('Deep Agents model is missing');
 
@@ -125,6 +145,7 @@ if (!workdir || !bridgeStateDir) {
   console.error('deepagents bridge: missing --workdir / --bridge-state-dir');
   process.exit(1);
 }
+const conversationCheckpointPath = `${bridgeStateDir}/conversation.checkpoint`;
 
 // One agent per bridge process, reused across turns; host tools read the live turn via `currentTurn`.
 let agent: ReturnType<typeof createDeepAgent> | undefined;
@@ -132,6 +153,21 @@ let currentTurn: BridgeTurn | undefined;
 let mcpClient: MultiServerMCPClient | undefined;
 let mcpToolNames = new Set<string>();
 let currentResponseFormat: ReturnType<typeof toolStrategy> | undefined;
+const checkpointer = new MemorySaver();
+if (args.resume === 'true') {
+  await loadMemorySaver({
+    path: conversationCheckpointPath,
+    saver: checkpointer,
+  });
+} else {
+  await removeMemorySaverSnapshot(conversationCheckpointPath);
+}
+let agentConfigurationSignature: string | undefined;
+let activeModel: string | undefined;
+let activeThinking: StartMessage['thinking'];
+let activeEffort: StartMessage['effort'];
+let activeHeaders: StartMessage['headers'];
+const modelMiddleware = createModelMiddleware();
 
 type DeepAgentsJsonSchema = Record<string, unknown> & {
   type:
@@ -185,6 +221,10 @@ function buildHostTools(toolSchemas: StartMessage['tools']) {
 
 async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   currentTurn = turn;
+  if (start.model) activeModel = start.model;
+  activeThinking = start.thinking;
+  activeEffort = start.effort;
+  activeHeaders = start.headers;
   currentResponseFormat =
     start.responseFormat?.type === 'json' && start.responseFormat.schema != null
       ? toolStrategy(start.responseFormat.schema as DeepAgentsJsonSchema)
@@ -196,18 +236,30 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     start.permissionMode,
     start.builtinToolFiltering,
   );
-  if (!agent) {
-    const model = buildModel({
-      rawModel: start.model,
-      thinking: start.thinking,
-      effort: start.effort,
-    });
-    const reasoningMiddleware = model
-      ? undefined
-      : createReasoningMiddleware({
-          thinking: start.thinking,
-          effort: start.effort,
-        });
+  const config = {
+    version: 'v2' as const,
+    configurable: { thread_id: 'bridge-session' },
+    ...(start.recursionLimit != null
+      ? { recursionLimit: start.recursionLimit }
+      : {}),
+    signal: turn.abortSignal,
+  };
+  const nextAgentConfigurationSignature = JSON.stringify({
+    instructions: start.instructions,
+    tools: start.tools,
+    skillsPaths: start.skillsPaths,
+  });
+  const rebuildAgent =
+    agent == null ||
+    agentConfigurationSignature !== nextAgentConfigurationSignature ||
+    start.skillsChanged === true;
+  if (rebuildAgent) {
+    if (agent != null && start.skillsChanged === true) {
+      await agent.updateState(config, {
+        skillsMetadata: new Overwrite([]),
+      } as never);
+    }
+    await closeMcpClient();
     const builtinToolFilteringMiddleware = createBuiltinToolFilteringMiddleware(
       {
         builtinToolFiltering: start.builtinToolFiltering,
@@ -220,7 +272,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     );
     const middleware = [
       responseFormatMiddleware,
-      ...(reasoningMiddleware ? [reasoningMiddleware] : []),
+      modelMiddleware,
       ...(builtinToolFilteringMiddleware
         ? [builtinToolFilteringMiddleware]
         : []),
@@ -235,8 +287,6 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     );
     mcpToolNames = new Set(mcpTools.map(mcpTool => mcpTool.name));
     agent = createDeepAgent({
-      // Defer to Deep Agents's own default when the host configured no model.
-      ...(model ? { model } : {}),
       tools: [...mcpTools, ...hostTools],
       backend: createLocalShellBackend({ rootDir: workdir }),
       systemPrompt: start.instructions
@@ -248,15 +298,20 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       // Gate built-in tools behind HITL approval when the permission mode requires it.
       ...(interruptOn ? { interruptOn } : {}),
       // Real instance (LangGraph rejects `true` for root graphs); gives multi-turn memory.
-      checkpointer: new MemorySaver(),
+      checkpointer,
     });
+    agentConfigurationSignature = nextAgentConfigurationSignature;
+  }
+  const activeAgent = agent;
+  if (activeAgent == null) {
+    throw new Error('Deep Agents runtime was not initialized');
   }
 
   const hostToolNames = new Set((start.tools ?? []).map(t => t.name));
   const streamEventState = createDeepAgentsStreamEventState();
   const emitStreamEvent = createEmitStreamEvent({
     state: streamEventState,
-    configuredModel: start.model,
+    configuredModel: activeModel,
     hostToolNames,
     mcpToolNames,
     structuredOutputToolNames: new Set(
@@ -265,19 +320,10 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     emit,
   });
 
-  const config = {
-    version: 'v2' as const,
-    configurable: { thread_id: 'bridge-session' },
-    ...(start.recursionLimit != null
-      ? { recursionLimit: start.recursionLimit }
-      : {}),
-    signal: turn.abortSignal,
-  };
-
   // After a stream segment ends, return the tool calls paused by HITL interrupts (empty when the turn is truly done).
   const readPendingApprovals = async () => {
     try {
-      const state = (await agent!.getState({
+      const state = (await activeAgent.getState({
         configurable: { thread_id: 'bridge-session' },
       })) as { tasks?: Array<{ interrupts?: Array<{ value?: unknown }> }> };
       return collectActionRequests(
@@ -294,7 +340,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   let emittedStructuredOutput = false;
 
   while (true) {
-    const stream = await agent.streamEvents(resumeInput as never, config);
+    const stream = await activeAgent.streamEvents(resumeInput as never, config);
 
     for await (const event of stream) {
       emitStreamEvent(event as DeepAgentsStreamEvent);
@@ -388,9 +434,16 @@ await runBridge<StartMessage>({
   onStart: runTurn,
   onStop: async () => {
     await closeMcpClient();
+    await saveMemorySaver({
+      path: conversationCheckpointPath,
+      saver: checkpointer,
+    });
     return {};
   },
-  onDestroy: closeMcpClient,
+  onDestroy: async () => {
+    await closeMcpClient();
+    await removeMemorySaverSnapshot(conversationCheckpointPath);
+  },
 });
 
 async function loadMcpTools({

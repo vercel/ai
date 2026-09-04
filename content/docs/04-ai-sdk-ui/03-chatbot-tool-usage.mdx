@@ -471,6 +471,9 @@ export default function Chat() {
                   return (
                     <div key={part.toolCallId}>
                       <p>Get weather for {part.input.city}?</p>
+                      {part.approval.requestReason && (
+                        <p>{part.approval.requestReason}</p>
+                      )}
                       <button
                         onClick={() =>
                           addToolApprovalResponse({
@@ -536,6 +539,16 @@ decisions already arrive in the UI stream as `approval-requested` and
 `approval-responded` states, and denied executions continue to `output-denied`.
 If you return a `reason` from an automatic approval or denial, it is available
 as `part.approval.reason`.
+For manual approval requests, the reason for requiring approval is available as
+`part.approval.requestReason`. It remains separate from an optional response
+reason supplied to `addToolApprovalResponse`.
+
+Approval request chunks can also include an `approvalDescriptor` with opaque
+application-specific metadata. UI message processing exposes it as
+`part.approval.descriptor` in the `approval-requested` state and preserves it in
+subsequent approval-bearing states, including `approval-responded`. This lets
+clients render or persist server-computed approval metadata without using it to
+determine whether the tool was approved.
 
 ### Securing Approvals for Sensitive Tools
 

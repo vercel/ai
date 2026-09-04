@@ -1,9 +1,17 @@
-import type { HarnessV1, HarnessV1PortEndpoint } from '@ai-sdk/harness';
+import {
+  HARNESS_V1_BUILTIN_TOOLS,
+  type HarnessV1,
+  type HarnessV1PortEndpoint,
+} from '@ai-sdk/harness';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { ACPClientApp } from './acp-auth';
 import type { ACPToolCall } from './acp-tool-call';
-import { createACPV1, type ACPV1Settings } from './v1';
+import {
+  createACPV1,
+  type ACPAskUserQuestionsSettings,
+  type ACPV1Settings,
+} from './v1';
 import {
   acpColdSessionStateSchema,
   acpTurnStartConfigSchema,
@@ -15,7 +23,12 @@ const ACP_CLIENT_APP = {
   version: VERSION,
 } as const satisfies ACPClientApp;
 
-export type ACPHarnessSettings<TBuiltinTools extends ToolSet = {}> = {
+export type ACPHarnessSettings<
+  TBuiltinTools extends ToolSet = {},
+  TAskUserQuestions extends ACPAskUserQuestionsSettings | undefined =
+    | ACPAskUserQuestionsSettings
+    | undefined,
+> = {
   readonly builtinTools?: TBuiltinTools;
   /**
    * MCP server definitions keyed by server name. Each definition uses the
@@ -48,10 +61,28 @@ export type ACPHarnessSettings<TBuiltinTools extends ToolSet = {}> = {
   readonly credentialForwarding?: ACPV1Settings['credentialForwarding'];
   readonly env?: ACPV1Settings['env'];
   readonly authentication?: ACPV1Settings['authentication'];
+  readonly clientCapabilities?: ACPV1Settings['clientCapabilities'];
   readonly providerAuthentication?: ACPV1Settings['providerAuthentication'];
+  /**
+   * Maps the HarnessAgent model identifier to an ACP session operation.
+   */
+  readonly modelMapping: ACPV1Settings['modelMapping'];
+  /**
+   * @deprecated Use `model` on `HarnessAgent` instead.
+   */
   readonly modelId?: ACPV1Settings['modelId'];
+  readonly skillsDirectory?: ACPV1Settings['skillsDirectory'];
   readonly instructionMapping?: ACPV1Settings['instructionMapping'];
   readonly outputSchemaMapping?: ACPV1Settings['outputSchemaMapping'];
+  /**
+   * Transport used for the harness-owned MCP server that exposes host tools to
+   * the ACP implementation. Defaults to `stdio`. Set this to `http` for
+   * implementations that only accept HTTP or SSE MCP servers from the client,
+   * which requires the implementation to advertise
+   * `agentCapabilities.mcpCapabilities.http`.
+   */
+  readonly hostToolMcpTransport?: ACPV1Settings['hostToolMcpTransport'];
+  readonly askUserQuestions?: TAskUserQuestions;
   readonly permissionModeMapping?: ACPV1Settings['permissionModeMapping'];
   readonly session?: ACPV1Settings['session'];
   readonly mintBridgeToken?: ACPV1Settings['mintBridgeToken'];
@@ -85,6 +116,7 @@ const acpResumeStateSchema = z.object({
         .optional(),
     })
     .optional(),
+  sandboxCredentialEnvironment: z.record(z.string(), z.string()).optional(),
   acpSessionId: z.string().optional(),
   bridge: acpBridgeCoordsSchema.optional(),
   coldSession: acpColdSessionStateSchema.optional(),
@@ -101,13 +133,28 @@ const acpResumeStateSchema = z.object({
     })
     .optional(),
   initialGuidanceApplied: z.boolean().optional(),
-  skillsMaterialized: z.boolean().optional(),
-  skillsFingerprint: z.string().optional(),
+  instructionsFingerprint: z.string().optional(),
+  skillsDirectory: z.string().optional(),
 });
 
-export function createACP<TBuiltinTools extends ToolSet = {}>(
-  settings: ACPHarnessSettings<TBuiltinTools>,
-): HarnessV1<TBuiltinTools> {
+type ACPBridgeCoords = z.infer<typeof acpBridgeCoordsSchema>;
+
+type ACPHarnessTools<
+  TBuiltinTools extends ToolSet,
+  TAskUserQuestions,
+> = TBuiltinTools &
+  ([TAskUserQuestions] extends [undefined]
+    ? {}
+    : {
+        askUserQuestions: typeof HARNESS_V1_BUILTIN_TOOLS.askUserQuestions;
+      });
+
+export function createACP<
+  TBuiltinTools extends ToolSet = {},
+  TAskUserQuestions extends ACPAskUserQuestionsSettings | undefined = undefined,
+>(
+  settings: ACPHarnessSettings<TBuiltinTools, TAskUserQuestions>,
+): HarnessV1<ACPHarnessTools<TBuiltinTools, TAskUserQuestions>> {
   if (
     (settings.credentialEnv == null) !==
     (settings.credentialBrokering == null)
@@ -131,16 +178,25 @@ export function createACP<TBuiltinTools extends ToolSet = {}>(
   switch (version) {
     case 'v1': {
       const clientApp = settings.clientApp ?? ACP_CLIENT_APP;
+      const builtinTools =
+        settings.askUserQuestions == null
+          ? (settings.builtinTools ?? (ACP_BUILTIN_TOOLS as TBuiltinTools))
+          : {
+              ...(settings.builtinTools ??
+                (ACP_BUILTIN_TOOLS as TBuiltinTools)),
+              askUserQuestions: HARNESS_V1_BUILTIN_TOOLS.askUserQuestions,
+            };
       return createACPV1({
         settings,
-        builtinTools:
-          settings.builtinTools ?? (ACP_BUILTIN_TOOLS as TBuiltinTools),
+        builtinTools,
         port: settings.port,
         portEndpoint: settings.portEndpoint,
         startupTimeoutMs: settings.startupTimeoutMs,
         clientApp,
-        lifecycleStateSchema: acpResumeStateSchema,
-      });
+        lifecycleStateSchema: acpResumeStateSchema satisfies z.ZodType<{
+          bridge?: ACPBridgeCoords;
+        }>,
+      }) as HarnessV1<ACPHarnessTools<TBuiltinTools, TAskUserQuestions>>;
     }
     default:
       throw new Error(

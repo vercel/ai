@@ -217,12 +217,13 @@ The following provider options are available:
   `.nullable()`.
 </Note>
 
-- **serviceTier** _'auto' | 'flex' | 'priority' | 'fast' | 'default'_
+- **serviceTier** _'auto' | 'flex' | 'priority' | 'fast' | 'ultrafast' | 'default'_
   Service tier for the request. Set to 'flex' for 50% cheaper processing
   at the cost of increased latency (available for o3, o4-mini, and gpt-5 models).
   Set to 'priority' for faster processing with Enterprise access (available for gpt-4, gpt-5, gpt-5-mini, o3, o4-mini; gpt-5-nano is not supported).
   'fast' is OpenAI's newer name for the 'priority' tier; the two are interchangeable, and responses from
   gpt-5.6 and earlier report `serviceTier: 'priority'` for either.
+  Set to 'ultrafast' for access-controlled Ultrafast processing (available only for gpt-5.6-sol).
 
   Defaults to 'auto'.
 
@@ -1956,40 +1957,60 @@ The metadata includes the following fields:
 ### Text Batches
 
 <Note type="warning">
-  Text batch APIs are experimental and may change in future releases.
+  Text batch support is experimental and the API may change in patch releases.
 </Note>
 
-The OpenAI provider supports the [Batch API](https://developers.openai.com/api/docs/guides/batch) for text generation.
+The OpenAI provider supports asynchronous text generation through the
+[Batch API](https://developers.openai.com/api/docs/guides/batch). Use the
+experimental text batch APIs to start a batch, poll its status, and stream its
+results:
 
 ```ts
 import { openai } from '@ai-sdk/openai';
 import {
-  experimental_startTextBatch as startTextBatch,
   experimental_getBatchResults as getBatchResults,
   experimental_getBatchStatus as getBatchStatus,
+  experimental_startTextBatch as startTextBatch,
 } from 'ai';
+import { setTimeout } from 'node:timers/promises';
 
 const model = openai('gpt-4.1-nano');
 
 const batch = await startTextBatch({
   model,
   requests: [
-    { id: 'france', prompt: 'What is the capital of France?' },
-    { id: 'germany', prompt: 'What is the capital of Germany?' },
+    { id: 'capital-france', prompt: 'What is the capital of France?' },
+    { id: 'capital-germany', prompt: 'What is the capital of Germany?' },
   ],
 });
 
-// Persist `batch` and check its status later, or poll for status updates.
-const { status } = await getBatchStatus({ model, batch });
+let status = batch.status;
+while (status === 'pending') {
+  await setTimeout(60_000);
+  ({ status } = await getBatchStatus({ model, batch }));
+}
 
-if (status !== 'pending') {
-  for await (const result of getBatchResults({ model, batch })) {
-    console.log(result);
+for await (const item of getBatchResults({ model, batch })) {
+  if (item.status === 'succeeded') {
+    console.log(item.id, item.text);
+  } else {
+    console.error(item.id, item.error);
   }
 }
 ```
 
-Starting a batch returns a serializable reference that can be persisted and used to retrieve the batch results later, or poll for status updates.
+`startTextBatch` returns a serializable batch reference. Persist this reference
+to check the batch status or retrieve its results from another process. Results
+can arrive in a different order from the input requests, so match each result by
+its `id`.
+
+#### Webhooks
+
+<Note>
+  The OpenAI Batch API does not support per-batch webhooks. When you provide a
+  `webhookUrl`, the provider returns an unsupported warning and starts the batch
+  without a webhook.
+</Note>
 
 ### Chat Models
 
@@ -2086,13 +2107,14 @@ The following optional provider options are available for OpenAI chat models:
 
   Parameters for prediction mode.
 
-- **serviceTier** _'auto' | 'flex' | 'priority' | 'fast' | 'default'_
+- **serviceTier** _'auto' | 'flex' | 'priority' | 'fast' | 'ultrafast' | 'default'_
 
   Service tier for the request. Set to 'flex' for 50% cheaper processing
   at the cost of increased latency (available for o3, o4-mini, and gpt-5 models).
   Set to 'priority' for faster processing with Enterprise access (available for gpt-4, gpt-5, gpt-5-mini, o3, o4-mini; gpt-5-nano is not supported).
   'fast' is OpenAI's newer name for the 'priority' tier; the two are interchangeable, and responses from
   gpt-5.6 and earlier report `serviceTier: 'priority'` for either.
+  Set to 'ultrafast' for access-controlled Ultrafast processing (available only for gpt-5.6-sol).
 
   Defaults to 'auto'.
 
@@ -2698,6 +2720,7 @@ The following optional provider options are available for OpenAI completion mode
 
 | Model                 | Image Input | Audio Input | Object Generation | Tool Usage |
 | --------------------- | ----------- | ----------- | ----------------- | ---------- |
+| `gpt-6-astra`         | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-5.6`             | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-5.6-luna`        | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-5.6-sol`         | <Check />   | <Cross />   | <Check />         | <Check />  |
@@ -3000,6 +3023,21 @@ const result = await transcribe({
 console.log(result.segments); // Array of segments with startSecond/endSecond
 ```
 
+`gpt-4o-transcribe-diarize` identifies speakers in a recording. It defaults to
+the `diarized_json` response format and automatic chunking:
+
+```ts
+import { transcribe } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await transcribe({
+  model: openai.transcription('gpt-4o-transcribe-diarize'),
+  audio: new Uint8Array([1, 2, 3, 4]),
+});
+
+console.log(result.providerMetadata.openai.segments);
+```
+
 The following provider options are available:
 
 - **timestampGranularities** _string[]_
@@ -3024,6 +3062,12 @@ The following provider options are available:
 - **include** _string[]_
   Additional information to include in the transcription response.
 
+- **responseFormat** _'json' | 'verbose_json' | 'diarized_json'_
+  The format of the transcription response. `gpt-4o-transcribe-diarize` defaults to `diarized_json`.
+
+- **chunkingStrategy** _'auto' | object_
+  Controls how the audio is split into chunks. `gpt-4o-transcribe-diarize` defaults to `'auto'`; provide this option to override the default. The object form configures OpenAI server-side VAD with `type: 'server_vad'` and optional `threshold`, `prefixPaddingMs`, and `silenceDurationMs` fields.
+
 - **streaming** _object_
   Options for streaming transcription models such as `gpt-realtime-whisper`.
   Use with `experimental_streamTranscribe`.
@@ -3035,12 +3079,13 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model                    | Transcription | Streaming | Duration  | Segments  | Language  |
-| ------------------------ | ------------- | --------- | --------- | --------- | --------- |
-| `whisper-1`              | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
-| `gpt-4o-mini-transcribe` | <Check />     | <Cross /> | <Cross /> | <Cross /> | <Cross /> |
-| `gpt-4o-transcribe`      | <Check />     | <Cross /> | <Cross /> | <Cross /> | <Cross /> |
-| `gpt-realtime-whisper`   | <Cross />     | <Check /> | <Cross /> | <Cross /> | <Cross /> |
+| Model                       | Transcription | Streaming | Duration  | Segments  | Language  |
+| --------------------------- | ------------- | --------- | --------- | --------- | --------- |
+| `whisper-1`                 | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
+| `gpt-4o-mini-transcribe`    | <Check />     | <Cross /> | <Cross /> | <Cross /> | <Cross /> |
+| `gpt-4o-transcribe`         | <Check />     | <Cross /> | <Cross /> | <Cross /> | <Cross /> |
+| `gpt-4o-transcribe-diarize` | <Check />     | <Cross /> | <Check /> | <Check /> | <Cross /> |
+| `gpt-realtime-whisper`      | <Cross />     | <Check /> | <Cross /> | <Cross /> | <Cross /> |
 
 ## Translation Models
 

@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@agentclientprotocol/sdk": "1.2.1",
-    "@modelcontextprotocol/sdk": "1.29.0",
-    "@xai-official/grok": "0.2.111",
+    "@agentclientprotocol/sdk": "1.4.0",
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "@xai-official/grok": "1.0.5",
     "ws": "8.21.0",
     "zod": "4.4.3"
   }

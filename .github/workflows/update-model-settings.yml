@@ -209,7 +209,7 @@ jobs:
             --body "$PR_BODY" \
             --base "${{ matrix.target-branch }}" \
             --head "${{ steps.create-branch.outputs.branch-name }}" \
-            --reviewer R-Taneja)
+            --reviewer ZYPX)
 
           PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
           echo "pr-url=$PR_URL" >> "$GITHUB_OUTPUT"
@@ -260,4 +260,4 @@ jobs:
           PR_COUNT: ${{ steps.check-prs.outputs.pr-count }}
           PR_URL: 'https://github.com/vercel/ai/pulls?q=is%3Apr+chore%28provider%2Fgateway%29%3A+update+gateway+model+settings+files+is%3Aopen'
           CHANNEL_ID: 'C099VQB75TP'
-          REVIEWER: 'U074PVAPV4J'
+          REVIEWER: 'U09AR1X4XQU'

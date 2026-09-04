@@ -5,16 +5,19 @@ import {
   type HarnessV1CredentialForwarding,
   type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
-import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
 import {
-  createACP,
-  type ACPProviderAuthenticationMode,
-} from '@ai-sdk/harness-acp';
+  createCredentialRequestTransformation,
+  isHarnessAuthenticationEnvironment,
+} from '@ai-sdk/harness/utils';
+import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
 
 const FX_CLIENT_APP = `ai-sdk/harness-fx/${VERSION}`;
+const DEFAULT_AI_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh';
+
+export type FxAuthenticationMode = ACPAuthenticationMode;
 
 function sanitizeFxMcpToolNameSegment(value: string): string {
   if (value.length === 0) return 'server';
@@ -36,10 +39,11 @@ function sanitizeFxMcpToolNameSegment(value: string): string {
 export type FxHarnessSettings = {
   /**
    * Selects direct or AI Gateway authentication. Both routes use AI Gateway
-   * because fx does not connect to model providers directly. Defaults to
-   * automatic environment-based selection.
+   * because fx does not connect to model providers directly. Pass an
+   * authentication environment to supply credentials programmatically, or
+   * omit it for automatic host-environment selection.
    */
-  readonly auth?: ACPProviderAuthenticationMode;
+  readonly auth?: FxAuthenticationMode;
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can
@@ -48,6 +52,8 @@ export type FxHarnessSettings = {
   readonly credentialForwarding?: HarnessV1CredentialForwarding;
   /**
    * Model id selected through ACP. Unset preserves fx's default.
+   *
+   * @deprecated Use `model` on `HarnessAgent` instead.
    */
   readonly model?: string;
   /**
@@ -552,6 +558,9 @@ export function createFx(
 ): HarnessV1<typeof FX_BUILTIN_TOOLS> {
   const clientAppSegments = FX_CLIENT_APP.split('/');
   const clientAppVersion = clientAppSegments.pop()!;
+  const suppliedAuthenticationEnvironment = isHarnessAuthenticationEnvironment(
+    settings.auth,
+  );
   const mcpToolTitlePrefixes = Object.keys(settings.mcpServers ?? {}).map(
     serverName => `mcp_${sanitizeFxMcpToolNameSegment(serverName)}_`,
   );
@@ -580,14 +589,30 @@ export function createFx(
     },
     executable: 'fx',
     args: ['acp'],
+    modelMapping: {
+      type: 'session-config-option',
+      path: 'model',
+    },
     credentialEnv: ['VERCEL_OIDC_TOKEN', 'AI_GATEWAY_API_KEY'],
-    credentialBrokering: ({ env }) => {
-      const credential = env.VERCEL_OIDC_TOKEN ?? env.AI_GATEWAY_API_KEY;
-      if (!credential) return [];
+    credentialBrokering: ({ env, sandboxEnv, headers }) => {
+      const environmentVariableName = suppliedAuthenticationEnvironment
+        ? env.AI_GATEWAY_API_KEY
+          ? 'AI_GATEWAY_API_KEY'
+          : 'VERCEL_OIDC_TOKEN'
+        : env.VERCEL_OIDC_TOKEN
+          ? 'VERCEL_OIDC_TOKEN'
+          : 'AI_GATEWAY_API_KEY';
+      const credential = env[environmentVariableName];
+      const sandboxCredential = sandboxEnv?.[environmentVariableName];
+      if (!credential || !sandboxCredential) return [];
       return [
         createCredentialRequestTransformation({
-          baseUrl: 'https://ai-gateway.vercel.sh',
-          headers: {
+          matchUrl: env.AI_GATEWAY_BASE_URL ?? DEFAULT_AI_GATEWAY_BASE_URL,
+          matchHeaders: {
+            Authorization: `Bearer ${sandboxCredential}`,
+          },
+          transformHeaders: {
+            ...headers,
             Authorization: `Bearer ${credential}`,
             'x-client-app': FX_CLIENT_APP,
           },
@@ -598,6 +623,7 @@ export function createFx(
       gateway: {
         env: {
           AI_GATEWAY_API_KEY: { $source: 'gateway-api-key' },
+          AI_GATEWAY_BASE_URL: { $source: 'gateway-base-url' },
         },
       },
     },

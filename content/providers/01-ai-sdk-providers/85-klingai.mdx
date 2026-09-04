@@ -334,7 +334,9 @@ The following provider options are available via `providerOptions.klingai`. Opti
 <Note>
   Video generation is an asynchronous process that can take several minutes.
   Consider setting `pollTimeoutMs` to at least 10 minutes (600000ms) for
-  reliable operation.
+  reliable operation. Status polls trust the configured Kling AI API origin for
+  the first request and validate every redirect to another origin before
+  following it.
 </Note>
 
 ### Video Model Capabilities

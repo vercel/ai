@@ -89,7 +89,7 @@ const result = await generateText({
 
 ## Writing the Rego policy
 
-The policy emits a decision object. `reason` is optional and is surfaced back to the model (for `deny`) or to the human approver (for `requires-approval`).
+The policy emits a decision object. `reason` is optional and is surfaced back to the model (for `deny`) or to the human approver (for `requires-approval`). A manual approval request exposes it as `reason` in core results and as `approval.requestReason` in UI messages.
 
 ```rego
 package agent.call
@@ -156,9 +156,10 @@ Run with `opa test policy.rego policy_test.rego`.
 ### Errors fail closed
 
 - If the backend errors (server unreachable, WASM fault, misbuilt bundle), `opaPolicy` returns `denied` with the error message as the reason.
+- If the backend returns a present but unrecognized decision, such as an unknown `decision` value or a non-boolean legacy `allow` value, `opaPolicy` returns `denied`.
 - The error never rejects out of the callback and never aborts the run.
 - A backend outage blocks the affected call rather than silently allowing it.
-- This is distinct from a rule that returns no match, which normalizes to `not-applicable` (allow). Use a `default ... deny` rule if you want unmatched calls denied too.
+- This is distinct from a rule that returns no match: `null` or `undefined` normalizes to `not-applicable` (allow). Use a `default ... deny` rule if you want unmatched calls denied too.
 
 ## Loading the policy
 

@@ -3,7 +3,6 @@ import {
   DefaultResourceLoader,
   defineTool,
   ModelRegistry,
-  ModelRuntime,
   SessionManager,
   SettingsManager,
   type AgentSession,
@@ -37,9 +36,10 @@ import {
 } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import {
+  createPiModelRuntime,
   registerPiProviders,
   resolvePiEnv,
-  type PiAuthOptions,
+  type PiAuthenticationMode,
 } from './pi-auth';
 import { getPiTerminalError, parseNativeEvent } from './pi-events';
 import { createPiModelResolver } from './pi-model-resolver';
@@ -212,10 +212,12 @@ export type PiThinkingLevel =
   | 'low'
   | 'medium'
   | 'high'
-  | 'xhigh';
+  | 'xhigh'
+  | 'max';
 
 export interface PiSessionSettings {
-  readonly auth?: PiAuthOptions;
+  readonly auth?: PiAuthenticationMode;
+  readonly headers?: Readonly<Record<string, string>>;
   readonly model?: string;
   readonly thinkingLevel?: PiThinkingLevel;
   readonly mcpServers?: Record<string, unknown>;
@@ -226,7 +228,6 @@ export interface CreatePiSessionInput {
   readonly sessionId: string;
   readonly sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
   readonly sessionWorkDir: string;
-  readonly skills: ReadonlyArray<HarnessV1Skill>;
   readonly settings: PiSessionSettings;
   readonly clientApp: string;
   readonly isResume: boolean;
@@ -331,23 +332,12 @@ export async function createPiSession(
     sessionId: input.sessionId,
   });
   const permissionMode = input.permissionMode ?? 'allow-all';
-  let sandboxSkillRootDir: string | undefined;
+  const sandboxSkillRootDir = path.posix.join(
+    sandboxHomeDir,
+    '.agents',
+    'skills',
+  );
   let harnessSkills: Skill[] = [];
-
-  // Materialise harness-provided skills into sandbox HOME, not the workspace.
-  if (input.skills.length > 0) {
-    sandboxSkillRootDir = path.posix.join(sandboxHomeDir, '.agents', 'skills');
-    harnessSkills = createHarnessPiSkills({
-      skills: input.skills,
-      sandboxSkillRootDir,
-    });
-    await writePiSkills({
-      sandbox: toolSafeSandboxSession,
-      sandboxHomeDir,
-      skills: input.skills,
-      ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
-    });
-  }
 
   // On resume: pull the Pi session file out of the sandbox into the fresh
   // host mirror so SessionManager.open can read it.
@@ -384,20 +374,23 @@ export async function createPiSession(
   const paths = createPiPathMapper({
     hostWorkDir,
     sandboxWorkDir: sessionWorkDir,
-    readableRoots: sandboxSkillRootDir
-      ? [{ sandboxDir: sandboxSkillRootDir }]
-      : [],
+    readableRoots: [{ sandboxDir: sandboxSkillRootDir }],
   });
 
   // Pi auth + model registry are global to this Pi session. These live on the
   // real host filesystem, never in the sandbox/workspace.
   // When `agentDir` is provided, use it instead so the harness can reuse
   // existing CLI logins and model/settings config.
+  /*
+   * A record-shaped authentication override makes createPiModelRuntime ignore
+   * auth.json and models.json because both files can supply credentials from
+   * outside that record. General Pi settings still use agentDir below.
+   */
   const agentDir = input.agentDir ?? hostAgentDir;
-  const modelRuntime = await ModelRuntime.create({
+  const modelRuntime = await createPiModelRuntime({
+    auth: input.settings.auth,
     authPath: path.join(agentDir, 'auth.json'),
     modelsPath: path.join(agentDir, 'models.json'),
-    allowModelNetwork: false,
   });
   const modelRegistry = new ModelRegistry(modelRuntime);
   const settingsManager =
@@ -418,14 +411,13 @@ export async function createPiSession(
       modelRuntime,
     },
     clientApp: input.clientApp,
+    headers: input.settings.headers,
   });
   const resolveModel = createPiModelResolver({
     modelRegistry,
     env: resolverEnv,
   });
-  // Resolve once: deterministic given the configured model. This is the Pi
-  // `Model` object handed to `createAgentSession`.
-  const resolvedModel = resolveModel(input.settings.model);
+  let activeResolvedModel = resolveModel(input.settings.model);
   const mcpServers = resolvePiMcpServers({
     mcpServers: input.settings.mcpServers,
   });
@@ -792,6 +784,8 @@ export async function createPiSession(
           // rebuilding the Pi session from it.
           const control = await runTurn({
             text: '',
+            ...(continueOpts.model ? { model: continueOpts.model } : {}),
+            skills: continueOpts.skills,
             tools: continueOpts.tools ?? [],
             instructions: continueOpts.instructions,
             emit: continueOpts.emit,
@@ -1022,7 +1016,7 @@ export async function createPiSession(
       ...(input.settings.thinkingLevel
         ? { thinkingLevel: input.settings.thinkingLevel }
         : {}),
-      ...(resolvedModel ? { model: resolvedModel } : {}),
+      ...(activeResolvedModel ? { model: activeResolvedModel } : {}),
     });
     piSession = session;
     if (hasMcpServers) {
@@ -1068,6 +1062,8 @@ export async function createPiSession(
    */
   async function runTurn(turnOpts: {
     text: string;
+    model?: string;
+    skills: ReadonlyArray<HarnessV1Skill>;
     tools: ReadonlyArray<HarnessV1ToolSpec>;
     instructions?: string;
     emit: (part: HarnessV1StreamPart) => void;
@@ -1075,6 +1071,20 @@ export async function createPiSession(
   }): Promise<HarnessV1PromptControl> {
     if (stopped) {
       throw new Error('Pi session has been stopped.');
+    }
+
+    const skillWriteResult = await writePiSkills({
+      sandbox: toolSafeSandboxSession,
+      sandboxHomeDir,
+      skills: turnOpts.skills,
+      abortSignal: turnOpts.abortSignal,
+    });
+    harnessSkills = createHarnessPiSkills({
+      skills: turnOpts.skills,
+      sandboxSkillRootDir,
+    });
+    if (piSession != null && skillWriteResult.changed) {
+      await reloadResourcesOnly();
     }
 
     const userTools = turnOpts.tools;
@@ -1103,6 +1113,10 @@ export async function createPiSession(
         const didAppendDeliveredHostToolResults =
           appendDeliveredHostToolResults();
 
+        const nextModel =
+          turnOpts.model == null ? undefined : resolveModel(turnOpts.model);
+        if (nextModel != null) activeResolvedModel = nextModel;
+
         const signature = JSON.stringify(userTools.map(t => t.name).sort());
         const needsRebuild =
           piSession == null || signature !== lastToolsSignature;
@@ -1114,6 +1128,14 @@ export async function createPiSession(
           );
           turnAbortController.signal.throwIfAborted();
           lastToolsSignature = signature;
+        } else if (
+          nextModel != null &&
+          piSession != null &&
+          (piSession.model?.provider !== nextModel.provider ||
+            piSession.model.id !== nextModel.id)
+        ) {
+          await piSession.setModel(nextModel);
+          turnAbortController.signal.throwIfAborted();
         }
 
         if (!resourcesReloaded) {
@@ -1135,7 +1157,10 @@ export async function createPiSession(
           nativeToCommon: NATIVE_TO_COMMON,
         });
 
-        currentEmit?.({ type: 'stream-start' });
+        currentEmit?.({
+          type: 'stream-start',
+          ...(piSession?.model?.id ? { modelId: piSession.model.id } : {}),
+        });
 
         /*
          * A live continuation reports the completed tool execution before the
@@ -1310,10 +1335,6 @@ export async function createPiSession(
   const sessionImpl: HarnessV1Session = {
     sessionId: input.sessionId,
     isResume: input.isResume,
-    // The model Pi actually resolves to (the configured id, or its default when
-    // unset) — `gen_ai.request.model`.
-    ...(resolvedModel?.id ? { modelId: resolvedModel.id } : {}),
-
     // Pi has no bridge to attach to and no on-disk event log to replay; its
     // only resume path is restoring the session file on a fresh/snapshotted
     // sandbox, i.e. `rerun`.
@@ -1329,6 +1350,8 @@ export async function createPiSession(
       }
       return runTurn({
         text: extractUserText(promptOpts.prompt),
+        ...(promptOpts.model ? { model: promptOpts.model } : {}),
+        skills: promptOpts.skills,
         tools: promptOpts.tools ?? [],
         instructions: promptOpts.instructions,
         emit: promptOpts.emit,
@@ -1385,6 +1408,8 @@ export async function createPiSession(
        */
       return runTurn({
         text: '',
+        ...(continueOpts.model ? { model: continueOpts.model } : {}),
+        skills: continueOpts.skills,
         tools: continueOpts.tools ?? [],
         instructions: continueOpts.instructions,
         emit: continueOpts.emit,

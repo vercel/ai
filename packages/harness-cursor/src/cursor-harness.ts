@@ -5,10 +5,7 @@ import {
   type HarnessV1CredentialForwarding,
   type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
-import {
-  createACP,
-  type ACPProviderAuthenticationMode,
-} from '@ai-sdk/harness-acp';
+import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
@@ -17,10 +14,11 @@ const CURSOR_CLIENT_APP = `ai-sdk/harness-cursor/${VERSION}`;
 
 export type CursorHarnessSettings = {
   /**
-   * Declares the provider authentication configured in Cursor. The adapter
-   * cannot change this setting and warns for explicit routing modes.
+   * Declares the provider authentication configured in Cursor, or supplies an
+   * isolated environment for Cursor CLI authentication. The adapter cannot
+   * change provider routing and warns for explicit routing modes.
    */
-  readonly auth?: ACPProviderAuthenticationMode;
+  readonly auth?: ACPAuthenticationMode;
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can
@@ -29,6 +27,8 @@ export type CursorHarnessSettings = {
   readonly credentialForwarding?: HarnessV1CredentialForwarding;
   /**
    * Cursor model id selected through ACP. Unset preserves Cursor's default.
+   *
+   * @deprecated Use `model` on `HarnessAgent` instead.
    */
   readonly model?: string;
   /**
@@ -223,28 +223,6 @@ const CURSOR_BUILTIN_TOOLS = {
     nativeName: 'applyAgentDiffToolCall',
     toolUseKind: 'edit',
   },
-  askQuestion: {
-    ...tool({
-      inputSchema: z.looseObject({
-        _toolName: z.literal('askQuestion'),
-        title: z.string().optional(),
-        questions: z
-          .array(
-            z.looseObject({
-              id: z.string(),
-              prompt: z.string(),
-              options: z.array(
-                z.looseObject({ id: z.string(), label: z.string() }),
-              ),
-              allowMultiple: z.boolean().optional(),
-            }),
-          )
-          .optional(),
-      }),
-    }),
-    nativeName: 'askQuestionToolCall',
-    toolUseKind: 'readonly',
-  },
   fetch: {
     ...tool({
       title: 'Fetch',
@@ -372,6 +350,7 @@ export function createCursor(
   }
 
   return createACP({
+    auth: typeof settings.auth === 'string' ? undefined : settings.auth,
     credentialForwarding: settings.credentialForwarding,
     modelId: settings.model,
     port: settings.port,
@@ -401,23 +380,51 @@ export function createCursor(
     },
     executable: 'agent',
     args: ['--disable-auto-update', 'acp'],
+    modelMapping: {
+      type: 'session-config-option',
+      path: 'model',
+    },
+    clientCapabilities: {
+      _meta: { parameterizedModelPicker: true },
+    },
     credentialEnv: ['CURSOR_API_KEY'],
-    credentialBrokering: ({ env }) => {
-      if (!env.CURSOR_API_KEY) return [];
-      return [
-        {
+    credentialBrokering: ({ env, sandboxEnv, headers }) => {
+      const transformations = [];
+      if (env.CURSOR_API_KEY && sandboxEnv?.CURSOR_API_KEY) {
+        transformations.push({
           match: {
             host: 'api2.cursor.sh',
             path: { exact: '/auth/exchange_user_api_key' },
             method: ['POST'],
+            headers: [
+              {
+                key: { exact: 'Authorization' },
+                value: {
+                  exact: `Bearer ${sandboxEnv.CURSOR_API_KEY}`,
+                },
+              },
+            ],
           },
           transform: {
             headers: {
               Authorization: `Bearer ${env.CURSOR_API_KEY}`,
             },
           },
-        },
-      ];
+        });
+      }
+      if (headers != null) {
+        transformations.push({
+          match:
+            settings.auth === 'ai-gateway'
+              ? {
+                  host: 'ai-gateway.vercel.sh',
+                  path: { startsWith: '/cursor/v1' },
+                }
+              : { host: 'api2.cursor.sh' },
+          transform: { headers },
+        });
+      }
+      return transformations;
     },
   });
 }
@@ -425,7 +432,7 @@ export function createCursor(
 function warnCursorAuthenticationConfiguration({
   auth,
 }: {
-  auth: Exclude<ACPProviderAuthenticationMode, 'auto'>;
+  auth: Exclude<ACPAuthenticationMode, 'auto'>;
 }): void {
   const detail =
     auth === 'ai-gateway'

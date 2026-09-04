@@ -444,6 +444,9 @@ ByteDance video generation is task-based: the provider creates a task and the AI
 SDK polls it until it completes. Configure polling with the top-level `poll`
 option of [`generateVideo()`](/docs/reference/ai-sdk-core/generate-video):
 
+The configured ByteDance API origin is trusted for the first status request,
+while every redirect to another origin is validated before it is followed.
+
 ```ts
 const { video } = await generateVideo({
   model: byteDance.video('seedance-1-0-pro-250528'),

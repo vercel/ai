@@ -1,5 +1,108 @@
 # @ai-sdk/langchain
 
+## 3.0.92
+
+### Patch Changes
+
+- Updated dependencies [a51cc94]
+- Updated dependencies [d1904d3]
+- Updated dependencies [84e5a79]
+- Updated dependencies [a8e8ad0]
+  - ai@7.0.92
+
+## 3.0.91
+
+### Patch Changes
+
+- Updated dependencies [802af1e]
+  - ai@7.0.91
+
+## 3.0.90
+
+### Patch Changes
+
+- ai@7.0.90
+
+## 3.0.89
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - ai@7.0.89
+
+## 3.0.88
+
+### Patch Changes
+
+- Updated dependencies [8b6b756]
+- Updated dependencies [e07b577]
+  - ai@7.0.88
+
+## 3.0.87
+
+### Patch Changes
+
+- Updated dependencies [850d863]
+  - ai@7.0.87
+
+## 3.0.86
+
+### Patch Changes
+
+- Updated dependencies [11109ae]
+  - ai@7.0.86
+
+## 3.0.85
+
+### Patch Changes
+
+- Updated dependencies [55a9981]
+- Updated dependencies [dd32de2]
+- Updated dependencies [aa45741]
+- Updated dependencies [cc29073]
+  - ai@7.0.85
+
+## 3.0.84
+
+### Patch Changes
+
+- Updated dependencies [6669d69]
+- Updated dependencies [a6463ca]
+- Updated dependencies [e604532]
+  - ai@7.0.84
+
+## 3.0.83
+
+### Patch Changes
+
+- Updated dependencies [8dd86a9]
+- Updated dependencies [fda13b3]
+- Updated dependencies [957146c]
+- Updated dependencies [ce6849a]
+  - ai@7.0.83
+
+## 3.0.82
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - ai@7.0.82
+
+## 3.0.81
+
+### Patch Changes
+
+- ai@7.0.81
+
+## 3.0.80
+
+### Patch Changes
+
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+- Updated dependencies [eed7950]
+  - ai@7.0.80
+
 ## 3.0.79
 
 ### Patch Changes

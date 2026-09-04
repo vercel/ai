@@ -68,11 +68,11 @@ You can use the following optional settings to customize the Google provider ins
 ## Language Models
 
 You can create models that call the [Google Generative AI API](https://ai.google.dev/api/rest) using the provider instance.
-The first argument is the model id, e.g. `gemini-3.7-flash`.
+The first argument is the model id, e.g. `gemini-3.8-flash`.
 The models support tool calls and some have multi-modal capabilities.
 
 ```ts
-const model = google('gemini-3.7-flash');
+const model = google('gemini-3.8-flash');
 ```
 
 You can use Google language models to generate text with the `generateText` function:
@@ -82,7 +82,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: google('gemini-3.7-flash'),
+  model: google('gemini-3.8-flash'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -107,7 +107,7 @@ You can pass them as an options argument:
 ```ts
 import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
 
-const model = google('gemini-3.7-flash');
+const model = google('gemini-3.8-flash');
 
 await generateText({
   model,
@@ -262,7 +262,7 @@ For Gemini 3 and later models, use the `thinkingLevel` parameter to control the 
 import { google, GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
-const model = google('gemini-3.7-flash');
+const model = google('gemini-3.8-flash');
 
 const { text, reasoning } = await generateText({
   model: model,
@@ -319,7 +319,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: google('gemini-3.7-flash'),
+  model: google('gemini-3.8-flash'),
   messages: [
     {
       role: 'user',
@@ -346,7 +346,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: google('gemini-3.7-flash'),
+  model: google('gemini-3.8-flash'),
   messages: [
     {
       role: 'user',
@@ -401,13 +401,13 @@ const baseContext =
   'You are a cooking assistant with expertise in Italian cuisine. Here are 1000 lasagna recipes for reference...';
 
 const { text: veggieLasagna } = await generateText({
-  model: google('gemini-3.7-flash'),
+  model: google('gemini-3.8-flash'),
   prompt: `${baseContext}\n\nWrite a vegetarian lasagna recipe for 4 people.`,
 });
 
 // Second request with same prefix - eligible for cache hit
 const { text: meatLasagna, providerMetadata } = await generateText({
-  model: google('gemini-3.7-flash'),
+  model: google('gemini-3.8-flash'),
   prompt: `${baseContext}\n\nWrite a meat lasagna recipe for 12 people.`,
 });
 
@@ -446,7 +446,7 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
 });
 
-const model = 'gemini-3.7-flash';
+const model = 'gemini-3.8-flash';
 
 // Create a cache with the content you want to reuse
 const cache = await ai.caches.create({
@@ -495,7 +495,7 @@ import { googleTools } from '@ai-sdk/google/internal';
 import { generateText } from 'ai';
 
 const { text, toolCalls, toolResults } = await generateText({
-  model: google('gemini-3.7-flash'),
+  model: google('gemini-3.8-flash'),
   tools: { code_execution: google.tools.codeExecution({}) },
   prompt: 'Use python to calculate the 20th fibonacci number.',
 });
@@ -514,7 +514,7 @@ import { GoogleProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, sources, providerMetadata } = await generateText({
-  model: google('gemini-3.7-flash'),
+  model: google('gemini-3.8-flash'),
   tools: {
     google_search: google.tools.googleSearch({}),
   },
@@ -622,7 +622,7 @@ const vertex = createGoogleVertex({
 });
 
 const { text, sources, providerMetadata } = await generateText({
-  model: vertex('gemini-3.7-flash'),
+  model: vertex('gemini-3.8-flash'),
   tools: {
     enterprise_web_search: vertex.tools.enterpriseWebSearch({}),
   },
@@ -645,7 +645,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, sources } = await generateText({
-  model: google('gemini-3.7-flash'),
+  model: google('gemini-3.8-flash'),
   tools: {
     file_search: google.tools.fileSearch({
       fileSearchStoreNames: [
@@ -672,7 +672,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, sources, providerMetadata } = await generateText({
-  model: google('gemini-3.7-flash'),
+  model: google('gemini-3.8-flash'),
   prompt: `Based on the document: https://ai.google.dev/gemini-api/docs/url-context.
           Answer this question: How many links we can consume in one request?`,
   tools: {
@@ -750,7 +750,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, sources, providerMetadata } = await generateText({
-  model: google('gemini-3.7-flash'),
+  model: google('gemini-3.8-flash'),
   prompt: `Based on this context: https://ai-sdk.dev/providers/ai-sdk-providers/google, tell me how to use Gemini with AI SDK.
     Also, provide the latest news about AI SDK V5.`,
   tools: {
@@ -775,7 +775,7 @@ import { GoogleProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, sources, providerMetadata } = await generateText({
-  model: google('gemini-3.7-flash'),
+  model: google('gemini-3.8-flash'),
   tools: {
     google_maps: google.tools.googleMaps({}),
   },
@@ -839,7 +839,7 @@ const vertex = createGoogleVertex({
 });
 
 const { text, sources, providerMetadata } = await generateText({
-  model: vertex('gemini-3.7-flash'),
+  model: vertex('gemini-3.8-flash'),
   tools: {
     vertex_rag_store: vertex.tools.vertexRagStore({
       ragCorpus:
@@ -1006,7 +1006,7 @@ You can disable structured outputs for object generation as a workaround:
 
 ```ts highlight="3,8"
 const { output } = await generateText({
-  model: google('gemini-3.7-flash'),
+  model: google('gemini-3.8-flash'),
   providerOptions: {
     google: {
       structuredOutputs: false,
@@ -1041,6 +1041,7 @@ The following Zod features are known to not work with Google:
 
 | Model                                 | Image Input | Object Generation | Tool Usage | Tool Streaming | Google Search | URL Context |
 | ------------------------------------- | ----------- | ----------------- | ---------- | -------------- | ------------- | ----------- |
+| `gemini-3.8-flash`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
 | `gemini-3.7-flash`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
 | `gemini-3.6-flash`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
 | `gemini-3.5-flash`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
@@ -1067,10 +1068,13 @@ The following Zod features are known to not work with Google:
 ### Text Batches
 
 <Note type="warning">
-  Text batch APIs are experimental and may change in future releases.
+  Text batch support is experimental and the API may change in patch releases.
 </Note>
 
-The Google provider supports the [Gemini Batch API](https://ai.google.dev/gemini-api/docs/batch-api) for text generation.
+The Google provider supports asynchronous text generation through the
+[Gemini Batch API](https://ai.google.dev/gemini-api/docs/batch-api). Use the
+experimental text batch APIs to start a batch, poll its status, and stream its
+results:
 
 ```ts
 import { google } from '@ai-sdk/google';
@@ -1079,32 +1083,39 @@ import {
   experimental_getBatchStatus as getBatchStatus,
   experimental_startTextBatch as startTextBatch,
 } from 'ai';
+import { setTimeout } from 'node:timers/promises';
 
 const model = google('gemini-3.6-flash');
 
 const batch = await startTextBatch({
   model,
   requests: [
-    { id: 'france', prompt: 'What is the capital of France?' },
-    { id: 'germany', prompt: 'What is the capital of Germany?' },
+    { id: 'capital-france', prompt: 'What is the capital of France?' },
+    { id: 'capital-germany', prompt: 'What is the capital of Germany?' },
   ],
 });
 
-// Persist `batch` and check its status later, or poll for status updates.
-const { status } = await getBatchStatus({ model, batch });
+let status = batch.status;
+while (status === 'pending') {
+  await setTimeout(60_000);
+  ({ status } = await getBatchStatus({ model, batch }));
+}
 
-if (status !== 'pending') {
-  for await (const item of getBatchResults({ model, batch })) {
-    if (item.status === 'succeeded') {
-      console.log(item.id, item.text);
-    } else {
-      console.error(item.id, item.error);
-    }
+for await (const item of getBatchResults({ model, batch })) {
+  if (item.status === 'succeeded') {
+    console.log(item.id, item.text);
+  } else {
+    console.error(item.id, item.error);
   }
 }
 ```
 
-Starting a batch returns a serializable reference that can be persisted and used to retrieve the batch results later, or poll for status updates.
+`startTextBatch` returns a serializable batch reference. Persist this reference
+to check the batch status or retrieve its results from another process. Results
+can arrive in a different order from the input requests, so match each result by
+its `id`.
+
+#### Webhooks
 
 You can pass a `webhookUrl` to receive a notification when the batch reaches a terminal state:
 
@@ -1112,14 +1123,16 @@ You can pass a `webhookUrl` to receive a notification when the batch reaches a t
 const batch = await startTextBatch({
   model,
   requests: [
-    { id: 'france', prompt: 'What is the capital of France?' },
-    { id: 'germany', prompt: 'What is the capital of Germany?' },
+    { id: 'capital-france', prompt: 'What is the capital of France?' },
+    { id: 'capital-germany', prompt: 'What is the capital of Germany?' },
   ],
   webhookUrl: 'https://example.com/api/google-batch-webhook',
 });
 ```
 
 Google sends a thin event to the webhook URL. After receiving and verifying the event, use the persisted batch reference with `getBatchStatus` or `getBatchResults`. Your application is responsible for handling the webhook and [verifying Google's dynamic webhook signature](https://ai.google.dev/gemini-api/docs/webhooks#verify_dynamic_signatures_jwks).
+
+#### Large Batches
 
 When the serialized batch creation body is under 20 MB, the provider sends the requests inline. At 20 MB or more, it uploads a JSONL input file through the Gemini Files API.
 
@@ -1250,21 +1263,21 @@ The [Gemini Interactions API](https://ai.google.dev/gemini-api/docs/interactions
 (`POST /v1beta/interactions`) is a separate Google endpoint with server-side
 state, unified content blocks, first-class built-in tools, agent presets,
 managed agents that run in a sandboxed Linux environment, and native
-multimodal image output. It is reached via the `google.interactions(...)`
-factory:
+multimodal image and video output. It is reached via the
+`google.interactions(...)` factory:
 
 ```ts
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: google.interactions('gemini-3.7-flash'),
+  model: google.interactions('gemini-3.8-flash'),
   prompt: 'Hello, how are you?',
 });
 ```
 
 `google.interactions(...)` accepts a model ID string (e.g.
-`'gemini-3.7-flash'`, `'gemini-3.1-pro-preview'`), `{ agent: <name> }` to use
+`'gemini-3.8-flash'`, `'gemini-3.1-pro-preview'`), `{ agent: <name> }` to use
 a Gemini [agent preset](#agent-presets), or `{ managedAgent: <name> }` to
 invoke a [managed agent](#managed-agents) you created on Google's side.
 The returned model can be passed to `generateText` and `streamText` like
@@ -1291,7 +1304,7 @@ import {
 import { generateText } from 'ai';
 
 await generateText({
-  model: google.interactions('gemini-3.7-flash'),
+  model: google.interactions('gemini-3.8-flash'),
   prompt: 'What color is the sky in one word?',
   providerOptions: {
     google: {
@@ -1343,17 +1356,42 @@ The following optional provider options are available:
   Whether the model returns synthesized thought summaries on reasoning
   parts. Defaults to the API default.
 
-- **responseFormat** _Array\<\{ type: 'text' | 'image' | 'audio'; mimeType?: string; schema?: unknown; aspectRatio?: string; imageSize?: '1K' \| '2K' \| '4K' \| '512' \}\>_
+- **responseFormat** _Array\<ResponseFormatEntry\>_
 
   Output-format entries that map directly to the API's `response_format`
-  array. Use this for fine-grained control over image, audio, or non-JSON
-  text outputs (e.g. `aspectRatio` and `imageSize` for image generation).
+  array. Entries have the following shape:
+
+  ```ts
+  type ResponseFormatEntry =
+    | { type: 'text'; mimeType?: string; schema?: unknown }
+    | {
+        type: 'image';
+        mimeType?: string;
+        aspectRatio?: string;
+        imageSize?: '1K' | '2K' | '4K' | '512';
+      }
+    | { type: 'audio'; mimeType?: string }
+    | {
+        type: 'video';
+        aspectRatio?: '16:9' | '9:16';
+        resolution?: '360p' | '720p' | '1080p' | '4k';
+        duration?: string;
+        delivery?: 'inline' | 'uri';
+        gcsUri?: string;
+      };
+  ```
+
+  Use this for fine-grained control over image, audio, video, or non-JSON
+  text outputs. Video entries can control aspect ratio, resolution, duration,
+  and inline or URI delivery; set `gcsUri` when delivering to Google Cloud
+  Storage. Inline videos are returned in `result.files` by `generateText` and
+  emitted as `file` parts by `streamText`.
   The AI SDK call-level `responseFormat: { type: 'json', schema }` still
   drives JSON-mode automatically and prepends a matching text entry;
   entries listed here are appended.
 
-  `aspectRatio` accepts `1:1`, `2:3`, `3:2`, `3:4`, `4:3`, `4:5`, `5:4`,
-  `9:16`, `16:9`, `21:9`, `1:8`, `8:1`, `1:4`, `4:1`.
+  For image entries, `aspectRatio` accepts `1:1`, `2:3`, `3:2`, `3:4`, `4:3`,
+  `4:5`, `5:4`, `9:16`, `16:9`, `21:9`, `1:8`, `8:1`, `1:4`, `4:1`.
 
 - **imageConfig** _\{ aspectRatio?: string; imageSize?: '1K' | '2K' | '4K' | '512' \}_ (deprecated)
 
@@ -1415,7 +1453,20 @@ exposes:
 - **signature** _string_
 
   Per-block signature hash, set by the SDK on output reasoning and
-  tool-call parts. Round-tripped automatically on the next turn.
+  tool-call or agentic video processing parts. Round-tripped automatically on
+  the next turn.
+
+Agentic video custom parts additionally expose:
+
+- **processingId** _string_
+
+  ID of an agentic video `processing_call`. Present on
+  `google.processing_call` custom parts.
+
+- **processingCallId** _string_
+
+  ID of the matching agentic video processing call. Present on
+  `google.processing_result` custom parts.
 
 ### Stateful chaining
 
@@ -1431,7 +1482,7 @@ import {
 import { generateText } from 'ai';
 
 const turn1 = await generateText({
-  model: google.interactions('gemini-3.7-flash'),
+  model: google.interactions('gemini-3.8-flash'),
   prompt: 'What are the three largest cities in Spain?',
 });
 
@@ -1440,7 +1491,7 @@ const interactionId = turn1.providerMetadata?.google?.interactionId as
   | undefined;
 
 const turn2 = await generateText({
-  model: google.interactions('gemini-3.7-flash'),
+  model: google.interactions('gemini-3.8-flash'),
   prompt: 'What is the most famous landmark in the second one?',
   providerOptions: {
     google: {
@@ -1465,7 +1516,7 @@ const messages: Array<ModelMessage> = [
 ];
 
 const turn1 = await generateText({
-  model: google.interactions('gemini-3.7-flash'),
+  model: google.interactions('gemini-3.8-flash'),
   messages,
   providerOptions: {
     google: { store: false } satisfies GoogleLanguageModelInteractionsOptions,
@@ -1479,13 +1530,104 @@ messages.push({
 });
 
 const turn2 = await generateText({
-  model: google.interactions('gemini-3.7-flash'),
+  model: google.interactions('gemini-3.8-flash'),
   messages,
   providerOptions: {
     google: { store: false } satisfies GoogleLanguageModelInteractionsOptions,
   },
 });
 ```
+
+### Agentic video understanding
+
+Gemini 3.7 Flash, 3.6 Flash, and 3.5 Flash Lite support agentic video
+understanding through the Interactions API. Instead of sampling the entire
+video at a fixed frame rate, the model dynamically navigates the timeline and
+loads the transcripts, frames, or audio needed for the prompt.
+
+Set `processing: 'agentic'` in the Google provider options of an individual
+video file part. You can validate the per-file options with
+`GoogleInteractionsVideoOptions`:
+
+```ts
+import { google, type GoogleInteractionsVideoOptions } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: google.interactions('gemini-3.7-flash'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'file',
+          data: 'https://www.youtube.com/watch?v=9hE5-98ZeCg',
+          mediaType: 'video',
+          providerOptions: {
+            google: {
+              processing: 'agentic',
+            } satisfies GoogleInteractionsVideoOptions,
+          },
+        },
+        {
+          type: 'text',
+          text: 'Identify the three most important moments and include timestamps.',
+        },
+      ],
+    },
+  ],
+  providerOptions: {
+    google: {
+      thinkingSummaries: 'auto',
+    },
+  },
+});
+
+const processingSteps = result.content.filter(
+  part =>
+    part.type === 'custom' &&
+    (part.kind === 'google.processing_call' ||
+      part.kind === 'google.processing_result'),
+);
+```
+
+Agentic navigation is exposed as `custom` content parts:
+
+- `google.processing_call` marks a request by the model to inspect part of the
+  video. Its `providerMetadata.google.processingId` contains the processing ID.
+- `google.processing_result` marks completion of that request. Its
+  `providerMetadata.google.processingCallId` links it to the processing call.
+
+These parts are informational and do not require a tool response. They are
+available from both `generateText` and `streamText`.
+
+For static processing, use `'static'` or provide clipping and frame-rate
+options:
+
+```ts
+const video = {
+  type: 'file' as const,
+  data: videoBytes,
+  mediaType: 'video/mp4',
+  providerOptions: {
+    google: {
+      processing: {
+        type: 'static',
+        startOffset: 1200,
+        endOffset: 1500,
+        fps: 0.5,
+      },
+    } satisfies GoogleInteractionsVideoOptions,
+  },
+};
+```
+
+With stateful conversations, pass the returned `interactionId` as
+`previousInteractionId`; Gemini retains the video context server-side. With
+`store: false`, append `result.responseMessages` and re-send the full history.
+The processing custom parts and their signatures are then round-tripped as
+native `processing_call` and `processing_result` steps so the video context is
+preserved.
 
 ### Built-in Tools
 
@@ -1512,7 +1654,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, sources } = await generateText({
-  model: google.interactions('gemini-3.7-flash'),
+  model: google.interactions('gemini-3.8-flash'),
   tools: {
     google_search: google.tools.googleSearch({}),
   },
@@ -1536,7 +1678,7 @@ const weatherTool = tool({
 });
 
 const { text, toolCalls } = await generateText({
-  model: google.interactions('gemini-3.7-flash'),
+  model: google.interactions('gemini-3.8-flash'),
   tools: { getWeather: weatherTool },
   stopWhen: isStepCount(5),
   prompt: 'What is the weather in San Francisco right now?',
@@ -1835,7 +1977,7 @@ import { google } from '@ai-sdk/google';
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: google.interactions('gemini-3.7-flash'),
+  model: google.interactions('gemini-3.8-flash'),
   prompt: 'Hello, how are you?',
 });
 

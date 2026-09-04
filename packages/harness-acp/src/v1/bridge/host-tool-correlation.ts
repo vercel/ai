@@ -2,6 +2,7 @@ import type {
   ActiveSessionMessage,
   ToolCallUpdate,
 } from '@agentclientprotocol/sdk';
+import type { ACPToolCall } from '../../acp-tool-call';
 
 type SessionUpdateMessage = Extract<
   ActiveSessionMessage,
@@ -55,6 +56,8 @@ export function createHostToolCorrelation({
     order: number;
   }): void;
   claimHostToolPermission(options: { toolCall: ToolCallUpdate }): boolean;
+  suppressToolCall(options: { toolCallId: string }): void;
+  getToolCall(options: { toolCallId: string }): ACPToolCall | undefined;
   flush(): void;
   removeInvocation(options: { token: string }): void;
   close(): void;
@@ -63,6 +66,7 @@ export function createHostToolCorrelation({
   const candidates = new Map<string, CorrelationCandidate>();
   const suppressedToolCallIds = new Set<string>();
   const releasedToolCallIds = new Set<string>();
+  const observedToolCalls = new Map<string, ACPToolCall>();
   let nextCandidateOrder = 0;
   let buffered: BufferedUpdate[] = [];
   let flushTimer: ReturnType<typeof setTimeout> | undefined;
@@ -155,6 +159,13 @@ export function createHostToolCorrelation({
       }
 
       const toolCallId = message.update.toolCallId;
+      observedToolCalls.set(
+        toolCallId,
+        mergeObservedToolCall({
+          previous: observedToolCalls.get(toolCallId),
+          update: message.update,
+        }),
+      );
       if (suppressedToolCallIds.has(toolCallId)) {
         if (isTerminalToolUpdate(message)) {
           suppressedToolCallIds.delete(toolCallId);
@@ -242,6 +253,8 @@ export function createHostToolCorrelation({
       suppressToolCallUpdate({ toolCallId: toolCall.toolCallId });
       return true;
     },
+    suppressToolCall: suppressToolCallUpdate,
+    getToolCall: ({ toolCallId }) => observedToolCalls.get(toolCallId),
     flush,
     removeInvocation: ({ token }) => {
       deleteInvocation({ invocations, token });
@@ -257,7 +270,28 @@ export function createHostToolCorrelation({
       candidates.clear();
       suppressedToolCallIds.clear();
       releasedToolCallIds.clear();
+      observedToolCalls.clear();
     },
+  };
+}
+
+function mergeObservedToolCall({
+  previous,
+  update,
+}: {
+  previous: ACPToolCall | undefined;
+  update: ToolCallUpdate;
+}): ACPToolCall {
+  return {
+    toolCallId: update.toolCallId,
+    title: update.title ?? previous?.title ?? `Tool ${update.toolCallId}`,
+    ...(update.kind == null ? {} : { kind: update.kind }),
+    ...(update.status == null ? {} : { status: update.status }),
+    ...(update.content == null ? {} : { content: update.content }),
+    ...(update.locations == null ? {} : { locations: update.locations }),
+    ...(update.rawInput === undefined ? {} : { rawInput: update.rawInput }),
+    ...(update.rawOutput === undefined ? {} : { rawOutput: update.rawOutput }),
+    ...(update._meta === undefined ? {} : { _meta: update._meta }),
   };
 }
 

@@ -14,7 +14,6 @@ export interface ClineRemoteOpsOptions {
   readonly sandbox: Experimental_SandboxSession;
   /** Absolute sandbox path of the session's working directory. */
   readonly workDir: string;
-  readonly readableRoots?: ReadonlyArray<{ readonly sandboxDir: string }>;
 }
 
 export interface ClineRemoteOps {
@@ -50,9 +49,6 @@ export function createClineRemoteOps(
 ): ClineRemoteOps {
   const { sandbox, workDir } = options;
   const normalizedWorkDir = path.posix.normalize(workDir);
-  const readableRoots =
-    options.readableRoots?.map(root => path.posix.normalize(root.sandboxDir)) ??
-    [];
 
   const isInsidePath = ({
     parent,
@@ -78,31 +74,11 @@ export function createClineRemoteOps(
     return normalized;
   };
 
-  const assertReadablePath = (inputPath: string): string => {
-    const normalized = path.posix.normalize(inputPath);
-    if (
-      !isInsidePath({ parent: normalizedWorkDir, candidate: normalized }) &&
-      !readableRoots.some(parent =>
-        isInsidePath({ parent, candidate: normalized }),
-      )
-    ) {
-      throw new Error(`Cline path escapes the readable roots: ${inputPath}`);
-    }
-    return normalized;
-  };
-
   const resolvePath = (inputPath: string): string => {
     const resolved = path.posix.isAbsolute(inputPath)
       ? path.posix.normalize(inputPath)
       : path.posix.normalize(path.posix.join(normalizedWorkDir, inputPath));
     return assertWorkspacePath(resolved);
-  };
-
-  const resolveReadablePath = (inputPath: string): string => {
-    if (!path.posix.isAbsolute(inputPath)) {
-      return resolvePath(inputPath);
-    }
-    return assertReadablePath(inputPath);
   };
 
   const runShell = async ({
@@ -172,7 +148,7 @@ export function createClineRemoteOps(
     inputPath: string;
     missingMessage?: string;
   }): Promise<string> =>
-    assertReadablePath(
+    assertWorkspacePath(
       await resolveExistingSandboxPath({
         remotePath,
         inputPath,
@@ -216,7 +192,7 @@ export function createClineRemoteOps(
   };
 
   const readFile = async (inputPath: string): Promise<string> => {
-    const remotePath = resolveReadablePath(inputPath);
+    const remotePath = resolvePath(inputPath);
     const resolved = await resolveReadableSandboxPath({
       remotePath,
       inputPath,
@@ -305,7 +281,7 @@ export function createClineRemoteOps(
 
     async grep(pattern, input = {}) {
       const inputPath = input.path ?? '.';
-      const remotePath = resolveReadablePath(inputPath);
+      const remotePath = resolvePath(inputPath);
       const target = await resolveReadableSandboxPath({
         remotePath,
         inputPath,
@@ -341,7 +317,7 @@ export function createClineRemoteOps(
     },
 
     async glob(pattern, inputPath = '.', limit = 1_000) {
-      const remotePath = resolveReadablePath(inputPath);
+      const remotePath = resolvePath(inputPath);
       const target = await resolveReadableSandboxPath({
         remotePath,
         inputPath,
@@ -382,7 +358,7 @@ export function createClineRemoteOps(
     },
 
     async ls(inputPath = '.', limit = 500) {
-      const remotePath = resolveReadablePath(inputPath);
+      const remotePath = resolvePath(inputPath);
       const target = await resolveReadableSandboxPath({
         remotePath,
         inputPath,

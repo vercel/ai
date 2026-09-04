@@ -18,13 +18,20 @@ export const grokBuildACPHarness = createACP({
   },
   executable: 'grok',
   args: ['agent', 'stdio'],
+  modelMapping: {
+    type: 'session-model',
+    path: 'modelId',
+  },
   credentialEnv: ['XAI_API_KEY'],
-  credentialBrokering: ({ env }) => {
-    if (!env.XAI_API_KEY) return [];
+  credentialBrokering: ({ env, sandboxEnv }) => {
+    if (!env.XAI_API_KEY || !sandboxEnv?.XAI_API_KEY) return [];
     return [
       createCredentialRequestTransformation({
-        baseUrl: env.GROK_XAI_API_BASE_URL ?? 'https://api.x.ai/v1',
-        headers: { Authorization: `Bearer ${env.XAI_API_KEY}` },
+        matchUrl: env.GROK_XAI_API_BASE_URL ?? 'https://api.x.ai/v1',
+        matchHeaders: {
+          Authorization: `Bearer ${sandboxEnv.XAI_API_KEY}`,
+        },
+        transformHeaders: { Authorization: `Bearer ${env.XAI_API_KEY}` },
       }),
     ];
   },

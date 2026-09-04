@@ -28,6 +28,13 @@ const cohereV4UsProfileEmbedUrl = `https://bedrock-runtime.us-east-1.amazonaws.c
   'us.cohere.embed-v4:0',
 )}/invoke`;
 
+const cohereV4ApplicationProfileArn =
+  'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/qibm5eutlkcy';
+
+const cohereV4ApplicationProfileEmbedUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/${encodeURIComponent(
+  cohereV4ApplicationProfileArn,
+)}/invoke`;
+
 describe('doEmbed', () => {
   const mockConfigHeaders = {
     'config-header': 'config-value',
@@ -87,6 +94,20 @@ describe('doEmbed', () => {
         body: Buffer.from(
           JSON.stringify({
             embeddings: { float: [mockEmbeddings[0]] },
+          }),
+        ),
+      },
+    },
+    [cohereV4ApplicationProfileEmbedUrl]: {
+      response: {
+        type: 'binary',
+        headers: {
+          'content-type': 'application/json',
+          'x-amzn-bedrock-input-token-count': '12',
+        },
+        body: Buffer.from(
+          JSON.stringify({
+            embeddings: { float: mockEmbeddings },
           }),
         ),
       },
@@ -337,6 +358,36 @@ describe('doEmbed', () => {
       truncate: undefined,
       output_dimension: undefined,
     });
+  });
+
+  it('should support Cohere models behind application inference profile ARNs', async () => {
+    const cohereV4ApplicationProfileModel = new AmazonBedrockEmbeddingModel(
+      cohereV4ApplicationProfileArn,
+      {
+        baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+        headers: mockConfigHeaders,
+        fetch: fakeFetchWithAuth,
+        modelFamily: 'cohere',
+      },
+    );
+
+    const { embeddings, usage } = await cohereV4ApplicationProfileModel.doEmbed(
+      {
+        values: [testValues[0]],
+      },
+    );
+
+    expect(embeddings).toStrictEqual(mockEmbeddings);
+    expect(usage?.tokens).toBe(12);
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).toEqual({
+      input_type: 'search_query',
+      texts: [testValues[0]],
+      truncate: undefined,
+      output_dimension: undefined,
+    });
+    expect(cohereV4ApplicationProfileModel.maxEmbeddingsPerCall).toBe(96);
   });
 
   it('should pass outputDimension for Cohere v4 embedding models', async () => {
