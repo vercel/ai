@@ -257,6 +257,12 @@ describe('createGitHubCopilot', () => {
     ]);
   });
 
+  it('exposes host tools through an HTTP MCP server', () => {
+    createGitHubCopilot();
+
+    expect(lastSettings().hostToolMcpTransport).toBe('http');
+  });
+
   it('forwards launch and bridge settings', () => {
     const credentialForwarding = vi.fn();
     const mintBridgeToken = (sandboxId: string) => sandboxId;

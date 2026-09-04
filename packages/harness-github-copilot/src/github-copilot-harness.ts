@@ -260,6 +260,12 @@ export function createGitHubCopilot(
         : [`--reasoning-effort=${settings.reasoningEffort}`]),
     ],
     auth: settings.auth,
+    /*
+     * The Copilot CLI drops every MCP server that a client passes in ACP
+     * `session/new` unless it is declared with the `http` or `sse` transport,
+     * so host tools must be exposed over the bridge's HTTP MCP endpoint.
+     */
+    hostToolMcpTransport: 'http',
     forwardEnv: ['COPILOT_GH_HOST', 'GH_HOST'],
     credentialEnv: ['COPILOT_GITHUB_TOKEN', 'GH_TOKEN', 'GITHUB_TOKEN'],
     credentialBrokering: ({ env, sandboxEnv, headers }) => {
