@@ -1,0 +1,73 @@
+---
+title: TrustedRouter
+description: Use the TrustedRouter OpenAI compatible API with the AI SDK.
+---
+
+# TrustedRouter Provider
+
+[TrustedRouter](https://trustedrouter.com/) is an OpenAI-compatible LLM router
+that serves many models behind one endpoint through an open-source, verifiable
+attested gateway. It does not log prompts or outputs by default, which makes it
+a fit for privacy-sensitive workloads.
+
+## Setup
+
+The TrustedRouter provider is available via the `@ai-sdk/openai-compatible`
+module as it is compatible with the OpenAI API. You can install it with:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+## Provider Instance
+
+To use TrustedRouter, you can create a custom provider instance with the
+`createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const trustedRouter = createOpenAICompatible({
+  name: 'trustedrouter',
+  apiKey: process.env.TRUSTEDROUTER_API_KEY,
+  baseURL: 'https://api.trustedrouter.com/v1',
+});
+```
+
+You can obtain an API key from the [TrustedRouter site](https://trustedrouter.com/).
+
+## Language Models
+
+You can create models using a provider instance. The first argument is the
+model id, e.g. `trustedrouter/zdr`:
+
+```ts
+const model = trustedRouter('trustedrouter/zdr');
+```
+
+Routing model ids include `trustedrouter/auto`, `trustedrouter/zdr` (zero data
+retention), and `trustedrouter/confidential`, plus individually addressable
+models. The live catalog is served at `https://trustedrouter.com/v1/models`.
+
+### Example
+
+You can use TrustedRouter language models to generate text with the
+`generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const trustedRouter = createOpenAICompatible({
+  name: 'trustedrouter',
+  apiKey: process.env.TRUSTEDROUTER_API_KEY,
+  baseURL: 'https://api.trustedrouter.com/v1',
+});
+
+const { text } = await generateText({
+  model: trustedRouter('trustedrouter/zdr'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+
+console.log(text);
+```
+
+TrustedRouter language models can also be used in the `streamText` function.
