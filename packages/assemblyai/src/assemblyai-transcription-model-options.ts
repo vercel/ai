@@ -228,6 +228,105 @@ export const assemblyaiTranscriptionModelOptionsSchema = z.object({
    * Use `keytermsPrompt` instead.
    */
   wordBoost: z.array(z.string()).nullish(),
+
+  /**
+   * Options for streaming transcription over WebSocket
+   * (`experimental_streamTranscribe`). Ignored by `transcribe`.
+   *
+   * The following top-level options also apply to streaming: `prompt`,
+   * `keytermsPrompt`, `languageDetection`, `speakerLabels`,
+   * `filterProfanity`, `redactPii`, `redactPiiPolicies`, `redactPiiSub`, and
+   * `domain`. All other top-level options are pre-recorded only.
+   *
+   * @see https://www.assemblyai.com/docs/api-reference/streaming-api/streaming-api
+   */
+  streaming: z
+    .object({
+      /**
+       * Accuracy/latency preset: `min_latency` (fastest time-to-text),
+       * `balanced` (default; voice agents), or `max_accuracy` (scribes,
+       * post-call). Universal-3.5 Pro and later only.
+       */
+      mode: z.enum(['min_latency', 'balanced', 'max_accuracy']).optional(),
+      /**
+       * Emit formatted final turns with punctuation, casing, and inverse text
+       * normalization. Universal-3.x Pro models always format final turns.
+       */
+      formatTurns: z.boolean().optional(),
+      /**
+       * ISO 639-1 codes (max 10) to steer transcription toward. Biases output
+       * while still allowing code-switching among the listed languages.
+       * Universal-3.5 Pro and later only.
+       */
+      languageCodes: z.array(z.string()).max(10).optional(),
+      /**
+       * Hard cap (1-10) on distinct speaker labels. Only used when
+       * `speakerLabels` is enabled.
+       */
+      maxSpeakers: z.number().int().min(1).max(10).optional(),
+      /**
+       * Silence in milliseconds before a speculative end-of-turn check.
+       */
+      minTurnSilence: z.number().int().min(0).optional(),
+      /**
+       * Maximum silence in milliseconds before the turn is forced to end.
+       */
+      maxTurnSilence: z.number().int().min(0).optional(),
+      /**
+       * Confidence threshold (0-1) for end-of-turn detection. Universal
+       * Streaming English/Multilingual only; Universal-3.x Pro uses
+       * punctuation-based turn detection and ignores it.
+       */
+      endOfTurnConfidenceThreshold: z.number().min(0).max(1).optional(),
+      /**
+       * VAD confidence threshold (0-1) below which audio frames count as
+       * silence. Increase in noisy environments.
+       */
+      vadThreshold: z.number().min(0).max(1).optional(),
+      /**
+       * Milliseconds (0-1000) before the first partial of a turn is emitted.
+       * The server adds a fixed 256ms. Universal-3.5 Pro and later only.
+       */
+      interruptionDelay: z.number().int().min(0).max(1000).optional(),
+      /**
+       * Emit additional partials (about every 3 seconds) during long turns.
+       * Universal-3.5 Pro and later only.
+       */
+      continuousPartials: z.boolean().optional(),
+      /**
+       * Your voice agent's most recent spoken reply (max 1750 characters),
+       * used as context for the next user turn. Universal-3.5 Pro and later
+       * only.
+       */
+      agentContext: z.string().max(1750).optional(),
+      /**
+       * Number of prior conversation entries (0-100) carried forward as
+       * context; `0` disables context carryover. Universal-3.5 Pro and later
+       * only.
+       */
+      previousContextNTurns: z.number().int().min(0).max(100).optional(),
+      /**
+       * Noise suppression profile: `near-field` (headsets, handsets) or
+       * `far-field` (conference rooms, laptop mics). Universal-3.5 Pro and
+       * later only.
+       */
+      voiceFocus: z.enum(['near-field', 'far-field']).optional(),
+      /**
+       * How aggressively to suppress background audio (0-1) when `voiceFocus`
+       * is set.
+       */
+      voiceFocusThreshold: z.number().min(0).max(1).optional(),
+      /**
+       * Whether to emit non-final `transcript-partial` parts. Defaults to
+       * `true`; the server forces `false` when `redactPii` is enabled.
+       */
+      includePartialTurns: z.boolean().optional(),
+      /**
+       * Seconds of inactivity before the server closes the session.
+       */
+      inactivityTimeout: z.number().int().min(0).optional(),
+    })
+    .optional(),
 });
 
 export type AssemblyAITranscriptionModelOptions = z.infer<

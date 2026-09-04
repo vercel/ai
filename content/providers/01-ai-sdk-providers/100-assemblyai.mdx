@@ -50,6 +50,14 @@ You can use the following optional settings to customize the AssemblyAI provider
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
+- **webSocket** _WebSocketConstructor_
+
+  Custom WebSocket implementation for [streaming transcription](#streaming-transcription-models).
+  AssemblyAI authenticates the streaming connection with the `Authorization`
+  header, which the native WebSocket constructor in browsers, Node.js, Deno, and
+  Bun cannot send. Pass a header-capable implementation such as the `ws`
+  package's `WebSocket`.
+
 ## Transcription Models
 
 You can create models that call the [AssemblyAI transcription API](https://www.assemblyai.com/docs/getting-started/transcribe-an-audio-file/typescript)
@@ -391,3 +399,153 @@ AssemblyAI's documentation for per-language availability.
 | `universal-3-pro`   | <Check />     | <Check /> | <Check /> | <Check /> |
 | `universal-2`       | <Check />     | <Check /> | <Check /> | <Check /> |
 | `best`              | <Check />     | <Check /> | <Check /> | <Check /> |
+
+## Streaming Transcription Models
+
+<Note type="warning">Streaming transcription is an experimental feature.</Note>
+
+AssemblyAI's [Streaming API](https://www.assemblyai.com/docs/streaming) supports
+live transcription through `experimental_streamTranscribe`. `universal-3-5-pro`
+works with both `transcribe` and `experimental_streamTranscribe`; the other
+streaming models are streaming-only. Streaming accepts raw 16-bit PCM
+(`audio/pcm`, 8 to 96 kHz, default 16 kHz), mu-law (`audio/pcmu`), raw Opus
+packets (`audio/opus`), Ogg Opus (`audio/ogg`), and ADTS AAC (`audio/aac`).
+
+```ts
+import {
+  createAssemblyAI,
+  type AssemblyAIProviderSettings,
+} from '@ai-sdk/assemblyai';
+import { experimental_streamTranscribe as streamTranscribe } from 'ai';
+import { WebSocket } from 'ws';
+
+const assemblyai = createAssemblyAI({
+  webSocket: WebSocket as unknown as AssemblyAIProviderSettings['webSocket'],
+});
+
+const result = streamTranscribe({
+  model: assemblyai.transcription('universal-3-5-pro'),
+  audio,
+  inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+  providerOptions: {
+    assemblyai: {
+      keytermsPrompt: ['AI SDK'],
+      streaming: {
+        mode: 'balanced',
+        languageCodes: ['en'],
+      },
+    },
+  },
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'transcript-partial') {
+    console.log('partial:', part.text);
+  }
+
+  if (part.type === 'transcript-final') {
+    console.log('final:', part.text);
+  }
+}
+```
+
+Each AssemblyAI `Turn` becomes a `transcript-partial` part while the turn is in
+progress and a `transcript-final` part once the turn ends. Final parts carry
+turn-level details under `providerMetadata.assemblyai`: `turnOrder`,
+`endOfTurnConfidence`, `speakerLabel`, `languageCode`, `languageConfidence`, and
+the `words` array (word timings in milliseconds). The `finish` metadata includes
+the `sessionId`, `sessionDurationSeconds`, and any `speakerRevisions` emitted at
+session close when `speakerLabels` is enabled.
+
+Send audio in chunks of 50ms to 1000ms, no faster than real time, and keep
+each WebSocket message under 128 KB. The AssemblyAI streaming endpoint
+authenticates with a WebSocket header, so use a header-capable WebSocket
+implementation such as `ws` in runtimes whose native WebSocket constructor
+cannot send headers.
+
+The following top-level provider options also apply to streaming: `prompt`,
+`keytermsPrompt`, `languageDetection`, `speakerLabels`, `filterProfanity`,
+`redactPii`, `redactPiiPolicies`, `redactPiiSub`, and `domain`. Other top-level
+options are pre-recorded only and produce a warning when streaming. The
+`streaming` provider options mirror AssemblyAI's streaming connection
+parameters:
+
+- **mode** _'min_latency' | 'balanced' | 'max_accuracy'_
+
+  Accuracy/latency preset. Defaults to `balanced`. Universal-3.5 Pro and later
+  only.
+
+- **formatTurns** _boolean_
+
+  Emit formatted final turns with punctuation, casing, and inverse text
+  normalization. Universal-3.x Pro models always format final turns.
+
+- **languageCodes** _string[]_
+
+  ISO 639-1 codes (max 10) to steer transcription toward while still allowing
+  code-switching among them. Universal-3.5 Pro and later only.
+
+- **maxSpeakers** _number_
+
+  Hard cap (1-10) on distinct speaker labels when `speakerLabels` is enabled.
+
+- **minTurnSilence** / **maxTurnSilence** _number_
+
+  Silence in milliseconds before a speculative end-of-turn check, and before a
+  turn is forced to end.
+
+- **endOfTurnConfidenceThreshold** _number_
+
+  Confidence threshold (0-1) for end-of-turn detection. Universal Streaming
+  English/Multilingual only; Universal-3.x Pro uses punctuation-based turn
+  detection.
+
+- **vadThreshold** _number_
+
+  VAD confidence threshold (0-1) below which audio frames count as silence.
+
+- **interruptionDelay** _number_
+
+  Milliseconds (0-1000) before the first partial of a turn is emitted. Universal-3.5
+  Pro and later only.
+
+- **continuousPartials** _boolean_
+
+  Emit additional partials about every 3 seconds during long turns. Universal-3.5
+  Pro and later only.
+
+- **agentContext** _string_
+
+  Your voice agent's most recent spoken reply (max 1750 characters), used as
+  context for the next user turn. Universal-3.5 Pro and later only.
+
+- **previousContextNTurns** _number_
+
+  Number of prior conversation entries (0-100) carried forward as context; `0`
+  disables context carryover. Universal-3.5 Pro and later only.
+
+- **voiceFocus** _'near-field' | 'far-field'_ and **voiceFocusThreshold** _number_
+
+  Noise suppression profile and aggressiveness (0-1). Universal-3.5 Pro and
+  later only.
+
+- **includePartialTurns** _boolean_
+
+  Whether to emit `transcript-partial` parts. Defaults to `true`; the server
+  forces `false` when `redactPii` is enabled.
+
+- **inactivityTimeout** _number_
+
+  Seconds of inactivity before the server closes the session.
+
+See [Transcription](/docs/ai-sdk-core/transcription) for more information about
+streaming transcription.
+
+### Model Capabilities
+
+| Model                              | Streaming Transcription | Pre-recorded Transcription | Timestamps          | Language Detection  |
+| ---------------------------------- | ----------------------- | -------------------------- | ------------------- | ------------------- |
+| `universal-3-5-pro`                | <Check size={18} />     | <Check size={18} />        | <Check size={18} /> | <Check size={18} /> |
+| `universal-3-6-pro`                | <Check size={18} />     | <Cross size={18} />        | <Check size={18} /> | <Check size={18} /> |
+| `universal-streaming-english`      | <Check size={18} />     | <Cross size={18} />        | <Check size={18} /> | <Cross size={18} /> |
+| `universal-streaming-multilingual` | <Check size={18} />     | <Cross size={18} />        | <Check size={18} /> | <Check size={18} /> |

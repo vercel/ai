@@ -7,6 +7,7 @@ import {
   loadApiKey,
   withUserAgentSuffix,
   type FetchFunction,
+  type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { AssemblyAITranscriptionModel } from './assemblyai-transcription-model';
 import type { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
@@ -21,7 +22,9 @@ export interface AssemblyAIProvider extends ProviderV4 {
   };
 
   /**
-   * Creates a model for transcription.
+   * Creates a model for transcription. Pre-recorded models work with
+   * `transcribe`; streaming models work with `experimental_streamTranscribe`.
+   * `universal-3-5-pro` supports both.
    */
   transcription(modelId: AssemblyAITranscriptionModelId): TranscriptionModelV4;
 
@@ -47,6 +50,15 @@ export interface AssemblyAIProviderSettings {
    * or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+
+  /**
+   * Custom WebSocket implementation for streaming transcription
+   * (`experimental_streamTranscribe`). AssemblyAI authenticates the streaming
+   * connection with the `Authorization` header, which the native WebSocket
+   * constructor in browsers, Node.js, Deno, and Bun cannot send. Pass a
+   * header-capable implementation such as the `ws` package's `WebSocket`.
+   */
+  webSocket?: WebSocketConstructor;
 }
 
 /**
@@ -72,8 +84,10 @@ export function createAssemblyAI(
     new AssemblyAITranscriptionModel(modelId, {
       provider: `assemblyai.transcription`,
       url: ({ path }) => `https://api.assemblyai.com${path}`,
+      streamingUrl: ({ path }) => `https://streaming.assemblyai.com${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      webSocket: options.webSocket,
     });
 
   const provider = function (modelId: AssemblyAITranscriptionModelId) {
