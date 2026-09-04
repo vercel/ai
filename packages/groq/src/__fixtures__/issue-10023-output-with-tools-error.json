@@ -1,7 +1,0 @@
-{
-  "error": {
-    "message": "json mode cannot be combined with tool/function calling",
-    "type": "invalid_request_error",
-    "param": "response_format"
-  }
-}
