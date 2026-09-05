@@ -3,6 +3,8 @@ export type OpenAILanguageModelCapabilities = {
   systemMessageMode: 'remove' | 'system' | 'developer';
   supportsFlexProcessing: boolean;
   supportsPriorityProcessing: boolean;
+  supportsConfigurationUpdate: boolean;
+  supportedReasoningEfforts: readonly string[] | undefined;
 
   /**
    * Allow temperature, topP, logProbs when reasoningEffort is none.
@@ -19,6 +21,7 @@ export function getOpenAILanguageModelCapabilities(
     gptVersion?.minor == null &&
     (gptVersion?.variant?.startsWith('chat') ?? false);
   const isGptNanoModel = gptVersion?.variant?.startsWith('nano') ?? false;
+  const isGpt6OrLaterModel = gptVersion != null && gptVersion.major >= 6;
 
   const supportsFlexProcessing =
     (oSeriesVersion != null && oSeriesVersion >= 3) ||
@@ -43,6 +46,7 @@ export function getOpenAILanguageModelCapabilities(
   // https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
   // GPT-5.1 and later model families support temperature, topP, logProbs when reasoningEffort is none.
   const supportsNonReasoningParameters =
+    !isGpt6OrLaterModel &&
     gptVersion != null &&
     (gptVersion.major > 5 ||
       (gptVersion.major === 5 && (gptVersion.minor ?? 0) >= 1));
@@ -52,6 +56,10 @@ export function getOpenAILanguageModelCapabilities(
   return {
     supportsFlexProcessing,
     supportsPriorityProcessing,
+    supportsConfigurationUpdate: isGpt6OrLaterModel,
+    supportedReasoningEfforts: isGpt6OrLaterModel
+      ? ['low', 'medium', 'high', 'xhigh', 'max']
+      : undefined,
     isReasoningModel,
     systemMessageMode,
     supportsNonReasoningParameters,

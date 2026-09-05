@@ -18,7 +18,8 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesLocalShellCall
   | OpenAIResponsesLocalShellCallOutput
   | OpenAIResponsesReasoning
-  | OpenAIResponsesItemReference;
+  | OpenAIResponsesItemReference
+  | OpenAIResponsesConfigurationUpdate;
 
 export type OpenAIResponsesIncludeValue =
   | 'web_search_call.action.sources'
@@ -151,6 +152,13 @@ export type OpenAIResponsesLocalShellCallOutput = {
 export type OpenAIResponsesItemReference = {
   type: 'item_reference';
   id: string;
+};
+
+export type OpenAIResponsesConfigurationUpdate = {
+  type: 'configuration_update';
+  reasoning: {
+    effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+  };
 };
 
 /**

@@ -122,6 +122,23 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
 
     const strictJsonSchema = openaiOptions.strictJsonSchema ?? false;
 
+    let resolvedReasoningEffort = openaiOptions.reasoningEffort;
+
+    if (
+      resolvedReasoningEffort != null &&
+      modelCapabilities.supportedReasoningEfforts != null &&
+      !modelCapabilities.supportedReasoningEfforts.includes(
+        resolvedReasoningEffort,
+      )
+    ) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'reasoningEffort',
+        details: `${this.modelId} only supports the following reasoning efforts: ${modelCapabilities.supportedReasoningEfforts.join(', ')}`,
+      });
+      resolvedReasoningEffort = undefined;
+    }
+
     const baseArgs = {
       // model id:
       model: this.modelId,
@@ -174,7 +191,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       store: openaiOptions.store,
       metadata: openaiOptions.metadata,
       prediction: openaiOptions.prediction,
-      reasoning_effort: openaiOptions.reasoningEffort,
+      reasoning_effort: resolvedReasoningEffort,
       service_tier: openaiOptions.serviceTier,
       prompt_cache_key: openaiOptions.promptCacheKey,
       prompt_cache_options: openaiOptions.promptCacheOptions,
@@ -184,6 +201,19 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       // messages:
       messages,
     };
+
+    if (
+      modelCapabilities.supportedReasoningEfforts != null &&
+      baseArgs.prompt_cache_retention != null
+    ) {
+      baseArgs.prompt_cache_retention = undefined;
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'promptCacheRetention',
+        details:
+          'promptCacheRetention is not supported by GPT-6 and later models; use promptCacheOptions instead',
+      });
+    }
 
     // remove unsupported settings for reasoning models
     // see https://platform.openai.com/docs/guides/reasoning#limitations
