@@ -142,6 +142,21 @@ const audioMediaTypeSignatures = [
 
 const videoMediaTypeSignatures = [
   {
+    mediaType: 'video/quicktime' as const,
+    bytesPrefix: [
+      0x00,
+      0x00,
+      0x00,
+      0x14,
+      0x66,
+      0x74,
+      0x79,
+      0x70,
+      0x71,
+      0x74, // ftypqt
+    ],
+  },
+  {
     mediaType: 'video/mp4' as const,
     bytesPrefix: [
       0x00,
@@ -157,21 +172,6 @@ const videoMediaTypeSignatures = [
   {
     mediaType: 'video/webm' as const,
     bytesPrefix: [0x1a, 0x45, 0xdf, 0xa3], // EBML
-  },
-  {
-    mediaType: 'video/quicktime' as const,
-    bytesPrefix: [
-      0x00,
-      0x00,
-      0x00,
-      0x14,
-      0x66,
-      0x74,
-      0x79,
-      0x70,
-      0x71,
-      0x74, // ftypqt
-    ],
   },
   {
     mediaType: 'video/x-msvideo' as const,
