@@ -31,7 +31,7 @@
     "type-check": "tsc --build"
   },
   "dependencies": {
-    "@ai-sdk/openai": "3.0.108",
+    "@ai-sdk/openai": "3.0.109",
     "@modelcontextprotocol/sdk": "^1.26.0",
     "ai": "6.0.277",
     "dotenv": "16.4.5",
