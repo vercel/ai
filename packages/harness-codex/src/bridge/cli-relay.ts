@@ -193,12 +193,18 @@ function splitShellAndCommands(command: string): string[] | undefined {
       i++;
       continue;
     }
-    if (char === '&' && command[i + 1] === '&') {
+    const separatorLength =
+      char === '&' && command[i + 1] === '&'
+        ? 2
+        : char === ';' || char === '\n'
+          ? 1
+          : 0;
+    if (separatorLength > 0) {
       const nestedCommand = command.slice(start, i).trim();
       if (!nestedCommand) return undefined;
       commands.push(nestedCommand);
-      start = i + 2;
-      i++;
+      start = i + separatorLength;
+      i += separatorLength - 1;
     }
   }
 
