@@ -211,6 +211,30 @@ describe('createPiSession', () => {
     }
   });
 
+  it('passes the max thinking level to the Pi agent session', async () => {
+    piMock.session = createFakePiSession().session;
+    const session = await createPi({ thinkingLevel: 'max' }).doStart({
+      sessionId: 'session-max-thinking-level',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      const control = await session.doPromptTurn({
+        prompt: 'Think deeply.',
+        tools: [],
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      expect(piMock.createAgentSession).toHaveBeenCalledWith(
+        expect.objectContaining({ thinkingLevel: 'max' }),
+      );
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('preserves caller order and passes a fresh mutable factory array', async () => {
     const callOrder: string[] = [];
     const firstFactory: ExtensionFactory = () => {
