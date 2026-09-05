@@ -27,6 +27,15 @@ const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
+const CONSTRAINED_TEST_SCHEMA: JSONSchema7 = {
+  type: 'object',
+  properties: {
+    slug: { type: 'string', pattern: '^[a-z-]+$', minLength: 3, maxLength: 50 },
+    count: { type: 'integer', minimum: 1, maximum: 9 },
+  },
+  required: ['slug'],
+};
+
 const SAFETY_RATINGS = [
   {
     category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
@@ -1989,6 +1998,194 @@ describe('doGenerate', () => {
           },
           required: ['property1', 'property2'],
           additionalProperties: false,
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Hello",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "generationConfig": {
+          "responseMimeType": "application/json",
+        },
+      }
+    `);
+  });
+
+  it('should pass json schema with responseFormat and useResponseJsonSchema = true', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    await provider.languageModel('gemini-pro').doGenerate({
+      providerOptions: {
+        google: {
+          useResponseJsonSchema: true,
+        },
+      },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            contact: {
+              anyOf: [
+                { type: 'object', properties: { email: { type: 'string' } } },
+                { type: 'object', properties: { phone: { type: 'string' } } },
+              ],
+            },
+          },
+          required: ['contact'],
+          additionalProperties: false,
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Hello",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "generationConfig": {
+          "responseJsonSchema": {
+            "additionalProperties": false,
+            "properties": {
+              "contact": {
+                "anyOf": [
+                  {
+                    "properties": {
+                      "email": {
+                        "type": "string",
+                      },
+                    },
+                    "type": "object",
+                  },
+                  {
+                    "properties": {
+                      "phone": {
+                        "type": "string",
+                      },
+                    },
+                    "type": "object",
+                  },
+                ],
+              },
+            },
+            "required": [
+              "contact",
+            ],
+            "type": "object",
+          },
+          "responseMimeType": "application/json",
+        },
+      }
+    `);
+  });
+
+  it('should keep string and number constraints with useResponseJsonSchema = true', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    await provider.languageModel('gemini-pro').doGenerate({
+      providerOptions: {
+        google: {
+          useResponseJsonSchema: true,
+        },
+      },
+      responseFormat: { type: 'json', schema: CONSTRAINED_TEST_SCHEMA },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(
+      (await server.calls[0].requestBodyJson).generationConfig,
+    ).toMatchInlineSnapshot(`
+      {
+        "responseJsonSchema": {
+          "properties": {
+            "count": {
+              "maximum": 9,
+              "minimum": 1,
+              "type": "integer",
+            },
+            "slug": {
+              "maxLength": 50,
+              "minLength": 3,
+              "pattern": "^[a-z-]+$",
+              "type": "string",
+            },
+          },
+          "required": [
+            "slug",
+          ],
+          "type": "object",
+        },
+        "responseMimeType": "application/json",
+      }
+    `);
+  });
+
+  it('should drop most constraints when converting to the OpenAPI subset', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    await provider.languageModel('gemini-pro').doGenerate({
+      responseFormat: { type: 'json', schema: CONSTRAINED_TEST_SCHEMA },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(
+      (await server.calls[0].requestBodyJson).generationConfig,
+    ).toMatchInlineSnapshot(`
+      {
+        "responseMimeType": "application/json",
+        "responseSchema": {
+          "properties": {
+            "count": {
+              "type": "integer",
+            },
+            "slug": {
+              "minLength": 3,
+              "type": "string",
+            },
+          },
+          "required": [
+            "slug",
+          ],
+          "type": "object",
+        },
+      }
+    `);
+  });
+
+  it('should not pass any schema with useResponseJsonSchema = true and structuredOutputs = false', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    await provider.languageModel('gemini-pro').doGenerate({
+      providerOptions: {
+        google: {
+          useResponseJsonSchema: true,
+          structuredOutputs: false,
+        },
+      },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { property1: { type: 'string' } },
         },
       },
       prompt: TEST_PROMPT,

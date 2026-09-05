@@ -330,6 +330,17 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           }))
         : undefined);
 
+    const structuredOutputSchema =
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      // Google GenAI does not support all OpenAPI Schema features,
+      // so this is needed as an escape hatch:
+      // TODO convert into provider option
+      (googleOptions?.structuredOutputs ?? true)
+        ? responseFormat.schema
+        : undefined;
+    const useResponseJsonSchema = googleOptions?.useResponseJsonSchema ?? false;
+
     const toolConfig =
       googleToolConfig ||
       streamFunctionCallArguments ||
@@ -369,14 +380,14 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           responseMimeType:
             responseFormat?.type === 'json' ? 'application/json' : undefined,
           responseSchema:
-            responseFormat?.type === 'json' &&
-            responseFormat.schema != null &&
-            // Google GenAI does not support all OpenAPI Schema features,
-            // so this is needed as an escape hatch:
-            // TODO convert into provider option
-            (googleOptions?.structuredOutputs ?? true)
-              ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
+            structuredOutputSchema != null && !useResponseJsonSchema
+              ? convertJSONSchemaToOpenAPISchema(structuredOutputSchema)
               : undefined,
+          // mutually exclusive with `responseSchema`:
+          ...(structuredOutputSchema != null &&
+            useResponseJsonSchema && {
+              responseJsonSchema: structuredOutputSchema,
+            }),
           ...(googleOptions?.audioTimestamp && {
             audioTimestamp: googleOptions.audioTimestamp,
           }),
