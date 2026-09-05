@@ -6499,6 +6499,53 @@ describe('OpenAIResponsesLanguageModel', () => {
       `);
     });
 
+    it('should not fail when a tool call is cut off by max_output_tokens', async () => {
+      // Repro from a gpt-6-astra run: the model degenerated mid-arguments,
+      // hit max_output_tokens, and the item was closed with status
+      // "in_progress" followed by response.incomplete.
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:{"type":"response.created","response":{"id":"resp_truncated_tool_call","object":"response","created_at":1741362087,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":100,"model":"gpt-6-astra","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":null,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":null,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"function_call","id":"fc_truncated","call_id":"call_truncated","name":"weather","arguments":"","status":"in_progress"}}\n\n`,
+          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_truncated","output_index":0,"delta":"{\\"location\\":\\"Ro"}\n\n`,
+          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_truncated","output_index":0,"delta":"me\\"       \\t   "}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"function_call","id":"fc_truncated","call_id":"call_truncated","name":"weather","arguments":"{\\"location\\":\\"Rome\\"       \\t   ","status":"in_progress"}}\n\n`,
+          `data:{"type":"response.incomplete","response":{"id":"resp_truncated_tool_call","object":"response","created_at":1741362087,"status":"incomplete","error":null,"incomplete_details":{"reason":"max_output_tokens"},"instructions":null,"max_output_tokens":100,"model":"gpt-6-astra","output":[{"type":"function_call","id":"fc_truncated","call_id":"call_truncated","name":"weather","arguments":"{\\"location\\":\\"Rome\\"       \\t   ","status":"in_progress"}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":null,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":null,"truncation":"disabled","usage":{"input_tokens":10,"input_tokens_details":{"cached_tokens":0},"output_tokens":100,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":110},"user":null,"metadata":{}}}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('gpt-6-astra').doStream({
+        tools: TEST_TOOLS,
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.filter(part => part.type === 'error')).toStrictEqual([]);
+      expect(parts.filter(part => part.type === 'tool-call'))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{"location":"Rome"       	   ",
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "fc_truncated",
+                },
+              },
+              "toolCallId": "call_truncated",
+              "toolName": "weather",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      expect(parts.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { raw: 'max_output_tokens', unified: 'length' },
+      });
+    });
+
     it('should send streaming tool calls', async () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',

@@ -917,7 +917,9 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             call_id: z.string(),
             name: z.string(),
             arguments: z.string(),
-            status: z.literal('completed'),
+            // A tool call cut off by max_output_tokens is closed with a
+            // non-completed status; the stream then ends with response.incomplete.
+            status: z.enum(['in_progress', 'completed', 'incomplete']),
             namespace: z.string().nullish(),
           }),
           z.object({
@@ -926,7 +928,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             call_id: z.string(),
             name: z.string(),
             input: z.string(),
-            status: z.literal('completed'),
+            status: z.enum(['in_progress', 'completed', 'incomplete']),
           }),
           z.object({
             type: z.literal('code_interpreter_call'),
