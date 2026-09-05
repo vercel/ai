@@ -17882,7 +17882,7 @@ describe('streamText', () => {
                 "type": "tool-input-available",
               },
               {
-                "errorText": "ERROR",
+                "errorText": "An error occurred.",
                 "providerExecuted": true,
                 "providerMetadata": {
                   "provider": {
@@ -17904,8 +17904,8 @@ describe('streamText', () => {
       });
     });
 
-    describe('provider-executed tool error with structured object preserves error in ui message stream', () => {
-      it('should preserve structured error despite custom onError for provider-executed tools', async () => {
+    describe('provider-executed tool error routes through onError for consistent sanitization', () => {
+      it('should route providerExecuted tool errors through onError like all other errors', async () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
@@ -17957,11 +17957,9 @@ describe('streamText', () => {
           (c: any) => c.type === 'tool-output-error',
         );
 
-        const parsed = JSON.parse((errorChunk as any).errorText);
-        expect(parsed).toEqual({
-          type: 'web_fetch_tool_result_error',
-          errorCode: 'url_not_accessible',
-        });
+        // providerExecuted errors now route through onError() consistently,
+        // so the custom message is returned instead of the raw structured error.
+        expect((errorChunk as any).errorText).toBe('Oops, an error occurred!');
       });
     });
 
