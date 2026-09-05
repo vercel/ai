@@ -4404,3 +4404,25 @@ describe('transformRequestBody', () => {
     expect(requestBody).not.toHaveProperty('custom_field');
   });
 });
+
+describe('doGenerate empty choices (#20351)', () => {
+  it('should throw InvalidResponseDataError instead of TypeError', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-empty',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'grok-3',
+        choices: [],
+        usage: { prompt_tokens: 4, total_tokens: 4, completion_tokens: 0 },
+      },
+    };
+
+    await expect(
+      model.doGenerate({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'hi' }] }],
+      }),
+    ).rejects.toThrow('Response contained no choices.');
+  });
+});
