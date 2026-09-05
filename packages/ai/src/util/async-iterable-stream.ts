@@ -82,6 +82,10 @@ export function asAsyncIterableStream<T>(
         try {
           result = await reader.read();
         } catch (error) {
+          // Source stream errored: release the lock without cancelling so the
+          // locked ReadableStream can be observed again / GC'd cleanly, and
+          // so subsequent next() calls return done rather than re-throwing.
+          // Do not re-cancel the source — it already failed. (#18370)
           await cleanup(false);
           throw error;
         }
@@ -93,7 +97,7 @@ export function asAsyncIterableStream<T>(
           return { done: true, value: undefined };
         }
 
-        return { done: false, value };
+        return { done: false, value: value as T };
       },
 
       /**
