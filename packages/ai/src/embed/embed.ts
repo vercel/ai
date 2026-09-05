@@ -3,6 +3,7 @@ import {
   withUserAgentSuffix,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
+import { InvalidResponseDataError } from '@ai-sdk/provider';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveEmbeddingModel } from '../model/resolve-model';
 import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
@@ -205,6 +206,12 @@ export async function embed({
             });
 
             const embedding = modelResponse.embeddings[0];
+            if (embedding == null) {
+              throw new InvalidResponseDataError({
+                data: modelResponse,
+                message: 'Response contained no embeddings.',
+              });
+            }
             const usage = modelResponse.usage ?? { tokens: NaN };
 
             await notify({
