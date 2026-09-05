@@ -70,6 +70,18 @@ A Promise that resolves to an array of [`ModelMessage`](/docs/reference/ai-sdk-c
   ]}
 />
 
+## Deprecated `rawInput` field
+
+Tool parts in the `output-error` state should store their tool arguments in
+`input`. The legacy `rawInput` field remains supported for persisted messages,
+but `convertToModelMessages` emits an AI SDK deprecation warning when it
+encounters a defined value.
+
+When both fields are present, `input` takes precedence, including when its value
+is `null`. `rawInput` is used only when `input` is `undefined`. Migrate stored
+messages to `input` before the next major version, when `rawInput` will be
+removed.
+
 ## Tool Approval States
 
 `convertToModelMessages` preserves tool approval state from UI messages when converting them back into `ModelMessage`s for a follow-up `generateText` or `streamText` call.

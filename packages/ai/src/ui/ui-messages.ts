@@ -363,7 +363,11 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
   | {
       state: 'output-error'; // TODO AI SDK 6: change to 'error' state
       input: asUITool<TOOL>['input'] | undefined;
-      rawInput?: unknown; // TODO AI SDK 6: remove this field, input should be unknown
+      /**
+       * @deprecated Use `input` instead. This field will be removed in the next
+       * major version.
+       */
+      rawInput?: unknown;
       output?: never;
       errorText: string;
       callProviderMetadata?: ProviderMetadata;

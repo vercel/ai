@@ -99,3 +99,14 @@ const validatedMessages = await validateUIMessages({
   tools,
 });
 ```
+
+## Deprecated `rawInput` field
+
+For backward compatibility, validation still accepts `rawInput` on tool parts
+in the `output-error` state. When a defined `rawInput` value is found,
+`validateUIMessages` emits an AI SDK deprecation warning through
+`AI_SDK_LOG_WARNINGS`.
+
+Migrate persisted messages to store tool arguments in `input` and remove
+`rawInput`. When both fields exist, treat `input` as the source of truth.
+`rawInput` will be removed in the next major version.
