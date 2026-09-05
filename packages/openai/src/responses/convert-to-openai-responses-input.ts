@@ -398,6 +398,7 @@ export async function convertToOpenAIResponsesInput({
               providerOptionsName,
             );
             input.push({
+              type: 'message',
               role: 'system',
               content:
                 promptCacheBreakpoint == null
@@ -418,6 +419,7 @@ export async function convertToOpenAIResponsesInput({
               providerOptionsName,
             );
             input.push({
+              type: 'message',
               role: 'developer',
               content:
                 promptCacheBreakpoint == null
@@ -451,6 +453,7 @@ export async function convertToOpenAIResponsesInput({
 
       case 'user': {
         input.push({
+          type: 'message',
           role: 'user',
           content: content.map((part, index) => {
             switch (part.type) {
@@ -603,6 +606,7 @@ export async function convertToOpenAIResponsesInput({
               }
 
               input.push({
+                type: 'message',
                 role: 'assistant',
                 content: [{ type: 'output_text', text: part.text }],
                 id,
