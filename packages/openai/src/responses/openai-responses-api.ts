@@ -87,7 +87,8 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesToolSearchCall
   | OpenAIResponsesToolSearchOutput
   | OpenAIResponsesReasoning
-  | OpenAIResponsesItemReference;
+  | OpenAIResponsesItemReference
+  | OpenAIResponsesConfigurationUpdate;
 
 export type OpenAIResponsesIncludeValue =
   | 'web_search_call.action.sources'
@@ -577,6 +578,13 @@ export type OpenAIResponsesReasoning = {
     type: 'summary_text';
     text: string;
   }>;
+};
+
+export type OpenAIResponsesConfigurationUpdate = {
+  type: 'configuration_update';
+  reasoning: {
+    effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+  };
 };
 
 // Captured from the Responses API when OpenAI returned an early

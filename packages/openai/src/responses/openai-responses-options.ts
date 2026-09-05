@@ -260,9 +260,22 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
        * Reasoning effort for reasoning models. Defaults to `medium`. If you use
        * `providerOptions` to set the `reasoningEffort` option, this model setting will be ignored.
        * GPT-5.6 supports 'none' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'.
+       * GPT-6 and later models support 'low' | 'medium' | 'high' | 'xhigh' | 'max'.
        * Supported values vary by model.
        */
       reasoningEffort: z.string().nullish(),
+
+      /**
+       * Updates the reasoning effort for GPT-6 and later models starting with this response
+       * without changing the request-level reasoning effort. This preserves the
+       * request prefix for prompt caching.
+       *
+       * Only supported by GPT-6 and later models in standard, single-agent mode. Cannot be
+       * combined with automatic truncation.
+       */
+      reasoningEffortUpdate: z
+        .enum(['low', 'medium', 'high', 'xhigh', 'max'])
+        .optional(),
 
       /**
        * Controls how much model work GPT-5.6 performs before returning a final answer.

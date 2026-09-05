@@ -206,8 +206,22 @@ The following provider options are available:
 
 <Note>
   Supported reasoning efforts vary by model. GPT-5.6 supports `'none'`, `'low'`,
-  `'medium'`, `'high'`, `'xhigh'`, and `'max'`.
+  `'medium'`, `'high'`, `'xhigh'`, and `'max'`. GPT-6 and later models support
+  `'low'`, `'medium'`, `'high'`, `'xhigh'`, and `'max'`.
 </Note>
+
+<Note>
+  GPT-6 and later models do not support `temperature`, `topP`, `logprobs`, or
+  the legacy `promptCacheRetention` option. The provider removes these settings
+  and returns a warning. Use the Responses API for GPT-6 tool calling.
+</Note>
+
+- **reasoningEffortUpdate** _'low' | 'medium' | 'high' | 'xhigh' | 'max'_
+  Updates the reasoning effort for GPT-6 and later models starting with the
+  current response without changing the request-level effort. Use this with
+  `previousResponseId` to preserve the original prompt prefix for caching.
+  Configuration updates require standard, single-agent mode and cannot be
+  combined with automatic truncation.
 
 - **reasoningMode** _'standard' | 'pro'_
   Controls how much model work GPT-5.6 performs before returning a final answer. `'standard'` is the default. Use `'pro'` for difficult tasks where quality matters more than latency and token usage.
@@ -307,6 +321,58 @@ The following OpenAI-specific metadata may be returned:
   Service tier information returned by the API.
 - **reasoningContext** _(optional)_
   Effective persisted-reasoning context returned by GPT-5.6 (`'current_turn'` or `'all_turns'`).
+
+#### Changing Reasoning Effort Mid-Conversation
+
+GPT-6 and later models can change reasoning effort between responses without
+changing the request-level `reasoningEffort` setting. The provider sends
+`reasoningEffortUpdate` as an OpenAI `configuration_update` input item before
+the next user message. Keeping the request-level effort unchanged preserves the
+original prompt prefix for prompt caching.
+
+```ts highlight="13,32,34"
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+  type OpenaiResponsesProviderMetadata,
+} from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const first = await generateText({
+  model: openai.responses('gpt-6-astra'),
+  prompt: 'Draft a database migration plan.',
+  providerOptions: {
+    openai: {
+      reasoningEffort: 'low',
+    } satisfies OpenAILanguageModelResponsesOptions,
+  },
+});
+
+const metadata = first.providerMetadata as
+  | OpenaiResponsesProviderMetadata
+  | undefined;
+const previousResponseId = metadata?.openai.responseId;
+
+if (!previousResponseId) {
+  throw new Error('OpenAI did not return a response ID.');
+}
+
+const second = await generateText({
+  model: openai.responses('gpt-6-astra'),
+  prompt: 'Analyze the failure modes and propose rollback steps.',
+  providerOptions: {
+    openai: {
+      previousResponseId,
+      reasoningEffort: 'low',
+      reasoningEffortUpdate: 'high',
+    } satisfies OpenAILanguageModelResponsesOptions,
+  },
+});
+```
+
+The response metadata continues to report the request-level reasoning effort,
+not the effective effort selected by `reasoningEffortUpdate`. Configuration
+updates are not supported with `reasoningMode: 'pro'` or `truncation: 'auto'`.
 
 #### Reasoning Output
 

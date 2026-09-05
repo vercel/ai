@@ -108,6 +108,7 @@ export const openaiLanguageModelChatOptions = lazySchema(() =>
 
       /**
        * Reasoning effort for reasoning models. Defaults to `medium`.
+       * GPT-6 and later models support 'low' | 'medium' | 'high' | 'xhigh' | 'max'.
        */
       reasoningEffort: z
         .enum(['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'])
