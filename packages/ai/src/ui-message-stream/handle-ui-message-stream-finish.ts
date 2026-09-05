@@ -200,7 +200,14 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   return processUIMessageStream<UI_MESSAGE>({
     stream: idInjectedStream,
     runUpdateMessageJob,
-    onError,
+    // Error chunks on this stream have already been through the caller's
+    // `onError`: `toUIMessageStream` and `createUIMessageStream` invoke it as
+    // an error → errorText transformer when they produce the chunk. Re-
+    // reporting the chunks here would call `onError` a second time per error
+    // (and with a re-wrapped `new Error(errorText)` instead of the original
+    // error). The `onError` above still surfaces failures thrown from the
+    // step callbacks themselves.
+    onError: () => {},
   }).pipeThrough(
     new TransformStream<
       InferUIMessageChunk<UI_MESSAGE>,

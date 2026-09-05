@@ -155,6 +155,35 @@ describe('toUIMessageStream', () => {
     expect(chunks).toEqual([{ type: 'error', errorText: 'handled: boom' }]);
   });
 
+  it('invokes onError only once per error when onEnd requires stream processing', async () => {
+    const onError = vi.fn(error => `handled: ${(error as Error).message}`);
+    const parts: TextStreamPart<{}>[] = [
+      { type: 'start' },
+      { type: 'error', error: new Error('boom') },
+    ];
+
+    const chunks = await convertReadableStreamToArray(
+      toUIMessageStream({
+        stream: convertArrayToReadableStream(parts),
+        tools: undefined,
+        onError,
+        // forces handleUIMessageStreamFinish to run processUIMessageStream,
+        // which previously re-reported the error chunk
+        onEnd: () => {},
+      }),
+    );
+
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ message: 'boom' }),
+    );
+    expect(chunks).toContainEqual({
+      type: 'error',
+      errorText: 'handled: boom',
+    });
+  });
+
   it('emits separate metadata chunks for non-lifecycle parts', async () => {
     type MetadataUIMessage = UIMessage<{ partType: string }>;
 
