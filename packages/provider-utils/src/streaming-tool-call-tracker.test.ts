@@ -375,20 +375,788 @@ describe('StreamingToolCallTracker', () => {
       ]);
     });
 
-    it('should throw when id is missing', () => {
-      const { controller } = createCollector();
-      const tracker = new StreamingToolCallTracker(controller);
+    it('should generate an id when id is missing', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller, {
+        generateId: () => 'generated-id',
+      });
 
-      expect(() =>
-        tracker.processDelta({
-          index: 0,
-          type: 'function',
-          function: { name: 'fn' },
-        }),
-      ).toThrow("Expected 'id' to be a string.");
+      tracker.processDelta({
+        index: 0,
+        type: 'function',
+        function: { name: 'fn', arguments: '{}' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'generated-id',
+          toolName: 'fn',
+          input: '{}',
+        },
+      ]);
     });
 
-    it('should throw when function.name is missing', () => {
+    it.each([undefined, null])(
+      'should throw when function.name is missing',
+      name => {
+        const { controller } = createCollector();
+        const tracker = new StreamingToolCallTracker(controller);
+
+        expect(() =>
+          tracker.processDelta({
+            index: 0,
+            id: 'call_1',
+            type: 'function',
+            function: { name },
+          }),
+        ).toThrow("Expected 'function.name' to be a string.");
+      },
+    );
+
+    it.each(['', '   '])(
+      'should ignore a blank function name without preventing prior calls from finalizing',
+      name => {
+        const { parts, controller } = createCollector();
+        const tracker = new StreamingToolCallTracker(controller);
+
+        tracker.processDelta({
+          index: 0,
+          id: 'call_1',
+          type: 'function',
+          function: { name: 'valid_tool', arguments: '{"value":1}' },
+        });
+
+        expect(() =>
+          tracker.processDelta({
+            index: 1,
+            id: 'call_2',
+            type: 'function',
+            function: { name, arguments: '{"value":2}' },
+          }),
+        ).not.toThrow();
+
+        tracker.flush();
+
+        expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+          {
+            type: 'tool-call',
+            toolCallId: 'call_1',
+            toolName: 'valid_tool',
+            input: '{"value":1}',
+          },
+        ]);
+      },
+    );
+
+    it.each([
+      {
+        description: 'blank name with a matching id',
+        name: '',
+        continuation: { id: 'call_1' },
+      },
+      {
+        description: 'whitespace-only name with a matching index',
+        name: '   ',
+        continuation: { index: 0 },
+      },
+    ])(
+      'should retain continuation arguments for a $description',
+      ({ name, continuation }) => {
+        const { parts, controller } = createCollector();
+        const tracker = new StreamingToolCallTracker(controller);
+
+        tracker.processDelta({
+          index: 0,
+          id: 'call_1',
+          type: 'function',
+          function: { name: 'read_file', arguments: '{"pa' },
+        });
+        tracker.processDelta({
+          ...continuation,
+          function: { name, arguments: 'th":"a"}' },
+        });
+        tracker.flush();
+
+        expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+          {
+            type: 'tool-call',
+            toolCallId: 'call_1',
+            toolName: 'read_file',
+            input: '{"path":"a"}',
+          },
+        ]);
+      },
+    );
+
+    it('should keep id-less calls distinct when an index is reused and type is omitted', () => {
+      const { parts, controller } = createCollector();
+      const generateId = vi
+        .fn<() => string>()
+        .mockReturnValueOnce('generated-1')
+        .mockReturnValueOnce('generated-2')
+        .mockReturnValueOnce('generated-3');
+      const tracker = new StreamingToolCallTracker(controller, { generateId });
+
+      tracker.processDelta({
+        index: 0,
+        function: { name: 'read_file', arguments: '{"path":"p0"}' },
+      });
+      tracker.processDelta({
+        index: 0,
+        function: { name: 'write_file', arguments: '{"path":"p1"}' },
+      });
+      tracker.processDelta({
+        index: 0,
+        function: { name: 'read_file', arguments: '{"path":"p2"}' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'generated-1',
+          toolName: 'read_file',
+          input: '{"path":"p0"}',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'generated-2',
+          toolName: 'write_file',
+          input: '{"path":"p1"}',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'generated-3',
+          toolName: 'read_file',
+          input: '{"path":"p2"}',
+        },
+      ]);
+    });
+
+    it.each([
+      { description: 'missing ids', id: undefined },
+      { description: 'a repeated id', id: 'dup' },
+    ])(
+      'should keep complete same-name calls distinct with $description and a reused index',
+      ({ id }) => {
+        const { parts, controller } = createCollector();
+        const tracker = new StreamingToolCallTracker(controller, {
+          generateId: () => 'generated-id',
+        });
+
+        tracker.processDelta({
+          index: 0,
+          id,
+          type: 'function',
+          function: { name: 'same_tool', arguments: '{"value":1}' },
+        });
+        tracker.processDelta({
+          index: 0,
+          id,
+          type: 'function',
+          function: { name: 'same_tool', arguments: '{"value":2}' },
+        });
+        tracker.flush();
+
+        const toolCalls = parts.filter(part => part.type === 'tool-call');
+        expect(toolCalls.map(toolCall => toolCall.input)).toEqual([
+          '{"value":1}',
+          '{"value":2}',
+        ]);
+        expect(
+          new Set(toolCalls.map(toolCall => toolCall.toolCallId)).size,
+        ).toBe(2);
+      },
+    );
+
+    it.each([
+      { description: 'missing ids', id: undefined },
+      { description: 'a repeated id', id: 'dup' },
+    ])(
+      'should keep a partial same-name call distinct with $description and a reused index',
+      ({ id }) => {
+        const { parts, controller } = createCollector();
+        const tracker = new StreamingToolCallTracker(controller, {
+          generateId: () => 'generated-id',
+        });
+
+        tracker.processDelta({
+          index: 0,
+          id,
+          type: 'function',
+          function: { name: 'same_tool', arguments: '{"value":1}' },
+        });
+        tracker.processDelta({
+          index: 0,
+          id,
+          type: 'function',
+          function: { name: 'same_tool', arguments: '{"value":' },
+        });
+        tracker.flush();
+
+        const toolCalls = parts.filter(part => part.type === 'tool-call');
+        expect(toolCalls.map(toolCall => toolCall.input)).toEqual([
+          '{"value":1}',
+          '{"value":',
+        ]);
+        expect(
+          new Set(toolCalls.map(toolCall => toolCall.toolCallId)).size,
+        ).toBe(2);
+      },
+    );
+
+    it('should keep interleaved same-name calls with distinct ids and a reused index separate', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'same_tool', arguments: '{"value":' },
+      });
+      tracker.processDelta({
+        index: 0,
+        id: 'call_2',
+        type: 'function',
+        function: { name: 'same_tool', arguments: '{"value":2}' },
+      });
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        function: { arguments: '1}' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'same_tool',
+          input: '{"value":1}',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_2',
+          toolName: 'same_tool',
+          input: '{"value":2}',
+        },
+      ]);
+    });
+
+    it('should ignore an index-only continuation after the index is reused', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'first', arguments: '{"value":1}' },
+      });
+      tracker.processDelta({
+        index: 0,
+        id: 'call_2',
+        type: 'function',
+        function: { name: 'second', arguments: '{"value":2}' },
+      });
+      tracker.processDelta({
+        index: 0,
+        function: { arguments: '{"unattributed":true}' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'first',
+          input: '{"value":1}',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_2',
+          toolName: 'second',
+          input: '{"value":2}',
+        },
+      ]);
+    });
+
+    it('should use the index when continuation ids are blank', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'read_file', arguments: '{"pa' },
+      });
+      tracker.processDelta({
+        index: 0,
+        id: '   ',
+        function: { arguments: 'th":"a"}' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'read_file',
+          input: '{"path":"a"}',
+        },
+      ]);
+    });
+
+    it('should generate unique ids for blank and repeated ids', () => {
+      const { parts, controller } = createCollector();
+      const generateId = vi
+        .fn<() => string>()
+        .mockReturnValueOnce('generated-1')
+        .mockReturnValueOnce('generated-2');
+      const tracker = new StreamingToolCallTracker(controller, { generateId });
+
+      tracker.processDelta({
+        index: 0,
+        id: '',
+        type: 'function',
+        function: { name: 'read_file', arguments: '{}' },
+      });
+      tracker.processDelta({
+        index: 1,
+        id: 'dup',
+        type: 'function',
+        function: { name: 'read_file', arguments: '{}' },
+      });
+      tracker.processDelta({
+        index: 2,
+        id: 'dup',
+        type: 'function',
+        function: { name: 'write_file', arguments: '{}' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'generated-1',
+          toolName: 'read_file',
+          input: '{}',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'dup',
+          toolName: 'read_file',
+          input: '{}',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'generated-2',
+          toolName: 'write_file',
+          input: '{}',
+        },
+      ]);
+    });
+
+    it('should keep same-name calls with repeated ids and distinct indices separate', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller, {
+        generateId: () => 'generated-id',
+      });
+
+      tracker.processDelta({
+        index: 0,
+        id: 'dup',
+        type: 'function',
+        function: { name: 'same_tool', arguments: '{"value":0}' },
+      });
+      tracker.processDelta({
+        index: 1,
+        id: 'dup',
+        type: 'function',
+        function: { name: 'same_tool', arguments: '{"value":1}' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'dup',
+          toolName: 'same_tool',
+          input: '{"value":0}',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'generated-id',
+          toolName: 'same_tool',
+          input: '{"value":1}',
+        },
+      ]);
+    });
+
+    it('should preserve nonblank ids and function names exactly', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        index: 0,
+        id: ' spaced ',
+        type: 'function',
+        function: { name: ' same_tool ', arguments: '{"value":' },
+      });
+      tracker.processDelta({
+        index: 0,
+        id: ' spaced ',
+        function: { arguments: '0}' },
+      });
+      tracker.processDelta({
+        index: 1,
+        id: 'spaced',
+        type: 'function',
+        function: { name: ' same_tool ', arguments: '{"value":1}' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: ' spaced ',
+          toolName: ' same_tool ',
+          input: '{"value":0}',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'spaced',
+          toolName: ' same_tool ',
+          input: '{"value":1}',
+        },
+      ]);
+    });
+
+    it('should create bounded unique ids when generateId returns duplicates', () => {
+      const { parts, controller } = createCollector();
+      const generateId = vi.fn<() => string>().mockReturnValue('generated-id');
+      const tracker = new StreamingToolCallTracker(controller, { generateId });
+
+      tracker.processDelta({
+        index: 0,
+        type: 'function',
+        function: { name: 'first', arguments: '{}' },
+      });
+      tracker.processDelta({
+        index: 1,
+        type: 'function',
+        function: { name: 'second', arguments: '{}' },
+      });
+      tracker.processDelta({
+        index: 2,
+        type: 'function',
+        function: { name: 'third', arguments: '{}' },
+      });
+      tracker.flush();
+
+      expect(generateId).toHaveBeenCalledTimes(3);
+      expect(
+        parts
+          .filter(part => part.type === 'tool-call')
+          .map(part => part.toolCallId),
+      ).toEqual(['generated-id', 'generated-id-1', 'generated-id-2']);
+    });
+
+    it('should create usable ids when generateId returns blank values', () => {
+      const { parts, controller } = createCollector();
+      const generateId = vi.fn<() => string>().mockReturnValue('   ');
+      const tracker = new StreamingToolCallTracker(controller, { generateId });
+
+      tracker.processDelta({
+        index: 0,
+        type: 'function',
+        function: { name: 'first', arguments: '{}' },
+      });
+      tracker.processDelta({
+        index: 1,
+        type: 'function',
+        function: { name: 'second', arguments: '{}' },
+      });
+      tracker.flush();
+
+      expect(generateId).toHaveBeenCalledTimes(2);
+      expect(
+        parts
+          .filter(part => part.type === 'tool-call')
+          .map(part => part.toolCallId),
+      ).toEqual(['tool-call', 'tool-call-1']);
+    });
+
+    it('should ignore unattributable deltas when multiple calls are active', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'read_file', arguments: '{"path":"a"}' },
+      });
+      tracker.processDelta({
+        index: 1,
+        id: 'call_2',
+        type: 'function',
+        function: { name: 'write_file', arguments: '{"path":"b"}' },
+      });
+      tracker.processDelta({
+        function: { arguments: '{"unattributed":true}' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'read_file',
+          input: '{"path":"a"}',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_2',
+          toolName: 'write_file',
+          input: '{"path":"b"}',
+        },
+      ]);
+    });
+
+    it('should ignore an ambiguous continuation for a repeated id', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller, {
+        generateId: () => 'generated-id',
+      });
+
+      tracker.processDelta({
+        index: 0,
+        id: 'dup',
+        type: 'function',
+        function: { name: 'read_file', arguments: '{"path":"a"}' },
+      });
+      tracker.processDelta({
+        index: 1,
+        id: 'dup',
+        type: 'function',
+        function: { name: 'write_file', arguments: '{"path":"b"}' },
+      });
+      tracker.processDelta({
+        id: 'dup',
+        function: { arguments: '{"unattributed":true}' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'dup',
+          toolName: 'read_file',
+          input: '{"path":"a"}',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'generated-id',
+          toolName: 'write_file',
+          input: '{"path":"b"}',
+        },
+      ]);
+    });
+
+    it('should use a matching name and index for an id-less continuation', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller, {
+        typeValidation: 'required',
+      });
+
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'read_file', arguments: '{"pa' },
+      });
+      tracker.processDelta({
+        index: 0,
+        function: { name: 'read_file', arguments: 'th":"a"}' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'read_file',
+          input: '{"path":"a"}',
+        },
+      ]);
+    });
+
+    it('should use the index when a continuation has an unexpected id', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'read_file', arguments: '{"pa' },
+      });
+      tracker.processDelta({
+        index: 0,
+        id: 'unexpected',
+        function: { arguments: 'th":"a"}' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'read_file',
+          input: '{"path":"a"}',
+        },
+      ]);
+    });
+
+    it('should continue a call when its id changes but its index and name match', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'read_file', arguments: '{"pa' },
+      });
+      tracker.processDelta({
+        index: 0,
+        id: 'unexpected',
+        type: 'function',
+        function: { name: 'read_file', arguments: 'th":"a"}' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'read_file',
+          input: '{"path":"a"}',
+        },
+      ]);
+    });
+
+    it('should continue a call when all labels repeat after a parsable argument prefix', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'calculate', arguments: '1' },
+      });
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'calculate', arguments: '2' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'calculate',
+          input: '12',
+        },
+      ]);
+    });
+
+    it('should continue a structured argument when repeated labels precede a nested object', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'calculate', arguments: '{"value":' },
+      });
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'calculate', arguments: '{"nested":true}}' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'calculate',
+          input: '{"value":{"nested":true}}',
+        },
+      ]);
+    });
+
+    it('should emit tool calls in index order', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        index: 1,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'second', arguments: '{}' },
+      });
+      tracker.processDelta({
+        index: 0,
+        id: 'call_0',
+        type: 'function',
+        function: { name: 'first', arguments: '{}' },
+      });
+      tracker.flush();
+
+      expect(
+        parts
+          .filter(part => part.type === 'tool-call')
+          .map(part => part.toolName),
+      ).toEqual(['first', 'second']);
+    });
+
+    it('should preserve insertion order when calls mix present and omitted indices', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        id: 'call_without_index',
+        type: 'function',
+        function: { name: 'first', arguments: '{}' },
+      });
+      tracker.processDelta({
+        index: 0,
+        id: 'call_with_index',
+        type: 'function',
+        function: { name: 'second', arguments: '{}' },
+      });
+      tracker.flush();
+
+      expect(
+        parts
+          .filter(part => part.type === 'tool-call')
+          .map(part => part.toolName),
+      ).toEqual(['first', 'second']);
+    });
+
+    it('should throw when function.name is missing from a new call', () => {
       const { controller } = createCollector();
       const tracker = new StreamingToolCallTracker(controller);
 
