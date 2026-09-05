@@ -1,0 +1,110 @@
+---
+title: OpenZoo
+description: Use the OpenZoo OpenAI compatible API with the AI SDK.
+---
+
+# OpenZoo Provider
+
+[OpenZoo](https://openzoo.fun) provides pay-per-call access to a large catalog of
+models through an OpenAI-compatible API. There is no account or signup: a small
+local proxy (`npx openzoo`) pays for each request via the x402 protocol (USDC
+on Solana or Base) from a local burner wallet. You can use it with the AI SDK
+through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+The OpenZoo provider is available via the `@ai-sdk/openai-compatible` module as
+it is compatible with the OpenAI API. You can install it with:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Then start the local proxy, which listens on `http://localhost:8402/v1`:
+
+```bash
+npx openzoo
+```
+
+`npx openzoo address` prints the proxy's wallet — fund it with USDC on Solana
+or Base; `npx openzoo balance` shows what is left.
+
+## Provider Instance
+
+To use OpenZoo, create a custom provider instance with the `createOpenAICompatible`
+function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const openzoo = createOpenAICompatible({
+  name: 'openzoo',
+  baseURL: 'http://localhost:8402/v1',
+  apiKey: 'sk-openzoo',
+});
+```
+
+<Note>
+  The local proxy ignores the API key, so any non-empty value works (for
+  example `sk-openzoo`). The hosted endpoint `https://api.openzoo.fun/v1`
+  answers HTTP 402 unless the caller pays x402 or presents an OpenZoo
+  subscription key (`ozk_live_…`); the AI SDK cannot pay x402 itself, so use
+  the local proxy.
+</Note>
+
+## Language Models
+
+You can create OpenZoo models using the provider instance. The first argument is
+a model ID from the model catalog at `http://localhost:8402/v1/models`. `auto`
+lets the proxy pick a model per request; bare ids such as `claude-sonnet-5`
+or `gpt-4o-mini` select one model:
+
+```ts
+const model = openzoo('auto');
+```
+
+### Example
+
+You can use OpenZoo language models to generate text with the `generateText`
+function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const openzoo = createOpenAICompatible({
+  name: 'openzoo',
+  baseURL: 'http://localhost:8402/v1',
+  apiKey: 'sk-openzoo',
+});
+
+const { text } = await generateText({
+  model: openzoo('auto'),
+  prompt: 'Tell me about yourself in one sentence.',
+});
+```
+
+OpenZoo language models can also be used with `streamText` (SSE streaming is
+supported):
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const openzoo = createOpenAICompatible({
+  name: 'openzoo',
+  baseURL: 'http://localhost:8402/v1',
+  apiKey: 'sk-openzoo',
+});
+
+const result = streamText({
+  model: openzoo('auto'),
+  prompt: 'Write a short haiku about micro-payments.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+The model list at `http://localhost:8402/v1/models` is free to fetch and
+includes per-model pricing (`prompt_price_per_1m` / `completion_price_per_1m`)
+and context metadata.
