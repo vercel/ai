@@ -1,0 +1,108 @@
+---
+title: Hashlock
+description: Learn how to use the Hashlock tool provider for the AI SDK.
+---
+
+# Hashlock Provider
+
+The [Hashlock](https://hashlock.markets) provider is a community-maintained tool provider for the AI SDK that enables AI agents to swap any asset — crypto, RWA, and stablecoins — using private sealed bids and verified counterparties.
+
+Unlike traditional DEX integrations that expose trades to front-running, Hashlock uses an intent-based architecture where counterparties submit sealed bids, ensuring best execution without MEV extraction.
+
+## Setup
+
+The Hashlock provider is available via the `hashlock-ai-sdk` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add hashlock-ai-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install hashlock-ai-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add hashlock-ai-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add hashlock-ai-sdk" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+To use Hashlock tools, import the `hashlockTools` function:
+
+```ts
+import { hashlockTools } from 'hashlock-ai-sdk';
+
+const tools = hashlockTools({
+  baseUrl: 'https://api.hashlock.markets', // optional, defaults to https://api.hashlock.markets
+});
+```
+
+## Available Tools
+
+The provider includes the following tools that AI agents can use:
+
+| Tool | Description |
+| --- | --- |
+| `create_intent` | Create a new swap intent (e.g. "swap 1 ETH for USDC on Arbitrum") |
+| `validate_intent` | Validate an intent before submission |
+| `commit_intent` | Submit a validated intent to the Hashlock network |
+| `explain_intent` | Get a human-readable explanation of an intent |
+| `parse_natural_language` | Parse natural language into a structured intent |
+
+## Example: Generate Text with Tools
+
+Use Hashlock tools with `generateText` to let an AI agent execute swaps:
+
+```ts
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { hashlockTools } from 'hashlock-ai-sdk';
+
+const { text } = await generateText({
+  model: openai('gpt-4o'),
+  tools: hashlockTools(),
+  maxSteps: 5,
+  prompt: 'Swap 1 ETH for USDC on Arbitrum',
+});
+```
+
+## Example: Streaming with Tools
+
+```ts
+import { streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { hashlockTools } from 'hashlock-ai-sdk';
+
+const result = streamText({
+  model: openai('gpt-4o'),
+  tools: hashlockTools(),
+  maxSteps: 5,
+  prompt: 'Parse this trade: sell 500 USDC for ETH on mainnet',
+});
+
+for await (const part of result.textStream) {
+  process.stdout.write(part);
+}
+```
+
+## Key Features
+
+- **Sealed-Bid Execution** — Trades are not visible on-chain until settled, preventing front-running and MEV extraction.
+- **Cross-Chain Support** — Swap assets across Ethereum, Arbitrum, Base, and other supported networks.
+- **RWA & Stablecoin Support** — Trade real-world assets and stablecoins alongside crypto.
+- **Intent Architecture** — Agents describe what they want; Hashlock finds the best counterparty.
+- **No Slippage** — Sealed bids mean the price you agree to is the price you get.
+
+## MCP Server
+
+Hashlock is also available as an [MCP server](https://www.npmjs.com/package/hashlock-mcp-server) for use with Claude, Cursor, and other MCP-compatible AI tools.
+
+## References
+
+- [Hashlock Website](https://hashlock.markets)
+- [GitHub: hashlock-ai-sdk](https://github.com/Hashlock-Tech/hashlock-ai-sdk)
+- [npm: hashlock-ai-sdk](https://www.npmjs.com/package/hashlock-ai-sdk)
+- [MCP Registry](https://registry.modelcontextprotocol.io)
