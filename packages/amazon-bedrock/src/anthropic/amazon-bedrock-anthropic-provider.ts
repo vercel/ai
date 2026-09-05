@@ -117,6 +117,13 @@ export interface AmazonBedrockAnthropicProviderSettings {
   baseURL?: string;
 
   /**
+   * The Bedrock endpoint to use. Defaults to `runtime`.
+   * - `runtime`: The standard Bedrock Runtime endpoint.
+   * - `mantle`: The Bedrock Mantle endpoint for cross-region inference.
+   */
+  endpoint?: 'runtime' | 'mantle';
+
+  /**
    * Custom headers to include in the requests.
    */
   headers?: Resolvable<Record<string, string | undefined>>;
@@ -156,101 +163,114 @@ export function createAmazonBedrockAnthropic(
   const apiKey =
     rawApiKey && rawApiKey.trim().length > 0 ? rawApiKey.trim() : undefined;
 
+  const endpoint = options.endpoint ?? 'runtime';
+  const isMantle = endpoint === 'mantle';
+
   // Use API key authentication if available, otherwise fall back to SigV4
   const baseFetchFunction = apiKey
     ? createApiKeyFetchFunction(apiKey, options.fetch)
-    : createSigV4FetchFunction(async () => {
-        const region = loadSetting({
-          settingValue: options.region,
-          settingName: 'region',
-          environmentVariableName: 'AWS_REGION',
-          description: 'AWS region',
-        });
+    : createSigV4FetchFunction(
+        async () => {
+          const region = loadSetting({
+            settingValue: options.region,
+            settingName: 'region',
+            environmentVariableName: 'AWS_REGION',
+            description: 'AWS region',
+          });
 
-        // If a credential provider is provided, use it to get the credentials.
-        if (options.credentialProvider) {
+          // If a credential provider is provided, use it to get the credentials.
+          if (options.credentialProvider) {
+            try {
+              return {
+                ...(await options.credentialProvider()),
+                region,
+              };
+            } catch (error) {
+              const errorMessage =
+                error instanceof Error ? error.message : String(error);
+              throw new Error(
+                `AWS credential provider failed: ${errorMessage}. ` +
+                  'Please ensure your credential provider returns valid AWS credentials ' +
+                  'with accessKeyId and secretAccessKey properties.',
+              );
+            }
+          }
+
           try {
             return {
-              ...(await options.credentialProvider()),
               region,
+              accessKeyId: loadSetting({
+                settingValue: options.accessKeyId,
+                settingName: 'accessKeyId',
+                environmentVariableName: 'AWS_ACCESS_KEY_ID',
+                description: 'AWS access key ID',
+              }),
+              secretAccessKey: loadSetting({
+                settingValue: options.secretAccessKey,
+                settingName: 'secretAccessKey',
+                environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
+                description: 'AWS secret access key',
+              }),
+              sessionToken: loadOptionalSetting({
+                settingValue: options.sessionToken,
+                environmentVariableName: 'AWS_SESSION_TOKEN',
+              }),
             };
           } catch (error) {
             const errorMessage =
               error instanceof Error ? error.message : String(error);
-            throw new Error(
-              `AWS credential provider failed: ${errorMessage}. ` +
-                'Please ensure your credential provider returns valid AWS credentials ' +
-                'with accessKeyId and secretAccessKey properties.',
-            );
+            if (
+              errorMessage.includes('AWS_ACCESS_KEY_ID') ||
+              errorMessage.includes('accessKeyId')
+            ) {
+              throw new Error(
+                'AWS SigV4 authentication requires AWS credentials. Please provide either:\n' +
+                  '1. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables\n' +
+                  '2. Provide accessKeyId and secretAccessKey in options\n' +
+                  '3. Use a credentialProvider function\n' +
+                  '4. Use API key authentication with AWS_BEARER_TOKEN_BEDROCK or apiKey option\n' +
+                  `Original error: ${errorMessage}`,
+              );
+            }
+            if (
+              errorMessage.includes('AWS_SECRET_ACCESS_KEY') ||
+              errorMessage.includes('secretAccessKey')
+            ) {
+              throw new Error(
+                'AWS SigV4 authentication requires both AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY. ' +
+                  'Please ensure both credentials are provided.\n' +
+                  `Original error: ${errorMessage}`,
+              );
+            }
+            throw error;
           }
-        }
+        },
+        options.fetch,
+        isMantle ? 'bedrock-mantle' : 'bedrock',
+      );
 
-        try {
-          return {
-            region,
-            accessKeyId: loadSetting({
-              settingValue: options.accessKeyId,
-              settingName: 'accessKeyId',
-              environmentVariableName: 'AWS_ACCESS_KEY_ID',
-              description: 'AWS access key ID',
-            }),
-            secretAccessKey: loadSetting({
-              settingValue: options.secretAccessKey,
-              settingName: 'secretAccessKey',
-              environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
-              description: 'AWS secret access key',
-            }),
-            sessionToken: loadOptionalSetting({
-              settingValue: options.sessionToken,
-              environmentVariableName: 'AWS_SESSION_TOKEN',
-            }),
-          };
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
-          if (
-            errorMessage.includes('AWS_ACCESS_KEY_ID') ||
-            errorMessage.includes('accessKeyId')
-          ) {
-            throw new Error(
-              'AWS SigV4 authentication requires AWS credentials. Please provide either:\n' +
-                '1. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables\n' +
-                '2. Provide accessKeyId and secretAccessKey in options\n' +
-                '3. Use a credentialProvider function\n' +
-                '4. Use API key authentication with AWS_BEARER_TOKEN_BEDROCK or apiKey option\n' +
-                `Original error: ${errorMessage}`,
-            );
-          }
-          if (
-            errorMessage.includes('AWS_SECRET_ACCESS_KEY') ||
-            errorMessage.includes('secretAccessKey')
-          ) {
-            throw new Error(
-              'AWS SigV4 authentication requires both AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY. ' +
-                'Please ensure both credentials are provided.\n' +
-                `Original error: ${errorMessage}`,
-            );
-          }
-          throw error;
-        }
-      }, options.fetch);
-
-  // Wrap with Bedrock event stream to SSE transformer for streaming support
-  const fetchFunction = createAmazonBedrockAnthropicFetch(baseFetchFunction);
+  // Wrap with Bedrock event stream to SSE transformer for streaming support ONLY for runtime
+  const fetchFunction = isMantle
+    ? baseFetchFunction
+    : createAmazonBedrockAnthropicFetch(baseFetchFunction);
 
   const getBaseURL = (): string =>
     withoutTrailingSlash(
       options.baseURL ??
-        `https://bedrock-runtime.${loadSetting({
+        `https://bedrock-${isMantle ? 'mantle' : 'runtime'}.${loadSetting({
           settingValue: options.region,
           settingName: 'region',
           environmentVariableName: 'AWS_REGION',
           description: 'AWS region',
-        })}.amazonaws.com`,
-    ) ?? 'https://bedrock-runtime.us-east-1.amazonaws.com';
+        })}.${isMantle ? 'api.aws/anthropic' : 'amazonaws.com'}`,
+    ) ??
+    `https://bedrock-${isMantle ? 'mantle' : 'runtime'}.us-east-1.${isMantle ? 'api.aws/anthropic' : 'amazonaws.com'}`;
 
   const getHeaders = async () => {
     const baseHeaders = (await resolve(options.headers)) ?? {};
+    if (isMantle) {
+      baseHeaders['anthropic-version'] = '2023-06-01';
+    }
     return withUserAgentSuffix(baseHeaders, `ai-sdk/amazon-bedrock/${VERSION}`);
   };
 
@@ -262,9 +282,11 @@ export function createAmazonBedrockAnthropic(
       fetch: fetchFunction,
 
       buildRequestUrl: (baseURL, isStreaming) =>
-        `${baseURL}/model/${encodeURIComponent(modelId)}/${
-          isStreaming ? 'invoke-with-response-stream' : 'invoke'
-        }`,
+        isMantle
+          ? `${baseURL}/v1/messages`
+          : `${baseURL}/model/${encodeURIComponent(modelId)}/${
+              isStreaming ? 'invoke-with-response-stream' : 'invoke'
+            }`,
 
       transformRequestBody: (args, betas) => {
         const {
@@ -333,6 +355,7 @@ export function createAmazonBedrockAnthropic(
 
         return {
           ...rest,
+          ...(isMantle ? { model: modelId, stream: _stream } : {}),
           ...(transformedTools != null ? { tools: transformedTools } : {}),
           ...(transformedToolChoice != null
             ? { tool_choice: transformedToolChoice }
@@ -340,7 +363,7 @@ export function createAmazonBedrockAnthropic(
           ...(requiredBetas.size > 0
             ? { anthropic_beta: Array.from(requiredBetas) }
             : {}),
-          anthropic_version: 'bedrock-2023-05-31',
+          ...(isMantle ? {} : { anthropic_version: 'bedrock-2023-05-31' }),
         };
       },
 
