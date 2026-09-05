@@ -4,7 +4,8 @@ import type {
   StandardJSONSchemaV1,
 } from '@standard-schema/spec';
 import type * as z3 from 'zod/v3';
-import { safeParseAsync } from 'zod/v4';
+import { safeParse, safeParseAsync } from 'zod/v4';
+import * as z4Core from 'zod/v4/core';
 import { toJSONSchema, type $ZodType } from 'zod/v4/core';
 import { addAdditionalPropertiesToJsonSchema } from './add-additional-properties-to-json-schema';
 import { zod3ToJsonSchema } from './to-json-schema/zod3-to-json-schema';
@@ -229,6 +230,49 @@ export function zod3Schema<OBJECT>(
   );
 }
 
+// Ahead-of-time schema compilation is available from zod 4.5. Accessed via the
+// namespace so peers on older zod versions (which lack the export) still load.
+const compileZod4Schema:
+  | (<T extends $ZodType>(schema: T, options: { strict: boolean }) => T)
+  | undefined =
+  typeof (z4Core as { compile?: unknown }).compile === 'function'
+    ? (
+        z4Core as unknown as {
+          compile: <T extends $ZodType>(
+            schema: T,
+            options: { strict: boolean },
+          ) => T;
+        }
+      ).compile
+    : undefined;
+
+// Compiled clones for provably-synchronous schemas (null = must parse async).
+// Strict compilation doubles as the classifier: it throws on async
+// refinements, transforms, and pipes, so success proves a sync parse is safe.
+// The sync parser alone cannot be trusted for this: on async constructs it
+// may throw non-signal errors or return incorrect failures instead of
+// signaling asynchrony.
+const syncParseTargets = new WeakMap<$ZodType, $ZodType | null>();
+
+function getSyncParseTarget<SCHEMA extends $ZodType>(
+  schema: SCHEMA,
+): SCHEMA | null {
+  if (compileZod4Schema == null) {
+    return null;
+  }
+  let target = syncParseTargets.get(schema);
+  if (target === undefined) {
+    try {
+      target = compileZod4Schema(schema, { strict: true });
+    } catch {
+      target = null;
+    }
+    syncParseTargets.set(schema, target);
+  }
+  // compiled clones preserve the source schema type
+  return target as SCHEMA | null;
+}
+
 export function zod4Schema<OBJECT>(
   zodSchema: $ZodType<OBJECT, any>,
   options?: {
@@ -256,6 +300,18 @@ export function zod4Schema<OBJECT>(
       ),
     {
       validate: async value => {
+        // Provably-sync schemas validate through their compiled clone: keeps
+        // hot paths (per-chunk stream validation) off the promise machinery
+        // and on zod's compiled fast path. The original schema is kept for
+        // JSON schema conversion and introspection.
+        const syncParseTarget = getSyncParseTarget(zodSchema);
+        if (syncParseTarget != null) {
+          const result = safeParse(syncParseTarget, value);
+          return result.success
+            ? { success: true, value: result.data }
+            : { success: false, error: result.error };
+        }
+
         const result = await safeParseAsync(zodSchema, value);
         return result.success
           ? { success: true, value: result.data }
