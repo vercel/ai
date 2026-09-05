@@ -144,6 +144,7 @@ describe('convertToOpenResponsesInput', () => {
           {
             "content": [
               {
+                "detail": "auto",
                 "image_url": "data:image/png;base64,ZmFrZS1kYXRh",
                 "type": "input_image",
               },
@@ -179,6 +180,7 @@ describe('convertToOpenResponsesInput', () => {
           {
             "content": [
               {
+                "detail": "auto",
                 "image_url": "https://example.com/image.png",
                 "type": "input_image",
               },
@@ -916,6 +918,7 @@ describe('convertToOpenResponsesInput', () => {
             "call_id": "call_image",
             "output": [
               {
+                "detail": "auto",
                 "image_url": "https://example.com/image.png",
                 "type": "input_image",
               },
@@ -1214,6 +1217,7 @@ describe('convertToOpenResponsesInput', () => {
 
       expect((result.input[0] as { content: unknown[] }).content[0]).toEqual({
         type: 'input_image',
+        detail: 'auto',
         image_url: `data:image/png;base64,${pngBase64}`,
       });
     });
@@ -1236,6 +1240,7 @@ describe('convertToOpenResponsesInput', () => {
 
       expect((result.input[0] as { content: unknown[] }).content[0]).toEqual({
         type: 'input_image',
+        detail: 'auto',
         image_url: `data:image/png;base64,${pngBase64}`,
       });
     });
@@ -1261,6 +1266,7 @@ describe('convertToOpenResponsesInput', () => {
 
       expect((result.input[0] as { content: unknown[] }).content[0]).toEqual({
         type: 'input_image',
+        detail: 'auto',
         image_url: 'https://example.com/x.png',
       });
     });
@@ -1283,6 +1289,7 @@ describe('convertToOpenResponsesInput', () => {
 
       expect((result.input[0] as { content: unknown[] }).content[0]).toEqual({
         type: 'input_image',
+        detail: 'auto',
         image_url: `data:image/png;base64,${pngBase64}`,
       });
     });
