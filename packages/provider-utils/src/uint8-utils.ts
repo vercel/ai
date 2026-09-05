@@ -10,12 +10,15 @@ export function convertBase64ToUint8Array(base64String: string) {
 }
 
 export function convertUint8ArrayToBase64(array: Uint8Array): string {
+  // Use chunked encoding to avoid OOM on large arrays.
+  // String.fromCodePoint concatenation per byte creates a cons-string rope
+  // that V8 cannot collect until btoa flattens it, causing high memory usage.
+  const chunkSize = 8192;
   let latin1string = '';
 
-  // Note: regular for loop to support older JavaScript versions that
-  // do not support for..of on Uint8Array
-  for (let i = 0; i < array.length; i++) {
-    latin1string += String.fromCodePoint(array[i]);
+  for (let i = 0; i < array.length; i += chunkSize) {
+    const chunk = array.subarray(i, i + chunkSize);
+    latin1string += String.fromCodePoint.apply(null, chunk as any);
   }
 
   return btoa(latin1string);
