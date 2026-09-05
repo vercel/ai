@@ -1,3 +1,4 @@
+import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
 import type { FileUIPart } from './ui-messages';
 
 export async function convertFileListToFileUIParts(
@@ -9,7 +10,10 @@ export async function convertFileListToFileUIParts(
 
   // React-native doesn't have a FileList global:
   if (!globalThis.FileList || !(files instanceof globalThis.FileList)) {
-    throw new Error('FileList is not supported in the current environment');
+    throw new UnsupportedFunctionalityError({
+      functionality: 'FileList',
+      message: 'FileList is not supported in the current environment',
+    });
   }
 
   return Promise.all(

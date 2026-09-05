@@ -1,9 +1,11 @@
+import { APICallError } from '@ai-sdk/provider';
 import { mockId } from '@ai-sdk/provider-utils/test';
 import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
 import {
@@ -451,6 +453,29 @@ describe('Chat', () => {
   });
 
   describe('regenerate', () => {
+    it('throws InvalidArgumentError when the message is not found', async () => {
+      const chat = new TestChat({
+        id: '123',
+        messages: [],
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+      });
+
+      const error = await chat
+        .regenerate({ messageId: 'missing-message' })
+        .catch(error => error);
+
+      expect(InvalidArgumentError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        parameter: 'messageId',
+        value: 'missing-message',
+        message:
+          'Invalid argument for parameter messageId: message missing-message not found',
+      });
+    });
+
     it('preserves a preceding assistant message', async () => {
       server.urls['http://localhost:3000/api/chat'].response = {
         type: 'stream-chunks',
@@ -514,6 +539,66 @@ describe('Chat', () => {
           parts: [{ type: 'text', text: 'regenerated target' }],
         },
       ]);
+    });
+  });
+
+  describe('replace message', () => {
+    it('throws InvalidArgumentError when the message is not found', async () => {
+      const chat = new TestChat({
+        id: '123',
+        messages: [],
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+      });
+
+      const error = await chat
+        .sendMessage({
+          text: 'updated prompt',
+          messageId: 'missing-message',
+        })
+        .catch(error => error);
+
+      expect(InvalidArgumentError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        parameter: 'message.messageId',
+        value: 'missing-message',
+        message:
+          'Invalid argument for parameter message.messageId: message with id missing-message not found',
+      });
+    });
+
+    it('throws InvalidArgumentError when the message is not a user message', async () => {
+      const chat = new TestChat({
+        id: '123',
+        messages: [
+          {
+            id: 'assistant-message',
+            role: 'assistant',
+            parts: [{ type: 'text', text: 'response' }],
+          },
+        ],
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+      });
+
+      const error = await chat
+        .sendMessage({
+          text: 'updated prompt',
+          messageId: 'assistant-message',
+        })
+        .catch(error => error);
+
+      expect(InvalidArgumentError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        parameter: 'message.messageId',
+        value: 'assistant-message',
+        message:
+          'Invalid argument for parameter message.messageId: message with id assistant-message is not a user message',
+      });
     });
   });
 
@@ -2889,8 +2974,9 @@ describe('Chat', () => {
 
       // UI should be in error state
       expect(chat.status).toBe('error');
+      expect(APICallError.isInstance(chat.error)).toBe(true);
       expect(chat.error).toMatchInlineSnapshot(
-        `[Error: Internal Server Error]`,
+        `[AI_APICallError: Internal Server Error]`,
       );
     });
 
