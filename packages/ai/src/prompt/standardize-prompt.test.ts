@@ -115,6 +115,32 @@ describe('standardizePrompt', () => {
     }).rejects.toThrow(InvalidPromptError);
   });
 
+  it.each(['file-id', 'image-file-id'] as const)(
+    'should reject removed %s tool result content',
+    async type => {
+      await expect(
+        standardizePrompt({
+          messages: [
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'tool-call-id',
+                  toolName: 'lookup',
+                  output: {
+                    type: 'content',
+                    value: [{ type, fileId: 'file-id' }],
+                  },
+                },
+              ],
+            },
+          ] as any,
+        }),
+      ).rejects.toThrow(InvalidPromptError);
+    },
+  );
+
   it('should support SystemModelMessage instructions', async () => {
     const result = await standardizePrompt({
       instructions: {
