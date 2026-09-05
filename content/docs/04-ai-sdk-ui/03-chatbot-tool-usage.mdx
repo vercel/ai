@@ -329,7 +329,7 @@ export default function Chat() {
 
 ### Error handling
 
-Sometimes an error may occur during client-side tool execution. Use the `addToolOutput` method with a `state` of `output-error` and `errorText` value instead of `output` record the error.
+Sometimes an error may occur during client-side tool execution. Use the `addToolOutput` method with a `state` of `output-error` and `errorText` value instead of `output` to record the error.
 
 ```tsx filename='app/page.tsx' highlight="19,36-41"
 'use client';
@@ -377,6 +377,21 @@ export default function Chat() {
       }
     },
   });
+}
+```
+
+When rendering messages, use `isToolOutputErrorUIPart` to identify failed
+static and dynamic tool parts without checking the tool state directly:
+
+```tsx
+import { isToolOutputErrorUIPart, type UIMessage } from 'ai';
+
+function ToolError({ part }: { part: UIMessage['parts'][number] }) {
+  if (!isToolOutputErrorUIPart(part)) {
+    return null;
+  }
+
+  return <div role="alert">{part.errorText}</div>;
 }
 ```
 
