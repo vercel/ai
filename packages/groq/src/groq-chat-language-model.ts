@@ -12,11 +12,15 @@ import {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertJsonResponseToolStream,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
+  getJsonResponseToolOutput,
+  jsonResponseToolMetadata,
   parseProviderOptions,
   postJsonToApi,
+  prepareJsonResponseTool,
   type FetchFunction,
   type ParseResult,
 } from '@ai-sdk/provider-utils';
@@ -73,6 +77,7 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
     stream,
     tools,
     toolChoice,
+    toolChoiceSatisfied,
     providerOptions,
   }: LanguageModelV3CallOptions & {
     stream: boolean;
@@ -87,12 +92,24 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
 
     const structuredOutputs = groqOptions?.structuredOutputs ?? true;
     const strictJsonSchema = groqOptions?.strictJsonSchema ?? true;
+    const {
+      tools: toolsForRequest,
+      toolChoice: toolChoiceForRequest,
+      jsonResponseTool,
+      useJsonResponseToolFallback,
+    } = prepareJsonResponseTool({
+      responseFormat,
+      tools,
+      toolChoice,
+      toolChoiceSatisfied,
+    });
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
     if (
+      !useJsonResponseToolFallback &&
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
       !structuredOutputs
@@ -109,7 +126,11 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
       tools: groqTools,
       toolChoice: groqToolChoice,
       toolWarnings,
-    } = prepareTools({ tools, toolChoice, modelId: this.modelId });
+    } = prepareTools({
+      tools: toolsForRequest,
+      toolChoice: toolChoiceForRequest,
+      modelId: this.modelId,
+    });
 
     return {
       args: {
@@ -118,7 +139,9 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
 
         // model specific settings:
         user: groqOptions?.user,
-        parallel_tool_calls: groqOptions?.parallelToolCalls,
+        parallel_tool_calls: useJsonResponseToolFallback
+          ? false
+          : groqOptions?.parallelToolCalls,
 
         // standardized settings:
         max_tokens: maxOutputTokens,
@@ -131,7 +154,7 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
 
         // response format:
         response_format:
-          responseFormat?.type === 'json'
+          !useJsonResponseToolFallback && responseFormat?.type === 'json'
             ? structuredOutputs && responseFormat.schema != null
               ? {
                   type: 'json_schema',
@@ -158,13 +181,14 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
         tool_choice: groqToolChoice,
       },
       warnings: [...warnings, ...toolWarnings],
+      jsonResponseTool,
     };
   }
 
   async doGenerate(
     options: LanguageModelV3CallOptions,
   ): Promise<LanguageModelV3GenerateResult> {
-    const { args, warnings } = await this.getArgs({
+    const { args, warnings, jsonResponseTool } = await this.getArgs({
       ...options,
       stream: false,
     });
@@ -192,11 +216,12 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
 
     const choice = response.choices[0];
     const content: Array<LanguageModelV3Content> = [];
+    let isJsonResponseFromTool = false;
 
     // text content:
     const text = choice.message.content;
-    if (text != null && text.length > 0) {
-      content.push({ type: 'text', text: text });
+    if (jsonResponseTool == null && text != null && text.length > 0) {
+      content.push({ type: 'text', text });
     }
 
     // reasoning:
@@ -211,19 +236,36 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
     // tool calls:
     if (choice.message.tool_calls != null) {
       for (const toolCall of choice.message.tool_calls) {
-        content.push({
-          type: 'tool-call',
-          toolCallId: toolCall.id ?? generateId(),
-          toolName: toolCall.function.name,
-          input: toolCall.function.arguments!,
-        });
+        if (
+          jsonResponseTool != null &&
+          toolCall.function.name === jsonResponseTool.name
+        ) {
+          isJsonResponseFromTool = true;
+          content.push({
+            type: 'text',
+            text: await getJsonResponseToolOutput({
+              input: toolCall.function.arguments!,
+              isWrapped: jsonResponseTool.isWrapped,
+            }),
+            providerMetadata: jsonResponseToolMetadata,
+          });
+        } else {
+          content.push({
+            type: 'tool-call',
+            toolCallId: toolCall.id ?? generateId(),
+            toolName: toolCall.function.name,
+            input: toolCall.function.arguments!,
+          });
+        }
       }
     }
 
     return {
       content,
       finishReason: {
-        unified: mapGroqFinishReason(choice.finish_reason),
+        unified: isJsonResponseFromTool
+          ? 'stop'
+          : mapGroqFinishReason(choice.finish_reason),
         raw: choice.finish_reason ?? undefined,
       },
       usage: convertGroqUsage(response.usage),
@@ -240,7 +282,10 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
   async doStream(
     options: LanguageModelV3CallOptions,
   ): Promise<LanguageModelV3StreamResult> {
-    const { args, warnings } = await this.getArgs({ ...options, stream: true });
+    const { args, warnings, jsonResponseTool } = await this.getArgs({
+      ...options,
+      stream: true,
+    });
 
     const body = JSON.stringify({ ...args, stream: true });
 
@@ -298,239 +343,244 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
     let isActiveReasoning = false;
 
     let providerMetadata: SharedV3ProviderMetadata | undefined;
-    return {
-      stream: response.pipeThrough(
-        new TransformStream<
-          ParseResult<z.infer<typeof groqChatChunkSchema>>,
-          LanguageModelV3StreamPart
-        >({
-          start(controller) {
-            controller.enqueue({ type: 'stream-start', warnings });
-          },
+    const stream = response.pipeThrough(
+      new TransformStream<
+        ParseResult<z.infer<typeof groqChatChunkSchema>>,
+        LanguageModelV3StreamPart
+      >({
+        start(controller) {
+          controller.enqueue({ type: 'stream-start', warnings });
+        },
 
-          transform(chunk, controller) {
-            // Emit raw chunk if requested (before anything else)
-            if (options.includeRawChunks) {
-              controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
-            }
+        transform(chunk, controller) {
+          // Emit raw chunk if requested (before anything else)
+          if (options.includeRawChunks) {
+            controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
+          }
 
-            // handle failed chunk parsing / validation:
-            if (!chunk.success) {
-              finishReason = {
-                unified: 'error',
-                raw: undefined,
-              };
-              controller.enqueue({ type: 'error', error: chunk.error });
-              return;
-            }
+          // handle failed chunk parsing / validation:
+          if (!chunk.success) {
+            finishReason = {
+              unified: 'error',
+              raw: undefined,
+            };
+            controller.enqueue({ type: 'error', error: chunk.error });
+            return;
+          }
 
-            const value = chunk.value;
+          const value = chunk.value;
 
-            // handle error chunks:
-            if ('error' in value) {
-              finishReason = {
-                unified: 'error',
-                raw: undefined,
-              };
-              controller.enqueue({ type: 'error', error: value.error });
-              return;
-            }
+          // handle error chunks:
+          if ('error' in value) {
+            finishReason = {
+              unified: 'error',
+              raw: undefined,
+            };
+            controller.enqueue({ type: 'error', error: value.error });
+            return;
+          }
 
-            if (isFirstChunk) {
-              isFirstChunk = false;
+          if (isFirstChunk) {
+            isFirstChunk = false;
 
+            controller.enqueue({
+              type: 'response-metadata',
+              ...getResponseMetadata(value),
+            });
+          }
+
+          if (value.x_groq?.usage != null) {
+            usage = value.x_groq.usage;
+          }
+
+          const choice = value.choices[0];
+
+          if (choice?.finish_reason != null) {
+            finishReason = {
+              unified: mapGroqFinishReason(choice.finish_reason),
+              raw: choice.finish_reason,
+            };
+          }
+
+          if (choice?.delta == null) {
+            return;
+          }
+
+          const delta = choice.delta;
+
+          if (delta.reasoning != null && delta.reasoning.length > 0) {
+            if (!isActiveReasoning) {
               controller.enqueue({
-                type: 'response-metadata',
-                ...getResponseMetadata(value),
-              });
-            }
-
-            if (value.x_groq?.usage != null) {
-              usage = value.x_groq.usage;
-            }
-
-            const choice = value.choices[0];
-
-            if (choice?.finish_reason != null) {
-              finishReason = {
-                unified: mapGroqFinishReason(choice.finish_reason),
-                raw: choice.finish_reason,
-              };
-            }
-
-            if (choice?.delta == null) {
-              return;
-            }
-
-            const delta = choice.delta;
-
-            if (delta.reasoning != null && delta.reasoning.length > 0) {
-              if (!isActiveReasoning) {
-                controller.enqueue({
-                  type: 'reasoning-start',
-                  id: 'reasoning-0',
-                });
-                isActiveReasoning = true;
-              }
-
-              controller.enqueue({
-                type: 'reasoning-delta',
+                type: 'reasoning-start',
                 id: 'reasoning-0',
-                delta: delta.reasoning,
               });
-            }
-
-            if (delta.content != null && delta.content.length > 0) {
-              // end active reasoning block before text starts
-              if (isActiveReasoning) {
-                controller.enqueue({
-                  type: 'reasoning-end',
-                  id: 'reasoning-0',
-                });
-                isActiveReasoning = false;
-              }
-
-              if (!isActiveText) {
-                controller.enqueue({ type: 'text-start', id: 'txt-0' });
-                isActiveText = true;
-              }
-
-              controller.enqueue({
-                type: 'text-delta',
-                id: 'txt-0',
-                delta: delta.content,
-              });
-            }
-
-            if (delta.tool_calls != null) {
-              // end active reasoning block before tool calls start
-              if (isActiveReasoning) {
-                controller.enqueue({
-                  type: 'reasoning-end',
-                  id: 'reasoning-0',
-                });
-                isActiveReasoning = false;
-              }
-
-              for (const toolCallDelta of delta.tool_calls) {
-                const index = toolCallDelta.index;
-
-                if (toolCalls[index] == null) {
-                  if (toolCallDelta.type !== 'function') {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'function' type.`,
-                    });
-                  }
-
-                  if (toolCallDelta.id == null) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'id' to be a string.`,
-                    });
-                  }
-
-                  if (toolCallDelta.function?.name == null) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'function.name' to be a string.`,
-                    });
-                  }
-
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCallDelta.id,
-                    toolName: toolCallDelta.function.name,
-                  });
-
-                  toolCalls[index] = {
-                    id: toolCallDelta.id,
-                    type: 'function',
-                    function: {
-                      name: toolCallDelta.function.name,
-                      arguments: toolCallDelta.function.arguments ?? '',
-                    },
-                    hasFinished: false,
-                  };
-
-                  const toolCall = toolCalls[index];
-
-                  if (
-                    toolCall.function?.name != null &&
-                    toolCall.function?.arguments != null
-                  ) {
-                    // send delta if the argument text has already started:
-                    if (toolCall.function.arguments.length > 0) {
-                      controller.enqueue({
-                        type: 'tool-input-delta',
-                        id: toolCall.id,
-                        delta: toolCall.function.arguments,
-                      });
-                    }
-                  }
-
-                  continue;
-                }
-
-                // existing tool call, merge if not finished
-                const toolCall = toolCalls[index];
-
-                if (toolCall.hasFinished) {
-                  continue;
-                }
-
-                if (toolCallDelta.function?.arguments != null) {
-                  toolCall.function!.arguments +=
-                    toolCallDelta.function?.arguments ?? '';
-                }
-
-                // send delta
-                controller.enqueue({
-                  type: 'tool-input-delta',
-                  id: toolCall.id,
-                  delta: toolCallDelta.function.arguments ?? '',
-                });
-              }
-            }
-          },
-
-          flush(controller) {
-            if (isActiveReasoning) {
-              controller.enqueue({ type: 'reasoning-end', id: 'reasoning-0' });
-            }
-
-            if (isActiveText) {
-              controller.enqueue({ type: 'text-end', id: 'txt-0' });
-            }
-
-            // Finalize any unfinished tool calls on stream end to
-            // prevent premature execution from parsable partial JSON.
-            for (const toolCall of toolCalls) {
-              if (!toolCall.hasFinished) {
-                controller.enqueue({
-                  type: 'tool-input-end',
-                  id: toolCall.id,
-                });
-
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallId: toolCall.id ?? generateId(),
-                  toolName: toolCall.function.name,
-                  input: toolCall.function.arguments,
-                });
-                toolCall.hasFinished = true;
-              }
+              isActiveReasoning = true;
             }
 
             controller.enqueue({
-              type: 'finish',
-              finishReason,
-              usage: convertGroqUsage(usage),
-              ...(providerMetadata != null ? { providerMetadata } : {}),
+              type: 'reasoning-delta',
+              id: 'reasoning-0',
+              delta: delta.reasoning,
             });
-          },
-        }),
-      ),
+          }
+
+          if (delta.content != null && delta.content.length > 0) {
+            // end active reasoning block before text starts
+            if (isActiveReasoning) {
+              controller.enqueue({
+                type: 'reasoning-end',
+                id: 'reasoning-0',
+              });
+              isActiveReasoning = false;
+            }
+
+            if (!isActiveText) {
+              controller.enqueue({ type: 'text-start', id: 'txt-0' });
+              isActiveText = true;
+            }
+
+            controller.enqueue({
+              type: 'text-delta',
+              id: 'txt-0',
+              delta: delta.content,
+            });
+          }
+
+          if (delta.tool_calls != null) {
+            // end active reasoning block before tool calls start
+            if (isActiveReasoning) {
+              controller.enqueue({
+                type: 'reasoning-end',
+                id: 'reasoning-0',
+              });
+              isActiveReasoning = false;
+            }
+
+            for (const toolCallDelta of delta.tool_calls) {
+              const index = toolCallDelta.index;
+
+              if (toolCalls[index] == null) {
+                if (toolCallDelta.type !== 'function') {
+                  throw new InvalidResponseDataError({
+                    data: toolCallDelta,
+                    message: `Expected 'function' type.`,
+                  });
+                }
+
+                if (toolCallDelta.id == null) {
+                  throw new InvalidResponseDataError({
+                    data: toolCallDelta,
+                    message: `Expected 'id' to be a string.`,
+                  });
+                }
+
+                if (toolCallDelta.function?.name == null) {
+                  throw new InvalidResponseDataError({
+                    data: toolCallDelta,
+                    message: `Expected 'function.name' to be a string.`,
+                  });
+                }
+
+                controller.enqueue({
+                  type: 'tool-input-start',
+                  id: toolCallDelta.id,
+                  toolName: toolCallDelta.function.name,
+                });
+
+                toolCalls[index] = {
+                  id: toolCallDelta.id,
+                  type: 'function',
+                  function: {
+                    name: toolCallDelta.function.name,
+                    arguments: toolCallDelta.function.arguments ?? '',
+                  },
+                  hasFinished: false,
+                };
+
+                const toolCall = toolCalls[index];
+
+                if (
+                  toolCall.function?.name != null &&
+                  toolCall.function?.arguments != null
+                ) {
+                  // send delta if the argument text has already started:
+                  if (toolCall.function.arguments.length > 0) {
+                    controller.enqueue({
+                      type: 'tool-input-delta',
+                      id: toolCall.id,
+                      delta: toolCall.function.arguments,
+                    });
+                  }
+                }
+
+                continue;
+              }
+
+              // existing tool call, merge if not finished
+              const toolCall = toolCalls[index];
+
+              if (toolCall.hasFinished) {
+                continue;
+              }
+
+              if (toolCallDelta.function?.arguments != null) {
+                toolCall.function!.arguments +=
+                  toolCallDelta.function?.arguments ?? '';
+              }
+
+              // send delta
+              controller.enqueue({
+                type: 'tool-input-delta',
+                id: toolCall.id,
+                delta: toolCallDelta.function.arguments ?? '',
+              });
+            }
+          }
+        },
+
+        flush(controller) {
+          if (isActiveReasoning) {
+            controller.enqueue({ type: 'reasoning-end', id: 'reasoning-0' });
+          }
+
+          if (isActiveText) {
+            controller.enqueue({ type: 'text-end', id: 'txt-0' });
+          }
+
+          // Finalize any unfinished tool calls on stream end to
+          // prevent premature execution from parsable partial JSON.
+          for (const toolCall of toolCalls) {
+            if (!toolCall.hasFinished) {
+              controller.enqueue({
+                type: 'tool-input-end',
+                id: toolCall.id,
+              });
+
+              controller.enqueue({
+                type: 'tool-call',
+                toolCallId: toolCall.id ?? generateId(),
+                toolName: toolCall.function.name,
+                input: toolCall.function.arguments,
+              });
+              toolCall.hasFinished = true;
+            }
+          }
+
+          controller.enqueue({
+            type: 'finish',
+            finishReason,
+            usage: convertGroqUsage(usage),
+            ...(providerMetadata != null ? { providerMetadata } : {}),
+          });
+        },
+      }),
+    );
+
+    return {
+      stream:
+        jsonResponseTool != null
+          ? convertJsonResponseToolStream({ stream, jsonResponseTool })
+          : stream,
       request: { body },
       response: { headers: responseHeaders },
     };

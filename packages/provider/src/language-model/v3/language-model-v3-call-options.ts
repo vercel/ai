@@ -101,6 +101,15 @@ export type LanguageModelV3CallOptions = {
   toolChoice?: LanguageModelV3ToolChoice;
 
   /**
+   * Whether an enforced tool choice was satisfied by a previous step in the
+   * same high-level generation.
+   *
+   * Providers that use synthetic completion tools can use this signal to
+   * preserve the enforced user tool choice before allowing completion.
+   */
+  toolChoiceSatisfied?: boolean;
+
+  /**
    * Include raw chunks in the stream. Only applicable for streaming calls.
    */
   includeRawChunks?: boolean;

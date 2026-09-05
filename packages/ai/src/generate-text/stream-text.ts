@@ -1791,6 +1791,19 @@ class DefaultStreamTextResult<
                 toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
                 activeTools: stepActiveTools,
               });
+            const stepToolChoiceSatisfied =
+              output == null
+                ? undefined
+                : stepToolChoice?.type === 'required'
+                  ? recordedSteps.some(step => step.toolResults.length > 0)
+                  : stepToolChoice?.type === 'tool'
+                    ? recordedSteps.some(step =>
+                        step.toolResults.some(
+                          toolResult =>
+                            toolResult.toolName === stepToolChoice.toolName,
+                        ),
+                      )
+                    : undefined;
 
             experimental_context =
               prepareStepResult?.experimental_context ?? experimental_context;
@@ -1898,6 +1911,9 @@ class DefaultStreamTextResult<
                     ...stepCallSettings,
                     tools: stepTools,
                     toolChoice: stepToolChoice,
+                    ...(stepToolChoiceSatisfied === true
+                      ? { toolChoiceSatisfied: true }
+                      : {}),
                     responseFormat: await output?.responseFormat,
                     prompt: promptMessages,
                     providerOptions: stepProviderOptions,

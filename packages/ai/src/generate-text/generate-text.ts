@@ -762,6 +762,19 @@ export async function generateText<
                 toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
                 activeTools: stepActiveTools,
               });
+            const stepToolChoiceSatisfied =
+              output == null
+                ? undefined
+                : stepToolChoice?.type === 'required'
+                  ? steps.some(step => step.toolResults.length > 0)
+                  : stepToolChoice?.type === 'tool'
+                    ? steps.some(step =>
+                        step.toolResults.some(
+                          toolResult =>
+                            toolResult.toolName === stepToolChoice.toolName,
+                        ),
+                      )
+                    : undefined;
 
             const stepMessages =
               prepareStepResult?.messages ?? stepInputMessages;
@@ -861,6 +874,9 @@ export async function generateText<
                     ...stepCallSettings,
                     tools: stepTools,
                     toolChoice: stepToolChoice,
+                    ...(stepToolChoiceSatisfied === true
+                      ? { toolChoiceSatisfied: true }
+                      : {}),
                     responseFormat: await output?.responseFormat,
                     prompt: promptMessages,
                     providerOptions: stepProviderOptions,
@@ -967,9 +983,9 @@ export async function generateText<
               stepToolChoice?.type === 'tool'
                 ? stepToolChoice
                 : undefined;
-
             if (
               enforcedToolChoice != null &&
+              stepToolChoiceSatisfied !== true &&
               !stepToolCalls.some(
                 toolCall =>
                   enforcedToolChoice.type === 'required' ||
