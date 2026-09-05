@@ -3,6 +3,36 @@
 // "TypeError: Illegal invocation: function called with incorrect this reference"
 const { btoa, atob } = globalThis;
 
+/**
+ * Creates a transform stream that decodes binary chunks into strings.
+ *
+ * Unlike `TextDecoderStream`, this accepts shared buffer sources, matching the
+ * input supported by `TextDecoder.decode`. It also avoids the native
+ * `TextDecoderStream` implementation which deadlocks on Linux WebKit under
+ * concurrent `pipeThrough` load (see https://github.com/vercel/ai/issues/19949).
+ */
+export function createTextDecoderStream(): TransformStream<
+  AllowSharedBufferSource,
+  string
+> {
+  const decoder = new TextDecoder();
+
+  return new TransformStream<AllowSharedBufferSource, string>({
+    transform(chunk, controller) {
+      const text = decoder.decode(chunk, { stream: true });
+      if (text.length > 0) {
+        controller.enqueue(text);
+      }
+    },
+    flush(controller) {
+      const text = decoder.decode();
+      if (text.length > 0) {
+        controller.enqueue(text);
+      }
+    },
+  });
+}
+
 export function convertBase64ToUint8Array(base64String: string) {
   const base64Url = base64String.replace(/-/g, '+').replace(/_/g, '/');
   const latin1string = atob(base64Url);
