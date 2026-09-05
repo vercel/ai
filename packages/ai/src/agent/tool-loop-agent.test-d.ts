@@ -68,6 +68,18 @@ describe('ToolLoopAgent', () => {
       });
     });
 
+    it('should not allow onAbort', async () => {
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+      });
+
+      await agent.generate({
+        // @ts-expect-error - onAbort is stream only
+        onAbort: async () => {},
+        prompt: 'Hello, world!',
+      });
+    });
+
     it('should require options when call options are provided', async () => {
       const agent = new ToolLoopAgent<{ callOption: string }>({
         model: new MockLanguageModelV4(),
@@ -294,6 +306,33 @@ describe('ToolLoopAgent', () => {
   });
 
   describe('stream', () => {
+    it('should allow onAbort', () => {
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+      });
+
+      agent.stream({
+        prompt: 'Hello, world!',
+        onAbort: async () => {},
+      });
+    });
+
+    // pins the StreamTextOnAbortCallback<TOOLS, RUNTIME_CONTEXT> argument order:
+    // swapping them would resolve `runtimeContext` to the tool set instead
+    it('should type the onAbort steps for the agent runtime context', () => {
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        runtimeContext: { userId: 'user-1' },
+        onAbort: async ({ steps }) => {
+          expectTypeOf(steps[0].runtimeContext).toEqualTypeOf<{
+            userId: string;
+          }>();
+        },
+      });
+
+      agent;
+    });
+
     it('should not allow system prompt', () => {
       const agent = new ToolLoopAgent({
         model: new MockLanguageModelV4(),
