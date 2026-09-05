@@ -23,12 +23,17 @@ import {
   embedMany,
   generateObject,
   generateText,
+  rerank,
   streamObject,
   streamText,
   type GenerateTextEndEvent,
   type Telemetry,
 } from 'ai';
-import { MockEmbeddingModelV4, MockLanguageModelV4 } from 'ai/test';
+import {
+  MockEmbeddingModelV4,
+  MockLanguageModelV4,
+  MockRerankingModelV4,
+} from 'ai/test';
 import { OpenTelemetry, type EnrichSpan } from './open-telemetry';
 
 type MockSpan = Span & {
@@ -2095,6 +2100,121 @@ describe('OpenTelemetry', () => {
   });
 
   describe('embed integration', () => {
+    it('passes filtered runtime context to embedding and reranking span enrichment', async () => {
+      const sdkTrace = createSdkTracer();
+      const enrichSpan = vi.fn<EnrichSpan>(() => ({}));
+      integration = new OpenTelemetry({
+        tracer: sdkTrace.tracer,
+        enrichSpan,
+        runtimeContext: true,
+      });
+
+      const telemetry = {
+        integrations: integration,
+        includeRuntimeContext: {
+          requestId: true,
+        },
+      };
+      const runtimeContext = {
+        requestId: 'request-123',
+        secret: 'private',
+      };
+
+      await embed({
+        model: new MockEmbeddingModelV4({
+          doEmbed: {
+            embeddings: [[0.1, 0.2, 0.3]],
+            warnings: [],
+          },
+        }),
+        value: 'hello',
+        runtimeContext,
+        telemetry,
+      });
+
+      await embedMany({
+        model: new MockEmbeddingModelV4({
+          maxEmbeddingsPerCall: 1,
+          doEmbed: async ({ values }) => ({
+            embeddings: values.map(() => [0.1, 0.2, 0.3]),
+            warnings: [],
+          }),
+        }),
+        values: ['hello', 'world'],
+        runtimeContext,
+        telemetry,
+      });
+
+      await rerank({
+        model: new MockRerankingModelV4({
+          doRerank: async () => ({
+            ranking: [{ index: 0, relevanceScore: 0.9 }],
+          }),
+        }),
+        documents: ['hello'],
+        query: 'hello',
+        runtimeContext,
+        telemetry,
+      });
+
+      await rerank({
+        model: new MockRerankingModelV4(),
+        documents: [] as string[],
+        query: 'hello',
+        runtimeContext,
+        telemetry,
+      });
+
+      expect(
+        enrichSpan.mock.calls.map(([{ spanType, runtimeContext }]) => ({
+          spanType,
+          runtimeContext,
+        })),
+      ).toEqual([
+        {
+          spanType: 'operation',
+          runtimeContext: { requestId: 'request-123' },
+        },
+        {
+          spanType: 'embedding',
+          runtimeContext: { requestId: 'request-123' },
+        },
+        {
+          spanType: 'operation',
+          runtimeContext: { requestId: 'request-123' },
+        },
+        {
+          spanType: 'embedding',
+          runtimeContext: { requestId: 'request-123' },
+        },
+        {
+          spanType: 'embedding',
+          runtimeContext: { requestId: 'request-123' },
+        },
+        {
+          spanType: 'operation',
+          runtimeContext: { requestId: 'request-123' },
+        },
+        {
+          spanType: 'reranking',
+          runtimeContext: { requestId: 'request-123' },
+        },
+        {
+          spanType: 'operation',
+          runtimeContext: { requestId: 'request-123' },
+        },
+      ]);
+
+      for (const span of sdkTrace.exporter.getFinishedSpans()) {
+        expect(span.attributes['ai.settings.context.requestId']).toBe(
+          'request-123',
+        );
+        expect(span.attributes).not.toHaveProperty(
+          'ai.settings.context.secret',
+        );
+      }
+    });
+
     it('reports usage only on the provider request span', async () => {
       const sdkTrace = createSdkTracer();
       integration = new OpenTelemetry({ tracer: sdkTrace.tracer });

@@ -754,6 +754,34 @@ describe('logWarnings', () => {
 });
 
 describe('options.onStart', () => {
+  it('should expose the full runtime context to lifecycle callbacks across chunks', async () => {
+    const runtimeContext = {
+      tenantId: 'tenant-123',
+      secret: 'private',
+    };
+    const callbackContexts: unknown[] = [];
+
+    await embedMany({
+      model: new MockEmbeddingModelV4({
+        maxEmbeddingsPerCall: 2,
+        doEmbed: async ({ values }) => ({
+          embeddings: values.map(() => dummyEmbeddings[0]),
+          warnings: [],
+        }),
+      }),
+      values: testValues,
+      runtimeContext,
+      onStart: event => {
+        callbackContexts.push(event.runtimeContext);
+      },
+      onEnd: event => {
+        callbackContexts.push(event.runtimeContext);
+      },
+    });
+
+    expect(callbackContexts).toEqual([runtimeContext, runtimeContext]);
+  });
+
   it('should send correct event information', async () => {
     let startEvent!: EmbedStartEvent;
 

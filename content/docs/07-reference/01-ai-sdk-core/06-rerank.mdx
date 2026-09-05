@@ -82,6 +82,13 @@ const { ranking } = await rerank({
       description: 'Provider-specific options for the reranking request.',
     },
     {
+      name: 'runtimeContext',
+      type: 'RUNTIME_CONTEXT',
+      isOptional: true,
+      description:
+        'User-defined runtime context available to lifecycle callbacks and telemetry integrations. It is not sent to the reranking model.',
+    },
+    {
       name: 'telemetry',
       type: 'TelemetryOptions',
       isOptional: true,
@@ -119,6 +126,13 @@ const { ranking } = await rerank({
                 'Identifier for this function. Used to group telemetry data by function.',
             },
             {
+              name: 'includeRuntimeContext',
+              type: 'Partial<Record<keyof RUNTIME_CONTEXT, boolean>>',
+              isOptional: true,
+              description:
+                'Top-level runtime context properties to include in telemetry. Properties are excluded unless explicitly set to `true`.',
+            },
+            {
               name: 'integrations',
               isOptional: true,
               type: 'Telemetry | Telemetry[]',
@@ -134,14 +148,14 @@ const { ranking } = await rerank({
       type: '(event: RerankStartEvent) => void | Promise<void>',
       isOptional: true,
       description:
-        'Called when the rerank operation begins, before the reranking model is called.',
+        'Called when the rerank operation begins, before the reranking model is called. The event includes the full runtimeContext.',
     },
     {
       name: 'onEnd',
       type: '(event: RerankEndEvent) => void | Promise<void>',
       isOptional: true,
       description:
-        'Called when the rerank operation completes, after the reranking model returns.',
+        'Called when the rerank operation completes, after the reranking model returns. The event includes the full runtimeContext.',
     },
   ]}
 />

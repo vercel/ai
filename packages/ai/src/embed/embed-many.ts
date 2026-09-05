@@ -2,12 +2,13 @@ import { InvalidResponseDataError } from '@ai-sdk/provider';
 import {
   createIdGenerator,
   withUserAgentSuffix,
+  type Context,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { logWarnings } from '../logger/log-warnings';
 import { getEmbeddingModelMaxInputBytesPerCall } from '../model/get-embedding-model-max-input-bytes-per-call';
 import { resolveEmbeddingModel } from '../model/resolve-model';
-import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
+import { createRuntimeContextTelemetryDispatcher } from '../telemetry/create-runtime-context-telemetry-dispatcher';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type { Embedding, EmbeddingModel, ProviderMetadata } from '../types';
 import type { Warning } from '../types/warning';
@@ -41,6 +42,7 @@ const originalGenerateCallId = createIdGenerator({
  *
  * @param maxParallelCalls - Maximum number of concurrent requests. Default: Infinity.
  *
+ * @param runtimeContext - User-defined runtime context for lifecycle callbacks and telemetry.
  * @param telemetry - Optional telemetry configuration.
  *
  * @param providerOptions - Additional provider-specific options. They are passed through
@@ -49,7 +51,7 @@ const originalGenerateCallId = createIdGenerator({
  *
  * @returns A result object that contains the embeddings, the value, and additional information.
  */
-export async function embedMany({
+export async function embedMany<RUNTIME_CONTEXT extends Context = Context>({
   model: modelArg,
   values,
   maxParallelCalls = Infinity,
@@ -59,6 +61,7 @@ export async function embedMany({
   providerOptions,
   experimental_telemetry,
   telemetry = experimental_telemetry,
+  runtimeContext = {} as RUNTIME_CONTEXT,
   onStart,
   experimental_onStart,
   onEnd,
@@ -96,14 +99,19 @@ export async function embedMany({
   /**
    * Optional telemetry configuration.
    */
-  telemetry?: TelemetryOptions;
+  telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
 
   /**
    * Optional telemetry configuration.
    *
    * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
    */
-  experimental_telemetry?: TelemetryOptions;
+  experimental_telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
+
+  /**
+   * User-defined runtime context for the embedding operation.
+   */
+  runtimeContext?: RUNTIME_CONTEXT;
 
   /**
    * Additional provider-specific options. They are passed through
@@ -123,7 +131,7 @@ export async function embedMany({
    * Callback that is called when the embedMany operation begins,
    * before the embedding model is called.
    */
-  onStart?: Callback<EmbedStartEvent>;
+  onStart?: Callback<EmbedStartEvent<NoInfer<RUNTIME_CONTEXT>>>;
 
   /**
    * Callback that is called when the embedMany operation begins,
@@ -131,13 +139,13 @@ export async function embedMany({
    *
    * @deprecated Use `onStart` instead.
    */
-  experimental_onStart?: Callback<EmbedStartEvent>;
+  experimental_onStart?: Callback<EmbedStartEvent<NoInfer<RUNTIME_CONTEXT>>>;
 
   /**
    * Callback that is called when the embedMany operation completes,
    * after all embedding model calls return.
    */
-  onEnd?: Callback<EmbedEndEvent>;
+  onEnd?: Callback<EmbedEndEvent<NoInfer<RUNTIME_CONTEXT>>>;
 
   /**
    * Callback that is called when the embedMany operation completes,
@@ -145,7 +153,7 @@ export async function embedMany({
    *
    * @deprecated Use `onEnd` instead.
    */
-  experimental_onEnd?: Callback<EmbedEndEvent>;
+  experimental_onEnd?: Callback<EmbedEndEvent<NoInfer<RUNTIME_CONTEXT>>>;
 
   /**
    * Internal. For test use only. May change without notice.
@@ -170,8 +178,13 @@ export async function embedMany({
 
   const callId = generateCallId();
 
-  const telemetryDispatcher = createTelemetryDispatcher({
+  const telemetryDispatcher = createRuntimeContextTelemetryDispatcher<
+    RUNTIME_CONTEXT,
+    EmbedStartEvent<RUNTIME_CONTEXT>,
+    EmbedEndEvent<RUNTIME_CONTEXT>
+  >({
     telemetry,
+    includeRuntimeContext: telemetry?.includeRuntimeContext,
   });
 
   const runInTracingChannelSpan =
@@ -188,6 +201,7 @@ export async function embedMany({
     maxRetries,
     headers: headersWithUserAgent,
     providerOptions,
+    runtimeContext,
   };
 
   return await runInTracingChannelSpan({
@@ -285,6 +299,7 @@ export async function embedMany({
               warnings,
               providerMetadata,
               response: [response],
+              runtimeContext,
             },
             callbacks: [resolvedOnEnd, telemetryDispatcher.onEnd],
           });
@@ -426,6 +441,7 @@ export async function embedMany({
             warnings,
             providerMetadata,
             response: responses,
+            runtimeContext,
           },
           callbacks: [resolvedOnEnd, telemetryDispatcher.onEnd],
         });
@@ -439,7 +455,11 @@ export async function embedMany({
           responses,
         });
       } catch (error) {
-        await telemetryDispatcher.onError?.({ callId, error });
+        await telemetryDispatcher.onError({
+          callId,
+          error,
+          runtimeContext,
+        });
         throw error;
       }
     },

@@ -5,6 +5,7 @@ import type {
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
+import { filterIncludedContext } from '../telemetry/filter-included-context';
 import type { TelemetryDispatcher } from '../telemetry/telemetry';
 import type {
   IncludedContext,
@@ -55,28 +56,6 @@ export type RestrictedTelemetryDispatcher<
   onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
   onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
 };
-
-/**
- * Returns a shallow copy of the runtime context with only top-level
- * properties marked for telemetry inclusion.
- */
-function filterIncludedContext<CONTEXT extends Context>({
-  context,
-  includeContext,
-}: {
-  context: CONTEXT;
-  includeContext: IncludedContext<CONTEXT>;
-}): Context {
-  if (context == null) {
-    return {};
-  }
-
-  return Object.fromEntries(
-    Object.entries(context).filter(
-      ([key]) => includeContext?.[key as keyof CONTEXT] === true,
-    ),
-  );
-}
 
 /**
  * Creates a copy of a step result whose runtime context only contains

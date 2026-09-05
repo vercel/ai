@@ -16,6 +16,7 @@ exports[`options.onEnd > should send correct event information 1`] = `
     "body": {},
     "headers": {},
   },
+  "runtimeContext": {},
   "usage": {
     "tokens": 10,
   },
@@ -35,6 +36,7 @@ exports[`options.onStart > should send correct event information 1`] = `
   "operationId": "ai.embed",
   "provider": "mock-provider",
   "providerOptions": undefined,
+  "runtimeContext": {},
   "value": "sunny day at the beach",
 }
 `;
