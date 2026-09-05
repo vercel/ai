@@ -162,7 +162,7 @@ export async function generateImage({
     `ai/${VERSION}`,
   );
 
-  const { retry } = prepareRetries({
+  const { retry, getDelay } = prepareRetries({
     maxRetries: maxRetriesArg,
     abortSignal,
   });
@@ -184,12 +184,15 @@ export async function generateImage({
   });
 
   const results = await Promise.all(
-    callImageCounts.map(
-      async callImageCount =>
-        await retry(() => {
+    callImageCounts.map(async callImageCount => {
+      let lastResult: any;
+      let lastError: unknown;
+
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
           const { prompt, files, mask } = normalizePrompt(promptArg);
 
-          return model.doGenerate({
+          const result = await model.doGenerate({
             prompt,
             files,
             mask,
@@ -201,8 +204,35 @@ export async function generateImage({
             seed,
             providerOptions: providerOptions ?? {},
           });
-        }),
-    ),
+
+          if (result.images.length > 0) {
+            return result;
+          }
+
+          lastResult = result;
+          lastError = new NoImageGeneratedError({
+            responses: [result.response],
+            calls: [
+              {
+                images: [],
+                providerMetadata: result.providerMetadata,
+                response: result.response,
+                warnings: result.warnings,
+                usage: result.usage,
+              },
+            ],
+          });
+        } catch (error) {
+          lastError = error;
+        }
+
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, getDelay(attempt)));
+        }
+      }
+
+      throw lastError;
+    }),
   );
 
   // collect result images, warnings, and response metadata

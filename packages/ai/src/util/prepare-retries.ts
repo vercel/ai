@@ -1,6 +1,10 @@
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 import type { RetryFunction } from '@ai-sdk/provider-utils';
 import { retryWithExponentialBackoffRespectingRetryHeaders } from '../util/retry-with-exponential-backoff';
+
+const DEFAULT_INITIAL_DELAY_MS = 2000;
+const DEFAULT_BACKOFF_FACTOR = 2;
+
 /**
  * Validate and prepare retries.
  */
@@ -17,6 +21,7 @@ export function prepareRetries({
 }): {
   maxRetries: number;
   retry: RetryFunction;
+  getDelay: (attempt: number) => number;
 } {
   if (maxRetries != null) {
     if (!Number.isInteger(maxRetries)) {
@@ -44,5 +49,10 @@ export function prepareRetries({
       maxRetries: maxRetriesResult,
       abortSignal,
     }),
+    getDelay: (attempt: number) =>
+      Math.min(
+        DEFAULT_INITIAL_DELAY_MS * Math.pow(DEFAULT_BACKOFF_FACTOR, attempt),
+        60000,
+      ),
   };
 }
