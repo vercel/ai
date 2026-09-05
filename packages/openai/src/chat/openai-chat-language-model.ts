@@ -118,9 +118,24 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
 
     // AI SDK reasoning values map directly to the OpenAI reasoning values.
-    const resolvedReasoningEffort =
+    let resolvedReasoningEffort =
       openaiOptions.reasoningEffort ??
       (isCustomReasoning(reasoning) ? reasoning : undefined);
+
+    if (
+      resolvedReasoningEffort != null &&
+      modelCapabilities.supportedReasoningEfforts != null &&
+      !modelCapabilities.supportedReasoningEfforts.includes(
+        resolvedReasoningEffort,
+      )
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'reasoningEffort',
+        details: `${this.modelId} only supports the following reasoning efforts: ${modelCapabilities.supportedReasoningEfforts.join(', ')}`,
+      });
+      resolvedReasoningEffort = undefined;
+    }
 
     const isReasoningModel =
       openaiOptions.forceReasoning ?? modelCapabilities.isReasoningModel;
@@ -206,6 +221,19 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       // messages:
       messages,
     };
+
+    if (
+      modelCapabilities.supportedReasoningEfforts != null &&
+      baseArgs.prompt_cache_retention != null
+    ) {
+      baseArgs.prompt_cache_retention = undefined;
+      warnings.push({
+        type: 'unsupported',
+        feature: 'promptCacheRetention',
+        details:
+          'promptCacheRetention is not supported by GPT-6 and later models; use promptCacheOptions instead',
+      });
+    }
 
     // remove unsupported settings for reasoning models
     // see https://platform.openai.com/docs/guides/reasoning#limitations
