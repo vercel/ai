@@ -3,6 +3,7 @@ import type {
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
   LanguageModelV2FinishReason,
+  LanguageModelV2FunctionTool,
   LanguageModelV2Source,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
@@ -46,6 +47,41 @@ const configurableSafetySettingCategories = [
 ] as const;
 
 const gemini25ModelPattern = /(^|\/)gemini-2\.5(?:[.-]|$)/i;
+
+function getJsonResponseToolName(
+  tools: Parameters<LanguageModelV2['doGenerate']>[0]['tools'],
+): string {
+  const toolNames = new Set(tools?.map(tool => tool.name));
+  let name = 'json';
+  let suffix = 1;
+
+  while (toolNames.has(name)) {
+    name = `json_${suffix++}`;
+  }
+
+  return name;
+}
+
+function getJsonResponseText(input: unknown): string {
+  if (typeof input === 'string') {
+    try {
+      return getJsonResponseText(JSON.parse(input));
+    } catch {
+      return input;
+    }
+  }
+
+  if (
+    input != null &&
+    typeof input === 'object' &&
+    !Array.isArray(input) &&
+    'output' in input
+  ) {
+    return JSON.stringify(input.output);
+  }
+
+  return JSON.stringify(input);
+}
 
 type GoogleGenerativeAIConfig = {
   provider: string;
@@ -191,6 +227,31 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     }
 
     const { usesGemini3Features } = getGoogleModelCapabilities(this.modelId);
+    const hasFunctionTools = tools?.some(tool => tool.type === 'function');
+    const hasProviderDefinedTools = tools?.some(
+      tool => tool.type === 'provider-defined',
+    );
+    const jsonResponseToolName = getJsonResponseToolName(tools);
+    const jsonResponseTool: LanguageModelV2FunctionTool | undefined =
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      hasFunctionTools &&
+      !hasProviderDefinedTools
+        ? {
+            type: 'function',
+            name: jsonResponseToolName,
+            description:
+              'Return the final response. The arguments must be an object with exactly one "output" property containing the complete JSON value; never pass the value directly as the arguments.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                output: responseFormat.schema,
+              },
+              required: ['output'],
+              additionalProperties: false,
+            },
+          }
+        : undefined;
 
     const { contents, systemInstruction } = convertToGoogleGenerativeAIMessages(
       prompt,
@@ -206,8 +267,20 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       toolConfig: googleToolConfig,
       toolWarnings,
     } = prepareTools({
-      tools,
-      toolChoice,
+      tools:
+        jsonResponseTool == null
+          ? tools
+          : toolChoice?.type === 'none'
+            ? [jsonResponseTool]
+            : [...(tools ?? []), jsonResponseTool],
+      toolChoice:
+        jsonResponseTool != null
+          ? toolChoice?.type === 'tool'
+            ? toolChoice
+            : toolChoice?.type === 'none'
+              ? { type: 'tool', toolName: jsonResponseToolName }
+              : { type: 'required' }
+          : toolChoice,
       modelId: this.modelId,
       isVertexProvider,
     });
@@ -231,8 +304,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
           // response format:
           responseMimeType:
-            responseFormat?.type === 'json' ? 'application/json' : undefined,
+            jsonResponseTool == null && responseFormat?.type === 'json'
+              ? 'application/json'
+              : undefined,
           responseSchema:
+            jsonResponseTool == null &&
             responseFormat?.type === 'json' &&
             responseFormat.schema != null &&
             // Google GenAI does not support all OpenAPI Schema features,
@@ -268,13 +344,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         serviceTier: sanitizedServiceTier,
       },
       warnings: [...warnings, ...toolWarnings],
+      jsonResponseToolName:
+        jsonResponseTool != null ? jsonResponseToolName : undefined,
     };
   }
 
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { args, warnings } = await this.getArgs(options);
+    const { args, warnings, jsonResponseToolName } =
+      await this.getArgs(options);
     const body = JSON.stringify(args);
 
     const mergedHeaders = combineHeaders(
@@ -306,6 +385,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
     // map ordered parts to content:
     const parts = candidate?.content?.parts ?? [];
+    const hasJsonResponseToolCall = parts.some(
+      part =>
+        'functionCall' in part &&
+        part.functionCall.name === jsonResponseToolName,
+    );
 
     const usageMetadata = response.usageMetadata;
 
@@ -349,7 +433,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
               lastContent.providerMetadata = thoughtSignatureMetadata;
             }
           }
-        } else {
+        } else if (part.thought === true || !hasJsonResponseToolCall) {
           content.push({
             type: part.thought === true ? 'reasoning' : 'text',
             text: part.text,
@@ -357,15 +441,22 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           });
         }
       } else if ('functionCall' in part) {
-        content.push({
-          type: 'tool-call' as const,
-          toolCallId: part.functionCall.id ?? this.config.generateId(),
-          toolName: part.functionCall.name,
-          input: JSON.stringify(part.functionCall.args),
-          providerMetadata: part.thoughtSignature
-            ? { google: { thoughtSignature: part.thoughtSignature } }
-            : undefined,
-        });
+        if (part.functionCall.name === jsonResponseToolName) {
+          content.push({
+            type: 'text',
+            text: getJsonResponseText(part.functionCall.args),
+          });
+        } else {
+          content.push({
+            type: 'tool-call' as const,
+            toolCallId: part.functionCall.id ?? this.config.generateId(),
+            toolName: part.functionCall.name,
+            input: JSON.stringify(part.functionCall.args),
+            providerMetadata: part.thoughtSignature
+              ? { google: { thoughtSignature: part.thoughtSignature } }
+              : undefined,
+          });
+        }
       } else if ('inlineData' in part) {
         content.push({
           type: 'file' as const,
@@ -422,7 +513,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { args, warnings } = await this.getArgs(options);
+    const { args, warnings, jsonResponseToolName } =
+      await this.getArgs(options);
 
     const body = JSON.stringify(args);
     const headers = combineHeaders(
@@ -637,7 +729,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                       delta: part.text,
                       providerMetadata: thoughtSignatureMetadata,
                     });
-                  } else {
+                  } else if (jsonResponseToolName == null) {
                     // End any active reasoning block before starting text
                     if (currentReasoningBlockId !== null) {
                       controller.enqueue({
@@ -681,6 +773,31 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
               if (toolCallDeltas != null) {
                 for (const toolCall of toolCallDeltas) {
+                  if (toolCall.toolName === jsonResponseToolName) {
+                    if (currentReasoningBlockId !== null) {
+                      controller.enqueue({
+                        type: 'reasoning-end',
+                        id: currentReasoningBlockId,
+                      });
+                      currentReasoningBlockId = null;
+                    }
+
+                    if (currentTextBlockId === null) {
+                      currentTextBlockId = String(blockCounter++);
+                      controller.enqueue({
+                        type: 'text-start',
+                        id: currentTextBlockId,
+                      });
+                    }
+
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: currentTextBlockId,
+                      delta: getJsonResponseText(toolCall.args),
+                    });
+                    continue;
+                  }
+
                   controller.enqueue({
                     type: 'tool-input-start',
                     id: toolCall.toolCallId,

@@ -480,6 +480,205 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should use a response tool when JSON response format is combined with tools', async () => {
+    prepareJsonResponse({
+      content: 'ignored text',
+      tool_calls: [
+        {
+          id: 'json-call-id',
+          type: 'function',
+          function: {
+            name: 'json',
+            arguments:
+              '{"output":[{"name":"prepare the issue reproduction","date":"2026-09-04"}]}',
+          },
+        },
+      ],
+      finish_reason: 'tool_calls',
+    });
+
+    const result = await model.doGenerate({
+      providerOptions: {
+        groq: {
+          parallelToolCalls: true,
+        },
+      },
+      tools: [
+        {
+          type: 'function',
+          name: 'resolve-date',
+          description: 'Resolve a relative date.',
+          inputSchema: {
+            type: 'object',
+            properties: { input: { type: 'string' } },
+            required: ['input'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              date: { type: 'string' },
+            },
+            required: ['name', 'date'],
+            additionalProperties: false,
+          },
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody).toMatchObject({
+      parallel_tool_calls: true,
+      tool_choice: 'required',
+      tools: [
+        {
+          function: {
+            name: 'resolve-date',
+          },
+        },
+        {
+          function: {
+            name: 'json',
+            description:
+              'Return the final response. The arguments must be an object with exactly one "output" property containing the complete JSON value; never pass the value directly as the arguments.',
+            parameters: {
+              type: 'object',
+              properties: {
+                output: {
+                  type: 'array',
+                },
+              },
+              required: ['output'],
+              additionalProperties: false,
+            },
+          },
+        },
+      ],
+    });
+    expect(requestBody.response_format).toBeUndefined();
+    expect(result.content).toEqual([
+      {
+        type: 'text',
+        text: '[{"name":"prepare the issue reproduction","date":"2026-09-04"}]',
+      },
+    ]);
+    expect(result.finishReason).toBe('stop');
+  });
+
+  it('should only allow the response tool when toolChoice is none', async () => {
+    prepareJsonResponse({
+      tool_calls: [
+        {
+          id: 'json-call-id',
+          type: 'function',
+          function: {
+            name: 'json',
+            arguments: '{"output":{"date":"2026-09-04"}}',
+          },
+        },
+      ],
+      finish_reason: 'tool_calls',
+    });
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'resolve-date',
+          inputSchema: {
+            type: 'object',
+            properties: { input: { type: 'string' } },
+          },
+        },
+      ],
+      toolChoice: { type: 'none' },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { date: { type: 'string' } },
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      tool_choice: {
+        type: 'function',
+        function: { name: 'json' },
+      },
+      tools: [
+        {
+          function: {
+            name: 'json',
+          },
+        },
+      ],
+    });
+  });
+
+  it('should preserve a specific user tool choice with a response tool', async () => {
+    prepareJsonResponse({
+      tool_calls: [
+        {
+          id: 'resolve-date-call-id',
+          type: 'function',
+          function: {
+            name: 'resolve-date',
+            arguments: '{"input":"tomorrow"}',
+          },
+        },
+      ],
+      finish_reason: 'tool_calls',
+    });
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'resolve-date',
+          inputSchema: {
+            type: 'object',
+            properties: { input: { type: 'string' } },
+          },
+        },
+      ],
+      toolChoice: { type: 'tool', toolName: 'resolve-date' },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { date: { type: 'string' } },
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      tool_choice: {
+        type: 'function',
+        function: { name: 'resolve-date' },
+      },
+      tools: [
+        {
+          function: { name: 'resolve-date' },
+        },
+        {
+          function: { name: 'json' },
+        },
+      ],
+    });
+  });
+
   it('should pass response format information as json_object when structuredOutputs explicitly disabled', async () => {
     prepareJsonResponse({ content: '{"value":"Spark"}' });
 
@@ -1074,6 +1273,88 @@ describe('doStream', () => {
         },
       ]
     `);
+  });
+
+  it('should stream a JSON response tool call as text', async () => {
+    server.urls['https://api.groq.com/openai/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          id: 'response-id',
+          object: 'chat.completion.chunk',
+          created: 1711357598,
+          model: 'gemma2-9b-it',
+          choices: [
+            {
+              index: 0,
+              delta: {
+                tool_calls: [
+                  {
+                    index: 0,
+                    id: 'json-call-id',
+                    type: 'function',
+                    function: {
+                      name: 'json',
+                      arguments:
+                        '{"output":[{"name":"prepare the issue reproduction","date":"2026-09-04"}]}',
+                    },
+                  },
+                ],
+              },
+              finish_reason: null,
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          id: 'response-id',
+          object: 'chat.completion.chunk',
+          created: 1711357598,
+          model: 'gemma2-9b-it',
+          choices: [
+            {
+              index: 0,
+              delta: {},
+              finish_reason: 'tool_calls',
+            },
+          ],
+        })}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'resolve-date',
+          inputSchema: {
+            type: 'object',
+            properties: { input: { type: 'string' } },
+          },
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'array',
+          items: { type: 'object' },
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(events).toContainEqual({
+      type: 'text-delta',
+      id: 'txt-0',
+      delta: '[{"name":"prepare the issue reproduction","date":"2026-09-04"}]',
+    });
+    expect(events.some(event => event.type === 'tool-call')).toBe(false);
+    expect(events.at(-1)).toMatchObject({
+      type: 'finish',
+      finishReason: 'stop',
+    });
   });
 
   it('should stream tool call deltas when tool call arguments are passed in the first chunk', async () => {
