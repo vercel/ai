@@ -2,6 +2,7 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
+import { computed } from '@angular/core';
 import { describe, expect, it, vi } from 'vitest';
 import { Completion } from './completion.ng';
 
@@ -87,6 +88,29 @@ describe('Completion', () => {
     controller.close();
     await completionOperation;
     expect(completion.loading).toBe(false);
+  });
+
+  describe('handleSubmit', () => {
+    it('does not subscribe the calling reactive context to input', () => {
+      const completion = new Completion();
+      // keep a reactive re-run (the bug) from making a real request
+      completion.complete = async () => '';
+      let runs = 0;
+
+      const tracker = computed(() => {
+        runs++;
+        void completion.handleSubmit();
+        return runs;
+      });
+
+      tracker();
+      const runsAfterFirstRead = runs;
+
+      completion.input = 'hello';
+      tracker();
+
+      expect(runs).toBe(runsAfterFirstRead);
+    });
   });
 
   describe('stop', () => {
