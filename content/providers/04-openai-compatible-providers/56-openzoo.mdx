@@ -53,11 +53,12 @@ const openzoo = createOpenAICompatible({
 ## Language Models
 
 You can create OpenZoo models using the provider instance. The first argument is
-a model ID from the model catalog at `http://localhost:8402/v1/models`, for
-example `z-ai/glm-5.3-flash`:
+a model ID from the model catalog at `http://localhost:8402/v1/models`. `auto`
+lets the proxy pick a model per request; bare ids such as `claude-sonnet-5`
+or `gpt-4o-mini` select one model:
 
 ```ts
-const model = openzoo('z-ai/glm-5.3-flash');
+const model = openzoo('auto');
 ```
 
 ### Example
@@ -76,7 +77,7 @@ const openzoo = createOpenAICompatible({
 });
 
 const { text } = await generateText({
-  model: openzoo('z-ai/glm-5.3-flash'),
+  model: openzoo('auto'),
   prompt: 'Tell me about yourself in one sentence.',
 });
 ```
@@ -95,7 +96,7 @@ const openzoo = createOpenAICompatible({
 });
 
 const result = streamText({
-  model: openzoo('z-ai/glm-5.3-flash'),
+  model: openzoo('auto'),
   prompt: 'Write a short haiku about micro-payments.',
 });
 
