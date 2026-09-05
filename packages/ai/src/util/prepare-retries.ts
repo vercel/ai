@@ -1,5 +1,8 @@
 import { InvalidArgumentError } from '../error/invalid-argument-error';
-import type { RetryFunction } from '@ai-sdk/provider-utils';
+import type {
+  RetryFunction,
+  ShouldRetryFunction,
+} from '@ai-sdk/provider-utils';
 import { retryWithExponentialBackoffRespectingRetryHeaders } from '../util/retry-with-exponential-backoff';
 /**
  * Validate and prepare retries.
@@ -7,11 +10,13 @@ import { retryWithExponentialBackoffRespectingRetryHeaders } from '../util/retry
 export function prepareRetries({
   maxRetries,
   abortSignal,
+  additionalRetryableError,
   parameter = 'maxRetries',
   defaultMaxRetries = 2,
 }: {
   maxRetries: number | undefined;
   abortSignal: AbortSignal | undefined;
+  additionalRetryableError?: ShouldRetryFunction;
   parameter?: string;
   defaultMaxRetries?: number;
 }): {
@@ -43,6 +48,7 @@ export function prepareRetries({
     retry: retryWithExponentialBackoffRespectingRetryHeaders({
       maxRetries: maxRetriesResult,
       abortSignal,
+      additionalRetryableError,
     }),
   };
 }

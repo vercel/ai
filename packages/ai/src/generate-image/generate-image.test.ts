@@ -1,6 +1,8 @@
 import type {
   ImageModelV4,
   ImageModelV4ProviderMetadata,
+  ImageModelV4Result,
+  ImageModelV4Usage,
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
@@ -43,8 +45,11 @@ const createMockResponse = (options: {
   modelId?: string;
   providerMetaData?: ImageModelV4ProviderMetadata;
   headers?: Record<string, string>;
+  usage?: ImageModelV4Usage;
+  isRetryable?: ImageModelV4Result['isRetryable'];
 }) => ({
   images: options.images,
+  isRetryable: options.isRetryable,
   warnings: options.warnings ?? [],
   providerMetadata: options.providerMetaData ?? {
     testProvider: {
@@ -56,6 +61,7 @@ const createMockResponse = (options: {
     modelId: options.modelId ?? 'test-model-id',
     headers: options.headers ?? {},
   },
+  usage: options.usage,
 });
 
 describe('generateImage', () => {
@@ -572,6 +578,208 @@ describe('generateImage', () => {
   });
 
   describe('error handling', () => {
+    it('should retry when no images are returned and a later attempt succeeds', async () => {
+      vi.useFakeTimers();
+
+      try {
+        let callCount = 0;
+        const firstTimestamp = new Date('2024-01-01T00:00:00.000Z');
+        const secondTimestamp = new Date('2024-01-02T00:00:00.000Z');
+
+        const resultPromise = generateImage({
+          model: new MockImageModelV4({
+            doGenerate: async () => {
+              callCount += 1;
+
+              return callCount === 1
+                ? createMockResponse({
+                    images: [],
+                    timestamp: firstTimestamp,
+                    modelId: 'empty-attempt-model',
+                    providerMetaData: {
+                      testProvider: {
+                        images: [],
+                        attempt: 'empty',
+                      },
+                    },
+                    usage: {
+                      inputTokens: 10,
+                      outputTokens: 0,
+                      totalTokens: 10,
+                    },
+                  })
+                : createMockResponse({
+                    images: [pngBase64],
+                    timestamp: secondTimestamp,
+                    modelId: 'successful-attempt-model',
+                    providerMetaData: {
+                      testProvider: {
+                        images: [{ attempt: 'success' }],
+                        attempt: 'success',
+                      },
+                    },
+                    usage: {
+                      inputTokens: 20,
+                      outputTokens: 1,
+                      totalTokens: 21,
+                    },
+                  });
+            },
+          }),
+          prompt,
+          maxRetries: 2,
+        });
+
+        await vi.runAllTimersAsync();
+
+        const result = await resultPromise;
+
+        expect(callCount).toBe(2);
+        expect(result.images).toHaveLength(1);
+        expect(result.calls).toMatchObject([
+          {
+            images: [],
+            providerMetadata: {
+              testProvider: {
+                images: [],
+                attempt: 'empty',
+              },
+            },
+            response: {
+              timestamp: firstTimestamp,
+              modelId: 'empty-attempt-model',
+            },
+            usage: {
+              inputTokens: 10,
+              outputTokens: 0,
+              totalTokens: 10,
+            },
+          },
+          {
+            images: [expect.anything()],
+            providerMetadata: {
+              testProvider: {
+                images: [{ attempt: 'success' }],
+                attempt: 'success',
+              },
+            },
+            response: {
+              timestamp: secondTimestamp,
+              modelId: 'successful-attempt-model',
+            },
+            usage: {
+              inputTokens: 20,
+              outputTokens: 1,
+              totalTokens: 21,
+            },
+          },
+        ]);
+        expect(result.responses).toStrictEqual([
+          {
+            timestamp: firstTimestamp,
+            modelId: 'empty-attempt-model',
+            headers: {},
+          },
+          {
+            timestamp: secondTimestamp,
+            modelId: 'successful-attempt-model',
+            headers: {},
+          },
+        ]);
+        expect(result.usage).toStrictEqual({
+          inputTokens: 30,
+          outputTokens: 1,
+          totalTokens: 31,
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('should not retry provider-classified terminal empty results', async () => {
+      let callCount = 0;
+
+      await expect(
+        generateImage({
+          model: new MockImageModelV4({
+            doGenerate: async () => {
+              callCount += 1;
+
+              return createMockResponse({
+                images: [],
+                timestamp: testDate,
+                isRetryable: false,
+                providerMetaData: {
+                  testProvider: {
+                    images: [],
+                    reason: 'content-filter',
+                  },
+                },
+              });
+            },
+          }),
+          prompt,
+          maxRetries: 2,
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_NoImageGeneratedError',
+        responses: [
+          {
+            timestamp: testDate,
+          },
+        ],
+      });
+
+      expect(callCount).toBe(1);
+    });
+
+    it('should throw NoImageGeneratedError after no-image retries are exhausted', async () => {
+      vi.useFakeTimers();
+
+      try {
+        let callCount = 0;
+        const firstTimestamp = new Date('2024-01-01T00:00:00.000Z');
+        const secondTimestamp = new Date('2024-01-02T00:00:00.000Z');
+
+        const resultPromise = generateImage({
+          model: new MockImageModelV4({
+            doGenerate: async () => {
+              callCount += 1;
+
+              return createMockResponse({
+                images: [],
+                timestamp: callCount === 1 ? firstTimestamp : secondTimestamp,
+              });
+            },
+          }),
+          prompt,
+          maxRetries: 1,
+        });
+
+        const errorAssertion = expect(resultPromise).rejects.toMatchObject({
+          name: 'AI_NoImageGeneratedError',
+          message: 'No image generated.',
+          responses: [
+            {
+              timestamp: firstTimestamp,
+              modelId: expect.any(String),
+            },
+            {
+              timestamp: secondTimestamp,
+              modelId: expect.any(String),
+            },
+          ],
+        });
+
+        await vi.runAllTimersAsync();
+        await errorAssertion;
+
+        expect(callCount).toBe(2);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it('should throw NoImageGeneratedError when no images are returned', async () => {
       await expect(
         generateImage({
@@ -583,6 +791,7 @@ describe('generateImage', () => {
               }),
           }),
           prompt,
+          maxRetries: 0,
         }),
       ).rejects.toMatchObject({
         name: 'AI_NoImageGeneratedError',
@@ -623,6 +832,7 @@ describe('generateImage', () => {
             doGenerate: async () => ({
               ...createMockResponse({
                 images: [],
+                isRetryable: false,
                 providerMetaData: providerMetadata,
                 timestamp: testDate,
                 headers: {
@@ -669,6 +879,7 @@ describe('generateImage', () => {
               }),
           }),
           prompt,
+          maxRetries: 0,
         }),
       ).rejects.toMatchObject({
         name: 'AI_NoImageGeneratedError',
