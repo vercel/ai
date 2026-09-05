@@ -139,6 +139,45 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
     warnings.push(...inputWarnings);
 
+    let resolvedReasoningEffort = openaiOptions?.reasoningEffort;
+
+    if (
+      resolvedReasoningEffort != null &&
+      modelCapabilities.supportedReasoningEfforts != null &&
+      !modelCapabilities.supportedReasoningEfforts.includes(
+        resolvedReasoningEffort,
+      )
+    ) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'reasoningEffort',
+        details: `${this.modelId} only supports the following reasoning efforts: ${modelCapabilities.supportedReasoningEfforts.join(', ')}`,
+      });
+      resolvedReasoningEffort = undefined;
+    }
+
+    const reasoningEffortUpdate = openaiOptions?.reasoningEffortUpdate;
+    const configurationUpdateIsSupported =
+      reasoningEffortUpdate == null ||
+      (modelCapabilities.supportsConfigurationUpdate &&
+        openaiOptions?.reasoningMode !== 'pro' &&
+        openaiOptions?.truncation !== 'auto');
+
+    if (reasoningEffortUpdate != null && !configurationUpdateIsSupported) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'reasoningEffortUpdate',
+        details: !modelCapabilities.supportsConfigurationUpdate
+          ? 'reasoningEffortUpdate is only supported by GPT-6 and later models'
+          : 'reasoningEffortUpdate requires standard reasoning mode without automatic truncation',
+      });
+    } else if (reasoningEffortUpdate != null) {
+      input.unshift({
+        type: 'configuration_update',
+        reasoning: { effort: reasoningEffortUpdate },
+      });
+    }
+
     const strictJsonSchema = openaiOptions?.strictJsonSchema ?? false;
 
     let include: OpenAIResponsesIncludeOptions = openaiOptions?.include;
@@ -244,13 +283,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
       // model-specific settings:
       ...(modelCapabilities.isReasoningModel &&
-        (openaiOptions?.reasoningEffort != null ||
+        (resolvedReasoningEffort != null ||
           openaiOptions?.reasoningSummary != null ||
           openaiOptions?.reasoningMode != null ||
           openaiOptions?.reasoningContext != null) && {
           reasoning: {
-            ...(openaiOptions?.reasoningEffort != null && {
-              effort: openaiOptions.reasoningEffort,
+            ...(resolvedReasoningEffort != null && {
+              effort: resolvedReasoningEffort,
             }),
             ...(openaiOptions?.reasoningSummary != null && {
               summary: openaiOptions.reasoningSummary,
@@ -264,6 +303,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           },
         }),
     };
+
+    if (
+      modelCapabilities.supportsConfigurationUpdate &&
+      baseArgs.prompt_cache_retention != null
+    ) {
+      baseArgs.prompt_cache_retention = undefined;
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'promptCacheRetention',
+        details:
+          'promptCacheRetention is not supported by GPT-6 and later models; use promptCacheOptions instead',
+      });
+    }
 
     // remove unsupported settings for reasoning models
     // see https://platform.openai.com/docs/guides/reasoning#limitations
@@ -291,6 +343,26 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             type: 'unsupported-setting',
             setting: 'topP',
             details: 'topP is not supported for reasoning models',
+          });
+        }
+
+        if (
+          modelCapabilities.supportedReasoningEfforts != null &&
+          (baseArgs.top_logprobs != null ||
+            baseArgs.include?.includes('message.output_text.logprobs'))
+        ) {
+          baseArgs.top_logprobs = undefined;
+          const filteredInclude = baseArgs.include?.filter(
+            value => value !== 'message.output_text.logprobs',
+          );
+          baseArgs.include =
+            filteredInclude != null && filteredInclude.length > 0
+              ? filteredInclude
+              : undefined;
+          warnings.push({
+            type: 'unsupported-setting',
+            setting: 'logprobs',
+            details: 'logprobs is not supported for reasoning models',
           });
         }
       }
