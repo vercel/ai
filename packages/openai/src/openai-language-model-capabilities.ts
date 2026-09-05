@@ -13,8 +13,10 @@ export type OpenAILanguageModelCapabilities = {
 export function getOpenAILanguageModelCapabilities(
   modelId: string,
 ): OpenAILanguageModelCapabilities {
-  const oSeriesVersion = getOSeriesVersion(modelId);
-  const gptVersion = getGptVersion(modelId);
+  const baseModelId = modelId.split('/').pop() || modelId;
+
+  const oSeriesVersion = getOSeriesVersion(baseModelId);
+  const gptVersion = getGptVersion(baseModelId);
   const isGptChatModel =
     gptVersion?.minor == null &&
     (gptVersion?.variant?.startsWith('chat') ?? false);
@@ -25,7 +27,7 @@ export function getOpenAILanguageModelCapabilities(
     (gptVersion != null && gptVersion.major >= 5 && !isGptChatModel);
 
   const supportsPriorityProcessing =
-    modelId.startsWith('gpt-4') ||
+    baseModelId.startsWith('gpt-4') ||
     (gptVersion != null &&
       gptVersion.major >= 5 &&
       !isGptNanoModel &&

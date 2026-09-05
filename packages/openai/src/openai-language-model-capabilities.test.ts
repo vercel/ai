@@ -28,6 +28,8 @@ describe('getOpenAILanguageModelCapabilities', () => {
       ['gpt-5-chat-latest', false],
       ['gpt-5.99-chat-latest', true],
       ['o1', true],
+      ['openai/o1', true],
+      ['cf-gateway/o1', true],
       ['o1-2024-12-17', true],
       ['o3-mini', true],
       ['o3-mini-2025-01-31', true],
