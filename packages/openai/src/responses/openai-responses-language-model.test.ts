@@ -8587,6 +8587,27 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
       });
 
+      it('should throw an api error for nested error events with a null code before output starts', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data:{"type":"response.created","sequence_number":0,"response":{"id":"resp_error_nested_null_code","created_at":1741269019,"model":"gpt-4o-2024-07-18","service_tier":null}}\n\n`,
+            `data:{"type":"error","sequence_number":2,"error":{"type":"service_unavailable_error","code":null,"message":"Unable to verify model access right now. Please retry.","param":null}}\n\n`,
+          ],
+        };
+
+        await expect(
+          createModel('gpt-4o-mini').doStream({
+            prompt: TEST_PROMPT,
+            includeRawChunks: true,
+          }),
+        ).rejects.toMatchObject({
+          message: 'Unable to verify model access right now. Please retry.',
+          statusCode: 500,
+          isRetryable: true,
+        });
+      });
+
       it('should make the stream available after response.in_progress without waiting for the first output token', async () => {
         const controller = new TestResponseController();
         server.urls['https://api.openai.com/v1/responses'].response = {

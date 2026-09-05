@@ -745,7 +745,7 @@ const openaiResponsesNestedErrorChunkSchema = z.object({
   sequence_number: z.number(),
   error: z.object({
     type: z.string(),
-    code: z.string(),
+    code: z.string().nullish(),
     message: z.string(),
     param: z.string().nullish(),
   }),
