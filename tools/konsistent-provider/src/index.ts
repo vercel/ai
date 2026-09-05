@@ -25,10 +25,10 @@ export const conventions = defineConventions([
     },
   },
   {
-    name: 'package-must-have-tsup-config',
-    description: 'Every package directory must contain tsup.config.ts.',
+    name: 'package-must-have-tsdown-config',
+    description: 'Every package directory must contain tsdown.config.ts.',
     must: {
-      haveFiles: ['tsup.config.ts'],
+      haveFiles: ['tsdown.config.ts'],
     },
   },
   {

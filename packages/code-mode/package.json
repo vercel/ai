@@ -37,7 +37,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
+    "build": "pnpm clean && tsdown --tsconfig tsconfig.build.json",
     "clean": "del-cli build dist *.tsbuildinfo",
     "type-check": "tsc --build && tsc -p src/tsconfig.json",
     "test": "pnpm test:node",
@@ -52,7 +52,7 @@
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
     "ai": "workspace:*",
-    "tsup": "^8.5.1",
+    "tsdown": "^0.22.14",
     "typescript": "5.8.3",
     "zod": "3.25.76"
   },

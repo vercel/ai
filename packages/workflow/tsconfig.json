@@ -5,7 +5,7 @@
     "rootDir": "src",
     "outDir": "dist"
   },
-  "exclude": ["dist", "build", "node_modules", "tsup.config.ts", "test.d.ts"],
+  "exclude": ["dist", "build", "node_modules", "tsdown.config.ts", "test.d.ts"],
   "references": [
     {
       "path": "../ai"

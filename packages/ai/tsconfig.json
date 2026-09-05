@@ -19,7 +19,7 @@
     "dist",
     "build",
     "node_modules",
-    "tsup.config.ts",
+    "tsdown.config.ts",
     "internal.d.ts",
     "test.d.ts"
   ],
