@@ -81,10 +81,11 @@ export function convertToPerplexityMessages(
                         : {
                             type: 'file_url',
                             file_url: {
-                              url:
+                              url: `data:${resolveFullMediaType({ part })};base64,${
                                 typeof part.data.data === 'string'
                                   ? part.data.data
-                                  : convertUint8ArrayToBase64(part.data.data),
+                                  : convertUint8ArrayToBase64(part.data.data)
+                              }`,
                             },
                             file_name: part.filename || `document-${index}.pdf`,
                           };
