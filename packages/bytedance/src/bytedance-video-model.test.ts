@@ -779,6 +779,7 @@ describe('ByteDanceVideoModel', () => {
         {
           type: 'image_url',
           image_url: { url: 'https://example.com/first-frame.png' },
+          role: 'first_frame',
         },
       ]);
     });
