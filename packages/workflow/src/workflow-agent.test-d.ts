@@ -83,6 +83,100 @@ describe('WorkflowAgent types', () => {
     expectTypeOf(result.output).toEqualTypeOf<{ answer: string }>();
   });
 
+  it('infers constructor output in generate results', async () => {
+    const agent = new WorkflowAgent({
+      model,
+      output: Output.object({
+        schema: z.object({ answer: z.string() }),
+      }),
+    });
+
+    const result = await agent.generate({ prompt: 'answer' });
+
+    expectTypeOf(result.output).toEqualTypeOf<{ answer: string }>();
+    expectTypeOf(result.text).toEqualTypeOf<string>();
+    expectTypeOf(result.finalStep).toEqualTypeOf<
+      (typeof result.steps)[number]
+    >();
+  });
+
+  it('infers generate output when overriding constructor output', async () => {
+    const agent = new WorkflowAgent({
+      model,
+      output: Output.object({
+        schema: z.object({ answer: z.string() }),
+      }),
+    });
+
+    const result = await agent.generate({
+      prompt: 'rate the answer',
+      output: Output.object({
+        schema: z.object({ score: z.number() }),
+      }),
+    });
+
+    expectTypeOf(result.output).toEqualTypeOf<{ score: number }>();
+  });
+
+  it('requires exactly one generate prompt input', () => {
+    const agent = new WorkflowAgent({ model });
+
+    agent.generate({ prompt: 'hello' });
+    agent.generate({
+      messages: [{ role: 'user', content: 'hello' }],
+    });
+
+    // @ts-expect-error generate requires prompt or messages
+    agent.generate();
+    // @ts-expect-error generate requires prompt or messages
+    agent.generate({});
+    // @ts-expect-error prompt and messages are mutually exclusive
+    agent.generate({
+      prompt: 'hello',
+      messages: [{ role: 'user' as const, content: 'hello' }],
+    });
+  });
+
+  it('rejects streaming-only generate options', () => {
+    const agent = new WorkflowAgent({ model });
+
+    agent.generate({
+      prompt: 'hello',
+      // @ts-expect-error writable is only supported by stream
+      writable: new WritableStream<ModelCallStreamPart>(),
+    });
+    agent.generate({
+      prompt: 'hello',
+      // @ts-expect-error raw chunks are only supported by stream
+      includeRawChunks: true,
+    });
+    agent.generate({
+      prompt: 'hello',
+      // @ts-expect-error stream transforms are only supported by stream
+      experimental_transform: () => new TransformStream(),
+    });
+    agent.generate({
+      prompt: 'hello',
+      // @ts-expect-error onError is only supported by stream
+      onError: () => {},
+    });
+    agent.generate({
+      prompt: 'hello',
+      // @ts-expect-error onAbort is only supported by stream
+      onAbort: () => {},
+    });
+    agent.generate({
+      prompt: 'hello',
+      // @ts-expect-error sendFinish is only supported by stream
+      sendFinish: false,
+    });
+    agent.generate({
+      prompt: 'hello',
+      // @ts-expect-error preventClose is only supported by stream
+      preventClose: true,
+    });
+  });
+
   it('infers stream output when overriding constructor output', async () => {
     const agent = new WorkflowAgent({
       model,

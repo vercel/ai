@@ -15,11 +15,13 @@ import {
   type InferToolInput,
   type InferToolOutput,
   type InferToolSetContext,
+  type ToolResultOutput,
 } from '@ai-sdk/provider-utils';
 import {
   Output,
   experimental_filterActiveTools as filterActiveTools,
   type FinishReason,
+  type GenerateTextResult,
   type LanguageModelResponseMetadata,
   type LanguageModelUsage,
   type ModelMessage,
@@ -38,6 +40,7 @@ import {
   type Instructions,
   type Experimental_SandboxSession as SandboxSession,
   InvalidToolApprovalSignatureError,
+  NoOutputGeneratedError,
 } from 'ai';
 import {
   createRestrictedTelemetryDispatcher,
@@ -47,10 +50,11 @@ import {
   mergeCallbacks,
   signToolApproval,
   standardizePrompt,
+  toResponseMessages,
   validateApprovedToolApprovals,
   verifyToolApprovalSignature,
 } from 'ai/internal';
-import { createLanguageModelToolResultOutput } from './create-language-model-tool-result-output.js';
+import { createLanguageModelToolResultOutputs } from './create-language-model-tool-result-output.js';
 import type {
   ModelCallStreamPart,
   ModelStopCondition,
@@ -916,9 +920,10 @@ export type WorkflowAgentOnToolExecutionEndCallback<
 ) => PromiseLike<void> | void;
 
 /**
- * Options for the {@link WorkflowAgent.stream} method.
+ * Options shared by the {@link WorkflowAgent.generate} and
+ * {@link WorkflowAgent.stream} methods.
  */
-export type WorkflowAgentStreamOptions<
+export type WorkflowAgentCallOptions<
   TTools extends ToolSet = ToolSet,
   TRuntimeContext extends Context = Context,
   OUTPUT = never,
@@ -967,30 +972,6 @@ export type WorkflowAgentStreamOptions<
      * @deprecated Use `instructions` instead.
      */
     system?: string;
-
-    /**
-     * A WritableStream that receives raw LanguageModelV4StreamPart chunks in real-time
-     * as the model generates them. This enables streaming to the client without
-     * coupling WorkflowAgent to UIMessageChunk format.
-     *
-     * Convert to UIMessageChunks at the response boundary using
-     * `createUIMessageChunkTransform()` from `@ai-sdk/workflow`.
-     *
-     * @example
-     * ```typescript
-     * // In the workflow:
-     * await agent.stream({
-     *   messages,
-     *   writable: getWritable<ModelCallStreamPart>(),
-     * });
-     *
-     * // In the route handler:
-     * return createUIMessageStreamResponse({
-     *   stream: run.readable.pipeThrough(createModelCallToUIChunkTransform()),
-     * });
-     * ```
-     */
-    writable?: WritableStream<ModelCallStreamPart<ToolSet>>;
 
     /**
      * Condition for stopping the generation when there are tool results in the last step.
@@ -1068,14 +1049,6 @@ export type WorkflowAgentStreamOptions<
     output?: OutputSpecification<OUTPUT, PARTIAL_OUTPUT>;
 
     /**
-     * Whether to include raw chunks from the provider in the stream.
-     * When enabled, you will receive raw chunks with type 'raw' that contain the unprocessed data from the provider.
-     * This allows access to cutting-edge provider features not yet wrapped by the AI SDK.
-     * Defaults to false.
-     */
-    includeRawChunks?: boolean;
-
-    /**
      * A function that attempts to repair a tool call that failed to parse.
      */
     repairToolCall?: ToolCallRepairFunction<TTools>;
@@ -1086,15 +1059,6 @@ export type WorkflowAgentStreamOptions<
      * @deprecated Use `repairToolCall` instead.
      */
     experimental_repairToolCall?: ToolCallRepairFunction<TTools>;
-
-    /**
-     * Optional stream transformations.
-     * They are applied in the order they are provided.
-     * The stream transformations must maintain the stream structure for streamText to work correctly.
-     */
-    experimental_transform?:
-      | StreamTextTransform<TTools>
-      | Array<StreamTextTransform<TTools>>;
 
     /**
      * Custom download function to use for URLs.
@@ -1133,12 +1097,6 @@ export type WorkflowAgentStreamOptions<
     onStepFinish?: WorkflowAgentOnStepFinishCallback<TTools, TRuntimeContext>;
 
     /**
-     * Callback that is invoked when an error occurs during streaming.
-     * You can use it to log errors.
-     */
-    onError?: WorkflowAgentOnErrorCallback;
-
-    /**
      * Callback that is called when the LLM response and all request tool executions
      * (for tools that have an `execute` function) are finished.
      */
@@ -1151,11 +1109,6 @@ export type WorkflowAgentStreamOptions<
      * @deprecated Use `onEnd` instead.
      */
     onFinish?: WorkflowAgentOnFinishCallback<TTools, TRuntimeContext, OUTPUT>;
-
-    /**
-     * Callback that is called when the operation is aborted.
-     */
-    onAbort?: WorkflowAgentOnAbortCallback<TTools>;
 
     /**
      * Callback called when the agent starts streaming, before any LLM calls.
@@ -1218,24 +1171,67 @@ export type WorkflowAgentStreamOptions<
     prepareStep?: PrepareStepCallback<TTools, TRuntimeContext>;
 
     /**
-     * Timeout in milliseconds for the stream operation.
+     * Timeout in milliseconds for the operation.
      * When specified, creates an AbortSignal that will abort the operation after the given time.
      * If both `timeout` and `abortSignal` are provided, whichever triggers first will abort.
      */
     timeout?: number;
-
-    /**
-     * Whether to send a 'finish' chunk to the writable stream when streaming completes.
-     * @default true
-     */
-    sendFinish?: boolean;
-
-    /**
-     * Whether to prevent the writable stream from being closed after streaming completes.
-     * @default false
-     */
-    preventClose?: boolean;
   };
+
+/**
+ * Options for the {@link WorkflowAgent.stream} method.
+ */
+export type WorkflowAgentStreamOptions<
+  TTools extends ToolSet = ToolSet,
+  TRuntimeContext extends Context = Context,
+  OUTPUT = never,
+  PARTIAL_OUTPUT = never,
+> = WorkflowAgentCallOptions<
+  TTools,
+  TRuntimeContext,
+  OUTPUT,
+  PARTIAL_OUTPUT
+> & {
+  /**
+   * A WritableStream that receives raw model stream parts in real time.
+   */
+  writable?: WritableStream<ModelCallStreamPart<ToolSet>>;
+
+  /**
+   * Whether to include raw chunks from the provider in the stream.
+   * @default false
+   */
+  includeRawChunks?: boolean;
+
+  /**
+   * Optional stream transformations.
+   */
+  experimental_transform?:
+    | StreamTextTransform<TTools>
+    | Array<StreamTextTransform<TTools>>;
+
+  /**
+   * Callback that is invoked when an error occurs during streaming.
+   */
+  onError?: WorkflowAgentOnErrorCallback;
+
+  /**
+   * Callback that is called when the operation is aborted.
+   */
+  onAbort?: WorkflowAgentOnAbortCallback<TTools>;
+
+  /**
+   * Whether to send a 'finish' chunk to the writable stream when streaming completes.
+   * @default true
+   */
+  sendFinish?: boolean;
+
+  /**
+   * Whether to prevent the writable stream from being closed after streaming completes.
+   * @default false
+   */
+  preventClose?: boolean;
+};
 
 /**
  * A tool call made by the model. Matches the AI SDK's tool call shape.
@@ -1269,6 +1265,7 @@ export interface ToolResult {
 
 type WorkflowToolExecutionResult = {
   modelResult: LanguageModelV4ToolResultPart;
+  responseOutput: ToolResultOutput;
   rawOutput: unknown;
   isError: boolean;
 };
@@ -1329,6 +1326,49 @@ function addToolResultsToStep(
       any
     >['dynamicToolResults']),
   );
+}
+
+async function setStepResponseMessages(
+  step: StepResult<ToolSet, any> | undefined,
+  tools: ToolSet,
+  executedResults: WorkflowToolExecutionResult[],
+) {
+  if (step == null) {
+    return;
+  }
+
+  const responseOutputs = new Map(
+    executedResults.map(result => [
+      result.modelResult.toolCallId,
+      result.responseOutput,
+    ]),
+  );
+  const toolsWithPrecomputedOutputs = Object.fromEntries(
+    Object.entries(tools).map(([toolName, tool]) => [
+      toolName,
+      {
+        ...tool,
+        toModelOutput: async ({ toolCallId }: { toolCallId: string }) => {
+          const output = responseOutputs.get(toolCallId);
+          if (output == null) {
+            throw new Error(
+              `Missing precomputed model output for tool call "${toolCallId}"`,
+            );
+          }
+          return output;
+        },
+      },
+    ]),
+  ) as ToolSet;
+
+  (
+    step.response as {
+      messages: StepResult<ToolSet, any>['response']['messages'];
+    }
+  ).messages = await toResponseMessages({
+    content: step.content,
+    tools: toolsWithPrecomputedOutputs,
+  });
 }
 
 /**
@@ -1400,6 +1440,41 @@ export interface WorkflowAgentStreamResult<
    */
   output: OUTPUT;
 }
+
+type WorkflowAgentExecutionResult<
+  TTools extends ToolSet,
+  TRuntimeContext extends Context,
+  OUTPUT,
+> = {
+  result: WorkflowAgentStreamResult<TTools, OUTPUT>;
+  initialResponseMessages: GenerateTextResult<
+    TTools,
+    TRuntimeContext,
+    never
+  >['responseMessages'];
+};
+
+/**
+ * Result of the WorkflowAgent.generate method.
+ *
+ * It matches the AI SDK GenerateTextResult shape and adds the accumulated
+ * durable conversation messages.
+ */
+export type WorkflowAgentGenerateResult<
+  TTools extends ToolSet = ToolSet,
+  TRuntimeContext extends Context = Context,
+  OUTPUT = never,
+> = Omit<GenerateTextResult<TTools, TRuntimeContext, never>, 'output'> & {
+  /**
+   * The final messages including all tool calls and results.
+   */
+  readonly messages: ModelMessage[];
+
+  /**
+   * The generated output according to the `output` specification.
+   */
+  readonly output: OUTPUT;
+};
 
 /**
  * A class for building durable AI agents within workflows.
@@ -1537,8 +1612,32 @@ export class WorkflowAgent<
     };
   }
 
-  generate() {
-    throw new Error('Not implemented');
+  async generate<
+    TTools extends TBaseTools = TBaseTools,
+    TOutput = DefaultWorkflowAgentOutput<OUTPUT>,
+    TPartialOutput = DefaultWorkflowAgentOutput<PARTIAL_OUTPUT>,
+  >(
+    options: WorkflowAgentCallOptions<
+      TTools,
+      TRuntimeContext,
+      TOutput,
+      TPartialOutput
+    >,
+  ): Promise<WorkflowAgentGenerateResult<TTools, TRuntimeContext, TOutput>> {
+    const { result, initialResponseMessages } = await this.execute(
+      options,
+      'generate',
+    );
+    const output =
+      (options.output ?? this.output) == null
+        ? (result.steps.at(-1)?.text as TOutput)
+        : result.output;
+
+    return createWorkflowAgentGenerateResult({
+      result,
+      output,
+      initialResponseMessages,
+    });
   }
 
   async stream<
@@ -1553,6 +1652,22 @@ export class WorkflowAgent<
       TPartialOutput
     >,
   ): Promise<WorkflowAgentStreamResult<TTools, TOutput>> {
+    return (await this.execute(options, 'stream')).result;
+  }
+
+  private async execute<
+    TTools extends TBaseTools = TBaseTools,
+    TOutput = DefaultWorkflowAgentOutput<OUTPUT>,
+    TPartialOutput = DefaultWorkflowAgentOutput<PARTIAL_OUTPUT>,
+  >(
+    options: WorkflowAgentStreamOptions<
+      TTools,
+      TRuntimeContext,
+      TOutput,
+      TPartialOutput
+    >,
+    mode: 'generate' | 'stream',
+  ): Promise<WorkflowAgentExecutionResult<TTools, TRuntimeContext, TOutput>> {
     const { onFinish, onEnd = onFinish } = options;
 
     // Call prepareCall to transform parameters before the agent loop
@@ -1674,9 +1789,8 @@ export class WorkflowAgent<
     const prompt = await standardizePrompt({
       system: effectiveInstructions,
       allowSystemInMessages: this.allowSystemInMessages,
-      ...(effectivePrompt != null
-        ? { prompt: effectivePrompt }
-        : { messages: effectiveMessages! }),
+      prompt: effectivePrompt,
+      messages: effectiveMessages,
     } as Prompt);
     const download = effectiveDownloadFromPrepare;
     const sandbox = options.experimental_sandbox ?? this.experimentalSandbox;
@@ -1729,6 +1843,11 @@ export class WorkflowAgent<
         providerExecuted: collected.toolCall.providerExecuted === true,
       }),
     );
+    const initialResponseMessages: GenerateTextResult<
+      TTools,
+      TRuntimeContext,
+      never
+    >['responseMessages'] = [];
 
     // Approval ids of provider-executed tool calls. Provider-executed tools
     // (e.g. MCP via the Responses API) cannot be resolved locally — the
@@ -1747,8 +1866,11 @@ export class WorkflowAgent<
     );
 
     if (approvedToolApprovals.length > 0 || deniedToolApprovals.length > 0) {
-      const _toolResultMessages: ModelMessage[] = [];
       const toolResultContent: LanguageModelV4ToolResultPart[] = [];
+      const responseToolResultContent: Extract<
+        ModelMessage,
+        { role: 'tool' }
+      >['content'] = [];
       const approvedRawResults: Array<{
         toolCallId: string;
         toolName: string;
@@ -1767,20 +1889,26 @@ export class WorkflowAgent<
         if (tool && typeof tool.execute === 'function') {
           if (!tool.needsApproval) {
             const reason = `Tool "${approval.toolName}" does not require approval`;
-            toolResultContent.push({
+            const outputs = await createLanguageModelToolResultOutputs({
+              toolCallId: approval.toolCallId,
+              toolName: approval.toolName,
+              input: approval.input,
+              output: reason,
+              tool,
+              errorMode: 'text',
+              supportedUrls: {},
+              download,
+            });
+            const toolResult = {
               type: 'tool-result' as const,
               toolCallId: approval.toolCallId,
               toolName: approval.toolName,
-              output: await createLanguageModelToolResultOutput({
-                toolCallId: approval.toolCallId,
-                toolName: approval.toolName,
-                input: approval.input,
-                output: reason,
-                tool,
-                errorMode: 'text',
-                supportedUrls: {},
-                download,
-              }),
+              output: outputs.languageModelOutput,
+            };
+            toolResultContent.push(toolResult);
+            responseToolResultContent.push({
+              ...toolResult,
+              output: outputs.modelOutput,
             });
             continue;
           }
@@ -1825,20 +1953,26 @@ export class WorkflowAgent<
           }
 
           if (revalidationReason != null) {
-            toolResultContent.push({
+            const outputs = await createLanguageModelToolResultOutputs({
+              toolCallId: approval.toolCallId,
+              toolName: approval.toolName,
+              input: approval.input,
+              output: revalidationReason,
+              tool,
+              errorMode: 'text',
+              supportedUrls: {},
+              download,
+            });
+            const toolResult = {
               type: 'tool-result' as const,
               toolCallId: approval.toolCallId,
               toolName: approval.toolName,
-              output: await createLanguageModelToolResultOutput({
-                toolCallId: approval.toolCallId,
-                toolName: approval.toolName,
-                input: approval.input,
-                output: revalidationReason,
-                tool,
-                errorMode: 'text',
-                supportedUrls: {},
-                download,
-              }),
+              output: outputs.languageModelOutput,
+            };
+            toolResultContent.push(toolResult);
+            responseToolResultContent.push({
+              ...toolResult,
+              output: outputs.modelOutput,
             });
             continue;
           }
@@ -1856,6 +1990,10 @@ export class WorkflowAgent<
             sandbox,
           );
           toolResultContent.push(result.modelResult);
+          responseToolResultContent.push({
+            ...result.modelResult,
+            output: result.responseOutput,
+          });
           approvedRawResults.push({
             toolCallId: approval.toolCallId,
             toolName: approval.toolName,
@@ -1872,7 +2010,7 @@ export class WorkflowAgent<
         if (denial.providerExecuted) {
           continue;
         }
-        toolResultContent.push({
+        const toolResult = {
           type: 'tool-result' as const,
           toolCallId: denial.toolCallId,
           toolName: denial.toolName,
@@ -1880,7 +2018,9 @@ export class WorkflowAgent<
             type: 'execution-denied' as const,
             reason: denial.reason,
           },
-        });
+        };
+        toolResultContent.push(toolResult);
+        responseToolResultContent.push(toolResult);
       }
 
       // Strip approval parts that we resolved locally and inject tool results.
@@ -1920,10 +2060,16 @@ export class WorkflowAgent<
 
       // Add tool results as a new tool message
       if (toolResultContent.length > 0) {
-        cleanedMessages.push({
+        const toolResultMessage = {
           role: 'tool',
-          content: toolResultContent,
-        } as ModelMessage);
+          content: responseToolResultContent,
+        } as GenerateTextResult<
+          TTools,
+          TRuntimeContext,
+          never
+        >['responseMessages'][number];
+        cleanedMessages.push(toolResultMessage as ModelMessage);
+        initialResponseMessages.push(toolResultMessage);
       }
 
       prompt.messages = cleanedMessages;
@@ -2052,7 +2198,7 @@ export class WorkflowAgent<
     }
     await telemetryDispatcher.onStart?.({
       callId: 'workflow-agent',
-      operationId: 'ai.workflowAgent.stream',
+      operationId: `ai.workflowAgent.${mode}`,
       provider: effectiveModelInfo.provider,
       modelId: effectiveModelInfo.modelId,
       system: undefined,
@@ -2265,14 +2411,20 @@ export class WorkflowAgent<
       if (options.onAbort) {
         await options.onAbort({ steps });
       }
+      if (mode === 'generate') {
+        mergedGenerationSettings.abortSignal.throwIfAborted();
+      }
       return {
-        messages: prompt.messages,
-        steps,
-        toolCalls: [],
-        toolResults: [],
-        finishReason: 'other',
-        totalUsage: aggregateUsage(steps),
-        output: undefined as TOutput,
+        result: {
+          messages: prompt.messages,
+          steps,
+          toolCalls: [],
+          toolResults: [],
+          finishReason: 'other',
+          totalUsage: aggregateUsage(steps),
+          output: undefined as TOutput,
+        },
+        initialResponseMessages,
       };
     }
 
@@ -2480,6 +2632,13 @@ export class WorkflowAgent<
             }));
 
             addToolResultsToStep(step, executedResults);
+            if (mode === 'generate') {
+              await setStepResponseMessages(
+                step,
+                effectiveTools as ToolSet,
+                executedResults,
+              );
+            }
 
             if (resolvedResults.length > 0) {
               iterMessages.push({
@@ -2582,13 +2741,16 @@ export class WorkflowAgent<
             }
 
             return {
-              messages,
-              steps,
-              toolCalls: allToolCalls,
-              toolResults: allToolResults,
-              finishReason,
-              totalUsage,
-              output: undefined as TOutput,
+              result: {
+                messages,
+                steps,
+                toolCalls: allToolCalls,
+                toolResults: allToolResults,
+                finishReason,
+                totalUsage,
+                output: undefined as TOutput,
+              },
+              initialResponseMessages,
             };
           }
 
@@ -2703,12 +2865,22 @@ export class WorkflowAgent<
           }));
 
           addToolResultsToStep(step, executedToolResults);
+          if (mode === 'generate') {
+            await setStepResponseMessages(
+              step,
+              effectiveTools as ToolSet,
+              executedToolResults,
+            );
+          }
 
           result = await iterator.next(continuationToolResults);
         } else {
           // Final step with no tool calls - reset tracking
           lastStepToolCalls = [];
           lastStepToolResults = [];
+          if (mode === 'generate') {
+            await setStepResponseMessages(step, effectiveTools as ToolSet, []);
+          }
           result = await iterator.next([]);
         }
       }
@@ -2753,6 +2925,17 @@ export class WorkflowAgent<
         await options.onError({ error: terminalError });
       }
       await telemetryDispatcher.onError?.(terminalError);
+      if (mode === 'generate') {
+        encounteredError = terminalError;
+        hasEncounteredError = true;
+      }
+    }
+
+    if (mode === 'generate' && wasAborted && !hasEncounteredError) {
+      encounteredError =
+        effectiveAbortSignal?.reason ??
+        new DOMException('The operation was aborted.', 'AbortError');
+      hasEncounteredError = true;
     }
 
     // Use the final messages from the iterator, or fall back to standardized messages
@@ -2764,26 +2947,39 @@ export class WorkflowAgent<
       | OutputSpecification<TOutput, TPartialOutput>
       | undefined;
     let experimentalOutput: TOutput = undefined as TOutput;
-    if (effectiveOutput && steps.length > 0) {
+    // Decide whether to parse the structured output from the final step.
+    // - When the final step produced text, parse it unless the model stopped to
+    //   call tools (partial, non-final text should not be parsed).
+    // - When the final step produced no text, only `generate` treats a clean
+    //   `stop` as a completed-but-empty response and lets `parseCompleteOutput`
+    //   surface the resulting error (e.g. NoObjectGeneratedError). `stream`
+    //   preserves its historical behavior of skipping parsing on empty text
+    //   (resolving with an undefined output) so it does not start rejecting for
+    //   callers that previously succeeded.
+    if (
+      effectiveOutput &&
+      steps.length > 0 &&
+      (steps.at(-1)!.text.length > 0
+        ? steps.at(-1)!.finishReason !== 'tool-calls'
+        : mode === 'generate' && steps.at(-1)!.finishReason === 'stop')
+    ) {
       const lastStep = steps[steps.length - 1];
       const text = lastStep.text;
-      if (text) {
-        try {
-          experimentalOutput = await effectiveOutput.parseCompleteOutput(
-            { text },
-            {
-              response: lastStep.response,
-              usage: lastStep.usage,
-              finishReason: lastStep.finishReason,
-            },
-          );
-        } catch (parseError) {
-          // If there's already an error, don't override it
-          // If not, set this as the error
-          if (!hasEncounteredError) {
-            encounteredError = parseError;
-            hasEncounteredError = true;
-          }
+      try {
+        experimentalOutput = await effectiveOutput.parseCompleteOutput(
+          { text },
+          {
+            response: lastStep.response,
+            usage: lastStep.usage,
+            finishReason: lastStep.finishReason,
+          },
+        );
+      } catch (parseError) {
+        // If there's already an error, don't override it
+        // If not, set this as the error
+        if (!hasEncounteredError) {
+          encounteredError = parseError;
+          hasEncounteredError = true;
         }
       }
     }
@@ -2791,9 +2987,13 @@ export class WorkflowAgent<
     const lastStep = steps[steps.length - 1];
     const totalUsage = aggregateUsage(steps);
     const finishReason = lastStep?.finishReason ?? 'other';
+    const shouldCallEnd =
+      !wasAborted &&
+      (mode === 'stream' || (!hasEncounteredError && !hasTerminalError));
 
-    // Call onEnd callback if provided (always call, even on errors, but not on abort)
-    if (mergedOnEnd && !wasAborted) {
+    // Streaming preserves its existing onEnd-on-error behavior. Generate uses
+    // non-streaming semantics and only calls onEnd after a successful run.
+    if (mergedOnEnd && shouldCallEnd) {
       await mergedOnEnd({
         steps,
         messages: messages as ModelMessage[],
@@ -2806,7 +3006,7 @@ export class WorkflowAgent<
         output: experimentalOutput,
       });
     }
-    if (!wasAborted && steps.length > 0) {
+    if (shouldCallEnd && steps.length > 0) {
       const telemetrySteps = steps.map(normalizeStepForTelemetry);
       const lastTelemetryStep = telemetrySteps[telemetrySteps.length - 1];
       await telemetryDispatcher.onEnd?.({
@@ -2840,16 +3040,121 @@ export class WorkflowAgent<
     }
 
     return {
-      messages: messages as ModelMessage[],
-      steps,
-      toolCalls: lastStepToolCalls,
-      toolResults: lastStepToolResults,
-      finishReason,
-      totalUsage,
-      output: experimentalOutput,
-      ...(hasTerminalError ? { error: terminalError } : {}),
+      result: {
+        messages: messages as ModelMessage[],
+        steps,
+        toolCalls: lastStepToolCalls,
+        toolResults: lastStepToolResults,
+        finishReason,
+        totalUsage,
+        output: experimentalOutput,
+        ...(hasTerminalError ? { error: terminalError } : {}),
+      },
+      initialResponseMessages,
     };
   }
+}
+
+function createWorkflowAgentGenerateResult<
+  TTools extends ToolSet,
+  TRuntimeContext extends Context,
+  OUTPUT,
+>({
+  result,
+  output,
+  initialResponseMessages,
+}: {
+  result: WorkflowAgentStreamResult<TTools, OUTPUT>;
+  output: OUTPUT | undefined;
+  initialResponseMessages: GenerateTextResult<
+    TTools,
+    TRuntimeContext,
+    never
+  >['responseMessages'];
+}): WorkflowAgentGenerateResult<TTools, TRuntimeContext, OUTPUT> {
+  const steps = result.steps;
+  const getFinalStep = () =>
+    steps.at(-1) as StepResult<TTools, TRuntimeContext>;
+
+  return {
+    messages: result.messages,
+    steps,
+    totalUsage: result.totalUsage,
+    get finalStep() {
+      return getFinalStep();
+    },
+    get content() {
+      return steps.flatMap(step => step.content);
+    },
+    get text() {
+      return getFinalStep().text;
+    },
+    get reasoning() {
+      return getFinalStep().content.filter(
+        part => part.type === 'reasoning' || part.type === 'reasoning-file',
+      );
+    },
+    get reasoningText() {
+      return getFinalStep().reasoningText;
+    },
+    get files() {
+      return steps.flatMap(step => step.files);
+    },
+    get sources() {
+      return steps.flatMap(step => step.sources);
+    },
+    get toolCalls() {
+      return steps.flatMap(step => step.toolCalls);
+    },
+    get staticToolCalls() {
+      return steps.flatMap(step => step.staticToolCalls);
+    },
+    get dynamicToolCalls() {
+      return steps.flatMap(step => step.dynamicToolCalls);
+    },
+    get toolResults() {
+      return steps.flatMap(step => step.toolResults);
+    },
+    get staticToolResults() {
+      return steps.flatMap(step => step.staticToolResults);
+    },
+    get dynamicToolResults() {
+      return steps.flatMap(step => step.dynamicToolResults);
+    },
+    get finishReason() {
+      return getFinalStep().finishReason;
+    },
+    get rawFinishReason() {
+      return getFinalStep().rawFinishReason;
+    },
+    get usage() {
+      return result.totalUsage;
+    },
+    get warnings() {
+      return steps.flatMap(step => step.warnings ?? []);
+    },
+    get request() {
+      return getFinalStep().request;
+    },
+    get response() {
+      return getFinalStep().response;
+    },
+    get responseMessages() {
+      return [
+        ...initialResponseMessages,
+        ...steps.flatMap(step => step.response.messages),
+      ];
+    },
+    get providerMetadata() {
+      return getFinalStep().providerMetadata;
+    },
+    get output() {
+      if (output == null) {
+        throw new NoOutputGeneratedError();
+      }
+      return output;
+    },
+  };
 }
 
 function getModelInfo(model: LanguageModel): {
@@ -3168,6 +3473,10 @@ async function resolveProviderToolResult(
           value: '',
         },
       },
+      responseOutput: {
+        type: 'text',
+        value: '',
+      },
       rawOutput: '',
       isError: false,
     };
@@ -3179,23 +3488,25 @@ async function resolveProviderToolResult(
       ? 'text'
       : 'json'
     : 'none';
+  const outputs = await createLanguageModelToolResultOutputs({
+    toolCallId: toolCall.toolCallId,
+    toolName: toolCall.toolName,
+    input: toolCall.input,
+    output: result,
+    tool: tools?.[toolCall.toolName],
+    errorMode,
+    supportedUrls: {},
+    download,
+  });
 
   return {
     modelResult: {
       type: 'tool-result' as const,
       toolCallId: toolCall.toolCallId,
       toolName: toolCall.toolName,
-      output: await createLanguageModelToolResultOutput({
-        toolCallId: toolCall.toolCallId,
-        toolName: toolCall.toolName,
-        input: toolCall.input,
-        output: result,
-        tool: tools?.[toolCall.toolName],
-        errorMode,
-        supportedUrls: {},
-        download,
-      }),
+      output: outputs.languageModelOutput,
     },
+    responseOutput: outputs.modelOutput,
     rawOutput: result,
     isError: streamResult.isError === true,
   };
@@ -3268,43 +3579,48 @@ async function executeTool(
     // allowing the agent to recover rather than killing the entire stream.
     // This aligns with AI SDK's streamText behavior for individual tool failures.
     const errorMessage = getErrorMessage(error);
+    const outputs = await createLanguageModelToolResultOutputs({
+      toolCallId: toolCall.toolCallId,
+      toolName: toolCall.toolName,
+      input: parsedInput,
+      output: errorMessage,
+      tool,
+      errorMode: 'text',
+      supportedUrls: {},
+      download,
+    });
     return {
       modelResult: {
         type: 'tool-result',
         toolCallId: toolCall.toolCallId,
         toolName: toolCall.toolName,
-        output: await createLanguageModelToolResultOutput({
-          toolCallId: toolCall.toolCallId,
-          toolName: toolCall.toolName,
-          input: parsedInput,
-          output: errorMessage,
-          tool,
-          errorMode: 'text',
-          supportedUrls: {},
-          download,
-        }),
+        output: outputs.languageModelOutput,
       },
+      responseOutput: outputs.modelOutput,
       rawOutput: errorMessage,
       isError: true,
     };
   }
+
+  const outputs = await createLanguageModelToolResultOutputs({
+    toolCallId: toolCall.toolCallId,
+    toolName: toolCall.toolName,
+    input: parsedInput,
+    output: toolResult,
+    tool,
+    errorMode: 'none',
+    supportedUrls: {},
+    download,
+  });
 
   return {
     modelResult: {
       type: 'tool-result' as const,
       toolCallId: toolCall.toolCallId,
       toolName: toolCall.toolName,
-      output: await createLanguageModelToolResultOutput({
-        toolCallId: toolCall.toolCallId,
-        toolName: toolCall.toolName,
-        input: parsedInput,
-        output: toolResult,
-        tool,
-        errorMode: 'none',
-        supportedUrls: {},
-        download,
-      }),
+      output: outputs.languageModelOutput,
     },
+    responseOutput: outputs.modelOutput,
     rawOutput: toolResult,
     isError: false,
   };

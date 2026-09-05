@@ -478,6 +478,35 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
 
 ## Methods
 
+### `generate()`
+
+Runs the durable agent loop and returns a non-streaming result that follows the
+[`GenerateTextResult`](/docs/reference/ai-sdk-core/generate-text#returns)
+experience. The result includes text, content, reasoning, files, sources,
+tool calls and results from all steps, usage, warnings, request and response
+metadata, response messages, structured output, and the final step.
+`WorkflowAgent` also adds `messages`, containing the accumulated durable
+conversation.
+
+```ts
+const result = await agent.generate({
+  prompt: 'What is the weather in San Francisco?',
+});
+
+console.log(result.text);
+console.log(result.usage);
+```
+
+Pass exactly one of `prompt` or `messages`. `generate()` accepts the same
+non-streaming call options as `stream()`, but does not accept streaming-only
+options such as `writable`, `includeRawChunks`, `experimental_transform`,
+`onError`, `onAbort`, `sendFinish`, or `preventClose`.
+
+Although durable model calls may consume provider streams internally,
+`generate()` uses non-streaming semantics: provider errors and aborts reject
+the returned promise, and accessing a required structured `output` throws
+`NoOutputGeneratedError` when no output was generated.
+
 ### `stream()`
 
 Runs the agent loop, streaming responses and executing tool calls as needed. Returns a promise resolving to a `WorkflowAgentStreamResult`.
