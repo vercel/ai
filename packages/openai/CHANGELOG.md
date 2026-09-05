@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.60
+
+### Patch Changes
+
+- 17e489e: feat(openai): add GPT-6 reasoning configuration updates
+
 ## 4.0.59
 
 ### Patch Changes
