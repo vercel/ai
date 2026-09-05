@@ -53,10 +53,11 @@ x402 or presents an OpenZoo subscription key (`ozk_live_…` in
 ## Language Models
 
 You can create language models using a provider instance. The first argument is
-the model id, e.g. `z-ai/glm-5.3-flash`:
+the model id. `auto` lets the proxy pick a model per request; bare ids such as
+`claude-sonnet-5` or `gpt-4o-mini` select one model:
 
 ```ts
-const model = openzoo('z-ai/glm-5.3-flash');
+const model = openzoo('auto');
 ```
 
 ### Example
@@ -71,7 +72,7 @@ import { generateText } from 'ai';
 const openzoo = createOpenZoo({ baseURL: 'http://localhost:8402/v1' });
 
 const { text } = await generateText({
-  model: openzoo('z-ai/glm-5.3-flash'),
+  model: openzoo('auto'),
   prompt: 'Say this is a test',
 });
 
