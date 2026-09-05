@@ -265,6 +265,18 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
       reasoningEffort: z.string().nullish(),
 
       /**
+       * Updates the reasoning effort for GPT-6 and later models starting with this response
+       * without changing the request-level reasoning effort. This preserves the
+       * request prefix for prompt caching.
+       *
+       * Only supported by GPT-6 and later models in standard, single-agent mode. Cannot be
+       * combined with automatic compaction or automatic truncation.
+       */
+      reasoningEffortUpdate: z
+        .enum(['low', 'medium', 'high', 'xhigh', 'max'])
+        .optional(),
+
+      /**
        * Controls how much model work GPT-5.6 performs before returning a final answer.
        * `standard` is the default. `pro` increases quality, latency, and token usage.
        */

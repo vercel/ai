@@ -180,6 +180,7 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesReasoning
   | OpenAIResponsesItemReference
   | OpenAIResponsesCompactionItem
+  | OpenAIResponsesConfigurationUpdate
   | OpenAIResponsesCompactionTrigger;
 
 export type OpenAIResponsesIncludeValue =
@@ -466,6 +467,13 @@ export type OpenAIResponsesCompactionItem = {
   type: 'compaction';
   id: string;
   encrypted_content: string;
+};
+
+export type OpenAIResponsesConfigurationUpdate = {
+  type: 'configuration_update';
+  reasoning: {
+    effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+  };
 };
 
 export type OpenAIResponsesCompactionTrigger = {
