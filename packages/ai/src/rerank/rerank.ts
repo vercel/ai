@@ -1,6 +1,7 @@
 import type { JSONObject, RerankingModelV4CallOptions } from '@ai-sdk/provider';
 import {
   createIdGenerator,
+  type Context,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../../src/util/prepare-retries';
@@ -35,7 +36,10 @@ const originalGenerateCallId = createIdGenerator({
  *
  * @returns A result object that contains the reranked documents, the reranked indices, and additional information.
  */
-export async function rerank<VALUE extends JSONObject | string>({
+export async function rerank<
+  VALUE extends JSONObject | string,
+  RUNTIME_CONTEXT extends Context = Context,
+>({
   model: modelArg,
   documents,
   query,
@@ -46,6 +50,7 @@ export async function rerank<VALUE extends JSONObject | string>({
   providerOptions,
   experimental_telemetry,
   telemetry = experimental_telemetry,
+  runtimeContext,
   onStart,
   experimental_onStart,
   onEnd,
@@ -71,6 +76,11 @@ export async function rerank<VALUE extends JSONObject | string>({
    * Number of top documents to return.
    */
   topN?: number;
+
+  /**
+   * User-defined runtime context that flows through the entire reranking lifecycle.
+   */
+  runtimeContext?: RUNTIME_CONTEXT;
 
   /**
    * Maximum number of retries per reranking model call. Set to 0 to disable retries.
@@ -171,6 +181,7 @@ export async function rerank<VALUE extends JSONObject | string>({
         maxRetries: maxRetriesArg ?? 2,
         headers,
         providerOptions,
+        runtimeContext,
       },
       callbacks: [resolvedOnStart, telemetryDispatcher.onStart],
     });
@@ -190,6 +201,7 @@ export async function rerank<VALUE extends JSONObject | string>({
           timestamp: new Date(),
           modelId: model.modelId,
         },
+        runtimeContext,
       },
       callbacks: [resolvedOnEnd, telemetryDispatcher.onEnd],
     });
@@ -226,6 +238,7 @@ export async function rerank<VALUE extends JSONObject | string>({
     maxRetries,
     headers,
     providerOptions,
+    runtimeContext,
   };
 
   return await runInTracingChannelSpan({
@@ -250,6 +263,7 @@ export async function rerank<VALUE extends JSONObject | string>({
                 documentsType: documentsToSend.type,
                 query,
                 topN,
+                runtimeContext,
               },
               callbacks: [telemetryDispatcher.onRerankStart],
             });
@@ -273,6 +287,7 @@ export async function rerank<VALUE extends JSONObject | string>({
                 modelId: model.modelId,
                 documentsType: documentsToSend.type,
                 ranking,
+                runtimeContext,
               },
               callbacks: [telemetryDispatcher.onRerankEnd],
             });
@@ -314,6 +329,7 @@ export async function rerank<VALUE extends JSONObject | string>({
               headers: response?.headers,
               body: response?.body,
             },
+            runtimeContext,
           },
           callbacks: [resolvedOnEnd, telemetryDispatcher.onEnd],
         });
@@ -335,7 +351,7 @@ export async function rerank<VALUE extends JSONObject | string>({
           },
         });
       } catch (error) {
-        await telemetryDispatcher.onError?.({ callId, error });
+        await telemetryDispatcher.onError?.({ callId, error, runtimeContext });
         throw error;
       }
     },

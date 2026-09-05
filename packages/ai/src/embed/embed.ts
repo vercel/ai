@@ -1,6 +1,7 @@
 import {
   createIdGenerator,
   withUserAgentSuffix,
+  type Context,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { logWarnings } from '../logger/log-warnings';
@@ -38,7 +39,7 @@ const originalGenerateCallId = createIdGenerator({
  *
  * @returns A result object that contains the embedding, the value, and additional information.
  */
-export async function embed({
+export async function embed<RUNTIME_CONTEXT extends Context = Context>({
   model: modelArg,
   value,
   providerOptions,
@@ -47,6 +48,7 @@ export async function embed({
   headers,
   experimental_telemetry,
   telemetry = experimental_telemetry,
+  runtimeContext,
   onStart,
   experimental_onStart,
   onEnd,
@@ -62,6 +64,11 @@ export async function embed({
    * The value that should be embedded.
    */
   value: string;
+
+  /**
+   * User-defined runtime context that flows through the entire embedding lifecycle.
+   */
+  runtimeContext?: RUNTIME_CONTEXT;
 
   /**
    * Maximum number of retries per embedding model call. Set to 0 to disable retries.
@@ -169,6 +176,7 @@ export async function embed({
     maxRetries,
     headers: headersWithUserAgent,
     providerOptions,
+    runtimeContext,
   };
 
   return await runInTracingChannelSpan({
@@ -193,6 +201,7 @@ export async function embed({
                 provider: model.provider,
                 modelId: model.modelId,
                 values: [value],
+                runtimeContext,
               },
               callbacks: [telemetryDispatcher.onEmbedStart],
             });
@@ -217,6 +226,7 @@ export async function embed({
                 values: [value],
                 embeddings: modelResponse.embeddings,
                 usage,
+                runtimeContext,
               },
               callbacks: [telemetryDispatcher.onEmbedEnd],
             });
@@ -248,6 +258,7 @@ export async function embed({
             warnings,
             providerMetadata,
             response,
+            runtimeContext,
           },
           callbacks: [resolvedOnEnd, telemetryDispatcher.onEnd],
         });
@@ -261,7 +272,7 @@ export async function embed({
           response,
         });
       } catch (error) {
-        await telemetryDispatcher.onError?.({ callId, error });
+        await telemetryDispatcher.onError?.({ callId, error, runtimeContext });
         throw error;
       }
     },
