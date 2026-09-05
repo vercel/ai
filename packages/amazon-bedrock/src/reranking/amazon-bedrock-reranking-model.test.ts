@@ -172,7 +172,7 @@ describe('doRerank', () => {
             ],
           },
           "headers": {
-            "content-length": "171",
+            "content-length": "183",
             "content-type": "application/json",
           },
         }
@@ -302,7 +302,7 @@ describe('doRerank', () => {
             ],
           },
           "headers": {
-            "content-length": "171",
+            "content-length": "183",
             "content-type": "application/json",
           },
         }

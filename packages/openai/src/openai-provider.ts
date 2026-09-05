@@ -184,6 +184,13 @@ export interface OpenAIProviderSettings {
    * runtimes that need a WebSocket constructor with header support.
    */
   webSocket?: WebSocketConstructor;
+
+  /**
+   * Provider compatibility mode.
+   * - 'strict': Default. Assumes strict compatibility with OpenAI API.
+   * - 'compatible': Disables auto-injected properties that may break compatible providers.
+   */
+  compatibility?: 'strict' | 'compatible';
 }
 
 /**
@@ -312,6 +319,7 @@ export function createOpenAI(
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      compatibility: options.compatibility,
       // Soft-deprecated. TODO: remove in v8
       fileIdPrefixes: ['file-'],
     });

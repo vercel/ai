@@ -434,7 +434,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       ) as LanguageModelV4ProviderTool | undefined
     )?.name;
 
-    if (webSearchToolName) {
+    if (webSearchToolName && this.config.compatibility !== 'compatible') {
       addInclude('web_search_call.action.sources');
     }
 
