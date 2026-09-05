@@ -25,6 +25,7 @@ import type { ImageModelResponseMetadata } from '../types/image-model-response-m
 import { addImageModelUsage, type ImageModelUsage } from '../types/usage';
 import type { Warning } from '../types/warning';
 import { prepareRetries } from '../util/prepare-retries';
+import { setOwn } from '../util/set-own';
 import { VERSION } from '../version';
 import type {
   GenerateImageCall,
@@ -283,7 +284,13 @@ export async function generateImage({
               .images;
           }
         } else {
-          providerMetadata[providerName] ??= { images: [] };
+          // `providerName` comes from provider-supplied metadata keys, so
+          // plain bracket assignment here would let a key named `__proto__`
+          // mutate Object.prototype instead of being stored as an own
+          // property.
+          if (providerMetadata[providerName] == null) {
+            setOwn(providerMetadata, providerName, { images: [] });
+          }
           providerMetadata[providerName].images.push(...metadata.images);
         }
       }
