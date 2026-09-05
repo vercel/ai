@@ -198,6 +198,35 @@ function appendLegacyToolResultParts(
   }
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== 'object' || value === null) return false;
+
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+function sanitizeFunctionResponseContent(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(sanitizeFunctionResponseContent);
+  }
+
+  if (!isPlainObject(value)) {
+    return value;
+  }
+
+  const sanitized: Record<string, unknown> = {};
+
+  for (const [key, item] of Object.entries(value)) {
+    if (key === '$ref' || key === '$defs') {
+      continue;
+    }
+
+    sanitized[key] = sanitizeFunctionResponseContent(item);
+  }
+
+  return sanitized;
+}
+
 export function convertToGoogleMessages(
   prompt: LanguageModelV4Prompt,
   options?: {
@@ -622,7 +651,7 @@ export function convertToGoogleMessages(
                   content:
                     output.type === 'execution-denied'
                       ? (output.reason ?? 'Tool call execution denied.')
-                      : output.value,
+                      : sanitizeFunctionResponseContent(output.value),
                 },
               },
             });
