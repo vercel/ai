@@ -560,4 +560,27 @@ describe('retryWithExponentialBackoffRespectingRetryHeaders', () => {
       expect(result).toBe('success');
     });
   });
+
+  it('should retry errors accepted by the additional retry predicate', async () => {
+    class AdditionalRetryableError extends Error {}
+
+    const error = new AdditionalRetryableError('Retry this error');
+    const fn = vi
+      .fn<() => Promise<string>>()
+      .mockRejectedValueOnce(error)
+      .mockResolvedValueOnce('success');
+    const additionalRetryableError = vi.fn(
+      candidate => candidate instanceof AdditionalRetryableError,
+    );
+
+    const promise = retryWithExponentialBackoffRespectingRetryHeaders({
+      additionalRetryableError,
+    })(fn);
+
+    await vi.runAllTimersAsync();
+
+    await expect(promise).resolves.toBe('success');
+    expect(fn).toHaveBeenCalledTimes(2);
+    expect(additionalRetryableError).toHaveBeenCalledWith(error);
+  });
 });

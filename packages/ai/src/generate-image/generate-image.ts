@@ -26,10 +26,20 @@ import {
   imageMediaTypeSignatures,
 } from '../util/detect-media-type';
 import { prepareRetries } from '../util/prepare-retries';
+import { RetryError } from '../util/retry-error';
 import { VERSION } from '../version';
 import type { GenerateImageResult } from './generate-image-result';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
 import { splitDataUrl } from '../prompt/split-data-url';
+
+type ImageModelV3Result = Awaited<ReturnType<ImageModelV3['doGenerate']>>;
+
+class RetryableNoImageResultError extends Error {
+  constructor() {
+    super('No image generated.');
+    this.name = 'RetryableNoImageResultError';
+  }
+}
 
 export type GenerateImagePrompt =
   | string
@@ -51,7 +61,7 @@ export type GenerateImagePrompt =
  * @param seed - Seed for the image generation.
  * @param providerOptions - Additional provider-specific options that are passed through to the provider
  * as body parameters.
- * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
+ * @param maxRetries - Maximum number of retries per image model call, including retries after empty responses. Set to 0 to disable retries. Default: 2.
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
@@ -122,7 +132,8 @@ export async function generateImage({
   providerOptions?: ProviderOptions;
 
   /**
-   * Maximum number of retries per image model call. Set to 0 to disable retries.
+   * Maximum number of retries per image model call, including retries after
+   * empty responses. Set to 0 to disable retries.
    *
    * @default 2
    */
@@ -149,6 +160,8 @@ export async function generateImage({
   const { retry } = prepareRetries({
     maxRetries: maxRetriesArg,
     abortSignal,
+    additionalRetryableError: error =>
+      error instanceof RetryableNoImageResultError,
   });
 
   // default to 1 if the model has not specified limits on
@@ -167,26 +180,51 @@ export async function generateImage({
     return remainder === 0 ? maxImagesPerCallWithDefault : remainder;
   });
 
-  const results = await Promise.all(
-    callImageCounts.map(async callImageCount =>
-      retry(() => {
-        const { prompt, files, mask } = normalizePrompt(promptArg);
+  const results = (
+    await Promise.all(
+      callImageCounts.map(async callImageCount => {
+        const attemptResults: Array<ImageModelV3Result> = [];
 
-        return model.doGenerate({
-          prompt,
-          files,
-          mask,
-          n: callImageCount,
-          abortSignal,
-          headers: headersWithUserAgent,
-          size,
-          aspectRatio,
-          seed,
-          providerOptions: providerOptions ?? {},
-        });
+        try {
+          await retry(async () => {
+            const { prompt, files, mask } = normalizePrompt(promptArg);
+
+            const result = await model.doGenerate({
+              prompt,
+              files,
+              mask,
+              n: callImageCount,
+              abortSignal,
+              headers: headersWithUserAgent,
+              size,
+              aspectRatio,
+              seed,
+              providerOptions: providerOptions ?? {},
+            });
+
+            attemptResults.push(result);
+
+            if (result.images.length === 0 && result.isRetryable !== false) {
+              throw new RetryableNoImageResultError();
+            }
+
+            return result;
+          });
+        } catch (error) {
+          const isNoImageResultError =
+            error instanceof RetryableNoImageResultError ||
+            (RetryError.isInstance(error) &&
+              error.lastError instanceof RetryableNoImageResultError);
+
+          if (!isNoImageResultError) {
+            throw error;
+          }
+        }
+
+        return attemptResults;
       }),
-    ),
-  );
+    )
+  ).flat();
 
   // collect result images, warnings, and response metadata
   const images: Array<DefaultGeneratedFile> = [];
@@ -219,32 +257,41 @@ export async function generateImage({
     }
 
     if (result.providerMetadata) {
-      for (const [providerName, metadata] of Object.entries<{
-        images: unknown;
-      }>(result.providerMetadata)) {
-        if (providerName === 'gateway') {
-          const currentEntry = providerMetadata[providerName];
-          if (currentEntry != null && typeof currentEntry === 'object') {
-            providerMetadata[providerName] = {
-              ...(currentEntry as object),
-              ...metadata,
-            } as ImageModelV3ProviderMetadata[string];
-          } else {
-            providerMetadata[providerName] =
-              metadata as ImageModelV3ProviderMetadata[string];
-          }
-          const imagesValue = (
-            providerMetadata[providerName] as { images?: unknown }
-          ).images;
-          if (Array.isArray(imagesValue) && imagesValue.length === 0) {
-            delete (providerMetadata[providerName] as { images?: unknown })
-              .images;
-          }
-        } else {
-          providerMetadata[providerName] ??= { images: [] };
-          providerMetadata[providerName].images.push(
-            ...result.providerMetadata[providerName].images,
-          );
+      for (const [providerName, metadata] of Object.entries(
+        result.providerMetadata,
+      )) {
+        const currentEntry = providerMetadata[providerName];
+        const currentMetadata: Record<string, unknown> =
+          currentEntry != null &&
+          typeof currentEntry === 'object' &&
+          !Array.isArray(currentEntry)
+            ? (currentEntry as Record<string, unknown>)
+            : {};
+        const nextMetadata: Record<string, unknown> =
+          metadata != null &&
+          typeof metadata === 'object' &&
+          !Array.isArray(metadata)
+            ? (metadata as Record<string, unknown>)
+            : {};
+        const currentImages = Array.isArray(currentMetadata.images)
+          ? currentMetadata.images
+          : [];
+        const metadataImages = Array.isArray(nextMetadata.images)
+          ? nextMetadata.images
+          : [];
+
+        providerMetadata[providerName] = {
+          ...currentMetadata,
+          ...nextMetadata,
+          images: [...currentImages, ...metadataImages],
+        } as ImageModelV3ProviderMetadata[string];
+
+        if (
+          providerName === 'gateway' &&
+          providerMetadata[providerName].images.length === 0
+        ) {
+          delete (providerMetadata[providerName] as { images?: unknown })
+            .images;
         }
       }
     }
@@ -255,7 +302,12 @@ export async function generateImage({
   logWarnings({ warnings, provider: model.provider, model: model.modelId });
 
   if (!images.length) {
-    throw new NoImageGeneratedError({ responses });
+    throw new NoImageGeneratedError({
+      responses,
+      warnings,
+      providerMetadata,
+      usage: totalUsage,
+    });
   }
 
   return new DefaultGenerateImageResult({
