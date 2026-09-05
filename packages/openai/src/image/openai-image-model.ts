@@ -120,9 +120,12 @@ export class OpenAIImageModel implements ImageModelV4 {
                         ? new Blob([file.data as BlobPart], {
                             type: file.mediaType,
                           })
-                        : new Blob([convertBase64ToUint8Array(file.data)], {
-                            type: file.mediaType,
-                          }),
+                        : new Blob(
+                            [convertBase64ToUint8Array(file.data) as BlobPart],
+                            {
+                              type: file.mediaType,
+                            },
+                          ),
                     ],
                     { type: file.mediaType },
                   )

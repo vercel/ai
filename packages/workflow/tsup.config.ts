@@ -6,7 +6,7 @@ export default defineConfig({
   dts: true,
   sourcemap: true,
   // Keep library target conservative for wide compatibility
-  target: 'es2018',
+  target: 'es2022',
   platform: 'node',
   define: {
     __PACKAGE_VERSION__: JSON.stringify(

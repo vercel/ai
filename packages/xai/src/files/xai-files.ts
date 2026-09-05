@@ -152,7 +152,7 @@ export class XaiFiles implements FilesV4 {
     } else {
       const fileBytes = convertInlineFileDataToUint8Array(data);
 
-      const blob = new Blob([fileBytes], {
+      const blob = new Blob([fileBytes as BlobPart], {
         type: mediaType,
       });
 

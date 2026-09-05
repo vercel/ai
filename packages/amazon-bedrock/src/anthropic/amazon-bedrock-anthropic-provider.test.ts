@@ -9,6 +9,7 @@ import { vi, describe, beforeEach, it, expect } from 'vitest';
 vi.mock('@ai-sdk/provider-utils', async () => {
   const actual = await vi.importActual('@ai-sdk/provider-utils');
   return {
+    ...actual,
     WORKFLOW_SERIALIZE: (actual as any).WORKFLOW_SERIALIZE,
     WORKFLOW_DESERIALIZE: (actual as any).WORKFLOW_DESERIALIZE,
     serializeModelOptions: (actual as any).serializeModelOptions,

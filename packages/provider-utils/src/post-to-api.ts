@@ -102,7 +102,7 @@ export const postToApi = async <T>({
         `ai-sdk/provider-utils/${VERSION}`,
         getRuntimeEnvironmentUserAgent(),
       ),
-      body: body.content,
+      body: body.content as BodyInit,
       signal: abortSignal,
     });
 
