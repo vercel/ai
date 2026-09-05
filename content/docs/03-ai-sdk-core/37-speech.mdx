@@ -139,7 +139,7 @@ try {
     text: 'Hello, world!',
   });
 } catch (error) {
-  if (NoSpeechGeneratedError.isInstance(error)) {
+  if (error instanceof NoSpeechGeneratedError) {
     console.log('AI_NoSpeechGeneratedError');
     console.log('Cause:', error.cause);
     console.log('Responses:', error.responses);
