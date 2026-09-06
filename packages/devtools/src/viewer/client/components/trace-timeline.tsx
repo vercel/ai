@@ -14,6 +14,7 @@ import type {
   SpanKind,
   TraceSpan,
   ParseJson,
+  ParsedInput,
   ParsedOutput,
   ContentPart,
   ToolCallContentPart,
@@ -21,11 +22,12 @@ import type {
 } from '../types';
 import {
   buildTraceSpans,
+  getOutputToolResults,
   safeParseJson,
   SPAN_COLORS,
   SPAN_COLORS_MUTED,
 } from '../utils';
-import { JsonBlock } from './shared-components';
+import { MediaAwareValue } from './shared-components';
 import { StepDetailContent } from './step-card';
 
 export function TraceTimeline({
@@ -166,17 +168,17 @@ export function TraceTimeline({
   const spanIcon = (kind: SpanKind) => {
     switch (kind) {
       case 'child-run':
-        return <Brain className="size-3 text-cyan-400 shrink-0" />;
+        return <Brain className="size-3 text-agent shrink-0" />;
       case 'thinking':
-        return <Brain className="size-3 text-amber-500 shrink-0" />;
+        return <Brain className="size-3 text-warning shrink-0" />;
       case 'tool-call':
-        return <Wrench className="size-3 text-purple-400 shrink-0" />;
+        return <Wrench className="size-3 text-tool shrink-0" />;
       case 'text':
-        return <MessageSquare className="size-3 text-emerald-400 shrink-0" />;
+        return <MessageSquare className="size-3 text-success shrink-0" />;
       case 'error':
-        return <AlertCircle className="size-3 text-red-400 shrink-0" />;
+        return <AlertCircle className="size-3 text-danger shrink-0" />;
       default:
-        return <Zap className="size-3 text-blue-400 shrink-0" />;
+        return <Zap className="size-3 text-info shrink-0" />;
     }
   };
 
@@ -211,7 +213,7 @@ export function TraceTimeline({
                 {ticks.map((tick, i) => (
                   <span
                     key={i}
-                    className="absolute text-[9px] font-mono text-muted-foreground/60 -translate-x-1/2"
+                    className="absolute text-[9px] font-mono text-muted-foreground -translate-x-1/2"
                     style={{
                       left: `${(tick.ms / totalDurationMs) * 100}%`,
                       top: 5,
@@ -263,7 +265,7 @@ export function TraceTimeline({
                       {formatDuration(span.durationMs || null)}
                     </span>
                     {span.tokens && (
-                      <span className="text-[9px] font-mono text-muted-foreground/60 shrink-0">
+                      <span className="text-[9px] font-mono text-muted-foreground shrink-0">
                         {span.tokens.input}→{span.tokens.output}
                       </span>
                     )}
@@ -331,7 +333,7 @@ export function TraceTimeline({
                               </span>
                             )}
                           </div>
-                          <div className="text-muted-foreground/60 pt-0.5">
+                          <div className="text-muted-foreground pt-0.5">
                             Click to {isSelected ? 'deselect' : 'view details'}
                           </div>
                         </div>
@@ -424,7 +426,17 @@ function SpanDetailPanel({
         'toolCallId' in p &&
         p.toolCallId === span.toolCallId,
     );
-    const toolResult = contentParts.find(
+    const nextStep = steps[stepIndex + 1];
+    const nextInput = nextStep
+      ? (parseJson(nextStep.input) as ParsedInput | null)
+      : null;
+    const fallbackToolResults =
+      nextInput?.prompt
+        ?.filter(message => message.role === 'tool')
+        .flatMap(message =>
+          Array.isArray(message.content) ? message.content : [],
+        ) ?? [];
+    const toolResult = getOutputToolResults(output, fallbackToolResults).find(
       (p): p is ToolResultContentPart =>
         p.type === 'tool-result' &&
         'toolCallId' in p &&
@@ -440,8 +452,8 @@ function SpanDetailPanel({
     return (
       <div className="p-4 space-y-4">
         <div className="flex items-center gap-2 mb-1">
-          <Wrench className="size-4 text-purple-400" />
-          <span className="text-sm font-mono font-medium text-purple-400">
+          <Wrench className="size-4 text-tool" />
+          <span className="text-sm font-mono font-medium text-tool">
             {span.label}
           </span>
         </div>
@@ -450,7 +462,7 @@ function SpanDetailPanel({
             <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
               Input
             </h4>
-            <JsonBlock data={parsedArgs} />
+            <MediaAwareValue data={parsedArgs} />
           </div>
         )}
         {parsedResult != null && (
@@ -458,7 +470,7 @@ function SpanDetailPanel({
             <h4 className="text-[11px] font-semibold uppercase tracking-wider text-success mb-2">
               Output
             </h4>
-            <JsonBlock data={parsedResult} />
+            <MediaAwareValue data={parsedResult} />
           </div>
         )}
         {!parsedArgs && !parsedResult && (
@@ -474,10 +486,10 @@ function SpanDetailPanel({
     return (
       <div className="p-4 space-y-2">
         <div className="flex items-center gap-2 mb-1">
-          <Brain className="size-4 text-amber-500" />
-          <span className="text-sm font-medium text-amber-500">Thinking</span>
+          <Brain className="size-4 text-warning" />
+          <span className="text-sm font-medium text-warning">Thinking</span>
         </div>
-        <div className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap rounded-md border border-amber-500/20 bg-amber-500/5 p-3">
+        <div className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap rounded-md border border-warning/20 bg-warning/5 p-3">
           {span.thinkingText}
         </div>
       </div>
@@ -488,8 +500,8 @@ function SpanDetailPanel({
     return (
       <div className="p-4 space-y-2">
         <div className="flex items-center gap-2 mb-1">
-          <MessageSquare className="size-4 text-emerald-400" />
-          <span className="text-sm font-medium text-emerald-400">
+          <MessageSquare className="size-4 text-success" />
+          <span className="text-sm font-medium text-success">
             Text Response
           </span>
         </div>
@@ -504,8 +516,8 @@ function SpanDetailPanel({
     return (
       <div className="p-4 space-y-2">
         <div className="flex items-center gap-2 mb-1">
-          <AlertCircle className="size-4 text-red-400" />
-          <span className="text-sm font-medium text-red-400">Error</span>
+          <AlertCircle className="size-4 text-danger" />
+          <span className="text-sm font-medium text-danger">Error</span>
         </div>
         <div className="text-sm text-destructive-foreground font-mono whitespace-pre-wrap rounded-md border border-destructive/30 bg-destructive/10 p-3">
           {step.error}

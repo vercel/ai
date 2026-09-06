@@ -5,6 +5,7 @@
     "build": "turbo build --concurrency 16",
     "build:examples": "turbo build --filter=@example/*",
     "build:packages": "turbo build --filter=@ai-sdk/* --filter=ai",
+    "benchmark:memory": "node tools/memory-benchmark/src/cli.mjs",
     "changeset": "changeset",
     "clean": "turbo clean",
     "dev": "turbo dev --cache=local:r,remote:r --concurrency 25 --continue",
@@ -40,13 +41,14 @@
     "konsistent": "^1.0.0-beta",
     "konsistent-provider": "workspace:*",
     "lint-staged": "^15.5.1",
-    "next": "15.5.18",
+    "next": "15.5.21",
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",
     "playwright": "^1.61.1",
     "publint": "0.2.12",
     "react": "19.0.0-rc-cc1ec60d0d-20240607",
     "react-dom": "19.0.0-rc-cc1ec60d0d-20240607",
+    "semver": "^7.8.5",
     "turbo": "2.9.14",
     "typescript": "5.8.3",
     "ultracite": "7.3.2",
@@ -54,7 +56,7 @@
     "vitest": "4.1.6"
   },
   "engines": {
-    "node": "^22.0.0 || ^24.0.0 || ^26.0.0"
+    "node": "^22.13.0 || ^24.0.0 || ^26.0.0"
   },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
@@ -68,14 +70,5 @@
   "keywords": [
     "ai"
   ],
-  "packageManager": "pnpm@10.33.4",
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ],
-    "overrides": {
-      "tinyexec": "1.0.2",
-      "oxlint": "1.56.0"
-    }
-  }
+  "packageManager": "pnpm@11.23.0"
 }

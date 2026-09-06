@@ -32,6 +32,25 @@ describe('writeToServerResponse', () => {
     expect(mockResponse.ended).toBe(true);
   });
 
+  it('should reject when reading the stream fails', async () => {
+    const mockResponse = createMockServerResponse();
+    const error = new Error('stream read failed');
+    const stream = new ReadableStream<Uint8Array>({
+      pull() {
+        throw error;
+      },
+    });
+
+    await expect(
+      writeToServerResponse({
+        response: mockResponse,
+        stream,
+      }),
+    ).rejects.toBe(error);
+
+    expect(mockResponse.ended).toBe(true);
+  });
+
   describe('backpressure handling', () => {
     beforeEach(() => {
       vi.useFakeTimers();

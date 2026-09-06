@@ -1,0 +1,223 @@
+---
+title: Grok Build
+description: Learn how to use the Grok Build harness adapter.
+---
+
+# Grok Build Harness
+
+The Grok Build harness adapter connects `HarnessAgent` to the
+[Grok Build CLI](https://x.ai/cli) through the Agent Client Protocol (ACP).
+The adapter delegates ACP installation, sessions, streaming, tools, and
+lifecycle management to `@ai-sdk/harness-acp`.
+
+<Note>
+  Harness packages are **experimental**. Expect breaking changes between
+  releases as this early API gets further refined.
+</Note>
+
+## Setup
+
+<InstallPackages packages="@ai-sdk/harness @ai-sdk/harness-grok-build @ai-sdk/sandbox-vercel" />
+
+The ACP harness installs the pinned Grok Build CLI inside the sandbox when the
+first session starts.
+
+## Import
+
+```ts
+import { createGrokBuild, grokBuild } from '@ai-sdk/harness-grok-build';
+```
+
+`grokBuild` is equivalent to `createGrokBuild()` with its default
+configuration.
+
+## Basic Usage
+
+```ts
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { grokBuild } from '@ai-sdk/harness-grok-build';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+
+const agent = new HarnessAgent({
+  harness: grokBuild,
+  model: 'grok-build-0.1',
+  sandbox: createVercelSandbox({
+    runtime: 'node24',
+    ports: [4000],
+  }),
+});
+
+const session = await agent.createSession();
+
+let exitCode = 0;
+try {
+  const result = await agent.stream({
+    session,
+    prompt: 'Check the test failures and fix the production code.',
+  });
+
+  for await (const part of result.stream) {
+    if (part.type === 'text-delta') {
+      process.stdout.write(part.text);
+    }
+  }
+} catch (err) {
+  exitCode = 1;
+  console.error(err);
+} finally {
+  await session.destroy();
+  process.exit(exitCode);
+}
+```
+
+To use this agent, ensure environment variables include `VERCEL_OIDC_TOKEN`
+for Vercel Sandbox and one of the variables listed under
+[authentication](#authentication) for Grok Build.
+
+## Adapter Settings
+
+Use `createGrokBuild()` to configure the runtime:
+
+```ts
+const harness = createGrokBuild({
+  auth: 'ai-gateway',
+  reasoningEffort: 'high',
+  port: 4001,
+  startupTimeoutMs: 180_000,
+});
+```
+
+Settings:
+
+- `auth`: selects `auto`, `direct`, or `ai-gateway` authentication, or accepts
+  an isolated authentication environment. The default is `auto`, which selects
+  AI Gateway when Gateway credentials are present and direct xAI
+  authentication otherwise.
+- `credentialForwarding`: optional synchronous or asynchronous callback that
+  customizes each credential immediately before the harness adapter forwards it
+  into a sandbox process. It receives the credential value that would otherwise
+  be forwarded (either the real credential or a masked value) and the
+  environment variable name used to expose it. This callback only controls the
+  value forwarded into the sandbox process. It does not restrict which
+  credentials the harness adapter can discover, read, or otherwise access in
+  the host process.
+- `reasoningEffort`: reasoning effort for reasoning-capable models. Supported
+  values are `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, and `max`.
+  When omitted, Grok Build uses its configured default.
+- `mcpServers`: MCP server definitions keyed by server name.
+- `port`: ACP bridge port override.
+- `startupTimeoutMs`: maximum time to wait for the ACP bridge to start.
+- `mintBridgeToken`: synchronous function that receives the sandbox id and
+  returns the ACP bridge authentication token. By default, the adapter generates
+  a random 32-byte token. Custom implementations must return a suitably secret
+  token.
+
+The adapter pins the Grok Build CLI and ACP launch command. These implementation
+details cannot be overridden through `createGrokBuild()`.
+
+## Structured Output
+
+Grok Build supports schema-backed [`HarnessAgent` structured output](/docs/ai-sdk-harnesses/harness-agent#generate-structured-output).
+Its profile maps the JSON Schema to Grok Build's private ACP prompt metadata,
+which the runtime enforces through its provider structured-output mechanism.
+
+## Authentication
+
+By default, authentication is resolved from the host environment. When the
+sandbox supports additive request transformations, Grok Build receives a
+placeholder and the adapter injects the credential into matching outbound
+requests. Other sandboxes retain direct credential forwarding.
+
+Supported environment variables:
+
+- `VERCEL_OIDC_TOKEN`
+- `AI_GATEWAY_API_KEY`
+- `AI_GATEWAY_BASE_URL`
+- `XAI_API_KEY`
+
+With direct authentication, the adapter uses `XAI_API_KEY`. With AI Gateway,
+it supplies the Gateway credential as `XAI_API_KEY`, maps the Gateway
+base URL ending in `/v1` to `GROK_XAI_API_BASE_URL` and
+`GROK_MODELS_BASE_URL`, and sets `GROK_CLIENT_NAME` and
+`GROK_CLIENT_VERSION` for client attribution.
+
+Force a specific authentication route when both kinds of credentials are
+available:
+
+```ts
+const directHarness = createGrokBuild({ auth: 'direct' });
+const gatewayHarness = createGrokBuild({ auth: 'ai-gateway' });
+```
+
+Pass an authentication environment when the host resolves credentials at
+runtime:
+
+```ts
+const gatewayHarness = createGrokBuild({
+  auth: {
+    AI_GATEWAY_API_KEY: await resolveGatewayToken(),
+    AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh',
+  },
+});
+```
+
+The supplied record replaces the host environment for authentication
+discovery, so it can also select direct authentication with `XAI_API_KEY`.
+
+## Sandbox
+
+Grok Build runs inside the sandbox through `@ai-sdk/harness-acp`. It requires a
+network sandbox with at least one exposed port, such as
+`@ai-sdk/sandbox-vercel`:
+
+```ts
+const sandbox = createVercelSandbox({
+  runtime: 'node24',
+  ports: [4000],
+});
+```
+
+The first session requires network egress so the ACP harness can install
+`@xai-official/grok@1.0.5` inside the sandbox.
+
+## Built-in Tools
+
+The adapter maps these Grok Build built-ins to common harness tools:
+
+- `bash` (`run_terminal_command`)
+- `edit` (`search_replace`)
+- `grep`
+- `webSearch` (`web_search`)
+- `write`
+
+Other Grok Build tools remain available under their native names, including
+`read_file`, `list_dir`, `todo_write`, `spawn_subagent`, `monitor`, workflow and
+scheduler tools, and image-generation tools.
+
+Grok Build does not advertise ACP session modes for its permission behavior.
+When Grok sends an ACP permission request, the ACP harness applies the
+configured Harness `permissionMode` based on the tool kind. Grok may handle
+safe built-in operations internally without sending a permission request.
+
+## Known Limitations
+
+- ACP v1 does not expose model-step boundaries or per-step usage. The adapter
+  infers boundaries and reports unknown per-step usage when Grok does not
+  provide totals.
+- ACP v1 has no portable manual compaction or mid-turn steering API.
+- ACP v1 has no portable built-in tool filtering API. Filtering host tools is
+  supported, but filtering Grok built-ins throws an unsupported-capability
+  error.
+- A changed host-tool catalog requires Grok Build to refresh its ACP MCP tool
+  list. If the implementation retains stale tools, the turn fails explicitly.
+- Custom `headers` are not natively supported and only applied via
+  sandbox-external request transformations. When a sandbox without that
+  capability is provided, custom `headers` therefore cannot be passed and are
+  ignored.
+
+## Related
+
+- [HarnessAgent](/docs/ai-sdk-harnesses/harness-agent)
+- [Harness tools](/docs/ai-sdk-harnesses/tools)
+- [Harness adapters](/docs/ai-sdk-harnesses/harness-adapters)
+- [Agent Client Protocol](/providers/ai-sdk-harnesses/acp)

@@ -17,12 +17,15 @@ export type GatewayProviderOptions = {
 
   /**
    * Restrict routing to models that have all of the given capabilities.
-   * Currently supports `'implicit-caching'`.
+   * Currently supports `'implicit-caching'` and `'vision'` (image input).
    */
-  has?: Array<'implicit-caching'>;
+  has?: Array<'implicit-caching' | 'vision'>;
 
-  /** Filter to providers that are HIPAA compliant with Vercel AI Gateway. */
-  hipaaCompliant?: boolean;
+  /**
+   * Idempotency key for `experimental_startTextBatch`: retries with the same
+   * key replay the original batch instead of creating a duplicate.
+   */
+  idempotencyKey?: string;
 
   /** Array of model slugs specifying fallback models to use in order. */
   models?: string[];

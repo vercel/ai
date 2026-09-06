@@ -7,9 +7,11 @@ import {
   HarnessAgent,
   type HarnessAgentResumeSessionState,
 } from '@ai-sdk/harness/agent';
-import { pi } from '@ai-sdk/harness-pi';
+import { createPi } from './_create';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { run } from '../../lib/run';
+
+const pi = createPi();
 
 run(async () => {
   process.exitCode = 1;

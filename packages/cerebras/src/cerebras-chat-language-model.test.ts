@@ -3,8 +3,9 @@ import type {
   LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
 import fs from 'node:fs';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { createCerebras } from './cerebras-provider';
+import type { CerebrasLanguageModelChatOptions } from './index';
 
 const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -57,13 +58,88 @@ function createStreamFixtureFetchMock(filename: string) {
 }
 
 describe('doGenerate', () => {
+  it('maps maxOutputTokens to max_completion_tokens', async () => {
+    const fetch = createJsonFixtureFetchMock(
+      'cerebras-structured-output-tools.1',
+    );
+    const model = createCerebras({ apiKey: 'test-api-key', fetch })(
+      'gpt-oss-120b',
+    );
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      maxOutputTokens: 64,
+    });
+
+    const requestBody = JSON.parse(fetch.mock.calls[0][1].body);
+    expect(requestBody).toMatchObject({ max_completion_tokens: 64 });
+    expect(requestBody).not.toHaveProperty('max_tokens');
+  });
+
+  it('maps Cerebras provider options to request fields', async () => {
+    const fetch = createJsonFixtureFetchMock(
+      'cerebras-structured-output-tools.1',
+    );
+    const model = createCerebras({ apiKey: 'test-api-key', fetch })(
+      'gpt-oss-120b',
+    );
+
+    const providerOptions = {
+      user: 'user-123',
+      strictJsonSchema: false,
+      parallelToolCalls: false,
+      logprobs: true,
+      topLogprobs: 2,
+      logitBias: { '42': 1 },
+      serviceTier: 'priority',
+      reasoningEffort: 'none',
+      reasoningFormat: 'parsed',
+      prediction: { type: 'content', content: 'expected' },
+      promptCacheKey: 'cache-key',
+    } satisfies CerebrasLanguageModelChatOptions;
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: { cerebras: providerOptions },
+    });
+
+    const requestBody = JSON.parse(fetch.mock.calls[0][1].body);
+    expect(requestBody).toMatchObject({
+      user: 'user-123',
+      parallel_tool_calls: false,
+      logprobs: true,
+      top_logprobs: 2,
+      logit_bias: { '42': 1 },
+      service_tier: 'priority',
+      reasoning_effort: 'none',
+      reasoning_format: 'parsed',
+      prediction: { type: 'content', content: 'expected' },
+      prompt_cache_key: 'cache-key',
+    });
+    expect(requestBody).not.toHaveProperty('parallelToolCalls');
+    expect(requestBody).not.toHaveProperty('reasoningFormat');
+    expect(requestBody).not.toHaveProperty('promptCacheKey');
+  });
+
+  it('exports the constrained Cerebras provider options type', () => {
+    expectTypeOf<
+      NonNullable<CerebrasLanguageModelChatOptions['serviceTier']>
+    >().toEqualTypeOf<'auto' | 'default' | 'flex' | 'priority'>();
+    expectTypeOf<
+      NonNullable<CerebrasLanguageModelChatOptions['reasoningEffort']>
+    >().toEqualTypeOf<'none' | 'low' | 'medium' | 'high'>();
+    expectTypeOf<
+      NonNullable<CerebrasLanguageModelChatOptions['reasoningFormat']>
+    >().toEqualTypeOf<'none' | 'parsed' | 'text_parsed' | 'raw' | 'hidden'>();
+  });
+
   describe('finish reason normalization', () => {
     it('preserves the captured first tool-call step', async () => {
       const fetch = createJsonFixtureFetchMock(
         'cerebras-structured-output-tools.1',
       );
       const model = createCerebras({ apiKey: 'test-api-key', fetch })(
-        'zai-glm-4.7',
+        'gpt-oss-120b',
       );
 
       const result = await model.doGenerate({
@@ -98,7 +174,7 @@ describe('doGenerate', () => {
         'cerebras-structured-output-tools.2',
       );
       const model = createCerebras({ apiKey: 'test-api-key', fetch })(
-        'zai-glm-4.7',
+        'gpt-oss-120b',
       );
 
       const result = await model.doGenerate({
@@ -131,7 +207,7 @@ describe('doGenerate', () => {
         'cerebras-structured-output-tools.2',
       );
       const model = createCerebras({ apiKey: 'test-api-key', fetch })(
-        'zai-glm-4.7',
+        'gpt-oss-120b',
       );
 
       const result = await model.doGenerate({ prompt: TEST_PROMPT });
@@ -171,7 +247,7 @@ describe('doStream', () => {
         'cererebras-structured-output-tools.1',
       );
       const model = createCerebras({ apiKey: 'test-api-key', fetch })(
-        'zai-glm-4.7',
+        'gpt-oss-120b',
       );
 
       const { stream } = await model.doStream({
@@ -228,7 +304,7 @@ describe('doStream', () => {
         'cererebras-structured-output-tools.1',
       );
       const model = createCerebras({ apiKey: 'test-api-key', fetch })(
-        'zai-glm-4.7',
+        'gpt-oss-120b',
       );
 
       const { stream } = await model.doStream({

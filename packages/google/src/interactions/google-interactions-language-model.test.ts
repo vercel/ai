@@ -381,6 +381,73 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       expect(body.response_format).toBeUndefined();
     });
 
+    it('serializes video response format controls and returns inline video data', async () => {
+      server.urls[TEST_URL].response = {
+        type: 'json-value',
+        body: {
+          id: 'v1_video',
+          status: 'completed',
+          model: 'gemini-omni-flash-preview',
+          steps: [
+            {
+              type: 'model_output',
+              content: [
+                {
+                  type: 'video',
+                  mime_type: 'video/mp4',
+                  data: 'AAAAIGZ0eXBpc29t',
+                },
+              ],
+            },
+          ],
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          google: {
+            responseModalities: ['video'],
+            responseFormat: [
+              {
+                type: 'video',
+                aspectRatio: '16:9',
+                resolution: '360p',
+                duration: '4s',
+                delivery: 'uri',
+                gcsUri: 'gs://video-output/clip.mp4',
+              },
+            ],
+          },
+        },
+      });
+
+      const body = (await server.calls[0].requestBodyJson) as Record<
+        string,
+        unknown
+      >;
+      expect(body.response_modalities).toEqual(['video']);
+      expect(body.response_format).toEqual([
+        {
+          type: 'video',
+          aspect_ratio: '16:9',
+          resolution: '360p',
+          duration: '4s',
+          delivery: 'uri',
+          gcs_uri: 'gs://video-output/clip.mp4',
+        },
+      ]);
+      expect(result.content).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'file',
+            mediaType: 'video/mp4',
+            data: { type: 'data', data: 'AAAAIGZ0eXBpc29t' },
+          }),
+        ]),
+      );
+    });
+
     it('returns the JSON-shaped text content from the parsed response', async () => {
       const result = await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -692,6 +759,35 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       };
       expect(body.generation_config?.thinking_level).toBe('high');
       expect(body.generation_config?.thinking_summaries).toBe('auto');
+    });
+
+    it('forwards topK and warns for unsupported penalties', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        topK: 10,
+        frequencyPenalty: 0.5,
+        presencePenalty: 0.5,
+      });
+      const body = (await server.calls[0].requestBodyJson) as {
+        generation_config?: {
+          top_k?: number;
+          frequency_penalty?: number;
+          presence_penalty?: number;
+        };
+      };
+      expect(body.generation_config).toEqual({
+        top_k: 10,
+      });
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'frequencyPenalty',
+        },
+        {
+          type: 'unsupported',
+          feature: 'presencePenalty',
+        },
+      ]);
     });
 
     it('returns interactionId for turn 1 from a captured fixture', async () => {
@@ -1461,42 +1557,50 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       expect(body.agent_config).toEqual({ type: 'dynamic' });
     });
 
-    it('emits a warning and drops tools when an agent is set', async () => {
+    it('emits file_search tools when an agent is set', async () => {
       const agentModel = provider.interactions({ agent: AGENT_NAME });
       const result = await agentModel.doGenerate({
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'function',
-            name: 'getWeather',
-            description: 'Get the current weather in a location',
-            inputSchema: {
-              type: 'object',
-              properties: { location: { type: 'string' } },
-              required: ['location'],
+            type: 'provider',
+            id: 'google.file_search',
+            name: 'file_search',
+            args: {
+              fileSearchStoreNames: ['fileSearchStores/x'],
             },
           },
         ],
+        providerOptions: { google: { background: true } },
       });
       const body = (await server.calls[0].requestBodyJson) as Record<
         string,
         unknown
       >;
-      expect(body.tools).toBeUndefined();
+      expect(body.tools).toEqual([
+        {
+          type: 'file_search',
+          file_search_store_names: ['fileSearchStores/x'],
+        },
+      ]);
+      expect(body.background).toBe(true);
       const warning = result.warnings.find(
         w =>
           w.type === 'other' &&
           (w as { message?: string }).message?.includes('tools'),
       );
-      expect(warning).toBeDefined();
+      expect(warning).toBeUndefined();
     });
 
-    it('emits a warning and drops generation-config fields (temperature, topP, thinkingLevel) when an agent is set', async () => {
+    it('emits a warning listing every dropped generation-config field when an agent is set', async () => {
       const agentModel = provider.interactions({ agent: AGENT_NAME });
       const result = await agentModel.doGenerate({
         prompt: TEST_PROMPT,
         temperature: 0.5,
         topP: 0.9,
+        topK: 10,
+        frequencyPenalty: 0.5,
+        presencePenalty: 0.5,
         providerOptions: {
           google: { thinkingLevel: 'high' },
         },
@@ -1511,6 +1615,9 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
           w.type === 'other' &&
           (w as { message?: string }).message?.includes('temperature') &&
           (w as { message?: string }).message?.includes('topP') &&
+          (w as { message?: string }).message?.includes('topK') &&
+          (w as { message?: string }).message?.includes('frequencyPenalty') &&
+          (w as { message?: string }).message?.includes('presencePenalty') &&
           (w as { message?: string }).message?.includes('thinkingLevel'),
       );
       expect(warning).toBeDefined();
@@ -2222,6 +2329,91 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
       chunks,
     };
   }
+
+  it('serializes video response format controls and streams inline video data', async () => {
+    server.urls[TEST_URL].response = {
+      type: 'stream-chunks',
+      chunks: [
+        {
+          event_type: 'interaction.created',
+          interaction: {
+            id: 'v1_video',
+            status: 'in_progress',
+            model: 'gemini-omni-flash-preview',
+          },
+        },
+        {
+          event_type: 'step.start',
+          index: 0,
+          step: { type: 'model_output' },
+        },
+        {
+          event_type: 'step.delta',
+          index: 0,
+          delta: {
+            type: 'video',
+            mime_type: 'video/mp4',
+            data: 'AAAAIGZ0eXBpc29t',
+          },
+        },
+        {
+          event_type: 'step.stop',
+          index: 0,
+        },
+        {
+          event_type: 'interaction.completed',
+          interaction: {
+            id: 'v1_video',
+            status: 'completed',
+          },
+        },
+      ].map(event => `data: ${JSON.stringify(event)}\n\n`),
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          responseModalities: ['video'],
+          responseFormat: [
+            {
+              type: 'video',
+              aspectRatio: '9:16',
+              resolution: '4k',
+              duration: '8s',
+              delivery: 'inline',
+            },
+          ],
+        },
+      },
+      includeRawChunks: false,
+    });
+
+    const body = (await server.calls[0].requestBodyJson) as Record<
+      string,
+      unknown
+    >;
+    expect(body.response_format).toEqual([
+      {
+        type: 'video',
+        aspect_ratio: '9:16',
+        resolution: '4k',
+        duration: '8s',
+        delivery: 'inline',
+      },
+    ]);
+
+    const parts = await convertReadableStreamToArray(stream);
+    expect(parts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'file',
+          mediaType: 'video/mp4',
+          data: { type: 'data', data: 'AAAAIGZ0eXBpc29t' },
+        }),
+      ]),
+    );
+  });
 
   describe('basic text', () => {
     beforeEach(() => {

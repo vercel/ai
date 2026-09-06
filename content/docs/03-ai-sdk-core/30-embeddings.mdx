@@ -109,7 +109,7 @@ Google's `gemini-embedding-2` model (also available as `gemini-embedding-2-previ
 
 The `embedMany` function now supports parallel processing with configurable `maxParallelCalls` to optimize performance:
 
-```ts highlight={"3"}
+```ts highlight={"4"}
 import { embedMany } from 'ai';
 
 const { embeddings, usage } = await embedMany({

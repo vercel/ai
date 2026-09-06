@@ -60,13 +60,19 @@ const result = streamText({
 ### 2. Run the viewer
 
 ```bash
-npx @ai-sdk/devtools
+npx @ai-sdk/devtools@latest
 ```
 
 Open http://localhost:4983 to view your AI SDK interactions.
 
+The viewer uses the dark theme by default. Use the theme button in the header to
+switch between dark and light themes. The browser remembers your selection for
+the next time you open the viewer at the same origin.
+
 If you are using a monorepo, start DevTools from the same workspace where your
-AI SDK code runs.
+AI SDK code runs. The explicit `@latest` tag ensures that `npx` installs an
+executable copy instead of selecting a transitive dependency whose binary is
+not linked into that workspace.
 
 ## How it works
 

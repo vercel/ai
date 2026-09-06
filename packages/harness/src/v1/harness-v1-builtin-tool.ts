@@ -1,5 +1,6 @@
 import { tool, type FlexibleSchema, type Tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { harnessV1QuestionsTool } from './harness-v1-questions-tool';
 
 /**
  * Cross-harness vocabulary of common built-in tool names with their baseline
@@ -50,6 +51,7 @@ export const HARNESS_V1_BUILTIN_TOOLS = {
     inputSchema: z.object({ query: z.string() }),
     outputSchema: z.unknown(),
   }),
+  askUserQuestions: harnessV1QuestionsTool,
 } as const;
 
 export type HarnessV1BuiltinToolName = keyof typeof HARNESS_V1_BUILTIN_TOOLS;

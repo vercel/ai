@@ -7,7 +7,6 @@ import {
   createStatusCodeErrorResponseHandler,
   delay,
   getFromApi,
-  isSameOrigin,
   parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
@@ -301,9 +300,11 @@ export class FireworksImageModel implements ImageModelV4 {
     // attacker-named host).
     const { value: imageBytes, responseHeaders } = await getFromApi({
       url: imageUrl,
-      headers: isSameOrigin(imageUrl, this.config.baseURL)
-        ? headers
-        : undefined,
+      // imageUrl comes from the provider response body.
+      validateUrl: true,
+      credentialedOrigin: this.config.baseURL,
+      trustedOrigin: this.config.baseURL,
+      headers,
       abortSignal,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),

@@ -14,7 +14,7 @@ describe('ToolRelayAuthorizer', () => {
   });
 
   test('consumes matching authorization exactly once', async () => {
-    const authorizer = new ToolRelayAuthorizer({ ttlMs: 10 });
+    const authorizer = new ToolRelayAuthorizer({ ttlMs: 10, now: () => 1_000 });
     const call = { toolName: 'get_weather', input: { city: 'Paris' } };
 
     authorizer.authorizeToolCall(call);
@@ -28,7 +28,10 @@ describe('ToolRelayAuthorizer', () => {
   });
 
   test('authorizes a request that arrives before the runtime event', async () => {
-    const authorizer = new ToolRelayAuthorizer({ ttlMs: 100 });
+    const authorizer = new ToolRelayAuthorizer({
+      ttlMs: 100,
+      now: () => 1_000,
+    });
     const call = { toolName: 'get_weather', input: { city: 'Paris' } };
     const authorization = authorizer.waitForToolCallAuthorization(call);
 
@@ -38,7 +41,10 @@ describe('ToolRelayAuthorizer', () => {
   });
 
   test('authorizes identical pending requests in FIFO order', async () => {
-    const authorizer = new ToolRelayAuthorizer({ ttlMs: 100 });
+    const authorizer = new ToolRelayAuthorizer({
+      ttlMs: 100,
+      now: () => 1_000,
+    });
     const call = { toolName: 'get_weather', input: { city: 'Austin' } };
     const first = authorizer.waitForToolCallAuthorization(call);
     const second = authorizer.waitForToolCallAuthorization(call);
@@ -51,7 +57,10 @@ describe('ToolRelayAuthorizer', () => {
   });
 
   test('does not use an authorization for a different call', async () => {
-    const authorizer = new ToolRelayAuthorizer({ ttlMs: 100 });
+    const authorizer = new ToolRelayAuthorizer({
+      ttlMs: 100,
+      now: () => 1_000,
+    });
     const parisCall = {
       toolName: 'get_weather',
       input: { city: 'Paris' },

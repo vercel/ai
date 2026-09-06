@@ -1,0 +1,6 @@
+{"type":"response.output_item.added","sequence_number":0,"output_index":0,"item":{"id":"rs_1","type":"reasoning","summary":[]}}
+{"type":"response.reasoning_summary_text.delta","sequence_number":1,"item_id":"rs_1","output_index":0,"summary_index":0,"delta":"Think"}
+{"type":"response.reasoning_summary_text.delta","sequence_number":2,"item_id":"rs_1","output_index":0,"summary_index":0,"delta":"ing."}
+{"type":"response.reasoning_summary_text.done","sequence_number":3,"item_id":"rs_1","output_index":0,"summary_index":0,"text":"Thinking."}
+{"type":"response.output_item.done","sequence_number":4,"output_index":0,"item":{"id":"rs_1","type":"reasoning","summary":[{"type":"summary_text","text":"Thinking."}]}}
+{"type":"response.completed","sequence_number":5,"response":{"id":"resp_1","status":"completed","incomplete_details":null,"usage":{"input_tokens":1,"output_tokens":1}}}

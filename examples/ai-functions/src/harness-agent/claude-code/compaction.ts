@@ -1,8 +1,10 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { claudeCode } from '@ai-sdk/harness-claude-code';
+import { createClaudeCode } from './_create';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+
+const claudeCode = createClaudeCode();
 
 /*
  * Context compaction (Claude Code).
@@ -27,7 +29,6 @@ run(async () => {
   });
   const agent = new HarnessAgent({ harness: claudeCode, sandbox });
 
-  let exitCode = 0;
   const session = await agent.createSession();
   try {
     console.log('--- turn 1: build up some context ---');
@@ -44,11 +45,7 @@ run(async () => {
       prompt: '/compact Keep the key technical facts from the explanation.',
     });
     await printFullStream({ result: second });
-  } catch (err) {
-    exitCode = 1;
-    console.error('[example] failed:', err);
   } finally {
     await session.destroy();
-    process.exit(exitCode);
   }
 });

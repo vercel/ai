@@ -5,8 +5,8 @@ rendering (SSR), and resumable streams.
 
 ## Prerequisites
 
-- Node.js 22, 24, or 26
-- pnpm 10 or later
+- Node.js 22.13+, 24, or 26
+- pnpm 11 or later
 - An [AI Gateway API key](https://vercel.com/ai-gateway)
 - A Redis database with pub/sub support for resumable streams
 

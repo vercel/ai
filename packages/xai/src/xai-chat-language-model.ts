@@ -158,7 +158,7 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
             low: 'low',
             medium: 'medium',
             high: 'high',
-            xhigh: 'high',
+            xhigh: this.modelId === 'grok-4.6' ? 'xhigh' : 'high',
           },
           warnings,
         });
@@ -180,6 +180,9 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
       top_p: topP,
       seed,
       reasoning_effort: reasoningEffort,
+
+      // scheduling priority
+      service_tier: options.serviceTier,
 
       // parallel function calling
       parallel_function_calling: options.parallel_function_calling,
@@ -347,6 +350,11 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
             inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
             outputTokens: { total: 0, text: 0, reasoning: 0 },
           },
+      ...(response.service_tier != null && {
+        providerMetadata: {
+          xai: { serviceTier: response.service_tier },
+        },
+      }),
       request: { body },
       response: {
         ...getResponseMetadata(response),
@@ -426,6 +434,7 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
       raw: undefined,
     };
     let usage: LanguageModelV4Usage | undefined = undefined;
+    let serviceTier: string | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<
       string,
@@ -483,6 +492,11 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
             // update usage if present
             if (value.usage != null) {
               usage = convertXaiChatUsage(value.usage);
+            }
+
+            // the applied tier is repeated on every chunk; keep the latest
+            if (value.service_tier != null) {
+              serviceTier = value.service_tier;
             }
 
             const choice = value.choices[0];
@@ -644,6 +658,9 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
                 },
                 outputTokens: { total: 0, text: 0, reasoning: 0 },
               },
+              ...(serviceTier != null && {
+                providerMetadata: { xai: { serviceTier } },
+              }),
             });
           },
         }),
@@ -655,31 +672,36 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
 }
 
 // XAI API Response Schemas
-const xaiUsageSchema = z.object({
-  prompt_tokens: z.number(),
-  completion_tokens: z.number(),
-  total_tokens: z.number(),
-  prompt_tokens_details: z
-    .object({
-      text_tokens: z.number().nullish(),
-      audio_tokens: z.number().nullish(),
-      image_tokens: z.number().nullish(),
-      cached_tokens: z.number().nullish(),
-    })
-    .nullish(),
-  completion_tokens_details: z
-    .object({
-      reasoning_tokens: z.number().nullish(),
-      audio_tokens: z.number().nullish(),
-      accepted_prediction_tokens: z.number().nullish(),
-      rejected_prediction_tokens: z.number().nullish(),
-    })
-    .nullish(),
-});
+const xaiUsageSchema = z
+  .object({
+    prompt_tokens: z.number(),
+    completion_tokens: z.number(),
+    total_tokens: z.number(),
+    cost_in_usd_ticks: z.number().nullish(),
+    prompt_tokens_details: z
+      .object({
+        text_tokens: z.number().nullish(),
+        audio_tokens: z.number().nullish(),
+        image_tokens: z.number().nullish(),
+        cached_tokens: z.number().nullish(),
+      })
+      .catchall(z.json())
+      .nullish(),
+    completion_tokens_details: z
+      .object({
+        reasoning_tokens: z.number().nullish(),
+        audio_tokens: z.number().nullish(),
+        accepted_prediction_tokens: z.number().nullish(),
+        rejected_prediction_tokens: z.number().nullish(),
+      })
+      .catchall(z.json())
+      .nullish(),
+  })
+  .catchall(z.json());
 
 export type XaiChatUsage = z.infer<typeof xaiUsageSchema>;
 
-const xaiChatResponseSchema = z.object({
+export const xaiChatResponseSchema = z.object({
   id: z.string().nullish(),
   created: z.number().nullish(),
   model: z.string().nullish(),
@@ -687,7 +709,7 @@ const xaiChatResponseSchema = z.object({
     .array(
       z.object({
         message: z.object({
-          role: z.literal('assistant'),
+          role: z.enum(['assistant', 'tool']),
           content: z.string().nullish(),
           reasoning_content: z.string().nullish(),
           tool_calls: z
@@ -711,9 +733,12 @@ const xaiChatResponseSchema = z.object({
   object: z.literal('chat.completion').nullish(),
   usage: xaiUsageSchema.nullish(),
   citations: z.array(z.string().url()).nullish(),
+  service_tier: z.string().nullish(),
   code: z.string().nullish(),
   error: z.string().nullish(),
 });
+
+export type XaiChatResponse = z.infer<typeof xaiChatResponseSchema>;
 
 const xaiChatChunkSchema = z.object({
   id: z.string().nullish(),
@@ -744,6 +769,7 @@ const xaiChatChunkSchema = z.object({
   ),
   usage: xaiUsageSchema.nullish(),
   citations: z.array(z.string().url()).nullish(),
+  service_tier: z.string().nullish(),
 });
 
 const xaiStreamErrorSchema = z.object({

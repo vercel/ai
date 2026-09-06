@@ -1,4 +1,5 @@
 import type { JSONObject } from '../../json-value/json-value';
+import type { SharedV4AudioFormat } from '../../shared';
 
 type TranscriptionModelV4ProviderOptions = Record<string, JSONObject>;
 
@@ -14,17 +15,7 @@ export type TranscriptionModelV4StreamOptions = {
   /**
    * The input audio format for the raw audio chunks.
    */
-  inputAudioFormat: {
-    /**
-     * Audio format type, e.g. `audio/pcm`, `audio/pcmu`, or `audio/pcma`.
-     */
-    type: string;
-
-    /**
-     * Sample rate in Hz. Only applicable for formats that require a rate.
-     */
-    rate?: number;
-  };
+  inputAudioFormat: SharedV4AudioFormat;
 
   /**
    * Additional provider-specific options that are passed through to the provider.

@@ -250,7 +250,7 @@ Try asking something like "What's the weather in New York?" and see how the agen
 
 Notice the blank "assistant" response? This is because instead of generating a text response, the agent generated a tool call. You can access the tool call and subsequent tool result in the `toolCall` and `toolResult` keys of the result object.
 
-```typescript highlight="46-47"
+```typescript highlight="50-51"
 import { ModelMessage, streamText, tool } from 'ai';
 __PROVIDER_IMPORT__;
 import 'dotenv/config';

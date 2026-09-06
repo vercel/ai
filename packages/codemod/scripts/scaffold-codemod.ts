@@ -7,6 +7,40 @@ if (!codemodName) {
   process.exit(1);
 }
 
+const codemodNameSegments = codemodName.split('/');
+if (
+  codemodNameSegments.some(
+    segment => !/^[a-zA-Z0-9][a-zA-Z0-9-]*$/.test(segment),
+  )
+) {
+  console.error(
+    'Please provide a valid codemod name. Use path segments containing only letters, numbers, and hyphens.',
+  );
+  process.exit(1);
+}
+
+function toRelativeImportPath(fromFilePath: string, toFilePath: string) {
+  const relativePath = path
+    .relative(path.dirname(fromFilePath), toFilePath)
+    .replace(/\.ts$/, '')
+    .replaceAll(path.sep, '/');
+
+  return relativePath.startsWith('.') ? relativePath : `./${relativePath}`;
+}
+
+function writeFileCreatingDirectory(filePath: string, content: string) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, content);
+}
+
+// File paths
+const paths = {
+  codemod: path.join(process.cwd(), 'src', 'codemods', `${codemodName}.ts`),
+  test: path.join(process.cwd(), 'src', 'test', `${codemodName}.test.ts`),
+  testUtils: path.join(process.cwd(), 'src', 'test', 'test-utils.ts'),
+  fixtures: path.join(process.cwd(), 'src', 'test', '__testfixtures__'),
+};
+
 // Templates
 const codemodTemplate = `import { API, FileInfo } from 'jscodeshift';
 
@@ -21,8 +55,8 @@ export default function transformer(file: FileInfo, api: API) {
 `;
 
 const testTemplate = `import { describe, it } from 'vitest';
-import transformer from '../codemods/${codemodName}';
-import { testTransform } from './test-utils';
+import transformer from '${toRelativeImportPath(paths.test, paths.codemod)}';
+import { testTransform } from '${toRelativeImportPath(paths.test, paths.testUtils)}';
 
 describe('${codemodName}', () => {
   it('transforms correctly', () => {
@@ -39,21 +73,14 @@ const outputTemplate = `// @ts-nocheck
 // TODO: Add expected output code
 `;
 
-// File paths
-const paths = {
-  codemod: path.join(process.cwd(), 'src', 'codemods', `${codemodName}.ts`),
-  test: path.join(process.cwd(), 'src', 'test', `${codemodName}.test.ts`),
-  fixtures: path.join(process.cwd(), 'src', 'test', '__testfixtures__'),
-};
-
 // Create files
-fs.writeFileSync(paths.codemod, codemodTemplate);
-fs.writeFileSync(paths.test, testTemplate);
-fs.writeFileSync(
+writeFileCreatingDirectory(paths.codemod, codemodTemplate);
+writeFileCreatingDirectory(paths.test, testTemplate);
+writeFileCreatingDirectory(
   path.join(paths.fixtures, `${codemodName}.input.ts`),
   inputTemplate,
 );
-fs.writeFileSync(
+writeFileCreatingDirectory(
   path.join(paths.fixtures, `${codemodName}.output.ts`),
   outputTemplate,
 );
@@ -69,7 +96,7 @@ if (bundleMatch) {
     .filter(line => line.trim())
     .map(line => line.trim().replace(/[',]/g, ''));
 
-  const newBundle = [...currentBundle, codemodName]
+  const newBundle = [...new Set([...currentBundle, codemodName])]
     .sort()
     .map(name => `  '${name}',`)
     .join('\n');

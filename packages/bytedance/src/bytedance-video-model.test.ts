@@ -1,4 +1,4 @@
-import type { FetchFunction } from '@ai-sdk/provider-utils';
+import { DownloadError, type FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { ByteDanceVideoModel } from './bytedance-video-model';
@@ -21,11 +21,13 @@ const defaultOptions = {
 } as const;
 
 function createBasicModel({
+  baseURL = 'https://ark.ap-southeast.bytepluses.com/api/v3',
   headers,
   fetch,
   currentDate,
   modelId = 'seedance-1-0-pro-250528',
 }: {
+  baseURL?: string;
   headers?: Record<string, string | undefined>;
   fetch?: FetchFunction;
   currentDate?: () => Date;
@@ -33,7 +35,7 @@ function createBasicModel({
 } = {}) {
   return new ByteDanceVideoModel(modelId, {
     provider: 'bytedance.video',
-    baseURL: 'https://ark.ap-southeast.bytepluses.com/api/v3',
+    baseURL,
     headers: () => headers ?? { Authorization: 'Bearer test-key' },
     fetch,
     _internal: {
@@ -63,6 +65,8 @@ describe('ByteDanceVideoModel', () => {
             status: 'succeeded',
             content: {
               video_url: 'https://bytedance.cdn/files/video-output.mp4',
+              last_frame_url:
+                'https://bytedance.cdn/files/video-output-last-frame.png',
             },
             usage: {
               completion_tokens: 100,
@@ -99,11 +103,11 @@ describe('ByteDanceVideoModel', () => {
     });
   });
 
-  describe('doGenerate', () => {
+  describe('doStart', () => {
     it('should pass the correct parameters including prompt', async () => {
       const model = createBasicModel();
 
-      await model.doGenerate({ ...defaultOptions });
+      await model.doStart({ ...defaultOptions });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'seedance-1-0-pro-250528',
@@ -119,7 +123,7 @@ describe('ByteDanceVideoModel', () => {
     it('should pass seed when provided', async () => {
       const model = createBasicModel();
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         seed: 42,
       });
@@ -139,7 +143,7 @@ describe('ByteDanceVideoModel', () => {
     it('should pass aspect ratio when provided', async () => {
       const model = createBasicModel();
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         aspectRatio: '16:9',
       });
@@ -156,10 +160,30 @@ describe('ByteDanceVideoModel', () => {
       });
     });
 
+    it('should pass an adaptive aspect ratio through unchanged', async () => {
+      const model = createBasicModel();
+
+      await model.doStart({
+        ...defaultOptions,
+        aspectRatio: 'adaptive',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'seedance-1-0-pro-250528',
+        content: [
+          {
+            type: 'text',
+            text: prompt,
+          },
+        ],
+        ratio: 'adaptive',
+      });
+    });
+
     it('should pass duration when provided', async () => {
       const model = createBasicModel();
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         duration: 5,
       });
@@ -179,7 +203,7 @@ describe('ByteDanceVideoModel', () => {
     it('should map WxH resolution to API format', async () => {
       const model = createBasicModel();
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         resolution: '1920x1080',
       });
@@ -199,7 +223,7 @@ describe('ByteDanceVideoModel', () => {
     it('should map 720p resolution correctly', async () => {
       const model = createBasicModel();
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         resolution: '1280x720',
       });
@@ -219,7 +243,7 @@ describe('ByteDanceVideoModel', () => {
     it('should map 480p resolution correctly', async () => {
       const model = createBasicModel();
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         resolution: '864x480',
       });
@@ -239,7 +263,7 @@ describe('ByteDanceVideoModel', () => {
     it('should pass through unmapped resolution values', async () => {
       const model = createBasicModel();
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         resolution: '640x480',
       });
@@ -263,7 +287,7 @@ describe('ByteDanceVideoModel', () => {
         },
       });
 
-      await modelWithHeaders.doGenerate({
+      await modelWithHeaders.doStart({
         ...defaultOptions,
         headers: {
           'Custom-Request-Header': 'request-header-value',
@@ -277,23 +301,18 @@ describe('ByteDanceVideoModel', () => {
       });
     });
 
-    it('should return video with correct data', async () => {
+    it('should return operation with taskId', async () => {
       const model = createBasicModel();
 
-      const result = await model.doGenerate({ ...defaultOptions });
+      const result = await model.doStart({ ...defaultOptions });
 
-      expect(result.videos).toHaveLength(1);
-      expect(result.videos[0]).toStrictEqual({
-        type: 'url',
-        url: 'https://bytedance.cdn/files/video-output.mp4',
-        mediaType: 'video/mp4',
-      });
+      expect(result.operation).toStrictEqual({ taskId: 'test-task-id-123' });
     });
 
     it('should return warnings array', async () => {
       const model = createBasicModel();
 
-      const result = await model.doGenerate({ ...defaultOptions });
+      const result = await model.doStart({ ...defaultOptions });
 
       expect(result.warnings).toStrictEqual([]);
     });
@@ -303,7 +322,7 @@ describe('ByteDanceVideoModel', () => {
     it('should warn when fps is provided', async () => {
       const model = createBasicModel();
 
-      const result = await model.doGenerate({
+      const result = await model.doStart({
         ...defaultOptions,
         fps: 30,
       });
@@ -319,7 +338,7 @@ describe('ByteDanceVideoModel', () => {
     it('should warn when n > 1', async () => {
       const model = createBasicModel();
 
-      const result = await model.doGenerate({
+      const result = await model.doStart({
         ...defaultOptions,
         n: 3,
       });
@@ -341,7 +360,7 @@ describe('ByteDanceVideoModel', () => {
         currentDate: () => testDate,
       });
 
-      const result = await model.doGenerate({ ...defaultOptions });
+      const result = await model.doStart({ ...defaultOptions });
 
       expect(result.response).toStrictEqual({
         timestamp: testDate,
@@ -352,17 +371,24 @@ describe('ByteDanceVideoModel', () => {
   });
 
   describe('providerMetadata', () => {
-    it('should include task ID and usage', async () => {
+    it('should include task ID, usage, and last frame URL in completed status', async () => {
       const model = createBasicModel();
 
-      const result = await model.doGenerate({ ...defaultOptions });
+      const result = await model.doStatus({
+        operation: { taskId: 'test-task-id-123' },
+      });
 
-      expect(result.providerMetadata).toStrictEqual({
+      expect(result.status).toBe('completed');
+      expect(
+        result.status === 'completed' ? result.providerMetadata : undefined,
+      ).toStrictEqual({
         bytedance: {
           taskId: 'test-task-id-123',
           usage: {
             completion_tokens: 100,
           },
+          lastFrameUrl:
+            'https://bytedance.cdn/files/video-output-last-frame.png',
         },
       });
     });
@@ -373,7 +399,7 @@ describe('ByteDanceVideoModel', () => {
       const model = createBasicModel();
       const imageData = new Uint8Array([137, 80, 78, 71]); // PNG magic bytes
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         image: {
           type: 'file',
@@ -403,7 +429,7 @@ describe('ByteDanceVideoModel', () => {
     it('should send image_url with URL-based image', async () => {
       const model = createBasicModel();
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         image: {
           type: 'url',
@@ -434,7 +460,7 @@ describe('ByteDanceVideoModel', () => {
     it('should pass watermark option', async () => {
       const model = createBasicModel();
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         providerOptions: {
           bytedance: {
@@ -458,7 +484,7 @@ describe('ByteDanceVideoModel', () => {
     it('should pass generateAudio as generate_audio', async () => {
       const model = createBasicModel();
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         providerOptions: {
           bytedance: {
@@ -482,7 +508,7 @@ describe('ByteDanceVideoModel', () => {
     it('should map the top-level generateAudio option', async () => {
       const model = createBasicModel();
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         generateAudio: true,
       });
@@ -502,7 +528,7 @@ describe('ByteDanceVideoModel', () => {
     it('should let the top-level generateAudio override the legacy provider option', async () => {
       const model = createBasicModel();
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         generateAudio: false,
         providerOptions: {
@@ -527,7 +553,7 @@ describe('ByteDanceVideoModel', () => {
     it('should pass cameraFixed as camera_fixed', async () => {
       const model = createBasicModel();
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         providerOptions: {
           bytedance: {
@@ -551,7 +577,7 @@ describe('ByteDanceVideoModel', () => {
     it('should pass returnLastFrame as return_last_frame', async () => {
       const model = createBasicModel();
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         providerOptions: {
           bytedance: {
@@ -575,7 +601,7 @@ describe('ByteDanceVideoModel', () => {
     it('should pass serviceTier as service_tier', async () => {
       const model = createBasicModel();
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         providerOptions: {
           bytedance: {
@@ -601,7 +627,7 @@ describe('ByteDanceVideoModel', () => {
         modelId: 'seedance-1-5-pro-251215',
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         providerOptions: {
           bytedance: {
@@ -627,7 +653,7 @@ describe('ByteDanceVideoModel', () => {
         modelId: 'seedance-1-5-pro-251215',
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         image: {
           type: 'url',
@@ -664,7 +690,7 @@ describe('ByteDanceVideoModel', () => {
         modelId: 'seedance-1-5-pro-251215',
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         image: {
           type: 'url',
@@ -702,7 +728,7 @@ describe('ByteDanceVideoModel', () => {
         modelId: 'seedance-1-5-pro-251215',
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         image: {
           type: 'url',
@@ -734,7 +760,7 @@ describe('ByteDanceVideoModel', () => {
         modelId: 'seedance-1-5-pro-251215',
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         frameImages: [
           {
@@ -762,7 +788,7 @@ describe('ByteDanceVideoModel', () => {
         modelId: 'seedance-1-5-pro-251215',
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         image: {
           type: 'url',
@@ -804,7 +830,7 @@ describe('ByteDanceVideoModel', () => {
         modelId: 'seedance-1-5-pro-251215',
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         image: undefined,
         frameImages: [
@@ -834,7 +860,7 @@ describe('ByteDanceVideoModel', () => {
         modelId: 'seedance-1-0-lite-i2v-250428',
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         inputReferences: [
           {
@@ -874,7 +900,7 @@ describe('ByteDanceVideoModel', () => {
         modelId: 'dreamina-seedance-2-0-260128',
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         inputReferences: [
           {
@@ -904,7 +930,7 @@ describe('ByteDanceVideoModel', () => {
         modelId: 'dreamina-seedance-2-0-260128',
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         inputReferences: [
           {
@@ -934,7 +960,7 @@ describe('ByteDanceVideoModel', () => {
         modelId: 'dreamina-seedance-2-0-260128',
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         inputReferences: [
           {
@@ -974,7 +1000,7 @@ describe('ByteDanceVideoModel', () => {
         modelId: 'dreamina-seedance-2-0-260128',
       });
 
-      const result = await model.doGenerate({
+      const result = await model.doStart({
         ...defaultOptions,
         inputReferences: [{ type: 'url', url: 'https://example.com/a.mp4' }],
       });
@@ -1007,7 +1033,7 @@ describe('ByteDanceVideoModel', () => {
         modelId: 'seedance-1-0-lite-i2v-250428',
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         inputReferences: [
           { type: 'url', url: 'https://example.com/new-ref.png' },
@@ -1037,7 +1063,7 @@ describe('ByteDanceVideoModel', () => {
         modelId: 'seedance-1-0-lite-i2v-250428',
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         providerOptions: {
           bytedance: {
@@ -1079,7 +1105,7 @@ describe('ByteDanceVideoModel', () => {
         modelId: 'dreamina-seedance-2-0-260128',
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         providerOptions: {
           bytedance: {
@@ -1115,7 +1141,7 @@ describe('ByteDanceVideoModel', () => {
         modelId: 'dreamina-seedance-2-0-260128',
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         providerOptions: {
           bytedance: {
@@ -1143,7 +1169,7 @@ describe('ByteDanceVideoModel', () => {
         modelId: 'dreamina-seedance-2-0-260128',
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         providerOptions: {
           bytedance: {
@@ -1185,7 +1211,7 @@ describe('ByteDanceVideoModel', () => {
         modelId: 'dreamina-seedance-2-0-260128',
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         providerOptions: {
           bytedance: {
@@ -1213,7 +1239,7 @@ describe('ByteDanceVideoModel', () => {
         modelId: 'dreamina-seedance-2-0-260128',
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         providerOptions: {
           bytedance: {
@@ -1245,7 +1271,7 @@ describe('ByteDanceVideoModel', () => {
     it('should pass through additional options', async () => {
       const model = createBasicModel();
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         providerOptions: {
           bytedance: {
@@ -1267,6 +1293,65 @@ describe('ByteDanceVideoModel', () => {
         another_param: 123,
       });
     });
+
+    it('should not pass legacy poll options through to the request body', async () => {
+      const model = createBasicModel();
+
+      await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          bytedance: {
+            pollIntervalMs: 1000,
+            pollTimeoutMs: 600000,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'seedance-1-0-pro-250528',
+        content: [
+          {
+            type: 'text',
+            text: prompt,
+          },
+        ],
+      });
+    });
+
+    it('should warn that legacy poll options are ignored', async () => {
+      const model = createBasicModel();
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          bytedance: {
+            pollIntervalMs: 1000,
+            pollTimeoutMs: 600000,
+          },
+        },
+      });
+
+      expect(result.warnings).toStrictEqual([
+        {
+          type: 'deprecated',
+          setting: 'pollIntervalMs',
+          message: expect.stringContaining('poll: { intervalMs, timeoutMs }'),
+        },
+        {
+          type: 'deprecated',
+          setting: 'pollTimeoutMs',
+          message: expect.stringContaining('poll: { intervalMs, timeoutMs }'),
+        },
+      ]);
+    });
+
+    it('should not warn when no legacy poll options are provided', async () => {
+      const model = createBasicModel();
+
+      const result = await model.doStart({ ...defaultOptions });
+
+      expect(result.warnings).toStrictEqual([]);
+    });
   });
 
   describe('Error Handling', () => {
@@ -1280,119 +1365,148 @@ describe('ByteDanceVideoModel', () => {
 
       const model = createBasicModel();
 
-      await expect(
-        model.doGenerate({ ...defaultOptions }),
-      ).rejects.toMatchObject({
+      await expect(model.doStart({ ...defaultOptions })).rejects.toMatchObject({
         message: 'No task ID returned from API',
       });
     });
 
-    it('should throw error when task fails', async () => {
-      const model = new ByteDanceVideoModel('seedance-1-0-pro-250528', {
-        provider: 'bytedance.video',
-        baseURL: 'https://ark.ap-southeast.bytepluses.com/api/v3',
-        headers: () => ({ Authorization: 'Bearer test-key' }),
-        fetch: async (url, init) => {
-          const urlString = url.toString();
-
-          if (
-            urlString.endsWith('/contents/generations/tasks') &&
-            init?.method === 'POST'
-          ) {
-            return new Response(
-              JSON.stringify({
-                id: 'failed-task-id',
-              }),
-              {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-              },
-            );
-          }
-
-          if (urlString.includes('/tasks/failed-task-id')) {
-            return new Response(
-              JSON.stringify({
-                id: 'failed-task-id',
-                status: 'failed',
-              }),
-              {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-              },
-            );
-          }
-
-          return new Response('Not found', { status: 404 });
+    it('should return error status when task fails', async () => {
+      server.urls[
+        'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/test-task-id-123'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'test-task-id-123',
+          status: 'failed',
         },
+      };
+
+      const model = createBasicModel();
+
+      const result = await model.doStatus({
+        operation: { taskId: 'test-task-id-123' },
       });
 
-      await expect(
-        model.doGenerate({
-          ...defaultOptions,
-          providerOptions: {
-            bytedance: {
-              pollIntervalMs: 10,
-            },
+      expect(result.status).toBe('error');
+      expect(result.status === 'error' ? result.error : undefined).toContain(
+        'Video generation failed. Task ID: test-task-id-123.',
+      );
+    });
+
+    it('should surface the failure reason reported by the task', async () => {
+      server.urls[
+        'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/test-task-id-123'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'test-task-id-123',
+          status: 'failed',
+          error: {
+            code: 'SensitiveContentDetected',
+            message: 'The prompt was rejected by the content filter.',
           },
-        }),
-      ).rejects.toMatchObject({
-        message: expect.stringContaining('Video generation failed'),
+        },
+      };
+
+      const model = createBasicModel();
+
+      const result = await model.doStatus({
+        operation: { taskId: 'test-task-id-123' },
       });
+
+      expect(result.status === 'error' ? result.error : undefined).toBe(
+        'Video generation failed. Task ID: test-task-id-123. ' +
+          'The prompt was rejected by the content filter.',
+      );
+    });
+
+    it('should fall back to the error code when the task reports no message', async () => {
+      server.urls[
+        'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/test-task-id-123'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'test-task-id-123',
+          status: 'failed',
+          error: { code: 'InternalServiceError' },
+        },
+      };
+
+      const model = createBasicModel();
+
+      const result = await model.doStatus({
+        operation: { taskId: 'test-task-id-123' },
+      });
+
+      expect(result.status === 'error' ? result.error : undefined).toBe(
+        'Video generation failed. Task ID: test-task-id-123. InternalServiceError',
+      );
+    });
+
+    it('should return error status when task is cancelled', async () => {
+      server.urls[
+        'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/test-task-id-123'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'test-task-id-123',
+          status: 'cancelled',
+        },
+      };
+
+      const model = createBasicModel();
+
+      const result = await model.doStatus({
+        operation: { taskId: 'test-task-id-123' },
+      });
+
+      expect(result.status).toBe('error');
+      expect(result.status === 'error' ? result.error : undefined).toContain(
+        'Video generation cancelled',
+      );
+    });
+
+    it('should return error status when task is canceled (single-l spelling)', async () => {
+      server.urls[
+        'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/test-task-id-123'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'test-task-id-123',
+          status: 'canceled',
+        },
+      };
+
+      const model = createBasicModel();
+
+      const result = await model.doStatus({
+        operation: { taskId: 'test-task-id-123' },
+      });
+
+      expect(result.status).toBe('error');
+      expect(result.status === 'error' ? result.error : undefined).toContain(
+        'Video generation canceled',
+      );
     });
 
     it('should throw error when no video URL in response', async () => {
-      const model = new ByteDanceVideoModel('seedance-1-0-pro-250528', {
-        provider: 'bytedance.video',
-        baseURL: 'https://ark.ap-southeast.bytepluses.com/api/v3',
-        headers: () => ({ Authorization: 'Bearer test-key' }),
-        fetch: async (url, init) => {
-          const urlString = url.toString();
-
-          if (
-            urlString.endsWith('/contents/generations/tasks') &&
-            init?.method === 'POST'
-          ) {
-            return new Response(
-              JSON.stringify({
-                id: 'no-video-task-id',
-              }),
-              {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-              },
-            );
-          }
-
-          if (urlString.includes('/tasks/no-video-task-id')) {
-            return new Response(
-              JSON.stringify({
-                id: 'no-video-task-id',
-                status: 'succeeded',
-                content: {},
-              }),
-              {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-              },
-            );
-          }
-
-          return new Response('Not found', { status: 404 });
+      server.urls[
+        'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/test-task-id-123'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'test-task-id-123',
+          status: 'succeeded',
+          content: {},
         },
-      });
+      };
+
+      const model = createBasicModel();
 
       await expect(
-        model.doGenerate({
-          ...defaultOptions,
-          providerOptions: {
-            bytedance: {
-              pollIntervalMs: 10,
-            },
-          },
-        }),
+        model.doStatus({ operation: { taskId: 'test-task-id-123' } }),
       ).rejects.toMatchObject({
-        message: 'No video URL in response',
+        message: 'No video URL in response. Task ID: test-task-id-123',
       });
     });
 
@@ -1411,209 +1525,159 @@ describe('ByteDanceVideoModel', () => {
 
       const model = createBasicModel();
 
-      await expect(
-        model.doGenerate({ ...defaultOptions }),
-      ).rejects.toMatchObject({
+      await expect(model.doStart({ ...defaultOptions })).rejects.toMatchObject({
         statusCode: 400,
+      });
+    });
+
+    it('should handle API errors from the status endpoint', async () => {
+      server.urls[
+        'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/test-task-id-123'
+      ].response = {
+        type: 'error',
+        status: 404,
+        body: JSON.stringify({
+          error: {
+            message: 'Task not found',
+          },
+        }),
+      };
+
+      const model = createBasicModel();
+
+      await expect(
+        model.doStatus({ operation: { taskId: 'test-task-id-123' } }),
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Task not found',
       });
     });
   });
 
-  describe('Polling Behavior', () => {
-    it('should poll until video is ready', async () => {
-      let pollCount = 0;
+  describe('doStatus', () => {
+    it('should return completed with video data when succeeded', async () => {
+      const model = createBasicModel();
 
-      const model = new ByteDanceVideoModel('seedance-1-0-pro-250528', {
-        provider: 'bytedance.video',
-        baseURL: 'https://ark.ap-southeast.bytepluses.com/api/v3',
-        headers: () => ({ Authorization: 'Bearer test-key' }),
-        fetch: async (url, init) => {
-          const urlString = url.toString();
-
-          // Task creation endpoint
-          if (
-            urlString.endsWith('/contents/generations/tasks') &&
-            init?.method === 'POST'
-          ) {
-            return new Response(
-              JSON.stringify({
-                id: 'poll-test-id',
-              }),
-              {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-              },
-            );
-          }
-
-          // Status endpoint
-          if (urlString.includes('/tasks/poll-test-id')) {
-            pollCount++;
-
-            if (pollCount < 3) {
-              return new Response(
-                JSON.stringify({
-                  id: 'poll-test-id',
-                  status: 'processing',
-                }),
-                {
-                  status: 200,
-                  headers: { 'Content-Type': 'application/json' },
-                },
-              );
-            }
-
-            // Final successful response
-            return new Response(
-              JSON.stringify({
-                id: 'poll-test-id',
-                status: 'succeeded',
-                content: {
-                  video_url: 'https://bytedance.cdn/files/final-video.mp4',
-                },
-                usage: {
-                  completion_tokens: 100,
-                },
-              }),
-              {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-              },
-            );
-          }
-
-          return new Response('Not found', { status: 404 });
-        },
+      const result = await model.doStatus({
+        operation: { taskId: 'test-task-id-123' },
       });
 
-      const result = await model.doGenerate({
-        ...defaultOptions,
-        providerOptions: {
-          bytedance: {
-            pollIntervalMs: 10, // Fast polling for test
-          },
+      expect(result.status).toBe('completed');
+
+      if (result.status === 'completed') {
+        expect(result.videos).toHaveLength(1);
+        expect(result.videos[0]).toStrictEqual({
+          type: 'url',
+          url: 'https://bytedance.cdn/files/video-output.mp4',
+          mediaType: 'video/mp4',
+        });
+        expect(result.warnings).toStrictEqual([]);
+      }
+    });
+
+    it('should return pending when queued', async () => {
+      server.urls[
+        'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/test-task-id-123'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'test-task-id-123',
+          status: 'queued',
         },
+      };
+
+      const model = createBasicModel();
+
+      const result = await model.doStatus({
+        operation: { taskId: 'test-task-id-123' },
       });
 
-      expect(pollCount).toBe(3);
-      expect(result.videos[0]).toMatchObject({
-        type: 'url',
-        url: 'https://bytedance.cdn/files/final-video.mp4',
+      expect(result.status).toBe('pending');
+    });
+
+    it('should return pending when running', async () => {
+      server.urls[
+        'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/test-task-id-123'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'test-task-id-123',
+          status: 'running',
+        },
+      };
+
+      const model = createBasicModel();
+
+      const result = await model.doStatus({
+        operation: { taskId: 'test-task-id-123' },
+      });
+
+      expect(result.status).toBe('pending');
+    });
+
+    it('should include timestamp, modelId and headers in response', async () => {
+      const testDate = new Date('2024-01-01T00:00:00Z');
+      const model = createBasicModel({
+        currentDate: () => testDate,
+      });
+
+      const result = await model.doStatus({
+        operation: { taskId: 'test-task-id-123' },
+      });
+
+      expect(result.response).toStrictEqual({
+        timestamp: testDate,
+        modelId: 'seedance-1-0-pro-250528',
+        headers: expect.any(Object),
       });
     });
 
-    it('should timeout after pollTimeoutMs', async () => {
-      const model = new ByteDanceVideoModel('seedance-1-0-pro-250528', {
-        provider: 'bytedance.video',
-        baseURL: 'https://ark.ap-southeast.bytepluses.com/api/v3',
-        headers: () => ({ Authorization: 'Bearer test-key' }),
-        fetch: async (url, init) => {
-          const urlString = url.toString();
-
-          if (
-            urlString.endsWith('/contents/generations/tasks') &&
-            init?.method === 'POST'
-          ) {
-            return new Response(
-              JSON.stringify({
-                id: 'timeout-test-id',
-              }),
-              {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-              },
-            );
-          }
-
-          if (urlString.includes('/tasks/timeout-test-id')) {
-            return new Response(
-              JSON.stringify({
-                id: 'timeout-test-id',
-                status: 'processing',
-              }),
-              {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-              },
-            );
-          }
-
-          return new Response('Not found', { status: 404 });
+    it('should pass headers', async () => {
+      const modelWithHeaders = createBasicModel({
+        headers: {
+          'Custom-Provider-Header': 'provider-header-value',
         },
       });
 
-      await expect(
-        model.doGenerate({
-          ...defaultOptions,
-          providerOptions: {
-            bytedance: {
-              pollIntervalMs: 10,
-              pollTimeoutMs: 50,
-            },
-          },
-        }),
-      ).rejects.toMatchObject({
-        message: expect.stringContaining('timed out'),
+      await modelWithHeaders.doStatus({
+        operation: { taskId: 'test-task-id-123' },
+        headers: {
+          'Custom-Request-Header': 'request-header-value',
+        },
+      });
+
+      expect(server.calls[0].requestHeaders).toMatchObject({
+        'custom-provider-header': 'provider-header-value',
+        'custom-request-header': 'request-header-value',
       });
     });
 
-    it('should respect abort signal', async () => {
-      const abortController = new AbortController();
-
-      const model = new ByteDanceVideoModel('seedance-1-0-pro-250528', {
-        provider: 'bytedance.video',
-        baseURL: 'https://ark.ap-southeast.bytepluses.com/api/v3',
-        headers: () => ({ Authorization: 'Bearer test-key' }),
-        fetch: async (url, init) => {
-          const urlString = url.toString();
-
-          if (
-            urlString.endsWith('/contents/generations/tasks') &&
-            init?.method === 'POST'
-          ) {
-            return new Response(
-              JSON.stringify({
-                id: 'abort-test-id',
-              }),
-              {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-              },
-            );
-          }
-
-          if (urlString.includes('/tasks/abort-test-id')) {
-            // Abort after first poll
-            abortController.abort();
-            return new Response(
-              JSON.stringify({
-                id: 'abort-test-id',
-                status: 'processing',
-              }),
-              {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-              },
-            );
-          }
-
-          return new Response('Not found', { status: 404 });
-        },
+    it('should validate redirects after trusting the configured origin', async () => {
+      const calls: Array<{ url: string; init?: RequestInit }> = [];
+      const fetch: FetchFunction = async (url, init) => {
+        calls.push({ url: url.toString(), init });
+        return new Response(null, {
+          status: 302,
+          headers: {
+            Location: 'http://169.254.169.254/latest/meta-data/',
+          },
+        });
+      };
+      const model = createBasicModel({
+        baseURL: 'http://localhost:3000/api/v3',
+        fetch,
       });
 
       await expect(
-        model.doGenerate({
-          ...defaultOptions,
-          providerOptions: {
-            bytedance: {
-              pollIntervalMs: 10,
-            },
-          },
-          abortSignal: abortController.signal,
-        }),
-      ).rejects.toMatchObject({
-        message: expect.stringContaining('aborted'),
-      });
+        model.doStatus({ operation: { taskId: 'test-task-id-123' } }),
+      ).rejects.toBeInstanceOf(DownloadError);
+
+      expect(calls).toStrictEqual([
+        {
+          url: 'http://localhost:3000/api/v3/contents/generations/tasks/test-task-id-123',
+          init: expect.objectContaining({ redirect: 'manual' }),
+        },
+      ]);
     });
   });
 });

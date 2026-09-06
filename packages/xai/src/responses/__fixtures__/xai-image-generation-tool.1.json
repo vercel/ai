@@ -1,0 +1,95 @@
+{
+  "created_at": 1700000000,
+  "completed_at": 1700000000,
+  "id": "00000000-0000-4000-8000-000000000001",
+  "max_output_tokens": null,
+  "model": "grok-4.5",
+  "object": "response",
+  "output": [
+    {
+      "id": "ig_00000000-0000-4000-8000-000000000001_call-00000000-0000-4000-8000-00000000000a-0",
+      "type": "image_generation_call",
+      "status": "completed",
+      "result": "ZmFrZUltYWdlQmFzZTY0RGF0YQ==",
+      "prompt": "A cute robot holding a flower, adorable design with big friendly eyes, shiny metallic body with soft rounded edges, holding a colorful flower in its hand, cheerful expression, simple clean background, high quality digital art"
+    },
+    {
+      "content": [
+        {
+          "type": "output_text",
+          "text": "Here's a cute robot holding a flower! \ud83c\udf38\ud83e\udd16",
+          "logprobs": [],
+          "annotations": []
+        }
+      ],
+      "id": "msg_00000000-0000-4000-8000-000000000001",
+      "role": "assistant",
+      "type": "message",
+      "status": "completed"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "previous_response_id": null,
+  "reasoning": {
+    "effort": "high",
+    "summary": "detailed"
+  },
+  "temperature": 1,
+  "text": {
+    "format": {
+      "type": "text"
+    }
+  },
+  "tool_choice": "auto",
+  "tools": [
+    {
+      "type": "image_generation"
+    }
+  ],
+  "top_p": 1,
+  "usage": {
+    "input_tokens": 100,
+    "input_tokens_details": {
+      "cached_tokens": 20
+    },
+    "output_tokens": 50,
+    "output_tokens_details": {
+      "reasoning_tokens": 30
+    },
+    "total_tokens": 150,
+    "num_sources_used": 0,
+    "num_server_side_tools_used": 1,
+    "cost_in_usd_ticks": 123456,
+    "server_side_tool_usage_details": {
+      "web_search_calls": 0,
+      "x_search_calls": 0,
+      "code_interpreter_calls": 0,
+      "file_search_calls": 0,
+      "mcp_calls": 0,
+      "document_search_calls": 0,
+      "image_generation_calls": 1
+    },
+    "context_details": {
+      "input_tokens": 80,
+      "output_tokens": 20
+    }
+  },
+  "user": null,
+  "incomplete_details": null,
+  "status": "completed",
+  "store": true,
+  "metadata": {
+    "system_fingerprint": "fp_0000000000000000"
+  },
+  "background": false,
+  "service_tier": "default",
+  "truncation": "disabled",
+  "top_logprobs": 0,
+  "presence_penalty": 0,
+  "frequency_penalty": 0,
+  "prompt_cache_key": null,
+  "max_tool_calls": null,
+  "safety_identifier": null,
+  "error": null,
+  "instructions": null
+}

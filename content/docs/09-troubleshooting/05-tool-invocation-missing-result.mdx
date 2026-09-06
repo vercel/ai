@@ -25,7 +25,7 @@ You have two options for handling tool results:
 const tools = {
   weather: tool({
     description: 'Get the weather in a location',
-    parameters: z.object({
+    inputSchema: z.object({
       location: z
         .string()
         .describe('The city and state, e.g. "San Francisco, CA"'),

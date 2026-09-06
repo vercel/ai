@@ -2,7 +2,7 @@ import type { SpeechModelV4CallOptions } from './speech-model-v4-call-options';
 import type { SpeechModelV4Result } from './speech-model-v4-result';
 
 /**
- * Speech model specification version 3.
+ * Speech model specification version 4.
  */
 export type SpeechModelV4 = {
   /**

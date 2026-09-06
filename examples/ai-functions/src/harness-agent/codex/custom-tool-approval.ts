@@ -1,14 +1,13 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { codex } from '@ai-sdk/harness-codex';
-import { tool } from 'ai';
+import { createCodex } from './_create';
+import { tool, type ToolApprovalRequestOutput } from 'ai';
 import { z } from 'zod';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
-import {
-  createToolApprovalResponseMessages,
-  printFullStreamAndCaptureToolApproval,
-} from '../../lib/harness-tool-approval';
+import { createToolApprovalResponseMessages } from '../../lib/harness-tool-approval';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+
+const codex = createCodex();
 
 run(async () => {
   const sandbox = createVercelSandbox({
@@ -38,7 +37,6 @@ run(async () => {
     },
   });
 
-  let exitCode = 0;
   const session = await agent.createSession();
   try {
     const first = await agent.stream({
@@ -46,10 +44,14 @@ run(async () => {
       prompt:
         'What is the weather in Paris? Use the `weather` tool, then summarize in one sentence.',
     });
-    const approval = await printFullStreamAndCaptureToolApproval({
+    let approval: ToolApprovalRequestOutput<any> | undefined;
+    await printFullStream({
       result: first,
+      onToolApproval: toolApproval => {
+        approval ??= toolApproval;
+      },
     });
-    if (approval == null) {
+    if (approval?.toolCall.toolName !== 'weather') {
       throw new Error('Expected a weather tool approval request.');
     }
 
@@ -61,11 +63,7 @@ run(async () => {
       }),
     });
     await printFullStream({ result: second });
-  } catch (err) {
-    exitCode = 1;
-    console.error('[example] failed:', err);
   } finally {
     await session.destroy();
-    process.exit(exitCode);
   }
 });

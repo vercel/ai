@@ -192,8 +192,22 @@ The following provider options are available:
 
 <Note>
   Supported reasoning efforts vary by model. GPT-5.6 supports `'none'`, `'low'`,
-  `'medium'`, `'high'`, `'xhigh'`, and `'max'`.
+  `'medium'`, `'high'`, `'xhigh'`, and `'max'`. GPT-6 and later models support
+  `'low'`, `'medium'`, `'high'`, `'xhigh'`, and `'max'`.
 </Note>
+
+<Note type="warning">
+  GPT-6 and later models do not support `temperature`, `topP`, `logprobs`, or
+  the legacy `promptCacheRetention` option. The provider removes these settings
+  and returns a warning. Use the Responses API for GPT-6 tool calling.
+</Note>
+
+- **reasoningEffortUpdate** _'low' | 'medium' | 'high' | 'xhigh' | 'max'_
+  Updates the reasoning effort for GPT-6 and later models starting with the
+  current response without changing the request-level effort. Use this with
+  `previousResponseId` to preserve the original prompt prefix for caching.
+  Configuration updates require standard, single-agent mode and cannot be
+  combined with automatic compaction or automatic truncation.
 
 - **reasoningMode** _'standard' | 'pro'_
   Controls how much model work GPT-5.6 performs before returning a final answer. `'standard'` is the default. Use `'pro'` for difficult tasks where quality matters more than latency and token usage.
@@ -217,10 +231,13 @@ The following provider options are available:
   `.nullable()`.
 </Note>
 
-- **serviceTier** _'auto' | 'flex' | 'priority' | 'default'_
+- **serviceTier** _'auto' | 'flex' | 'priority' | 'fast' | 'ultrafast' | 'default'_
   Service tier for the request. Set to 'flex' for 50% cheaper processing
   at the cost of increased latency (available for o3, o4-mini, and gpt-5 models).
   Set to 'priority' for faster processing with Enterprise access (available for gpt-4, gpt-5, gpt-5-mini, o3, o4-mini; gpt-5-nano is not supported).
+  'fast' is OpenAI's newer name for the 'priority' tier; the two are interchangeable, and responses from
+  gpt-5.6 and earlier report `serviceTier: 'priority'` for either.
+  Set to 'ultrafast' for access-controlled Ultrafast processing (available only for gpt-5.6-sol).
 
   Defaults to 'auto'.
 
@@ -262,6 +279,9 @@ The following provider options are available:
   - `type`: `'compaction'`
   - `compactThreshold`: _number_ — the token count at which compaction is triggered
 
+- **compactionTrigger** _boolean_
+  Request explicit server-side compaction. When `true`, the provider appends a terminal `{ type: 'compaction_trigger' }` item to the Responses input. Support depends on the configured Responses-compatible endpoint and model.
+
 The OpenAI responses provider also returns provider-specific metadata:
 
 For Responses models, you can type this metadata using `OpenaiResponsesProviderMetadata`:
@@ -296,11 +316,62 @@ The following OpenAI-specific metadata may be returned:
 - **reasoningContext** _(optional)_
   Effective persisted-reasoning context returned by GPT-5.6 (`'current_turn'` or `'all_turns'`).
 
+#### Changing Reasoning Effort Mid-Conversation
+
+GPT-6 and later models can change reasoning effort between responses without
+changing the request-level `reasoning` setting. The provider sends
+`reasoningEffortUpdate` as an OpenAI `configuration_update` input item before
+the next user message. Keeping the request-level effort unchanged preserves the
+original prompt prefix for prompt caching.
+
+```ts highlight="8,26,32"
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+  type OpenaiResponsesProviderMetadata,
+} from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const first = await generateText({
+  model: openai.responses('gpt-6-astra'),
+  reasoning: 'low',
+  prompt: 'Draft a database migration plan.',
+});
+
+const metadata = first.finalStep.providerMetadata as
+  | OpenaiResponsesProviderMetadata
+  | undefined;
+const previousResponseId = metadata?.openai.responseId;
+
+if (!previousResponseId) {
+  throw new Error('OpenAI did not return a response ID.');
+}
+
+const second = await generateText({
+  model: openai.responses('gpt-6-astra'),
+  reasoning: 'low',
+  prompt: 'Analyze the failure modes and propose rollback steps.',
+  providerOptions: {
+    openai: {
+      previousResponseId,
+      reasoningEffortUpdate: 'high',
+    } satisfies OpenAILanguageModelResponsesOptions,
+  },
+});
+```
+
+The response metadata continues to report the request-level reasoning effort,
+not the effective effort selected by `reasoningEffortUpdate`. Configuration
+updates are not supported with `reasoningMode: 'pro'`,
+`contextManagement`, or `truncation: 'auto'`. Explicit compaction with
+`compactionTrigger` remains supported; send a new `reasoningEffortUpdate` after
+compaction when the effort should change again.
+
 #### Reasoning Output
 
 For reasoning models like `gpt-5`, you can enable reasoning summaries to see the model's thought process. Different models support different summarizers—for example, `o4-mini` supports detailed summaries. Set `reasoningSummary: "auto"` to automatically receive the richest level available. When `reasoningEffort` is set to a value other than `'none'`, the OpenAI Responses provider defaults `reasoningSummary` to `'detailed'`; set `reasoningSummary: null` to omit reasoning summaries.
 
-```ts highlight="8-9,16"
+```ts highlight="10-14,17-23"
 import {
   openai,
   type OpenAILanguageModelResponsesOptions,
@@ -457,6 +528,68 @@ metadata on tool-call parts. The SDK uses `providerMetadata.openai.namespace` or
 `providerOptions.openai.namespace` to round-trip the namespace back to OpenAI on
 subsequent requests.
 
+#### Programmatic Tool Calling
+
+OpenAI Programmatic Tool Calling lets supported Responses models generate and run
+hosted JavaScript that coordinates client-side function tools. Add the hosted tool
+with `openai.tools.programmaticToolCalling()`, then opt each eligible function into
+programmatic calls with `allowedCallers`.
+
+```ts
+import { openai, type OpenAIToolOptions } from '@ai-sdk/openai';
+import { generateText, isStepCount, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: openai('gpt-5.6'),
+  stopWhen: isStepCount(10),
+  prompt: 'Compare inventory with demand for sku_123.',
+  tools: {
+    program: openai.tools.programmaticToolCalling(),
+    getInventory: tool({
+      description: 'Get available inventory for a SKU.',
+      inputSchema: z.object({ sku: z.string() }),
+      execute: async ({ sku }) => ({ sku, availableUnits: 42 }),
+      providerOptions: {
+        openai: {
+          allowedCallers: ['programmatic'],
+          outputSchema: {
+            type: 'object',
+            properties: {
+              sku: { type: 'string' },
+              availableUnits: { type: 'number' },
+            },
+            required: ['sku', 'availableUnits'],
+            additionalProperties: false,
+          },
+        } satisfies OpenAIToolOptions,
+      },
+    }),
+  },
+});
+```
+
+`allowedCallers` supports:
+
+- `['direct']` (or omitted): only direct model tool calls
+- `['programmatic']`: only calls from hosted JavaScript
+- `['direct', 'programmatic']`: both invocation modes
+
+Use `outputSchema` to describe the JSON value returned by the function. This schema
+is sent to OpenAI as `output_schema` so generated JavaScript can safely use the
+returned fields. It does not replace the tool's AI SDK output validation or execution
+logic.
+
+The provider preserves program code, replay fingerprints, program outputs, and nested
+function caller metadata across the `generateText` and `streamText` tool loops,
+including stateless requests with `store: false`. Programmatic invocation is
+currently supported for AI SDK function tools; other OpenAI tool types remain
+direct-only through this integration.
+
+Treat generated programs and tool arguments as untrusted. Enforce authorization and
+approval inside every tool, avoid programmatic access to side-effecting tools unless
+the operation is idempotent, and set explicit step limits.
+
 #### Web Search Tool
 
 The OpenAI responses API supports web search through the `openai.tools.webSearch` tool.
@@ -477,6 +610,7 @@ const result = await generateText({
       },
       filters: {
         allowedDomains: ['sfchronicle.com', 'sfgate.com'],
+        blockedDomains: ['example.com'],
       },
     }),
   },
@@ -503,7 +637,10 @@ The web search tool supports the following configuration options:
 - **searchContextSize** _'low' | 'medium' | 'high'_ - Controls the amount of context used for the search. Higher values provide more comprehensive results but may have higher latency and cost.
 - **userLocation** - Optional location information to provide geographically relevant results. Includes `type` (always `'approximate'`), `country`, `city`, `region`, and `timezone`.
 - **filters** - Optional filter configuration to restrict search results.
-  - **allowedDomains** _string[]_ - Array of allowed domains for the search. Subdomains of the provided domains are automatically included.
+  - **allowedDomains** _string[]_ - Up to 100 allowed domains for the search.
+  - **blockedDomains** _string[]_ - Up to 100 blocked domains for the search.
+
+Omit the HTTP or HTTPS prefix from domain filters. Subdomains of configured domains are automatically included or excluded.
 
 For detailed information on configuration options see the [OpenAI Web Search Tool documentation](https://platform.openai.com/docs/guides/tools-web-search?api-mode=responses).
 
@@ -767,6 +904,95 @@ The MCP tool can be configured with:
   a built-in provider-defined tool that allows OpenAI models to directly connect
   to MCP servers, while the general MCP client requires you to convert MCP tools
   to AI SDK tools first.
+</Note>
+
+#### Computer Tool
+
+The OpenAI Responses API supports the GA computer tool through
+`openai.tools.computer`. The model returns an ordered batch of browser or
+desktop actions for your application to execute, and your application returns
+an updated screenshot.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText, isStepCount } from 'ai';
+import { captureScreenshot, executeComputerAction } from '@/utils/computer-use';
+
+const result = await generateText({
+  model: openai.responses('gpt-5.4'),
+  tools: {
+    computer: openai.tools.computer({
+      needsApproval: ({ pendingSafetyChecks }) =>
+        pendingSafetyChecks.length > 0,
+
+      execute: async ({ actions, pendingSafetyChecks }) => {
+        for (const action of actions) {
+          await executeComputerAction(action);
+        }
+
+        return {
+          output: {
+            type: 'computer_screenshot',
+            imageUrl: `data:image/png;base64,${await captureScreenshot()}`,
+            detail: 'original',
+          },
+          acknowledgedSafetyChecks: pendingSafetyChecks,
+        };
+      },
+    }),
+  },
+  prompt: 'Open the settings page and enable dark mode.',
+  stopWhen: isStepCount(10),
+});
+```
+
+The execute callback receives:
+
+- **actions** - An ordered array of `click`, `double_click`, `drag`,
+  `keypress`, `move`, `screenshot`, `scroll`, `type`, and `wait` actions.
+  Execute every action in order before capturing the next screenshot.
+- **pendingSafetyChecks** - Safety checks returned by OpenAI. Review these
+  before continuing and include accepted checks in
+  `acknowledgedSafetyChecks`.
+- **status** - The computer call status.
+
+The action union is also exported as `OpenAIComputerAction`. Action-specific
+fields are:
+
+| Action         | Fields                                               |
+| -------------- | ---------------------------------------------------- |
+| `click`        | `button`, `x`, `y`, optional `keys`                  |
+| `double_click` | `x`, `y`, optional `keys`                            |
+| `drag`         | `path` containing `{ x, y }` points, optional `keys` |
+| `keypress`     | `keys`                                               |
+| `move`         | `x`, `y`, optional `keys`                            |
+| `screenshot`   | No additional fields                                 |
+| `scroll`       | `x`, `y`, `scrollX`, `scrollY`, optional `keys`      |
+| `type`         | `text`                                               |
+| `wait`         | No additional fields                                 |
+
+Safety checks use the exported `OpenAIComputerSafetyCheck` type.
+
+Return a `computer_screenshot` with either:
+
+- **imageUrl** - A fully qualified URL or image data URL.
+- **fileId** - The ID of an uploaded screenshot file.
+
+`detail` can be `auto`, `low`, `high`, or `original`. `original` preserves the
+captured resolution and is recommended when accurate coordinates are
+important.
+
+Computer calls and `computer_call_output` screenshot results are carried
+through multi-step generations when using `store`, `previousResponseId`, or
+OpenAI conversations. You can also set `store: false`; the provider will
+serialize the complete call and screenshot result into each follow-up request.
+
+<Note type="warning">
+  Run computer use in an isolated browser or VM. Restrict reachable domains,
+  accounts, credentials, environment variables, and file-system access. Treat
+  on-screen content as untrusted prompt-injection input, require confirmation
+  immediately before consequential actions, and avoid exposing sensitive
+  information in screenshots.
 </Note>
 
 #### Local Shell Tool
@@ -1243,6 +1469,64 @@ The custom tool can be configured with:
   - **definition** _string_ - (grammar only) The grammar definition string (a regex pattern or Lark grammar).
 - **execute** _function_ (optional) - An async function that receives the raw string input and returns a string result. Enables multi-turn tool calling.
 
+#### Restricting Callable Tools
+
+The `allowedTools` provider option restricts which of the tools you declared the model is allowed to
+call, while still sending the full `tools` list to OpenAI. Because the tools list stays byte-identical
+across requests, the prompt cache is preserved — unlike `activeTools`, which removes tools from the
+request and invalidates the cache whenever the allow-list changes.
+
+`allowedTools` is only supported by the Responses API, and it overrides the request-level `toolChoice`.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai.responses('gpt-5.5'),
+  tools: {
+    weather: weatherTool,
+    cityAttractions: cityAttractionsTool,
+    search: openai.tools.webSearch(),
+  },
+  providerOptions: {
+    openai: {
+      allowedTools: { toolNames: ['weather', 'search'], mode: 'auto' },
+    },
+  },
+  prompt: 'What is the weather in San Francisco?',
+});
+```
+
+- **toolNames** _string[]_ - The tools the model may call, named as you declared them in `tools`. For
+  provider-defined tools you may also use the canonical OpenAI name (for example `web_search`).
+- **mode** _'auto' | 'required'_ (optional) - `'auto'` (default) lets the model pick one of the allowed
+  tools or answer with a message; `'required'` forces it to call at least one of them.
+
+Both function tools and provider-defined tools can be allow-listed, including web search, file search,
+image generation, code interpreter, computer, apply patch, shell, programmatic tool calling, custom
+tools, and MCP servers.
+
+If a name matches both a tool you declared and the canonical OpenAI name of a different tool, the tool
+you declared under that name wins, and a warning reports the ambiguity. If several tools share the same
+canonical name — two MCP servers, for example — that name is ambiguous, so it is dropped with a warning;
+name those tools as you declared them instead.
+
+<Note>
+  Three kinds of tools cannot be allow-listed, because OpenAI's `allowed_tools`
+  only sees the eagerly-loaded tool list: the [tool search tool](#tool-search),
+  tools marked with `deferLoading`, and tools grouped into a namespace. Naming
+  one of these in `allowedTools` removes it from the allow-list and emits a
+  warning; if that leaves no tools at all, the request fails with an error
+  instead of silently sending no restriction.
+</Note>
+
+<Note>
+  An MCP server is allow-listed as a whole: the entry carries the server label,
+  so every tool on that server is callable. To restrict which tools on a server
+  the model may call, use the MCP tool's own `allowedTools` argument.
+</Note>
+
 #### Image Inputs
 
 The OpenAI Responses API supports Image inputs for appropriate models.
@@ -1619,6 +1903,38 @@ const result = await generateText({
   requests.
 </Note>
 
+##### Explicit Compaction
+
+For Responses-compatible endpoints that support explicit compaction, set
+`compactionTrigger: true`. The provider appends the required
+`{ type: 'compaction_trigger' }` request control after all converted messages
+and input items.
+
+```ts highlight="9"
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai.responses('gpt-5.3-codex'),
+  messages: conversationHistory,
+  providerOptions: {
+    openai: {
+      store: false,
+      compactionTrigger: true,
+    } satisfies OpenAILanguageModelResponsesOptions,
+  },
+});
+```
+
+This is distinct from `contextManagement`, which configures automatic,
+threshold-based compaction. When omitted or `false`, `compactionTrigger` does
+not add an input item. The resulting compaction output uses the existing
+`openai.compaction` custom part representation. Endpoint and model support can
+vary.
+
 ##### Detecting Compaction in Streams
 
 When using `streamText`, you can detect compaction by checking the `providerMetadata` on `text-start` and `text-end` events:
@@ -1702,6 +2018,64 @@ The metadata includes the following fields:
 - **type** — Always `'compaction'`
 - **itemId** _string_ — The ID of the compaction item in the Responses API
 - **encryptedContent** _string_ (optional) — The encrypted compaction state. This is automatically sent back to the API when the message is included in subsequent requests.
+
+### Text Batches
+
+<Note type="warning">
+  Text batch support is experimental and the API may change in patch releases.
+</Note>
+
+The OpenAI provider supports asynchronous text generation through the
+[Batch API](https://developers.openai.com/api/docs/guides/batch). Use the
+experimental text batch APIs to start a batch, poll its status, and stream its
+results:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import {
+  experimental_getBatchResults as getBatchResults,
+  experimental_getBatchStatus as getBatchStatus,
+  experimental_startTextBatch as startTextBatch,
+} from 'ai';
+import { setTimeout } from 'node:timers/promises';
+
+const model = openai('gpt-4.1-nano');
+
+const batch = await startTextBatch({
+  model,
+  requests: [
+    { id: 'capital-france', prompt: 'What is the capital of France?' },
+    { id: 'capital-germany', prompt: 'What is the capital of Germany?' },
+  ],
+});
+
+let status = batch.status;
+while (status === 'pending') {
+  await setTimeout(60_000);
+  ({ status } = await getBatchStatus({ model, batch }));
+}
+
+for await (const item of getBatchResults({ model, batch })) {
+  if (item.status === 'succeeded') {
+    console.log(item.id, item.text);
+  } else {
+    console.error(item.id, item.error);
+  }
+}
+```
+
+`startTextBatch` returns a serializable batch reference. Persist this reference
+to check the batch status or retrieve its results from another process. Results
+can arrive in a different order from the input requests, so match each result by
+its `id`.
+
+#### Webhooks
+
+<Note>
+  The OpenAI Batch API does not support per-batch webhooks. When you provide a
+  `webhookUrl`, the provider returns an unsupported warning and starts the batch
+  without a webhook.
+</Note>
 
 ### Chat Models
 
@@ -1798,11 +2172,14 @@ The following optional provider options are available for OpenAI chat models:
 
   Parameters for prediction mode.
 
-- **serviceTier** _'auto' | 'flex' | 'priority' | 'default'_
+- **serviceTier** _'auto' | 'flex' | 'priority' | 'fast' | 'ultrafast' | 'default'_
 
   Service tier for the request. Set to 'flex' for 50% cheaper processing
   at the cost of increased latency (available for o3, o4-mini, and gpt-5 models).
   Set to 'priority' for faster processing with Enterprise access (available for gpt-4, gpt-5, gpt-5-mini, o3, o4-mini; gpt-5-nano is not supported).
+  'fast' is OpenAI's newer name for the 'priority' tier; the two are interchangeable, and responses from
+  gpt-5.6 and earlier report `serviceTier: 'priority'` for either.
+  Set to 'ultrafast' for access-controlled Ultrafast processing (available only for gpt-5.6-sol).
 
   Defaults to 'auto'.
 
@@ -1854,7 +2231,7 @@ They support additional settings and response metadata:
 
 - You can use the response `usage` to access the number of reasoning tokens that the model generated via `usage.outputTokenDetails.reasoningTokens`.
 
-```ts highlight="4,7-11,17"
+```ts highlight="4,7-11,15"
 import { openai, type OpenAILanguageModelChatOptions } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
@@ -2112,7 +2489,7 @@ const result = streamText({
 OpenAI provides usage information for predicted outputs (`acceptedPredictionTokens` and `rejectedPredictionTokens`).
 You can access it in the `providerMetadata` object.
 
-```ts highlight="11"
+```ts highlight="3-4"
 const openaiMetadata = (await result.providerMetadata)?.openai;
 
 const acceptedPredictionTokens = openaiMetadata?.acceptedPredictionTokens;
@@ -2207,7 +2584,7 @@ including `gpt-4o` and `gpt-4o-mini`.
 - For GPT-5.6 and later models, `usage.inputTokenDetails.cacheWriteTokens` reports tokens written to the cache.
 - For GPT-5.6 and later models, `promptCacheOptions.ttl` sets a minimum cache lifetime of 30 minutes. Earlier models generally retain in-memory prefixes for 5-10 minutes of inactivity, up to one hour.
 
-```ts highlight="11"
+```ts highlight="9"
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
@@ -2408,6 +2785,7 @@ The following optional provider options are available for OpenAI completion mode
 
 | Model                 | Image Input | Audio Input | Object Generation | Tool Usage |
 | --------------------- | ----------- | ----------- | ----------------- | ---------- |
+| `gpt-6-astra`         | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-5.6`             | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-5.6-luna`        | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-5.6-sol`         | <Check />   | <Cross />   | <Check />         | <Check />  |
@@ -2710,6 +3088,21 @@ const result = await transcribe({
 console.log(result.segments); // Array of segments with startSecond/endSecond
 ```
 
+`gpt-4o-transcribe-diarize` identifies speakers in a recording. It defaults to
+the `diarized_json` response format and automatic chunking:
+
+```ts
+import { transcribe } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await transcribe({
+  model: openai.transcription('gpt-4o-transcribe-diarize'),
+  audio: new Uint8Array([1, 2, 3, 4]),
+});
+
+console.log(result.providerMetadata.openai.segments);
+```
+
 The following provider options are available:
 
 - **timestampGranularities** _string[]_
@@ -2734,6 +3127,12 @@ The following provider options are available:
 - **include** _string[]_
   Additional information to include in the transcription response.
 
+- **responseFormat** _'json' | 'verbose_json' | 'diarized_json'_
+  The format of the transcription response. `gpt-4o-transcribe-diarize` defaults to `diarized_json`.
+
+- **chunkingStrategy** _'auto' | object_
+  Controls how the audio is split into chunks. `gpt-4o-transcribe-diarize` defaults to `'auto'`; provide this option to override the default. The object form configures OpenAI server-side VAD with `type: 'server_vad'` and optional `threshold`, `prefixPaddingMs`, and `silenceDurationMs` fields.
+
 - **streaming** _object_
   Options for streaming transcription models such as `gpt-realtime-whisper`.
   Use with `experimental_streamTranscribe`.
@@ -2745,12 +3144,57 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model                    | Transcription | Streaming | Duration  | Segments  | Language  |
-| ------------------------ | ------------- | --------- | --------- | --------- | --------- |
-| `whisper-1`              | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
-| `gpt-4o-mini-transcribe` | <Check />     | <Cross /> | <Cross /> | <Cross /> | <Cross /> |
-| `gpt-4o-transcribe`      | <Check />     | <Cross /> | <Cross /> | <Cross /> | <Cross /> |
-| `gpt-realtime-whisper`   | <Cross />     | <Check /> | <Cross /> | <Cross /> | <Cross /> |
+| Model                       | Transcription | Streaming | Duration  | Segments  | Language  |
+| --------------------------- | ------------- | --------- | --------- | --------- | --------- |
+| `whisper-1`                 | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
+| `gpt-4o-mini-transcribe`    | <Check />     | <Cross /> | <Cross /> | <Cross /> | <Cross /> |
+| `gpt-4o-transcribe`         | <Check />     | <Cross /> | <Cross /> | <Cross /> | <Cross /> |
+| `gpt-4o-transcribe-diarize` | <Check />     | <Cross /> | <Check /> | <Check /> | <Cross /> |
+| `gpt-realtime-whisper`      | <Cross />     | <Check /> | <Cross /> | <Cross /> | <Cross /> |
+
+## Translation Models
+
+<Note type="warning">Speech translation is an experimental feature.</Note>
+
+You can create models that translate live speech over the OpenAI Realtime
+translations WebSocket using the `.translation()` factory method. Translation
+models are streaming-only and are used with
+[`experimental_streamTranslate`](/docs/reference/ai-sdk-core/stream-translate).
+
+The first argument is the model id e.g. `gpt-realtime-translate`.
+
+```ts
+const model = openai.translation('gpt-realtime-translate');
+```
+
+```ts
+import { experimental_streamTranslate as streamTranslate } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = streamTranslate({
+  model: openai.translation('gpt-realtime-translate'),
+  audio: audioStream, // ReadableStream<Uint8Array | string>
+  inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+  targetLanguage: 'es',
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'output-text-delta') {
+    process.stdout.write(part.delta);
+  }
+}
+```
+
+The OpenAI Realtime translation API auto-detects the source language
+(`sourceLanguage` is not supported), accepts 24kHz 16-bit PCM input, and always
+outputs 24kHz 16-bit PCM audio (`outputAudioFormat` is not supported).
+Unsupported source and output settings surface as call warnings.
+
+### Model Capabilities
+
+| Model                    | Translated Audio | Translated Text | Source Transcript |
+| ------------------------ | ---------------- | --------------- | ----------------- |
+| `gpt-realtime-translate` | <Check />        | <Check />       | <Check />         |
 
 ## Speech Models
 

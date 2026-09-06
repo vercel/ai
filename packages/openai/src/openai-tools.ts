@@ -1,5 +1,6 @@
 import { applyPatch } from './tool/apply-patch';
 import { codeInterpreter } from './tool/code-interpreter';
+import { computer } from './tool/computer';
 import { customTool } from './tool/custom';
 import { fileSearch } from './tool/file-search';
 import { imageGeneration } from './tool/image-generation';
@@ -9,6 +10,7 @@ import { toolSearch } from './tool/tool-search';
 import { webSearch } from './tool/web-search';
 import { webSearchPreview } from './tool/web-search-preview';
 import { mcp } from './tool/mcp';
+import { programmaticToolCalling } from './tool/programmatic-tool-calling';
 
 export const openaiTools = {
   /**
@@ -38,6 +40,16 @@ export const openaiTools = {
    * @param container - The container to use for the code interpreter.
    */
   codeInterpreter,
+
+  /**
+   * The computer tool allows models to operate a browser or desktop through
+   * batched UI actions. Your application executes the actions and returns an
+   * updated screenshot.
+   *
+   * WARNING: Run computer use in an isolated environment, treat on-screen
+   * content as untrusted, and require confirmation for consequential actions.
+   */
+  computer,
 
   /**
    * File search is a tool available in the Responses API. It enables models to
@@ -123,6 +135,12 @@ export const openaiTools = {
    * @param serverUrl - URL for the MCP server.
    */
   mcp,
+
+  /**
+   * Programmatic Tool Calling lets OpenAI Responses models write and execute
+   * JavaScript that orchestrates eligible tools.
+   */
+  programmaticToolCalling,
 
   /**
    * Tool search allows the model to dynamically search for and load deferred

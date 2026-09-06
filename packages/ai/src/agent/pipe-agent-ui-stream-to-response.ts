@@ -66,7 +66,7 @@ export async function pipeAgentUIStreamToResponse<
   UIMessageStreamOptions<
     UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
   >): Promise<void> {
-  pipeUIMessageStreamToResponse({
+  return pipeUIMessageStreamToResponse({
     response,
     headers,
     status,

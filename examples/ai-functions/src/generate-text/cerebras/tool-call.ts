@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: cerebras('llama3.1-8b'),
+    model: cerebras('gpt-oss-120b'),
     maxOutputTokens: 512,
     tools: {
       weather: weatherTool,

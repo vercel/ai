@@ -53,7 +53,7 @@ Raindrop records an event once a `userId` is available, so set the Raindrop `con
 
 If Raindrop event fields such as `userId`, `convoId`, or `eventName` change per request, pass a Raindrop integration through `telemetry.integrations` for that call:
 
-```ts highlight="12-22"
+```ts highlight="8-10,15-19,21"
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { raindrop } from '@raindrop-ai/ai-sdk';

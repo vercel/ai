@@ -36,6 +36,7 @@ import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
   harness: pi,
+  model: 'anthropic/claude-sonnet-4.6',
   sandbox: createVercelSandbox({
     runtime: 'node24',
   }),
@@ -74,36 +75,83 @@ Use `createPi()` to configure the runtime:
 
 ```ts
 const harness = createPi({
-  model: 'anthropic/claude-sonnet-4.6',
   thinkingLevel: 'medium',
 });
 ```
 
 Settings:
 
-- `auth`: AI Gateway or custom provider environment configuration.
-- `model`: Pi model id or model name.
-- `thinkingLevel`: Pi thinking budget level.
+- `auth`: authentication mode (`auto`, `openai`, `anthropic`, `custom`, or
+  `ai-gateway`) or an isolated authentication environment.
+- `extensionFactories`: trusted inline Pi extension factories that run in the
+  host Node.js process.
+- `mcpServers`: MCP server definitions keyed by server name.
+- `thinkingLevel`: Pi thinking level (`off`, `minimal`, `low`, `medium`,
+  `high`, `xhigh`, or `max`).
+
+## Inline Extensions
+
+Use `extensionFactories` to load trusted inline Pi extensions for each harness
+session:
+
+```ts
+const harness = createPi({
+  extensionFactories: [
+    pi => {
+      pi.on('agent_start', () => {
+        console.log('Pi agent started');
+      });
+    },
+  ],
+});
+```
+
+Routine resource refreshes between turns reuse the active extension runtime and
+do not reinitialize factories. If the underlying Pi session is rebuilt, the
+factories initialize again for the new Pi runtime.
+
+Extension factories execute in the host Node.js process with access to the host
+environment, so only pass factories you trust. This setting enables only the
+factories you explicitly provide. Filesystem extension discovery remains
+disabled, including user, project, and settings-based extensions. Themes and
+prompt templates also remain disabled.
 
 ## Authentication
 
-Pi can use AI Gateway credentials or custom provider environment variables.
-When no explicit auth is configured, it checks the host environment for
-`AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN`.
+The `auth` setting selects which credentials Pi reads from the host environment:
+
+- `auto` (default): use AI Gateway credentials when available, then fall back
+  to all provider credentials found in the environment.
+- `openai`: use `OPENAI_API_KEY` and the optional `OPENAI_BASE_URL`.
+- `anthropic`: use `ANTHROPIC_API_KEY` and the optional
+  `ANTHROPIC_AUTH_TOKEN` and `ANTHROPIC_BASE_URL`.
+- `custom`: register all providers configured through environment variables.
+- `ai-gateway`: use `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` and the
+  optional `AI_GATEWAY_BASE_URL`.
+
+```ts
+const harness = createPi({ auth: 'ai-gateway' });
+```
+
+Pass an authentication environment to use programmatically resolved
+credentials without reading `process.env`:
 
 ```ts
 const harness = createPi({
   auth: {
-    gateway: {
-      apiKey: process.env.AI_GATEWAY_API_KEY,
-    },
+    MISTRAL_API_KEY: await resolveMistralToken(),
+    MISTRAL_BASE_URL: 'https://api.mistral.ai',
   },
 });
 ```
 
-For multiple providers, pass `auth.customEnv` with standard environment pairs
-such as `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `ANTHROPIC_API_KEY`, or
-`ANTHROPIC_BASE_URL`.
+The supplied record replaces the host environment for authentication
+discovery. Pi parses provider API keys and base URLs from that record.
+
+With `custom`, standard providers use environment variables such as
+`OPENAI_API_KEY`, `OPENAI_BASE_URL`, `ANTHROPIC_API_KEY`, and
+`ANTHROPIC_BASE_URL`. Other providers use a `<PREFIX>_API_KEY` and matching
+`<PREFIX>_BASE_URL` pair.
 
 ## Sandbox
 
@@ -134,6 +182,11 @@ common tool shape.
 
 Pi supports built-in tool approval requests when `permissionMode` is
 `allow-reads` or `allow-edits`.
+
+## Known Limitations
+
+Pi does not support structured output. Supplying `output` to `HarnessAgent`
+causes the turn to throw `HarnessCapabilityUnsupportedError`.
 
 ## Related
 

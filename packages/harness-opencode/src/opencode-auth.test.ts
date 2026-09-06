@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  createOpenCodeRequestTransformations,
+  resolveOpenCodeAuthenticationMode,
   resolveOpenCodeEnv,
   resolveOpenCodeProvider,
   splitOpenCodeModel,
@@ -48,36 +50,60 @@ describe('OpenCode auth', () => {
     });
   });
 
-  it('prefers selected direct provider auth before ambient gateway fallback', () => {
+  it('prefers the selected direct provider before ambient gateway fallback', () => {
     expect(
       resolveOpenCodeEnv({
-        auth: { openai: { apiKey: 'openai-key' } },
+        auth: 'openai',
         provider: 'openai',
-        processEnv: { AI_GATEWAY_API_KEY: 'gateway-key' },
+        processEnv: {
+          OPENAI_API_KEY: 'openai-key',
+          AI_GATEWAY_API_KEY: 'gateway-key',
+          AI_GATEWAY_BASE_URL: 'https://gateway.example/v1',
+        },
       }),
     ).toEqual({ OPENAI_API_KEY: 'openai-key' });
   });
 
-  it('uses explicit OpenAI-compatible auth regardless of selected provider', () => {
+  it('uses a supplied authentication environment instead of ambient credentials', () => {
+    const auth = { OPENAI_API_KEY: 'programmatic-openai-key' };
+
     expect(
       resolveOpenCodeEnv({
-        auth: {
-          openaiCompatible: {
-            apiKey: 'compatible-key',
-            baseUrl: 'https://compatible.example/v1',
-            name: 'compatible',
-            queryParams: { apiVersion: '2026-01-01' },
-          },
-        },
-        provider: 'anthropic',
-        processEnv: { AI_GATEWAY_API_KEY: 'gateway-key' },
+        auth,
+        provider: 'openai',
+        processEnv: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
       }),
-    ).toEqual({
-      OPENAI_API_KEY: 'compatible-key',
-      OPENAI_BASE_URL: 'https://compatible.example/v1',
-      OPENAI_NAME: 'compatible',
-      OPENAI_QUERY_PARAMS_JSON: '{"apiVersion":"2026-01-01"}',
-    });
+    ).toEqual({ OPENAI_API_KEY: 'programmatic-openai-key' });
+    expect(
+      resolveOpenCodeAuthenticationMode({
+        auth,
+        provider: 'openai',
+        processEnv: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+      }),
+    ).toBe('openai');
+  });
+
+  it('rejects nested authentication objects before reading ambient credentials', () => {
+    const auth = { openai: { apiKey: 'legacy-key' } } as never;
+
+    expect(() =>
+      resolveOpenCodeEnv({
+        auth,
+        provider: 'openai',
+        processEnv: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+      }),
+    ).toThrow(
+      'Invalid auth: expected an authentication mode or a flat record with string values.',
+    );
+    expect(() =>
+      resolveOpenCodeAuthenticationMode({
+        auth,
+        provider: 'openai',
+        processEnv: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+      }),
+    ).toThrow(
+      'Invalid auth: expected an authentication mode or a flat record with string values.',
+    );
   });
 
   it('normalizes OpenCode gateway base URLs to /v1', () => {
@@ -87,5 +113,178 @@ describe('OpenCode auth', () => {
     expect(toOpenCodeGatewayBaseUrl('https://ai-gateway.vercel.sh/v1')).toBe(
       'https://ai-gateway.vercel.sh/v1',
     );
+  });
+
+  it('supports string authentication modes', () => {
+    expect(
+      resolveOpenCodeEnv({
+        auth: 'openai',
+        provider: 'openai',
+        processEnv: {
+          OPENAI_API_KEY: 'sk-openai',
+          OPENAI_BASE_URL: 'https://compat.example/v1',
+        },
+      }),
+    ).toEqual({
+      OPENAI_API_KEY: 'sk-openai',
+      OPENAI_BASE_URL: 'https://compat.example/v1',
+    });
+
+    expect(
+      resolveOpenCodeEnv({
+        auth: 'ai-gateway',
+        processEnv: { AI_GATEWAY_API_KEY: 'gw-mode' },
+      }),
+    ).toEqual({
+      AI_GATEWAY_API_KEY: 'gw-mode',
+      AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh/v1',
+    });
+  });
+});
+
+describe('resolveOpenCodeAuthenticationMode', () => {
+  it('preserves selected-provider auth despite ambient Gateway credentials', () => {
+    expect(
+      resolveOpenCodeAuthenticationMode({
+        auth: 'openai',
+        provider: 'openai',
+        processEnv: { AI_GATEWAY_API_KEY: 'gateway-key' },
+      }),
+    ).toBe('openai');
+  });
+
+  it('resolves ambient Gateway credentials to Gateway auth', () => {
+    expect(
+      resolveOpenCodeAuthenticationMode({
+        auth: undefined,
+        processEnv: { VERCEL_OIDC_TOKEN: 'oidc-token' },
+      }),
+    ).toBe('ai-gateway');
+  });
+});
+
+describe('createOpenCodeRequestTransformations', () => {
+  it('uses the resolved OpenAI route', () => {
+    expect(
+      createOpenCodeRequestTransformations({
+        env: {
+          OPENAI_API_KEY: 'openai-secret',
+          OPENAI_BASE_URL: 'https://openai.example/v1',
+          AI_GATEWAY_API_KEY: 'unselected-gateway-secret',
+          AI_GATEWAY_BASE_URL: 'https://unselected-gateway.example/v1',
+        },
+        sandboxEnv: { OPENAI_API_KEY: 'sandbox-openai-secret' },
+        auth: 'openai',
+      }),
+    ).toEqual([
+      {
+        match: {
+          host: 'openai.example',
+          path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-openai-secret' },
+            },
+          ],
+        },
+        transform: {
+          headers: { Authorization: 'Bearer openai-secret' },
+        },
+      },
+    ]);
+  });
+
+  it('matches both supported Gateway credential headers', () => {
+    expect(
+      createOpenCodeRequestTransformations({
+        env: {
+          OPENAI_API_KEY: 'unselected-openai-secret',
+          OPENAI_BASE_URL: 'https://unselected-openai.example/v1',
+          AI_GATEWAY_API_KEY: 'gateway-secret',
+          AI_GATEWAY_BASE_URL: 'https://gateway.example/v1',
+        },
+        sandboxEnv: {
+          AI_GATEWAY_API_KEY: 'sandbox-gateway-secret',
+        },
+        auth: 'ai-gateway',
+      }),
+    ).toEqual([
+      {
+        match: {
+          host: 'gateway.example',
+          path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'x-api-key' },
+              value: { exact: 'sandbox-gateway-secret' },
+            },
+          ],
+        },
+        transform: {
+          headers: { Authorization: 'Bearer gateway-secret' },
+        },
+      },
+      {
+        match: {
+          host: 'gateway.example',
+          path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-gateway-secret' },
+            },
+          ],
+        },
+        transform: {
+          headers: { Authorization: 'Bearer gateway-secret' },
+        },
+      },
+    ]);
+  });
+
+  it('injects both supported Anthropic credential headers', () => {
+    expect(
+      createOpenCodeRequestTransformations({
+        env: {
+          ANTHROPIC_API_KEY: 'api-secret',
+          ANTHROPIC_AUTH_TOKEN: 'token-secret',
+        },
+        sandboxEnv: {
+          ANTHROPIC_API_KEY: 'sandbox-api-secret',
+          ANTHROPIC_AUTH_TOKEN: 'sandbox-token-secret',
+        },
+        auth: 'anthropic',
+      }),
+    ).toEqual([
+      {
+        match: {
+          host: 'api.anthropic.com',
+          headers: [
+            {
+              key: { exact: 'x-api-key' },
+              value: { exact: 'sandbox-api-secret' },
+            },
+          ],
+        },
+        transform: {
+          headers: { 'x-api-key': 'api-secret' },
+        },
+      },
+      {
+        match: {
+          host: 'api.anthropic.com',
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-token-secret' },
+            },
+          ],
+        },
+        transform: {
+          headers: { Authorization: 'Bearer token-secret' },
+        },
+      },
+    ]);
   });
 });

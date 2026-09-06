@@ -173,6 +173,138 @@ describe('StreamingToolCallTracker', () => {
       ]);
     });
 
+    it('should handle non-zero and non-contiguous indexes', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        index: 1,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'fn1', arguments: '{"value":1}' },
+      });
+
+      tracker.processDelta({
+        index: 3,
+        id: 'call_2',
+        type: 'function',
+        function: { name: 'fn2', arguments: '{"value":2}' },
+      });
+
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'fn1',
+          input: '{"value":1}',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_2',
+          toolName: 'fn2',
+          input: '{"value":2}',
+        },
+      ]);
+    });
+
+    it('should keep distinct tool calls that reuse an index', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'fn', arguments: '{"value":1}' },
+      });
+
+      tracker.processDelta({
+        index: 0,
+        id: 'call_2',
+        type: 'function',
+        function: { name: 'fn', arguments: '{"value":2}' },
+      });
+
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'fn',
+          input: '{"value":1}',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_2',
+          toolName: 'fn',
+          input: '{"value":2}',
+        },
+      ]);
+    });
+
+    it.each([undefined, 7])(
+      'should continue the latest tool call when an index is omitted after starting at %s',
+      index => {
+        const { parts, controller } = createCollector();
+        const tracker = new StreamingToolCallTracker(controller);
+
+        tracker.processDelta({
+          index,
+          id: 'call_1',
+          type: 'function',
+          function: { name: 'fn', arguments: '{"val' },
+        });
+
+        tracker.processDelta({
+          function: { arguments: 'ue":1}' },
+        });
+
+        tracker.flush();
+
+        expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+          {
+            type: 'tool-call',
+            toolCallId: 'call_1',
+            toolName: 'fn',
+            input: '{"value":1}',
+          },
+        ]);
+      },
+    );
+
+    it('should use the index when continuation IDs are empty', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'fn', arguments: '{"val' },
+      });
+
+      tracker.processDelta({
+        index: 0,
+        id: '',
+        type: 'function',
+        function: { arguments: 'ue":1}' },
+      });
+
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'fn',
+          input: '{"value":1}',
+        },
+      ]);
+    });
+
     it('should skip deltas for already-finished tool calls', () => {
       const { parts, controller } = createCollector();
       const tracker = new StreamingToolCallTracker(controller);

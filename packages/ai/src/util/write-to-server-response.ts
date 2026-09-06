@@ -19,7 +19,7 @@ export function writeToServerResponse({
   statusText?: string;
   headers?: Record<string, string | number | string[]>;
   stream: ReadableStream<Uint8Array>;
-}): void {
+}): Promise<void> {
   const statusCode = status ?? 200;
   if (statusText !== undefined) {
     response.writeHead(statusCode, statusText, headers);
@@ -54,5 +54,5 @@ export function writeToServerResponse({
     }
   };
 
-  read();
+  return read();
 }

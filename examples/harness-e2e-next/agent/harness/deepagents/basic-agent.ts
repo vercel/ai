@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/harness/agent';
 import { deepAgents } from '@ai-sdk/harness-deepagents';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { getUserNameTool } from '@/lib/tools/get-user-name-tool';
 import type { InferUITools, UIMessage } from 'ai';
 
 export const deepAgentsHarnessAgent = new HarnessAgent({
@@ -13,6 +14,7 @@ export const deepAgentsHarnessAgent = new HarnessAgent({
     runtime: 'node24',
     ports: [4000],
   }),
+  tools: { getUserName: getUserNameTool },
   debug: { enabled: true },
   telemetry: {
     integrations: [

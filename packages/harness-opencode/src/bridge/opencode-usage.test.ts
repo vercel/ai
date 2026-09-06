@@ -22,6 +22,17 @@ describe('OpenCode usage helpers', () => {
     );
   });
 
+  it('ignores malformed token envelopes', () => {
+    expect(extractSessionTokens(null)).toBeUndefined();
+    expect(extractSessionTokens([])).toBeUndefined();
+    expect(extractSessionTokens({ data: 'invalid' })).toBeUndefined();
+    expect(
+      extractSessionTokens({
+        tokens: { input: 1, output: 2, reasoning: 0, cache: 'invalid' },
+      }),
+    ).toBeUndefined();
+  });
+
   it('maps the turn-local session token delta to harness usage', () => {
     const delta = subtractSessionTokens({
       before: {

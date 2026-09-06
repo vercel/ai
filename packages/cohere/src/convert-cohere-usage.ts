@@ -1,30 +1,25 @@
 import type { LanguageModelV4Usage } from '@ai-sdk/provider';
+import { createNullLanguageModelUsage } from '@ai-sdk/provider-utils';
 
 export type CohereUsageTokens = {
   input_tokens: number;
   output_tokens: number;
 };
 
+export type CohereUsage = {
+  billed_units?: CohereUsageTokens | null;
+  tokens: CohereUsageTokens;
+  cached_tokens?: number | null;
+};
+
 export function convertCohereUsage(
-  tokens: CohereUsageTokens | undefined | null,
+  usage: CohereUsage | undefined | null,
 ): LanguageModelV4Usage {
-  if (tokens == null) {
-    return {
-      inputTokens: {
-        total: undefined,
-        noCache: undefined,
-        cacheRead: undefined,
-        cacheWrite: undefined,
-      },
-      outputTokens: {
-        total: undefined,
-        text: undefined,
-        reasoning: undefined,
-      },
-      raw: undefined,
-    };
+  if (usage == null) {
+    return createNullLanguageModelUsage();
   }
 
+  const tokens = usage.tokens;
   const inputTokens = tokens.input_tokens;
   const outputTokens = tokens.output_tokens;
 
@@ -40,6 +35,6 @@ export function convertCohereUsage(
       text: outputTokens,
       reasoning: undefined,
     },
-    raw: tokens,
+    raw: usage,
   };
 }

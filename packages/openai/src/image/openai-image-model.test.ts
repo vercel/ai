@@ -201,6 +201,9 @@ describe('doGenerate', () => {
     const defaultModel = provider.image('dall-e-2');
     expect(defaultModel.maxImagesPerCall).toBe(10);
 
+    const futureGptImageModel = provider.image('gpt-image-99');
+    expect(futureGptImageModel.maxImagesPerCall).toBe(10);
+
     const unknownModel = provider.image('unknown-model' as any);
     expect(unknownModel.maxImagesPerCall).toBe(1);
   });
@@ -316,6 +319,33 @@ describe('doGenerate', () => {
       await server.calls[server.calls.length - 1].requestBodyJson;
     expect(requestBody).toStrictEqual({
       model: 'gpt-image-2',
+      prompt,
+      n: 1,
+      size: '1024x1024',
+    });
+
+    expect(requestBody).not.toHaveProperty('response_format');
+  });
+
+  it('should not include response_format for future gpt-image models', async () => {
+    prepareJsonFixtureResponse('openai-image');
+
+    const gptImageModel = provider.image('gpt-image-99');
+    await gptImageModel.doGenerate({
+      prompt,
+      files: undefined,
+      mask: undefined,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    const requestBody =
+      await server.calls[server.calls.length - 1].requestBodyJson;
+    expect(requestBody).toStrictEqual({
+      model: 'gpt-image-99',
       prompt,
       n: 1,
       size: '1024x1024',
