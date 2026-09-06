@@ -25,7 +25,6 @@
     "@ai-sdk/google-vertex": "workspace:*",
     "@ai-sdk/groq": "workspace:*",
     "@ai-sdk/huggingface": "workspace:*",
-    "@ai-sdk/lmnt": "workspace:*",
     "@ai-sdk/luma": "workspace:*",
     "@ai-sdk/hume": "workspace:*",
     "@ai-sdk/mistral": "workspace:*",
