@@ -39,20 +39,19 @@ const agent = new HarnessAgent({
 });
 ```
 
-Configure the model and auth via `createDeepAgents({ model, auth })`.
-
 ## Auth
 
-Auth is optional and provider-aware: the provider is resolved from the model id
-(`anthropic/…` or `openai/…`, defaulting to Anthropic). With none configured the
-adapter falls back to ambient AI Gateway credentials (`AI_GATEWAY_API_KEY`, then
-`VERCEL_OIDC_TOKEN`), then ambient provider creds (`ANTHROPIC_*` / `OPENAI_*`).
-Pin explicitly with `auth.anthropic`, `auth.openai`, or `auth.gateway`:
+Deep Agents uses the Anthropic client directly or through AI Gateway. With no
+mode configured, the adapter prefers ambient AI Gateway credentials and falls
+back to ambient Anthropic credentials. Pass an authentication environment to
+use programmatically resolved credentials without reading `process.env`:
 
 ```ts
-createDeepAgents({
-  model: 'openai/gpt-5',
-  auth: { openai: { apiKey: process.env.OPENAI_API_KEY } },
+const agent = new HarnessAgent({
+  harness: createDeepAgents({
+    auth: { ANTHROPIC_API_KEY: token },
+  }),
+  model: 'anthropic/claude-sonnet-4.5',
 });
 ```
 

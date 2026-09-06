@@ -7,7 +7,6 @@ import {
 import * as acp from '@agentclientprotocol/sdk';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 import { Readable, Writable } from 'node:stream';
 import { argv, env as processEnv } from 'node:process';
 import {
@@ -38,12 +37,14 @@ import {
   type HostToolRelay,
   type HostToolRelayTurn,
 } from './host-tool-relay';
+import { createHostToolMcpServerDefinition } from './host-tool-mcp-definition';
 import {
   promptAndRefreshInitialHostToolCatalog,
   refreshHostToolCatalog,
 } from './refresh-host-tool-catalog';
 import { createACPPermissionController } from './permission-controller';
 import { configureACPPermissionMode } from './permission-mode';
+import { configureACPModel } from './model-mapping';
 import {
   assertACPResumeCapability,
   createACPRecoveredSession,
@@ -102,6 +103,13 @@ let historicalUpdatesSuppressed = false;
 let coldRestorationMethod: ACPSessionRestorationMethod | undefined;
 let activePermissionController:
   | ReturnType<typeof createACPPermissionController>
+  | undefined;
+let activeQuestionRequest:
+  | {
+      method: string;
+      turn: BridgeTurn;
+      emitStreamEvent: ReturnType<typeof createEmitStreamEvent>;
+    }
   | undefined;
 
 await runBridge<StartMessage>({
@@ -214,6 +222,13 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     return;
   }
 
+  await configureACPModel({
+    agent: connection!.agent,
+    sessionId: activeSession.sessionId,
+    model: start.model,
+    mapping: start.modelMapping,
+  });
+
   let rejectCancellationFailure!: (error: unknown) => void;
   const cancellationFailure = new Promise<never>((_, reject) => {
     rejectCancellationFailure = reject;
@@ -244,15 +259,36 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const emitStreamEvent = createEmitStreamEvent({
     emit: event => turn.emit(event as BridgeEvent),
     emitToolCallCandidate: ({ toolCall }) => {
+      const requestId = crypto.randomUUID();
       turn.emit({
         type: 'acp-tool-call-candidate',
+        requestId,
         toolCall,
+      });
+      void turn.requestToolResult(requestId).then(result => {
+        if (
+          result.output != null &&
+          typeof result.output === 'object' &&
+          'suppress' in result.output &&
+          result.output.suppress === true
+        ) {
+          emitStreamEvent.suppressToolCall({
+            toolCallId: toolCall.toolCallId,
+          });
+        }
       });
     },
     builtinTools: start.builtinTools,
     hostToolServerName: HOST_TOOL_MCP_SERVER_NAME,
     hostTools: start.tools ?? [],
   });
+  if (bridgeConfiguration.askUserQuestionsRequestMethod != null) {
+    activeQuestionRequest = {
+      method: bridgeConfiguration.askUserQuestionsRequestMethod,
+      turn,
+      emitStreamEvent,
+    };
+  }
   const permissionController = createACPPermissionController({
     turn,
     sessionId: activeSession.sessionId,
@@ -345,6 +381,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       if (emitStreamEvent.message({ message })) return;
     }
   } finally {
+    if (activeQuestionRequest?.turn === turn) {
+      activeQuestionRequest = undefined;
+    }
     permissionController.cancelAll();
     activePermissionController = undefined;
     activeHostToolRelay.unbindTurn({ turn: relayTurn });
@@ -413,11 +452,13 @@ async function ensureSession({
     instructions: start.instructions,
     instructionMapping: start.instructionMapping,
     sessionMeta: bridgeConfiguration.sessionMeta,
-    environment: createChildEnvironment({
-      launchEnv,
-      implementationDir,
-      privateHome: implementation.privateHome,
-    }),
+    environment: {
+      ...createChildEnvironment({
+        launchEnv,
+        implementationDir,
+        privateHome: implementation.privateHome,
+      }),
+    },
   });
   child = spawn(
     `${implementationDir}/${implementation.executablePath}`,
@@ -448,7 +489,7 @@ async function ensureSession({
     stream: acp.ndJsonStream(input, output),
   });
   streamCapture = capturedStream.capture;
-  connection = acp
+  let client = acp
     .client({ name: clientApp.name })
     .onRequest(
       acp.methods.client.session.requestPermission,
@@ -465,13 +506,64 @@ async function ensureSession({
         notification: params,
         update: params.update,
       });
-    })
-    .connect(capturedStream.stream);
+    });
+  if (bridgeConfiguration.askUserQuestionsRequestMethod != null) {
+    const method = bridgeConfiguration.askUserQuestionsRequestMethod;
+    client = client.onRequest<unknown, unknown>(
+      method,
+      value => value,
+      async ({ params }) => {
+        const active = activeQuestionRequest;
+        if (active == null || active.method !== method) {
+          throw acp.RequestError.methodNotFound(method);
+        }
+        const requestId = crypto.randomUUID();
+        const nativeToolCallId = getNativeQuestionToolCallId({ params });
+        active.turn.emit({
+          type: 'acp-question-request',
+          requestId,
+          nativeRequest: params,
+          ...(nativeToolCallId == null
+            ? {}
+            : {
+                nativeToolCall:
+                  active.emitStreamEvent.getToolCall({
+                    toolCallId: nativeToolCallId,
+                  }) ?? undefined,
+              }),
+        });
+        const result = await active.turn.requestToolResult(requestId);
+        const classification = result.output as
+          | { type: 'unhandled' }
+          | { type: 'handled'; toolCallId: string }
+          | undefined;
+        if (classification?.type !== 'handled') {
+          throw acp.RequestError.methodNotFound(method);
+        }
+        active.emitStreamEvent.suppressToolCall({
+          toolCallId: nativeToolCallId ?? classification.toolCallId,
+        });
+        try {
+          const nativeResult = await active.turn.requestToolResult(
+            classification.toolCallId,
+          );
+          return nativeResult.output;
+        } finally {
+          active.turn.emit({
+            type: 'acp-question-resolved',
+            requestId,
+          });
+        }
+      },
+    );
+  }
+  connection = client.connect(capturedStream.stream);
 
   const initializeRequest = createACPInitializeRequest({
     protocolVersion: acp.PROTOCOL_VERSION,
     clientApp,
     authentication,
+    clientCapabilities: bridgeConfiguration.clientCapabilities,
     supportsBooleanSessionConfigOptions: Object.values(
       start.permissionModeMapping ?? {},
     ).some(
@@ -501,34 +593,27 @@ async function ensureSession({
     initialization,
   });
   const tools = start.tools ?? [];
+  const mcpTransport = bridgeConfiguration.hostToolMcpTransport ?? 'stdio';
   const catalogPath = `${bridgeStateDir}/host-tools.json`;
-  await writeFile(catalogPath, JSON.stringify(tools), { mode: 0o600 });
+  if (mcpTransport === 'stdio') {
+    await writeFile(catalogPath, JSON.stringify(tools), { mode: 0o600 });
+  }
   hostToolRelay = await startHostToolRelay({
     tools,
     serverName: HOST_TOOL_MCP_SERVER_NAME,
+    mcpTransport,
   });
 
   const mcpServers: acp.McpServer[] = [
     ...externalMcpServers,
-    {
-      name: HOST_TOOL_MCP_SERVER_NAME,
-      command: process.execPath,
-      args: [fileURLToPath(new URL('./host-tool-mcp.mjs', import.meta.url))],
-      env: [
-        {
-          name: 'AI_SDK_ACP_HOST_TOOLS_FILE',
-          value: catalogPath,
-        },
-        {
-          name: 'AI_SDK_ACP_HOST_TOOL_RELAY_URL',
-          value: hostToolRelay.url,
-        },
-        {
-          name: 'AI_SDK_ACP_HOST_TOOL_RELAY_CREDENTIAL',
-          value: hostToolRelay.credential,
-        },
-      ],
-    },
+    createHostToolMcpServerDefinition({
+      mcpTransport,
+      relay: hostToolRelay,
+      serverName: HOST_TOOL_MCP_SERVER_NAME,
+      catalogPath,
+      initialization,
+      harnessId: bridgeType,
+    }),
   ];
   let createdSession: ACPActiveSession;
   if (start.recoveryMode?.type === 'lossy-rerun') {
@@ -614,6 +699,19 @@ async function ensureSession({
   });
   sessionConfigurationFingerprint = fingerprint;
   return { initialHostToolCatalogRefreshRequired: tools.length > 0 };
+}
+
+function getNativeQuestionToolCallId({
+  params,
+}: {
+  params: unknown;
+}): string | undefined {
+  if (!isRecord(params)) return undefined;
+  if (typeof params.toolCallId === 'string') return params.toolCallId;
+  const nestedParams = params.params;
+  return isRecord(nestedParams) && typeof nestedParams.toolCallId === 'string'
+    ? nestedParams.toolCallId
+    : undefined;
 }
 
 function createExternalMcpServers({

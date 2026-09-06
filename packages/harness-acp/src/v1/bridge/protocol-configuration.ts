@@ -16,11 +16,13 @@ export function createACPInitializeRequest({
   protocolVersion,
   clientApp,
   authentication,
+  clientCapabilities: configuredClientCapabilities,
   supportsBooleanSessionConfigOptions = false,
 }: {
   protocolVersion: number;
   clientApp: ACPClientApp;
   authentication: ACPAuthentication | undefined;
+  clientCapabilities?: Readonly<Record<string, unknown>>;
   supportsBooleanSessionConfigOptions?: boolean;
 }): {
   readonly protocolVersion: number;
@@ -30,8 +32,10 @@ export function createACPInitializeRequest({
   };
   readonly clientCapabilities: Readonly<Record<string, unknown>>;
 } {
-  let clientCapabilities: Readonly<Record<string, unknown>> =
-    authentication?.clientCapabilities ?? {};
+  let clientCapabilities = mergeRecords({
+    left: authentication?.clientCapabilities ?? {},
+    right: configuredClientCapabilities ?? {},
+  });
   if (supportsBooleanSessionConfigOptions) {
     clientCapabilities = mergeRecords({
       left: clientCapabilities,

@@ -40,6 +40,7 @@ import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
   harness: cline,
+  model: 'anthropic/claude-opus-5',
   sandbox: createVercelSandbox({
     runtime: 'node24',
   }),
@@ -79,19 +80,17 @@ Use `createCline()` to configure the runtime:
 ```ts
 const harness = createCline({
   auth: 'direct',
-  modelId: 'anthropic/claude-opus-5',
 });
 ```
 
 Settings:
 
-- `auth`: authentication mode: `auto`, `direct`, or `ai-gateway`.
+- `auth`: authentication mode (`auto`, `direct`, or `ai-gateway`) or an
+  isolated authentication environment.
 - `mcpServers`: MCP server definitions keyed by server name.
 - `providerId`: Cline LLM provider id (e.g. `anthropic`, `openai`, `gemini`).
   When omitted, direct authentication uses the Cline backend. Explicit custom
   providers apply only to direct authentication.
-- `modelId`: model id for the configured provider. When omitted, the Cline SDK
-  selects the provider's default model.
 - `apiKey`: provider API key. When omitted, the Cline gateway falls back to
   the configured provider's environment variable.
 - `baseUrl`: custom provider endpoint.
@@ -127,11 +126,26 @@ environment:
 const harness = createCline({ auth: 'ai-gateway' });
 ```
 
+Pass an authentication environment when the host resolves credentials at
+runtime:
+
+```ts
+const harness = createCline({
+  auth: {
+    AI_GATEWAY_API_KEY: await resolveGatewayToken(),
+    AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh',
+  },
+});
+```
+
+The supplied record replaces the host environment for authentication
+discovery, so it can also select direct authentication with `CLINE_API_KEY`.
+
 `CLINE_API_BASE_URL` is Cline's backend root URL; the SDK's `/api/v1` provider
 path is appended to it. For AI Gateway, the adapter instead overrides Cline's
 in-process provider configuration with the Gateway credential and its `/v1`
 endpoint. Direct Cline credentials are never used as a fallback in explicit
-Gateway mode.
+Gateway mode or when a supplied authentication environment selects Gateway.
 
 ## Sandbox
 

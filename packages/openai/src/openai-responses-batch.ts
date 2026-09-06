@@ -20,6 +20,7 @@ import {
   getFromApi,
   lazySchema,
   normalizeBatchRequestCounts,
+  parseProviderOptions,
   postJsonToApi,
   postToApi,
   safeValidateTypes,
@@ -33,7 +34,10 @@ import {
   openaiErrorDataSchema,
   openaiFailedResponseHandler,
 } from './openai-error';
-import type { OpenAIConfig } from './openai-config';
+import {
+  prepareOpenAIConfigForWorkflowDeserialize,
+  type OpenAIConfig,
+} from './openai-config';
 import { openaiFilesResponseSchema } from './files/openai-files-api';
 import { convertOpenAIResponsesUsage } from './responses/convert-openai-responses-usage';
 import { mapOpenAIResponseFinishReason } from './responses/map-openai-responses-finish-reason';
@@ -41,12 +45,33 @@ import {
   openaiResponsesResponseSchema,
   type OpenAIResponsesLogprobs,
 } from './responses/openai-responses-api';
-import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
+import {
+  mapWebSearchOutput,
+  OpenAIResponsesLanguageModel,
+} from './responses/openai-responses-language-model';
 import type { OpenAIResponsesModelId } from './responses/openai-responses-language-model-options';
 import type { ResponsesReasoningProviderMetadata } from './responses/openai-responses-provider-metadata';
 
 const openaiBatchEndpoint = '/v1/responses';
-const openaiBatchInputFileExpiresAfterSeconds = 48 * 60 * 60;
+const openaiBatchInputFileDefaultExpiresAfterSeconds = 48 * 60 * 60;
+
+const openaiBatchProviderOptionsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      /**
+       * TTL in seconds for the uploaded batch input file, measured from
+       * upload time. OpenAI accepts integers between 3600 (1 hour) and
+       * 2592000 (30 days) inclusive. Defaults to 48 hours.
+       */
+      inputFileExpiresAfter: z
+        .number()
+        .int()
+        .min(3600)
+        .max(2_592_000)
+        .optional(),
+    }),
+  ),
+);
 
 type OpenAIBatchRequest = Parameters<
   BatchLanguageModelV4['experimental_doStartBatch']
@@ -147,6 +172,13 @@ class OpenAIResponsesBatch {
             },
           ];
 
+    const batchOptions = await this.parseBatchProviderOptions(
+      options.providerOptions,
+    );
+    const inputFileExpiresAfterSeconds =
+      batchOptions?.inputFileExpiresAfter ??
+      openaiBatchInputFileDefaultExpiresAfterSeconds;
+
     for (const request of options.requests) {
       const preparedRequest = await this.options.prepareRequest(request);
 
@@ -163,6 +195,23 @@ class OpenAIResponsesBatch {
       for (const warning of preparedRequest.warnings) {
         warnings.push({ requestId: request.id, warning });
       }
+
+      for (const tool of request.options.tools ?? []) {
+        if (
+          tool.type === 'provider' &&
+          !openAIBatchConvertibleProviderToolIds.has(tool.id)
+        ) {
+          warnings.push({
+            requestId: request.id,
+            warning: {
+              type: 'unsupported',
+              feature: `batch result conversion for tool "${tool.name}"`,
+              details:
+                'OpenAI may return output for this tool that AI SDK text batches cannot currently convert.',
+            },
+          });
+        }
+      }
     }
 
     const filename = 'batch.jsonl';
@@ -177,7 +226,7 @@ class OpenAIResponsesBatch {
     formData.append('expires_after[anchor]', 'created_at');
     formData.append(
       'expires_after[seconds]',
-      String(openaiBatchInputFileExpiresAfterSeconds),
+      String(inputFileExpiresAfterSeconds),
     );
 
     const { value: uploadedFile } = await postToApi({
@@ -188,9 +237,7 @@ class OpenAIResponsesBatch {
         values: {
           purpose: 'batch',
           'expires_after[anchor]': 'created_at',
-          'expires_after[seconds]': String(
-            openaiBatchInputFileExpiresAfterSeconds,
-          ),
+          'expires_after[seconds]': String(inputFileExpiresAfterSeconds),
           file: {
             name: filename,
             type: file.type,
@@ -222,11 +269,42 @@ class OpenAIResponsesBatch {
       fetch: this.options.config.fetch,
     });
 
+    const inputFileExpiresAt = convertUnixTimestamp(uploadedFile.expires_at);
+
     return {
       batchId: batch.id,
       ...convertOpenAIBatchStatus(batch),
+      providerMetadata: {
+        openai: {
+          inputFileId: uploadedFile.id,
+          ...(inputFileExpiresAt != null ? { inputFileExpiresAt } : {}),
+        },
+      },
       warnings,
     };
+  }
+
+  private async parseBatchProviderOptions(
+    providerOptions: BatchV4StartOptions<OpenAIBatchRequest>['providerOptions'],
+  ) {
+    const providerOptionsName = this.options.config.provider.includes('azure')
+      ? 'azure'
+      : 'openai';
+    let batchOptions = await parseProviderOptions({
+      provider: providerOptionsName,
+      providerOptions,
+      schema: openaiBatchProviderOptionsSchema,
+    });
+
+    if (batchOptions == null && providerOptionsName !== 'openai') {
+      batchOptions = await parseProviderOptions({
+        provider: 'openai',
+        providerOptions,
+        schema: openaiBatchProviderOptionsSchema,
+      });
+    }
+
+    return batchOptions;
   }
 
   async getBatchStatus(
@@ -382,6 +460,14 @@ class OpenAIResponsesBatch {
   }
 }
 
+const openAIBatchConvertibleProviderToolIds = new Set([
+  'openai.code_interpreter',
+  'openai.custom',
+  'openai.file_search',
+  'openai.web_search',
+  'openai.web_search_preview',
+]);
+
 export class OpenAIResponsesBatchLanguageModel
   extends OpenAIResponsesLanguageModel
   implements BatchLanguageModelV4
@@ -393,12 +479,12 @@ export class OpenAIResponsesBatchLanguageModel
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
-    modelId: OpenAIResponsesModelId;
-    config: OpenAIConfig;
+    modelId: string;
+    config: Parameters<typeof prepareOpenAIConfigForWorkflowDeserialize>[0];
   }) {
     return new OpenAIResponsesBatchLanguageModel(
-      options.modelId,
-      options.config,
+      options.modelId as OpenAIResponsesModelId,
+      prepareOpenAIConfigForWorkflowDeserialize(options.config),
     );
   }
 
@@ -577,6 +663,7 @@ async function convertOpenAIResponsesBatchResponse(
 
   const content: LanguageModelV4GenerateResult['content'] = [];
   const logprobs: Array<NonNullable<OpenAIResponsesLogprobs>> = [];
+  let hasFunctionCall = false;
 
   for (const part of response.output) {
     switch (part.type) {
@@ -612,15 +699,104 @@ async function convertOpenAIResponsesBatchResponse(
       }
 
       case 'function_call':
-      case 'custom_tool_call':
-        return {
-          success: false,
-          error: {
-            message:
-              'OpenAI returned a tool call, but tool calls are not supported in AI SDK text batches.',
-            code: 'unsupported_content',
+        hasFunctionCall = true;
+        content.push({
+          type: 'tool-call',
+          toolCallId: part.call_id,
+          toolName: part.name,
+          input: part.arguments,
+          providerMetadata: {
+            openai: {
+              itemId: part.id,
+              ...(part.namespace != null && { namespace: part.namespace }),
+              ...(part.caller != null && {
+                caller:
+                  part.caller.type === 'program'
+                    ? { type: 'program', callerId: part.caller.caller_id }
+                    : part.caller,
+              }),
+            },
           },
-        };
+        });
+        break;
+
+      case 'custom_tool_call':
+        hasFunctionCall = true;
+        content.push({
+          type: 'tool-call',
+          toolCallId: part.call_id,
+          toolName: part.name,
+          input: JSON.stringify(part.input),
+          providerMetadata: { openai: { itemId: part.id } },
+        });
+        break;
+
+      case 'web_search_call':
+        content.push({
+          type: 'tool-call',
+          toolCallId: part.id,
+          toolName: 'web_search',
+          input: '{}',
+          providerExecuted: true,
+          dynamic: true,
+        });
+        content.push({
+          type: 'tool-result',
+          toolCallId: part.id,
+          toolName: 'web_search',
+          result: mapWebSearchOutput(part.action),
+          dynamic: true,
+        });
+        break;
+
+      case 'file_search_call':
+        content.push({
+          type: 'tool-call',
+          toolCallId: part.id,
+          toolName: 'file_search',
+          input: '{}',
+          providerExecuted: true,
+          dynamic: true,
+        });
+        content.push({
+          type: 'tool-result',
+          toolCallId: part.id,
+          toolName: 'file_search',
+          result: {
+            queries: part.queries,
+            results:
+              part.results?.map(result => ({
+                attributes: result.attributes,
+                fileId: result.file_id,
+                filename: result.filename,
+                score: result.score,
+                text: result.text,
+              })) ?? null,
+          },
+          dynamic: true,
+        });
+        break;
+
+      case 'code_interpreter_call':
+        content.push({
+          type: 'tool-call',
+          toolCallId: part.id,
+          toolName: 'code_interpreter',
+          input: JSON.stringify({
+            code: part.code,
+            containerId: part.container_id,
+          }),
+          providerExecuted: true,
+          dynamic: true,
+        });
+        content.push({
+          type: 'tool-result',
+          toolCallId: part.id,
+          toolName: 'code_interpreter',
+          result: { outputs: part.outputs },
+          dynamic: true,
+        });
+        break;
 
       default:
         return {
@@ -655,7 +831,7 @@ async function convertOpenAIResponsesBatchResponse(
       finishReason: {
         unified: mapOpenAIResponseFinishReason({
           finishReason: response.incomplete_details?.reason,
-          hasFunctionCall: false,
+          hasFunctionCall,
         }),
         raw: response.incomplete_details?.reason ?? undefined,
       },

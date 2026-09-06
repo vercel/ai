@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { applyCredentialForwarding } from './credential-forwarding';
+import {
+  applyCredentialForwarding,
+  createSandboxCredentialEnvironment,
+} from './credential-forwarding';
+import { isSandboxCredentialPlaceholder } from './sandbox-credential-brokering';
 
 describe('applyCredentialForwarding', () => {
   it('preserves the environment when no callback is provided', async () => {
@@ -81,5 +85,40 @@ describe('applyCredentialForwarding', () => {
         },
       }),
     ).rejects.toThrow('credential forwarding failed');
+  });
+});
+
+describe('createSandboxCredentialEnvironment', () => {
+  it('forwards generated placeholders and returns the exact results', async () => {
+    const credentialForwarding = vi.fn(
+      ({ credential }: { credential: string }) => `wrapped-${credential}`,
+    );
+
+    const result = await createSandboxCredentialEnvironment({
+      environment: {
+        API_KEY: 'real-secret',
+        SECOND_API_KEY: 'second-real-secret',
+        BASE_URL: 'https://api.example.com',
+      },
+      credentialEnvironmentVariables: ['API_KEY', 'SECOND_API_KEY'],
+      credentialForwarding,
+    });
+
+    expect(credentialForwarding).toHaveBeenCalledTimes(2);
+    for (const call of credentialForwarding.mock.calls) {
+      expect(isSandboxCredentialPlaceholder(call[0].credential)).toBe(true);
+    }
+    expect(result.API_KEY).toMatch(/^wrapped-aisdkhc_/);
+    expect(result.SECOND_API_KEY).toMatch(/^wrapped-aisdkhc_/);
+  });
+
+  it('does not add absent credential variables', async () => {
+    await expect(
+      createSandboxCredentialEnvironment({
+        environment: { BASE_URL: 'https://api.example.com' },
+        credentialEnvironmentVariables: ['API_KEY'],
+        credentialForwarding: undefined,
+      }),
+    ).resolves.toEqual({});
   });
 });

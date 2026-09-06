@@ -1,9 +1,12 @@
+import { APICallError } from '@ai-sdk/provider';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import { DEFAULT_MAX_DOWNLOAD_SIZE } from './read-response-with-size-limit';
 import {
   createJsonErrorResponseHandler,
   createBinaryResponseHandler,
+  createBinaryStreamResponseHandler,
+  createEventSourceResponseHandler,
   createJsonLinesResponseHandler,
   createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
@@ -84,6 +87,66 @@ describe('createJsonResponseHandler', () => {
     ).rejects.toThrow('exceeded maximum size');
 
     expect(cancelled()).toBe(true);
+  });
+});
+
+describe('createEventSourceResponseHandler', () => {
+  it('should preserve context and mark response body socket errors as retryable', async () => {
+    const socketError = Object.assign(new Error('other side closed'), {
+      code: 'UND_ERR_SOCKET',
+    });
+    const terminatedError = new TypeError('terminated') as TypeError & {
+      cause?: unknown;
+    };
+    terminatedError.cause = socketError;
+    let pullCount = 0;
+    const response = new Response(
+      new ReadableStream<Uint8Array>({
+        pull(controller) {
+          if (pullCount++ === 0) {
+            controller.enqueue(
+              new TextEncoder().encode('data: {"value":"partial"}\n\n'),
+            );
+          } else {
+            controller.error(terminatedError);
+          }
+        },
+      }),
+      {
+        status: 200,
+        headers: { 'x-request-id': 'request-id' },
+      },
+    );
+    const handler = createEventSourceResponseHandler(
+      z.object({ value: z.string() }),
+    );
+    const result = await handler({
+      url: 'test-url',
+      requestBodyValues: { prompt: 'test' },
+      response,
+    });
+    const reader = result.value.getReader();
+
+    await expect(reader.read()).resolves.toMatchObject({
+      value: { success: true, value: { value: 'partial' } },
+    });
+
+    let observedError: unknown;
+    try {
+      await reader.read();
+    } catch (error) {
+      observedError = error;
+    }
+
+    expect(APICallError.isInstance(observedError)).toBe(true);
+    expect(observedError).toMatchObject({
+      name: 'AI_APICallError',
+      message: 'Failed to process successful response',
+      isRetryable: true,
+      statusCode: 200,
+      responseHeaders: { 'x-request-id': 'request-id' },
+      cause: terminatedError,
+    });
   });
 });
 
@@ -233,6 +296,39 @@ describe('createBinaryResponseHandler', () => {
         response,
       }),
     ).rejects.toThrow('Response body is empty');
+  });
+});
+
+describe('createBinaryStreamResponseHandler', () => {
+  it('should pass the response body through as a stream', async () => {
+    const binaryData = new Uint8Array([1, 2, 3, 4]);
+    const response = new Response(binaryData);
+    const handler = createBinaryStreamResponseHandler();
+
+    const result = await handler({
+      url: 'test-url',
+      requestBodyValues: {},
+      response,
+    });
+
+    expect(result.value).toBeInstanceOf(ReadableStream);
+    const collected = new Uint8Array(
+      await new Response(result.value).arrayBuffer(),
+    );
+    expect(collected).toEqual(binaryData);
+  });
+
+  it('should throw EmptyResponseBodyError when response body is null', async () => {
+    const response = new Response(null);
+    const handler = createBinaryStreamResponseHandler();
+
+    await expect(
+      handler({
+        url: 'test-url',
+        requestBodyValues: {},
+        response,
+      }),
+    ).rejects.toThrow('Empty response body');
   });
 });
 

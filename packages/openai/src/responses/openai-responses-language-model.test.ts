@@ -343,12 +343,19 @@ describe('OpenAIResponsesLanguageModel', () => {
               input_tokens_details: {
                 cached_tokens: 234,
                 cache_write_tokens: 45,
+                future_input_detail: {
+                  tokens: 7,
+                },
               },
               output_tokens: 538,
               output_tokens_details: {
                 reasoning_tokens: 123,
+                future_output_detail: ['preserved'],
               },
               total_tokens: 572,
+              future_usage_field: {
+                value: true,
+              },
             },
             user: null,
             metadata: {},
@@ -395,15 +402,25 @@ describe('OpenAIResponsesLanguageModel', () => {
               "total": 538,
             },
             "raw": {
+              "future_usage_field": {
+                "value": true,
+              },
               "input_tokens": 345,
               "input_tokens_details": {
                 "cache_write_tokens": 45,
                 "cached_tokens": 234,
+                "future_input_detail": {
+                  "tokens": 7,
+                },
               },
               "output_tokens": 538,
               "output_tokens_details": {
+                "future_output_detail": [
+                  "preserved",
+                ],
                 "reasoning_tokens": 123,
               },
+              "total_tokens": 572,
             },
           }
         `);
@@ -1075,6 +1092,85 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should replay a regular function named tool_search as a function call', async () => {
+        await createModel('gpt-4o').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Search the synthetic records.' },
+              ],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_123',
+                  toolName: 'tool_search',
+                  input: {
+                    query: 'synthetic query',
+                    limit: 10,
+                  },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_123',
+                  toolName: 'tool_search',
+                  output: {
+                    type: 'json',
+                    value: { tools: [] },
+                  },
+                },
+              ],
+            },
+          ],
+          tools: [
+            {
+              type: 'function',
+              name: 'tool_search',
+              description: 'Search synthetic records',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  query: { type: 'string' },
+                  limit: { type: 'number' },
+                },
+                required: ['query', 'limit'],
+                additionalProperties: false,
+              },
+            },
+          ],
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+
+        expect(requestBody.tools).toMatchObject([
+          {
+            type: 'function',
+            name: 'tool_search',
+          },
+        ]);
+        expect(requestBody.input.slice(1)).toStrictEqual([
+          {
+            type: 'function_call',
+            call_id: 'call_123',
+            name: 'tool_search',
+            arguments: '{"query":"synthetic query","limit":10}',
+          },
+          {
+            type: 'function_call_output',
+            call_id: 'call_123',
+            output: '{"tools":[]}',
+          },
+        ]);
+      });
+
       it('should send metadata provider option', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
@@ -1214,6 +1310,84 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(warnings).toStrictEqual([]);
+      });
+
+      it.each(['none', 'minimal'])(
+        'should omit unsupported GPT-6 reasoning effort %s',
+        async reasoningEffort => {
+          const { warnings } = await createModel('gpt-6-astra').doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              openai: {
+                reasoningEffort,
+              } satisfies OpenAILanguageModelResponsesOptions,
+            },
+          });
+
+          expect(await server.calls[0].requestBodyJson).toStrictEqual({
+            model: 'gpt-6-astra',
+            input: [
+              {
+                role: 'user',
+                content: [{ type: 'input_text', text: 'Hello' }],
+              },
+            ],
+          });
+          expect(warnings).toStrictEqual([
+            {
+              type: 'unsupported',
+              feature: 'reasoningEffort',
+              details:
+                'gpt-6-astra only supports the following reasoning efforts: low, medium, high, xhigh, max',
+            },
+          ]);
+        },
+      );
+
+      it('should strip sampling and logprob settings for GPT-6 models', async () => {
+        const { warnings } = await createModel('gpt-6-astra').doGenerate({
+          prompt: TEST_PROMPT,
+          temperature: 0.5,
+          topP: 0.7,
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'low',
+              logprobs: 5,
+              include: ['message.output_text.logprobs'],
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-6-astra',
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+          reasoning: {
+            effort: 'low',
+            summary: 'detailed',
+          },
+        });
+        expect(warnings).toStrictEqual([
+          {
+            type: 'unsupported',
+            feature: 'temperature',
+            details: 'temperature is not supported for reasoning models',
+          },
+          {
+            type: 'unsupported',
+            feature: 'topP',
+            details: 'topP is not supported for reasoning models',
+          },
+          {
+            type: 'unsupported',
+            feature: 'logprobs',
+            details: 'logprobs is not supported for reasoning models',
+          },
+        ]);
       });
 
       it('should let GPT-5.6 use its default effort with pro mode', async () => {
@@ -1687,6 +1861,123 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should insert a reasoning effort configuration update before the prompt', async () => {
+        const { warnings } = await createModel('gpt-6-astra').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              previousResponseId: 'resp_123',
+              reasoningEffort: 'low',
+              reasoningEffortUpdate: 'high',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-6-astra',
+          input: [
+            {
+              type: 'configuration_update',
+              reasoning: { effort: 'high' },
+            },
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+          previous_response_id: 'resp_123',
+          reasoning: {
+            effort: 'low',
+            summary: 'detailed',
+          },
+        });
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should omit reasoning effort updates for models before GPT-6', async () => {
+        const { warnings } = await createModel('gpt-5.6').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              reasoningEffortUpdate: 'high',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect((await server.calls[0].requestBodyJson).input).toStrictEqual([
+          {
+            role: 'user',
+            content: [{ type: 'input_text', text: 'Hello' }],
+          },
+        ]);
+        expect(warnings).toStrictEqual([
+          {
+            type: 'unsupported',
+            feature: 'reasoningEffortUpdate',
+            details:
+              'reasoningEffortUpdate is only supported by GPT-6 and later models',
+          },
+        ]);
+      });
+
+      it('should omit reasoning effort updates with incompatible automatic context management', async () => {
+        const { warnings } = await createModel('gpt-6-astra').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              reasoningEffortUpdate: 'high',
+              contextManagement: [
+                { type: 'compaction', compactThreshold: 1000 },
+              ],
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect((await server.calls[0].requestBodyJson).input).toStrictEqual([
+          {
+            role: 'user',
+            content: [{ type: 'input_text', text: 'Hello' }],
+          },
+        ]);
+        expect(warnings).toStrictEqual([
+          {
+            type: 'unsupported',
+            feature: 'reasoningEffortUpdate',
+            details:
+              'reasoningEffortUpdate requires standard reasoning mode without automatic compaction or automatic truncation',
+          },
+        ]);
+      });
+
+      it('should omit legacy prompt cache retention for GPT-6 models', async () => {
+        const { warnings } = await createModel('gpt-6-astra').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              promptCacheRetention: '24h',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-6-astra',
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+        });
+        expect(warnings).toStrictEqual([
+          {
+            type: 'unsupported',
+            feature: 'promptCacheRetention',
+            details:
+              'promptCacheRetention is not supported by GPT-6 and later models; use promptCacheOptions instead',
+          },
+        ]);
+      });
+
       it('should send safetyIdentifier provider option', async () => {
         const { warnings } = await createModel('gpt-5').doGenerate({
           prompt: TEST_PROMPT,
@@ -1751,6 +2042,27 @@ describe('OpenAIResponsesLanguageModel', () => {
               'priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported',
           },
         ]);
+      });
+
+      it('should send serviceTier ultrafast provider option', async () => {
+        const { warnings } = await createModel('gpt-5.6-sol').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              serviceTier: 'ultrafast',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5.6-sol',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          service_tier: 'ultrafast',
+        });
+
+        expect(warnings).toStrictEqual([]);
       });
 
       it('should send truncation auto provider option', async () => {
@@ -6325,6 +6637,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "output_tokens_details": {
                   "reasoning_tokens": 123,
                 },
+                "total_tokens": 512,
               },
             },
           },
@@ -6547,6 +6860,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "output_tokens_details": {
                   "reasoning_tokens": 0,
                 },
+                "total_tokens": 0,
               },
             },
           },
@@ -6696,6 +7010,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "output_tokens_details": {
                   "reasoning_tokens": 0,
                 },
+                "total_tokens": 0,
               },
             },
           },
@@ -7129,6 +7444,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "output_tokens_details": {
                   "reasoning_tokens": 256,
                 },
+                "total_tokens": 278,
               },
             },
           },
@@ -7259,6 +7575,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "output_tokens_details": {
                   "reasoning_tokens": 0,
                 },
+                "total_tokens": 14,
               },
             },
           },
@@ -7371,6 +7688,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                     "output_tokens_details": {
                       "reasoning_tokens": 0,
                     },
+                    "total_tokens": 70,
                   },
                 },
               },
@@ -8439,7 +8757,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           message:
             'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.',
           statusCode: 429,
-          isRetryable: true,
+          isRetryable: false,
         });
       });
 
@@ -8537,14 +8855,14 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
       });
 
-      it('should expose raw finish reason from late response.failed incomplete details', async () => {
+      it('should use usage and raw finish reason from a late response.failed event', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'stream-chunks',
           chunks: [
             `data:{"type":"response.created","sequence_number":0,"response":{"id":"resp_failed_with_reason","created_at":1741269019,"model":"gpt-4o-2024-07-18","service_tier":null}}\n\n`,
             `data:{"type":"response.output_item.added","sequence_number":1,"output_index":0,"item":{"id":"msg_failed_with_reason","type":"message"}}\n\n`,
             `data:{"type":"error","sequence_number":2,"error":{"type":"server_error","code":"server_error","message":"response failed","param":null}}\n\n`,
-            `data:{"type":"response.failed","sequence_number":3,"response":{"error":{"code":"server_error","message":"response failed"},"incomplete_details":{"reason":"max_output_tokens"},"usage":null,"service_tier":null}}\n\n`,
+            `data:{"type":"response.failed","sequence_number":3,"response":{"error":{"code":"server_error","message":"response failed"},"incomplete_details":{"reason":"max_output_tokens"},"usage":{"input_tokens":12,"input_tokens_details":{"cached_tokens":2,"future_input_detail":{"tokens":5}},"output_tokens":8,"output_tokens_details":{"reasoning_tokens":3,"future_output_detail":["preserved"]},"total_tokens":20,"future_usage_field":{"value":true}},"service_tier":null}}\n\n`,
           ],
         };
 
@@ -8578,14 +8896,21 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
             {
               "error": {
-                "error": {
-                  "code": "server_error",
-                  "message": "response failed",
-                  "param": null,
-                  "type": "server_error",
+                "code": "server_error",
+                "data": {
+                  "error": {
+                    "code": "server_error",
+                    "message": "response failed",
+                    "param": null,
+                    "type": "server_error",
+                  },
+                  "sequence_number": 2,
+                  "type": "error",
                 },
-                "sequence_number": 2,
-                "type": "error",
+                "isRetryable": true,
+                "message": "response failed",
+                "statusCode": 500,
+                "type": "server_error",
               },
               "type": "error",
             },
@@ -8602,17 +8927,36 @@ describe('OpenAIResponsesLanguageModel', () => {
               "type": "finish",
               "usage": {
                 "inputTokens": {
-                  "cacheRead": undefined,
+                  "cacheRead": 2,
                   "cacheWrite": undefined,
-                  "noCache": undefined,
-                  "total": undefined,
+                  "noCache": 10,
+                  "total": 12,
                 },
                 "outputTokens": {
-                  "reasoning": undefined,
-                  "text": undefined,
-                  "total": undefined,
+                  "reasoning": 3,
+                  "text": 5,
+                  "total": 8,
                 },
-                "raw": undefined,
+                "raw": {
+                  "future_usage_field": {
+                    "value": true,
+                  },
+                  "input_tokens": 12,
+                  "input_tokens_details": {
+                    "cached_tokens": 2,
+                    "future_input_detail": {
+                      "tokens": 5,
+                    },
+                  },
+                  "output_tokens": 8,
+                  "output_tokens_details": {
+                    "future_output_detail": [
+                      "preserved",
+                    ],
+                    "reasoning_tokens": 3,
+                  },
+                  "total_tokens": 20,
+                },
               },
             },
           ]
@@ -8861,6 +9205,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                     "output_tokens_details": {
                       "reasoning_tokens": 320,
                     },
+                    "total_tokens": 572,
                   },
                 },
               },
@@ -8996,6 +9341,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                     "output_tokens_details": {
                       "reasoning_tokens": 320,
                     },
+                    "total_tokens": 572,
                   },
                 },
               },
@@ -9202,6 +9548,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                     "output_tokens_details": {
                       "reasoning_tokens": 320,
                     },
+                    "total_tokens": 572,
                   },
                 },
               },
@@ -9374,6 +9721,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                     "output_tokens_details": {
                       "reasoning_tokens": 320,
                     },
+                    "total_tokens": 572,
                   },
                 },
               },
@@ -9662,6 +10010,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                     "output_tokens_details": {
                       "reasoning_tokens": 420,
                     },
+                    "total_tokens": 673,
                   },
                 },
               },
@@ -9824,6 +10173,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "output_tokens_details": {
                   "reasoning_tokens": 0,
                 },
+                "total_tokens": 150,
               },
             },
           },
@@ -9940,6 +10290,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "output_tokens_details": {
                   "reasoning_tokens": 0,
                 },
+                "total_tokens": 75,
               },
             },
           },
@@ -10157,6 +10508,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "output_tokens_details": {
                   "reasoning_tokens": 1408,
                 },
+                "total_tokens": 7670,
               },
             },
           },
@@ -10368,6 +10720,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "output_tokens_details": {
                   "reasoning_tokens": 1408,
                 },
+                "total_tokens": 7670,
               },
             },
           },

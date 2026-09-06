@@ -13,6 +13,7 @@ export type GatewayImageModelId =
   | 'bytedance/seedream-4.5'
   | 'bytedance/seedream-5.0-lite'
   | 'bytedance/seedream-5.0-pro'
+  | 'meta/muse-image-1.0'
   | 'openai/gpt-image-1'
   | 'openai/gpt-image-1-mini'
   | 'openai/gpt-image-1.5'

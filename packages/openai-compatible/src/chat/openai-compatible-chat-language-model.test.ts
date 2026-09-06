@@ -115,7 +115,7 @@ describe('doGenerate', () => {
     model = 'grok-3',
     headers,
   }: {
-    content?: string;
+    content?: string | Array<Record<string, unknown>>;
     reasoning_content?: string;
     reasoning?: string;
     tool_calls?: Array<{
@@ -381,6 +381,49 @@ describe('doGenerate', () => {
         },
       ]
     `);
+  });
+
+  it('should normalize text and thinking content parts', async () => {
+    prepareJsonResponse({
+      content: [
+        {
+          type: 'thinking',
+          thinking: [
+            { type: 'text', text: 'Let me think' },
+            { type: 'text', text: ' this through.' },
+          ],
+        },
+        { type: 'text', text: 'The answer is 391.' },
+      ],
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toEqual([
+      { type: 'reasoning', text: 'Let me think this through.' },
+      { type: 'text', text: 'The answer is 391.' },
+    ]);
+  });
+
+  it('should ignore unknown content parts', async () => {
+    prepareJsonResponse({
+      content: [
+        {
+          type: 'future-part',
+          text: { nested: true },
+          thinking: { nested: true },
+        },
+        { type: 'text', text: 'The answer is 391.' },
+      ],
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toEqual([{ type: 'text', text: 'The answer is 391.' }]);
   });
 
   it('should support partial usage', async () => {
@@ -2185,6 +2228,37 @@ describe('doStream', () => {
         },
       ]
     `);
+  });
+
+  it('should keep reasoning active when deltas include empty tool calls', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","model":"test-model",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"Think ","tool_calls":[]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","model":"test-model",` +
+          `"choices":[{"index":0,"delta":{"content":"","reasoning_content":"more...","tool_calls":[]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","model":"test-model",` +
+          `"choices":[{"index":0,"delta":{"content":"Hello","reasoning_content":"","tool_calls":[]},"finish_reason":"stop"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(
+      events.filter(({ type }) => type.startsWith('reasoning-')),
+    ).toStrictEqual([
+      { type: 'reasoning-start', id: 'reasoning-0' },
+      { type: 'reasoning-delta', id: 'reasoning-0', delta: 'Think ' },
+      { type: 'reasoning-delta', id: 'reasoning-0', delta: 'more...' },
+      { type: 'reasoning-end', id: 'reasoning-0' },
+    ]);
   });
 
   it('should stream reasoning from reasoning field when reasoning_content is not provided', async () => {

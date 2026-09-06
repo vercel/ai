@@ -8,8 +8,10 @@
  */
 export type HarnessV1CredentialForwarding = (options: {
   /**
-   * The credential value that the adapter would otherwise forward (either the
-   * real credential or a masked value).
+   * The credential value that the adapter would otherwise forward. This is a
+   * generated sandbox placeholder when credential brokering is available and
+   * the real credential otherwise. Use `isSandboxCredentialPlaceholder` from
+   * `@ai-sdk/harness/utils` to distinguish generated placeholders.
    */
   readonly credential: string;
   /** The environment variable name used to expose the value in the sandbox. */

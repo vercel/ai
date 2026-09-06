@@ -136,12 +136,10 @@ export class VercelNetworkPolicyManager {
         requestTransformations:
           this.#state == null
             ? incomingTransformations
-            : [
-                ...this.#state.requestTransformations.map(
-                  cloneRequestTransformation,
-                ),
-                ...incomingTransformations,
-              ],
+            : mergeRequestTransformations({
+                existing: this.#state.requestTransformations,
+                incoming: incomingTransformations,
+              }),
         forwardRules: inspection.forwardRules.map(cloneForwardRule),
         currentPolicy: inspection.currentPolicy,
       });
@@ -577,6 +575,47 @@ function areNetworkPoliciesEqual({
   second: NetworkPolicy;
 }): boolean {
   return stableSerialize(first) === stableSerialize(second);
+}
+
+function mergeRequestTransformations({
+  existing,
+  incoming,
+}: {
+  existing: ReadonlyArray<HarnessV1RequestTransformation>;
+  incoming: ReadonlyArray<HarnessV1RequestTransformation>;
+}): HarnessV1RequestTransformation[] {
+  const merged = existing.map(cloneRequestTransformation);
+  const identities = new Map(
+    merged.map((transformation, index) => [
+      getRequestTransformationIdentity(transformation),
+      index,
+    ]),
+  );
+
+  for (const transformation of incoming) {
+    const clonedTransformation = cloneRequestTransformation(transformation);
+    const identity = getRequestTransformationIdentity(clonedTransformation);
+    const existingIndex = identities.get(identity);
+    if (existingIndex == null) {
+      identities.set(identity, merged.length);
+      merged.push(clonedTransformation);
+    } else {
+      merged[existingIndex] = clonedTransformation;
+    }
+  }
+
+  return merged;
+}
+
+function getRequestTransformationIdentity(
+  transformation: HarnessV1RequestTransformation,
+): string {
+  return stableSerialize({
+    match: transformation.match,
+    transformedHeaderNames: Object.keys(transformation.transform.headers)
+      .map(name => name.toLowerCase())
+      .sort(),
+  });
 }
 
 function stableSerialize(value: unknown): string {

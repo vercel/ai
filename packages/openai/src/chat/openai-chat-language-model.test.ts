@@ -1571,6 +1571,75 @@ describe('doGenerate', () => {
       expect(result.warnings).toStrictEqual([]);
     });
 
+    it.each(['none', 'minimal'] as const)(
+      'should omit unsupported GPT-6 reasoning effort %s',
+      async reasoningEffort => {
+        prepareJsonFixtureResponse('openai-text');
+
+        const result = await provider.chat('gpt-6-astra').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: { reasoningEffort },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-6-astra',
+          messages: [{ role: 'user', content: 'Hello' }],
+        });
+        expect(result.warnings).toStrictEqual([
+          {
+            type: 'unsupported',
+            feature: 'reasoningEffort',
+            details:
+              'gpt-6-astra only supports the following reasoning efforts: low, medium, high, xhigh, max',
+          },
+        ]);
+      },
+    );
+
+    it('should strip sampling and logprob settings for GPT-6 models', async () => {
+      prepareJsonFixtureResponse('openai-text');
+
+      const result = await provider.chat('gpt-6-astra').doGenerate({
+        prompt: TEST_PROMPT,
+        temperature: 0.5,
+        topP: 0.7,
+        providerOptions: {
+          openai: {
+            reasoningEffort: 'low',
+            logprobs: 5,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'gpt-6-astra',
+        messages: [{ role: 'user', content: 'Hello' }],
+        reasoning_effort: 'low',
+      });
+      expect(result.warnings).toStrictEqual([
+        {
+          type: 'unsupported',
+          feature: 'temperature',
+          details: 'temperature is not supported for reasoning models',
+        },
+        {
+          type: 'unsupported',
+          feature: 'topP',
+          details: 'topP is not supported for reasoning models',
+        },
+        {
+          type: 'other',
+          message: 'logprobs is not supported for reasoning models',
+        },
+        {
+          type: 'other',
+          message: 'topLogprobs is not supported for reasoning models',
+        },
+      ]);
+    });
+
     it('should still clear temperature when top-level reasoning is none on o4-mini', async () => {
       prepareJsonFixtureResponse('openai-text');
 
@@ -1969,6 +2038,32 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should omit legacy prompt cache retention for GPT-6 models', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const result = await provider.chat('gpt-6-astra').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          promptCacheRetention: '24h',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-6-astra',
+      messages: [{ role: 'user', content: 'Hello' }],
+    });
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'unsupported',
+        feature: 'promptCacheRetention',
+        details:
+          'promptCacheRetention is not supported by GPT-6 and later models; use promptCacheOptions instead',
+      },
+    ]);
+  });
+
   it('should send safetyIdentifier extension value', async () => {
     prepareJsonFixtureResponse('openai-text');
 
@@ -2305,6 +2400,34 @@ describe('doGenerate', () => {
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.service_tier).toBe('fast');
     expect(result.warnings).toEqual([]);
+  });
+
+  it('should send serviceTier ultrafast processing setting', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('gpt-5.6-sol');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'ultrafast',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "gpt-5.6-sol",
+        "service_tier": "ultrafast",
+      }
+    `);
   });
 });
 
@@ -3347,9 +3470,16 @@ describe('doStream', () => {
         },
         {
           "error": {
-            "code": null,
+            "code": undefined,
+            "data": {
+              "code": null,
+              "message": "stream failed after output",
+              "param": null,
+              "type": "server_error",
+            },
+            "isRetryable": true,
             "message": "stream failed after output",
-            "param": null,
+            "statusCode": 500,
             "type": "server_error",
           },
           "type": "error",

@@ -308,6 +308,7 @@ export function createOpenAI(
   const createResponsesModel = (modelId: OpenAIResponsesModelId) => {
     return new OpenAIResponsesBatchLanguageModel(modelId, {
       provider: `${providerName}.responses`,
+      baseURL,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,

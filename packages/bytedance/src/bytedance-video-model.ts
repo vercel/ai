@@ -392,7 +392,8 @@ export class ByteDanceVideoModel implements VideoModelV4 {
 
     const { value: statusResponse, responseHeaders } = await getFromApi({
       url: `${this.config.baseURL}/contents/generations/tasks/${taskId}`,
-      validateUrl: false,
+      validateUrl: true,
+      trustedOrigin: this.config.baseURL,
       headers: combineHeaders(
         await resolve(this.config.headers),
         options.headers,
@@ -434,6 +435,9 @@ export class ByteDanceVideoModel implements VideoModelV4 {
           bytedance: {
             taskId,
             usage: statusResponse.usage,
+            ...(statusResponse.content?.last_frame_url != null
+              ? { lastFrameUrl: statusResponse.content.last_frame_url }
+              : {}),
           },
         },
       };
@@ -485,6 +489,7 @@ const byteDanceStatusResponseSchema = z.object({
   content: z
     .object({
       video_url: z.string().nullish(),
+      last_frame_url: z.string().nullish(),
     })
     .nullish(),
   usage: z

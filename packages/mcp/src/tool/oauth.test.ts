@@ -594,6 +594,40 @@ describe('discoverAuthorizationServerMetadata', () => {
     expect(metadata).toEqual(tenantMetadata);
   });
 
+  it('returns OAuth metadata when an origin issuer has a trailing slash', async () => {
+    const metadataWithTrailingSlash = {
+      ...validOAuthMetadata,
+      issuer: 'https://auth.example.com/',
+    };
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => metadataWithTrailingSlash,
+    });
+
+    const metadata = await discoverAuthorizationServerMetadata(
+      'https://auth.example.com/',
+    );
+
+    expect(metadata).toEqual(metadataWithTrailingSlash);
+  });
+
+  it('rejects a trailing slash difference for an issuer with a path', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        ...validOAuthMetadata,
+        issuer: 'https://auth.example.com/tenant1/',
+      }),
+    });
+
+    await expect(
+      discoverAuthorizationServerMetadata('https://auth.example.com/tenant1'),
+    ).rejects.toThrow(/does not match expected issuer/);
+  });
+
   it('accepts OAuth metadata when code challenge methods are omitted', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -2023,6 +2057,97 @@ describe('auth function', () => {
       .calls[0][0] as URL;
     expect(authorizationUrl.searchParams.get('scope')).toBe(expectedScope);
   });
+
+  it.each([
+    {
+      name: 'provided challenge scope',
+      scope: 'mcp.challenge',
+      resourceScopes: ['mcp.read', 'mcp.write'],
+      expectedScope: 'mcp.challenge',
+    },
+    {
+      name: 'protected resource metadata scopes',
+      scope: undefined,
+      resourceScopes: ['mcp.read', 'mcp.write'],
+      expectedScope: 'mcp.read mcp.write',
+    },
+    {
+      name: 'no discovered scope',
+      scope: undefined,
+      resourceScopes: undefined,
+      expectedScope: null,
+    },
+  ])(
+    'uses $name for dynamic registration and authorization',
+    async ({ scope, resourceScopes, expectedScope }) => {
+      let registrationBody: Record<string, unknown> | undefined;
+
+      mockFetch.mockImplementation((url, init) => {
+        const urlString = url.toString();
+        if (urlString.includes('/.well-known/oauth-protected-resource')) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              resource: 'https://resource.example.com',
+              authorization_servers: ['https://auth.example.com'],
+              ...(resourceScopes == null
+                ? {}
+                : { scopes_supported: resourceScopes }),
+            }),
+          });
+        }
+
+        if (urlString.includes('/.well-known/oauth-authorization-server')) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              issuer: 'https://auth.example.com',
+              authorization_endpoint: 'https://auth.example.com/authorize',
+              token_endpoint: 'https://auth.example.com/token',
+              registration_endpoint: 'https://auth.example.com/register',
+              response_types_supported: ['code'],
+              code_challenge_methods_supported: ['S256'],
+            }),
+          });
+        }
+
+        if (urlString === 'https://auth.example.com/register') {
+          registrationBody = JSON.parse(init.body);
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              ...registrationBody,
+              client_id: 'test-client',
+            }),
+          });
+        }
+
+        return Promise.resolve({ ok: false, status: 404 });
+      });
+
+      (mockProvider.clientInformation as Mock).mockResolvedValue(undefined);
+      (mockProvider.tokens as Mock).mockResolvedValue(undefined);
+      mockProvider.saveClientInformation = vi.fn();
+      (mockProvider.saveCodeVerifier as Mock).mockResolvedValue(undefined);
+      (mockProvider.redirectToAuthorization as Mock).mockResolvedValue(
+        undefined,
+      );
+
+      const result = await auth(mockProvider, {
+        serverUrl: 'https://resource.example.com',
+        scope,
+      });
+
+      expect(result).toBe('REDIRECT');
+      expect(registrationBody?.scope ?? null).toBe(expectedScope);
+      const authorizationUrl = (mockProvider.redirectToAuthorization as Mock)
+        .mock.calls[0][0] as URL;
+      expect(authorizationUrl.searchParams.get('scope')).toBe(expectedScope);
+    },
+  );
 
   it('includes resource in token exchange when authorization code is provided', async () => {
     // Mock successful metadata discovery and token exchange - need protected resource metadata

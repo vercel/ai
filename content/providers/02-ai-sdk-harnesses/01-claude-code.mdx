@@ -39,6 +39,7 @@ import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
   harness: claudeCode,
+  model: 'claude-sonnet-4-6',
   sandbox: createVercelSandbox({
     runtime: 'node24',
     ports: [4000],
@@ -78,7 +79,6 @@ Use `createClaudeCode()` to configure the runtime:
 
 ```ts
 const harness = createClaudeCode({
-  model: 'claude-sonnet-4-6',
   maxTurns: 10,
   env: {
     DEPLOYMENT_ENV: 'staging',
@@ -92,7 +92,8 @@ const harness = createClaudeCode({
 
 Settings:
 
-- `auth`: authentication mode: `auto`, `direct`, or `ai-gateway`.
+- `auth`: authentication mode (`auto`, `direct`, or `ai-gateway`) or an
+  isolated authentication environment.
 - `credentialForwarding`: optional synchronous or asynchronous callback that
   customizes each credential immediately before the harness adapter forwards it
   into a sandbox process. It receives the credential value that would otherwise
@@ -102,7 +103,6 @@ Settings:
   credentials the harness adapter can discover, read, or otherwise access in
   the host process.
 - `mcpServers`: MCP server definitions keyed by server name.
-- `model`: Anthropic model id passed to the underlying Claude Code runtime.
 - `maxTurns`: maximum internal turns before yielding.
 - `env`: environment variables for the Claude Code process. Values are merged
   over the sandbox bridge process environment and take precedence.
@@ -153,6 +153,18 @@ Select a specific authentication mode when you do not want automatic detection:
 const directHarness = createClaudeCode({ auth: 'direct' });
 const gatewayHarness = createClaudeCode({ auth: 'ai-gateway' });
 ```
+
+Pass an authentication environment to use programmatically resolved
+credentials without reading `process.env`:
+
+```ts
+const harness = createClaudeCode({
+  auth: { ANTHROPIC_API_KEY: await resolveAnthropicToken() },
+});
+```
+
+The supplied record replaces the host environment for authentication
+discovery. Only recognized authentication variables are forwarded.
 
 ## Sandbox
 

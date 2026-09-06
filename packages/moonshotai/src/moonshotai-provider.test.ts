@@ -81,6 +81,17 @@ describe('MoonshotAIProvider', () => {
       const model = provider(modelId);
       expect(model).toBeInstanceOf(MoonshotAIChatLanguageModel);
     });
+
+    it.each([
+      'moonshot-v1-auto',
+      'moonshot-v1-8k-vision-preview',
+      'moonshot-v1-32k-vision-preview',
+      'moonshot-v1-128k-vision-preview',
+    ] as const)('should create a model for official model ID %s', modelId => {
+      const provider = createMoonshotAI();
+
+      expect(provider(modelId).modelId).toBe(modelId);
+    });
   });
 
   describe('chatModel', () => {
@@ -112,9 +123,14 @@ describe('getMoonshotAILanguageModelCapabilities', () => {
     ['kimi-k2.6', true],
     ['kimi-k2.7-code', true],
     ['kimi-k3', true],
-    ['moonshot-v1-8k', false],
-    ['moonshot-v1-32k', false],
-    ['moonshot-v1-128k', false],
+    ['moonshot-v1-8k', true],
+    ['moonshot-v1-32k', true],
+    ['moonshot-v1-128k', true],
+    ['moonshot-v1-auto', true],
+    ['moonshot-v1-8k-vision-preview', true],
+    ['moonshot-v1-32k-vision-preview', true],
+    ['moonshot-v1-128k-vision-preview', true],
+    ['moonshot-v1-custom', false],
     ['custom-model-id', false],
   ])(
     'supportsStructuredOutputs for %s is %s',

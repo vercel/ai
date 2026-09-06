@@ -91,15 +91,21 @@ export type DeepSeekToolChoice =
   | 'required'
   | undefined;
 
+// Loose, nested objects included: the parsed value is returned as `usage.raw`.
 const tokenUsageSchema = z
-  .object({
+  .looseObject({
     prompt_tokens: z.number().nullish(),
     completion_tokens: z.number().nullish(),
     prompt_cache_hit_tokens: z.number().nullish(),
     prompt_cache_miss_tokens: z.number().nullish(),
     total_tokens: z.number().nullish(),
+    prompt_tokens_details: z
+      .looseObject({
+        cached_tokens: z.number().nullish(),
+      })
+      .nullish(),
     completion_tokens_details: z
-      .object({
+      .looseObject({
         reasoning_tokens: z.number().nullish(),
       })
       .nullish(),

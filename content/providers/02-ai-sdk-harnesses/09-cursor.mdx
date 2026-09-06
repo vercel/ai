@@ -43,6 +43,7 @@ import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
   harness: cursor,
+  model: 'gpt-5.6-luna',
   sandbox: createVercelSandbox({
     runtime: 'node24',
     ports: [4000],
@@ -72,7 +73,6 @@ Use `createCursor()` to configure the runtime:
 ```ts
 const harness = createCursor({
   auth: 'ai-gateway',
-  model: 'cursor-model-id',
   port: 4001,
   startupTimeoutMs: 180_000,
 });
@@ -80,10 +80,11 @@ const harness = createCursor({
 
 Settings:
 
-- `auth`: accepts the shared ACP modes `auto`, `direct`, or `ai-gateway`. This
-  cannot change Cursor's provider authentication route. Explicit `direct` and
-  `ai-gateway` values emit a configuration reminder; `auto` does not because it
-  does not declare an expected route.
+- `auth`: accepts the shared ACP modes `auto`, `direct`, or `ai-gateway`, or an
+  isolated authentication environment for `CURSOR_API_KEY`. This cannot change
+  Cursor's provider authentication route. Explicit `direct` and `ai-gateway`
+  values emit a configuration reminder; `auto` does not because it does not
+  declare an expected route.
 - `credentialForwarding`: optional synchronous or asynchronous callback that
   customizes each credential immediately before the harness adapter forwards it
   into a sandbox process. It receives the credential value that would otherwise
@@ -92,8 +93,6 @@ Settings:
   value forwarded into the sandbox process. It does not restrict which
   credentials the harness adapter can discover, read, or otherwise access in
   the host process.
-- `model`: Cursor model id selected through ACP. When omitted, Cursor chooses
-  its own default model.
 - `mcpServers`: MCP server definitions keyed by server name.
 - `port`: ACP bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the ACP bridge to start.
@@ -129,6 +128,18 @@ const automaticHarness = createCursor({ auth: 'auto' });
 const directHarness = createCursor({ auth: 'direct' });
 const gatewayHarness = createCursor({ auth: 'ai-gateway' });
 ```
+
+Supply a programmatically resolved Cursor account credential without mutating
+or reading `process.env`:
+
+```ts
+const harness = createCursor({
+  auth: { CURSOR_API_KEY: await resolveCursorToken() },
+});
+```
+
+This record configures Cursor CLI authentication only. Cursor's account
+settings still control model-provider routing.
 
 ## Sandbox
 
@@ -168,6 +179,10 @@ MCP payload and correlates the call with the host-side tool execution.
   error.
 - Cursor ACP does not expose a structured-output metadata mapping, so schema-backed
   structured output is unsupported.
+- Custom `headers` are not natively supported and only applied via
+  sandbox-external request transformations. When a sandbox without that
+  capability is provided, custom `headers` therefore cannot be passed and are
+  ignored.
 
 ## Related
 

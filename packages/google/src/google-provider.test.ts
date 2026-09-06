@@ -270,6 +270,38 @@ describe('google-provider', () => {
     `);
   });
 
+  it('should support default and configured Google file URLs with a custom baseURL', () => {
+    const provider = createGoogle({
+      apiKey: 'test-api-key',
+      baseURL: 'https://custom-endpoint.example.com/v1beta',
+    });
+    provider('gemini-2.0-flash');
+
+    const call = vi.mocked(GoogleBatchLanguageModel).mock.calls[0];
+    const supportedUrls = call[1].supportedUrls!() as Record<string, RegExp[]>;
+
+    for (const url of [
+      'https://generativelanguage.googleapis.com/v1beta/files/google-file',
+      'https://custom-endpoint.example.com/v1beta/files/custom-file',
+    ]) {
+      expect(
+        isUrlSupported({
+          url,
+          mediaType: 'text/markdown',
+          supportedUrls,
+        }),
+      ).toBe(true);
+    }
+
+    expect(
+      isUrlSupported({
+        url: 'https://example.com/files/unsupported-file',
+        mediaType: 'text/markdown',
+        supportedUrls,
+      }),
+    ).toBe(false);
+  });
+
   it('should support documented external HTTPS URLs for Gemini models that accept external URLs', () => {
     const provider = createGoogle({
       apiKey: 'test-api-key',

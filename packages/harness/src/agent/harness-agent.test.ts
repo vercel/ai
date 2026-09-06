@@ -356,6 +356,157 @@ function makeLifecycleSession(options: {
 }
 
 describe('HarnessAgent', () => {
+  test('runs lifecycle callbacks in order and merges settings before call callbacks', async () => {
+    const builtinTools = {
+      bash: tool({
+        inputSchema: z.object({ command: z.string() }),
+      }),
+    };
+    const { harness } = mockHarness({
+      builtinTools,
+      script: () => [
+        { type: 'stream-start', modelId: 'resolved-model' },
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'bash',
+          input: JSON.stringify({ command: 'pwd' }),
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'bash',
+          result: { output: '/work' },
+        },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          usage: zeroUsage(),
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          totalUsage: zeroUsage(),
+        },
+      ],
+    });
+    const events: string[] = [];
+    const callIds: string[] = [];
+    let stepFromCallback: unknown;
+    let finalStepFromCallback: unknown;
+    const record = (name: string) => (event: { callId: string }) => {
+      events.push(name);
+      callIds.push(event.callId);
+    };
+    const agent = new HarnessAgent({
+      harness,
+      model: 'requested-model',
+      sandbox: makeSandboxProvider(),
+      onStart: record('settings:start'),
+      onStepStart: record('settings:step-start'),
+      onLanguageModelCallStart: event => {
+        events.push(`model-start:${event.modelId}`);
+        callIds.push(event.callId);
+      },
+      onLanguageModelCallEnd: event => {
+        events.push(`model-end:${event.content.at(-1)?.type}`);
+        callIds.push(event.callId);
+      },
+      onToolExecutionStart: record('settings:tool-start'),
+      onToolExecutionEnd: event => {
+        events.push(`settings:tool-end:${event.toolOutput.type}`);
+        callIds.push(event.callId);
+      },
+      onStepEnd: step => {
+        events.push('settings:step-end');
+        callIds.push(step.callId);
+        stepFromCallback = step;
+      },
+      onEnd: event => {
+        events.push('settings:end');
+        callIds.push(event.callId);
+        finalStepFromCallback = event.finalStep;
+      },
+    });
+    const session = await agent.createSession();
+
+    const result = await agent.generate({
+      session,
+      prompt: 'run pwd',
+      onStart: record('call:start'),
+      onStepStart: record('call:step-start'),
+      onToolExecutionStart: record('call:tool-start'),
+      onToolExecutionEnd: record('call:tool-end'),
+      onStepEnd: record('call:step-end'),
+      onEnd: record('call:end'),
+    });
+
+    expect(events).toEqual([
+      'settings:start',
+      'call:start',
+      'settings:step-start',
+      'call:step-start',
+      'model-start:resolved-model',
+      'model-end:tool-result',
+      'settings:tool-start',
+      'call:tool-start',
+      'settings:tool-end:tool-result',
+      'call:tool-end',
+      'settings:step-end',
+      'call:step-end',
+      'settings:end',
+      'call:end',
+    ]);
+    expect(new Set(callIds).size).toBe(1);
+    expect(result.steps[0]).toBe(stepFromCallback);
+    expect(result.finalStep).toBe(finalStepFromCallback);
+    expect(result.finalStep.model).toEqual({
+      provider: 'harness:mock',
+      modelId: 'resolved-model',
+    });
+    await session.destroy();
+  });
+
+  test('ignores lifecycle callback failures', async () => {
+    const { harness } = mockHarness({
+      script: () => [
+        { type: 'text-delta', id: 'text-1', delta: 'done' },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          usage: zeroUsage(),
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          totalUsage: zeroUsage(),
+        },
+      ],
+    });
+    const fail = () => {
+      throw new Error('listener failed');
+    };
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+      onStart: fail,
+      onStepStart: fail,
+      onLanguageModelCallStart: fail,
+      onLanguageModelCallEnd: fail,
+      onStepEnd: fail,
+      onEnd: fail,
+    });
+    const session = await agent.createSession();
+
+    await expect(
+      agent.generate({ session, prompt: 'go' }),
+    ).resolves.toMatchObject({
+      text: 'done',
+    });
+    await session.destroy();
+  });
+
   test('exposes the AI SDK Agent contract surface', () => {
     const { harness } = mockHarness({ script: () => [] });
     const agent = new HarnessAgent({
@@ -367,6 +518,278 @@ describe('HarnessAgent', () => {
     expect(agent.id).toBe('a1');
     expect(agent.harnessId).toBe('mock');
     expect(agent.tools).toEqual({});
+  });
+
+  test('rejects a caller-defined question tool when the harness owns that name', () => {
+    const { harness } = mockHarness({
+      script: () => [],
+      builtinTools: {
+        askUserQuestions: tool({
+          inputSchema: z.object({ questions: z.array(z.unknown()) }),
+        }),
+      },
+    });
+
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          tools: {
+            askUserQuestions: tool({
+              inputSchema: z.object({}),
+            }),
+          },
+          sandbox: makeSandboxProvider(),
+        }),
+    ).toThrow(
+      "HarnessAgent tool name 'askUserQuestions' is reserved for harness question requests.",
+    );
+  });
+
+  test('allows that caller-defined name when the harness has no question tool', () => {
+    const { harness } = mockHarness({ script: () => [] });
+
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          tools: {
+            askUserQuestions: tool({
+              inputSchema: z.object({}),
+            }),
+          },
+          sandbox: makeSandboxProvider(),
+        }),
+    ).not.toThrow();
+  });
+
+  test('passes the configured model to each turn', async () => {
+    const promptOptions: HarnessV1PromptTurnOptions[] = [];
+    const { harness, doStart } = mockHarness({
+      script: () => finishEvents(),
+      onPromptTurn: options => promptOptions.push(options),
+    });
+    const agent = new HarnessAgent({
+      harness,
+      model: 'harness-specific-model',
+      sandbox: makeSandboxProvider(),
+    });
+
+    const session = await agent.createSession();
+    await agent.generate({ session, prompt: 'Hello' });
+
+    expect(doStart.mock.calls[0]?.[0]).not.toHaveProperty('model');
+    expect(promptOptions[0]).toMatchObject({
+      model: 'harness-specific-model',
+    });
+    await session.destroy();
+  });
+
+  test('passes an undefined model to a turn when no model is configured', async () => {
+    const promptOptions: HarnessV1PromptTurnOptions[] = [];
+    const { harness, doStart } = mockHarness({
+      script: () => finishEvents(),
+      onPromptTurn: options => promptOptions.push(options),
+    });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+    });
+
+    const session = await agent.createSession();
+    await agent.generate({ session, prompt: 'Hello' });
+
+    expect(doStart.mock.calls[0]?.[0]).not.toHaveProperty('model');
+    expect(promptOptions[0]).toHaveProperty('model', undefined);
+    await session.destroy();
+  });
+
+  test('normalizes and snapshots headers before passing them to doStart', async () => {
+    const { harness, doStart } = mockHarness({
+      script: () => finishEvents(),
+    });
+    const headers: Record<string, string | undefined> = {
+      'X-Tenant': 'acme',
+      'X-Optional': undefined,
+    };
+    const agent = new HarnessAgent({
+      harness,
+      headers,
+      sandbox: makeSandboxProvider(),
+    });
+    headers['X-Tenant'] = 'mutated';
+
+    const session = await agent.createSession();
+
+    expect(doStart.mock.calls[0]?.[0]).toMatchObject({
+      headers: { 'x-tenant': 'acme' },
+    });
+    await session.destroy();
+  });
+
+  test.each([
+    'authorization',
+    'Authorization',
+    'x-api-key',
+    'X-API-Key',
+    'user-agent',
+    'User-Agent',
+    'x-client-app',
+    'X-Client-App',
+  ])('rejects the managed header %s', header => {
+    const { harness } = mockHarness({
+      script: () => finishEvents(),
+    });
+
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          headers: { [header]: 'caller-value' },
+          sandbox: makeSandboxProvider(),
+        }),
+    ).toThrow(
+      `HarnessAgent: \`headers\` must not include the managed header \`${header.toLowerCase()}\`.`,
+    );
+  });
+
+  test('rejects a managed header with an undefined value', () => {
+    const { harness } = mockHarness({
+      script: () => finishEvents(),
+    });
+
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          headers: { Authorization: undefined },
+          sandbox: makeSandboxProvider(),
+        }),
+    ).toThrow(
+      'HarnessAgent: `headers` must not include the managed header `authorization`.',
+    );
+  });
+
+  test('passes stable headers when resuming a session', async () => {
+    const { harness, doStart } = mockHarness({
+      script: () => finishEvents(),
+    });
+    const sandboxSession = makeSandboxSession();
+    const agent = new HarnessAgent({
+      harness,
+      headers: { 'x-tenant': 'acme' },
+      sandbox: makeSandboxProvider(sandboxSession),
+    });
+    const session = await agent.createSession({ sessionId: 'session-1' });
+    const resumeFrom = await session.stop();
+
+    const resumedSession = await agent.createSession({
+      sessionId: 'session-1',
+      resumeFrom,
+    });
+
+    expect(doStart).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        headers: { 'x-tenant': 'acme' },
+        resumeFrom,
+      }),
+    );
+    await resumedSession.destroy();
+  });
+
+  test('prepares model, skills, instructions, tools, and the prompt for each fresh turn', async () => {
+    const promptOptions: HarnessV1PromptTurnOptions[] = [];
+    const { harness, doStart } = mockHarness({
+      script: () => finishEvents(),
+      onPromptTurn: options => promptOptions.push(options),
+    });
+    const echo = tool({
+      description: 'Echo a value.',
+      inputSchema: z.object({ value: z.string() }),
+      execute: async ({ value }) => value,
+    });
+    const onPrepareCall = vi.fn();
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+      tools: { echo },
+      callOptionsSchema: z.object({ tenant: z.string() }),
+      prepareCall: ({ options, ...rest }) => {
+        onPrepareCall(options);
+        return {
+          ...rest,
+          prompt: `${rest.prompt} for ${options.tenant}`,
+          model: `model-${options.tenant}`,
+          skills: [
+            {
+              name: options.tenant,
+              description: `${options.tenant} skill`,
+              content: `${options.tenant} instructions`,
+            },
+          ],
+          instructions: `Serve ${options.tenant}`,
+          tools: options.tenant === 'alpha' ? { echo } : undefined,
+        };
+      },
+    });
+    const session = await agent.createSession();
+
+    await agent.generate({
+      session,
+      prompt: 'Hello',
+      options: { tenant: 'alpha' },
+    });
+    await agent.generate({
+      session,
+      prompt: 'Hello',
+      options: { tenant: 'beta' },
+    });
+
+    expect(doStart.mock.calls[0]?.[0]).not.toHaveProperty('model');
+    expect(doStart.mock.calls[0]?.[0]).not.toHaveProperty('skills');
+    expect(doStart.mock.calls[0]?.[0]).not.toHaveProperty('instructions');
+    expect(doStart.mock.calls[0]?.[0]).not.toHaveProperty('tools');
+    expect(promptOptions).toHaveLength(2);
+    expect(promptOptions[0]).toMatchObject({
+      prompt: 'Hello for alpha',
+      model: 'model-alpha',
+      instructions: 'Serve alpha',
+      skills: [{ name: 'alpha' }],
+      tools: [{ name: 'echo', description: 'Echo a value.' }],
+    });
+    expect(promptOptions[1]).toMatchObject({
+      prompt: 'Hello for beta',
+      model: 'model-beta',
+      instructions: 'Serve beta',
+      skills: [{ name: 'beta' }],
+      tools: [],
+    });
+    expect(onPrepareCall).toHaveBeenCalledTimes(2);
+    await session.destroy();
+  });
+
+  test('validates custom call options before preparing a turn', async () => {
+    const { harness } = mockHarness({ script: () => finishEvents() });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+      callOptionsSchema: z.object({ tenant: z.string() }),
+      prepareCall: ({ options, ...rest }) => ({
+        ...rest,
+        prompt: `${rest.prompt} for ${options.tenant}`,
+      }),
+    });
+    const session = await agent.createSession();
+
+    await expect(
+      agent.generate({
+        session,
+        prompt: 'Hello',
+        options: { tenant: 123 } as never,
+      }),
+    ).rejects.toThrow();
+    await session.destroy();
   });
 
   test('experimental_steer() submits a message to the running turn', async () => {
@@ -606,6 +1029,7 @@ describe('HarnessAgent', () => {
       harnessId: 'mock',
       specificationVersion: 'harness-v1',
       data: {},
+      turnSettings: { skills: [], tools: [] },
     });
     expect(doSuspendTurn).toHaveBeenCalledTimes(1);
   });
@@ -1079,6 +1503,7 @@ describe('HarnessAgent', () => {
       harnessId: 'mock',
       specificationVersion: 'harness-v1',
       data: {},
+      turnSettings: { skills: [], tools: [] },
     });
     expect(session.hasUnfinishedTurn()).toBe(true);
     await expect(result.steps).resolves.toEqual([]);
@@ -1125,6 +1550,44 @@ describe('HarnessAgent', () => {
     await expect(
       agent.generate({ session, prompt: 'recover' }),
     ).resolves.toBeDefined();
+
+    await session.destroy();
+  });
+
+  test('does not log a bridge error to stderr for a turn the caller aborted', async () => {
+    const abortController = new AbortController();
+    abortController.abort();
+    const { harness } = mockHarness({
+      script: () => [
+        {
+          type: 'error',
+          error: 'AbortError: This operation was aborted',
+        },
+      ],
+    });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession();
+
+    const stderrSpy = vi
+      .spyOn(process.stderr, 'write')
+      .mockImplementation(() => true);
+    try {
+      const aborted = await agent.stream({
+        session,
+        prompt: 'abort',
+        abortSignal: abortController.signal,
+      });
+      await aborted.consumeStream();
+
+      // The caller's own signal produced the error-shaped part; diagnosing it
+      // to stderr would read as a malfunction.
+      const errorLines = stderrSpy.mock.calls
+        .map(call => String(call[0]))
+        .filter(line => line.includes('harness stream error'));
+      expect(errorLines).toEqual([]);
+    } finally {
+      stderrSpy.mockRestore();
+    }
 
     await session.destroy();
   });
@@ -1267,7 +1730,7 @@ describe('HarnessAgent', () => {
       description: 'Get weather',
       inputSchema: z.object({ city: z.string() }),
     });
-    const { harness, toolResults } = mockHarness({
+    const { harness, toolResults, doContinueTurn } = mockHarness({
       script: () => [
         {
           type: 'tool-call',
@@ -1307,14 +1770,35 @@ describe('HarnessAgent', () => {
         },
       ],
     });
+    let prepareCallCount = 0;
     const agent = new HarnessAgent({
       harness,
       tools: { weather },
+      callOptionsSchema: z.object({ city: z.string() }),
+      prepareCall: ({ options, ...call }) => {
+        prepareCallCount += 1;
+        return {
+          ...call,
+          skills: [
+            {
+              name: `${options.city}-weather`,
+              description: 'Weather guidance.',
+              content: 'Use the weather tool.',
+            },
+          ],
+          instructions: `Be concise about ${options.city}.`,
+          tools: { weather },
+        };
+      },
       sandbox: makeSandboxProvider(),
     });
     let session = await agent.createSession();
 
-    const first = await agent.stream({ session, prompt: 'Check Lima weather' });
+    const first = await agent.stream({
+      session,
+      prompt: 'Check Lima weather',
+      options: { city: 'lima' },
+    });
     await first.consumeStream();
 
     expect(session.hasUnfinishedTurn()).toBe(true);
@@ -1331,6 +1815,11 @@ describe('HarnessAgent', () => {
         input: JSON.stringify({ city: 'Lima' }),
       },
     ]);
+    expect(continueFrom.turnSettings).toMatchObject({
+      skills: [{ name: 'lima-weather' }],
+      instructions: 'Be concise about lima.',
+      tools: [{ name: 'weather', description: 'Get weather' }],
+    });
 
     session = await agent.createSession({ sessionId, continueFrom });
     expect(session.hasUnfinishedTurn()).toBe(true);
@@ -1338,8 +1827,13 @@ describe('HarnessAgent', () => {
       session,
       toolResultContinuations: [
         {
+          type: 'tool-result',
           toolCallId: 'c1',
-          output: { city: 'Lima', celsius: 19 },
+          toolName: 'weather',
+          output: {
+            type: 'json',
+            value: { city: 'Lima', celsius: 19 },
+          },
         },
       ],
     });
@@ -1353,6 +1847,15 @@ describe('HarnessAgent', () => {
         toolCallId: 'c1',
         output: { city: 'Lima', celsius: 19 },
         isError: undefined,
+        toolResult: {
+          type: 'tool-result',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          output: {
+            type: 'json',
+            value: { city: 'Lima', celsius: 19 },
+          },
+        },
       },
     ]);
     expect(continuedPartTypes).toEqual([
@@ -1366,6 +1869,14 @@ describe('HarnessAgent', () => {
       'It is 19°C in Lima.',
     ]);
     expect(session.hasUnfinishedTurn()).toBe(false);
+    expect(prepareCallCount).toBe(1);
+    expect(doContinueTurn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skills: [expect.objectContaining({ name: 'lima-weather' })],
+        instructions: 'Be concise about lima.',
+        tools: [expect.objectContaining({ name: 'weather' })],
+      }),
+    );
 
     await session.destroy();
   });
@@ -1421,6 +1932,15 @@ describe('HarnessAgent', () => {
         toolCallId: 'c1',
         output: { city: 'Lima', celsius: 19 },
         isError: undefined,
+        toolResult: {
+          type: 'tool-result',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          output: {
+            type: 'json',
+            value: { city: 'Lima', celsius: 19 },
+          },
+        },
       },
     ]);
     expect(session.hasUnfinishedTurn()).toBe(false);
@@ -1917,6 +2437,64 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
+  test('ensures the harness bootstrap recipe on resumed sessions', async () => {
+    const base = mockHarness({ script: () => [] });
+    const recipe: HarnessV1Bootstrap = {
+      harnessId: 'mock',
+      bootstrapDir: '.harness-bootstrap/mock',
+      files: [],
+      commands: [],
+    };
+    const harness: HarnessV1 = {
+      ...base.harness,
+      getBootstrap: vi.fn(async () => recipe),
+    };
+    // No marker: the sandbox was bootstrapped by an older recipe, or never.
+    const readTextFile = vi.fn(async (_options: { path: string }) => null);
+    const writeTextFile = vi.fn(async () => {});
+    const run = vi.fn(async (args: { command: string }) => ({
+      exitCode: 0,
+      stdout: args.command === 'pwd' ? '/work\n' : '',
+      stderr: '',
+    }));
+    const restrictedSession = { run, readTextFile, writeTextFile };
+    const sandboxSession = makeSandboxSession({
+      run,
+      restricted: () => restrictedSession as never,
+    });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(sandboxSession),
+      sandboxConfig: { workDir: 'ai-sdk' },
+    });
+
+    const session = await agent.createSession({
+      sessionId: 's1',
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'mock',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
+
+    expect(readTextFile.mock.calls[0]![0]).toEqual(
+      expect.objectContaining({
+        path: expect.stringMatching(
+          /^\/work\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
+        ),
+      }),
+    );
+    const writeCalls = writeTextFile.mock.calls as unknown as Array<
+      [{ path: string }]
+    >;
+    expect(writeCalls.at(-1)?.[0]?.path).toMatch(
+      /^\/work\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
+    );
+
+    await session.destroy();
+  });
+
   test('sandboxConfig.onSession runs for resumed sessions', async () => {
     const { harness } = mockHarness({ script: () => [] });
     const sandboxSessionEvents: Array<{ sessionWorkDir: string }> = [];
@@ -2293,7 +2871,7 @@ describe('HarnessAgent', () => {
     const state = await session.detach();
 
     expect(parts).toContain('tool-approval-request');
-    expect(state).toEqual({
+    expect(state).toMatchObject({
       type: 'resume-session',
       harnessId: 'mock',
       specificationVersion: 'harness-v1',

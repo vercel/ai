@@ -1,3 +1,4 @@
+import { DownloadError, type FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { KlingAIVideoModel } from './klingai-video-model';
@@ -115,18 +116,23 @@ const i2vDefaultOptions = {
 const TEST_BASE_URL = 'https://api-singapore.klingai.com';
 
 function createBasicModel({
+  baseURL = TEST_BASE_URL,
+  fetch,
   headers,
   currentDate,
   modelId = 'kling-v2.6-motion-control',
 }: {
+  baseURL?: string;
+  fetch?: FetchFunction;
   headers?: Record<string, string | undefined>;
   currentDate?: () => Date;
   modelId?: string;
 } = {}) {
   return new KlingAIVideoModel(modelId, {
     provider: 'klingai.video',
-    baseURL: TEST_BASE_URL,
+    baseURL,
     headers: headers ?? { Authorization: 'Bearer test-jwt-token' },
+    fetch,
     _internal: {
       currentDate,
     },
@@ -1422,6 +1428,40 @@ describe('KlingAIVideoModel', () => {
         authorization: 'Bearer custom-token',
         'x-request-header': 'request-value',
       });
+    });
+
+    it('should validate redirects after trusting the configured origin', async () => {
+      const calls: Array<{ url: string; init?: RequestInit }> = [];
+      const fetch: FetchFunction = async (url, init) => {
+        calls.push({ url: url.toString(), init });
+        return new Response(null, {
+          status: 302,
+          headers: {
+            Location: 'http://169.254.169.254/latest/meta-data/',
+          },
+        });
+      };
+      const model = createBasicModel({
+        baseURL: 'http://localhost:3000',
+        fetch,
+        modelId: 'kling-v2.6-t2v',
+      });
+
+      await expect(
+        model.doStatus({
+          operation: {
+            taskId: 'task-abc-123',
+            endpointPath: '/v1/videos/text2video',
+          },
+        }),
+      ).rejects.toBeInstanceOf(DownloadError);
+
+      expect(calls).toStrictEqual([
+        {
+          url: 'http://localhost:3000/v1/videos/text2video/task-abc-123',
+          init: expect.objectContaining({ redirect: 'manual' }),
+        },
+      ]);
     });
 
     it('should include response metadata', async () => {

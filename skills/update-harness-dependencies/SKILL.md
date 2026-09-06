@@ -58,6 +58,14 @@ pnpm --dir packages/harness-grok-build/src/bridge update @agentclientprotocol/sd
 pnpm --dir packages/harness-opencode/src/bridge update @opencode-ai/sdk opencode-ai --latest --ignore-workspace --config.minimumReleaseAge=4320
 ```
 
+For bridge CLI packages that require install scripts, also update the exact
+version in the bridge's `pnpm-workspace.yaml` `allowBuilds` entry to match the
+new version in its `package.json`:
+
+- `packages/harness-claude-code/src/bridge/pnpm-workspace.yaml`
+- `packages/harness-grok-build/src/bridge/pnpm-workspace.yaml`
+- `packages/harness-opencode/src/bridge/pnpm-workspace.yaml`
+
 The following harness adapters use an unversioned installer script instead of an NPM package for their SDK / CLI and therefore can be ignored:
 
 - `packages/harness-cursor`

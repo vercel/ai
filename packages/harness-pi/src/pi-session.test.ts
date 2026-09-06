@@ -165,7 +165,6 @@ describe('createPiSession', () => {
       sessionId: 'session-structured-output',
       sandboxSession: createSandboxSession(),
       sessionWorkDir: '/sandbox/work',
-      skills: [],
       settings: {},
       clientApp: 'ai-sdk/harness-pi/0.0.0-test',
       isResume: false,
@@ -174,6 +173,8 @@ describe('createPiSession', () => {
     try {
       await expect(
         session.doPromptTurn({
+          skills: [],
+          tools: [],
           prompt: 'Generate an object.',
           responseFormat: {
             type: 'json',
@@ -271,6 +272,7 @@ describe('createPiSession', () => {
     try {
       for (const prompt of ['first turn', 'second turn']) {
         const control = await session.doPromptTurn({
+          skills: [],
           prompt,
           tools: [],
           emit: vi.fn(),
@@ -282,6 +284,60 @@ describe('createPiSession', () => {
       expect(observedEvents).toEqual(['agent_start', 'agent_start']);
       expect(piMock.resourceLoaderReloadCount).toBe(3);
       expect(piMock.agentSessionExtensionResults).toHaveLength(1);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('materializes skills under sandbox HOME on prompt turn', async () => {
+    piMock.session = {
+      abort: vi.fn(async () => {}),
+      compact: vi.fn(async () => {}),
+      dispose: vi.fn(),
+      getSessionStats: () => ({
+        tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      }),
+      prompt: vi.fn(async () => {}),
+      steer: vi.fn(async () => {}),
+      subscribe: vi.fn(() => () => {}),
+    } as unknown as AgentSession;
+    const sandboxSession = createSandboxSession();
+    const session = await createPiSession({
+      sessionId: 'session-skills',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+      isResume: false,
+    });
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [
+          {
+            name: 'demo-skill',
+            description: 'Demo skill description',
+            content: 'Skill instructions content',
+          },
+        ],
+        prompt: 'test prompt',
+        tools: [],
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      expect(sandboxSession.run).toHaveBeenCalledWith(
+        expect.objectContaining({
+          command: "mkdir -p '/sandbox/home/.agents/skills'",
+        }),
+      );
+      expect(sandboxSession.writeTextFile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: '/sandbox/home/.agents/skills/demo-skill/SKILL.md',
+          content:
+            '---\nname: demo-skill\ndescription: Demo skill description\n---\n\nSkill instructions content',
+        }),
+      );
     } finally {
       await session.doDestroy();
     }
@@ -308,7 +364,6 @@ describe('createPiSession', () => {
       sessionId: 'session-steering',
       sandboxSession: createSandboxSession(),
       sessionWorkDir: '/sandbox/work',
-      skills: [],
       settings: {},
       clientApp: 'ai-sdk/harness-pi/0.0.0-test',
       isResume: false,
@@ -316,6 +371,7 @@ describe('createPiSession', () => {
 
     try {
       const control = await session.doPromptTurn({
+        skills: [],
         prompt: 'Weather in Paris?',
         tools: [],
         emit: vi.fn(),
@@ -354,12 +410,14 @@ describe('createPiSession', () => {
 
     try {
       const firstControl = await session.doPromptTurn({
+        skills: [],
         prompt: 'first turn',
         tools: [],
         emit: vi.fn(),
       });
       await firstControl.done;
       const secondControl = await session.doPromptTurn({
+        skills: [],
         prompt: 'second turn',
         tools: [{ name: 'new-tool' }],
         emit: vi.fn(),
@@ -419,7 +477,6 @@ describe('createPiSession', () => {
       sessionId: 'session-mcp',
       sandboxSession,
       sessionWorkDir: '/sandbox/work',
-      skills: [],
       settings: {
         mcpServers: {
           memory: { command: 'memory-mcp', args: [] },
@@ -429,6 +486,7 @@ describe('createPiSession', () => {
       isResume: false,
     });
     const control = await session.doPromptTurn({
+      skills: [],
       prompt: 'Use an MCP tool.',
       tools: [],
       emit: vi.fn(),
@@ -491,7 +549,6 @@ describe('createPiSession', () => {
         sessionId: 'session-unsafe',
         sandboxSession,
         sessionWorkDir: '/sandbox/work',
-        skills: [],
         settings: {},
         clientApp: 'ai-sdk/harness-pi/0.0.0-test',
         isResume: true,
@@ -524,7 +581,6 @@ describe('createPiSession', () => {
       sessionId: 'session-instructions',
       sandboxSession: createSandboxSession(),
       sessionWorkDir: '/sandbox/work',
-      skills: [],
       settings: {
         mcpServers: { memory: { command: 'memory-mcp', args: [] } },
       },
@@ -532,6 +588,8 @@ describe('createPiSession', () => {
       isResume: false,
     });
     const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'do the thing',
       instructions: 'Use turbo build.',
       emit: vi.fn(),
@@ -577,13 +635,13 @@ describe('createPiSession', () => {
       sessionId: 'session-1',
       sandboxSession,
       sessionWorkDir: '/sandbox/work',
-      skills: [],
       settings: {},
       clientApp: 'ai-sdk/harness-pi/0.0.0-test',
       isResume: false,
     });
     const toolSpecs: HarnessV1ToolSpec[] = [{ name: 'weather' }];
     const control = await session.doPromptTurn({
+      skills: [],
       prompt: 'go',
       tools: toolSpecs,
       emit: vi.fn(),
@@ -602,12 +660,12 @@ describe('createPiSession', () => {
       sessionId: 'session-1',
       sandboxSession,
       sessionWorkDir: '/sandbox/work',
-      skills: [],
       settings: {},
       clientApp: 'ai-sdk/harness-pi/0.0.0-test',
       isResume: true,
     });
     const resumedControl = await resumedSession.doContinueTurn({
+      skills: [],
       tools: toolSpecs,
       emit: vi.fn(),
     });
@@ -655,7 +713,6 @@ describe('createPiSession', () => {
       sessionId: 'session-cross-process',
       sandboxSession,
       sessionWorkDir: '/sandbox/work',
-      skills: [],
       settings: {},
       clientApp: 'ai-sdk/harness-pi/0.0.0-test',
       isResume: true,
@@ -664,6 +721,7 @@ describe('createPiSession', () => {
 
     const emit = vi.fn();
     const control = await session.doContinueTurn({
+      skills: [],
       tools: [{ name: 'askUser' }],
       instructions: 'Return the tool result exactly.',
       emit,
@@ -736,13 +794,13 @@ describe('createPiSession', () => {
         sessionFileContent: 'pi-journal',
       }),
       sessionWorkDir: '/sandbox/work',
-      skills: [],
       settings: {},
       clientApp: 'ai-sdk/harness-pi/0.0.0-test',
       isResume: true,
       resumeSessionFileName: 'pi-session.jsonl',
     });
     const control = await session.doContinueTurn({
+      skills: [],
       tools: [{ name: 'askUser' }],
       emit: vi.fn(),
     });
@@ -804,7 +862,6 @@ describe('createPiSession', () => {
       sessionId: 'session-cross-process-resolved',
       sandboxSession,
       sessionWorkDir: '/sandbox/work',
-      skills: [],
       settings: {},
       clientApp: 'ai-sdk/harness-pi/0.0.0-test',
       isResume: true,
@@ -812,6 +869,7 @@ describe('createPiSession', () => {
     });
 
     const control = await session.doContinueTurn({
+      skills: [],
       tools: [{ name: 'askUser' }],
       emit: vi.fn(),
     });
@@ -841,7 +899,6 @@ describe('createPiSession', () => {
       sessionId: 'session-cross-process-reentrant',
       sandboxSession,
       sessionWorkDir: '/sandbox/work',
-      skills: [],
       settings: {},
       clientApp: 'ai-sdk/harness-pi/0.0.0-test',
       isResume: true,
@@ -851,6 +908,7 @@ describe('createPiSession', () => {
     // First continuation delivers only tool-1's result, then ends (e.g. it
     // paused again awaiting a tool-result continuation for tool-2).
     const firstControl = await session.doContinueTurn({
+      skills: [],
       tools: [{ name: 'askUser' }],
       emit: vi.fn(),
     });
@@ -863,6 +921,7 @@ describe('createPiSession', () => {
     // Second continuation: the framework will only re-deliver tool-2 — it
     // marked tool-1 settled. The new barrier must not wait on tool-1 again.
     const secondControl = await session.doContinueTurn({
+      skills: [],
       tools: [{ name: 'askUser' }],
       emit: vi.fn(),
     });
@@ -917,7 +976,6 @@ describe('createPiSession', () => {
       sessionId: 'session-cross-process-partial',
       sandboxSession,
       sessionWorkDir: '/sandbox/work',
-      skills: [],
       settings: {},
       clientApp: 'ai-sdk/harness-pi/0.0.0-test',
       isResume: true,
@@ -925,6 +983,7 @@ describe('createPiSession', () => {
     });
 
     const control = await session.doContinueTurn({
+      skills: [],
       tools: [{ name: 'askUser' }],
       emit: vi.fn(),
     });
@@ -1026,6 +1085,7 @@ describe('createPiSession', () => {
     const attachedEmit = vi.fn();
 
     const attachedControl = await setup.session.doContinueTurn({
+      skills: [],
       tools: [{ name: 'askUser' }],
       emit: attachedEmit,
     });
@@ -1119,18 +1179,9 @@ describe('createPiSession', () => {
         session,
         toolApprovalContinuations: [
           {
-            approvalResponse: {
-              type: 'tool-approval-response',
-              approvalId: 'approval-1',
-              approved: true,
-            },
-            toolCall: {
-              type: 'tool-call',
-              toolCallId: 'tool-1',
-              toolName: 'askUser',
-              input: { question: 'Choose an option' },
-              providerExecuted: false,
-            },
+            type: 'tool-approval-response',
+            approvalId: 'approval-1',
+            approved: true,
           },
         ],
       });
@@ -1163,7 +1214,6 @@ describe('createPiSession', () => {
       sessionId: 'session-agentdir',
       sandboxSession,
       sessionWorkDir: '/sandbox/work',
-      skills: [],
       settings: {},
       clientApp: 'ai-sdk/harness-pi/0.0.0-test',
       isResume: false,
@@ -1189,7 +1239,6 @@ describe('createPiSession', () => {
       sessionId: 'session-no-agentdir',
       sandboxSession,
       sessionWorkDir: '/sandbox/work',
-      skills: [],
       settings: {},
       clientApp: 'ai-sdk/harness-pi/0.0.0-test',
       isResume: false,
@@ -1265,7 +1314,6 @@ async function startDeferredCrossProcessRerun({
       sessionFileContent: 'pi-journal',
     }),
     sessionWorkDir: '/sandbox/work',
-    skills: [],
     settings: {},
     clientApp: 'ai-sdk/harness-pi/0.0.0-test',
     isResume: true,
@@ -1273,6 +1321,7 @@ async function startDeferredCrossProcessRerun({
   });
   const emit = vi.fn();
   const control = await session.doContinueTurn({
+    skills: [],
     tools: [{ name: 'askUser' }],
     emit,
     ...(abortSignal ? { abortSignal } : {}),
@@ -1341,6 +1390,7 @@ function createSandboxSession(options?: {
   /** When set, resume-path `readBinaryFile` finds a persisted session file. */
   sessionFileContent?: string;
 }): HarnessV1NetworkSandboxSession {
+  const textFiles = new Map<string, string>();
   const sandbox = {
     id: 'sandbox',
     defaultWorkingDirectory: '/sandbox',
@@ -1353,15 +1403,29 @@ function createSandboxSession(options?: {
         ? new TextEncoder().encode(options.sessionFileContent)
         : undefined,
     ),
+    readTextFile: vi.fn(async ({ path }: { path: string }) =>
+      textFiles.get(path),
+    ),
     restricted: vi.fn(() => sandbox),
-    run: vi.fn(async ({ command }: { command: string }) => ({
-      stdout: command === 'printf "%s" "$HOME"' ? '/sandbox/home' : '',
-      stderr: '',
-      exitCode: 0,
-    })),
+    run: vi.fn(async ({ command }: { command: string }) => {
+      const manifestMove = command.match(/^mv -f '([^']+)' '([^']+)'$/);
+      if (manifestMove != null) {
+        const content = textFiles.get(manifestMove[1]!);
+        if (content != null) textFiles.set(manifestMove[2]!, content);
+      }
+      return {
+        stdout: command === 'printf "%s" "$HOME"' ? '/sandbox/home' : '',
+        stderr: '',
+        exitCode: 0,
+      };
+    }),
     stop: vi.fn(async () => {}),
     writeBinaryFile: vi.fn(async () => {}),
-    writeTextFile: vi.fn(async () => {}),
+    writeTextFile: vi.fn(
+      async ({ path, content }: { path: string; content: string }) => {
+        textFiles.set(path, content);
+      },
+    ),
   };
   return sandbox as unknown as HarnessV1NetworkSandboxSession;
 }

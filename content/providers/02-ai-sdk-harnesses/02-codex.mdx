@@ -38,6 +38,7 @@ import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
   harness: codex,
+  model: 'gpt-5.6-luna',
   sandbox: createVercelSandbox({
     runtime: 'node24',
     ports: [4000],
@@ -77,7 +78,6 @@ Use `createCodex()` to configure the runtime:
 
 ```ts
 const harness = createCodex({
-  model: 'gpt-5.5',
   reasoningEffort: 'high',
   webSearch: true,
   codexConfig: {
@@ -88,7 +88,8 @@ const harness = createCodex({
 
 Settings:
 
-- `auth`: authentication mode: `auto`, `direct`, or `ai-gateway`.
+- `auth`: authentication mode (`auto`, `direct`, or `ai-gateway`) or an
+  isolated authentication environment.
 - `credentialForwarding`: optional synchronous or asynchronous callback that
   customizes each credential immediately before the harness adapter forwards it
   into a sandbox process. It receives the credential value that would otherwise
@@ -101,8 +102,7 @@ Settings:
   provided, so use the snake_case keys from Codex's `config.toml` reference.
   The adapter's managed values take precedence over conflicting entries.
 - `mcpServers`: MCP server definitions keyed by server name.
-- `model`: OpenAI model id. If omitted, the adapter uses its pinned default.
-- `reasoningEffort`: `low`, `medium`, or `high`.
+- `reasoningEffort`: `low`, `medium`, `high`, `xhigh`, or `max`.
 - `webSearch`: allow live web search.
 - `port`: bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the bridge to start.
@@ -149,6 +149,18 @@ Select a specific authentication mode when you do not want automatic detection:
 const directHarness = createCodex({ auth: 'direct' });
 const gatewayHarness = createCodex({ auth: 'ai-gateway' });
 ```
+
+Pass an authentication environment to use programmatically resolved
+credentials without reading `process.env`:
+
+```ts
+const harness = createCodex({
+  auth: { OPENAI_API_KEY: await resolveOpenAIToken() },
+});
+```
+
+The supplied record replaces the host environment for authentication
+discovery. Only recognized authentication variables are forwarded.
 
 For OpenAI-compatible endpoints, select `direct` and set `OPENAI_BASE_URL`.
 

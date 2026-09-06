@@ -53,6 +53,6 @@ The adapter requires a `HarnessV1SandboxProvider`. Cline has no in-sandbox bridg
 
 ## Authentication
 
-The default `auto` authentication mode uses `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` when available and otherwise falls back to `CLINE_API_KEY`. Use `createCline({ auth: 'ai-gateway' })` or `createCline({ auth: 'direct' })` to select a mode explicitly. `AI_GATEWAY_BASE_URL` and `CLINE_API_BASE_URL` configure their respective endpoints.
+The default `auto` authentication mode uses `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` when available and otherwise falls back to `CLINE_API_KEY`. Use `createCline({ auth: 'ai-gateway' })` or `createCline({ auth: 'direct' })` to select a mode explicitly, or pass an isolated authentication environment with `createCline({ auth: { CLINE_API_KEY: token } })`. `AI_GATEWAY_BASE_URL` and `CLINE_API_BASE_URL` configure their respective endpoints.
 
 See the [Cline harness documentation](https://ai-sdk.dev/providers/ai-sdk-harnesses/cline) for model configuration, reasoning, tools, skills, MCP, and session lifecycle details.

@@ -1,4 +1,5 @@
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import { isProviderStreamError } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { EventStreamCodec } from '@smithy/eventstream-codec';
 import { fromUtf8, toUtf8 } from '@smithy/util-utf8';
@@ -169,12 +170,33 @@ describe('AmazonBedrockChatLanguageModel doStream', () => {
   });
 
   it.each([
-    'internalServerException',
-    'modelStreamErrorException',
-    'serviceUnavailableException',
-    'throttlingException',
-    'validationException',
-  ])('surfaces %s frames as stream errors', async exceptionType => {
+    {
+      exceptionType: 'internalServerException',
+      statusCode: 500,
+      isRetryable: true,
+    },
+    {
+      exceptionType: 'modelStreamErrorException',
+      statusCode: 424,
+      isRetryable: true,
+    },
+    {
+      exceptionType: 'serviceUnavailableException',
+      statusCode: 503,
+      isRetryable: true,
+    },
+    {
+      exceptionType: 'throttlingException',
+      statusCode: 429,
+      isRetryable: true,
+    },
+    {
+      exceptionType: 'validationException',
+      statusCode: 400,
+      isRetryable: false,
+    },
+  ])('surfaces $exceptionType frames as stream errors', async testCase => {
+    const { exceptionType, statusCode, isRetryable } = testCase;
     const exception = {
       message: `Modeled exception: ${exceptionType}`,
     };
@@ -210,10 +232,19 @@ describe('AmazonBedrockChatLanguageModel doStream', () => {
       includeRawChunks: false,
     });
     const parts = await convertReadableStreamToArray(stream);
+    const errorPart = parts.at(-2);
 
-    expect(parts.at(-2)).toEqual({
-      type: 'error',
-      error: exception,
+    expect(errorPart?.type).toBe('error');
+    if (errorPart?.type !== 'error') {
+      expect.fail('Expected an error part');
+    }
+    expect(isProviderStreamError(errorPart.error)).toBe(true);
+    expect(errorPart.error).toMatchObject({
+      message: exception.message,
+      type: exceptionType,
+      statusCode,
+      isRetryable,
+      data: { [exceptionType]: exception },
     });
     expect(parts.at(-1)).toMatchObject({
       type: 'finish',

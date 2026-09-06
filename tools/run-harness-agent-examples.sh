@@ -266,11 +266,14 @@ for harness in ${HARNESS_TO_RUN[@]+"${HARNESS_TO_RUN[@]}"}; do
   else
     # No explicit examples: run every runnable *.ts file in the harness
     # folder (underscore-prefixed files are helpers, not examples).
-    example_files="$(
+    example_files=()
+    while IFS= read -r example_file; do
+      example_files+=("${example_file}")
+    done < <(
       find "${harness_path}" -mindepth 1 -maxdepth 1 -type f -name '*.ts' ! -name '_*' -print |
         sort
-    )"
-    while IFS= read -r example_file; do
+    )
+    for example_file in ${example_files[@]+"${example_files[@]}"}; do
       example="$(basename "${example_file}" .ts)"
       echo
       echo "▶ ${harness}/${example}"
@@ -286,9 +289,7 @@ for harness in ${HARNESS_TO_RUN[@]+"${HARNESS_TO_RUN[@]}"}; do
         fail=$((fail + 1))
       fi
       total=$((total + 1))
-    done <<EOF
-${example_files}
-EOF
+    done
   fi
 done
 

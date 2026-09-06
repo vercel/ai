@@ -16,22 +16,34 @@ import {
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  createProviderStreamError,
   isCustomReasoning,
   jsonSchema,
   mapReasoningToProviderEffort,
   parseProviderOptions,
   postJsonToApi,
+  SerializationError,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import {
+  createOpenResponsesExtensionRegistry,
+  isOpenResponsesExtensionEvent,
+  isOpenResponsesExtensionItem,
+  isOpenResponsesJSONObject,
+  type OpenResponsesExtension,
+  type OpenResponsesExtensionContentPart,
+  type OpenResponsesExtensionItem,
+  type OpenResponsesExtensionRecord,
+  type OpenResponsesExtensionRegistry,
+} from '../open-responses-extension';
 import { convertToOpenResponsesInput } from './convert-to-open-responses-input';
 import {
   openResponsesErrorSchema,
   type Annotation,
-  type FunctionToolParam,
   type OpenResponsesRequestBody,
   type OpenResponsesResponseBody,
   type OpenResponsesChunk,
@@ -48,8 +60,16 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
   readonly modelId: string;
 
   private readonly config: OpenResponsesConfig;
+  private readonly extensionRegistry: OpenResponsesExtensionRegistry;
 
   static [WORKFLOW_SERIALIZE](model: OpenResponsesLanguageModel) {
+    if (model.extensionRegistry.byExtensionId.size > 0) {
+      throw new SerializationError({
+        message:
+          'Open Responses models with registered extensions cannot be serialized across workflow boundaries. Recreate the provider with its extension codecs inside the workflow step.',
+      });
+    }
+
     return serializeModelOptions({
       modelId: model.modelId,
       config: model.config,
@@ -66,6 +86,8 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
   constructor(modelId: string, config: OpenResponsesConfig) {
     this.modelId = modelId;
     this.config = config;
+    this.extensionRegistry =
+      config.extensionRegistry ?? createOpenResponsesExtensionRegistry();
   }
 
   readonly supportedUrls: Record<string, RegExp[]> = {
@@ -109,6 +131,12 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'seed' });
     }
 
+    const providerToolsByName = new Map(
+      (tools ?? [])
+        .filter(tool => tool.type === 'provider')
+        .map(tool => [tool.name, tool]),
+    );
+
     const {
       input,
       instructions,
@@ -116,21 +144,64 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
     } = await convertToOpenResponsesInput({
       prompt,
       providerOptionsName: this.config.providerOptionsName,
+      extensionRegistry: this.extensionRegistry,
+      providerToolsByName,
+      strictResponseInput: this.config.strictResponseInput,
     });
 
     warnings.push(...inputWarnings);
 
-    // Convert function tools to the Open Responses format
-    const functionTools: FunctionToolParam[] = [];
+    const convertedTools: NonNullable<OpenResponsesRequestBody['tools']> = [];
+    const encodedProviderToolsByName = new Map<
+      string,
+      {
+        toolType: OpenResponsesExtensionRecord['type'];
+        encodeToolChoice: OpenResponsesExtension['encodeToolChoice'];
+        tool: Extract<
+          NonNullable<LanguageModelV4CallOptions['tools']>[number],
+          { type: 'provider' }
+        >;
+      }
+    >();
 
     for (const tool of tools ?? []) {
       if (tool.type === 'provider') {
-        warnings.push({
-          type: 'unsupported',
-          feature: `provider-defined tool ${tool.id}`,
-        });
+        const extension = this.extensionRegistry.byProviderToolId.get(tool.id);
+        let encoded: OpenResponsesExtensionRecord | undefined;
+
+        if (extension != null) {
+          try {
+            const fields = await extension.encodeTool({
+              name: tool.name,
+              args: tool.args,
+            });
+
+            if (isOpenResponsesJSONObject(fields)) {
+              encoded = {
+                ...fields,
+                type: extension.toolType,
+              };
+            }
+          } catch {
+            // Encoding failures are reported as unsupported below.
+          }
+        }
+
+        if (encoded == null) {
+          warnings.push({
+            type: 'unsupported',
+            feature: `provider-defined tool ${tool.id}`,
+          });
+        } else if (extension != null) {
+          convertedTools.push(encoded);
+          encodedProviderToolsByName.set(tool.name, {
+            toolType: extension.toolType,
+            encodeToolChoice: extension.encodeToolChoice,
+            tool,
+          });
+        }
       } else {
-        functionTools.push({
+        convertedTools.push({
           type: 'function',
           name: tool.name,
           description: tool.description,
@@ -141,12 +212,47 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
     }
 
     // Convert tool choice to the Open Responses format
-    const convertedToolChoice: ToolChoiceParam | undefined =
-      toolChoice == null
-        ? undefined
-        : toolChoice.type === 'tool'
-          ? { type: 'function', name: toolChoice.toolName }
-          : toolChoice.type; // 'auto' | 'none' | 'required'
+    let convertedToolChoice: ToolChoiceParam | undefined;
+    if (toolChoice?.type === 'tool') {
+      const registeredTool = encodedProviderToolsByName.get(
+        toolChoice.toolName,
+      );
+
+      if (registeredTool == null) {
+        if (!providerToolsByName.has(toolChoice.toolName)) {
+          convertedToolChoice = {
+            type: 'function',
+            name: toolChoice.toolName,
+          };
+        }
+      } else {
+        const { encodeToolChoice, tool, toolType } = registeredTool;
+        let fields: unknown = {};
+
+        try {
+          fields = await encodeToolChoice?.({
+            name: tool.name,
+            args: tool.args,
+          });
+        } catch {
+          fields = undefined;
+        }
+
+        if (encodeToolChoice != null && !isOpenResponsesJSONObject(fields)) {
+          warnings.push({
+            type: 'unsupported',
+            feature: `tool choice for provider-defined tool ${tool.id}`,
+          });
+        } else {
+          convertedToolChoice = {
+            ...(isOpenResponsesJSONObject(fields) ? fields : {}),
+            type: toolType,
+          };
+        }
+      }
+    } else {
+      convertedToolChoice = toolChoice?.type;
+    }
 
     const textFormat =
       responseFormat?.type === 'json'
@@ -209,7 +315,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
                 }),
               }
             : undefined,
-        tools: functionTools.length ? functionTools : undefined,
+        tools: convertedTools.length ? convertedTools : undefined,
         tool_choice: convertedToolChoice,
         ...(textFormat != null && { text: { format: textFormat } }),
       },
@@ -335,6 +441,25 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
           });
           break;
         }
+
+        default: {
+          if (!isOpenResponsesExtensionItem(part)) {
+            break;
+          }
+
+          const decoded = await decodeExtensionItem({
+            extensionRegistry: this.extensionRegistry,
+            item: part,
+            mode: 'generate',
+            providerOptionsName: this.config.providerOptionsName,
+          });
+
+          if (decoded != null) {
+            content.push(...decoded);
+            hasToolCalls ||= decoded.some(part => part.type === 'tool-call');
+          }
+          break;
+        }
       }
     }
 
@@ -454,6 +579,8 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       { toolName?: string; toolCallId?: string; arguments?: string }
     >();
     const providerOptionsName = this.config.providerOptionsName;
+    const extensionRegistry = this.extensionRegistry;
+    const extensionStreamState = new Map<string, unknown>();
 
     return {
       stream: response.pipeThrough(
@@ -465,7 +592,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
-          transform(parseResult, controller) {
+          async transform(parseResult, controller) {
             if (options.includeRawChunks) {
               controller.enqueue({
                 type: 'raw',
@@ -479,6 +606,27 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
             }
 
             const chunk = parseResult.value;
+
+            if (isOpenResponsesExtensionEvent(chunk)) {
+              const extension = extensionRegistry.byEventType.get(chunk.type);
+              if (extension?.decodeEvent != null) {
+                try {
+                  const decoded = await extension.decodeEvent({
+                    event: chunk,
+                    state: extensionStreamState,
+                  });
+                  for (const part of decoded ?? []) {
+                    controller.enqueue(part);
+                    hasToolCalls ||=
+                      part.type === 'tool-call' ||
+                      part.type === 'tool-input-start';
+                  }
+                } catch (error) {
+                  controller.enqueue({ type: 'error', error });
+                }
+              }
+              return;
+            }
 
             // Tool call events (single-shot tool-call when complete)
             if (
@@ -540,6 +688,25 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
               hasToolCalls = true;
 
               toolCallsByItemId.delete(chunk.item.id);
+            } else if (
+              chunk.type === 'response.output_item.done' &&
+              isOpenResponsesExtensionItem(chunk.item)
+            ) {
+              try {
+                const decoded = await decodeExtensionItem({
+                  extensionRegistry,
+                  item: chunk.item,
+                  mode: 'stream',
+                  providerOptionsName,
+                });
+
+                for (const part of decoded ?? []) {
+                  controller.enqueue(part);
+                  hasToolCalls ||= part.type === 'tool-call';
+                }
+              } catch (error) {
+                controller.enqueue({ type: 'error', error });
+              }
             }
 
             // Reasoning events (note: response.reasoning_text.delta is an LM Studio extension, not in official spec)
@@ -553,8 +720,9 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
               });
               activeReasoningId = chunk.item.id;
             } else if (
+              chunk.type === 'response.reasoning_summary_text.delta' ||
               (chunk as { type: string }).type ===
-              'response.reasoning_text.delta'
+                'response.reasoning_text.delta'
             ) {
               const reasoningChunk = chunk as {
                 item_id: string;
@@ -631,6 +799,29 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
                 raw: chunk.response.error?.code ?? chunk.response.status,
               };
               updateUsage(chunk.response.usage);
+              if (chunk.response.error != null) {
+                controller.enqueue({
+                  type: 'error',
+                  error: createOpenResponsesStreamError({
+                    type: chunk.type,
+                    error: chunk.response.error,
+                    data: chunk,
+                  }),
+                });
+              }
+            } else if (chunk.type === 'error') {
+              finishReason = {
+                unified: 'error',
+                raw: chunk.error.code,
+              };
+              controller.enqueue({
+                type: 'error',
+                error: createOpenResponsesStreamError({
+                  type: chunk.type,
+                  error: chunk.error,
+                  data: chunk,
+                }),
+              });
             }
           },
 
@@ -655,6 +846,23 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       response: { headers: responseHeaders },
     };
   }
+}
+
+function createOpenResponsesStreamError({
+  type,
+  error,
+  data,
+}: {
+  type: 'error' | 'response.failed';
+  error: { message: string; code: string };
+  data: unknown;
+}) {
+  return createProviderStreamError({
+    message: error.message,
+    type,
+    code: error.code,
+    data,
+  });
 }
 
 function createReasoningProviderMetadata({
@@ -683,6 +891,95 @@ function createReasoningProviderMetadata({
       ...(part.encrypted_content != null && {
         reasoningEncryptedContent: part.encrypted_content,
       }),
+    },
+  };
+}
+
+async function decodeExtensionItem({
+  extensionRegistry,
+  item,
+  mode,
+  providerOptionsName,
+}: {
+  extensionRegistry: OpenResponsesExtensionRegistry;
+  item: OpenResponsesExtensionItem;
+  mode: 'generate' | 'stream';
+  providerOptionsName: string;
+}): Promise<OpenResponsesExtensionContentPart[] | undefined> {
+  const extension = extensionRegistry.byItemType.get(item.type);
+  if (extension == null) {
+    return undefined;
+  }
+
+  const decoded = await extension.decodeItem({ item, mode });
+  if (decoded == null) {
+    return undefined;
+  }
+
+  return [
+    createExtensionReplayCarrier({
+      extension,
+      item,
+      providerOptionsName,
+    }),
+    ...decoded.map(part =>
+      addExtensionItemReferenceMetadata({
+        extension,
+        item,
+        part,
+        providerOptionsName,
+      }),
+    ),
+  ];
+}
+
+function createExtensionReplayCarrier({
+  extension,
+  item,
+  providerOptionsName,
+}: {
+  extension: OpenResponsesExtension;
+  item: OpenResponsesExtensionItem;
+  providerOptionsName: string;
+}): OpenResponsesExtensionContentPart {
+  return {
+    type: 'custom',
+    kind: 'open-responses.extension-replay',
+    providerMetadata: {
+      [providerOptionsName]: {
+        openResponsesExtension: {
+          id: extension.id,
+          item,
+        },
+      },
+    },
+  };
+}
+
+function addExtensionItemReferenceMetadata({
+  extension,
+  item,
+  part,
+  providerOptionsName,
+}: {
+  extension: OpenResponsesExtension;
+  item: OpenResponsesExtensionItem;
+  part: OpenResponsesExtensionContentPart;
+  providerOptionsName: string;
+}): OpenResponsesExtensionContentPart {
+  const providerMetadata = part.providerMetadata ?? {};
+
+  return {
+    ...part,
+    providerMetadata: {
+      ...providerMetadata,
+      [providerOptionsName]: {
+        ...providerMetadata[providerOptionsName],
+        openResponsesExtension: {
+          id: extension.id,
+          itemId: item.id,
+        },
+      },
     },
   };
 }

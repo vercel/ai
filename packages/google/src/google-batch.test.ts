@@ -102,6 +102,7 @@ function prepareUpload() {
         sizeBytes: '256',
         uri: 'https://generativelanguage.googleapis.com/v1beta/files/batch-input',
         state: 'ACTIVE',
+        expirationTime: '2026-08-27T12:00:00Z',
       },
     },
   };
@@ -228,6 +229,7 @@ describe('GoogleBatchLanguageModel', () => {
       abortSignal: abortController.signal,
     });
 
+    expect(result.providerMetadata).toBeUndefined();
     expect(result).toMatchObject({
       batchId: 'batches/batch-123',
       status: 'pending',
@@ -247,6 +249,20 @@ describe('GoogleBatchLanguageModel', () => {
             message: expect.stringContaining(
               "'sharedRequestType' and 'requestType' are Vertex AI options",
             ),
+          },
+        },
+        {
+          requestId: 'france',
+          warning: {
+            type: 'unsupported',
+            feature: 'frequencyPenalty',
+          },
+        },
+        {
+          requestId: 'france',
+          warning: {
+            type: 'unsupported',
+            feature: 'presencePenalty',
           },
         },
       ],
@@ -275,8 +291,6 @@ describe('GoogleBatchLanguageModel', () => {
                     temperature: 0.2,
                     topK: 10,
                     topP: 0.9,
-                    frequencyPenalty: 0.1,
-                    presencePenalty: 0.2,
                     stopSequences: ['END'],
                     seed: 42,
                   },
@@ -366,6 +380,12 @@ describe('GoogleBatchLanguageModel', () => {
     });
 
     expect(result.warnings).toEqual([]);
+    expect(result.providerMetadata).toEqual({
+      google: {
+        inputFileId: 'files/batch-input',
+        inputFileExpiresAt: '2026-08-27T12:00:00Z',
+      },
+    });
 
     expect(server.calls.map(call => call.requestUrl)).toEqual([
       urls.uploadStart,
@@ -1073,6 +1093,29 @@ describe('GoogleBatchLanguageModel', () => {
           key: 'text-request',
           response: googleResponse({ id: 'response-text', text: 'Paris' }),
         },
+        {
+          key: 'tool-request',
+          response: {
+            ...googleResponse({ id: 'response-tool', text: '' }),
+            candidates: [
+              {
+                content: {
+                  role: 'model',
+                  parts: [
+                    {
+                      functionCall: {
+                        id: 'call-1',
+                        name: 'weather',
+                        args: { city: 'Paris' },
+                      },
+                    },
+                  ],
+                },
+                finishReason: 'STOP',
+              },
+            ],
+          },
+        },
       ]);
       const model = createGoogle({ apiKey: 'test-api-key' })(
         'gemini-2.5-flash',
@@ -1083,7 +1126,7 @@ describe('GoogleBatchLanguageModel', () => {
       });
       const results = await convertReadableStreamToArray(stream);
 
-      expect(results).toHaveLength(2);
+      expect(results).toHaveLength(3);
       expect(results).toMatchObject([
         {
           id: 'image-request',
@@ -1098,6 +1141,20 @@ describe('GoogleBatchLanguageModel', () => {
           id: 'text-request',
           status: 'succeeded',
           result: { content: [{ type: 'text', text: 'Paris' }] },
+        },
+        {
+          id: 'tool-request',
+          status: 'succeeded',
+          result: {
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'weather',
+                input: '{"city":"Paris"}',
+              },
+            ],
+          },
         },
       ]);
     });

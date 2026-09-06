@@ -22,6 +22,7 @@ import { z } from 'zod/v4';
 const agent = new HarnessAgent({
   harness: claudeCode,
   id: 'auth-agent',
+  model: 'claude-sonnet-4-5',
   instructions:
     'You are a careful refactoring assistant. Prefer minimal diffs.',
   sandbox: createVercelSandbox({
@@ -100,6 +101,9 @@ const agent = new HarnessAgent({
 
 Use `session.detach()` to park a bridge-backed session for later attach, `session.stop()` to save state and stop the sandbox, or `session.destroy()` to clean up without keeping resume state. Bridge-backed adapters such as Claude Code, Codex, OpenCode, and DeepAgents require a network sandbox session that exposes ports — `@ai-sdk/sandbox-vercel` is the supported choice today. `@ai-sdk/sandbox-just-bash` is suitable only for host-runtime or otherwise non-bridge flows, such as Pi.
 
+Set `model` on `HarnessAgent` to select the model used when the harness session
+starts. Model identifiers are harness-specific, so `model` accepts any string.
+
 `sandbox` is an optional `HarnessV1SandboxProvider`. When omitted, pass a `HarnessV1NetworkSandboxSession` to every `agent.createSession({ sandboxSession })` call. Use `sandboxConfig` for agent specific sandbox configuration that works independently from the sandbox provider that is used:
 
 - Use `sandboxConfig.onSession` to prepare the acquired sandbox before the harness adapter starts. The hook runs for fresh and resumed sessions, so keep it idempotent.
@@ -126,7 +130,7 @@ See the [harness adapters documentation](https://ai-sdk.dev/v7/docs/ai-sdk-harne
 
 ## Implementing a harness
 
-Implement the `HarnessV1` factory and a `HarnessV1Session` whose `doPromptTurn` emits events; the agent surface, streaming, tool execution, and multi-turn state are handled for you. Read `startOpts.sandboxSession` for the selected network sandbox session. The harness layer stops or destroys sessions it acquires from the provider, while a session passed to `agent.createSession({ sandboxSession })` remains caller-owned. Call `sandboxSession.restricted()` for the tool-safe file-IO/exec/spawn surface.
+Implement the `HarnessV1` factory and a `HarnessV1Session` whose `doPromptTurn` emits events; the agent surface, streaming, tool execution, and multi-turn state are handled for you. Read `startOpts.model` for the consumer-selected model and `startOpts.sandboxSession` for the selected network sandbox session. The harness layer stops or destroys sessions it acquires from the provider, while a session passed to `agent.createSession({ sandboxSession })` remains caller-owned. Call `sandboxSession.restricted()` for the tool-safe file-IO/exec/spawn surface.
 
 Each prompt and continuation receives an optional `responseFormat`. JSON
 formats carry a caller-provided JSON Schema plus optional name and description;

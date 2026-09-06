@@ -1,6 +1,7 @@
 import { TypeValidationError, type JSONObject } from '@ai-sdk/provider';
 import {
   lazySchema,
+  safeValidateTypes,
   validateTypes,
   zodSchema,
   type FlexibleSchema,
@@ -13,6 +14,7 @@ import { providerMetadataSchema } from '../types/provider-metadata';
 import { z, type ZodType } from '../util/zod';
 import type {
   DataUIPart,
+  DynamicToolUIPart,
   InferUIMessageData,
   InferUIMessageTools,
   ToolUIPart,
@@ -25,6 +27,25 @@ const toolMetadataSchema: ZodType<JSONObject> = z.record(
 );
 
 const providerReferenceSchema = z.record(z.string(), z.string());
+
+function isEmptyObject(value: unknown): value is Record<string, never> {
+  return (
+    value != null &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    Object.keys(value).length === 0
+  );
+}
+
+function asDynamicToolPart(toolPart: ToolUIPart): DynamicToolUIPart {
+  const { type, ...part } = toolPart;
+
+  return {
+    ...part,
+    type: 'dynamic-tool',
+    toolName: type.slice(5),
+  } as DynamicToolUIPart;
+}
 
 const uiMessagesSchema = lazySchema(() =>
   zodSchema(
@@ -96,6 +117,7 @@ const uiMessagesSchema = lazySchema(() =>
                   type: z.literal('dynamic-tool'),
                   toolName: z.string(),
                   toolCallId: z.string(),
+                  title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('input-streaming'),
                   input: z.unknown().optional(),
@@ -109,6 +131,7 @@ const uiMessagesSchema = lazySchema(() =>
                   type: z.literal('dynamic-tool'),
                   toolName: z.string(),
                   toolCallId: z.string(),
+                  title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('input-available'),
                   input: z.unknown(),
@@ -122,6 +145,7 @@ const uiMessagesSchema = lazySchema(() =>
                   type: z.literal('dynamic-tool'),
                   toolName: z.string(),
                   toolCallId: z.string(),
+                  title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('approval-requested'),
                   input: z.unknown(),
@@ -132,6 +156,8 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z.object({
                     id: z.string(),
                     approved: z.never().optional(),
+                    descriptor: z.unknown().optional(),
+                    requestReason: z.string().optional(),
                     reason: z.never().optional(),
                     isAutomatic: z.boolean().optional(),
                     signature: z.string().optional(),
@@ -141,6 +167,7 @@ const uiMessagesSchema = lazySchema(() =>
                   type: z.literal('dynamic-tool'),
                   toolName: z.string(),
                   toolCallId: z.string(),
+                  title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('approval-responded'),
                   input: z.unknown(),
@@ -151,6 +178,8 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z.object({
                     id: z.string(),
                     approved: z.boolean(),
+                    descriptor: z.unknown().optional(),
+                    requestReason: z.string().optional(),
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
                     signature: z.string().optional(),
@@ -160,6 +189,7 @@ const uiMessagesSchema = lazySchema(() =>
                   type: z.literal('dynamic-tool'),
                   toolName: z.string(),
                   toolCallId: z.string(),
+                  title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('output-available'),
                   input: z.unknown(),
@@ -173,6 +203,8 @@ const uiMessagesSchema = lazySchema(() =>
                     .object({
                       id: z.string(),
                       approved: z.literal(true),
+                      descriptor: z.unknown().optional(),
+                      requestReason: z.string().optional(),
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
                       signature: z.string().optional(),
@@ -183,6 +215,7 @@ const uiMessagesSchema = lazySchema(() =>
                   type: z.literal('dynamic-tool'),
                   toolName: z.string(),
                   toolCallId: z.string(),
+                  title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('output-error'),
                   input: z.unknown().optional(),
@@ -196,6 +229,8 @@ const uiMessagesSchema = lazySchema(() =>
                     .object({
                       id: z.string(),
                       approved: z.literal(true),
+                      descriptor: z.unknown().optional(),
+                      requestReason: z.string().optional(),
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
                       signature: z.string().optional(),
@@ -206,6 +241,7 @@ const uiMessagesSchema = lazySchema(() =>
                   type: z.literal('dynamic-tool'),
                   toolName: z.string(),
                   toolCallId: z.string(),
+                  title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('output-denied'),
                   input: z.unknown(),
@@ -216,6 +252,8 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z.object({
                     id: z.string(),
                     approved: z.literal(false),
+                    descriptor: z.unknown().optional(),
+                    requestReason: z.string().optional(),
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
                     signature: z.string().optional(),
@@ -224,6 +262,7 @@ const uiMessagesSchema = lazySchema(() =>
                 z.object({
                   type: z.string().startsWith('tool-'),
                   toolCallId: z.string(),
+                  title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('input-streaming'),
                   providerExecuted: z.boolean().optional(),
@@ -236,6 +275,7 @@ const uiMessagesSchema = lazySchema(() =>
                 z.object({
                   type: z.string().startsWith('tool-'),
                   toolCallId: z.string(),
+                  title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('input-available'),
                   providerExecuted: z.boolean().optional(),
@@ -248,6 +288,7 @@ const uiMessagesSchema = lazySchema(() =>
                 z.object({
                   type: z.string().startsWith('tool-'),
                   toolCallId: z.string(),
+                  title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('approval-requested'),
                   input: z.unknown(),
@@ -258,6 +299,8 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z.object({
                     id: z.string(),
                     approved: z.never().optional(),
+                    descriptor: z.unknown().optional(),
+                    requestReason: z.string().optional(),
                     reason: z.never().optional(),
                     isAutomatic: z.boolean().optional(),
                     signature: z.string().optional(),
@@ -266,6 +309,7 @@ const uiMessagesSchema = lazySchema(() =>
                 z.object({
                   type: z.string().startsWith('tool-'),
                   toolCallId: z.string(),
+                  title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('approval-responded'),
                   input: z.unknown(),
@@ -276,6 +320,8 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z.object({
                     id: z.string(),
                     approved: z.boolean(),
+                    descriptor: z.unknown().optional(),
+                    requestReason: z.string().optional(),
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
                     signature: z.string().optional(),
@@ -284,6 +330,7 @@ const uiMessagesSchema = lazySchema(() =>
                 z.object({
                   type: z.string().startsWith('tool-'),
                   toolCallId: z.string(),
+                  title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('output-available'),
                   providerExecuted: z.boolean().optional(),
@@ -297,6 +344,8 @@ const uiMessagesSchema = lazySchema(() =>
                     .object({
                       id: z.string(),
                       approved: z.literal(true),
+                      descriptor: z.unknown().optional(),
+                      requestReason: z.string().optional(),
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
                       signature: z.string().optional(),
@@ -306,6 +355,7 @@ const uiMessagesSchema = lazySchema(() =>
                 z.object({
                   type: z.string().startsWith('tool-'),
                   toolCallId: z.string(),
+                  title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('output-error'),
                   providerExecuted: z.boolean().optional(),
@@ -319,6 +369,8 @@ const uiMessagesSchema = lazySchema(() =>
                     .object({
                       id: z.string(),
                       approved: z.literal(true),
+                      descriptor: z.unknown().optional(),
+                      requestReason: z.string().optional(),
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
                       signature: z.string().optional(),
@@ -328,6 +380,7 @@ const uiMessagesSchema = lazySchema(() =>
                 z.object({
                   type: z.string().startsWith('tool-'),
                   toolCallId: z.string(),
+                  title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('output-denied'),
                   providerExecuted: z.boolean().optional(),
@@ -338,6 +391,8 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z.object({
                     id: z.string(),
                     approved: z.literal(false),
+                    descriptor: z.unknown().optional(),
+                    requestReason: z.string().optional(),
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
                     signature: z.string().optional(),
@@ -374,17 +429,7 @@ export type SafeValidateUIMessagesResult<UI_MESSAGE extends UIMessage> =
       error: Error;
     };
 
-/**
- * Validates a list of UI messages like `validateUIMessages`,
- * but instead of throwing it returns `{ success: true, data }`
- * or `{ success: false, error }`.
- */
-export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
-  messages,
-  metadataSchema,
-  dataSchemas,
-  tools,
-}: {
+type ValidateUIMessagesOptions<UI_MESSAGE extends UIMessage> = {
   messages: unknown;
   metadataSchema?: FlexibleSchema<UIMessage['metadata']>;
   dataSchemas?: {
@@ -398,7 +443,21 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
       InferUIMessageTools<UI_MESSAGE>[NAME]['output']
     >;
   };
-}): Promise<SafeValidateUIMessagesResult<UI_MESSAGE>> {
+};
+
+async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
+  {
+    messages,
+    metadataSchema,
+    dataSchemas,
+    tools,
+  }: ValidateUIMessagesOptions<UI_MESSAGE>,
+  {
+    convertMissingTerminalToolsToDynamic,
+  }: {
+    convertMissingTerminalToolsToDynamic: boolean;
+  },
+): Promise<SafeValidateUIMessagesResult<UI_MESSAGE>> {
   try {
     if (messages == null) {
       return {
@@ -429,7 +488,10 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
       }
     }
 
-    if (dataSchemas || tools) {
+    const shouldValidateToolParts =
+      tools != null || convertMissingTerminalToolsToDynamic;
+
+    if (dataSchemas || shouldValidateToolParts) {
       for (const [msgIdx, message] of validatedMessages.entries()) {
         for (const [partIdx, part] of message.parts.entries()) {
           // Data part validation
@@ -465,19 +527,26 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
           }
 
           // Tool part validation
-          if (tools && part.type.startsWith('tool-')) {
+          if (shouldValidateToolParts && part.type.startsWith('tool-')) {
             const toolPart = part as ToolUIPart<
               InferUIMessageTools<UI_MESSAGE>
             >;
             const toolName = toolPart.type.slice(5);
-            const tool = getOwn(tools, toolName);
+            const tool = tools == null ? undefined : getOwn(tools, toolName);
+            const isTerminal =
+              toolPart.state === 'output-available' ||
+              toolPart.state === 'output-error' ||
+              toolPart.state === 'output-denied';
 
-            if (
-              !tool &&
-              (toolPart.state === 'output-available' ||
-                toolPart.state === 'output-error' ||
-                toolPart.state === 'output-denied')
-            ) {
+            if (!tool && isTerminal) {
+              if (tools != null || convertMissingTerminalToolsToDynamic) {
+                // Persisted terminal history can reference tools that are no
+                // longer registered. Normalize those parts so callers do not
+                // receive unvalidated values under current static tool types.
+                message.parts[partIdx] = asDynamicToolPart(
+                  toolPart,
+                ) as (typeof message.parts)[number];
+              }
               continue;
             }
 
@@ -497,19 +566,53 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
               };
             }
 
+            const inputValidationContext = {
+              field: `messages[${msgIdx}].parts[${partIdx}].input`,
+              entityName: toolName,
+              entityId: toolPart.toolCallId,
+            };
+            let convertToDynamic = false;
+
             // Tool input validation
-            // Note: input is intentionally not re-validated for terminal states.
-            // Terminal tool calls can keep invalid or incomplete input, and
-            // re-validating it on replay would crash follow-up messages.
-            if (toolPart.state === 'input-available') {
+            if (toolPart.state === 'output-error') {
+              // Failed calls can retain invalid input. Keep them loadable, but
+              // expose incompatible input as unknown instead of the current
+              // static tool input type.
+              if (toolPart.input !== undefined) {
+                const result = await safeValidateTypes({
+                  value: toolPart.input,
+                  schema: tool.inputSchema,
+                  context: inputValidationContext,
+                });
+                convertToDynamic = !result.success;
+              }
+            } else if (toolPart.state === 'output-available') {
+              const result = await safeValidateTypes({
+                value: toolPart.input,
+                schema: tool.inputSchema,
+                context: inputValidationContext,
+              });
+
+              if (!result.success) {
+                // Empty terminal input can represent aborted or incomplete
+                // history whose input was never streamed. Preserve it without
+                // claiming that it matches the current static input type.
+                if (isEmptyObject(toolPart.input)) {
+                  convertToDynamic = true;
+                } else {
+                  throw result.error;
+                }
+              }
+            } else if (
+              toolPart.state === 'input-available' ||
+              toolPart.state === 'approval-requested' ||
+              toolPart.state === 'approval-responded' ||
+              toolPart.state === 'output-denied'
+            ) {
               await validateTypes({
                 value: toolPart.input,
                 schema: tool.inputSchema,
-                context: {
-                  field: `messages[${msgIdx}].parts[${partIdx}].input`,
-                  entityName: toolName,
-                  entityId: toolPart.toolCallId,
-                },
+                context: inputValidationContext,
               });
             }
 
@@ -524,6 +627,12 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
                   entityId: toolPart.toolCallId,
                 },
               });
+            }
+
+            if (convertToDynamic) {
+              message.parts[partIdx] = asDynamicToolPart(
+                toolPart,
+              ) as (typeof message.parts)[number];
             }
           }
         }
@@ -545,37 +654,43 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
 }
 
 /**
+ * Validates a list of UI messages like `validateUIMessages`,
+ * but instead of throwing it returns `{ success: true, data }`
+ * or `{ success: false, error }`.
+ */
+export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>(
+  options: ValidateUIMessagesOptions<UI_MESSAGE>,
+): Promise<SafeValidateUIMessagesResult<UI_MESSAGE>> {
+  return safeValidateUIMessagesInternal(options, {
+    convertMissingTerminalToolsToDynamic: false,
+  });
+}
+
+/**
  * Validates a list of UI messages.
  *
  * Metadata, data parts, and generic tool call structures are only validated if
  * the corresponding schemas are provided. Otherwise, they are assumed to be
  * valid.
  */
-export async function validateUIMessages<UI_MESSAGE extends UIMessage>({
-  messages,
-  metadataSchema,
-  dataSchemas,
-  tools,
-}: {
-  messages: unknown;
-  metadataSchema?: FlexibleSchema<UIMessage['metadata']>;
-  dataSchemas?: {
-    [NAME in keyof InferUIMessageData<UI_MESSAGE> & string]?: FlexibleSchema<
-      InferUIMessageData<UI_MESSAGE>[NAME]
-    >;
-  };
-  tools?: {
-    [NAME in keyof InferUIMessageTools<UI_MESSAGE> & string]?: Tool<
-      InferUIMessageTools<UI_MESSAGE>[NAME]['input'],
-      InferUIMessageTools<UI_MESSAGE>[NAME]['output']
-    >;
-  };
-}): Promise<Array<UI_MESSAGE>> {
-  const response = await safeValidateUIMessages({
-    messages,
-    metadataSchema,
-    dataSchemas,
-    tools,
+export async function validateUIMessages<UI_MESSAGE extends UIMessage>(
+  options: ValidateUIMessagesOptions<UI_MESSAGE>,
+): Promise<Array<UI_MESSAGE>> {
+  const response = await safeValidateUIMessages(options);
+
+  if (!response.success) throw response.error;
+
+  return response.data;
+}
+
+export async function validateUIMessagesForAgent<UI_MESSAGE extends UIMessage>(
+  options: ValidateUIMessagesOptions<UI_MESSAGE>,
+): Promise<Array<UI_MESSAGE>> {
+  const response = await safeValidateUIMessagesInternal(options, {
+    // Agent tool sets can include ephemeral tools (for example, tools from a
+    // disconnected MCP server), so terminal history is converted to dynamic
+    // tool parts when those tools are no longer registered.
+    convertMissingTerminalToolsToDynamic: true,
   });
 
   if (!response.success) throw response.error;
