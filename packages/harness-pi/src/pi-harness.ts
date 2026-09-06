@@ -49,9 +49,22 @@ export type PiHarnessSettings = {
    */
   readonly mcpServers?: Record<string, unknown>;
   /**
+   * Load Pi extensions through its normal filesystem discovery.
+   *
+   * This includes extensions under `<agentDir>/extensions`, the session
+   * working directory's `.pi/extensions`, and sources configured through Pi
+   * settings. Defaults to `false`.
+   *
+   * Extensions execute arbitrary code in the harness Node.js process with its
+   * filesystem, environment, network, and credential access. Only enable this
+   * when that process is already isolated and all discovered sources are
+   * trusted.
+   */
+  readonly extensions?: boolean;
+  /**
    * Trusted inline Pi extensions loaded for each harness session.
    *
-   * Filesystem-discovered user and project extensions remain disabled.
+   * Filesystem discovery remains disabled unless `extensions` is enabled.
    */
   readonly extensionFactories?: ReadonlyArray<ExtensionFactory>;
 };
@@ -158,6 +171,7 @@ export function createPi(
             ? { thinkingLevel: settings.thinkingLevel }
             : {}),
           ...(settings.mcpServers ? { mcpServers: settings.mcpServers } : {}),
+          ...(settings.extensions === true ? { extensions: true } : {}),
           ...(settings.extensionFactories
             ? { extensionFactories: settings.extensionFactories }
             : {}),

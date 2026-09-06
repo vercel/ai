@@ -83,6 +83,8 @@ Settings:
 
 - `auth`: authentication mode (`auto`, `openai`, `anthropic`, `custom`, or
   `ai-gateway`) or an isolated authentication environment.
+- `extensions`: opt in to Pi's normal filesystem extension discovery. Defaults
+  to `false`.
 - `extensionFactories`: trusted inline Pi extension factories that run in the
   host Node.js process.
 - `mcpServers`: MCP server definitions keyed by server name.
@@ -111,10 +113,37 @@ do not reinitialize factories. If the underlying Pi session is rebuilt, the
 factories initialize again for the new Pi runtime.
 
 Extension factories execute in the host Node.js process with access to the host
-environment, so only pass factories you trust. This setting enables only the
-factories you explicitly provide. Filesystem extension discovery remains
-disabled, including user, project, and settings-based extensions. Themes and
+environment, so only pass factories you trust. The `extensionFactories` setting
+by itself enables only the factories you explicitly provide. Filesystem
+extension discovery remains disabled unless `extensions` is enabled. Themes and
 prompt templates also remain disabled.
+
+## Filesystem Extensions
+
+Use `extensions: true` when the harness Node.js process itself is already
+isolated and should load extensions installed as files:
+
+```ts
+const harness = createPi({
+  agentDir: '/opt/pi/agent',
+  extensions: true,
+});
+```
+
+This enables Pi's normal extension discovery, including
+`<agentDir>/extensions`, the session working directory's `.pi/extensions`,
+and extension or package sources configured through Pi settings.
+Extension-registered tools are enabled alongside harness tools. Routine
+resource refreshes preserve the active extension runtime; rebuilding the Pi
+session loads a fresh runtime.
+
+<Warning>
+  Filesystem extensions execute arbitrary code in the harness Node.js process
+  with access to its filesystem, environment, credentials, and network.
+  `extensions: true` is not a sandbox and does not move extension execution into
+  the configured `HarnessV1SandboxProvider`. Only enable it when the harness
+  process is already isolated and every source Pi may discover is trusted.
+</Warning>
 
 ## Authentication
 

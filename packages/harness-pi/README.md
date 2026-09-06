@@ -70,3 +70,30 @@ const harness = createPi({
 ```
 
 Routine resource refreshes between turns do not reinitialize extension factories. If the underlying Pi session is rebuilt, factories initialize for the new Pi runtime. Extension factories execute in the host Node.js process, so only pass factories you trust. This option does not enable filesystem extension discovery: user, project, personal, and settings-based Pi extensions remain disabled. Themes and prompt templates also remain disabled.
+
+## Filesystem extensions
+
+Set `extensions: true` to opt in to Pi's normal filesystem extension
+discovery:
+
+```ts
+import { createPi } from '@ai-sdk/harness-pi';
+
+const harness = createPi({
+  agentDir: '/opt/pi/agent',
+  extensions: true,
+});
+```
+
+Pi can then load extensions from sources such as
+`/opt/pi/agent/extensions`, the session working directory's
+`.pi/extensions`, and extension or package sources configured through Pi
+settings. Extension-registered tools remain enabled alongside the harness
+tools.
+
+Filesystem discovery is disabled by default. Enabling it executes arbitrary
+extension code in the harness Node.js process with access to that process's
+filesystem, environment, credentials, and network. Only enable it when the
+harness process is already isolated and every source Pi may discover is
+trusted. This setting does not create a sandbox or move extension execution
+into the configured `HarnessV1SandboxProvider`.
