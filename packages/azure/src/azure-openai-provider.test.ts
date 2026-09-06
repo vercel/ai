@@ -2172,4 +2172,18 @@ describe('responses', () => {
       });
     });
   });
+
+  describe('transcription', () => {
+    it('should instantiate transcription model for mai-transcribe-2', () => {
+      const model = provider.transcription('mai-transcribe-2');
+      expect(model.modelId).toBe('mai-transcribe-2');
+      expect(model.provider).toBe('azure.transcription');
+    });
+
+    it('should support maiTranscribe helper for mai-transcribe-2', () => {
+      const model = provider.maiTranscribe('mai-transcribe-2');
+      expect(model.modelId).toBe('mai-transcribe-2');
+      expect(model.provider).toBe('azure.transcription');
+    });
+  });
 });

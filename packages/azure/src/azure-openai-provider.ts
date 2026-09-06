@@ -92,6 +92,11 @@ export interface AzureOpenAIProvider extends ProviderV4 {
   transcription(deploymentId: string): TranscriptionModelV4;
 
   /**
+   * Creates an Azure model for Microsoft MAI-Transcribe speech-to-text.
+   */
+  maiTranscribe(deploymentId: string): TranscriptionModelV4;
+
+  /**
    * Creates an Azure OpenAI model for speech generation.
    */
   speech(deploymentId: string): SpeechModelV4;
@@ -370,6 +375,7 @@ export function createAzure(
   provider.imageModel = createImageModel;
   provider.responses = createResponsesModel;
   provider.transcription = createTranscriptionModel;
+  provider.maiTranscribe = createTranscriptionModel;
   provider.speech = createSpeechModel;
   provider.tools = azureOpenaiTools;
   return provider;
