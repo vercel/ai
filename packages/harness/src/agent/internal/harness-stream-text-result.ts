@@ -1,6 +1,6 @@
 import {
   DelayedPromise,
-  generateId,
+  type InferToolSetContext,
   type AssistantModelMessage,
   type Context,
   type ToolModelMessage,
@@ -154,9 +154,10 @@ export class HarnessStreamTextResult<
 
   private readonly tools: TOOLS;
   private readonly runtimeContext: RUNTIME_CONTEXT;
-  private readonly toolsContext: never;
+  private readonly toolsContext: InferToolSetContext<TOOLS>;
   private readonly providerName: string;
-  private readonly modelId: string;
+  private readonly callId: string;
+  private modelId: string;
   private readonly outputSpecification: OUTPUT | undefined;
 
   // Accumulators that span the whole turn.
@@ -170,16 +171,18 @@ export class HarnessStreamTextResult<
   constructor(options: {
     tools: TOOLS;
     runtimeContext: RUNTIME_CONTEXT;
-    toolsContext: never;
+    toolsContext: InferToolSetContext<TOOLS>;
     harnessId: string;
-    sessionId: string;
+    callId: string;
+    modelId: string;
     output: OUTPUT | undefined;
   }) {
     this.tools = options.tools;
     this.runtimeContext = options.runtimeContext;
     this.toolsContext = options.toolsContext;
     this.providerName = `harness:${options.harnessId}`;
-    this.modelId = options.sessionId;
+    this.callId = options.callId;
+    this.modelId = options.modelId;
     this.outputSpecification = options.output;
 
     let controllerRef!: ReadableStreamDefaultController<TextStreamPart<TOOLS>>;
@@ -224,6 +227,12 @@ export class HarnessStreamTextResult<
     this.appendToCurrentStepContent(part);
   }
 
+  setModelId(modelId: string): void {
+    if (this.stepsBuffer.length === 0) {
+      this.modelId = modelId;
+    }
+  }
+
   /**
    * Push a continuation input into the consumer stream without attributing it
    * to the next model step. Approval responses and client tool results arrive
@@ -262,7 +271,7 @@ export class HarnessStreamTextResult<
     const rawFinishReason = input.finishReason.raw;
 
     const step = new DefaultStepResult<TOOLS, RUNTIME_CONTEXT>({
-      callId: generateId(),
+      callId: this.callId,
       stepNumber: this.stepNumber,
       provider: this.providerName,
       modelId: this.modelId,
@@ -276,7 +285,7 @@ export class HarnessStreamTextResult<
       warnings: input.warnings.length > 0 ? input.warnings : undefined,
       request: {},
       response: {
-        id: generateId(),
+        id: `${this.callId}-${this.stepNumber}`,
         timestamp: new Date(),
         modelId: this.modelId,
         messages: [],
@@ -363,7 +372,7 @@ export class HarnessStreamTextResult<
       this.stepsBuffer.length > 0
         ? this.stepsBuffer[this.stepsBuffer.length - 1]!
         : new DefaultStepResult<TOOLS, RUNTIME_CONTEXT>({
-            callId: generateId(),
+            callId: this.callId,
             stepNumber: 0,
             provider: this.providerName,
             modelId: this.modelId,
@@ -377,7 +386,7 @@ export class HarnessStreamTextResult<
             warnings: undefined,
             request: {},
             response: {
-              id: generateId(),
+              id: `${this.callId}-0`,
               timestamp: new Date(),
               modelId: this.modelId,
               messages: [],
@@ -823,6 +832,19 @@ export class HarnessStreamTextResult<
         }
         return;
       }
+      case 'reasoning-delta': {
+        const last =
+          this.currentStepContent[this.currentStepContent.length - 1];
+        if (last && last.type === 'reasoning') {
+          (last as { text: string }).text += part.text;
+        } else {
+          this.currentStepContent.push({
+            type: 'reasoning',
+            text: part.text,
+          } as ContentPart<TOOLS>);
+        }
+        return;
+      }
       case 'tool-call':
       case 'tool-approval-request':
       case 'tool-approval-response':
@@ -833,9 +855,7 @@ export class HarnessStreamTextResult<
         } as ContentPart<TOOLS>);
         return;
       default:
-        // text-start/end, reasoning-*, raw, error, finish-step, finish are
-        // not directly stored as ContentParts. (Reasoning content parts
-        // would belong here; we omit them for v0.)
+        // Boundary, raw, error, and finish parts are not ContentParts.
         return;
     }
   }

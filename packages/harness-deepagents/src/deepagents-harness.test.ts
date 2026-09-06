@@ -288,6 +288,56 @@ describe('createDeepAgents', () => {
     await session.doDestroy();
   });
 
+  it('passes headers to the bridge for Gateway and direct auth', async () => {
+    sentMessages.length = 0;
+    const gatewaySession = await createDeepAgents({
+      auth: { AI_GATEWAY_API_KEY: 'gateway-key' },
+    }).doStart({
+      sessionId: 'gateway',
+      headers: { 'x-tenant': 'acme' },
+      sessionWorkDir: '/vercel/sandbox/deepagents-gateway',
+      sandboxSession: fakeSandboxSession(),
+    } as unknown as Parameters<
+      ReturnType<typeof createDeepAgents>['doStart']
+    >[0]);
+
+    await gatewaySession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    expect(sentMessages.at(-1)).toMatchObject({
+      type: 'start',
+      headers: { 'x-tenant': 'acme' },
+    });
+    await gatewaySession.doDestroy();
+
+    sentMessages.length = 0;
+    const directSession = await createDeepAgents({
+      auth: { ANTHROPIC_API_KEY: 'anthropic-key' },
+    }).doStart({
+      sessionId: 'direct',
+      headers: { 'x-tenant': 'acme' },
+      sessionWorkDir: '/vercel/sandbox/deepagents-direct',
+      sandboxSession: fakeSandboxSession(),
+    } as unknown as Parameters<
+      ReturnType<typeof createDeepAgents>['doStart']
+    >[0]);
+
+    await directSession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    expect(sentMessages.at(-1)).toMatchObject({
+      type: 'start',
+      headers: { 'x-tenant': 'acme' },
+    });
+    await directSession.doDestroy();
+  });
+
   it('brokers credentials when the sandbox supports additive request transformations', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const forwardedCredentials: Array<{
@@ -343,6 +393,7 @@ describe('createDeepAgents', () => {
   });
 
   it('customizes real credentials when request transformations are unavailable', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const forwardedCredentials: Array<{
       credential: string;
@@ -372,8 +423,26 @@ describe('createDeepAgents', () => {
       'caller-managed-credential',
     );
     expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('anthropic-secret');
+    expect(warn).not.toHaveBeenCalled();
 
     await session.doDestroy();
+
+    const identityHarness = createDeepAgents({
+      auth: { ANTHROPIC_API_KEY: 'anthropic-secret' },
+      credentialForwarding: ({ credential }) => credential,
+    });
+    const identitySession = await identityHarness.doStart({
+      sessionId: 'identity-session',
+      sessionWorkDir: '/vercel/sandbox/deepagents-identity-session',
+      sandboxSession: fakeSandboxSession(),
+    } as unknown as Parameters<typeof identityHarness.doStart>[0]);
+
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      'The sandbox implementation does not support configuring request transformations, so credential brokering does not work. Falling back to less secure credential forwarding.',
+    );
+
+    await identitySession.doDestroy();
+    warn.mockRestore();
   });
 
   it('passes configured MCP servers to the bridge', async () => {

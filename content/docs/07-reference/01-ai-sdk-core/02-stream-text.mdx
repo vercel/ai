@@ -469,6 +469,13 @@ To see `streamText` in action, check out [these examples](#examples).
         'Maximum number of retries. Set to 0 to disable retries. Default: 2.',
     },
     {
+      name: 'streamRetries',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum number of automatic retries for provider error events received after response streaming begins. Retries rerun only the current model step and preserve completed earlier steps and their tool results. Tool-related output and client-side tool work from failed attempts are discarded; other output already emitted cannot be retracted, but is excluded from the recovered step result, structured output parsing, response messages, and subsequent model steps. Final request and response metadata come from the recovered attempt. Open text and reasoning parts are ended before recovered output begins. onStepStart runs once for the logical step, onLanguageModelCallStart runs for each attempt, and onLanguageModelCallEnd runs for attempts that reach a model-call finish. Provider-executed tool work cannot be undone and may repeat. Set to 0 to disable automatic retries while allowing onError to request one callback-directed retry. With automatic retries configured, onError can request at most one additional retry after they are exhausted, bounding total recovery calls to streamRetries + 1. Omit to disable all stream retry behavior and preserve incremental tool streaming for existing onError observers. Default: 0.',
+    },
+    {
       name: 'abortSignal',
       type: 'AbortSignal',
       isOptional: true,
@@ -1184,10 +1191,10 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'onError',
-      type: '(event: OnErrorResult) => Promise<void> |void',
+      type: 'StreamTextOnErrorCallback | StreamTextOnErrorRetryCallback',
       isOptional: true,
       description:
-        'Callback that is called when an error occurs during streaming. Well-formed mid-stream provider error events are exposed as StreamProviderError instances.',
+        'Callback that is called when an error occurs during streaming. StreamTextOnErrorCallback preserves the existing PromiseLike<void> | void observer contract. StreamTextOnErrorRetryCallback additionally types `{ retry: true }` results for retry-capable handlers. Well-formed mid-stream provider error events are exposed as StreamProviderError instances. When streamRetries is explicitly configured, return `{ retry: true }` to request one callback-directed retry for the current model step after automatic retries are exhausted. Other return values do not request a retry.',
       properties: [
         {
           type: 'OnErrorResult',
@@ -1264,6 +1271,20 @@ To see `streamText` in action, check out [these examples](#examples).
                       type: 'Schema<ELEMENT>',
                       description:
                         'The schema of the array elements to generate.',
+                    },
+                    {
+                      name: 'minItems',
+                      type: 'number',
+                      isOptional: true,
+                      description:
+                        'Optional minimum number of array elements. Must be a non-negative integer.',
+                    },
+                    {
+                      name: 'maxItems',
+                      type: 'number',
+                      isOptional: true,
+                      description:
+                        'Optional maximum number of array elements. Must be a non-negative integer and greater than or equal to minItems.',
                     },
                     {
                       name: 'name',
@@ -2063,9 +2084,22 @@ To see `streamText` in action, check out [these examples](#examples).
           type: 'OnAbortResult',
           parameters: [
             {
+              name: 'callId',
+              type: 'string',
+              description:
+                'Unique identifier for this generation call, used to correlate events.',
+            },
+            {
               name: 'steps',
               type: 'Array<StepResult>',
               description: 'Details for all previously finished steps.',
+            },
+            {
+              name: 'reason',
+              type: 'unknown',
+              isOptional: true,
+              description:
+                'The raw abort reason from the AbortSignal, when one is available.',
             },
           ],
         },
@@ -3972,10 +4006,10 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'reason',
-              type: 'unknown',
+              type: 'string',
               isOptional: true,
               description:
-                'Optional abort reason (from AbortSignal.reason) when the stream is aborted.',
+                'Optional serialized abort reason when the stream is aborted.',
             },
           ],
         },
@@ -3997,7 +4031,7 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'elementStream',
       type: 'AsyncIterableStream<ELEMENT_OUTPUT>',
       description:
-        'A stream of individual array elements as they complete. Only available when using `output: Output.array()`. Each element is complete and validated against the element schema. AsyncIterableStream is defined as AsyncIterable<T> & ReadableStream<T>.',
+        'A stream of individual array elements as they complete. Only available when using `output: Output.array()`. Each element is complete and validated against the element schema. When `maxItems` is set, the stream errors before emitting the first excess element. AsyncIterableStream is defined as AsyncIterable<T> & ReadableStream<T>.',
     },
     {
       name: 'output',

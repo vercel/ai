@@ -11484,6 +11484,16 @@ describe('getModelCapabilities', () => {
     `);
   });
 
+  it.each([
+    ['claude-sonnet-4@20250514', 64000],
+    ['claude-opus-4@20250514', 32000],
+  ])('should recognize the Vertex model ID %s', (modelId, maxOutputTokens) => {
+    expect(getModelCapabilities(modelId)).toMatchObject({
+      isKnownModel: true,
+      maxOutputTokens,
+    });
+  });
+
   it('should return conservative capabilities for an unknown non-Claude model', () => {
     expect(getModelCapabilities('third-party-future-model'))
       .toMatchInlineSnapshot(`

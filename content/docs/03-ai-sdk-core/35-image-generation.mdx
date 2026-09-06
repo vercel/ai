@@ -230,6 +230,7 @@ This error occurs when the AI provider fails to generate an image. It can arise 
 
 The error preserves the following information to help you log the issue:
 
+- `calls`: Results from the underlying image model calls, including generated images, provider metadata, response metadata, warnings, and usage.
 - `responses`: Metadata about the image model responses, including timestamp, model, and headers.
 - `cause`: The cause of the error. You can use this for more detailed error handling
 
@@ -243,6 +244,12 @@ try {
     console.log('NoImageGeneratedError');
     console.log('Cause:', error.cause);
     console.log('Responses:', error.responses);
+
+    for (const call of error.calls ?? []) {
+      console.log('Provider metadata:', call.providerMetadata);
+      console.log('Warnings:', call.warnings);
+      console.log('Usage:', call.usage);
+    }
   }
 }
 ```

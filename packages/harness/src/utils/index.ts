@@ -27,6 +27,11 @@ export {
 export { resolveSandboxHomeDir } from './sandbox-home-dir';
 export { shellQuote } from './shell-quote';
 export {
+  writeInstructions,
+  type WriteInstructionsOptions,
+  type WriteInstructionsResult,
+} from './write-instructions';
+export {
   writeSkills,
   type SkillFilePathMode,
   type WriteSkillsOptions,

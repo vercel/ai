@@ -1,5 +1,38 @@
 # @ai-sdk/policy
 
+## 1.0.93
+
+### Patch Changes
+
+- Updated dependencies [df6c009]
+- Updated dependencies [6ee74a3]
+- Updated dependencies [f13d371]
+- Updated dependencies [d4485fe]
+- Updated dependencies [4f201cc]
+- Updated dependencies [8cdb2a7]
+- Updated dependencies [0f2281e]
+- Updated dependencies [fc8e8ac]
+- Updated dependencies [ee8391e]
+  - ai@7.0.93
+
+## 1.0.92
+
+### Patch Changes
+
+- Updated dependencies [a51cc94]
+- Updated dependencies [d1904d3]
+- Updated dependencies [84e5a79]
+- Updated dependencies [a8e8ad0]
+  - ai@7.0.92
+
+## 1.0.91
+
+### Patch Changes
+
+- f29566e: fix(policy-opa): deny tool execution when OPA returns an unrecognized decision
+- Updated dependencies [802af1e]
+  - ai@7.0.91
+
 ## 1.0.90
 
 ### Patch Changes

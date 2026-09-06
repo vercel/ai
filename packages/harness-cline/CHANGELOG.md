@@ -1,5 +1,31 @@
 # @ai-sdk/harness-cline
 
+## 1.0.29
+
+### Patch Changes
+
+- eeed977: feat(harness): allow passing arbitrary headers with inference requests via `headers` property in `HarnessAgentSettings`
+- Updated dependencies [fe86f8f]
+- Updated dependencies [255cccf]
+- Updated dependencies [eeed977]
+- Updated dependencies [a39c8bf]
+  - @ai-sdk/harness@1.0.102
+
+## 1.0.28
+
+### Patch Changes
+
+- 951c54d: feat(harness): support `askUserQuestions` tool including support for normalization across harness adapters
+- Updated dependencies [951c54d]
+  - @ai-sdk/harness@1.0.101
+
+## 1.0.27
+
+### Patch Changes
+
+- Updated dependencies [0c37bf0]
+  - @ai-sdk/harness@1.0.100
+
 ## 1.0.26
 
 ### Patch Changes

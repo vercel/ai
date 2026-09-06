@@ -199,6 +199,7 @@ describe('createOpenCode adapter', () => {
     expect(harness.supportsBuiltinToolApprovals).toBe(true);
     expect(harness.supportsBuiltinToolFiltering).toBeUndefined();
     expect(Object.keys(harness.builtinTools)).toEqual([
+      'askUserQuestions',
       'read',
       'write',
       'edit',
@@ -436,6 +437,7 @@ describe('createOpenCode adapter', () => {
   });
 
   it('customizes real credentials when request transformations are unavailable', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const forwardedCredentials: Array<{
@@ -503,8 +505,28 @@ describe('createOpenCode adapter', () => {
     ]);
     expect(spawnEnvs.at(0)?.OPENAI_API_KEY).toBe('caller-managed-credential');
     expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('openai-secret');
+    expect(warn).not.toHaveBeenCalled();
 
     await session.doDetach();
+
+    const identityHarness = createOpenCode({
+      provider: 'openai',
+      auth: { OPENAI_API_KEY: 'openai-secret' },
+      credentialForwarding: ({ credential }) => credential,
+    });
+    harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
+    const identitySession = await identityHarness.doStart({
+      sessionId: 's2',
+      sandboxSession,
+      sessionWorkDir: '/workspace/project-2',
+    });
+
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      'The sandbox implementation does not support configuring request transformations, so credential brokering does not work. Falling back to less secure credential forwarding.',
+    );
+
+    await identitySession.doDetach();
+    warn.mockRestore();
   });
 
   it('writes skills under sandbox HOME and starts OpenCode with that HOME', async () => {
@@ -690,6 +712,7 @@ describe('createOpenCode adapter', () => {
       agent: { general: { model: 'openai/gpt-5.4-mini' } },
     };
     const harness = createOpenCode({
+      auth: { AI_GATEWAY_API_KEY: 'gateway-key' },
       model: 'legacy-model',
       openCodeConfig,
       reasoningVariant: 'high',
@@ -697,6 +720,7 @@ describe('createOpenCode adapter', () => {
     });
     const session = await harness.doStart({
       sessionId: 's1',
+      headers: { 'x-tenant': 'acme' },
       sandboxSession,
       sessionWorkDir: '/workspace/project',
     });
@@ -712,6 +736,7 @@ describe('createOpenCode adapter', () => {
       operation: 'compact',
       openCodeConfig,
       mcpServers,
+      headers: { 'x-tenant': 'acme' },
       resumeSessionId: 'opencode-session',
     });
     channel.emit('finish', { type: 'finish' });
@@ -735,6 +760,7 @@ describe('createOpenCode adapter', () => {
       variant: 'high',
       openCodeConfig,
       mcpServers,
+      headers: { 'x-tenant': 'acme' },
       resumeSessionId: 'opencode-session',
     });
     channel.emit('finish', { type: 'finish' });
@@ -743,6 +769,7 @@ describe('createOpenCode adapter', () => {
     const resumeFrom = await session.doDetach();
     const resumedSession = await harness.doStart({
       sessionId: 's1',
+      headers: { 'x-tenant': 'acme' },
       sandboxSession,
       sessionWorkDir: '/workspace/project',
       resumeFrom,
@@ -764,6 +791,7 @@ describe('createOpenCode adapter', () => {
       variant: 'high',
       openCodeConfig,
       mcpServers,
+      headers: { 'x-tenant': 'acme' },
       resumeSessionId: 'opencode-session',
     });
     resumedChannel.emit('finish', { type: 'finish' });

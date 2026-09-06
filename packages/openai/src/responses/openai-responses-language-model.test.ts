@@ -1312,6 +1312,84 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it.each(['none', 'minimal'])(
+        'should omit unsupported GPT-6 reasoning effort %s',
+        async reasoningEffort => {
+          const { warnings } = await createModel('gpt-6-astra').doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              openai: {
+                reasoningEffort,
+              } satisfies OpenAILanguageModelResponsesOptions,
+            },
+          });
+
+          expect(await server.calls[0].requestBodyJson).toStrictEqual({
+            model: 'gpt-6-astra',
+            input: [
+              {
+                role: 'user',
+                content: [{ type: 'input_text', text: 'Hello' }],
+              },
+            ],
+          });
+          expect(warnings).toStrictEqual([
+            {
+              type: 'unsupported',
+              feature: 'reasoningEffort',
+              details:
+                'gpt-6-astra only supports the following reasoning efforts: low, medium, high, xhigh, max',
+            },
+          ]);
+        },
+      );
+
+      it('should strip sampling and logprob settings for GPT-6 models', async () => {
+        const { warnings } = await createModel('gpt-6-astra').doGenerate({
+          prompt: TEST_PROMPT,
+          temperature: 0.5,
+          topP: 0.7,
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'low',
+              logprobs: 5,
+              include: ['message.output_text.logprobs'],
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-6-astra',
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+          reasoning: {
+            effort: 'low',
+            summary: 'detailed',
+          },
+        });
+        expect(warnings).toStrictEqual([
+          {
+            type: 'unsupported',
+            feature: 'temperature',
+            details: 'temperature is not supported for reasoning models',
+          },
+          {
+            type: 'unsupported',
+            feature: 'topP',
+            details: 'topP is not supported for reasoning models',
+          },
+          {
+            type: 'unsupported',
+            feature: 'logprobs',
+            details: 'logprobs is not supported for reasoning models',
+          },
+        ]);
+      });
+
       it('should let GPT-5.6 use its default effort with pro mode', async () => {
         const { warnings } = await createModel('gpt-5.6').doGenerate({
           prompt: TEST_PROMPT,
@@ -1783,6 +1861,123 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should insert a reasoning effort configuration update before the prompt', async () => {
+        const { warnings } = await createModel('gpt-6-astra').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              previousResponseId: 'resp_123',
+              reasoningEffort: 'low',
+              reasoningEffortUpdate: 'high',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-6-astra',
+          input: [
+            {
+              type: 'configuration_update',
+              reasoning: { effort: 'high' },
+            },
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+          previous_response_id: 'resp_123',
+          reasoning: {
+            effort: 'low',
+            summary: 'detailed',
+          },
+        });
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should omit reasoning effort updates for models before GPT-6', async () => {
+        const { warnings } = await createModel('gpt-5.6').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              reasoningEffortUpdate: 'high',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect((await server.calls[0].requestBodyJson).input).toStrictEqual([
+          {
+            role: 'user',
+            content: [{ type: 'input_text', text: 'Hello' }],
+          },
+        ]);
+        expect(warnings).toStrictEqual([
+          {
+            type: 'unsupported',
+            feature: 'reasoningEffortUpdate',
+            details:
+              'reasoningEffortUpdate is only supported by GPT-6 and later models',
+          },
+        ]);
+      });
+
+      it('should omit reasoning effort updates with incompatible automatic context management', async () => {
+        const { warnings } = await createModel('gpt-6-astra').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              reasoningEffortUpdate: 'high',
+              contextManagement: [
+                { type: 'compaction', compactThreshold: 1000 },
+              ],
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect((await server.calls[0].requestBodyJson).input).toStrictEqual([
+          {
+            role: 'user',
+            content: [{ type: 'input_text', text: 'Hello' }],
+          },
+        ]);
+        expect(warnings).toStrictEqual([
+          {
+            type: 'unsupported',
+            feature: 'reasoningEffortUpdate',
+            details:
+              'reasoningEffortUpdate requires standard reasoning mode without automatic compaction or automatic truncation',
+          },
+        ]);
+      });
+
+      it('should omit legacy prompt cache retention for GPT-6 models', async () => {
+        const { warnings } = await createModel('gpt-6-astra').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              promptCacheRetention: '24h',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-6-astra',
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+        });
+        expect(warnings).toStrictEqual([
+          {
+            type: 'unsupported',
+            feature: 'promptCacheRetention',
+            details:
+              'promptCacheRetention is not supported by GPT-6 and later models; use promptCacheOptions instead',
+          },
+        ]);
+      });
+
       it('should send safetyIdentifier provider option', async () => {
         const { warnings } = await createModel('gpt-5').doGenerate({
           prompt: TEST_PROMPT,
@@ -1847,6 +2042,27 @@ describe('OpenAIResponsesLanguageModel', () => {
               'priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported',
           },
         ]);
+      });
+
+      it('should send serviceTier ultrafast provider option', async () => {
+        const { warnings } = await createModel('gpt-5.6-sol').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              serviceTier: 'ultrafast',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5.6-sol',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          service_tier: 'ultrafast',
+        });
+
+        expect(warnings).toStrictEqual([]);
       });
 
       it('should send truncation auto provider option', async () => {

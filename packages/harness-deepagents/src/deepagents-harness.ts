@@ -15,7 +15,6 @@ import {
   type HarnessV1PortEndpoint,
   type HarnessV1ResumeSessionState,
   type HarnessV1Session,
-  type HarnessV1Skill,
   type HarnessV1StreamPart,
 } from '@ai-sdk/harness';
 import {
@@ -35,8 +34,7 @@ import {
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
   withBridgeToken,
-  writeSkills as writeHarnessSkills,
-  type WriteSkillsResult,
+  writeSkills,
 } from '@ai-sdk/harness/utils';
 import {
   tool,
@@ -292,8 +290,6 @@ export function createDeepAgents(
           );
         }
         credentialsBrokered = true;
-      } else {
-        warnCredentialBrokeringUnavailable();
       }
       const bootstrapDir = posix.resolve(
         defaultWorkingDirectory,
@@ -364,12 +360,13 @@ export function createDeepAgents(
             sandboxCredentialEnvironment,
             isResume: true,
             sandbox: toolSafeSandboxSession,
-            homeSkillsRoot,
+            homeDir,
             skillsPaths,
             permissionMode,
             builtinToolFiltering: startOpts.builtinToolFiltering,
             recursionLimit: settings.recursionLimit,
             mcpServers: settings.mcpServers,
+            headers: startOpts.headers,
           });
         } catch {
           // Bridge no longer reachable — recover by respawning below.
@@ -393,6 +390,14 @@ export function createDeepAgents(
               DEEPAGENTS_CREDENTIAL_ENVIRONMENT_VARIABLES,
             credentialForwarding: settings.credentialForwarding,
           });
+      if (!credentialsBrokered) {
+        warnCredentialBrokeringUnavailable({
+          environment: resolvedAuthEnvironment,
+          forwardedEnvironment: forwardedAuthEnvironment,
+          credentialEnvironmentVariables:
+            DEEPAGENTS_CREDENTIAL_ENVIRONMENT_VARIABLES,
+        });
+      }
       const env = {
         ...forwardedAuthEnvironment,
         AI_SDK_HARNESS_CLIENT_APP: DEEPAGENTS_CLIENT_APP,
@@ -479,12 +484,13 @@ export function createDeepAgents(
         sandboxCredentialEnvironment,
         isResume,
         sandbox: toolSafeSandboxSession,
-        homeSkillsRoot,
+        homeDir,
         skillsPaths,
         permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
         recursionLimit: settings.recursionLimit,
         mcpServers: settings.mcpServers,
+        headers: startOpts.headers,
       });
     },
   };
@@ -555,36 +561,6 @@ async function resolveBridgeEndpoint({
   });
 }
 
-// Materialize each skill as a native deepagents `<name>/SKILL.md` folder (+ attached files) under the given root, so skills load on demand and file references resolve.
-async function writeSkills({
-  sandbox,
-  root,
-  skills,
-  abortSignal,
-}: {
-  sandbox: SandboxSession;
-  root: string;
-  skills: ReadonlyArray<HarnessV1Skill>;
-  abortSignal?: AbortSignal;
-}): Promise<WriteSkillsResult> {
-  /*
-   * DeepAgents requires each `SKILL.md` frontmatter name to match the parent
-   * directory name, so keep the stricter lowercase skill-name policy here.
-   */
-  return writeHarnessSkills({
-    sandbox,
-    rootDir: root,
-    skills,
-    abortSignal,
-    skillNamePattern: /^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/,
-    invalidSkillNameMessage: ({ name }) =>
-      `Invalid deepagents skill name '${name}': must be lowercase alphanumeric with hyphens, 1-64 chars.`,
-    filePathMode: 'strip-leading-slashes',
-    invalidSkillFilePathMessage: ({ skillName, filePath }) =>
-      `Invalid skill file path for '${skillName}': ${filePath}`,
-  });
-}
-
 function openWebSocket({
   url,
   headers,
@@ -619,12 +595,13 @@ function createSession({
   sandboxCredentialEnvironment,
   isResume,
   sandbox,
-  homeSkillsRoot,
+  homeDir,
   skillsPaths,
   permissionMode,
   builtinToolFiltering,
   recursionLimit,
   mcpServers,
+  headers,
 }: {
   sessionId: string;
   channel: DeepAgentsChannel;
@@ -639,12 +616,13 @@ function createSession({
   sandboxCredentialEnvironment: Record<string, string> | undefined;
   isResume: boolean;
   sandbox: SandboxSession;
-  homeSkillsRoot: string;
+  homeDir: string;
   skillsPaths?: string[];
   permissionMode?: HarnessV1PermissionMode;
   builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
   recursionLimit?: number;
   mcpServers?: Record<string, unknown>;
+  headers?: Readonly<Record<string, string>>;
 }): HarnessV1Session {
   let stopped = false;
 
@@ -786,9 +764,16 @@ function createSession({
       }
       const skillWriteResult = await writeSkills({
         sandbox,
-        root: homeSkillsRoot,
+        homePath: homeDir,
+        skillsDir: '.agents/skills',
         skills: promptOpts.skills,
         abortSignal: promptOpts.abortSignal,
+        skillNamePattern: /^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/,
+        invalidSkillNameMessage: ({ name }) =>
+          `Invalid deepagents skill name '${name}': must be lowercase alphanumeric with hyphens, 1-64 chars.`,
+        filePathMode: 'strip-leading-slashes',
+        invalidSkillFilePathMessage: ({ skillName, filePath }) =>
+          `Invalid skill file path for '${skillName}': ${filePath}`,
       });
       const control = wireTurn({
         emit: promptOpts.emit,
@@ -820,6 +805,7 @@ function createSession({
         ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
         ...(recursionLimit != null ? { recursionLimit } : {}),
         ...(mcpServers == null ? {} : { mcpServers }),
+        ...(headers == null ? {} : { headers }),
       });
 
       return control;

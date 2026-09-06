@@ -161,6 +161,7 @@ export function createPi(
           ...(settings.extensionFactories
             ? { extensionFactories: settings.extensionFactories }
             : {}),
+          ...(startOpts.headers ? { headers: startOpts.headers } : {}),
         },
         clientApp: PI_CLIENT_APP,
         isResume: lifecycleState != null,

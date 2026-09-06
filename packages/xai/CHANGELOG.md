@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 4.0.54
+
+### Patch Changes
+
+- 048ce06: feat(batch): surface the uploaded input file on the batch start result (`providerMetadata.<provider>.inputFileId` / `inputFileExpiresAt`) and accept an `inputFileExpiresAfter` provider option on the OpenAI and xAI batch input file upload
+
 ## 4.0.53
 
 ### Patch Changes

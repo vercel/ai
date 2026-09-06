@@ -210,6 +210,10 @@ safe built-in operations internally without sending a permission request.
   error.
 - A changed host-tool catalog requires Grok Build to refresh its ACP MCP tool
   list. If the implementation retains stale tools, the turn fails explicitly.
+- Custom `headers` are not natively supported and only applied via
+  sandbox-external request transformations. When a sandbox without that
+  capability is provided, custom `headers` therefore cannot be passed and are
+  ignored.
 
 ## Related
 

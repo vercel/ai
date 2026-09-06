@@ -1,5 +1,11 @@
 # @ai-sdk/open-responses
 
+## 2.0.39
+
+### Patch Changes
+
+- 4210d0b: feat(open-responses): add strict assistant history serialization without synthetic item IDs
+
 ## 2.0.38
 
 ### Patch Changes

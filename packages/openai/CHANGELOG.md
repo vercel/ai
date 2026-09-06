@@ -1,5 +1,32 @@
 # @ai-sdk/openai
 
+## 4.0.60
+
+### Patch Changes
+
+- 17e489e: feat(openai): add GPT-6 reasoning configuration updates
+
+## 4.0.59
+
+### Patch Changes
+
+- 4af00d1: feat(openai): add support for the gpt-6-astra
+- abb9ebf: feat(openai): support `gpt-4o-transcribe-diarize`, including chunking and diarized speaker metadata
+
+## 4.0.58
+
+### Patch Changes
+
+- b54e551: fix(openai): support documented Responses image generation options
+- 17d3436: feat(openai): add support for ultrafast service tier
+
+## 4.0.57
+
+### Patch Changes
+
+- 048ce06: feat(batch): surface the uploaded input file on the batch start result (`providerMetadata.<provider>.inputFileId` / `inputFileExpiresAt`) and accept an `inputFileExpiresAfter` provider option on the OpenAI and xAI batch input file upload
+- 7243530: fix(openai): preserve complete Responses API raw usage objects
+
 ## 4.0.56
 
 ### Patch Changes

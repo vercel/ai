@@ -1,12 +1,14 @@
 import { createACP, type ACPPermissionModeMapping } from '@ai-sdk/harness-acp';
 import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
 import { claudeCodeACPBuiltinTools } from './builtin-tools';
+import { claudeCodeACPAskUserQuestions } from './question-tool';
 
 const harnessId = 'acp-claude-code';
 
 export const claudeCodeACPHarness = createACP({
   harnessId,
   builtinTools: claudeCodeACPBuiltinTools,
+  askUserQuestions: claudeCodeACPAskUserQuestions,
   isMcpToolCall: toolCall => {
     const metadata = toolCall._meta?.claudeCode;
     return (
@@ -24,6 +26,9 @@ export const claudeCodeACPHarness = createACP({
   modelMapping: {
     type: 'session-config-option',
     path: 'model',
+  },
+  clientCapabilities: {
+    elicitation: { form: {} },
   },
   credentialEnv: ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN'],
   credentialBrokering: ({ env, sandboxEnv }) => {

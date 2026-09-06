@@ -1,6 +1,7 @@
 import path from 'node:path';
 import {
   commonTool,
+  HARNESS_V1_BUILTIN_TOOLS,
   HarnessCapabilityUnsupportedError,
   harnessV1DiagnosticFromBridgeFrame,
   type HarnessV1,
@@ -13,6 +14,7 @@ import {
   type HarnessV1PermissionMode,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
+  type HarnessV1ResponseFormat,
   type HarnessV1PortEndpoint,
   type HarnessV1ResumeSessionState,
   type HarnessV1Session,
@@ -38,7 +40,7 @@ import {
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
   withBridgeToken,
-  writeSkills as writeHarnessSkills,
+  writeSkills,
   type WriteSkillsResult,
 } from '@ai-sdk/harness/utils';
 import {
@@ -123,6 +125,11 @@ export type OpenCodeHarnessSettings = {
 const optionalStringRecord = z.record(z.string(), z.unknown()).optional();
 
 const OPENCODE_BUILTIN_TOOLS = {
+  askUserQuestions: {
+    ...HARNESS_V1_BUILTIN_TOOLS.askUserQuestions,
+    nativeName: 'question',
+    toolUseKind: 'readonly',
+  },
   read: commonTool('read', {
     nativeName: 'view',
     toolUseKind: 'readonly',
@@ -336,8 +343,6 @@ export function createOpenCode(
           );
         }
         credentialsBrokered = true;
-      } else {
-        warnCredentialBrokeringUnavailable();
       }
       const bootstrapDir = path.posix.resolve(
         defaultWorkingDirectory,
@@ -408,6 +413,7 @@ export function createOpenCode(
             reasoningVariant: settings.reasoningVariant,
             openCodeConfig: settings.openCodeConfig,
             mcpServers: settings.mcpServers,
+            headers: startOpts.headers,
             openCodeSessionId: resumeSessionId,
             isResume: true,
             seedResumeSessionOnFirstPrompt: false,
@@ -457,6 +463,14 @@ export function createOpenCode(
               OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
             credentialForwarding: settings.credentialForwarding,
           });
+      if (!credentialsBrokered) {
+        warnCredentialBrokeringUnavailable({
+          environment: resolvedAuthEnvironment,
+          forwardedEnvironment: forwardedAuthEnvironment,
+          credentialEnvironmentVariables:
+            OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
+        });
+      }
       const env = {
         ...forwardedAuthEnvironment,
         AI_SDK_HARNESS_CLIENT_APP: OPENCODE_CLIENT_APP,
@@ -557,6 +571,7 @@ export function createOpenCode(
         reasoningVariant: settings.reasoningVariant,
         openCodeConfig: settings.openCodeConfig,
         mcpServers: settings.mcpServers,
+        headers: startOpts.headers,
         openCodeSessionId: resumeSessionId,
         isResume: respawnStrategy !== undefined,
         seedResumeSessionOnFirstPrompt: respawnStrategy !== undefined,
@@ -638,30 +653,6 @@ async function resolveBridgeEndpoint({
     harnessId: 'opencode',
     message:
       'The OpenCode harness requires an explicit `portEndpoint` when using a basic sandbox session.',
-  });
-}
-
-async function writeOpenCodeSkills({
-  sandbox,
-  skills,
-  homeDir,
-  abortSignal,
-}: {
-  sandbox: SandboxSession;
-  skills: ReadonlyArray<HarnessV1Skill>;
-  homeDir: string;
-  abortSignal?: AbortSignal;
-}): Promise<WriteSkillsResult> {
-  const skillsDir = path.posix.join(homeDir, '.agents', 'skills');
-  return writeHarnessSkills({
-    sandbox,
-    rootDir: skillsDir,
-    skills,
-    abortSignal,
-    invalidSkillNameMessage: ({ name }) =>
-      `Invalid OpenCode skill name: ${name}`,
-    invalidSkillFilePathMessage: ({ skillName, filePath }) =>
-      `Invalid OpenCode skill file path for ${skillName}: ${filePath}`,
   });
 }
 
@@ -774,6 +765,7 @@ function createSession({
   reasoningVariant,
   openCodeConfig,
   mcpServers,
+  headers,
   openCodeSessionId,
   isResume,
   seedResumeSessionOnFirstPrompt,
@@ -797,6 +789,7 @@ function createSession({
   reasoningVariant: string | undefined;
   openCodeConfig: Record<string, unknown> | undefined;
   mcpServers: Record<string, unknown> | undefined;
+  headers: Readonly<Record<string, string>> | undefined;
   openCodeSessionId: string | undefined;
   isResume: boolean;
   seedResumeSessionOnFirstPrompt: boolean;
@@ -948,6 +941,9 @@ function createSession({
           toolCallId: input.toolCallId,
           output: input.output,
           isError: input.isError,
+          ...(input.toolResult !== undefined
+            ? { toolResult: input.toolResult }
+            : {}),
         });
       },
       submitToolApproval: async input => {
@@ -975,6 +971,7 @@ function createSession({
     ...(reasoningVariant ? { variant: reasoningVariant } : {}),
     ...(openCodeConfig == null ? {} : { openCodeConfig }),
     ...(mcpServers == null ? {} : { mcpServers }),
+    ...(headers == null ? {} : { headers }),
     ...(permissionMode ? { permissionMode } : {}),
     ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
     ...(pendingResumeSessionId
@@ -985,30 +982,48 @@ function createSession({
     ...(debug ? { debug } : {}),
   });
 
+  const prepareTurn = async (opts: {
+    responseFormat?: HarnessV1ResponseFormat;
+    skills: ReadonlyArray<HarnessV1Skill>;
+    emit: (event: HarnessV1StreamPart) => void;
+    abortSignal?: AbortSignal;
+  }): Promise<{
+    control: HarnessV1PromptControl;
+    skillWriteResult: WriteSkillsResult;
+  }> => {
+    if (
+      opts.responseFormat?.type === 'json' &&
+      opts.responseFormat.schema == null
+    ) {
+      throw new HarnessCapabilityUnsupportedError({
+        message:
+          "Harness 'opencode' requires a JSON schema for structured output.",
+        harnessId: 'opencode',
+      });
+    }
+    const skillWriteResult = await writeSkills({
+      sandbox,
+      homePath: sandboxHomeDir,
+      skillsDir: '.agents/skills',
+      skills: opts.skills,
+      abortSignal: opts.abortSignal,
+      invalidSkillNameMessage: ({ name }) =>
+        `Invalid OpenCode skill name: ${name}`,
+      invalidSkillFilePathMessage: ({ skillName, filePath }) =>
+        `Invalid OpenCode skill file path for ${skillName}: ${filePath}`,
+    });
+    const control = wireTurn({
+      emit: opts.emit,
+      abortSignal: opts.abortSignal,
+    });
+    return { control, skillWriteResult };
+  };
+
   return {
     sessionId,
     isResume,
     doPromptTurn: async promptOpts => {
-      if (
-        promptOpts.responseFormat?.type === 'json' &&
-        promptOpts.responseFormat.schema == null
-      ) {
-        throw new HarnessCapabilityUnsupportedError({
-          message:
-            "Harness 'opencode' requires a JSON schema for structured output.",
-          harnessId: 'opencode',
-        });
-      }
-      const skillWriteResult = await writeOpenCodeSkills({
-        sandbox,
-        skills: promptOpts.skills,
-        homeDir: sandboxHomeDir,
-        abortSignal: promptOpts.abortSignal,
-      });
-      const control = wireTurn({
-        emit: promptOpts.emit,
-        abortSignal: promptOpts.abortSignal,
-      });
+      const { control, skillWriteResult } = await prepareTurn(promptOpts);
       const turnModel = promptOpts.model ?? selectedModel;
       if (turnModel) selectedModel = turnModel;
       channel.send({
@@ -1033,26 +1048,7 @@ function createSession({
       return control;
     },
     doContinueTurn: async continueOpts => {
-      if (
-        continueOpts.responseFormat?.type === 'json' &&
-        continueOpts.responseFormat.schema == null
-      ) {
-        throw new HarnessCapabilityUnsupportedError({
-          message:
-            "Harness 'opencode' requires a JSON schema for structured output.",
-          harnessId: 'opencode',
-        });
-      }
-      const skillWriteResult = await writeOpenCodeSkills({
-        sandbox,
-        skills: continueOpts.skills,
-        homeDir: sandboxHomeDir,
-        abortSignal: continueOpts.abortSignal,
-      });
-      const control = wireTurn({
-        emit: continueOpts.emit,
-        abortSignal: continueOpts.abortSignal,
-      });
+      const { control, skillWriteResult } = await prepareTurn(continueOpts);
       if (rerunContinue) {
         const turnModel = continueOpts.model ?? selectedModel;
         if (turnModel) selectedModel = turnModel;
@@ -1101,6 +1097,7 @@ function createSession({
         debug,
         openCodeConfig,
         mcpServers,
+        headers,
         resumeSessionId: latestOpenCodeSessionId,
         onCompaction: part => pendingCompactionParts.push(part),
       });
@@ -1274,6 +1271,7 @@ async function runCompactOperation({
   debug,
   openCodeConfig,
   mcpServers,
+  headers,
   resumeSessionId,
   onCompaction,
 }: {
@@ -1284,6 +1282,7 @@ async function runCompactOperation({
   debug: HarnessV1DebugConfig | undefined;
   openCodeConfig: Record<string, unknown> | undefined;
   mcpServers: Record<string, unknown> | undefined;
+  headers: Readonly<Record<string, string>> | undefined;
   resumeSessionId: string | undefined;
   onCompaction: (part: HarnessV1StreamPart) => void;
 }): Promise<void> {
@@ -1313,6 +1312,7 @@ async function runCompactOperation({
     provider,
     ...(openCodeConfig == null ? {} : { openCodeConfig }),
     ...(mcpServers == null ? {} : { mcpServers }),
+    ...(headers == null ? {} : { headers }),
     ...(permissionMode ? { permissionMode } : {}),
     ...(resumeSessionId ? { resumeSessionId } : {}),
     ...(debug ? { debug } : {}),

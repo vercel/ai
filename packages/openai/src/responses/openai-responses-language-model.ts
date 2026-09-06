@@ -296,9 +296,25 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       });
     }
 
-    const resolvedReasoningEffort =
+    let resolvedReasoningEffort =
       openaiOptions?.reasoningEffort ??
       (isCustomReasoning(reasoning) ? reasoning : undefined);
+
+    if (
+      resolvedReasoningEffort != null &&
+      modelCapabilities.supportedReasoningEfforts != null &&
+      !modelCapabilities.supportedReasoningEfforts.includes(
+        resolvedReasoningEffort,
+      )
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'reasoningEffort',
+        details: `${this.modelId} only supports the following reasoning efforts: ${modelCapabilities.supportedReasoningEfforts.join(', ')}`,
+      });
+      resolvedReasoningEffort = undefined;
+    }
+
     const resolvedReasoningSummary =
       openaiOptions?.reasoningSummary !== undefined
         ? openaiOptions.reasoningSummary
@@ -383,6 +399,29 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       });
 
     warnings.push(...inputWarnings);
+
+    const reasoningEffortUpdate = openaiOptions?.reasoningEffortUpdate;
+    const configurationUpdateIsSupported =
+      reasoningEffortUpdate == null ||
+      (modelCapabilities.supportsConfigurationUpdate &&
+        openaiOptions?.reasoningMode !== 'pro' &&
+        openaiOptions?.contextManagement == null &&
+        openaiOptions?.truncation !== 'auto');
+
+    if (reasoningEffortUpdate != null && !configurationUpdateIsSupported) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'reasoningEffortUpdate',
+        details: !modelCapabilities.supportsConfigurationUpdate
+          ? 'reasoningEffortUpdate is only supported by GPT-6 and later models'
+          : 'reasoningEffortUpdate requires standard reasoning mode without automatic compaction or automatic truncation',
+      });
+    } else if (reasoningEffortUpdate != null) {
+      input.unshift({
+        type: 'configuration_update',
+        reasoning: { effort: reasoningEffortUpdate },
+      });
+    }
 
     // A compaction trigger is a request control, not conversation history.
     // OpenAI requires it to be the final input item, so append it only after
@@ -526,6 +565,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         }),
     };
 
+    if (
+      modelCapabilities.supportsConfigurationUpdate &&
+      baseArgs.prompt_cache_retention != null
+    ) {
+      baseArgs.prompt_cache_retention = undefined;
+      warnings.push({
+        type: 'unsupported',
+        feature: 'promptCacheRetention',
+        details:
+          'promptCacheRetention is not supported by GPT-6 and later models; use promptCacheOptions instead',
+      });
+    }
+
     // remove unsupported settings for reasoning models
     // see https://platform.openai.com/docs/guides/reasoning#limitations
     if (isReasoningModel) {
@@ -552,6 +604,26 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             type: 'unsupported',
             feature: 'topP',
             details: 'topP is not supported for reasoning models',
+          });
+        }
+
+        if (
+          modelCapabilities.supportedReasoningEfforts != null &&
+          (baseArgs.top_logprobs != null ||
+            baseArgs.include?.includes('message.output_text.logprobs'))
+        ) {
+          baseArgs.top_logprobs = undefined;
+          const filteredInclude = baseArgs.include?.filter(
+            value => value !== 'message.output_text.logprobs',
+          );
+          baseArgs.include =
+            filteredInclude != null && filteredInclude.length > 0
+              ? filteredInclude
+              : undefined;
+          warnings.push({
+            type: 'unsupported',
+            feature: 'logprobs',
+            details: 'logprobs is not supported for reasoning models',
           });
         }
       }

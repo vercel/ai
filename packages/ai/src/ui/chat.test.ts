@@ -1717,6 +1717,54 @@ describe('Chat', () => {
     `);
   });
 
+  it('should use an explicitly provided ID when replacing a user message', async () => {
+    server.urls['http://localhost:3000/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        formatChunk({ type: 'start' }),
+        formatChunk({ type: 'start-step' }),
+        formatChunk({ type: 'finish-step' }),
+        formatChunk({ type: 'finish' }),
+      ],
+    };
+
+    const finishPromise = createResolvablePromise<void>();
+    const chat = new TestChat({
+      id: '123',
+      transport: new DefaultChatTransport({
+        api: 'http://localhost:3000/api/chat',
+      }),
+      onFinish: () => finishPromise.resolve(),
+      messages: [
+        {
+          id: 'id-0',
+          role: 'user',
+          parts: [{ text: 'Hi!', type: 'text' }],
+        },
+      ],
+    });
+
+    chat.sendMessage({
+      id: 'replacement-id',
+      parts: [{ text: 'Hello, world!', type: 'text' }],
+      messageId: 'id-0',
+    });
+
+    await finishPromise.promise;
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      messageId: 'id-0',
+      messages: [
+        {
+          id: 'replacement-id',
+          role: 'user',
+          parts: [{ text: 'Hello, world!', type: 'text' }],
+        },
+      ],
+    });
+    expect(chat.messages[0].id).toBe('replacement-id');
+  });
+
   it('should reject when onFinish throws', async () => {
     const onFinishError = new Error('onFinish failed');
     const chat = new TestChat({

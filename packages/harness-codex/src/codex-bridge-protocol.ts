@@ -22,6 +22,7 @@ export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   webSearch: z.boolean().optional(),
   codexConfig: z.record(z.string(), z.unknown()).optional(),
   mcpServers: z.record(z.string(), z.unknown()).optional(),
+  headers: z.record(z.string(), z.string()).optional(),
   // Resume signal. When supplied, the bridge calls
   // `codex.resumeThread(resumeThreadId, …)` instead of starting a fresh thread.
   // The host sources the id from lifecycle state `data` cached from a prior
