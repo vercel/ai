@@ -2174,16 +2174,16 @@ describe('responses', () => {
   });
 
   describe('transcription', () => {
-    it('should instantiate transcription model for mai-transcribe-2', () => {
-      const model = provider.transcription('mai-transcribe-2');
-      expect(model.modelId).toBe('mai-transcribe-2');
+    it('should instantiate OpenAI transcription model for whisper-1 via provider.transcription', () => {
+      const model = provider.transcription('whisper-1');
+      expect(model.modelId).toBe('whisper-1');
       expect(model.provider).toBe('azure.transcription');
     });
 
-    it('should support maiTranscribe helper for mai-transcribe-2', () => {
+    it('should support maiTranscribe helper with azure.speech provider for mai-transcribe-2', () => {
       const model = provider.maiTranscribe('mai-transcribe-2');
       expect(model.modelId).toBe('mai-transcribe-2');
-      expect(model.provider).toBe('azure.transcription');
+      expect(model.provider).toBe('azure.speech');
     });
   });
 });
