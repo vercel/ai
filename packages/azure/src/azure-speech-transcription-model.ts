@@ -1,12 +1,14 @@
-import type {
-  TranscriptionModelV4,
-  SharedV4Warning,
-  SharedV4ProviderMetadata,
+import {
+  APICallError,
+  type TranscriptionModelV4,
+  type SharedV4Warning,
+  type SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
+  extractResponseHeaders,
   mediaTypeToExtension,
   postFormDataToApi,
   serializeModelOptions,
@@ -109,11 +111,20 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
       url,
       headers: combineHeaders(headers, options.headers),
       formData,
-      failedResponseHandler: async ({ response }) => {
+      failedResponseHandler: async ({ response, url, requestBodyValues }) => {
+        const responseHeaders = extractResponseHeaders(response);
         const text = await response.text();
-        return new Error(
-          `Azure Speech MAI-Transcribe error (${response.status}): ${text}`,
-        );
+        return {
+          responseHeaders,
+          value: new APICallError({
+            message: `Azure Speech MAI-Transcribe error (${response.status}): ${text}`,
+            url,
+            requestBodyValues,
+            statusCode: response.status,
+            responseHeaders,
+            responseBody: text,
+          }),
+        };
       },
       successfulResponseHandler: createJsonResponseHandler(
         azureSpeechTranscriptionResponseSchema,

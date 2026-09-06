@@ -2240,5 +2240,24 @@ describe('responses', () => {
         '2025-10-15',
       );
     });
+
+    it('should throw APICallError when Azure Speech REST API returns an error', async () => {
+      server.urls[
+        'https://test-resource.cognitiveservices.azure.com/speechtotext/transcriptions:transcribe'
+      ].response = {
+        type: 'error',
+        status: 400,
+        body: 'Invalid audio format',
+      };
+
+      await expect(
+        provider.maiTranscribe('mai-transcribe-2').doGenerate({
+          audio: new Uint8Array([1, 2, 3, 4]),
+          mediaType: 'audio/wav',
+        }),
+      ).rejects.toThrow(
+        'Azure Speech MAI-Transcribe error (400): Invalid audio format',
+      );
+    });
   });
 });
