@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20424,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20424-stream-text-tool-choice.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20424-stream-text-tool-choice.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_20424_REPRODUCED: streamText completed without ToolChoiceViolationError for an enforced tool choice"
+  }
+}
