@@ -5326,6 +5326,13 @@ describe('OpenAIResponsesLanguageModel', () => {
         it('should include apply_patch tool call and result in content', async () => {
           expect(result.content).toMatchSnapshot();
         });
+
+        it('should use tool-calls finish reason', () => {
+          expect(result.finishReason).toEqual({
+            unified: 'tool-calls',
+            raw: undefined,
+          });
+        });
       });
     });
 
@@ -10044,7 +10051,18 @@ describe('OpenAIResponsesLanguageModel', () => {
           ],
         });
 
-        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+        const result = await convertReadableStreamToArray(stream);
+
+        expect(result).toContainEqual(
+          expect.objectContaining({
+            type: 'finish',
+            finishReason: {
+              unified: 'tool-calls',
+              raw: undefined,
+            },
+          }),
+        );
+        expect(result).toMatchSnapshot();
       });
 
       it('should stream apply_patch delete_file calls', async () => {
