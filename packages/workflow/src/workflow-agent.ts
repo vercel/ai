@@ -50,6 +50,7 @@ import {
   validateApprovedToolApprovals,
   verifyToolApprovalSignature,
 } from 'ai/internal';
+import { addToolResultsToConversation } from './add-tool-results-to-conversation.js';
 import { createLanguageModelToolResultOutput } from './create-language-model-tool-result-output.js';
 import type {
   ModelCallStreamPart,
@@ -2481,12 +2482,13 @@ export class WorkflowAgent<
 
             addToolResultsToStep(step, executedResults);
 
-            if (resolvedResults.length > 0) {
-              iterMessages.push({
-                role: 'tool',
-                content: resolvedResults,
-              });
-            }
+            addToolResultsToConversation({
+              messages: iterMessages,
+              toolResults: resolvedResults,
+              providerExecutedToolCallIds: new Set(
+                providerToolCalls.map(toolCall => toolCall.toolCallId),
+              ),
+            });
 
             const messages = iterMessages as unknown as ModelMessage[];
             const lastStep = steps[steps.length - 1];

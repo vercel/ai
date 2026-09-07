@@ -30,6 +30,7 @@ import {
   type StreamFinish,
   type ToolInputLifecycleEvent,
 } from './do-stream-step.js';
+import { addToolResultsToConversation } from './add-tool-results-to-conversation.js';
 import { resolveToolContext } from './resolve-tool-context.js';
 import { serializeToolSet } from './serializable-schema.js';
 import type {
@@ -457,9 +458,14 @@ export async function* streamTextIterator({
           providerExecutedToolResults,
         };
 
-        conversationPrompt.push({
-          role: 'tool',
-          content: toolResults,
+        addToolResultsToConversation({
+          messages: conversationPrompt,
+          toolResults,
+          providerExecutedToolCallIds: new Set(
+            toolCalls.flatMap(toolCall =>
+              toolCall.providerExecuted ? [toolCall.toolCallId] : [],
+            ),
+          ),
         });
 
         if (stopConditions) {
