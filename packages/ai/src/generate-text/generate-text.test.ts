@@ -1691,6 +1691,54 @@ describe('generateText', () => {
       });
     });
 
+    it('should accept structured output after the required tool was called in an earlier step', async () => {
+      let callCount = 0;
+
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            callCount++;
+
+            return callCount === 1
+              ? {
+                  ...dummyResponseValues,
+                  finishReason: {
+                    unified: 'tool-calls',
+                    raw: 'tool_calls',
+                  },
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: `{ "value": "value" }`,
+                    },
+                  ],
+                }
+              : {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: `{ "result": "done" }` }],
+                };
+          },
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'tool result',
+          },
+        },
+        toolChoice: { type: 'tool', toolName: 'tool1' },
+        output: Output.object({
+          schema: z.object({ result: z.string() }),
+        }),
+        stopWhen: isStepCount(3),
+        prompt: 'test-input',
+      });
+
+      expect(result.output).toEqual({ result: 'done' });
+      expect(result.steps).toHaveLength(2);
+    });
+
     it('should enforce the tool choice returned by prepareStep', async () => {
       const result = generateText({
         model: new MockLanguageModelV4({

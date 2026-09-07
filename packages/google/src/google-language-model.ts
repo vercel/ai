@@ -3,6 +3,7 @@ import type {
   LanguageModelV4CallOptions,
   LanguageModelV4Content,
   LanguageModelV4FinishReason,
+  LanguageModelV4FunctionTool,
   LanguageModelV4GenerateResult,
   LanguageModelV4Source,
   LanguageModelV4StreamPart,
@@ -64,6 +65,7 @@ const configurableSafetySettingCategories = [
 ] as const;
 
 const gemini25ModelPattern = /(^|\/)gemini-2\.5(?:[.-]|$)/i;
+const jsonResponseToolName = 'json';
 
 export type GoogleLanguageModelConfig = {
   provider: string;
@@ -278,6 +280,17 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     }
 
     const { usesGemini3Features } = getGoogleModelCapabilities(this.modelId);
+    const jsonResponseTool: LanguageModelV4FunctionTool | undefined =
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      tools?.some(tool => tool.type === 'function')
+        ? {
+            type: 'function',
+            name: jsonResponseToolName,
+            description: 'Respond with a JSON object.',
+            inputSchema: responseFormat.schema,
+          }
+        : undefined;
 
     const { contents, systemInstruction } = convertToGoogleMessages(prompt, {
       isGemmaModel,
@@ -293,8 +306,9 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       toolConfig: googleToolConfig,
       toolWarnings,
     } = prepareTools({
-      tools,
-      toolChoice,
+      tools:
+        jsonResponseTool != null ? [...(tools ?? []), jsonResponseTool] : tools,
+      toolChoice: jsonResponseTool != null ? { type: 'required' } : toolChoice,
       modelId: this.modelId,
       isVertexProvider,
     });
@@ -367,8 +381,11 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
           // response format:
           responseMimeType:
-            responseFormat?.type === 'json' ? 'application/json' : undefined,
+            jsonResponseTool == null && responseFormat?.type === 'json'
+              ? 'application/json'
+              : undefined,
           responseSchema:
+            jsonResponseTool == null &&
             responseFormat?.type === 'json' &&
             responseFormat.schema != null &&
             // Google GenAI does not support all OpenAPI Schema features,
@@ -402,6 +419,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       providerOptionsNames,
       extraHeaders: vertexPaygoHeaders,
       toolNameMapping,
+      usesJsonResponseTool: jsonResponseTool != null,
     };
   }
 
@@ -410,11 +428,13 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     warnings,
     providerOptionsNames,
     toolNameMapping,
+    usesJsonResponseTool = false,
   }: {
     response: InferSchema<typeof responseSchema>;
     warnings: SharedV4Warning[];
     providerOptionsNames: readonly string[];
     toolNameMapping?: ReturnType<typeof createToolNameMapping>;
+    usesJsonResponseTool?: boolean;
   }): LanguageModelV4GenerateResult {
     const wrapProviderMetadata = (payload: Record<string, unknown>) =>
       Object.fromEntries(
@@ -427,6 +447,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     const rawFinishReason =
       candidate?.finishReason ?? promptBlockReason ?? undefined;
     const content: Array<LanguageModelV4Content> = [];
+    let isJsonResponseFromTool = false;
 
     // map ordered parts to content:
     const parts = candidate?.content?.parts ?? [];
@@ -473,7 +494,9 @@ export class GoogleLanguageModel implements LanguageModelV4 {
             })
           : undefined;
 
-        if (part.text.length === 0) {
+        if (usesJsonResponseTool) {
+          continue;
+        } else if (part.text.length === 0) {
           if (thoughtSignatureMetadata != null && content.length > 0) {
             const lastContent = content[content.length - 1];
             lastContent.providerMetadata = thoughtSignatureMetadata;
@@ -486,17 +509,28 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           });
         }
       } else if ('functionCall' in part && part.functionCall.name != null) {
-        content.push({
-          type: 'tool-call' as const,
-          toolCallId: part.functionCall.id || this.config.generateId(),
-          toolName: part.functionCall.name,
-          input: JSON.stringify(part.functionCall.args ?? {}),
-          providerMetadata: part.thoughtSignature
-            ? wrapProviderMetadata({
-                thoughtSignature: part.thoughtSignature,
-              })
-            : undefined,
-        });
+        if (
+          usesJsonResponseTool &&
+          part.functionCall.name === jsonResponseToolName
+        ) {
+          isJsonResponseFromTool = true;
+          content.push({
+            type: 'text',
+            text: JSON.stringify(part.functionCall.args ?? {}),
+          });
+        } else {
+          content.push({
+            type: 'tool-call' as const,
+            toolCallId: part.functionCall.id || this.config.generateId(),
+            toolName: part.functionCall.name,
+            input: JSON.stringify(part.functionCall.args ?? {}),
+            providerMetadata: part.thoughtSignature
+              ? wrapProviderMetadata({
+                  thoughtSignature: part.thoughtSignature,
+                })
+              : undefined,
+          });
+        }
       } else if ('inlineData' in part) {
         const hasThought = part.thought === true;
         const hasThoughtSignature = !!part.thoughtSignature;
@@ -568,15 +602,17 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     return {
       content,
       finishReason: {
-        unified: isPromptBlocked
-          ? 'content-filter'
-          : mapGoogleFinishReason({
-              finishReason: rawFinishReason,
-              // Only count client-executed tool calls for finish reason determination.
-              hasToolCalls: content.some(
-                part => part.type === 'tool-call' && !part.providerExecuted,
-              ),
-            }),
+        unified: isJsonResponseFromTool
+          ? 'stop'
+          : isPromptBlocked
+            ? 'content-filter'
+            : mapGoogleFinishReason({
+                finishReason: rawFinishReason,
+                // Only count client-executed tool calls for finish reason determination.
+                hasToolCalls: content.some(
+                  part => part.type === 'tool-call' && !part.providerExecuted,
+                ),
+              }),
         raw: rawFinishReason,
       },
       usage: convertGoogleUsage(usageMetadata),
@@ -606,6 +642,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       providerOptionsNames,
       extraHeaders,
       toolNameMapping,
+      usesJsonResponseTool,
     } = await this.getArgs(options);
 
     const mergedHeaders = combineHeaders(
@@ -635,6 +672,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       warnings,
       providerOptionsNames,
       toolNameMapping,
+      usesJsonResponseTool,
     });
 
     return {
@@ -657,6 +695,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       providerOptionsNames,
       extraHeaders,
       toolNameMapping,
+      usesJsonResponseTool,
     } = await this.getArgs(options, { isStreaming: true });
     const wrapProviderMetadata = (payload: Record<string, unknown>) =>
       Object.fromEntries(
@@ -750,146 +789,199 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     };
 
     return {
-      stream: response.pipeThrough(
-        new TransformStream<
-          ParseResult<ChunkSchema>,
-          LanguageModelV4StreamPart
-        >({
-          start(controller) {
-            controller.enqueue({ type: 'stream-start', warnings });
-          },
+      stream: response
+        .pipeThrough(
+          new TransformStream<
+            ParseResult<ChunkSchema>,
+            LanguageModelV4StreamPart
+          >({
+            start(controller) {
+              controller.enqueue({ type: 'stream-start', warnings });
+            },
 
-          transform(chunk, controller) {
-            if (options.includeRawChunks) {
-              controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
-            }
-
-            if (!chunk.success) {
-              controller.enqueue({ type: 'error', error: chunk.error });
-              return;
-            }
-
-            const value = chunk.value;
-
-            if (!hasEmittedResponseMetadata && value.responseId != null) {
-              hasEmittedResponseMetadata = true;
-              controller.enqueue({
-                type: 'response-metadata',
-                id: value.responseId,
-              });
-            }
-
-            const usageMetadata = value.usageMetadata;
-
-            if (usageMetadata != null) {
-              usage = usageMetadata;
-            }
-
-            const candidate = value.candidates?.[0];
-
-            // sometimes the API returns an empty candidates array
-            if (candidate == null) {
-              const promptBlockReason = value.promptFeedback?.blockReason;
-              if (promptBlockReason != null) {
-                finishReason = {
-                  unified: 'content-filter',
-                  raw: promptBlockReason,
-                };
-                providerMetadata = wrapProviderMetadata({
-                  promptFeedback: value.promptFeedback ?? null,
-                  groundingMetadata: lastGroundingMetadata,
-                  urlContextMetadata: lastUrlContextMetadata,
-                  safetyRatings: null,
-                  usageMetadata: usageMetadata ?? null,
-                  finishMessage: null,
-                  serviceTier: usage?.serviceTier ?? null,
-                } satisfies GoogleProviderMetadata);
+            transform(chunk, controller) {
+              if (options.includeRawChunks) {
+                controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
               }
-              return;
-            }
 
-            const content = candidate.content;
+              if (!chunk.success) {
+                controller.enqueue({ type: 'error', error: chunk.error });
+                return;
+              }
 
-            if (candidate.groundingMetadata != null) {
-              lastGroundingMetadata = candidate.groundingMetadata;
-            }
-            if (candidate.urlContextMetadata != null) {
-              lastUrlContextMetadata = candidate.urlContextMetadata;
-            }
+              const value = chunk.value;
 
-            const sources = extractSources({
-              groundingMetadata: candidate.groundingMetadata,
-              generateId,
-            });
-            if (sources != null) {
-              for (const source of sources) {
-                if (
-                  source.sourceType === 'url' &&
-                  !emittedSourceUrls.has(source.url)
-                ) {
-                  emittedSourceUrls.add(source.url);
-                  controller.enqueue(source);
+              if (!hasEmittedResponseMetadata && value.responseId != null) {
+                hasEmittedResponseMetadata = true;
+                controller.enqueue({
+                  type: 'response-metadata',
+                  id: value.responseId,
+                });
+              }
+
+              const usageMetadata = value.usageMetadata;
+
+              if (usageMetadata != null) {
+                usage = usageMetadata;
+              }
+
+              const candidate = value.candidates?.[0];
+
+              // sometimes the API returns an empty candidates array
+              if (candidate == null) {
+                const promptBlockReason = value.promptFeedback?.blockReason;
+                if (promptBlockReason != null) {
+                  finishReason = {
+                    unified: 'content-filter',
+                    raw: promptBlockReason,
+                  };
+                  providerMetadata = wrapProviderMetadata({
+                    promptFeedback: value.promptFeedback ?? null,
+                    groundingMetadata: lastGroundingMetadata,
+                    urlContextMetadata: lastUrlContextMetadata,
+                    safetyRatings: null,
+                    usageMetadata: usageMetadata ?? null,
+                    finishMessage: null,
+                    serviceTier: usage?.serviceTier ?? null,
+                  } satisfies GoogleProviderMetadata);
+                }
+                return;
+              }
+
+              const content = candidate.content;
+
+              if (candidate.groundingMetadata != null) {
+                lastGroundingMetadata = candidate.groundingMetadata;
+              }
+              if (candidate.urlContextMetadata != null) {
+                lastUrlContextMetadata = candidate.urlContextMetadata;
+              }
+
+              const sources = extractSources({
+                groundingMetadata: candidate.groundingMetadata,
+                generateId,
+              });
+              if (sources != null) {
+                for (const source of sources) {
+                  if (
+                    source.sourceType === 'url' &&
+                    !emittedSourceUrls.has(source.url)
+                  ) {
+                    emittedSourceUrls.add(source.url);
+                    controller.enqueue(source);
+                  }
                 }
               }
-            }
 
-            // Process tool call's parts before determining finishReason to ensure hasToolCalls is properly set
-            if (content != null) {
-              // Process all parts in a single loop to preserve original order
-              const parts = content.parts ?? [];
-              for (const part of parts) {
-                if ('executableCode' in part && part.executableCode?.code) {
-                  const toolCallId = generateId();
-                  lastCodeExecutionToolCallId = toolCallId;
+              // Process tool call's parts before determining finishReason to ensure hasToolCalls is properly set
+              if (content != null) {
+                // Process all parts in a single loop to preserve original order
+                const parts = content.parts ?? [];
+                for (const part of parts) {
+                  if ('executableCode' in part && part.executableCode?.code) {
+                    const toolCallId = generateId();
+                    lastCodeExecutionToolCallId = toolCallId;
 
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId,
-                    toolName:
-                      toolNameMapping.toCustomToolName('code_execution'),
-                    input: JSON.stringify(part.executableCode),
-                    providerExecuted: true,
-                  });
-                } else if (
-                  'codeExecutionResult' in part &&
-                  part.codeExecutionResult
-                ) {
-                  // Results correspond to the most recent executable code part.
-                  const toolCallId = lastCodeExecutionToolCallId;
-
-                  if (toolCallId) {
                     controller.enqueue({
-                      type: 'tool-result',
+                      type: 'tool-call',
                       toolCallId,
                       toolName:
                         toolNameMapping.toCustomToolName('code_execution'),
-                      result: {
-                        outcome: part.codeExecutionResult.outcome,
-                        output: part.codeExecutionResult.output ?? '',
-                      },
+                      input: JSON.stringify(part.executableCode),
+                      providerExecuted: true,
                     });
-                  }
-                } else if ('text' in part && part.text != null) {
-                  const thoughtSignatureMetadata = part.thoughtSignature
-                    ? wrapProviderMetadata({
-                        thoughtSignature: part.thoughtSignature,
-                      })
-                    : undefined;
+                  } else if (
+                    'codeExecutionResult' in part &&
+                    part.codeExecutionResult
+                  ) {
+                    // Results correspond to the most recent executable code part.
+                    const toolCallId = lastCodeExecutionToolCallId;
 
-                  if (part.text.length === 0) {
-                    if (
-                      thoughtSignatureMetadata != null &&
-                      currentTextBlockId !== null
-                    ) {
+                    if (toolCallId) {
+                      controller.enqueue({
+                        type: 'tool-result',
+                        toolCallId,
+                        toolName:
+                          toolNameMapping.toCustomToolName('code_execution'),
+                        result: {
+                          outcome: part.codeExecutionResult.outcome,
+                          output: part.codeExecutionResult.output ?? '',
+                        },
+                      });
+                    }
+                  } else if ('text' in part && part.text != null) {
+                    const thoughtSignatureMetadata = part.thoughtSignature
+                      ? wrapProviderMetadata({
+                          thoughtSignature: part.thoughtSignature,
+                        })
+                      : undefined;
+
+                    if (part.text.length === 0) {
+                      if (
+                        thoughtSignatureMetadata != null &&
+                        currentTextBlockId !== null
+                      ) {
+                        controller.enqueue({
+                          type: 'text-delta',
+                          id: currentTextBlockId,
+                          delta: '',
+                          providerMetadata: thoughtSignatureMetadata,
+                        });
+                      }
+                    } else if (part.thought === true) {
+                      // End any active text block before starting reasoning
+                      if (currentTextBlockId !== null) {
+                        controller.enqueue({
+                          type: 'text-end',
+                          id: currentTextBlockId,
+                        });
+                        currentTextBlockId = null;
+                      }
+
+                      // Start new reasoning block if not already active
+                      if (currentReasoningBlockId === null) {
+                        currentReasoningBlockId = String(blockCounter++);
+                        controller.enqueue({
+                          type: 'reasoning-start',
+                          id: currentReasoningBlockId,
+                          providerMetadata: thoughtSignatureMetadata,
+                        });
+                      }
+
+                      controller.enqueue({
+                        type: 'reasoning-delta',
+                        id: currentReasoningBlockId,
+                        delta: part.text,
+                        providerMetadata: thoughtSignatureMetadata,
+                      });
+                    } else {
+                      if (currentReasoningBlockId !== null) {
+                        controller.enqueue({
+                          type: 'reasoning-end',
+                          id: currentReasoningBlockId,
+                        });
+                        currentReasoningBlockId = null;
+                      }
+
+                      if (currentTextBlockId === null) {
+                        currentTextBlockId = String(blockCounter++);
+                        controller.enqueue({
+                          type: 'text-start',
+                          id: currentTextBlockId,
+                          providerMetadata: thoughtSignatureMetadata,
+                        });
+                      }
+
                       controller.enqueue({
                         type: 'text-delta',
                         id: currentTextBlockId,
-                        delta: '',
+                        delta: part.text,
                         providerMetadata: thoughtSignatureMetadata,
                       });
                     }
-                  } else if (part.thought === true) {
-                    // End any active text block before starting reasoning
+                  } else if ('inlineData' in part) {
+                    // End any active text or reasoning block before starting file output.
+                    // Relevant for multimodal output models.
                     if (currentTextBlockId !== null) {
                       controller.enqueue({
                         type: 'text-end',
@@ -897,24 +989,6 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                       });
                       currentTextBlockId = null;
                     }
-
-                    // Start new reasoning block if not already active
-                    if (currentReasoningBlockId === null) {
-                      currentReasoningBlockId = String(blockCounter++);
-                      controller.enqueue({
-                        type: 'reasoning-start',
-                        id: currentReasoningBlockId,
-                        providerMetadata: thoughtSignatureMetadata,
-                      });
-                    }
-
-                    controller.enqueue({
-                      type: 'reasoning-delta',
-                      id: currentReasoningBlockId,
-                      delta: part.text,
-                      providerMetadata: thoughtSignatureMetadata,
-                    });
-                  } else {
                     if (currentReasoningBlockId !== null) {
                       controller.enqueue({
                         type: 'reasoning-end',
@@ -923,155 +997,148 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                       currentReasoningBlockId = null;
                     }
 
-                    if (currentTextBlockId === null) {
-                      currentTextBlockId = String(blockCounter++);
-                      controller.enqueue({
-                        type: 'text-start',
-                        id: currentTextBlockId,
-                        providerMetadata: thoughtSignatureMetadata,
-                      });
-                    }
+                    const hasThought = part.thought === true;
+                    const hasThoughtSignature = !!part.thoughtSignature;
+                    const fileMeta = hasThoughtSignature
+                      ? wrapProviderMetadata({
+                          thoughtSignature: part.thoughtSignature,
+                        })
+                      : undefined;
+                    controller.enqueue({
+                      type: hasThought ? 'reasoning-file' : 'file',
+                      mediaType: part.inlineData.mimeType,
+                      data: { type: 'data', data: part.inlineData.data },
+                      providerMetadata: fileMeta,
+                    });
+                  } else if ('toolCall' in part && part.toolCall) {
+                    const toolCallId = part.toolCall.id || generateId();
+                    lastServerToolCallId = toolCallId;
+                    const serverMeta = wrapProviderMetadata({
+                      ...(part.thoughtSignature
+                        ? { thoughtSignature: part.thoughtSignature }
+                        : {}),
+                      serverToolCallId: toolCallId,
+                      serverToolType: part.toolCall.toolType,
+                    });
 
                     controller.enqueue({
-                      type: 'text-delta',
-                      id: currentTextBlockId,
-                      delta: part.text,
-                      providerMetadata: thoughtSignatureMetadata,
+                      type: 'tool-call',
+                      toolCallId,
+                      toolName: `server:${part.toolCall.toolType}`,
+                      input: JSON.stringify(part.toolCall.args ?? {}),
+                      providerExecuted: true,
+                      dynamic: true,
+                      providerMetadata: serverMeta,
                     });
-                  }
-                } else if ('inlineData' in part) {
-                  // End any active text or reasoning block before starting file output.
-                  // Relevant for multimodal output models.
-                  if (currentTextBlockId !== null) {
-                    controller.enqueue({
-                      type: 'text-end',
-                      id: currentTextBlockId,
+                  } else if ('toolResponse' in part && part.toolResponse) {
+                    const responseToolCallId =
+                      lastServerToolCallId ||
+                      part.toolResponse.id ||
+                      generateId();
+                    const serverMeta = wrapProviderMetadata({
+                      ...(part.thoughtSignature
+                        ? { thoughtSignature: part.thoughtSignature }
+                        : {}),
+                      serverToolCallId: responseToolCallId,
+                      serverToolType: part.toolResponse.toolType,
                     });
-                    currentTextBlockId = null;
-                  }
-                  if (currentReasoningBlockId !== null) {
-                    controller.enqueue({
-                      type: 'reasoning-end',
-                      id: currentReasoningBlockId,
-                    });
-                    currentReasoningBlockId = null;
-                  }
 
-                  const hasThought = part.thought === true;
-                  const hasThoughtSignature = !!part.thoughtSignature;
-                  const fileMeta = hasThoughtSignature
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: responseToolCallId,
+                      toolName: `server:${part.toolResponse.toolType}`,
+                      result: (part.toolResponse.response ?? {}) as JSONObject,
+                      providerMetadata: serverMeta,
+                    });
+                    lastServerToolCallId = undefined;
+                  }
+                }
+
+                // Handle streaming and complete function calls
+                for (const part of parts) {
+                  if (!('functionCall' in part)) continue;
+
+                  const providerMeta = part.thoughtSignature
                     ? wrapProviderMetadata({
                         thoughtSignature: part.thoughtSignature,
                       })
                     : undefined;
-                  controller.enqueue({
-                    type: hasThought ? 'reasoning-file' : 'file',
-                    mediaType: part.inlineData.mimeType,
-                    data: { type: 'data', data: part.inlineData.data },
-                    providerMetadata: fileMeta,
-                  });
-                } else if ('toolCall' in part && part.toolCall) {
-                  const toolCallId = part.toolCall.id || generateId();
-                  lastServerToolCallId = toolCallId;
-                  const serverMeta = wrapProviderMetadata({
-                    ...(part.thoughtSignature
-                      ? { thoughtSignature: part.thoughtSignature }
-                      : {}),
-                    serverToolCallId: toolCallId,
-                    serverToolType: part.toolCall.toolType,
-                  });
 
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId,
-                    toolName: `server:${part.toolCall.toolType}`,
-                    input: JSON.stringify(part.toolCall.args ?? {}),
-                    providerExecuted: true,
-                    dynamic: true,
-                    providerMetadata: serverMeta,
-                  });
-                } else if ('toolResponse' in part && part.toolResponse) {
-                  const responseToolCallId =
-                    lastServerToolCallId ||
-                    part.toolResponse.id ||
-                    generateId();
-                  const serverMeta = wrapProviderMetadata({
-                    ...(part.thoughtSignature
-                      ? { thoughtSignature: part.thoughtSignature }
-                      : {}),
-                    serverToolCallId: responseToolCallId,
-                    serverToolType: part.toolResponse.toolType,
-                  });
+                  const isStreamingChunk =
+                    part.functionCall.partialArgs != null ||
+                    (part.functionCall.name != null &&
+                      part.functionCall.willContinue === true);
+                  const isTerminalChunk =
+                    part.functionCall.name == null &&
+                    part.functionCall.args == null &&
+                    part.functionCall.partialArgs == null &&
+                    part.functionCall.willContinue == null;
+                  const isCompleteCall =
+                    part.functionCall.name != null &&
+                    part.functionCall.args != null &&
+                    part.functionCall.partialArgs == null;
+                  // Single-chunk no-args call: `{ name: 'X' }` with no `args`,
+                  // `partialArgs`, or `willContinue`. Carries `thoughtSignature`.
+                  const isNoArgsCompleteCall =
+                    part.functionCall.name != null &&
+                    part.functionCall.args == null &&
+                    part.functionCall.partialArgs == null &&
+                    part.functionCall.willContinue !== true;
 
-                  controller.enqueue({
-                    type: 'tool-result',
-                    toolCallId: responseToolCallId,
-                    toolName: `server:${part.toolResponse.toolType}`,
-                    result: (part.toolResponse.response ?? {}) as JSONObject,
-                    providerMetadata: serverMeta,
-                  });
-                  lastServerToolCallId = undefined;
-                }
-              }
+                  if (isStreamingChunk) {
+                    if (part.functionCall.name != null) {
+                      const toolCallId = part.functionCall.id || generateId();
+                      const accumulator = new GoogleJSONAccumulator();
+                      activeStreamingToolCalls.push({
+                        toolCallId,
+                        toolName: part.functionCall.name,
+                        accumulator,
+                        providerMetadata: providerMeta,
+                      });
 
-              // Handle streaming and complete function calls
-              for (const part of parts) {
-                if (!('functionCall' in part)) continue;
+                      controller.enqueue({
+                        type: 'tool-input-start',
+                        id: toolCallId,
+                        toolName: part.functionCall.name,
+                        providerMetadata: providerMeta,
+                      });
 
-                const providerMeta = part.thoughtSignature
-                  ? wrapProviderMetadata({
-                      thoughtSignature: part.thoughtSignature,
-                    })
-                  : undefined;
-
-                const isStreamingChunk =
-                  part.functionCall.partialArgs != null ||
-                  (part.functionCall.name != null &&
-                    part.functionCall.willContinue === true);
-                const isTerminalChunk =
-                  part.functionCall.name == null &&
-                  part.functionCall.args == null &&
-                  part.functionCall.partialArgs == null &&
-                  part.functionCall.willContinue == null;
-                const isCompleteCall =
-                  part.functionCall.name != null &&
-                  part.functionCall.args != null &&
-                  part.functionCall.partialArgs == null;
-                // Single-chunk no-args call: `{ name: 'X' }` with no `args`,
-                // `partialArgs`, or `willContinue`. Carries `thoughtSignature`.
-                const isNoArgsCompleteCall =
-                  part.functionCall.name != null &&
-                  part.functionCall.args == null &&
-                  part.functionCall.partialArgs == null &&
-                  part.functionCall.willContinue !== true;
-
-                if (isStreamingChunk) {
-                  if (part.functionCall.name != null) {
-                    const toolCallId = part.functionCall.id || generateId();
-                    const accumulator = new GoogleJSONAccumulator();
-                    activeStreamingToolCalls.push({
-                      toolCallId,
-                      toolName: part.functionCall.name,
-                      accumulator,
-                      providerMetadata: providerMeta,
-                    });
-
-                    controller.enqueue({
-                      type: 'tool-input-start',
-                      id: toolCallId,
-                      toolName: part.functionCall.name,
-                      providerMetadata: providerMeta,
-                    });
-
-                    if (part.functionCall.partialArgs != null) {
+                      if (part.functionCall.partialArgs != null) {
+                        const partialArgs = part.functionCall
+                          .partialArgs as PartialArg[];
+                        const { textDelta } =
+                          accumulator.processPartialArgs(partialArgs);
+                        if (textDelta.length > 0) {
+                          controller.enqueue({
+                            type: 'tool-input-delta',
+                            id: toolCallId,
+                            delta: textDelta,
+                            providerMetadata: providerMeta,
+                          });
+                        }
+                        if (
+                          part.functionCall.willContinue !== true &&
+                          partialArgs.every(arg => arg.willContinue !== true)
+                        ) {
+                          finishActiveStreamingToolCall(controller);
+                        }
+                      }
+                    } else if (
+                      part.functionCall.partialArgs != null &&
+                      activeStreamingToolCalls.length > 0
+                    ) {
+                      const active =
+                        activeStreamingToolCalls[
+                          activeStreamingToolCalls.length - 1
+                        ];
                       const partialArgs = part.functionCall
                         .partialArgs as PartialArg[];
                       const { textDelta } =
-                        accumulator.processPartialArgs(partialArgs);
+                        active.accumulator.processPartialArgs(partialArgs);
                       if (textDelta.length > 0) {
                         controller.enqueue({
                           type: 'tool-input-delta',
-                          id: toolCallId,
+                          id: active.toolCallId,
                           delta: textDelta,
                           providerMetadata: providerMeta,
                         });
@@ -1084,160 +1151,208 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                       }
                     }
                   } else if (
-                    part.functionCall.partialArgs != null &&
+                    isTerminalChunk &&
                     activeStreamingToolCalls.length > 0
                   ) {
-                    const active =
-                      activeStreamingToolCalls[
-                        activeStreamingToolCalls.length - 1
-                      ];
-                    const partialArgs = part.functionCall
-                      .partialArgs as PartialArg[];
-                    const { textDelta } =
-                      active.accumulator.processPartialArgs(partialArgs);
-                    if (textDelta.length > 0) {
-                      controller.enqueue({
-                        type: 'tool-input-delta',
-                        id: active.toolCallId,
-                        delta: textDelta,
-                        providerMetadata: providerMeta,
-                      });
-                    }
-                    if (
-                      part.functionCall.willContinue !== true &&
-                      partialArgs.every(arg => arg.willContinue !== true)
-                    ) {
-                      finishActiveStreamingToolCall(controller);
-                    }
+                    finishActiveStreamingToolCall(controller);
+                  } else if (isCompleteCall) {
+                    const toolCallId = part.functionCall.id || generateId();
+                    const toolName = part.functionCall.name!;
+                    const args =
+                      typeof part.functionCall.args === 'string'
+                        ? part.functionCall.args
+                        : JSON.stringify(part.functionCall.args ?? {});
+
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: toolCallId,
+                      toolName,
+                      providerMetadata: providerMeta,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-input-delta',
+                      id: toolCallId,
+                      delta: args,
+                      providerMetadata: providerMeta,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-input-end',
+                      id: toolCallId,
+                      providerMetadata: providerMeta,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-call',
+                      toolCallId,
+                      toolName,
+                      input: args,
+                      providerMetadata: providerMeta,
+                    });
+
+                    hasToolCalls = true;
+                  } else if (isNoArgsCompleteCall) {
+                    const toolCallId = part.functionCall.id || generateId();
+                    const toolName = part.functionCall.name!;
+
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: toolCallId,
+                      toolName,
+                      providerMetadata: providerMeta,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-input-end',
+                      id: toolCallId,
+                      providerMetadata: providerMeta,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-call',
+                      toolCallId,
+                      toolName,
+                      input: '{}',
+                      providerMetadata: providerMeta,
+                    });
+
+                    hasToolCalls = true;
                   }
-                } else if (
-                  isTerminalChunk &&
-                  activeStreamingToolCalls.length > 0
-                ) {
-                  finishActiveStreamingToolCall(controller);
-                } else if (isCompleteCall) {
-                  const toolCallId = part.functionCall.id || generateId();
-                  const toolName = part.functionCall.name!;
-                  const args =
-                    typeof part.functionCall.args === 'string'
-                      ? part.functionCall.args
-                      : JSON.stringify(part.functionCall.args ?? {});
-
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCallId,
-                    toolName,
-                    providerMetadata: providerMeta,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-input-delta',
-                    id: toolCallId,
-                    delta: args,
-                    providerMetadata: providerMeta,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: toolCallId,
-                    providerMetadata: providerMeta,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId,
-                    toolName,
-                    input: args,
-                    providerMetadata: providerMeta,
-                  });
-
-                  hasToolCalls = true;
-                } else if (isNoArgsCompleteCall) {
-                  const toolCallId = part.functionCall.id || generateId();
-                  const toolName = part.functionCall.name!;
-
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCallId,
-                    toolName,
-                    providerMetadata: providerMeta,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: toolCallId,
-                    providerMetadata: providerMeta,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId,
-                    toolName,
-                    input: '{}',
-                    providerMetadata: providerMeta,
-                  });
-
-                  hasToolCalls = true;
                 }
               }
-            }
 
-            const promptBlockReason = value.promptFeedback?.blockReason;
-            const isPromptBlocked =
-              candidate.finishReason == null && promptBlockReason != null;
-            const rawFinishReason =
-              candidate.finishReason ?? promptBlockReason ?? undefined;
+              const promptBlockReason = value.promptFeedback?.blockReason;
+              const isPromptBlocked =
+                candidate.finishReason == null && promptBlockReason != null;
+              const rawFinishReason =
+                candidate.finishReason ?? promptBlockReason ?? undefined;
 
-            if (rawFinishReason != null) {
-              finishReason = {
-                unified: isPromptBlocked
-                  ? 'content-filter'
-                  : mapGoogleFinishReason({
-                      finishReason: rawFinishReason,
-                      hasToolCalls,
-                    }),
-                raw: rawFinishReason,
-              };
+              if (rawFinishReason != null) {
+                finishReason = {
+                  unified: isPromptBlocked
+                    ? 'content-filter'
+                    : mapGoogleFinishReason({
+                        finishReason: rawFinishReason,
+                        hasToolCalls,
+                      }),
+                  raw: rawFinishReason,
+                };
 
-              providerMetadata = wrapProviderMetadata({
-                promptFeedback: value.promptFeedback ?? null,
-                groundingMetadata: lastGroundingMetadata,
-                urlContextMetadata: lastUrlContextMetadata,
-                safetyRatings: candidate.safetyRatings ?? null,
-                usageMetadata: usageMetadata ?? null,
-                finishMessage: candidate.finishMessage ?? null,
-                serviceTier: usage?.serviceTier ?? null,
-              } satisfies GoogleProviderMetadata);
-            }
-          },
+                providerMetadata = wrapProviderMetadata({
+                  promptFeedback: value.promptFeedback ?? null,
+                  groundingMetadata: lastGroundingMetadata,
+                  urlContextMetadata: lastUrlContextMetadata,
+                  safetyRatings: candidate.safetyRatings ?? null,
+                  usageMetadata: usageMetadata ?? null,
+                  finishMessage: candidate.finishMessage ?? null,
+                  serviceTier: usage?.serviceTier ?? null,
+                } satisfies GoogleProviderMetadata);
+              }
+            },
 
-          flush(controller) {
-            if (currentTextBlockId !== null) {
+            flush(controller) {
+              if (currentTextBlockId !== null) {
+                controller.enqueue({
+                  type: 'text-end',
+                  id: currentTextBlockId,
+                });
+              }
+              if (currentReasoningBlockId !== null) {
+                controller.enqueue({
+                  type: 'reasoning-end',
+                  id: currentReasoningBlockId,
+                });
+              }
+
               controller.enqueue({
-                type: 'text-end',
-                id: currentTextBlockId,
+                type: 'finish',
+                finishReason,
+                usage: convertGoogleUsage(usage),
+                providerMetadata,
               });
-            }
-            if (currentReasoningBlockId !== null) {
-              controller.enqueue({
-                type: 'reasoning-end',
-                id: currentReasoningBlockId,
-              });
-            }
-
-            controller.enqueue({
-              type: 'finish',
-              finishReason,
-              usage: convertGoogleUsage(usage),
-              providerMetadata,
-            });
-          },
-        }),
-      ),
+            },
+          }),
+        )
+        .pipeThrough(
+          createJsonResponseToolTransformStream(usesJsonResponseTool),
+        ),
       response: { headers: responseHeaders },
       request: { body: args },
     };
   }
+}
+
+function createJsonResponseToolTransformStream(
+  enabled: boolean,
+): TransformStream<LanguageModelV4StreamPart, LanguageModelV4StreamPart> {
+  const jsonToolCallIds = new Set<string>();
+  let hasJsonResponse = false;
+
+  return new TransformStream<
+    LanguageModelV4StreamPart,
+    LanguageModelV4StreamPart
+  >({
+    transform(part, controller) {
+      if (!enabled) {
+        controller.enqueue(part);
+        return;
+      }
+
+      switch (part.type) {
+        case 'text-start':
+        case 'text-delta':
+        case 'text-end':
+          return;
+        case 'tool-input-start':
+          if (part.toolName === jsonResponseToolName) {
+            jsonToolCallIds.add(part.id);
+            hasJsonResponse = true;
+            controller.enqueue({ type: 'text-start', id: part.id });
+            return;
+          }
+          break;
+        case 'tool-input-delta':
+          if (jsonToolCallIds.has(part.id)) {
+            controller.enqueue({
+              type: 'text-delta',
+              id: part.id,
+              delta: part.delta,
+            });
+            return;
+          }
+          break;
+        case 'tool-input-end':
+          if (jsonToolCallIds.has(part.id)) {
+            controller.enqueue({ type: 'text-end', id: part.id });
+            return;
+          }
+          break;
+        case 'tool-call':
+          if (
+            part.toolName === jsonResponseToolName &&
+            jsonToolCallIds.has(part.toolCallId)
+          ) {
+            return;
+          }
+          break;
+        case 'finish':
+          if (hasJsonResponse) {
+            controller.enqueue({
+              ...part,
+              finishReason: {
+                unified: 'stop',
+                raw: part.finishReason.raw,
+              },
+            });
+            return;
+          }
+          break;
+      }
+
+      controller.enqueue(part);
+    },
+  });
 }
 
 function getMaxOutputTokensForGemini25Model(): number {
