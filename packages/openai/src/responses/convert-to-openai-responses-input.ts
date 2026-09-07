@@ -19,6 +19,7 @@ import {
   type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { openaiResponsesToolResultOptionsSchema } from './openai-responses-additional-tools';
 import {
   applyPatchInputSchema,
   applyPatchOutputSchema,
@@ -1225,6 +1226,35 @@ export async function convertToOpenAIResponsesInput({
             continue;
           }
 
+          const resolvedToolName = toolNameMapping.toProviderToolName(
+            part.toolName,
+          );
+
+          const additionalOptions = await parseProviderOptions({
+            provider: providerOptionsName,
+            providerOptions: part.providerOptions,
+            schema: openaiResponsesToolResultOptionsSchema,
+          });
+          if (
+            additionalOptions?.additionalTools != null &&
+            (part.output.type === 'error-text' ||
+              part.output.type === 'error-json' ||
+              part.output.type === 'execution-denied' ||
+              part.providerOptions?.[providerOptionsName]?.parallelToolCall !=
+                null ||
+              part.toolName === toolSearchToolName ||
+              customProviderToolNames?.has(resolvedToolName) ||
+              (hasLocalShellTool && resolvedToolName === 'local_shell') ||
+              (hasShellTool && resolvedToolName === 'shell') ||
+              (hasApplyPatchTool && resolvedToolName === 'apply_patch') ||
+              (hasComputerTool && resolvedToolName === 'computer'))
+          ) {
+            throw new UnsupportedFunctionalityError({
+              functionality:
+                'additionalTools requires a successful ordinary function tool result',
+            });
+          }
+
           const parallelToolCallMetadata = getParallelToolCallMetadata({
             providerOptions: part.providerOptions,
             providerOptionsName,
@@ -1313,10 +1343,6 @@ export async function convertToOpenAIResponsesInput({
               continue;
             }
           }
-
-          const resolvedToolName = toolNameMapping.toProviderToolName(
-            part.toolName,
-          );
 
           if (part.toolName === toolSearchToolName && output.type === 'json') {
             const parsedOutput = await validateTypes({
@@ -1581,6 +1607,13 @@ export async function convertToOpenAIResponsesInput({
             output: contentValue,
             ...(caller != null && { caller }),
           });
+          if (additionalOptions?.additionalTools != null) {
+            input.push({
+              type: 'additional_tools',
+              role: 'developer',
+              tools: additionalOptions.additionalTools,
+            });
+          }
         }
 
         break;
