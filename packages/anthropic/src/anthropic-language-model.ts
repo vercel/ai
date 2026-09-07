@@ -361,6 +361,34 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       customProviderOptions ?? {},
     );
 
+    // The shared schema accepts Anthropic (`auto`/`standard_only`) and
+    // MiniMax (`standard`/`priority`) values. Warn and drop mismatches for
+    // those known namespaces; other Anthropic-compatible providers pass through.
+    if (anthropicOptions.serviceTier != null) {
+      const { serviceTier } = anthropicOptions;
+      const supportedServiceTiers =
+        providerOptionsName === 'anthropic'
+          ? (['auto', 'standard_only'] as const)
+          : providerOptionsName === 'minimax'
+            ? (['standard', 'priority'] as const)
+            : null;
+
+      if (
+        supportedServiceTiers != null &&
+        !(supportedServiceTiers as readonly string[]).includes(serviceTier)
+      ) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'serviceTier',
+          details:
+            providerOptionsName === 'anthropic'
+              ? `serviceTier "${serviceTier}" is not supported by Anthropic. Use "auto" or "standard_only".`
+              : `serviceTier "${serviceTier}" is not supported by MiniMax. Use "standard" or "priority".`,
+        });
+        anthropicOptions.serviceTier = undefined;
+      }
+    }
+
     const {
       maxOutputTokens: maxOutputTokensForModel,
       supportsStructuredOutput: modelSupportsStructuredOutput,
@@ -618,6 +646,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       }),
       ...(anthropicOptions?.inferenceGeo && {
         inference_geo: anthropicOptions.inferenceGeo,
+      }),
+      ...(anthropicOptions?.serviceTier && {
+        service_tier: anthropicOptions.serviceTier,
       }),
       ...(anthropicOptions?.fallbacks != null &&
         (anthropicOptions.fallbacks === 'default' ||
@@ -1549,6 +1580,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         const anthropicMetadata = {
           usage: response.usage as JSONObject,
           stopSequence: response.stop_sequence ?? null,
+          serviceTier: response.service_tier ?? null,
           ...(stopDetails != null ? { stopDetails } : {}),
 
           iterations: response.usage.iterations
@@ -1686,6 +1718,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       | null = null;
     let rawUsage: JSONObject | undefined = undefined;
     let stopSequence: string | null = null;
+    let serviceTier: string | null = null;
     let stopDetails: AnthropicMessageMetadata['stopDetails'] = undefined;
     let container: AnthropicMessageMetadata['container'] | null = null;
     let isJsonResponseFromTool = false;
@@ -2555,6 +2588,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 ...(value.message.usage as JSONObject),
               };
 
+              serviceTier = value.message.service_tier ?? null;
+
               if (value.message.container != null) {
                 container = {
                   expiresAt: value.message.container.expires_at,
@@ -2698,6 +2733,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               const anthropicMetadata = {
                 usage: (rawUsage as JSONObject) ?? null,
                 stopSequence,
+                serviceTier,
                 ...(stopDetails != null ? { stopDetails } : {}),
                 iterations: usage.iterations
                   ? usage.iterations.map(

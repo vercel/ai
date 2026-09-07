@@ -18,6 +18,15 @@ export const minimaxLanguageModelOptions = z.object({
       type: z.enum(['adaptive', 'disabled']),
     })
     .optional(),
+
+  /**
+   * Request admission tier, sent as `service_tier`. `priority` ensures
+   * priority admission at 1.5x the standard price; defaults to `standard`.
+   *
+   * Parsed by the underlying Anthropic-compatible language model; declared
+   * here for typed `providerOptions.minimax` usage.
+   */
+  serviceTier: z.enum(['standard', 'priority']).optional(),
 });
 
 export type MiniMaxLanguageModelOptions = z.infer<
