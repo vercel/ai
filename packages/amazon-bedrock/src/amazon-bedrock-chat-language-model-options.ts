@@ -178,6 +178,15 @@ export const amazonBedrockLanguageModelChatOptions = z.object({
    * - 'flex': Lower-cost tier for flexible latency workloads
    */
   serviceTier: z.enum(['reserved', 'priority', 'default', 'flex']).optional(),
+  /**
+   * Key-value pairs to attach to the request for invocation log filtering and
+   * cost attribution.
+   * @see https://docs.aws.amazon.com/bedrock/latest/userguide/cost-mgmt-request-metadata.html
+   *
+   * - Maximum 16 entries per request.
+   * - Keys and values: maximum 256 characters each.
+   */
+  requestMetadata: z.record(z.string(), z.string()).optional(),
 });
 
 export type AmazonBedrockLanguageModelChatOptions = z.infer<
