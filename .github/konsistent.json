@@ -428,7 +428,6 @@
     "elevenlabs": "ElevenLabs",
     "huggingface": "HuggingFace",
     "klingai": "KlingAI",
-    "lmnt": "LMNT",
     "minimax": "MiniMax",
     "moonshotai": "MoonshotAI",
     "openai": "OpenAI",
@@ -438,7 +437,6 @@
     "togetherai": "TogetherAI"
   },
   "kebabToCamelMap": {
-    "lmnt": "lmnt",
     "minimax": "minimax"
   }
 }

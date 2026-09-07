@@ -21,21 +21,6 @@ const audio = await generateSpeech({
 });
 ```
 
-### Language Setting
-
-You can specify the language for speech generation (provider support varies):
-
-```ts
-import { experimental_generateSpeech as generateSpeech } from 'ai';
-import { lmnt } from '@ai-sdk/lmnt';
-
-const audio = await generateSpeech({
-  model: lmnt.speech('aurora'),
-  text: 'Hola, mundo!',
-  language: 'es', // Spanish
-});
-```
-
 To access the generated audio:
 
 ```ts
@@ -163,8 +148,6 @@ try {
 | [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models) | `eleven_flash_v2`        |
 | [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models) | `eleven_turbo_v2_5`      |
 | [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models) | `eleven_turbo_v2`        |
-| [LMNT](/providers/ai-sdk-providers/lmnt#speech-models)             | `aurora`                 |
-| [LMNT](/providers/ai-sdk-providers/lmnt#speech-models)             | `blizzard`               |
 | [Hume](/providers/ai-sdk-providers/hume#speech-models)             | `default`                |
 | [Fish Audio](/providers/ai-sdk-providers/fish-audio#speech-models)  | `s1`                    |
 | [Fish Audio](/providers/ai-sdk-providers/fish-audio#speech-models)  | `s2-pro`                |

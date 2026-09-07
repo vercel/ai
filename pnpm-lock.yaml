@@ -291,9 +291,6 @@ importers:
       '@ai-sdk/klingai':
         specifier: workspace:*
         version: link:../../packages/klingai
-      '@ai-sdk/lmnt':
-        specifier: workspace:*
-        version: link:../../packages/lmnt
       '@ai-sdk/luma':
         specifier: workspace:*
         version: link:../../packages/luma
@@ -2452,34 +2449,6 @@ importers:
       typescript:
         specifier: 5.8.3
         version: 5.8.3
-
-  packages/lmnt:
-    dependencies:
-      '@ai-sdk/provider':
-        specifier: workspace:*
-        version: link:../provider
-      '@ai-sdk/provider-utils':
-        specifier: workspace:*
-        version: link:../provider-utils
-    devDependencies:
-      '@ai-sdk/test-server':
-        specifier: workspace:*
-        version: link:../test-server
-      '@types/node':
-        specifier: 20.17.24
-        version: 20.17.24
-      '@vercel/ai-tsconfig':
-        specifier: workspace:*
-        version: link:../../tools/tsconfig
-      tsup:
-        specifier: ^8
-        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.6.3)(yaml@2.7.0)
-      typescript:
-        specifier: 5.6.3
-        version: 5.6.3
-      zod:
-        specifier: 3.25.76
-        version: 3.25.76
 
   packages/luma:
     dependencies:
