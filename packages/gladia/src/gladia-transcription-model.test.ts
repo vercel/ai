@@ -204,5 +204,59 @@ describe('doGenerate', () => {
       expect(result.response.timestamp.getTime()).toEqual(testDate.getTime());
       expect(result.response.modelId).toBe('default');
     });
+
+    it('should preserve speaker and utterance metadata in providerMetadata', async () => {
+      const diarizedResultFixture = {
+        ...resultFixture,
+        result: {
+          ...resultFixture.result,
+          transcription: {
+            ...resultFixture.result.transcription,
+            utterances: [
+              {
+                text: 'Hello world',
+                start: 0,
+                end: 1,
+                speaker: 'speaker_0',
+                confidence: 0.99,
+                language: 'en',
+                channel: 0,
+                words: [
+                  { word: 'Hello', start: 0, end: 0.5, confidence: 0.99 },
+                  { word: 'world', start: 0.5, end: 1, confidence: 0.99 },
+                ],
+              },
+            ],
+          },
+        },
+      };
+
+      server.urls[initiateFixture.result_url].response = {
+        type: 'json-value',
+        body: diarizedResultFixture,
+      };
+
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      expect(
+        (result.providerMetadata as any)?.gladia?.result?.transcription
+          ?.utterances?.[0],
+      ).toEqual({
+        text: 'Hello world',
+        start: 0,
+        end: 1,
+        speaker: 'speaker_0',
+        confidence: 0.99,
+        language: 'en',
+        channel: 0,
+        words: [
+          { word: 'Hello', start: 0, end: 0.5, confidence: 0.99 },
+          { word: 'world', start: 0.5, end: 1, confidence: 0.99 },
+        ],
+      });
+    });
   });
 });
