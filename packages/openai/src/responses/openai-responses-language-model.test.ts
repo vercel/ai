@@ -722,6 +722,55 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should strip zod v4 format patterns from text.format.schema and tool parameters', async () => {
+        const schema = JSON.parse(
+          fs.readFileSync(
+            'src/responses/__fixtures__/zod-v4-string-format-schema.json',
+            'utf8',
+          ),
+        );
+
+        const { warnings } = await createModel('gpt-5.4').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'createContact',
+              description: 'Create a contact',
+              inputSchema: schema,
+            },
+          ],
+          responseFormat: {
+            type: 'json',
+            name: 'contact',
+            description: 'A contact',
+            schema,
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        const requestJson = JSON.stringify(requestBody);
+
+        expect(requestJson).not.toContain('"pattern"');
+        expect(requestBody.text.format.schema.properties.email).toEqual({
+          type: 'string',
+          format: 'email',
+        });
+        expect(requestBody.tools[0].parameters.properties.email).toEqual({
+          type: 'string',
+          format: 'email',
+        });
+        expect(requestBody.tools[0].parameters.properties.kidId).toEqual({
+          type: 'string',
+          format: 'uuid',
+        });
+        expect(requestBody.tools[0].parameters.properties.birthDate).toEqual({
+          type: 'string',
+          format: 'date',
+        });
+        expect(warnings).toStrictEqual([]);
+      });
+
       it('should send response format json object', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
