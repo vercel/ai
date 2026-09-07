@@ -14,7 +14,7 @@ Before submitting your tool, ensure you have:
 
 1. **Fork and clone the repository**
 
-   Follow the setup instructions in the main [CONTRIBUTING.md](../../CONTRIBUTING.md)
+   Follow the setup instructions in the main [CONTRIBUTING.md](../CONTRIBUTING.md)
 
 2. **Add your tool entry**
 
@@ -88,6 +88,6 @@ Before submitting your tool, ensure you have:
 
 If you have questions about adding your tool to the registry:
 
-- Check the main [CONTRIBUTING.md](../../CONTRIBUTING.md) guide
+- Check the main [CONTRIBUTING.md](../CONTRIBUTING.md) guide
 - Review existing tool entries in `registry.ts` for examples
 - Open an issue on [GitHub](https://github.com/vercel/ai/issues)
