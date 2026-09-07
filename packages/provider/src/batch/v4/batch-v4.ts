@@ -108,4 +108,8 @@ export type BatchModelV4<REQUEST, RESULT> = {
   experimental_doGetBatchResults(
     options: BatchV4OperationOptions,
   ): PromiseLike<ReadableStream<BatchV4ItemResult<RESULT>>>;
+
+  experimental_doCancelBatch?(
+    options: BatchV4OperationOptions,
+  ): PromiseLike<BatchV4Status>;
 };
