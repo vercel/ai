@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "issueId": 20440,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20440.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20440.ts",
+    "packages/workflow/src/reproduction-20440.test.ts",
+    "packages/workflow/src/__fixtures__/issue-20440-anthropic-tool-search.chunks.txt",
+    "packages/workflow/src/__fixtures__/issue-20440-anthropic-error.txt"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_20440_REPRODUCED: Anthropic rejected the provider-executed tool result replayed as a standalone tool message"
+  }
+}
