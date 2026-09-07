@@ -30,6 +30,7 @@ import type { VideoModelResponseMetadata } from '../types/video-model-response-m
 import type { Warning } from '../types/warning';
 import { createDownload } from '../util/download/create-download';
 import { prepareRetries } from '../util/prepare-retries';
+import { setOwn } from '../util/set-own';
 import { VERSION } from '../version';
 import type { GenerateVideoResult } from './generate-video-result';
 import { splitDataUrl } from '../prompt/split-data-url';
@@ -643,6 +644,10 @@ function mergeProviderMetadata(
   target: SharedV4ProviderMetadata,
   source: SharedV4ProviderMetadata,
 ): void {
+  // `providerName` comes from provider-supplied metadata keys, so plain
+  // bracket assignment on `target` (a caller-supplied accumulator) would let
+  // a key named `__proto__` mutate Object.prototype instead of being stored
+  // as an own property. `setOwn` writes an own property regardless of key.
   for (const [providerName, metadataValue] of Object.entries(source)) {
     const existingMetadata = target[providerName];
     if (
@@ -651,10 +656,10 @@ function mergeProviderMetadata(
       metadataValue != null &&
       typeof metadataValue === 'object'
     ) {
-      target[providerName] = {
+      setOwn(target, providerName, {
         ...existingMetadata,
         ...metadataValue,
-      };
+      });
 
       if (
         'videos' in existingMetadata &&
@@ -668,7 +673,7 @@ function mergeProviderMetadata(
         ];
       }
     } else {
-      target[providerName] = metadataValue;
+      setOwn(target, providerName, metadataValue);
     }
   }
 }
