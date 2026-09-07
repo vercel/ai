@@ -77,6 +77,8 @@ describe('doGenerate', () => {
       'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
+      'speechify-caller': 'vercel-ai-sdk',
+      'speechify-caller-version': '0.0.0-test',
     });
     expect(server.calls[0].requestUserAgent).toContain(
       `ai-sdk/speechify/0.0.0-test`,

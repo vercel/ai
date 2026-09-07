@@ -65,7 +65,11 @@ export function createSpeechify(
           environmentVariableName: 'SPEECHIFY_API_KEY',
           description: 'Speechify',
         })}`,
-        'Speechify-Caller': 'vercel',
+        // Attribute every request to this integration per its release; the
+        // caller is the installable artifact's slug. A consumer's own headers
+        // still override.
+        'Speechify-Caller': 'vercel-ai-sdk',
+        'Speechify-Caller-Version': VERSION,
         ...options.headers,
       },
       `ai-sdk/speechify/${VERSION}`,
