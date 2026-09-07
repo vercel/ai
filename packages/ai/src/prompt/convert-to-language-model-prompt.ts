@@ -37,14 +37,10 @@ export async function convertToLanguageModelPrompt({
   prompt,
   supportedUrls,
   download = createDefaultDownloadFunction(),
-  // `provider` is only needed here to convert legacy tool output types via `mapToolResultOutput`.
-  // TODO: remove in v8 when "file-id" and "image-file-id" types are removed
-  provider,
 }: {
   prompt: StandardizedPrompt;
   supportedUrls: Record<string, RegExp[]>;
   download: DownloadFunction | undefined;
-  provider?: string;
 }): Promise<LanguageModelV4Prompt> {
   const downloadedAssets = await downloadAssets(
     prompt.messages,
@@ -95,7 +91,7 @@ export async function convertToLanguageModelPrompt({
           }))
       : []),
     ...prompt.messages.map(message =>
-      convertToLanguageModelMessage({ message, downloadedAssets, provider }),
+      convertToLanguageModelMessage({ message, downloadedAssets }),
     ),
   ];
 
@@ -191,16 +187,12 @@ export async function convertToLanguageModelPrompt({
 export function convertToLanguageModelMessage({
   message,
   downloadedAssets,
-  // `provider` is only needed here to convert legacy tool output types via `mapToolResultOutput`.
-  // TODO: remove in v8 when "file-id" and "image-file-id" types are removed
-  provider,
 }: {
   message: ModelMessage;
   downloadedAssets: Record<
     string,
     { mediaType: string | undefined; data: Uint8Array }
   >;
-  provider?: string;
 }): LanguageModelV4Message {
   const warnings: Warning[] = [];
 
@@ -348,7 +340,6 @@ export function convertToLanguageModelMessage({
                   toolName: part.toolName,
                   output: mapToolResultOutput({
                     output: part.output,
-                    provider,
                     warnings,
                     downloadedAssets,
                   }),
@@ -383,7 +374,6 @@ export function convertToLanguageModelMessage({
                   toolName: part.toolName,
                   output: mapToolResultOutput({
                     output: part.output,
-                    provider,
                     warnings,
                     downloadedAssets,
                   }),
@@ -607,14 +597,10 @@ function convertPartToLanguageModelPart(
 
 export function mapToolResultOutput({
   output,
-  // `provider` is only needed here to convert legacy "file-id" and "image-file-id" types to provider references, in case they are using string ID values.
-  // TODO: remove in v8 when "file-id" and "image-file-id" types are removed
-  provider,
   warnings = [],
   downloadedAssets,
 }: {
   output: ToolResultOutput;
-  provider?: string;
   warnings?: Warning[];
   downloadedAssets: Record<
     string,
@@ -679,25 +665,6 @@ export function mapToolResultOutput({
             providerOptions: item.providerOptions,
           };
         }
-        case 'file-id': {
-          warnings.push({
-            type: 'deprecated',
-            setting: '"tool-result" content of type "file-id"',
-            message: `The "file-id" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'reference', reference } instead.`,
-          });
-          return {
-            type: 'file' as const,
-            data: {
-              type: 'reference' as const,
-              reference: convertFileIdToProviderReference({
-                fileId: item.fileId,
-                provider,
-              }),
-            },
-            mediaType: 'application',
-            providerOptions: item.providerOptions,
-          };
-        }
         case 'file-reference': {
           warnings.push({
             type: 'deprecated',
@@ -742,25 +709,6 @@ export function mapToolResultOutput({
             providerOptions: item.providerOptions,
           };
         }
-        case 'image-file-id': {
-          warnings.push({
-            type: 'deprecated',
-            setting: '"tool-result" content of type "image-file-id"',
-            message: `The "image-file-id" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'reference', reference } instead.`,
-          });
-          return {
-            type: 'file' as const,
-            data: {
-              type: 'reference' as const,
-              reference: convertFileIdToProviderReference({
-                fileId: item.fileId,
-                provider,
-              }),
-            },
-            mediaType: 'image',
-            providerOptions: item.providerOptions,
-          };
-        }
         case 'image-file-reference': {
           warnings.push({
             type: 'deprecated',
@@ -782,27 +730,6 @@ export function mapToolResultOutput({
       }
     }),
   };
-}
-
-function convertFileIdToProviderReference({
-  fileId,
-  provider,
-}: {
-  fileId: string | Record<string, string>;
-  provider?: string;
-}): Record<string, string> {
-  if (typeof fileId === 'object') {
-    return fileId;
-  }
-
-  if (provider == null) {
-    throw new Error(
-      'Cannot convert string fileId to provider reference without a provider ID. ' +
-        'Use a Record<string, string> fileId or switch to the file-reference type.',
-    );
-  }
-
-  return { [provider]: fileId };
 }
 
 // Temporary private helper (see below).

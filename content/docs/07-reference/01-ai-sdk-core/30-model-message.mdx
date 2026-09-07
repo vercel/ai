@@ -162,6 +162,11 @@ export type FileData =
   | { type: 'text'; text: string };
 ```
 
+Provider file IDs must be represented by an explicit `ProviderReference` map.
+For example, tool result files use `{ type: 'file', mediaType,
+data: { type: 'reference', reference: { openai: 'file_123' } } }`. The legacy
+`file-id` and `image-file-id` tool result variants are not supported.
+
 ### `CustomPart`
 
 Represents a provider-specific custom content part. The `kind` field identifies the content type in the format `{provider}.{provider-type}`.
@@ -370,27 +375,6 @@ IANA media type.
             providerOptions?: ProviderOptions;
           }
         | {
-            /**
-             * @deprecated Use file-reference instead.
-             */
-            type: 'file-id';
-
-            /**
-             * ID of the file.
-             *
-             * If you use multiple providers, you need to
-             * specify the provider specific ids using
-             * the Record option. The key is the provider
-             * name, e.g. 'openai' or 'anthropic'.
-             */
-            fileId: string | Record<string, string>;
-
-            /**
-             * Provider-specific options.
-             */
-            providerOptions?: ProviderOptions;
-          }
-        | {
             type: 'file-reference';
 
             /**
@@ -438,28 +422,6 @@ IANA media type.
              * URL of the image.
              */
             url: string;
-
-            /**
-             * Provider-specific options.
-             */
-            providerOptions?: ProviderOptions;
-          }
-        | {
-            /**
-             * @deprecated Use file-reference instead.
-             * Images that are referenced using a provider file id.
-             */
-            type: 'image-file-id';
-
-            /**
-             * Image that is referenced using a provider file id.
-             *
-             * If you use multiple providers, you need to
-             * specify the provider specific ids using
-             * the Record option. The key is the provider
-             * name, e.g. 'openai' or 'anthropic'.
-             */
-            fileId: string | Record<string, string>;
 
             /**
              * Provider-specific options.

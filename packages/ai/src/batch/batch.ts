@@ -79,7 +79,6 @@ export async function startTextBatch<TOOLS extends ToolSet>({
           prompt: standardizedPrompt,
           supportedUrls,
           download: undefined,
-          provider: model.provider.split('.')[0],
         }),
         tools: preparedTools,
         toolChoice: preparedToolChoice,

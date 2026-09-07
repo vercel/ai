@@ -286,6 +286,16 @@ describe('ToolResultOutput content legacy variants', () => {
       url: string;
     }>().toMatchTypeOf<ToolResultImageUrlPart>();
   });
+
+  it('rejects provider-ambiguous file id variants', () => {
+    expectTypeOf<
+      Extract<ToolResultContentItem, { type: 'file-id' }>
+    >().toEqualTypeOf<never>();
+
+    expectTypeOf<
+      Extract<ToolResultContentItem, { type: 'image-file-id' }>
+    >().toEqualTypeOf<never>();
+  });
 });
 
 describe('ProviderReference (top-level)', () => {

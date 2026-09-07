@@ -913,7 +913,6 @@ export async function generateText<
                 },
                 supportedUrls: await stepModel.supportedUrls,
                 download,
-                provider: stepModel.provider.split('.')[0],
               });
 
               runtimeContext =

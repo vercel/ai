@@ -412,28 +412,6 @@ export type ToolResultOutput =
              * @deprecated Use 'file' with tagged data instead:
              * `{ type: 'file', mediaType, data: { type: 'reference', reference } }`.
              */
-            type: 'file-id';
-
-            /**
-             * ID of the file.
-             *
-             * If you use multiple providers, you need to
-             * specify the provider specific ids using
-             * the Record option. The key is the provider
-             * name, e.g. 'openai' or 'anthropic'.
-             */
-            fileId: string | Record<string, string>;
-
-            /**
-             * Provider-specific options.
-             */
-            providerOptions?: ProviderOptions;
-          }
-        | {
-            /**
-             * @deprecated Use 'file' with tagged data instead:
-             * `{ type: 'file', mediaType, data: { type: 'reference', reference } }`.
-             */
             type: 'file-reference';
 
             /**
@@ -483,29 +461,6 @@ export type ToolResultOutput =
              * URL of the image.
              */
             url: string;
-
-            /**
-             * Provider-specific options.
-             */
-            providerOptions?: ProviderOptions;
-          }
-        | {
-            /**
-             * @deprecated Use 'file' with `mediaType: 'image'` (or a specific
-             * `image/*` subtype) and tagged data instead:
-             * `{ type: 'file', mediaType: 'image', data: { type: 'reference', reference } }`.
-             */
-            type: 'image-file-id';
-
-            /**
-             * Image that is referenced using a provider file id.
-             *
-             * If you use multiple providers, you need to
-             * specify the provider specific ids using
-             * the Record option. The key is the provider
-             * name, e.g. 'openai' or 'anthropic'.
-             */
-            fileId: string | Record<string, string>;
 
             /**
              * Provider-specific options.
