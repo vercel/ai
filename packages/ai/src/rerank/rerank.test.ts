@@ -1,11 +1,49 @@
-import type { RerankingModelV4CallOptions } from '@ai-sdk/provider';
+import {
+  InvalidResponseDataError,
+  type RerankingModelV4CallOptions,
+} from '@ai-sdk/provider';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
 import { rerank } from './rerank';
 import type { RerankStartEvent, RerankEndEvent } from './rerank-events';
 import type { RerankResult } from './rerank-result';
+
 describe('rerank', () => {
+  describe('error handling', () => {
+    it.each([3, -1, 5, 1.5])(
+      'should reject invalid provider ranking index %s',
+      async index => {
+        let doRerankCalls = 0;
+        const onEnd = vi.fn();
+        const ranking = [{ index, relevanceScore: 0.9 }];
+
+        const result = rerank({
+          model: new MockRerankingModelV4({
+            doRerank: async () => {
+              doRerankCalls++;
+              return { ranking };
+            },
+          }),
+          documents: ['a', 'b', 'c'],
+          query: 'q',
+          onEnd,
+        });
+
+        await expect(result).rejects.toSatisfy(
+          InvalidResponseDataError.isInstance,
+        );
+        await expect(result).rejects.toMatchObject({
+          name: 'AI_InvalidResponseDataError',
+          message: `Invalid ranking index ${index}. Expected an integer between 0 and 2.`,
+          data: ranking,
+        });
+        expect(doRerankCalls).toBe(1);
+        expect(onEnd).not.toHaveBeenCalled();
+      },
+    );
+  });
+
   describe('rerank with string documents', () => {
     let result: RerankResult<string>;
     let calls: RerankingModelV4CallOptions[];
