@@ -213,6 +213,44 @@ started, AI SDK Core exposes it as a
 Use its `type`, `code`, `statusCode`, and `isRetryable` metadata to classify
 the failure without inspecting the Gateway's serialized error payload.
 
+## Image Models
+
+You can generate images through AI Gateway with [`generateImage`](/docs/reference/ai-sdk-core/generate-image). Pass a model ID in `creator/model-name` format to `imageModel()`:
+
+```ts
+import { generateImage, gateway } from 'ai';
+import { writeFile } from 'node:fs/promises';
+
+const { image } = await generateImage({
+  model: gateway.imageModel('bfl/flux-2-pro'),
+  prompt: 'A serene mountain lake at sunrise.',
+});
+
+await writeFile('output.png', image.uint8Array);
+```
+
+See the [Black Forest Labs image model documentation](/providers/ai-sdk-providers/black-forest-labs#image-models) for FLUX-specific inputs and options.
+
+## Video Models
+
+You can generate videos through AI Gateway with [`experimental_generateVideo`](/docs/reference/ai-sdk-core/generate-video). Pass a model ID in `creator/model-name` format to `videoModel()`:
+
+```ts
+import { experimental_generateVideo as generateVideo, gateway } from 'ai';
+import { writeFile } from 'node:fs/promises';
+
+const { videos } = await generateVideo({
+  model: gateway.videoModel('bfl/flux-3-video'),
+  prompt: 'A serene mountain lake at sunrise.',
+});
+
+await writeFile('output.mp4', videos[0].uint8Array);
+```
+
+AI Gateway polls the Black Forest Labs job until it completes. FLUX 3 supports
+text-to-video, image-to-video, keyframes, video continuation, and audio
+generation. See the [Black Forest Labs video model documentation](/providers/ai-sdk-providers/black-forest-labs#video-models) for model-specific inputs and options.
+
 ## Text Batches
 
 <Note type="warning">
