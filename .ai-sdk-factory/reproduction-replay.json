@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20421,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/rerank-invalid-provider-indices.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/rerank-invalid-provider-indices.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #20421 REPRODUCED: rerank() exposed undefined documents in successful results/end events for invalid provider ranking indices."
+  }
+}
