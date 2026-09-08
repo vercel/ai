@@ -101,7 +101,13 @@ type ImageGenerationArgs = {
 
   /**
    * The size of the generated image.
+<<<<<<< HEAD
    * One of 1024x1024, 1024x1536, 1536x1024, or auto.
+=======
+   * One of 1024x1024, 1024x1536, 1536x1024, or auto. GPT Image 2 and 2.5
+   * models also accept arbitrary WIDTHxHEIGHT sizes where both are divisible
+   * by 16, e.g. 1536x864.
+>>>>>>> 5fb2a64109 (feat(openai): add GPT Image 2.5 model IDs (#20483))
    * Default: auto.
    */
   size?: 'auto' | '1024x1024' | '1024x1536' | '1536x1024';
