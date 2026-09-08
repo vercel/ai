@@ -1845,6 +1845,9 @@ describe('streamText', () => {
           ],
         });
         await expect(result.finishReason).resolves.toBe('error');
+        await expect(result.usage).resolves.toEqual(
+          asLanguageModelUsage(testUsage),
+        );
       });
 
       it('should surface an error when a different tool is called instead of the required tool', async () => {
