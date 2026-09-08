@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20300,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/open-responses-image-detail-vllm.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/open-responses-image-detail-vllm.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Issue #20300 reproduced: serialized input_image detail values were missing or discarded."
+  }
+}
