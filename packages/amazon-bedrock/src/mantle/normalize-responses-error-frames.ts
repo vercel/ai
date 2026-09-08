@@ -1,4 +1,4 @@
-import type { FetchFunction } from '@ai-sdk/provider-utils';
+import { secureJsonParse, type FetchFunction } from '@ai-sdk/provider-utils';
 
 /**
  * Bedrock's OpenAI-Responses-compatible endpoints emit terminal error frames
@@ -55,7 +55,7 @@ function createErrorFrameNormalizingStream(): TransformStream<string, string> {
 
     let parsed: unknown;
     try {
-      parsed = JSON.parse(payload);
+      parsed = secureJsonParse(payload);
     } catch {
       return frame;
     }
@@ -155,7 +155,7 @@ function extractMessage(frame: Record<string, unknown>): string | undefined {
   // Bedrock wraps AWS error JSON as a string: {"error": "{\"message\":...}"}
   if (typeof error === 'string') {
     try {
-      const inner: unknown = JSON.parse(error);
+      const inner: unknown = secureJsonParse(error);
       if (isRecord(inner) && typeof inner.message === 'string') {
         return inner.message;
       }

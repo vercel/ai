@@ -150,6 +150,17 @@ describe('createNormalizeResponsesErrorFramesFetch', () => {
     expect(body).toBe([unknownTyped, notJson, arrayFrame].join(''));
   });
 
+  it('passes prototype-pollution payloads through untouched', async () => {
+    const polluted =
+      'data: {"__proto__": {"polluted": true}, "message": "x"}\n\n';
+    const body = await fetchBody(
+      vi.fn<FetchFunction>().mockResolvedValue(sseResponse([polluted])),
+    );
+
+    expect(body).toBe(polluted);
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+  });
+
   it('reassembles frames split across stream chunks', async () => {
     const full =
       VALID_DELTA +
