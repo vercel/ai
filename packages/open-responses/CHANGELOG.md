@@ -1,5 +1,11 @@
 # @ai-sdk/open-responses
 
+## 1.0.41
+
+### Patch Changes
+
+- 216b285: fix(open-responses): include image detail in input image parts
+
 ## 1.0.40
 
 ### Patch Changes

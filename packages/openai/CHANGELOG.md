@@ -1,5 +1,12 @@
 # @ai-sdk/openai
 
+## 3.0.111
+
+### Patch Changes
+
+- 1f75808: Include explicit message item types in Azure AI Foundry Responses requests.
+- 65150c2: feat(openai): add GPT Image 2.5 Flare and Sunburst model IDs
+
 ## 3.0.110
 
 ### Patch Changes

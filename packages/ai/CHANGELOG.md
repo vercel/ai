@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.279
+
+### Patch Changes
+
+- 6517262: fix(ai): decode text data URLs in Node.js
+
 ## 6.0.278
 
 ### Patch Changes

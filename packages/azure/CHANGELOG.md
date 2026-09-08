@@ -1,5 +1,14 @@
 # @ai-sdk/azure
 
+## 3.0.118
+
+### Patch Changes
+
+- 1f75808: Include explicit message item types in Azure AI Foundry Responses requests.
+- Updated dependencies [1f75808]
+- Updated dependencies [65150c2]
+  - @ai-sdk/openai@3.0.111
+
 ## 3.0.117
 
 ### Patch Changes
