@@ -528,6 +528,55 @@ metadata on tool-call parts. The SDK uses `providerMetadata.openai.namespace` or
 `providerOptions.openai.namespace` to round-trip the namespace back to OpenAI on
 subsequent requests.
 
+#### Async Tool Calling
+
+GPT-6 Astra and later Responses models support
+[async tool calling](https://developers.openai.com/api/docs/guides/async-tool-calling).
+An async tool lets the model continue generating independent output after issuing
+the call instead of waiting for its result. Your application still executes the
+tool and sends its result in a later request using the original tool call ID.
+
+Enable async calling on a function tool with `providerOptions.openai.async`:
+
+```ts
+import { openai, type OpenAIToolOptions } from '@ai-sdk/openai';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: openai.responses('gpt-6-astra'),
+  tools: {
+    getWeather: tool({
+      description: 'Get the weather for a city.',
+      inputSchema: z.object({ city: z.string() }),
+      outputSchema: z.object({
+        city: z.string(),
+        temperatureC: z.number(),
+      }),
+      providerOptions: {
+        openai: { async: true } satisfies OpenAIToolOptions,
+      },
+    }),
+  },
+  prompt:
+    'Start the weather lookup for Paris, then list three general packing essentials without waiting.',
+});
+```
+
+The generated tool call exposes the provider marker as
+`providerMetadata.openai.async`. Use `providerMetadata.openai.responseId` as the
+next request's `previousResponseId`, and submit the result in a tool message with
+the original `toolCallId`.
+
+With `streamText`, OpenAI can continue streaming text after the completed
+`tool-call` part. Use the tool's `onInputAvailable` callback to start work as soon
+as that part arrives. If `execute` returns the same already-running promise, tool
+execution overlaps the rest of the model stream. Omit `execute` when the job
+should outlive the current generation and submit its result in a later request.
+
+Async calling applies to directly called function and custom tools. It does not
+apply to hosted tools and should not be combined with programmatic tool calling.
+
 #### Programmatic Tool Calling
 
 OpenAI Programmatic Tool Calling lets supported Responses models generate and run
@@ -2035,27 +2084,37 @@ import { openai } from '@ai-sdk/openai';
 import {
   experimental_getBatchResults as getBatchResults,
   experimental_getBatchStatus as getBatchStatus,
-  experimental_startTextBatch as startTextBatch,
+  experimental_startBatch as startBatch,
 } from 'ai';
 import { setTimeout } from 'node:timers/promises';
 
-const model = openai('gpt-4.1-nano');
+const model = 'gpt-4.1-nano';
 
-const batch = await startTextBatch({
-  model,
+const batch = await startBatch({
+  provider: openai,
   requests: [
-    { id: 'capital-france', prompt: 'What is the capital of France?' },
-    { id: 'capital-germany', prompt: 'What is the capital of Germany?' },
+    {
+      id: 'capital-france',
+      type: 'text',
+      model,
+      prompt: 'What is the capital of France?',
+    },
+    {
+      id: 'capital-germany',
+      type: 'text',
+      model,
+      prompt: 'What is the capital of Germany?',
+    },
   ],
 });
 
 let status = batch.status;
 while (status === 'pending') {
   await setTimeout(60_000);
-  ({ status } = await getBatchStatus({ model, batch }));
+  ({ status } = await getBatchStatus({ provider: openai, batch }));
 }
 
-for await (const item of getBatchResults({ model, batch })) {
+for await (const item of getBatchResults({ provider: openai, batch })) {
   if (item.status === 'succeeded') {
     console.log(item.id, item.text);
   } else {
@@ -2064,10 +2123,14 @@ for await (const item of getBatchResults({ model, batch })) {
 }
 ```
 
-`startTextBatch` returns a serializable batch reference. Persist this reference
+`startBatch` returns a serializable batch reference. Persist this reference
 to check the batch status or retrieve its results from another process. Results
 can arrive in a different order from the input requests, so match each result by
 its `id`.
+
+Each request specifies its `type` and `model`. OpenAI requires every text
+request in a batch to use the same model and throws before submission when the
+models differ.
 
 #### Webhooks
 

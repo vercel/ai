@@ -1,8 +1,10 @@
 import type {
+  Experimental_BatchV4 as BatchV4,
   Experimental_BatchV4Error as BatchV4Error,
+  Experimental_BatchV4ModelIds as BatchV4ModelIds,
   Experimental_BatchV4StartResult as BatchV4StartResult,
   Experimental_BatchV4Status as BatchV4Status,
-  Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
+  ProviderV4,
 } from '@ai-sdk/provider';
 import type {
   InferToolSetContext,
@@ -13,39 +15,30 @@ import type { ContentPart } from '../generate-text/content-part';
 import type { ToolOrder } from '../generate-text/tool-order';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import type { Prompt } from '../prompt/prompt';
-import type {
-  FinishReason,
-  GlobalProviderModelId,
-  ToolChoice,
-} from '../types/language-model';
+import type { FinishReason, ToolChoice } from '../types/language-model';
 import type { ProviderMetadata } from '../types/provider-metadata';
 import type { LanguageModelUsage } from '../types/usage';
 
 /**
- * Language model input that can be used for durable batch processing.
- *
- * String model IDs are resolved through the global provider and checked for
- * batch support at runtime.
+ * Provider or lower-level batch interface used for batch processing.
  */
-export type BatchLanguageModel = GlobalProviderModelId | BatchLanguageModelV4;
+export type BatchProvider = ProviderV4 | BatchV4;
+
+type InferBatchModelIds<PROVIDER extends BatchProvider> =
+  PROVIDER extends BatchV4<infer MODEL_IDS>
+    ? MODEL_IDS
+    : PROVIDER extends { experimental_batch(): BatchV4<infer MODEL_IDS> }
+      ? MODEL_IDS
+      : BatchV4ModelIds;
 
 /**
- * The persisted reference for a text batch.
+ * The persisted reference for a batch.
  */
-export type TextBatchReference = {
-  readonly version: 1;
-  readonly type: 'text';
+export type BatchReference = {
+  readonly version: 2;
   readonly id: string;
   readonly provider: string;
-  readonly modelId: string;
 };
-
-/**
- * Persisted reference for any supported batch type.
- *
- * Additional modality-specific references can be added to this union.
- */
-export type BatchReference = TextBatchReference;
 
 /**
  * Serializable error information for a batch or batch item.
@@ -58,55 +51,55 @@ export type BatchError = BatchV4Error;
 export type BatchStatus = BatchV4Status;
 
 /**
- * A text batch and its latest normalized lifecycle status.
+ * A batch and its latest normalized lifecycle status.
  */
-export type TextBatch = TextBatchReference & BatchStatus;
+export type Batch = BatchReference & BatchStatus;
 
 /**
  * One text generation request within a batch.
  */
-export type TextBatchRequest = Prompt &
+export type TextBatchRequest<
+  ModelId extends string = string,
+  TOOLS extends ToolSet = ToolSet,
+> = Prompt &
   LanguageModelCallOptions & {
     id: string;
+    type: 'text';
+    model: ModelId;
+    tools?: TOOLS;
+    toolChoice?: ToolChoice<NoInfer<TOOLS>>;
+    toolOrder?: ToolOrder<TOOLS>;
+    toolsContext?: InferToolSetContext<TOOLS>;
     providerOptions?: ProviderOptions;
   };
 
-type BatchRequestOptions = {
+/**
+ * One request within a batch, discriminated by modality.
+ */
+export type BatchRequest<
+  ModelIds extends BatchV4ModelIds = BatchV4ModelIds,
+  TOOLS extends ToolSet = ToolSet,
+> = TextBatchRequest<ModelIds['text'], TOOLS>;
+
+type BatchCallOptions = {
   abortSignal?: AbortSignal;
   headers?: Record<string, string | undefined>;
   timeout?: number | { totalMs?: number };
 };
 
 /**
- * Options for starting a text batch.
+ * Options for starting a batch.
  */
-export type StartTextBatchOptions<TOOLS extends ToolSet = ToolSet> = {
-  model: BatchLanguageModel;
-  requests: ReadonlyArray<TextBatchRequest>;
-
+export type StartBatchOptions<
+  TOOLS extends ToolSet = ToolSet,
+  PROVIDER extends BatchProvider = BatchProvider,
+> = {
   /**
-   * Tools that the model can call for every request in the batch.
-   *
-   * Tool definitions are sent to the provider, but their `execute` functions
-   * are never invoked by batch processing.
+   * Provider used to process the batch. Defaults to the global provider, or
+   * the Vercel AI Gateway when no global provider is configured.
    */
-  tools?: TOOLS;
-
-  /**
-   * The tool choice strategy. Default: 'auto'.
-   */
-  toolChoice?: ToolChoice<NoInfer<TOOLS>>;
-
-  /**
-   * Controls the order in which tools are sent to the provider. Tools not
-   * listed are appended alphabetically.
-   */
-  toolOrder?: ToolOrder<TOOLS>;
-
-  /**
-   * Context used when resolving dynamic tool descriptions.
-   */
-  toolsContext?: InferToolSetContext<TOOLS>;
+  provider?: PROVIDER;
+  requests: ReadonlyArray<BatchRequest<InferBatchModelIds<PROVIDER>, TOOLS>>;
 
   providerOptions?: ProviderOptions;
 
@@ -116,33 +109,42 @@ export type StartTextBatchOptions<TOOLS extends ToolSet = ToolSet> = {
    * unsupported warning.
    */
   webhookUrl?: string;
-} & BatchRequestOptions;
+} & BatchCallOptions;
 
 /**
- * The acknowledged text batch and warnings produced while starting it.
+ * The acknowledged batch and warnings produced while starting it.
  */
-export type StartTextBatchResult = TextBatch & {
+export type StartBatchResult = Batch & {
   readonly warnings: BatchV4StartResult['warnings'];
 };
 
 /**
- * Options shared by batch status and result retrieval operations.
+ * Options for retrieving batch status.
  */
-export type BatchOperationOptions<TOOLS extends ToolSet = ToolSet> = {
-  model: BatchLanguageModel;
-  batch: BatchReference;
-
+export type GetBatchStatusOptions = {
   /**
-   * Definitions for client tools that were provided to `startTextBatch`.
-   *
-   * The definitions are used only to validate and normalize returned tool
-   * calls. Their `execute` functions are never invoked.
+   * Provider used to access the batch. Defaults to the global provider, or
+   * the Vercel AI Gateway when no global provider is configured.
    */
-  tools?: TOOLS;
-
+  provider?: BatchProvider;
+  batch: BatchReference;
   providerOptions?: ProviderOptions;
   maxRetries?: number;
-} & BatchRequestOptions;
+} & BatchCallOptions;
+
+/**
+ * Options for retrieving batch results.
+ */
+export type GetBatchResultsOptions<TOOLS extends ToolSet = ToolSet> =
+  GetBatchStatusOptions & {
+    /**
+     * Definitions for client tools that were provided to `startBatch` requests.
+     *
+     * The definitions are used only to validate and normalize returned tool
+     * calls. Their `execute` functions are never invoked.
+     */
+    tools?: TOOLS;
+  };
 
 /**
  * A normalized result for a successful text batch item.
@@ -182,3 +184,9 @@ export type TextBatchItemResult<TOOLS extends ToolSet = ToolSet> =
       readonly error?: BatchError;
       readonly providerMetadata?: ProviderMetadata;
     };
+
+/**
+ * A complete terminal result for one request in a batch.
+ */
+export type BatchItemResult<TOOLS extends ToolSet = ToolSet> =
+  TextBatchItemResult<TOOLS>;

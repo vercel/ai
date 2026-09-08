@@ -1011,7 +1011,7 @@ export async function createPiSession(
       settingsManager,
       resourceLoader,
       customTools,
-      ...(hasMcpServers
+      ...(hasExtensionFactories
         ? { noTools: 'builtin' as const }
         : { tools: toolNames }),
       ...(input.settings.thinkingLevel

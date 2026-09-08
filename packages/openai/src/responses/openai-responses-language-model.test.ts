@@ -3266,6 +3266,43 @@ describe('OpenAIResponsesLanguageModel', () => {
         `);
       });
 
+      it('should gate async tools to GPT-6 and later models', async () => {
+        const asyncTools: Array<LanguageModelV4FunctionTool> = [
+          {
+            ...TEST_TOOLS[0],
+            providerOptions: {
+              openai: { async: true },
+            },
+          },
+        ];
+
+        const unsupportedResult = await createModel('gpt-5.6').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: asyncTools,
+        });
+        const unsupportedBody = (await server.calls[0].requestBodyJson) as {
+          tools: Array<{ async?: boolean }>;
+        };
+
+        expect(unsupportedBody.tools[0].async).toBeUndefined();
+        expect(unsupportedResult.warnings).toContainEqual({
+          type: 'unsupported',
+          feature: 'async tool calling for "weather"',
+          details:
+            'Async tool calling is only supported by GPT-6 and later models.',
+        });
+
+        await createModel('gpt-99').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: asyncTools,
+        });
+        const supportedBody = (await server.calls[1].requestBodyJson) as {
+          tools: Array<{ async?: boolean }>;
+        };
+
+        expect(supportedBody.tools[0].async).toBe(true);
+      });
+
       it('should expand an internal parallel tool call wrapper', async () => {
         prepareJsonFixtureResponse('parallel-tool-call-wrapper.1');
 
@@ -3375,7 +3412,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         `);
       });
 
-      it('should preserve namespace on function_call output', async () => {
+      it('should preserve async mode and namespace on function_call output', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'json-value',
           body: {
@@ -3397,6 +3434,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 name: 'get_weather',
                 arguments: '{"location":"NYC"}',
                 status: 'completed',
+                async: true,
                 namespace: 'weather_ns',
               },
             ],
@@ -3429,6 +3467,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         const toolCall = result.content.find(p => p.type === 'tool-call');
         expect(toolCall?.providerMetadata?.openai).toMatchObject({
           itemId: 'fc_ns_1',
+          async: true,
           namespace: 'weather_ns',
         });
       });
@@ -6436,6 +6475,69 @@ describe('OpenAIResponsesLanguageModel', () => {
           'You can also use @ai-sdk/openai-compatible for OpenAI-compatible providers.',
         responseBody:
           '{"choices":[],"created":0,"id":"","model":"","object":"","prompt_filter_results":[{"prompt_index":0,"content_filter_results":{}}]}',
+      });
+    });
+
+    it('should preserve async mode on streamed function calls', async () => {
+      const functionCall = {
+        id: 'fc_async',
+        type: 'function_call',
+        name: 'weather',
+        call_id: 'call_async',
+        arguments: '{"location":"Berlin"}',
+        status: 'completed',
+        async: true,
+      };
+
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'response_async',
+              created_at: 1,
+              model: 'gpt-6-astra',
+            },
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.output_item.added',
+            output_index: 0,
+            item: { ...functionCall, arguments: '', status: 'in_progress' },
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.output_item.done',
+            output_index: 0,
+            item: functionCall,
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.completed',
+            response: {
+              incomplete_details: null,
+              output: [functionCall],
+              usage: { input_tokens: 1, output_tokens: 2 },
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('gpt-6-astra').doStream({
+        prompt: TEST_PROMPT,
+        tools: TEST_TOOLS,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+      expect(events.find(event => event.type === 'tool-call')).toMatchObject({
+        type: 'tool-call',
+        toolCallId: 'call_async',
+        toolName: 'weather',
+        input: '{"location":"Berlin"}',
+        providerMetadata: {
+          openai: {
+            itemId: 'fc_async',
+            async: true,
+          },
+        },
       });
     });
 
