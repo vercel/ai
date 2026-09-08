@@ -1105,6 +1105,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         }
 
         case 'apply_patch_call': {
+          hasFunctionCall = true;
+
           content.push({
             type: 'tool-call',
             toolCallId: part.call_id,
@@ -1934,6 +1936,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
                 // Emit the final tool-call with complete diff when status is 'completed'
                 if (toolCall && value.item.status === 'completed') {
+                  hasFunctionCall = true;
+
                   controller.enqueue({
                     type: 'tool-call',
                     toolCallId: toolCall.toolCallId,
