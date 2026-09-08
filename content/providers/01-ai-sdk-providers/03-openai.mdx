@@ -617,6 +617,55 @@ const result = await generateText({
   specification and cannot be customized. The model can only be
 </Note>
 
+#### Async Tool Calling
+
+GPT-6 Astra and later Responses models support
+[async tool calling](https://developers.openai.com/api/docs/guides/async-tool-calling).
+An async tool lets the model continue generating independent output after issuing
+the call instead of waiting for its result. Your application still executes the
+tool and sends its result in a later request using the original tool call ID.
+
+Enable async calling on a function tool with `providerOptions.openai.async`:
+
+```ts
+import { openai, type OpenAIToolOptions } from '@ai-sdk/openai';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: openai.responses('gpt-6-astra'),
+  tools: {
+    getWeather: tool({
+      description: 'Get the weather for a city.',
+      inputSchema: z.object({ city: z.string() }),
+      outputSchema: z.object({
+        city: z.string(),
+        temperatureC: z.number(),
+      }),
+      providerOptions: {
+        openai: { async: true } satisfies OpenAIToolOptions,
+      },
+    }),
+  },
+  prompt:
+    'Start the weather lookup for Paris, then list three general packing essentials without waiting.',
+});
+```
+
+The generated tool call exposes the provider marker as
+`providerMetadata.openai.async`. Use `providerMetadata.openai.responseId` as the
+next request's `previousResponseId`, and submit the result in a tool message with
+the original `toolCallId`.
+
+With `streamText`, OpenAI can continue streaming text after the completed
+`tool-call` part. Use the tool's `onInputAvailable` callback to start work as soon
+as that part arrives. If `execute` returns the same already-running promise, tool
+execution overlaps the rest of the model stream. Omit `execute` when the job
+should outlive the current generation and submit its result in a later request.
+
+Async calling applies to directly called function tools. It does not apply to
+hosted tools such as web search or code interpreter.
+
 #### Image Inputs
 
 The OpenAI Responses API supports Image inputs for appropriate models.

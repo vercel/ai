@@ -43,6 +43,15 @@ export type OpenaiResponsesProviderMetadata = {
   openai: ResponsesProviderMetadata;
 };
 
+export type ResponsesToolCallProviderMetadata = {
+  itemId: string;
+  async?: boolean;
+};
+
+export type OpenaiResponsesToolCallProviderMetadata = {
+  openai: ResponsesToolCallProviderMetadata;
+};
+
 export type ResponsesTextProviderMetadata = {
   itemId: string;
   phase?: 'commentary' | 'final_answer' | null;

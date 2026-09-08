@@ -1,6 +1,7 @@
 import {
   type LanguageModelV2CallOptions,
   type LanguageModelV2CallWarning,
+  type LanguageModelV2FunctionTool,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { codeInterpreterArgsSchema } from '../tool/code-interpreter';
@@ -11,14 +12,24 @@ import { imageGenerationArgsSchema } from '../tool/image-generation';
 import type { OpenAIResponsesTool } from './openai-responses-api';
 import { validateTypes } from '@ai-sdk/provider-utils';
 
+export type OpenAIToolOptions = {
+  /**
+   * Whether the model can continue generating after calling this tool without
+   * waiting for its result.
+   */
+  async?: boolean;
+};
+
 export async function prepareResponsesTools({
   tools,
   toolChoice,
   strictJsonSchema,
+  supportsAsyncToolCalling = true,
 }: {
   tools: LanguageModelV2CallOptions['tools'];
   toolChoice?: LanguageModelV2CallOptions['toolChoice'];
   strictJsonSchema: boolean;
+  supportsAsyncToolCalling?: boolean;
 }): Promise<{
   tools?: Array<OpenAIResponsesTool>;
   toolChoice?:
@@ -46,15 +57,27 @@ export async function prepareResponsesTools({
 
   for (const tool of tools) {
     switch (tool.type) {
-      case 'function':
+      case 'function': {
+        const openaiOptions = tool.providerOptions?.openai as
+          | OpenAIToolOptions
+          | undefined;
+        const async = resolveAsyncToolOption({
+          value: openaiOptions?.async,
+          supportsAsyncToolCalling,
+          tool,
+          toolWarnings,
+        });
+
         openaiTools.push({
           type: 'function',
           name: tool.name,
           description: tool.description,
           parameters: tool.inputSchema,
           strict: strictJsonSchema,
+          ...(async != null ? { async } : {}),
         });
         break;
+      }
       case 'provider-defined': {
         switch (tool.id) {
           case 'openai.file_search': {
@@ -198,4 +221,27 @@ export async function prepareResponsesTools({
       });
     }
   }
+}
+
+function resolveAsyncToolOption({
+  value,
+  supportsAsyncToolCalling,
+  tool,
+  toolWarnings,
+}: {
+  value: boolean | undefined;
+  supportsAsyncToolCalling: boolean;
+  tool: LanguageModelV2FunctionTool;
+  toolWarnings: LanguageModelV2CallWarning[];
+}): boolean | undefined {
+  if (value !== true || supportsAsyncToolCalling) {
+    return value;
+  }
+
+  toolWarnings.push({
+    type: 'unsupported-tool',
+    tool,
+    details: 'Async tool calling is only supported by GPT-6 and later models.',
+  });
+  return undefined;
 }

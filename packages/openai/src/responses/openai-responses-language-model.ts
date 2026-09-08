@@ -47,7 +47,10 @@ import {
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
-import type { ResponsesUsageProviderMetadata } from './openai-responses-provider-metadata';
+import type {
+  ResponsesToolCallProviderMetadata,
+  ResponsesUsageProviderMetadata,
+} from './openai-responses-provider-metadata';
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
@@ -438,6 +441,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       tools,
       toolChoice,
       strictJsonSchema,
+      supportsAsyncToolCalling: modelCapabilities.supportsAsyncToolCalling,
     });
 
     return {
@@ -666,7 +670,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             providerMetadata: {
               [providerKey]: {
                 itemId: part.id,
-              },
+                ...(part.async != null && { async: part.async }),
+              } satisfies ResponsesToolCallProviderMetadata,
             },
           });
           break;
@@ -867,6 +872,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       | {
           toolName: string;
           toolCallId: string;
+          async?: boolean | null;
           codeInterpreter?: {
             containerId: string;
           };
@@ -930,6 +936,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 ongoingToolCalls[value.output_index] = {
                   toolName: value.item.name,
                   toolCallId: value.item.call_id,
+                  async: value.item.async,
                 };
 
                 controller.enqueue({
@@ -1065,6 +1072,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   },
                 });
               } else if (value.item.type === 'function_call') {
+                const ongoingToolCall = ongoingToolCalls[value.output_index];
                 ongoingToolCalls[value.output_index] = undefined;
                 hasFunctionCall = true;
 
@@ -1081,7 +1089,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   providerMetadata: {
                     [providerKey]: {
                       itemId: value.item.id,
-                    },
+                      ...(value.item.async != null
+                        ? { async: value.item.async }
+                        : ongoingToolCall?.async != null
+                          ? { async: ongoingToolCall.async }
+                          : {}),
+                    } satisfies ResponsesToolCallProviderMetadata,
                   },
                 });
               } else if (value.item.type === 'web_search_call') {
