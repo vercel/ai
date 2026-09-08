@@ -589,6 +589,18 @@ export async function convertToOpenAIResponsesInput({
                 | string
                 | undefined;
 
+              const isAsync = (part.providerOptions?.[providerOptionsName]
+                ?.async ??
+                (
+                  part as {
+                    providerMetadata?: {
+                      [providerOptionsName]?: { async?: boolean };
+                    };
+                  }
+                ).providerMetadata?.[providerOptionsName]?.async) as
+                | boolean
+                | undefined;
+
               if (hasConversation && id != null) {
                 break;
               }
@@ -739,6 +751,7 @@ export async function convertToOpenAIResponsesInput({
                     typeof part.input === 'string'
                       ? part.input
                       : JSON.stringify(part.input),
+                  ...(isAsync != null && { async: isAsync }),
                   id,
                 });
                 break;
@@ -749,6 +762,7 @@ export async function convertToOpenAIResponsesInput({
                 call_id: part.toolCallId,
                 name: resolvedToolName,
                 arguments: serializeToolCallArguments(part.input),
+                ...(isAsync != null && { async: isAsync }),
                 ...(namespace != null && { namespace }),
               });
               break;

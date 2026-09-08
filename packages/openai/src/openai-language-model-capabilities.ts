@@ -4,6 +4,7 @@ export type OpenAILanguageModelCapabilities = {
   supportsFlexProcessing: boolean;
   supportsPriorityProcessing: boolean;
   supportsConfigurationUpdate: boolean;
+  supportsAsyncToolCalling: boolean;
   supportedReasoningEfforts: readonly string[] | undefined;
 
   /**
@@ -55,6 +56,7 @@ export function getOpenAILanguageModelCapabilities(
     supportsFlexProcessing,
     supportsPriorityProcessing,
     supportsConfigurationUpdate: isGpt6OrLaterModel,
+    supportsAsyncToolCalling: isGpt6OrLaterModel,
     supportedReasoningEfforts: isGpt6OrLaterModel
       ? ['low', 'medium', 'high', 'xhigh', 'max']
       : undefined,
