@@ -1,0 +1,185 @@
+---
+title: Nebul
+description: Learn how to use Nebul's Inference API models with the AI SDK.
+---
+
+# Nebul Provider
+
+The [Nebul](https://nebul.io/) provider gives you access to open language models, embeddings, image generation, transcription, and speech synthesis through the Nebul Inference API, an OpenAI-compatible endpoint.
+
+API keys can be created in the [Nebul console](https://nebul.io/).
+
+> This provider originated from [feature request #20445](https://github.com/vercel/ai/issues/20445) in the Vercel AI SDK repository.
+
+## Setup
+
+The Nebul provider is available through the `@ai-sdk/nebul` package. Install it with:
+
+<InstallPackages packages="@ai-sdk/nebul" />
+
+Set the `NEBUL_API_KEY` environment variable:
+
+```bash
+NEBUL_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+Import the default provider instance `nebul` from `@ai-sdk/nebul`:
+
+```ts
+import { nebul } from '@ai-sdk/nebul';
+```
+
+For custom configuration, use `createNebul`:
+
+```ts
+import { createNebul } from '@ai-sdk/nebul';
+
+const nebul = createNebul({
+  apiKey: process.env.NEBUL_API_KEY,
+  baseURL: 'https://api.inference.nebul.io/v1',
+});
+```
+
+The provider accepts these optional settings:
+
+- **apiKey** _string_
+
+  API key sent in the `Authorization` header. It defaults to the `NEBUL_API_KEY` environment variable.
+
+- **baseURL** _string_
+
+  URL prefix for API requests. It defaults to `https://api.inference.nebul.io/v1`.
+
+- **headers** _Record<string, string>_
+
+  Additional request headers.
+
+- **fetch** _FetchFunction_
+
+  Custom fetch implementation, for example to intercept requests in middleware.
+
+## Language Models
+
+Create a language model by passing its model id to the provider:
+
+```ts
+import { nebul } from '@ai-sdk/nebul';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: nebul('zai-org/GLM-5.3-Flash'),
+  prompt: 'Explain quantum entanglement in simple terms.',
+});
+```
+
+Calling the provider without a model id defaults to `zai-org/GLM-5.3-Flash`. The model id can also be omitted for `nebul.languageModel()` and `nebul.chat()`.
+
+Current models include GLM 5.3 Flash, GLM 5.2, GPT-OSS 120B, Qwen3 VL 235B Thinking, and MiniMax M2.5. Model availability changes over time; see the [Nebul model catalog](https://docs.nebul.io/docs/inference-api/models/model-catalog) for the current list.
+
+The provider supports:
+
+- text generation and streaming
+- reasoning output and reasoning history (including `reasoning_effort`)
+- function calling, including incremental tool-call streaming
+- JSON object output and structured output (`json_schema`)
+
+## Embedding Models
+
+Create an embedding model using `nebul.embeddingModel`:
+
+```ts
+import { nebul } from '@ai-sdk/nebul';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: nebul.embeddingModel('sentence-transformers/all-MiniLM-L6-v2'),
+  value: 'sunny day at the beach',
+});
+```
+
+## Image Models
+
+Create an image model using `nebul.imageModel`:
+
+```ts
+import { nebul } from '@ai-sdk/nebul';
+import { generateImage } from 'ai';
+
+const { images } = await generateImage({
+  model: nebul.imageModel('openai/gpt-image-1'),
+  prompt: 'A blue cream Persian cat in Kyoto in the style of ukiyo-e',
+});
+```
+
+## Transcription Models
+
+Create a transcription model using `nebul.transcriptionModel`:
+
+```ts
+import { nebul } from '@ai-sdk/nebul';
+import { transcribe } from 'ai';
+import { readFile } from 'fs/promises';
+
+const result = await transcribe({
+  model: nebul.transcriptionModel('deepgram/nova-3'),
+  audio: await readFile('data/galileo.mp3'),
+});
+```
+
+Nebul-specific transcription options can be passed through `providerOptions.nebul`:
+
+```ts
+const result = await transcribe({
+  model: nebul.transcriptionModel('deepgram/nova-3'),
+  audio: await readFile('data/galileo.mp3'),
+  providerOptions: {
+    nebul: {
+      responseFormat: 'verbose_json',
+      language: 'en',
+      prompt: 'Glossary: AI SDK, Nebul',
+      temperature: 0.2,
+    },
+  },
+});
+```
+
+The following options are available:
+
+- **responseFormat** _'json' | 'text' | 'srt' | 'verbose_json' | 'vtt'_
+
+  The format of the transcript output. It defaults to `verbose_json`.
+
+- **language** _string_
+
+  The language of the input audio as an ISO-639-1 code. Supplying it usually improves accuracy and latency.
+
+- **prompt** _string_
+
+  Optional text to guide the model's style or continue a previous audio segment.
+
+- **temperature** _number_
+
+  The sampling temperature between 0 and 1.
+
+## Speech Models
+
+Create a speech model using `nebul.speechModel`:
+
+```ts
+import { nebul } from '@ai-sdk/nebul';
+import { generateSpeech } from 'ai';
+import { writeFile } from 'fs/promises';
+
+const { audio } = await generateSpeech({
+  model: nebul.speechModel('hexgrad/Kokoro-82M'),
+  text: 'Hello from the AI SDK!',
+});
+
+await writeFile('audio.mp3', audio);
+```
+
+## Reranking Models
+
+The Nebul API exposes a rerank endpoint, but reranking model support in the AI SDK is not yet available through this provider. Calling `nebul.rerankingModel` currently throws a `NoSuchModelError`.

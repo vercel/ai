@@ -154,6 +154,9 @@
       "path": "packages/moonshotai"
     },
     {
+      "path": "packages/nebul"
+    },
+    {
       "path": "packages/open-responses"
     },
     {
