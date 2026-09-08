@@ -69,8 +69,9 @@ run(async () => {
     throw new Error('The response did not include the expected weather call.');
   }
 
-  const previousResponseId = firstResult.providerMetadata?.openai
-    ?.responseId as string | undefined;
+  const previousResponseId = firstResult.providerMetadata?.openai?.responseId as
+    | string
+    | undefined;
   if (previousResponseId == null) {
     throw new Error('OpenAI did not return a response ID.');
   }
