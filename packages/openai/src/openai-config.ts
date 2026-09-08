@@ -7,6 +7,11 @@ export type OpenAIConfig = {
   fetch?: FetchFunction;
   generateId?: () => string;
   /**
+   * Whether Responses API message input items must include an explicit
+   * `type: 'message'` discriminator.
+   */
+  explicitMessageItemType?: boolean;
+  /**
    * File ID prefixes used to identify file IDs in Responses API.
    * When undefined, all file data is treated as base64 content.
    *

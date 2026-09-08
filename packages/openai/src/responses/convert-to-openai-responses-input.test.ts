@@ -2,6 +2,56 @@ import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-inp
 import { describe, it, expect } from 'vitest';
 
 describe('convertToOpenAIResponsesInput', () => {
+  describe('explicit message item types', () => {
+    it('should add the message type to system, user, and assistant messages', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          { role: 'system', content: 'You are helpful.' },
+          { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+          { role: 'assistant', content: [{ type: 'text', text: 'Hi!' }] },
+        ],
+        systemMessageMode: 'system',
+        explicitMessageItemType: true,
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'message',
+          role: 'system',
+          content: 'You are helpful.',
+        },
+        {
+          type: 'message',
+          role: 'user',
+          content: [{ type: 'input_text', text: 'Hello' }],
+        },
+        {
+          type: 'message',
+          role: 'assistant',
+          content: [{ type: 'output_text', text: 'Hi!' }],
+        },
+      ]);
+    });
+
+    it('should add the message type to developer messages', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [{ role: 'system', content: 'You are helpful.' }],
+        systemMessageMode: 'developer',
+        explicitMessageItemType: true,
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'message',
+          role: 'developer',
+          content: 'You are helpful.',
+        },
+      ]);
+    });
+  });
+
   describe('system messages', () => {
     it('should convert system messages to system role', async () => {
       const result = await convertToOpenAIResponsesInput({
