@@ -636,6 +636,18 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
             callbacks: onLanguageModelCallEnd,
           });
 
+          // Preserve the completed model call's usage, metadata, and
+          // performance even when response validation below surfaces a
+          // semantic error.
+          controller.enqueue({
+            type: 'model-call-end',
+            finishReason: chunk.finishReason.unified,
+            rawFinishReason: chunk.finishReason.raw,
+            usage,
+            providerMetadata: chunk.providerMetadata,
+            performance,
+          });
+
           const enforcedToolChoice =
             toolChoice.type === 'required' || toolChoice.type === 'tool'
               ? toolChoice
@@ -661,15 +673,6 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
             });
             break;
           }
-
-          controller.enqueue({
-            type: 'model-call-end',
-            finishReason: chunk.finishReason.unified,
-            rawFinishReason: chunk.finishReason.raw,
-            usage,
-            providerMetadata: chunk.providerMetadata,
-            performance,
-          });
           break;
         }
 
