@@ -151,6 +151,10 @@ This mode can improve prompt-cache reuse because the provider-visible tool
 definition stays unchanged. Actual cache behavior depends on the model
 provider.
 
+When continuing the conversation in a later generation call, append
+`result.experimental_continuationMessages` to your input history. It includes
+the capability catalog as well as the assistant and tool response messages.
+
 For the example above, the model can generate a program like:
 
 ```ts

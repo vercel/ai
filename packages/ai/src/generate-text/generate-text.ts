@@ -851,6 +851,9 @@ export async function generateText<
         ...initialMessages,
         ...initialResponseMessages,
       ];
+      const continuationMessages: Array<ModelMessage> = [
+        ...initialResponseMessages,
+      ];
 
       // Track provider-executed tool calls that support deferred results
       // (e.g., code_execution in programmatic tool calling scenarios).
@@ -944,7 +947,10 @@ export async function generateText<
                 toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
               });
 
-              const stepMessages = appendToolCallerMessages({
+              const {
+                messages: stepMessages,
+                addedMessages: addedToolCallerMessages,
+              } = appendToolCallerMessages({
                 messages: prepareStepResult?.messages ?? stepInputMessages,
                 toolCallerMessages,
               });
@@ -1417,6 +1423,10 @@ export async function generateText<
                 content: stepContent,
                 tools,
               });
+              continuationMessages.push(
+                ...addedToolCallerMessages,
+                ...stepResponseMessages,
+              );
 
               // Add step information (after response messages are updated):
               // Conditionally include request.body and response.body based on include settings.
@@ -1583,6 +1593,7 @@ export async function generateText<
       }
 
       return new DefaultGenerateTextResult({
+        continuationMessages,
         initialResponseMessages,
         steps,
         totalUsage,
@@ -1670,11 +1681,13 @@ class DefaultGenerateTextResult<
   private readonly _output: InferCompleteOutput<OUTPUT> | undefined;
 
   constructor(options: {
+    continuationMessages: Array<ModelMessage>;
     initialResponseMessages: Array<ResponseMessage>;
     steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'];
     output: InferCompleteOutput<OUTPUT> | undefined;
     totalUsage: LanguageModelUsage;
   }) {
+    this.experimental_continuationMessages = options.continuationMessages;
     this.initialResponseMessages = options.initialResponseMessages;
     this.steps = options.steps;
     this._output = options.output;
@@ -1682,6 +1695,7 @@ class DefaultGenerateTextResult<
   }
 
   private readonly initialResponseMessages: Array<ResponseMessage>;
+  readonly experimental_continuationMessages: Array<ModelMessage>;
 
   get finalStep() {
     return this.steps.at(-1)!;

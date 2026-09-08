@@ -345,6 +345,13 @@ describe('experimental_toolCallers', () => {
         },
       ],
     });
+    expect(result.experimental_continuationMessages).toEqual([
+      {
+        role: 'user',
+        content: 'Available caller tools: getInventory.',
+      },
+      ...result.responseMessages,
+    ]);
     expect(result.toolResults[0]?.output).toEqual(['getInventory']);
   });
 

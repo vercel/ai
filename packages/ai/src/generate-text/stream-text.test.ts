@@ -23389,6 +23389,12 @@ describe('streamText', () => {
           },
         ],
       });
+      expect(await result.experimental_continuationMessages).toEqual([
+        {
+          role: 'user',
+          content: 'Available caller tools: getInventory.',
+        },
+      ]);
     });
 
     it('adds provider caller options while preserving direct access', async () => {

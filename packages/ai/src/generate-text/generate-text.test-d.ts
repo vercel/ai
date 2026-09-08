@@ -40,6 +40,17 @@ describe('generateText types', () => {
   });
 
   describe('experimental_toolCallers', () => {
+    it('should expose continuation messages', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+      });
+
+      expectTypeOf(result.experimental_continuationMessages).toEqualTypeOf<
+        Array<ModelMessage>
+      >();
+    });
+
     it('should accept caller-capable tool names', () => {
       const codeMode = experimental_toolCaller(
         tool({

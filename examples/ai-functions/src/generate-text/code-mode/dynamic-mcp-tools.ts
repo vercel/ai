@@ -47,7 +47,7 @@ run(async () => {
     'Before MCP registration:',
     JSON.stringify(beforeRegistration.content, null, 2),
   );
-  messages.push(...beforeRegistration.responseMessages);
+  messages.push(...beforeRegistration.experimental_continuationMessages);
 
   // Connect an MCP server after the conversation has already started.
   const mcpClient = await createMCPClient({
