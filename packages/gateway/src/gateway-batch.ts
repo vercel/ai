@@ -1,12 +1,12 @@
 import {
-  type Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
+  InvalidArgumentError,
+  type Experimental_BatchV4 as BatchV4,
   type Experimental_BatchV4ItemResult as BatchV4ItemResult,
   type Experimental_BatchV4OperationOptions as BatchV4OperationOptions,
-  type Experimental_BatchV4StartOptions as BatchV4StartOptions,
   type Experimental_BatchV4StartResult as BatchV4StartResult,
   type Experimental_BatchV4Status as BatchV4Status,
-  type Experimental_LanguageModelV4BatchRequest as LanguageModelV4BatchRequest,
-  type LanguageModelV4GenerateResult,
+  type Experimental_BatchV4StartOptions as BatchV4StartOptions,
+  type LanguageModelV4CallOptions,
   type SharedV4ProviderMetadata,
   type SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
@@ -20,35 +20,20 @@ import {
   normalizeBatchRequestCounts,
   postJsonToApi,
   resolve,
-  WORKFLOW_SERIALIZE,
-  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from './zod';
-import {
-  GatewayLanguageModel,
-  type GatewayChatConfig,
-} from './gateway-language-model';
+import type { GatewayChatConfig } from './gateway-language-model';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 
-export class GatewayBatchLanguageModel
-  extends GatewayLanguageModel
-  implements BatchLanguageModelV4
-{
-  static [WORKFLOW_SERIALIZE](model: GatewayBatchLanguageModel) {
-    return GatewayLanguageModel[WORKFLOW_SERIALIZE](model);
-  }
+export class GatewayBatch implements BatchV4<{ text: GatewayModelId }> {
+  readonly specificationVersion = 'v4' as const;
+  readonly provider: string;
+  readonly supportedUrls = { '*/*': [/.*/] };
 
-  static [WORKFLOW_DESERIALIZE](options: {
-    modelId: GatewayModelId;
-    config: GatewayChatConfig;
-  }) {
-    return new GatewayBatchLanguageModel(options.modelId, options.config);
-  }
-
-  constructor(modelId: GatewayModelId, config: GatewayChatConfig) {
-    super(modelId, config);
+  constructor(private readonly config: GatewayChatConfig) {
+    this.provider = `${config.provider}.batch`;
   }
 
   /**
@@ -58,13 +43,17 @@ export class GatewayBatchLanguageModel
    * server-side, so status and results always route back through the
    * Gateway job.
    */
-  async experimental_doStartBatch({
+  async doStartBatch({
     requests,
     providerOptions,
     headers,
     abortSignal,
     webhookUrl,
-  }: BatchV4StartOptions<LanguageModelV4BatchRequest>): Promise<BatchV4StartResult> {
+  }: BatchV4StartOptions<{
+    text: GatewayModelId;
+  }>): Promise<BatchV4StartResult> {
+    const modelId = validateSingleModel(requests);
+
     const resolvedHeaders = this.config.headers
       ? await resolve(this.config.headers)
       : undefined;
@@ -78,7 +67,7 @@ export class GatewayBatchLanguageModel
         headers: combineHeaders(
           resolvedHeaders,
           headers,
-          this.getBatchConfigHeaders(),
+          { 'ai-model-id': modelId },
           await resolve(this.config.o11yHeaders),
           idempotencyKey != null
             ? { 'idempotency-key': idempotencyKey }
@@ -86,10 +75,11 @@ export class GatewayBatchLanguageModel
         ),
         body: {
           ...(webhookUrl != null && { callbackUrl: webhookUrl }),
-          modelId: this.modelId,
           requests: requests.map(request => ({
             id: request.id,
-            options: this.maybeEncodeFileParts(request.options),
+            type: request.type,
+            modelId: request.modelId,
+            options: maybeEncodeBatchFileParts(request.options),
           })),
           ...(forwardedProviderOptions != null && {
             providerOptions: forwardedProviderOptions,
@@ -129,7 +119,7 @@ export class GatewayBatchLanguageModel
    * Retrieves the lifecycle status of a Gateway batch job
    * (`POST {baseURL}/batch/status`).
    */
-  async experimental_doGetBatchStatus({
+  async doGetBatchStatus({
     batchId,
     headers,
     abortSignal,
@@ -144,7 +134,6 @@ export class GatewayBatchLanguageModel
         headers: combineHeaders(
           resolvedHeaders,
           headers,
-          this.getBatchConfigHeaders(),
           await resolve(this.config.o11yHeaders),
         ),
         body: { batchId },
@@ -178,13 +167,11 @@ export class GatewayBatchLanguageModel
    * (id + status) and passed through — the Gateway sanitizes them
    * server-side. The route responds 400 while the batch is non-terminal.
    */
-  async experimental_doGetBatchResults({
+  async doGetBatchResults({
     batchId,
     headers,
     abortSignal,
-  }: BatchV4OperationOptions): Promise<
-    ReadableStream<BatchV4ItemResult<LanguageModelV4GenerateResult>>
-  > {
+  }: BatchV4OperationOptions): Promise<ReadableStream<BatchV4ItemResult>> {
     const resolvedHeaders = this.config.headers
       ? await resolve(this.config.headers)
       : undefined;
@@ -195,7 +182,6 @@ export class GatewayBatchLanguageModel
         headers: combineHeaders(
           resolvedHeaders,
           headers,
-          this.getBatchConfigHeaders(),
           await resolve(this.config.o11yHeaders),
         ),
         body: { batchId },
@@ -227,12 +213,67 @@ export class GatewayBatchLanguageModel
   private getBatchUrl(path: 'results' | 'start' | 'status') {
     return `${this.config.baseURL}/batch/${path}`;
   }
+}
 
-  private getBatchConfigHeaders() {
-    return {
-      'ai-model-id': this.modelId,
-    };
+function maybeEncodeBatchFileParts<
+  T extends Pick<LanguageModelV4CallOptions, 'prompt'>,
+>(options: T): T {
+  for (const message of options.prompt) {
+    if (!Array.isArray(message.content)) {
+      continue;
+    }
+    for (const part of message.content) {
+      if (part.type === 'file' || part.type === 'reasoning-file') {
+        part.data = maybeBase64EncodeFileData(part.data);
+      } else if (
+        part.type === 'tool-result' &&
+        part.output.type === 'content'
+      ) {
+        for (const contentPart of part.output.value) {
+          if (contentPart.type === 'file') {
+            contentPart.data = maybeBase64EncodeFileData(contentPart.data);
+          }
+        }
+      }
+    }
   }
+  return options;
+}
+
+function maybeBase64EncodeFileData<T extends { type: string }>(data: T): T {
+  if (data.type === 'data') {
+    const bytes = (data as { data?: unknown }).data;
+    if (bytes instanceof Uint8Array) {
+      return { ...data, data: Buffer.from(bytes).toString('base64') } as T;
+    }
+  }
+  return data;
+}
+
+function validateSingleModel(
+  requests: BatchV4StartOptions<{ text: GatewayModelId }>['requests'],
+): GatewayModelId {
+  const modelId = requests[0]?.modelId;
+
+  if (modelId == null) {
+    throw new InvalidArgumentError({
+      argument: 'requests',
+      message: 'The AI Gateway Batch API requires at least one request.',
+    });
+  }
+
+  for (const request of requests) {
+    if (request.modelId !== modelId) {
+      throw new InvalidArgumentError({
+        argument: 'requests',
+        message:
+          'The AI Gateway Batch API requires all requests in a batch to use ' +
+          `the same model. Found "${modelId}" and "${request.modelId}".`,
+      });
+    }
+  }
+
+  return modelId;
 }
 
 /**
@@ -360,9 +401,9 @@ function convertGatewayBatchStatus(body: {
  */
 async function* convertGatewayBatchResultLines(
   lines: AsyncIterable<unknown>,
-): AsyncGenerator<BatchV4ItemResult<LanguageModelV4GenerateResult>> {
+): AsyncGenerator<BatchV4ItemResult> {
   for await (const line of lines) {
-    const item = line as BatchV4ItemResult<LanguageModelV4GenerateResult>;
+    const item = line as BatchV4ItemResult;
 
     // JSON carries `response.timestamp` as an ISO string; core expects a Date.
     if (item.status === 'succeeded') {
@@ -378,6 +419,7 @@ async function* convertGatewayBatchResultLines(
 
 const gatewayBatchItemResultLineSchema = z
   .object({
+    type: z.literal('text'),
     id: z.string(),
     status: z.enum(['cancelled', 'expired', 'failed', 'succeeded']),
   })

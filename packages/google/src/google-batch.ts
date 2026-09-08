@@ -1,13 +1,14 @@
 import {
   InvalidArgumentError,
   InvalidResponseDataError,
-  type Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
+  type Experimental_BatchV4 as BatchV4,
   type Experimental_BatchV4Error as BatchV4Error,
   type Experimental_BatchV4ItemResult as BatchV4ItemResult,
   type Experimental_BatchV4OperationOptions as BatchV4OperationOptions,
-  type Experimental_BatchV4StartOptions as BatchV4StartOptions,
   type Experimental_BatchV4StartResult as BatchV4StartResult,
   type Experimental_BatchV4Status as BatchV4Status,
+  type Experimental_TextBatchV4Request as TextBatchV4Request,
+  type Experimental_BatchV4StartOptions as BatchV4StartOptions,
   type LanguageModelV4GenerateResult,
 } from '@ai-sdk/provider';
 import {
@@ -23,8 +24,6 @@ import {
   postToApi,
   resolve,
   safeValidateTypes,
-  WORKFLOW_DESERIALIZE,
-  WORKFLOW_SERIALIZE,
   zodSchema,
   type InferSchema,
   type ResponseHandler,
@@ -45,9 +44,7 @@ const supportedGoogleBatchContentTypes = new Set<
   LanguageModelV4GenerateResult['content'][number]['type']
 >(['text', 'reasoning', 'source', 'tool-call', 'tool-result']);
 
-type GoogleBatchRequest = Parameters<
-  BatchLanguageModelV4['experimental_doStartBatch']
->[0]['requests'][number];
+type GoogleBatchRequest = TextBatchV4Request<GoogleModelId>;
 
 const googleRpcStatusSchema = z.object({
   code: z.union([z.number(), z.string()]).nullish(),
@@ -136,33 +133,28 @@ const googleBatchResponsePreviewSchema = lazySchema(() =>
   ),
 );
 
-export class GoogleBatchLanguageModel
-  extends GoogleLanguageModel
-  implements BatchLanguageModelV4
-{
+export class GoogleBatch implements BatchV4<{ readonly text: GoogleModelId }> {
+  readonly specificationVersion = 'v4' as const;
+  readonly provider: string;
+  readonly supportedUrls: Record<string, RegExp[]>;
   private readonly batchConfig: GoogleLanguageModelConfig;
   private readonly batchGenerateId: () => string;
 
-  static [WORKFLOW_SERIALIZE](model: GoogleLanguageModel) {
-    return GoogleLanguageModel[WORKFLOW_SERIALIZE](model);
-  }
-
-  static [WORKFLOW_DESERIALIZE](options: {
-    modelId: string;
+  constructor(options: {
+    provider: string;
     config: GoogleLanguageModelConfig;
+    supportedUrls: Record<string, RegExp[]>;
   }) {
-    return new GoogleBatchLanguageModel(options.modelId, options.config);
+    this.provider = options.provider;
+    this.batchConfig = options.config;
+    this.supportedUrls = options.supportedUrls;
+    this.batchGenerateId = options.config.generateId ?? generateId;
   }
 
-  constructor(modelId: GoogleModelId, config: GoogleLanguageModelConfig) {
-    super(modelId, config);
-    this.batchConfig = config;
-    this.batchGenerateId = config.generateId ?? generateId;
-  }
-
-  async experimental_doStartBatch(
-    options: BatchV4StartOptions<GoogleBatchRequest>,
+  async doStartBatch(
+    options: BatchV4StartOptions<{ text: GoogleModelId }>,
   ): Promise<BatchV4StartResult> {
+    const modelId = getGoogleBatchModelId(options.requests);
     const warnings: BatchV4StartResult['warnings'] = [];
     const displayName = `ai-sdk-batch-${this.batchGenerateId()}`;
     const inlinedRequests: Array<{
@@ -187,7 +179,11 @@ export class GoogleBatchLanguageModel
     let fileParts: string[] | undefined;
 
     for (const request of options.requests) {
-      const preparedRequest = await this.getArgs(request.options);
+      const preparedRequest = await GoogleLanguageModel.prepareRequest({
+        modelId: request.modelId,
+        config: this.batchConfig,
+        options: request.options,
+      });
       const inlinedRequest = {
         request: preparedRequest.args,
         metadata: { key: request.id },
@@ -242,7 +238,7 @@ export class GoogleBatchLanguageModel
 
     const headers = await this.getHeaders(options.headers);
     const createUrl = `${this.batchConfig.baseURL}/${getModelPath(
-      this.modelId,
+      modelId,
     )}:batchGenerateContent`;
 
     if (fileParts == null) {
@@ -353,15 +349,15 @@ export class GoogleBatchLanguageModel
     };
   }
 
-  async experimental_doGetBatchStatus(
+  async doGetBatchStatus(
     options: BatchV4OperationOptions,
   ): Promise<BatchV4Status> {
     return convertGoogleBatchStatus(await this.retrieveBatch(options));
   }
 
-  async experimental_doGetBatchResults(
+  async doGetBatchResults(
     options: BatchV4OperationOptions,
-  ): Promise<ReadableStream<BatchV4ItemResult<LanguageModelV4GenerateResult>>> {
+  ): Promise<ReadableStream<BatchV4ItemResult>> {
     const operation = await this.retrieveBatch(options);
     const batchStatus = convertGoogleBatchStatus(operation);
 
@@ -450,7 +446,7 @@ export class GoogleBatchLanguageModel
     results:
       | Iterable<GoogleBatchResultLine>
       | AsyncIterable<GoogleBatchResultLine>,
-  ): AsyncGenerator<BatchV4ItemResult<LanguageModelV4GenerateResult>> {
+  ): AsyncGenerator<BatchV4ItemResult> {
     for await (const line of results) {
       if (line.error != null) {
         const error = convertGoogleRpcError(
@@ -462,12 +458,13 @@ export class GoogleBatchLanguageModel
             ? 'cancelled'
             : 'failed';
 
-        yield { id: line.key, status, error };
+        yield { type: 'text', id: line.key, status, error };
         continue;
       }
 
       if (line.response == null) {
         yield {
+          type: 'text',
           id: line.key,
           status: 'failed',
           error: {
@@ -491,6 +488,7 @@ export class GoogleBatchLanguageModel
         const promptFeedback = preview.value.promptFeedback ?? undefined;
         const blockReason = promptFeedback?.blockReason ?? undefined;
         yield {
+          type: 'text',
           id: line.key,
           status: 'failed',
           error: {
@@ -522,6 +520,7 @@ export class GoogleBatchLanguageModel
       });
       if (!response.success) {
         yield {
+          type: 'text',
           id: line.key,
           status: 'failed',
           error: {
@@ -532,7 +531,8 @@ export class GoogleBatchLanguageModel
         continue;
       }
 
-      const result = this.convertGenerateContentResponse({
+      const result = GoogleLanguageModel.convertGenerateContentResponse({
+        config: this.batchConfig,
         response: response.value,
         warnings: [],
         providerOptionsNames: ['google'],
@@ -543,6 +543,7 @@ export class GoogleBatchLanguageModel
 
       if (unsupportedPart != null) {
         yield {
+          type: 'text',
           id: line.key,
           status: 'failed',
           error: {
@@ -555,7 +556,7 @@ export class GoogleBatchLanguageModel
         continue;
       }
 
-      yield { id: line.key, status: 'succeeded', result };
+      yield { type: 'text', id: line.key, status: 'succeeded', result };
     }
   }
 
@@ -680,3 +681,28 @@ const googleUploadUrlResponseHandler: ResponseHandler<string> = async ({
 
   return { value: uploadUrl };
 };
+
+function getGoogleBatchModelId(
+  requests: readonly GoogleBatchRequest[],
+): GoogleModelId {
+  const modelId = requests[0]?.modelId;
+
+  if (modelId == null) {
+    throw new InvalidArgumentError({
+      argument: 'requests',
+      message: 'Google batches require at least one request.',
+    });
+  }
+
+  for (const request of requests) {
+    if (request.modelId !== modelId) {
+      throw new InvalidArgumentError({
+        argument: 'requests',
+        message:
+          'Google batches require every request to use the same model because the model is part of the batch endpoint.',
+      });
+    }
+  }
+
+  return modelId;
+}

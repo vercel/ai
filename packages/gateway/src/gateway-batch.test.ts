@@ -1,7 +1,7 @@
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
-import { GatewayBatchLanguageModel } from './gateway-language-model-batch';
+import { GatewayBatch } from './gateway-batch';
 import type { GatewayConfig } from './gateway-config';
 import {
   GatewayInvalidRequestError,
@@ -14,12 +14,12 @@ const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const createTestModel = (
+const createTestBatch = (
   config: Partial<
     GatewayConfig & { o11yHeaders?: Record<string, string> }
   > = {},
 ) => {
-  return new GatewayBatchLanguageModel('test-model', {
+  return new GatewayBatch({
     provider: 'test-provider',
     baseURL: 'https://api.test.com',
     headers: () => ({
@@ -32,7 +32,7 @@ const createTestModel = (
   });
 };
 
-describe('GatewayBatchLanguageModel', () => {
+describe('GatewayBatch', () => {
   const server = createTestServer({
     'https://api.test.com/batch/start': {},
     'https://api.test.com/batch/status': {},
@@ -40,9 +40,16 @@ describe('GatewayBatchLanguageModel', () => {
   });
 
   const BATCH_PROMPT_REQUESTS = [
-    { id: 'req-1', options: { prompt: TEST_PROMPT } },
+    {
+      id: 'req-1',
+      type: 'text' as const,
+      modelId: 'test-model-1',
+      options: { prompt: TEST_PROMPT },
+    },
     {
       id: 'req-2',
+      type: 'text' as const,
+      modelId: 'test-model-1',
       options: { prompt: TEST_PROMPT, maxOutputTokens: 32, temperature: 0 },
     },
   ];
@@ -75,13 +82,31 @@ describe('GatewayBatchLanguageModel', () => {
     };
   }
 
-  describe('experimental_doStartBatch', () => {
-    it('should send correct headers including the model id', async () => {
+  describe('doStartBatch', () => {
+    it('should fail before sending a request when models are mixed', async () => {
+      await expect(
+        createTestBatch().doStartBatch({
+          requests: [
+            BATCH_PROMPT_REQUESTS[0]!,
+            { ...BATCH_PROMPT_REQUESTS[1]!, modelId: 'test-model-2' },
+          ],
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        argument: 'requests',
+        message:
+          'The AI Gateway Batch API requires all requests in a batch to use the same model. Found "test-model-1" and "test-model-2".',
+      });
+
+      expect(server.calls).toHaveLength(0);
+    });
+
+    it('should send the shared request model in the model header', async () => {
       prepareBatchStartResponse();
 
-      await createTestModel({
+      await createTestBatch({
         o11yHeaders: { 'ai-o11y-deployment-id': 'dpl_123' },
-      }).experimental_doStartBatch({
+      }).doStartBatch({
         requests: BATCH_PROMPT_REQUESTS,
         headers: { 'Custom-Header': 'batch-value' },
       });
@@ -89,28 +114,34 @@ describe('GatewayBatchLanguageModel', () => {
       expect(server.calls[0].requestHeaders).toMatchObject({
         authorization: 'Bearer test-token',
         'ai-gateway-auth-method': 'api-key',
-        'ai-model-id': 'test-model',
+        'ai-model-id': 'test-model-1',
         'ai-o11y-deployment-id': 'dpl_123',
         'custom-header': 'batch-value',
       });
       expect(server.calls[0].requestHeaders['idempotency-key']).toBeUndefined();
     });
 
-    it('should send the model id, requests, and provider options in the body', async () => {
+    it('should send the modality, per-request model ids, and provider options', async () => {
       prepareBatchStartResponse();
 
-      await createTestModel().experimental_doStartBatch({
+      await createTestBatch().doStartBatch({
         requests: BATCH_PROMPT_REQUESTS,
         providerOptions: { gateway: { order: ['openai'] } },
       });
 
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody).toEqual({
-        modelId: 'test-model',
         requests: [
-          { id: 'req-1', options: { prompt: TEST_PROMPT } },
+          {
+            id: 'req-1',
+            type: 'text',
+            modelId: 'test-model-1',
+            options: { prompt: TEST_PROMPT },
+          },
           {
             id: 'req-2',
+            type: 'text',
+            modelId: 'test-model-1',
             options: {
               prompt: TEST_PROMPT,
               maxOutputTokens: 32,
@@ -139,7 +170,7 @@ describe('GatewayBatchLanguageModel', () => {
         },
       });
 
-      const result = await createTestModel().experimental_doStartBatch({
+      const result = await createTestBatch().doStartBatch({
         requests: BATCH_PROMPT_REQUESTS,
       });
 
@@ -163,7 +194,7 @@ describe('GatewayBatchLanguageModel', () => {
     it('should send the idempotency-key header from providerOptions.gateway.idempotencyKey without forwarding it in the body', async () => {
       prepareBatchStartResponse();
 
-      await createTestModel().experimental_doStartBatch({
+      await createTestBatch().doStartBatch({
         requests: BATCH_PROMPT_REQUESTS,
         providerOptions: { gateway: { idempotencyKey: 'idem-abc' } },
       });
@@ -174,7 +205,6 @@ describe('GatewayBatchLanguageModel', () => {
       // Transport metadata stays out of the payload the Gateway digests for
       // replay identity; an empty providerOptions is omitted entirely.
       expect(await server.calls[0].requestBodyJson).toEqual({
-        modelId: 'test-model',
         requests: BATCH_PROMPT_REQUESTS,
       });
     });
@@ -182,7 +212,7 @@ describe('GatewayBatchLanguageModel', () => {
     it('should keep other gateway provider options in the body while stripping the idempotency key', async () => {
       prepareBatchStartResponse();
 
-      await createTestModel().experimental_doStartBatch({
+      await createTestBatch().doStartBatch({
         requests: BATCH_PROMPT_REQUESTS,
         providerOptions: {
           gateway: { idempotencyKey: 'idem-abc', order: ['openai'] },
@@ -213,14 +243,13 @@ describe('GatewayBatchLanguageModel', () => {
         },
       });
 
-      const result = await createTestModel().experimental_doStartBatch({
+      const result = await createTestBatch().doStartBatch({
         requests: BATCH_PROMPT_REQUESTS,
         webhookUrl: 'https://example.com/batch-webhook',
       });
 
       expect(await server.calls[0].requestBodyJson).toEqual({
         callbackUrl: 'https://example.com/batch-webhook',
-        modelId: 'test-model',
         requests: BATCH_PROMPT_REQUESTS,
       });
       // The webhook signing secret rides back on providerMetadata.
@@ -238,7 +267,7 @@ describe('GatewayBatchLanguageModel', () => {
     it('should not send a callbackUrl body field when no webhookUrl is provided', async () => {
       prepareBatchStartResponse();
 
-      await createTestModel().experimental_doStartBatch({
+      await createTestBatch().doStartBatch({
         requests: BATCH_PROMPT_REQUESTS,
       });
 
@@ -264,8 +293,15 @@ describe('GatewayBatchLanguageModel', () => {
         },
       ];
 
-      await createTestModel().experimental_doStartBatch({
-        requests: [{ id: 'req-1', options: { prompt } }],
+      await createTestBatch().doStartBatch({
+        requests: [
+          {
+            id: 'req-1',
+            type: 'text',
+            modelId: 'test-model-1',
+            options: { prompt },
+          },
+        ],
       });
 
       const requestBody = await server.calls[0].requestBodyJson;
@@ -282,9 +318,9 @@ describe('GatewayBatchLanguageModel', () => {
       const mockFetch = vi.fn().mockImplementation(globalThis.fetch);
       const controller = new AbortController();
 
-      await createTestModel({
+      await createTestBatch({
         fetch: mockFetch,
-      }).experimental_doStartBatch({
+      }).doStartBatch({
         requests: BATCH_PROMPT_REQUESTS,
         abortSignal: controller.signal,
       });
@@ -302,9 +338,9 @@ describe('GatewayBatchLanguageModel', () => {
       // An aborted batch start may still have been accepted server-side;
       // surfacing a retryable 500 would invite a duplicate submission.
       await expect(
-        createTestModel({
+        createTestBatch({
           fetch: mockFetch,
-        }).experimental_doStartBatch({
+        }).doStartBatch({
           requests: BATCH_PROMPT_REQUESTS,
         }),
       ).rejects.toBe(abortError);
@@ -324,7 +360,7 @@ describe('GatewayBatchLanguageModel', () => {
       };
 
       try {
-        await createTestModel().experimental_doStartBatch({
+        await createTestBatch().doStartBatch({
           requests: BATCH_PROMPT_REQUESTS,
         });
         expect.fail('Should have thrown an error');
@@ -337,7 +373,7 @@ describe('GatewayBatchLanguageModel', () => {
     });
   });
 
-  describe('experimental_doGetBatchStatus', () => {
+  describe('doGetBatchStatus', () => {
     it('should post the batchId and map the status response', async () => {
       prepareBatchStatusResponse({
         batchId: 'job_123',
@@ -347,7 +383,7 @@ describe('GatewayBatchLanguageModel', () => {
         createdAt: '2026-08-18T00:00:00.000Z',
       });
 
-      const status = await createTestModel().experimental_doGetBatchStatus({
+      const status = await createTestBatch().doGetBatchStatus({
         batchId: 'job_123',
       });
 
@@ -356,8 +392,8 @@ describe('GatewayBatchLanguageModel', () => {
       });
       expect(server.calls[0].requestHeaders).toMatchObject({
         authorization: 'Bearer test-token',
-        'ai-model-id': 'test-model',
       });
+      expect(server.calls[0].requestHeaders['ai-model-id']).toBeUndefined();
       expect(status).toEqual({
         status: 'completed',
         rawStatus: 'ended',
@@ -377,7 +413,7 @@ describe('GatewayBatchLanguageModel', () => {
         },
       });
 
-      const status = await createTestModel().experimental_doGetBatchStatus({
+      const status = await createTestBatch().doGetBatchStatus({
         batchId: 'job_123',
       });
 
@@ -398,7 +434,7 @@ describe('GatewayBatchLanguageModel', () => {
         requestCounts: { total: 2 },
       });
 
-      const status = await createTestModel().experimental_doGetBatchStatus({
+      const status = await createTestBatch().doGetBatchStatus({
         batchId: 'job_123',
       });
 
@@ -415,7 +451,7 @@ describe('GatewayBatchLanguageModel', () => {
       };
 
       try {
-        await createTestModel().experimental_doGetBatchStatus({
+        await createTestBatch().doGetBatchStatus({
           batchId: 'missing-job',
         });
         expect.fail('Should have thrown an error');
@@ -435,9 +471,9 @@ describe('GatewayBatchLanguageModel', () => {
       const mockFetch = vi.fn().mockRejectedValue(abortError);
 
       await expect(
-        createTestModel({
+        createTestBatch({
           fetch: mockFetch,
-        }).experimental_doGetBatchStatus({ batchId: 'job_123' }),
+        }).doGetBatchStatus({ batchId: 'job_123' }),
       ).rejects.toBe(abortError);
     });
 
@@ -446,9 +482,9 @@ describe('GatewayBatchLanguageModel', () => {
       const mockFetch = vi.fn().mockImplementation(globalThis.fetch);
       const controller = new AbortController();
 
-      await createTestModel({
+      await createTestBatch({
         fetch: mockFetch,
-      }).experimental_doGetBatchStatus({
+      }).doGetBatchStatus({
         batchId: 'job_123',
         abortSignal: controller.signal,
       });
@@ -457,8 +493,9 @@ describe('GatewayBatchLanguageModel', () => {
     });
   });
 
-  describe('experimental_doGetBatchResults', () => {
+  describe('doGetBatchResults', () => {
     const succeededItem = {
+      type: 'text',
       id: 'req-1',
       status: 'succeeded',
       result: {
@@ -487,16 +524,21 @@ describe('GatewayBatchLanguageModel', () => {
       },
     };
     const failedItem = {
+      type: 'text',
       id: 'req-2',
       status: 'failed',
       error: { message: 'boom' },
     };
-    const cancelledItem = { id: 'req-3', status: 'cancelled' };
+    const cancelledItem = {
+      type: 'text',
+      id: 'req-3',
+      status: 'cancelled',
+    };
 
     it('should revive response.timestamp into a Date on succeeded items', async () => {
       prepareBatchResultsResponse([`${JSON.stringify(succeededItem)}\n`]);
 
-      const stream = await createTestModel().experimental_doGetBatchResults({
+      const stream = await createTestBatch().doGetBatchResults({
         batchId: 'job_123',
       });
       const [item] = await convertReadableStreamToArray(stream);
@@ -526,7 +568,7 @@ describe('GatewayBatchLanguageModel', () => {
       };
 
       try {
-        await createTestModel().experimental_doGetBatchResults({
+        await createTestBatch().doGetBatchResults({
           batchId: 'missing-job',
         });
         expect.fail('Should have thrown an error');
@@ -546,16 +588,16 @@ describe('GatewayBatchLanguageModel', () => {
       const mockFetch = vi.fn().mockRejectedValue(abortError);
 
       await expect(
-        createTestModel({
+        createTestBatch({
           fetch: mockFetch,
-        }).experimental_doGetBatchResults({ batchId: 'job_123' }),
+        }).doGetBatchResults({ batchId: 'job_123' }),
       ).rejects.toBe(abortError);
     });
 
     it('should post the batchId with the correct headers', async () => {
       prepareBatchResultsResponse([`${JSON.stringify(succeededItem)}\n`]);
 
-      const stream = await createTestModel().experimental_doGetBatchResults({
+      const stream = await createTestBatch().doGetBatchResults({
         batchId: 'job_123',
       });
       await convertReadableStreamToArray(stream);
@@ -565,8 +607,8 @@ describe('GatewayBatchLanguageModel', () => {
       });
       expect(server.calls[0].requestHeaders).toMatchObject({
         authorization: 'Bearer test-token',
-        'ai-model-id': 'test-model',
       });
+      expect(server.calls[0].requestHeaders['ai-model-id']).toBeUndefined();
     });
 
     it('should parse multi-line NDJSON results including lines split across chunks and a trailing line without a newline', async () => {
@@ -581,7 +623,7 @@ describe('GatewayBatchLanguageModel', () => {
         `${line2.slice(10)}\n${line3}`,
       ]);
 
-      const stream = await createTestModel().experimental_doGetBatchResults({
+      const stream = await createTestBatch().doGetBatchResults({
         batchId: 'job_123',
       });
       const items = await convertReadableStreamToArray(stream);
@@ -594,7 +636,7 @@ describe('GatewayBatchLanguageModel', () => {
         `${JSON.stringify(succeededItem)}\n\n${JSON.stringify(failedItem)}\n`,
       ]);
 
-      const stream = await createTestModel().experimental_doGetBatchResults({
+      const stream = await createTestBatch().doGetBatchResults({
         batchId: 'job_123',
       });
       const items = await convertReadableStreamToArray(stream);
@@ -615,7 +657,7 @@ describe('GatewayBatchLanguageModel', () => {
       };
 
       try {
-        await createTestModel().experimental_doGetBatchResults({
+        await createTestBatch().doGetBatchResults({
           batchId: 'job_123',
         });
         expect.fail('Should have thrown an error');
@@ -632,9 +674,9 @@ describe('GatewayBatchLanguageModel', () => {
       const mockFetch = vi.fn().mockImplementation(globalThis.fetch);
       const controller = new AbortController();
 
-      const stream = await createTestModel({
+      const stream = await createTestBatch({
         fetch: mockFetch,
-      }).experimental_doGetBatchResults({
+      }).doGetBatchResults({
         batchId: 'job_123',
         abortSignal: controller.signal,
       });
@@ -645,10 +687,10 @@ describe('GatewayBatchLanguageModel', () => {
   });
 
   it('should expose the three batch methods as functions (batch capability duck-type)', () => {
-    const model = createTestModel();
+    const model = createTestBatch();
 
-    expect(typeof model.experimental_doStartBatch).toBe('function');
-    expect(typeof model.experimental_doGetBatchStatus).toBe('function');
-    expect(typeof model.experimental_doGetBatchResults).toBe('function');
+    expect(typeof model.doStartBatch).toBe('function');
+    expect(typeof model.doGetBatchStatus).toBe('function');
+    expect(typeof model.doGetBatchResults).toBe('function');
   });
 });
