@@ -7,6 +7,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { GatewayLanguageModel } from './gateway-language-model';
 import type { GatewayConfig } from './gateway-config';
+import type { GatewayProviderOptions } from './index';
 import {
   GatewayAuthenticationError,
   GatewayRateLimitError,
@@ -1584,8 +1585,9 @@ describe('GatewayLanguageModel', () => {
           gateway: {
             providerTimeouts: {
               byok: { openai: 5000, anthropic: 2000 },
+              system: { openai: 1000, anthropic: 10000 },
             },
-          },
+          } satisfies GatewayProviderOptions,
         },
       });
 
@@ -1594,6 +1596,7 @@ describe('GatewayLanguageModel', () => {
         gateway: {
           providerTimeouts: {
             byok: { openai: 5000, anthropic: 2000 },
+            system: { openai: 1000, anthropic: 10000 },
           },
         },
       });
@@ -1610,8 +1613,9 @@ describe('GatewayLanguageModel', () => {
           gateway: {
             providerTimeouts: {
               byok: { anthropic: 3000 },
+              system: { anthropic: 6000 },
             },
-          },
+          } satisfies GatewayProviderOptions,
         },
       });
 
@@ -1622,6 +1626,7 @@ describe('GatewayLanguageModel', () => {
         gateway: {
           providerTimeouts: {
             byok: { anthropic: 3000 },
+            system: { anthropic: 6000 },
           },
         },
       });

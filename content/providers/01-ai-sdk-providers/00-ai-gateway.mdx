@@ -1376,9 +1376,11 @@ The following gateway provider options are available:
 
 - **providerTimeouts** _object_
 
-  Per-provider timeouts for BYOK credentials in milliseconds. Controls how long to wait for a provider to start responding before falling back to the next available provider.
+  Per-provider timeouts in milliseconds. Use `byok` for your own credentials and `system` for AI Gateway's system credentials. Both maps are optional and use provider slugs as keys. Values in both maps must be between 1,000 and 789,000 milliseconds.
 
-  Example: `providerTimeouts: { byok: { openai: 5000, anthropic: 2000 } }`
+  For streaming requests, the timeout ends when the first stream chunk arrives. For non-streaming requests, it runs until the provider returns the complete response. A timeout allows fallback to the next available provider before streaming starts. After streaming starts, a timeout may terminate the stream without falling back.
+
+  Example: `providerTimeouts: { byok: { openai: 5000, anthropic: 2000 }, system: { openai: 1000, anthropic: 10000 } }`
 
   For full details, see [Provider Timeouts](https://vercel.com/docs/ai-gateway/models-and-providers/provider-timeouts).
 
