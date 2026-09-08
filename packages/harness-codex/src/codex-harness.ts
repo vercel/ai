@@ -54,9 +54,9 @@ import {
   createCodexRequestTransformations,
   DEFAULT_OPENAI_BASE_URL,
   resolveCodexAuthenticationMode,
-  resolveCodexEnv,
   type CodexAuthenticationMode,
 } from './codex-auth';
+import { resolveCodexAuthentication } from './codex-subscription';
 import {
   outboundMessageSchema,
   type InboundMessage,
@@ -268,7 +268,10 @@ export function createCodex(
           : undefined;
       const coords = resumeData?.bridge;
       const authenticationMode = resolveCodexAuthenticationMode(settings.auth);
-      const resolvedAuthEnvironment = resolveCodexEnv(settings.auth);
+      const resolvedAuthentication = await resolveCodexAuthentication({
+        auth: settings.auth,
+      });
+      const resolvedAuthEnvironment = resolvedAuthentication.environment;
       let sandboxAuthEnvironment = resolvedAuthEnvironment;
       let sandboxCredentialEnvironment: Record<string, string> | undefined;
       let credentialsBrokered = false;
@@ -292,6 +295,7 @@ export function createCodex(
           env: resolvedAuthEnvironment,
           sandboxEnv: sandboxAuthEnvironment,
           auth: authenticationMode,
+          additionalHeaders: resolvedAuthentication.requestHeaders,
         });
         if (requestTransformations.length > 0) {
           await sandboxSession.addRequestTransformations(

@@ -197,15 +197,21 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       }
       const permissionMode = startOptions.permissionMode ?? 'allow-all';
       const env = { ...process.env };
-      const authenticationEnvironment = resolveACPAuthenticationEnvironment({
-        auth: settings.auth,
-        env,
-      });
+      const authenticationEnvironment =
+        settings.resolveAuthenticationEnvironment == null
+          ? resolveACPAuthenticationEnvironment({
+              auth: settings.auth,
+              env,
+            })
+          : await settings.resolveAuthenticationEnvironment({
+              auth: settings.auth,
+              env,
+            });
       const providerAuthenticationCompatibility =
         resolveACPProviderAuthenticationCompatibility({
           auth: settings.auth,
           providerAuthentication: settings.providerAuthentication,
-          env,
+          env: authenticationEnvironment,
         });
       const implementationIdentity = createImplementationIdentity({
         harnessId: settings.harnessId,
@@ -228,7 +234,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           providerAuthentication: settings.providerAuthentication,
           clientApp,
         },
-        env,
+        env: authenticationEnvironment,
         compatibility: providerAuthenticationCompatibility,
       });
       const sandboxSession = startOptions.sandboxSession;

@@ -21,7 +21,10 @@ export function createCodexRequestTransformations({
   env: environment,
   sandboxEnv: sandboxEnvironment,
   auth: authenticationMode,
-}: HarnessV1RequestTransformationSources<CodexResolvedAuthenticationMode>): HarnessV1RequestTransformation[] {
+  additionalHeaders,
+}: HarnessV1RequestTransformationSources<CodexResolvedAuthenticationMode> & {
+  additionalHeaders?: Readonly<Record<string, string>>;
+}): HarnessV1RequestTransformation[] {
   if (!environment.CODEX_API_KEY || !sandboxEnvironment.CODEX_API_KEY) {
     return [];
   }
@@ -37,6 +40,7 @@ export function createCodexRequestTransformations({
       },
       transformHeaders: {
         Authorization: `Bearer ${environment.CODEX_API_KEY}`,
+        ...additionalHeaders,
       },
     }),
   ];

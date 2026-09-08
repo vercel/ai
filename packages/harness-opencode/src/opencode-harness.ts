@@ -58,11 +58,15 @@ import {
 import {
   createOpenCodeRequestTransformations,
   OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
-  resolveOpenCodeAuthenticationMode,
-  resolveOpenCodeEnv,
+  OPENCODE_SUBSCRIPTION_ACCESS_TOKEN_ENVIRONMENT_VARIABLE,
   splitOpenCodeModel,
   type OpenCodeAuthenticationMode,
 } from './opencode-auth';
+import {
+  createOpenCodeSubscriptionAuthContent,
+  createOpenCodeSubscriptionRequestTransformations,
+  resolveOpenCodeAuthentication,
+} from './opencode-subscription';
 import {
   outboundMessageSchema,
   type InboundMessage,
@@ -303,16 +307,13 @@ export function createOpenCode(
           ? resumeData.openCodeSessionId
           : undefined;
       const coords = resumeData?.bridge;
-      const authenticationMode = resolveOpenCodeAuthenticationMode({
+      const authentication = await resolveOpenCodeAuthentication({
         auth: settings.auth,
         model: configuredModel,
         provider: settings.provider,
       });
-      const resolvedAuthEnvironment = resolveOpenCodeEnv({
-        auth: settings.auth,
-        model: configuredModel,
-        provider: settings.provider,
-      });
+      const authenticationMode = authentication.authenticationMode;
+      const resolvedAuthEnvironment = authentication.environment;
       let sandboxAuthEnvironment = resolvedAuthEnvironment;
       let sandboxCredentialEnvironment: Record<string, string> | undefined;
       let credentialsBrokered = false;
@@ -332,11 +333,23 @@ export function createOpenCode(
           ...resolvedAuthEnvironment,
           ...sandboxCredentialEnvironment,
         };
-        const requestTransformations = createOpenCodeRequestTransformations({
+        const transformationSources = {
           env: resolvedAuthEnvironment,
           sandboxEnv: sandboxAuthEnvironment,
           auth: authenticationMode,
-        });
+        };
+        const sandboxSubscriptionAccessToken =
+          sandboxAuthEnvironment[
+            OPENCODE_SUBSCRIPTION_ACCESS_TOKEN_ENVIRONMENT_VARIABLE
+          ];
+        const requestTransformations =
+          authentication.subscription == null ||
+          sandboxSubscriptionAccessToken == null
+            ? createOpenCodeRequestTransformations(transformationSources)
+            : createOpenCodeSubscriptionRequestTransformations({
+                authentication: authentication.subscription,
+                sandboxAccessToken: sandboxSubscriptionAccessToken,
+              });
         if (requestTransformations.length > 0) {
           await sandboxSession.addRequestTransformations(
             requestTransformations,
@@ -471,8 +484,27 @@ export function createOpenCode(
             OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
         });
       }
+      const subscriptionAccessToken =
+        forwardedAuthEnvironment[
+          OPENCODE_SUBSCRIPTION_ACCESS_TOKEN_ENVIRONMENT_VARIABLE
+        ];
+      const forwardableAuthEnvironment = Object.fromEntries(
+        Object.entries(forwardedAuthEnvironment).filter(
+          ([name]) =>
+            name !== OPENCODE_SUBSCRIPTION_ACCESS_TOKEN_ENVIRONMENT_VARIABLE,
+        ),
+      );
       const env = {
-        ...forwardedAuthEnvironment,
+        ...forwardableAuthEnvironment,
+        ...(authentication.subscription == null ||
+        subscriptionAccessToken == null
+          ? {}
+          : {
+              OPENCODE_AUTH_CONTENT: createOpenCodeSubscriptionAuthContent({
+                authentication: authentication.subscription,
+                accessToken: subscriptionAccessToken,
+              }),
+            }),
         AI_SDK_HARNESS_CLIENT_APP: OPENCODE_CLIENT_APP,
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),

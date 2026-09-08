@@ -189,6 +189,8 @@ describe('createFx', () => {
         "credentialEnv": [
           "VERCEL_OIDC_TOKEN",
           "AI_GATEWAY_API_KEY",
+          "OPENAI_API_KEY",
+          "XAI_API_KEY",
         ],
         "executable": "fx",
         "harnessId": "fx",
@@ -417,6 +419,42 @@ describe('createFx', () => {
     expect(settings.credentialBrokering?.({ env: {}, sandboxEnv: {} })).toEqual(
       [],
     );
+  });
+
+  it('brokers native subscription access tokens to their provider route', () => {
+    createFx();
+    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+
+    expect(
+      settings.credentialBrokering?.({
+        env: {
+          OPENAI_API_KEY: 'subscription-access',
+          OPENAI_BASE_URL: 'https://chatgpt.com/backend-api/codex',
+          FX_CHATGPT_ACCOUNT_ID: 'account-1',
+        },
+        sandboxEnv: { OPENAI_API_KEY: 'sandbox-access' },
+      }),
+    ).toEqual([
+      {
+        match: {
+          host: 'chatgpt.com',
+          path: { startsWith: '/backend-api/codex' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-access' },
+            },
+          ],
+        },
+        transform: {
+          headers: {
+            Authorization: 'Bearer subscription-access',
+            'x-client-app': `ai-sdk/harness-fx/${VERSION}`,
+            'ChatGPT-Account-ID': 'account-1',
+          },
+        },
+      },
+    ]);
   });
 
   it('brokers the Gateway key selected from a supplied authentication environment', () => {

@@ -11,6 +11,7 @@ import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
+import { resolveGrokBuildSubscriptionEnvironment } from './grok-build-subscription';
 import { grokBuildAskUserQuestions } from './grok-build-question-tool';
 
 declare const __GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON__: string;
@@ -299,6 +300,7 @@ export function createGrokBuild(
   const clientAppVersion = clientAppSegments.pop()!;
   return createACP({
     auth: settings.auth,
+    resolveAuthenticationEnvironment: resolveGrokBuildSubscriptionEnvironment,
     credentialForwarding: settings.credentialForwarding,
     modelId: settings.model,
     port: settings.port,
@@ -336,6 +338,11 @@ export function createGrokBuild(
         : ['--reasoning-effort', settings.reasoningEffort]),
       'stdio',
     ],
+    forwardEnv: [
+      'GROK_XAI_API_BASE_URL',
+      'GROK_MODELS_BASE_URL',
+      'GROK_CLI_CHAT_PROXY_BASE_URL',
+    ],
     credentialEnv: ['XAI_API_KEY'],
     credentialBrokering: ({ env, sandboxEnv, headers }) => {
       if (!env.XAI_API_KEY || !sandboxEnv?.XAI_API_KEY) return [];
@@ -348,6 +355,9 @@ export function createGrokBuild(
           transformHeaders: {
             ...headers,
             Authorization: `Bearer ${env.XAI_API_KEY}`,
+            ...(env.GROK_CLI_CHAT_PROXY_BASE_URL == null
+              ? {}
+              : { 'X-XAI-Token-Auth': 'xai-grok-cli' }),
           },
         }),
       ];

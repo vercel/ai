@@ -1,9 +1,20 @@
-import { describe, expect, it } from 'vitest';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { describe, expect, it, vi } from 'vitest';
 import {
   createCodexRequestTransformations,
   resolveCodexAuthenticationMode,
   resolveCodexEnv,
 } from './codex-auth';
+import {
+  readCodexSubscription,
+  resolveCodexAuthentication,
+} from './codex-subscription';
+
+function jwt(expiresAt: number): string {
+  return `header.${Buffer.from(JSON.stringify({ exp: expiresAt })).toString('base64url')}.signature`;
+}
 
 describe('resolveCodexEnv', () => {
   it('uses direct OpenAI auth when selected', () => {
@@ -160,6 +171,99 @@ describe('resolveCodexAuthenticationMode', () => {
   });
 });
 
+describe('resolveCodexAuthentication', () => {
+  it('never reads native authentication for Gateway auth', async () => {
+    const readSubscription = vi.fn();
+    await expect(
+      resolveCodexAuthentication({
+        auth: 'ai-gateway',
+        processEnv: { AI_GATEWAY_API_KEY: 'gateway' },
+        readSubscription,
+      }),
+    ).resolves.toMatchObject({
+      environment: { AI_GATEWAY_API_KEY: 'gateway' },
+    });
+    expect(readSubscription).not.toHaveBeenCalled();
+  });
+
+  it('prefers a direct environment API key over native authentication', async () => {
+    const readSubscription = vi.fn();
+    await expect(
+      resolveCodexAuthentication({
+        auth: 'direct',
+        processEnv: { OPENAI_API_KEY: 'environment-key' },
+        readSubscription,
+      }),
+    ).resolves.toEqual({
+      environment: { CODEX_API_KEY: 'environment-key' },
+    });
+    expect(readSubscription).not.toHaveBeenCalled();
+  });
+
+  it('uses a fresh file-backed ChatGPT subscription', async () => {
+    const codexHome = await mkdtemp(join(tmpdir(), 'codex-auth-'));
+    await writeFile(
+      join(codexHome, 'auth.json'),
+      JSON.stringify({
+        auth_mode: 'chatgpt',
+        tokens: {
+          access_token: jwt(Math.floor(Date.now() / 1000) + 3600),
+          refresh_token: 'refresh-token',
+          account_id: 'account-id',
+        },
+      }),
+    );
+
+    await expect(
+      readCodexSubscription({ env: { CODEX_HOME: codexHome } }),
+    ).resolves.toEqual({
+      environment: {
+        CODEX_API_KEY: expect.stringMatching(/^header\./),
+        OPENAI_BASE_URL: 'https://chatgpt.com/backend-api/codex',
+      },
+      requestHeaders: { 'ChatGPT-Account-ID': 'account-id' },
+    });
+  });
+
+  it('refreshes and persists an expiring subscription without losing fields', async () => {
+    const codexHome = await mkdtemp(join(tmpdir(), 'codex-auth-'));
+    const authPath = join(codexHome, 'auth.json');
+    await writeFile(
+      authPath,
+      JSON.stringify({
+        auth_mode: 'chatgpt',
+        preserved: true,
+        tokens: {
+          id_token: 'id-token',
+          access_token: jwt(Math.floor(Date.now() / 1000) + 60),
+          refresh_token: 'old-refresh',
+          account_id: 'account-id',
+        },
+      }),
+    );
+    const fetch = vi.fn(async () =>
+      Response.json({
+        access_token: jwt(Math.floor(Date.now() / 1000) + 3600),
+        refresh_token: 'new-refresh',
+      }),
+    );
+
+    await readCodexSubscription({
+      env: { CODEX_HOME: codexHome },
+      fetch,
+    });
+    const persisted = JSON.parse(await readFile(authPath, 'utf8'));
+    expect(persisted).toMatchObject({
+      preserved: true,
+      tokens: {
+        id_token: 'id-token',
+        refresh_token: 'new-refresh',
+        account_id: 'account-id',
+      },
+    });
+  });
+});
+
 describe('createCodexRequestTransformations', () => {
   it('uses the configured OpenAI-compatible route for direct auth', () => {
     expect(
@@ -224,5 +328,28 @@ describe('createCodexRequestTransformations', () => {
         auth: 'direct',
       }),
     ).toEqual([]);
+  });
+
+  it('adds the ChatGPT account header only at the host boundary', () => {
+    expect(
+      createCodexRequestTransformations({
+        env: {
+          CODEX_API_KEY: 'host-access-token',
+          OPENAI_BASE_URL: 'https://chatgpt.com/backend-api/codex',
+        },
+        sandboxEnv: { CODEX_API_KEY: 'sandbox-placeholder' },
+        auth: 'direct',
+        additionalHeaders: { 'ChatGPT-Account-ID': 'account-id' },
+      }),
+    ).toEqual([
+      expect.objectContaining({
+        transform: {
+          headers: {
+            Authorization: 'Bearer host-access-token',
+            'ChatGPT-Account-ID': 'account-id',
+          },
+        },
+      }),
+    ]);
   });
 });

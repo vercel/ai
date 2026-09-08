@@ -205,7 +205,7 @@ describe('createCursor', () => {
       expect(warn.mock.calls[0]?.[0]).toContain(`auth: "${auth}"`);
       expect(warn.mock.calls[0]?.[0]).toContain('CURSOR_API_KEY');
       const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
-      expect(settings.auth).toBeUndefined();
+      expect(settings.auth).toBe(auth);
       expect(settings.providerAuthentication).toBeUndefined();
       warn.mockRestore();
     },
@@ -218,7 +218,7 @@ describe('createCursor', () => {
 
     expect(warn).not.toHaveBeenCalled();
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
-    expect(settings.auth).toBeUndefined();
+    expect(settings.auth).toBe('auto');
     expect(settings.providerAuthentication).toBeUndefined();
     warn.mockRestore();
   });

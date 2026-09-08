@@ -9,6 +9,7 @@ import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
+import { resolveCursorSubscriptionEnvironment } from './cursor-subscription';
 
 const CURSOR_CLIENT_APP = `ai-sdk/harness-cursor/${VERSION}`;
 
@@ -350,7 +351,8 @@ export function createCursor(
   }
 
   return createACP({
-    auth: typeof settings.auth === 'string' ? undefined : settings.auth,
+    auth: settings.auth,
+    resolveAuthenticationEnvironment: resolveCursorSubscriptionEnvironment,
     credentialForwarding: settings.credentialForwarding,
     modelId: settings.model,
     port: settings.port,

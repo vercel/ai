@@ -10,6 +10,7 @@ import {
   resolvePiEnv,
   type PiAuthenticationMode,
 } from './pi-auth';
+import { resolvePiSubscriptionAgentDir } from './pi-subscription';
 
 const authPaths: string[] = [];
 
@@ -205,6 +206,52 @@ describe('resolvePiEnv', () => {
       MISTRAL_API_KEY: 'mk',
       MISTRAL_BASE_URL: 'https://api.mistral.example',
     });
+  });
+});
+
+describe('resolvePiSubscriptionAgentDir', () => {
+  it('uses Pi native storage only after environment credentials', () => {
+    expect(
+      resolvePiSubscriptionAgentDir({
+        options: 'direct',
+        env: {},
+        homeDirectory: '/home/me',
+      }),
+    ).toBe('/home/me/.pi/agent');
+    expect(
+      resolvePiSubscriptionAgentDir({
+        options: 'direct',
+        env: { OPENAI_API_KEY: 'environment-key' },
+        homeDirectory: '/home/me',
+      }),
+    ).toBeUndefined();
+  });
+
+  it('never uses native storage for Gateway or supplied auth', () => {
+    expect(
+      resolvePiSubscriptionAgentDir({
+        options: 'ai-gateway',
+        env: {},
+        homeDirectory: '/home/me',
+      }),
+    ).toBeUndefined();
+    expect(
+      resolvePiSubscriptionAgentDir({
+        options: {},
+        env: {},
+        homeDirectory: '/home/me',
+      }),
+    ).toBeUndefined();
+  });
+
+  it('honors PI_CODING_AGENT_DIR', () => {
+    expect(
+      resolvePiSubscriptionAgentDir({
+        options: undefined,
+        env: { PI_CODING_AGENT_DIR: '/custom/pi' },
+        homeDirectory: '/home/me',
+      }),
+    ).toBe('/custom/pi');
   });
 });
 

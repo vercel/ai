@@ -168,6 +168,14 @@ export type ACPV1Settings = {
   readonly mcpServers?: Record<string, unknown>;
   readonly isMcpToolCall?: (toolCall: ACPToolCall) => boolean;
   readonly auth?: ACPAuthenticationMode;
+  /**
+   * Resolves adapter-owned authentication on the host before any environment
+   * values are forwarded to the ACP implementation.
+   */
+  readonly resolveAuthenticationEnvironment?: (options: {
+    readonly auth: ACPAuthenticationMode | undefined;
+    readonly env: Readonly<Record<string, string | undefined>>;
+  }) => Promise<Readonly<Record<string, string | undefined>>>;
   readonly source: ACPSource;
   readonly executable: string;
   readonly args?: ReadonlyArray<string>;

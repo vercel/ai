@@ -17,6 +17,7 @@ export const CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES = [
   'AI_GATEWAY_API_KEY',
   'ANTHROPIC_API_KEY',
   'ANTHROPIC_AUTH_TOKEN',
+  'CLAUDE_CODE_OAUTH_TOKEN',
 ] as const;
 
 export function createClaudeCodeRequestTransformations({
