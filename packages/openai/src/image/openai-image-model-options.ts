@@ -12,6 +12,10 @@ export type OpenAIImageModelId =
   | 'gpt-image-1-mini'
   | 'gpt-image-1.5'
   | 'gpt-image-2'
+  | 'gpt-image-2.5-flare'
+  | 'gpt-image-2.5-flare-2026-09-08'
+  | 'gpt-image-2.5-sunburst'
+  | 'gpt-image-2.5-sunburst-2026-09-08'
   | 'chatgpt-image-latest'
   | (string & {});
 
@@ -23,6 +27,10 @@ export const modelMaxImagesPerCall: Record<OpenAIImageModelId, number> = {
   'gpt-image-1-mini': 10,
   'gpt-image-1.5': 10,
   'gpt-image-2': 10,
+  'gpt-image-2.5-flare': 10,
+  'gpt-image-2.5-flare-2026-09-08': 10,
+  'gpt-image-2.5-sunburst': 10,
+  'gpt-image-2.5-sunburst-2026-09-08': 10,
   'chatgpt-image-latest': 10,
 };
 
@@ -45,10 +53,11 @@ const baseImageModelOptionsObject = z.object({
   /**
    * Quality of the generated image(s).
    *
-   * Valid values: `standard`, `hd`, `low`, `medium`, `high`, `auto`.
+   * Valid values: `standard`, `hd`, `low`, `medium`, `high`, `xhigh`, `max`, `auto`.
+   * `xhigh` and `max` are supported by GPT Image 2.5 models.
    */
   quality: z
-    .enum(['standard', 'hd', 'low', 'medium', 'high', 'auto'])
+    .enum(['standard', 'hd', 'low', 'medium', 'high', 'xhigh', 'max', 'auto'])
     .optional(),
 
   /**

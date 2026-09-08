@@ -3,6 +3,7 @@ import {
   type HarnessV1,
   type HarnessV1BuiltinTool,
   type HarnessV1CredentialForwarding,
+  type HarnessV1MintBridgeTokenCallback,
   type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
 import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
@@ -12,25 +13,21 @@ import { VERSION } from './version';
 
 const CURSOR_CLIENT_APP = `ai-sdk/harness-cursor/${VERSION}`;
 
+export type CursorAuthenticationMode = ACPAuthenticationMode;
+
 export type CursorHarnessSettings = {
   /**
    * Declares the provider authentication configured in Cursor, or supplies an
    * isolated environment for Cursor CLI authentication. The adapter cannot
    * change provider routing and warns for explicit routing modes.
    */
-  readonly auth?: ACPAuthenticationMode;
+  readonly auth?: CursorAuthenticationMode;
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can
    * discover, read, or otherwise access in the host process.
    */
   readonly credentialForwarding?: HarnessV1CredentialForwarding;
-  /**
-   * Cursor model id selected through ACP. Unset preserves Cursor's default.
-   *
-   * @deprecated Use `model` on `HarnessAgent` instead.
-   */
-  readonly model?: string;
   /**
    * Overrides the sandbox port used by the ACP bridge.
    */
@@ -53,7 +50,7 @@ export type CursorHarnessSettings = {
    * Creates the authentication token used by the sandbox bridge. Defaults to
    * a random 32-byte hexadecimal token.
    */
-  readonly mintBridgeToken?: (sandboxId: string) => string;
+  readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
 
 /*
@@ -352,7 +349,6 @@ export function createCursor(
   return createACP({
     auth: typeof settings.auth === 'string' ? undefined : settings.auth,
     credentialForwarding: settings.credentialForwarding,
-    modelId: settings.model,
     port: settings.port,
     portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,
@@ -432,7 +428,7 @@ export function createCursor(
 function warnCursorAuthenticationConfiguration({
   auth,
 }: {
-  auth: Exclude<ACPAuthenticationMode, 'auto'>;
+  auth: Exclude<CursorAuthenticationMode, 'auto'>;
 }): void {
   const detail =
     auth === 'ai-gateway'

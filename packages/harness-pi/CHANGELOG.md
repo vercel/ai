@@ -1,5 +1,24 @@
 # @ai-sdk/harness-pi
 
+## 1.0.106
+
+### Patch Changes
+
+- c04ded8: chore(harness): remove formerly deprecated `model` and `modelId` config on harness adapter settings
+- Updated dependencies [c04ded8]
+  - @ai-sdk/harness@1.0.104
+
+## 1.0.105
+
+### Patch Changes
+
+- a514695: fix(harness-pi): let extensions read host-backed session workspaces
+- c359fc0: fix(harness-pi): expose tools registered by inline extensions to models
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider-utils@5.0.37
+  - @ai-sdk/harness@1.0.103
+
 ## 1.0.104
 
 ### Patch Changes

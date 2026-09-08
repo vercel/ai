@@ -1,5 +1,24 @@
 # @ai-sdk/harness-fx
 
+## 1.0.17
+
+### Patch Changes
+
+- c04ded8: chore(harness): remove formerly deprecated `model` and `modelId` config on harness adapter settings
+- Updated dependencies [c04ded8]
+  - @ai-sdk/harness-acp@1.0.42
+  - @ai-sdk/harness@1.0.104
+
+## 1.0.16
+
+### Patch Changes
+
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider-utils@5.0.37
+  - @ai-sdk/harness@1.0.103
+  - @ai-sdk/harness-acp@1.0.41
+
 ## 1.0.15
 
 ### Patch Changes
