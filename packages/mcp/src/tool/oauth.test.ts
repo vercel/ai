@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import fs from 'node:fs';
 import {
   extractWWWAuthenticateParams,
   extractResourceMetadataUrl,
@@ -601,6 +602,69 @@ describe('discoverAuthorizationServerMetadata', () => {
     );
 
     expect(metadata).toEqual(tenantMetadata);
+  });
+
+  it('accepts a trailing slash for an origin-only issuer', async () => {
+    const fixture = JSON.parse(
+      fs.readFileSync(
+        'src/tool/__fixtures__/starbridge-oauth-metadata.json',
+        'utf8',
+      ),
+    );
+
+    const provider: OAuthClientProvider = {
+      tokens: () => undefined,
+      saveTokens: vi.fn(),
+      redirectToAuthorization: vi.fn(),
+      saveCodeVerifier: vi.fn(),
+      codeVerifier: () => 'test_verifier',
+      redirectUrl: 'http://localhost:3000/callback',
+      clientMetadata: {
+        redirect_uris: ['http://localhost:3000/callback'],
+        grant_types: ['authorization_code'],
+        response_types: ['code'],
+        token_endpoint_auth_method: 'none',
+      },
+      clientInformation: () => ({
+        client_id: 'issue-20236-reproduction',
+      }),
+      saveAuthorizationServerInformation: vi.fn(),
+    };
+
+    const fetchFn = vi.fn(async (input: RequestInfo | URL) => {
+      const url = input.toString();
+
+      if (
+        url ===
+        'https://dashboard.starbridge.ai/.well-known/oauth-protected-resource/mcp/oauth'
+      ) {
+        return new Response(null, { status: 404 });
+      }
+
+      if (
+        url ===
+        'https://dashboard.starbridge.ai/.well-known/oauth-protected-resource'
+      ) {
+        return Response.json(fixture.protectedResourceMetadata);
+      }
+
+      if (
+        url ===
+        'https://auth.starbridge.ai/.well-known/oauth-authorization-server'
+      ) {
+        return Response.json(fixture.authorizationServerMetadata);
+      }
+
+      throw new Error(`Unexpected URL: ${url}`);
+    });
+
+    await expect(
+      auth(provider, {
+        serverUrl: 'https://dashboard.starbridge.ai/mcp/oauth',
+        fetchFn,
+      }),
+    ).resolves.toBe('REDIRECT');
+    expect(provider.redirectToAuthorization).toHaveBeenCalledOnce();
   });
 
   it('accepts OAuth metadata when code challenge methods are omitted', async () => {

@@ -1,0 +1,107 @@
+{
+  "protectedResourceMetadata": {
+    "resource": "https://dashboard.starbridge.ai/mcp/oauth",
+    "authorization_servers": ["https://auth.starbridge.ai/"],
+    "scopes_supported": ["mcp:tools"],
+    "bearer_methods_supported": ["header"]
+  },
+  "authorizationServerMetadata": {
+    "issuer": "https://auth.starbridge.ai/",
+    "authorization_endpoint": "https://auth.starbridge.ai/authorize",
+    "token_endpoint": "https://auth.starbridge.ai/oauth/token",
+    "device_authorization_endpoint": "https://auth.starbridge.ai/oauth/device/code",
+    "userinfo_endpoint": "https://auth.starbridge.ai/userinfo",
+    "mfa_challenge_endpoint": "https://auth.starbridge.ai/mfa/challenge",
+    "jwks_uri": "https://auth.starbridge.ai/.well-known/jwks.json",
+    "registration_endpoint": "https://auth.starbridge.ai/oidc/register",
+    "revocation_endpoint": "https://auth.starbridge.ai/oauth/revoke",
+    "scopes_supported": [
+      "openid",
+      "profile",
+      "offline_access",
+      "name",
+      "given_name",
+      "family_name",
+      "nickname",
+      "email",
+      "email_verified",
+      "picture",
+      "created_at",
+      "identities",
+      "phone",
+      "address"
+    ],
+    "response_types_supported": [
+      "code",
+      "token",
+      "id_token",
+      "code token",
+      "code id_token",
+      "token id_token",
+      "code token id_token"
+    ],
+    "code_challenge_methods_supported": ["S256", "plain"],
+    "response_modes_supported": ["query", "fragment", "form_post"],
+    "subject_types_supported": ["public"],
+    "token_endpoint_auth_methods_supported": [
+      "client_secret_basic",
+      "client_secret_post",
+      "private_key_jwt",
+      "none"
+    ],
+    "token_endpoint_auth_signing_alg_values_supported": [
+      "RS256",
+      "RS384",
+      "PS256"
+    ],
+    "claims_supported": [
+      "aud",
+      "auth_time",
+      "created_at",
+      "email",
+      "email_verified",
+      "exp",
+      "family_name",
+      "given_name",
+      "iat",
+      "identities",
+      "iss",
+      "name",
+      "nickname",
+      "phone_number",
+      "picture",
+      "sub"
+    ],
+    "grant_types_supported": [
+      "client_credentials",
+      "authorization_code",
+      "refresh_token",
+      "password",
+      "implicit",
+      "urn:ietf:params:oauth:grant-type:device_code",
+      "urn:ietf:params:oauth:grant-type:token-exchange",
+      "http://auth0.com/oauth/grant-type/password-realm",
+      "http://auth0.com/oauth/grant-type/passwordless/otp",
+      "http://auth0.com/oauth/grant-type/mfa-oob",
+      "http://auth0.com/oauth/grant-type/mfa-otp",
+      "http://auth0.com/oauth/grant-type/mfa-recovery-code",
+      "urn:ietf:params:oauth:grant-type:jwt-bearer"
+    ],
+    "request_uri_parameter_supported": false,
+    "request_parameter_supported": false,
+    "backchannel_authentication_endpoint": "https://auth.starbridge.ai/bc-authorize",
+    "backchannel_token_delivery_modes_supported": ["poll"],
+    "id_token_signing_alg_values_supported": ["HS256", "RS256", "PS256"],
+    "backchannel_logout_supported": true,
+    "backchannel_logout_session_supported": true,
+    "end_session_endpoint": "https://auth.starbridge.ai/oidc/logout",
+    "global_token_revocation_endpoint": "https://auth.starbridge.ai/oauth/global-token-revocation/connection/{connectionName}",
+    "global_token_revocation_endpoint_auth_methods_supported": [
+      "global-token-revocation+jwt"
+    ],
+    "dpop_signing_alg_values_supported": ["ES256"],
+    "authorization_grant_profiles_supported": [
+      "urn:ietf:params:oauth:grant-profile:id-jag"
+    ]
+  }
+}
