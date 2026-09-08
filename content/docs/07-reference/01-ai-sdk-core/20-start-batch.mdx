@@ -6,11 +6,12 @@ description: API Reference for experimental_startBatch.
 # `experimental_startBatch()`
 
 <Note type="warning">
-  Text batch support is experimental and the API may change in patch releases.
+  Batch support is experimental and the API may change in patch releases.
 </Note>
 
-Starts an asynchronous text-generation batch. For a complete guide to the
-batch lifecycle, see [Text Batches](/docs/ai-sdk-core/text-batches).
+Starts an asynchronous batch. Currently, only `type: 'text'` requests are
+supported. For a complete guide to the batch lifecycle, see
+[Batch](/docs/ai-sdk-core/batch).
 
 ```ts
 import { experimental_startBatch as startBatch } from 'ai';

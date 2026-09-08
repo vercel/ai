@@ -1,19 +1,22 @@
 ---
-title: Text Batches
-description: Learn how to process asynchronous text-generation batches with the AI SDK.
+title: Batch
+description: Learn how to process asynchronous batches with the AI SDK.
 ---
 
-# Text Batches
+# Batch
 
 <Note type="warning">
-  Text batch support is experimental and the API may change in patch releases.
+  Batch support is experimental and the API may change in patch releases.
 </Note>
 
-Text batches let you submit multiple independent text-generation requests for
-asynchronous processing. The provider processes the batch in the background,
-so your application does not need to keep the request open while the model
-generates the results. This is useful for workloads such as classification,
+Batches let you submit multiple independent requests for asynchronous
+processing. The provider processes the batch in the background, so your
+application does not need to keep the request open while the model generates
+the results. This is useful for workloads such as classification,
 summarization, and content generation that do not need an immediate response.
+
+The batch API is designed to support multiple request types. Currently, only
+`type: 'text'` is supported.
 
 The AI SDK provides three functions for the batch lifecycle:
 
@@ -37,8 +40,9 @@ import {
 
 ## Supported providers
 
-Text batches require a provider that implements batch processing. Support is
-provider- and model-specific. The first-party providers with support are:
+Batch processing requires a provider that implements the batch interface.
+Support is provider- and model-specific. The first-party providers with
+support are:
 
 | Provider                                             | Provider value | Model example                  | Provider API                                                                                  |
 | ---------------------------------------------------- | -------------- | ------------------------------ | --------------------------------------------------------------------------------------------- |
@@ -111,9 +115,9 @@ provider.
 
 ## Batch tools
 
-Text batches support both client-defined tools and provider-defined tools. Tool
-definitions are sent with each request that includes them, so the model can
-call them independently for each request.
+Batch text requests support both client-defined tools and provider-defined
+tools. Tool definitions are sent with each request that includes them, so the
+model can call them independently for each request.
 
 Client-defined tools are definition-only in a batch. Their `execute` functions
 are never invoked, and the AI SDK does not submit tool results or start a
@@ -192,7 +196,7 @@ while (status === 'pending') {
 }
 
 if (status === 'failed') {
-  throw new Error(error?.message ?? 'The text batch failed.');
+  throw new Error(error?.message ?? 'The batch failed.');
 }
 ```
 

@@ -144,15 +144,15 @@ The following optional provider options are available for Anthropic models:
   Optional. Metadata to include with the request. See the [Anthropic API documentation](https://platform.claude.com/docs/en/api/messages/create) for details.
   - `userId` _string_ - An external identifier for the end-user. Should be a UUID, hash, or other opaque identifier. Must not contain PII.
 
-### Text Batches
+### Batch
 
 <Note type="warning">
-  Text batch support is experimental and the API may change in patch releases.
+  Batch support is experimental and the API may change in patch releases.
 </Note>
 
 Anthropic language models support asynchronous text generation through the
 [Message Batches API](https://platform.claude.com/docs/en/build-with-claude/batch-processing).
-Pass the Anthropic provider to the AI SDK's [Text Batches](/docs/ai-sdk-core/text-batches)
+Pass the Anthropic provider to the AI SDK's [Batch](/docs/ai-sdk-core/batch)
 API for the complete workflow, including polling, persistence, and result handling.
 
 Each request specifies its `type` and `model`. Anthropic supports using

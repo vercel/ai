@@ -2068,14 +2068,14 @@ The metadata includes the following fields:
 - **itemId** _string_ — The ID of the compaction item in the Responses API
 - **encryptedContent** _string_ (optional) — The encrypted compaction state. This is automatically sent back to the API when the message is included in subsequent requests.
 
-### Text Batches
+### Batch
 
 <Note type="warning">
-  Text batch support is experimental and the API may change in patch releases.
+  Batch support is experimental and the API may change in patch releases.
 </Note>
 
 [Batch API](https://developers.openai.com/api/docs/guides/batch). Pass the OpenAI
-provider to the AI SDK's [Text Batches](/docs/ai-sdk-core/text-batches) API for
+provider to the AI SDK's [Batch](/docs/ai-sdk-core/batch) API for
 the complete workflow, including polling, persistence, and result handling.
 
 Each request specifies its `type` and `model`. OpenAI requires every text

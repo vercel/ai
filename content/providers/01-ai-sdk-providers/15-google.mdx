@@ -1065,14 +1065,14 @@ The following Zod features are known to not work with Google:
   available provider model ID as a string if needed.
 </Note>
 
-### Text Batches
+### Batch
 
 <Note type="warning">
-  Text batch support is experimental and the API may change in patch releases.
+  Batch support is experimental and the API may change in patch releases.
 </Note>
 
 [Gemini Batch API](https://ai.google.dev/gemini-api/docs/batch-api). Pass the
-Google provider to the AI SDK's [Text Batches](/docs/ai-sdk-core/text-batches)
+Google provider to the AI SDK's [Batch](/docs/ai-sdk-core/batch)
 API for the complete workflow, including polling, persistence, and result handling.
 
 Each request specifies its `type` and `model`. Google requires every text
