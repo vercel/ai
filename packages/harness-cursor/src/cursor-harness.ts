@@ -12,13 +12,15 @@ import { VERSION } from './version';
 
 const CURSOR_CLIENT_APP = `ai-sdk/harness-cursor/${VERSION}`;
 
+export type CursorAuthenticationMode = ACPAuthenticationMode;
+
 export type CursorHarnessSettings = {
   /**
    * Declares the provider authentication configured in Cursor, or supplies an
    * isolated environment for Cursor CLI authentication. The adapter cannot
    * change provider routing and warns for explicit routing modes.
    */
-  readonly auth?: ACPAuthenticationMode;
+  readonly auth?: CursorAuthenticationMode;
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can
@@ -425,7 +427,7 @@ export function createCursor(
 function warnCursorAuthenticationConfiguration({
   auth,
 }: {
-  auth: Exclude<ACPAuthenticationMode, 'auto'>;
+  auth: Exclude<CursorAuthenticationMode, 'auto'>;
 }): void {
   const detail =
     auth === 'ai-gateway'

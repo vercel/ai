@@ -1,11 +1,12 @@
 import {
   HARNESS_V1_BUILTIN_TOOLS,
   type HarnessV1,
+  type HarnessV1CredentialForwarding,
   type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import type { ACPClientApp } from './acp-auth';
+import type { ACPAuthenticationMode, ACPClientApp } from './acp-auth';
 import type { ACPToolCall } from './acp-tool-call';
 import {
   createACPV1,
@@ -46,7 +47,7 @@ export type ACPHarnessSettings<
   readonly clientApp?: ACPClientApp;
   readonly version?: ACPV1Settings['version'];
   readonly harnessId: ACPV1Settings['harnessId'];
-  readonly auth?: ACPV1Settings['auth'];
+  readonly auth?: ACPAuthenticationMode;
   readonly source: ACPV1Settings['source'];
   readonly executable: ACPV1Settings['executable'];
   readonly args?: ACPV1Settings['args'];
@@ -58,7 +59,7 @@ export type ACPHarnessSettings<
    * process. This does not restrict which credentials the harness adapter can
    * discover, read, or otherwise access in the host process.
    */
-  readonly credentialForwarding?: ACPV1Settings['credentialForwarding'];
+  readonly credentialForwarding?: HarnessV1CredentialForwarding;
   readonly env?: ACPV1Settings['env'];
   readonly authentication?: ACPV1Settings['authentication'];
   readonly clientCapabilities?: ACPV1Settings['clientCapabilities'];
