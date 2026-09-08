@@ -1,5 +1,11 @@
 # @ai-sdk/minimax
 
+## 3.0.27
+
+### Patch Changes
+
+- 46cea63: Add asynchronous start/status support for MiniMax video generation while preserving existing polling behavior.
+
 ## 3.0.26
 
 ### Patch Changes
