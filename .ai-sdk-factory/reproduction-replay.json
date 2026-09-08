@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20348,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/get-text-from-data-url-node.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/get-text-from-data-url-node.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_20348_REPRODUCED: valid Node.js data URL did not decode to \"hi\""
+  }
+}
