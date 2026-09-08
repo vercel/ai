@@ -378,6 +378,7 @@ export async function convertToOpenAIResponsesInput({
   let input: OpenAIResponsesInput = [];
   const warnings: Array<SharedV4Warning> = [];
   const processedApprovalIds = new Set<string>();
+  const programmaticToolCallIds = new Set<string>();
   const parallelToolResultGroups =
     hasConversation || hasPreviousResponseId
       ? collectCompleteParallelToolResultGroups({
@@ -693,6 +694,10 @@ export async function convertToOpenAIResponsesInput({
                 | { type: 'direct' }
                 | { type: 'program'; callerId: string }
                 | undefined;
+
+              if (caller?.type === 'program') {
+                programmaticToolCallIds.add(part.toolCallId);
+              }
 
               if (hasConversation && id != null) {
                 break;
@@ -1568,6 +1573,23 @@ export async function convertToOpenAIResponsesInput({
             continue;
           }
 
+          const resultCaller = part.providerOptions?.[providerOptionsName]
+            ?.caller as
+            | { type: 'direct' }
+            | { type: 'program'; callerId: string }
+            | undefined;
+
+          if (
+            output.type === 'execution-denied' &&
+            (resultCaller?.type === 'program' ||
+              programmaticToolCallIds.has(part.toolCallId))
+          ) {
+            throw new UnsupportedFunctionalityError({
+              functionality:
+                'execution-denied results for programmatic tool calls',
+            });
+          }
+
           const contentValue = await convertFunctionToolResultOutput({
             output,
             toolName: part.toolName,
@@ -1581,12 +1603,7 @@ export async function convertToOpenAIResponsesInput({
             warnings,
           });
 
-          const caller = mapToolCaller(
-            part.providerOptions?.[providerOptionsName]?.caller as
-              | { type: 'direct' }
-              | { type: 'program'; callerId: string }
-              | undefined,
-          );
+          const caller = mapToolCaller(resultCaller);
 
           input.push({
             type: 'function_call_output',
