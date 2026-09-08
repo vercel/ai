@@ -45,10 +45,11 @@ const baseImageModelOptionsObject = z.object({
   /**
    * Quality of the generated image(s).
    *
-   * Valid values: `standard`, `hd`, `low`, `medium`, `high`, `auto`.
+   * Valid values: `standard`, `hd`, `low`, `medium`, `high`, `xhigh`, `max`, `auto`.
+   * `xhigh` and `max` are supported by GPT Image 2.5 models.
    */
   quality: z
-    .enum(['standard', 'hd', 'low', 'medium', 'high', 'auto'])
+    .enum(['standard', 'hd', 'low', 'medium', 'high', 'xhigh', 'max', 'auto'])
     .optional(),
 
   /**

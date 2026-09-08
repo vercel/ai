@@ -242,7 +242,6 @@ describe('createFx', () => {
     createFx({
       auth: 'direct',
       credentialForwarding,
-      model: 'openai/gpt-5.4',
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
@@ -255,7 +254,6 @@ describe('createFx', () => {
     expect({
       auth: settings.auth,
       credentialForwarding: settings.credentialForwarding,
-      modelId: settings.modelId,
       port: settings.port,
       portEndpoint: settings.portEndpoint,
       startupTimeoutMs: settings.startupTimeoutMs,
@@ -264,7 +262,6 @@ describe('createFx', () => {
     }).toEqual({
       auth: 'direct',
       credentialForwarding,
-      modelId: 'openai/gpt-5.4',
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,

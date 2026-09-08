@@ -1,5 +1,22 @@
 # ai
 
+## 7.0.94
+
+### Patch Changes
+
+- a4ba394: feat: support per-request models in batch
+- 36b3364: fix(ai): enforce tool choices in streamText
+- 45099da: Retry unclassified empty image results, preserve retry-attempt accounting, add provider-independent result retryability classification, and mark Google and Google Vertex prompt blocks as terminal.
+- Updated dependencies [a4ba394]
+- Updated dependencies [e9bf5e3]
+- Updated dependencies [45099da]
+- Updated dependencies [56c004c]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/gateway@4.0.76
+  - @ai-sdk/provider-utils@5.0.37
+
 ## 7.0.93
 
 ### Patch Changes

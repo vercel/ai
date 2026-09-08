@@ -38,7 +38,7 @@
     "@playwright/test": "^1.61.1",
     "del-cli": "^5.1.0",
     "husky": "^9.1.7",
-    "konsistent": "^1.0.0-beta",
+    "konsistent": "1.0.0-beta.9",
     "konsistent-provider": "workspace:*",
     "lint-staged": "^15.5.1",
     "next": "15.5.21",

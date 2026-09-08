@@ -677,6 +677,17 @@ export async function convertToOpenAIResponsesInput({
                 ).providerMetadata?.[providerOptionsName]?.namespace) as
                 | string
                 | undefined;
+              const isAsync = (part.providerOptions?.[providerOptionsName]
+                ?.async ??
+                (
+                  part as {
+                    providerMetadata?: {
+                      [providerOptionsName]?: { async?: boolean };
+                    };
+                  }
+                ).providerMetadata?.[providerOptionsName]?.async) as
+                | boolean
+                | undefined;
               const caller = part.providerOptions?.[providerOptionsName]
                 ?.caller as
                 | { type: 'direct' }
@@ -904,6 +915,7 @@ export async function convertToOpenAIResponsesInput({
                     typeof part.input === 'string'
                       ? part.input
                       : JSON.stringify(part.input),
+                  ...(isAsync != null && { async: isAsync }),
                   id,
                 });
                 break;
@@ -914,6 +926,7 @@ export async function convertToOpenAIResponsesInput({
                 call_id: part.toolCallId,
                 name: resolvedToolName,
                 arguments: serializeToolCallArguments(part.input),
+                ...(isAsync != null && { async: isAsync }),
                 ...(namespace != null && { namespace }),
                 ...(caller != null && {
                   caller: mapToolCaller(caller),

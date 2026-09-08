@@ -1,5 +1,15 @@
 # @ai-sdk/provider-utils
 
+## 5.0.37
+
+### Patch Changes
+
+- 9e1d1b2: chore(provider-utils): fix test that can timeout
+- a495511: fix(provider-utils): avoid excessive memory usage when base64 encoding byte arrays
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+  - @ai-sdk/provider@4.0.11
+
 ## 5.0.36
 
 ### Patch Changes
