@@ -49,5 +49,4 @@ describe('createPi adapter', () => {
     const harness = createPi();
     expect(harness.getBootstrap).toBeUndefined();
   });
-
 });
