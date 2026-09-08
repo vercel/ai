@@ -827,6 +827,16 @@ for await (const part of result.stream) {
   setting `store: false`.
 </Note>
 
+To use `xhigh` or `max` quality, select `gpt-image-2.5-flare` or
+`gpt-image-2.5-sunburst` as the image generation tool's model:
+
+```ts
+openai.tools.imageGeneration({
+  model: 'gpt-image-2.5-flare',
+  quality: 'xhigh',
+});
+```
+
 For complete details on model availability, image quality controls, supported sizes, and tool-specific parameters,
 refer to the OpenAI documentation:
 
@@ -3086,6 +3096,19 @@ const { image, providerMetadata } = await generateImage({
 });
 ```
 
+The `gpt-image-2.5-flare` and `gpt-image-2.5-sunburst` models also support
+`quality: 'xhigh'` and `quality: 'max'` for both image generation and editing:
+
+```ts
+const { image } = await generateImage({
+  model: openai.image('gpt-image-2.5-sunburst'),
+  prompt: 'A salamander at sunrise in a forest pond in the Seychelles.',
+  providerOptions: {
+    openai: { quality: 'max' } satisfies OpenAIImageModelGenerationOptions,
+  },
+});
+```
+
 For more on `generateImage()` see [Image Generation](/docs/ai-sdk-core/image-generation).
 
 OpenAI's image models return additional metadata in the response that can be
@@ -3098,7 +3121,7 @@ is available:
   - `revisedPrompt` _string_ - The revised prompt that was actually used to generate the image (OpenAI may modify your prompt for safety or clarity)
   - `created` _number_ - The Unix timestamp (in seconds) of when the image was created
   - `size` _string_ - The size of the generated image. One of `1024x1024`, `1024x1536`, or `1536x1024`
-  - `quality` _string_ - The quality of the generated image. One of `low`, `medium`, or `high`
+  - `quality` _string_ - The quality of the generated image. One of `low`, `medium`, `high`, `xhigh`, or `max`
   - `background` _string_ - The background parameter used for the image generation. Either `transparent` or `opaque`
   - `outputFormat` _string_ - The output format of the generated image. One of `png`, `webp`, or `jpeg`
 
