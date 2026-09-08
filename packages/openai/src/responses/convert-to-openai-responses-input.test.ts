@@ -1,9 +1,10 @@
-import type { ToolNameMapping } from '@ai-sdk/provider-utils';
-import type {
-  LanguageModelV4Prompt,
-  LanguageModelV4ToolResultOutput,
-  LanguageModelV4ToolResultPart,
+import {
+  UnsupportedFunctionalityError,
+  type LanguageModelV4Prompt,
+  type LanguageModelV4ToolResultOutput,
+  type LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
+import type { ToolNameMapping } from '@ai-sdk/provider-utils';
 import { describe, it, expect } from 'vitest';
 import { convertToOpenAIResponsesInput as convertToOpenAIResponsesInputBase } from './convert-to-openai-responses-input';
 
@@ -3152,6 +3153,52 @@ describe('convertToOpenAIResponsesInput', () => {
           output: 'User denied the tool execution',
         },
       ]);
+    });
+
+    it('should reject execution-denied programmatic tool results', async () => {
+      await expect(
+        convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_denied_123',
+                  toolName: 'search',
+                  input: { query: 'test' },
+                  providerOptions: {
+                    openai: {
+                      caller: {
+                        type: 'program',
+                        callerId: 'program_call_123',
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_denied_123',
+                  toolName: 'search',
+                  output: {
+                    type: 'execution-denied',
+                    reason: 'User denied the tool execution',
+                  },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+          providerOptionsName: 'openai',
+          store: true,
+        }),
+      ).rejects.toBeInstanceOf(UnsupportedFunctionalityError);
     });
 
     it('should convert single tool result part with multipart that contains text', async () => {
