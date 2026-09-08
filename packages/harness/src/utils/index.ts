@@ -14,6 +14,12 @@ export { classifyDiskLog, type DiskLogRecoveryMode } from './classify-disk-log';
 export { getAiGatewayAuthFromEnv } from './ai-gateway-auth';
 export { isHarnessAuthenticationEnvironment } from './authentication-environment';
 export {
+  isAccessTokenExpiringSoon,
+  refreshOAuthAccessToken,
+  type OAuthCredential,
+  type RefreshOAuthAccessTokenResult,
+} from './oauth-access-token';
+export {
   applyCredentialForwarding,
   createSandboxCredentialEnvironment,
 } from './credential-forwarding';
