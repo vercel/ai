@@ -1,5 +1,12 @@
 # @ai-sdk/openai
 
+## 2.0.126
+
+### Patch Changes
+
+- 022f24b: Include explicit message item types in Azure AI Foundry Responses requests.
+- a15b75a: Add async function tool calling support for OpenAI Responses models.
+
 ## 2.0.125
 
 ### Patch Changes
