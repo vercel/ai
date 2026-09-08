@@ -23,6 +23,7 @@ import type {
   BedrockMantleChatModelId,
   BedrockMantleResponsesModelId,
 } from './bedrock-mantle-options';
+import { createNormalizeResponsesErrorFramesFetch } from './normalize-responses-error-frames';
 import { VERSION } from '../version';
 
 export interface BedrockMantleProvider extends ProviderV4 {
@@ -248,7 +249,7 @@ export function createBedrockMantle(
       provider: 'bedrock-mantle.responses',
       url,
       headers: getHeaders,
-      fetch: fetchFunction,
+      fetch: createNormalizeResponsesErrorFramesFetch(fetchFunction),
     });
 
   const provider = function (modelId: BedrockMantleChatModelId) {
