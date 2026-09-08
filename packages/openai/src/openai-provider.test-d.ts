@@ -1,5 +1,6 @@
 import type {
   Experimental_BatchV4 as BatchV4,
+  ImageModelV4,
   LanguageModelV4,
 } from '@ai-sdk/provider';
 import { expectTypeOf, it } from 'vitest';
@@ -19,6 +20,21 @@ it('types batch support on the OpenAI provider', () => {
   expectTypeOf(
     openai.completion('gpt-3.5-turbo-instruct'),
   ).toEqualTypeOf<LanguageModelV4>();
+});
+
+it('types GPT Image 2.5 models', () => {
+  expectTypeOf(
+    openai.image('gpt-image-2.5-flare'),
+  ).toEqualTypeOf<ImageModelV4>();
+  expectTypeOf(
+    openai.image('gpt-image-2.5-flare-2026-09-08'),
+  ).toEqualTypeOf<ImageModelV4>();
+  expectTypeOf(
+    openai.image('gpt-image-2.5-sunburst'),
+  ).toEqualTypeOf<ImageModelV4>();
+  expectTypeOf(
+    openai.image('gpt-image-2.5-sunburst-2026-09-08'),
+  ).toEqualTypeOf<ImageModelV4>();
 });
 
 it('types the explicit compaction trigger option', () => {

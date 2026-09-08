@@ -827,6 +827,16 @@ for await (const part of result.stream) {
   setting `store: false`.
 </Note>
 
+To use `xhigh` or `max` quality, select `gpt-image-2.5-flare` or
+`gpt-image-2.5-sunburst` as the image generation tool's model:
+
+```ts
+openai.tools.imageGeneration({
+  model: 'gpt-image-2.5-flare',
+  quality: 'xhigh',
+});
+```
+
 For complete details on model availability, image quality controls, supported sizes, and tool-specific parameters,
 refer to the OpenAI documentation:
 
@@ -2068,65 +2078,16 @@ The metadata includes the following fields:
 - **itemId** _string_ — The ID of the compaction item in the Responses API
 - **encryptedContent** _string_ (optional) — The encrypted compaction state. This is automatically sent back to the API when the message is included in subsequent requests.
 
-### Text Batches
+### Batch
 
 <Note type="warning">
-  Text batch support is experimental and the API may change in patch releases.
+  Batch support is experimental and the API may change in patch releases.
 </Note>
 
-The OpenAI provider supports asynchronous text generation through the
-[Batch API](https://developers.openai.com/api/docs/guides/batch). Use the
-experimental text batch APIs to start a batch, poll its status, and stream its
-results:
-
-```ts
-import { openai } from '@ai-sdk/openai';
-import {
-  experimental_getBatchResults as getBatchResults,
-  experimental_getBatchStatus as getBatchStatus,
-  experimental_startBatch as startBatch,
-} from 'ai';
-import { setTimeout } from 'node:timers/promises';
-
-const model = 'gpt-4.1-nano';
-
-const batch = await startBatch({
-  provider: openai,
-  requests: [
-    {
-      id: 'capital-france',
-      type: 'text',
-      model,
-      prompt: 'What is the capital of France?',
-    },
-    {
-      id: 'capital-germany',
-      type: 'text',
-      model,
-      prompt: 'What is the capital of Germany?',
-    },
-  ],
-});
-
-let status = batch.status;
-while (status === 'pending') {
-  await setTimeout(60_000);
-  ({ status } = await getBatchStatus({ provider: openai, batch }));
-}
-
-for await (const item of getBatchResults({ provider: openai, batch })) {
-  if (item.status === 'succeeded') {
-    console.log(item.id, item.text);
-  } else {
-    console.error(item.id, item.error);
-  }
-}
-```
-
-`startBatch` returns a serializable batch reference. Persist this reference
-to check the batch status or retrieve its results from another process. Results
-can arrive in a different order from the input requests, so match each result by
-its `id`.
+The OpenAI provider supports asynchronous text generation through the [Batch
+API](https://developers.openai.com/api/docs/guides/batch). Pass the OpenAI
+provider to the AI SDK's [Batch](/docs/ai-sdk-core/batch) API for
+the complete workflow, including polling, persistence, and result handling.
 
 Each request specifies its `type` and `model`. OpenAI requires every text
 request in a batch to use the same model and throws before submission when the
@@ -2984,7 +2945,7 @@ Transform an existing image using text prompts:
 const imageBuffer = readFileSync('./input-image.png');
 
 const { images } = await generateImage({
-  model: openai.image('gpt-image-2'),
+  model: openai.image('gpt-image-2.5-sunburst'),
   prompt: {
     text: 'Turn the cat into a dog but retain the style of the original image',
     images: [imageBuffer],
@@ -3001,7 +2962,7 @@ const image = readFileSync('./input-image.png');
 const mask = readFileSync('./mask.png'); // Transparent areas = edit regions
 
 const { images } = await generateImage({
-  model: openai.image('gpt-image-2'),
+  model: openai.image('gpt-image-2.5-sunburst'),
   prompt: {
     text: 'A sunlit indoor lounge area with a pool containing a flamingo',
     images: [image],
@@ -3046,7 +3007,7 @@ const owl = readFileSync('./owl.png');
 const bear = readFileSync('./bear.png');
 
 const { images } = await generateImage({
-  model: openai.image('gpt-image-2'),
+  model: openai.image('gpt-image-2.5-sunburst'),
   prompt: {
     text: 'Combine these animals into a group photo, retaining the original style',
     images: [cat, dog, owl, bear],
@@ -3062,14 +3023,23 @@ const { images } = await generateImage({
 
 ### Model Capabilities
 
-| Model              | Sizes                           |
-| ------------------ | ------------------------------- |
-| `gpt-image-2`      | 1024x1024, 1536x1024, 1024x1536 |
-| `gpt-image-1.5`    | 1024x1024, 1536x1024, 1024x1536 |
-| `gpt-image-1-mini` | 1024x1024, 1536x1024, 1024x1536 |
-| `gpt-image-1`      | 1024x1024, 1536x1024, 1024x1536 |
-| `dall-e-3`         | 1024x1024, 1792x1024, 1024x1792 |
-| `dall-e-2`         | 256x256, 512x512, 1024x1024     |
+| Model                    | Sizes                                  |
+| ------------------------ | -------------------------------------- |
+| `gpt-image-2.5-flare`    | Standard presets and custom dimensions |
+| `gpt-image-2.5-sunburst` | Standard presets and custom dimensions |
+| `gpt-image-2`            | 1024x1024, 1536x1024, 1024x1536        |
+| `gpt-image-1.5`          | 1024x1024, 1536x1024, 1024x1536        |
+| `gpt-image-1-mini`       | 1024x1024, 1536x1024, 1024x1536        |
+| `gpt-image-1`            | 1024x1024, 1536x1024, 1024x1536        |
+| `dall-e-3`               | 1024x1024, 1792x1024, 1024x1792        |
+| `dall-e-2`               | 256x256, 512x512, 1024x1024            |
+
+Use `gpt-image-2.5-flare` for fast, general-purpose image generation and
+`gpt-image-2.5-sunburst` when editing precision and instruction following are
+the priority. Both models accept custom `WIDTHxHEIGHT` sizes whose dimensions
+are multiples of 16, with aspect ratios from 1:3 through 3:1, no edge longer
+than 3840 pixels, and a total area from 655,360 through 8,294,400 pixels.
+Resolutions above 2560x1440 are experimental.
 
 You can pass optional `providerOptions` to the image model. These are prone to change by OpenAI and are model dependent. For example, the `gpt-image-*` models support the `quality` option:
 
@@ -3078,10 +3048,23 @@ import { openai, type OpenAIImageModelGenerationOptions } from '@ai-sdk/openai';
 import { generateImage } from 'ai';
 
 const { image, providerMetadata } = await generateImage({
-  model: openai.image('gpt-image-2'),
+  model: openai.image('gpt-image-2.5-flare'),
   prompt: 'A salamander at sunrise in a forest pond in the Seychelles.',
   providerOptions: {
     openai: { quality: 'high' } satisfies OpenAIImageModelGenerationOptions,
+  },
+});
+```
+
+The `gpt-image-2.5-flare` and `gpt-image-2.5-sunburst` models also support
+`quality: 'xhigh'` and `quality: 'max'` for both image generation and editing:
+
+```ts
+const { image } = await generateImage({
+  model: openai.image('gpt-image-2.5-sunburst'),
+  prompt: 'A salamander at sunrise in a forest pond in the Seychelles.',
+  providerOptions: {
+    openai: { quality: 'max' } satisfies OpenAIImageModelGenerationOptions,
   },
 });
 ```
@@ -3098,7 +3081,7 @@ is available:
   - `revisedPrompt` _string_ - The revised prompt that was actually used to generate the image (OpenAI may modify your prompt for safety or clarity)
   - `created` _number_ - The Unix timestamp (in seconds) of when the image was created
   - `size` _string_ - The size of the generated image. One of `1024x1024`, `1024x1536`, or `1536x1024`
-  - `quality` _string_ - The quality of the generated image. One of `low`, `medium`, or `high`
+  - `quality` _string_ - The quality of the generated image. One of `low`, `medium`, `high`, `xhigh`, or `max`
   - `background` _string_ - The background parameter used for the image generation. Either `transparent` or `opaque`
   - `outputFormat` _string_ - The output format of the generated image. One of `png`, `webp`, or `jpeg`
 
