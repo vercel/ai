@@ -133,6 +133,22 @@ describe('getOpenAILanguageModelCapabilities', () => {
       ['gpt-5.6', false],
       ['gpt-6-astra', true],
       ['gpt-6.1', true],
+      ['gpt-7', true],
+      ['gpt-99', true],
+      ['custom-model', false],
+    ])(
+      '%s supports async tool calling: %s',
+      (modelId, expectedCapabilities) => {
+        expect(
+          getOpenAILanguageModelCapabilities(modelId).supportsAsyncToolCalling,
+        ).toEqual(expectedCapabilities);
+      },
+    );
+
+    it.each([
+      ['gpt-5.6', false],
+      ['gpt-6-astra', true],
+      ['gpt-6.1', true],
       ['gpt-99', true],
     ])(
       '%s supports configuration updates: %s',

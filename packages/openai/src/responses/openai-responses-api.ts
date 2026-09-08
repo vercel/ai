@@ -95,6 +95,7 @@ export type OpenAIResponsesFunctionCall = {
   call_id: string;
   name: string;
   arguments: string;
+  async?: boolean;
   id?: string;
 };
 
@@ -205,6 +206,7 @@ export type OpenAIResponsesTool =
       name: string;
       description: string | undefined;
       parameters: JSONSchema7;
+      async?: boolean;
       strict: boolean | undefined;
     }
   | {
@@ -368,6 +370,7 @@ export const openaiResponsesChunkSchema = lazyValidator(() =>
             call_id: z.string(),
             name: z.string(),
             arguments: z.string(),
+            async: z.boolean().nullish(),
           }),
           z.object({
             type: z.literal('web_search_call'),
@@ -424,6 +427,7 @@ export const openaiResponsesChunkSchema = lazyValidator(() =>
             call_id: z.string(),
             name: z.string(),
             arguments: z.string(),
+            async: z.boolean().nullish(),
             status: z.literal('completed'),
           }),
           z.object({
@@ -778,6 +782,7 @@ export const openaiResponsesResponseSchema = lazyValidator(() =>
               name: z.string(),
               arguments: z.string(),
               id: z.string(),
+              async: z.boolean().nullish(),
             }),
             z.object({
               type: z.literal('computer_call'),

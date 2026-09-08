@@ -829,6 +829,43 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
+    it('should round-trip async mode on function tool calls', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_async',
+                toolName: 'get_weather',
+                input: { location: 'Berlin' },
+                providerOptions: {
+                  openai: {
+                    itemId: 'fc_async',
+                    async: true,
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: false,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call',
+          call_id: 'call_async',
+          name: 'get_weather',
+          arguments: JSON.stringify({ location: 'Berlin' }),
+          async: true,
+          id: 'fc_async',
+        },
+      ]);
+    });
+
     it('should convert messages with tool call parts that have ids', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [

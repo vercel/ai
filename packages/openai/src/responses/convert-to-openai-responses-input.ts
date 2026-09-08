@@ -236,6 +236,9 @@ export async function convertToOpenAIResponsesInput({
               const id = part.providerOptions?.openai?.itemId as
                 | string
                 | undefined;
+              const isAsync = part.providerOptions?.openai?.async as
+                | boolean
+                | undefined;
 
               // item references reduce the payload size
               if (store && id != null) {
@@ -270,6 +273,7 @@ export async function convertToOpenAIResponsesInput({
                 call_id: part.toolCallId,
                 name: part.toolName,
                 arguments: JSON.stringify(part.input),
+                ...(isAsync != null && { async: isAsync }),
                 id,
               });
               break;

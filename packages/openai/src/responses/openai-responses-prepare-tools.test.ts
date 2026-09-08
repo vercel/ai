@@ -2,6 +2,83 @@ import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { describe, it, expect } from 'vitest';
 
 describe('prepareResponsesTools', () => {
+  describe('async tools', () => {
+    it('should pass through async mode for function tools', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get the weather',
+            inputSchema: {
+              type: 'object',
+              properties: { city: { type: 'string' } },
+              required: ['city'],
+              additionalProperties: false,
+            },
+            providerOptions: {
+              openai: { async: true },
+            },
+          },
+        ],
+        toolChoice: undefined,
+        strictJsonSchema: false,
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'function',
+          name: 'get_weather',
+          description: 'Get the weather',
+          parameters: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+            required: ['city'],
+            additionalProperties: false,
+          },
+          strict: false,
+          async: true,
+        },
+      ]);
+    });
+
+    it('should omit async mode and warn for unsupported models', async () => {
+      const functionTool = {
+        type: 'function' as const,
+        name: 'get_weather',
+        inputSchema: { type: 'object' as const, properties: {} },
+        providerOptions: {
+          openai: { async: true },
+        },
+      };
+
+      const result = await prepareResponsesTools({
+        tools: [functionTool],
+        toolChoice: undefined,
+        strictJsonSchema: false,
+        supportsAsyncToolCalling: false,
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'function',
+          name: 'get_weather',
+          description: undefined,
+          parameters: { type: 'object', properties: {} },
+          strict: false,
+        },
+      ]);
+      expect(result.toolWarnings).toEqual([
+        {
+          type: 'unsupported-tool',
+          tool: functionTool,
+          details:
+            'Async tool calling is only supported by GPT-6 and later models.',
+        },
+      ]);
+    });
+  });
+
   describe('code interpreter', () => {
     it('should prepare code interpreter tool with no container (auto mode)', async () => {
       const result = await prepareResponsesTools({
