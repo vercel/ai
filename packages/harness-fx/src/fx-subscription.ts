@@ -1,7 +1,10 @@
-import { chmod, readFile, rename, writeFile } from 'node:fs/promises';
+import { chmod, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import type { ACPAuthenticationMode } from '@ai-sdk/harness-acp';
+import type {
+  ACPAuthenticationFile,
+  ACPAuthenticationMode,
+} from '@ai-sdk/harness-acp';
 import {
   getAiGatewayAuthFromEnv,
   isAccessTokenExpiringSoon,
@@ -10,200 +13,359 @@ import {
 } from '@ai-sdk/harness/utils';
 import { isRecord, safeParseJSON } from '@ai-sdk/provider-utils';
 
+const CHATGPT_ACCESS_TOKEN_ENVIRONMENT_VARIABLE =
+  'AI_SDK_FX_CHATGPT_ACCESS_TOKEN';
+const CHATGPT_ACCOUNT_ID_ENVIRONMENT_VARIABLE = 'AI_SDK_FX_CHATGPT_ACCOUNT_ID';
+const GROK_ACCESS_TOKEN_ENVIRONMENT_VARIABLE = 'AI_SDK_FX_GROK_ACCESS_TOKEN';
+const GROK_ACCOUNT_ID_ENVIRONMENT_VARIABLE = 'AI_SDK_FX_GROK_ACCOUNT_ID';
 const OPENAI_CLIENT_ID = 'app_EMoamEEZ73f0CkXaXp7hrann';
 const XAI_CLIENT_ID = 'b1a00492-073a-47ea-816f-4c329264a828';
-const CHATGPT_BASE_URL = 'https://chatgpt.com/backend-api/codex';
-const XAI_BASE_URL = 'https://api.x.ai/v1';
+const SANDBOX_REFRESH_TOKEN = 'ai-sdk-harness-brokered';
+
+type FxSubscriptionProvider = 'chatgpt' | 'grok';
+
+type FxSubscriptionCredential = {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: number;
+  accountId: string;
+};
+
+export const FX_SUBSCRIPTION_ENVIRONMENT_VARIABLES = [
+  CHATGPT_ACCESS_TOKEN_ENVIRONMENT_VARIABLE,
+  CHATGPT_ACCOUNT_ID_ENVIRONMENT_VARIABLE,
+  GROK_ACCESS_TOKEN_ENVIRONMENT_VARIABLE,
+  GROK_ACCOUNT_ID_ENVIRONMENT_VARIABLE,
+] as const;
 
 export async function resolveFxSubscriptionEnvironment({
   auth,
   env,
-  model,
+  homeDirectory,
+  fetch,
 }: {
   auth: ACPAuthenticationMode | undefined;
   env: Readonly<Record<string, string | undefined>>;
-  model?: string;
+  homeDirectory?: string;
+  fetch?: typeof globalThis.fetch;
 }): Promise<Readonly<Record<string, string | undefined>>> {
   if (isHarnessAuthenticationEnvironment(auth)) return auth;
   if (auth === 'ai-gateway') return env;
   if (auth !== 'direct' && getAiGatewayAuthFromEnv({ env }).apiKey != null) {
     return env;
   }
-  if (env.OPENAI_API_KEY != null || env.XAI_API_KEY != null) return env;
 
-  const subscription = await readFxSubscription({ env, model });
-  return subscription == null ? env : { ...env, ...subscription };
+  const subscriptions = await readFxSubscriptions({
+    ...(homeDirectory == null ? {} : { homeDirectory }),
+    ...(fetch == null ? {} : { fetch }),
+  });
+  return subscriptions == null ? env : { ...env, ...subscriptions };
 }
 
-export async function readFxSubscription({
-  env = process.env,
+export async function readFxSubscriptions({
   homeDirectory = homedir(),
-  model,
   fetch,
 }: {
-  env?: Readonly<Record<string, string | undefined>>;
   homeDirectory?: string;
-  model?: string;
   fetch?: typeof globalThis.fetch;
 } = {}): Promise<Record<string, string> | undefined> {
-  const fxDirectory = env.FX_HOME ?? join(homeDirectory, '.fx');
-  const providers = providerOrder(model);
-  for (const provider of providers) {
-    const path = join(
+  const fxDirectory = join(homeDirectory, '.fx');
+  const environment: Record<string, string> = {};
+
+  for (const provider of ['chatgpt', 'grok'] as const) {
+    const credential = await readFxSubscription({
+      provider,
       fxDirectory,
-      provider === 'openai' ? 'chatgpt-auth.json' : 'grok-auth.json',
-    );
-    const text = await readFile(path, 'utf8').catch(() => undefined);
-    if (text == null) continue;
-    const parsed = await safeParseJSON({ text });
-    if (!parsed.success || !isRecord(parsed.value)) continue;
-    const credential = readCredential(parsed.value);
+      ...(fetch == null ? {} : { fetch }),
+    });
     if (credential == null) continue;
-
-    let accessToken = credential.accessToken;
-    if (isAccessTokenExpiringSoon({ expiresAt: credential.expiresAt })) {
-      const refreshed = await refreshOAuthAccessToken({
-        tokenUrl:
-          provider === 'openai'
-            ? 'https://auth.openai.com/oauth/token'
-            : 'https://auth.x.ai/oauth2/token',
-        clientId: provider === 'openai' ? OPENAI_CLIENT_ID : XAI_CLIENT_ID,
-        refreshToken: credential.refreshToken,
-        ...(fetch == null ? {} : { fetch }),
-      });
-      accessToken = refreshed.accessToken;
-      setCredentialField({
-        value: parsed.value,
-        names: ['access_token', 'accessToken', 'access'],
-        valueToSet: refreshed.accessToken,
-      });
-      setCredentialField({
-        value: parsed.value,
-        names: ['refresh_token', 'refreshToken', 'refresh'],
-        valueToSet: refreshed.refreshToken ?? credential.refreshToken,
-      });
-      setCredentialField({
-        value: parsed.value,
-        names: ['expires_at', 'expiresAt', 'expires'],
-        valueToSet: refreshed.expiresAt,
-      });
-      const temporaryPath = `${path}.${process.pid}.tmp`;
-      await writeFile(
-        temporaryPath,
-        `${JSON.stringify(parsed.value, null, 2)}\n`,
-        { mode: 0o600 },
-      );
-      await chmod(temporaryPath, 0o600);
-      await rename(temporaryPath, path);
-    }
-
-    if (provider === 'openai') {
-      return {
-        OPENAI_API_KEY: accessToken,
-        OPENAI_BASE_URL: CHATGPT_BASE_URL,
-        ...(credential.accountId == null
-          ? {}
-          : { FX_CHATGPT_ACCOUNT_ID: credential.accountId }),
-      };
-    }
-    return {
-      XAI_API_KEY: accessToken,
-      XAI_BASE_URL: XAI_BASE_URL,
-    };
+    environment[getAccessTokenEnvironmentVariable({ provider })] =
+      credential.accessToken;
+    environment[getAccountIdEnvironmentVariable({ provider })] =
+      credential.accountId;
   }
-  return undefined;
+
+  return Object.keys(environment).length === 0 ? undefined : environment;
 }
 
-function providerOrder(model: string | undefined): Array<'openai' | 'xai'> {
-  const normalized = model?.toLowerCase();
-  if (normalized?.includes('grok') || normalized?.startsWith('xai/')) {
-    return ['xai'];
+export function createFxSubscriptionAuthenticationFiles({
+  env,
+  sandboxEnv,
+  credentialBrokeringAvailable,
+}: {
+  env: Readonly<Record<string, string>>;
+  sandboxEnv: Readonly<Record<string, string>>;
+  credentialBrokeringAvailable: boolean;
+}): ReadonlyArray<ACPAuthenticationFile> {
+  const files: ACPAuthenticationFile[] = [];
+
+  for (const provider of ['chatgpt', 'grok'] as const) {
+    const environmentVariable = getAccessTokenEnvironmentVariable({ provider });
+    const hostAccessToken = env[environmentVariable];
+    const sandboxAccessToken = sandboxEnv[environmentVariable];
+    const accountId = env[getAccountIdEnvironmentVariable({ provider })];
+    if (
+      hostAccessToken == null ||
+      sandboxAccessToken == null ||
+      accountId == null
+    ) {
+      continue;
+    }
+    const accessToken =
+      provider === 'chatgpt' && credentialBrokeringAvailable
+        ? createChatGptSandboxAccessToken({
+            credential: sandboxAccessToken,
+            accountId,
+          })
+        : sandboxAccessToken;
+    files.push({
+      path:
+        provider === 'chatgpt' ? '.fx/chatgpt-auth.json' : '.fx/grok-auth.json',
+      content: `${JSON.stringify({
+        version: 1,
+        access_token: accessToken,
+        refresh_token: SANDBOX_REFRESH_TOKEN,
+        expires_at_ms: Number.MAX_SAFE_INTEGER,
+        account_id: accountId,
+      })}\n`,
+    });
   }
-  if (
-    normalized?.includes('gpt') ||
-    normalized?.includes('codex') ||
-    normalized?.startsWith('openai/')
-  ) {
-    return ['openai'];
-  }
-  return ['openai', 'xai'];
+
+  return files;
 }
 
-function readCredential(value: Record<string, unknown>):
-  | {
-      accessToken: string;
-      refreshToken: string;
-      expiresAt: number;
-      accountId?: string;
+export function getFxSubscriptionRequestCredentials({
+  env,
+  sandboxEnv,
+}: {
+  env: Readonly<Record<string, string>>;
+  sandboxEnv: Readonly<Record<string, string>>;
+}): ReadonlyArray<{
+  provider: FxSubscriptionProvider;
+  accessToken: string;
+  sandboxAccessToken: string;
+}> {
+  const credentials: Array<{
+    provider: FxSubscriptionProvider;
+    accessToken: string;
+    sandboxAccessToken: string;
+  }> = [];
+
+  for (const provider of ['chatgpt', 'grok'] as const) {
+    const environmentVariable = getAccessTokenEnvironmentVariable({ provider });
+    const accessToken = env[environmentVariable];
+    const sandboxCredential = sandboxEnv[environmentVariable];
+    const accountId = env[getAccountIdEnvironmentVariable({ provider })];
+    if (accessToken == null || sandboxCredential == null || accountId == null) {
+      continue;
     }
-  | undefined {
-  const accessToken = readString(value, [
-    'access_token',
-    'accessToken',
-    'access',
-  ]);
-  const refreshToken = readString(value, [
-    'refresh_token',
-    'refreshToken',
-    'refresh',
-  ]);
-  const expiresAt = normalizeExpiresAt(
-    readValue(value, ['expires_at', 'expiresAt', 'expires']),
+    credentials.push({
+      provider,
+      accessToken,
+      sandboxAccessToken:
+        provider === 'chatgpt'
+          ? createChatGptSandboxAccessToken({
+              credential: sandboxCredential,
+              accountId,
+            })
+          : sandboxCredential,
+    });
+  }
+
+  return credentials;
+}
+
+async function readFxSubscription({
+  provider,
+  fxDirectory,
+  fetch: fetchImplementation = globalThis.fetch,
+}: {
+  provider: FxSubscriptionProvider;
+  fxDirectory: string;
+  fetch?: typeof globalThis.fetch;
+}): Promise<FxSubscriptionCredential | undefined> {
+  const path = join(
+    fxDirectory,
+    provider === 'chatgpt' ? 'chatgpt-auth.json' : 'grok-auth.json',
   );
-  if (accessToken == null || refreshToken == null || expiresAt == null) {
+  const fileStat = await stat(path).catch(() => undefined);
+  if (fileStat == null || !fileStat.isFile() || (fileStat.mode & 0o077) !== 0) {
     return undefined;
   }
-  const accountId = readString(value, ['account_id', 'accountId']);
+  const text = await readFile(path, 'utf8').catch(() => undefined);
+  if (text == null) return undefined;
+  const parsed = await safeParseJSON({ text });
+  if (!parsed.success || !isRecord(parsed.value)) return undefined;
+  const credential = readCredential({ value: parsed.value });
+  if (credential == null) return undefined;
+  if (
+    provider === 'chatgpt' &&
+    (await extractChatGptAccountId({ accessToken: credential.accessToken })) !==
+      credential.accountId
+  ) {
+    return undefined;
+  }
+  if (!isAccessTokenExpiringSoon({ expiresAt: credential.expiresAt })) {
+    return credential;
+  }
+
+  const refreshed = await refreshOAuthAccessToken({
+    tokenUrl:
+      provider === 'chatgpt'
+        ? 'https://auth.openai.com/oauth/token'
+        : 'https://auth.x.ai/oauth2/token',
+    clientId: provider === 'chatgpt' ? OPENAI_CLIENT_ID : XAI_CLIENT_ID,
+    refreshToken: credential.refreshToken,
+    requestFormat: provider === 'chatgpt' ? 'json' : 'form',
+    fetch: fetchImplementation,
+  });
+  const refreshedAccountId =
+    provider === 'chatgpt'
+      ? await extractChatGptAccountId({ accessToken: refreshed.accessToken })
+      : await fetchGrokAccountId({
+          accessToken: refreshed.accessToken,
+          fetch: fetchImplementation,
+        });
+  if (refreshedAccountId !== credential.accountId) {
+    throw new Error(`fx ${provider} OAuth refresh changed accounts.`);
+  }
+
+  const nextCredential = {
+    accessToken: refreshed.accessToken,
+    refreshToken: refreshed.refreshToken ?? credential.refreshToken,
+    expiresAt: refreshed.expiresAt,
+    accountId: refreshedAccountId,
+  };
+  const temporaryPath = `${path}.${process.pid}.tmp`;
+  await writeFile(
+    temporaryPath,
+    `${JSON.stringify({
+      version: 1,
+      access_token: nextCredential.accessToken,
+      refresh_token: nextCredential.refreshToken,
+      expires_at_ms: nextCredential.expiresAt,
+      account_id: nextCredential.accountId,
+    })}\n`,
+    { mode: 0o600 },
+  );
+  await chmod(temporaryPath, 0o600);
+  await rename(temporaryPath, path);
+  return nextCredential;
+}
+
+function readCredential({
+  value,
+}: {
+  value: Record<string, unknown>;
+}): FxSubscriptionCredential | undefined {
+  if (
+    value.version !== 1 ||
+    typeof value.access_token !== 'string' ||
+    value.access_token.length === 0 ||
+    typeof value.refresh_token !== 'string' ||
+    value.refresh_token.length === 0 ||
+    typeof value.expires_at_ms !== 'number' ||
+    !Number.isSafeInteger(value.expires_at_ms) ||
+    typeof value.account_id !== 'string' ||
+    value.account_id.length === 0
+  ) {
+    return undefined;
+  }
   return {
-    accessToken,
-    refreshToken,
-    expiresAt,
-    ...(accountId == null ? {} : { accountId }),
+    accessToken: value.access_token,
+    refreshToken: value.refresh_token,
+    expiresAt: value.expires_at_ms,
+    accountId: value.account_id,
   };
 }
 
-function setCredentialField({
-  value,
-  names,
-  valueToSet,
+async function fetchGrokAccountId({
+  accessToken,
+  fetch: fetchImplementation,
 }: {
-  value: Record<string, unknown>;
-  names: readonly string[];
-  valueToSet: string | number;
-}): void {
-  const name = names.find(candidate => candidate in value) ?? names[0];
-  value[name] = valueToSet;
+  accessToken: string;
+  fetch: typeof globalThis.fetch;
+}): Promise<string> {
+  const response = await fetchImplementation(
+    'https://auth.x.ai/oauth2/userinfo',
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  );
+  if (!response.ok) {
+    throw new Error(
+      `fx Grok user info request failed with status ${response.status}.`,
+    );
+  }
+  const parsed = await safeParseJSON({ text: await response.text() });
+  if (
+    !parsed.success ||
+    !isRecord(parsed.value) ||
+    typeof parsed.value.sub !== 'string' ||
+    parsed.value.sub.length === 0
+  ) {
+    throw new Error('fx Grok user info request returned an invalid account.');
+  }
+  return parsed.value.sub;
 }
 
-function readString(
-  value: Record<string, unknown>,
-  names: readonly string[],
-): string | undefined {
-  const result = readValue(value, names);
-  return typeof result === 'string' && result.length > 0 ? result : undefined;
+async function extractChatGptAccountId({
+  accessToken,
+}: {
+  accessToken: string;
+}): Promise<string> {
+  const segments = accessToken.split('.');
+  if (segments.length === 3) {
+    try {
+      const payload = Buffer.from(segments[1], 'base64url').toString('utf8');
+      const parsed = await safeParseJSON({ text: payload });
+      if (parsed.success && isRecord(parsed.value)) {
+        const auth = parsed.value['https://api.openai.com/auth'];
+        if (
+          isRecord(auth) &&
+          typeof auth.chatgpt_account_id === 'string' &&
+          auth.chatgpt_account_id.length > 0
+        ) {
+          return auth.chatgpt_account_id;
+        }
+      }
+    } catch {}
+  }
+  throw new Error('fx ChatGPT access token does not contain an account ID.');
 }
 
-function readValue(
-  value: Record<string, unknown>,
-  names: readonly string[],
-): unknown {
-  for (const name of names) {
-    if (name in value) return value[name];
-  }
-  return undefined;
+function createChatGptSandboxAccessToken({
+  credential,
+  accountId,
+}: {
+  credential: string;
+  accountId: string;
+}): string {
+  const header = Buffer.from(
+    JSON.stringify({ alg: 'none', typ: 'JWT' }),
+  ).toString('base64url');
+  const payload = Buffer.from(
+    JSON.stringify({
+      'https://api.openai.com/auth': { chatgpt_account_id: accountId },
+    }),
+  ).toString('base64url');
+  return `${header}.${payload}.${credential}`;
 }
 
-function normalizeExpiresAt(value: unknown): number | undefined {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value < 10_000_000_000 ? value * 1000 : value;
-  }
-  if (typeof value === 'string') {
-    const numeric = Number(value);
-    if (Number.isFinite(numeric) && numeric > 0) {
-      return numeric < 10_000_000_000 ? numeric * 1000 : numeric;
-    }
-    const parsed = Date.parse(value);
-    return Number.isFinite(parsed) ? parsed : undefined;
-  }
-  return undefined;
+function getAccessTokenEnvironmentVariable({
+  provider,
+}: {
+  provider: FxSubscriptionProvider;
+}): string {
+  return provider === 'chatgpt'
+    ? CHATGPT_ACCESS_TOKEN_ENVIRONMENT_VARIABLE
+    : GROK_ACCESS_TOKEN_ENVIRONMENT_VARIABLE;
+}
+
+function getAccountIdEnvironmentVariable({
+  provider,
+}: {
+  provider: FxSubscriptionProvider;
+}): string {
+  return provider === 'chatgpt'
+    ? CHATGPT_ACCOUNT_ID_ENVIRONMENT_VARIABLE
+    : GROK_ACCOUNT_ID_ENVIRONMENT_VARIABLE;
 }

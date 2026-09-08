@@ -189,8 +189,10 @@ describe('createFx', () => {
         "credentialEnv": [
           "VERCEL_OIDC_TOKEN",
           "AI_GATEWAY_API_KEY",
-          "OPENAI_API_KEY",
-          "XAI_API_KEY",
+          "AI_SDK_FX_CHATGPT_ACCESS_TOKEN",
+          "AI_SDK_FX_CHATGPT_ACCOUNT_ID",
+          "AI_SDK_FX_GROK_ACCESS_TOKEN",
+          "AI_SDK_FX_GROK_ACCOUNT_ID",
         ],
         "executable": "fx",
         "harnessId": "fx",
@@ -424,15 +426,22 @@ describe('createFx', () => {
   it('brokers native subscription access tokens to their provider route', () => {
     createFx();
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+    const accessToken = createChatGptAccessToken({ accountId: 'account-1' });
+    const sandboxAccessToken = createChatGptAccessToken({
+      accountId: 'account-1',
+      signature: 'sandbox-access',
+    });
 
     expect(
       settings.credentialBrokering?.({
         env: {
-          OPENAI_API_KEY: 'subscription-access',
-          OPENAI_BASE_URL: 'https://chatgpt.com/backend-api/codex',
-          FX_CHATGPT_ACCOUNT_ID: 'account-1',
+          AI_SDK_FX_CHATGPT_ACCESS_TOKEN: accessToken,
+          AI_SDK_FX_CHATGPT_ACCOUNT_ID: 'account-1',
         },
-        sandboxEnv: { OPENAI_API_KEY: 'sandbox-access' },
+        sandboxEnv: {
+          AI_SDK_FX_CHATGPT_ACCESS_TOKEN: 'sandbox-access',
+          AI_SDK_FX_CHATGPT_ACCOUNT_ID: 'sandbox-account',
+        },
       }),
     ).toEqual([
       {
@@ -442,19 +451,40 @@ describe('createFx', () => {
           headers: [
             {
               key: { exact: 'Authorization' },
-              value: { exact: 'Bearer sandbox-access' },
+              value: { exact: `Bearer ${sandboxAccessToken}` },
             },
           ],
         },
         transform: {
           headers: {
-            Authorization: 'Bearer subscription-access',
+            Authorization: `Bearer ${accessToken}`,
             'x-client-app': `ai-sdk/harness-fx/${VERSION}`,
-            'ChatGPT-Account-ID': 'account-1',
           },
         },
       },
     ]);
+  });
+
+  it('materializes native subscription records through the ACP home hook', () => {
+    createFx();
+    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+    const accessToken = createChatGptAccessToken({ accountId: 'account-1' });
+
+    const files = settings.authenticationFiles?.({
+      env: {
+        AI_SDK_FX_CHATGPT_ACCESS_TOKEN: accessToken,
+        AI_SDK_FX_CHATGPT_ACCOUNT_ID: 'account-1',
+      },
+      sandboxEnv: {
+        AI_SDK_FX_CHATGPT_ACCESS_TOKEN: 'sandbox-access',
+        AI_SDK_FX_CHATGPT_ACCOUNT_ID: 'sandbox-account',
+      },
+      credentialBrokeringAvailable: true,
+    });
+
+    expect(files?.map(file => file.path)).toEqual(['.fx/chatgpt-auth.json']);
+    expect(files?.[0].content).not.toContain(accessToken);
+    expect(files?.[0].content).toContain('sandbox-access');
   });
 
   it('brokers the Gateway key selected from a supplied authentication environment', () => {
@@ -505,3 +535,21 @@ describe('createFx', () => {
     expect(VERSION).toBe('0.0.0-test');
   });
 });
+
+function createChatGptAccessToken({
+  accountId,
+  signature = 'signature',
+}: {
+  accountId: string;
+  signature?: string;
+}): string {
+  const header = Buffer.from(
+    JSON.stringify({ alg: 'none', typ: 'JWT' }),
+  ).toString('base64url');
+  const payload = Buffer.from(
+    JSON.stringify({
+      'https://api.openai.com/auth': { chatgpt_account_id: accountId },
+    }),
+  ).toString('base64url');
+  return `${header}.${payload}.${signature}`;
+}

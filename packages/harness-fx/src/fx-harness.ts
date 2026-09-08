@@ -13,7 +13,12 @@ import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
-import { resolveFxSubscriptionEnvironment } from './fx-subscription';
+import {
+  createFxSubscriptionAuthenticationFiles,
+  FX_SUBSCRIPTION_ENVIRONMENT_VARIABLES,
+  getFxSubscriptionRequestCredentials,
+  resolveFxSubscriptionEnvironment,
+} from './fx-subscription';
 
 const FX_CLIENT_APP = `ai-sdk/harness-fx/${VERSION}`;
 const DEFAULT_AI_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh';
@@ -39,10 +44,9 @@ function sanitizeFxMcpToolNameSegment(value: string): string {
 
 export type FxHarnessSettings = {
   /**
-   * Selects direct or AI Gateway authentication. Both routes use AI Gateway
-   * because fx does not connect to model providers directly. Pass an
-   * authentication environment to supply credentials programmatically, or
-   * omit it for automatic host-environment selection.
+   * Selects direct native-subscription or AI Gateway authentication. Pass an
+   * authentication environment to supply credentials programmatically, or omit
+   * it for automatic host-environment selection.
    */
   readonly auth?: FxAuthenticationMode;
   /**
@@ -568,8 +572,8 @@ export function createFx(
 
   return createACP({
     auth: settings.auth,
-    resolveAuthenticationEnvironment: options =>
-      resolveFxSubscriptionEnvironment({ ...options, model: settings.model }),
+    resolveAuthenticationEnvironment: resolveFxSubscriptionEnvironment,
+    authenticationFiles: createFxSubscriptionAuthenticationFiles,
     credentialForwarding: settings.credentialForwarding,
     modelId: settings.model,
     port: settings.port,
@@ -600,37 +604,48 @@ export function createFx(
       type: 'filesystem',
       path: '.fx/AGENTS.md',
     },
-    forwardEnv: ['OPENAI_BASE_URL', 'XAI_BASE_URL'],
     credentialEnv: [
       'VERCEL_OIDC_TOKEN',
       'AI_GATEWAY_API_KEY',
-      'OPENAI_API_KEY',
-      'XAI_API_KEY',
+      ...FX_SUBSCRIPTION_ENVIRONMENT_VARIABLES,
     ],
     credentialBrokering: ({ env, sandboxEnv, headers }) => {
-      const environmentVariableName = env.OPENAI_API_KEY
-        ? 'OPENAI_API_KEY'
-        : env.XAI_API_KEY
-          ? 'XAI_API_KEY'
-          : suppliedAuthenticationEnvironment
-            ? env.AI_GATEWAY_API_KEY
-              ? 'AI_GATEWAY_API_KEY'
-              : 'VERCEL_OIDC_TOKEN'
-            : env.VERCEL_OIDC_TOKEN
-              ? 'VERCEL_OIDC_TOKEN'
-              : 'AI_GATEWAY_API_KEY';
+      const subscriptionTransformations = getFxSubscriptionRequestCredentials({
+        env,
+        sandboxEnv: sandboxEnv ?? {},
+      }).map(({ provider, accessToken, sandboxAccessToken }) =>
+        createCredentialRequestTransformation({
+          matchUrl:
+            provider === 'chatgpt'
+              ? 'https://chatgpt.com/backend-api/codex'
+              : 'https://api.x.ai/v1',
+          matchHeaders: {
+            Authorization: `Bearer ${sandboxAccessToken}`,
+          },
+          transformHeaders: {
+            ...headers,
+            Authorization: `Bearer ${accessToken}`,
+            'x-client-app': FX_CLIENT_APP,
+          },
+        }),
+      );
+      if (subscriptionTransformations.length > 0) {
+        return subscriptionTransformations;
+      }
+
+      const environmentVariableName = suppliedAuthenticationEnvironment
+        ? env.AI_GATEWAY_API_KEY
+          ? 'AI_GATEWAY_API_KEY'
+          : 'VERCEL_OIDC_TOKEN'
+        : env.VERCEL_OIDC_TOKEN
+          ? 'VERCEL_OIDC_TOKEN'
+          : 'AI_GATEWAY_API_KEY';
       const credential = env[environmentVariableName];
       const sandboxCredential = sandboxEnv?.[environmentVariableName];
       if (!credential || !sandboxCredential) return [];
-      const matchUrl =
-        environmentVariableName === 'OPENAI_API_KEY'
-          ? (env.OPENAI_BASE_URL ?? 'https://api.openai.com/v1')
-          : environmentVariableName === 'XAI_API_KEY'
-            ? (env.XAI_BASE_URL ?? 'https://api.x.ai/v1')
-            : (env.AI_GATEWAY_BASE_URL ?? DEFAULT_AI_GATEWAY_BASE_URL);
       return [
         createCredentialRequestTransformation({
-          matchUrl,
+          matchUrl: env.AI_GATEWAY_BASE_URL ?? DEFAULT_AI_GATEWAY_BASE_URL,
           matchHeaders: {
             Authorization: `Bearer ${sandboxCredential}`,
           },
@@ -638,10 +653,6 @@ export function createFx(
             ...headers,
             Authorization: `Bearer ${credential}`,
             'x-client-app': FX_CLIENT_APP,
-            ...(environmentVariableName === 'OPENAI_API_KEY' &&
-            env.FX_CHATGPT_ACCOUNT_ID
-              ? { 'ChatGPT-Account-ID': env.FX_CHATGPT_ACCOUNT_ID }
-              : {}),
           },
         }),
       ];

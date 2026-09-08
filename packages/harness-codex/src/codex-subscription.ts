@@ -1,4 +1,4 @@
-import { execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
   chmod,
@@ -29,6 +29,20 @@ export type CodexResolvedAuthentication = {
   readonly requestHeaders?: Readonly<Record<string, string>>;
 };
 
+type CodexAuthCredentialsStoreMode = 'file' | 'keyring' | 'auto' | 'ephemeral';
+
+type CodexKeyring = {
+  read(options: {
+    service: string;
+    account: string;
+  }): Promise<string | undefined>;
+  write(options: {
+    service: string;
+    account: string;
+    value: string;
+  }): Promise<void>;
+};
+
 type CodexAuthFile = {
   readonly auth_mode?: unknown;
   readonly tokens?: {
@@ -42,11 +56,15 @@ type CodexAuthFile = {
 export async function resolveCodexAuthentication({
   auth,
   processEnv = process.env,
+  authCredentialsStoreMode,
   readSubscription = readCodexSubscription,
 }: {
   auth: CodexAuthenticationMode | undefined;
   processEnv?: Record<string, string | undefined>;
-  readSubscription?: () => Promise<CodexResolvedAuthentication | undefined>;
+  authCredentialsStoreMode?: unknown;
+  readSubscription?: (options?: {
+    authCredentialsStoreMode?: unknown;
+  }) => Promise<CodexResolvedAuthentication | undefined>;
 }): Promise<CodexResolvedAuthentication> {
   const environment = resolveCodexEnv(auth, processEnv);
   if (
@@ -58,21 +76,38 @@ export async function resolveCodexAuthentication({
     return { environment };
   }
 
-  return (await readSubscription()) ?? { environment };
+  return (
+    (await readSubscription({ authCredentialsStoreMode })) ?? { environment }
+  );
 }
 
 export async function readCodexSubscription({
   env = process.env,
   homeDirectory = homedir(),
+  authCredentialsStoreMode,
+  platform = process.platform,
+  keyring,
   fetch,
 }: {
   env?: Record<string, string | undefined>;
   homeDirectory?: string;
+  authCredentialsStoreMode?: unknown;
+  platform?: NodeJS.Platform;
+  keyring?: CodexKeyring;
   fetch?: typeof globalThis.fetch;
 } = {}): Promise<CodexResolvedAuthentication | undefined> {
   const codexHome = resolve(env.CODEX_HOME ?? join(homeDirectory, '.codex'));
   const authPath = join(codexHome, 'auth.json');
-  const stored = await readCodexAuthStore({ codexHome, authPath });
+  const storageMode =
+    toCodexAuthCredentialsStoreMode(authCredentialsStoreMode) ??
+    (await readCodexAuthCredentialsStoreMode({ codexHome })) ??
+    'file';
+  const stored = await readCodexAuthStore({
+    codexHome,
+    authPath,
+    storageMode,
+    keyring: keyring ?? createCodexKeyring({ platform }),
+  });
   if (stored == null) return undefined;
 
   const credential = toCodexCredential(stored.value);
@@ -117,9 +152,13 @@ export async function readCodexSubscription({
 async function readCodexAuthStore({
   codexHome,
   authPath,
+  storageMode,
+  keyring,
 }: {
   codexHome: string;
   authPath: string;
+  storageMode: CodexAuthCredentialsStoreMode;
+  keyring: CodexKeyring | undefined;
 }): Promise<
   | {
       value: CodexAuthFile;
@@ -127,36 +166,77 @@ async function readCodexAuthStore({
     }
   | undefined
 > {
-  const fileValue = await readCodexAuthFile(authPath);
-  if (fileValue != null) {
-    return {
-      value: fileValue,
-      write: value => writeCodexAuthFile({ authPath, value }),
-    };
-  }
+  if (storageMode === 'ephemeral') return undefined;
 
-  if (process.platform !== 'darwin') return undefined;
-  const canonicalHome = await realpath(codexHome).catch(() => codexHome);
-  const account = `cli|${createHash('sha256')
-    .update(canonicalHome)
-    .digest('hex')
-    .slice(0, 16)}`;
-  const keychainValue = await readMacOSKeychain({
-    service: 'Codex Auth',
-    account,
-  });
-  if (keychainValue == null) return undefined;
-  const parsed = await parseCodexAuthFile(keychainValue);
-  if (parsed == null) return undefined;
-  return {
-    value: parsed,
-    write: value =>
-      writeMacOSKeychain({
-        service: 'Codex Auth',
-        account,
-        value: JSON.stringify(value),
-      }),
+  const readFileStore = async () => {
+    const value = await readCodexAuthFile(authPath);
+    return value == null
+      ? undefined
+      : {
+          value,
+          write: (updated: CodexAuthFile) =>
+            writeCodexAuthFile({ authPath, value: updated }),
+        };
   };
+  const readKeyringStore = async () => {
+    if (keyring == null) return undefined;
+    const canonicalHome = await realpath(codexHome).catch(() => codexHome);
+    const account = `cli|${createHash('sha256')
+      .update(canonicalHome)
+      .digest('hex')
+      .slice(0, 16)}`;
+    const text = await keyring.read({ service: 'Codex Auth', account });
+    if (text == null) return undefined;
+    const value = await parseCodexAuthFile(text);
+    return value == null
+      ? undefined
+      : {
+          value,
+          write: (updated: CodexAuthFile) =>
+            keyring.write({
+              service: 'Codex Auth',
+              account,
+              value: JSON.stringify(updated),
+            }),
+        };
+  };
+
+  if (storageMode === 'file') return readFileStore();
+  if (storageMode === 'keyring') return readKeyringStore();
+  return (await readKeyringStore()) ?? readFileStore();
+}
+
+async function readCodexAuthCredentialsStoreMode({
+  codexHome,
+}: {
+  codexHome: string;
+}): Promise<CodexAuthCredentialsStoreMode | undefined> {
+  const text = await readFile(join(codexHome, 'config.toml'), 'utf8').catch(
+    () => undefined,
+  );
+  if (text == null) return undefined;
+  for (const line of text.split(/\r?\n/)) {
+    if (line.trimStart().startsWith('[')) return undefined;
+    const match =
+      /^\s*cli_auth_credentials_store\s*=\s*["'](file|keyring|auto|ephemeral)["']\s*(?:#.*)?$/.exec(
+        line,
+      );
+    if (match != null) {
+      return toCodexAuthCredentialsStoreMode(match[1]);
+    }
+  }
+  return undefined;
+}
+
+function toCodexAuthCredentialsStoreMode(
+  value: unknown,
+): CodexAuthCredentialsStoreMode | undefined {
+  return value === 'file' ||
+    value === 'keyring' ||
+    value === 'auto' ||
+    value === 'ephemeral'
+    ? value
+    : undefined;
 }
 
 async function readCodexAuthFile(
@@ -230,45 +310,192 @@ async function writeCodexAuthFile({
   await rename(temporaryPath, authPath);
 }
 
-async function readMacOSKeychain({
-  service,
-  account,
+function createCodexKeyring({
+  platform,
 }: {
-  service: string;
-  account: string;
-}): Promise<string | undefined> {
-  try {
-    const result = await execFileAsync('/usr/bin/security', [
-      'find-generic-password',
-      '-s',
-      service,
-      '-a',
-      account,
-      '-w',
-    ]);
-    return result.stdout.trim() || undefined;
-  } catch {
-    return undefined;
+  platform: NodeJS.Platform;
+}): CodexKeyring | undefined {
+  if (platform === 'darwin') {
+    return {
+      async read({ service, account }) {
+        try {
+          const result = await execFileAsync('/usr/bin/security', [
+            'find-generic-password',
+            '-s',
+            service,
+            '-a',
+            account,
+            '-w',
+          ]);
+          return result.stdout.trim() || undefined;
+        } catch {
+          return undefined;
+        }
+      },
+      async write({ service, account, value }) {
+        const command = `add-generic-password -U -s ${shellQuoteForSecurity(service)} -a ${shellQuoteForSecurity(account)} -X ${Buffer.from(value, 'utf8').toString('hex')}\n`;
+        await runCommandWithInput({
+          command: '/usr/bin/security',
+          args: ['-i'],
+          input: command,
+        });
+      },
+    };
   }
+  if (platform === 'linux') {
+    return {
+      async read({ service, account }) {
+        try {
+          const description = `keyring:${account}@${service}`;
+          const searched = await execFileAsync('keyctl', [
+            'search',
+            '@s',
+            'user',
+            description,
+          ]);
+          const keyId = searched.stdout.trim();
+          if (keyId.length === 0) return undefined;
+          const result = await execFileAsync('keyctl', ['pipe', keyId]);
+          return result.stdout || undefined;
+        } catch {
+          return undefined;
+        }
+      },
+      async write({ service, account, value }) {
+        const description = `keyring:${account}@${service}`;
+        const searched = await execFileAsync('keyctl', [
+          'search',
+          '@s',
+          'user',
+          description,
+        ]);
+        await runCommandWithInput({
+          command: 'keyctl',
+          args: ['pupdate', searched.stdout.trim()],
+          input: value,
+        });
+      },
+    };
+  }
+  if (platform === 'win32') {
+    return createWindowsCodexKeyring();
+  }
+  return undefined;
 }
 
-async function writeMacOSKeychain({
-  service,
-  account,
-  value,
+function shellQuoteForSecurity(value: string): string {
+  return `"${value.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`;
+}
+
+async function runCommandWithInput({
+  command,
+  args,
+  input,
+  env,
 }: {
-  service: string;
-  account: string;
-  value: string;
+  command: string;
+  args: string[];
+  input: string;
+  env?: NodeJS.ProcessEnv;
 }): Promise<void> {
-  await execFileAsync('/usr/bin/security', [
-    'add-generic-password',
-    '-U',
-    '-s',
-    service,
-    '-a',
-    account,
-    '-w',
-    value,
-  ]);
+  await new Promise<void>((resolvePromise, reject) => {
+    const child = spawn(command, args, {
+      stdio: ['pipe', 'ignore', 'pipe'],
+      ...(env == null ? {} : { env }),
+    });
+    let stderr = '';
+    child.stderr.setEncoding('utf8');
+    child.stderr.on('data', chunk => {
+      stderr += chunk;
+    });
+    child.once('error', reject);
+    child.once('close', code => {
+      if (code === 0) resolvePromise();
+      else reject(new Error(stderr || `${command} exited with code ${code}.`));
+    });
+    child.stdin.end(input);
+  });
+}
+
+function createWindowsCodexKeyring(): CodexKeyring {
+  const source = `
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+public static class CodexCredentialManager {
+  [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+  public struct Credential {
+    public UInt32 Flags; public UInt32 Type; public string TargetName;
+    public string Comment; public System.Runtime.InteropServices.ComTypes.FILETIME LastWritten;
+    public UInt32 CredentialBlobSize; public IntPtr CredentialBlob;
+    public UInt32 Persist; public UInt32 AttributeCount; public IntPtr Attributes;
+    public string TargetAlias; public string UserName;
+  }
+  [DllImport("advapi32.dll", EntryPoint = "CredReadW", CharSet = CharSet.Unicode, SetLastError = true)]
+  static extern bool CredRead(string target, UInt32 type, UInt32 flags, out IntPtr credential);
+  [DllImport("advapi32.dll", EntryPoint = "CredWriteW", CharSet = CharSet.Unicode, SetLastError = true)]
+  static extern bool CredWrite(ref Credential credential, UInt32 flags);
+  [DllImport("advapi32.dll", SetLastError = true)] static extern void CredFree(IntPtr credential);
+  public static string Read(string target) {
+    IntPtr pointer;
+    if (!CredRead(target, 1, 0, out pointer)) return null;
+    try {
+      Credential value = Marshal.PtrToStructure<Credential>(pointer);
+      byte[] bytes = new byte[value.CredentialBlobSize];
+      Marshal.Copy(value.CredentialBlob, bytes, 0, bytes.Length);
+      return Encoding.Unicode.GetString(bytes);
+    } finally { CredFree(pointer); }
+  }
+  public static void Write(string target, string userName, string value) {
+    byte[] bytes = Encoding.Unicode.GetBytes(value);
+    IntPtr blob = Marshal.AllocHGlobal(bytes.Length);
+    try {
+      Marshal.Copy(bytes, 0, blob, bytes.Length);
+      Credential credential = new Credential {
+        Type = 1, TargetName = target, CredentialBlobSize = (UInt32)bytes.Length,
+        CredentialBlob = blob, Persist = 3, UserName = userName
+      };
+      if (!CredWrite(ref credential, 0)) throw new System.ComponentModel.Win32Exception();
+    } finally { Marshal.FreeHGlobal(blob); }
+  }
+}`;
+  return {
+    async read({ service, account }) {
+      try {
+        const result = await execFileAsync(
+          'powershell.exe',
+          [
+            '-NoProfile',
+            '-NonInteractive',
+            '-Command',
+            `Add-Type -TypeDefinition $env:AI_SDK_CODEX_CREDENTIAL_SOURCE; [CodexCredentialManager]::Read($env:AI_SDK_CODEX_CREDENTIAL_TARGET)`,
+          ],
+          {
+            env: {
+              ...process.env,
+              AI_SDK_CODEX_CREDENTIAL_SOURCE: source,
+              AI_SDK_CODEX_CREDENTIAL_TARGET: `${account}.${service}`,
+            },
+          },
+        );
+        return result.stdout.trim() || undefined;
+      } catch {
+        return undefined;
+      }
+    },
+    async write({ service, account, value }) {
+      const script = `Add-Type -TypeDefinition $env:AI_SDK_CODEX_CREDENTIAL_SOURCE; $value = [Console]::In.ReadToEnd(); [CodexCredentialManager]::Write($env:AI_SDK_CODEX_CREDENTIAL_TARGET, $env:AI_SDK_CODEX_CREDENTIAL_USER, $value)`;
+      await runCommandWithInput({
+        command: 'powershell.exe',
+        args: ['-NoProfile', '-NonInteractive', '-Command', script],
+        input: value,
+        env: {
+          ...process.env,
+          AI_SDK_CODEX_CREDENTIAL_SOURCE: source,
+          AI_SDK_CODEX_CREDENTIAL_TARGET: `${account}.${service}`,
+          AI_SDK_CODEX_CREDENTIAL_USER: account,
+        },
+      });
+    },
+  };
 }

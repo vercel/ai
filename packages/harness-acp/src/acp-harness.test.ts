@@ -800,6 +800,70 @@ describe('createACP', () => {
     await session.doDestroy();
   });
 
+  it('materializes private authentication files with brokered credentials', async () => {
+    vi.stubEnv('PROVIDER_API_KEY', 'host-secret');
+    const writes: Array<{ path: string; content: string }> = [];
+    const runs: string[] = [];
+    const spawns: Array<{
+      command: string;
+      env: Record<string, string | undefined>;
+    }> = [];
+    const authenticationFiles = vi.fn(
+      ({
+        env,
+        sandboxEnv,
+        credentialBrokeringAvailable,
+      }: {
+        env: Readonly<Record<string, string>>;
+        sandboxEnv: Readonly<Record<string, string>>;
+        credentialBrokeringAvailable: boolean;
+      }) => [
+        {
+          path: '.config/provider/auth.json',
+          content: JSON.stringify({ token: sandboxEnv.PROVIDER_API_KEY }),
+        },
+      ],
+    );
+    const harness = createACP({
+      harnessId: 'authentication-file-acp',
+      ...agentSettings,
+      credentialEnv: ['PROVIDER_API_KEY'],
+      credentialBrokering: () => [],
+      credentialForwarding: async () => 'sandbox-secret',
+      authenticationFiles,
+    });
+
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs,
+        spawns,
+        writes,
+        stop: async () => {},
+        addRequestTransformations: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+
+    expect(authenticationFiles).toHaveBeenCalledExactlyOnceWith({
+      env: expect.objectContaining({ PROVIDER_API_KEY: 'host-secret' }),
+      sandboxEnv: expect.objectContaining({
+        PROVIDER_API_KEY: 'sandbox-secret',
+      }),
+      credentialBrokeringAvailable: true,
+    });
+    expect(writes).toContainEqual({
+      path: '/home/agent/.config/provider/auth.json',
+      content: '{"token":"sandbox-secret"}',
+    });
+    expect(runs).toContain(
+      "chmod 600 -- '/home/agent/.config/provider/auth.json'",
+    );
+    expect(JSON.stringify(writes)).not.toContain('host-secret');
+
+    await session.doDestroy();
+  });
+
   it('uses resolved Gateway profile values for brokering without serializing the credential', async () => {
     vi.stubEnv('PROVIDER_API_KEY', 'direct-secret');
     vi.stubEnv('AI_GATEWAY_API_KEY', 'gateway-secret');

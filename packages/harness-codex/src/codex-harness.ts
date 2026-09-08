@@ -270,6 +270,8 @@ export function createCodex(
       const authenticationMode = resolveCodexAuthenticationMode(settings.auth);
       const resolvedAuthentication = await resolveCodexAuthentication({
         auth: settings.auth,
+        authCredentialsStoreMode:
+          settings.codexConfig?.cli_auth_credentials_store,
       });
       const resolvedAuthEnvironment = resolvedAuthentication.environment;
       let sandboxAuthEnvironment = resolvedAuthEnvironment;

@@ -262,6 +262,97 @@ describe('resolveCodexAuthentication', () => {
       },
     });
   });
+
+  it('uses the configured Codex keyring before the auth file in auto mode', async () => {
+    const codexHome = await mkdtemp(join(tmpdir(), 'codex-auth-'));
+    await writeFile(
+      join(codexHome, 'auth.json'),
+      JSON.stringify({
+        auth_mode: 'chatgpt',
+        tokens: {
+          access_token: jwt(Math.floor(Date.now() / 1000) + 3600),
+          refresh_token: 'file-refresh-token',
+          account_id: 'file-account',
+        },
+      }),
+    );
+    const keyringAccessToken = jwt(Math.floor(Date.now() / 1000) + 3600);
+    const keyring = {
+      read: vi.fn(async () =>
+        JSON.stringify({
+          auth_mode: 'chatgpt',
+          tokens: {
+            access_token: keyringAccessToken,
+            refresh_token: 'keyring-refresh-token',
+            account_id: 'keyring-account',
+          },
+        }),
+      ),
+      write: vi.fn(async () => {}),
+    };
+
+    await expect(
+      readCodexSubscription({
+        env: { CODEX_HOME: codexHome },
+        authCredentialsStoreMode: 'auto',
+        keyring,
+      }),
+    ).resolves.toEqual({
+      environment: {
+        CODEX_API_KEY: keyringAccessToken,
+        OPENAI_BASE_URL: 'https://chatgpt.com/backend-api/codex',
+      },
+      requestHeaders: { 'ChatGPT-Account-ID': 'keyring-account' },
+    });
+  });
+
+  it('reads the Codex credential store mode from config.toml', async () => {
+    const codexHome = await mkdtemp(join(tmpdir(), 'codex-auth-'));
+    await writeFile(
+      join(codexHome, 'config.toml'),
+      'cli_auth_credentials_store = "keyring"\n',
+    );
+    const keyringAccessToken = jwt(Math.floor(Date.now() / 1000) + 3600);
+    const keyring = {
+      read: vi.fn(async () =>
+        JSON.stringify({
+          auth_mode: 'chatgpt',
+          tokens: {
+            access_token: keyringAccessToken,
+            refresh_token: 'refresh-token',
+          },
+        }),
+      ),
+      write: vi.fn(async () => {}),
+    };
+
+    await expect(
+      readCodexSubscription({
+        env: { CODEX_HOME: codexHome },
+        keyring,
+      }),
+    ).resolves.toMatchObject({
+      environment: { CODEX_API_KEY: keyringAccessToken },
+    });
+    expect(keyring.read).toHaveBeenCalledExactlyOnceWith({
+      service: 'Codex Auth',
+      account: expect.stringMatching(/^cli\|[0-9a-f]{16}$/),
+    });
+  });
+
+  it('does not inspect persistent storage in ephemeral mode', async () => {
+    const keyring = {
+      read: vi.fn(),
+      write: vi.fn(),
+    };
+    await expect(
+      readCodexSubscription({
+        authCredentialsStoreMode: 'ephemeral',
+        keyring,
+      }),
+    ).resolves.toBeUndefined();
+    expect(keyring.read).not.toHaveBeenCalled();
+  });
 });
 
 describe('createCodexRequestTransformations', () => {

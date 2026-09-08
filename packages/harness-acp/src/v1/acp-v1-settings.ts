@@ -97,6 +97,20 @@ export type ACPCredentialBrokering = ({
   headers?: Readonly<Record<string, string>>;
 }) => ReadonlyArray<HarnessV1RequestTransformation>;
 
+export type ACPAuthenticationFile = {
+  /** Path relative to the ACP implementation's private home directory. */
+  readonly path: string;
+  readonly content: string;
+};
+
+export type ACPAuthenticationFiles = (options: {
+  /** Host values resolved for the implementation. */
+  readonly env: Readonly<Record<string, string>>;
+  /** Values exposed to the sandbox process after credential brokering. */
+  readonly sandboxEnv: Readonly<Record<string, string>>;
+  readonly credentialBrokeringAvailable: boolean;
+}) => ReadonlyArray<ACPAuthenticationFile>;
+
 export type ACPPermissionModeTarget =
   | {
       readonly type: 'session-mode';
@@ -182,6 +196,11 @@ export type ACPV1Settings = {
   readonly forwardEnv?: ReadonlyArray<string>;
   readonly credentialEnv?: ReadonlyArray<string>;
   readonly credentialBrokering?: ACPCredentialBrokering;
+  /**
+   * Materializes private authentication files below the ACP implementation's
+   * home directory before the implementation starts.
+   */
+  readonly authenticationFiles?: ACPAuthenticationFiles;
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can
