@@ -1,5 +1,12 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.78
+
+### Patch Changes
+
+- Updated dependencies [8487955]
+  - @ai-sdk/openai@4.0.62
+
 ## 5.0.77
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.62
+
+### Patch Changes
+
+- 8487955: Add `xhigh` and `max` quality support for GPT Image 2.5 Flare and Sunburst in image generation, image editing, and the Responses API image generation tool.
+
 ## 4.0.61
 
 ### Patch Changes
