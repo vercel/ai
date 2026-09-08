@@ -81,7 +81,7 @@ describe('doRerank', () => {
     });
   });
 
-  it('should pass through object documents', async () => {
+  it('should stringify object documents', async () => {
     prepareJsonResponse({
       object: 'rerank',
       results: [{ relevance_score: 0.99, index: 0 }],
@@ -99,7 +99,7 @@ describe('doRerank', () => {
     expect(await server.calls[0].requestBodyJson).toEqual({
       model: 'BAAI/bge-reranker-v2-m3',
       query: 'What is the speed of light?',
-      documents: [{ text: 'The speed of light is 299,792,458 m/s.' }],
+      documents: ['{"text":"The speed of light is 299,792,458 m/s."}'],
     });
   });
 

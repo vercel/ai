@@ -80,7 +80,10 @@ export class NebulRerankingModel implements RerankingModelV4 {
       body: {
         model: this.modelId,
         query: options.query,
-        documents: options.documents.values,
+        documents:
+          options.documents.type === 'text'
+            ? options.documents.values
+            : options.documents.values.map(value => JSON.stringify(value)),
         ...(options.topN != null && { top_n: options.topN }),
       },
       failedResponseHandler: nebulFailedResponseHandler,
