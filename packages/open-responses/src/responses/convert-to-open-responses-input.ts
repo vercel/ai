@@ -58,6 +58,7 @@ export async function convertToOpenResponsesInput({
                     : {
                         image_url: `data:${mediaType};base64,${convertToBase64(part.data)}`,
                       }),
+                  detail: getImageDetail(part, providerOptionsName),
                 });
               } else if (part.data instanceof URL) {
                 userContent.push({
@@ -213,6 +214,7 @@ export async function convertToOpenResponsesInput({
                       contentParts.push({
                         type: 'input_image',
                         image_url: `data:${item.mediaType};base64,${item.data}`,
+                        detail: getImageDetail(item, providerOptionsName),
                       });
                       break;
                     }
@@ -220,6 +222,7 @@ export async function convertToOpenResponsesInput({
                       contentParts.push({
                         type: 'input_image',
                         image_url: item.url,
+                        detail: getImageDetail(item, providerOptionsName),
                       });
                       break;
                     }
@@ -263,4 +266,19 @@ export async function convertToOpenResponsesInput({
       systemMessages.length > 0 ? systemMessages.join('\n') : undefined,
     warnings,
   };
+}
+
+function getImageDetail(
+  part: {
+    providerOptions?: Record<string, Record<string, unknown>>;
+  },
+  providerOptionsName: string,
+): InputImageContentParam['detail'] {
+  const imageDetail = part.providerOptions?.[providerOptionsName]?.imageDetail;
+
+  return imageDetail === 'low' ||
+    imageDetail === 'high' ||
+    imageDetail === 'auto'
+    ? imageDetail
+    : 'auto';
 }
