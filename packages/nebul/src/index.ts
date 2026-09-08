@@ -9,6 +9,8 @@ export type {
   NebulEmbeddingModelOptions,
 } from './nebul-embedding-options';
 export type { NebulImageModelId } from './nebul-image-options';
+export type { NebulRerankingModelId } from './nebul-reranking-options';
+export type { NebulRerankingModelConfig } from './nebul-reranking-model';
 export type {
   NebulTranscriptionModelId,
   NebulTranscriptionModelOptions,

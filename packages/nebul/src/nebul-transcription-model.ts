@@ -48,7 +48,9 @@ const nebulTranscriptionResponseSchema = z.object({
   segments: z
     .array(
       z.object({
-        text: z.string(),
+        // different models use either `text` or `segment` as the text key
+        text: z.string().nullish(),
+        segment: z.string().nullish(),
         start: z.number(),
         end: z.number(),
       }),
@@ -220,7 +222,7 @@ export class NebulTranscriptionModel implements TranscriptionModelV4 {
       text: response.text,
       segments:
         response.segments?.map(segment => ({
-          text: segment.text,
+          text: segment.text ?? segment.segment ?? '',
           startSecond: segment.start,
           endSecond: segment.end,
         })) ??

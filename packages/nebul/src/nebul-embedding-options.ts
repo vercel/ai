@@ -7,6 +7,9 @@ import { z } from 'zod/v4';
  */
 export type NebulEmbeddingModelId =
   | 'sentence-transformers/all-MiniLM-L6-v2'
+  | 'Qwen/Qwen3-Embedding-8B'
+  | 'BAAI/bge-m3'
+  | 'intfloat/multilingual-e5-large-instruct'
   | (string & {});
 
 export const nebulEmbeddingModelOptions = z.object({});

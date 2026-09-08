@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateSpeech({
-    model: nebul.speechModel('hexgrad/Kokoro-82M'),
+    model: nebul.speechModel('ResembleAI/chatterbox-multilingual'),
     text: 'Hello from the AI SDK!',
   });
 

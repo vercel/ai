@@ -83,6 +83,67 @@ describe('doGenerate', () => {
     expect(result.durationInSeconds).toBe(2.5);
   });
 
+  it('should extract segments that use the `segment` text key (live API shape)', async () => {
+    prepareJsonResponse({
+      text: 'Hello from the AI SDK!',
+      language: 'en',
+      duration: 36.7125,
+      words: [
+        {
+          word: 'Hello',
+          start: 0.0,
+          end: 0.88,
+          start_offset: 0,
+          end_offset: 11,
+        },
+      ],
+      segments: [
+        {
+          segment: 'Hello from the AI SDK!',
+          start: 0.0,
+          end: 8.56,
+          start_offset: 0,
+          end_offset: 107,
+        },
+      ],
+      usage: {
+        input_tokens: 36,
+        output_tokens: 84,
+        total_tokens: 120,
+        seconds: 36,
+        type: 'duration',
+      },
+    });
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(result.text).toBe('Hello from the AI SDK!');
+    expect(result.segments).toEqual([
+      { text: 'Hello from the AI SDK!', startSecond: 0.0, endSecond: 8.56 },
+    ]);
+    expect(result.language).toBe('en');
+    expect(result.durationInSeconds).toBe(36.7125);
+  });
+
+  it('should fall back to an empty string when a segment has no text', async () => {
+    prepareJsonResponse({
+      text: 'Hello',
+      segments: [{ start: 0, end: 1 }],
+    });
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(result.segments).toEqual([
+      { text: '', startSecond: 0, endSecond: 1 },
+    ]);
+  });
+
   it('should fall back to word timestamps when segments are missing', async () => {
     prepareJsonResponse({
       text: 'Hello from the AI SDK!',

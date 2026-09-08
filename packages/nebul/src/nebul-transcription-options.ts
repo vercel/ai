@@ -3,9 +3,14 @@ import { z } from 'zod/v4';
 /**
  * Nebul transcription model ids from the Nebul Model Catalog,
  * https://docs.nebul.io/docs/inference-api/models/speech-to-text
- * retrieved on 2026-09-08.
+ * retrieved on 2026-09-08. The catalog evolves continuously, so the
+ * type allows arbitrary model ids.
  */
-export type NebulTranscriptionModelId = string & {};
+export type NebulTranscriptionModelId =
+  | 'nvidia/parakeet-tdt-0.6b-v3'
+  | 'nvidia/parakeet-tdt-0.6b-v2'
+  | 'CohereLabs/cohere-transcribe-03-2026'
+  | (string & {});
 
 export const nebulTranscriptionModelOptions = z.object({
   /**

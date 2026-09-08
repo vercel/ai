@@ -76,7 +76,7 @@ const { text } = await generateText({
 
 Calling the provider without a model id defaults to `zai-org/GLM-5.3-Flash`. The model id can also be omitted for `nebul.languageModel()` and `nebul.chat()`.
 
-Current models include GLM 5.3 Flash, GLM 5.2, GPT-OSS 120B, Qwen3 VL 235B Thinking, and MiniMax M2.5. Model availability changes over time; see the [Nebul model catalog](https://docs.nebul.io/docs/inference-api/models/model-catalog) for the current list.
+Current models include GLM 5.3 Flash, GLM 5.3, GLM 5.2, GLM 5.1, GPT-OSS 120B, Qwen3.5 397B A17B, Kimi K3, Mistral Large 3, and Gemma 4 31B. Model availability changes over time; see the [Nebul model catalog](https://docs.nebul.io/docs/inference-api/models/model-catalog) for the current list.
 
 The provider supports:
 
@@ -108,7 +108,7 @@ import { nebul } from '@ai-sdk/nebul';
 import { generateImage } from 'ai';
 
 const { images } = await generateImage({
-  model: nebul.imageModel('openai/gpt-image-1'),
+  model: nebul.imageModel('Tongyi-MAI/Z-Image-Turbo'),
   prompt: 'A blue cream Persian cat in Kyoto in the style of ukiyo-e',
 });
 ```
@@ -123,7 +123,7 @@ import { transcribe } from 'ai';
 import { readFile } from 'fs/promises';
 
 const result = await transcribe({
-  model: nebul.transcriptionModel('deepgram/nova-3'),
+  model: nebul.transcriptionModel('nvidia/parakeet-tdt-0.6b-v3'),
   audio: await readFile('data/galileo.mp3'),
 });
 ```
@@ -132,7 +132,7 @@ Nebul-specific transcription options can be passed through `providerOptions.nebu
 
 ```ts
 const result = await transcribe({
-  model: nebul.transcriptionModel('deepgram/nova-3'),
+  model: nebul.transcriptionModel('nvidia/parakeet-tdt-0.6b-v3'),
   audio: await readFile('data/galileo.mp3'),
   providerOptions: {
     nebul: {
@@ -144,6 +144,8 @@ const result = await transcribe({
   },
 });
 ```
+
+> The default response format `verbose_json` is rejected by `CohereLabs/cohere-transcribe-03-2026`. When using that model, pass `providerOptions.nebul.responseFormat: 'json'`.
 
 The following options are available:
 
@@ -182,4 +184,18 @@ await writeFile('audio.mp3', audio);
 
 ## Reranking Models
 
-The Nebul API exposes a rerank endpoint, but reranking model support in the AI SDK is not yet available through this provider. Calling `nebul.rerankingModel` currently throws a `NoSuchModelError`.
+Create a reranking model using `nebul.rerankingModel`:
+
+```ts
+import { nebul } from '@ai-sdk/nebul';
+import { rerank } from 'ai';
+
+const { ranking } = await rerank({
+  model: nebul.rerankingModel('BAAI/bge-reranker-v2-m3'),
+  documents: ['sunny day at the beach', 'rainy day in the city'],
+  query: 'talk about rain',
+  topN: 2,
+});
+```
+
+`ranking` contains the document indices ordered by descending relevance, each with a `relevanceScore`.

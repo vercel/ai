@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await transcribe({
-    model: nebul.transcriptionModel('deepgram/nova-3'),
+    model: nebul.transcriptionModel('nvidia/parakeet-tdt-0.6b-v3'),
     audio: await readFile('data/galileo.mp3'),
   });
 

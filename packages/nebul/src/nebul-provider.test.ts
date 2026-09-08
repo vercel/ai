@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { createNebul } from './nebul-provider';
-import { NoSuchModelError } from '@ai-sdk/provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import {
   OpenAICompatibleChatLanguageModel,
@@ -9,6 +8,7 @@ import {
 } from '@ai-sdk/openai-compatible';
 import { NebulTranscriptionModel } from './nebul-transcription-model';
 import { NebulSpeechModel } from './nebul-speech-model';
+import { NebulRerankingModel } from './nebul-reranking-model';
 
 // Mock the OpenAI-compatible classes
 const OpenAICompatibleChatLanguageModelMock =
@@ -277,10 +277,15 @@ describe('NebulProvider', () => {
   });
 
   describe('rerankingModel', () => {
-    it('should throw a NoSuchModelError', () => {
-      expect(() => createNebul().rerankingModel!('some-model')).toThrowError(
-        NoSuchModelError,
-      );
+    it('should construct a reranking model with correct configuration', () => {
+      const provider = createNebul();
+      const modelId = 'BAAI/bge-reranker-v2-m3';
+
+      const model = provider.rerankingModel(modelId);
+
+      expect(model).toBeInstanceOf(NebulRerankingModel);
+      expect(model.provider).toBe('nebul.reranking');
+      expect(model.modelId).toBe(modelId);
     });
   });
 });

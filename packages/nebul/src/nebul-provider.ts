@@ -4,11 +4,11 @@ import {
   OpenAICompatibleImageModel,
 } from '@ai-sdk/openai-compatible';
 import {
-  NoSuchModelError,
   type EmbeddingModelV4,
   type ImageModelV4,
   type LanguageModelV4,
   type ProviderV4,
+  type RerankingModelV4,
   type SpeechModelV4,
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
@@ -21,6 +21,8 @@ import {
 import type { NebulChatModelId } from './nebul-chat-options';
 import type { NebulEmbeddingModelId } from './nebul-embedding-options';
 import type { NebulImageModelId } from './nebul-image-options';
+import { NebulRerankingModel } from './nebul-reranking-model';
+import type { NebulRerankingModelId } from './nebul-reranking-options';
 import { NebulSpeechModel } from './nebul-speech-model';
 import type { NebulSpeechModelId } from './nebul-speech-options';
 import { NebulTranscriptionModel } from './nebul-transcription-model';
@@ -74,27 +76,32 @@ export interface NebulProvider extends ProviderV4 {
   /**
    * Creates a model for text embeddings.
    */
-  embeddingModel(modelId?: NebulEmbeddingModelId): EmbeddingModelV4;
+  embeddingModel(modelId: NebulEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * Creates a model for image generation.
    */
-  imageModel(modelId?: NebulImageModelId): ImageModelV4;
+  imageModel(modelId: NebulImageModelId): ImageModelV4;
 
   /**
    * Creates a model for transcription (speech to text).
    */
-  transcriptionModel(modelId?: NebulTranscriptionModelId): TranscriptionModelV4;
+  transcriptionModel(modelId: NebulTranscriptionModelId): TranscriptionModelV4;
 
   /**
    * Creates a model for speech generation (text to speech).
    */
-  speechModel(modelId?: NebulSpeechModelId): SpeechModelV4;
+  speechModel(modelId: NebulSpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates a model for reranking documents against a query.
+   */
+  rerankingModel(modelId: NebulRerankingModelId): RerankingModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
-  textEmbeddingModel(modelId?: NebulEmbeddingModelId): EmbeddingModelV4;
+  textEmbeddingModel(modelId: NebulEmbeddingModelId): EmbeddingModelV4;
 }
 
 export function createNebul(
@@ -137,27 +144,32 @@ export function createNebul(
       supportsStructuredOutputs: true,
     });
 
-  const createEmbeddingModel = (modelId?: NebulEmbeddingModelId) =>
-    new OpenAICompatibleEmbeddingModel(modelId ?? defaultChatModelId, {
+  const createEmbeddingModel = (modelId: NebulEmbeddingModelId) =>
+    new OpenAICompatibleEmbeddingModel(modelId, {
       ...getCommonModelConfig('embedding'),
       url: ({ path }) => `${baseURL}${path}`,
       maxEmbeddingsPerCall: 2048,
     });
 
-  const createImageModel = (modelId?: NebulImageModelId) =>
-    new OpenAICompatibleImageModel(modelId ?? defaultChatModelId, {
+  const createImageModel = (modelId: NebulImageModelId) =>
+    new OpenAICompatibleImageModel(modelId, {
       ...getCommonModelConfig('image'),
       url: ({ path }) => `${baseURL}${path}`,
     });
 
-  const createTranscriptionModel = (modelId?: NebulTranscriptionModelId) =>
-    new NebulTranscriptionModel(modelId ?? defaultChatModelId, {
+  const createTranscriptionModel = (modelId: NebulTranscriptionModelId) =>
+    new NebulTranscriptionModel(modelId, {
       ...getCommonModelConfig('transcription'),
     });
 
-  const createSpeechModel = (modelId?: NebulSpeechModelId) =>
-    new NebulSpeechModel(modelId ?? defaultChatModelId, {
+  const createSpeechModel = (modelId: NebulSpeechModelId) =>
+    new NebulSpeechModel(modelId, {
       ...getCommonModelConfig('speech'),
+    });
+
+  const createRerankingModel = (modelId: NebulRerankingModelId) =>
+    new NebulRerankingModel(modelId, {
+      ...getCommonModelConfig('reranking'),
     });
 
   const provider = (modelId?: NebulChatModelId) => createChatModel(modelId);
@@ -169,15 +181,9 @@ export function createNebul(
   provider.imageModel = createImageModel;
   provider.transcriptionModel = createTranscriptionModel;
   provider.speechModel = createSpeechModel;
+  provider.rerankingModel = createRerankingModel;
 
   provider.textEmbeddingModel = createEmbeddingModel; // deprecated
-
-  provider.rerankingModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'rerankingModel',
-    });
-  };
 
   return provider;
 }

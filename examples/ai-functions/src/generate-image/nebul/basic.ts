@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 run(async () => {
   const prompt = 'A blue cream Persian cat in Kyoto in the style of ukiyo-e';
   const result = await generateImage({
-    model: nebul.imageModel('openai/gpt-image-1'),
+    model: nebul.imageModel('Tongyi-MAI/Z-Image-Turbo'),
     prompt,
   });
 
