@@ -94,6 +94,12 @@ console.log(status.status, status.requestCounts);
       description: 'The latest normalized batch status.',
     },
     {
+      name: 'rawStatus',
+      type: 'string',
+      isOptional: true,
+      description: 'The provider-specific batch status, when available.',
+    },
+    {
       name: 'requestCounts',
       type: '{ total: number; pending: number; completed: number; failed: number }',
       isOptional: true,
@@ -116,6 +122,12 @@ console.log(status.status, status.requestCounts);
       type: 'string',
       isOptional: true,
       description: 'Expiration timestamp, when provided by the provider.',
+    },
+    {
+      name: 'providerMetadata',
+      type: 'ProviderMetadata',
+      isOptional: true,
+      description: 'Provider-specific metadata for the batch.',
     },
   ]}
 />

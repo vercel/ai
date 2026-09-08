@@ -29,10 +29,7 @@ const batch = await startBatch({
 
 ## Import
 
-<Snippet
-  text={`import { experimental_startBatch } from "ai"`}
-  prompt={false}
-/>
+<Snippet text={`import { experimental_startBatch } from "ai"`} prompt={false} />
 
 ## API Signature
 
@@ -111,6 +108,42 @@ const batch = await startBatch({
       name: 'status',
       type: "'pending' | 'completed' | 'failed'",
       description: 'Initial normalized batch status.',
+    },
+    {
+      name: 'rawStatus',
+      type: 'string',
+      isOptional: true,
+      description: 'The provider-specific batch status, when available.',
+    },
+    {
+      name: 'requestCounts',
+      type: '{ total: number; pending: number; completed: number; failed: number }',
+      isOptional: true,
+      description: 'Provider-reported request counts.',
+    },
+    {
+      name: 'error',
+      type: 'Experimental_BatchError',
+      isOptional: true,
+      description: 'Error details when the batch fails.',
+    },
+    {
+      name: 'createdAt',
+      type: 'string',
+      isOptional: true,
+      description: 'Creation timestamp, when provided by the provider.',
+    },
+    {
+      name: 'expiresAt',
+      type: 'string',
+      isOptional: true,
+      description: 'Expiration timestamp, when provided by the provider.',
+    },
+    {
+      name: 'providerMetadata',
+      type: 'ProviderMetadata',
+      isOptional: true,
+      description: 'Provider-specific metadata for the batch.',
     },
     {
       name: 'warnings',
