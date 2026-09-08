@@ -1,5 +1,28 @@
 # @ai-sdk/harness-pi
 
+## 1.0.105
+
+### Patch Changes
+
+- a514695: fix(harness-pi): let extensions read host-backed session workspaces
+- c359fc0: fix(harness-pi): expose tools registered by inline extensions to models
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider-utils@5.0.37
+  - @ai-sdk/harness@1.0.103
+
+## 1.0.104
+
+### Patch Changes
+
+- eeed977: feat(harness): allow passing arbitrary headers with inference requests via `headers` property in `HarnessAgentSettings`
+- a39c8bf: chore(harness): clarify `writeSkills` helper intent to require materializing skills in HOME directory
+- Updated dependencies [fe86f8f]
+- Updated dependencies [255cccf]
+- Updated dependencies [eeed977]
+- Updated dependencies [a39c8bf]
+  - @ai-sdk/harness@1.0.102
+
 ## 1.0.103
 
 ### Patch Changes

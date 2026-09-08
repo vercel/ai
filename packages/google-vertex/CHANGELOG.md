@@ -1,5 +1,31 @@
 # @ai-sdk/google-vertex
 
+## 5.0.77
+
+### Patch Changes
+
+- 45099da: Retry unclassified empty image results, preserve retry-attempt accounting, add provider-independent result retryability classification, and mark Google and Google Vertex prompt blocks as terminal.
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/anthropic@4.0.50
+  - @ai-sdk/google@4.0.65
+  - @ai-sdk/provider-utils@5.0.37
+  - @ai-sdk/openai-compatible@3.0.45
+
+## 5.0.76
+
+### Patch Changes
+
+- 2d1f05d: fix(vertex): default Llama 4 output tokens
+- Updated dependencies [e5a22f0]
+- Updated dependencies [d4485fe]
+- Updated dependencies [63533eb]
+  - @ai-sdk/openai-compatible@3.0.44
+  - @ai-sdk/google@4.0.64
+
 ## 5.0.75
 
 ### Patch Changes

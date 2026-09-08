@@ -1,5 +1,30 @@
 # @ai-sdk/harness-cursor
 
+## 1.0.16
+
+### Patch Changes
+
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider-utils@5.0.37
+  - @ai-sdk/harness@1.0.103
+  - @ai-sdk/harness-acp@1.0.41
+
+## 1.0.15
+
+### Patch Changes
+
+- eeed977: feat(harness): allow passing arbitrary headers with inference requests via `headers` property in `HarnessAgentSettings`
+- Updated dependencies [fe86f8f]
+- Updated dependencies [ceb601c]
+- Updated dependencies [255cccf]
+- Updated dependencies [668b51d]
+- Updated dependencies [eeed977]
+- Updated dependencies [1291df7]
+- Updated dependencies [a39c8bf]
+  - @ai-sdk/harness@1.0.102
+  - @ai-sdk/harness-acp@1.0.40
+
 ## 1.0.14
 
 ### Patch Changes

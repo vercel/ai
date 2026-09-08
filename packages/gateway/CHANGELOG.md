@@ -1,5 +1,25 @@
 # @ai-sdk/gateway
 
+## 4.0.76
+
+### Patch Changes
+
+- a4ba394: feat: support per-request models in batch
+- e9bf5e3: chore(provider/gateway): update gateway model settings files
+- 56c004c: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+
+## 4.0.75
+
+### Patch Changes
+
+- 3cfc1fc: feat(gateway): add support for gpt-6-astra
+
 ## 4.0.74
 
 ### Patch Changes

@@ -192,8 +192,22 @@ The following provider options are available:
 
 <Note>
   Supported reasoning efforts vary by model. GPT-5.6 supports `'none'`, `'low'`,
-  `'medium'`, `'high'`, `'xhigh'`, and `'max'`.
+  `'medium'`, `'high'`, `'xhigh'`, and `'max'`. GPT-6 and later models support
+  `'low'`, `'medium'`, `'high'`, `'xhigh'`, and `'max'`.
 </Note>
+
+<Note type="warning">
+  GPT-6 and later models do not support `temperature`, `topP`, `logprobs`, or
+  the legacy `promptCacheRetention` option. The provider removes these settings
+  and returns a warning. Use the Responses API for GPT-6 tool calling.
+</Note>
+
+- **reasoningEffortUpdate** _'low' | 'medium' | 'high' | 'xhigh' | 'max'_
+  Updates the reasoning effort for GPT-6 and later models starting with the
+  current response without changing the request-level effort. Use this with
+  `previousResponseId` to preserve the original prompt prefix for caching.
+  Configuration updates require standard, single-agent mode and cannot be
+  combined with automatic compaction or automatic truncation.
 
 - **reasoningMode** _'standard' | 'pro'_
   Controls how much model work GPT-5.6 performs before returning a final answer. `'standard'` is the default. Use `'pro'` for difficult tasks where quality matters more than latency and token usage.
@@ -301,6 +315,57 @@ The following OpenAI-specific metadata may be returned:
   Service tier information returned by the API.
 - **reasoningContext** _(optional)_
   Effective persisted-reasoning context returned by GPT-5.6 (`'current_turn'` or `'all_turns'`).
+
+#### Changing Reasoning Effort Mid-Conversation
+
+GPT-6 and later models can change reasoning effort between responses without
+changing the request-level `reasoning` setting. The provider sends
+`reasoningEffortUpdate` as an OpenAI `configuration_update` input item before
+the next user message. Keeping the request-level effort unchanged preserves the
+original prompt prefix for prompt caching.
+
+```ts highlight="8,26,32"
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+  type OpenaiResponsesProviderMetadata,
+} from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const first = await generateText({
+  model: openai.responses('gpt-6-astra'),
+  reasoning: 'low',
+  prompt: 'Draft a database migration plan.',
+});
+
+const metadata = first.finalStep.providerMetadata as
+  | OpenaiResponsesProviderMetadata
+  | undefined;
+const previousResponseId = metadata?.openai.responseId;
+
+if (!previousResponseId) {
+  throw new Error('OpenAI did not return a response ID.');
+}
+
+const second = await generateText({
+  model: openai.responses('gpt-6-astra'),
+  reasoning: 'low',
+  prompt: 'Analyze the failure modes and propose rollback steps.',
+  providerOptions: {
+    openai: {
+      previousResponseId,
+      reasoningEffortUpdate: 'high',
+    } satisfies OpenAILanguageModelResponsesOptions,
+  },
+});
+```
+
+The response metadata continues to report the request-level reasoning effort,
+not the effective effort selected by `reasoningEffortUpdate`. Configuration
+updates are not supported with `reasoningMode: 'pro'`,
+`contextManagement`, or `truncation: 'auto'`. Explicit compaction with
+`compactionTrigger` remains supported; send a new `reasoningEffortUpdate` after
+compaction when the effort should change again.
 
 #### Reasoning Output
 
@@ -462,6 +527,55 @@ If you persist or reconstruct messages for later turns, preserve the OpenAI prov
 metadata on tool-call parts. The SDK uses `providerMetadata.openai.namespace` or
 `providerOptions.openai.namespace` to round-trip the namespace back to OpenAI on
 subsequent requests.
+
+#### Async Tool Calling
+
+GPT-6 Astra and later Responses models support
+[async tool calling](https://developers.openai.com/api/docs/guides/async-tool-calling).
+An async tool lets the model continue generating independent output after issuing
+the call instead of waiting for its result. Your application still executes the
+tool and sends its result in a later request using the original tool call ID.
+
+Enable async calling on a function tool with `providerOptions.openai.async`:
+
+```ts
+import { openai, type OpenAIToolOptions } from '@ai-sdk/openai';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: openai.responses('gpt-6-astra'),
+  tools: {
+    getWeather: tool({
+      description: 'Get the weather for a city.',
+      inputSchema: z.object({ city: z.string() }),
+      outputSchema: z.object({
+        city: z.string(),
+        temperatureC: z.number(),
+      }),
+      providerOptions: {
+        openai: { async: true } satisfies OpenAIToolOptions,
+      },
+    }),
+  },
+  prompt:
+    'Start the weather lookup for Paris, then list three general packing essentials without waiting.',
+});
+```
+
+The generated tool call exposes the provider marker as
+`providerMetadata.openai.async`. Use `providerMetadata.openai.responseId` as the
+next request's `previousResponseId`, and submit the result in a tool message with
+the original `toolCallId`.
+
+With `streamText`, OpenAI can continue streaming text after the completed
+`tool-call` part. Use the tool's `onInputAvailable` callback to start work as soon
+as that part arrives. If `execute` returns the same already-running promise, tool
+execution overlaps the rest of the model stream. Omit `execute` when the job
+should outlive the current generation and submit its result in a later request.
+
+Async calling applies to directly called function and custom tools. It does not
+apply to hosted tools and should not be combined with programmatic tool calling.
 
 #### Programmatic Tool Calling
 
@@ -712,6 +826,16 @@ for await (const part of result.stream) {
   accessible by the model. We recommend using the image generation tool without
   setting `store: false`.
 </Note>
+
+To use `xhigh` or `max` quality, select `gpt-image-2.5-flare` or
+`gpt-image-2.5-sunburst` as the image generation tool's model:
+
+```ts
+openai.tools.imageGeneration({
+  model: 'gpt-image-2.5-flare',
+  quality: 'xhigh',
+});
+```
 
 For complete details on model availability, image quality controls, supported sizes, and tool-specific parameters,
 refer to the OpenAI documentation:
@@ -1970,27 +2094,37 @@ import { openai } from '@ai-sdk/openai';
 import {
   experimental_getBatchResults as getBatchResults,
   experimental_getBatchStatus as getBatchStatus,
-  experimental_startTextBatch as startTextBatch,
+  experimental_startBatch as startBatch,
 } from 'ai';
 import { setTimeout } from 'node:timers/promises';
 
-const model = openai('gpt-4.1-nano');
+const model = 'gpt-4.1-nano';
 
-const batch = await startTextBatch({
-  model,
+const batch = await startBatch({
+  provider: openai,
   requests: [
-    { id: 'capital-france', prompt: 'What is the capital of France?' },
-    { id: 'capital-germany', prompt: 'What is the capital of Germany?' },
+    {
+      id: 'capital-france',
+      type: 'text',
+      model,
+      prompt: 'What is the capital of France?',
+    },
+    {
+      id: 'capital-germany',
+      type: 'text',
+      model,
+      prompt: 'What is the capital of Germany?',
+    },
   ],
 });
 
 let status = batch.status;
 while (status === 'pending') {
   await setTimeout(60_000);
-  ({ status } = await getBatchStatus({ model, batch }));
+  ({ status } = await getBatchStatus({ provider: openai, batch }));
 }
 
-for await (const item of getBatchResults({ model, batch })) {
+for await (const item of getBatchResults({ provider: openai, batch })) {
   if (item.status === 'succeeded') {
     console.log(item.id, item.text);
   } else {
@@ -1999,10 +2133,14 @@ for await (const item of getBatchResults({ model, batch })) {
 }
 ```
 
-`startTextBatch` returns a serializable batch reference. Persist this reference
+`startBatch` returns a serializable batch reference. Persist this reference
 to check the batch status or retrieve its results from another process. Results
 can arrive in a different order from the input requests, so match each result by
 its `id`.
+
+Each request specifies its `type` and `model`. OpenAI requires every text
+request in a batch to use the same model and throws before submission when the
+models differ.
 
 #### Webhooks
 
@@ -2958,6 +3096,19 @@ const { image, providerMetadata } = await generateImage({
 });
 ```
 
+The `gpt-image-2.5-flare` and `gpt-image-2.5-sunburst` models also support
+`quality: 'xhigh'` and `quality: 'max'` for both image generation and editing:
+
+```ts
+const { image } = await generateImage({
+  model: openai.image('gpt-image-2.5-sunburst'),
+  prompt: 'A salamander at sunrise in a forest pond in the Seychelles.',
+  providerOptions: {
+    openai: { quality: 'max' } satisfies OpenAIImageModelGenerationOptions,
+  },
+});
+```
+
 For more on `generateImage()` see [Image Generation](/docs/ai-sdk-core/image-generation).
 
 OpenAI's image models return additional metadata in the response that can be
@@ -2970,7 +3121,7 @@ is available:
   - `revisedPrompt` _string_ - The revised prompt that was actually used to generate the image (OpenAI may modify your prompt for safety or clarity)
   - `created` _number_ - The Unix timestamp (in seconds) of when the image was created
   - `size` _string_ - The size of the generated image. One of `1024x1024`, `1024x1536`, or `1536x1024`
-  - `quality` _string_ - The quality of the generated image. One of `low`, `medium`, or `high`
+  - `quality` _string_ - The quality of the generated image. One of `low`, `medium`, `high`, `xhigh`, or `max`
   - `background` _string_ - The background parameter used for the image generation. Either `transparent` or `opaque`
   - `outputFormat` _string_ - The output format of the generated image. One of `png`, `webp`, or `jpeg`
 

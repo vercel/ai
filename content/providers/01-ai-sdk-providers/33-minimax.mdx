@@ -195,6 +195,41 @@ ratio follows the input image.
   storage promptly after generation.
 </Note>
 
+### Asynchronous Generation
+
+To let the SDK manage the start/status flow, pass `poll` to `generateVideo`:
+
+```ts
+import { minimax } from '@ai-sdk/minimax';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: minimax.video('MiniMax-H3'),
+  prompt: 'A white kitten chases a butterfly across a sunlit garden.',
+  poll: { intervalMs: 10000, timeoutMs: 600000 },
+});
+```
+
+Without `poll` or `webhook`, generation continues to use the provider's
+`pollIntervalMs` and `pollTimeoutMs` options. With `poll`, the SDK's polling
+settings apply instead. This provider does not register upstream webhooks;
+supplying `webhook` falls back to SDK polling without invoking the factory.
+
+For caller-managed scheduling, use `experimental_startVideo` to submit one task
+without polling and `experimental_getVideoStatus` to check it once, returning
+`pending`, `completed`, or `error`. Persist the complete JSON-serializable
+`operation` from `experimental_startVideo` and pass it unchanged to
+`experimental_getVideoStatus` on a model with the same configuration.
+Its `resolvedInputs` contains `imageCount` and `referenceVideoIndices`: zero-based
+positions of accepted URL-video references in the original mixed `inputReferences`
+array. Inline videos count toward the cap but are omitted from the indices;
+duplicate references keep separate indices. Neither the operation nor status
+metadata retains input URLs, prompts, inline data, or API credentials.
+Status metadata uses these indices instead of `referenceVideoUrls`; ordinary
+`generateVideo` calls without `poll` or `webhook` retain the existing URL metadata.
+See the
+[start/status example](https://github.com/vercel/ai/blob/main/examples/ai-functions/src/generate-video/minimax/start-status.ts).
+
 ### Generation modes
 
 The generation mode is inferred from the inputs you pass:

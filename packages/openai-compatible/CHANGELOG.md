@@ -1,5 +1,22 @@
 # @ai-sdk/openai-compatible
 
+## 3.0.45
+
+### Patch Changes
+
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+
+## 3.0.44
+
+### Patch Changes
+
+- e5a22f0: fix(openai-compatible): keep reasoning streams contiguous when deltas include empty tool call arrays
+
 ## 3.0.43
 
 ### Patch Changes

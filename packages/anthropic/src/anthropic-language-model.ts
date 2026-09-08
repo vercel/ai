@@ -195,6 +195,11 @@ function getAnthropicCallerMetadata(
     : { providerMetadata: { anthropic: { caller: callerInfo } } };
 }
 
+function getProviderOptionsName(provider: string): string {
+  const dotIndex = provider.indexOf('.');
+  return dotIndex === -1 ? provider : provider.substring(0, dotIndex);
+}
+
 export type AnthropicLanguageModelConfig = {
   provider: string;
   baseURL: string;
@@ -207,16 +212,7 @@ export type AnthropicLanguageModelConfig = {
   ) => Record<string, any>;
   supportedUrls?: () => LanguageModelV4['supportedUrls'];
   generateId?: () => string;
-
-  /**
-   * When false, the model will use JSON tool fallback for structured outputs.
-   */
   supportsNativeStructuredOutput?: boolean;
-
-  /**
-   * When false, `strict` on tool definitions will be ignored and a warning emitted.
-   * Defaults to true.
-   */
   supportsStrictTools?: boolean;
 };
 
@@ -256,40 +252,38 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     return this.config.provider;
   }
 
-  /**
-   * Extracts the dynamic provider name from the config.provider string.
-   * e.g., 'my-custom-anthropic.messages' -> 'my-custom-anthropic'
-   */
-  private get providerOptionsName(): string {
-    const provider = this.config.provider;
-    const dotIndex = provider.indexOf('.');
-    return dotIndex === -1 ? provider : provider.substring(0, dotIndex);
-  }
-
   get supportedUrls() {
     return this.config.supportedUrls?.() ?? {};
   }
 
-  protected async getArgs({
-    userSuppliedBetas,
-    prompt,
-    maxOutputTokens,
-    temperature,
-    topP,
-    topK,
-    frequencyPenalty,
-    presencePenalty,
-    stopSequences,
-    responseFormat,
-    seed,
-    tools,
-    toolChoice,
-    reasoning,
-    providerOptions,
-    stream,
-  }: LanguageModelV4CallOptions & {
-    stream: boolean;
-    userSuppliedBetas: Set<string>;
+  static async prepareRequest({
+    modelId,
+    config,
+    options: {
+      userSuppliedBetas,
+      prompt,
+      maxOutputTokens,
+      temperature,
+      topP,
+      topK,
+      frequencyPenalty,
+      presencePenalty,
+      stopSequences,
+      responseFormat,
+      seed,
+      tools,
+      toolChoice,
+      reasoning,
+      providerOptions,
+      stream,
+    },
+  }: {
+    modelId: AnthropicModelId;
+    config: AnthropicLanguageModelConfig;
+    options: LanguageModelV4CallOptions & {
+      stream: boolean;
+      userSuppliedBetas: Set<string>;
+    };
   }) {
     const warnings: SharedV4Warning[] = [];
 
@@ -333,7 +327,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       }
     }
 
-    const providerOptionsName = this.providerOptionsName;
+    const providerOptionsName = getProviderOptionsName(config.provider);
 
     // Parse provider options from both canonical 'anthropic' key and custom key
     const canonicalOptions = await parseProviderOptions({
@@ -369,14 +363,14 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       supportsXhighEffort,
       rejectsThinkingDisabledAboveHighEffort,
       isKnownModel,
-    } = getModelCapabilities(this.modelId);
+    } = getModelCapabilities(modelId);
 
     if (!isKnownModel && maxOutputTokens == null) {
       warnings.push({
         type: 'compatibility',
         feature: 'maxOutputTokens',
         details:
-          `The model "${this.modelId}" is unknown. ` +
+          `The model "${modelId}" is unknown. ` +
           `The max output tokens have been limited to ${maxOutputTokensForModel}. ` +
           `Set maxOutputTokens explicitly to override this limit.`,
       });
@@ -387,7 +381,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         warnings.push({
           type: 'unsupported',
           feature: 'temperature',
-          details: `temperature is not supported by ${this.modelId} and will be ignored`,
+          details: `temperature is not supported by ${modelId} and will be ignored`,
         });
         temperature = undefined;
       }
@@ -395,7 +389,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         warnings.push({
           type: 'unsupported',
           feature: 'topK',
-          details: `topK is not supported by ${this.modelId} and will be ignored`,
+          details: `topK is not supported by ${modelId} and will be ignored`,
         });
         topK = undefined;
       }
@@ -403,21 +397,20 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         warnings.push({
           type: 'unsupported',
           feature: 'topP',
-          details: `topP is not supported by ${this.modelId} and will be ignored`,
+          details: `topP is not supported by ${modelId} and will be ignored`,
         });
         topP = undefined;
       }
     }
 
-    const isAnthropicModel = isKnownModel || this.modelId.includes('claude-');
+    const isAnthropicModel = isKnownModel || modelId.includes('claude-');
 
     const supportsStructuredOutput =
-      (this.config.supportsNativeStructuredOutput ?? true) &&
+      (config.supportsNativeStructuredOutput ?? true) &&
       modelSupportsStructuredOutput;
 
     const supportsStrictTools =
-      (this.config.supportsStrictTools ?? true) &&
-      modelSupportsStructuredOutput;
+      (config.supportsStrictTools ?? true) && modelSupportsStructuredOutput;
 
     const structureOutputMode =
       anthropicOptions?.structuredOutputMode ?? 'auto';
@@ -526,7 +519,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         type: 'unsupported',
         feature: 'providerOptions.anthropic.effort',
         details:
-          `effort '${anthropicOptions.effort}' is not supported by ${this.modelId} when thinking is disabled. ` +
+          `effort '${anthropicOptions.effort}' is not supported by ${modelId} when thinking is disabled. ` +
           `The effort has been lowered to 'high'.`,
       });
       anthropicOptions.effort = 'high';
@@ -559,7 +552,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
     const baseArgs = {
       // model id:
-      model: this.modelId,
+      model: modelId,
 
       // standardized settings:
       max_tokens: maxTokens,
@@ -801,7 +794,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           type: 'unsupported',
           feature: 'maxOutputTokens',
           details:
-            `${baseArgs.max_tokens} (maxOutputTokens + thinkingBudget) is greater than ${this.modelId} ${maxOutputTokensForModel} max output tokens. ` +
+            `${baseArgs.max_tokens} (maxOutputTokens + thinkingBudget) is greater than ${modelId} ${maxOutputTokensForModel} max output tokens. ` +
             `The max output tokens have been limited to ${maxOutputTokensForModel}.`,
         });
       }
@@ -925,6 +918,19 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       providerOptionsName,
       usedCustomProviderKey,
     };
+  }
+
+  private getArgs(
+    options: LanguageModelV4CallOptions & {
+      stream: boolean;
+      userSuppliedBetas: Set<string>;
+    },
+  ) {
+    return AnthropicLanguageModel.prepareRequest({
+      modelId: this.modelId,
+      config: this.config,
+      options,
+    });
   }
 
   private async getHeaders({

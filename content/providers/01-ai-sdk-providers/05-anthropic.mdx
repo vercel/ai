@@ -160,27 +160,37 @@ import { anthropic } from '@ai-sdk/anthropic';
 import {
   experimental_getBatchResults as getBatchResults,
   experimental_getBatchStatus as getBatchStatus,
-  experimental_startTextBatch as startTextBatch,
+  experimental_startBatch as startBatch,
 } from 'ai';
 import { setTimeout } from 'node:timers/promises';
 
-const model = anthropic('claude-haiku-4-5');
+const model = 'claude-haiku-4-5';
 
-const batch = await startTextBatch({
-  model,
+const batch = await startBatch({
+  provider: anthropic,
   requests: [
-    { id: 'capital-france', prompt: 'What is the capital of France?' },
-    { id: 'capital-germany', prompt: 'What is the capital of Germany?' },
+    {
+      id: 'capital-france',
+      type: 'text',
+      model,
+      prompt: 'What is the capital of France?',
+    },
+    {
+      id: 'capital-germany',
+      type: 'text',
+      model: 'claude-sonnet-4-5',
+      prompt: 'What is the capital of Germany?',
+    },
   ],
 });
 
 let status = batch.status;
 while (status === 'pending') {
   await setTimeout(60_000);
-  ({ status } = await getBatchStatus({ model, batch }));
+  ({ status } = await getBatchStatus({ provider: anthropic, batch }));
 }
 
-for await (const item of getBatchResults({ model, batch })) {
+for await (const item of getBatchResults({ provider: anthropic, batch })) {
   if (item.status === 'succeeded') {
     console.log(item.id, item.text);
   } else {
@@ -189,10 +199,13 @@ for await (const item of getBatchResults({ model, batch })) {
 }
 ```
 
-`startTextBatch` returns a serializable batch reference. Persist this reference
+`startBatch` returns a serializable batch reference. Persist this reference
 to check the batch status or retrieve its results from another process. Results
 can arrive in a different order from the input requests, so match each result by
 its `id`.
+
+Each request specifies its `type` and `model`. Anthropic supports using
+different text models within the same batch.
 
 #### Batch Limitations
 

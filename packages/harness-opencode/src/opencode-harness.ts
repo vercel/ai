@@ -10,6 +10,7 @@ import {
   type HarnessV1ContinueTurnState,
   type HarnessV1CredentialForwarding,
   type HarnessV1DebugConfig,
+  type HarnessV1MintBridgeTokenCallback,
   type HarnessV1NetworkSandboxSession,
   type HarnessV1PermissionMode,
   type HarnessV1Prompt,
@@ -60,7 +61,6 @@ import {
   OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
   resolveOpenCodeAuthenticationMode,
   resolveOpenCodeEnv,
-  splitOpenCodeModel,
   type OpenCodeAuthenticationMode,
 } from './opencode-auth';
 import {
@@ -97,10 +97,6 @@ export type OpenCodeHarnessSettings = {
    * underlying runtime's native MCP server configuration format.
    */
   readonly mcpServers?: Record<string, unknown>;
-  /**
-   * @deprecated Use `model` on `HarnessAgent` instead.
-   */
-  readonly model?: string;
   readonly provider?: string;
   /**
    * OpenCode reasoning/thinking variant for reasoning-capable models, e.g.
@@ -119,7 +115,7 @@ export type OpenCodeHarnessSettings = {
    * Creates the authentication token used by the sandbox bridge. Defaults to
    * a random 32-byte hexadecimal token.
    */
-  readonly mintBridgeToken?: (sandboxId: string) => string;
+  readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
 
 const optionalStringRecord = z.record(z.string(), z.unknown()).optional();
@@ -264,7 +260,6 @@ export function createOpenCode(
     lifecycleStateSchema: openCodeResumeStateSchema,
     getBootstrap: getOpenCodeBootstrap,
     doStart: async startOpts => {
-      const configuredModel = settings.model;
       const sandboxSession = startOpts.sandboxSession;
       const toolSafeSandboxSession =
         getRestrictedSandboxSession(sandboxSession);
@@ -305,12 +300,10 @@ export function createOpenCode(
       const coords = resumeData?.bridge;
       const authenticationMode = resolveOpenCodeAuthenticationMode({
         auth: settings.auth,
-        model: configuredModel,
         provider: settings.provider,
       });
       const resolvedAuthEnvironment = resolveOpenCodeEnv({
         auth: settings.auth,
-        model: configuredModel,
         provider: settings.provider,
       });
       let sandboxAuthEnvironment = resolvedAuthEnvironment;
@@ -357,11 +350,6 @@ export function createOpenCode(
       const sessionDataDir = `${defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
-      const model = splitOpenCodeModel(
-        configuredModel,
-        settings.provider,
-      ).model;
-
       const report = startOpts.observability?.report;
       const onDiagnostic = report
         ? (frame: Parameters<typeof harnessV1DiagnosticFromBridgeFrame>[0]) =>
@@ -408,7 +396,6 @@ export function createOpenCode(
             sessionId: startOpts.sessionId,
             channel: attachChannel,
             proc: undefined,
-            model,
             provider: settings.provider,
             reasoningVariant: settings.reasoningVariant,
             openCodeConfig: settings.openCodeConfig,
@@ -566,7 +553,6 @@ export function createOpenCode(
         sessionId: startOpts.sessionId,
         channel,
         proc,
-        model,
         provider: settings.provider,
         reasoningVariant: settings.reasoningVariant,
         openCodeConfig: settings.openCodeConfig,
@@ -760,7 +746,6 @@ function createSession({
   sessionId,
   channel,
   proc,
-  model,
   provider,
   reasoningVariant,
   openCodeConfig,
@@ -784,7 +769,6 @@ function createSession({
   sessionId: string;
   channel: OpenCodeChannel;
   proc: Experimental_SandboxProcess | undefined;
-  model: string | undefined;
   provider: string | undefined;
   reasoningVariant: string | undefined;
   openCodeConfig: Record<string, unknown> | undefined;
@@ -811,7 +795,7 @@ function createSession({
   let pendingResumeSessionId = seedResumeSessionOnFirstPrompt
     ? openCodeSessionId
     : undefined;
-  let selectedModel = model;
+  let selectedModel: string | undefined;
   let activeTurn = false;
   const pendingCompactionParts: HarnessV1StreamPart[] = [];
 

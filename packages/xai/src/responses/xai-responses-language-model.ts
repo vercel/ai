@@ -139,6 +139,15 @@ function isRetryableStatusCode(statusCode: number): boolean {
   );
 }
 
+export const xaiResponsesSupportedUrls: Record<string, RegExp[]> = {
+  'image/*': [/^https?:\/\/.*$/],
+  // xAI's Responses API accepts non-image documents (PDF, plain text, CSV, etc.) as
+  // `{ type: 'input_file', file_url }`. Keeping these URLs intact here lets them pass
+  // through to the converter instead of being downloaded to bytes by the SDK.
+  'application/pdf': [/^https?:\/\/.*$/],
+  'text/*': [/^https?:\/\/.*$/],
+};
+
 export class XaiResponsesLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -169,31 +178,30 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     return this.config.provider;
   }
 
-  readonly supportedUrls: Record<string, RegExp[]> = {
-    'image/*': [/^https?:\/\/.*$/],
-    // xAI's Responses API accepts non-image documents (PDF, plain text, CSV, etc.) as
-    // `{ type: 'input_file', file_url }`. Keeping these URLs intact here lets them pass
-    // through to the converter instead of being downloaded to bytes by the SDK.
-    'application/pdf': [/^https?:\/\/.*$/],
-    'text/*': [/^https?:\/\/.*$/],
-  };
+  readonly supportedUrls = xaiResponsesSupportedUrls;
 
-  protected async getArgs({
-    prompt,
-    maxOutputTokens,
-    temperature,
-    topP,
-    topK,
-    frequencyPenalty,
-    presencePenalty,
-    stopSequences,
-    seed,
-    responseFormat,
-    providerOptions,
-    tools,
-    toolChoice,
-    reasoning,
-  }: LanguageModelV4CallOptions) {
+  static async prepareRequest({
+    modelId,
+    options: {
+      prompt,
+      maxOutputTokens,
+      temperature,
+      topP,
+      topK,
+      frequencyPenalty,
+      presencePenalty,
+      stopSequences,
+      seed,
+      responseFormat,
+      providerOptions,
+      tools,
+      toolChoice,
+      reasoning,
+    },
+  }: {
+    modelId: XaiResponsesModelId;
+    options: LanguageModelV4CallOptions;
+  }) {
     const warnings: SharedV4Warning[] = [];
 
     const options =
@@ -276,7 +284,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
 
     let resolvedReasoningEffort = options.reasoningEffort;
     if (resolvedReasoningEffort == null && isCustomReasoning(reasoning)) {
-      if (!supportsReasoningEffort(this.modelId)) {
+      if (!supportsReasoningEffort(modelId)) {
         warnings.push({
           type: 'unsupported',
           feature: 'reasoning',
@@ -292,7 +300,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             low: 'low',
             medium: 'medium',
             high: 'high',
-            xhigh: this.modelId === 'grok-4.6' ? 'xhigh' : 'high',
+            xhigh: modelId === 'grok-4.6' ? 'xhigh' : 'high',
           },
           warnings,
         });
@@ -300,7 +308,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     }
 
     const baseArgs: Record<string, unknown> = {
-      model: this.modelId,
+      model: modelId,
       input,
       logprobs:
         options.logprobs === true || options.topLogprobs != null
@@ -368,6 +376,13 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       fileSearchToolName,
       imageGenerationToolName,
     };
+  }
+
+  private getArgs(options: LanguageModelV4CallOptions) {
+    return XaiResponsesLanguageModel.prepareRequest({
+      modelId: this.modelId,
+      options,
+    });
   }
 
   async doGenerate(

@@ -29,8 +29,8 @@ importers:
         specifier: ^9.1.7
         version: 9.1.7
       konsistent:
-        specifier: ^1.0.0-beta
-        version: 1.0.0-beta.5
+        specifier: 1.0.0-beta.9
+        version: 1.0.0-beta.9
       konsistent-provider:
         specifier: workspace:*
         version: link:tools/konsistent-provider
@@ -441,9 +441,6 @@ importers:
       '@ai-sdk/langchain':
         specifier: workspace:*
         version: link:../../packages/langchain
-      '@ai-sdk/lmnt':
-        specifier: workspace:*
-        version: link:../../packages/lmnt
       '@ai-sdk/luma':
         specifier: workspace:*
         version: link:../../packages/luma
@@ -3394,34 +3391,6 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
 
-  packages/lmnt:
-    dependencies:
-      '@ai-sdk/provider':
-        specifier: workspace:*
-        version: link:../provider
-      '@ai-sdk/provider-utils':
-        specifier: workspace:*
-        version: link:../provider-utils
-    devDependencies:
-      '@ai-sdk/test-server':
-        specifier: workspace:*
-        version: link:../test-server
-      '@types/node':
-        specifier: 22.19.19
-        version: 22.19.19
-      '@vercel/ai-tsconfig':
-        specifier: workspace:*
-        version: link:../../tools/tsconfig
-      tsup:
-        specifier: ^8.5.1
-        version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.26)(supports-color@10.2.2)(tsx@4.23.12)(typescript@5.6.3)(yaml@2.9.0)
-      typescript:
-        specifier: 5.6.3
-        version: 5.6.3
-      zod:
-        specifier: 3.25.76
-        version: 3.25.76
-
   packages/luma:
     dependencies:
       '@ai-sdk/provider':
@@ -4534,8 +4503,8 @@ importers:
   tools/konsistent-provider:
     dependencies:
       '@konsistent/convention':
-        specifier: ^1.0.0-beta
-        version: 1.0.0-beta.5(zod@4.4.3)
+        specifier: 1.0.0-beta.9
+        version: 1.0.0-beta.9(zod@4.4.3)
     devDependencies:
       '@types/node':
         specifier: 22.19.19
@@ -8738,8 +8707,8 @@ packages:
     engines: {node: '>= 12'}
     deprecated: Please upgrade to v15 or higher. All reported bugs in this version are fixed in newer releases, dependencies have been updated, and security has been improved.
 
-  '@konsistent/convention@1.0.0-beta.5':
-    resolution: {integrity: sha512-fGyVK3hU7eJ9iGZ8GnZTcBrhEL5+pXcWSsJgDNXkM6v+yjX1eT4yUsB+nmCR3lgFT+78Y+cmCGza/pLoOjPS9A==}
+  '@konsistent/convention@1.0.0-beta.9':
+    resolution: {integrity: sha512-/SwMIcSQDQkh7Dbbn8WOGV9UZKGwjjJs6pj3x9+5mjt85QrCPxiCba8atsAyb2MZm/aFBh4pvmLSt1szfBYp2A==}
     engines: {node: '>=22.11.0'}
     hasBin: true
     peerDependencies:
@@ -19322,8 +19291,8 @@ packages:
     resolution: {integrity: sha512-3An0GCLDSR34tsCO4H8Tef8Pp2ngtaZDAZnsWJYelqXUK5wyiHvGItgK/xcSkmHLSTn1Jcho1mRQs2ehRzvKKw==}
     engines: {node: ^4.8.4 || ^6.10.1 || ^7.10.1 || >= 8.1.4}
 
-  konsistent@1.0.0-beta.5:
-    resolution: {integrity: sha512-pZ7VJEF78CNlSbf4y2fJvYkZqAo2XgPuJ88rkMSfQwhzQZ9s67izvXJ0ZJMLUoAdpkgXGo/PgmZh/WlHfM8djA==}
+  konsistent@1.0.0-beta.9:
+    resolution: {integrity: sha512-QoyzGfLcN/BMtqyYnUteMszZqf7apm089z0LohOZheNSvAH3H4bC4Byx1vaXs5Dh7v4UaKCBxAgmCDr2f037mA==}
     engines: {node: '>=22.11.0'}
     hasBin: true
 
@@ -30218,7 +30187,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@konsistent/convention@1.0.0-beta.5(zod@4.4.3)':
+  '@konsistent/convention@1.0.0-beta.9(zod@4.4.3)':
     dependencies:
       citty: 0.2.2
       jiti: 2.7.0
@@ -44377,11 +44346,12 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  konsistent@1.0.0-beta.5:
+  konsistent@1.0.0-beta.9:
     dependencies:
-      '@konsistent/convention': 1.0.0-beta.5(zod@4.4.3)
+      '@konsistent/convention': 1.0.0-beta.9(zod@4.4.3)
       citty: 0.2.2
       picocolors: 1.1.1
+      picomatch: 4.0.5
       resolve.exports: 2.0.3
       tinyglobby: 0.2.17
       typescript: 5.9.3
