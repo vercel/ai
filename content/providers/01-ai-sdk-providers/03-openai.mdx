@@ -2994,7 +2994,7 @@ Transform an existing image using text prompts:
 const imageBuffer = readFileSync('./input-image.png');
 
 const { images } = await generateImage({
-  model: openai.image('gpt-image-2'),
+  model: openai.image('gpt-image-2.5-sunburst'),
   prompt: {
     text: 'Turn the cat into a dog but retain the style of the original image',
     images: [imageBuffer],
@@ -3011,7 +3011,7 @@ const image = readFileSync('./input-image.png');
 const mask = readFileSync('./mask.png'); // Transparent areas = edit regions
 
 const { images } = await generateImage({
-  model: openai.image('gpt-image-2'),
+  model: openai.image('gpt-image-2.5-sunburst'),
   prompt: {
     text: 'A sunlit indoor lounge area with a pool containing a flamingo',
     images: [image],
@@ -3056,7 +3056,7 @@ const owl = readFileSync('./owl.png');
 const bear = readFileSync('./bear.png');
 
 const { images } = await generateImage({
-  model: openai.image('gpt-image-2'),
+  model: openai.image('gpt-image-2.5-sunburst'),
   prompt: {
     text: 'Combine these animals into a group photo, retaining the original style',
     images: [cat, dog, owl, bear],
@@ -3072,14 +3072,23 @@ const { images } = await generateImage({
 
 ### Model Capabilities
 
-| Model              | Sizes                           |
-| ------------------ | ------------------------------- |
-| `gpt-image-2`      | 1024x1024, 1536x1024, 1024x1536 |
-| `gpt-image-1.5`    | 1024x1024, 1536x1024, 1024x1536 |
-| `gpt-image-1-mini` | 1024x1024, 1536x1024, 1024x1536 |
-| `gpt-image-1`      | 1024x1024, 1536x1024, 1024x1536 |
-| `dall-e-3`         | 1024x1024, 1792x1024, 1024x1792 |
-| `dall-e-2`         | 256x256, 512x512, 1024x1024     |
+| Model                    | Sizes                                  |
+| ------------------------ | -------------------------------------- |
+| `gpt-image-2.5-flare`    | Standard presets and custom dimensions |
+| `gpt-image-2.5-sunburst` | Standard presets and custom dimensions |
+| `gpt-image-2`            | 1024x1024, 1536x1024, 1024x1536        |
+| `gpt-image-1.5`          | 1024x1024, 1536x1024, 1024x1536        |
+| `gpt-image-1-mini`       | 1024x1024, 1536x1024, 1024x1536        |
+| `gpt-image-1`            | 1024x1024, 1536x1024, 1024x1536        |
+| `dall-e-3`               | 1024x1024, 1792x1024, 1024x1792        |
+| `dall-e-2`               | 256x256, 512x512, 1024x1024            |
+
+Use `gpt-image-2.5-flare` for fast, general-purpose image generation and
+`gpt-image-2.5-sunburst` when editing precision and instruction following are
+the priority. Both models accept custom `WIDTHxHEIGHT` sizes whose dimensions
+are multiples of 16, with aspect ratios from 1:3 through 3:1, no edge longer
+than 3840 pixels, and a total area from 655,360 through 8,294,400 pixels.
+Resolutions above 2560x1440 are experimental.
 
 You can pass optional `providerOptions` to the image model. These are prone to change by OpenAI and are model dependent. For example, the `gpt-image-*` models support the `quality` option:
 
@@ -3088,7 +3097,7 @@ import { openai, type OpenAIImageModelGenerationOptions } from '@ai-sdk/openai';
 import { generateImage } from 'ai';
 
 const { image, providerMetadata } = await generateImage({
-  model: openai.image('gpt-image-2'),
+  model: openai.image('gpt-image-2.5-flare'),
   prompt: 'A salamander at sunrise in a forest pond in the Seychelles.',
   providerOptions: {
     openai: { quality: 'high' } satisfies OpenAIImageModelGenerationOptions,
