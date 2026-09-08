@@ -198,7 +198,7 @@ describe('convertToOpenResponsesInput', () => {
             content: [
               {
                 type: 'file',
-                data: { type: 'data' as const, data: 'ZmFrZS1kYXRh' },
+                data: 'ZmFrZS1kYXRh',
                 mediaType: 'image/png',
                 providerOptions: {
                   'test-provider': { imageDetail: 'low' },
@@ -206,10 +206,7 @@ describe('convertToOpenResponsesInput', () => {
               },
               {
                 type: 'file',
-                data: {
-                  type: 'url' as const,
-                  url: new URL('https://example.com/image.png'),
-                },
+                data: new URL('https://example.com/image.png'),
                 mediaType: 'image/png',
                 providerOptions: {
                   'test-provider': { imageDetail: 'high' },
@@ -833,20 +830,16 @@ describe('convertToOpenResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'file',
-                      data: { type: 'data', data: 'ZmFrZS1kYXRh' },
+                      type: 'image-data',
+                      data: 'ZmFrZS1kYXRh',
                       mediaType: 'image/png',
                       providerOptions: {
                         'test-provider': { imageDetail: 'low' },
                       },
                     },
                     {
-                      type: 'file',
-                      data: {
-                        type: 'url',
-                        url: new URL('https://example.com/image.png'),
-                      },
-                      mediaType: 'image/png',
+                      type: 'image-url',
+                      url: 'https://example.com/image.png',
                       providerOptions: {
                         'test-provider': { imageDetail: 'high' },
                       },
@@ -1119,132 +1112,4 @@ describe('convertToOpenResponsesInput', () => {
       `);
     });
   });
-<<<<<<< HEAD
-=======
-
-  describe('provider reference', () => {
-    it('should throw for file parts with provider references', async () => {
-      await expect(
-        convertToOpenResponsesInput({
-          prompt: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'file',
-                  data: {
-                    type: 'reference' as const,
-                    reference: { openResponses: 'file-ref-123' },
-                  },
-                  mediaType: 'image/png',
-                },
-              ],
-            },
-          ],
-        }),
-      ).rejects.toThrow(
-        "'file parts with provider references' functionality not supported",
-      );
-    });
-  });
-
-  describe('top-level-only media type resolution', () => {
-    const pngBase64 = 'iVBORw0KGgo=';
-
-    it('passes full image/png through unchanged for inline data', async () => {
-      const result = await convertToOpenResponsesInput({
-        prompt: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'file',
-                mediaType: 'image/png',
-                data: { type: 'data', data: pngBase64 },
-              },
-            ],
-          },
-        ],
-      });
-
-      expect((result.input[0] as { content: unknown[] }).content[0]).toEqual({
-        type: 'input_image',
-        image_url: `data:image/png;base64,${pngBase64}`,
-        detail: 'auto',
-      });
-    });
-
-    it('detects image subtype from inline bytes for top-level "image"', async () => {
-      const result = await convertToOpenResponsesInput({
-        prompt: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'file',
-                mediaType: 'image',
-                data: { type: 'data', data: pngBase64 },
-              },
-            ],
-          },
-        ],
-      });
-
-      expect((result.input[0] as { content: unknown[] }).content[0]).toEqual({
-        type: 'input_image',
-        image_url: `data:image/png;base64,${pngBase64}`,
-        detail: 'auto',
-      });
-    });
-
-    it('passes through URL source for top-level-only image', async () => {
-      const result = await convertToOpenResponsesInput({
-        prompt: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'file',
-                mediaType: 'image',
-                data: {
-                  type: 'url',
-                  url: new URL('https://example.com/x.png'),
-                },
-              },
-            ],
-          },
-        ],
-      });
-
-      expect((result.input[0] as { content: unknown[] }).content[0]).toEqual({
-        type: 'input_image',
-        image_url: 'https://example.com/x.png',
-        detail: 'auto',
-      });
-    });
-
-    it('normalizes image/* wildcard via detection', async () => {
-      const result = await convertToOpenResponsesInput({
-        prompt: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'file',
-                mediaType: 'image/*',
-                data: { type: 'data', data: pngBase64 },
-              },
-            ],
-          },
-        ],
-      });
-
-      expect((result.input[0] as { content: unknown[] }).content[0]).toEqual({
-        type: 'input_image',
-        image_url: `data:image/png;base64,${pngBase64}`,
-        detail: 'auto',
-      });
-    });
-  });
->>>>>>> d127e7a2b6 (fix: preserve image detail settings and defaults for Open Responses image inputs (#20503))
 });
