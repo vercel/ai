@@ -28,7 +28,9 @@ type FakeExtensionsResult = {
   readonly runtime: object;
 };
 type ResourceLoaderOptions = {
+  readonly agentDir?: string;
   readonly appendSystemPromptOverride?: (base: string[]) => string[];
+  readonly cwd?: string;
   readonly extensionFactories?: Array<ExtensionFactory>;
   readonly extensionsOverride?: (
     base: FakeExtensionsResult,
@@ -444,6 +446,9 @@ describe('createPiSession', () => {
 
     try {
       expect(piMock.resourceLoaderOptions.at(-1)).toMatchObject({
+        agentDir: expect.stringContaining(
+          '/ai-sdk-harness/pi/session-no-extensions/agent',
+        ),
         extensionFactories: [],
         noExtensions: true,
         noPromptTemplates: true,
@@ -452,6 +457,98 @@ describe('createPiSession', () => {
       expect(
         piMock.resourceLoaderOptions.at(-1)?.extensionsOverride,
       ).toBeUndefined();
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('loads filesystem extensions from the configured agent directory', async () => {
+    const session = await createPi({
+      agentDir: '/custom/.pi/agent',
+      extensions: true,
+    }).doStart({
+      sessionId: 'session-filesystem-extensions',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      expect(piMock.resourceLoaderOptions.at(-1)).toMatchObject({
+        agentDir: '/custom/.pi/agent',
+        cwd: '/sandbox/work',
+        noExtensions: false,
+      });
+      expect(
+        piMock.resourceLoaderOptions.at(-1)?.extensionsOverride,
+      ).toBeTypeOf('function');
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('keeps the configured agent directory out of extension discovery by default', async () => {
+    const session = await createPi({
+      agentDir: '/custom/.pi/agent',
+    }).doStart({
+      sessionId: 'session-agent-dir-without-filesystem-extensions',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      expect(piMock.resourceLoaderOptions.at(-1)).toMatchObject({
+        agentDir: expect.stringContaining(
+          '/ai-sdk-harness/pi/session-agent-dir-without-filesystem-extensions/agent',
+        ),
+        noExtensions: true,
+      });
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('loads filesystem extensions from the temporary agent directory when agentDir is omitted', async () => {
+    const session = await createPi({ extensions: true }).doStart({
+      sessionId: 'session-filesystem-extensions-temp-agent-dir',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      expect(piMock.resourceLoaderOptions.at(-1)).toMatchObject({
+        agentDir: expect.stringContaining(
+          '/ai-sdk-harness/pi/session-filesystem-extensions-temp-agent-dir/agent',
+        ),
+        noExtensions: false,
+      });
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('keeps extension-registered tools enabled when creating the Pi session', async () => {
+    piMock.session = createFakePiSession().session;
+    const session = await createPi({ extensions: true }).doStart({
+      sessionId: 'session-filesystem-extension-tools',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [],
+        prompt: 'Use an extension tool.',
+        tools: [],
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      expect(piMock.createAgentSession).toHaveBeenCalledWith(
+        expect.objectContaining({ noTools: 'builtin' }),
+      );
+      expect(
+        piMock.createAgentSession.mock.calls.at(-1)?.[0],
+      ).not.toHaveProperty('tools');
     } finally {
       await session.doDestroy();
     }
