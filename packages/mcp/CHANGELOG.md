@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 1.0.79
+
+### Patch Changes
+
+- 3d2db73: fix(mcp): accept trailing slashes on origin-only OAuth issuers
+
 ## 1.0.78
 
 ### Patch Changes

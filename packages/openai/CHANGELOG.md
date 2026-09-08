@@ -1,5 +1,12 @@
 # @ai-sdk/openai
 
+## 3.0.110
+
+### Patch Changes
+
+- 447ba18: feat(openai): add async tool calling
+- 46c6820: Add `xhigh` and `max` quality support for GPT Image 2.5 Flare and Sunburst in image generation, image editing, and the Responses API image generation tool.
+
 ## 3.0.109
 
 ### Patch Changes
