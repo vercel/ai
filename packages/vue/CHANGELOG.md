@@ -1,5 +1,17 @@
 # @ai-sdk/vue
 
+## 4.0.94
+
+### Patch Changes
+
+- Updated dependencies [a4ba394]
+- Updated dependencies [36b3364]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - ai@7.0.94
+  - @ai-sdk/provider-utils@5.0.37
+
 ## 4.0.93
 
 ### Patch Changes

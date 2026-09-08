@@ -1,5 +1,12 @@
 # @ai-sdk/provider
 
+## 4.0.11
+
+### Patch Changes
+
+- a4ba394: feat: support per-request models in batch
+- 45099da: Retry unclassified empty image results, preserve retry-attempt accounting, add provider-independent result retryability classification, and mark Google and Google Vertex prompt blocks as terminal.
+
 ## 4.0.10
 
 ### Patch Changes

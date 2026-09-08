@@ -37,13 +37,6 @@ export type ClineHarnessSettings = {
    */
   readonly providerId?: string;
   /**
-   * Model id for the configured provider. When omitted, Cline selects the
-   * provider's default model.
-   *
-   * @deprecated Use `model` on `HarnessAgent` instead.
-   */
-  readonly modelId?: string;
-  /**
    * Provider API key. When omitted, the Cline gateway falls back to the
    * provider's environment variable (e.g. `ANTHROPIC_API_KEY`).
    * A record-shaped authentication override disables that fallback.
@@ -194,7 +187,6 @@ export function createCline(
             isHarnessAuthenticationEnvironment(settings.auth),
           ...(settings.mcpServers ? { mcpServers: settings.mcpServers } : {}),
           ...(settings.providerId ? { providerId: settings.providerId } : {}),
-          ...(settings.modelId == null ? {} : { modelId: settings.modelId }),
           ...((settings.apiKey ?? authentication.subscriptionApiKey)
             ? { apiKey: settings.apiKey ?? authentication.subscriptionApiKey }
             : {}),

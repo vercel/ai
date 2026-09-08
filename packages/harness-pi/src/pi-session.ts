@@ -11,7 +11,8 @@ import {
   type Skill,
   type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
-import { mkdir, rm } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { Type } from 'typebox';
@@ -220,7 +221,6 @@ export type PiThinkingLevel =
 export interface PiSessionSettings {
   readonly auth?: PiAuthenticationMode;
   readonly headers?: Readonly<Record<string, string>>;
-  readonly model?: string;
   readonly thinkingLevel?: PiThinkingLevel;
   readonly mcpServers?: Record<string, unknown>;
   readonly extensionFactories?: ReadonlyArray<ExtensionFactory>;
@@ -283,6 +283,36 @@ interface DeferredRerunBarrier {
   readonly cancel: (reason?: unknown) => void;
 }
 
+async function isWorkspaceAvailableOnHost({
+  sandbox,
+  sessionWorkDir,
+}: {
+  sandbox: SandboxSession;
+  sessionWorkDir: string;
+}): Promise<boolean> {
+  // A host path existing at the same location is not enough to prove that it
+  // belongs to the sandbox. Round-trip a unique marker through the sandbox
+  // filesystem API before using the workspace directly.
+  const probePath = path.join(
+    sessionWorkDir,
+    `.ai-sdk-harness-pi-${randomUUID()}`,
+  );
+  const probeContent = randomUUID();
+
+  try {
+    await writeFile(probePath, probeContent, { flag: 'wx' });
+    const sandboxContent = await sandbox.readBinaryFile({ path: probePath });
+    return (
+      sandboxContent != null &&
+      Buffer.from(sandboxContent).equals(Buffer.from(probeContent))
+    );
+  } catch {
+    return false;
+  } finally {
+    await rm(probePath, { force: true }).catch(() => {});
+  }
+}
+
 export async function createPiSession(
   input: CreatePiSessionInput,
 ): Promise<HarnessV1Session> {
@@ -302,28 +332,34 @@ export async function createPiSession(
   // sub-directory tree on disk.
   const safeSessionId = input.sessionId.replace(/[\\/: ]/g, '-');
   const hostRoot = path.join(tmpdir(), 'ai-sdk-harness', 'pi', safeSessionId);
-  const hostWorkDir = path.join(hostRoot, 'workspace');
   const hostAgentDir = path.join(hostRoot, 'agent');
   const hostSessionDir = path.join(hostRoot, 'sessions');
+  const toolSafeSandboxSession = getRestrictedSandboxSession(
+    input.sandboxSession,
+  );
 
   // Pi runs in this host process but must behave as though it lives in the
   // sandbox workspace: its working directory is the real `sessionWorkDir`
   // (where `setup()` clones and where the sandbox-backed tools operate), so the
   // paths Pi advertises to the model — most notably the "Current working
-  // directory" line in its system prompt — resolve inside the sandbox. The
-  // workspace VFS maps that sandbox path to the host-side mirror so Pi's own
-  // `fs`-based resource loading (`.pi/`, `AGENTS.md`) still works on the host.
-  // `sessionWorkDir` is a sandbox path (e.g. `/vercel/sandbox/...`) that does
-  // not exist on the host, so it is a safe, collision-free VFS mount point.
+  // directory" line in its system prompt — resolve inside the sandbox. When
+  // the sandbox filesystem is remote, the workspace VFS maps that sandbox path
+  // to a scoped host mirror for Pi's own `fs`-based resource loading. When the
+  // sandbox and harness share a filesystem, Pi uses the workspace directly so
+  // extensions can inspect project files beyond the scoped resource paths.
   const sessionWorkDir = input.sessionWorkDir;
+  const workspaceAvailableOnHost = await isWorkspaceAvailableOnHost({
+    sandbox: toolSafeSandboxSession,
+    sessionWorkDir,
+  });
+  const hostWorkDir = workspaceAvailableOnHost
+    ? path.resolve(sessionWorkDir)
+    : path.join(hostRoot, 'workspace');
 
   await mkdir(hostWorkDir, { recursive: true });
   await mkdir(hostAgentDir, { recursive: true });
   await mkdir(hostSessionDir, { recursive: true });
 
-  const toolSafeSandboxSession = getRestrictedSandboxSession(
-    input.sandboxSession,
-  );
   const sandboxHomeDir = await resolveSandboxHomeDir({
     sandbox: toolSafeSandboxSession,
     ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
@@ -359,11 +395,13 @@ export async function createPiSession(
 
   // Snapshot sandbox state into the host mirror BEFORE the VFS goes live so
   // Pi sees the workspace as soon as it boots.
-  await syncHostWorkspaceFromSandbox({
-    sandbox: toolSafeSandboxSession,
-    sandboxWorkDir: input.sessionWorkDir,
-    hostWorkDir,
-  });
+  if (!workspaceAvailableOnHost) {
+    await syncHostWorkspaceFromSandbox({
+      sandbox: toolSafeSandboxSession,
+      sandboxWorkDir: input.sessionWorkDir,
+      hostWorkDir,
+    });
+  }
 
   // Mount only the workspace: the model's view of the workspace lives at
   // `sessionWorkDir` and is backed by `hostWorkDir`. The agent and session
@@ -371,7 +409,9 @@ export async function createPiSession(
   // Pi state (auth, model registry, session journal) that must never surface
   // in the sandbox or the workspace mirror.
   const workspaceVfs = new PiWorkspaceVfs();
-  workspaceVfs.mount(hostWorkDir, sessionWorkDir);
+  if (!workspaceAvailableOnHost) {
+    workspaceVfs.mount(hostWorkDir, sessionWorkDir);
+  }
 
   const paths = createPiPathMapper({
     hostWorkDir,
@@ -424,7 +464,7 @@ export async function createPiSession(
     modelRegistry,
     env: resolverEnv,
   });
-  let activeResolvedModel = resolveModel(input.settings.model);
+  let activeResolvedModel = resolveModel();
   const mcpServers = resolvePiMcpServers({
     mcpServers: input.settings.mcpServers,
   });
@@ -1153,11 +1193,13 @@ export async function createPiSession(
           await reloadResourcesOnly();
           turnAbortController.signal.throwIfAborted();
         }
-        await syncHostWorkspaceFromSandbox({
-          sandbox: toolSafeSandboxSession,
-          sandboxWorkDir: input.sessionWorkDir,
-          hostWorkDir,
-        });
+        if (!workspaceAvailableOnHost) {
+          await syncHostWorkspaceFromSandbox({
+            sandbox: toolSafeSandboxSession,
+            sandboxWorkDir: input.sessionWorkDir,
+            hostWorkDir,
+          });
+        }
         turnAbortController.signal.throwIfAborted();
 
         // Fresh translator state for the new turn — keep the tool sets the

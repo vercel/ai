@@ -1,6 +1,7 @@
 import type {
   HarnessV1Authentication,
   HarnessV1CredentialForwarding,
+  HarnessV1MintBridgeTokenCallback,
   HarnessV1PermissionMode,
   HarnessV1RequestTransformation,
   HarnessV1StreamPart,
@@ -220,10 +221,6 @@ export type ACPV1Settings = {
    */
   readonly modelMapping: ACPModelMapping;
   /**
-   * @deprecated Use `model` on `HarnessAgent` instead.
-   */
-  readonly modelId?: string;
-  /**
    * Native skills directory relative to the ACP implementation's home
    * directory. Defaults to `.agents/skills`.
    */
@@ -256,5 +253,5 @@ export type ACPV1Settings = {
    * Creates the authentication token used by the sandbox bridge. Defaults to
    * a random 32-byte hexadecimal token.
    */
-  readonly mintBridgeToken?: (sandboxId: string) => string;
+  readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };

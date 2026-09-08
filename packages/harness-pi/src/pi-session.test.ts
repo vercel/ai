@@ -17,6 +17,16 @@ import {
   type HarnessAgentContinueTurnState,
 } from '@ai-sdk/harness/agent';
 import { tool } from '@ai-sdk/provider-utils';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { z } from 'zod/v4';
 import { createPi } from './pi-harness';
 import { createPiSession } from './pi-session';
@@ -208,6 +218,37 @@ describe('createPiSession', () => {
       expect(factory).toHaveBeenCalledOnce();
     } finally {
       await session.doDestroy();
+    }
+  });
+
+  it('lets inline extensions read a host-backed session workspace', async () => {
+    const sessionWorkDir = mkdtempSync(
+      path.join(tmpdir(), 'pi-host-workspace-'),
+    );
+    const projectFile = path.join(sessionWorkDir, 'graphify-out', 'graph.json');
+    mkdirSync(path.dirname(projectFile), { recursive: true });
+    writeFileSync(projectFile, '{}');
+    const factory = vi.fn(() => {
+      expect(existsSync(projectFile)).toBe(true);
+      expect(readFileSync(projectFile, 'utf8')).toBe('{}');
+    });
+
+    try {
+      const session = await createPi({
+        extensionFactories: [factory],
+      }).doStart({
+        sessionId: 'session-host-workspace-extension',
+        sandboxSession: createSandboxSession({ hostFilesystem: true }),
+        sessionWorkDir,
+      });
+
+      try {
+        expect(factory).toHaveBeenCalledOnce();
+      } finally {
+        await session.doDestroy();
+      }
+    } finally {
+      rmSync(sessionWorkDir, { recursive: true, force: true });
     }
   });
 
@@ -1423,6 +1464,8 @@ function assistantMessageWithToolCalls(
 function createSandboxSession(options?: {
   /** When set, resume-path `readBinaryFile` finds a persisted session file. */
   sessionFileContent?: string;
+  /** When set, file reads use the host filesystem at the same paths. */
+  hostFilesystem?: boolean;
 }): HarnessV1NetworkSandboxSession {
   const textFiles = new Map<string, string>();
   const sandbox = {
@@ -1432,11 +1475,21 @@ function createSandboxSession(options?: {
     destroy: vi.fn(async () => {}),
     getPortEndpoint: vi.fn(),
     getPortUrl: vi.fn(),
-    readBinaryFile: vi.fn(async () =>
-      options?.sessionFileContent != null
+    readBinaryFile: vi.fn(async ({ path }: { path: string }) => {
+      if (options?.hostFilesystem) {
+        try {
+          return new Uint8Array(readFileSync(path));
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+            return undefined;
+          }
+          throw error;
+        }
+      }
+      return options?.sessionFileContent != null
         ? new TextEncoder().encode(options.sessionFileContent)
-        : undefined,
-    ),
+        : undefined;
+    }),
     readTextFile: vi.fn(async ({ path }: { path: string }) =>
       textFiles.get(path),
     ),

@@ -3,6 +3,7 @@ import {
   type HarnessV1,
   type HarnessV1BuiltinTool,
   type HarnessV1CredentialForwarding,
+  type HarnessV1MintBridgeTokenCallback,
   type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
 import {
@@ -56,12 +57,6 @@ export type FxHarnessSettings = {
    */
   readonly credentialForwarding?: HarnessV1CredentialForwarding;
   /**
-   * Model id selected through ACP. Unset preserves fx's default.
-   *
-   * @deprecated Use `model` on `HarnessAgent` instead.
-   */
-  readonly model?: string;
-  /**
    * Overrides the sandbox port used by the ACP bridge.
    */
   readonly port?: number;
@@ -83,7 +78,7 @@ export type FxHarnessSettings = {
    * Creates the authentication token used by the sandbox bridge. Defaults to
    * a random 32-byte hexadecimal token.
    */
-  readonly mintBridgeToken?: (sandboxId: string) => string;
+  readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
 
 const terminalShellSchema = z.looseObject({
@@ -575,7 +570,6 @@ export function createFx(
     resolveAuthenticationEnvironment: resolveFxSubscriptionEnvironment,
     authenticationFiles: createFxSubscriptionAuthenticationFiles,
     credentialForwarding: settings.credentialForwarding,
-    modelId: settings.model,
     port: settings.port,
     portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,

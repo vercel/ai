@@ -9,6 +9,7 @@ import {
   type HarnessV1BuiltinTool,
   type HarnessV1ContinueTurnState,
   type HarnessV1CredentialForwarding,
+  type HarnessV1MintBridgeTokenCallback,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
   type HarnessV1PortEndpoint,
@@ -105,13 +106,6 @@ export type CodexHarnessSettings = {
    */
   readonly mcpServers?: Record<string, unknown>;
   /**
-   * OpenAI model id the underlying `codex` CLI should use. Leaving this unset
-   * pins the adapter default (`DEFAULT_CODEX_MODEL`).
-   *
-   * @deprecated Use `model` on `HarnessAgent` instead.
-   */
-  readonly model?: string;
-  /**
    * Reasoning effort for reasoning-capable models. Leaving this unset
    * defers to the CLI's default.
    */
@@ -138,7 +132,7 @@ export type CodexHarnessSettings = {
    * Creates the authentication token used by the sandbox bridge. Defaults to
    * a random 32-byte hexadecimal token.
    */
-  readonly mintBridgeToken?: (sandboxId: string) => string;
+  readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
 
 /*
@@ -206,7 +200,7 @@ export function createCodex(
     lifecycleStateSchema: codexResumeStateSchema,
     getBootstrap: getCodexBootstrap,
     doStart: async startOpts => {
-      const model = settings.model ?? DEFAULT_CODEX_MODEL;
+      const model = DEFAULT_CODEX_MODEL;
       if (startOpts.builtinToolFiltering != null) {
         throw new HarnessCapabilityUnsupportedError({
           message:
