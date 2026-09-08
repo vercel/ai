@@ -22,7 +22,9 @@ export const imageGenerationArgsSchema = lazySchema(() =>
         outputCompression: z.number().int().min(0).max(100).optional(),
         outputFormat: z.enum(['png', 'jpeg', 'webp']).optional(),
         partialImages: z.number().int().min(0).max(3).optional(),
-        quality: z.enum(['auto', 'low', 'medium', 'high']).optional(),
+        quality: z
+          .enum(['auto', 'low', 'medium', 'high', 'xhigh', 'max'])
+          .optional(),
         size: z
           .enum(['1024x1024', '1024x1536', '1536x1024', 'auto'])
           .optional(),
@@ -92,9 +94,10 @@ type ImageGenerationArgs = {
 
   /**
    * The quality of the generated image.
-   * One of low, medium, high, or auto. Default: auto.
+   * One of low, medium, high, xhigh, max, or auto. Default: auto.
+   * xhigh and max are supported by GPT Image 2.5 models.
    */
-  quality?: 'auto' | 'low' | 'medium' | 'high';
+  quality?: 'auto' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 
   /**
    * The size of the generated image.

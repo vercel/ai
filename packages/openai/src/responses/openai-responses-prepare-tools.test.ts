@@ -1,4 +1,5 @@
 import { ToolNameMapping } from '@ai-sdk/provider-utils';
+import type { imageGeneration } from '../tool/image-generation';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { describe, it, expect } from 'vitest';
 
@@ -550,6 +551,35 @@ describe('prepareResponsesTools', () => {
   });
 
   describe('image generation', () => {
+    describe.each(['gpt-image-2.5-flare', 'gpt-image-2.5-sunburst'])(
+      '%s quality',
+      model => {
+        it.each(['xhigh', 'max'] as const)(
+          'should pass %s quality',
+          async quality => {
+            const result = await prepareResponsesTools({
+              tools: [
+                {
+                  type: 'provider',
+                  id: 'openai.image_generation',
+                  name: 'image_generation',
+                  args: { model, quality } satisfies Parameters<
+                    typeof imageGeneration
+                  >[0],
+                },
+              ],
+              toolChoice: undefined,
+            });
+
+            expect(result.toolWarnings).toEqual([]);
+            expect(result.tools).toMatchObject([
+              { type: 'image_generation', model, quality },
+            ]);
+          },
+        );
+      },
+    );
+
     it('should prepare image_generation tool with all options', async () => {
       const result = await prepareResponsesTools({
         tools: [
