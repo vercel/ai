@@ -94,6 +94,7 @@ import type {
   ResponsesReasoningProviderMetadata,
   ResponsesSourceDocumentProviderMetadata,
   ResponsesTextProviderMetadata,
+  ResponsesToolCallProviderMetadata,
 } from './openai-responses-provider-metadata';
 
 /**
@@ -367,6 +368,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       toolNameMapping,
       customProviderToolNames,
       outputSchemaToolNames,
+      supportsAsyncToolCalling: modelCapabilities.supportsAsyncToolCalling,
     });
 
     const { input, warnings: inputWarnings } =
@@ -1069,6 +1071,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             providerMetadata: {
               [providerOptionsName]: {
                 itemId: part.id,
+                ...(part.async != null && { async: part.async }),
                 ...(part.namespace != null && { namespace: part.namespace }),
                 ...(part.caller != null && {
                   caller:
@@ -1079,7 +1082,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                         }
                       : part.caller,
                 }),
-              },
+              } satisfies ResponsesToolCallProviderMetadata,
             },
           });
           break;
@@ -1138,7 +1141,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             providerMetadata: {
               [providerOptionsName]: {
                 itemId: part.id,
-              },
+                ...(part.async != null && { async: part.async }),
+              } satisfies ResponsesToolCallProviderMetadata,
             },
           });
           break;
@@ -1485,6 +1489,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
           toolSearchExecution?: 'server' | 'client';
           suppressInputStreaming?: boolean;
           bufferedInputDeltas?: string[];
+          async?: boolean | null;
         }
       | undefined
     > = {};
@@ -1578,6 +1583,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   toolCallId: value.item.call_id,
                   suppressInputStreaming,
                   bufferedInputDeltas: suppressInputStreaming ? [] : undefined,
+                  async: value.item.async,
                 };
 
                 if (!suppressInputStreaming) {
@@ -1594,6 +1600,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 ongoingToolCalls[value.output_index] = {
                   toolName,
                   toolCallId: value.item.call_id,
+                  async: value.item.async,
                 };
 
                 controller.enqueue({
@@ -1884,6 +1891,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                     providerMetadata: {
                       [providerOptionsName]: {
                         itemId: item.id,
+                        ...(item.async != null
+                          ? { async: item.async }
+                          : ongoingToolCall?.async != null
+                            ? { async: ongoingToolCall.async }
+                            : {}),
                         ...(item.namespace != null && {
                           namespace: item.namespace,
                         }),
@@ -1896,7 +1908,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                                 }
                               : item.caller,
                         }),
-                      },
+                      } satisfies ResponsesToolCallProviderMetadata,
                     },
                   });
                 };
@@ -1979,6 +1991,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   },
                 });
               } else if (value.item.type === 'custom_tool_call') {
+                const ongoingToolCall = ongoingToolCalls[value.output_index];
                 ongoingToolCalls[value.output_index] = undefined;
                 hasFunctionCall = true;
                 const toolName = toolNameMapping.toCustomToolName(
@@ -1998,7 +2011,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   providerMetadata: {
                     [providerOptionsName]: {
                       itemId: value.item.id,
-                    },
+                      ...(value.item.async != null
+                        ? { async: value.item.async }
+                        : ongoingToolCall?.async != null
+                          ? { async: ongoingToolCall.async }
+                          : {}),
+                    } satisfies ResponsesToolCallProviderMetadata,
                   },
                 });
               } else if (value.item.type === 'web_search_call') {
