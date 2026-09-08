@@ -22,7 +22,7 @@ import {
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { ServerResponse } from 'node:http';
-import { NoOutputGeneratedError } from '../error';
+import { NoOutputGeneratedError, ToolChoiceViolationError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { cloneModelMessages } from '../prompt/clone-model-message';
@@ -2578,6 +2578,8 @@ class DefaultStreamTextResult<
                   callbacks: onChunk,
                 });
                 const error = wrapGatewayError(value.error);
+                const isToolChoiceViolation =
+                  ToolChoiceViolationError.isInstance(error);
                 let onErrorResult: unknown;
                 try {
                   onErrorResult = await onError({ error });
@@ -2589,8 +2591,10 @@ class DefaultStreamTextResult<
                   'retry' in onErrorResult &&
                   onErrorResult.retry === true;
                 const automaticRetry =
+                  !isToolChoiceViolation &&
                   automaticStreamRetryCount < streamRetries;
                 const callbackRetry =
+                  !isToolChoiceViolation &&
                   !automaticRetry &&
                   callbackRequestedRetry &&
                   callbackStreamRetryCount < 1;
