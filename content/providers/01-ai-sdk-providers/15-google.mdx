@@ -1071,8 +1071,9 @@ The following Zod features are known to not work with Google:
   Batch support is experimental and the API may change in patch releases.
 </Note>
 
-[Gemini Batch API](https://ai.google.dev/gemini-api/docs/batch-api). Pass the
-Google provider to the AI SDK's [Batch](/docs/ai-sdk-core/batch)
+The Google provider supports asynchronous text generation through the [Gemini
+Batch API](https://ai.google.dev/gemini-api/docs/batch-api). Pass the Google
+provider to the AI SDK's [Batch](/docs/ai-sdk-core/batch)
 API for the complete workflow, including polling, persistence, and result handling.
 
 Each request specifies its `type` and `model`. Google requires every text
