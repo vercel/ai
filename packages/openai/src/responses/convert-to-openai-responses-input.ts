@@ -44,12 +44,14 @@ function isFileId(data: string, prefixes?: readonly string[]): boolean {
 export async function convertToOpenAIResponsesInput({
   prompt,
   systemMessageMode,
+  explicitMessageItemType = false,
   fileIdPrefixes,
   store,
   hasLocalShellTool = false,
 }: {
   prompt: LanguageModelV2Prompt;
   systemMessageMode: 'system' | 'developer' | 'remove';
+  explicitMessageItemType?: boolean;
   fileIdPrefixes?: readonly string[];
   store: boolean;
   hasLocalShellTool?: boolean;
@@ -68,6 +70,7 @@ export async function convertToOpenAIResponsesInput({
             const promptCacheBreakpoint =
               getPromptCacheBreakpoint(providerOptions);
             input.push({
+              ...(explicitMessageItemType && { type: 'message' as const }),
               role: 'system',
               content:
                 promptCacheBreakpoint == null
@@ -86,6 +89,7 @@ export async function convertToOpenAIResponsesInput({
             const promptCacheBreakpoint =
               getPromptCacheBreakpoint(providerOptions);
             input.push({
+              ...(explicitMessageItemType && { type: 'message' as const }),
               role: 'developer',
               content:
                 promptCacheBreakpoint == null
@@ -119,6 +123,7 @@ export async function convertToOpenAIResponsesInput({
 
       case 'user': {
         input.push({
+          ...(explicitMessageItemType && { type: 'message' as const }),
           role: 'user',
           content: content.map((part, index) => {
             switch (part.type) {
@@ -218,6 +223,7 @@ export async function convertToOpenAIResponsesInput({
               }
 
               input.push({
+                ...(explicitMessageItemType && { type: 'message' as const }),
                 role: 'assistant',
                 content: [{ type: 'output_text', text: part.text }],
                 id,
