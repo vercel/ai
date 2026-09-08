@@ -4,6 +4,7 @@ export type {
   HarnessV1AuthenticationEnvironment,
 } from './harness-authentication';
 export type { HarnessV1CredentialForwarding } from './harness-v1-credential-forwarding';
+export type { HarnessV1MintBridgeTokenCallback } from './harness-v1-mint-bridge-token';
 export type {
   HarnessV1Bootstrap,
   HarnessV1BootstrapCommand,

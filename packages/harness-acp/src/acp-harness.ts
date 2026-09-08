@@ -2,6 +2,7 @@ import {
   HARNESS_V1_BUILTIN_TOOLS,
   type HarnessV1,
   type HarnessV1CredentialForwarding,
+  type HarnessV1MintBridgeTokenCallback,
   type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
 import type { ToolSet } from '@ai-sdk/provider-utils';
@@ -82,7 +83,7 @@ export type ACPHarnessSettings<
   readonly askUserQuestions?: TAskUserQuestions;
   readonly permissionModeMapping?: ACPV1Settings['permissionModeMapping'];
   readonly session?: ACPV1Settings['session'];
-  readonly mintBridgeToken?: ACPV1Settings['mintBridgeToken'];
+  readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
 
 const ACP_BUILTIN_TOOLS = {} as const satisfies ToolSet;

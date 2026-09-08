@@ -9,6 +9,7 @@
 "@ai-sdk/harness-acp": patch
 "@ai-sdk/harness-fx": patch
 "@ai-sdk/harness-pi": patch
+"@ai-sdk/harness": patch
 ---
 
 chore(harness): remove formerly deprecated `model` and `modelId` config on harness adapter settings

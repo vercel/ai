@@ -277,7 +277,7 @@
                   "type": "object",
                   "properties": {
                     "credentialForwarding": "HarnessV1CredentialForwarding",
-                    "mintBridgeToken": "(sandboxId: string) => string",
+                    "mintBridgeToken": "HarnessV1MintBridgeTokenCallback",
                     "port": { "type": "number" },
                     "portEndpoint": "HarnessV1PortEndpoint",
                     "startupTimeoutMs": { "type": "number" }
@@ -305,7 +305,7 @@
                   "type": "object",
                   "properties": {
                     "credentialForwarding": "HarnessV1CredentialForwarding",
-                    "mintBridgeToken": "(sandboxId: string) => string",
+                    "mintBridgeToken": "HarnessV1MintBridgeTokenCallback",
                     "port": { "type": "number" },
                     "portEndpoint": "HarnessV1PortEndpoint",
                     "startupTimeoutMs": { "type": "number" }
