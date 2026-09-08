@@ -110,8 +110,9 @@ type ImageGenerationArgs = {
 
   /**
    * The size of the generated image.
-   * One of 1024x1024, 1024x1536, 1536x1024, or auto. gpt-image-2 also accepts
-   * arbitrary WIDTHxHEIGHT sizes where both are divisible by 16, e.g. 1536x864.
+   * One of 1024x1024, 1024x1536, 1536x1024, or auto. GPT Image 2 and 2.5
+   * models also accept arbitrary WIDTHxHEIGHT sizes where both are divisible
+   * by 16, e.g. 1536x864.
    * Default: auto.
    */
   size?: 'auto' | '1024x1024' | '1024x1536' | '1536x1024' | (string & {});
