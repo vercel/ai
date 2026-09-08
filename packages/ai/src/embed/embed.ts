@@ -2,6 +2,11 @@ import {
   type ProviderOptions,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
+<<<<<<< HEAD
+=======
+import { InvalidResponseDataError } from '../error';
+import { logWarnings } from '../logger/log-warnings';
+>>>>>>> 27f6d7afbe (fix: reject empty embedding model responses instead of returning undefined (#20358))
 import { resolveEmbeddingModel } from '../model/resolve-model';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
@@ -150,6 +155,13 @@ Only applicable for HTTP-based providers.
                 },
               }),
             );
+
+            if (embedding == null) {
+              throw new InvalidResponseDataError({
+                data: modelResponse.embeddings,
+                message: 'No embedding generated.',
+              });
+            }
 
             return {
               embedding,
