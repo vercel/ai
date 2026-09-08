@@ -57,6 +57,103 @@ const result = await generateText({
 });
 ```
 
+### ToolLoopAgent
+
+You can test a `ToolLoopAgent` with `MockLanguageModelV4` without calling a
+language model provider. This Vitest example simulates a tool call followed by a
+text response and verifies that the agent passes the tool result to the model.
+
+```ts
+import { ToolLoopAgent, tool } from 'ai';
+import { MockLanguageModelV4 } from 'ai/test';
+import { expect, it, vi } from 'vitest';
+import { z } from 'zod/v4';
+
+it('executes a weather tool and returns a final response', async () => {
+  const execute = vi.fn(async (_input: { city: string }) => ({
+    temperature: 15,
+  }));
+  let modelCallCount = 0;
+  const usage = {
+    inputTokens: {
+      total: 10,
+      noCache: 10,
+      cacheRead: undefined,
+      cacheWrite: undefined,
+    },
+    outputTokens: {
+      total: 20,
+      text: 20,
+      reasoning: undefined,
+    },
+  };
+
+  const model = new MockLanguageModelV4({
+    doGenerate: async () => {
+      modelCallCount++;
+
+      if (modelCallCount === 1) {
+        return {
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'weather',
+              input: '{"city":"London"}',
+            },
+          ],
+          finishReason: { unified: 'tool-calls', raw: undefined },
+          usage,
+          warnings: [],
+        };
+      }
+
+      return {
+        content: [{ type: 'text', text: 'The weather in London is 15°C.' }],
+        finishReason: { unified: 'stop', raw: undefined },
+        usage,
+        warnings: [],
+      };
+    },
+  });
+
+  const agent = new ToolLoopAgent({
+    model,
+    tools: {
+      weather: tool({
+        description: 'Get the temperature in a city.',
+        inputSchema: z.object({ city: z.string() }),
+        execute,
+      }),
+    },
+  });
+
+  const result = await agent.generate({
+    prompt: 'What is the weather in London?',
+  });
+
+  expect(execute).toHaveBeenCalledTimes(1);
+  expect(execute.mock.calls[0][0]).toEqual({ city: 'London' });
+  expect(model.doGenerateCalls).toHaveLength(2);
+  expect(model.doGenerateCalls[1].prompt).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        role: 'tool',
+        content: expect.arrayContaining([
+          expect.objectContaining({
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            output: { type: 'json', value: { temperature: 15 } },
+          }),
+        ]),
+      }),
+    ]),
+  );
+  expect(result.text).toBe('The weather in London is 15°C.');
+});
+```
+
 ### streamText
 
 ```ts
