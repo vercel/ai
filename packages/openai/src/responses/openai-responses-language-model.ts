@@ -321,7 +321,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       warnings.push({
         type: 'unsupported',
         feature: 'reasoningEffort',
-        details: `${this.modelId} only supports the following reasoning efforts: ${modelCapabilities.supportedReasoningEfforts.join(', ')}`,
+        details: `${modelId} only supports the following reasoning efforts: ${modelCapabilities.supportedReasoningEfforts.join(', ')}`,
       });
       resolvedReasoningEffort = undefined;
     }
