@@ -1,17 +1,6 @@
-<<<<<<< HEAD
 import type {
   ImageModelV2,
   ImageModelV2ProviderMetadata,
-=======
-import {
-  isJSONObject,
-  type ImageModelV4,
-  type ImageModelV4CallOptions,
-  type ImageModelV4File,
-  type ImageModelV4ProviderMetadata,
-  type ImageModelV4Result,
-  type JSONObject,
->>>>>>> 45099daf24 (fix: generateImage maxRetries skips transient empty image results (#20170))
 } from '@ai-sdk/provider';
 import {
   type ProviderOptions,
@@ -23,7 +12,7 @@ import {
   imageMediaTypeSignatures,
 } from '../util/detect-media-type';
 import { prepareRetries } from '../util/prepare-retries';
-<<<<<<< HEAD
+import { RetryError } from '../util/retry-error';
 import {
   type GeneratedFile,
   DefaultGeneratedFile,
@@ -34,6 +23,15 @@ import type { GenerateImageResult } from './generate-image-result';
 import { logWarnings } from '../logger/log-warnings';
 import { VERSION } from '../version';
 import { resolveImageModel } from '../model/resolve-model';
+
+type ImageModelV2Result = Awaited<ReturnType<ImageModelV2['doGenerate']>>;
+
+class RetryableNoImageResultError extends Error {
+  constructor() {
+    super('No image generated.');
+    this.name = 'RetryableNoImageResultError';
+  }
+}
 
 /**
 Generates images using an image model.
@@ -46,68 +44,11 @@ Generates images using an image model.
 @param seed - Seed for the image generation.
 @param providerOptions - Additional provider-specific options that are passed through to the provider
 as body parameters.
-@param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
+@param maxRetries - Maximum number of retries per image model call, including retries after unclassified empty responses. Empty responses marked as not retryable by the provider are not retried. Set to 0 to disable retries. Default: 2.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
 @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
 @returns A result object that contains the generated images.
-=======
-import { RetryError } from '../util/retry-error';
-import { VERSION } from '../version';
-import type {
-  GenerateImageCall,
-  GenerateImageResult,
-} from './generate-image-result';
-import { convertDataContentToUint8Array } from '../prompt/data-content';
-import { splitDataUrl } from '../prompt/split-data-url';
-
-const gatewayCostMetadataKeys = [
-  'cost',
-  'gatewayCost',
-  'inferenceCost',
-  'inputInferenceCost',
-  'marketCost',
-  'outputInferenceCost',
-  'surchargeCost',
-] as const;
-
-type GatewayCostMetadata = {
-  [key in (typeof gatewayCostMetadataKeys)[number]]?: unknown;
-};
-
-class RetryableNoImageResultError extends Error {
-  constructor() {
-    super('No image generated.');
-    this.name = 'RetryableNoImageResultError';
-  }
-}
-
-export type GenerateImagePrompt =
-  | string
-  | {
-      images: Array<DataContent>;
-      text?: string;
-      mask?: DataContent;
-    };
-
-/**
- * Generates images using an image model.
- *
- * @param model - The image model to use.
- * @param prompt - The prompt that should be used to generate the image.
- * @param n - Number of images to generate. Default: 1.
- * @param maxImagesPerCall - Maximum number of images to generate in a single API call.
- * @param size - Size of the images to generate. Must have the format `{width}x{height}`.
- * @param aspectRatio - Aspect ratio of the images to generate. Must have the format `{width}:{height}`.
- * @param seed - Seed for the image generation.
- * @param providerOptions - Additional provider-specific options that are passed through to the provider
- * as body parameters.
- * @param maxRetries - Maximum number of retries per image model call, including retries after unclassified empty responses. Empty responses marked as not retryable by the provider are not retried. Set to 0 to disable retries. Default: 2.
- * @param abortSignal - An optional abort signal that can be used to cancel the call.
- * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
- *
- * @returns A result object that contains the generated images.
->>>>>>> 45099daf24 (fix: generateImage maxRetries skips transient empty image results (#20170))
  */
 export async function generateImage({
   model: modelArg,
@@ -174,17 +115,11 @@ record is keyed by the provider-specific metadata key.
   providerOptions?: ProviderOptions;
 
   /**
-<<<<<<< HEAD
-Maximum number of retries per embedding model call. Set to 0 to disable retries.
+Maximum number of retries per image model call, including retries after
+unclassified empty responses. Empty responses marked as not retryable by the
+provider are not retried. Set to 0 to disable retries.
 
 @default 2
-=======
-   * Maximum number of retries per image model call, including retries after
-   * unclassified empty responses. Empty responses marked as not retryable by
-   * the provider are not retried. Set to 0 to disable retries.
-   *
-   * @default 2
->>>>>>> 45099daf24 (fix: generateImage maxRetries skips transient empty image results (#20170))
    */
   maxRetries?: number;
 
@@ -229,35 +164,14 @@ Only applicable for HTTP-based providers.
     return remainder === 0 ? maxImagesPerCallWithDefault : remainder;
   });
 
-<<<<<<< HEAD
-  const results = await Promise.all(
-    callImageCounts.map(async callImageCount =>
-      retry(() =>
-        model.doGenerate({
-          prompt,
-          n: callImageCount,
-          abortSignal,
-          headers: headersWithUserAgent,
-          size,
-          aspectRatio,
-          seed,
-          providerOptions: providerOptions ?? {},
-        }),
-      ),
-    ),
-=======
   const resultGroups = await Promise.all(
     callImageCounts.map(async callImageCount => {
-      const callResults: Array<ImageModelV4Result> = [];
+      const callResults: Array<ImageModelV2Result> = [];
 
       try {
         await retry(async () => {
-          const { prompt, files, mask } = normalizePrompt(promptArg);
-
           const result = await model.doGenerate({
             prompt,
-            files,
-            mask,
             n: callImageCount,
             abortSignal,
             headers: headersWithUserAgent,
@@ -293,7 +207,6 @@ Only applicable for HTTP-based providers.
         throw error;
       }
     }),
->>>>>>> 45099daf24 (fix: generateImage maxRetries skips transient empty image results (#20170))
   );
   const results = resultGroups.flat();
 

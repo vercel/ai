@@ -89,17 +89,10 @@ export class GoogleVertexImageModel implements ImageModelV2 {
     });
 
     return {
-<<<<<<< HEAD
       images:
         response.predictions?.map(
           ({ bytesBase64Encoded }) => bytesBase64Encoded,
         ) ?? [],
-=======
-      images,
-      ...(result.finishReason.unified === 'content-filter'
-        ? { isRetryable: false }
-        : {}),
->>>>>>> 45099daf24 (fix: generateImage maxRetries skips transient empty image results (#20170))
       warnings,
       response: {
         timestamp: currentDate,

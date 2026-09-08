@@ -1,14 +1,7 @@
 import type {
-<<<<<<< HEAD
   ImageModelV2,
   ImageModelV2CallWarning,
   ImageModelV2ProviderMetadata,
-=======
-  ImageModelV4,
-  ImageModelV4ProviderMetadata,
-  ImageModelV4Result,
-  ImageModelV4Usage,
->>>>>>> 45099daf24 (fix: generateImage maxRetries skips transient empty image results (#20170))
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
@@ -50,8 +43,7 @@ const createMockResponse = (options: {
   modelId?: string;
   providerMetaData?: ImageModelV2ProviderMetadata;
   headers?: Record<string, string>;
-  usage?: ImageModelV4Usage;
-  isRetryable?: ImageModelV4Result['isRetryable'];
+  isRetryable?: boolean;
 }) => ({
   images: options.images,
   isRetryable: options.isRetryable,
@@ -66,7 +58,6 @@ const createMockResponse = (options: {
     modelId: options.modelId ?? 'test-model-id',
     headers: options.headers ?? {},
   },
-  usage: options.usage,
 });
 
 describe('generateImage', () => {
@@ -552,13 +543,19 @@ describe('generateImage', () => {
         const secondTimestamp = new Date('2024-01-02T00:00:00.000Z');
 
         const resultPromise = generateImage({
-          model: new MockImageModelV4({
+          model: new MockImageModelV2({
             doGenerate: async () => {
               callCount += 1;
 
               return callCount === 1
                 ? createMockResponse({
                     images: [],
+                    warnings: [
+                      {
+                        type: 'other',
+                        message: 'First attempt returned no images.',
+                      },
+                    ],
                     timestamp: firstTimestamp,
                     modelId: 'empty-attempt-model',
                     providerMetaData: {
@@ -567,14 +564,15 @@ describe('generateImage', () => {
                         attempt: 'empty',
                       },
                     },
-                    usage: {
-                      inputTokens: 10,
-                      outputTokens: 0,
-                      totalTokens: 10,
-                    },
                   })
                 : createMockResponse({
                     images: [pngBase64],
+                    warnings: [
+                      {
+                        type: 'other',
+                        message: 'Second attempt returned an image.',
+                      },
+                    ],
                     timestamp: secondTimestamp,
                     modelId: 'successful-attempt-model',
                     providerMetaData: {
@@ -582,11 +580,6 @@ describe('generateImage', () => {
                         images: [{ attempt: 'success' }],
                         attempt: 'success',
                       },
-                    },
-                    usage: {
-                      inputTokens: 20,
-                      outputTokens: 1,
-                      totalTokens: 21,
                     },
                   });
             },
@@ -601,42 +594,14 @@ describe('generateImage', () => {
 
         expect(callCount).toBe(2);
         expect(result.images).toHaveLength(1);
-        expect(result.calls).toMatchObject([
+        expect(result.warnings).toStrictEqual([
           {
-            images: [],
-            providerMetadata: {
-              testProvider: {
-                images: [],
-                attempt: 'empty',
-              },
-            },
-            response: {
-              timestamp: firstTimestamp,
-              modelId: 'empty-attempt-model',
-            },
-            usage: {
-              inputTokens: 10,
-              outputTokens: 0,
-              totalTokens: 10,
-            },
+            type: 'other',
+            message: 'First attempt returned no images.',
           },
           {
-            images: [expect.anything()],
-            providerMetadata: {
-              testProvider: {
-                images: [{ attempt: 'success' }],
-                attempt: 'success',
-              },
-            },
-            response: {
-              timestamp: secondTimestamp,
-              modelId: 'successful-attempt-model',
-            },
-            usage: {
-              inputTokens: 20,
-              outputTokens: 1,
-              totalTokens: 21,
-            },
+            type: 'other',
+            message: 'Second attempt returned an image.',
           },
         ]);
         expect(result.responses).toStrictEqual([
@@ -651,10 +616,10 @@ describe('generateImage', () => {
             headers: {},
           },
         ]);
-        expect(result.usage).toStrictEqual({
-          inputTokens: 30,
-          outputTokens: 1,
-          totalTokens: 31,
+        expect(result.providerMetadata).toStrictEqual({
+          testProvider: {
+            images: [{ attempt: 'success' }],
+          },
         });
       } finally {
         vi.useRealTimers();
@@ -666,7 +631,7 @@ describe('generateImage', () => {
 
       await expect(
         generateImage({
-          model: new MockImageModelV4({
+          model: new MockImageModelV2({
             doGenerate: async () => {
               callCount += 1;
 
@@ -707,7 +672,7 @@ describe('generateImage', () => {
         const secondTimestamp = new Date('2024-01-02T00:00:00.000Z');
 
         const resultPromise = generateImage({
-          model: new MockImageModelV4({
+          model: new MockImageModelV2({
             doGenerate: async () => {
               callCount += 1;
 
@@ -770,68 +735,6 @@ describe('generateImage', () => {
       });
     });
 
-<<<<<<< HEAD
-=======
-    it('should preserve per-call diagnostics when no images are returned', async () => {
-      const providerMetadata = {
-        google: {
-          images: [],
-          promptFeedback: {
-            blockReason: 'SAFETY',
-          },
-        },
-      };
-      const warnings = [
-        {
-          type: 'other' as const,
-          message: 'prompt was blocked',
-        },
-      ];
-      const usage = {
-        inputTokens: 7,
-        outputTokens: 0,
-        totalTokens: 7,
-      };
-
-      await expect(
-        generateImage({
-          model: new MockImageModelV4({
-            doGenerate: async () => ({
-              ...createMockResponse({
-                images: [],
-                isRetryable: false,
-                providerMetaData: providerMetadata,
-                timestamp: testDate,
-                headers: {
-                  'x-request-id': 'request-id',
-                },
-                warnings,
-              }),
-              usage,
-            }),
-          }),
-          prompt,
-        }),
-      ).rejects.toMatchObject({
-        calls: [
-          {
-            images: [],
-            providerMetadata,
-            response: {
-              timestamp: testDate,
-              modelId: expect.any(String),
-              headers: {
-                'x-request-id': 'request-id',
-              },
-            },
-            warnings,
-            usage,
-          },
-        ],
-      });
-    });
-
->>>>>>> 45099daf24 (fix: generateImage maxRetries skips transient empty image results (#20170))
     it('should include response headers in error when no images generated', async () => {
       await expect(
         generateImage({

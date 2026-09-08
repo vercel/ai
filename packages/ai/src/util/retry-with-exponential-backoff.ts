@@ -1,14 +1,6 @@
 import { APICallError } from '@ai-sdk/provider';
 import { GatewayError } from '@ai-sdk/gateway';
-<<<<<<< HEAD
 import { delay, getErrorMessage, isAbortError } from '@ai-sdk/provider-utils';
-=======
-import {
-  retryWithExponentialBackoff,
-  type RetryFunction,
-  type ShouldRetryFunction,
-} from '@ai-sdk/provider-utils';
->>>>>>> 45099daf24 (fix: generateImage maxRetries skips transient empty image results (#20170))
 import { RetryError } from './retry-error';
 
 export type RetryFunction = <OUTPUT>(
@@ -70,18 +62,19 @@ The `retryWithExponentialBackoffRespectingRetryHeaders` strategy retries a faile
 while respecting rate limit headers (retry-after-ms and retry-after) if they are provided and reasonable (0-60 seconds).
 You can configure the maximum number of retries, the initial delay, and the backoff factor.
  */
-<<<<<<< HEAD
 export const retryWithExponentialBackoffRespectingRetryHeaders =
   ({
     maxRetries = 2,
     initialDelayInMs = 2000,
     backoffFactor = 2,
     abortSignal,
+    additionalRetryableError,
   }: {
     maxRetries?: number;
     initialDelayInMs?: number;
     backoffFactor?: number;
     abortSignal?: AbortSignal;
+    additionalRetryableError?: (error: unknown) => boolean;
   } = {}): RetryFunction =>
   async <OUTPUT>(f: () => PromiseLike<OUTPUT>) =>
     _retryWithExponentialBackoff(f, {
@@ -89,37 +82,23 @@ export const retryWithExponentialBackoffRespectingRetryHeaders =
       delayInMs: initialDelayInMs,
       backoffFactor,
       abortSignal,
+      additionalRetryableError,
     });
 
 async function _retryWithExponentialBackoff<OUTPUT>(
   f: () => PromiseLike<OUTPUT>,
   {
-=======
-export const retryWithExponentialBackoffRespectingRetryHeaders = ({
-  maxRetries = 2,
-  initialDelayInMs = 2000,
-  backoffFactor = 2,
-  abortSignal,
-  additionalRetryableError,
-}: {
-  maxRetries?: number;
-  initialDelayInMs?: number;
-  backoffFactor?: number;
-  abortSignal?: AbortSignal;
-  additionalRetryableError?: ShouldRetryFunction;
-} = {}): RetryFunction =>
-  retryWithExponentialBackoff({
->>>>>>> 45099daf24 (fix: generateImage maxRetries skips transient empty image results (#20170))
     maxRetries,
     delayInMs,
     backoffFactor,
     abortSignal,
-<<<<<<< HEAD
+    additionalRetryableError,
   }: {
     maxRetries: number;
     delayInMs: number;
     backoffFactor: number;
     abortSignal: AbortSignal | undefined;
+    additionalRetryableError: ((error: unknown) => boolean) | undefined;
   },
   errors: unknown[] = [],
 ): Promise<OUTPUT> {
@@ -147,9 +126,10 @@ export const retryWithExponentialBackoffRespectingRetryHeaders = ({
     }
 
     if (
-      error instanceof Error &&
-      ((APICallError.isInstance(error) && error.isRetryable === true) ||
-        (GatewayError.isInstance(error) && error.isRetryable === true)) &&
+      ((error instanceof Error &&
+        ((APICallError.isInstance(error) && error.isRetryable === true) ||
+          (GatewayError.isInstance(error) && error.isRetryable === true))) ||
+        additionalRetryableError?.(error) === true) &&
       tryNumber <= maxRetries
     ) {
       await delay(
@@ -167,6 +147,7 @@ export const retryWithExponentialBackoffRespectingRetryHeaders = ({
           delayInMs: backoffFactor * delayInMs,
           backoffFactor,
           abortSignal,
+          additionalRetryableError,
         },
         newErrors,
       );
@@ -183,19 +164,3 @@ export const retryWithExponentialBackoffRespectingRetryHeaders = ({
     });
   }
 }
-=======
-    shouldRetry: async error =>
-      (error instanceof Error &&
-        ((APICallError.isInstance(error) && error.isRetryable === true) ||
-          (GatewayError.isInstance(error) && error.isRetryable === true))) ||
-      (additionalRetryableError != null &&
-        (await additionalRetryableError(error))),
-    getDelayInMs: ({ error, exponentialBackoffDelay }) =>
-      getRetryDelayInMs({
-        error: error as APICallError | GatewayError,
-        exponentialBackoffDelay,
-      }),
-    createRetryError: ({ message, reason, errors }) =>
-      new RetryError({ message, reason, errors }),
-  });
->>>>>>> 45099daf24 (fix: generateImage maxRetries skips transient empty image results (#20170))
