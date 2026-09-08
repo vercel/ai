@@ -317,6 +317,9 @@ export class GoogleVertexImageModel implements ImageModelV3 {
 
     return {
       images,
+      ...(result.finishReason.unified === 'content-filter'
+        ? { isRetryable: false }
+        : {}),
       warnings,
       providerMetadata: {
         vertex: {

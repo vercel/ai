@@ -984,8 +984,53 @@ describe('GoogleVertexImageModel (Gemini)', () => {
       expect(result.images).toStrictEqual(['base64-generated-image']);
     });
 
+<<<<<<< HEAD
     it('should send correct request body with responseModalities', async () => {
       prepareGeminiJsonResponse();
+=======
+    it('should classify prompt blocks as terminal', async () => {
+      server.urls[TEST_URL].response = {
+        type: 'json-value',
+        body: {
+          promptFeedback: {
+            blockReason: 'PROHIBITED_CONTENT',
+          },
+          usageMetadata: {
+            promptTokenCount: 9,
+            totalTokenCount: 9,
+          },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: 'A blocked image prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.images).toEqual([]);
+      expect(result.isRetryable).toBe(false);
+      expect(server.calls).toHaveLength(1);
+    });
+
+    it('should send response modalities, aspect ratio, seed, and headers', async () => {
+      prepareJsonResponse({});
+      const modelWithHeaders = new GoogleVertexImageModel(
+        'gemini-2.5-flash-image',
+        {
+          provider: 'google.vertex.image',
+          baseURL: 'https://api.example.com',
+          headers: {
+            'Custom-Provider-Header': 'provider-header-value',
+          },
+        },
+      );
+>>>>>>> 45099daf24 (fix: generateImage maxRetries skips transient empty image results (#20170))
 
       await geminiModel.doGenerate({
         prompt: 'A beautiful sunset',
