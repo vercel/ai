@@ -319,6 +319,7 @@ export function createAzure(
       url,
       headers: getHeaders,
       fetch,
+      explicitMessageItemType: isFoundryProject,
       fileIdPrefixes: ['assistant-'],
     });
 

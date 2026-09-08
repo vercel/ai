@@ -256,6 +256,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             ? 'developer'
             : modelCapabilities.systemMessageMode),
         providerOptionsName,
+        explicitMessageItemType: this.config.explicitMessageItemType,
         fileIdPrefixes: this.config.fileIdPrefixes,
         passThroughUnsupportedFiles:
           openaiOptions?.passThroughUnsupportedFiles ?? false,
