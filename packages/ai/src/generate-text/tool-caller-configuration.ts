@@ -1,8 +1,10 @@
 import {
   experimental_getToolCaller,
   type Experimental_ToolCallerTool,
+  type ModelMessage,
   type Tool,
   type ToolSet,
+  type UserModelMessage,
 } from '@ai-sdk/provider-utils';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 
@@ -86,14 +88,20 @@ export function prepareToolsForToolCallers({
 }): {
   executionTools: ToolSet | undefined;
   modelTools: ToolSet | undefined;
+  toolCallerMessages: UserModelMessage[];
 } {
   if (tools == null || toolCallers == null) {
-    return { executionTools: tools, modelTools: tools };
+    return {
+      executionTools: tools,
+      modelTools: tools,
+      toolCallerMessages: [],
+    };
   }
 
   const executionTools: ToolSet = { ...tools };
   const modelTools: ToolSet = { ...tools };
   const localToolsByCaller = new Map<string, ToolSet>();
+  const toolCallerMessages: UserModelMessage[] = [];
 
   for (const [toolName, callerNames] of Object.entries(toolCallers)) {
     const tool = executionTools[toolName];
@@ -146,13 +154,53 @@ export function prepareToolsForToolCallers({
       continue;
     }
 
-    const boundCaller = caller.bind(localToolsByCaller.get(callerName) ?? {});
+    const callerTools = localToolsByCaller.get(callerName) ?? {};
+    const boundCaller = caller.bind(callerTools);
     executionTools[callerName] = boundCaller;
 
     if (Object.prototype.hasOwnProperty.call(modelTools, callerName)) {
-      modelTools[callerName] = boundCaller;
+      if (caller.prepareModelMessage == null) {
+        modelTools[callerName] = boundCaller;
+      } else {
+        const content = caller.prepareModelMessage(callerTools);
+        if (content != null) {
+          toolCallerMessages.push({ role: 'user', content });
+        }
+      }
     }
   }
 
-  return { executionTools, modelTools };
+  return { executionTools, modelTools, toolCallerMessages };
+}
+
+export function appendToolCallerMessages({
+  messages,
+  toolCallerMessages,
+}: {
+  messages: ModelMessage[];
+  toolCallerMessages: UserModelMessage[];
+}): ModelMessage[] {
+  if (toolCallerMessages.length === 0) {
+    return messages;
+  }
+
+  const existingUserText = new Set(
+    messages.flatMap(message =>
+      message.role === 'user' && typeof message.content === 'string'
+        ? [message.content]
+        : [],
+    ),
+  );
+  const additions = toolCallerMessages.filter(message => {
+    if (
+      typeof message.content !== 'string' ||
+      existingUserText.has(message.content)
+    ) {
+      return false;
+    }
+    existingUserText.add(message.content);
+    return true;
+  });
+
+  return additions.length === 0 ? messages : [...messages, ...additions];
 }
