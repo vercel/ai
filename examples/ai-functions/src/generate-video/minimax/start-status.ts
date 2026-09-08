@@ -1,5 +1,9 @@
 import { minimax } from '@ai-sdk/minimax';
 import { parseJSON } from '@ai-sdk/provider-utils';
+import {
+  experimental_getVideoStatus as getVideoStatus,
+  experimental_startVideo as startVideo,
+} from 'ai';
 import { run } from '../../lib/run';
 
 // From examples/ai-functions, with MINIMAX_API_KEY configured:
@@ -8,31 +12,22 @@ import { run } from '../../lib/run';
 // Each invocation makes one API request. Repeat status later if still pending.
 run(async () => {
   const model = minimax.video('MiniMax-H3');
-  if (model.doStart == null || model.doStatus == null) {
-    throw new Error('This model does not support start/status.');
-  }
-
   const serializedOperation = process.argv[2];
   if (serializedOperation != null) {
-    const result = await model.doStatus({
+    const result = await getVideoStatus(model, {
       operation: await parseJSON({ text: serializedOperation }),
+      maxRetries: 0,
     });
     console.log(result);
     return;
   }
 
-  const { operation, warnings } = await model.doStart({
+  const { operation, warnings } = await startVideo({
+    model,
     prompt: 'A white kitten chases a butterfly across a sunlit garden.',
-    n: 1,
     aspectRatio: '16:9',
     duration: 5,
-    resolution: undefined,
-    fps: undefined,
-    seed: undefined,
-    image: undefined,
-    frameImages: undefined,
-    inputReferences: undefined,
-    generateAudio: undefined,
+    maxRetries: 0,
     providerOptions: { minimax: { resolution: '768P' } },
   });
 

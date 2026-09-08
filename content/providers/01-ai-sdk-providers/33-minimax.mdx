@@ -215,10 +215,11 @@ Without `poll` or `webhook`, generation continues to use the provider's
 settings apply instead. This provider does not register upstream webhooks;
 supplying `webhook` falls back to SDK polling without invoking the factory.
 
-For caller-managed scheduling, the model's low-level `doStart` submits one task
-without polling, and `doStatus` checks it once, returning `pending`, `completed`,
-or `error`. Persist the complete JSON-serializable `operation` from `doStart`
-and pass it unchanged to `doStatus` on a model with the same configuration.
+For caller-managed scheduling, use `experimental_startVideo` to submit one task
+without polling and `experimental_getVideoStatus` to check it once, returning
+`pending`, `completed`, or `error`. Persist the complete JSON-serializable
+`operation` from `experimental_startVideo` and pass it unchanged to
+`experimental_getVideoStatus` on a model with the same configuration.
 Its `resolvedInputs` contains `imageCount` and `referenceVideoIndices`: zero-based
 positions of accepted URL-video references in the original mixed `inputReferences`
 array. Inline videos count toward the cap but are omitted from the indices;
