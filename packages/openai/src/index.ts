@@ -19,9 +19,11 @@ export type { OpenAILanguageModelCompletionOptions } from './completion/openai-c
 export type { OpenAIEmbeddingModelOptions } from './embedding/openai-embedding-options';
 export type { OpenAISpeechModelOptions } from './speech/openai-speech-options';
 export type { OpenAITranscriptionModelOptions } from './transcription/openai-transcription-options';
+export type { OpenAIToolOptions } from './responses/openai-responses-prepare-tools';
 export type {
   OpenaiResponsesProviderMetadata,
   OpenaiResponsesReasoningProviderMetadata,
+  OpenaiResponsesToolCallProviderMetadata,
   OpenaiResponsesTextProviderMetadata,
   OpenaiResponsesSourceDocumentProviderMetadata,
 } from './responses/openai-responses-provider-metadata';

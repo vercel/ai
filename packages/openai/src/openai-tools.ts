@@ -27,6 +27,7 @@ export const openaiTools = {
    *
    * @param name - The name of the custom tool.
    * @param description - An optional description of the tool.
+   * @param async - Whether the model can continue without waiting for the tool result.
    * @param format - The output format constraint (grammar type, syntax, and definition).
    */
   customTool,

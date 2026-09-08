@@ -1418,6 +1418,84 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
+    it('should round-trip async mode on function tool calls', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_async',
+                toolName: 'get_weather',
+                input: { location: 'Berlin' },
+                providerOptions: {
+                  openai: {
+                    itemId: 'fc_async',
+                    async: true,
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call',
+          call_id: 'call_async',
+          name: 'get_weather',
+          arguments: JSON.stringify({ location: 'Berlin' }),
+          async: true,
+        },
+      ]);
+    });
+
+    it('should round-trip async mode on custom tool calls', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_custom_async',
+                toolName: 'write_sql',
+                input: 'SELECT 1',
+                providerOptions: {
+                  openai: {
+                    itemId: 'ctc_async',
+                    async: true,
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+        customProviderToolNames: new Set(['write_sql']),
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'custom_tool_call',
+          call_id: 'call_custom_async',
+          name: 'write_sql',
+          input: 'SELECT 1',
+          async: true,
+          id: 'ctc_async',
+        },
+      ]);
+    });
+
     describe('reasoning messages (store: false)', () => {
       describe('single summary part', () => {
         it('should convert single reasoning part with text', async () => {

@@ -180,6 +180,7 @@ export type OpenAIResponsesFunctionCall = {
   call_id: string;
   name: string;
   arguments: string;
+  async?: boolean;
   id?: string;
   namespace?: string;
 };
@@ -220,6 +221,7 @@ export type OpenAIResponsesCustomToolCall = {
   call_id: string;
   name: string;
   input: string;
+  async?: boolean;
 };
 
 export type OpenAIResponsesCustomToolCallOutput = {
@@ -373,6 +375,7 @@ export type OpenAIResponsesFunctionTool = {
   name: string;
   description: string | undefined;
   parameters: JSONSchema7;
+  async?: boolean;
   strict?: boolean;
   defer_loading?: boolean;
 };
@@ -501,6 +504,7 @@ export type OpenAIResponsesTool =
       type: 'custom';
       name: string;
       description?: string;
+      async?: boolean;
       format?:
         | {
             type: 'grammar';
@@ -772,6 +776,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             call_id: z.string(),
             name: z.string(),
             arguments: z.string(),
+            async: z.boolean().nullish(),
             namespace: z.string().nullish(),
           }),
           z.object({
@@ -850,6 +855,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             call_id: z.string(),
             name: z.string(),
             input: z.string(),
+            async: z.boolean().nullish(),
           }),
           z.object({
             type: z.literal('shell_call'),
@@ -917,6 +923,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             call_id: z.string(),
             name: z.string(),
             arguments: z.string(),
+            async: z.boolean().nullish(),
             status: z.literal('completed'),
             namespace: z.string().nullish(),
           }),
@@ -926,6 +933,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             call_id: z.string(),
             name: z.string(),
             input: z.string(),
+            async: z.boolean().nullish(),
             status: z.literal('completed'),
           }),
           z.object({
@@ -1410,6 +1418,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               name: z.string(),
               arguments: z.string(),
               id: z.string(),
+              async: z.boolean().nullish(),
               namespace: z.string().nullish(),
             }),
             z.object({
@@ -1418,6 +1427,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               name: z.string(),
               input: z.string(),
               id: z.string(),
+              async: z.boolean().nullish(),
             }),
             z.object({
               type: z.literal('computer_call'),
