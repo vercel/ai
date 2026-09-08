@@ -470,8 +470,19 @@ export type OpenAIResponsesTool =
       output_compression: number | undefined;
       output_format: 'png' | 'jpeg' | 'webp' | undefined;
       partial_images: number | undefined;
+<<<<<<< HEAD
       quality: 'auto' | 'low' | 'medium' | 'high' | undefined;
       size: 'auto' | '1024x1024' | '1024x1536' | '1536x1024' | undefined;
+=======
+      quality: 'auto' | 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
+      size:
+        | 'auto'
+        | '1024x1024'
+        | '1024x1536'
+        | '1536x1024'
+        | (string & {})
+        | undefined;
+>>>>>>> 8487955ba4 (feat(openai): support xhigh and max image quality (#20474))
     }
 
   /**
