@@ -20,6 +20,8 @@ export type OpenAIConfig = {
   /**
    * Whether Responses API message input items must include an explicit
    * `type: 'message'` discriminator.
+   *
+   * @see https://github.com/vercel/ai/issues/20180
    */
   explicitMessageItemType?: boolean;
   /**
