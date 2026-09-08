@@ -17,6 +17,7 @@ import {
   type HarnessV1PromptControl,
   type HarnessV1ResponseFormat,
   type HarnessV1PortEndpoint,
+  type HarnessV1RequestTransformation,
   type HarnessV1ResumeSessionState,
   type HarnessV1Session,
   type HarnessV1Skill,
@@ -63,9 +64,13 @@ import {
   type OpenCodeAuthenticationMode,
 } from './opencode-auth';
 import {
+  createOpenCodeGitLabSubscriptionConfig,
+  createOpenCodeGitLabSubscriptionRequestTransformations,
   createOpenCodeSubscriptionAuthContent,
   createOpenCodeSubscriptionRequestTransformations,
+  requestOpenCodeGitLabDirectAccess,
   resolveOpenCodeAuthentication,
+  resolveOpenCodeGitLabSubscriptionModel,
 } from './opencode-subscription';
 import {
   outboundMessageSchema,
@@ -308,6 +313,11 @@ export function createOpenCode(
       });
       const authenticationMode = authentication.authenticationMode;
       const resolvedAuthEnvironment = authentication.environment;
+      let resolvedOpenCodeConfig = settings.openCodeConfig;
+      let transformModel:
+        | ((model: string | undefined) => string | undefined)
+        | undefined;
+      let gitLabSubscriptionBrokered = false;
       let sandboxAuthEnvironment = resolvedAuthEnvironment;
       let sandboxCredentialEnvironment: Record<string, string> | undefined;
       let credentialsBrokered = false;
@@ -336,14 +346,49 @@ export function createOpenCode(
           sandboxAuthEnvironment[
             OPENCODE_SUBSCRIPTION_ACCESS_TOKEN_ENVIRONMENT_VARIABLE
           ];
-        const requestTransformations =
-          authentication.subscription == null ||
-          sandboxSubscriptionAccessToken == null
-            ? createOpenCodeRequestTransformations(transformationSources)
-            : createOpenCodeSubscriptionRequestTransformations({
-                authentication: authentication.subscription,
-                sandboxAccessToken: sandboxSubscriptionAccessToken,
-              });
+        let requestTransformations: HarnessV1RequestTransformation[];
+        if (
+          authentication.subscription?.providerId === 'gitlab' &&
+          sandboxSubscriptionAccessToken != null
+        ) {
+          const directAccess = await requestOpenCodeGitLabDirectAccess({
+            accessToken: authentication.subscription.accessToken,
+            ...(authentication.subscription.enterpriseUrl == null
+              ? {}
+              : { instanceUrl: authentication.subscription.enterpriseUrl }),
+            ...(process.env.GITLAB_AI_GATEWAY_URL == null
+              ? {}
+              : { aiGatewayUrl: process.env.GITLAB_AI_GATEWAY_URL }),
+          });
+          requestTransformations =
+            createOpenCodeGitLabSubscriptionRequestTransformations({
+              directAccess,
+              sandboxAccessToken: sandboxSubscriptionAccessToken,
+            });
+          resolvedOpenCodeConfig = createOpenCodeGitLabSubscriptionConfig({
+            openCodeConfig: settings.openCodeConfig,
+            sandboxAccessToken: sandboxSubscriptionAccessToken,
+            aiGatewayUrl: directAccess.aiGatewayUrl,
+            ...(startOpts.headers == null
+              ? {}
+              : { headers: startOpts.headers }),
+          });
+          transformModel = model =>
+            resolveOpenCodeGitLabSubscriptionModel({
+              model,
+              provider: settings.provider,
+            });
+          gitLabSubscriptionBrokered = true;
+        } else {
+          requestTransformations =
+            authentication.subscription == null ||
+            sandboxSubscriptionAccessToken == null
+              ? createOpenCodeRequestTransformations(transformationSources)
+              : createOpenCodeSubscriptionRequestTransformations({
+                  authentication: authentication.subscription,
+                  sandboxAccessToken: sandboxSubscriptionAccessToken,
+                });
+        }
         if (requestTransformations.length > 0) {
           await sandboxSession.addRequestTransformations(
             requestTransformations,
@@ -412,7 +457,7 @@ export function createOpenCode(
             proc: undefined,
             provider: settings.provider,
             reasoningVariant: settings.reasoningVariant,
-            openCodeConfig: settings.openCodeConfig,
+            openCodeConfig: resolvedOpenCodeConfig,
             mcpServers: settings.mcpServers,
             headers: startOpts.headers,
             openCodeSessionId: resumeSessionId,
@@ -428,6 +473,7 @@ export function createOpenCode(
             builtinToolFiltering: startOpts.builtinToolFiltering,
             sandbox: toolSafeSandboxSession,
             sandboxHomeDir,
+            transformModel,
             supportsUserMessageResponses: () => supportsUserMessageResponses,
           });
         } catch {}
@@ -484,7 +530,8 @@ export function createOpenCode(
       );
       const env = {
         ...forwardableAuthEnvironment,
-        ...(authentication.subscription == null ||
+        ...(gitLabSubscriptionBrokered ||
+        authentication.subscription == null ||
         subscriptionAccessToken == null
           ? {}
           : {
@@ -588,7 +635,7 @@ export function createOpenCode(
         proc,
         provider: settings.provider,
         reasoningVariant: settings.reasoningVariant,
-        openCodeConfig: settings.openCodeConfig,
+        openCodeConfig: resolvedOpenCodeConfig,
         mcpServers: settings.mcpServers,
         headers: startOpts.headers,
         openCodeSessionId: resumeSessionId,
@@ -604,6 +651,7 @@ export function createOpenCode(
         builtinToolFiltering: startOpts.builtinToolFiltering,
         sandbox: toolSafeSandboxSession,
         sandboxHomeDir,
+        transformModel,
         supportsUserMessageResponses: () => supportsUserMessageResponses,
       });
     },
@@ -797,6 +845,7 @@ function createSession({
   builtinToolFiltering,
   sandbox,
   sandboxHomeDir,
+  transformModel,
   supportsUserMessageResponses,
 }: {
   sessionId: string;
@@ -820,6 +869,9 @@ function createSession({
   builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
   sandbox: SandboxSession;
   sandboxHomeDir: string;
+  transformModel:
+    | ((model: string | undefined) => string | undefined)
+    | undefined;
   supportsUserMessageResponses: () => boolean;
 }): HarnessV1Session {
   let stopped = false;
@@ -983,7 +1035,7 @@ function createSession({
   };
 
   const startBase = (turnModel: string | undefined) => ({
-    model: turnModel,
+    model: transformModel == null ? turnModel : transformModel(turnModel),
     provider,
     ...(reasoningVariant ? { variant: reasoningVariant } : {}),
     ...(openCodeConfig == null ? {} : { openCodeConfig }),
@@ -1108,7 +1160,10 @@ function createSession({
       }
       await runCompactOperation({
         channel,
-        model: selectedModel,
+        model:
+          transformModel == null
+            ? selectedModel
+            : transformModel(selectedModel),
         provider,
         permissionMode,
         debug,

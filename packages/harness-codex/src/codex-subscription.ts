@@ -346,32 +346,36 @@ function createCodexKeyring({
     return {
       async read({ service, account }) {
         try {
-          const description = `keyring:${account}@${service}`;
-          const searched = await execFileAsync('keyctl', [
-            'search',
-            '@s',
-            'user',
-            description,
+          const result = await execFileAsync('secret-tool', [
+            'lookup',
+            'service',
+            service,
+            'username',
+            account,
+            'target',
+            'default',
           ]);
-          const keyId = searched.stdout.trim();
-          if (keyId.length === 0) return undefined;
-          const result = await execFileAsync('keyctl', ['pipe', keyId]);
-          return result.stdout || undefined;
+          return result.stdout.trim() || undefined;
         } catch {
           return undefined;
         }
       },
       async write({ service, account, value }) {
-        const description = `keyring:${account}@${service}`;
-        const searched = await execFileAsync('keyctl', [
-          'search',
-          '@s',
-          'user',
-          description,
-        ]);
         await runCommandWithInput({
-          command: 'keyctl',
-          args: ['pupdate', searched.stdout.trim()],
+          command: 'secret-tool',
+          args: [
+            'store',
+            '--label',
+            `${account}@${service}:default`,
+            'service',
+            service,
+            'username',
+            account,
+            'target',
+            'default',
+            'application',
+            'rust-keyring',
+          ],
           input: value,
         });
       },
@@ -384,7 +388,7 @@ function createCodexKeyring({
 }
 
 function shellQuoteForSecurity(value: string): string {
-  return `"${value.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`;
+  return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 }
 
 async function runCommandWithInput({

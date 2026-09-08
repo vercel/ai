@@ -50,7 +50,7 @@ describe('refreshOAuthAccessToken', () => {
   });
 
   it('sends JSON and returns a rotated refresh token', async () => {
-    const fetch = vi.fn(async () =>
+    const fetch = vi.fn<typeof globalThis.fetch>(async () =>
       Response.json({
         access_token: 'access',
         refresh_token: 'rotated',

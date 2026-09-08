@@ -210,24 +210,24 @@ describe('resolvePiEnv', () => {
 });
 
 describe('resolvePiSubscriptionAgentDir', () => {
-  it('uses Pi native storage only after environment credentials', () => {
+  it('keeps Pi native storage available alongside environment credentials', () => {
     expect(
       resolvePiSubscriptionAgentDir({
-        options: 'direct',
+        options: 'openai',
         env: {},
         homeDirectory: '/home/me',
       }),
     ).toBe('/home/me/.pi/agent');
     expect(
       resolvePiSubscriptionAgentDir({
-        options: 'direct',
+        options: 'openai',
         env: { OPENAI_API_KEY: 'environment-key' },
         homeDirectory: '/home/me',
       }),
-    ).toBeUndefined();
+    ).toBe('/home/me/.pi/agent');
   });
 
-  it('never uses native storage for Gateway or supplied auth', () => {
+  it('never uses native storage for explicit or resolved Gateway auth', () => {
     expect(
       resolvePiSubscriptionAgentDir({
         options: 'ai-gateway',
@@ -235,6 +235,16 @@ describe('resolvePiSubscriptionAgentDir', () => {
         homeDirectory: '/home/me',
       }),
     ).toBeUndefined();
+    expect(
+      resolvePiSubscriptionAgentDir({
+        options: undefined,
+        env: { AI_GATEWAY_API_KEY: 'gateway-key' },
+        homeDirectory: '/home/me',
+      }),
+    ).toBeUndefined();
+  });
+
+  it('never uses native storage for supplied auth', () => {
     expect(
       resolvePiSubscriptionAgentDir({
         options: {},

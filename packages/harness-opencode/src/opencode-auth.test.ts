@@ -162,7 +162,7 @@ describe('resolveOpenCodeAuthentication', () => {
     const readSubscription = vi.fn();
     await expect(
       resolveOpenCodeAuthentication({
-        auth: 'direct',
+        auth: 'auto',
         provider: 'xai',
         processEnv: { XAI_API_KEY: 'environment-key' },
         readSubscription,

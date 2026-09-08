@@ -18,13 +18,7 @@ export function resolvePiSubscriptionAgentDir({
     return undefined;
   }
   const resolvedEnvironment = resolvePiEnv({ options, env });
-  if (
-    Object.entries(resolvedEnvironment).some(
-      ([name, value]) =>
-        value != null &&
-        (name.endsWith('_API_KEY') || name === 'ANTHROPIC_AUTH_TOKEN'),
-    )
-  ) {
+  if (resolvedEnvironment.AI_GATEWAY_API_KEY != null) {
     return undefined;
   }
   return resolve(
