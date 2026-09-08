@@ -1,0 +1,8 @@
+{
+  "error": {
+    "message": "Missing namespace for function_call 'create_widget'. It does not exist in the default namespace. Round-trip the model's function_call item with its namespace field included.",
+    "type": "invalid_request_error",
+    "param": "input[3].namespace",
+    "code": null
+  }
+}
