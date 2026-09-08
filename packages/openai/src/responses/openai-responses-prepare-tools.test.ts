@@ -1,9 +1,5 @@
-<<<<<<< HEAD
 import { ToolNameMapping } from '@ai-sdk/provider-utils';
-=======
-import { NoSuchProviderReferenceError } from '@ai-sdk/provider';
-import { imageGeneration } from '../tool/image-generation';
->>>>>>> 8487955ba4 (feat(openai): support xhigh and max image quality (#20474))
+import type { imageGeneration } from '../tool/image-generation';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { describe, it, expect } from 'vitest';
 
@@ -561,14 +557,15 @@ describe('prepareResponsesTools', () => {
         it.each(['xhigh', 'max'] as const)(
           'should pass %s quality',
           async quality => {
-            const tool = imageGeneration({ model, quality });
             const result = await prepareResponsesTools({
               tools: [
                 {
                   type: 'provider',
                   id: 'openai.image_generation',
                   name: 'image_generation',
-                  args: tool.args,
+                  args: { model, quality } satisfies Parameters<
+                    typeof imageGeneration
+                  >[0],
                 },
               ],
               toolChoice: undefined,
