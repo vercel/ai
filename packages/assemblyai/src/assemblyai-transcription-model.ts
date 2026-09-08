@@ -29,6 +29,7 @@ import type { AssemblyAITranscriptionAPITypes } from './assemblyai-api-types';
 import {
   buildAssemblyAIStreamingUrl,
   createAssemblyAIStreamingTranscriptionStream,
+  getAssemblyAIStreamingWarnings,
 } from './assemblyai-streaming-transcription';
 
 const defaultStreamingUrl = ({ path }: { path: string }) =>
@@ -102,6 +103,15 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
     });
 
     const body: Omit<AssemblyAITranscriptionAPITypes, 'audio_url'> = {};
+
+    if (assemblyaiOptions?.streaming != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.assemblyai.streaming',
+        details:
+          'Streaming options only apply to experimental_streamTranscribe and are ignored by transcribe.',
+      });
+    }
 
     // The legacy `best` model is selected via the deprecated singular
     // `speech_model` parameter. All other models (e.g. `universal-2`,
@@ -530,6 +540,13 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
       });
     }
 
+    warnings.push(
+      ...getAssemblyAIStreamingWarnings({
+        modelId: this.modelId,
+        options: assemblyaiOptions ?? undefined,
+      }),
+    );
+
     const url = buildAssemblyAIStreamingUrl({
       baseUrl: (this.config.streamingUrl ?? defaultStreamingUrl)({
         path: '/v3/ws',
@@ -558,6 +575,8 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
         abortSignal: options.abortSignal,
         includeRawChunks: options.includeRawChunks,
         formatTurns: assemblyaiOptions?.streaming?.formatTurns === true,
+        includePartialTurns:
+          assemblyaiOptions?.streaming?.includePartialTurns !== false,
         initialLanguage:
           languageCodes?.length === 1 ? languageCodes[0] : undefined,
         currentDate,

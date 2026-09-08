@@ -53,8 +53,9 @@ import {
 import { experimental_streamTranscribe as streamTranscribe } from 'ai';
 import { WebSocket } from 'ws';
 
-// AssemblyAI authenticates the streaming WebSocket with a header, which the
-// native WebSocket constructor cannot send. Pass a header-capable one.
+// AssemblyAI authenticates the streaming WebSocket with a header. The AI SDK
+// passes headers through a constructor option the native WebSocket does not
+// accept, so pass a header-capable implementation such as `ws`.
 const assemblyai = createAssemblyAI({
   webSocket: WebSocket as unknown as AssemblyAIProviderSettings['webSocket'],
 });

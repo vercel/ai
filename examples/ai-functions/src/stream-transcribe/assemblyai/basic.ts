@@ -12,9 +12,9 @@ import { WebSocket } from 'ws';
 import { run } from '../../lib/run';
 
 // AssemblyAI streaming STT authenticates via the Authorization WebSocket
-// header. The native WebSocket in Node.js, browsers, Deno, and Bun cannot send
-// headers, so a header-capable implementation (e.g. the `ws` package) is
-// required.
+// header. The AI SDK passes headers through a constructor option that the
+// native WebSocket in Node.js, browsers, Deno, and Bun does not accept, so a
+// header-capable implementation (e.g. the `ws` package) is required.
 const assemblyai = createAssemblyAI({
   webSocket: WebSocket as unknown as AssemblyAIProviderSettings['webSocket'],
 });

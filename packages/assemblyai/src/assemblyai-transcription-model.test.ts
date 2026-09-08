@@ -294,6 +294,51 @@ describe('doGenerate', () => {
     );
   });
 
+  it('should forward universal-3-6-pro to the API instead of gating it client-side', async () => {
+    prepareJsonResponse();
+
+    // universal-3-6-pro is streaming-only today; the provider lets the API
+    // decide so the id keeps working the moment AssemblyAI serves it here.
+    const result = await provider
+      .transcription('universal-3-6-pro')
+      .doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+    const requestBody = await server.calls[1].requestBodyJson;
+    expect(requestBody.speech_models).toEqual(['universal-3-6-pro']);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should warn when streaming options are passed to transcribe', async () => {
+    prepareJsonResponse();
+
+    const result = await provider
+      .transcription('universal-3-5-pro')
+      .doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          assemblyai: {
+            streaming: { mode: 'max_accuracy', languageCodes: ['es'] },
+          },
+        },
+      });
+
+    const requestBody = await server.calls[1].requestBodyJson;
+    expect(requestBody).not.toHaveProperty('mode');
+    expect(requestBody).not.toHaveProperty('language_codes');
+    expect(result.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'providerOptions.assemblyai.streaming',
+        details:
+          'Streaming options only apply to experimental_streamTranscribe and are ignored by transcribe.',
+      },
+    ]);
+  });
+
   it('should pass newer models via the speech_models parameter', async () => {
     prepareJsonResponse();
 

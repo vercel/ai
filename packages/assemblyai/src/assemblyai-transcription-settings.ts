@@ -35,15 +35,8 @@ export type AssemblyAITranscriptionModelId =
   | AssemblyAIStreamingTranscriptionModelId
   | (string & {});
 
-// Only known ids are gated below. Unknown ids are passed through so newly
-// released AssemblyAI models work without an SDK update; the API reports an
-// error for ids it does not serve.
-
-const streamingOnlyModelIds: ReadonlySet<string> = new Set<string>([
-  'universal-3-6-pro',
-  'universal-streaming-english',
-  'universal-streaming-multilingual',
-]);
+// Gating is deliberately narrow so newly released AssemblyAI models work
+// without an SDK update; the API reports an error for ids it does not serve.
 
 const prerecordedOnlyModelIds: ReadonlySet<string> = new Set<string>([
   'universal-2',
@@ -52,10 +45,24 @@ const prerecordedOnlyModelIds: ReadonlySet<string> = new Set<string>([
 ]);
 
 /**
- * Whether a known model id is served only by the streaming API.
+ * Whether a model id belongs to the Universal Streaming family
+ * (`universal-streaming-english`, `universal-streaming-multilingual`), which
+ * is served only by the streaming API. Matched structurally by prefix so the
+ * check does not have to be updated for new variants.
+ */
+export function isAssemblyAIUniversalStreamingModelId(
+  modelId: string,
+): boolean {
+  return modelId.startsWith('universal-streaming-');
+}
+
+/**
+ * Whether a model id is served only by the streaming API. `universal-3-6-pro`
+ * is streaming-only today but is intentionally not gated here, so it keeps
+ * working with `transcribe` as soon as AssemblyAI serves it there.
  */
 export function isAssemblyAIStreamingOnlyModelId(modelId: string): boolean {
-  return streamingOnlyModelIds.has(modelId);
+  return isAssemblyAIUniversalStreamingModelId(modelId);
 }
 
 /**
@@ -63,4 +70,13 @@ export function isAssemblyAIStreamingOnlyModelId(modelId: string): boolean {
  */
 export function isAssemblyAIPrerecordedOnlyModelId(modelId: string): boolean {
   return prerecordedOnlyModelIds.has(modelId);
+}
+
+/**
+ * Whether a model id is a Universal-3.x Pro model (`universal-3-pro`,
+ * `universal-3-5-pro`, `universal-3-6-pro`, ...), which use punctuation-based
+ * turn detection and support prompting and conversational context.
+ */
+export function isAssemblyAIUniversalProModelId(modelId: string): boolean {
+  return /^universal-3(-\d+)?-pro$/.test(modelId);
 }

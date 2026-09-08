@@ -54,9 +54,10 @@ export interface AssemblyAIProviderSettings {
   /**
    * Custom WebSocket implementation for streaming transcription
    * (`experimental_streamTranscribe`). AssemblyAI authenticates the streaming
-   * connection with the `Authorization` header, which the native WebSocket
-   * constructor in browsers, Node.js, Deno, and Bun cannot send. Pass a
-   * header-capable implementation such as the `ws` package's `WebSocket`.
+   * connection with the `Authorization` header. The AI SDK passes headers
+   * through a WebSocket constructor option that the native WebSocket in
+   * browsers, Node.js, Deno, and Bun does not accept, so pass a header-capable
+   * implementation such as the `ws` package's `WebSocket`.
    */
   webSocket?: WebSocketConstructor;
 }

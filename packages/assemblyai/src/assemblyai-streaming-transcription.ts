@@ -16,6 +16,10 @@ import {
   type WebSocketLike,
 } from '@ai-sdk/provider-utils';
 import type { AssemblyAITranscriptionModelOptions } from './assemblyai-transcription-model-options';
+import {
+  isAssemblyAIUniversalProModelId,
+  isAssemblyAIUniversalStreamingModelId,
+} from './assemblyai-transcription-settings';
 
 /**
  * Audio encodings accepted by the AssemblyAI Streaming v3 API.
@@ -46,6 +50,11 @@ const pcmEncodings: ReadonlySet<AssemblyAIStreamingEncoding> = new Set([
 
 const DEFAULT_SAMPLE_RATE = 16000;
 
+/**
+ * The streaming API accepts at most this many `keyterms_prompt` entries.
+ */
+const MAX_STREAMING_KEYTERMS = 100;
+
 export function getAssemblyAIStreamingEncoding(
   type: string,
 ): AssemblyAIStreamingEncoding {
@@ -65,6 +74,8 @@ export function getAssemblyAIStreamingEncoding(
 /**
  * Builds the Streaming v3 WebSocket URL. All session configuration is passed
  * as query parameters; authentication is sent via the `Authorization` header.
+ * List-valued parameters are JSON-encoded, which is how the server parses
+ * them.
  */
 export function buildAssemblyAIStreamingUrl({
   baseUrl,
@@ -96,25 +107,19 @@ export function buildAssemblyAIStreamingUrl({
   > = {
     // options shared with pre-recorded transcription:
     prompt: options?.prompt,
-    keyterms_prompt:
-      options?.keytermsPrompt != null
-        ? JSON.stringify(options.keytermsPrompt)
-        : undefined,
+    keyterms_prompt: jsonArray(options?.keytermsPrompt),
     language_detection: options?.languageDetection,
     speaker_labels: options?.speakerLabels,
     filter_profanity: options?.filterProfanity,
     redact_pii: options?.redactPii,
-    redact_pii_policies: options?.redactPiiPolicies?.join(','),
+    redact_pii_policies: jsonArray(options?.redactPiiPolicies),
     redact_pii_sub: options?.redactPiiSub,
     domain: options?.domain,
 
     // streaming-only options:
     mode: streaming?.mode,
     format_turns: streaming?.formatTurns,
-    language_codes:
-      streaming?.languageCodes != null
-        ? JSON.stringify(streaming.languageCodes)
-        : undefined,
+    language_codes: jsonArray(streaming?.languageCodes),
     max_speakers: streaming?.maxSpeakers,
     min_turn_silence: streaming?.minTurnSilence,
     max_turn_silence: streaming?.maxTurnSilence,
@@ -137,6 +142,90 @@ export function buildAssemblyAIStreamingUrl({
   }
 
   return url;
+}
+
+function jsonArray(value: string[] | null | undefined): string | undefined {
+  return value != null ? JSON.stringify(value) : undefined;
+}
+
+/**
+ * Warnings for option combinations that the streaming server rejects at
+ * connect time (closing the socket before `Begin`) or silently ignores.
+ * Emitting them up front gives callers an actionable message instead of a
+ * bare close code.
+ */
+export function getAssemblyAIStreamingWarnings({
+  modelId,
+  options,
+}: {
+  modelId: string;
+  options: AssemblyAITranscriptionModelOptions | undefined;
+}): SharedV4Warning[] {
+  const warnings: SharedV4Warning[] = [];
+  const streaming = options?.streaming;
+
+  if (
+    (options?.redactPiiPolicies != null || options?.redactPiiSub != null) &&
+    !options?.redactPii
+  ) {
+    warnings.push({
+      type: 'other',
+      message:
+        "'redactPiiPolicies' and 'redactPiiSub' require 'redactPii' to be enabled; AssemblyAI rejects the streaming connection otherwise.",
+    });
+  }
+
+  if (streaming?.voiceFocusThreshold != null && streaming.voiceFocus == null) {
+    warnings.push({
+      type: 'other',
+      message:
+        "'streaming.voiceFocusThreshold' only applies when 'streaming.voiceFocus' is set; it is otherwise ignored.",
+    });
+  }
+
+  if (
+    options?.keytermsPrompt != null &&
+    options.keytermsPrompt.length > MAX_STREAMING_KEYTERMS
+  ) {
+    warnings.push({
+      type: 'other',
+      message: `AssemblyAI streaming transcription accepts at most ${MAX_STREAMING_KEYTERMS} 'keytermsPrompt' terms (${options.keytermsPrompt.length} given); the connection is rejected otherwise.`,
+    });
+  }
+
+  if (isAssemblyAIUniversalStreamingModelId(modelId)) {
+    const proOnlyOptions = (
+      [
+        ['prompt', options?.prompt],
+        ['streaming.mode', streaming?.mode],
+        ['streaming.languageCodes', streaming?.languageCodes],
+        ['streaming.interruptionDelay', streaming?.interruptionDelay],
+        ['streaming.continuousPartials', streaming?.continuousPartials],
+        ['streaming.agentContext', streaming?.agentContext],
+        ['streaming.previousContextNTurns', streaming?.previousContextNTurns],
+        ['streaming.voiceFocus', streaming?.voiceFocus],
+      ] as const
+    )
+      .filter(([, value]) => value != null)
+      .map(([name]) => `'${name}'`);
+
+    if (proOnlyOptions.length > 0) {
+      warnings.push({
+        type: 'other',
+        message: `${proOnlyOptions.join(', ')} require a Universal-3.x Pro model such as 'universal-3-5-pro'; AssemblyAI rejects the streaming connection for '${modelId}'.`,
+      });
+    }
+  } else if (
+    isAssemblyAIUniversalProModelId(modelId) &&
+    streaming?.endOfTurnConfidenceThreshold != null
+  ) {
+    warnings.push({
+      type: 'other',
+      message: `'streaming.endOfTurnConfidenceThreshold' has no effect on '${modelId}', which uses punctuation-based turn detection. Tune 'streaming.minTurnSilence' and 'streaming.maxTurnSilence' instead.`,
+    });
+  }
+
+  return warnings;
 }
 
 type AssemblyAIStreamingWord = {
@@ -172,9 +261,10 @@ type AssemblyAIStreamingMessage = {
   // Termination
   audio_duration_seconds?: number;
   session_duration_seconds?: number;
-  // Error
+  // Error (also set on a Turn whose transcript was cleared, e.g. when PII
+  // redaction failed)
   error?: string;
-  message?: string;
+  error_code?: number;
 };
 
 type FinalTurn = {
@@ -193,6 +283,7 @@ export function createAssemblyAIStreamingTranscriptionStream({
   abortSignal,
   includeRawChunks,
   formatTurns,
+  includePartialTurns,
   initialLanguage,
   currentDate,
 }: {
@@ -210,6 +301,12 @@ export function createAssemblyAIStreamingTranscriptionStream({
    * only the formatted message is surfaced as `transcript-final`.
    */
   formatTurns: boolean;
+  /**
+   * Whether the caller wants `transcript-partial` parts. When false, the
+   * unformatted end-of-turn message described above is dropped instead of
+   * being surfaced as a partial.
+   */
+  includePartialTurns: boolean;
   initialLanguage: string | undefined;
   currentDate: Date;
 }): ReadableStream<TranscriptionModelV4StreamPart> {
@@ -218,10 +315,12 @@ export function createAssemblyAIStreamingTranscriptionStream({
 
   const headerHint =
     webSocket == null
-      ? ' Note: the native WebSocket implementation in browsers, Node.js,' +
-        ' Deno, and Bun cannot send the Authorization header required by' +
-        ' AssemblyAI. Pass a header-capable WebSocket implementation (e.g.' +
-        " the 'ws' package) via createAssemblyAI({ webSocket })."
+      ? ' Note: the AI SDK passes WebSocket headers through a constructor' +
+        ' option that the native WebSocket in browsers, Node.js, Deno, and' +
+        ' Bun does not accept, so the Authorization header AssemblyAI' +
+        ' requires was not sent. Pass a header-capable WebSocket' +
+        " implementation (e.g. the 'ws' package) via" +
+        ' createAssemblyAI({ webSocket }).'
       : '';
 
   return new ReadableStream<TranscriptionModelV4StreamPart>({
@@ -231,6 +330,7 @@ export function createAssemblyAIStreamingTranscriptionStream({
         | undefined;
       let connection: WebSocketConnection | undefined;
       let sessionId: string | undefined;
+      let speechModelUsed: string | undefined;
       let terminateSent = false;
       let detectedLanguage = initialLanguage;
       let audioDurationSeconds: number | undefined;
@@ -239,6 +339,9 @@ export function createAssemblyAIStreamingTranscriptionStream({
       // finalized turns keyed by turn_order, so a re-sent turn overwrites
       // rather than duplicates:
       const finalTurns = new Map<number, FinalTurn>();
+      // turns for which a `transcript-partial` was surfaced and that still
+      // need a `transcript-final` to close them out:
+      const openPartialTurns = new Set<number>();
 
       cleanup = (closeCode?: number) => {
         if (audioReader != null) {
@@ -279,6 +382,7 @@ export function createAssemblyAIStreamingTranscriptionStream({
 
         const metadata: JSONObject = {};
         if (sessionId != null) metadata.sessionId = sessionId;
+        if (speechModelUsed != null) metadata.speechModelUsed = speechModelUsed;
         if (sessionDurationSeconds != null) {
           metadata.sessionDurationSeconds = sessionDurationSeconds;
         }
@@ -327,6 +431,72 @@ export function createAssemblyAIStreamingTranscriptionStream({
         }
       };
 
+      const handleTurn = (raw: AssemblyAIStreamingMessage) => {
+        const turnOrder = raw.turn_order ?? 0;
+        const id = `turn-${turnOrder}`;
+        const text = raw.transcript ?? '';
+        const words = raw.words ?? [];
+        const timing = timingFromWords(words);
+        const isFinal =
+          raw.end_of_turn === true &&
+          (raw.turn_is_formatted === true || !formatTurns);
+
+        if (!isFinal) {
+          // Non-final turns (and, with `format_turns`, the unformatted
+          // end-of-turn message on Universal Streaming models) are partials.
+          if (!includePartialTurns || text.length === 0) return;
+          openPartialTurns.add(turnOrder);
+          controller.enqueue({
+            type: 'transcript-partial',
+            id,
+            text,
+            ...(timing.startSecond != null
+              ? { startSecond: timing.startSecond }
+              : {}),
+            ...(timing.startSecond != null && timing.endSecond != null
+              ? {
+                  durationInSeconds: roundMs(
+                    timing.endSecond - timing.startSecond,
+                  ),
+                }
+              : {}),
+          });
+          return;
+        }
+
+        // The server clears the transcript of a final turn it could not
+        // process (e.g. PII redaction failed) and attaches `error`. Surface it
+        // as a non-fatal error part; the session continues.
+        if (raw.error != null) {
+          controller.enqueue({ type: 'error', error: new Error(raw.error) });
+        }
+
+        if (text.length > 0) {
+          if (raw.language_code) {
+            detectedLanguage = raw.language_code;
+          }
+          finalTurns.set(turnOrder, { text, ...timing });
+          controller.enqueue({
+            type: 'transcript-final',
+            id,
+            text,
+            ...timing,
+            providerMetadata: { assemblyai: turnMetadata(raw, words) },
+          });
+        } else if (openPartialTurns.has(turnOrder)) {
+          // Silence-only or cleared turn: nothing to add to the transcript,
+          // but a partial for this turn was already surfaced, so close it out
+          // rather than leaving the consumer with stale partial text.
+          controller.enqueue({
+            type: 'transcript-final',
+            id,
+            text: '',
+            providerMetadata: { assemblyai: turnMetadata(raw, words) },
+          });
+        }
+        openPartialTurns.delete(turnOrder);
+      };
+
       connection = connectToWebSocket({
         url,
         headers,
@@ -334,9 +504,17 @@ export function createAssemblyAIStreamingTranscriptionStream({
         abortSignal,
         onAbort: finishWithError,
         onProcessingError: finishWithError,
+        onOpen: () => {
+          if (finished) return;
+          // Emitted as soon as the socket opens (before `Begin`) so warnings
+          // reach the caller even when the server rejects the session
+          // parameters or the credentials and closes right away.
+          controller.enqueue({ type: 'stream-start', warnings });
+        },
         onMessageText: async text => {
+          if (finished) return;
           const parsed = await safeParseJSON({ text });
-          if (!parsed.success) return;
+          if (!parsed.success || finished) return;
           const raw = parsed.value as AssemblyAIStreamingMessage;
 
           if (includeRawChunks) {
@@ -346,22 +524,14 @@ export function createAssemblyAIStreamingTranscriptionStream({
           switch (raw.type) {
             case 'Begin': {
               sessionId = raw.id;
-
-              // Unrecognized query parameters are ignored by the server rather
-              // than rejected, so verify the applied model matches.
-              const appliedModel = raw.configuration?.model ?? undefined;
-              if (appliedModel != null && appliedModel !== modelId) {
-                warnings.push({
-                  type: 'other',
-                  message: `AssemblyAI applied speech model '${appliedModel}' instead of the requested '${modelId}'.`,
-                });
-              }
-
-              controller.enqueue({ type: 'stream-start', warnings });
+              // The server echoes the configuration it applied. The model can
+              // differ from the requested one (e.g. a legacy id redirected to
+              // its successor), so report what actually ran.
+              speechModelUsed = raw.configuration?.model ?? undefined;
               controller.enqueue({
                 type: 'response-metadata',
                 timestamp: currentDate,
-                modelId: appliedModel ?? modelId,
+                modelId: speechModelUsed ?? modelId,
               });
 
               const socket = connection?.socket;
@@ -374,48 +544,7 @@ export function createAssemblyAIStreamingTranscriptionStream({
             }
 
             case 'Turn': {
-              const turnOrder = raw.turn_order ?? 0;
-              const id = `turn-${turnOrder}`;
-              const text = raw.transcript ?? '';
-              if (text.length === 0) break; // silence-only turn
-
-              const words = raw.words ?? [];
-              const timing = timingFromWords(words);
-              const isFinal =
-                raw.end_of_turn === true &&
-                (raw.turn_is_formatted === true || !formatTurns);
-
-              if (isFinal) {
-                if (raw.language_code) {
-                  detectedLanguage = raw.language_code;
-                }
-                finalTurns.set(turnOrder, { text, ...timing });
-                controller.enqueue({
-                  type: 'transcript-final',
-                  id,
-                  text,
-                  ...timing,
-                  providerMetadata: {
-                    assemblyai: turnMetadata(raw, words),
-                  },
-                });
-              } else {
-                controller.enqueue({
-                  type: 'transcript-partial',
-                  id,
-                  text,
-                  ...(timing.startSecond != null
-                    ? { startSecond: timing.startSecond }
-                    : {}),
-                  ...(timing.startSecond != null && timing.endSecond != null
-                    ? {
-                        durationInSeconds: roundMs(
-                          timing.endSecond - timing.startSecond,
-                        ),
-                      }
-                    : {}),
-                });
-              }
+              handleTurn(raw);
               break;
             }
 
@@ -435,11 +564,17 @@ export function createAssemblyAIStreamingTranscriptionStream({
             }
 
             case 'Error': {
+              // The server sends an Error frame carrying the close code and
+              // reason immediately before closing the socket with that code.
+              const code = raw.error_code;
+              const reason =
+                raw.error ?? 'AssemblyAI streaming transcription error';
               finishWithError(
                 new Error(
-                  raw.error ??
-                    raw.message ??
-                    'AssemblyAI streaming transcription error',
+                  code != null
+                    ? describeSessionClose({ code, reason }) +
+                        (code === 1008 ? headerHint : '')
+                    : reason,
                 ),
               );
               break;
@@ -466,6 +601,9 @@ export function createAssemblyAIStreamingTranscriptionStream({
             finish();
             return;
           }
+          // Reached when the socket closes without a preceding Error frame
+          // (e.g. transport-level closes); the Error branch handles the
+          // server's own close codes.
           finishWithError(
             new Error(
               describeSessionClose({ code, reason }) +
@@ -486,8 +624,7 @@ export function createAssemblyAIStreamingTranscriptionStream({
 
 /**
  * AssemblyAI reports word timings in milliseconds; the AI SDK reports
- * seconds. Compute the span in milliseconds first so the division happens
- * once and does not accumulate floating point error.
+ * seconds.
  */
 function timingFromWords(words: AssemblyAIStreamingWord[]): {
   startSecond?: number;
@@ -501,6 +638,10 @@ function timingFromWords(words: AssemblyAIStreamingWord[]): {
   return { startSecond: startMs / 1000, endSecond: endMs / 1000 };
 }
 
+/**
+ * Rounds a duration in seconds to whole milliseconds, avoiding floating point
+ * noise from subtracting two second values.
+ */
 function roundMs(seconds: number): number {
   return Math.round(seconds * 1000) / 1000;
 }
@@ -523,6 +664,7 @@ function turnMetadata(
   if (raw.language_confidence != null) {
     metadata.languageConfidence = raw.language_confidence;
   }
+  if (raw.error != null) metadata.error = raw.error;
   metadata.words = words.map(word => {
     const entry: JSONObject = {};
     if (word.text != null) entry.text = word.text;
@@ -550,15 +692,15 @@ function describeSessionClose({
       case 1008:
         return 'missing or invalid authorization, or an account issue such as insufficient balance';
       case 1009:
-        return 'a single WebSocket message exceeded the 128 KB limit; send smaller audio chunks';
+        return 'a single WebSocket message was too large for the server; send smaller audio chunks';
       case 1011:
         return 'internal server error while establishing the connection';
       case 3005:
         return 'the session was cancelled by the server';
       case 3006:
-        return 'invalid message, or the session was terminated due to inactivity';
+        return 'invalid message or session parameters, or the session was terminated due to inactivity';
       case 3007:
-        return 'audio pacing violation: chunks must contain 50ms to 1000ms of audio and must not be sent faster than real time';
+        return 'audio input violation: chunks must contain 50ms to 1000ms of audio and should not be sent faster than real time';
       case 3008:
         return 'the session expired (3 hour maximum, or the token expired)';
       case 3009:

@@ -54,9 +54,9 @@ You can use the following optional settings to customize the AssemblyAI provider
 
   Custom WebSocket implementation for [streaming transcription](#streaming-transcription-models).
   AssemblyAI authenticates the streaming connection with the `Authorization`
-  header, which the native WebSocket constructor in browsers, Node.js, Deno, and
-  Bun cannot send. Pass a header-capable implementation such as the `ws`
-  package's `WebSocket`.
+  header. The AI SDK passes headers through a WebSocket constructor option that
+  the native WebSocket in browsers, Node.js, Deno, and Bun does not accept, so
+  pass a header-capable implementation such as the `ws` package's `WebSocket`.
 
 ## Transcription Models
 
@@ -452,23 +452,28 @@ for await (const part of result.fullStream) {
 Each AssemblyAI `Turn` becomes a `transcript-partial` part while the turn is in
 progress and a `transcript-final` part once the turn ends. Final parts carry
 turn-level details under `providerMetadata.assemblyai`: `turnOrder`,
-`endOfTurnConfidence`, `speakerLabel`, `languageCode`, `languageConfidence`, and
-the `words` array (word timings in milliseconds). The `finish` metadata includes
-the `sessionId`, `sessionDurationSeconds`, and any `speakerRevisions` emitted at
-session close when `speakerLabels` is enabled.
+`endOfTurnConfidence`, `speakerLabel`, `languageCode`, `languageConfidence`,
+the `words` array (word timings in milliseconds), and `error` when the server
+cleared the turn's text (for example because PII redaction failed; a non-fatal
+`error` part is emitted as well). The `finish` metadata includes the
+`sessionId`, the `speechModelUsed` that the server actually applied,
+`sessionDurationSeconds`, and any `speakerRevisions` emitted at session close
+when `speakerLabels` is enabled.
 
-Send audio in chunks of 50ms to 1000ms, no faster than real time, and keep
-each WebSocket message under 128 KB. The AssemblyAI streaming endpoint
-authenticates with a WebSocket header, so use a header-capable WebSocket
-implementation such as `ws` in runtimes whose native WebSocket constructor
-cannot send headers.
+Send audio in chunks of 50ms to 1000ms, no faster than real time. The
+AssemblyAI streaming endpoint authenticates with a WebSocket header, so use a
+header-capable WebSocket implementation such as `ws` (see the `webSocket`
+provider setting).
 
 The following top-level provider options also apply to streaming: `prompt`,
-`keytermsPrompt`, `languageDetection`, `speakerLabels`, `filterProfanity`,
-`redactPii`, `redactPiiPolicies`, `redactPiiSub`, and `domain`. Other top-level
-options are pre-recorded only and produce a warning when streaming. The
-`streaming` provider options mirror AssemblyAI's streaming connection
-parameters:
+`keytermsPrompt` (up to 100 terms), `languageDetection`, `speakerLabels`,
+`filterProfanity`, `redactPii`, `redactPiiPolicies`, `redactPiiSub`, and
+`domain`. Other top-level options are pre-recorded only and produce a warning
+when streaming; likewise, `streaming` options produce a warning when passed to
+`transcribe`. Combinations that AssemblyAI rejects at connect time (for example
+Pro-only options on a Universal Streaming model, or `redactPiiSub` without
+`redactPii`) produce a warning up front. The `streaming` provider options
+mirror AssemblyAI's streaming connection parameters:
 
 - **mode** _'min_latency' | 'balanced' | 'max_accuracy'_
 
@@ -531,12 +536,15 @@ parameters:
 
 - **includePartialTurns** _boolean_
 
-  Whether to emit `transcript-partial` parts. Defaults to `true`; the server
-  forces `false` when `redactPii` is enabled.
+  Whether to emit `transcript-partial` parts. Defaults to `true`, or to `false`
+  when `redactPii` is enabled (partials would contain unredacted text). Setting
+  `false` also drops the unformatted end-of-turn message Universal Streaming
+  models send when `formatTurns` is enabled.
 
 - **inactivityTimeout** _number_
 
-  Seconds of inactivity before the server closes the session.
+  Seconds of inactivity (5 to 3600) before the server closes the session. Omit
+  to disable the timeout.
 
 See [Transcription](/docs/ai-sdk-core/transcription) for more information about
 streaming transcription.
