@@ -1,19 +1,8 @@
-<<<<<<< HEAD
 import type {
   ImageModelV3,
   ImageModelV3CallOptions,
   ImageModelV3File,
   ImageModelV3ProviderMetadata,
-=======
-import {
-  isJSONObject,
-  type ImageModelV4,
-  type ImageModelV4CallOptions,
-  type ImageModelV4File,
-  type ImageModelV4ProviderMetadata,
-  type ImageModelV4Result,
-  type JSONObject,
->>>>>>> 45099daf24 (fix: generateImage maxRetries skips transient empty image results (#20170))
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
@@ -43,22 +32,6 @@ import type { GenerateImageResult } from './generate-image-result';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
 import { splitDataUrl } from '../prompt/split-data-url';
 
-<<<<<<< HEAD
-=======
-const gatewayCostMetadataKeys = [
-  'cost',
-  'gatewayCost',
-  'inferenceCost',
-  'inputInferenceCost',
-  'marketCost',
-  'outputInferenceCost',
-  'surchargeCost',
-] as const;
-
-type GatewayCostMetadata = {
-  [key in (typeof gatewayCostMetadataKeys)[number]]?: unknown;
-};
-
 class RetryableNoImageResultError extends Error {
   constructor() {
     super('No image generated.');
@@ -66,7 +39,8 @@ class RetryableNoImageResultError extends Error {
   }
 }
 
->>>>>>> 45099daf24 (fix: generateImage maxRetries skips transient empty image results (#20170))
+type ImageModelV3Result = Awaited<ReturnType<ImageModelV3['doGenerate']>>;
+
 export type GenerateImagePrompt =
   | string
   | {
@@ -207,30 +181,9 @@ export async function generateImage({
     return remainder === 0 ? maxImagesPerCallWithDefault : remainder;
   });
 
-<<<<<<< HEAD
-  const results = await Promise.all(
-    callImageCounts.map(async callImageCount =>
-      retry(() => {
-        const { prompt, files, mask } = normalizePrompt(promptArg);
-
-        return model.doGenerate({
-          prompt,
-          files,
-          mask,
-          n: callImageCount,
-          abortSignal,
-          headers: headersWithUserAgent,
-          size,
-          aspectRatio,
-          seed,
-          providerOptions: providerOptions ?? {},
-        });
-      }),
-    ),
-=======
   const resultGroups = await Promise.all(
     callImageCounts.map(async callImageCount => {
-      const callResults: Array<ImageModelV4Result> = [];
+      const callResults: Array<ImageModelV3Result> = [];
 
       try {
         await retry(async () => {
@@ -275,7 +228,6 @@ export async function generateImage({
         throw error;
       }
     }),
->>>>>>> 45099daf24 (fix: generateImage maxRetries skips transient empty image results (#20170))
   );
   const results = resultGroups.flat();
 

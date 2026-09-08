@@ -11,21 +11,11 @@ import { retryWithExponentialBackoffRespectingRetryHeaders } from '../util/retry
 export function prepareRetries({
   maxRetries,
   abortSignal,
-<<<<<<< HEAD
-}: {
-  maxRetries: number | undefined;
-  abortSignal: AbortSignal | undefined;
-=======
   additionalRetryableError,
-  parameter = 'maxRetries',
-  defaultMaxRetries = 2,
 }: {
   maxRetries: number | undefined;
   abortSignal: AbortSignal | undefined;
   additionalRetryableError?: ShouldRetryFunction;
-  parameter?: string;
-  defaultMaxRetries?: number;
->>>>>>> 45099daf24 (fix: generateImage maxRetries skips transient empty image results (#20170))
 }): {
   maxRetries: number;
   retry: RetryFunction;

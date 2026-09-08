@@ -59,6 +59,12 @@ export type ImageModelV3 = {
     images: Array<string> | Array<Uint8Array>;
 
     /**
+     * Whether an unsuccessful result, such as an empty image result, can be
+     * retried. When omitted, the result is unclassified.
+     */
+    isRetryable?: boolean;
+
+    /**
      * Warnings for the call, e.g. unsupported features.
      */
     warnings: Array<SharedV3Warning>;

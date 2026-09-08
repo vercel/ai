@@ -341,6 +341,9 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
 
     return {
       images,
+      ...(result.finishReason.unified === 'content-filter'
+        ? { isRetryable: false }
+        : {}),
       warnings,
       providerMetadata: {
         google: {
