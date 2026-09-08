@@ -144,6 +144,7 @@ describe('convertToOpenResponsesInput', () => {
           {
             "content": [
               {
+                "detail": "auto",
                 "image_url": "data:image/png;base64,ZmFrZS1kYXRh",
                 "type": "input_image",
               },
@@ -176,6 +177,7 @@ describe('convertToOpenResponsesInput', () => {
           {
             "content": [
               {
+                "detail": "auto",
                 "image_url": "https://example.com/image.png",
                 "type": "input_image",
               },
@@ -185,6 +187,57 @@ describe('convertToOpenResponsesInput', () => {
           },
         ]
       `);
+    });
+
+    it('should preserve image detail provider options', async () => {
+      const result = await convertToOpenResponsesInput({
+        providerOptionsName: 'test-provider',
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: { type: 'data' as const, data: 'ZmFrZS1kYXRh' },
+                mediaType: 'image/png',
+                providerOptions: {
+                  'test-provider': { imageDetail: 'low' },
+                },
+              },
+              {
+                type: 'file',
+                data: {
+                  type: 'url' as const,
+                  url: new URL('https://example.com/image.png'),
+                },
+                mediaType: 'image/png',
+                providerOptions: {
+                  'test-provider': { imageDetail: 'high' },
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'message',
+          role: 'user',
+          content: [
+            {
+              type: 'input_image',
+              image_url: 'data:image/png;base64,ZmFrZS1kYXRh',
+              detail: 'low',
+            },
+            {
+              type: 'input_image',
+              image_url: 'https://example.com/image.png',
+              detail: 'high',
+            },
+          ],
+        },
+      ]);
     });
 
     it('should convert PDF file parts with base64 data to input_file', async () => {
@@ -754,6 +807,7 @@ describe('convertToOpenResponsesInput', () => {
             "call_id": "call_image",
             "output": [
               {
+                "detail": "auto",
                 "image_url": "https://example.com/image.png",
                 "type": "input_image",
               },
@@ -762,6 +816,67 @@ describe('convertToOpenResponsesInput', () => {
           },
         ]
       `);
+    });
+
+    it('should preserve image detail provider options in tool output', async () => {
+      const result = await convertToOpenResponsesInput({
+        providerOptionsName: 'test-provider',
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_image',
+                toolName: 'screenshot',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      data: { type: 'data', data: 'ZmFrZS1kYXRh' },
+                      mediaType: 'image/png',
+                      providerOptions: {
+                        'test-provider': { imageDetail: 'low' },
+                      },
+                    },
+                    {
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/image.png'),
+                      },
+                      mediaType: 'image/png',
+                      providerOptions: {
+                        'test-provider': { imageDetail: 'high' },
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_image',
+          output: [
+            {
+              type: 'input_image',
+              image_url: 'data:image/png;base64,ZmFrZS1kYXRh',
+              detail: 'low',
+            },
+            {
+              type: 'input_image',
+              image_url: 'https://example.com/image.png',
+              detail: 'high',
+            },
+          ],
+        },
+      ]);
     });
 
     it('should convert tool message with multiple tool results', async () => {
@@ -1004,4 +1119,132 @@ describe('convertToOpenResponsesInput', () => {
       `);
     });
   });
+<<<<<<< HEAD
+=======
+
+  describe('provider reference', () => {
+    it('should throw for file parts with provider references', async () => {
+      await expect(
+        convertToOpenResponsesInput({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: {
+                    type: 'reference' as const,
+                    reference: { openResponses: 'file-ref-123' },
+                  },
+                  mediaType: 'image/png',
+                },
+              ],
+            },
+          ],
+        }),
+      ).rejects.toThrow(
+        "'file parts with provider references' functionality not supported",
+      );
+    });
+  });
+
+  describe('top-level-only media type resolution', () => {
+    const pngBase64 = 'iVBORw0KGgo=';
+
+    it('passes full image/png through unchanged for inline data', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: { type: 'data', data: pngBase64 },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect((result.input[0] as { content: unknown[] }).content[0]).toEqual({
+        type: 'input_image',
+        image_url: `data:image/png;base64,${pngBase64}`,
+        detail: 'auto',
+      });
+    });
+
+    it('detects image subtype from inline bytes for top-level "image"', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image',
+                data: { type: 'data', data: pngBase64 },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect((result.input[0] as { content: unknown[] }).content[0]).toEqual({
+        type: 'input_image',
+        image_url: `data:image/png;base64,${pngBase64}`,
+        detail: 'auto',
+      });
+    });
+
+    it('passes through URL source for top-level-only image', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image',
+                data: {
+                  type: 'url',
+                  url: new URL('https://example.com/x.png'),
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect((result.input[0] as { content: unknown[] }).content[0]).toEqual({
+        type: 'input_image',
+        image_url: 'https://example.com/x.png',
+        detail: 'auto',
+      });
+    });
+
+    it('normalizes image/* wildcard via detection', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/*',
+                data: { type: 'data', data: pngBase64 },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect((result.input[0] as { content: unknown[] }).content[0]).toEqual({
+        type: 'input_image',
+        image_url: `data:image/png;base64,${pngBase64}`,
+        detail: 'auto',
+      });
+    });
+  });
+>>>>>>> d127e7a2b6 (fix: preserve image detail settings and defaults for Open Responses image inputs (#20503))
 });
