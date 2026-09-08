@@ -2,7 +2,7 @@ import type * as ProviderUtilsModule from '@ai-sdk/provider-utils';
 import { isUrlSupported } from '@ai-sdk/provider-utils';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createGoogle } from './google-provider';
-import { GoogleBatchLanguageModel } from './google-batch';
+import { GoogleLanguageModel } from './google-language-model';
 import { GoogleEmbeddingModel } from './google-embedding-model';
 import { GoogleImageModel } from './google-image-model';
 import { GoogleVideoModel } from './google-video-model';
@@ -19,8 +19,8 @@ vi.mock('@ai-sdk/provider-utils', async importOriginal => {
   };
 });
 
-vi.mock('./google-batch', () => ({
-  GoogleBatchLanguageModel: vi.fn(),
+vi.mock('./google-language-model', () => ({
+  GoogleLanguageModel: vi.fn(),
 }));
 
 vi.mock('./google-embedding-model', () => ({
@@ -49,7 +49,7 @@ describe('google-provider', () => {
     });
     provider('gemini-pro');
 
-    expect(GoogleBatchLanguageModel).toHaveBeenCalledWith(
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
       'gemini-pro',
       expect.objectContaining({
         provider: 'google.generative-ai',
@@ -85,14 +85,14 @@ describe('google-provider', () => {
     });
     provider('gemini-pro');
 
-    expect(GoogleBatchLanguageModel).toHaveBeenCalledWith(
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         headers: expect.any(Function),
       }),
     );
 
-    const options = (GoogleBatchLanguageModel as any).mock.calls[0][1];
+    const options = (GoogleLanguageModel as any).mock.calls[0][1];
     const headers = options.headers();
     expect(headers).toEqual({
       'x-goog-api-key': 'test-api-key',
@@ -109,7 +109,7 @@ describe('google-provider', () => {
     });
     provider('gemini-pro');
 
-    expect(GoogleBatchLanguageModel).toHaveBeenCalledWith(
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         generateId: customGenerateId,
@@ -123,7 +123,7 @@ describe('google-provider', () => {
     });
     provider.chat('gemini-pro');
 
-    expect(GoogleBatchLanguageModel).toHaveBeenCalledWith(
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
       'gemini-pro',
       expect.any(Object),
     );
@@ -137,7 +137,7 @@ describe('google-provider', () => {
     });
     provider('gemini-pro');
 
-    expect(GoogleBatchLanguageModel).toHaveBeenCalledWith(
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
       'gemini-pro',
       expect.objectContaining({
         baseURL: customBaseURL,
@@ -191,7 +191,7 @@ describe('google-provider', () => {
     provider.embedding('embedding-001');
     provider.embeddingModel('embedding-001');
 
-    expect(GoogleBatchLanguageModel).toHaveBeenCalledTimes(1);
+    expect(GoogleLanguageModel).toHaveBeenCalledTimes(1);
     expect(GoogleEmbeddingModel).toHaveBeenCalledTimes(2);
   });
 
@@ -201,7 +201,7 @@ describe('google-provider', () => {
     });
     provider('gemini-pro');
 
-    const call = vi.mocked(GoogleBatchLanguageModel).mock.calls[0];
+    const call = vi.mocked(GoogleLanguageModel).mock.calls[0];
     const supportedUrlsFunction = call[1].supportedUrls;
 
     expect(supportedUrlsFunction).toBeDefined();
@@ -277,7 +277,7 @@ describe('google-provider', () => {
     });
     provider('gemini-2.0-flash');
 
-    const call = vi.mocked(GoogleBatchLanguageModel).mock.calls[0];
+    const call = vi.mocked(GoogleLanguageModel).mock.calls[0];
     const supportedUrls = call[1].supportedUrls!() as Record<string, RegExp[]>;
 
     for (const url of [
@@ -308,7 +308,7 @@ describe('google-provider', () => {
     });
     provider('gemini-3.5-flash');
 
-    const call = vi.mocked(GoogleBatchLanguageModel).mock.calls[0];
+    const call = vi.mocked(GoogleLanguageModel).mock.calls[0];
     const supportedUrlsFunction = call[1].supportedUrls;
 
     expect(supportedUrlsFunction).toBeDefined();
@@ -373,7 +373,7 @@ describe('google-provider', () => {
     });
     provider('gemini-2.0-flash');
 
-    const call = vi.mocked(GoogleBatchLanguageModel).mock.calls[0];
+    const call = vi.mocked(GoogleLanguageModel).mock.calls[0];
     const supportedUrlsFunction = call[1].supportedUrls;
 
     expect(supportedUrlsFunction).toBeDefined();
@@ -387,6 +387,27 @@ describe('google-provider', () => {
         supportedUrls,
       }),
     ).toBe(false);
+  });
+
+  it('should only advertise URL support shared by all batch models', () => {
+    const batch = createGoogle({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+
+    expect(
+      isUrlSupported({
+        url: 'https://example.com/file.txt',
+        mediaType: 'text/plain',
+        supportedUrls: batch.supportedUrls as Record<string, RegExp[]>,
+      }),
+    ).toBe(false);
+    expect(
+      isUrlSupported({
+        url: 'https://generativelanguage.googleapis.com/v1beta/files/file-1',
+        mediaType: 'text/plain',
+        supportedUrls: batch.supportedUrls as Record<string, RegExp[]>,
+      }),
+    ).toBe(true);
   });
 });
 
@@ -403,7 +424,7 @@ describe('google provider - custom provider name', () => {
 
     provider('gemini-pro');
 
-    expect(GoogleBatchLanguageModel).toHaveBeenCalledWith(
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
       'gemini-pro',
       expect.objectContaining({
         provider: 'my-gemini-proxy',
@@ -418,7 +439,7 @@ describe('google provider - custom provider name', () => {
 
     provider('gemini-pro');
 
-    expect(GoogleBatchLanguageModel).toHaveBeenCalledWith(
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
       'gemini-pro',
       expect.objectContaining({
         provider: 'google.generative-ai',
