@@ -438,9 +438,6 @@ importers:
       '@ai-sdk/langchain':
         specifier: workspace:*
         version: link:../../packages/langchain
-      '@ai-sdk/lmnt':
-        specifier: workspace:*
-        version: link:../../packages/lmnt
       '@ai-sdk/luma':
         specifier: workspace:*
         version: link:../../packages/luma
@@ -3356,34 +3353,6 @@ importers:
       typescript:
         specifier: 5.8.3
         version: 5.8.3
-
-  packages/lmnt:
-    dependencies:
-      '@ai-sdk/provider':
-        specifier: workspace:*
-        version: link:../provider
-      '@ai-sdk/provider-utils':
-        specifier: workspace:*
-        version: link:../provider-utils
-    devDependencies:
-      '@ai-sdk/test-server':
-        specifier: workspace:*
-        version: link:../test-server
-      '@types/node':
-        specifier: 22.19.19
-        version: 22.19.19
-      '@vercel/ai-tsconfig':
-        specifier: workspace:*
-        version: link:../../tools/tsconfig
-      tsup:
-        specifier: ^8.5.1
-        version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.26)(supports-color@10.2.2)(tsx@4.23.12)(typescript@5.6.3)(yaml@2.9.0)
-      typescript:
-        specifier: 5.6.3
-        version: 5.6.3
-      zod:
-        specifier: 3.25.76
-        version: 3.25.76
 
   packages/luma:
     dependencies:

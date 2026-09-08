@@ -26,7 +26,10 @@ import type {
 } from '../ui-message-stream';
 import type { AsyncIterableStream } from '../util';
 import type { DeepPartial } from '../util/deep-partial';
-import type { GenerateTextEndEvent } from './generate-text-events';
+import type {
+  GenerateTextAbortEvent,
+  GenerateTextEndEvent,
+} from './generate-text-events';
 import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 
@@ -150,6 +153,20 @@ describe('streamText types', () => {
         model: new MockLanguageModelV4(),
         prompt: 'Hello',
         timeout: { firstChunkMs: 1000 },
+      });
+    });
+  });
+
+  describe('onAbort', () => {
+    it('should expose call metadata and the abort reason', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onAbort: event => {
+          expectTypeOf(event).toMatchTypeOf<GenerateTextAbortEvent>();
+          expectTypeOf(event.callId).toEqualTypeOf<string>();
+          expectTypeOf(event.reason).toEqualTypeOf<unknown>();
+        },
       });
     });
   });

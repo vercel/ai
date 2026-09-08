@@ -706,6 +706,37 @@ describe('createEmitStreamEvent', () => {
     `);
   });
 
+  it('suppresses native question tool calls', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'assistant',
+      message: {
+        content: [
+          {
+            type: 'tool_use',
+            id: 'question-tool',
+            name: 'AskUserQuestion',
+            input: {
+              questions: [{ question: 'Which framework?' }],
+            },
+          },
+        ],
+      },
+    });
+
+    expect(emitted).toEqual([{ type: 'stream-start' }]);
+  });
+
   it('parses external MCP JSON objects while leaving scalars and native tool results as strings', () => {
     const state = createClaudeStreamEventState();
     const emitted: Record<string, unknown>[] = [];

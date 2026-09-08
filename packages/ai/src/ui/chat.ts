@@ -420,8 +420,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       // update the message with the new content
       this.state.replaceMessage(messageIndex, {
-        ...uiMessage,
         id: message.messageId,
+        ...uiMessage,
         role: uiMessage.role ?? 'user',
         metadata: message.metadata,
       } as UI_MESSAGE);

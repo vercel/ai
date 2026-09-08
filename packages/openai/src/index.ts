@@ -44,6 +44,7 @@ export type {
   OpenaiResponsesCompactionProviderMetadata,
   OpenaiResponsesProviderMetadata,
   OpenaiResponsesReasoningProviderMetadata,
+  OpenaiResponsesToolCallProviderMetadata,
   OpenaiResponsesTextProviderMetadata,
   OpenaiResponsesSourceDocumentProviderMetadata,
 } from './responses/openai-responses-provider-metadata';

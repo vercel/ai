@@ -1,5 +1,41 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.76
+
+### Patch Changes
+
+- Updated dependencies [17e489e]
+  - @ai-sdk/openai@4.0.60
+
+## 5.0.75
+
+### Patch Changes
+
+- d0b6d6d: fix(bedrock): preserve provider-executed tool results when replaying messages
+- 770c214: fix(amazon-bedrock): sanitize document filenames before sending them to Bedrock
+- 1ee6b1f: fix(amazon-bedrock): return text from citation content responses
+- Updated dependencies [4af00d1]
+- Updated dependencies [abb9ebf]
+  - @ai-sdk/openai@4.0.59
+
+## 5.0.74
+
+### Patch Changes
+
+- Updated dependencies [b54e551]
+- Updated dependencies [17d3436]
+  - @ai-sdk/openai@4.0.58
+
+## 5.0.73
+
+### Patch Changes
+
+- Updated dependencies [048ce06]
+- Updated dependencies [65397d7]
+- Updated dependencies [7243530]
+  - @ai-sdk/openai@4.0.57
+  - @ai-sdk/anthropic@4.0.49
+
 ## 5.0.72
 
 ### Patch Changes

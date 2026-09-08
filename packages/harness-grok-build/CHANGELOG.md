@@ -1,5 +1,40 @@
 # @ai-sdk/harness-grok-build
 
+## 1.0.39
+
+### Patch Changes
+
+- 255cccf: feat(harness): add `writeInstructions` helper and support filesystem based `instructionsMapping` in ACP backed harness adapters
+- eeed977: feat(harness): allow passing arbitrary headers with inference requests via `headers` property in `HarnessAgentSettings`
+- Updated dependencies [fe86f8f]
+- Updated dependencies [ceb601c]
+- Updated dependencies [255cccf]
+- Updated dependencies [668b51d]
+- Updated dependencies [eeed977]
+- Updated dependencies [1291df7]
+- Updated dependencies [a39c8bf]
+  - @ai-sdk/harness@1.0.102
+  - @ai-sdk/harness-acp@1.0.40
+
+## 1.0.38
+
+### Patch Changes
+
+- 951c54d: feat(harness): support `askUserQuestions` tool including support for normalization across harness adapters
+- Updated dependencies [951c54d]
+  - @ai-sdk/harness-acp@1.0.39
+  - @ai-sdk/harness@1.0.101
+
+## 1.0.37
+
+### Patch Changes
+
+- 74d252a: fix(harness-acp): preserve terminal events replayed during ACP continuation startup
+- Updated dependencies [74d252a]
+- Updated dependencies [0c37bf0]
+  - @ai-sdk/harness-acp@1.0.38
+  - @ai-sdk/harness@1.0.100
+
 ## 1.0.36
 
 ### Patch Changes

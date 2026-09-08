@@ -68,6 +68,7 @@ export function createACPStreamTranslator({
     output: unknown;
     isError?: boolean;
   }) => void;
+  getToolCall: (options: { toolCallId: string }) => ACPToolCall | undefined;
 } {
   let openBlock:
     | {
@@ -215,6 +216,7 @@ export function createACPStreamTranslator({
         builtinTools,
         builtinToolsByName,
       });
+      emitToolCallCandidate?.({ toolCall: createACPToolCall({ state }) });
       if (
         !forceEmit &&
         builtin?.inputSchema != null &&
@@ -238,7 +240,6 @@ export function createACPStreamTranslator({
           programmaticName,
           toolCallId: state.toolCallId,
         });
-        emitToolCallCandidate?.({ toolCall: createACPToolCall({ state }) });
       }
       emit({
         type: 'tool-call',
@@ -381,6 +382,10 @@ export function createACPStreamTranslator({
     close: closeBlock,
     hostToolCall,
     hostToolResult,
+    getToolCall: ({ toolCallId }) => {
+      const state = toolStates.get(toolCallId);
+      return state == null ? undefined : createACPToolCall({ state });
+    },
     finish: response => {
       if (finished) return;
       finished = true;
@@ -521,7 +526,41 @@ function resolveBuiltinTool({
   const schemaMatches = builtinTools.filter(tool =>
     matchesBuiltinToolInput({ rawInput, inputSchema: tool.inputSchema }),
   );
-  return schemaMatches.length === 1 ? schemaMatches[0] : undefined;
+  if (schemaMatches.length <= 1) return schemaMatches[0];
+  return findMostSpecificSchemaMatch({ rawInput, schemaMatches });
+}
+
+/*
+ * Multiple schemas can pass `matchesBuiltinToolInput` at once: a tool whose
+ * only required field is optional on a richer sibling tool (e.g. `bash`'s
+ * optional `shellId` versus `stop_bash`'s required `shellId`) matches any
+ * rawInput the richer tool also matches. Preferring whichever candidate
+ * declares the most of rawInput's own keys resolves that in favor of the
+ * richer, more specific schema, while two equally specific schemas (e.g.
+ * identical schemas under different names) still resolve to `undefined`.
+ */
+function findMostSpecificSchemaMatch({
+  rawInput,
+  schemaMatches,
+}: {
+  rawInput: unknown;
+  schemaMatches: ReadonlyArray<ACPBuiltinToolMapping>;
+}): ACPBuiltinToolMapping | undefined {
+  if (!isRecord(rawInput)) return undefined;
+  const rawInputKeys = Object.keys(rawInput);
+  const coverageOf = (tool: ACPBuiltinToolMapping): number => {
+    const properties = isRecord(tool.inputSchema)
+      ? isRecord(tool.inputSchema.properties)
+        ? tool.inputSchema.properties
+        : {}
+      : {};
+    return rawInputKeys.filter(key => key in properties).length;
+  };
+  const highestCoverage = Math.max(...schemaMatches.map(coverageOf));
+  const mostSpecificMatches = schemaMatches.filter(
+    tool => coverageOf(tool) === highestCoverage,
+  );
+  return mostSpecificMatches.length === 1 ? mostSpecificMatches[0] : undefined;
 }
 
 function findBuiltinToolByTitle({

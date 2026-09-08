@@ -33,6 +33,7 @@ import {
 import {
   getRestrictedSandboxSession,
   resolveSandboxHomeDir,
+  writeSkills,
 } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import {
@@ -45,7 +46,7 @@ import { getPiTerminalError, parseNativeEvent } from './pi-events';
 import { createPiModelResolver } from './pi-model-resolver';
 import { createPiPathMapper } from './pi-paths';
 import { createPiRemoteOps, type PiRemoteOps } from './pi-remote-ops';
-import { writePiSkills } from './pi-skills';
+
 import {
   persistSessionFileToSandbox,
   pullSessionFileFromSandbox,
@@ -217,6 +218,7 @@ export type PiThinkingLevel =
 
 export interface PiSessionSettings {
   readonly auth?: PiAuthenticationMode;
+  readonly headers?: Readonly<Record<string, string>>;
   readonly thinkingLevel?: PiThinkingLevel;
   readonly mcpServers?: Record<string, unknown>;
   readonly extensionFactories?: ReadonlyArray<ExtensionFactory>;
@@ -409,6 +411,7 @@ export async function createPiSession(
       modelRuntime,
     },
     clientApp: input.clientApp,
+    headers: input.settings.headers,
   });
   const resolveModel = createPiModelResolver({
     modelRegistry,
@@ -1070,11 +1073,15 @@ export async function createPiSession(
       throw new Error('Pi session has been stopped.');
     }
 
-    const skillWriteResult = await writePiSkills({
+    const skillWriteResult = await writeSkills({
       sandbox: toolSafeSandboxSession,
-      sandboxHomeDir,
+      homePath: sandboxHomeDir,
+      skillsDir: '.agents/skills',
       skills: turnOpts.skills,
       abortSignal: turnOpts.abortSignal,
+      invalidSkillNameMessage: ({ name }) => `Invalid Pi skill name: ${name}`,
+      invalidSkillFilePathMessage: ({ skillName, filePath }) =>
+        `Invalid Pi skill file path for ${skillName}: ${filePath}`,
     });
     harnessSkills = createHarnessPiSkills({
       skills: turnOpts.skills,

@@ -22,7 +22,7 @@ import {
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { ServerResponse } from 'node:http';
-import { NoOutputGeneratedError } from '../error';
+import { NoOutputGeneratedError, ToolChoiceViolationError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { cloneModelMessages } from '../prompt/clone-model-message';
@@ -95,6 +95,7 @@ import {
   type ActiveToolSubset,
 } from './filter-active-tools';
 import type {
+  GenerateTextAbortEvent,
   GenerateTextEndEvent,
   GenerateTextOnStartCallback,
   GenerateTextOnStepEndCallback,
@@ -329,12 +330,7 @@ export type StreamTextOnEndCallback<
 export type StreamTextOnAbortCallback<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
-> = Callback<{
-  /**
-   * Details for all previously finished steps.
-   */
-  readonly steps: StepResult<TOOLS, RUNTIME_CONTEXT>[];
-}>;
+> = Callback<GenerateTextAbortEvent<TOOLS, RUNTIME_CONTEXT>>;
 
 /**
  * Generate a text and call tools for a given prompt using a language model.
@@ -2577,6 +2573,8 @@ class DefaultStreamTextResult<
                   callbacks: onChunk,
                 });
                 const error = wrapGatewayError(value.error);
+                const isToolChoiceViolation =
+                  ToolChoiceViolationError.isInstance(error);
                 let onErrorResult: unknown;
                 try {
                   onErrorResult = await onError({ error });
@@ -2588,8 +2586,10 @@ class DefaultStreamTextResult<
                   'retry' in onErrorResult &&
                   onErrorResult.retry === true;
                 const automaticRetry =
+                  !isToolChoiceViolation &&
                   automaticStreamRetryCount < streamRetries;
                 const callbackRetry =
+                  !isToolChoiceViolation &&
                   !automaticRetry &&
                   callbackRequestedRetry &&
                   callbackStreamRetryCount < 1;

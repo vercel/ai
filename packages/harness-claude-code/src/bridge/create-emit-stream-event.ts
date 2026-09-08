@@ -38,6 +38,9 @@ export type ClaudeMessage = {
     usage?: Record<string, unknown>;
   };
   result?: string;
+  /** Result-message error flags; distinct from `error_status` (`api_retry`). */
+  is_error?: boolean;
+  api_error_status?: number | null;
   errors?: ReadonlyArray<string>;
   usage?: Record<string, unknown>;
   total_cost_usd?: number;
@@ -246,6 +249,11 @@ export function createEmitStreamEvent({
             continue;
           }
           state.nativeToolCallNames.set(block.id, block.name);
+          if (block.name === 'AskUserQuestion') {
+            state.pendingStepToolUseIds.add(block.id);
+            opensStep = true;
+            continue;
+          }
           const dynamic = isExternalMcpTool(block.name);
           if (dynamic) state.externalMcpToolUseIds.add(block.id);
           if (state.approvalRequestedToolUseIds.has(block.id)) {
@@ -426,6 +434,9 @@ function handleStreamEvent({
       const id = event.content_block.id;
       const nativeName = event.content_block.name;
       if (nativeName === 'StructuredOutput') {
+        return;
+      }
+      if (nativeName === 'AskUserQuestion') {
         return;
       }
       const hostToolName = nativeName.startsWith(HOST_TOOL_PREFIX)

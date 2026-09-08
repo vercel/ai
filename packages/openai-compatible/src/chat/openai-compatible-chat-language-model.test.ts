@@ -2230,6 +2230,37 @@ describe('doStream', () => {
     `);
   });
 
+  it('should keep reasoning active when deltas include empty tool calls', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","model":"test-model",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"Think ","tool_calls":[]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","model":"test-model",` +
+          `"choices":[{"index":0,"delta":{"content":"","reasoning_content":"more...","tool_calls":[]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","model":"test-model",` +
+          `"choices":[{"index":0,"delta":{"content":"Hello","reasoning_content":"","tool_calls":[]},"finish_reason":"stop"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(
+      events.filter(({ type }) => type.startsWith('reasoning-')),
+    ).toStrictEqual([
+      { type: 'reasoning-start', id: 'reasoning-0' },
+      { type: 'reasoning-delta', id: 'reasoning-0', delta: 'Think ' },
+      { type: 'reasoning-delta', id: 'reasoning-0', delta: 'more...' },
+      { type: 'reasoning-end', id: 'reasoning-0' },
+    ]);
+  });
+
   it('should stream reasoning from reasoning field when reasoning_content is not provided', async () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',

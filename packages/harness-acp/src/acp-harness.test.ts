@@ -442,6 +442,119 @@ describe('createACP', () => {
     webSocketMocks.calls.length = 0;
   });
 
+  it('translates ACP question requests and client results', async () => {
+    const fromNativeRequest = vi.fn(
+      ({ nativeRequest }: { nativeRequest: unknown }) => ({
+        type: 'tool-call' as const,
+        toolCallId: 'question-1',
+        toolName: 'askUserQuestions',
+        input: JSON.stringify({
+          allowPartialAnswers: false,
+          questions: [{ id: 'q1', question: 'Framework?' }],
+        }),
+        providerExecuted: false,
+        providerMetadata: {
+          test: { preserved: true },
+        },
+      }),
+    );
+    const toNativeResponse = vi.fn(
+      ({ toolResult }: { toolResult: unknown }) => ({
+        native: toolResult,
+      }),
+    );
+    const harness = createACP({
+      harnessId: 'test-acp',
+      ...agentSettings,
+      askUserQuestions: {
+        requestMethod: 'test/ask',
+        fromNativeRequest,
+        toNativeResponse,
+      },
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns: [],
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+    const events: unknown[] = [];
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Ask.',
+      emit: event => events.push(event),
+    });
+    const channel = harnessUtilsMocks.channels[0]!;
+    const nativeRequest = {
+      sessionId: 'native-session',
+      toolCallId: 'native-question-1',
+    };
+
+    channel.emit({
+      type: 'acp-question-request',
+      requestId: 'request-1',
+      nativeRequest,
+    });
+
+    expect(fromNativeRequest).toHaveBeenCalledWith({
+      nativeRequest,
+      nativeToolCall: undefined,
+    });
+    expect(events).toContainEqual({
+      type: 'tool-call',
+      toolCallId: 'question-1',
+      toolName: 'askUserQuestions',
+      input: JSON.stringify({
+        allowPartialAnswers: false,
+        questions: [{ id: 'q1', question: 'Framework?' }],
+      }),
+      providerExecuted: false,
+      providerMetadata: {
+        test: { preserved: true },
+        'test-acp': { nativeRequest },
+      },
+    });
+    expect(channel.sent).toContainEqual({
+      type: 'tool-result',
+      toolCallId: 'request-1',
+      output: { type: 'handled', toolCallId: 'question-1' },
+    });
+
+    const toolResult = {
+      type: 'tool-result' as const,
+      toolCallId: 'question-1',
+      toolName: 'askUserQuestions',
+      output: {
+        type: 'json' as const,
+        value: {
+          action: 'answered',
+          answers: { q1: { optionIds: [] } },
+        },
+      },
+    };
+    await control.submitToolResult({
+      toolCallId: 'question-1',
+      output: toolResult.output.value,
+      toolResult,
+    });
+
+    expect(toNativeResponse).toHaveBeenCalledWith({
+      nativeRequest,
+      toolResult,
+    });
+    expect(channel.sent).toContainEqual({
+      type: 'tool-result',
+      toolCallId: 'question-1',
+      output: { native: toolResult },
+      isError: undefined,
+      toolResult,
+    });
+  });
+
   afterEach(() => {
     vi.unstubAllEnvs();
   });
@@ -716,6 +829,7 @@ describe('createACP', () => {
 
     const session = await harness.doStart({
       sessionId: 'session-1',
+      headers: { 'x-tenant': 'acme' },
       sandboxSession: fakeSandbox({
         runs: [],
         spawns,
@@ -734,6 +848,7 @@ describe('createACP', () => {
         PROVIDER_API_KEY: 'ephemeral-PROVIDER_API_KEY',
         PROVIDER_BASE_URL: 'https://gateway.example/v1',
       },
+      headers: { 'x-tenant': 'acme' },
     });
     expect(addRequestTransformations).toHaveBeenCalledWith([
       {
@@ -1227,6 +1342,7 @@ describe('createACP', () => {
     });
     channel.emit({
       type: 'acp-tool-call-candidate',
+      requestId: 'candidate-1',
       toolCall: {
         toolCallId: 'call-1',
         title: 'External tool',
@@ -2276,6 +2392,90 @@ describe('createACP', () => {
     expect(secondStart.prompt[0]?.text).toContain(
       'Answer every question in French.',
     );
+    channel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+    await second.done;
+    await session.doDestroy();
+  });
+
+  it('materializes instructions into the filesystem and never prepends prompt guidance', async () => {
+    const writes: Array<{ path: string; content: string }> = [];
+    const harness = createACP({
+      harnessId: 'cursor-acp',
+      ...agentSettings,
+      instructionMapping: {
+        type: 'filesystem',
+        path: '.cursor/rules/AGENTS.md',
+      },
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns: [],
+        writes,
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+    const channel = harnessUtilsMocks.channels[0]!;
+
+    const first = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Draft release notes.',
+      instructions: 'Always run tests.',
+      emit: () => {},
+    });
+    expect(channel.sent[0]).toMatchObject({
+      type: 'start',
+      instructions: 'Always run tests.',
+      instructionMapping: {
+        type: 'filesystem',
+        path: '.cursor/rules/AGENTS.md',
+      },
+      prompt: [{ type: 'text', text: 'Draft release notes.' }],
+    });
+    expect(writes).toContainEqual({
+      path: '/home/agent/.cursor/rules/AGENTS.md',
+      content: 'Always run tests.\n',
+    });
+    expect(
+      JSON.stringify(Reflect.get(channel.sent[0]!, 'prompt')),
+    ).not.toContain('Always run tests.');
+    channel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+    await first.done;
+
+    const second = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Revise them.',
+      instructions: 'Answer every question in French.',
+      emit: () => {},
+    });
+    expect(channel.sent[1]).toMatchObject({
+      type: 'start',
+      instructions: 'Answer every question in French.',
+      instructionMapping: {
+        type: 'filesystem',
+        path: '.cursor/rules/AGENTS.md',
+      },
+      prompt: [{ type: 'text', text: 'Revise them.' }],
+    });
+    expect(writes).toContainEqual({
+      path: '/home/agent/.cursor/rules/AGENTS.md',
+      content: 'Answer every question in French.\n',
+    });
+    expect(
+      JSON.stringify(Reflect.get(channel.sent[1]!, 'prompt')),
+    ).not.toContain('Answer every question in French.');
     channel.emit({
       type: 'finish',
       finishReason: { unified: 'stop', raw: 'end_turn' },
@@ -3416,8 +3616,10 @@ describe('createACP', () => {
       session: secondSession,
       toolResultContinuations: [
         {
+          type: 'tool-result',
           toolCallId: 'client-call',
-          output: { value: 42 },
+          toolName: 'clientTool',
+          output: { type: 'json', value: { value: 42 } },
         },
       ],
     });
@@ -3430,6 +3632,12 @@ describe('createACP', () => {
         toolCallId: 'client-call',
         output: { value: 42 },
         isError: undefined,
+        toolResult: {
+          type: 'tool-result',
+          toolCallId: 'client-call',
+          toolName: 'clientTool',
+          output: { type: 'json', value: { value: 42 } },
+        },
       });
     });
     secondChannel.emit({
@@ -3522,18 +3730,9 @@ describe('createACP', () => {
       session: secondSession,
       toolApprovalContinuations: [
         {
-          approvalResponse: {
-            type: 'tool-approval-response',
-            approvalId: 'native-approval',
-            approved: true,
-          },
-          toolCall: {
-            type: 'tool-call',
-            toolCallId: 'native-call',
-            toolName: 'bash',
-            input: { command: 'pwd' },
-            providerExecuted: true,
-          },
+          type: 'tool-approval-response',
+          approvalId: 'native-approval',
+          approved: true,
         },
       ],
     });
@@ -4011,8 +4210,10 @@ describe('createACP', () => {
       session,
       toolResultContinuations: [
         {
+          type: 'tool-result',
           toolCallId: 'client-call',
-          output: { answer: 'Ada' },
+          toolName: 'clientTool',
+          output: { type: 'json', value: { answer: 'Ada' } },
         },
       ],
     });
@@ -4025,6 +4226,12 @@ describe('createACP', () => {
         toolCallId: 'client-call',
         output: { answer: 'Ada' },
         isError: undefined,
+        toolResult: {
+          type: 'tool-result',
+          toolCallId: 'client-call',
+          toolName: 'clientTool',
+          output: { type: 'json', value: { answer: 'Ada' } },
+        },
       });
     });
     channel.emit({

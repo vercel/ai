@@ -73,6 +73,39 @@ describe('createACP built-in tool inference', () => {
     expectTypeOf(harness.builtinTools).toEqualTypeOf<{ bash: typeof bash }>();
   });
 
+  test('adds askUserQuestions only when configured', () => {
+    const withoutQuestions = createACP({
+      harnessId: 'without-questions',
+      source: {
+        type: 'npm-simple',
+        packageName: '@example/acp-agent',
+      },
+      executable: 'acp-agent',
+      modelMapping,
+    });
+    expectTypeOf<
+      keyof typeof withoutQuestions.builtinTools
+    >().toEqualTypeOf<never>();
+
+    const withQuestions = createACP({
+      harnessId: 'with-questions',
+      source: {
+        type: 'npm-simple',
+        packageName: '@example/acp-agent',
+      },
+      executable: 'acp-agent',
+      modelMapping,
+      askUserQuestions: {
+        requestMethod: 'example/ask',
+        fromNativeRequest: () => null,
+        toNativeResponse: () => null,
+      },
+    });
+    expectTypeOf<
+      keyof typeof withQuestions.builtinTools
+    >().toEqualTypeOf<'askUserQuestions'>();
+  });
+
   test('accepts discriminated npm and install command sources', () => {
     createACP({
       harnessId: 'simple-acp',
@@ -141,6 +174,19 @@ describe('createACP built-in tool inference', () => {
         type: 'launch-env-json',
         variable: 'CODEX_CONFIG',
         path: ['developer_instructions'],
+      },
+    });
+    createACP({
+      harnessId: 'cursor-acp',
+      source: {
+        type: 'install-command',
+        command: 'curl https://example.com/install -fsS | bash',
+      },
+      executable: 'acp-agent',
+      modelMapping,
+      instructionMapping: {
+        type: 'filesystem',
+        path: '.cursor/rules/AGENTS.md',
       },
     });
   });

@@ -3,6 +3,127 @@ import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { describe, it, expect } from 'vitest';
 
 describe('prepareResponsesTools', () => {
+  describe('async tools', () => {
+    it('should pass through async mode for function tools', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get the weather',
+            inputSchema: {
+              type: 'object',
+              properties: { city: { type: 'string' } },
+              required: ['city'],
+              additionalProperties: false,
+            },
+            providerOptions: {
+              openai: { async: true },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'function',
+          name: 'get_weather',
+          description: 'Get the weather',
+          parameters: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+            required: ['city'],
+            additionalProperties: false,
+          },
+          async: true,
+        },
+      ]);
+    });
+
+    it('should pass through async mode for custom tools', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.custom',
+            name: 'write_sql',
+            args: {
+              description: 'Write a SQL query',
+              async: true,
+              format: { type: 'text' },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'custom',
+          name: 'write_sql',
+          description: 'Write a SQL query',
+          async: true,
+          format: { type: 'text' },
+        },
+      ]);
+    });
+
+    it('should omit async mode and warn for unsupported models', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            inputSchema: { type: 'object', properties: {} },
+            providerOptions: {
+              openai: { async: true },
+            },
+          },
+          {
+            type: 'provider',
+            id: 'openai.custom',
+            name: 'write_sql',
+            args: {
+              async: true,
+            },
+          },
+        ],
+        toolChoice: undefined,
+        supportsAsyncToolCalling: false,
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'function',
+          name: 'get_weather',
+          description: undefined,
+          parameters: { type: 'object', properties: {} },
+        },
+        {
+          type: 'custom',
+          name: 'write_sql',
+          description: undefined,
+          format: undefined,
+        },
+      ]);
+      expect(result.toolWarnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'async tool calling for "get_weather"',
+          details:
+            'Async tool calling is only supported by GPT-6 and later models.',
+        },
+        {
+          type: 'unsupported',
+          feature: 'async tool calling for "write_sql"',
+          details:
+            'Async tool calling is only supported by GPT-6 and later models.',
+        },
+      ]);
+    });
+  });
+
   describe('function tools strict mode', () => {
     it('should pass through strict mode when strict is true', async () => {
       const result = await prepareResponsesTools({
@@ -453,6 +574,7 @@ describe('prepareResponsesTools', () => {
           "toolWarnings": [],
           "tools": [
             {
+              "action": undefined,
               "background": "opaque",
               "input_fidelity": undefined,
               "input_image_mask": undefined,
@@ -468,6 +590,61 @@ describe('prepareResponsesTools', () => {
           ],
         }
       `);
+    });
+
+    it('should pass action, low moderation and a gpt-image-2 size', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.image_generation',
+            name: 'image_generation',
+            args: {
+              action: 'edit',
+              model: 'gpt-image-2',
+              moderation: 'low',
+              size: '1536x864',
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.toolWarnings).toEqual([]);
+      expect(result.tools).toMatchInlineSnapshot(`
+        [
+          {
+            "action": "edit",
+            "background": undefined,
+            "input_fidelity": undefined,
+            "input_image_mask": undefined,
+            "model": "gpt-image-2",
+            "moderation": "low",
+            "output_compression": undefined,
+            "output_format": undefined,
+            "partial_images": undefined,
+            "quality": undefined,
+            "size": "1536x864",
+            "type": "image_generation",
+          },
+        ]
+      `);
+    });
+
+    it('should reject a size that is not WIDTHxHEIGHT', async () => {
+      await expect(
+        prepareResponsesTools({
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.image_generation',
+              name: 'image_generation',
+              args: { size: 'large' },
+            },
+          ],
+          toolChoice: undefined,
+        }),
+      ).rejects.toThrow();
     });
 
     it('should support tool choice selection for image_generation', async () => {
@@ -486,6 +663,7 @@ describe('prepareResponsesTools', () => {
       expect(result.tools).toMatchInlineSnapshot(`
         [
           {
+            "action": undefined,
             "background": undefined,
             "input_fidelity": undefined,
             "input_image_mask": undefined,

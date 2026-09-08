@@ -2156,6 +2156,12 @@ The following models are available through the MaaS provider. You can also pass 
 | `moonshotai/kimi-k2-thinking-maas`             | Moonshot |
 
 <Note>
+  Llama 4 MaaS models default to their 8,192-token output limit when
+  `maxOutputTokens` is not specified. An explicit `maxOutputTokens` value takes
+  precedence.
+</Note>
+
+<Note>
   Model availability depends on your Google Cloud project and region. Check the
   [Vertex AI Model
   Garden](https://console.cloud.google.com/vertex-ai/model-garden) for the

@@ -29,7 +29,7 @@ test('preserves Grok Build built-in tool types', () => {
     | 'workflow'
     | 'enter_plan_mode'
     | 'exit_plan_mode'
-    | 'ask_user_question'
+    | 'askUserQuestions'
     | 'image_gen'
     | 'image_edit'
     | 'image_to_video'

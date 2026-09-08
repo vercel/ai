@@ -199,6 +199,7 @@ describe('createOpenCode adapter', () => {
     expect(harness.supportsBuiltinToolApprovals).toBe(true);
     expect(harness.supportsBuiltinToolFiltering).toBeUndefined();
     expect(Object.keys(harness.builtinTools)).toEqual([
+      'askUserQuestions',
       'read',
       'write',
       'edit',
@@ -711,12 +712,14 @@ describe('createOpenCode adapter', () => {
       agent: { general: { model: 'openai/gpt-5.4-mini' } },
     };
     const harness = createOpenCode({
+      auth: { AI_GATEWAY_API_KEY: 'gateway-key' },
       openCodeConfig,
       reasoningVariant: 'high',
       mcpServers,
     });
     const session = await harness.doStart({
       sessionId: 's1',
+      headers: { 'x-tenant': 'acme' },
       sandboxSession,
       sessionWorkDir: '/workspace/project',
     });
@@ -732,6 +735,7 @@ describe('createOpenCode adapter', () => {
       operation: 'compact',
       openCodeConfig,
       mcpServers,
+      headers: { 'x-tenant': 'acme' },
       resumeSessionId: 'opencode-session',
     });
     channel.emit('finish', { type: 'finish' });
@@ -755,6 +759,7 @@ describe('createOpenCode adapter', () => {
       variant: 'high',
       openCodeConfig,
       mcpServers,
+      headers: { 'x-tenant': 'acme' },
       resumeSessionId: 'opencode-session',
     });
     channel.emit('finish', { type: 'finish' });
@@ -763,6 +768,7 @@ describe('createOpenCode adapter', () => {
     const resumeFrom = await session.doDetach();
     const resumedSession = await harness.doStart({
       sessionId: 's1',
+      headers: { 'x-tenant': 'acme' },
       sandboxSession,
       sessionWorkDir: '/workspace/project',
       resumeFrom,
@@ -784,6 +790,7 @@ describe('createOpenCode adapter', () => {
       variant: 'high',
       openCodeConfig,
       mcpServers,
+      headers: { 'x-tenant': 'acme' },
       resumeSessionId: 'opencode-session',
     });
     resumedChannel.emit('finish', { type: 'finish' });
