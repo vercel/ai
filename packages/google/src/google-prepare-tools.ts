@@ -161,6 +161,38 @@ export function prepareTools({
             });
           }
           break;
+        case 'google.vertex_ai_search':
+          if (supportsGemini2Tools) {
+            googleTools.push({
+              retrieval: {
+                vertexAiSearch: { ...tool.args },
+              },
+            });
+          } else {
+            toolWarnings.push({
+              type: 'unsupported',
+              feature: `provider-defined tool ${tool.id}`,
+              details:
+                'Vertex AI Search is not supported with other Gemini models than Gemini 2.',
+            });
+          }
+          break;
+        case 'google.external_api':
+          if (supportsGemini2Tools) {
+            googleTools.push({
+              retrieval: {
+                externalApi: { ...tool.args },
+              },
+            });
+          } else {
+            toolWarnings.push({
+              type: 'unsupported',
+              feature: `provider-defined tool ${tool.id}`,
+              details:
+                'External API grounding is not supported with other Gemini models than Gemini 2.',
+            });
+          }
+          break;
         case 'google.google_maps':
           if (supportsGemini2Tools) {
             googleTools.push({ googleMaps: {} });

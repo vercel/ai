@@ -34,6 +34,7 @@ export type PrepareGoogleInteractionsToolsResult = {
  * - `google.google_maps`       -> `{ type: 'google_maps', latitude?, longitude?, enable_widget? }`
  * - `google.computer_use`      -> `{ type: 'computer_use', environment?, excludedPredefinedFunctions? }`
  * - `google.mcp_server`        -> `{ type: 'mcp_server', name?, url?, headers?, allowed_tools? }`
+ * - `google.vertex_ai_search`  -> `{ type: 'retrieval', retrieval_types: ['vertex_ai_search'], vertex_ai_search_config }`
  * - `google.retrieval`         -> `{ type: 'retrieval', retrieval_types?, vertex_ai_search_config? }`
  *
  * `toolChoice` shapes:
@@ -183,6 +184,32 @@ export function prepareGoogleInteractionsTools({
               ? { vertex_ai_search_config: vertexAiSearchConfig }
               : {}),
           });
+          break;
+        }
+        case 'google.vertex_ai_search': {
+          interactionsTools.push({
+            type: 'retrieval',
+            retrieval_types: ['vertex_ai_search'],
+            vertex_ai_search_config: {
+              ...(args.datastore != null
+                ? { datastores: [args.datastore as string] }
+                : {}),
+              ...(args.engine != null ? { engine: args.engine as string } : {}),
+            },
+          });
+
+          if (
+            args.maxResults != null ||
+            args.filter != null ||
+            args.dataStoreSpecs != null
+          ) {
+            toolWarnings.push({
+              type: 'unsupported',
+              feature: 'Vertex AI Search retrieval settings',
+              details:
+                'maxResults, filter, and dataStoreSpecs are not supported by google.interactions and were dropped.',
+            });
+          }
           break;
         }
         default: {

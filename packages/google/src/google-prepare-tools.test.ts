@@ -1064,3 +1064,99 @@ it('should use AUTO mode when no tools have strict: true', () => {
     functionCallingConfig: { mode: 'AUTO' },
   });
 });
+
+it('should prepare a Vertex AI Search retrieval tool', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider',
+        id: 'google.vertex_ai_search',
+        name: 'vertex_ai_search',
+        args: {
+          engine:
+            'projects/p/locations/global/collections/default_collection/engines/e',
+          maxResults: 5,
+          dataStoreSpecs: [
+            {
+              dataStore:
+                'projects/p/locations/global/collections/default_collection/dataStores/d',
+              filter: 'category: ANY("docs")',
+            },
+          ],
+        },
+      },
+    ],
+    modelId: 'gemini-2.5-flash',
+  });
+
+  expect(result).toEqual({
+    tools: [
+      {
+        retrieval: {
+          vertexAiSearch: {
+            engine:
+              'projects/p/locations/global/collections/default_collection/engines/e',
+            maxResults: 5,
+            dataStoreSpecs: [
+              {
+                dataStore:
+                  'projects/p/locations/global/collections/default_collection/dataStores/d',
+                filter: 'category: ANY("docs")',
+              },
+            ],
+          },
+        },
+      },
+    ],
+    toolConfig: undefined,
+    toolWarnings: [],
+  });
+});
+
+it('should prepare an external API retrieval tool', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider',
+        id: 'google.external_api',
+        name: 'external_api',
+        args: {
+          apiSpec: 'ELASTIC_SEARCH',
+          endpoint: 'https://example.com/search',
+          authConfig: {
+            apiKeyConfig: { apiKeyString: 'secret' },
+          },
+          elasticSearchParams: {
+            index: 'documents',
+            searchTemplate: 'search-template',
+            numHits: 5,
+          },
+        },
+      },
+    ],
+    modelId: 'gemini-2.5-flash',
+  });
+
+  expect(result).toEqual({
+    tools: [
+      {
+        retrieval: {
+          externalApi: {
+            apiSpec: 'ELASTIC_SEARCH',
+            endpoint: 'https://example.com/search',
+            authConfig: {
+              apiKeyConfig: { apiKeyString: 'secret' },
+            },
+            elasticSearchParams: {
+              index: 'documents',
+              searchTemplate: 'search-template',
+              numHits: 5,
+            },
+          },
+        },
+      },
+    ],
+    toolConfig: undefined,
+    toolWarnings: [],
+  });
+});

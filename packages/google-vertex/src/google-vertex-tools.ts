@@ -1,6 +1,6 @@
 import { googleTools } from '@ai-sdk/google/internal';
 
-export const googleVertexTools = {
+export const googleVertexTools: typeof googleTools = {
   googleSearch: googleTools.googleSearch,
   enterpriseWebSearch: googleTools.enterpriseWebSearch,
   googleMaps: googleTools.googleMaps,
@@ -8,4 +8,6 @@ export const googleVertexTools = {
   fileSearch: googleTools.fileSearch,
   codeExecution: googleTools.codeExecution,
   vertexRagStore: googleTools.vertexRagStore,
+  vertexAiSearch: googleTools.vertexAiSearch,
+  externalApi: googleTools.externalApi,
 };

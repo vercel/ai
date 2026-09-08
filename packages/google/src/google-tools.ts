@@ -1,10 +1,12 @@
 import { codeExecution } from './tool/code-execution';
 import { enterpriseWebSearch } from './tool/enterprise-web-search';
+import { externalApi } from './tool/external-api';
 import { fileSearch } from './tool/file-search';
 import { googleMaps } from './tool/google-maps';
 import { googleSearch } from './tool/google-search';
 import { urlContext } from './tool/url-context';
 import { vertexRagStore } from './tool/vertex-rag-store';
+import { vertexAiSearch } from './tool/vertex-ai-search';
 
 export const googleTools = {
   /**
@@ -68,4 +70,18 @@ export const googleTools = {
    * Must have name "vertex_rag_store".
    */
   vertexRagStore,
+
+  /**
+   * Creates a Vertex AI Search grounding tool.
+   *
+   * @note Only available on Vertex AI. Requires Gemini 2.0 or newer.
+   */
+  vertexAiSearch,
+
+  /**
+   * Creates an external API grounding tool.
+   *
+   * @note Only available on Vertex AI. Requires Gemini 2.0 or newer.
+   */
+  externalApi,
 };
