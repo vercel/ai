@@ -214,6 +214,7 @@ export type OpenAIResponsesApplyPatchOperationDiffDoneChunk = {
 };
 
 export type OpenAIResponsesSystemMessage = {
+  type?: 'message';
   role: 'system' | 'developer';
   content:
     | string
@@ -225,6 +226,7 @@ export type OpenAIResponsesSystemMessage = {
 };
 
 export type OpenAIResponsesUserMessage = {
+  type?: 'message';
   role: 'user';
   content: Array<
     | {
@@ -262,6 +264,7 @@ export type OpenAIResponsesUserMessage = {
 };
 
 export type OpenAIResponsesAssistantMessage = {
+  type?: 'message';
   role: 'assistant';
   content: Array<{ type: 'output_text'; text: string }>;
   id?: string;

@@ -341,6 +341,7 @@ export async function convertToOpenAIResponsesInput({
   toolNameMapping,
   systemMessageMode,
   providerOptionsName,
+  explicitMessageItemType = false,
   fileIdPrefixes,
   passThroughUnsupportedFiles = false,
   store,
@@ -358,6 +359,7 @@ export async function convertToOpenAIResponsesInput({
   toolNameMapping: ToolNameMapping;
   systemMessageMode: 'system' | 'developer' | 'remove';
   providerOptionsName: string;
+  explicitMessageItemType?: boolean;
   /** @deprecated Use provider references instead. */
   fileIdPrefixes?: readonly string[];
   passThroughUnsupportedFiles?: boolean;
@@ -398,6 +400,7 @@ export async function convertToOpenAIResponsesInput({
               providerOptionsName,
             );
             input.push({
+              ...(explicitMessageItemType && { type: 'message' as const }),
               role: 'system',
               content:
                 promptCacheBreakpoint == null
@@ -418,6 +421,7 @@ export async function convertToOpenAIResponsesInput({
               providerOptionsName,
             );
             input.push({
+              ...(explicitMessageItemType && { type: 'message' as const }),
               role: 'developer',
               content:
                 promptCacheBreakpoint == null
@@ -451,6 +455,7 @@ export async function convertToOpenAIResponsesInput({
 
       case 'user': {
         input.push({
+          ...(explicitMessageItemType && { type: 'message' as const }),
           role: 'user',
           content: content.map((part, index) => {
             switch (part.type) {
@@ -603,6 +608,7 @@ export async function convertToOpenAIResponsesInput({
               }
 
               input.push({
+                ...(explicitMessageItemType && { type: 'message' as const }),
                 role: 'assistant',
                 content: [{ type: 'output_text', text: part.text }],
                 id,
