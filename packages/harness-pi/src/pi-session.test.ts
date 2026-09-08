@@ -211,6 +211,35 @@ describe('createPiSession', () => {
     }
   });
 
+  it('keeps tools registered by inline extensions enabled', async () => {
+    const factory = vi.fn();
+    piMock.session = createFakePiSession().session;
+
+    const session = await createPi({
+      extensionFactories: [factory],
+    }).doStart({
+      sessionId: 'session-extension-tools',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [],
+        prompt: 'Use an extension tool.',
+        tools: [],
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      const createOptions = piMock.createAgentSession.mock.lastCall?.[0];
+      expect(createOptions).toMatchObject({ noTools: 'builtin' });
+      expect(createOptions).not.toHaveProperty('tools');
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('preserves caller order and passes a fresh mutable factory array', async () => {
     const callOrder: string[] = [];
     const firstFactory: ExtensionFactory = () => {
