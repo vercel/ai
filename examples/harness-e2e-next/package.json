@@ -19,6 +19,7 @@
     "@ai-sdk/harness-cursor": "workspace:*",
     "@ai-sdk/harness-deepagents": "workspace:*",
     "@ai-sdk/harness-fx": "workspace:*",
+    "@ai-sdk/harness-github-copilot": "workspace:*",
     "@ai-sdk/harness-grok-build": "workspace:*",
     "@ai-sdk/harness-opencode": "workspace:*",
     "@ai-sdk/harness-pi": "workspace:*",

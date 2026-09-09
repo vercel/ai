@@ -341,6 +341,7 @@ export async function convertToOpenAIResponsesInput({
   toolNameMapping,
   systemMessageMode,
   providerOptionsName,
+  explicitMessageItemType = false,
   fileIdPrefixes,
   passThroughUnsupportedFiles = false,
   store,
@@ -358,6 +359,7 @@ export async function convertToOpenAIResponsesInput({
   toolNameMapping: ToolNameMapping;
   systemMessageMode: 'system' | 'developer' | 'remove';
   providerOptionsName: string;
+  explicitMessageItemType?: boolean;
   /** @deprecated Use provider references instead. */
   fileIdPrefixes?: readonly string[];
   passThroughUnsupportedFiles?: boolean;
@@ -378,6 +380,7 @@ export async function convertToOpenAIResponsesInput({
   let input: OpenAIResponsesInput = [];
   const warnings: Array<SharedV4Warning> = [];
   const processedApprovalIds = new Set<string>();
+  const programmaticToolCallIds = new Set<string>();
   const parallelToolResultGroups =
     hasConversation || hasPreviousResponseId
       ? collectCompleteParallelToolResultGroups({
@@ -398,6 +401,7 @@ export async function convertToOpenAIResponsesInput({
               providerOptionsName,
             );
             input.push({
+              ...(explicitMessageItemType && { type: 'message' as const }),
               role: 'system',
               content:
                 promptCacheBreakpoint == null
@@ -418,6 +422,7 @@ export async function convertToOpenAIResponsesInput({
               providerOptionsName,
             );
             input.push({
+              ...(explicitMessageItemType && { type: 'message' as const }),
               role: 'developer',
               content:
                 promptCacheBreakpoint == null
@@ -451,6 +456,7 @@ export async function convertToOpenAIResponsesInput({
 
       case 'user': {
         input.push({
+          ...(explicitMessageItemType && { type: 'message' as const }),
           role: 'user',
           content: content.map((part, index) => {
             switch (part.type) {
@@ -603,6 +609,7 @@ export async function convertToOpenAIResponsesInput({
               }
 
               input.push({
+                ...(explicitMessageItemType && { type: 'message' as const }),
                 role: 'assistant',
                 content: [{ type: 'output_text', text: part.text }],
                 id,
@@ -693,6 +700,10 @@ export async function convertToOpenAIResponsesInput({
                 | { type: 'direct' }
                 | { type: 'program'; callerId: string }
                 | undefined;
+
+              if (caller?.type === 'program') {
+                programmaticToolCallIds.add(part.toolCallId);
+              }
 
               if (hasConversation && id != null) {
                 break;
@@ -1568,6 +1579,23 @@ export async function convertToOpenAIResponsesInput({
             continue;
           }
 
+          const resultCaller = part.providerOptions?.[providerOptionsName]
+            ?.caller as
+            | { type: 'direct' }
+            | { type: 'program'; callerId: string }
+            | undefined;
+
+          if (
+            output.type === 'execution-denied' &&
+            (resultCaller?.type === 'program' ||
+              programmaticToolCallIds.has(part.toolCallId))
+          ) {
+            throw new UnsupportedFunctionalityError({
+              functionality:
+                'execution-denied results for programmatic tool calls',
+            });
+          }
+
           const contentValue = await convertFunctionToolResultOutput({
             output,
             toolName: part.toolName,
@@ -1581,12 +1609,7 @@ export async function convertToOpenAIResponsesInput({
             warnings,
           });
 
-          const caller = mapToolCaller(
-            part.providerOptions?.[providerOptionsName]?.caller as
-              | { type: 'direct' }
-              | { type: 'program'; callerId: string }
-              | undefined,
-          );
+          const caller = mapToolCaller(resultCaller);
 
           input.push({
             type: 'function_call_output',
