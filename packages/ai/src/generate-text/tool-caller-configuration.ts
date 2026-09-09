@@ -100,9 +100,16 @@ export function prepareToolsForToolCallers({
     };
   }
 
+  // Tools available to the runtime for execution.
   const executionTools: ToolSet = { ...tools };
+  
+  // Tools exposed directly to the model.
   const modelTools: ToolSet = { ...tools };
+
+  // Tools routed through each local caller.
   const localToolsByCaller = new Map<string, ToolSet>();
+
+  // User messages describing caller-accessible tools.
   const toolCallerMessages: UserModelMessage[] = [];
 
   for (const [toolName, callerNames] of Object.entries(toolCallers)) {
