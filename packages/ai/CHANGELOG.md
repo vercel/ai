@@ -1,5 +1,18 @@
 # ai
 
+## 7.0.96
+
+### Patch Changes
+
+- 912fb01: feat: add batch cancel and list APIs
+- c595e6e: fix(ai): call `atob` without a receiver for Cloudflare Workers compatibility
+- Updated dependencies [912fb01]
+- Updated dependencies [aa4cc14]
+- Updated dependencies [f102e41]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/gateway@4.0.77
+  - @ai-sdk/provider-utils@5.0.38
+
 ## 7.0.95
 
 ### Patch Changes
