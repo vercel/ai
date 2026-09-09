@@ -586,7 +586,14 @@ export class MiniMaxVideoModel implements VideoModelV4 {
         await resolve(this.config.headers),
         options.headers,
       ),
-      body,
+      body: {
+        ...body,
+        // The challenge handshake and progress notifications rule out handleWebhookOption.
+        // Forward webhookUrl for caller-owned receivers that echo the challenge within 3s.
+        ...(options.webhookUrl != null
+          ? { callback_url: options.webhookUrl }
+          : {}),
+      },
       failedResponseHandler: minimaxVideoFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         minimaxCreateVideoResponseSchema,

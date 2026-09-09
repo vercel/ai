@@ -454,6 +454,37 @@ describe('GoogleBatch', () => {
     }
   });
 
+  it.each(['inline', 'file'] as const)(
+    'omits webhook configuration for %s input when no webhook URL is provided',
+    async inputType => {
+      prepareUpload();
+      server.urls[urls.create].response = {
+        type: 'json-value',
+        body: operation(),
+      };
+
+      await createGoogle({ apiKey: 'test-api-key' })
+        .experimental_batch()
+        .doStartBatch({
+          requests: [
+            request(
+              'request-1',
+              inputType === 'file' ? 'a'.repeat(20_000_000) : 'Hello',
+            ),
+          ],
+        });
+
+      expect(server.calls.map(call => call.requestUrl)).toEqual(
+        inputType === 'file'
+          ? [urls.uploadStart, urls.uploadSession, urls.create]
+          : [urls.create],
+      );
+      const body =
+        await server.calls[inputType === 'file' ? 2 : 0].requestBodyJson;
+      expect(body.batch).not.toHaveProperty('webhookConfig');
+    },
+  );
+
   it.each([
     ['JOB_STATE_PENDING', 'pending'],
     ['JOB_STATE_RUNNING', 'pending'],
