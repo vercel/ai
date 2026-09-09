@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20535,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/harness-suspension-loses-host-tool-results.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/harness-suspension-loses-host-tool-results.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #20535 REPRODUCED: completed host tool results were lost when suspension closed the adapter channel"
+  }
+}
