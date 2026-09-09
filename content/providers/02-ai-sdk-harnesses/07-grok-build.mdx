@@ -208,6 +208,9 @@ safe built-in operations internally without sending a permission request.
 - ACP v1 has no portable built-in tool filtering API. Filtering host tools is
   supported, but filtering Grok built-ins throws an unsupported-capability
   error.
+- Grok Build does not currently support built-in tool approval requests. Use
+  `permissionMode: 'allow-all'` with this adapter. Host-executed AI SDK tool
+  approvals still work.
 - A changed host-tool catalog requires Grok Build to refresh its ACP MCP tool
   list. If the implementation retains stale tools, the turn fails explicitly.
 - Custom `headers` are not natively supported and only applied via

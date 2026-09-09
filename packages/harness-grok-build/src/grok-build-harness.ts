@@ -4,6 +4,7 @@ import {
   type HarnessV1,
   type HarnessV1BuiltinTool,
   type HarnessV1CredentialForwarding,
+  type HarnessV1MintBridgeTokenCallback,
   type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
 import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
@@ -40,13 +41,6 @@ export type GrokBuildHarnessSettings = {
    */
   readonly credentialForwarding?: HarnessV1CredentialForwarding;
   /**
-   * Grok model id selected through Grok Build configuration. Leaving this
-   * unset uses the default model.
-   *
-   * @deprecated Use `model` on `HarnessAgent` instead.
-   */
-  readonly model?: string;
-  /**
    * Reasoning effort for reasoning-capable models. Leaving this unset defers
    * to Grok Build's default.
    */
@@ -80,7 +74,7 @@ export type GrokBuildHarnessSettings = {
    * Creates the authentication token used by the sandbox bridge. Defaults to
    * a random 32-byte hexadecimal token.
    */
-  readonly mintBridgeToken?: (sandboxId: string) => string;
+  readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
 
 /*
@@ -300,7 +294,6 @@ export function createGrokBuild(
   return createACP({
     auth: settings.auth,
     credentialForwarding: settings.credentialForwarding,
-    modelId: settings.model,
     port: settings.port,
     portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,

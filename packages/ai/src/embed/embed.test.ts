@@ -9,6 +9,7 @@ import {
   vi,
   vitest,
 } from 'vitest';
+import { InvalidResponseDataError } from '../error';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
@@ -35,6 +36,38 @@ describe('result.embedding', () => {
     });
 
     assert.deepStrictEqual(result.embedding, dummyEmbedding);
+  });
+
+  it('should reject when the model returns no embeddings', async () => {
+    const model = new MockEmbeddingModelV4({
+      doEmbed: async () => ({
+        embeddings: [],
+        usage: { tokens: 5 },
+        warnings: [],
+      }),
+    });
+    const onEnd = vi.fn();
+    const onError = vi.fn();
+
+    const result = embed({
+      model,
+      value: testValue,
+      telemetry: {
+        integrations: { onEnd, onError },
+      },
+    });
+
+    await expect(result).rejects.toSatisfy(error => {
+      expect(InvalidResponseDataError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({
+        data: [],
+        message: 'No embedding generated.',
+      });
+      return true;
+    });
+    expect(model.doEmbedCalls).toHaveLength(1);
+    expect(onEnd).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledOnce();
   });
 });
 

@@ -114,8 +114,10 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     return this.config.supportedUrls?.() ?? {};
   }
 
-  protected async getArgs(
-    {
+  static async prepareRequest({
+    modelId,
+    config,
+    options: {
       prompt,
       maxOutputTokens,
       temperature,
@@ -130,19 +132,25 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       toolChoice,
       reasoning,
       providerOptions,
-    }: LanguageModelV4CallOptions,
-    { isStreaming = false }: { isStreaming?: boolean } = {},
-  ) {
+    },
+    isStreaming = false,
+  }: {
+    modelId: GoogleModelId;
+    config: GoogleLanguageModelConfig;
+    options: LanguageModelV4CallOptions;
+    isStreaming?: boolean;
+  }) {
     const warnings: SharedV4Warning[] = [];
 
     // Names to look up in providerOptions and to write into providerMetadata.
     // For the Vertex provider we read both the new `googleVertex` key and the
     // legacy `vertex` key (new takes precedence) and write under both for
     // backward compatibility. For other Google providers we use just `google`.
-    const providerOptionsNames: readonly string[] =
-      this.config.provider.includes('vertex')
-        ? (['googleVertex', 'vertex'] as const)
-        : (['google'] as const);
+    const providerOptionsNames: readonly string[] = config.provider.includes(
+      'vertex',
+    )
+      ? (['googleVertex', 'vertex'] as const)
+      : (['google'] as const);
 
     let googleOptions: GoogleLanguageModelOptions | undefined;
     for (const name of providerOptionsNames) {
@@ -165,7 +173,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     }
 
     // Add warning if Vertex rag tools are used with a non-Vertex Google provider
-    const isVertexProvider = this.config.provider.startsWith('google.vertex.');
+    const isVertexProvider = config.provider.startsWith('google.vertex.');
 
     if (
       tools?.some(
@@ -179,7 +187,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         message:
           "The 'vertex_rag_store' tool is only supported with the Google Vertex provider " +
           'and might not be supported or could behave unexpectedly with the current Google provider ' +
-          `(${this.config.provider}).`,
+          `(${config.provider}).`,
       });
     }
 
@@ -189,7 +197,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         message:
           "'streamFunctionCallArguments' is only supported on the Vertex AI API " +
           'and will be ignored with the current Google provider ' +
-          `(${this.config.provider}). See https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling#streaming-fc`,
+          `(${config.provider}). See https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling#streaming-fc`,
       });
     }
 
@@ -210,7 +218,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         type: 'other',
         message:
           "'sharedRequestType' and 'requestType' are Vertex AI options and " +
-          `are ignored with the current Google provider (${this.config.provider}).`,
+          `are ignored with the current Google provider (${config.provider}).`,
       });
     }
 
@@ -254,15 +262,15 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           message:
             `${droppedImageConfigFields.join(', ')} ` +
             `${droppedImageConfigFields.length === 1 ? 'is a Vertex AI option and is' : 'are Vertex AI options and are'} ` +
-            `ignored with the current Google provider (${this.config.provider}).`,
+            `ignored with the current Google provider (${config.provider}).`,
         });
         imageConfig = geminiApiImageConfig;
       }
     }
 
-    const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
+    const isGemmaModel = modelId.toLowerCase().startsWith('gemma-');
     const isGemini25DeveloperApiModel =
-      !isVertexProvider && gemini25ModelPattern.test(this.modelId);
+      !isVertexProvider && gemini25ModelPattern.test(modelId);
 
     if (isGemini25DeveloperApiModel && frequencyPenalty != null) {
       warnings.push({
@@ -277,7 +285,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       });
     }
 
-    const { usesGemini3Features } = getGoogleModelCapabilities(this.modelId);
+    const { usesGemini3Features } = getGoogleModelCapabilities(modelId);
 
     const { contents, systemInstruction } = convertToGoogleMessages(prompt, {
       isGemmaModel,
@@ -295,7 +303,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     } = prepareTools({
       tools,
       toolChoice,
-      modelId: this.modelId,
+      modelId,
       isVertexProvider,
     });
     const toolNameMapping = createToolNameMapping({
@@ -307,7 +315,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
     const resolvedThinking = resolveThinkingConfig({
       reasoning,
-      modelId: this.modelId,
+      modelId,
       warnings,
     });
     const thinkingConfig =
@@ -405,12 +413,26 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     };
   }
 
-  protected convertGenerateContentResponse({
+  private getArgs(
+    options: LanguageModelV4CallOptions,
+    { isStreaming = false }: { isStreaming?: boolean } = {},
+  ) {
+    return GoogleLanguageModel.prepareRequest({
+      modelId: this.modelId,
+      config: this.config,
+      options,
+      isStreaming,
+    });
+  }
+
+  static convertGenerateContentResponse({
+    config,
     response,
     warnings,
     providerOptionsNames,
     toolNameMapping,
   }: {
+    config: GoogleLanguageModelConfig;
     response: InferSchema<typeof responseSchema>;
     warnings: SharedV4Warning[];
     providerOptionsNames: readonly string[];
@@ -441,7 +463,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     // Build content array from all parts
     for (const part of parts) {
       if ('executableCode' in part && part.executableCode?.code) {
-        const toolCallId = this.config.generateId();
+        const toolCallId = config.generateId();
         lastCodeExecutionToolCallId = toolCallId;
 
         content.push({
@@ -488,7 +510,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       } else if ('functionCall' in part && part.functionCall.name != null) {
         content.push({
           type: 'tool-call' as const,
-          toolCallId: part.functionCall.id || this.config.generateId(),
+          toolCallId: part.functionCall.id || config.generateId(),
           toolName: part.functionCall.name,
           input: JSON.stringify(part.functionCall.args ?? {}),
           providerMetadata: part.thoughtSignature
@@ -511,7 +533,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
             : undefined,
         });
       } else if ('toolCall' in part && part.toolCall) {
-        const toolCallId = part.toolCall.id || this.config.generateId();
+        const toolCallId = part.toolCall.id || config.generateId();
         lastServerToolCallId = toolCallId;
         content.push({
           type: 'tool-call',
@@ -533,9 +555,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         });
       } else if ('toolResponse' in part && part.toolResponse) {
         const responseToolCallId =
-          lastServerToolCallId ||
-          part.toolResponse.id ||
-          this.config.generateId();
+          lastServerToolCallId || part.toolResponse.id || config.generateId();
         content.push({
           type: 'tool-result',
           toolCallId: responseToolCallId,
@@ -559,7 +579,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     const sources =
       extractSources({
         groundingMetadata: candidate?.groundingMetadata,
-        generateId: this.config.generateId,
+        generateId: config.generateId,
       }) ?? [];
     for (const source of sources) {
       content.push(source);
@@ -630,7 +650,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       fetch: this.config.fetch,
     });
 
-    const result = this.convertGenerateContentResponse({
+    const result = GoogleLanguageModel.convertGenerateContentResponse({
+      config: this.config,
       response,
       warnings,
       providerOptionsNames,
