@@ -1,6 +1,9 @@
 import fs from 'node:fs';
 
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import {
+  InvalidResponseDataError,
+  type LanguageModelV4Prompt,
+} from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createOpenAI } from '../openai-provider';
@@ -110,6 +113,34 @@ describe('doGenerate', () => {
         },
       ]
     `);
+  });
+
+  it('should reject a response without choices', async () => {
+    server.urls['https://api.openai.com/v1/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'cmpl-empty',
+        object: 'text_completion',
+        created: 1711363706,
+        model: 'gpt-3.5-turbo-instruct',
+        choices: [],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 4,
+          completion_tokens: 0,
+        },
+      },
+    };
+
+    await expect(
+      model.doGenerate({
+        prompt: TEST_PROMPT,
+      }),
+    ).rejects.toSatisfy(
+      error =>
+        InvalidResponseDataError.isInstance(error) &&
+        error.message === 'Response did not contain any choices.',
+    );
   });
 
   it('should extract usage', async () => {
