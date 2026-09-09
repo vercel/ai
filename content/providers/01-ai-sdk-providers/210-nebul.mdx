@@ -60,6 +60,26 @@ The provider accepts these optional settings:
 
   Custom fetch implementation, for example to intercept requests in middleware.
 
+- **metadataCacheRefreshMillis** _number_
+
+  How long the response of `nebul.getAvailableModels()` is cached before it is fetched again. It defaults to 5 minutes.
+
+## Model Catalog
+
+Nebul continuously updates the models available on its Inference API. To list the models that are currently available, including their capabilities and pricing, use `getAvailableModels`:
+
+```ts
+import { nebul } from '@ai-sdk/nebul';
+
+const models = await nebul.getAvailableModels();
+
+const chatModels = models.filter(model => model.modelType === 'llm');
+```
+
+Each entry includes the model `id` to pass to the model factories, the `modelType` (`'llm'`, `'embedding'`, `'audio'`, `'image'`, or `'reranker'`), capability flags such as `supportsFunctionCalling` or `supportsVision`, and `pricing` in USD per 1M tokens.
+
+The result is fetched from the Nebul model catalog and cached for 5 minutes. Model factories remain synchronous and accept arbitrary model ids, so they do not depend on the catalog being up to date.
+
 ## Language Models
 
 Create a language model by passing its model id to the provider:
@@ -76,7 +96,7 @@ const { text } = await generateText({
 
 Calling the provider without a model id defaults to `zai-org/GLM-5.3-Flash`. The model id can also be omitted for `nebul.languageModel()` and `nebul.chat()`.
 
-Current models include GLM 5.3 Flash, GLM 5.3, GLM 5.2, GLM 5.1, GPT-OSS 120B, Qwen3.5 397B A17B, Kimi K3, Mistral Large 3, and Gemma 4 31B. Model availability changes over time; see the [Nebul model catalog](https://docs.nebul.io/docs/inference-api/models/model-catalog) for the current list.
+Current models include GLM 5.3 Flash, GPT-OSS 120B, Qwen3.5 397B A17B, Kimi K3, Mistral Large 3, and Gemma 4 31B. Model availability changes over time; see the [Nebul model catalog](https://docs.nebul.io/docs/inference-api/models/model-catalog) for the current list, or call `nebul.getAvailableModels()` for the live list.
 
 The provider supports:
 

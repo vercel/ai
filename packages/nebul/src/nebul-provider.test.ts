@@ -288,4 +288,10 @@ describe('NebulProvider', () => {
       expect(model.modelId).toBe(modelId);
     });
   });
+
+  describe('getAvailableModels', () => {
+    it('should be a function on the provider', () => {
+      expect(typeof createNebul().getAvailableModels).toBe('function');
+    });
+  });
 });

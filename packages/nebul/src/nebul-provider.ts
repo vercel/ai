@@ -13,6 +13,8 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  createJsonResponseHandler,
+  getFromApi,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
@@ -21,6 +23,11 @@ import {
 import type { NebulChatModelId } from './nebul-chat-options';
 import type { NebulEmbeddingModelId } from './nebul-embedding-options';
 import type { NebulImageModelId } from './nebul-image-options';
+import {
+  nebulModelInfoFailedResponseHandler,
+  nebulModelInfoResponseSchema,
+  type NebulModelInfo,
+} from './nebul-model-info';
 import { NebulRerankingModel } from './nebul-reranking-model';
 import type { NebulRerankingModelId } from './nebul-reranking-options';
 import { NebulSpeechModel } from './nebul-speech-model';
@@ -55,6 +62,19 @@ export interface NebulProviderSettings {
    * requests, or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+
+  /**
+   * How long the response of `getAvailableModels` is cached before it is
+   * fetched again, in milliseconds. Defaults to 5 minutes.
+   */
+  metadataCacheRefreshMillis?: number;
+
+  /**
+   * Internal. For testing purposes only.
+   */
+  _internal?: {
+    currentDate?: () => Date;
+  };
 }
 
 export interface NebulProvider extends ProviderV4 {
@@ -97,6 +117,14 @@ export interface NebulProvider extends ProviderV4 {
    * Creates a model for reranking documents against a query.
    */
   rerankingModel(modelId: NebulRerankingModelId): RerankingModelV4;
+
+  /**
+   * Returns the models that are currently available on the Nebul Inference
+   * API, including their capabilities and pricing. The result is fetched
+   * from the Nebul model catalog and cached for 5 minutes (configurable
+   * through `metadataCacheRefreshMillis`).
+   */
+  getAvailableModels(): Promise<NebulModelInfo[]>;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -172,6 +200,72 @@ export function createNebul(
       ...getCommonModelConfig('reranking'),
     });
 
+  const modelInfoURL = `${new URL(baseURL).origin}/model/info`;
+
+  const modelInfoCacheRefreshMillis =
+    options.metadataCacheRefreshMillis ?? 1000 * 60 * 5;
+
+  let modelInfoCache: NebulModelInfo[] | null = null;
+  let pendingModelInfo: Promise<NebulModelInfo[]> | null = null;
+  let lastModelInfoFetchTime = 0;
+
+  // The model catalog endpoint is public, so authorization headers are only
+  // sent when an API key is available.
+  const getModelInfoHeaders = () =>
+    withUserAgentSuffix(
+      {
+        ...((options.apiKey ?? process.env.NEBUL_API_KEY)
+          ? {
+              Authorization: `Bearer ${
+                options.apiKey ?? process.env.NEBUL_API_KEY
+              }`,
+            }
+          : {}),
+        ...options.headers,
+      },
+      `ai-sdk/nebul/${VERSION}`,
+    );
+
+  const fetchAvailableModels = async (): Promise<NebulModelInfo[]> => {
+    const { value } = await getFromApi({
+      url: modelInfoURL,
+      validateUrl: false,
+      credentialedOrigin: new URL(modelInfoURL).origin,
+      headers: getModelInfoHeaders(),
+      successfulResponseHandler: createJsonResponseHandler(
+        nebulModelInfoResponseSchema,
+      ),
+      failedResponseHandler: nebulModelInfoFailedResponseHandler,
+      fetch: options.fetch,
+    });
+
+    return value.data;
+  };
+
+  const getAvailableModels = async (): Promise<NebulModelInfo[]> => {
+    const now = options._internal?.currentDate?.().getTime() ?? Date.now();
+
+    if (
+      !pendingModelInfo ||
+      now - lastModelInfoFetchTime > modelInfoCacheRefreshMillis
+    ) {
+      lastModelInfoFetchTime = now;
+
+      pendingModelInfo = fetchAvailableModels()
+        .then(modelInfo => {
+          modelInfoCache = modelInfo;
+          return modelInfo;
+        })
+        .catch(error => {
+          // do not keep serving a rejected promise for subsequent calls
+          pendingModelInfo = null;
+          throw error;
+        });
+    }
+
+    return modelInfoCache ?? pendingModelInfo;
+  };
+
   const provider = (modelId?: NebulChatModelId) => createChatModel(modelId);
 
   provider.specificationVersion = 'v4' as const;
@@ -182,6 +276,7 @@ export function createNebul(
   provider.transcriptionModel = createTranscriptionModel;
   provider.speechModel = createSpeechModel;
   provider.rerankingModel = createRerankingModel;
+  provider.getAvailableModels = getAvailableModels;
 
   provider.textEmbeddingModel = createEmbeddingModel; // deprecated
 

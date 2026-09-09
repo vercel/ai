@@ -11,6 +11,7 @@ export type {
 export type { NebulImageModelId } from './nebul-image-options';
 export type { NebulRerankingModelId } from './nebul-reranking-options';
 export type { NebulRerankingModelConfig } from './nebul-reranking-model';
+export type { NebulModelInfo } from './nebul-model-info';
 export type {
   NebulTranscriptionModelId,
   NebulTranscriptionModelOptions,

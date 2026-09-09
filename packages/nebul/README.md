@@ -30,6 +30,18 @@ const nebul = createNebul({
 });
 ```
 
+## Model Catalog
+
+To list the models that are currently available on the Nebul Inference API, use `getAvailableModels`:
+
+```ts
+import { nebul } from '@ai-sdk/nebul';
+
+const models = await nebul.getAvailableModels();
+```
+
+Each entry includes the model `id`, its `modelType` (`'llm'`, `'embedding'`, `'audio'`, `'image'`, or `'reranker'`), capability flags, and `pricing` in USD per 1M tokens. The result is cached for 5 minutes.
+
 ## Language Models
 
 ```ts
