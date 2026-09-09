@@ -1,15 +1,21 @@
 export {
+  cancelBatch as experimental_cancelBatch,
   startBatch as experimental_startBatch,
   getBatchResults as experimental_getBatchResults,
   getBatchStatus as experimental_getBatchStatus,
+  listBatches as experimental_listBatches,
 } from './batch';
 export type {
   BatchError as Experimental_BatchError,
   BatchProvider as Experimental_BatchProvider,
   BatchReference as Experimental_BatchReference,
   BatchStatus as Experimental_BatchStatus,
+  CancelBatchOptions as Experimental_CancelBatchOptions,
+  CancelBatchResult as Experimental_CancelBatchResult,
   GetBatchResultsOptions as Experimental_GetBatchResultsOptions,
   GetBatchStatusOptions as Experimental_GetBatchStatusOptions,
+  ListBatchesOptions as Experimental_ListBatchesOptions,
+  ListBatchesResult as Experimental_ListBatchesResult,
   StartBatchOptions as Experimental_StartBatchOptions,
   StartBatchResult as Experimental_StartBatchResult,
   Batch as Experimental_Batch,
