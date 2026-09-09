@@ -94,9 +94,10 @@ describe('OpenCode bridge turn settlement', () => {
     relayMock.authorizeToolCall.mockReset();
     permissionReplyMock.mockReset();
     createOpencodeServerMock.mockClear();
+    vi.unstubAllEnvs();
   });
 
-  it('disables the interactive question tool', async () => {
+  it('enables the interactive question tool', async () => {
     const userMessages = createUserMessages();
     bridgeMock.start = {
       type: 'start',
@@ -151,10 +152,83 @@ describe('OpenCode bridge turn settlement', () => {
     expect(createOpencodeServerMock).toHaveBeenCalledWith(
       expect.objectContaining({
         config: expect.objectContaining({
-          permission: expect.objectContaining({ question: 'deny' }),
+          permission: expect.objectContaining({ question: 'allow' }),
         }),
       }),
     );
+  });
+
+  it('passes headers to a direct provider', async () => {
+    const userMessages = createUserMessages();
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'Start.',
+      model: 'openai/gpt-5.4-mini',
+      headers: { 'x-tenant': 'acme' },
+    };
+    bridgeMock.turn = {
+      emit: vi.fn(),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: userMessages,
+      abortSignal: new AbortController().signal,
+      firstTurn: true,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    };
+    sdkMock.client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+        get: vi.fn(async () => ({ data: {} })),
+        messages: vi.fn(async () => ({ data: [] })),
+        promptAsync: vi.fn(async () => ({ data: {} })),
+      },
+      event: {
+        subscribe: vi.fn(async () => ({
+          stream: {
+            async *[Symbol.asyncIterator]() {
+              yield {
+                type: 'session.next.step.failed',
+                properties: {
+                  sessionID: 'session-1',
+                  error: 'model step failed',
+                },
+              };
+            },
+          },
+        })),
+      },
+      v2: {
+        session: {
+          context: vi.fn(async () => ({ data: [] })),
+          switchModel: vi.fn(async () => ({ data: {} })),
+        },
+      },
+    };
+    vi.stubEnv('OPENAI_API_KEY', 'openai-key');
+    vi.stubEnv('OPENAI_BASE_URL', 'https://api.openai.test/v1');
+    setBridgeArgv();
+
+    await import('./index');
+
+    expect(createOpencodeServerMock.mock.calls[0]?.[0]).toMatchObject({
+      config: {
+        provider: {
+          openai: {
+            options: {
+              apiKey: 'openai-key',
+              baseURL: 'https://api.openai.test/v1',
+              headers: {
+                'x-tenant': 'acme',
+              },
+            },
+          },
+        },
+      },
+    });
   });
 
   it('settles when OpenCode emits session.next.step.failed', async () => {

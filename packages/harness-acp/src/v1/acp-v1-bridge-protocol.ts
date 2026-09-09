@@ -113,6 +113,10 @@ const instructionMappingSchema: z.ZodType<ACPInstructionMapping> =
       variable: z.string().min(1),
       path: instructionMappingPathSchema,
     }),
+    z.object({
+      type: z.literal('filesystem'),
+      path: z.string().min(1),
+    }),
   ]);
 
 type ACPSerializableOutputSchemaMapping = {
@@ -199,6 +203,7 @@ const coldRestoreSchema = z.object({
 
 const acpToolCallCandidateSchema = z.object({
   type: z.literal('acp-tool-call-candidate'),
+  requestId: z.string(),
   toolCall: z.custom<ACPToolCall>(
     value =>
       value != null &&
@@ -208,9 +213,23 @@ const acpToolCallCandidateSchema = z.object({
   ),
 });
 
+const acpQuestionRequestSchema = z.object({
+  type: z.literal('acp-question-request'),
+  requestId: z.string(),
+  nativeRequest: z.unknown(),
+  nativeToolCall: acpToolCallCandidateSchema.shape.toolCall.optional(),
+});
+
+const acpQuestionResolvedSchema = z.object({
+  type: z.literal('acp-question-resolved'),
+  requestId: z.string(),
+});
+
 export const outboundMessageSchema = z.union([
   harnessV1BridgeOutboundMessageSchema,
   acpToolCallCandidateSchema,
+  acpQuestionRequestSchema,
+  acpQuestionResolvedSchema,
 ]);
 export type OutboundMessage = z.infer<typeof outboundMessageSchema>;
 

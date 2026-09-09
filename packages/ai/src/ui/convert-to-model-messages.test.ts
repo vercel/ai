@@ -717,6 +717,63 @@ describe('convertToModelMessages', () => {
     });
 
     describe('tool output error', () => {
+      it('should preserve result provider metadata on a failed tool call when call metadata is unavailable', async () => {
+        const result = await convertToModelMessages([
+          {
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-createWidget',
+                state: 'output-error',
+                toolCallId: 'call1',
+                input: undefined,
+                rawInput: {},
+                errorText: 'Invalid input',
+                resultProviderMetadata: {
+                  openai: {
+                    namespace: 'widget_tools',
+                  },
+                },
+              },
+            ],
+          },
+        ]);
+
+        expect(result).toEqual([
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call1',
+                toolName: 'createWidget',
+                input: {},
+                providerExecuted: undefined,
+                providerOptions: {
+                  openai: {
+                    namespace: 'widget_tools',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call1',
+                toolName: 'createWidget',
+                output: {
+                  type: 'error-text',
+                  value: 'Invalid input',
+                },
+              },
+            ],
+          },
+        ]);
+      });
+
       it('should handle assistant message with tool output error that has raw input', async () => {
         const result = await convertToModelMessages([
           {

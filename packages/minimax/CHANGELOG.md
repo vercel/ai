@@ -1,5 +1,49 @@
 # @ai-sdk/minimax
 
+## 3.0.27
+
+### Patch Changes
+
+- 46cea63: Add asynchronous start/status support for MiniMax video generation while preserving existing polling behavior.
+
+## 3.0.26
+
+### Patch Changes
+
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/anthropic@4.0.50
+  - @ai-sdk/provider-utils@5.0.37
+
+## 3.0.25
+
+### Patch Changes
+
+- Updated dependencies [65397d7]
+  - @ai-sdk/anthropic@4.0.49
+
+## 3.0.24
+
+### Patch Changes
+
+- a580ec8: feat(minimax): validate video status polling redirects for MiniMax, Kling AI, and ByteDance
+- Updated dependencies [4d25a08]
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/anthropic@4.0.48
+  - @ai-sdk/provider-utils@5.0.36
+
+## 3.0.23
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+  - @ai-sdk/anthropic@4.0.47
+
 ## 3.0.22
 
 ### Patch Changes

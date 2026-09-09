@@ -49,6 +49,8 @@ export class AnthropicFiles implements FilesV4 {
     data,
     mediaType,
     filename,
+    abortSignal,
+    headers,
   }: FilesV4UploadFileCallOptions): Promise<FilesV4UploadFileResult> {
     const fileBytes = convertInlineFileDataToUint8Array(data);
 
@@ -63,14 +65,17 @@ export class AnthropicFiles implements FilesV4 {
 
     const { value: response } = await postFormDataToApi({
       url: `${this.config.baseURL}/files`,
-      headers: combineHeaders(this.config.headers(), {
-        'anthropic-beta': 'files-api-2025-04-14',
-      }),
+      headers: combineHeaders(
+        this.config.headers(),
+        { 'anthropic-beta': 'files-api-2025-04-14' },
+        headers,
+      ),
       formData,
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         anthropicUploadFileResponseSchema,
       ),
+      abortSignal,
       fetch: this.config.fetch,
     });
 

@@ -1,5 +1,44 @@
 # @ai-sdk/mcp
 
+## 2.0.46
+
+### Patch Changes
+
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+
+## 2.0.45
+
+### Patch Changes
+
+- 33ba8fd: feat(mcp): surface server-provided tool annotations in tool metadata
+- 3da84fd: Accept MCP tool results that return `structuredContent` without `content` by adding the serialized structured result as text.
+
+## 2.0.44
+
+### Patch Changes
+
+- 809e922: fix(mcp): accept trailing slashes on origin-only OAuth issuers
+
+## 2.0.43
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
+## 2.0.42
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+
 ## 2.0.41
 
 ### Patch Changes

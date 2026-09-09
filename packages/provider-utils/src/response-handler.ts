@@ -327,6 +327,32 @@ export const createBinaryResponseHandler =
     }
   };
 
+/**
+ * Passes the response body through as a `ReadableStream<Uint8Array>` without
+ * buffering it (unlike `createBinaryResponseHandler`). The consumer is
+ * responsible for draining or cancelling the stream.
+ */
+export const createBinaryStreamResponseHandler =
+  (): ResponseHandler<ReadableStream<Uint8Array>> =>
+  async ({ response, url, requestBodyValues }) => {
+    const responseHeaders = extractResponseHeaders(response);
+
+    if (response.body == null) {
+      throw new EmptyResponseBodyError({});
+    }
+
+    return {
+      responseHeaders,
+      value: wrapResponseBodyStream({
+        stream: response.body,
+        url,
+        requestBodyValues,
+        statusCode: response.status,
+        responseHeaders,
+      }),
+    };
+  };
+
 export const createStatusCodeErrorResponseHandler =
   (): ResponseHandler<APICallError> =>
   async ({ response, url, requestBodyValues }) => {

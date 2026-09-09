@@ -20,6 +20,9 @@ const existingMessages: UIMessage[] = [
 
 const stream = createUIMessageStream({
   async execute({ writer }) {
+    // The outer stream owns the assistant message lifecycle.
+    writer.write({ type: 'start' });
+
     // Start a text message
     // Note: The id must be consistent across text-start, text-delta, and text-end steps
     // This allows the system to correctly identify they belong to the same text block
@@ -50,6 +53,7 @@ const stream = createUIMessageStream({
     writer.merge(
       toUIMessageStream({
         stream: result.stream,
+        sendStart: false,
         onEnd: ({ outcome }) => {
           // The composer decides that the model stream outcome is also the
           // aggregate stream outcome.

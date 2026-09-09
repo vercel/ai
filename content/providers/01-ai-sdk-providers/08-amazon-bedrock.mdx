@@ -228,6 +228,52 @@ const { text } = await generateText({
 Amazon Bedrock language models can also be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
+### Structured Outputs
+
+For Anthropic models, you can use the `structuredOutputMode` provider option to
+choose how Amazon Bedrock generates structured outputs:
+
+- `"outputFormat"`: Use Bedrock's native `output_config.format` parameter.
+- `"jsonTool"`: Use a special `json` tool with required tool choice.
+- `"auto"`: Use native structured output when supported and otherwise fall
+  back to the JSON tool. This is the default.
+
+In `"auto"` mode, Claude Sonnet 4.6 and Claude Haiku 4.5 use the JSON tool
+fallback because native structured output can be unreliable across workloads
+and Bedrock accounts. You can set `"outputFormat"` to opt into native structured
+output when it works for your account and workload, or use `"jsonTool"` to force
+the fallback for any model:
+
+```ts
+import {
+  amazonBedrock,
+  type AmazonBedrockLanguageModelChatOptions,
+} from '@ai-sdk/amazon-bedrock';
+import { generateText, Output } from 'ai';
+import { z } from 'zod';
+
+const { output } = await generateText({
+  model: amazonBedrock('eu.anthropic.claude-sonnet-4-6'),
+  output: Output.object({
+    schema: z.object({
+      summary: z.string(),
+      findings: z.array(z.string()),
+    }),
+  }),
+  prompt: 'Summarize the inspection report.',
+  providerOptions: {
+    amazonBedrock: {
+      structuredOutputMode: 'jsonTool',
+    } satisfies AmazonBedrockLanguageModelChatOptions,
+  },
+});
+```
+
+The legacy `providerOptions.bedrock` key remains supported. For parity with the
+Anthropic provider, `providerOptions.anthropic.structuredOutputMode` is also
+honored for Anthropic models on Bedrock. When both are provided, the
+`amazonBedrock` or legacy `bedrock` value takes precedence.
+
 ### File Inputs
 
 <Note type="warning">

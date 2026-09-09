@@ -1,5 +1,6 @@
 import {
   commonTool,
+  HARNESS_V1_BUILTIN_TOOLS,
   type HarnessV1,
   type HarnessV1BuiltinTool,
 } from '@ai-sdk/harness';
@@ -35,13 +36,6 @@ export type ClineHarnessSettings = {
    */
   readonly providerId?: string;
   /**
-   * Model id for the configured provider. When omitted, Cline selects the
-   * provider's default model.
-   *
-   * @deprecated Use `model` on `HarnessAgent` instead.
-   */
-  readonly modelId?: string;
-  /**
    * Provider API key. When omitted, the Cline gateway falls back to the
    * provider's environment variable (e.g. `ANTHROPIC_API_KEY`).
    * A record-shaped authentication override disables that fallback.
@@ -70,6 +64,11 @@ export type ClineHarnessSettings = {
  * `cline-tools.ts` — keep the two in sync.
  */
 const CLINE_BUILTIN_TOOLS = {
+  askUserQuestions: {
+    ...HARNESS_V1_BUILTIN_TOOLS.askUserQuestions,
+    nativeName: 'ask_question',
+    toolUseKind: 'readonly',
+  },
   read: commonTool('read', {
     nativeName: 'read',
     toolUseKind: 'readonly',
@@ -183,10 +182,10 @@ export function createCline(
             isHarnessAuthenticationEnvironment(settings.auth),
           ...(settings.mcpServers ? { mcpServers: settings.mcpServers } : {}),
           ...(settings.providerId ? { providerId: settings.providerId } : {}),
-          ...(settings.modelId == null ? {} : { modelId: settings.modelId }),
           ...(settings.apiKey ? { apiKey: settings.apiKey } : {}),
           ...(settings.baseUrl ? { baseUrl: settings.baseUrl } : {}),
           ...(settings.headers ? { headers: settings.headers } : {}),
+          ...(startOpts.headers ? { agentHeaders: startOpts.headers } : {}),
           ...(settings.reasoningEffort !== undefined
             ? { reasoningEffort: settings.reasoningEffort }
             : {}),

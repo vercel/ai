@@ -1,4 +1,7 @@
-import type { EmbeddingModelV4 } from '@ai-sdk/provider';
+import {
+  InvalidResponseDataError,
+  type EmbeddingModelV4,
+} from '@ai-sdk/provider';
 import assert from 'node:assert';
 import {
   afterEach,
@@ -34,6 +37,48 @@ const testValues = [
   'rainy afternoon in the city',
   'snowy night in the mountains',
 ];
+
+describe('error handling', () => {
+  it('should reject an embedding count mismatch in a single call', async () => {
+    const result = embedMany({
+      model: new MockEmbeddingModelV4({
+        maxEmbeddingsPerCall: Infinity,
+        doEmbed: async () => ({
+          embeddings: dummyEmbeddings.slice(0, 2),
+          warnings: [],
+        }),
+      }),
+      values: testValues,
+    });
+
+    await expect(result).rejects.toSatisfy(InvalidResponseDataError.isInstance);
+    await expect(result).rejects.toMatchObject({
+      name: 'AI_InvalidResponseDataError',
+      message: 'Expected 3 embeddings, but received 2.',
+      data: dummyEmbeddings.slice(0, 2),
+    });
+  });
+
+  it('should reject an embedding count mismatch in each chunk', async () => {
+    const result = embedMany({
+      model: new MockEmbeddingModelV4({
+        maxEmbeddingsPerCall: 2,
+        doEmbed: async ({ values }) => ({
+          embeddings: values.map(() => dummyEmbeddings[0]).slice(0, -1),
+          warnings: [],
+        }),
+      }),
+      values: testValues,
+    });
+
+    await expect(result).rejects.toSatisfy(InvalidResponseDataError.isInstance);
+    await expect(result).rejects.toMatchObject({
+      name: 'AI_InvalidResponseDataError',
+      message: 'Expected 2 embeddings, but received 1.',
+      data: [dummyEmbeddings[0]],
+    });
+  });
+});
 
 describe('model.supportsParallelCalls', () => {
   it('should not parallelize when false', async () => {
@@ -341,7 +386,7 @@ describe('result.responses', () => {
             case 0:
               assert.deepStrictEqual(values, [testValues[0]]);
               return {
-                embeddings: dummyEmbeddings,
+                embeddings: [dummyEmbeddings[0]],
                 response: {
                   body: { first: true },
                 },
@@ -350,7 +395,7 @@ describe('result.responses', () => {
             case 1:
               assert.deepStrictEqual(values, [testValues[1]]);
               return {
-                embeddings: dummyEmbeddings,
+                embeddings: [dummyEmbeddings[1]],
                 response: {
                   body: { second: true },
                 },
@@ -359,7 +404,7 @@ describe('result.responses', () => {
             case 2:
               assert.deepStrictEqual(values, [testValues[2]]);
               return {
-                embeddings: dummyEmbeddings,
+                embeddings: [dummyEmbeddings[2]],
                 response: {
                   body: { third: true },
                 },

@@ -1,5 +1,90 @@
 # @ai-sdk/harness-cursor
 
+## 1.0.18
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.105
+- @ai-sdk/harness-acp@1.0.43
+
+## 1.0.17
+
+### Patch Changes
+
+- c04ded8: chore(harness): remove formerly deprecated `model` and `modelId` config on harness adapter settings
+- Updated dependencies [c04ded8]
+  - @ai-sdk/harness-acp@1.0.42
+  - @ai-sdk/harness@1.0.104
+
+## 1.0.16
+
+### Patch Changes
+
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider-utils@5.0.37
+  - @ai-sdk/harness@1.0.103
+  - @ai-sdk/harness-acp@1.0.41
+
+## 1.0.15
+
+### Patch Changes
+
+- eeed977: feat(harness): allow passing arbitrary headers with inference requests via `headers` property in `HarnessAgentSettings`
+- Updated dependencies [fe86f8f]
+- Updated dependencies [ceb601c]
+- Updated dependencies [255cccf]
+- Updated dependencies [668b51d]
+- Updated dependencies [eeed977]
+- Updated dependencies [1291df7]
+- Updated dependencies [a39c8bf]
+  - @ai-sdk/harness@1.0.102
+  - @ai-sdk/harness-acp@1.0.40
+
+## 1.0.14
+
+### Patch Changes
+
+- 951c54d: feat(harness): support `askUserQuestions` tool including support for normalization across harness adapters
+- Updated dependencies [951c54d]
+  - @ai-sdk/harness-acp@1.0.39
+  - @ai-sdk/harness@1.0.101
+
+## 1.0.13
+
+### Patch Changes
+
+- 74d252a: fix(harness-acp): preserve terminal events replayed during ACP continuation startup
+- Updated dependencies [74d252a]
+- Updated dependencies [0c37bf0]
+  - @ai-sdk/harness-acp@1.0.38
+  - @ai-sdk/harness@1.0.100
+
+## 1.0.12
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+  - @ai-sdk/harness@1.0.99
+  - @ai-sdk/harness-acp@1.0.37
+
+## 1.0.11
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider-utils@5.0.35
+  - @ai-sdk/harness@1.0.98
+  - @ai-sdk/harness-acp@1.0.36
+
+## 1.0.10
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.97
+- @ai-sdk/harness-acp@1.0.35
+
 ## 1.0.9
 
 ### Patch Changes

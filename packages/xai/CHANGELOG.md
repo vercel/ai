@@ -1,5 +1,45 @@
 # @ai-sdk/xai
 
+## 4.0.55
+
+### Patch Changes
+
+- a4ba394: feat: support per-request models in batch
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+
+## 4.0.54
+
+### Patch Changes
+
+- 048ce06: feat(batch): surface the uploaded input file on the batch start result (`providerMetadata.<provider>.inputFileId` / `inputFileExpiresAt`) and accept an `inputFileExpiresAfter` provider option on the OpenAI and xAI batch input file upload
+
+## 4.0.53
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
+## 4.0.52
+
+### Patch Changes
+
+- f1513f0: feat(xai): implement `getFileMetadata`, `downloadFile` (streaming), and `deleteFile` on the xAI files interface, support `expiresAfter` upload TTLs (integer 3600–2592000 seconds, emitted before the file part as xAI requires) and streaming uploads via `{ type: 'stream' }` data, expose `byteSize`/`createdAt`/`expiresAt` on upload results, and thread `abortSignal`/`headers` through all file operations; blank and dot-segment file ids are rejected/encoded so they cannot retarget request paths
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+
+## 4.0.51
+
+### Patch Changes
+
+- e07b577: feat: add tool calling support to batch
+
 ## 4.0.50
 
 ### Patch Changes

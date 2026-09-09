@@ -34,6 +34,10 @@ import { argv, env as procEnv, stdout } from 'node:process';
  *   3. the dependency entry in `src/bridge/package.json`.
  */
 import * as claudeAgentSdk from '@anthropic-ai/claude-agent-sdk';
+import type {
+  HookCallback,
+  HookJSONOutput,
+} from '@anthropic-ai/claude-agent-sdk';
 import * as mcpServerModule from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createClaudeCodeSystemPrompt } from './claude-code-system-prompt';
 import { toClaudeSkillsOption } from './claude-skills-option';
@@ -52,6 +56,11 @@ import {
   resolveInactiveNativeTools,
   resolveNativeTools,
 } from './tool-filtering';
+import {
+  claudeCodeQuestionKey,
+  toClaudeCodeQuestionResult,
+  toHarnessQuestionsInput,
+} from './question-tool';
 
 /*
  * Native Claude Code tool name → cross-harness common name. Tools outside this
@@ -65,7 +74,8 @@ type CommonBuiltinToolName =
   | 'bash'
   | 'glob'
   | 'grep'
-  | 'webSearch';
+  | 'webSearch'
+  | 'askUserQuestions';
 
 const NATIVE_TO_COMMON: Readonly<Record<string, CommonBuiltinToolName>> = {
   Read: 'read',
@@ -75,6 +85,7 @@ const NATIVE_TO_COMMON: Readonly<Record<string, CommonBuiltinToolName>> = {
   Glob: 'glob',
   Grep: 'grep',
   WebSearch: 'webSearch',
+  AskUserQuestion: 'askUserQuestions',
 };
 
 const NATIVE_TOOL_KINDS: Readonly<
@@ -162,17 +173,15 @@ function createPermissionOptions(input: {
     permissionMode,
     inactiveNativeTools,
   });
-  if (permissionMode === 'allow-all' && inactiveNativeTools.size === 0) {
-    return {
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
-    };
-  }
 
   return {
     permissionMode:
-      permissionMode === 'allow-edits' ? 'acceptEdits' : 'default',
-    allowDangerouslySkipPermissions: false,
+      permissionMode === 'allow-all'
+        ? 'bypassPermissions'
+        : permissionMode === 'allow-edits'
+          ? 'acceptEdits'
+          : 'default',
+    allowDangerouslySkipPermissions: permissionMode === 'allow-all',
     ...(permissionSettings ? { settings: permissionSettings } : {}),
     canUseTool: async (
       toolName: string,
@@ -220,6 +229,80 @@ function createPermissionOptions(input: {
             toolUseID: approvalId,
           };
     },
+  };
+}
+
+function createQuestionPreToolUseHook(input: {
+  turn: BridgeTurn;
+  emit: Emit;
+  nativeToolCallNames: Map<string, string>;
+}): HookCallback {
+  return async (hookInput, toolUseID): Promise<HookJSONOutput> => {
+    if (
+      hookInput.hook_event_name !== 'PreToolUse' ||
+      hookInput.tool_name !== 'AskUserQuestion'
+    ) {
+      return {};
+    }
+
+    const nativeInput = hookInput.tool_input as Parameters<
+      typeof toHarnessQuestionsInput
+    >[0];
+    const canonicalInput = toHarnessQuestionsInput(nativeInput);
+    const toolCallId = toolUseID ?? hookInput.tool_use_id;
+    input.nativeToolCallNames.set(toolCallId, hookInput.tool_name);
+    input.emit({
+      type: 'tool-call',
+      toolCallId,
+      toolName: 'askUserQuestions',
+      nativeName: hookInput.tool_name,
+      input: JSON.stringify(canonicalInput),
+      providerExecuted: false,
+      providerMetadata: {
+        'claude-code': {
+          nativeRequest: nativeInput,
+        },
+      },
+    });
+
+    const questionKey = claudeCodeQuestionKey(nativeInput);
+    const result = await input.turn.requestToolResult({
+      toolCallId,
+      matches: candidate => {
+        const nativeRequest = candidate.toolResult?.providerOptions?.[
+          'claude-code'
+        ]?.nativeRequest as
+          | Parameters<typeof claudeCodeQuestionKey>[0]
+          | undefined;
+        return (
+          nativeRequest != null &&
+          claudeCodeQuestionKey(nativeRequest) === questionKey
+        );
+      },
+    });
+    const nativeResult = toClaudeCodeQuestionResult({
+      nativeInput,
+      output: result.output as Parameters<
+        typeof toClaudeCodeQuestionResult
+      >[0]['output'],
+    });
+
+    return {
+      hookSpecificOutput: {
+        hookEventName: 'PreToolUse',
+        ...(nativeResult.behavior === 'allow'
+          ? {
+              permissionDecision: 'allow',
+              updatedInput: {
+                ...nativeResult.updatedInput,
+              } as Record<string, unknown>,
+            }
+          : {
+              permissionDecision: 'deny',
+              permissionDecisionReason: nativeResult.message,
+            }),
+      },
+    };
   };
 }
 
@@ -372,6 +455,11 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     nativeToolCallNames: streamEventState.nativeToolCallNames,
     approvalRequestedToolUseIds: streamEventState.approvalRequestedToolUseIds,
   });
+  const questionPreToolUseHook = createQuestionPreToolUseHook({
+    turn,
+    emit,
+    nativeToolCallNames: streamEventState.nativeToolCallNames,
+  });
 
   const q = claudeSdk.query({
     prompt: queryInput.input,
@@ -401,6 +489,12 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       // `compact_boundary` system message does not. Latch it for the unified
       // `compaction` event; return an empty output so compaction proceeds.
       hooks: {
+        PreToolUse: [
+          {
+            matcher: 'AskUserQuestion',
+            hooks: [questionPreToolUseHook],
+          },
+        ],
         PostCompact: [
           {
             hooks: [
@@ -507,6 +601,19 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 
       if (type === 'result') {
         if (msg.subtype === 'success') {
+          // `success` does not mean the turn succeeded: the CLI flags a rejected
+          // request with `is_error` and puts the message in `result`, which the
+          // empty-result rescue below cannot catch.
+          if (msg.is_error) {
+            emitTerminalError(
+              msg.result?.trim() ||
+                streamEventState.observedTerminalError ||
+                (typeof msg.api_error_status === 'number'
+                  ? `Claude Code reported an API error (HTTP ${msg.api_error_status})`
+                  : 'Claude Code reported a failed result'),
+            );
+            continue;
+          }
           const emptyResult = !msg.result?.trim?.();
           if (emptyResult && streamEventState.observedTerminalError) {
             emitTerminalError(streamEventState.observedTerminalError);

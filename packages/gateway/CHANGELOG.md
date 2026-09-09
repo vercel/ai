@@ -1,5 +1,55 @@
 # @ai-sdk/gateway
 
+## 4.0.76
+
+### Patch Changes
+
+- a4ba394: feat: support per-request models in batch
+- e9bf5e3: chore(provider/gateway): update gateway model settings files
+- 56c004c: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+
+## 4.0.75
+
+### Patch Changes
+
+- 3cfc1fc: feat(gateway): add support for gpt-6-astra
+
+## 4.0.74
+
+### Patch Changes
+
+- a7e324b: chore(provider/gateway): update gateway model settings files
+
+## 4.0.73
+
+### Patch Changes
+
+- 5484f27: chore(provider/gateway): update gateway model settings files
+- 36eb7ee: chore(provider/gateway): update gateway model settings files
+- 622fa7f: feat(google): add gemini-3.8-flash model
+
+## 4.0.72
+
+### Patch Changes
+
+- 4d25a08: feat(anthropic): add fable 5.1 support
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
+## 4.0.71
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+
 ## 4.0.70
 
 ### Patch Changes

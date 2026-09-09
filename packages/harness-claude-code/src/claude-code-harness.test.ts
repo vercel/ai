@@ -333,7 +333,7 @@ describe('createClaudeCode adapter', () => {
       'EnterPlanMode',
       'EnterWorktree',
       'ExitWorktree',
-      'AskUserQuestion',
+      'askUserQuestions',
       'Skill',
       'ToolSearch',
       'Artifact',
@@ -430,8 +430,8 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
-  it('prefers the per-turn model over the deprecated adapter model', async () => {
-    const harness = createClaudeCode({ model: 'legacy-model' });
+  it('sends the per-turn model to the CLI', async () => {
+    const harness = createClaudeCode();
     const session = await harness.doStart({
       sessionId: 's1',
       sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
@@ -485,6 +485,56 @@ describe('createClaudeCode adapter', () => {
     });
     expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
     await session.doDestroy();
+  });
+
+  it('sets custom headers for Gateway and direct auth', async () => {
+    const gateway = createClaudeCode({
+      auth: { AI_GATEWAY_API_KEY: 'gateway-key' },
+    });
+    const gatewaySession = await gateway.doStart({
+      sessionId: 'gateway',
+      headers: { 'x-tenant': 'acme' },
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-gateway',
+    });
+    await gatewaySession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    expect(sentMessages.at(-1)).toMatchObject({
+      env: { ANTHROPIC_CUSTOM_HEADERS: 'x-tenant: acme' },
+    });
+    await gatewaySession.doDestroy();
+
+    const direct = createClaudeCode({
+      auth: { ANTHROPIC_API_KEY: 'anthropic-key' },
+    });
+    const directSession = await direct.doStart({
+      sessionId: 'direct',
+      headers: { 'x-tenant': 'acme' },
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-direct',
+    });
+    await directSession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    expect(sentMessages.at(-1)).toMatchObject({
+      env: { ANTHROPIC_CUSTOM_HEADERS: 'x-tenant: acme' },
+    });
+    await directSession.doDestroy();
   });
 
   it('brokers credentials when the sandbox supports additive request transformations', async () => {
@@ -556,6 +606,7 @@ describe('createClaudeCode adapter', () => {
   });
 
   it('customizes real credentials when request transformations are unavailable', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const forwardedCredentials: Array<{
       credential: string;
@@ -598,8 +649,30 @@ describe('createClaudeCode adapter', () => {
       env: { ANTHROPIC_API_KEY: 'caller-managed-credential' },
     });
     expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('anthropic-secret');
+    expect(warn).not.toHaveBeenCalled();
 
     await session.doDestroy();
+
+    const identityHarness = createClaudeCode({
+      auth: { ANTHROPIC_API_KEY: 'anthropic-secret' },
+      credentialForwarding: ({ credential }) => credential,
+    });
+    const identitySession = await identityHarness.doStart({
+      sessionId: 's2',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        spawnEnvs: [],
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s2',
+    });
+
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      'The sandbox implementation does not support configuring request transformations, so credential brokering does not work. Falling back to less secure credential forwarding.',
+    );
+
+    await identitySession.doDestroy();
   });
 
   it('customizes credentials forwarded through the Claude process environment', async () => {
@@ -1353,8 +1426,8 @@ describe('createClaudeCode adapter', () => {
     });
 
     it('shares the getter across configured harness instances', () => {
-      const first = createClaudeCode({ model: 'first-model' });
-      const second = createClaudeCode({ model: 'second-model' });
+      const first = createClaudeCode({ maxTurns: 1 });
+      const second = createClaudeCode({ maxTurns: 2 });
 
       expect(first.getBootstrap).toBe(second.getBootstrap);
     });

@@ -997,6 +997,20 @@ To see `generateText` in action, check out [these examples](#examples).
                         'The schema of the array elements to generate.',
                     },
                     {
+                      name: 'minItems',
+                      type: 'number',
+                      isOptional: true,
+                      description:
+                        'Optional minimum number of array elements. Must be a non-negative integer.',
+                    },
+                    {
+                      name: 'maxItems',
+                      type: 'number',
+                      isOptional: true,
+                      description:
+                        'Optional maximum number of array elements. Must be a non-negative integer and greater than or equal to minItems.',
+                    },
+                    {
                       name: 'name',
                       type: 'string',
                       isOptional: true,

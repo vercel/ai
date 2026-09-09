@@ -1,6 +1,7 @@
 import { posix } from 'node:path';
 import {
   commonTool,
+  HARNESS_V1_BUILTIN_TOOLS,
   harnessV1DiagnosticFromBridgeFrame,
   HarnessCapabilityUnsupportedError,
   type HarnessV1,
@@ -9,9 +10,11 @@ import {
   type HarnessV1ContinueTurnState,
   type HarnessV1CredentialForwarding,
   type HarnessV1DebugConfig,
+  type HarnessV1MintBridgeTokenCallback,
   type HarnessV1PermissionMode,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
+  type HarnessV1ResponseFormat,
   type HarnessV1PortEndpoint,
   type HarnessV1ResumeSessionState,
   type HarnessV1NetworkSandboxSession,
@@ -38,7 +41,7 @@ import {
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
   withBridgeToken,
-  writeSkills as writeHarnessSkills,
+  writeSkills,
 } from '@ai-sdk/harness/utils';
 import {
   safeParseJSON,
@@ -89,13 +92,6 @@ export type ClaudeCodeHarnessSettings = {
    */
   readonly mcpServers?: Record<string, unknown>;
   /**
-   * Anthropic model id the underlying `claude` CLI should use. Leaving this
-   * unset defers to the CLI's default.
-   *
-   * @deprecated Use `model` on `HarnessAgent` instead.
-   */
-  readonly model?: string;
-  /**
    * Hard cap on how many internal turns the CLI can take before yielding
    * back to the caller. Unset means the CLI's default.
    */
@@ -133,7 +129,7 @@ export type ClaudeCodeHarnessSettings = {
    * Creates the authentication token used by the sandbox bridge. Defaults to
    * a random 32-byte hexadecimal token.
    */
-  readonly mintBridgeToken?: (sandboxId: string) => string;
+  readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
 
 /*
@@ -461,39 +457,14 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       discard_changes: z.boolean().optional(),
     }),
   }),
-  AskUserQuestion: tool({
-    description: 'Ask the user multiple-choice questions via a structured UI',
-    inputSchema: z.object({
-      questions: z
-        .array(
-          z.object({
-            question: z.string(),
-            header: z.string(),
-            options: z.array(
-              z.object({
-                label: z.string(),
-                description: z.string(),
-                preview: z.string().optional(),
-              }),
-            ),
-            multiSelect: z.boolean(),
-          }),
-        )
-        .min(1)
-        .max(4),
-      answers: z.record(z.string(), z.string()).optional(),
-      annotations: z
-        .record(
-          z.string(),
-          z.object({
-            preview: z.string().optional(),
-            notes: z.string().optional(),
-          }),
-        )
-        .optional(),
-      metadata: z.object({ source: z.string().optional() }).optional(),
-    }),
-  }),
+  askUserQuestions: {
+    ...HARNESS_V1_BUILTIN_TOOLS.askUserQuestions,
+    nativeName: 'AskUserQuestion',
+    toolUseKind: 'readonly',
+  } as typeof HARNESS_V1_BUILTIN_TOOLS.askUserQuestions & {
+    readonly nativeName: 'AskUserQuestion';
+    readonly toolUseKind: 'readonly';
+  },
   Skill: {
     ...tool({
       description: 'Activate a skill by name',
@@ -891,6 +862,13 @@ export function createClaudeCode(
           ? { CLAUDE_AGENT_SDK_CLIENT_APP: CLAUDE_CODE_CLIENT_APP }
           : {}),
         ...settings.env,
+        ...(startOpts.headers != null
+          ? {
+              ANTHROPIC_CUSTOM_HEADERS: Object.entries(startOpts.headers)
+                .map(([name, value]) => `${name}: ${value}`)
+                .join('\n'),
+            }
+          : {}),
       };
       let sandboxClaudeEnvironment = claudeEnvironment;
       let sandboxCredentialEnvironment: Record<string, string> | undefined;
@@ -921,12 +899,17 @@ export function createClaudeCode(
           );
         }
       } else {
-        warnCredentialBrokeringUnavailable();
         sandboxClaudeEnvironment = await applyCredentialForwarding({
           environment: sandboxClaudeEnvironment,
           credentialEnvironmentVariables:
             CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
           credentialForwarding: settings.credentialForwarding,
+        });
+        warnCredentialBrokeringUnavailable({
+          environment: claudeEnvironment,
+          forwardedEnvironment: sandboxClaudeEnvironment,
+          credentialEnvironmentVariables:
+            CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
         });
       }
       const bootstrapDir = posix.resolve(
@@ -1015,7 +998,6 @@ export function createClaudeCode(
             // process handle. The session lifecycle method decides whether the
             // sandbox is left running, stopped, or destroyed.
             proc: undefined,
-            model: settings.model,
             maxTurns: settings.maxTurns,
             env: sandboxClaudeEnvironment,
             thinking,
@@ -1166,7 +1148,6 @@ export function createClaudeCode(
         sessionId: startOpts.sessionId,
         channel,
         proc,
-        model: settings.model,
         maxTurns: settings.maxTurns,
         env: sandboxClaudeEnvironment,
         thinking,
@@ -1263,30 +1244,6 @@ async function resolveBridgeEndpoint({
  * be in place before the bridge is spawned without mutating the session
  * workdir. Each file uses the YAML-frontmatter shape the CLI expects.
  */
-async function writeClaudeCodeSkills({
-  sandbox,
-  homeDir,
-  skills,
-  abortSignal,
-}: {
-  sandbox: SandboxSession;
-  homeDir: string;
-  skills: ReadonlyArray<HarnessV1Skill>;
-  abortSignal?: AbortSignal;
-}): Promise<void> {
-  await writeHarnessSkills({
-    sandbox,
-    rootDir: `${homeDir}/.claude/skills`,
-    skills,
-    abortSignal,
-    invalidSkillNameMessage: ({ name }) =>
-      `Invalid Claude Code skill name: ${name}`,
-    invalidSkillFilePathMessage: ({ skillName, filePath }) =>
-      `Invalid Claude Code skill file path for ${skillName}: ${filePath}`,
-    trailingNewline: true,
-  });
-}
-
 /**
  * Wait for the bridge's `bridge-hello` message to arrive on the freshly
  * opened WebSocket before any other host-side code touches it.
@@ -1485,7 +1442,6 @@ function createSession({
   sessionId,
   channel,
   proc,
-  model,
   maxTurns,
   env,
   thinking,
@@ -1510,7 +1466,6 @@ function createSession({
   channel: ClaudeCodeChannel;
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
-  model: string | undefined;
   maxTurns: number | undefined;
   env: Readonly<Record<string, string>> | undefined;
   thinking: ClaudeCodeThinkingConfig;
@@ -1692,6 +1647,9 @@ function createSession({
           toolCallId: input.toolCallId,
           output: input.output,
           isError: input.isError,
+          ...(input.toolResult !== undefined
+            ? { toolResult: input.toolResult }
+            : {}),
         });
       },
       submitToolApproval: async input => {
@@ -1713,30 +1671,45 @@ function createSession({
     };
   };
 
+  const prepareTurn = async (turnOpts: {
+    responseFormat?: HarnessV1ResponseFormat;
+    skills: ReadonlyArray<HarnessV1Skill>;
+    emit: (event: HarnessV1StreamPart) => void;
+    abortSignal?: AbortSignal;
+  }): Promise<HarnessV1PromptControl> => {
+    if (
+      turnOpts.responseFormat?.type === 'json' &&
+      turnOpts.responseFormat.schema == null
+    ) {
+      throw new HarnessCapabilityUnsupportedError({
+        message:
+          "Harness 'claude-code' requires a JSON schema for structured output.",
+        harnessId: 'claude-code',
+      });
+    }
+    await writeSkills({
+      sandbox,
+      homePath: sandboxHomeDir,
+      skillsDir: '.claude/skills',
+      skills: turnOpts.skills,
+      abortSignal: turnOpts.abortSignal,
+      invalidSkillNameMessage: ({ name }) =>
+        `Invalid Claude Code skill name: ${name}`,
+      invalidSkillFilePathMessage: ({ skillName, filePath }) =>
+        `Invalid Claude Code skill file path for ${skillName}: ${filePath}`,
+      trailingNewline: true,
+    });
+    return wireTurn({
+      emit: turnOpts.emit,
+      abortSignal: turnOpts.abortSignal,
+    });
+  };
+
   return {
     sessionId,
     isResume,
     doPromptTurn: async promptOpts => {
-      if (
-        promptOpts.responseFormat?.type === 'json' &&
-        promptOpts.responseFormat.schema == null
-      ) {
-        throw new HarnessCapabilityUnsupportedError({
-          message:
-            "Harness 'claude-code' requires a JSON schema for structured output.",
-          harnessId: 'claude-code',
-        });
-      }
-      await writeClaudeCodeSkills({
-        sandbox,
-        homeDir: sandboxHomeDir,
-        skills: promptOpts.skills,
-        abortSignal: promptOpts.abortSignal,
-      });
-      const control = wireTurn({
-        emit: promptOpts.emit,
-        abortSignal: promptOpts.abortSignal,
-      });
+      const control = await prepareTurn(promptOpts);
 
       /*
        * A signal that was already aborted has settled the turn inside
@@ -1762,7 +1735,7 @@ function createSession({
         ...(promptOpts.instructions
           ? { instructions: promptOpts.instructions }
           : {}),
-        model: promptOpts.model ?? model,
+        model: promptOpts.model,
         maxTurns,
         ...(env !== undefined ? { env } : {}),
         thinking,
@@ -1786,26 +1759,7 @@ function createSession({
       return control;
     },
     doContinueTurn: async continueOpts => {
-      if (
-        continueOpts.responseFormat?.type === 'json' &&
-        continueOpts.responseFormat.schema == null
-      ) {
-        throw new HarnessCapabilityUnsupportedError({
-          message:
-            "Harness 'claude-code' requires a JSON schema for structured output.",
-          harnessId: 'claude-code',
-        });
-      }
-      await writeClaudeCodeSkills({
-        sandbox,
-        homeDir: sandboxHomeDir,
-        skills: continueOpts.skills,
-        abortSignal: continueOpts.abortSignal,
-      });
-      const control = wireTurn({
-        emit: continueOpts.emit,
-        abortSignal: continueOpts.abortSignal,
-      });
+      const control = await prepareTurn(continueOpts);
 
       /*
        * attach / replay: the still-running (or disk-replayed) turn streams into
@@ -1845,7 +1799,7 @@ function createSession({
           ...(continueOpts.instructions
             ? { instructions: continueOpts.instructions }
             : {}),
-          model: continueOpts.model ?? model,
+          model: continueOpts.model,
           maxTurns,
           ...(env !== undefined ? { env } : {}),
           thinking,

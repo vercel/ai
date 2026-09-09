@@ -5,9 +5,12 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
+  shell-quote: 1.10.0
   tinyexec: 1.0.2
   oxlint: 1.56.0
   tar: 7.5.19
+  '@workflow/world-local@4>undici': 7.29.0
+  '@workflow/world-vercel@4>undici': 7.29.0
 
 importers:
 
@@ -26,8 +29,8 @@ importers:
         specifier: ^9.1.7
         version: 9.1.7
       konsistent:
-        specifier: ^1.0.0-beta
-        version: 1.0.0-beta.5
+        specifier: 1.0.0-beta.9
+        version: 1.0.0-beta.9
       konsistent-provider:
         specifier: workspace:*
         version: link:tools/konsistent-provider
@@ -414,6 +417,9 @@ importers:
       '@ai-sdk/harness-fx':
         specifier: workspace:*
         version: link:../../packages/harness-fx
+      '@ai-sdk/harness-github-copilot':
+        specifier: workspace:*
+        version: link:../../packages/harness-github-copilot
       '@ai-sdk/harness-grok-build':
         specifier: workspace:*
         version: link:../../packages/harness-grok-build
@@ -435,9 +441,6 @@ importers:
       '@ai-sdk/langchain':
         specifier: workspace:*
         version: link:../../packages/langchain
-      '@ai-sdk/lmnt':
-        specifier: workspace:*
-        version: link:../../packages/lmnt
       '@ai-sdk/luma':
         specifier: workspace:*
         version: link:../../packages/luma
@@ -577,8 +580,8 @@ importers:
         specifier: ^2.0.0
         version: 2.0.0(debug@4.4.3(supports-color@8.1.1))
       undici:
-        specifier: ^8.5.0
-        version: 8.5.0
+        specifier: ^8.9.0
+        version: 8.9.0
       valibot:
         specifier: 1.1.0
         version: 1.1.0(typescript@5.8.3)
@@ -760,6 +763,9 @@ importers:
       '@ai-sdk/harness-fx':
         specifier: workspace:*
         version: link:../../packages/harness-fx
+      '@ai-sdk/harness-github-copilot':
+        specifier: workspace:*
+        version: link:../../packages/harness-github-copilot
       '@ai-sdk/harness-grok-build':
         specifier: workspace:*
         version: link:../../packages/harness-grok-build
@@ -3112,6 +3118,37 @@ importers:
         specifier: 3.25.76
         version: 3.25.76
 
+  packages/harness-github-copilot:
+    dependencies:
+      '@ai-sdk/harness':
+        specifier: workspace:*
+        version: link:../harness
+      '@ai-sdk/harness-acp':
+        specifier: workspace:*
+        version: link:../harness-acp
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+    devDependencies:
+      '@github/copilot':
+        specifier: 1.0.82
+        version: 1.0.82
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.26)(supports-color@10.2.2)(tsx@4.23.12)(typescript@5.8.3)(yaml@2.9.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
   packages/harness-grok-build:
     dependencies:
       '@ai-sdk/harness':
@@ -3353,34 +3390,6 @@ importers:
       typescript:
         specifier: 5.8.3
         version: 5.8.3
-
-  packages/lmnt:
-    dependencies:
-      '@ai-sdk/provider':
-        specifier: workspace:*
-        version: link:../provider
-      '@ai-sdk/provider-utils':
-        specifier: workspace:*
-        version: link:../provider-utils
-    devDependencies:
-      '@ai-sdk/test-server':
-        specifier: workspace:*
-        version: link:../test-server
-      '@types/node':
-        specifier: 22.19.19
-        version: 22.19.19
-      '@vercel/ai-tsconfig':
-        specifier: workspace:*
-        version: link:../../tools/tsconfig
-      tsup:
-        specifier: ^8.5.1
-        version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.26)(supports-color@10.2.2)(tsx@4.23.12)(typescript@5.6.3)(yaml@2.9.0)
-      typescript:
-        specifier: 5.6.3
-        version: 5.6.3
-      zod:
-        specifier: 3.25.76
-        version: 3.25.76
 
   packages/luma:
     dependencies:
@@ -3779,8 +3788,8 @@ importers:
         specifier: ^3.0.8
         version: 3.0.8
       undici:
-        specifier: ^7.28.0
-        version: 7.28.0
+        specifier: ^7.29.0
+        version: 7.29.0
     devDependencies:
       '@types/node':
         specifier: 22.19.19
@@ -3967,8 +3976,8 @@ importers:
         specifier: workspace:*
         version: link:../ai
       jsondiffpatch:
-        specifier: 0.7.3
-        version: 0.7.3
+        specifier: 0.7.6
+        version: 0.7.6
     devDependencies:
       '@testing-library/jest-dom':
         specifier: ^6.9.1
@@ -4494,8 +4503,8 @@ importers:
   tools/konsistent-provider:
     dependencies:
       '@konsistent/convention':
-        specifier: ^1.0.0-beta
-        version: 1.0.0-beta.5(zod@4.4.3)
+        specifier: 1.0.0-beta.9
+        version: 1.0.0-beta.9(zod@4.4.3)
     devDependencies:
       '@types/node':
         specifier: 22.19.19
@@ -7542,6 +7551,62 @@ packages:
     resolution: {integrity: sha512-GmzA9ckNokPypTg10pgpeHNQe7ph+iIKKmhKu3Ob9ANkswreCx7R3cKmY781K8QK3AqVL3xVh9A42JvIAbkkSA==}
     engines: {node: ^20.17.0 || >=22.9.0}
 
+  '@github/copilot-darwin-arm64@1.0.82':
+    resolution: {integrity: sha512-UpVSFA0COmlIakAr7/6WJqJlabtKgY8y5en6La3IxGxXsLlbkGoeevSqyfXvqJyHxaGn0YGpOC1oEPL379JfCw==}
+    cpu: [arm64]
+    os: [darwin]
+    hasBin: true
+
+  '@github/copilot-darwin-x64@1.0.82':
+    resolution: {integrity: sha512-wMKbxK8fpKsbATjn9dE31Pae67H1xu6dmaCuyXpXjXLsNPVjeLFszJZ30MAOwxRWz4dmA8VvEJZmLgJekojo2Q==}
+    cpu: [x64]
+    os: [darwin]
+    hasBin: true
+
+  '@github/copilot-linux-arm64@1.0.82':
+    resolution: {integrity: sha512-YDQmh0F+GzWORPmNNxQdcjHcXHxcy08dhMhbAhu4cqtMeA2sZWQqhfk9mJhHppMm9U0uR7h0KAB6nsgw/8Bsuw==}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
+    hasBin: true
+
+  '@github/copilot-linux-x64@1.0.82':
+    resolution: {integrity: sha512-vqmG9665ktgLHAkGKMjp4uVMdHqLxi8uS9zL+g2pMwZUPoM7JxkaSfOoeyYr99caF7J6VIJTWv4LdRNQyG5jrQ==}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+    hasBin: true
+
+  '@github/copilot-linuxmusl-arm64@1.0.82':
+    resolution: {integrity: sha512-14dWfa4rBME55bKmF+Z8V+WzZNgPQZKFFBQX+EOiAgLVV/arQCnQ1m7wwa5oXjQeCIgkS/L9J8uM8jNm6cZbOA==}
+    cpu: [arm64]
+    os: [linux]
+    libc: [musl]
+    hasBin: true
+
+  '@github/copilot-linuxmusl-x64@1.0.82':
+    resolution: {integrity: sha512-Mauqa2TBjtB8W/1KXF/jJ4MbtwnLvoEQNHYoSyoX+s+nIpttmixmYBJDwKV89ZlQRdjOCuxOgraRLQ9hjjXvNQ==}
+    cpu: [x64]
+    os: [linux]
+    libc: [musl]
+    hasBin: true
+
+  '@github/copilot-win32-arm64@1.0.82':
+    resolution: {integrity: sha512-PaW9s0GTgM+svtDkB583dZRrhLrO4o10y2ozMmQ0Hi5eB11C24UdC5U81nFlvKPED7+GlnBJIFQ+oHaxHrnp3A==}
+    cpu: [arm64]
+    os: [win32]
+    hasBin: true
+
+  '@github/copilot-win32-x64@1.0.82':
+    resolution: {integrity: sha512-m4iSROOMEPp1yRIQQwbnO0CDfwB4syESyHoeSLLFuynMR4/ApghAdyBrBQQcTKGsUu3R5rOE64RYlVmyKmuA9A==}
+    cpu: [x64]
+    os: [win32]
+    hasBin: true
+
+  '@github/copilot@1.0.82':
+    resolution: {integrity: sha512-+mDIwBO3dCpL3k2rVLc4+1tFzqcVBTJNA/0co+okEpmCgcHjaz91Cqq7++pJKN5yJQuGC6bKangm7PSoheI1Xw==}
+    hasBin: true
+
   '@google/genai@1.52.0':
     resolution: {integrity: sha512-gwSvbpiN/17O9TbsqSsE/OzZcpv5Fo4RQjdngGgogtuB9RsyJ8ZHhX5KjHj1bp5N9snN2eK8LDGXSaWW2hof8Q==}
     engines: {node: '>=20.0.0'}
@@ -8642,8 +8707,8 @@ packages:
     engines: {node: '>= 12'}
     deprecated: Please upgrade to v15 or higher. All reported bugs in this version are fixed in newer releases, dependencies have been updated, and security has been improved.
 
-  '@konsistent/convention@1.0.0-beta.5':
-    resolution: {integrity: sha512-fGyVK3hU7eJ9iGZ8GnZTcBrhEL5+pXcWSsJgDNXkM6v+yjX1eT4yUsB+nmCR3lgFT+78Y+cmCGza/pLoOjPS9A==}
+  '@konsistent/convention@1.0.0-beta.9':
+    resolution: {integrity: sha512-/SwMIcSQDQkh7Dbbn8WOGV9UZKGwjjJs6pj3x9+5mjt85QrCPxiCba8atsAyb2MZm/aFBh4pvmLSt1szfBYp2A==}
     engines: {node: '>=22.11.0'}
     hasBin: true
     peerDependencies:
@@ -19131,8 +19196,8 @@ packages:
   jsonc-parser@3.3.1:
     resolution: {integrity: sha512-HUgH65KyejrUFPvHFPbqOY0rsFip3Bo5wb4ngvdi1EpCYWUQDC5V+Y7mZws+DLkr4M//zQJoanu1SP+87Dv1oQ==}
 
-  jsondiffpatch@0.7.3:
-    resolution: {integrity: sha512-zd4dqFiXSYyant2WgSXAZ9+yYqilNVvragVNkNRn2IFZKgjyULNrKRznqN4Zon0MkLueCg+3QaPVCnDAVP20OQ==}
+  jsondiffpatch@0.7.6:
+    resolution: {integrity: sha512-zE9+AXFq+MkTolDor2Cw1nJzLC0aleqPkYf52Kb4Kn4mJcka/gFHpGI2JBVEJCfWOvBl0OoxZS+wuLdislQcqg==}
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
 
@@ -19226,8 +19291,8 @@ packages:
     resolution: {integrity: sha512-3An0GCLDSR34tsCO4H8Tef8Pp2ngtaZDAZnsWJYelqXUK5wyiHvGItgK/xcSkmHLSTn1Jcho1mRQs2ehRzvKKw==}
     engines: {node: ^4.8.4 || ^6.10.1 || ^7.10.1 || >= 8.1.4}
 
-  konsistent@1.0.0-beta.5:
-    resolution: {integrity: sha512-pZ7VJEF78CNlSbf4y2fJvYkZqAo2XgPuJ88rkMSfQwhzQZ9s67izvXJ0ZJMLUoAdpkgXGo/PgmZh/WlHfM8djA==}
+  konsistent@1.0.0-beta.9:
+    resolution: {integrity: sha512-QoyzGfLcN/BMtqyYnUteMszZqf7apm089z0LohOZheNSvAH3H4bC4Byx1vaXs5Dh7v4UaKCBxAgmCDr2f037mA==}
     engines: {node: '>=22.11.0'}
     hasBin: true
 
@@ -22534,10 +22599,6 @@ packages:
     resolution: {integrity: sha512-w1aiOKwKuRgtwAReIIj89puqg+I7GvX4IbLrvmhXbzQsj1+Zwi4VO3+fa6ZF91TWSjIxoEkKnMeHcLEODK5ZXA==}
     engines: {node: '>= 0.4'}
 
-  shell-quote@1.8.3:
-    resolution: {integrity: sha512-ObmnIF4hXNg1BqhnHmgbDETF8dLPCggZWBjkQfhZpbszZnYur5DUljTcCHii5LC3J5E0yeO/1LIMyH+UvHQgyw==}
-    engines: {node: '>= 0.4'}
-
   shiki@3.23.0:
     resolution: {integrity: sha512-55Dj73uq9ZXL5zyeRPzHQsK7Nbyt6Y10k5s7OjuFZGMhpp4r/rsLBH0o/0fstIzX1Lep9VxefWljK/SKCzygIA==}
 
@@ -23670,17 +23731,9 @@ packages:
     resolution: {integrity: sha512-LIY910g9TI13YS95lrMFrs8Rm/u/irgHeTWoKCoteeJ04CUJ92eEfj0rVn+7VKMPBpUPiUoBKfhNyLI23EE/KA==}
     engines: {node: '>=18.17'}
 
-  undici@7.28.0:
-    resolution: {integrity: sha512-cRZYrTDwWznlnRiPjggAGxZXanty6M8RV1ff8Wm4LWXBp7/IG8v5DnOm74DtUBp9OONpK75YlPnIjQqX0dBDtA==}
-    engines: {node: '>=20.18.1'}
-
   undici@7.29.0:
     resolution: {integrity: sha512-IDxfleLmmbSskfWSUATiN1nfn2rDuvnMOqb5CWR92iIfojA0Ud+ulOAAEQ57LPr9rWmsreUyf5lwyao+7GNNVw==}
     engines: {node: '>=20.18.1'}
-
-  undici@8.5.0:
-    resolution: {integrity: sha512-xamtWoB1EshgjpmlXd7GGm2VfdDtw1+rD8uhry8pSNW3If6S8E0m2T2+orSKeZXEn/aPJMviCpDBA65WJt8zhg==}
-    engines: {node: '>=22.19.0'}
 
   undici@8.9.0:
     resolution: {integrity: sha512-aWZpUj7XoGonMClx4gdDRfgBjqeA+F473aDmROQQbM9n6PRfK/u1q/a0X4wMTgcHfT8H6fpbt98PFuDUwFg2YA==}
@@ -28780,6 +28833,43 @@ snapshots:
 
   '@gar/promise-retry@1.0.3': {}
 
+  '@github/copilot-darwin-arm64@1.0.82':
+    optional: true
+
+  '@github/copilot-darwin-x64@1.0.82':
+    optional: true
+
+  '@github/copilot-linux-arm64@1.0.82':
+    optional: true
+
+  '@github/copilot-linux-x64@1.0.82':
+    optional: true
+
+  '@github/copilot-linuxmusl-arm64@1.0.82':
+    optional: true
+
+  '@github/copilot-linuxmusl-x64@1.0.82':
+    optional: true
+
+  '@github/copilot-win32-arm64@1.0.82':
+    optional: true
+
+  '@github/copilot-win32-x64@1.0.82':
+    optional: true
+
+  '@github/copilot@1.0.82':
+    dependencies:
+      detect-libc: 2.1.2
+    optionalDependencies:
+      '@github/copilot-darwin-arm64': 1.0.82
+      '@github/copilot-darwin-x64': 1.0.82
+      '@github/copilot-linux-arm64': 1.0.82
+      '@github/copilot-linux-x64': 1.0.82
+      '@github/copilot-linuxmusl-arm64': 1.0.82
+      '@github/copilot-linuxmusl-x64': 1.0.82
+      '@github/copilot-win32-arm64': 1.0.82
+      '@github/copilot-win32-x64': 1.0.82
+
   '@google/genai@1.52.0(@modelcontextprotocol/sdk@1.30.0(@cfworker/json-schema@4.1.1)(supports-color@10.2.2)(zod@3.25.76))(supports-color@10.2.2)':
     dependencies:
       google-auth-library: 10.9.1(supports-color@10.2.2)
@@ -30097,7 +30187,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@konsistent/convention@1.0.0-beta.5(zod@4.4.3)':
+  '@konsistent/convention@1.0.0-beta.9(zod@4.4.3)':
     dependencies:
       citty: 0.2.2
       jiti: 2.7.0
@@ -38656,7 +38746,7 @@ snapshots:
       '@workflow/world': 4.2.1
       async-sema: 3.1.1
       ulid: 3.0.2
-      undici: 7.28.0
+      undici: 7.29.0
       zod: 4.3.6
     optionalDependencies:
       '@opentelemetry/api': 1.9.1
@@ -38682,7 +38772,7 @@ snapshots:
       '@workflow/errors': 4.1.4
       '@workflow/world': 4.2.1
       cbor-x: 1.6.0
-      undici: 7.28.0
+      undici: 7.29.0
       zod: 4.3.6
     optionalDependencies:
       '@opentelemetry/api': 1.9.1
@@ -40139,7 +40229,7 @@ snapshots:
     dependencies:
       chalk: 4.1.2
       rxjs: 7.8.2
-      shell-quote: 1.8.3
+      shell-quote: 1.10.0
       supports-color: 8.1.1
       tree-kill: 1.2.2
       yargs: 17.7.2
@@ -44086,7 +44176,7 @@ snapshots:
 
   jsonc-parser@3.3.1: {}
 
-  jsondiffpatch@0.7.3:
+  jsondiffpatch@0.7.6:
     dependencies:
       '@dmsnell/diff-match-patch': 1.1.0
 
@@ -44256,11 +44346,12 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  konsistent@1.0.0-beta.5:
+  konsistent@1.0.0-beta.9:
     dependencies:
-      '@konsistent/convention': 1.0.0-beta.5(zod@4.4.3)
+      '@konsistent/convention': 1.0.0-beta.9(zod@4.4.3)
       citty: 0.2.2
       picocolors: 1.1.1
+      picomatch: 4.0.5
       resolve.exports: 2.0.3
       tinyglobby: 0.2.17
       typescript: 5.9.3
@@ -46210,7 +46301,7 @@ snapshots:
       picomatch: 4.0.5
       pidtree: 0.6.0
       read-package-json-fast: 4.0.0
-      shell-quote: 1.8.3
+      shell-quote: 1.10.0
       which: 5.0.0
 
   npm-run-path@4.0.1:
@@ -49233,8 +49324,6 @@ snapshots:
 
   shell-quote@1.10.0: {}
 
-  shell-quote@1.8.3: {}
-
   shiki@3.23.0:
     dependencies:
       '@shikijs/core': 3.23.0
@@ -50664,11 +50753,7 @@ snapshots:
 
   undici@6.28.0: {}
 
-  undici@7.28.0: {}
-
   undici@7.29.0: {}
-
-  undici@8.5.0: {}
 
   undici@8.9.0: {}
 

@@ -179,6 +179,7 @@ describe('GoogleImageModel', () => {
       });
 
       expect(result.images).toEqual([]);
+      expect(result.isRetryable).toBe(false);
       expect(result.providerMetadata?.google).toMatchObject({
         promptFeedback: {
           blockReason: 'PROHIBITED_CONTENT',
