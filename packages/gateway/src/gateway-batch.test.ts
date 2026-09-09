@@ -83,6 +83,19 @@ describe('GatewayBatch', () => {
   }
 
   describe('doStartBatch', () => {
+    it('should reject unsupported request types before sending a request', async () => {
+      await expect(
+        createTestBatch().doStartBatch({
+          requests: [{ id: 'image-1', type: 'image' } as never],
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_UnsupportedFunctionalityError',
+        functionality: 'batch request type: image',
+      });
+
+      expect(server.calls).toHaveLength(0);
+    });
+
     it('should fail before sending a request when models are mixed', async () => {
       await expect(
         createTestBatch().doStartBatch({

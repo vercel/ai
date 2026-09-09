@@ -160,6 +160,21 @@ function prepareOutput(lines: unknown[]) {
 }
 
 describe('GoogleBatch', () => {
+  it('rejects unsupported request types before creating a batch', async () => {
+    const batch = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
+
+    await expect(
+      batch.doStartBatch({
+        requests: [{ id: 'image-1', type: 'image' } as never],
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_UnsupportedFunctionalityError',
+      functionality: 'batch request type: image',
+    });
+
+    expect(server.calls).toHaveLength(0);
+  });
+
   it('rejects mixed models before creating a batch', async () => {
     const batch = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
 

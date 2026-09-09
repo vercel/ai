@@ -1,6 +1,7 @@
 import {
   InvalidArgumentError,
   InvalidResponseDataError,
+  UnsupportedFunctionalityError,
   type Experimental_BatchV4 as BatchV4,
   type Experimental_BatchV4CancelResult as BatchV4CancelResult,
   type Experimental_BatchV4Error as BatchV4Error,
@@ -48,6 +49,24 @@ const supportedGoogleBatchContentTypes = new Set<
 >(['text', 'reasoning', 'source', 'tool-call', 'tool-result']);
 
 type GoogleBatchRequest = TextBatchV4Request<GoogleModelId>;
+
+function assertTextBatchRequests(
+  requests: BatchV4StartOptions['requests'],
+): asserts requests is ReadonlyArray<GoogleBatchRequest> {
+  for (const request of requests) {
+    switch (request.type) {
+      case 'text':
+        break;
+      default: {
+        const _exhaustiveCheck: never = request.type;
+        throw new UnsupportedFunctionalityError({
+          functionality: `batch request type: ${_exhaustiveCheck}`,
+          message: `The Google Batch API does not support batch requests with type "${_exhaustiveCheck}".`,
+        });
+      }
+    }
+  }
+}
 
 const googleRpcStatusSchema = z.object({
   code: z.union([z.number(), z.string()]).nullish(),
@@ -171,6 +190,7 @@ export class GoogleBatch implements BatchV4<{ readonly text: GoogleModelId }> {
   async doStartBatch(
     options: BatchV4StartOptions<{ text: GoogleModelId }>,
   ): Promise<BatchV4StartResult> {
+    assertTextBatchRequests(options.requests);
     const modelId = getGoogleBatchModelId(options.requests);
     const warnings: BatchV4StartResult['warnings'] = [];
     const displayName = `ai-sdk-batch-${this.batchGenerateId()}`;
