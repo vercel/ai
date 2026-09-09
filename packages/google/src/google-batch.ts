@@ -3,8 +3,11 @@ import {
   InvalidResponseDataError,
   UnsupportedFunctionalityError,
   type Experimental_BatchV4 as BatchV4,
+  type Experimental_BatchV4CancelResult as BatchV4CancelResult,
   type Experimental_BatchV4Error as BatchV4Error,
   type Experimental_BatchV4ItemResult as BatchV4ItemResult,
+  type Experimental_BatchV4ListOptions as BatchV4ListOptions,
+  type Experimental_BatchV4ListResult as BatchV4ListResult,
   type Experimental_BatchV4OperationOptions as BatchV4OperationOptions,
   type Experimental_BatchV4StartResult as BatchV4StartResult,
   type Experimental_BatchV4Status as BatchV4Status,
@@ -95,26 +98,40 @@ const googleBatchOutputSchema = z.object({
     .nullish(),
 });
 
+const googleBatchOperationZodSchema = () =>
+  z.object({
+    name: z.string(),
+    metadata: z
+      .object({
+        state: z.string().nullish(),
+        createTime: z.string().nullish(),
+        batchStats: googleBatchStatsSchema.nullish(),
+        output: googleBatchOutputSchema.nullish(),
+      })
+      .nullish(),
+    done: z.boolean().nullish(),
+    error: googleRpcStatusSchema.nullish(),
+    response: googleBatchOutputSchema.nullish(),
+  });
+
 const googleBatchOperationSchema = lazySchema(() =>
+  zodSchema(googleBatchOperationZodSchema()),
+);
+
+type GoogleBatchOperation = InferSchema<typeof googleBatchOperationSchema>;
+
+const googleBatchListResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      name: z.string(),
-      metadata: z
-        .object({
-          state: z.string().nullish(),
-          createTime: z.string().nullish(),
-          batchStats: googleBatchStatsSchema.nullish(),
-          output: googleBatchOutputSchema.nullish(),
-        })
-        .nullish(),
-      done: z.boolean().nullish(),
-      error: googleRpcStatusSchema.nullish(),
-      response: googleBatchOutputSchema.nullish(),
+      operations: z.array(googleBatchOperationZodSchema()).nullish(),
+      nextPageToken: z.string().nullish(),
     }),
   ),
 );
 
-type GoogleBatchOperation = InferSchema<typeof googleBatchOperationSchema>;
+const googleBatchCancelResponseSchema = lazySchema(() =>
+  zodSchema(z.object({})),
+);
 
 const googleFileUploadResponseSchema = lazySchema(() =>
   zodSchema(
@@ -373,6 +390,54 @@ export class GoogleBatch implements BatchV4<{ readonly text: GoogleModelId }> {
     options: BatchV4OperationOptions,
   ): Promise<BatchV4Status> {
     return convertGoogleBatchStatus(await this.retrieveBatch(options));
+  }
+
+  async doCancelBatch(
+    options: BatchV4OperationOptions,
+  ): Promise<BatchV4CancelResult> {
+    await postJsonToApi({
+      url: `${this.batchConfig.baseURL}/${options.batchId}:cancel`,
+      headers: await this.getHeaders(options.headers),
+      body: {},
+      failedResponseHandler: googleFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        googleBatchCancelResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.batchConfig.fetch,
+    });
+
+    return {};
+  }
+
+  async doListBatches(options: BatchV4ListOptions): Promise<BatchV4ListResult> {
+    const url = new URL(`${this.batchConfig.baseURL}/batches`);
+    if (options.limit != null) {
+      url.searchParams.set('pageSize', String(options.limit));
+    }
+    if (options.cursor != null) {
+      url.searchParams.set('pageToken', options.cursor);
+    }
+
+    const { value: page } = await getFromApi({
+      url: url.toString(),
+      headers: await this.getHeaders(options.headers),
+      failedResponseHandler: googleFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        googleBatchListResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.batchConfig.fetch,
+      validateUrl: false,
+    });
+
+    return {
+      batches: (page.operations ?? []).map(operation => ({
+        batchId: operation.name,
+        ...convertGoogleBatchStatus(operation),
+      })),
+      ...(page.nextPageToken != null ? { nextCursor: page.nextPageToken } : {}),
+    };
   }
 
   async doGetBatchResults(
