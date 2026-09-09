@@ -20,14 +20,11 @@ import {
   createSigV4FetchFunction,
   type AmazonBedrockCredentials,
 } from '../amazon-bedrock-sigv4-fetch';
-<<<<<<< HEAD
-import { resolveAmazonBedrockBaseURL } from '../resolve-amazon-bedrock-base-url';
-=======
 import {
   supportsNativeStructuredOutput,
   supportsStrictTools,
 } from '../amazon-bedrock-anthropic-model-support';
->>>>>>> origin/main
+import { resolveAmazonBedrockBaseURL } from '../resolve-amazon-bedrock-base-url';
 import { createAmazonBedrockAnthropicFetch } from './amazon-bedrock-anthropic-fetch';
 import type { AmazonBedrockAnthropicModelId } from './amazon-bedrock-anthropic-options';
 import { VERSION } from '../version';
