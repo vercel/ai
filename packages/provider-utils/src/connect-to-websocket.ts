@@ -46,7 +46,11 @@ export function connectToWebSocket({
   /** Constructor throws and message decoding/processing failures. */
   onProcessingError: (error: unknown) => void;
   onSocketError?: () => void;
-  onClose?: () => void;
+  /**
+   * Receives the close code and reason when the transport provides them
+   * (native `CloseEvent` / `ws` close event).
+   */
+  onClose?: (info: { code?: number; reason?: string }) => void;
   /** Also called (without opening a socket) when the signal is already aborted. */
   onAbort?: (reason: unknown) => void;
 }): WebSocketConnection {
@@ -108,8 +112,20 @@ export function connectToWebSocket({
   socket.onerror = () => {
     tail = tail.then(() => onSocketError?.()).catch(onProcessingError);
   };
-  socket.onclose = () => {
-    tail = tail.then(() => onClose?.()).catch(onProcessingError);
+  socket.onclose = event => {
+    // Extract close diagnostics when the transport provides them (native
+    // `CloseEvent` and `ws` both carry `code` and `reason`).
+    const closeEvent = event as
+      | { code?: unknown; reason?: unknown }
+      | null
+      | undefined;
+    const code =
+      typeof closeEvent?.code === 'number' ? closeEvent.code : undefined;
+    const reason =
+      typeof closeEvent?.reason === 'string' ? closeEvent.reason : undefined;
+    tail = tail
+      .then(() => onClose?.({ code, reason }))
+      .catch(onProcessingError);
   };
 
   return { socket, close };

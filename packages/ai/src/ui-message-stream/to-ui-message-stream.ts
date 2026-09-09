@@ -7,6 +7,7 @@ import type { UIMessage } from '../ui/ui-messages';
 import { getResponseUIMessageId } from './get-response-ui-message-id';
 import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
 import type { InferUIMessageChunk } from './ui-message-chunks';
+import type { UIMessageStreamOutcome } from './ui-message-stream-outcome';
 import { toUIMessageChunk } from './to-ui-message-chunk';
 
 /**
@@ -37,6 +38,26 @@ export function toUIMessageStream<
 } & UIMessageStreamOptions<UI_MESSAGE>): ReadableStream<
   InferUIMessageChunk<UI_MESSAGE>
 > {
+  let outcome: UIMessageStreamOutcome = { status: 'unknown' };
+  let hasFatalFailure = false;
+
+  const setSourceOutcome = (newOutcome: UIMessageStreamOutcome) => {
+    if (
+      !hasFatalFailure &&
+      outcome.status !== 'completed' &&
+      outcome.status !== 'aborted' &&
+      newOutcome.status !== 'unknown' &&
+      (outcome.status === 'unknown' || newOutcome.status !== 'failed')
+    ) {
+      outcome = newOutcome;
+    }
+  };
+
+  const failOutcome = (error: unknown) => {
+    hasFatalFailure = true;
+    outcome = { status: 'failed', error };
+  };
+
   const responseMessageId =
     generateMessageId != null
       ? getResponseUIMessageId({
@@ -45,37 +66,97 @@ export function toUIMessageStream<
         })
       : undefined;
 
-  const uiMessageChunkStream = stream.pipeThrough(
+  const sourceReader = stream.getReader();
+  let sourceReaderReleased = false;
+  let sourceStreamCancelled = false;
+
+  const releaseSourceReader = () => {
+    if (!sourceReaderReleased) {
+      sourceReader.releaseLock();
+      sourceReaderReleased = true;
+    }
+  };
+
+  const sourceStream = new ReadableStream<TextStreamPart<TOOLS>>({
+    async pull(controller) {
+      try {
+        const { done, value } = await sourceReader.read();
+
+        if (done) {
+          releaseSourceReader();
+          if (!sourceStreamCancelled) {
+            controller.close();
+          }
+        } else {
+          controller.enqueue(value);
+        }
+      } catch (error) {
+        releaseSourceReader();
+        if (!sourceStreamCancelled) {
+          failOutcome(error);
+          controller.error(error);
+        }
+      }
+    },
+
+    async cancel(reason) {
+      sourceStreamCancelled = true;
+      if (sourceReaderReleased) {
+        return;
+      }
+
+      try {
+        await sourceReader.cancel(reason);
+      } finally {
+        releaseSourceReader();
+      }
+    },
+  });
+
+  const uiMessageChunkStream = sourceStream.pipeThrough(
     new TransformStream({
       transform: async (part, controller) => {
-        const messageMetadataValue = messageMetadata?.({ part });
+        try {
+          const messageMetadataValue = messageMetadata?.({ part });
 
-        const uiMessageChunk = toUIMessageChunk(part, {
-          tools,
-          sendReasoning,
-          sendSources,
-          sendStart,
-          sendFinish,
-          onError,
-          messageMetadata: messageMetadataValue,
-          responseMessageId,
-        });
-
-        if (uiMessageChunk != null) {
-          controller.enqueue(uiMessageChunk);
-        }
-
-        // start and finish events already include metadata in the converted
-        // chunk; for other part types emit a separate message-metadata chunk
-        if (
-          messageMetadataValue != null &&
-          part.type !== 'start' &&
-          part.type !== 'finish'
-        ) {
-          controller.enqueue({
-            type: 'message-metadata',
+          const uiMessageChunk = toUIMessageChunk(part, {
+            tools,
+            sendReasoning,
+            sendSources,
+            sendStart,
+            sendFinish,
+            onError,
             messageMetadata: messageMetadataValue,
+            responseMessageId,
           });
+
+          if (uiMessageChunk != null) {
+            controller.enqueue(uiMessageChunk);
+          }
+
+          // start and finish events already include metadata in the converted
+          // chunk; for other part types emit a separate message-metadata chunk
+          if (
+            messageMetadataValue != null &&
+            part.type !== 'start' &&
+            part.type !== 'finish'
+          ) {
+            controller.enqueue({
+              type: 'message-metadata',
+              messageMetadata: messageMetadataValue,
+            });
+          }
+
+          if (part.type === 'finish') {
+            setSourceOutcome({ status: 'completed' });
+          } else if (part.type === 'abort') {
+            setSourceOutcome({ status: 'aborted' });
+          } else if (part.type === 'error') {
+            setSourceOutcome({ status: 'failed', error: part.error });
+          }
+        } catch (error) {
+          failOutcome(error);
+          throw error;
         }
       },
     }),
@@ -87,5 +168,6 @@ export function toUIMessageStream<
     originalMessages,
     onEnd: onEnd ?? onFinish,
     onError,
+    getOutcome: () => outcome,
   });
 }

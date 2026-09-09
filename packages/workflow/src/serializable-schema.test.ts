@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { tool } from 'ai';
+import { dynamicTool, tool } from 'ai';
 import { jsonSchema } from '@ai-sdk/provider-utils';
 import {
   serializeToolSet,
   resolveSerializableTools,
 } from './serializable-schema';
+import { createTestSandbox } from './test/test-sandbox';
 
 describe('serializeToolSet', () => {
   it('serializes function tools with description and inputSchema', () => {
@@ -65,9 +66,101 @@ describe('serializeToolSet', () => {
       },
     });
   });
+
+  it('resolves descriptions from tool context and sandbox', () => {
+    const sandbox = createTestSandbox({
+      description: 'request sandbox',
+    });
+    const tools = {
+      getWeather: tool({
+        description: ({ context, experimental_sandbox }) =>
+          `${context.city} via ${experimental_sandbox?.description}`,
+        inputSchema: jsonSchema({
+          type: 'object',
+          properties: {},
+        }),
+        contextSchema: jsonSchema<{ city: string }>({
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+        }),
+      }),
+    };
+
+    const serialized = serializeToolSet(tools, {
+      toolsContext: {
+        getWeather: { city: 'Berlin' },
+      },
+      experimental_sandbox: sandbox,
+    });
+
+    expect(serialized.getWeather.description).toBe(
+      'Berlin via request sandbox',
+    );
+  });
 });
 
 describe('resolveSerializableTools', () => {
+  it('round-trips function tool input examples and provider options', () => {
+    const original = {
+      search: tool({
+        description: 'Search documentation',
+        inputSchema: jsonSchema({
+          type: 'object',
+          properties: { query: { type: 'string' } },
+          required: ['query'],
+        }),
+        inputExamples: [{ input: { query: 'workflow durability' } }],
+        providerOptions: {
+          anthropic: {
+            cacheControl: { type: 'ephemeral' },
+          },
+        },
+      }),
+    };
+
+    const resolved = resolveSerializableTools(serializeToolSet(original));
+
+    expect(resolved.search.inputExamples).toEqual(
+      original.search.inputExamples,
+    );
+    expect(resolved.search.providerOptions).toEqual(
+      original.search.providerOptions,
+    );
+  });
+
+  it('round-trips current function and dynamic tool fields', () => {
+    const original = {
+      search: tool({
+        title: 'Search title',
+        metadata: { source: 'docs' },
+        description: 'Search documentation',
+        strict: true,
+        inputSchema: jsonSchema({
+          type: 'object',
+          properties: { query: { type: 'string' } },
+          required: ['query'],
+        }),
+      }),
+      dynamicSearch: dynamicTool({
+        inputSchema: jsonSchema({
+          type: 'object',
+          properties: { query: { type: 'string' } },
+          required: ['query'],
+        }),
+      }),
+    };
+
+    const resolved = resolveSerializableTools(serializeToolSet(original));
+
+    expect(resolved.search).toMatchObject({
+      title: 'Search title',
+      metadata: { source: 'docs' },
+      strict: true,
+    });
+    expect(resolved.dynamicSearch.type).toBe('dynamic');
+  });
+
   it('reconstructs function tools with Ajv validation', () => {
     const serialized = {
       getWeather: {
@@ -113,6 +206,38 @@ describe('resolveSerializableTools', () => {
     expect((webSearch as any).args).toEqual({
       maxUses: 5,
       allowedDomains: ['vercel.com'],
+    });
+  });
+
+  it('round-trips provider tool display metadata and deferred result support', () => {
+    const original = {
+      program: tool({
+        type: 'provider',
+        title: 'Program',
+        metadata: { source: 'provider' },
+        id: 'test.program',
+        args: {},
+        isProviderExecuted: true,
+        supportsDeferredResults: true,
+        inputSchema: jsonSchema({
+          type: 'object',
+          properties: { code: { type: 'string' } },
+          required: ['code'],
+        }),
+        outputSchema: jsonSchema({
+          type: 'object',
+          properties: { status: { type: 'string' } },
+          required: ['status'],
+        }),
+      }),
+    };
+
+    const resolved = resolveSerializableTools(serializeToolSet(original));
+
+    expect(resolved.program).toMatchObject({
+      title: 'Program',
+      metadata: { source: 'provider' },
+      supportsDeferredResults: true,
     });
   });
 });

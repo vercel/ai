@@ -24,6 +24,7 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
   type Resolvable,
+  type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
 import type { GoogleVertexConfig } from './google-vertex-config';
@@ -32,9 +33,11 @@ import type { GoogleVertexEmbeddingModelId } from './google-vertex-embedding-mod
 import { GoogleVertexImageModel } from './google-vertex-image-model';
 import type { GoogleVertexImageModelId } from './google-vertex-image-settings';
 import type { GoogleVertexModelId } from './google-vertex-options';
+import { GoogleVertexCloudTTSSpeechModel } from './google-vertex-cloud-tts-speech-model';
 import { googleVertexTools } from './google-vertex-tools';
 import { GoogleVertexTranscriptionModel } from './google-vertex-transcription-model';
 import type { GoogleVertexTranscriptionModelId } from './google-vertex-transcription-model-options';
+import { GoogleVertexGeminiTranscriptionModel } from './gemini-transcription/google-vertex-gemini-transcription-model';
 import { GoogleVertexVideoModel } from './google-vertex-video-model';
 import type { GoogleVertexVideoModelId } from './google-vertex-video-settings';
 import type { GoogleVertexSpeechModelId } from './google-vertex-speech-model-options';
@@ -183,6 +186,13 @@ export interface GoogleVertexProviderSettings {
    * Base URL for the Google Vertex API calls.
    */
   baseURL?: string;
+
+  /**
+   * Custom WebSocket implementation for streaming transcription. Useful for
+   * runtimes that need a WebSocket constructor with header support (e.g. the
+   * `ws` package in Node.js, which Vertex's OAuth Bearer header requires).
+   */
+  webSocket?: WebSocketConstructor;
 }
 
 /**
@@ -327,8 +337,24 @@ export function createGoogleVertex(
       generateId: options.generateId ?? generateId,
     });
 
-  const createSpeechModel = (modelId: GoogleVertexSpeechModelId) =>
-    new GoogleSpeechModel(modelId, createConfig('speech'));
+  const createSpeechModel = (modelId: GoogleVertexSpeechModelId) => {
+    if (modelId.startsWith('chirp')) {
+      if (apiKey) {
+        throw new Error(
+          'Google Vertex Chirp speech models do not support Express Mode API keys. Use standard Google Cloud credentials instead.',
+        );
+      }
+
+      const config = createConfig('speech');
+      return new GoogleVertexCloudTTSSpeechModel(modelId, {
+        provider: config.provider,
+        headers: config.headers,
+        fetch: config.fetch,
+      });
+    }
+
+    return new GoogleSpeechModel(modelId, createConfig('speech'));
+  };
 
   // Cloud Speech-to-Text reuses the Vertex auth headers from createConfig, but
   // targets the Speech-to-Text API.
@@ -342,6 +368,22 @@ export function createGoogleVertex(
     }
 
     const config = createConfig('transcription');
+
+    // Gemini transcription models (`gemini-3.5-transcribe[-live]`) use the
+    // Vertex generateContent / Live API surfaces; everything else routes to
+    // Cloud Speech-to-Text (Chirp, telephony).
+    if (modelId.startsWith('gemini')) {
+      return new GoogleVertexGeminiTranscriptionModel(modelId, {
+        provider: config.provider,
+        baseURL: loadBaseURL(),
+        headers: config.headers,
+        fetch: config.fetch,
+        webSocket: options.webSocket,
+        project: loadGoogleVertexProject(),
+        location: loadGoogleVertexLocation(),
+      });
+    }
+
     return new GoogleVertexTranscriptionModel(modelId, {
       provider: config.provider,
       headers: config.headers,

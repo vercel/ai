@@ -219,6 +219,26 @@ describe('text stream', () => {
       });
     });
 
+    describe('when the API returns an error with an empty body', () => {
+      it('should render the fallback error message', async () => {
+        server.urls['/api/use-object'].response = {
+          type: 'error',
+          status: 502,
+          body: '',
+        };
+
+        await userEvent.click(screen.getByTestId('submit-button'));
+
+        await waitFor(() => {
+          expect(onErrorResult?.message).toBe('Failed to fetch the response.');
+        });
+        expect(screen.getByTestId('error')).toHaveTextContent(
+          'Failed to fetch the response.',
+        );
+        expect(screen.getByTestId('loading')).toHaveTextContent('false');
+      });
+    });
+
     describe('onFinish', () => {
       it('should be called with an object when the stream finishes and the object matches the schema', async () => {
         server.urls['/api/use-object'].response = {
@@ -384,6 +404,47 @@ describe('text stream', () => {
       expect(screen.getByTestId('error')).toBeEmptyDOMElement();
       expect(screen.getByTestId('loading')).toHaveTextContent('false');
     });
+  });
+
+  it('should preserve the object state when the API changes', async () => {
+    server.urls['/api/use-object'].response = {
+      type: 'stream-chunks',
+      chunks: ['{ ', '"content": "Hello, ', 'world', '!"', '}'],
+    };
+
+    const ApiTestComponent = ({ api }: { api: string }) => {
+      const { object, submit } = useObject({
+        api,
+        schema: z.object({ content: z.string() }),
+      });
+
+      return (
+        <div>
+          <div data-testid="object">{JSON.stringify(object)}</div>
+          <button
+            data-testid="submit-button"
+            onClick={() => submit('test-input')}
+          >
+            Generate
+          </button>
+        </div>
+      );
+    };
+
+    const { rerender } = render(<ApiTestComponent api="/api/use-object" />);
+    await userEvent.click(screen.getByTestId('submit-button'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('object')).toHaveTextContent(
+        JSON.stringify({ content: 'Hello, world!' }),
+      );
+    });
+
+    rerender(<ApiTestComponent api="/api/changed" />);
+
+    expect(screen.getByTestId('object')).toHaveTextContent(
+      JSON.stringify({ content: 'Hello, world!' }),
+    );
   });
 });
 

@@ -320,7 +320,7 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
         ? resolvedPath
         : relativeTarget;
     const flags = [
-      '-R',
+      '-r',
       '-n',
       '--binary-files=without-match',
       ...(input.ignoreCase ? ['-i'] : []),

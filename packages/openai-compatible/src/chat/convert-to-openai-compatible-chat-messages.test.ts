@@ -104,6 +104,104 @@ describe('user messages', () => {
     ]);
   });
 
+  it('should convert video data parts to video_url data URLs', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Describe this video' },
+          {
+            type: 'file',
+            data: {
+              type: 'data' as const,
+              data: new Uint8Array([0, 1, 2, 3]),
+            },
+            mediaType: 'video/mp4',
+            providerOptions: {
+              openaiCompatible: {
+                fps: 1,
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Describe this video' },
+          {
+            type: 'video_url',
+            video_url: { url: 'data:video/mp4;base64,AAECAw==' },
+            fps: 1,
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert base64-encoded video data parts', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'data' as const,
+              data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+            },
+            mediaType: 'video/webm',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'video_url',
+            video_url: { url: 'data:video/webm;base64,AAECAw==' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should pass through video URLs', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'url' as const,
+              url: new URL('https://example.com/video.mp4'),
+            },
+            mediaType: 'video/*',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'video_url',
+            video_url: { url: 'https://example.com/video.mp4' },
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should convert messages with audio/wav parts', async () => {
     const result = convertToOpenAICompatibleChatMessages([
       {
@@ -451,12 +549,14 @@ describe('user messages', () => {
                 type: 'data' as const,
                 data: new Uint8Array([0, 1, 2, 3]),
               },
-              mediaType: 'video/mp4',
+              mediaType: 'application/zip',
             },
           ],
         },
       ]),
-    ).toThrow("'file part media type video/mp4' functionality not supported");
+    ).toThrow(
+      "'file part media type application/zip' functionality not supported",
+    );
   });
 
   it('should throw error for file parts with provider references', async () => {
@@ -1098,6 +1198,111 @@ describe('provider-specific metadata merging', () => {
 });
 
 describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
+  it('should serialize thought signature from a custom provider namespace', () => {
+    const result = convertToOpenAICompatibleChatMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'function-call-1',
+              toolName: 'check_flight',
+              input: { flight: 'AA100' },
+              providerOptions: {
+                myGateway: {
+                  thoughtSignature: '<Custom Signature>',
+                },
+              },
+            },
+          ],
+        },
+      ],
+      { providerOptionsKey: 'myGateway' },
+    );
+
+    expect(result[0]).toMatchObject({
+      tool_calls: [
+        {
+          extra_content: {
+            google: { thought_signature: '<Custom Signature>' },
+          },
+        },
+      ],
+    });
+  });
+
+  it('should fall back to the google namespace', () => {
+    const result = convertToOpenAICompatibleChatMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'function-call-1',
+              toolName: 'check_flight',
+              input: { flight: 'AA100' },
+              providerOptions: {
+                google: {
+                  thoughtSignature: '<Google Signature>',
+                },
+              },
+            },
+          ],
+        },
+      ],
+      { providerOptionsKey: 'myGateway' },
+    );
+
+    expect(result[0]).toMatchObject({
+      tool_calls: [
+        {
+          extra_content: {
+            google: { thought_signature: '<Google Signature>' },
+          },
+        },
+      ],
+    });
+  });
+
+  it('should prefer the custom provider namespace over google', () => {
+    const result = convertToOpenAICompatibleChatMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'function-call-1',
+              toolName: 'check_flight',
+              input: { flight: 'AA100' },
+              providerOptions: {
+                myGateway: {
+                  thoughtSignature: '<Custom Signature>',
+                },
+                google: {
+                  thoughtSignature: '<Google Signature>',
+                },
+              },
+            },
+          ],
+        },
+      ],
+      { providerOptionsKey: 'myGateway' },
+    );
+
+    expect(result[0]).toMatchObject({
+      tool_calls: [
+        {
+          extra_content: {
+            google: { thought_signature: '<Custom Signature>' },
+          },
+        },
+      ],
+    });
+  });
+
   it('should serialize thought signature to extra_content for single tool call', () => {
     const result = convertToOpenAICompatibleChatMessages([
       {

@@ -4,6 +4,7 @@ import {
   emitLegacyPartDelta,
   emitLegacyTextPartUpdate,
   emitMissingFinalDelta,
+  emitOpenCodeStreamStart,
   getOpenCodeEventSessionId,
   isStepSettlementEvent,
   unwrapOpenCodeEvent,
@@ -58,6 +59,14 @@ describe('OpenCode event helpers', () => {
     });
   });
 
+  it('rejects malformed event envelopes at the raw event boundary', () => {
+    expect(unwrapOpenCodeEvent(null)).toBeUndefined();
+    expect(unwrapOpenCodeEvent([])).toBeUndefined();
+    expect(
+      unwrapOpenCodeEvent({ type: 'sync', syncEvent: 'not-an-event' }),
+    ).toBeUndefined();
+  });
+
   it('finds legacy tool part session ids', () => {
     expect(
       getOpenCodeEventSessionId({
@@ -70,6 +79,88 @@ describe('OpenCode event helpers', () => {
         },
       }),
     ).toBe('session-1');
+  });
+
+  it.each([
+    ['message.updated', { info: { sessionID: 'child-session' } }],
+    ['session.created', { info: { id: 'child-session' } }],
+    ['session.updated', { info: { id: 'child-session' } }],
+    ['session.deleted', { info: { id: 'child-session' } }],
+  ])('finds nested session ids for %s events', (type, properties) => {
+    expect(getOpenCodeEventSessionId({ type, properties })).toBe(
+      'child-session',
+    );
+  });
+
+  it('emits the resolved assistant model once', () => {
+    const state = createTranslationState();
+    const emitted: Record<string, unknown>[] = [];
+    const emit = (message: Record<string, unknown>) => emitted.push(message);
+
+    emitOpenCodeStreamStart({
+      info: {
+        role: 'user',
+        providerID: 'anthropic',
+        modelID: 'claude-sonnet-4-6',
+      },
+      state,
+      emit,
+    });
+    emitOpenCodeStreamStart({
+      info: {
+        role: 'assistant',
+        providerID: 'anthropic',
+        modelID: 'claude-sonnet-4-6',
+      },
+      state,
+      emit,
+    });
+    emitOpenCodeStreamStart({
+      info: {
+        role: 'assistant',
+        providerID: 'openai',
+        modelID: 'gpt-5.3-codex',
+      },
+      state,
+      emit,
+    });
+
+    expect(emitted).toMatchInlineSnapshot(`
+      [
+        {
+          "modelId": "anthropic/claude-sonnet-4-6",
+          "type": "stream-start",
+        },
+      ]
+    `);
+  });
+
+  it('emits stream-start without a model when assistant metadata omits it', () => {
+    const state = createTranslationState();
+    const emitted: Record<string, unknown>[] = [];
+
+    emitOpenCodeStreamStart({
+      info: { role: 'assistant' },
+      state,
+      emit: message => emitted.push(message),
+    });
+    emitOpenCodeStreamStart({
+      info: {
+        role: 'assistant',
+        providerID: 'anthropic',
+        modelID: 'claude-sonnet-4-6',
+      },
+      state,
+      emit: message => emitted.push(message),
+    });
+
+    expect(emitted).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+        },
+      ]
+    `);
   });
 
   it('emits only the final text that has not already streamed', () => {
@@ -165,5 +256,21 @@ describe('legacy reasoning part translation', () => {
       { type: 'text-delta', id: 'p2', delta: 'hello world' },
     ]);
     expect(out.some(msg => msg.type === 'reasoning-delta')).toBe(false);
+  });
+
+  it('does not treat a malformed time payload as a completed part', () => {
+    const state = createTranslationState();
+    const out: Array<Record<string, unknown>> = [];
+
+    emitLegacyTextPartUpdate({
+      part: { id: 'p3', type: 'text', text: 'hello', time: 'invalid' },
+      state,
+      emit: msg => out.push(msg),
+    });
+
+    expect(out).toEqual([
+      { type: 'text-start', id: 'p3' },
+      { type: 'text-delta', id: 'p3', delta: 'hello' },
+    ]);
   });
 });

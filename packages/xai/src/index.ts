@@ -30,6 +30,7 @@ export { XaiRealtimeModel as Experimental_XaiRealtimeModel } from './realtime/xa
 export type { XaiRealtimeModelConfig as Experimental_XaiRealtimeModelConfig } from './realtime/xai-realtime-model';
 export {
   codeExecution,
+  imageGeneration,
   mcpServer,
   viewImage,
   viewXVideo,

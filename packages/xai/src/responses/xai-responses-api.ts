@@ -110,6 +110,10 @@ export type XaiResponsesTool =
   | { type: 'view_image' }
   | { type: 'view_x_video' }
   | {
+      type: 'image_generation';
+      action?: 'auto' | 'generate' | 'edit';
+    }
+  | {
       type: 'file_search';
       vector_store_ids?: string[];
       max_num_results?: number;
@@ -164,6 +168,31 @@ const toolCallSchema = z.object({
   action: z.any().optional(),
 });
 
+export const webSearchWireSourceSchema = z.object({
+  type: z.literal('url'),
+  url: z.string(),
+});
+
+export const webSearchWireActionSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('search'),
+    query: z.string().nullish(),
+    queries: z.array(z.string()).nullish(),
+    sources: z.array(z.unknown()).nullish(),
+  }),
+  z.object({
+    type: z.literal('open_page'),
+    url: z.string().nullish(),
+    sources: z.array(z.unknown()).nullish(),
+  }),
+  z.object({
+    type: z.literal('find_in_page'),
+    url: z.string().nullish(),
+    pattern: z.string().nullish(),
+    sources: z.array(z.unknown()).nullish(),
+  }),
+]);
+
 const mcpCallSchema = z.object({
   name: z.string().optional(),
   arguments: z.string().optional(),
@@ -216,6 +245,13 @@ const outputItemSchema = z.discriminatedUnion('type', [
       .nullish(),
   }),
   z.object({
+    type: z.literal('image_generation_call'),
+    id: z.string(),
+    status: z.string(),
+    prompt: z.string().nullish(),
+    result: z.string().nullish(),
+  }),
+  z.object({
     type: z.literal('custom_tool_call'),
     ...toolCallSchema.shape,
   }),
@@ -249,24 +285,28 @@ const outputItemSchema = z.discriminatedUnion('type', [
   }),
 ]);
 
-export const xaiResponsesUsageSchema = z.object({
-  input_tokens: z.number(),
-  output_tokens: z.number(),
-  total_tokens: z.number().optional(),
-  input_tokens_details: z
-    .object({
-      cached_tokens: z.number().optional(),
-    })
-    .optional(),
-  output_tokens_details: z
-    .object({
-      reasoning_tokens: z.number().optional(),
-    })
-    .optional(),
-  num_sources_used: z.number().optional(),
-  num_server_side_tools_used: z.number().optional(),
-  cost_in_usd_ticks: z.number().nullish(),
-});
+export const xaiResponsesUsageSchema = z
+  .object({
+    input_tokens: z.number(),
+    output_tokens: z.number(),
+    total_tokens: z.number().optional(),
+    input_tokens_details: z
+      .object({
+        cached_tokens: z.number().optional(),
+      })
+      .catchall(z.json())
+      .optional(),
+    output_tokens_details: z
+      .object({
+        reasoning_tokens: z.number().optional(),
+      })
+      .catchall(z.json())
+      .optional(),
+    num_sources_used: z.number().optional(),
+    num_server_side_tools_used: z.number().optional(),
+    cost_in_usd_ticks: z.number().nullish(),
+  })
+  .catchall(z.json());
 
 export const xaiResponsesResponseSchema = z.object({
   id: z.string().nullish(),
@@ -276,6 +316,7 @@ export const xaiResponsesResponseSchema = z.object({
   output: z.array(outputItemSchema),
   usage: xaiResponsesUsageSchema.nullish(),
   status: z.string(),
+  service_tier: z.string().nullish(),
 });
 
 export const xaiResponsesChunkSchema = z.union([
@@ -424,6 +465,21 @@ export const xaiResponsesChunkSchema = z.union([
     output_index: z.number(),
   }),
   z.object({
+    type: z.literal('response.image_generation_call.in_progress'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.image_generation_call.generating'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.image_generation_call.completed'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
     type: z.literal('response.code_execution_call.in_progress'),
     item_id: z.string(),
     output_index: z.number(),
@@ -545,6 +601,7 @@ export const xaiResponsesChunkSchema = z.union([
     response: z.object({
       incomplete_details: z.object({ reason: z.string() }).nullish(),
       usage: xaiResponsesUsageSchema.nullish(),
+      service_tier: z.string().nullish(),
     }),
   }),
   z.object({

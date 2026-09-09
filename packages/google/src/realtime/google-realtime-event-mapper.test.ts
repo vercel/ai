@@ -1,4 +1,5 @@
 import { beforeEach, describe, it, expect } from 'vitest';
+import type { JSONSchema7 } from '@ai-sdk/provider';
 import {
   GoogleRealtimeEventMapper,
   buildGoogleSessionConfig,
@@ -753,6 +754,49 @@ describe('buildGoogleSessionConfig', () => {
         },
       ]
     `);
+  });
+
+  it('builds config with inlined local JSON Schema references', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        tools: [
+          {
+            type: 'function',
+            name: 'formatDate',
+            description: 'Format a date',
+            parameters: {
+              type: 'object',
+              properties: {
+                locale: { $ref: '#/$defs/Locale' },
+              },
+              required: ['locale'],
+              $defs: {
+                Locale: { type: 'string', enum: ['de', 'en'] },
+              },
+            } as JSONSchema7,
+          },
+        ],
+      },
+      'gemini-2.0-flash',
+    );
+
+    expect(result.tools).toEqual([
+      {
+        functionDeclarations: [
+          {
+            name: 'formatDate',
+            description: 'Format a date',
+            parameters: {
+              type: 'object',
+              properties: {
+                locale: { type: 'string', enum: ['de', 'en'] },
+              },
+              required: ['locale'],
+            },
+          },
+        ],
+      },
+    ]);
   });
 
   it('maps output modalities to uppercase', () => {

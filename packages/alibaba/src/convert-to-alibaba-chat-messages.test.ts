@@ -106,6 +106,58 @@ describe('convertToAlibabaChatMessages', () => {
     `);
   });
 
+  it('should omit reasoning from assistant message content', () => {
+    const result = convertToAlibabaChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            { type: 'reasoning', text: 'Hidden reasoning.' },
+            { type: 'text', text: 'Visible answer.' },
+          ],
+        },
+      ],
+    });
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: 'Visible answer.',
+        tool_calls: undefined,
+      },
+    ]);
+  });
+
+  it('should omit an assistant message when reasoning is its only content', () => {
+    const result = convertToAlibabaChatMessages({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Think before answering.' }],
+        },
+        {
+          role: 'assistant',
+          content: [{ type: 'reasoning', text: 'Hidden reasoning.' }],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Continue.' }],
+        },
+      ],
+    });
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Think before answering.' }],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Continue.' }],
+      },
+    ]);
+  });
+
   it('should convert tool results', () => {
     const result = convertToAlibabaChatMessages({
       prompt: [

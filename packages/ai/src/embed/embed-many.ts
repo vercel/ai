@@ -1,9 +1,11 @@
+import { InvalidResponseDataError } from '@ai-sdk/provider';
 import {
   createIdGenerator,
   withUserAgentSuffix,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { logWarnings } from '../logger/log-warnings';
+import { getEmbeddingModelMaxInputBytesPerCall } from '../model/get-embedding-model-max-input-bytes-per-call';
 import { resolveEmbeddingModel } from '../model/resolve-model';
 import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
@@ -26,8 +28,9 @@ const originalGenerateCallId = createIdGenerator({
  * Embed several values using an embedding model. The type of the value is defined
  * by the embedding model.
  *
- * `embedMany` automatically splits large requests into smaller chunks if the model
- * has a limit on how many embeddings can be generated in a single call.
+ * `embedMany` automatically splits large requests into smaller chunks when the
+ * model has a limit on either the number of embeddings or the UTF-8 input bytes
+ * that can be processed in a single call.
  *
  * @param model - The embedding model to use.
  * @param values - The values that should be embedded.
@@ -197,11 +200,22 @@ export async function embedMany({
       });
 
       try {
-        const [maxEmbeddingsPerCall, supportsParallelCalls] = await Promise.all(
-          [model.maxEmbeddingsPerCall, model.supportsParallelCalls],
-        );
+        const [
+          maxEmbeddingsPerCall,
+          maxInputBytesPerCall,
+          supportsParallelCalls,
+        ] = await Promise.all([
+          model.maxEmbeddingsPerCall,
+          getEmbeddingModelMaxInputBytesPerCall(model),
+          model.supportsParallelCalls,
+        ]);
 
-        if (maxEmbeddingsPerCall == null || maxEmbeddingsPerCall === Infinity) {
+        const hasEmbeddingLimit =
+          maxEmbeddingsPerCall != null && maxEmbeddingsPerCall !== Infinity;
+        const hasInputByteLimit =
+          maxInputBytesPerCall != null && maxInputBytesPerCall !== Infinity;
+
+        if (!hasEmbeddingLimit && !hasInputByteLimit) {
           const { embeddings, usage, warnings, response, providerMetadata } =
             await retry(async () => {
               const embedCallId = generateCallId();
@@ -251,6 +265,8 @@ export async function embedMany({
               };
             });
 
+          validateEmbeddingCount({ embeddings, values });
+
           logWarnings({
             warnings,
             provider: model.provider,
@@ -283,7 +299,15 @@ export async function embedMany({
           });
         }
 
-        const valueChunks = splitArray(values, maxEmbeddingsPerCall);
+        const valueChunks = splitByEmbeddingLimits({
+          values,
+          maxEmbeddingsPerCall: hasEmbeddingLimit
+            ? maxEmbeddingsPerCall
+            : Infinity,
+          maxInputBytesPerCall: hasInputByteLimit
+            ? maxInputBytesPerCall
+            : Infinity,
+        });
 
         const embeddings: Array<Embedding> = [];
         const warnings: Array<Warning> = [];
@@ -304,8 +328,8 @@ export async function embedMany({
 
         for (const parallelChunk of parallelChunks) {
           const results = await Promise.all(
-            parallelChunk.map(chunk => {
-              return retry(async () => {
+            parallelChunk.map(async chunk => {
+              const result = await retry(async () => {
                 const embedCallId = generateCallId();
 
                 await notify({
@@ -352,6 +376,13 @@ export async function embedMany({
                   response: modelResponse.response,
                 };
               });
+
+              validateEmbeddingCount({
+                embeddings: result.embeddings,
+                values: chunk,
+              });
+
+              return result;
             }),
           );
 
@@ -413,6 +444,70 @@ export async function embedMany({
       }
     },
   });
+}
+
+function validateEmbeddingCount({
+  embeddings,
+  values,
+}: {
+  embeddings: Array<Embedding>;
+  values: Array<string>;
+}) {
+  if (embeddings.length !== values.length) {
+    throw new InvalidResponseDataError({
+      data: embeddings,
+      message: `Expected ${values.length} embeddings, but received ${embeddings.length}.`,
+    });
+  }
+}
+
+const textEncoder = new TextEncoder();
+
+function splitByEmbeddingLimits({
+  values,
+  maxEmbeddingsPerCall,
+  maxInputBytesPerCall,
+}: {
+  values: Array<string>;
+  maxEmbeddingsPerCall: number;
+  maxInputBytesPerCall: number;
+}): Array<Array<string>> {
+  if (maxEmbeddingsPerCall <= 0) {
+    throw new Error('maxEmbeddingsPerCall must be greater than 0');
+  }
+
+  if (maxInputBytesPerCall <= 0) {
+    throw new Error('maxInputBytesPerCall must be greater than 0');
+  }
+
+  if (values.length === 0) {
+    return [];
+  }
+
+  const chunks: Array<Array<string>> = [];
+  let currentChunk: Array<string> = [];
+  let currentInputBytes = 0;
+
+  for (const value of values) {
+    const inputBytes = textEncoder.encode(value).length;
+
+    if (
+      currentChunk.length > 0 &&
+      (currentChunk.length >= maxEmbeddingsPerCall ||
+        currentInputBytes + inputBytes > maxInputBytesPerCall)
+    ) {
+      chunks.push(currentChunk);
+      currentChunk = [];
+      currentInputBytes = 0;
+    }
+
+    currentChunk.push(value);
+    currentInputBytes += inputBytes;
+  }
+
+  chunks.push(currentChunk);
+
+  return chunks;
 }
 
 class DefaultEmbedManyResult implements EmbedManyResult {

@@ -20,6 +20,7 @@ import {
   extractReasoningFromContentBlocks,
   extractCitationsFromContentBlocks,
   emitSourceChunks,
+  getLangGraphProviderMetadata,
 } from './utils';
 import type { LangGraphEventState } from './types';
 import type { StreamCallbacks } from './stream-callbacks';
@@ -455,14 +456,18 @@ export function toUIMessageStream<TState = unknown>(
    */
   const langGraphState: LangGraphEventState = {
     messageSeen: new Map(),
+    messageNamespaces: new Map(),
     messageConcat: new Map(),
+    messageIdsInCurrentStepByNamespace: new Map(),
     emittedToolCalls: new Set<string>(),
+    emittedToolCallsInCurrentStepByNamespace: new Map(),
     emittedToolInputs: new Set<string>(),
+    emittedToolInputsInCurrentStepByNamespace: new Map(),
     emittedImages: new Set<string>(),
     emittedReasoningIds: new Set<string>(),
     messageReasoningIds: new Map(),
     toolCallInfoByIndex: new Map(),
-    currentStep: null as number | null,
+    currentStepsByNamespace: new Map(),
     emittedToolCallsByKey: new Map<string, string>(),
     emittedSourceIds: new Set<string>(),
   };
@@ -570,7 +575,7 @@ export function toUIMessageStream<TState = unknown>(
             );
           } else {
             const eventArray = value as unknown[];
-            const [type, data] = parseLangGraphEvent(eventArray);
+            const [, type, data] = parseLangGraphEvent(eventArray);
 
             if (type === 'values') {
               lastValuesData = data as TState;
@@ -613,18 +618,29 @@ export function toUIMessageStream<TState = unknown>(
            * where the values handler never ran to emit *-end events.
            */
           for (const [id, seen] of langGraphState.messageSeen) {
+            const providerMetadata = getLangGraphProviderMetadata(
+              langGraphState.messageNamespaces.get(id),
+            );
             if (seen.text) {
-              controller.enqueue({ type: 'text-end', id });
+              controller.enqueue({
+                type: 'text-end',
+                id,
+                ...(providerMetadata !== undefined && { providerMetadata }),
+              });
             }
             if (seen.reasoning) {
-              controller.enqueue({ type: 'reasoning-end', id });
+              controller.enqueue({
+                type: 'reasoning-end',
+                id,
+                ...(providerMetadata !== undefined && { providerMetadata }),
+              });
             }
           }
 
           /**
            * Emit finish-step if a step was started
            */
-          if (langGraphState.currentStep !== null) {
+          if (langGraphState.currentStepsByNamespace.size > 0) {
             controller.enqueue({ type: 'finish-step' });
           }
           if (sendFinish) {

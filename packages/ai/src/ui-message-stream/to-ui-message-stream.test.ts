@@ -292,4 +292,224 @@ describe('toUIMessageStream', () => {
     });
     expect(onFinish).not.toHaveBeenCalled();
   });
+
+  it('reports the source outcome to onEnd', async () => {
+    const observe = async (parts: TextStreamPart<{}>[]) => {
+      const onEnd = vi.fn();
+
+      await convertReadableStreamToArray(
+        toUIMessageStream({
+          stream: convertArrayToReadableStream(parts),
+          tools: undefined,
+          onEnd,
+        }),
+      );
+
+      const outcome = onEnd.mock.calls[0][0].outcome;
+      return {
+        status: outcome.status,
+        errorMessage:
+          outcome.status === 'failed' && outcome.error instanceof Error
+            ? outcome.error.message
+            : undefined,
+      };
+    };
+
+    const finishPart: TextStreamPart<{}> = {
+      type: 'finish',
+      finishReason: 'stop',
+      rawFinishReason: 'stop',
+      totalUsage: testUsage,
+    };
+    const abortPart: TextStreamPart<{}> = {
+      type: 'abort',
+      reason: 'user cancelled',
+    };
+    const errorPart: TextStreamPart<{}> = {
+      type: 'error',
+      error: new Error('generation failed'),
+    };
+
+    expect({
+      completed: await observe([finishPart]),
+      failed: await observe([errorPart]),
+      aborted: await observe([abortPart]),
+      unknown: await observe([]),
+      completedBeforeError: await observe([finishPart, errorPart]),
+      completedAfterError: await observe([errorPart, finishPart]),
+    }).toMatchInlineSnapshot(`
+      {
+        "aborted": {
+          "errorMessage": undefined,
+          "status": "aborted",
+        },
+        "completed": {
+          "errorMessage": undefined,
+          "status": "completed",
+        },
+        "completedAfterError": {
+          "errorMessage": undefined,
+          "status": "completed",
+        },
+        "completedBeforeError": {
+          "errorMessage": undefined,
+          "status": "completed",
+        },
+        "failed": {
+          "errorMessage": "generation failed",
+          "status": "failed",
+        },
+        "unknown": {
+          "errorMessage": undefined,
+          "status": "unknown",
+        },
+      }
+    `);
+  });
+
+  it('reports an errored source stream as failed exactly once', async () => {
+    const sourceError = new Error('source stream failed');
+    const onEnd = vi.fn();
+    const sourceStream = new ReadableStream<TextStreamPart<{}>>({
+      start(controller) {
+        controller.error(sourceError);
+      },
+    });
+
+    const stream = toUIMessageStream({
+      stream: sourceStream,
+      tools: undefined,
+      onEnd,
+    });
+
+    await expect(convertReadableStreamToArray(stream)).rejects.toBe(
+      sourceError,
+    );
+
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    expect(onEnd.mock.calls[0][0].outcome).toEqual({
+      status: 'failed',
+      error: sourceError,
+    });
+    expect(sourceStream.locked).toBe(false);
+  });
+
+  it('releases the source reader lock after completion', async () => {
+    const sourceStream = convertArrayToReadableStream<TextStreamPart<{}>>([]);
+
+    await convertReadableStreamToArray(
+      toUIMessageStream({ stream: sourceStream, tools: undefined }),
+    );
+
+    expect(sourceStream.locked).toBe(false);
+  });
+
+  it('releases the source reader lock after cancellation', async () => {
+    const sourceStream = new ReadableStream<TextStreamPart<{}>>({
+      start(controller) {
+        controller.enqueue({ type: 'start' });
+      },
+    });
+    const reader = toUIMessageStream({
+      stream: sourceStream,
+      tools: undefined,
+    }).getReader();
+
+    await reader.read();
+    await reader.cancel('consumer cancelled');
+
+    await vi.waitFor(() => expect(sourceStream.locked).toBe(false));
+  });
+
+  it('does not let an earlier finish part hide a source stream failure', async () => {
+    const sourceError = new Error('source stream failed after finish');
+    const onEnd = vi.fn();
+    let pullCount = 0;
+
+    const stream = toUIMessageStream({
+      stream: new ReadableStream({
+        pull(controller) {
+          if (pullCount++ === 0) {
+            controller.enqueue({
+              type: 'finish',
+              finishReason: 'stop',
+              rawFinishReason: 'stop',
+              totalUsage: testUsage,
+            });
+          } else {
+            controller.error(sourceError);
+          }
+        },
+      }),
+      tools: undefined,
+      onEnd,
+    });
+
+    await expect(convertReadableStreamToArray(stream)).rejects.toBe(
+      sourceError,
+    );
+
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    expect(onEnd.mock.calls[0][0].outcome).toEqual({
+      status: 'failed',
+      error: sourceError,
+    });
+  });
+
+  it('reports message metadata failures as failed exactly once', async () => {
+    const metadataError = new Error('message metadata failed');
+    const onEnd = vi.fn();
+
+    const stream = toUIMessageStream({
+      stream: convertArrayToReadableStream([
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          rawFinishReason: 'stop',
+          totalUsage: testUsage,
+        },
+      ] satisfies TextStreamPart<{}>[]),
+      tools: undefined,
+      messageMetadata: () => {
+        throw metadataError;
+      },
+      onEnd,
+    });
+
+    await expect(convertReadableStreamToArray(stream)).rejects.toBe(
+      metadataError,
+    );
+
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    expect(onEnd.mock.calls[0][0].outcome).toEqual({
+      status: 'failed',
+      error: metadataError,
+    });
+  });
+
+  it('reports UI chunk conversion failures as failed exactly once', async () => {
+    const conversionError = new Error('UI chunk conversion failed');
+    const onEnd = vi.fn();
+
+    const stream = toUIMessageStream({
+      stream: convertArrayToReadableStream([
+        { type: 'error', error: new Error('generation failed') },
+      ] satisfies TextStreamPart<{}>[]),
+      tools: undefined,
+      onError: () => {
+        throw conversionError;
+      },
+      onEnd,
+    });
+
+    await expect(convertReadableStreamToArray(stream)).rejects.toBe(
+      conversionError,
+    );
+
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    expect(onEnd.mock.calls[0][0].outcome).toEqual({
+      status: 'failed',
+      error: conversionError,
+    });
+  });
 });

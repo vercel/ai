@@ -96,6 +96,47 @@ describe('amazon-bedrock-anthropic-provider', () => {
         transformRequestBody: expect.any(Function),
         supportedUrls: expect.any(Function),
         supportsNativeStructuredOutput: true,
+        supportsStrictTools: true,
+      }),
+    );
+  });
+
+  it.each([
+    'anthropic.claude-haiku-4-5-20251001-v1:0',
+    'us.anthropic.claude-haiku-4-5-20251001-v1:0',
+    'eu.anthropic.claude-haiku-4-5-20251001-v1:0',
+    'global.anthropic.claude-haiku-4-5-20251001-v1:0',
+    'anthropic.claude-sonnet-4-6-v1',
+    'us.anthropic.claude-sonnet-4-6-v1',
+    'eu.anthropic.claude-sonnet-4-6-v1',
+    'global.anthropic.claude-sonnet-4-6-v1',
+    'anthropic.claude-opus-4-7',
+    'us.anthropic.claude-opus-4-7',
+    'eu.anthropic.claude-opus-4-7',
+    'anthropic.claude-opus-4-8',
+    'us.anthropic.claude-opus-4-8',
+    'eu.anthropic.claude-opus-4-8',
+    'anthropic.claude-opus-5',
+    'us.anthropic.claude-opus-5',
+    'eu.anthropic.claude-opus-5',
+    'anthropic.claude-fable-5',
+    'us.anthropic.claude-fable-5',
+    'eu.anthropic.claude-fable-5',
+    'anthropic.claude-sonnet-5',
+    'us.anthropic.claude-sonnet-5',
+    'eu.anthropic.claude-sonnet-5',
+  ])('should disable native structured output for %s', modelId => {
+    const provider = createAmazonBedrockAnthropic({
+      region: 'us-east-1',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+    });
+    provider(modelId as Parameters<typeof provider>[0]);
+
+    expect(AnthropicLanguageModel).toHaveBeenCalledWith(
+      modelId,
+      expect.objectContaining({
+        supportsNativeStructuredOutput: false,
       }),
     );
   });
@@ -107,6 +148,9 @@ describe('amazon-bedrock-anthropic-provider', () => {
     'anthropic.claude-opus-4-8',
     'us.anthropic.claude-opus-4-8',
     'eu.anthropic.claude-opus-4-8',
+    'anthropic.claude-opus-5',
+    'us.anthropic.claude-opus-5',
+    'eu.anthropic.claude-opus-5',
     'anthropic.claude-fable-5',
     'us.anthropic.claude-fable-5',
     'eu.anthropic.claude-fable-5',
@@ -114,7 +158,7 @@ describe('amazon-bedrock-anthropic-provider', () => {
     'us.anthropic.claude-sonnet-5',
     'eu.anthropic.claude-sonnet-5',
   ])(
-    'should disable native structured output for %s (Bedrock rejects output_config.format)',
+    'should disable strict tools for %s (Bedrock rejects tools[].strict)',
     modelId => {
       const provider = createAmazonBedrockAnthropic({
         region: 'us-east-1',
@@ -126,11 +170,30 @@ describe('amazon-bedrock-anthropic-provider', () => {
       expect(AnthropicLanguageModel).toHaveBeenCalledWith(
         modelId,
         expect.objectContaining({
-          supportsNativeStructuredOutput: false,
+          supportsStrictTools: false,
         }),
       );
     },
   );
+
+  it.each([
+    'anthropic.claude-sonnet-4-6-v1',
+    'us.anthropic.claude-haiku-4-5-20251001-v1:0',
+  ])('should keep strict tools enabled for %s', modelId => {
+    const provider = createAmazonBedrockAnthropic({
+      region: 'us-east-1',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+    });
+    provider(modelId as Parameters<typeof provider>[0]);
+
+    expect(AnthropicLanguageModel).toHaveBeenCalledWith(
+      modelId,
+      expect.objectContaining({
+        supportsStrictTools: true,
+      }),
+    );
+  });
 
   it('should throw an error when using new keyword', () => {
     const provider = createAmazonBedrockAnthropic({

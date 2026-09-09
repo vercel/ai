@@ -26,7 +26,7 @@ describe('createCodexStepTracker', () => {
 
     expect(events).toEqual([]);
 
-    tracker.finishStep();
+    tracker.finishTurn();
 
     expect(events.map(event => event.type)).toEqual(['finish-step']);
   });
@@ -83,6 +83,22 @@ describe('createCodexStepTracker', () => {
     expect(events.map(event => event.type)).toEqual(['finish-step']);
   });
 
+  it('closes a pending tool step at turn end', () => {
+    const { events, tracker } = createTracker();
+
+    tracker.observeEvent({
+      event: {
+        type: 'item.started',
+        item: { type: 'command_execution' },
+      },
+      itemId: 'item_2',
+    });
+
+    tracker.finishTurn();
+
+    expect(events.map(event => event.type)).toEqual(['finish-step']);
+  });
+
   it('closes a final model text step at turn end after a tool step', () => {
     const { events, tracker } = createTracker();
 
@@ -110,7 +126,7 @@ describe('createCodexStepTracker', () => {
 
     expect(events.map(event => event.type)).toEqual(['finish-step']);
 
-    tracker.finishStep();
+    tracker.finishTurn();
 
     expect(events.map(event => event.type)).toEqual([
       'finish-step',

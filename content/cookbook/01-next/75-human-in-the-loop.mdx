@@ -337,7 +337,7 @@ When a user denies a tool execution, the model receives the denial and can respo
 const result = streamText({
   model: openai('gpt-4o'),
   messages,
-  system:
+  instructions:
     'When a tool execution is not approved by the user, do not retry it. ' +
     'Inform the user that the action was not performed.',
   tools: {

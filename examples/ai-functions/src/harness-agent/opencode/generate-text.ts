@@ -1,7 +1,9 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { openCode } from '@ai-sdk/harness-opencode';
+import { createOpenCode } from './_create';
 import { run } from '../../lib/run';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+
+const openCode = createOpenCode();
 
 run(async () => {
   const sandbox = createVercelSandbox({
@@ -14,7 +16,6 @@ run(async () => {
     sandbox,
   });
 
-  let exitCode = 0;
   const session = await agent.createSession();
   try {
     const result = await agent.generate({
@@ -24,11 +25,7 @@ run(async () => {
     console.log('text:', result.text);
     console.log('finishReason:', result.finishReason);
     console.log('usage:', result.usage);
-  } catch (err) {
-    exitCode = 1;
-    console.error('[example] failed:', err);
   } finally {
     await session.destroy();
-    process.exit(exitCode);
   }
 });

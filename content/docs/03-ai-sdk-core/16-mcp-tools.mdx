@@ -25,6 +25,12 @@ Create an MCP client using one of the following transport options:
 - SSE (Server-Sent Events): An alternative HTTP-based transport
 - `stdio`: For local development only. Uses standard input/output streams for local MCP servers
 
+The AI SDK MCP client supports both legacy initialization-based protocol
+versions and stateless MCP `2026-07-28`. The built-in stdio transport probes
+with `server/discover` and automatically falls back to the legacy
+`initialize` handshake for older servers. Custom transports can opt into this
+negotiation with `supportsProtocolVersionDiscovery: true`.
+
 ### HTTP Transport (Recommended)
 
 For production deployments, we recommend using the HTTP transport. You can configure it directly on the client:
@@ -49,8 +55,9 @@ const mcpClient = await createMCPClient({
 });
 ```
 
-If the MCP server uses Streamable HTTP sessions, you can reattach to a saved
-session by restoring both the previous session id and initialize result:
+If a legacy MCP server uses Streamable HTTP sessions, you can reattach to a
+saved session by restoring both the previous session id and initialize result.
+MCP `2026-07-28` is stateless and does not use these options:
 
 ```typescript
 import { createMCPClient } from '@ai-sdk/mcp';
@@ -203,6 +210,32 @@ This hook is called before the SDK fetches authorization server metadata, so a
 rejected URL is not requested. It is optional and does not change existing OAuth
 flows unless you implement it.
 
+### OAuth Callback Issuer Validation
+
+When completing an OAuth authorization callback, pass the callback's `iss`
+parameter to `auth` as `callbackIssuer`:
+
+```typescript
+import { auth } from '@ai-sdk/mcp';
+
+const callbackUrl = new URL(request.url);
+
+await auth(myOAuthClientProvider, {
+  serverUrl: 'https://mcp.example.com',
+  authorizationCode: callbackUrl.searchParams.get('code')!,
+  callbackState: callbackUrl.searchParams.get('state') ?? undefined,
+  callbackIssuer: callbackUrl.searchParams.get('iss') ?? undefined,
+});
+```
+
+When `iss` is present, it must exactly match the discovered authorization
+server issuer. The authorization code is not exchanged when it does not match.
+
+Dynamic client registration requests include an OAuth `application_type`. The
+client infers `native` for loopback, localhost, and custom-scheme redirects,
+and `web` for remote HTTP(S) redirects. You can override this by setting
+`application_type` in the provider's `clientMetadata`.
+
 ### Retrying Transient Tool Failures
 
 MCP tool calls can fail for transient transport reasons, such as rate limits,
@@ -287,6 +320,67 @@ const tools = await mcpClient.tools();
 
 This approach is simpler to implement and automatically stays in sync with server changes. However, you won't have TypeScript type safety during development, and all tools from the server will be loaded
 
+### Tool Annotations and Approval
+
+MCP servers can describe tool behavior with annotations such as
+`readOnlyHint`, `destructiveHint`, `idempotentHint`, and `openWorldHint`. The
+MCP client exposes these annotations on each tool's `metadata.annotations` and
+on the resulting tool call's `toolMetadata.annotations`.
+
+Annotations are untrusted, server-provided hints. The MCP client does not turn
+them into an approval policy automatically. Applications should combine them
+with deterministic controls such as tool allowlists, scoped credentials, and
+their own [`toolApproval`](/docs/agents/tool-approvals) policy.
+
+The following conservative policy allows tools to run automatically only when
+the server explicitly marks them as read-only. Tools with `readOnlyHint: false`
+or no `readOnlyHint` require user approval:
+
+```typescript
+import { type McpProviderMetadata } from '@ai-sdk/mcp';
+
+const result = streamText({
+  model: __MODEL__,
+  tools,
+  toolApproval: ({ toolCall }) => {
+    const annotations = (
+      toolCall.toolMetadata as McpProviderMetadata | undefined
+    )?.annotations;
+
+    return annotations?.readOnlyHint === true
+      ? 'not-applicable'
+      : {
+          type: 'user-approval',
+          reason:
+            annotations?.destructiveHint === true
+              ? 'The MCP server marks this tool as destructive.'
+              : 'The MCP server does not mark this tool as read-only.',
+        };
+  },
+  prompt,
+});
+```
+
+See the
+[local tool annotations example](https://github.com/vercel/ai/tree/main/examples/mcp/src/tool-annotations)
+for a complete annotated MCP server and application-layer approval
+configuration. Start the server and client in separate terminals:
+
+```bash
+cd examples/mcp
+pnpm server:tool-annotations
+```
+
+```bash
+cd examples/mcp
+pnpm client:tool-annotations
+```
+
+Ask the client to read, delete, or create a note. The read-only tool executes
+immediately. The destructive and unannotated tools prompt for approval; after
+you enter `y` or `n`, the client sends the decision back and prints the model's
+response.
+
 ### Schema Definition
 
 For better type safety and control, you can define the tools and their input schemas explicitly in your client code:
@@ -314,7 +408,7 @@ This approach provides full TypeScript type safety and IDE autocompletion, letti
 
 ### Typed Tool Outputs
 
-When MCP servers return `structuredContent` (per the [MCP specification](https://modelcontextprotocol.io/specification/2025-06-18/server/tools#structured-content)), you can define an `outputSchema` to get typed tool results:
+When MCP servers return `structuredContent` (per the [MCP specification](https://modelcontextprotocol.io/specification/2026-07-28/server/tools#structured-content)), you can define an `outputSchema` to get typed tool results:
 
 ```typescript
 import { z } from 'zod';
@@ -350,6 +444,8 @@ When `outputSchema` is provided:
 - You get full TypeScript type safety for the result
 
 If the server doesn't return `structuredContent`, the client falls back to parsing JSON from the text content. If neither is available or validation fails, an error is thrown.
+
+If a server returns `structuredContent` without the backwards-compatible `content` field, the client adds a text content block containing the serialized JSON before returning the result. This compatibility behavior handles servers that omit the text mirror recommended by the MCP specification.
 
 <Note>
   Without `outputSchema`, the tool returns the raw `CallToolResult` object

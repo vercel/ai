@@ -12,10 +12,11 @@ run(async () => {
       cityAttractions: tool({
         inputSchema: z.object({ city: z.string() }),
       }),
+      search: openai.tools.webSearch(),
     },
     providerOptions: {
       openai: {
-        allowedTools: { toolNames: ['weather'], mode: 'auto' },
+        allowedTools: { toolNames: ['weather', 'search'], mode: 'auto' },
       },
     },
     prompt:
@@ -51,6 +52,7 @@ run(async () => {
           'cityAttractions blocked?',
           !calledTools.has('cityAttractions'),
         );
+        console.log('Warnings:', await result.warnings);
         console.log('Finish reason:', chunk.finishReason);
         console.log('Total Usage:', chunk.totalUsage);
         break;

@@ -55,6 +55,9 @@ describe('streamText first chunk timeout', () => {
                   type: 'text-delta',
                   id: '1',
                   delta: '',
+                  providerMetadata: {
+                    testProvider: { signature: 'test-signature' },
+                  },
                 });
                 controller.enqueue({ type: 'reasoning-start', id: '2' });
                 controller.enqueue({

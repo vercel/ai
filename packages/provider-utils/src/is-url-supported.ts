@@ -50,6 +50,23 @@ export function isUrlSupported({
       })
       .flatMap(({ regexes }) => regexes)
       // check if any pattern matches the url:
-      .some(pattern => pattern.test(url))
+      .some(pattern => testRegExpFromStart(pattern, url))
   );
+}
+
+function testRegExpFromStart(pattern: RegExp, value: string): boolean {
+  if (!pattern.global && !pattern.sticky) {
+    return pattern.test(value);
+  }
+
+  // Global and sticky regexes retain match state in lastIndex.
+  // Evaluate from the start without changing caller-owned state.
+  const lastIndex = pattern.lastIndex;
+  pattern.lastIndex = 0;
+
+  try {
+    return pattern.test(value);
+  } finally {
+    pattern.lastIndex = lastIndex;
+  }
 }

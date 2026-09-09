@@ -50,4 +50,19 @@ describe('xaiFailedResponseHandler', () => {
       'Client specified an invalid argument: Invalid request content: Each message must have at least one content element.',
     );
   });
+
+  it('extracts message from text to speech error shape', async () => {
+    const response = makeResponse({
+      error: 'speed must be between 0.7 and 1.5',
+    });
+
+    const { value } = await xaiFailedResponseHandler({
+      url: 'https://api.x.ai/v1/tts',
+      requestBodyValues: {},
+      response,
+    });
+
+    expect(value).toBeInstanceOf(APICallError);
+    expect(value.message).toBe('speed must be between 0.7 and 1.5');
+  });
 });

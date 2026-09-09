@@ -14,6 +14,10 @@ export function sanitizeAttributeValue(
   value: AttributeValue,
 ): AttributeValue | undefined {
   if (!Array.isArray(value)) {
+    if (typeof value === 'number' && !Number.isFinite(value)) {
+      return undefined;
+    }
+
     return value;
   }
 
@@ -32,7 +36,11 @@ export function sanitizeAttributeValue(
   }
 
   if (primitiveType === 'number') {
-    return value.filter((item): item is number => typeof item === 'number');
+    const numbers = value.filter(
+      (item): item is number => typeof item === 'number',
+    );
+
+    return numbers.every(Number.isFinite) ? numbers : undefined;
   }
 
   return value.filter((item): item is boolean => typeof item === 'boolean');

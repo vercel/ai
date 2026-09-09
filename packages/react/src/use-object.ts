@@ -138,7 +138,7 @@ export function useObject<
 
   // Store the completion state in SWR, using the completionId as the key to share states.
   const { data, mutate } = useSWR<DeepPartial<RESULT>>(
-    [api, completionId],
+    [completionId, 'object'],
     null,
     { fallbackData: initialValue },
   );
@@ -185,7 +185,7 @@ export function useObject<
 
       if (!response.ok) {
         throw new Error(
-          (await response.text()) ?? 'Failed to fetch the response.',
+          (await response.text()) || 'Failed to fetch the response.',
         );
       }
 

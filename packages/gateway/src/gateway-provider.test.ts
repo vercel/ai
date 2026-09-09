@@ -16,12 +16,17 @@ import { GatewaySpeechModel } from './gateway-speech-model';
 import { GatewayTranscriptionModel } from './gateway-transcription-model';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import { resolve } from '@ai-sdk/provider-utils';
+import { GatewayBatch } from './gateway-batch';
 import { GatewayLanguageModel } from './gateway-language-model';
 import {
   GatewayAuthenticationError,
   GatewayInternalServerError,
 } from './errors';
 import { fail } from 'node:assert';
+
+vi.mock('./gateway-batch', () => ({
+  GatewayBatch: vi.fn(function () {}),
+}));
 
 vi.mock('./gateway-language-model', () => ({
   GatewayLanguageModel: vi.fn(function () {}),
@@ -294,6 +299,25 @@ describe('GatewayProvider', () => {
       });
     });
 
+    it('should create a provider-owned batch service', () => {
+      const provider = createGateway({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-api-key',
+      });
+
+      provider.experimental_batch();
+
+      expect(GatewayBatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          provider: 'gateway',
+          baseURL: 'https://api.example.com',
+          headers: expect.any(Function),
+          fetch: undefined,
+          o11yHeaders: expect.any(Function),
+        }),
+      );
+    });
+
     it('should use OIDC token when no API key is provided', async () => {
       const options = {
         baseURL: 'https://api.example.com',
@@ -346,7 +370,7 @@ describe('GatewayProvider', () => {
         teamIdOrSlug: 'vercel',
       });
 
-      const model = provider.imageModel('google/imagen-4.0-generate');
+      const model = provider.imageModel('openai/gpt-image-1');
 
       if (!(model instanceof GatewayImageModel)) {
         fail('Expected GatewayImageModel to be created');
@@ -435,7 +459,7 @@ describe('GatewayProvider', () => {
         apiKey: 'test-api-key',
       });
 
-      const model = provider.imageModel('google/imagen-4.0-generate');
+      const model = provider.imageModel('openai/gpt-image-1');
 
       if (!(model instanceof GatewayImageModel)) {
         fail('Expected GatewayImageModel to be created');
@@ -455,7 +479,7 @@ describe('GatewayProvider', () => {
         fetch: customFetch,
       });
 
-      const model = provider.imageModel('google/imagen-4.0-generate');
+      const model = provider.imageModel('openai/gpt-image-1');
 
       if (!(model instanceof GatewayImageModel)) {
         fail('Expected GatewayImageModel to be created');
@@ -873,7 +897,7 @@ describe('GatewayProvider', () => {
 
     it('should expose imageModel on the default provider and construct model', () => {
       expect(typeof gateway.imageModel).toBe('function');
-      const model = gateway.imageModel('google/imagen-4.0-generate');
+      const model = gateway.imageModel('openai/gpt-image-1');
 
       if (!(model instanceof GatewayImageModel)) {
         fail('Expected GatewayImageModel to be created by default provider');

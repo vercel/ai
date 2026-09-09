@@ -12,7 +12,13 @@ export type ByteDanceVideoModelOptions = {
   referenceImages?: string[] | null;
   referenceVideos?: string[] | null;
   referenceAudio?: string[] | null;
+  /**
+   * @deprecated Ignored. Pass `poll: { intervalMs }` to `generateVideo` instead.
+   */
   pollIntervalMs?: number | null;
+  /**
+   * @deprecated Ignored. Pass `poll: { timeoutMs }` to `generateVideo` instead.
+   */
   pollTimeoutMs?: number | null;
   [key: string]: unknown;
 };

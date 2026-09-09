@@ -1,13 +1,14 @@
 # @ai-sdk/workflow-harness
 
 Run an AI SDK `HarnessAgent` (Claude Code, Codex, Pi) as a **durable workflow**
-using the [Workflow DevKit](https://www.npmjs.com/package/workflow).
+using the [Workflow DevKit](https://www.npmjs.com/package/workflow). A turn can
+be divided into time slices or semantic agent steps.
 
-A long agent turn is sliced into short, time-boxed steps so it survives a Fluid
-Compute function recycle (~800s). Between slices the agent is frozen
-non-destructively — the sandbox keeps running and the next slice reattaches to
-the in-flight turn (`attach`) — and a serializable state object is persisted as
-the durable step return value.
+Time slices let a long agent turn survive a Fluid Compute function recycle
+(~800s). Semantic steps let a workflow persist after each agent step, typically
+by configuring the agent with `stopWhen: isStepCount(1)`. At either boundary the
+agent is frozen non-destructively and a serializable state object is persisted
+as the durable step return value.
 
 This package ships plain helpers + a serializable state machine; you own the
 thin `'use workflow'` / `'use step'` wrappers (the Workflow DevKit compiles
@@ -32,21 +33,21 @@ export const agent = new HarnessAgent({
 });
 ```
 
-`run-slice-step.ts`:
+`time-slice-step.ts`:
 
 ```ts
 import {
-  runHarnessAgentSlice,
+  runHarnessAgentTimeSlice,
   type HarnessWorkflowState,
 } from '@ai-sdk/workflow-harness';
 
-export async function runSlice(
+export async function timeSliceStep(
   state: HarnessWorkflowState,
 ): Promise<HarnessWorkflowState> {
   'use step';
 
   const { agent } = await import('./agent');
-  return runHarnessAgentSlice({ agent, state });
+  return runHarnessAgentTimeSlice({ agent, state });
 }
 ```
 
@@ -58,18 +59,78 @@ import {
   finalizeHarnessWorkflow,
   type HarnessWorkflowInput,
 } from '@ai-sdk/workflow-harness';
-import { runSlice } from './run-slice-step';
+import { timeSliceStep } from './time-slice-step';
 
-export async function codingWorkflow(input: {
+export async function timeSliceWorkflow(input: {
   prompt: HarnessWorkflowInput['prompt'];
   sessionId: string;
 }) {
   'use workflow';
 
   let state = createHarnessWorkflowState(input);
-  while (state.status === 'running' || state.status === 'timed_out') {
-    state = await runSlice(state);
-  }
+  do {
+    state = await timeSliceStep(state);
+  } while (state.status === 'ready_for_next_step');
+  return finalizeHarnessWorkflow(state);
+}
+```
+
+For a semantic stepped workflow, configure the agent with
+`stopWhen: isStepCount(1)`, call `runHarnessAgentStep()` from the step module,
+and continue while the status is `ready_for_next_step`:
+
+`stepped-agent.ts`:
+
+```ts
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { claudeCode } from '@ai-sdk/harness-claude-code';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { isStepCount } from 'ai';
+
+export const steppedAgent = new HarnessAgent({
+  harness: claudeCode,
+  sandbox: createVercelSandbox({ runtime: 'node24', ports: [4000] }),
+  stopWhen: isStepCount(1),
+});
+```
+
+`stepped-agent-step.ts`:
+
+```ts
+import {
+  runHarnessAgentStep,
+  type HarnessWorkflowState,
+} from '@ai-sdk/workflow-harness';
+
+export async function agentStep(
+  state: HarnessWorkflowState,
+): Promise<HarnessWorkflowState> {
+  'use step';
+
+  const { steppedAgent } = await import('./stepped-agent');
+  return runHarnessAgentStep({ agent: steppedAgent, state });
+}
+```
+
+`stepped-workflow.ts`:
+
+```ts
+import {
+  createHarnessWorkflowState,
+  finalizeHarnessWorkflow,
+  type HarnessWorkflowInput,
+} from '@ai-sdk/workflow-harness';
+import { agentStep } from './stepped-agent-step';
+
+export async function agentWorkflow(
+  input: Pick<HarnessWorkflowInput, 'messages' | 'sessionId'>,
+) {
+  'use workflow';
+
+  let state = createHarnessWorkflowState(input);
+  do {
+    state = await agentStep(state);
+  } while (state.status === 'ready_for_next_step');
   return finalizeHarnessWorkflow(state);
 }
 ```
@@ -78,14 +139,14 @@ export async function codingWorkflow(input: {
 
 ```ts
 import { start } from 'workflow/api';
-import { codingWorkflow } from './workflow';
+import { timeSliceWorkflow } from './workflow';
 
 export async function POST(request: Request) {
   const body = (await request.json()) as {
     prompt: string;
     sessionId: string;
   };
-  const run = await start(codingWorkflow, [body]);
+  const run = await start(timeSliceWorkflow, [body]);
 
   return new Response(run.readable);
 }

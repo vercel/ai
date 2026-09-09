@@ -149,10 +149,10 @@ describe('google-provider', () => {
     const provider = createGoogle({
       apiKey: 'test-api-key',
     });
-    provider.image('imagen-3.0-generate-002');
+    provider.image('gemini-2.5-flash-image');
 
     expect(GoogleImageModel).toHaveBeenCalledWith(
-      'imagen-3.0-generate-002',
+      'gemini-2.5-flash-image',
       {},
       expect.objectContaining({
         provider: 'google.generative-ai',
@@ -169,10 +169,10 @@ describe('google-provider', () => {
     const imageSettings = {
       maxImagesPerCall: 3,
     };
-    provider.image('imagen-3.0-generate-002', imageSettings);
+    provider.image('gemini-2.5-flash-image', imageSettings);
 
     expect(GoogleImageModel).toHaveBeenCalledWith(
-      'imagen-3.0-generate-002',
+      'gemini-2.5-flash-image',
       imageSettings,
       expect.objectContaining({
         provider: 'google.generative-ai',
@@ -270,6 +270,38 @@ describe('google-provider', () => {
     `);
   });
 
+  it('should support default and configured Google file URLs with a custom baseURL', () => {
+    const provider = createGoogle({
+      apiKey: 'test-api-key',
+      baseURL: 'https://custom-endpoint.example.com/v1beta',
+    });
+    provider('gemini-2.0-flash');
+
+    const call = vi.mocked(GoogleLanguageModel).mock.calls[0];
+    const supportedUrls = call[1].supportedUrls!() as Record<string, RegExp[]>;
+
+    for (const url of [
+      'https://generativelanguage.googleapis.com/v1beta/files/google-file',
+      'https://custom-endpoint.example.com/v1beta/files/custom-file',
+    ]) {
+      expect(
+        isUrlSupported({
+          url,
+          mediaType: 'text/markdown',
+          supportedUrls,
+        }),
+      ).toBe(true);
+    }
+
+    expect(
+      isUrlSupported({
+        url: 'https://example.com/files/unsupported-file',
+        mediaType: 'text/markdown',
+        supportedUrls,
+      }),
+    ).toBe(false);
+  });
+
   it('should support documented external HTTPS URLs for Gemini models that accept external URLs', () => {
     const provider = createGoogle({
       apiKey: 'test-api-key',
@@ -355,6 +387,27 @@ describe('google-provider', () => {
         supportedUrls,
       }),
     ).toBe(false);
+  });
+
+  it('should only advertise URL support shared by all batch models', () => {
+    const batch = createGoogle({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+
+    expect(
+      isUrlSupported({
+        url: 'https://example.com/file.txt',
+        mediaType: 'text/plain',
+        supportedUrls: batch.supportedUrls as Record<string, RegExp[]>,
+      }),
+    ).toBe(false);
+    expect(
+      isUrlSupported({
+        url: 'https://generativelanguage.googleapis.com/v1beta/files/file-1',
+        mediaType: 'text/plain',
+        supportedUrls: batch.supportedUrls as Record<string, RegExp[]>,
+      }),
+    ).toBe(true);
   });
 });
 

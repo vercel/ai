@@ -1,7 +1,9 @@
 import {
   getErrorMessage,
+  type LanguageModelV4Content,
   type LanguageModelV4Prompt,
   type LanguageModelV4StreamPart,
+  type LanguageModelV4ToolChoice,
   type SharedV4Headers,
 } from '@ai-sdk/provider';
 import {
@@ -20,6 +22,7 @@ import { getOwn } from '../util/get-own';
 import type { Instructions, Prompt } from '../prompt';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
+import { normalizeStreamProviderError } from '../prompt/normalize-stream-provider-error';
 import { prepareToolChoice } from '../prompt/prepare-tool-choice';
 import { prepareTools } from '../prompt/prepare-tools';
 import { standardizePrompt } from '../prompt/standardize-prompt';
@@ -39,6 +42,7 @@ import {
 import type { DownloadFunction } from '../util/download/download-function';
 import { notify } from '../util/notify';
 import { now as originalNow } from '../util/now';
+import { ToolChoiceViolationError } from '../error';
 import { calculateTokensPerSecond } from './calculate-tokens-per-second';
 import type { ContentPart } from './content-part';
 import { DefaultGeneratedFileWithType } from './generated-file';
@@ -371,6 +375,7 @@ export async function streamLanguageModelCall<
       callId: effectiveCallId,
       provider: resolvedModel.provider,
       modelId: resolvedModel.modelId,
+      toolChoice: stepToolChoice,
       generateId,
       now,
       callStartTimestampMs,
@@ -397,6 +402,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   callId,
   provider,
   modelId,
+  toolChoice,
   generateId,
   now,
   callStartTimestampMs,
@@ -410,6 +416,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   callId: string;
   provider: string;
   modelId: string;
+  toolChoice: LanguageModelV4ToolChoice;
   generateId: IdGenerator;
   now: () => number;
   callStartTimestampMs: number;
@@ -419,9 +426,13 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   // keep track of tool inputs for provider-side tool results
   const toolCallsByToolCallId = new Map<string, TypedToolCall<TOOLS>>();
   const modelCallContent: Array<ContentPart<TOOLS>> = [];
+  const rawModelCallContent: Array<LanguageModelV4Content> = [];
   const textPartIndexes = new Map<string, number>();
   const reasoningPartIndexes = new Map<string, number>();
+  const rawTextPartIndexes = new Map<string, number>();
+  const rawReasoningPartIndexes = new Map<string, number>();
   let responseId = generateId();
+  let responseModelId = modelId;
   let timeToFirstOutputMs: number | undefined;
   let previousOutputChunkTimestampMs: number | undefined;
   const timeBetweenOutputChunksMs: number[] = [];
@@ -446,10 +457,19 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
       }
 
       switch (chunk.type) {
+        case 'error':
+          controller.enqueue({
+            type: 'error',
+            error: normalizeStreamProviderError(chunk.error),
+          });
+          break;
+
         case 'text-start':
           upsertTextContentPart({
             content: modelCallContent,
+            rawContent: rawModelCallContent,
             partIndexes: textPartIndexes,
+            rawPartIndexes: rawTextPartIndexes,
             id: chunk.id,
             type: 'text',
             providerMetadata: chunk.providerMetadata,
@@ -460,7 +480,9 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         case 'text-delta':
           upsertTextContentPart({
             content: modelCallContent,
+            rawContent: rawModelCallContent,
             partIndexes: textPartIndexes,
+            rawPartIndexes: rawTextPartIndexes,
             id: chunk.id,
             type: 'text',
             textDelta: chunk.delta,
@@ -477,19 +499,24 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         case 'text-end':
           upsertTextContentPart({
             content: modelCallContent,
+            rawContent: rawModelCallContent,
             partIndexes: textPartIndexes,
+            rawPartIndexes: rawTextPartIndexes,
             id: chunk.id,
             type: 'text',
             providerMetadata: chunk.providerMetadata,
           });
           textPartIndexes.delete(chunk.id);
+          rawTextPartIndexes.delete(chunk.id);
           controller.enqueue(chunk);
           break;
 
         case 'reasoning-start':
           upsertTextContentPart({
             content: modelCallContent,
+            rawContent: rawModelCallContent,
             partIndexes: reasoningPartIndexes,
+            rawPartIndexes: rawReasoningPartIndexes,
             id: chunk.id,
             type: 'reasoning',
             providerMetadata: chunk.providerMetadata,
@@ -500,7 +527,9 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         case 'reasoning-delta':
           upsertTextContentPart({
             content: modelCallContent,
+            rawContent: rawModelCallContent,
             partIndexes: reasoningPartIndexes,
+            rawPartIndexes: rawReasoningPartIndexes,
             id: chunk.id,
             type: 'reasoning',
             textDelta: chunk.delta,
@@ -517,12 +546,15 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         case 'reasoning-end':
           upsertTextContentPart({
             content: modelCallContent,
+            rawContent: rawModelCallContent,
             partIndexes: reasoningPartIndexes,
+            rawPartIndexes: rawReasoningPartIndexes,
             id: chunk.id,
             type: 'reasoning',
             providerMetadata: chunk.providerMetadata,
           });
           reasoningPartIndexes.delete(chunk.id);
+          rawReasoningPartIndexes.delete(chunk.id);
           controller.enqueue(chunk);
           break;
 
@@ -543,6 +575,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
               ? { providerMetadata: chunk.providerMetadata }
               : {}),
           });
+          rawModelCallContent.push(chunk);
 
           controller.enqueue({
             type: chunk.type,
@@ -590,16 +623,22 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
             event: {
               callId,
               provider,
-              modelId,
+              modelId: responseModelId,
               finishReason: chunk.finishReason.unified,
               usage,
               content: modelCallContent,
               responseId,
+              ...(chunk.providerMetadata != null
+                ? { providerMetadata: chunk.providerMetadata }
+                : {}),
               performance,
             },
             callbacks: onLanguageModelCallEnd,
           });
 
+          // Preserve the completed model call's usage, metadata, and
+          // performance even when response validation below surfaces a
+          // semantic error.
           controller.enqueue({
             type: 'model-call-end',
             finishReason: chunk.finishReason.unified,
@@ -608,10 +647,38 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
             providerMetadata: chunk.providerMetadata,
             performance,
           });
+
+          const enforcedToolChoice =
+            toolChoice.type === 'required' || toolChoice.type === 'tool'
+              ? toolChoice
+              : undefined;
+
+          if (
+            enforcedToolChoice != null &&
+            ![...toolCallsByToolCallId.values()].some(
+              toolCall =>
+                enforcedToolChoice.type === 'required' ||
+                toolCall.toolName === enforcedToolChoice.toolName,
+            )
+          ) {
+            controller.enqueue({
+              type: 'error',
+              error: new ToolChoiceViolationError({
+                toolChoice: enforcedToolChoice,
+                finishReason: chunk.finishReason.unified,
+                provider,
+                modelId,
+                content: rawModelCallContent,
+              }),
+            });
+            break;
+          }
           break;
         }
 
         case 'tool-call': {
+          rawModelCallContent.push(chunk);
+
           try {
             const toolCall = await parseToolCall({
               toolCall: chunk,
@@ -627,18 +694,20 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
             modelCallContent.push(toolCall);
 
             if (toolCall.invalid) {
-              controller.enqueue({
-                type: 'tool-error',
-                toolCallId: toolCall.toolCallId,
-                toolName: toolCall.toolName,
-                input: toolCall.input,
-                error: getErrorMessage(toolCall.error!),
-                dynamic: true,
-                title: toolCall.title,
-                ...(toolCall.toolMetadata != null
-                  ? { toolMetadata: toolCall.toolMetadata }
-                  : {}),
-              });
+              if (!toolCall.providerExecuted) {
+                controller.enqueue({
+                  type: 'tool-error',
+                  toolCallId: toolCall.toolCallId,
+                  toolName: toolCall.toolName,
+                  input: toolCall.input,
+                  error: getErrorMessage(toolCall.error!),
+                  dynamic: true,
+                  title: toolCall.title,
+                  ...(toolCall.toolMetadata != null
+                    ? { toolMetadata: toolCall.toolMetadata }
+                    : {}),
+                });
+              }
               break;
             }
           } catch (error) {
@@ -649,6 +718,8 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         }
 
         case 'tool-approval-request': {
+          rawModelCallContent.push(chunk);
+
           const toolCall = toolCallsByToolCallId.get(chunk.toolCallId);
 
           if (toolCall == null) {
@@ -674,6 +745,8 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         }
 
         case 'tool-result': {
+          rawModelCallContent.push(chunk);
+
           const toolName = chunk.toolName as keyof TOOLS & string;
           const toolCall = toolCallsByToolCallId.get(chunk.toolCallId);
 
@@ -737,6 +810,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
 
         case 'response-metadata': {
           responseId = chunk.id ?? responseId;
+          responseModelId = chunk.modelId ?? responseModelId;
 
           controller.enqueue({
             type: 'model-call-response-metadata',
@@ -750,6 +824,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         default:
           if (chunk.type === 'custom' || chunk.type === 'source') {
             modelCallContent.push(chunk);
+            rawModelCallContent.push(chunk);
           }
 
           controller.enqueue(chunk);
@@ -803,14 +878,18 @@ function calculateNearestRankPercentile(
  */
 function upsertTextContentPart<TOOLS extends ToolSet>({
   content,
+  rawContent,
   partIndexes,
+  rawPartIndexes,
   id,
   type,
   textDelta,
   providerMetadata,
 }: {
   content: Array<ContentPart<TOOLS>>;
+  rawContent: Array<LanguageModelV4Content>;
   partIndexes: Map<string, number>;
+  rawPartIndexes: Map<string, number>;
   id: string;
   type: 'text' | 'reasoning';
   textDelta?: string;
@@ -828,16 +907,34 @@ function upsertTextContentPart<TOOLS extends ToolSet>({
     partIndexes.set(id, partIndex);
   }
 
+  let rawPartIndex = rawPartIndexes.get(id);
+
+  if (rawPartIndex == null) {
+    rawPartIndex =
+      rawContent.push({
+        type,
+        text: '',
+        ...(providerMetadata != null ? { providerMetadata } : {}),
+      }) - 1;
+    rawPartIndexes.set(id, rawPartIndex);
+  }
+
   const part = content[partIndex] as {
+    text: string;
+    providerMetadata?: ProviderMetadata;
+  };
+  const rawPart = rawContent[rawPartIndex] as {
     text: string;
     providerMetadata?: ProviderMetadata;
   };
 
   if (textDelta != null) {
     part.text += textDelta;
+    rawPart.text += textDelta;
   }
 
   if (providerMetadata != null) {
     part.providerMetadata = providerMetadata;
+    rawPart.providerMetadata = providerMetadata;
   }
 }

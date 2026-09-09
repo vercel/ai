@@ -1,6 +1,7 @@
 import {
   InvalidArgumentError,
   NoSuchModelError,
+  type Experimental_BatchV4 as BatchV4,
   type FilesV4,
   type LanguageModelV4,
   type ProviderV4,
@@ -17,6 +18,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { AnthropicFiles } from './anthropic-files';
 import { AnthropicLanguageModel } from './anthropic-language-model';
+import { AnthropicBatch } from './anthropic-batch';
 import type { AnthropicModelId } from './anthropic-language-model-options';
 import { anthropicTools } from './anthropic-tools';
 import { AnthropicSkills } from './skills/anthropic-skills';
@@ -49,6 +51,8 @@ export interface AnthropicProvider extends ProviderV4 {
   chat(modelId: AnthropicModelId): LanguageModelV4;
 
   messages(modelId: AnthropicModelId): LanguageModelV4;
+
+  experimental_batch(): BatchV4<{ text: AnthropicModelId }>;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -124,6 +128,10 @@ export function createAnthropic(
     ) ?? ANTHROPIC_API_VERSIONED_URL;
 
   const providerName = options.name ?? 'anthropic.messages';
+  const supportedUrls = {
+    'image/*': [/^https?:\/\/.*$/],
+    'application/pdf': [/^https?:\/\/.*$/],
+  };
 
   // Only error if both are explicitly provided in options
   if (options.apiKey && options.authToken) {
@@ -155,17 +163,23 @@ export function createAnthropic(
     );
   };
 
+  const languageModelConfig = {
+    provider: providerName,
+    baseURL,
+    headers: getHeaders,
+    fetch: options.fetch,
+    generateId: options.generateId ?? generateId,
+    supportedUrls: () => supportedUrls,
+  };
+
   const createChatModel = (modelId: AnthropicModelId) =>
-    new AnthropicLanguageModel(modelId, {
-      provider: providerName,
-      baseURL,
-      headers: getHeaders,
-      fetch: options.fetch,
-      generateId: options.generateId ?? generateId,
-      supportedUrls: () => ({
-        'image/*': [/^https?:\/\/.*$/],
-        'application/pdf': [/^https?:\/\/.*$/],
-      }),
+    new AnthropicLanguageModel(modelId, languageModelConfig);
+
+  const createBatch = () =>
+    new AnthropicBatch({
+      provider: `${providerName.replace(/\.messages$/, '')}.batch`,
+      config: languageModelConfig,
+      supportedUrls,
     });
 
   const createSkills = () =>
@@ -190,6 +204,7 @@ export function createAnthropic(
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.messages = createChatModel;
+  provider.experimental_batch = createBatch;
 
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });

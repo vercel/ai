@@ -1,17 +1,47 @@
 import { APICallError } from '@ai-sdk/provider';
-import type { ParseResult } from '@ai-sdk/provider-utils';
+import {
+  createProviderStreamError,
+  type ParseResult,
+  type ProviderStreamError,
+} from '@ai-sdk/provider-utils';
 
 type StreamError = {
   message: string;
   code?: string | number | null;
   type?: string | null;
-  frame: unknown;
 };
+
+/**
+ * Converts an OpenAI stream error frame into provider-owned metadata that AI
+ * SDK Core can normalize without duplicating OpenAI error-code semantics.
+ */
+export function createOpenAIProviderStreamError(
+  frame: unknown,
+): ProviderStreamError | undefined {
+  const streamError = parseStreamError(frame);
+
+  if (streamError == null) {
+    return undefined;
+  }
+
+  const statusCode = getStatusCode(streamError);
+
+  return createProviderStreamError({
+    message: streamError.message,
+    type: streamError.type ?? undefined,
+    code: streamError.code ?? undefined,
+    statusCode,
+    isRetryable: isRetryableStreamError(streamError, statusCode),
+    data: frame,
+  });
+}
 
 export async function throwIfOpenAIStreamErrorBeforeOutput<T>({
   stream,
   getError,
   isOutputChunk,
+  isAcceptedChunk,
+  acceptedGraceMs = 50,
   url,
   requestBodyValues,
   responseHeaders,
@@ -19,16 +49,44 @@ export async function throwIfOpenAIStreamErrorBeforeOutput<T>({
   stream: ReadableStream<ParseResult<T>>;
   getError: (chunk: T) => unknown | undefined;
   isOutputChunk: (chunk: T) => boolean;
+  /**
+   * Marks a chunk that proves the request was accepted and generation has
+   * started (e.g. the Responses API `response.in_progress` event). Once seen,
+   * the early-error peek stops blocking indefinitely: each subsequent read is
+   * raced against `acceptedGraceMs` so error frames that are flushed together
+   * with the accepted chunk (e.g. `insufficient_quota`) still throw, while a
+   * healthy stream becomes available without waiting for the first output
+   * token.
+   */
+  isAcceptedChunk?: (chunk: T) => boolean;
+  /**
+   * How long to keep peeking for an error frame after an accepted chunk was
+   * seen. Only used when `isAcceptedChunk` is provided.
+   */
+  acceptedGraceMs?: number;
   url: string;
   requestBodyValues: unknown;
   responseHeaders?: Record<string, string>;
 }): Promise<ReadableStream<ParseResult<T>>> {
   const [streamForEarlyError, streamForConsumer] = stream.tee();
   const reader = streamForEarlyError.getReader();
+  let drainAfterError = false;
 
   try {
+    let accepted = false;
+
     while (true) {
-      const result = await reader.read();
+      let result: ReadableStreamReadResult<ParseResult<T>>;
+
+      if (accepted) {
+        const raced = await raceWithTimeout(reader.read(), acceptedGraceMs);
+        if (raced.timedOut) {
+          return streamForConsumer;
+        }
+        result = raced.value;
+      } else {
+        result = await reader.read();
+      }
 
       if (result.done) {
         return streamForConsumer;
@@ -43,7 +101,12 @@ export async function throwIfOpenAIStreamErrorBeforeOutput<T>({
       const errorFrame = getError(chunk.value);
 
       if (errorFrame != null) {
-        streamForConsumer.cancel().catch(() => {});
+        // Let the source finish instead of cancelling its transform pipeline.
+        // Node.js 26 can otherwise leave a queued pipe write rejected with
+        // the cancellation reason after the API error has already surfaced.
+        drainAfterError = true;
+        drainReader(reader).catch(() => {});
+        drainReader(streamForConsumer.getReader()).catch(() => {});
         throw createOpenAIStreamError({
           frame: errorFrame,
           url,
@@ -55,10 +118,56 @@ export async function throwIfOpenAIStreamErrorBeforeOutput<T>({
       if (isOutputChunk(chunk.value)) {
         return streamForConsumer;
       }
+
+      if (!accepted && isAcceptedChunk?.(chunk.value) === true) {
+        accepted = true;
+      }
     }
   } finally {
-    reader.cancel().catch(() => {});
+    if (!drainAfterError) {
+      reader.cancel().catch(() => {});
+      reader.releaseLock();
+    }
+  }
+}
+
+async function drainReader<T>(
+  reader: ReadableStreamDefaultReader<T>,
+): Promise<void> {
+  try {
+    while (!(await reader.read()).done) {
+      // Drain the source without retaining its remaining chunks.
+    }
+  } catch {
+    // The API error has already been reported to the caller.
+  } finally {
     reader.releaseLock();
+  }
+}
+
+async function raceWithTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+): Promise<{ timedOut: false; value: T } | { timedOut: true }> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const wrapped = promise.then(value => ({ timedOut: false as const, value }));
+  try {
+    const raced = await Promise.race([
+      wrapped,
+      new Promise<{ timedOut: true }>(resolve => {
+        timer = setTimeout(() => resolve({ timedOut: true }), timeoutMs);
+      }),
+    ]);
+    if (raced.timedOut) {
+      // The losing read settles later (typically when the peek branch is
+      // cancelled after the stream is handed to the consumer, or rejects if
+      // the source errors). Adopt it so it can never surface as an
+      // unhandled rejection; the consumer branch sees the same outcome.
+      wrapped.catch(() => {});
+    }
+    return raced;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -73,17 +182,18 @@ function createOpenAIStreamError({
   requestBodyValues: unknown;
   responseHeaders?: Record<string, string>;
 }): APICallError {
-  const streamError = parseStreamError(frame);
+  const streamError = createOpenAIProviderStreamError(frame);
   return new APICallError({
     message:
       streamError?.message ??
       'OpenAI stream failed before any output was generated',
     url,
     requestBodyValues,
-    statusCode: streamError == null ? 500 : getStatusCode(streamError),
+    statusCode: streamError?.statusCode ?? 500,
     responseHeaders,
     responseBody: JSON.stringify(frame),
     data: frame,
+    isRetryable: streamError?.isRetryable,
   });
 }
 
@@ -103,7 +213,6 @@ function parseStreamError(frame: unknown): StreamError | undefined {
           message: responseError.message,
           code: getStringOrNumber(responseError.code),
           type: 'response.failed',
-          frame,
         }
       : undefined;
   }
@@ -119,21 +228,14 @@ function parseStreamError(frame: unknown): StreamError | undefined {
         message: error.message,
         code: getStringOrNumber(error.code),
         type: typeof error.type === 'string' ? error.type : undefined,
-        frame,
       }
     : undefined;
 }
 
 function getStatusCode(error: StreamError): number {
-  if (typeof error.code === 'number' && isHttpErrorStatusCode(error.code)) {
-    return error.code;
-  }
-
-  if (typeof error.code === 'string' && /^\d{3}$/.test(error.code)) {
-    const numericCode = Number(error.code);
-    if (isHttpErrorStatusCode(numericCode)) {
-      return numericCode;
-    }
+  const explicitStatusCode = getHttpStatusCode(error.code);
+  if (explicitStatusCode != null) {
+    return explicitStatusCode;
   }
 
   const discriminator = [error.code, error.type]
@@ -178,4 +280,36 @@ function getStringOrNumber(value: unknown): string | number | undefined {
 
 function isHttpErrorStatusCode(value: number): boolean {
   return Number.isInteger(value) && value >= 400 && value <= 599;
+}
+
+function getHttpStatusCode(value: string | number | null | undefined) {
+  const statusCode =
+    typeof value === 'string' && /^\d{3}$/.test(value) ? Number(value) : value;
+
+  return typeof statusCode === 'number' && isHttpErrorStatusCode(statusCode)
+    ? statusCode
+    : undefined;
+}
+
+function isRetryableStatusCode(statusCode: number): boolean {
+  return (
+    statusCode === 408 ||
+    statusCode === 409 ||
+    statusCode === 429 ||
+    statusCode >= 500
+  );
+}
+
+function isRetryableStreamError(
+  error: StreamError,
+  statusCode: number,
+): boolean {
+  if (
+    error.code === 'insufficient_quota' ||
+    error.type === 'insufficient_quota'
+  ) {
+    return false;
+  }
+
+  return isRetryableStatusCode(statusCode);
 }

@@ -10,23 +10,31 @@ const nextConfig: NextConfig = {
   env: {
     WS_NO_BUFFER_UTIL: '1',
   },
-  serverExternalPackages: ['@earendil-works/pi-coding-agent', '@vercel/oidc'],
+  serverExternalPackages: [
+    '@cline/agents',
+    '@earendil-works/pi-coding-agent',
+    '@vercel/oidc',
+  ],
   webpack: config => {
-    const externalizeEarendil = (
+    const externalizeHarnessDependencies = (
       { request }: { request?: string },
       callback: WebpackExternalCallback,
     ) => {
-      if (request && request.startsWith('@earendil-works/')) {
+      if (
+        request &&
+        (request.startsWith('@cline/') ||
+          request.startsWith('@earendil-works/'))
+      ) {
         return callback(null, `import ${request}`);
       }
       return callback();
     };
     const existing = config.externals;
     config.externals = Array.isArray(existing)
-      ? [externalizeEarendil, ...existing]
+      ? [externalizeHarnessDependencies, ...existing]
       : existing
-        ? [externalizeEarendil, existing]
-        : [externalizeEarendil];
+        ? [externalizeHarnessDependencies, existing]
+        : [externalizeHarnessDependencies];
     return config;
   },
 };

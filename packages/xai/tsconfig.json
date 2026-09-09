@@ -13,9 +13,6 @@
   ],
   "references": [
     {
-      "path": "../openai-compatible"
-    },
-    {
       "path": "../provider"
     },
     {

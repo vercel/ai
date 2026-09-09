@@ -2,6 +2,7 @@ import type {
   Experimental_TranscriptionModelV4StreamPart as TranscriptionModelV4StreamPart,
   JSONObject,
 } from '@ai-sdk/provider';
+import { isRecord } from './is-record';
 import { secureJsonParse } from './secure-json-parse';
 
 /**
@@ -240,7 +241,7 @@ export function parseTranscriptionStreamPart(
     case 'transcript-delta':
       return isString(part.delta) &&
         isOptional(part.id, isString) &&
-        isOptional(part.providerMetadata, isPlainObject)
+        isOptional(part.providerMetadata, isRecord)
         ? part
         : undefined;
 
@@ -250,7 +251,7 @@ export function parseTranscriptionStreamPart(
         isOptional(part.startSecond, isNumber) &&
         isOptional(part.durationInSeconds, isNumber) &&
         isOptional(part.channelIndex, isNumber) &&
-        isOptional(part.providerMetadata, isPlainObject)
+        isOptional(part.providerMetadata, isRecord)
         ? part
         : undefined;
 
@@ -260,7 +261,7 @@ export function parseTranscriptionStreamPart(
         isOptional(part.startSecond, isNumber) &&
         isOptional(part.endSecond, isNumber) &&
         isOptional(part.channelIndex, isNumber) &&
-        isOptional(part.providerMetadata, isPlainObject)
+        isOptional(part.providerMetadata, isRecord)
         ? part
         : undefined;
 
@@ -270,7 +271,7 @@ export function parseTranscriptionStreamPart(
         part.segments.every(isSegment) &&
         isOptional(part.language, isString) &&
         isOptional(part.durationInSeconds, isNumber) &&
-        isOptional(part.providerMetadata, isPlainObject)
+        isOptional(part.providerMetadata, isRecord)
         ? part
         : undefined;
 
@@ -278,7 +279,7 @@ export function parseTranscriptionStreamPart(
       if (
         !(
           isOptional(part.modelId, isString) &&
-          isOptional(part.headers, isPlainObject)
+          isOptional(part.headers, isRecord)
         )
       ) {
         return undefined;
@@ -323,19 +324,15 @@ function isOptional(
   return value === undefined || check(value);
 }
 
-function isPlainObject(value: unknown): boolean {
-  return typeof value === 'object' && value != null && !Array.isArray(value);
-}
-
 function isWarning(value: unknown): boolean {
-  return isPlainObject(value) && isString((value as { type?: unknown }).type);
+  return isRecord(value) && isString(value.type);
 }
 
 function isSegment(value: unknown): boolean {
   return (
-    isPlainObject(value) &&
-    isString((value as { text?: unknown }).text) &&
-    isNumber((value as { startSecond?: unknown }).startSecond) &&
-    isNumber((value as { endSecond?: unknown }).endSecond)
+    isRecord(value) &&
+    isString(value.text) &&
+    isNumber(value.startSecond) &&
+    isNumber(value.endSecond)
   );
 }

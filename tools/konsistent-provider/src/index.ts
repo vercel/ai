@@ -35,7 +35,8 @@ export const conventions = defineConventions([
     name: 'package-must-import-zod-from-v4',
     description: 'Every package that uses zod must import from zod/v4.',
     mustNot: {
-      importFrom: 'zod',
+      importValuesFrom: 'zod',
+      importTypesFrom: 'zod',
     },
   },
   {
@@ -43,7 +44,7 @@ export const conventions = defineConventions([
     description:
       'Every provider package must export a provider type, creator function, and settings from its index.ts file.',
     must: {
-      export: ['create${providerId.toPascalCase()}', 'VERSION'],
+      exportValues: ['create${providerId.toPascalCase()}', 'VERSION'],
       exportTypes: [
         {
           name: '${providerId.toPascalCase()}Provider',
@@ -65,7 +66,7 @@ export const conventions = defineConventions([
       placeholderSatisfies: 'providerId:matches(^[a-z]+ai$)',
     },
     must: {
-      export: ['${providerId.toFlatCase()}'],
+      exportValues: ['${providerId.toFlatCase()}'],
     },
   },
   {
@@ -76,7 +77,7 @@ export const conventions = defineConventions([
       placeholderSatisfies: 'providerId:matches(^(?!^[a-z]+ai$).*$)',
     },
     must: {
-      export: ['${providerId.toCamelCase()}'],
+      exportValues: ['${providerId.toCamelCase()}'],
     },
   },
   {
@@ -215,6 +216,86 @@ export const conventions = defineConventions([
     },
   },
   {
+    name: 'provider-realtime-model-file-must-export-model-class',
+    description:
+      "Every provider's realtime model file must export a model class (separated only because RealtimeModelV4 type is experimental).",
+    for: {
+      files: [
+        '${providerId}-realtime-model.ts',
+        '*/${providerId}-realtime-model.ts',
+      ],
+    },
+    must: {
+      importTypes: [
+        {
+          name: 'Experimental_RealtimeModelV4',
+          from: '@ai-sdk/provider',
+          alias: 'RealtimeModelV4',
+        },
+      ],
+      exportClasses: [
+        {
+          name: '${providerId.toPascalCase()}RealtimeModel',
+          implement: ['RealtimeModelV4'],
+        },
+      ],
+    },
+  },
+  {
+    name: 'provider-realtime-model-file-must-have-matching-model-options-file',
+    description:
+      "Every provider's realtime model file must have a matching model options file (separated only because RealtimeModelV4 type is experimental).",
+    for: {
+      files: [
+        '${providerId}-realtime-model.ts',
+        '*/${providerId}-realtime-model.ts',
+      ],
+    },
+    must: {
+      haveFiles: ['${providerId}-realtime-model-options.ts'],
+    },
+  },
+  {
+    name: 'provider-speech-translation-model-file-must-export-model-class',
+    description:
+      "Every provider's speech translation model file must export a model class (separated only because SpeechTranslationModelV4 type is experimental).",
+    for: {
+      files: [
+        '${providerId}-speech-translation-model.ts',
+        '*/${providerId}-speech-translation-model.ts',
+      ],
+    },
+    must: {
+      importTypes: [
+        {
+          name: 'Experimental_SpeechTranslationModelV4',
+          from: '@ai-sdk/provider',
+          alias: 'SpeechTranslationModelV4',
+        },
+      ],
+      exportClasses: [
+        {
+          name: '${providerId.toPascalCase()}SpeechTranslationModel',
+          implement: ['SpeechTranslationModelV4'],
+        },
+      ],
+    },
+  },
+  {
+    name: 'provider-speech-translation-model-file-must-have-matching-model-options-file',
+    description:
+      "Every provider's speech translation model file must have a matching model options file (separated only because SpeechTranslationModelV4 type is experimental).",
+    for: {
+      files: [
+        '${providerId}-speech-translation-model.ts',
+        '*/${providerId}-speech-translation-model.ts',
+      ],
+    },
+    must: {
+      haveFiles: ['${providerId}-speech-translation-model-options.ts'],
+    },
+  },
+  {
     name: 'provider-video-model-file-must-export-model-class',
     description:
       "Every provider's video model file must export a model class (separated only because VideoModelV4 type is experimental).",
@@ -226,12 +307,13 @@ export const conventions = defineConventions([
         {
           name: 'Experimental_VideoModelV4',
           from: '@ai-sdk/provider',
+          alias: 'VideoModelV4',
         },
       ],
       exportClasses: [
         {
           name: '${providerId.toPascalCase()}VideoModel',
-          implement: ['Experimental_VideoModelV4'],
+          implement: ['VideoModelV4'],
         },
       ],
     },
@@ -260,7 +342,7 @@ export const conventions = defineConventions([
       ],
     },
     must: {
-      import: [
+      importValues: [
         {
           name: 'serializeModelOptions',
           from: '@ai-sdk/provider-utils',
@@ -305,6 +387,22 @@ export const conventions = defineConventions([
     must: {
       exportTypes: [
         '${providerId.toPascalCase()}${modelKind.toNthSegmentPascalCase(1)}Model${modelKind.toNthSegmentPascalCase(0)}Options',
+      ],
+    },
+  },
+  {
+    name: 'provider-speech-translation-model-options-file-must-export-model-options-type',
+    description:
+      "Every provider's model options file must export a model options type.",
+    for: {
+      files: [
+        '${providerId}-speech-translation-model-options.ts',
+        '*/${providerId}-speech-translation-model-options.ts',
+      ],
+    },
+    must: {
+      exportTypes: [
+        '${providerId.toPascalCase()}SpeechTranslationModelOptions',
       ],
     },
   },
