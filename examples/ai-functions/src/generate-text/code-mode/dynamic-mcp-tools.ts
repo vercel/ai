@@ -38,6 +38,7 @@ run(async () => {
   const beforeRegistration = await generateText({
     model,
     tools: modelTools,
+    experimental_toolCallers: {},
     messages,
     onStepStart: ({ messages }) => {
       printMessageHistory('Before MCP registration history:', messages);
