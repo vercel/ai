@@ -6,6 +6,33 @@ import {
 } from './convert-to-language-model-prompt';
 
 describe('convertToLanguageModelPrompt', () => {
+  it('does not forward SDK-internal message metadata to providers', async () => {
+    const message = {
+      role: 'user' as const,
+      content: 'Hello, world!',
+      providerOptions: {
+        'ai-sdk': {
+          codeModeCatalog: {
+            callerName: 'code_mode',
+            entries: { lookup: 'lookup: (input: { id: string })' },
+          },
+        },
+        test: { value: 'test' },
+      },
+    };
+
+    const result = await convertToLanguageModelPrompt({
+      prompt: { instructions: undefined, messages: [message] },
+      supportedUrls: {},
+      download: undefined,
+    });
+
+    expect(result[0]?.providerOptions).toEqual({
+      test: { value: 'test' },
+    });
+    expect(message.providerOptions['ai-sdk']).toBeDefined();
+  });
+
   describe('system message', () => {
     it('should convert a string system message', async () => {
       const result = await convertToLanguageModelPrompt({

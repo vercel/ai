@@ -7,6 +7,7 @@ import type {
 } from '../types';
 import type { Source } from '../types/language-model';
 import type { LanguageModelUsage } from '../types/usage';
+import type { ModelMessage } from '../prompt';
 import type { ContentPart } from './content-part';
 import type { GeneratedFile } from './generated-file';
 import type { Output } from './output';
@@ -149,6 +150,15 @@ export interface GenerateTextResult<
    * The accumulated response messages of all steps that were generated during the call.
    */
   readonly responseMessages: Array<ResponseMessage>;
+
+  /**
+   * Messages generated during the call that can be appended to the input
+   * conversation to continue it. This includes SDK-injected messages and
+   * assistant and tool response messages.
+   *
+   * @experimental
+   */
+  readonly experimental_continuationMessages: Array<ModelMessage>;
 
   /**
    * Additional provider-specific metadata from the final step. They are passed

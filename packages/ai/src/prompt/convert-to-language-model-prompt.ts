@@ -14,6 +14,7 @@ import {
   type FilePart,
   type ImagePart,
   type ModelMessage,
+  type ProviderOptions,
   type ReasoningFilePart,
   type ReasoningPart,
   type TextPart,
@@ -91,7 +92,9 @@ export async function convertToLanguageModelPrompt({
         : asArray(prompt.instructions).map(message => ({
             role: 'system' as const,
             content: message.content,
-            providerOptions: message.providerOptions,
+            providerOptions: stripInternalProviderOptions(
+              message.providerOptions,
+            ),
           }))
       : []),
     ...prompt.messages.map(message =>
@@ -203,6 +206,9 @@ export function convertToLanguageModelMessage({
   provider?: string;
 }): LanguageModelV4Message {
   const warnings: Warning[] = [];
+  const messageProviderOptions = stripInternalProviderOptions(
+    message.providerOptions,
+  );
 
   const role = message.role;
   switch (role) {
@@ -210,7 +216,7 @@ export function convertToLanguageModelMessage({
       return {
         role: 'system',
         content: message.content,
-        providerOptions: message.providerOptions,
+        providerOptions: messageProviderOptions,
       };
     }
 
@@ -219,7 +225,7 @@ export function convertToLanguageModelMessage({
         return {
           role: 'user',
           content: [{ type: 'text', text: message.content }],
-          providerOptions: message.providerOptions,
+          providerOptions: messageProviderOptions,
         };
       }
 
@@ -239,7 +245,7 @@ export function convertToLanguageModelMessage({
           .map(part => convertPartToLanguageModelPart(part, downloadedAssets))
           // remove empty text parts:
           .filter(part => part.type !== 'text' || part.text !== ''),
-        providerOptions: message.providerOptions,
+        providerOptions: messageProviderOptions,
       };
       if (warnings.length > 0) {
         logWarnings({ warnings });
@@ -252,7 +258,7 @@ export function convertToLanguageModelMessage({
         return {
           role: 'assistant',
           content: [{ type: 'text', text: message.content }],
-          providerOptions: message.providerOptions,
+          providerOptions: messageProviderOptions,
         };
       }
 
@@ -357,7 +363,7 @@ export function convertToLanguageModelMessage({
               }
             }
           }),
-        providerOptions: message.providerOptions,
+        providerOptions: messageProviderOptions,
       };
       if (warnings.length > 0) {
         logWarnings({ warnings });
@@ -400,7 +406,7 @@ export function convertToLanguageModelMessage({
               }
             }
           }),
-        providerOptions: message.providerOptions,
+        providerOptions: messageProviderOptions,
       };
       if (warnings.length > 0) {
         logWarnings({ warnings });
@@ -413,6 +419,24 @@ export function convertToLanguageModelMessage({
       throw new InvalidMessageRoleError({ role: _exhaustiveCheck });
     }
   }
+}
+
+/**
+ * The `ai-sdk` provider option namespace is reserved for state that the SDK
+ * keeps in conversation history. It must not be forwarded to provider
+ * adapters, while all provider-owned namespaces continue to pass through.
+ */
+function stripInternalProviderOptions(
+  providerOptions: ProviderOptions | undefined,
+): ProviderOptions | undefined {
+  if (providerOptions?.['ai-sdk'] == null) {
+    return providerOptions;
+  }
+
+  const result = { ...providerOptions };
+  delete result['ai-sdk'];
+
+  return Object.keys(result).length === 0 ? undefined : result;
 }
 
 /*

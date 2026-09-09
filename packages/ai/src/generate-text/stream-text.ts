@@ -20,6 +20,7 @@ import {
   type ToolApprovalResponse,
   type ToolContent,
   type ToolSet,
+  type UserModelMessage,
 } from '@ai-sdk/provider-utils';
 import type { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError, ToolChoiceViolationError } from '../error';
@@ -1212,6 +1213,9 @@ class DefaultStreamTextResult<
   private readonly _initialResponseMessages = new DelayedPromise<
     Array<ResponseMessage>
   >();
+  private readonly _experimentalContinuationMessages = new DelayedPromise<
+    Array<ModelMessage>
+  >();
 
   private outputPromise: Promise<InferCompleteOutput<OUTPUT>> | undefined;
 
@@ -1406,8 +1410,10 @@ class DefaultStreamTextResult<
     let recordedWarnings: Array<CallWarning> = [];
     const recordedSteps: StepResult<TOOLS, RUNTIME_CONTEXT>[] = [];
     const initialResponseMessages: Array<ResponseMessage> = [];
+    const continuationMessages: Array<ModelMessage> = [];
     let stepMessagesForNextStep: Array<ModelMessage> | undefined;
     let currentStepMessages: Array<ModelMessage> = [];
+    let currentStepToolCallerMessages: Array<UserModelMessage> = [];
 
     // provider-assigned text/reasoning part IDs are only unique within a
     // single model call (e.g. Anthropic uses the content block index, which
@@ -1690,6 +1696,10 @@ class DefaultStreamTextResult<
           });
 
           recordedSteps.push(currentStepResult);
+          continuationMessages.push(
+            ...currentStepToolCallerMessages,
+            ...stepResponseMessages,
+          );
           stepMessagesForNextStep = [
             ...currentStepMessages,
             ...stepResponseMessages,
@@ -1736,6 +1746,7 @@ class DefaultStreamTextResult<
 
           // aggregate results:
           self._steps.resolve(recordedSteps);
+          self._experimentalContinuationMessages.resolve(continuationMessages);
 
           // call onEnd callback:
           const finalStep = recordedSteps[recordedSteps.length - 1];
@@ -2186,6 +2197,7 @@ class DefaultStreamTextResult<
         }
       }
 
+      continuationMessages.push(...initialResponseMessages);
       self._initialResponseMessages.resolve(initialResponseMessages);
 
       async function streamStep({
@@ -2359,11 +2371,15 @@ class DefaultStreamTextResult<
             toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
           });
 
-          const stepMessages = appendToolCallerMessages({
+          const {
+            messages: stepMessages,
+            addedMessages: addedToolCallerMessages,
+          } = appendToolCallerMessages({
             messages: stepBaseMessages,
             toolCallerMessages,
           });
           currentStepMessages = stepMessages;
+          currentStepToolCallerMessages = addedToolCallerMessages;
           const stepInstructions =
             prepareStepResult?.instructions ??
             prepareStepResult?.system ??
@@ -3254,6 +3270,12 @@ class DefaultStreamTextResult<
     ]);
   }
 
+  get experimental_continuationMessages() {
+    this.consumeStream();
+
+    return this._experimentalContinuationMessages.promise;
+  }
+
   get totalUsage() {
     // when any of the promises are accessed, the stream is consumed
     // so it resolves without needing to consume the stream separately
@@ -3320,6 +3342,10 @@ class DefaultStreamTextResult<
     this.rejectResultPromise({ delayedPromise: this._rawFinishReason, error });
     this.rejectResultPromise({ delayedPromise: this._totalUsage, error });
     this.rejectResultPromise({ delayedPromise: this._steps, error });
+    this.rejectResultPromise({
+      delayedPromise: this._experimentalContinuationMessages,
+      error,
+    });
     this.rejectResultPromise({
       delayedPromise: this._initialResponseMessages,
       error,

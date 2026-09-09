@@ -195,9 +195,12 @@ export function appendToolCallerMessages({
 }: {
   messages: ModelMessage[];
   toolCallerMessages: UserModelMessage[];
-}): ModelMessage[] {
+}): {
+  messages: ModelMessage[];
+  addedMessages: UserModelMessage[];
+} {
   if (toolCallerMessages.length === 0) {
-    return messages;
+    return { messages, addedMessages: [] };
   }
 
   const latestUserText = messages.findLast(
@@ -207,15 +210,18 @@ export function appendToolCallerMessages({
     latestUserText == null ? [] : [latestUserText],
   );
   const additions = toolCallerMessages.filter(message => {
-    if (
-      typeof message.content !== 'string' ||
-      existingUserText.has(message.content)
-    ) {
-      return false;
+    if (typeof message.content === 'string') {
+      if (existingUserText.has(message.content)) {
+        return false;
+      }
+      existingUserText.add(message.content);
     }
-    existingUserText.add(message.content);
+
     return true;
   });
 
-  return additions.length === 0 ? messages : [...messages, ...additions];
+  return {
+    messages: additions.length === 0 ? messages : [...messages, ...additions],
+    addedMessages: additions,
+  };
 }

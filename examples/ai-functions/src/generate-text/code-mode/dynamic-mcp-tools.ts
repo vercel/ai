@@ -40,7 +40,6 @@ run(async () => {
     tools: modelTools,
     experimental_toolCallers: {},
     messages,
-    include: { requestMessages: true },
     onStepStart: ({ messages }) => {
       printMessageHistory('Before MCP registration history:', messages);
     },
@@ -49,12 +48,7 @@ run(async () => {
     'Before MCP registration:',
     JSON.stringify(beforeRegistration.content, null, 2),
   );
-  messages.splice(
-    0,
-    messages.length,
-    ...beforeRegistration.finalStep.request.messages!,
-    ...beforeRegistration.responseMessages,
-  );
+  messages.push(...beforeRegistration.experimental_continuationMessages);
 
   // Connect an MCP server after the conversation has already started.
   const mcpClient = await createMCPClient({

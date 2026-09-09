@@ -1174,6 +1174,9 @@ describe('HarnessAgent', () => {
     expect(result.toolResults).toEqual([]);
     expect(result.responseMessages).toHaveLength(1);
     expect(result.responseMessages[0]!.role).toBe('assistant');
+    expect(result.experimental_continuationMessages).toEqual(
+      result.responseMessages,
+    );
 
     await session.destroy();
   });
