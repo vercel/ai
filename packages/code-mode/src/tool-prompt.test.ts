@@ -204,6 +204,6 @@ Use exact names/types from the latest capability update. \`JSON.parse\`/\`JSON.s
 Fetch: \`fetch\` is not available.
 
 Tools:
-The current host-tool API is provided in "Code mode capability update" user messages. Follow the latest catalog and ignore earlier catalogs.`);
+The host-tool API is provided in "Code mode capability update" user messages. Start with the full catalog, then apply later changes in order.`);
   });
 });

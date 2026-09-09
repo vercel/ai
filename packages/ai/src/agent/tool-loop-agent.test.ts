@@ -116,6 +116,8 @@ describe('ToolLoopAgent', () => {
               inputSchema: z.object({}),
               execute: async () => Object.keys(tools),
             }),
+          prepareModelMessage: tools =>
+            `Available caller tools: ${Object.keys(tools).join(', ')}.`,
         },
       );
       const agent = new ToolLoopAgent({
@@ -137,6 +139,15 @@ describe('ToolLoopAgent', () => {
       expect(doGenerateOptions?.tools?.map(tool => tool.name)).toEqual([
         'code_mode',
       ]);
+      expect(doGenerateOptions?.prompt).toContainEqual({
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Available caller tools: getInventory.',
+          },
+        ],
+      });
     });
 
     it('should tag the user-agent with the agent identifier', async () => {
@@ -845,6 +856,8 @@ describe('ToolLoopAgent', () => {
               inputSchema: z.object({}),
               execute: async () => Object.keys(tools),
             }),
+          prepareModelMessage: tools =>
+            `Available caller tools: ${Object.keys(tools).join(', ')}.`,
         },
       );
       const agent = new ToolLoopAgent({
@@ -867,6 +880,15 @@ describe('ToolLoopAgent', () => {
       expect(doStreamOptions?.tools?.map(tool => tool.name)).toEqual([
         'code_mode',
       ]);
+      expect(doStreamOptions?.prompt).toContainEqual({
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Available caller tools: getInventory.',
+          },
+        ],
+      });
     });
 
     it('should forward toolOrder to streamText', async () => {

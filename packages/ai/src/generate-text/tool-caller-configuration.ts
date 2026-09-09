@@ -82,9 +82,11 @@ export function resolveToolCallerConfiguration<TOOLS extends ToolSet>({
 export function prepareToolsForToolCallers({
   tools,
   toolCallers,
+  messages,
 }: {
   tools: ToolSet | undefined;
   toolCallers: ResolvedToolCallers | undefined;
+  messages: ModelMessage[];
 }): {
   executionTools: ToolSet | undefined;
   modelTools: ToolSet | undefined;
@@ -162,9 +164,16 @@ export function prepareToolsForToolCallers({
       if (caller.prepareModelMessage == null) {
         modelTools[callerName] = boundCaller;
       } else {
-        const content = caller.prepareModelMessage(callerTools);
-        if (content != null) {
-          toolCallerMessages.push({ role: 'user', content });
+        const message = caller.prepareModelMessage(callerTools, {
+          callerName,
+          messages,
+        });
+        if (message != null) {
+          toolCallerMessages.push(
+            typeof message === 'string'
+              ? { role: 'user', content: message }
+              : message,
+          );
         }
       }
     }

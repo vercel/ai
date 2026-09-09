@@ -2327,6 +2327,8 @@ class DefaultStreamTextResult<
             tools,
             activeTools: prepareStepResult?.activeTools ?? activeTools,
           });
+          const stepBaseMessages =
+            prepareStepResult?.messages ?? stepInputMessages;
           const {
             executionTools: stepExecutionTools,
             modelTools: stepModelTools,
@@ -2334,6 +2336,7 @@ class DefaultStreamTextResult<
           } = prepareToolsForToolCallers({
             tools: stepActiveTools,
             toolCallers: resolvedToolCallers,
+            messages: stepBaseMessages,
           });
           const stepToolOrder = prepareStepResult?.toolOrder ?? toolOrder;
 
@@ -2357,7 +2360,7 @@ class DefaultStreamTextResult<
           });
 
           const stepMessages = appendToolCallerMessages({
-            messages: prepareStepResult?.messages ?? stepInputMessages,
+            messages: stepBaseMessages,
             toolCallerMessages,
           });
           currentStepMessages = stepMessages;

@@ -915,6 +915,8 @@ export async function generateText<
                 tools,
                 activeTools: prepareStepResult?.activeTools ?? activeTools,
               });
+              const stepBaseMessages =
+                prepareStepResult?.messages ?? stepInputMessages;
               const {
                 executionTools: stepExecutionTools,
                 modelTools: stepModelTools,
@@ -922,6 +924,7 @@ export async function generateText<
               } = prepareToolsForToolCallers({
                 tools: stepActiveTools,
                 toolCallers: resolvedToolCallers,
+                messages: stepBaseMessages,
               });
               const stepToolOrder = prepareStepResult?.toolOrder ?? toolOrder;
 
@@ -945,7 +948,7 @@ export async function generateText<
               });
 
               const stepMessages = appendToolCallerMessages({
-                messages: prepareStepResult?.messages ?? stepInputMessages,
+                messages: stepBaseMessages,
                 toolCallerMessages,
               });
 
