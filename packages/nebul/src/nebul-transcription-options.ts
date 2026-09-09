@@ -2,7 +2,7 @@ import { z } from 'zod/v4';
 
 /**
  * Nebul transcription model ids from the Nebul Model Catalog,
- * https://docs.nebul.io/docs/inference-api/models/speech-to-text
+ * https://docs.nebul.com/docs/inference-api/models/speech-to-text
  * retrieved on 2026-09-08. The catalog evolves continuously, so the
  * type allows arbitrary model ids.
  */

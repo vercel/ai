@@ -2,7 +2,7 @@ import { z } from 'zod/v4';
 
 /**
  * Nebul embedding model ids from the Nebul Model Catalog,
- * https://docs.nebul.io/docs/inference-api/models/model-catalog
+ * https://docs.nebul.com/docs/inference-api/models/model-catalog
  * retrieved on 2026-09-08.
  */
 export type NebulEmbeddingModelId =

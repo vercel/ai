@@ -1,6 +1,6 @@
 /**
  * Nebul image model ids from the Nebul Model Catalog,
- * https://docs.nebul.io/docs/inference-api/models/image-models
+ * https://docs.nebul.com/docs/inference-api/models/image-models
  * retrieved on 2026-09-08. The catalog evolves continuously, so the
  * type allows arbitrary model ids.
  */

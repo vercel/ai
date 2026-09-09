@@ -1,6 +1,6 @@
 /**
  * Nebul reranking model ids from the Nebul Model Catalog,
- * https://docs.nebul.io/docs/inference-api/models/model-catalog
+ * https://docs.nebul.com/docs/inference-api/models/model-catalog
  * retrieved on 2026-09-08. The catalog evolves continuously, so the
  * type allows arbitrary model ids.
  */
