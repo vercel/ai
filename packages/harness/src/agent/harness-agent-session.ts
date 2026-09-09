@@ -112,6 +112,7 @@ export class HarnessAgentSession {
   private turnState: HarnessAgentTurnState;
   private turnSequence = 0;
   private activeTurnSequence = 0;
+  private activePromptDone: Promise<void> | undefined;
   private activePromptControl: ActivePromptControl | undefined;
   private suspendedTurnState:
     | Promise<HarnessAgentContinueTurnState>
@@ -281,6 +282,7 @@ export class HarnessAgentSession {
         onStopConditionMet: () =>
           this.captureStopConditionBoundary({ session, turnId }),
       });
+      this.activePromptDone = turn.done;
       return {
         ...turn,
         ready: this.waitForPromptControl({ turnId }),
@@ -380,6 +382,7 @@ export class HarnessAgentSession {
         onStopConditionMet: () =>
           this.captureStopConditionBoundary({ session, turnId }),
       });
+      this.activePromptDone = turn.done;
       return {
         ...turn,
         ready: this.waitForPromptControl({ turnId }),
@@ -556,7 +559,10 @@ export class HarnessAgentSession {
     }
     const session = this.underlyingSession;
     try {
-      return await this.suspendCurrentTurn({ session });
+      const state = await this.suspendCurrentTurn({ session });
+      // Freeze ingress first, then include all dispatched host work in the cursor.
+      await this.activePromptDone;
+      return this.addPendingToolState(state);
     } finally {
       this.endLocalHandle({ sessionState: 'detached' });
     }

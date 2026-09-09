@@ -269,6 +269,39 @@ export function runPrompt<
     }
 
     const { stream, control } = bridge;
+    const submitToolResult: HarnessV1PromptControl['submitToolResult'] =
+      async submission => {
+        if (!input.isTurnSuspending?.())
+          return control.submitToolResult(submission);
+        const toolCall =
+          rawToolCallsByToolCallId.get(submission.toolCallId) ??
+          pendingResultsByToolCallId.get(submission.toolCallId) ??
+          pendingToolApprovals.find(
+            approval => approval.toolCallId === submission.toolCallId,
+          );
+        if (toolCall == null)
+          throw new Error(
+            `Unknown suspended tool call '${submission.toolCallId}'.`,
+          );
+        const { toolCallId, ...completedResult } = submission;
+        onPendingToolResult({
+          toolCallId,
+          toolName: toolCall.toolName,
+          input: toolCall.input,
+          completedResult,
+        });
+        const parsed = toolCallsByToolCallId.get(toolCallId);
+        if (parsed != null && !settledHostToolCallIds.has(toolCallId)) {
+          bufferedToolOutcomes.push(() =>
+            enqueueHostToolOutcome({
+              toolCall: parsed,
+              outcome: submission.isError
+                ? { ok: false, error: submission.output }
+                : { ok: true, output: submission.output },
+            }),
+          );
+        }
+      };
     input.onPromptControlAvailable?.(control);
     const reader = stream.getReader();
     const stripToolInputWorkDir = createToolInputWorkDirStripper({
@@ -541,25 +574,30 @@ export function runPrompt<
     };
     const processPendingToolResultContinuation = async (
       pendingResult: HarnessV1PendingToolResult,
-      continuation: ToolResultPart,
+      continuation: ToolResultPart | undefined,
     ): Promise<void> => {
-      const result = unwrapToolResultOutput(continuation);
-      onToolResultSettled(pendingResult.toolCallId);
-      pendingResultsByToolCallId.delete(pendingResult.toolCallId);
+      const submission =
+        continuation == null
+          ? pendingResult.completedResult
+          : {
+              ...unwrapToolResultOutput(continuation),
+              toolResult: {
+                ...continuation,
+                toolName: pendingResult.toolName,
+                ...(continuation.providerOptions == null &&
+                pendingResult.providerOptions != null
+                  ? { providerOptions: pendingResult.providerOptions }
+                  : {}),
+              },
+            };
+      if (submission == null) return;
       settledHostToolCallIds.add(pendingResult.toolCallId);
-      await control.submitToolResult({
+      onToolResultSettled(pendingResult.toolCallId);
+      await submitToolResult({
         toolCallId: pendingResult.toolCallId,
-        output: result.output,
-        isError: result.isError,
-        toolResult: {
-          ...continuation,
-          toolName: pendingResult.toolName,
-          ...(continuation.providerOptions == null &&
-          pendingResult.providerOptions != null
-            ? { providerOptions: pendingResult.providerOptions }
-            : {}),
-        },
+        ...submission,
       });
+      pendingResultsByToolCallId.delete(pendingResult.toolCallId);
     };
     const enqueueHostToolOutcome = (options: {
       toolCall: ToolCallTextStreamPart;
@@ -643,7 +681,7 @@ export function runPrompt<
 
       settledHostToolCallIds.add(approval.toolCallId);
       if (!continuation.approved) {
-        await control.submitToolResult({
+        await submitToolResult({
           toolCallId: approval.toolCallId,
           output: {
             type: 'execution-denied',
@@ -664,7 +702,7 @@ export function runPrompt<
         wrappedExecuteTool: lifecycle.executeTool,
         sandboxSession: input.sandboxSession,
         abortSignal: input.abortSignal,
-        control,
+        submitToolResult,
         onPreliminaryResult: preliminaryOutput => {
           const stripped = stripWorkDir(
             {
@@ -727,12 +765,12 @@ export function runPrompt<
         const continuation = continuationsByToolCallId.get(
           pendingResult.toolCallId,
         );
-        if (continuation != null) {
+        if (continuation != null || pendingResult.completedResult != null) {
           await processPendingToolResultContinuation(
             pendingResult,
             continuation,
           );
-          closingResumedStep = true;
+          if (pendingResult.completedResult == null) closingResumedStep = true;
         }
       }
 
@@ -1083,7 +1121,7 @@ export function runPrompt<
                 toolName: toolCall.toolName,
               }),
             };
-            await control.submitToolResult({
+            await submitToolResult({
               toolCallId: toolCall.toolCallId,
               output,
             });
@@ -1130,7 +1168,7 @@ export function runPrompt<
               type: 'execution-denied',
               reason: customToolApprovalDecision.reason,
             };
-            await control.submitToolResult({
+            await submitToolResult({
               toolCallId: toolCall.toolCallId,
               output,
             });
@@ -1223,7 +1261,7 @@ export function runPrompt<
                 wrappedExecuteTool: lifecycle.executeTool,
                 sandboxSession: input.sandboxSession,
                 abortSignal: input.abortSignal,
-                control,
+                submitToolResult,
                 onPreliminaryResult: preliminaryOutput => {
                   /*
                    * Project a `yield`ed value as a preliminary AI SDK
@@ -1277,6 +1315,7 @@ export function runPrompt<
       await waitForOutstandingHostToolExecutions();
       const isTurnSuspending = input.isTurnSuspending?.() === true;
       if (isTurnSuspending) {
+        await publishToolExecutions();
         if (finalFinish == null) {
           /*
            * A timed slice may stop in the middle of a model step. Its partial
@@ -1388,7 +1427,7 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
   wrappedExecuteTool: TurnLifecycle<ToolSet, Context>['executeTool'];
   sandboxSession: SandboxSession;
   abortSignal: AbortSignal | undefined;
-  control: HarnessV1PromptControl;
+  submitToolResult: HarnessV1PromptControl['submitToolResult'];
   /**
    * Called for each value a generator `execute` `yield`s before its last. The
    * caller surfaces these as preliminary `tool-result` parts on the consumer
@@ -1440,13 +1479,13 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
       },
     });
 
-    await input.control.submitToolResult({
+    await input.submitToolResult({
       toolCallId: input.event.toolCallId,
       output,
     });
     return { executed: true, outcome: { ok: true, output } };
   } catch (err) {
-    await input.control.submitToolResult({
+    await input.submitToolResult({
       toolCallId: input.event.toolCallId,
       output: { error: String(err) },
       isError: true,

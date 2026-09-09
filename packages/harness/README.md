@@ -101,6 +101,13 @@ const agent = new HarnessAgent({
 
 Use `session.detach()` to park a bridge-backed session for later attach, `session.stop()` to save state and stop the sandbox, or `session.destroy()` to clean up without keeping resume state. Bridge-backed adapters such as Claude Code, Codex, OpenCode, and DeepAgents require a network sandbox session that exposes ports — `@ai-sdk/sandbox-vercel` is the supported choice today. `@ai-sdk/sandbox-just-bash` is suitable only for host-runtime or otherwise non-bridge flows, such as Pi.
 
+Use `session.suspendTurn()` to freeze an unfinished turn for another process.
+It waits for dispatched host tools to settle and includes any undelivered results
+in the returned continuation. Persist that entire value, pass it as `continueFrom`
+to a new `agent.createSession()` call, then call `agent.continueStream()` or
+`agent.continueGenerate()`. Saved results are delivered without executing their
+tools again; suspension can therefore take longer than the adapter disconnect.
+
 Set `model` on `HarnessAgent` to select the model used when the harness session
 starts. Model identifiers are harness-specific, so `model` accepts any string.
 
