@@ -299,6 +299,13 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     });
 
     const choice = responseBody.choices[0];
+    if (choice == null) {
+      throw new InvalidResponseDataError({
+        data: rawResponse,
+        message: 'Response did not contain any choices.',
+      });
+    }
+
     const content: Array<LanguageModelV3Content> = [];
 
     content.push(...convertOpenAICompatibleContent(choice.message.content));
