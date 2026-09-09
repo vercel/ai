@@ -1,5 +1,17 @@
 # ai
 
+## 6.0.280
+
+### Patch Changes
+
+- 04783ca: fix(ai): call `atob` without a receiver for Cloudflare Workers compatibility
+- 1a4dbb1: Retry unclassified empty image results, preserve retry-attempt accounting, add provider-independent result retryability classification, preserve it through the AI Gateway, and mark Google and Google Vertex content-filtered results as terminal.
+- Updated dependencies [1a4dbb1]
+- Updated dependencies [b273f40]
+  - @ai-sdk/gateway@3.0.191
+  - @ai-sdk/provider@3.0.16
+  - @ai-sdk/provider-utils@4.0.51
+
 ## 6.0.279
 
 ### Patch Changes

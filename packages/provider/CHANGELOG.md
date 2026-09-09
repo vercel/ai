@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 3.0.16
+
+### Patch Changes
+
+- 1a4dbb1: Retry unclassified empty image results, preserve retry-attempt accounting, add provider-independent result retryability classification, preserve it through the AI Gateway, and mark Google and Google Vertex content-filtered results as terminal.
+
 ## 3.0.15
 
 ### Patch Changes

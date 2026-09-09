@@ -1,5 +1,15 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.75
+
+### Patch Changes
+
+- f3c1980: fix(openai-compatible): keep reasoning streams contiguous when deltas include empty tool call arrays
+- 1336501: fix(openai): return an AI SDK error for empty chat completion choices
+- Updated dependencies [1a4dbb1]
+  - @ai-sdk/provider@3.0.16
+  - @ai-sdk/provider-utils@4.0.51
+
 ## 2.0.74
 
 ### Patch Changes

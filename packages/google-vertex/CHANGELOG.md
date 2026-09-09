@@ -1,5 +1,19 @@
 # @ai-sdk/google-vertex
 
+## 4.0.198
+
+### Patch Changes
+
+- 1a4dbb1: Retry unclassified empty image results, preserve retry-attempt accounting, add provider-independent result retryability classification, preserve it through the AI Gateway, and mark Google and Google Vertex content-filtered results as terminal.
+- Updated dependencies [f3c1980]
+- Updated dependencies [1336501]
+- Updated dependencies [1a4dbb1]
+  - @ai-sdk/openai-compatible@2.0.75
+  - @ai-sdk/google@3.0.122
+  - @ai-sdk/provider@3.0.16
+  - @ai-sdk/anthropic@3.0.117
+  - @ai-sdk/provider-utils@4.0.51
+
 ## 4.0.197
 
 ### Patch Changes
