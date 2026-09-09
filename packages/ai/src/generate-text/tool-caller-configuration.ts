@@ -184,12 +184,11 @@ export function appendToolCallerMessages({
     return messages;
   }
 
+  const latestUserText = messages.findLast(
+    message => message.role === 'user' && typeof message.content === 'string',
+  )?.content;
   const existingUserText = new Set(
-    messages.flatMap(message =>
-      message.role === 'user' && typeof message.content === 'string'
-        ? [message.content]
-        : [],
-    ),
+    latestUserText == null ? [] : [latestUserText],
   );
   const additions = toolCallerMessages.filter(message => {
     if (

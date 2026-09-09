@@ -402,6 +402,96 @@ describe('experimental_toolCallers', () => {
     ).toHaveLength(1);
   });
 
+  it('re-announces a caller message when the catalog reverts', async () => {
+    const modelPrompts: LanguageModelV4Prompt[] = [];
+    const localCaller = experimental_toolCaller(
+      tool({
+        inputSchema: z.object({}),
+        execute: async () => undefined,
+      }),
+      {
+        type: 'local',
+        bind: () =>
+          tool({
+            inputSchema: z.object({}),
+            execute: async () => undefined,
+          }),
+        prepareModelMessage: tools =>
+          `Available caller tools: ${Object.keys(tools).join(', ')}.`,
+      },
+    );
+
+    await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async options => {
+          modelPrompts.push(options.prompt);
+          const callNumber = modelPrompts.length;
+
+          if (callNumber < 3) {
+            return {
+              ...dummyResponseValues,
+              finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: `call-${callNumber}`,
+                  toolName: 'code_mode',
+                  input: '{}',
+                },
+              ],
+            };
+          }
+
+          return {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Done.' }],
+          };
+        },
+      }),
+      tools: {
+        code_mode: localCaller,
+        toolA: tool({
+          inputSchema: z.object({}),
+          execute: async () => undefined,
+        }),
+        toolB: tool({
+          inputSchema: z.object({}),
+          execute: async () => undefined,
+        }),
+      },
+      experimental_toolCallers: {
+        toolA: ['code_mode'],
+        toolB: ['code_mode'],
+      },
+      prompt: 'Use the available tool.',
+      stopWhen: isStepCount(3),
+      prepareStep: async ({ stepNumber }) => ({
+        activeTools:
+          stepNumber === 1 ? ['code_mode', 'toolB'] : ['code_mode', 'toolA'],
+      }),
+    });
+
+    expect(
+      modelPrompts.map(prompt =>
+        prompt.filter(message => message.role === 'user').at(-1),
+      ),
+    ).toEqual([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Available caller tools: toolA.' }],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Available caller tools: toolB.' }],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Available caller tools: toolA.' }],
+      },
+    ]);
+  });
+
   it('adds provider caller options while preserving direct access', async () => {
     let modelTools: LanguageModelV4CallOptions['tools'];
 
