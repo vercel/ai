@@ -29,7 +29,6 @@ import { VERSION } from '../version';
 import { asProviderV4 } from '../model/as-provider-v4';
 import type {
   BatchItemResult,
-  BatchRequest,
   BatchProvider,
   BatchReference,
   BatchStatus,
@@ -169,8 +168,6 @@ export async function startBatch<
   const toolsByName = new Map<string, unknown>();
 
   for (const request of requests) {
-    validateBatchRequestType(request);
-
     switch (request.type) {
       case 'text': {
         const standardizedPrompt = await standardizePrompt(request);
@@ -203,6 +200,14 @@ export async function startBatch<
           },
         });
         break;
+      }
+      default: {
+        const _exhaustiveCheck: never = request.type;
+        throw new InvalidArgumentError({
+          parameter: 'requests',
+          value: _exhaustiveCheck,
+          message: `Unsupported batch request type "${_exhaustiveCheck}".`,
+        });
       }
     }
     operationAbortSignal?.throwIfAborted();
@@ -242,21 +247,6 @@ export async function startBatch<
     };
   } catch (error) {
     throw wrapGatewayError(error);
-  }
-}
-
-function validateBatchRequestType(request: BatchRequest) {
-  switch (request.type) {
-    case 'text':
-      return;
-    default: {
-      const _exhaustiveCheck: never = request.type;
-      throw new InvalidArgumentError({
-        parameter: 'requests',
-        value: _exhaustiveCheck,
-        message: `Unsupported batch request type "${_exhaustiveCheck}".`,
-      });
-    }
   }
 }
 
