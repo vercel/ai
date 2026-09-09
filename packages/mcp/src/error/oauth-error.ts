@@ -42,6 +42,10 @@ export class UnauthorizedClientError extends MCPClientOAuthError {
   static errorCode = 'unauthorized_client';
 }
 
+export class AuthorizationServerMismatchError extends MCPClientOAuthError {
+  static errorCode = 'authorization_server_mismatch';
+}
+
 export const OAUTH_ERRORS = {
   [ServerError.errorCode]: ServerError,
   [InvalidClientError.errorCode]: InvalidClientError,
