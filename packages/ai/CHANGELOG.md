@@ -1,5 +1,17 @@
 # ai
 
+## 5.0.255
+
+### Patch Changes
+
+- c2089a9: Retry unclassified empty image results, preserve completed-attempt diagnostics, add provider-independent result retryability classification, preserve it through the AI Gateway, and mark Google Vertex RAI-filtered results as terminal.
+- 7f4e217: fix(ai): decode text data URLs in Node.js
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/gateway@2.0.149
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+
 ## 5.0.254
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @ai-sdk/hume
 
+## 1.0.39
+
+### Patch Changes
+
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+
 ## 1.0.38
 
 ### Patch Changes
