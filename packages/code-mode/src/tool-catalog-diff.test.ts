@@ -34,6 +34,7 @@ describe('buildCodeModeToolCatalogUpdate', () => {
       'This is the complete code mode capability catalog.',
     );
     expect(messageText(message)).toContain('lookup: (input: { id: string; })');
+    expect(messageText(message)).not.toContain('<!--');
   });
 
   it('only includes added tools after the initial catalog', () => {
