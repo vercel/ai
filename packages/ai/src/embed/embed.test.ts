@@ -1,19 +1,7 @@
 import type { EmbeddingModelV3 } from '@ai-sdk/provider';
 import assert from 'node:assert';
-<<<<<<< HEAD
 import { beforeEach, describe, expect, it, vi, vitest } from 'vitest';
-=======
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-  vitest,
-} from 'vitest';
 import { InvalidResponseDataError } from '../error';
->>>>>>> 27f6d7afbe (fix: reject empty embedding model responses instead of returning undefined (#20358))
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
@@ -43,21 +31,21 @@ describe('result.embedding', () => {
   });
 
   it('should reject when the model returns no embeddings', async () => {
-    const model = new MockEmbeddingModelV4({
+    const model = new MockEmbeddingModelV3({
       doEmbed: async () => ({
         embeddings: [],
         usage: { tokens: 5 },
         warnings: [],
       }),
     });
-    const onEnd = vi.fn();
-    const onError = vi.fn();
+    const tracer = new MockTracer();
 
     const result = embed({
       model,
       value: testValue,
-      telemetry: {
-        integrations: { onEnd, onError },
+      experimental_telemetry: {
+        isEnabled: true,
+        tracer,
       },
     });
 
@@ -70,8 +58,20 @@ describe('result.embedding', () => {
       return true;
     });
     expect(model.doEmbedCalls).toHaveLength(1);
-    expect(onEnd).not.toHaveBeenCalled();
-    expect(onError).toHaveBeenCalledOnce();
+    expect(tracer.spans[0].attributes).not.toHaveProperty('ai.embedding');
+    expect(tracer.spans[0].events).toHaveLength(1);
+    expect(tracer.spans[0]).toMatchObject({
+      status: { code: 2, message: 'No embedding generated.' },
+      events: [
+        {
+          name: 'exception',
+          attributes: {
+            'exception.name': 'AI_InvalidResponseDataError',
+            'exception.message': 'No embedding generated.',
+          },
+        },
+      ],
+    });
   });
 });
 

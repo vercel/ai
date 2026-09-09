@@ -160,6 +160,13 @@ export async function embed({
                 }),
               );
 
+              if (embedding == null) {
+                throw new InvalidResponseDataError({
+                  data: modelResponse.embeddings,
+                  message: 'No embedding generated.',
+                });
+              }
+
               return {
                 embedding,
                 usage,
@@ -171,49 +178,12 @@ export async function embed({
           }),
         );
 
-<<<<<<< HEAD
       span.setAttributes(
         await selectTelemetryAttributes({
           telemetry,
           attributes: {
             'ai.embedding': { output: () => JSON.stringify(embedding) },
             'ai.usage.tokens': usage.tokens,
-=======
-            if (embedding == null) {
-              throw new InvalidResponseDataError({
-                data: modelResponse.embeddings,
-                message: 'No embedding generated.',
-              });
-            }
-
-            return {
-              embedding,
-              usage,
-              warnings: modelResponse.warnings ?? [],
-              providerMetadata: modelResponse.providerMetadata,
-              response: modelResponse.response,
-            };
-          });
-
-        logWarnings({
-          warnings,
-          provider: model.provider,
-          model: model.modelId,
-        });
-
-        await notify({
-          event: {
-            callId,
-            operationId: 'ai.embed',
-            provider: model.provider,
-            modelId: model.modelId,
-            value,
-            embedding,
-            usage,
-            warnings,
-            providerMetadata,
-            response,
->>>>>>> 27f6d7afbe (fix: reject empty embedding model responses instead of returning undefined (#20358))
           },
         }),
       );
