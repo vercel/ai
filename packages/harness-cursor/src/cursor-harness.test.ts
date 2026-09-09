@@ -130,7 +130,6 @@ describe('createCursor', () => {
     const portEndpoint = { url: 'wss://sandbox.example/bridge' };
     createCursor({
       credentialForwarding,
-      model: 'claude-4-sonnet',
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
@@ -141,7 +140,6 @@ describe('createCursor', () => {
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
     expect({
       credentialForwarding: settings.credentialForwarding,
-      modelId: settings.modelId,
       port: settings.port,
       portEndpoint: settings.portEndpoint,
       startupTimeoutMs: settings.startupTimeoutMs,
@@ -149,7 +147,6 @@ describe('createCursor', () => {
       mintBridgeToken: settings.mintBridgeToken,
     }).toEqual({
       credentialForwarding,
-      modelId: 'claude-4-sonnet',
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,

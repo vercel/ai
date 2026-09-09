@@ -1364,7 +1364,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > apply_patch tool streaming > 
   {
     "finishReason": {
       "raw": undefined,
-      "unified": "stop",
+      "unified": "tool-calls",
     },
     "providerMetadata": {
       "openai": {
@@ -1441,7 +1441,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > apply_patch tool streaming > 
   {
     "finishReason": {
       "raw": undefined,
-      "unified": "stop",
+      "unified": "tool-calls",
     },
     "providerMetadata": {
       "openai": {

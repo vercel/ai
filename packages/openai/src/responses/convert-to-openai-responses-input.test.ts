@@ -1,9 +1,10 @@
-import type { ToolNameMapping } from '@ai-sdk/provider-utils';
-import type {
-  LanguageModelV4Prompt,
-  LanguageModelV4ToolResultOutput,
-  LanguageModelV4ToolResultPart,
+import {
+  UnsupportedFunctionalityError,
+  type LanguageModelV4Prompt,
+  type LanguageModelV4ToolResultOutput,
+  type LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
+import type { ToolNameMapping } from '@ai-sdk/provider-utils';
 import { describe, it, expect } from 'vitest';
 import { convertToOpenAIResponsesInput as convertToOpenAIResponsesInputBase } from './convert-to-openai-responses-input';
 
@@ -103,6 +104,60 @@ function createExpandedParallelToolCallPrompt({
 const parallelToolCallOutput = '{"temperature":72}\nColosseum';
 
 describe('convertToOpenAIResponsesInput', () => {
+  describe('explicit message item types', () => {
+    it('should add the message type to system, user, and assistant messages', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          { role: 'system', content: 'You are helpful.' },
+          { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+          { role: 'assistant', content: [{ type: 'text', text: 'Hi!' }] },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'azure',
+        explicitMessageItemType: true,
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'message',
+          role: 'system',
+          content: 'You are helpful.',
+        },
+        {
+          type: 'message',
+          role: 'user',
+          content: [{ type: 'input_text', text: 'Hello' }],
+        },
+        {
+          type: 'message',
+          role: 'assistant',
+          content: [{ type: 'output_text', text: 'Hi!' }],
+        },
+      ]);
+    });
+
+    it('should add the message type to developer messages', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [{ role: 'system', content: 'You are helpful.' }],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'developer',
+        providerOptionsName: 'azure',
+        explicitMessageItemType: true,
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'message',
+          role: 'developer',
+          content: 'You are helpful.',
+        },
+      ]);
+    });
+  });
+
   describe('system messages', () => {
     it('should convert system messages to system role', async () => {
       const result = await convertToOpenAIResponsesInput({
@@ -1768,6 +1823,84 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
+    it('should round-trip async mode on function tool calls', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_async',
+                toolName: 'get_weather',
+                input: { location: 'Berlin' },
+                providerOptions: {
+                  openai: {
+                    itemId: 'fc_async',
+                    async: true,
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call',
+          call_id: 'call_async',
+          name: 'get_weather',
+          arguments: JSON.stringify({ location: 'Berlin' }),
+          async: true,
+        },
+      ]);
+    });
+
+    it('should round-trip async mode on custom tool calls', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_custom_async',
+                toolName: 'write_sql',
+                input: 'SELECT 1',
+                providerOptions: {
+                  openai: {
+                    itemId: 'ctc_async',
+                    async: true,
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+        customProviderToolNames: new Set(['write_sql']),
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'custom_tool_call',
+          call_id: 'call_custom_async',
+          name: 'write_sql',
+          input: 'SELECT 1',
+          async: true,
+          id: 'ctc_async',
+        },
+      ]);
+    });
+
     describe('reasoning messages (store: false)', () => {
       describe('single summary part', () => {
         it('should convert single reasoning part with text', async () => {
@@ -3074,6 +3207,52 @@ describe('convertToOpenAIResponsesInput', () => {
           output: 'User denied the tool execution',
         },
       ]);
+    });
+
+    it('should reject execution-denied programmatic tool results', async () => {
+      await expect(
+        convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_denied_123',
+                  toolName: 'search',
+                  input: { query: 'test' },
+                  providerOptions: {
+                    openai: {
+                      caller: {
+                        type: 'program',
+                        callerId: 'program_call_123',
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_denied_123',
+                  toolName: 'search',
+                  output: {
+                    type: 'execution-denied',
+                    reason: 'User denied the tool execution',
+                  },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+          providerOptionsName: 'openai',
+          store: true,
+        }),
+      ).rejects.toBeInstanceOf(UnsupportedFunctionalityError);
     });
 
     it('should convert single tool result part with multipart that contains text', async () => {
