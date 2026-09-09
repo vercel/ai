@@ -9,7 +9,6 @@ import {
   loadOptionalSetting,
   loadSetting,
   resolve,
-  withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import {
@@ -21,6 +20,7 @@ import {
   createApiKeyFetchFunction,
   createSigV4FetchFunction,
 } from '../bedrock-sigv4-fetch';
+import { resolveBedrockBaseURL } from '../resolve-bedrock-base-url';
 import { createBedrockAnthropicFetch } from './bedrock-anthropic-fetch';
 import type { BedrockAnthropicModelId } from './bedrock-anthropic-options';
 import { VERSION } from '../version';
@@ -104,7 +104,9 @@ The AWS session token to use for the Bedrock provider. Defaults to the value of 
   sessionToken?: string;
 
   /**
-Base URL for the Bedrock API calls.
+Base URL for the Bedrock API calls. When omitted, the provider uses
+`AWS_ENDPOINT_URL_BEDROCK_RUNTIME`, then `AWS_ENDPOINT_URL`, before generating
+an endpoint from the AWS region.
    */
   baseURL?: string;
 
@@ -229,15 +231,19 @@ export function createBedrockAnthropic(
   const fetchFunction = createBedrockAnthropicFetch(baseFetchFunction);
 
   const getBaseURL = (): string =>
-    withoutTrailingSlash(
-      options.baseURL ??
-        `https://bedrock-runtime.${loadSetting({
+    resolveBedrockBaseURL({
+      baseURL: options.baseURL,
+      getRegion: () =>
+        loadSetting({
           settingValue: options.region,
           settingName: 'region',
           environmentVariableName: 'AWS_REGION',
           description: 'AWS region',
-        })}.amazonaws.com`,
-    ) ?? 'https://bedrock-runtime.us-east-1.amazonaws.com';
+        }),
+      service: 'bedrock-runtime',
+      serviceEndpointUrlEnvironmentVariableName:
+        'AWS_ENDPOINT_URL_BEDROCK_RUNTIME',
+    });
 
   const getHeaders = async () => {
     const baseHeaders = (await resolve(options.headers)) ?? {};
