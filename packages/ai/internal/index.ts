@@ -41,5 +41,9 @@ export {
   collectToolApprovals,
   type CollectedToolApprovals,
 } from '../src/generate-text/collect-tool-approvals';
+export {
+  signToolApproval,
+  verifyToolApprovalSignature,
+} from '../src/generate-text/tool-approval-signature';
 export { validateApprovedToolApprovals } from '../src/generate-text/validate-tool-approvals';
 export { toResponseMessages } from '../src/generate-text/to-response-messages';

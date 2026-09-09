@@ -13,7 +13,7 @@ Many language models support an internal "reasoning" phase (sometimes also calle
 import { generateText } from 'ai';
 
 const { text, reasoning, reasoningText } = await generateText({
-  model: 'anthropic/claude-sonnet-4.6,
+  model: 'anthropic/claude-sonnet-4.6',
   reasoning: 'medium',
   prompt: 'How many people will live in the world in 2040?',
 });

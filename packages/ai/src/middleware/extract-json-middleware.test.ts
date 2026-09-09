@@ -1,4 +1,7 @@
-import type { LanguageModelV4Usage } from '@ai-sdk/provider';
+import type {
+  LanguageModelV4StreamPart,
+  LanguageModelV4Usage,
+} from '@ai-sdk/provider';
 import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
@@ -345,6 +348,39 @@ describe('extractJsonMiddleware', () => {
       });
 
       expect(await result.text).toBe('{"value": "test"}');
+    });
+
+    it('should preserve leading space in final streamed suffix without fences', async () => {
+      const middleware = extractJsonMiddleware();
+
+      const wrapped = await middleware.wrapStream!({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start', warnings: [] },
+            { type: 'text-start', id: 't' },
+            { type: 'text-delta', id: 't', delta: 'there' },
+            { type: 'text-delta', id: 't', delta: ' altogether?' },
+            { type: 'text-end', id: 't' },
+          ]),
+        }),
+      } as any);
+
+      const reader = wrapped.stream.getReader();
+      const chunks: LanguageModelV4StreamPart[] = [];
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
+        chunks.push(value);
+      }
+
+      const text = chunks
+        .filter(chunk => chunk.type === 'text-delta')
+        .map(chunk => chunk.delta)
+        .join('');
+
+      expect(text).toBe('there altogether?');
     });
 
     it('should handle fence split across multiple deltas', async () => {

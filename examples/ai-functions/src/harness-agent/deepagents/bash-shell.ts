@@ -1,8 +1,10 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { deepAgents } from '@ai-sdk/harness-deepagents';
+import { createDeepAgents } from './_create';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
+
+const deepAgents = createDeepAgents();
 
 run(async () => {
   const sandbox = createVercelSandbox({
@@ -12,7 +14,6 @@ run(async () => {
   });
   const agent = new HarnessAgent({ harness: deepAgents, sandbox });
 
-  let exitCode = 0;
   const session = await agent.createSession();
   try {
     const result = await agent.stream({
@@ -20,11 +21,7 @@ run(async () => {
       prompt: 'Run `uname -a` and tell me what kernel this sandbox is running.',
     });
     await printFullStream({ result });
-  } catch (err) {
-    exitCode = 1;
-    console.error('[example] failed:', err);
   } finally {
     await session.destroy();
-    process.exit(exitCode);
   }
 });

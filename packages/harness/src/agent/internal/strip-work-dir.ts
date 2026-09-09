@@ -1,5 +1,57 @@
 import type { HarnessV1StreamPart } from '../../v1';
 
+type ToolInputStreamPart = Extract<
+  HarnessV1StreamPart,
+  {
+    type: 'tool-input-start' | 'tool-input-delta' | 'tool-input-end';
+  }
+>;
+
+export function createToolInputWorkDirStripper({
+  sessionWorkDir,
+}: {
+  sessionWorkDir: string;
+}): (part: ToolInputStreamPart) => ToolInputStreamPart[] {
+  const pendingByToolCallId = new Map<string, string>();
+
+  return part => {
+    if (sessionWorkDir.length === 0) return [part];
+
+    if (part.type === 'tool-input-start') {
+      pendingByToolCallId.set(part.id, '');
+      return [part];
+    }
+
+    if (part.type === 'tool-input-delta') {
+      const stripped = stripStreamingString({
+        value: (pendingByToolCallId.get(part.id) ?? '') + part.delta,
+        workDir: sessionWorkDir,
+        final: false,
+      });
+      pendingByToolCallId.set(part.id, stripped.pending);
+      return stripped.output.length === 0
+        ? []
+        : [{ ...part, delta: stripped.output }];
+    }
+
+    const pending = pendingByToolCallId.get(part.id);
+    pendingByToolCallId.delete(part.id);
+    if (pending == null || pending.length === 0) return [part];
+
+    const stripped = stripStreamingString({
+      value: pending,
+      workDir: sessionWorkDir,
+      final: true,
+    });
+    return stripped.output.length === 0
+      ? [part]
+      : [
+          { type: 'tool-input-delta', id: part.id, delta: stripped.output },
+          part,
+        ];
+  };
+}
+
 /**
  * Remove the session working-directory prefix from path-bearing fields of a
  * stream event, returning a new event for display to consumers.
@@ -23,6 +75,8 @@ export function stripWorkDir(
   if (sessionWorkDir.length === 0) return part;
 
   switch (part.type) {
+    case 'tool-input-delta':
+      return { ...part, delta: stripString(part.delta, sessionWorkDir) };
     case 'tool-call':
       return { ...part, input: stripString(part.input, sessionWorkDir) };
     case 'tool-result':
@@ -48,6 +102,54 @@ export function stripWorkDir(
  */
 function stripString(value: string, workDir: string): string {
   return value.split(`${workDir}/`).join('').split(workDir).join('.');
+}
+
+function stripStreamingString({
+  value,
+  workDir,
+  final,
+}: {
+  value: string;
+  workDir: string;
+  final: boolean;
+}): { output: string; pending: string } {
+  let remaining = value;
+  let output = '';
+
+  while (remaining.length > 0) {
+    const matchIndex = remaining.indexOf(workDir);
+    if (matchIndex >= 0) {
+      output += remaining.slice(0, matchIndex);
+      const followingIndex = matchIndex + workDir.length;
+      if (followingIndex === remaining.length && !final) {
+        return { output, pending: remaining.slice(matchIndex) };
+      }
+      if (remaining[followingIndex] === '/') {
+        remaining = remaining.slice(followingIndex + 1);
+      } else {
+        output += '.';
+        remaining = remaining.slice(followingIndex);
+      }
+      continue;
+    }
+
+    if (final) return { output: output + remaining, pending: '' };
+
+    let pendingLength = Math.min(remaining.length, workDir.length - 1);
+    while (
+      pendingLength > 0 &&
+      !workDir.startsWith(remaining.slice(-pendingLength))
+    ) {
+      pendingLength -= 1;
+    }
+    const outputLength = remaining.length - pendingLength;
+    return {
+      output: output + remaining.slice(0, outputLength),
+      pending: remaining.slice(outputLength),
+    };
+  }
+
+  return { output, pending: '' };
 }
 
 /**

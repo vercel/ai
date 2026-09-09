@@ -1,4 +1,7 @@
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import {
+  InvalidArgumentError,
+  type LanguageModelV4Prompt,
+} from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
   mockId,
@@ -117,6 +120,63 @@ describe('doGenerate', () => {
         "search_recency_filter": "month",
       }
     `);
+  });
+
+  it('should pass through unknown perplexity provider options', async () => {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
+      type: 'json-value',
+      body: {
+        id: 'test-id',
+        created: 1680000000,
+        model: modelId,
+        choices: [
+          {
+            message: { role: 'assistant', content: '' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 },
+      },
+    };
+
+    await perplexityModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        perplexity: {
+          future_option: {
+            enabled: true,
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "future_option": {
+          "enabled": true,
+        },
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "sonar",
+      }
+    `);
+  });
+
+  it('should reject invalid perplexity provider options', async () => {
+    await expect(
+      perplexityModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          perplexity: {
+            search_recency_filter: 'decade',
+          },
+        },
+      }),
+    ).rejects.toThrow(InvalidArgumentError);
   });
 
   it('should pass headers', async () => {
@@ -348,9 +408,98 @@ describe('doGenerate', () => {
   });
 
   it('should extract extended usage', async () => {
+    const rawUsage = {
+      prompt_tokens: 10,
+      completion_tokens: 20,
+      total_tokens: 30,
+      search_context_size: 'medium',
+      citation_tokens: 30,
+      num_search_queries: 40,
+      reasoning_tokens: 50,
+      cost: {
+        input_tokens_cost: 0.1,
+        output_tokens_cost: 0.2,
+        reasoning_tokens_cost: 0.3,
+        request_cost: 0.4,
+        citation_tokens_cost: 0.5,
+        search_queries_cost: 0.6,
+        total_cost: 2.1,
+        future_cost_field: {
+          currency: 'USD',
+        },
+      },
+      future_usage_field: {
+        units: 2,
+      },
+    };
+
     server.urls[CHAT_COMPLETIONS_URL].response = {
       type: 'json-value',
       headers: { 'content-type': 'application/json' },
+      body: {
+        id: 'test-id',
+        created: 1680000000,
+        model: modelId,
+        choices: [
+          {
+            message: { role: 'assistant', content: '' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: rawUsage,
+      },
+    };
+
+    const result = await perplexityModel.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.usage).toEqual({
+      inputTokens: {
+        total: 10,
+        noCache: 10,
+        cacheRead: undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: 70,
+        text: 20,
+        reasoning: 50,
+      },
+      raw: rawUsage,
+    });
+
+    expect(result.providerMetadata).toMatchInlineSnapshot(`
+      {
+        "perplexity": {
+          "cost": {
+            "inputTokensCost": 0.1,
+            "outputTokensCost": 0.2,
+            "requestCost": 0.4,
+            "totalCost": 2.1,
+          },
+          "images": null,
+          "usage": {
+            "citationTokens": 30,
+            "numSearchQueries": 40,
+          },
+        },
+      }
+    `);
+  });
+
+  it.each([
+    {
+      name: 'search context size',
+      additionalUsage: { search_context_size: 'extra-large' },
+    },
+    {
+      name: 'specialized cost',
+      additionalUsage: { cost: { reasoning_tokens_cost: 'unknown' } },
+    },
+  ])('should reject invalid $name values', async ({ additionalUsage }) => {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
+      type: 'json-value',
       body: {
         id: 'test-id',
         created: 1680000000,
@@ -365,53 +514,16 @@ describe('doGenerate', () => {
           prompt_tokens: 10,
           completion_tokens: 20,
           total_tokens: 30,
-          citation_tokens: 30,
-          num_search_queries: 40,
-          reasoning_tokens: 50,
+          ...additionalUsage,
         },
       },
     };
 
-    const result = await perplexityModel.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(result.usage).toMatchInlineSnapshot(`
-      {
-        "inputTokens": {
-          "cacheRead": undefined,
-          "cacheWrite": undefined,
-          "noCache": 10,
-          "total": 10,
-        },
-        "outputTokens": {
-          "reasoning": 50,
-          "text": -30,
-          "total": 20,
-        },
-        "raw": {
-          "citation_tokens": 30,
-          "completion_tokens": 20,
-          "num_search_queries": 40,
-          "prompt_tokens": 10,
-          "reasoning_tokens": 50,
-          "total_tokens": 30,
-        },
-      }
-    `);
-
-    expect(result.providerMetadata).toMatchInlineSnapshot(`
-      {
-        "perplexity": {
-          "cost": null,
-          "images": null,
-          "usage": {
-            "citationTokens": 30,
-            "numSearchQueries": 40,
-          },
-        },
-      }
-    `);
+    await expect(
+      perplexityModel.doGenerate({
+        prompt: TEST_PROMPT,
+      }),
+    ).rejects.toThrow();
   });
 
   describe('warnings', () => {
@@ -621,6 +733,31 @@ describe('doStream', () => {
   });
 
   it('should stream extended usage', async () => {
+    const terminalUsage = {
+      prompt_tokens: 11,
+      completion_tokens: 21,
+      total_tokens: 32,
+      search_context_size: 'high',
+      citation_tokens: 30,
+      num_search_queries: 40,
+      reasoning_tokens: 50,
+      cost: {
+        input_tokens_cost: 0.1,
+        output_tokens_cost: 0.2,
+        reasoning_tokens_cost: 0.3,
+        request_cost: 0.4,
+        citation_tokens_cost: 0.5,
+        search_queries_cost: 0.6,
+        total_cost: 2.1,
+        future_cost_field: {
+          currency: 'USD',
+        },
+      },
+      future_usage_field: {
+        units: 2,
+      },
+    };
+
     server.urls[CHAT_COMPLETIONS_URL].response = {
       type: 'stream-chunks',
       chunks: [
@@ -634,6 +771,12 @@ describe('doStream', () => {
               finish_reason: null,
             },
           ],
+          usage: {
+            prompt_tokens: 10,
+            completion_tokens: 20,
+            total_tokens: 30,
+            first_chunk_only: true,
+          },
         })}\n\n`,
         `data: ${JSON.stringify({
           id: 'stream-id',
@@ -645,14 +788,7 @@ describe('doStream', () => {
               finish_reason: 'stop',
             },
           ],
-          usage: {
-            prompt_tokens: 11,
-            completion_tokens: 21,
-            total_tokens: 32,
-            citation_tokens: 30,
-            num_search_queries: 40,
-            reasoning_tokens: 50,
-          },
+          usage: terminalUsage,
         })}\n\n`,
         'data: [DONE]\n\n',
       ],
@@ -665,34 +801,30 @@ describe('doStream', () => {
     const result = await convertReadableStreamToArray(stream);
     const finish = result.find(c => c.type === 'finish');
 
-    expect(finish?.usage).toMatchInlineSnapshot(`
-      {
-        "inputTokens": {
-          "cacheRead": undefined,
-          "cacheWrite": undefined,
-          "noCache": 11,
-          "total": 11,
-        },
-        "outputTokens": {
-          "reasoning": 50,
-          "text": -29,
-          "total": 21,
-        },
-        "raw": {
-          "citation_tokens": 30,
-          "completion_tokens": 21,
-          "num_search_queries": 40,
-          "prompt_tokens": 11,
-          "reasoning_tokens": 50,
-          "total_tokens": 32,
-        },
-      }
-    `);
+    expect(finish?.usage).toEqual({
+      inputTokens: {
+        total: 11,
+        noCache: 11,
+        cacheRead: undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: 71,
+        text: 21,
+        reasoning: 50,
+      },
+      raw: terminalUsage,
+    });
 
     expect(finish?.providerMetadata).toMatchInlineSnapshot(`
       {
         "perplexity": {
-          "cost": null,
+          "cost": {
+            "inputTokensCost": 0.1,
+            "outputTokensCost": 0.2,
+            "requestCost": 0.4,
+            "totalCost": 2.1,
+          },
           "images": null,
           "usage": {
             "citationTokens": 30,
@@ -789,23 +921,9 @@ describe('doStream', () => {
           "type": "raw",
         },
         {
-          "error": [AI_TypeValidationError: Type validation failed: Value: {"id":"ppl-456","object":"chat.completion.chunk","created":1234567890,"model":"sonar","choices":[{"index":0,"delta":{"content":" world"},"finish_reason":null}]}.
-      Error message: [
-        {
-          "code": "invalid_value",
-          "values": [
-            "assistant"
-          ],
-          "path": [
-            "choices",
-            0,
-            "delta",
-            "role"
-          ],
-          "message": "Invalid input: expected \\"assistant\\""
-        }
-      ]],
-          "type": "error",
+          "delta": " world",
+          "id": "0",
+          "type": "text-delta",
         },
         {
           "rawValue": {
@@ -831,51 +949,21 @@ describe('doStream', () => {
           "type": "raw",
         },
         {
-          "error": [AI_TypeValidationError: Type validation failed: Value: {"id":"ppl-789","object":"chat.completion.chunk","created":1234567890,"model":"sonar","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15,"citation_tokens":2,"num_search_queries":1}}.
-      Error message: [
-        {
-          "code": "invalid_value",
-          "values": [
-            "assistant"
-          ],
-          "path": [
-            "choices",
-            0,
-            "delta",
-            "role"
-          ],
-          "message": "Invalid input: expected \\"assistant\\""
-        },
-        {
-          "expected": "string",
-          "code": "invalid_type",
-          "path": [
-            "choices",
-            0,
-            "delta",
-            "content"
-          ],
-          "message": "Invalid input: expected string, received undefined"
-        }
-      ]],
-          "type": "error",
-        },
-        {
           "id": "0",
           "type": "text-end",
         },
         {
           "finishReason": {
-            "raw": undefined,
-            "unified": "other",
+            "raw": "stop",
+            "unified": "stop",
           },
           "providerMetadata": {
             "perplexity": {
               "cost": null,
               "images": null,
               "usage": {
-                "citationTokens": null,
-                "numSearchQueries": null,
+                "citationTokens": 2,
+                "numSearchQueries": 1,
               },
             },
           },
@@ -884,15 +972,21 @@ describe('doStream', () => {
             "inputTokens": {
               "cacheRead": undefined,
               "cacheWrite": undefined,
-              "noCache": undefined,
-              "total": undefined,
+              "noCache": 10,
+              "total": 10,
             },
             "outputTokens": {
-              "reasoning": undefined,
-              "text": undefined,
-              "total": undefined,
+              "reasoning": 0,
+              "text": 5,
+              "total": 5,
             },
-            "raw": undefined,
+            "raw": {
+              "citation_tokens": 2,
+              "completion_tokens": 5,
+              "num_search_queries": 1,
+              "prompt_tokens": 10,
+              "total_tokens": 15,
+            },
           },
         },
       ]

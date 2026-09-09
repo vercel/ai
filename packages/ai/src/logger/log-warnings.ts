@@ -88,6 +88,23 @@ export const FIRST_WARNING_INFO_MESSAGE =
 
 let hasLoggedBefore = false;
 
+function emitWarning({
+  message,
+  type,
+}: {
+  message: string;
+  type: 'DeprecationWarning' | 'Warning';
+}) {
+  if (
+    typeof process !== 'undefined' &&
+    typeof process.emitWarning === 'function'
+  ) {
+    process.emitWarning(message, { type });
+  } else {
+    console.warn(message);
+  }
+}
+
 /**
  * Logs warnings to the console or uses a custom logger if configured.
  *
@@ -123,7 +140,10 @@ export const logWarnings: LogWarningsFunction = options => {
   // display information note on first call
   if (!hasLoggedBefore) {
     hasLoggedBefore = true;
-    console.info(FIRST_WARNING_INFO_MESSAGE);
+    emitWarning({
+      message: FIRST_WARNING_INFO_MESSAGE,
+      type: 'Warning',
+    });
   }
 
   // default behavior: log warnings via process.emitWarning if available, otherwise console.warn
@@ -133,16 +153,10 @@ export const logWarnings: LogWarningsFunction = options => {
       provider: options.provider,
       model: options.model,
     });
-    if (
-      typeof process !== 'undefined' &&
-      typeof process.emitWarning === 'function'
-    ) {
-      process.emitWarning(message, {
-        type: warning.type === 'deprecated' ? 'DeprecationWarning' : 'Warning',
-      });
-    } else {
-      console.warn(message);
-    }
+    emitWarning({
+      message,
+      type: warning.type === 'deprecated' ? 'DeprecationWarning' : 'Warning',
+    });
   }
 };
 

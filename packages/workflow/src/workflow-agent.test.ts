@@ -18,13 +18,18 @@ import {
   type StepResult,
   type ToolSet,
 } from 'ai';
-import { describe, expect, it, vi } from 'vitest';
+import { signToolApproval } from 'ai/internal';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { FatalError } from 'workflow';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { createTestSandbox } from './test/test-sandbox.js';
 import type { ParsedToolCall } from './do-stream-step.js';
-import type { StreamTextIteratorYieldValue } from './stream-text-iterator.js';
 import type {
+  StreamTextIteratorAbortedValue,
+  StreamTextIteratorYieldValue,
+} from './stream-text-iterator.js';
+import type {
+  PrepareCallOptions,
   PrepareStepCallback,
   ToolCallRepairFunction,
 } from './workflow-agent.js';
@@ -36,6 +41,10 @@ vi.mock('./stream-text-iterator.js', () => ({
 
 // Import after mocking
 const { WorkflowAgent } = await import('./workflow-agent.js');
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 /**
  * Creates a mock LanguageModelV4 for testing
@@ -56,7 +65,7 @@ function createMockModel(): LanguageModelV4 {
  */
 type MockIterator = AsyncGenerator<
   StreamTextIteratorYieldValue,
-  LanguageModelV4Prompt,
+  LanguageModelV4Prompt | StreamTextIteratorAbortedValue,
   LanguageModelV4ToolResultPart[]
 >;
 
@@ -111,7 +120,207 @@ describe('WorkflowAgent', () => {
     });
   });
 
+  describe('prepareCall', () => {
+    it('applies maxRetries to generation settings', async () => {
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      vi.mocked(streamTextIterator).mockReturnValue({
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      } as unknown as MockIterator);
+
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        maxRetries: 1,
+        prepareCall: () => ({ maxRetries: 5 }),
+      });
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: new WritableStream({ write: vi.fn(), close: vi.fn() }),
+      });
+
+      expect(streamTextIterator).toHaveBeenCalledWith(
+        expect.objectContaining({
+          generationSettings: expect.objectContaining({ maxRetries: 5 }),
+        }),
+      );
+    });
+
+    it('aborts before starting when prepareCall returns an aborted signal', async () => {
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      vi.mocked(streamTextIterator).mockClear();
+
+      const abortController = new AbortController();
+      abortController.abort();
+      const onAbort = vi.fn();
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        prepareCall: () => ({ abortSignal: abortController.signal }),
+      });
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: new WritableStream({ write: vi.fn(), close: vi.fn() }),
+        onAbort,
+      });
+
+      expect(streamTextIterator).not.toHaveBeenCalled();
+      expect(onAbort).toHaveBeenCalledWith({ steps: [] });
+    });
+
+    it('applies stopWhen, activeTools, and experimental_download', async () => {
+      const tools = {
+        first: tool({
+          inputSchema: z.object({}),
+          execute: async () => 'first',
+        }),
+        second: tool({
+          inputSchema: z.object({}),
+          execute: async () => 'second',
+        }),
+      };
+      const streamStopWhen = vi.fn(() => false);
+      const preparedStopWhen = vi.fn(() => false);
+      const streamDownload = vi.fn(async () => []);
+      const preparedDownload = vi.fn(async () => []);
+      const prepareCall = vi.fn((options: PrepareCallOptions<typeof tools>) => {
+        expect(options.stopWhen).toBe(streamStopWhen);
+        expect(options.activeTools).toEqual(['first']);
+        expect(options.experimental_download).toBe(streamDownload);
+        return {
+          stopWhen: preparedStopWhen,
+          activeTools: ['second'] as Array<'second'>,
+          experimental_download: preparedDownload,
+        };
+      });
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      vi.mocked(streamTextIterator).mockReturnValue({
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      } as unknown as MockIterator);
+
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        tools,
+        prepareCall,
+      });
+
+      await agent.stream({
+        prompt: 'test',
+        stopWhen: streamStopWhen,
+        activeTools: ['first'],
+        experimental_download: streamDownload,
+      });
+
+      expect(streamTextIterator).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stopConditions: preparedStopWhen,
+          tools: { second: tools.second },
+        }),
+      );
+    });
+  });
+
   describe('tool execution error handling', () => {
+    it('should pass the effective abort signal to locally executed tools', async () => {
+      const abortController = new AbortController();
+      const executeFn = vi.fn(
+        async (
+          _input: unknown,
+          { abortSignal }: { abortSignal?: AbortSignal },
+        ) => {
+          expect(abortSignal).toBe(abortController.signal);
+          return 'result';
+        },
+      );
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({}),
+            execute: executeFn,
+          }),
+        },
+      });
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const messages: LanguageModelV4Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'test' }] },
+      ];
+      vi.mocked(streamTextIterator).mockReturnValue({
+        next: vi
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: {
+              toolCalls: [
+                {
+                  toolCallId: 'test-call-id',
+                  toolName: 'testTool',
+                  input: {},
+                },
+              ],
+              messages,
+            },
+          })
+          .mockResolvedValueOnce({ done: true, value: messages }),
+      } as unknown as MockIterator);
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        abortSignal: abortController.signal,
+      });
+
+      expect(executeFn).toHaveBeenCalledOnce();
+    });
+
+    it('should pass an aborting timeout signal to locally executed tools', async () => {
+      let receivedSignal: AbortSignal | undefined;
+      let cooperativelyCancelled = false;
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({}),
+            execute: async (_input, { abortSignal }) => {
+              receivedSignal = abortSignal;
+              await new Promise(resolve => setTimeout(resolve, 25));
+              cooperativelyCancelled = abortSignal?.aborted === true;
+              return 'result';
+            },
+          }),
+        },
+      });
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const messages: LanguageModelV4Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'test' }] },
+      ];
+      vi.mocked(streamTextIterator).mockReturnValue({
+        next: vi
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: {
+              toolCalls: [
+                {
+                  toolCallId: 'test-call-id',
+                  toolName: 'testTool',
+                  input: {},
+                },
+              ],
+              messages,
+            },
+          })
+          .mockResolvedValueOnce({ done: true, value: messages }),
+      } as unknown as MockIterator);
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        timeout: 10,
+      });
+
+      expect(receivedSignal).toBeDefined();
+      expect(receivedSignal?.aborted).toBe(true);
+      expect(cooperativelyCancelled).toBe(true);
+    });
+
     it('should convert FatalError to tool error result', async () => {
       const errorMessage = 'This is a fatal error';
       const tools: ToolSet = {
@@ -209,8 +418,9 @@ describe('WorkflowAgent', () => {
         tools,
       });
 
+      const write = vi.fn();
       const mockWritable = new WritableStream({
-        write: vi.fn(),
+        write,
         close: vi.fn(),
       });
 
@@ -262,6 +472,19 @@ describe('WorkflowAgent', () => {
           value: `Error: ${errorMessage}`,
         },
       });
+      expect(write.mock.calls.map(([chunk]) => chunk)).toContainEqual({
+        type: 'tool-error',
+        toolCallId: 'test-call-id',
+        toolName: 'testTool',
+        input: '{}',
+        error: `Error: ${errorMessage}`,
+      });
+      expect(write.mock.calls.map(([chunk]) => chunk)).not.toContainEqual(
+        expect.objectContaining({
+          type: 'tool-result',
+          toolCallId: 'test-call-id',
+        }),
+      );
     });
 
     it('should successfully execute tools that return normally', async () => {
@@ -514,6 +737,60 @@ describe('WorkflowAgent', () => {
       });
     });
 
+    it('should defer missing results for provider tools that support them', async () => {
+      const tools: ToolSet = {
+        program: tool({
+          type: 'provider',
+          id: 'test.program',
+          args: {},
+          isProviderExecuted: true,
+          supportsDeferredResults: true,
+          inputSchema: z.object({ code: z.string() }),
+          outputSchema: z.object({ status: z.string() }),
+        }),
+      };
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        tools,
+      });
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockIterator = {
+        next: vi
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: {
+              toolCalls: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'program-call',
+                  toolName: 'program',
+                  input: { code: 'run()' },
+                  providerExecuted: true,
+                },
+              ],
+              messages: [
+                {
+                  role: 'user',
+                  content: [{ type: 'text', text: 'Run the program.' }],
+                },
+              ],
+              providerExecutedToolResults: new Map(),
+            },
+          })
+          .mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'Run the program.' }],
+      });
+
+      expect(mockIterator.next).toHaveBeenNthCalledWith(2, []);
+    });
+
     it('should use toModelOutput for provider-executed tool results while preserving raw output', async () => {
       const rawProviderResult = {
         public: 'provider result',
@@ -722,8 +999,9 @@ describe('WorkflowAgent', () => {
         tools: {},
       });
 
+      const write = vi.fn();
       const mockWritable = new WritableStream({
-        write: vi.fn(),
+        write,
         close: vi.fn(),
       });
 
@@ -784,6 +1062,13 @@ describe('WorkflowAgent', () => {
           type: 'error-text',
           value: 'Search failed: Rate limit exceeded',
         },
+      });
+      expect(write.mock.calls.map(([chunk]) => chunk)).toContainEqual({
+        type: 'tool-error',
+        toolCallId: 'provider-call-id',
+        toolName: 'WebSearch',
+        input: '{"query":"test query"}',
+        error: 'Search failed: Rate limit exceeded',
       });
     });
 
@@ -1223,6 +1508,15 @@ describe('WorkflowAgent', () => {
         output: localToolResult,
       });
 
+      expect(writtenChunks).toContainEqual({
+        type: 'tool-result',
+        toolCallId: 'server-call-id',
+        toolName: 'serverTool',
+        input: {},
+        output: localToolResult,
+      });
+      expect(writtenChunks).not.toContainEqual({ type: 'start-step' });
+
       // Consumer can find unresolved calls by diffing (standard AI SDK pattern)
       const unresolvedCalls = result.toolCalls.filter(
         tc => !result.toolResults.some(tr => tr.toolCallId === tc.toolCallId),
@@ -1233,6 +1527,168 @@ describe('WorkflowAgent', () => {
       // Messages should include the conversation (from iterMessages) and
       // a tool role message with the resolved server tool result
       expect(result.messages).toBe(mockMessages);
+    });
+
+    it('should stream executable tool results when a sibling needs approval', async () => {
+      const serverToolResult = { data: 'from-server' };
+      const serverExecute = vi.fn().mockResolvedValue(serverToolResult);
+      const approvalExecute = vi.fn();
+      const tools: ToolSet = {
+        serverTool: {
+          description: 'A server-side tool',
+          inputSchema: z.object({}),
+          execute: serverExecute,
+        },
+        approvalTool: {
+          description: 'A tool that needs approval',
+          inputSchema: z.object({}),
+          needsApproval: true,
+          execute: approvalExecute,
+        },
+      };
+
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        tools,
+      });
+
+      const writtenChunks: unknown[] = [];
+      const mockWritable = new WritableStream({
+        write: chunk => {
+          writtenChunks.push(chunk);
+        },
+        close: vi.fn(),
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockMessages: LanguageModelV4Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'test' }] },
+      ];
+      const mockIterator = {
+        next: vi.fn().mockResolvedValueOnce({
+          done: false,
+          value: {
+            toolCalls: [
+              {
+                toolCallId: 'server-call-id',
+                toolName: 'serverTool',
+                input: {},
+                providerExecuted: false,
+              } as ParsedToolCall,
+              {
+                toolCallId: 'approval-call-id',
+                toolName: 'approvalTool',
+                input: {},
+                providerExecuted: false,
+              } as ParsedToolCall,
+            ],
+            messages: mockMessages,
+          },
+        }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      const result = await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: mockWritable,
+      });
+
+      expect(serverExecute).toHaveBeenCalledTimes(1);
+      expect(approvalExecute).not.toHaveBeenCalled();
+      expect(result.toolResults).toContainEqual({
+        type: 'tool-result',
+        toolCallId: 'server-call-id',
+        toolName: 'serverTool',
+        input: {},
+        output: serverToolResult,
+      });
+      expect(writtenChunks).toContainEqual({
+        type: 'tool-result',
+        toolCallId: 'server-call-id',
+        toolName: 'serverTool',
+        input: {},
+        output: serverToolResult,
+      });
+      expect(writtenChunks).toContainEqual({
+        type: 'tool-approval-request',
+        approvalId: 'approval-approval-call-id',
+        toolCallId: 'approval-call-id',
+      });
+      expect(writtenChunks).not.toContainEqual({ type: 'start-step' });
+    });
+
+    it('should sign approval requests without writing the secret to the durable stream', async () => {
+      const secret = 'workflow-tool-approval-secret';
+      vi.stubEnv('WORKFLOW_TOOL_APPROVAL_SECRET', secret);
+      const tools: ToolSet = {
+        approvalTool: {
+          description: 'A tool that needs approval',
+          inputSchema: z.object({ value: z.string() }),
+          needsApproval: true,
+          execute: vi.fn(),
+        },
+      };
+
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        tools,
+        experimental_toolApprovalSecret: {
+          environmentVariable: 'WORKFLOW_TOOL_APPROVAL_SECRET',
+        },
+      });
+
+      const writtenChunks: unknown[] = [];
+      const mockWritable = new WritableStream({
+        write: chunk => {
+          writtenChunks.push(chunk);
+        },
+        close: vi.fn(),
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockIterator = {
+        next: vi.fn().mockResolvedValueOnce({
+          done: false,
+          value: {
+            toolCalls: [
+              {
+                toolCallId: 'approval-call-id',
+                toolName: 'approvalTool',
+                input: { value: 'test' },
+                providerExecuted: false,
+              } as ParsedToolCall,
+            ],
+            messages: [
+              { role: 'user', content: [{ type: 'text', text: 'test' }] },
+            ],
+          },
+        }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: mockWritable,
+      });
+
+      const approvalRequest = writtenChunks.find(
+        (chunk): chunk is Record<string, unknown> =>
+          typeof chunk === 'object' &&
+          chunk != null &&
+          (chunk as { type?: unknown }).type === 'tool-approval-request',
+      );
+
+      expect(approvalRequest).toEqual({
+        type: 'tool-approval-request',
+        approvalId: 'approval-approval-call-id',
+        toolCallId: 'approval-call-id',
+        signature: expect.any(String),
+      });
+      expect(JSON.stringify(writtenChunks)).not.toContain(secret);
     });
 
     it('should call onFinish when stopping for client-side tools', async () => {
@@ -1401,6 +1857,40 @@ describe('WorkflowAgent', () => {
       expect(streamTextIterator).toHaveBeenCalledWith(
         expect.objectContaining({
           prepareStep,
+        }),
+      );
+    });
+
+    it('should pass stream instructions and initial messages to prepareStep', async () => {
+      const mockModel = createMockModel();
+
+      const agent = new WorkflowAgent({
+        model: mockModel,
+        instructions: 'constructor instructions',
+        tools: {},
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      vi.mocked(streamTextIterator).mockReturnValue({
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      } as unknown as MockIterator);
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        instructions: 'stream instructions',
+      });
+
+      expect(streamTextIterator).toHaveBeenCalledWith(
+        expect.objectContaining({
+          initialInstructions: 'stream instructions',
+          initialMessages: [{ role: 'user', content: 'test' }],
+          prompt: [
+            expect.objectContaining({
+              role: 'system',
+              content: 'stream instructions',
+            }),
+            expect.objectContaining({ role: 'user' }),
+          ],
         }),
       );
     });
@@ -1865,6 +2355,7 @@ describe('WorkflowAgent', () => {
         maxOutputTokens: 1000,
         topP: 0.9,
         seed: 42,
+        reasoning: 'low',
       });
 
       const mockWritable = new WritableStream({
@@ -1892,6 +2383,7 @@ describe('WorkflowAgent', () => {
             maxOutputTokens: 1000,
             topP: 0.9,
             seed: 42,
+            reasoning: 'low',
           }),
         }),
       );
@@ -1924,6 +2416,7 @@ describe('WorkflowAgent', () => {
         writable: mockWritable,
         temperature: 0.3, // Override
         maxOutputTokens: 500, // New setting
+        reasoning: 'none',
       });
 
       expect(streamTextIterator).toHaveBeenCalledWith(
@@ -1931,6 +2424,7 @@ describe('WorkflowAgent', () => {
           generationSettings: expect.objectContaining({
             temperature: 0.3,
             maxOutputTokens: 500,
+            reasoning: 'none',
           }),
         }),
       );
@@ -2062,6 +2556,41 @@ describe('WorkflowAgent', () => {
       const lastCall = calls[calls.length - 1][0];
       expect(Object.keys(lastCall.tools).sort()).toEqual(['tool1', 'tool3']);
     });
+
+    it.each(['constructor', 'stream'] as const)(
+      'should pass no tools when %s activeTools is empty',
+      async activeToolsSource => {
+        const tools: ToolSet = {
+          hidden: {
+            description: 'Hidden tool',
+            inputSchema: z.object({}),
+            execute: async () => ({}),
+          },
+        };
+
+        const agent = new WorkflowAgent({
+          model: createMockModel(),
+          tools,
+          ...(activeToolsSource === 'constructor' ? { activeTools: [] } : {}),
+        });
+
+        const { streamTextIterator } =
+          await import('./stream-text-iterator.js');
+        vi.mocked(streamTextIterator).mockClear();
+        vi.mocked(streamTextIterator).mockReturnValue({
+          next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+        } as unknown as MockIterator);
+
+        await agent.stream({
+          messages: [{ role: 'user', content: 'test' }],
+          writable: new WritableStream({ write: vi.fn(), close: vi.fn() }),
+          ...(activeToolsSource === 'stream' ? { activeTools: [] } : {}),
+        });
+
+        const call = vi.mocked(streamTextIterator).mock.calls.at(-1)?.[0];
+        expect(call?.tools).toEqual({});
+      },
+    );
   });
 
   describe('constructor-level defaults for stream-only parameters', () => {
@@ -2181,14 +2710,14 @@ describe('WorkflowAgent', () => {
       expect(Object.keys(lastCall.tools)).toEqual(['tool1']);
     });
 
-    it('should use constructor experimental_repairToolCall when not specified in stream()', async () => {
+    it('should use constructor repairToolCall when not specified in stream()', async () => {
       const mockModel = createMockModel();
       const repairFn: ToolCallRepairFunction<ToolSet> = vi.fn();
 
       const agent = new WorkflowAgent({
         model: mockModel,
         tools: {},
-        experimental_repairToolCall: repairFn,
+        repairToolCall: repairFn,
       });
 
       const mockWritable = new WritableStream({
@@ -2217,7 +2746,7 @@ describe('WorkflowAgent', () => {
   });
 
   describe('callbacks', () => {
-    it('should pass onError callback to streamTextIterator', async () => {
+    it('should keep onError handling at the WorkflowAgent boundary', async () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
@@ -2246,11 +2775,8 @@ describe('WorkflowAgent', () => {
         onError,
       });
 
-      expect(streamTextIterator).toHaveBeenCalledWith(
-        expect.objectContaining({
-          onError,
-        }),
-      );
+      const call = vi.mocked(streamTextIterator).mock.lastCall?.[0];
+      expect(call).not.toHaveProperty('onError');
     });
 
     it('should convert tool execution error to error-text result instead of failing stream', async () => {
@@ -2433,6 +2959,75 @@ describe('WorkflowAgent', () => {
       });
 
       expect(onAbort).toHaveBeenCalledWith({ steps: [] });
+    });
+
+    it('should handle an aborted model step without calling error or end callbacks', async () => {
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        tools: {},
+      });
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      vi.mocked(streamTextIterator).mockReturnValue({
+        next: vi.fn().mockResolvedValueOnce({
+          done: true,
+          value: { aborted: true, messages: [] },
+        }),
+      } as unknown as MockIterator);
+      const onAbort = vi.fn();
+      const onError = vi.fn();
+      const onFinish = vi.fn();
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: mockWritable,
+        onAbort,
+        onError,
+        onFinish,
+      });
+
+      expect(onAbort).toHaveBeenCalledWith({ steps: [] });
+      expect(onError).not.toHaveBeenCalled();
+      expect(onFinish).not.toHaveBeenCalled();
+    });
+
+    it('should classify timeout errors as aborts', async () => {
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        tools: {},
+      });
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+      const timeoutError = new DOMException(
+        'The operation timed out.',
+        'TimeoutError',
+      );
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      vi.mocked(streamTextIterator).mockReturnValue({
+        next: vi.fn().mockRejectedValueOnce(timeoutError),
+      } as unknown as MockIterator);
+      const onAbort = vi.fn();
+      const onError = vi.fn();
+      const onFinish = vi.fn();
+
+      await expect(
+        agent.stream({
+          messages: [{ role: 'user', content: 'test' }],
+          writable: mockWritable,
+          onAbort,
+          onError,
+          onFinish,
+        }),
+      ).rejects.toBe(timeoutError);
+
+      expect(onAbort).toHaveBeenCalledWith({ steps: [] });
+      expect(onError).not.toHaveBeenCalled();
+      expect(onFinish).not.toHaveBeenCalled();
     });
 
     it('should pass stepNumber to onToolExecutionStart and use discriminated union in onToolExecutionEnd', async () => {
@@ -3056,7 +3651,7 @@ describe('WorkflowAgent', () => {
       await agent.stream({
         messages: [{ role: 'user', content: 'test' }],
         writable: mockWritable,
-        experimental_repairToolCall: repairFn,
+        repairToolCall: repairFn,
       });
 
       // Verify repairToolCall is passed through to streamTextIterator
@@ -3365,9 +3960,81 @@ describe('WorkflowAgent', () => {
   */
 
   describe('tool approval resumption', () => {
-    it('should execute approved tools and continue with results', async () => {
+    const toolApprovalSecret = 'workflow-tool-approval-secret';
+    const toolApprovalSecretReference = {
+      environmentVariable: 'WORKFLOW_TOOL_APPROVAL_SECRET',
+    };
+
+    async function createApprovalSignature({
+      approvalId = 'approval-call-1',
+      toolCallId = 'call-1',
+      toolName = 'getWeather',
+      input = { city: 'London' },
+    }: {
+      approvalId?: string;
+      toolCallId?: string;
+      toolName?: string;
+      input?: unknown;
+    } = {}) {
+      return signToolApproval({
+        secret: toolApprovalSecret,
+        approvalId,
+        toolCallId,
+        toolName,
+        input,
+      });
+    }
+
+    function createApprovalMessages({
+      approvalId = 'approval-call-1',
+      toolCallId = 'call-1',
+      toolName = 'getWeather',
+      input = { city: 'London' },
+      signature,
+    }: {
+      approvalId?: string;
+      toolCallId?: string;
+      toolName?: string;
+      input?: unknown;
+      signature?: string;
+    }) {
+      return [
+        { role: 'user', content: "What's the weather in London?" },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId,
+              toolName,
+              input,
+            },
+            {
+              type: 'tool-approval-request',
+              approvalId,
+              toolCallId,
+              ...(signature != null ? { signature } : {}),
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-approval-response',
+              approvalId,
+              approved: true,
+            },
+          ],
+        },
+      ] as any;
+    }
+
+    it('should execute approved tools with conversation context and lifecycle callbacks', async () => {
       const toolResult = { city: 'London', temperature: 72 };
       const executeFn = vi.fn().mockResolvedValue(toolResult);
+      const abortController = new AbortController();
+      const lifecycleCallbacks: string[] = [];
       const tools: ToolSet = {
         getWeather: {
           description: 'Get weather',
@@ -3382,6 +4049,12 @@ describe('WorkflowAgent', () => {
       const agent = new WorkflowAgent({
         model: mockModel,
         tools,
+        onToolExecutionStart: async () => {
+          lifecycleCallbacks.push('constructor-start');
+        },
+        onToolExecutionEnd: async () => {
+          lifecycleCallbacks.push('constructor-end');
+        },
       });
 
       const mockWritable = new WritableStream({
@@ -3397,54 +4070,148 @@ describe('WorkflowAgent', () => {
         mockIterator as unknown as MockIterator,
       );
 
-      // Messages containing a tool call, approval request, and an approved response
+      const messages = createApprovalMessages({});
+
       await agent.stream({
-        messages: [
-          { role: 'user', content: "What's the weather in London?" },
-          {
-            role: 'assistant',
-            content: [
-              {
-                type: 'tool-call',
-                toolCallId: 'call-1',
-                toolName: 'getWeather',
-                input: { city: 'London' },
-              },
-              {
-                type: 'tool-approval-request',
-                approvalId: 'approval-call-1',
-                toolCallId: 'call-1',
-              },
-            ],
-          },
-          {
-            role: 'tool',
-            content: [
-              {
-                type: 'tool-approval-response',
-                approvalId: 'approval-call-1',
-                approved: true,
-              },
-            ],
-          },
-        ] as any,
+        messages,
         writable: mockWritable,
+        abortSignal: abortController.signal,
+        onToolExecutionStart: async () => {
+          lifecycleCallbacks.push('stream-start');
+        },
+        onToolExecutionEnd: async () => {
+          lifecycleCallbacks.push('stream-end');
+        },
       });
 
-      // The tool should have been executed
       expect(executeFn).toHaveBeenCalledTimes(1);
       expect(executeFn).toHaveBeenCalledWith(
         { city: 'London' },
         expect.objectContaining({
           toolCallId: 'call-1',
+          abortSignal: abortController.signal,
+          messages,
         }),
       );
+      expect(lifecycleCallbacks).toEqual([
+        'constructor-start',
+        'stream-start',
+        'constructor-end',
+        'stream-end',
+      ]);
 
-      // The streamTextIterator should have been called (the agent continues after approval)
       expect(mockIterator.next).toHaveBeenCalled();
     });
 
-    it('should not execute an approved tool when the forged input does not match the schema', async () => {
+    it('should execute a tool when the replayed approval signature is valid', async () => {
+      vi.stubEnv('WORKFLOW_TOOL_APPROVAL_SECRET', toolApprovalSecret);
+      vi.stubEnv('OTHER_TOOL_APPROVAL_SECRET', 'incorrect-secret');
+      const executeFn = vi.fn().mockResolvedValue({ ok: true });
+      const tools: ToolSet = {
+        getWeather: {
+          description: 'Get weather',
+          inputSchema: z.object({ city: z.string() }),
+          execute: executeFn,
+          needsApproval: true as const,
+        },
+      };
+      const signature = await createApprovalSignature();
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        tools,
+        experimental_toolApprovalSecret: {
+          environmentVariable: 'OTHER_TOOL_APPROVAL_SECRET',
+        },
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      vi.mocked(streamTextIterator).mockReturnValue({
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      } as unknown as MockIterator);
+
+      await agent.stream({
+        messages: createApprovalMessages({ signature }),
+        experimental_toolApprovalSecret: toolApprovalSecretReference,
+      });
+
+      expect(executeFn).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      {
+        name: 'missing signature',
+        replay: { signature: undefined },
+      },
+      {
+        name: 'tampered signature',
+        replay: { signature: 'tampered-signature' },
+      },
+      {
+        name: 'different approval id',
+        replay: {
+          approvalId: 'approval-call-2',
+        },
+      },
+      {
+        name: 'different tool call id',
+        replay: {
+          toolCallId: 'call-2',
+        },
+      },
+      {
+        name: 'different tool name',
+        replay: {
+          toolName: 'getForecast',
+        },
+      },
+      {
+        name: 'different schema-valid input',
+        replay: {
+          input: { city: 'Paris' },
+        },
+      },
+    ])('should reject a replay with $name', async ({ replay }) => {
+      vi.stubEnv('WORKFLOW_TOOL_APPROVAL_SECRET', toolApprovalSecret);
+      const getWeather = vi.fn().mockResolvedValue({ ok: true });
+      const getForecast = vi.fn().mockResolvedValue({ ok: true });
+      const tools: ToolSet = {
+        getWeather: {
+          description: 'Get weather',
+          inputSchema: z.object({ city: z.string() }),
+          execute: getWeather,
+          needsApproval: true as const,
+        },
+        getForecast: {
+          description: 'Get forecast',
+          inputSchema: z.object({ city: z.string() }),
+          execute: getForecast,
+          needsApproval: true as const,
+        },
+      };
+      const validSignature = await createApprovalSignature();
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        tools,
+        experimental_toolApprovalSecret: toolApprovalSecretReference,
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      vi.mocked(streamTextIterator).mockReturnValue({
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      } as unknown as MockIterator);
+
+      await agent.stream({
+        messages: createApprovalMessages({
+          signature: validSignature,
+          ...replay,
+        }),
+      });
+
+      expect(getWeather).not.toHaveBeenCalled();
+      expect(getForecast).not.toHaveBeenCalled();
+    });
+
+    it('should continue with a model-visible error when approved input does not match the schema', async () => {
       const executeFn = vi.fn().mockResolvedValue({ ok: true });
       const tools: ToolSet = {
         getWeather: {
@@ -3509,6 +4276,27 @@ describe('WorkflowAgent', () => {
 
       // The tool must NOT have been executed with the forged input
       expect(executeFn).not.toHaveBeenCalled();
+      expect(mockIterator.next).toHaveBeenCalled();
+      const iteratorOptions = vi
+        .mocked(streamTextIterator)
+        .mock.calls.at(-1)?.[0];
+      expect(iteratorOptions).toBeDefined();
+      const initialMessages = iteratorOptions?.initialMessages;
+      expect(initialMessages).toBeDefined();
+      expect(initialMessages!.at(-1)).toMatchObject({
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'getWeather',
+            output: {
+              type: 'error-text',
+              value: expect.stringMatching(/Invalid input for tool getWeather/),
+            },
+          },
+        ],
+      });
     });
 
     it('should not execute an approved tool when it does not declare needsApproval', async () => {

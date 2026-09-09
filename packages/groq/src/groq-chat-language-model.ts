@@ -14,6 +14,7 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  createProviderStreamError,
   generateId,
   isCustomReasoning,
   mapReasoningToProviderEffort,
@@ -43,6 +44,52 @@ type GroqChatConfig = {
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
 };
+
+function createGroqStreamError(
+  error: { message: string; type: string },
+  data: unknown,
+) {
+  return createProviderStreamError({
+    message: error.message,
+    type: error.type,
+    ...getGroqStreamErrorMetadata(error.type),
+    data,
+  });
+}
+
+function getGroqStreamErrorMetadata(type: string): {
+  statusCode?: number;
+  isRetryable?: boolean;
+} {
+  switch (type) {
+    case 'rate_limit_error':
+      return { statusCode: 429, isRetryable: true };
+    case 'api_error':
+    case 'internal_server_error':
+    case 'server_error':
+      return { statusCode: 500, isRetryable: true };
+    case 'overloaded_error':
+    case 'service_unavailable':
+      return { statusCode: 503, isRetryable: true };
+    case 'timeout':
+    case 'timeout_error':
+      return { statusCode: 504, isRetryable: true };
+    case 'authentication_error':
+    case 'invalid_api_key':
+      return { statusCode: 401, isRetryable: false };
+    case 'permission_error':
+      return { statusCode: 403, isRetryable: false };
+    case 'not_found_error':
+    case 'model_not_found':
+      return { statusCode: 404, isRetryable: false };
+    case 'bad_request':
+    case 'context_length_exceeded':
+    case 'invalid_request_error':
+      return { statusCode: 400, isRetryable: false };
+    default:
+      return {};
+  }
+}
 
 export class GroqChatLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
@@ -128,6 +175,33 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
       toolWarnings,
     } = prepareTools({ tools, toolChoice, modelId: this.modelId });
 
+    let reasoningEffort = groqOptions?.reasoningEffort;
+    if (reasoningEffort == null && isCustomReasoning(reasoning)) {
+      if (reasoning === 'none') {
+        if (this.modelId === 'qwen/qwen3.6-27b') {
+          reasoningEffort = 'none';
+        } else {
+          warnings.push({
+            type: 'unsupported',
+            feature: 'reasoning',
+            details: `reasoning "${reasoning}" is not supported by this model.`,
+          });
+        }
+      } else {
+        reasoningEffort = mapReasoningToProviderEffort({
+          reasoning,
+          effortMap: {
+            minimal: 'low',
+            low: 'low',
+            medium: 'medium',
+            high: 'high',
+            xhigh: 'high',
+          },
+          warnings,
+        });
+      }
+    }
+
     return {
       args: {
         // model id:
@@ -164,21 +238,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
 
         // provider options:
         reasoning_format: groqOptions?.reasoningFormat,
-        reasoning_effort:
-          groqOptions?.reasoningEffort ??
-          (isCustomReasoning(reasoning) && reasoning !== 'none'
-            ? mapReasoningToProviderEffort({
-                reasoning,
-                effortMap: {
-                  minimal: 'low',
-                  low: 'low',
-                  medium: 'medium',
-                  high: 'high',
-                  xhigh: 'high',
-                },
-                warnings,
-              })
-            : undefined),
+        reasoning_effort: reasoningEffort,
         service_tier: groqOptions?.serviceTier,
 
         // messages:
@@ -241,7 +301,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
       for (const toolCall of choice.message.tool_calls) {
         content.push({
           type: 'tool-call',
-          toolCallId: toolCall.id ?? generateId(),
+          toolCallId: toolCall.id || generateId(),
           toolName: toolCall.function.name,
           input: toolCall.function.arguments!,
         });
@@ -353,7 +413,10 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
                 unified: 'error',
                 raw: undefined,
               };
-              controller.enqueue({ type: 'error', error: value.error });
+              controller.enqueue({
+                type: 'error',
+                error: createGroqStreamError(value.error, value),
+              });
               return;
             }
 

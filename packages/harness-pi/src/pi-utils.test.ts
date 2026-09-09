@@ -6,7 +6,6 @@ import {
   renderPiSkillFile,
   safePiMetadataSegment,
   serializeToolOutput,
-  shellQuote,
 } from './pi-utils';
 
 describe('frameInstructions', () => {
@@ -60,20 +59,6 @@ describe('extractUserText', () => {
         ],
       }),
     ).toThrowError(HarnessCapabilityUnsupportedError);
-  });
-});
-
-describe('shellQuote', () => {
-  it('wraps simple values in single quotes', () => {
-    expect(shellQuote('hello')).toBe(`'hello'`);
-  });
-
-  it('escapes embedded single quotes', () => {
-    expect(shellQuote(`it's`)).toBe(`'it'\\''s'`);
-  });
-
-  it('handles empty strings', () => {
-    expect(shellQuote('')).toBe(`''`);
   });
 });
 

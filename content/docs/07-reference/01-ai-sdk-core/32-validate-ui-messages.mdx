@@ -55,7 +55,7 @@ const dataSchemas = {
 const tools = {
   weather: tool({
     description: 'Get weather info',
-    parameters: z.object({
+    inputSchema: z.object({
       location: z.string(),
     }),
     execute: async ({ location }) => `Weather in ${location}: sunny`,

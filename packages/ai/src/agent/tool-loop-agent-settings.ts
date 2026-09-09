@@ -17,11 +17,16 @@ import type {
   GenerateTextOnStepStartCallback,
 } from '../generate-text/generate-text-events';
 import type { GenerateTextInclude } from '../generate-text/generate-text';
+import type {
+  OnLanguageModelCallEndCallback,
+  OnLanguageModelCallStartCallback,
+} from '../generate-text/language-model-events';
 import type { Output } from '../generate-text/output';
 import type { PrepareStepFunction } from '../generate-text/prepare-step';
 import type { StopCondition } from '../generate-text/stop-condition';
 import type { StreamTextInclude } from '../generate-text/stream-text';
 import type { ToolApprovalConfiguration } from '../generate-text/tool-approval-configuration';
+import type { Experimental_ToolCallers } from '../generate-text/tool-caller-configuration';
 import type { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
 import type {
   OnToolExecutionEndCallback,
@@ -135,12 +140,31 @@ export type ToolLoopAgentSettings<
     toolApproval?: ToolApprovalConfiguration<NoInfer<TOOLS>, RUNTIME_CONTEXT>;
 
     /**
+     * Configures which caller tools may invoke each tool.
+     */
+    experimental_toolCallers?: Experimental_ToolCallers<NoInfer<TOOLS>>;
+
+    /**
+     * Secret for HMAC-signing tool approval requests. When set, the server
+     * signs each approval request at issuance and verifies the signature when
+     * the approval is replayed, preventing client-forged approvals.
+     */
+    experimental_toolApprovalSecret?: string | Uint8Array;
+
+    /**
      * Optional function that you can use to provide different settings for a step.
      */
     prepareStep?: PrepareStepFunction<NoInfer<TOOLS>, RUNTIME_CONTEXT>;
 
     /**
      * A function that attempts to repair a tool call that failed to parse.
+     */
+    repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
+
+    /**
+     * A function that attempts to repair a tool call that failed to parse.
+     *
+     * @deprecated Use `repairToolCall` instead.
      */
     experimental_repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
 
@@ -191,6 +215,17 @@ export type ToolLoopAgentSettings<
       NoInfer<RUNTIME_CONTEXT>,
       NoInfer<OUTPUT>
     >;
+
+    /**
+     * Callback that is called immediately before the provider model call begins.
+     */
+    onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
+
+    /**
+     * Callback that is called after the model response has been normalized and parsed,
+     * but before any client-side tool execution begins.
+     */
+    onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<NoInfer<TOOLS>>;
 
     /**
      * Callback that is called before each tool execution begins.
@@ -294,7 +329,18 @@ export type ToolLoopAgentSettings<
           NoInfer<TOOLS>,
           NoInfer<RUNTIME_CONTEXT>
         >,
-        'onStepEnd' | 'onStepFinish'
+        | 'abortSignal'
+        | 'timeout'
+        | 'onStart'
+        | 'experimental_onStart'
+        | 'onStepStart'
+        | 'experimental_onStepStart'
+        | 'onToolExecutionStart'
+        | 'onToolExecutionEnd'
+        | 'onStepEnd'
+        | 'onStepFinish'
+        | 'onEnd'
+        | 'onFinish'
       > &
         Pick<
           ToolLoopAgentSettings<
@@ -305,6 +351,8 @@ export type ToolLoopAgentSettings<
           >,
           | 'model'
           | 'tools'
+          | 'toolChoice'
+          | 'maxRetries'
           | 'maxOutputTokens'
           | 'temperature'
           | 'topP'
@@ -313,6 +361,7 @@ export type ToolLoopAgentSettings<
           | 'frequencyPenalty'
           | 'stopSequences'
           | 'seed'
+          | 'reasoning'
           | 'headers'
           | 'instructions'
           | 'allowSystemInMessages'
@@ -322,6 +371,11 @@ export type ToolLoopAgentSettings<
           | 'activeTools'
           | 'toolOrder'
           | 'toolApproval'
+          | 'experimental_toolCallers'
+          | 'experimental_toolApprovalSecret'
+          | 'prepareStep'
+          | 'repairToolCall'
+          | 'experimental_repairToolCall'
           | 'providerOptions'
           | 'experimental_download'
           | 'experimental_refineToolInput'
@@ -339,6 +393,8 @@ export type ToolLoopAgentSettings<
         >,
         | 'model'
         | 'tools'
+        | 'toolChoice'
+        | 'maxRetries'
         | 'maxOutputTokens'
         | 'temperature'
         | 'topP'
@@ -347,6 +403,7 @@ export type ToolLoopAgentSettings<
         | 'frequencyPenalty'
         | 'stopSequences'
         | 'seed'
+        | 'reasoning'
         | 'headers'
         | 'instructions'
         | 'allowSystemInMessages'
@@ -356,6 +413,11 @@ export type ToolLoopAgentSettings<
         | 'activeTools'
         | 'toolOrder'
         | 'toolApproval'
+        | 'experimental_toolCallers'
+        | 'experimental_toolApprovalSecret'
+        | 'prepareStep'
+        | 'repairToolCall'
+        | 'experimental_repairToolCall'
         | 'providerOptions'
         | 'experimental_download'
         | 'experimental_refineToolInput'

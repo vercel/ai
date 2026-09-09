@@ -1,12 +1,13 @@
 import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  getErrorMessage,
   getFromApi,
   lazySchema,
   resolve,
   zodSchema,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import { z } from './zod';
 import { asGatewayError } from './errors';
 import type { GatewayConfig } from './gateway-config';
 import {
@@ -34,6 +35,7 @@ export class GatewayFetchMetadata {
     try {
       const { value } = await getFromApi({
         url: `${this.config.baseURL}/config`,
+        validateUrl: false,
         headers: this.config.headers
           ? await resolve(this.config.headers)
           : undefined,
@@ -42,7 +44,7 @@ export class GatewayFetchMetadata {
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         fetch: this.config.fetch,
       });
@@ -59,6 +61,7 @@ export class GatewayFetchMetadata {
 
       const { value } = await getFromApi({
         url: `${baseUrl.origin}/v1/credits`,
+        validateUrl: false,
         headers: this.config.headers
           ? await resolve(this.config.headers)
           : undefined,
@@ -67,7 +70,7 @@ export class GatewayFetchMetadata {
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         fetch: this.config.fetch,
       });

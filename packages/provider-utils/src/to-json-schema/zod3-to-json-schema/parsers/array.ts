@@ -1,4 +1,4 @@
-import { ZodFirstPartyTypeKind, type ZodArrayDef } from 'zod/v3';
+import type { ZodArrayDef } from 'zod/v3';
 import { parseDef } from '../parse-def';
 import type { JsonSchema7Type } from '../parse-types';
 import type { Refs } from '../refs';
@@ -14,10 +14,7 @@ export function parseArrayDef(def: ZodArrayDef, refs: Refs) {
   const res: JsonSchema7ArrayType = {
     type: 'array',
   };
-  if (
-    def.type?._def &&
-    def.type?._def?.typeName !== ZodFirstPartyTypeKind.ZodAny
-  ) {
+  if (def.type?._def && def.type?._def?.typeName !== 'ZodAny') {
     res.items = parseDef(def.type._def, {
       ...refs,
       currentPath: [...refs.currentPath, 'items'],

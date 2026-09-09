@@ -3,6 +3,7 @@ import {
   buildInterruptOn,
   builtinToolRequiresApproval,
   collectActionRequests,
+  isBuiltinToolIncluded,
 } from './approvals';
 
 describe('builtinToolRequiresApproval', () => {
@@ -27,22 +28,97 @@ describe('builtinToolRequiresApproval', () => {
 
 describe('buildInterruptOn', () => {
   it('returns undefined when no gating is needed', () => {
-    expect(buildInterruptOn(undefined)).toBeUndefined();
-    expect(buildInterruptOn('allow-all')).toBeUndefined();
+    expect(buildInterruptOn(undefined, undefined)).toBeUndefined();
+    expect(buildInterruptOn('allow-all', undefined)).toBeUndefined();
   });
 
   it('gates only execute under allow-edits', () => {
-    expect(buildInterruptOn('allow-edits')).toEqual({
+    expect(buildInterruptOn('allow-edits', undefined)).toEqual({
       execute: { allowedDecisions: ['approve', 'reject'] },
     });
   });
 
   it('gates write, edit, and execute under allow-reads', () => {
-    expect(buildInterruptOn('allow-reads')).toEqual({
+    expect(buildInterruptOn('allow-reads', undefined)).toEqual({
       write_file: { allowedDecisions: ['approve', 'reject'] },
       edit_file: { allowedDecisions: ['approve', 'reject'] },
       execute: { allowedDecisions: ['approve', 'reject'] },
+      task: { allowedDecisions: ['approve', 'reject'] },
+      write_todos: { allowedDecisions: ['approve', 'reject'] },
     });
+  });
+
+  it('does not gate inactive built-in tools from the filtering policy alone', () => {
+    expect(
+      buildInterruptOn(undefined, { mode: 'deny', toolNames: ['read'] }),
+    ).toBeUndefined();
+  });
+
+  it('excludes inactive built-in tools from permission approval gating', () => {
+    expect(
+      buildInterruptOn('allow-reads', { mode: 'deny', toolNames: ['write'] }),
+    ).toEqual({
+      edit_file: { allowedDecisions: ['approve', 'reject'] },
+      execute: { allowedDecisions: ['approve', 'reject'] },
+      task: { allowedDecisions: ['approve', 'reject'] },
+      write_todos: { allowedDecisions: ['approve', 'reject'] },
+    });
+  });
+});
+
+describe('isBuiltinToolIncluded', () => {
+  it('includes every built-in when no filtering policy is configured', () => {
+    expect(
+      isBuiltinToolIncluded({
+        nativeName: 'read_file',
+        toolFiltering: undefined,
+      }),
+    ).toBe(true);
+  });
+
+  it('maps native names to common names for allow policies', () => {
+    expect(
+      isBuiltinToolIncluded({
+        nativeName: 'read_file',
+        toolFiltering: { mode: 'allow', toolNames: ['read'] },
+      }),
+    ).toBe(true);
+    expect(
+      isBuiltinToolIncluded({
+        nativeName: 'glob',
+        toolFiltering: { mode: 'allow', toolNames: ['read'] },
+      }),
+    ).toBe(false);
+  });
+
+  it('maps native names to common names for deny policies', () => {
+    expect(
+      isBuiltinToolIncluded({
+        nativeName: 'execute',
+        toolFiltering: { mode: 'deny', toolNames: ['bash'] },
+      }),
+    ).toBe(false);
+    expect(
+      isBuiltinToolIncluded({
+        nativeName: 'grep',
+        toolFiltering: { mode: 'deny', toolNames: ['bash'] },
+      }),
+    ).toBe(true);
+  });
+
+  it('applies policies to native-only built-in names', () => {
+    expect(
+      isBuiltinToolIncluded({
+        nativeName: 'write_todos',
+        toolFiltering: { mode: 'allow', toolNames: ['write_todos'] },
+      }),
+    ).toBe(true);
+    expect(
+      isBuiltinToolIncluded({
+        nativeName: 'task',
+        toolFiltering: { mode: 'deny', toolNames: ['task'] },
+      }),
+    ).toBe(false);
   });
 });
 

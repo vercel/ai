@@ -1,5 +1,6 @@
 import {
   TypeValidationError,
+  type JSONSchema7,
   type JSONValue,
   type LanguageModelV4CallOptions,
 } from '@ai-sdk/provider';
@@ -10,6 +11,7 @@ import {
   safeValidateTypes,
   type FlexibleSchema,
 } from '@ai-sdk/provider-utils';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
 import type { FinishReason } from '../types/language-model';
 import type { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
@@ -188,6 +190,8 @@ export const object = <OBJECT>({
  * When the model generates a text response, it will return an array of elements.
  *
  * @param element - The schema of the array elements to generate.
+ * @param minItems - Optional minimum number of elements to generate.
+ * @param maxItems - Optional maximum number of elements to generate.
  * @param name - Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.
  * @param description - Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.
  *
@@ -195,10 +199,20 @@ export const object = <OBJECT>({
  */
 export const array = <ELEMENT>({
   element: inputElementSchema,
+  minItems,
+  maxItems,
   name,
   description,
 }: {
   element: FlexibleSchema<ELEMENT>;
+  /**
+   * Optional minimum number of elements to generate.
+   */
+  minItems?: number;
+  /**
+   * Optional maximum number of elements to generate.
+   */
+  maxItems?: number;
   /**
    * Optional name of the output that should be generated.
    * Used by some providers for additional LLM guidance, e.g. via tool or schema name.
@@ -210,6 +224,17 @@ export const array = <ELEMENT>({
    */
   description?: string;
 }): Output<Array<ELEMENT>, Array<ELEMENT>, ELEMENT> => {
+  validateArrayBound({ name: 'minItems', value: minItems });
+  validateArrayBound({ name: 'maxItems', value: maxItems });
+
+  if (minItems != null && maxItems != null && minItems > maxItems) {
+    throw new InvalidArgumentError({
+      parameter: 'minItems',
+      value: minItems,
+      message: 'minItems must be less than or equal to maxItems',
+    });
+  }
+
   const elementSchema = asSchema(inputElementSchema);
 
   return {
@@ -217,16 +242,30 @@ export const array = <ELEMENT>({
 
     // JSON schema that describes an array of elements:
     responseFormat: resolve(elementSchema.jsonSchema).then(jsonSchema => {
-      // remove $schema from schema.jsonSchema:
-      const { $schema: _$schema, ...itemSchema } = jsonSchema;
+      // keep root-level definitions available to root-relative references:
+      const {
+        $schema: _$schema,
+        definitions,
+        $defs,
+        ...itemSchema
+      } = jsonSchema as JSONSchema7 & {
+        $defs?: JSONSchema7['definitions'];
+      };
 
       return {
         type: 'json' as const,
         schema: {
           $schema: 'http://json-schema.org/draft-07/schema#',
+          ...(definitions != null && { definitions }),
+          ...($defs != null && { $defs }),
           type: 'object',
           properties: {
-            elements: { type: 'array', items: itemSchema },
+            elements: {
+              type: 'array',
+              items: itemSchema,
+              ...(minItems != null && { minItems }),
+              ...(maxItems != null && { maxItems }),
+            },
           },
           required: ['elements'],
           additionalProperties: false,
@@ -271,6 +310,23 @@ export const array = <ELEMENT>({
             value: outerValue,
             cause: 'response must be an object with an elements array',
           }),
+          text,
+          response: context.response,
+          usage: context.usage,
+          finishReason: context.finishReason,
+        });
+      }
+
+      const lengthValidationError = getArrayLengthValidationError({
+        value: outerValue.elements,
+        minItems,
+        maxItems,
+      });
+
+      if (lengthValidationError != null) {
+        throw new NoObjectGeneratedError({
+          message: 'No object generated: response did not match schema.',
+          cause: lengthValidationError,
           text,
           response: context.response,
           usage: context.usage,
@@ -362,6 +418,16 @@ export const array = <ELEMENT>({
               publishedElements < partialOutput.length;
               publishedElements++
             ) {
+              if (maxItems != null && publishedElements >= maxItems) {
+                controller.error(
+                  getArrayLengthValidationError({
+                    value: partialOutput,
+                    maxItems,
+                  }),
+                );
+                return;
+              }
+
               controller.enqueue(partialOutput[publishedElements]);
             }
           }
@@ -370,6 +436,60 @@ export const array = <ELEMENT>({
     },
   };
 };
+
+function validateArrayBound({
+  name,
+  value,
+}: {
+  name: 'minItems' | 'maxItems';
+  value: number | undefined;
+}) {
+  if (value == null) {
+    return;
+  }
+
+  if (!Number.isInteger(value)) {
+    throw new InvalidArgumentError({
+      parameter: name,
+      value,
+      message: `${name} must be an integer`,
+    });
+  }
+
+  if (value < 0) {
+    throw new InvalidArgumentError({
+      parameter: name,
+      value,
+      message: `${name} must be greater than or equal to 0`,
+    });
+  }
+}
+
+function getArrayLengthValidationError({
+  value,
+  minItems,
+  maxItems,
+}: {
+  value: Array<unknown>;
+  minItems?: number;
+  maxItems?: number;
+}): TypeValidationError | undefined {
+  if (minItems != null && value.length < minItems) {
+    return new TypeValidationError({
+      value,
+      cause: `elements array must contain at least ${minItems} items`,
+    });
+  }
+
+  if (maxItems != null && value.length > maxItems) {
+    return new TypeValidationError({
+      value,
+      cause: `elements array must contain at most ${maxItems} items`,
+    });
+  }
+
+  return undefined;
+}
 
 /**
  * Output specification for choice generation.

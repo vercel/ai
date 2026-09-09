@@ -11,6 +11,19 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { GoogleVertexMaasModelId } from './google-vertex-maas-options';
 
+const maxOutputTokensByModel: Record<string, number | undefined> = {
+  'meta/llama-4-maverick-17b-128e-instruct-maas': 8192,
+  'meta/llama-4-scout-17b-16e-instruct-maas': 8192,
+};
+
+function transformGoogleVertexMaasRequestBody(args: Record<string, any>) {
+  const maxOutputTokens = maxOutputTokensByModel[args.model];
+
+  return maxOutputTokens != null && args.max_tokens === undefined
+    ? { ...args, max_tokens: maxOutputTokens }
+    : args;
+}
+
 export interface GoogleVertexMaasProvider extends OpenAICompatibleProvider<
   GoogleVertexMaasModelId,
   string,
@@ -101,6 +114,7 @@ export function createGoogleVertexMaas(
       name: 'vertex.maas',
       baseURL: loadBaseURL(),
       fetch: options.fetch,
+      transformRequestBody: transformGoogleVertexMaasRequestBody,
     }));
 
   const provider = (modelId: GoogleVertexMaasModelId) => getProvider()(modelId);

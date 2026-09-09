@@ -13,7 +13,9 @@ import {
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  createLanguageModelResponseMetadata as getResponseMetadata,
   isCustomReasoning,
+  parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
@@ -25,6 +27,7 @@ import { z } from 'zod/v4';
 import { convertPerplexityUsage } from './convert-perplexity-usage';
 import { convertToPerplexityMessages } from './convert-to-perplexity-messages';
 import { mapPerplexityFinishReason } from './map-perplexity-finish-reason';
+import { perplexityLanguageModelOptions } from './perplexity-language-model-options';
 import type { PerplexityLanguageModelId } from './perplexity-options';
 
 type PerplexityChatConfig = {
@@ -68,7 +71,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
     // No URLs are supported.
   };
 
-  private getArgs({
+  private async getArgs({
     prompt,
     maxOutputTokens,
     temperature,
@@ -83,6 +86,13 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
     providerOptions,
   }: LanguageModelV4CallOptions) {
     const warnings: SharedV4Warning[] = [];
+
+    const perplexityOptions =
+      (await parseProviderOptions({
+        provider: 'perplexity',
+        providerOptions,
+        schema: perplexityLanguageModelOptions,
+      })) ?? {};
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
@@ -127,7 +137,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
             : undefined,
 
         // provider extensions
-        ...(providerOptions?.perplexity ?? {}),
+        ...perplexityOptions,
 
         // messages:
         messages: convertToPerplexityMessages(prompt),
@@ -139,7 +149,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
   async doGenerate(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
-    const { args: body, warnings } = this.getArgs(options);
+    const { args: body, warnings } = await this.getArgs(options);
 
     const {
       responseHeaders,
@@ -225,7 +235,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
   async doStream(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4StreamResult> {
-    const { args, warnings } = this.getArgs(options);
+    const { args, warnings } = await this.getArgs(options);
 
     const body = { ...args, stream: true };
 
@@ -408,38 +418,30 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
   }
 }
 
-function getResponseMetadata({
-  id,
-  model,
-  created,
-}: {
-  id: string;
-  created: number;
-  model: string;
-}) {
-  return {
-    id,
-    modelId: model,
-    timestamp: new Date(created * 1000),
-  };
-}
+const perplexityCostSchema = z
+  .object({
+    input_tokens_cost: z.number().nullish(),
+    output_tokens_cost: z.number().nullish(),
+    reasoning_tokens_cost: z.number().nullish(),
+    request_cost: z.number().nullish(),
+    citation_tokens_cost: z.number().nullish(),
+    search_queries_cost: z.number().nullish(),
+    total_cost: z.number().nullish(),
+  })
+  .catchall(z.json());
 
-const perplexityCostSchema = z.object({
-  input_tokens_cost: z.number().nullish(),
-  output_tokens_cost: z.number().nullish(),
-  request_cost: z.number().nullish(),
-  total_cost: z.number().nullish(),
-});
-
-const perplexityUsageSchema = z.object({
-  prompt_tokens: z.number(),
-  completion_tokens: z.number(),
-  total_tokens: z.number().nullish(),
-  citation_tokens: z.number().nullish(),
-  num_search_queries: z.number().nullish(),
-  reasoning_tokens: z.number().nullish(),
-  cost: perplexityCostSchema.nullish(),
-});
+const perplexityUsageSchema = z
+  .object({
+    prompt_tokens: z.number(),
+    completion_tokens: z.number(),
+    total_tokens: z.number().nullish(),
+    search_context_size: z.enum(['low', 'medium', 'high']).nullish(),
+    citation_tokens: z.number().nullish(),
+    num_search_queries: z.number().nullish(),
+    reasoning_tokens: z.number().nullish(),
+    cost: perplexityCostSchema.nullish(),
+  })
+  .catchall(z.json());
 
 export const perplexityImageSchema = z.object({
   image_url: z.string(),
@@ -477,8 +479,8 @@ const perplexityChunkSchema = z.object({
   choices: z.array(
     z.object({
       delta: z.object({
-        role: z.literal('assistant'),
-        content: z.string(),
+        role: z.literal('assistant').optional(),
+        content: z.string().nullish(),
       }),
       finish_reason: z.string().nullish(),
     }),

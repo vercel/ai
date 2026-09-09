@@ -18,18 +18,28 @@ export const openaiTranscriptionResponseSchema = lazySchema(() =>
         .nullish(),
       segments: z
         .array(
-          z.object({
-            id: z.number(),
-            seek: z.number(),
-            start: z.number(),
-            end: z.number(),
-            text: z.string(),
-            tokens: z.array(z.number()),
-            temperature: z.number(),
-            avg_logprob: z.number(),
-            compression_ratio: z.number(),
-            no_speech_prob: z.number(),
-          }),
+          z.union([
+            z.object({
+              id: z.number(),
+              seek: z.number(),
+              start: z.number(),
+              end: z.number(),
+              text: z.string(),
+              tokens: z.array(z.number()),
+              temperature: z.number(),
+              avg_logprob: z.number(),
+              compression_ratio: z.number(),
+              no_speech_prob: z.number(),
+            }),
+            z.object({
+              type: z.literal('transcript.text.segment'),
+              id: z.string(),
+              start: z.number(),
+              end: z.number(),
+              text: z.string(),
+              speaker: z.string(),
+            }),
+          ]),
         )
         .nullish(),
     }),

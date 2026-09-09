@@ -103,6 +103,10 @@ A reasoning part of a message.
 type ReasoningUIPart = {
   type: 'reasoning';
   /**
+   * The reasoning part ID.
+   */
+  id?: string;
+  /**
    * The reasoning text.
    */
   text: string;
@@ -147,6 +151,36 @@ type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
         errorText?: never;
       }
     | {
+        state: 'approval-requested';
+        input: TOOLS[NAME]['input'];
+        output?: never;
+        errorText?: never;
+        approval: {
+          id: string;
+          approved?: never;
+          descriptor?: unknown;
+          requestReason?: string;
+          reason?: never;
+          isAutomatic?: boolean;
+          signature?: string;
+        };
+      }
+    | {
+        state: 'approval-responded';
+        input: TOOLS[NAME]['input'];
+        output?: never;
+        errorText?: never;
+        approval: {
+          id: string;
+          approved: boolean;
+          descriptor?: unknown;
+          requestReason?: string;
+          reason?: string;
+          isAutomatic?: boolean;
+          signature?: string;
+        };
+      }
+    | {
         state: 'output-available';
         input: TOOLS[NAME]['input'];
         output: TOOLS[NAME]['output'];
@@ -163,6 +197,11 @@ type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
   );
 }>;
 ```
+
+`approval.descriptor` contains optional opaque metadata supplied as
+`approvalDescriptor` on the approval request stream chunk. It is preserved when
+the tool part transitions from `approval-requested` to `approval-responded` and
+in later approval-bearing output states.
 
 ### `CustomContentUIPart`
 

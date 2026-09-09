@@ -40,7 +40,7 @@ import { cerebras } from '@ai-sdk/cerebras';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: cerebras('llama-3.3-70b'),
+  model: cerebras('gpt-oss-120b'),
   prompt: 'Write a JavaScript function that sorts a list:',
 });
 ```
@@ -51,5 +51,3 @@ For more information about Cerebras' high-speed inference capabilities and API d
 
 - [Cerebras Inference Documentation](https://inference-docs.cerebras.ai/introduction)
 - [Cerebras Website](https://cerebras.ai)
-
-Note: Due to high demand in the early launch phase, context windows are temporarily limited to 8192 tokens in the Free Tier.

@@ -54,9 +54,34 @@ AI SDK Core contains the following main functions:
       href: '/docs/reference/ai-sdk-core/generate-video',
     },
     {
+      title: 'experimental_startBatch()',
+      description: 'Start an asynchronous text-generation batch.',
+      href: '/docs/reference/ai-sdk-core/start-batch',
+    },
+    {
+      title: 'experimental_getBatchStatus()',
+      description: 'Retrieve the status of an asynchronous batch.',
+      href: '/docs/reference/ai-sdk-core/get-batch-status',
+    },
+    {
+      title: 'experimental_getBatchResults()',
+      description: 'Retrieve terminal results from an asynchronous batch.',
+      href: '/docs/reference/ai-sdk-core/get-batch-results',
+    },
+    {
       title: 'transcribe()',
       description: 'Generate a transcript from an audio file.',
       href: '/docs/reference/ai-sdk-core/transcribe',
+    },
+    {
+      title: 'experimental_streamTranscribe()',
+      description: 'Stream a transcript from live raw audio.',
+      href: '/docs/reference/ai-sdk-core/stream-transcribe',
+    },
+    {
+      title: 'experimental_streamTranslate()',
+      description: 'Stream a speech-to-speech translation from live raw audio.',
+      href: '/docs/reference/ai-sdk-core/stream-translate',
     },
     {
       title: 'generateSpeech()',
@@ -190,6 +215,11 @@ It also contains the following helper functions:
       title: 'defaultSettingsMiddleware()',
       description: 'Applies default settings to a language model.',
       href: '/docs/reference/ai-sdk-core/default-settings-middleware',
+    },
+    {
+      title: 'defaultInstructionsMiddleware()',
+      description: 'Applies default instructions to a language model.',
+      href: '/docs/reference/ai-sdk-core/default-instructions-middleware',
     },
     {
       title: 'smoothStream()',

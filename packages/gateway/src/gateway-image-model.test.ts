@@ -3,7 +3,7 @@ import { GatewayImageModel } from './gateway-image-model';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import type { GatewayConfig } from './gateway-config';
 
-const TEST_MODEL_ID = 'google/imagen-4.0-generate';
+const TEST_MODEL_ID = 'openai/gpt-image-1';
 
 const createTestModel = (
   config: Partial<

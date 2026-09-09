@@ -20,8 +20,8 @@ import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { openaiImageResponseSchema } from './openai-image-api';
 import {
+  getMaxImagesPerCall,
   hasDefaultResponseFormat,
-  modelMaxImagesPerCall,
   openaiImageModelEditOptions,
   openaiImageModelGenerationOptions,
   type OpenAIImageModelEditOptions,
@@ -51,7 +51,7 @@ export class OpenAIImageModel implements ImageModelV4 {
   }
 
   get maxImagesPerCall(): number {
-    return modelMaxImagesPerCall[this.modelId] ?? 1;
+    return getMaxImagesPerCall(this.modelId);
   }
 
   get provider(): string {

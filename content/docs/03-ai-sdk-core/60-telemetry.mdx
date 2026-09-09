@@ -356,7 +356,7 @@ export function myIntegration(): Telemetry {
       name: 'onLanguageModelCallEnd',
       type: '(event: LanguageModelCallEndEvent) => void | PromiseLike<void>',
       description:
-        'Called after the model response has been normalized and parsed, but before any client-side tool execution begins.',
+        'Called after the model response has been normalized and parsed, but before any client-side tool execution begins. Includes provider-specific metadata when available.',
     },
     {
       name: 'onToolExecutionStart',
@@ -448,7 +448,8 @@ For `generateText` and `streamText`, the integration records 3 types of spans:
   - `gen_ai.provider.name`: the provider
   - `gen_ai.request.model`: the requested model ID
   - `gen_ai.request.temperature`, `gen_ai.request.max_tokens`, `gen_ai.request.top_p`, `gen_ai.request.top_k`, `gen_ai.request.frequency_penalty`, `gen_ai.request.presence_penalty`, `gen_ai.request.stop_sequences`: request parameters
-  - `gen_ai.input.messages`: the prompt messages in [GenAI SemConv message format](#genai-message-format) (when `recordInputs` is enabled)
+  - `gen_ai.system_instructions`: instructions supplied separately from the chat history, formatted as a JSON array of parts (when `recordInputs` is enabled)
+  - `gen_ai.input.messages`: the prompt messages in [GenAI SemConv message format](#genai-message-format), including system messages that are part of the chat history in their original order (when `recordInputs` is enabled)
   - `gen_ai.tool.definitions`: the tool definitions as stringified JSON (when `recordInputs` is enabled)
 
   Attributes set on finish:
@@ -490,10 +491,9 @@ For `embed` and `embedMany`, the integration records spans with `CLIENT` kind:
   - `gen_ai.provider.name`: the provider
   - `gen_ai.request.model`: the requested model ID
 
-  Attributes set on finish:
-  - `gen_ai.usage.input_tokens`: the number of tokens used
-
-- **`embeddings {modelId}`** (inner span, `embedMany` only): one span per provider batch call, nested under the root span.
+- **`embeddings {modelId}`** (inner span): one span per provider request,
+  nested under the root span. `embed` creates one inner span. `embedMany`
+  creates one inner span per provider batch call.
 
   Initial attributes:
   - `gen_ai.operation.name`: `"embeddings"`
@@ -502,6 +502,9 @@ For `embed` and `embedMany`, the integration records spans with `CLIENT` kind:
 
   Attributes set on finish:
   - `gen_ai.usage.input_tokens`: the number of tokens used
+
+Usage is recorded only on inner provider-request spans. For `embedMany`, sum
+the usage from the inner spans to get the total usage for the operation.
 
 #### rerank
 
@@ -537,7 +540,7 @@ Messages are JSON arrays of objects with a `role` and a `parts` array. Each part
 
 Output messages also include a `finish_reason` field (e.g. `"stop"`, `"tool_call"`, `"length"`, `"content_filter"`).
 
-System instructions are recorded separately in `gen_ai.system_instructions` as a JSON array of `{ type: "text", content: "..." }` parts.
+Instructions supplied through `instructions` (or the deprecated `system` option) are recorded separately in `gen_ai.system_instructions` as a JSON array of `{ type: "text", content: "..." }` parts. System messages supplied as chat history with `allowSystemInMessages` remain in `gen_ai.input.messages` in their original positions.
 
 ##### GenAI tool call spans
 
@@ -627,7 +630,7 @@ registerTelemetry(
 The available options are:
 
 - `usage`: detailed usage attributes that are not covered by GenAI usage attributes, such as uncached input tokens and output text/reasoning token details.
-- `providerMetadata`: `ai.response.providerMetadata`.
+- `providerMetadata`: `ai.response.providerMetadata` on operation, step, and model-call spans.
 - `embedding`: embedding inputs and outputs.
 - `reranking`: rerank input documents and ranking output.
 - `runtimeContext`: `ai.settings.context.*`.

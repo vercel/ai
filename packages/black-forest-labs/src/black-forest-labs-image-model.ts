@@ -2,12 +2,10 @@ import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
-  createJsonErrorResponseHandler,
   createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
   delay,
   getFromApi,
-  isSameOrigin,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -18,6 +16,10 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import {
+  bflFailedResponseHandler,
+  isTrustedUrl,
+} from './black-forest-labs-api';
 import { blackForestLabsImageModelOptionsSchema } from './black-forest-labs-image-model-options';
 import type {
   BlackForestLabsAspectRatio,
@@ -236,6 +238,9 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
 
     const { value: imageBytes, responseHeaders } = await getFromApi({
       url: imageUrl,
+      // imageUrl comes from the provider response body; validate it.
+      validateUrl: true,
+      trustedOrigin: this.config.baseURL,
       // Only send credentials if the response-supplied URL points back at the
       // provider; the image is typically delivered from a CDN, so the API key
       // must not travel to a foreign host.
@@ -320,8 +325,10 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
     for (let i = 0; i < maxPollAttempts; i++) {
       const { value } = await getFromApi({
         url: url.toString(),
-        // The polling URL comes from the provider response; only send
-        // credentials when it stays on a trusted provider host.
+        // The polling URL comes from the provider response; validate it.
+        validateUrl: true,
+        trustedOrigin: this.config.baseURL,
+        // Only send credentials when it stays on a trusted provider host.
         headers: isTrustedUrl(url.toString(), this.config.baseURL)
           ? headers
           : undefined,
@@ -354,29 +361,6 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
     }
 
     throw new Error('Black Forest Labs generation timed out.');
-  }
-}
-
-/**
- * Black Forest Labs returns response-supplied URLs (polling and delivery) on
- * sibling cluster hosts of the API origin (e.g. `api.us1.bfl.ai` for a base
- * URL on `api.bfl.ai`), so a strict same-origin check against the configured
- * base URL is not enough. Credentials may also be sent to any https host under
- * the official `bfl.ai` domain.
- */
-function isTrustedUrl(url: string, baseUrl: string): boolean {
-  if (isSameOrigin(url, baseUrl)) {
-    return true;
-  }
-
-  try {
-    const { protocol, hostname } = new URL(url);
-    return (
-      protocol === 'https:' &&
-      (hostname === 'bfl.ai' || hostname.endsWith('.bfl.ai'))
-    );
-  } catch {
-    return false;
   }
 }
 
@@ -447,29 +431,3 @@ const bflPollSchema = z
     status: (v.status ?? v.state)!,
     result: v.result,
   }));
-
-const bflErrorSchema = z.object({
-  message: z.string().optional(),
-  detail: z.any().optional(),
-});
-
-const bflFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: bflErrorSchema,
-  errorToMessage: error =>
-    bflErrorToMessage(error) ?? 'Unknown Black Forest Labs error',
-});
-
-function bflErrorToMessage(error: unknown): string | undefined {
-  const parsed = bflErrorSchema.safeParse(error);
-  if (!parsed.success) return undefined;
-  const { message, detail } = parsed.data;
-  if (typeof detail === 'string') return detail;
-  if (detail != null) {
-    try {
-      return JSON.stringify(detail);
-    } catch {
-      // ignore
-    }
-  }
-  return message;
-}

@@ -6,16 +6,17 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: openai.responses('gpt-5.5'),
+    model: openai.responses('gpt-5.6'),
     tools: {
       weather: weatherTool,
       cityAttractions: tool({
         inputSchema: z.object({ city: z.string() }),
       }),
+      search: openai.tools.webSearch(),
     },
     providerOptions: {
       openai: {
-        allowedTools: { toolNames: ['weather'], mode: 'auto' },
+        allowedTools: { toolNames: ['weather', 'search'], mode: 'auto' },
       },
     },
     prompt:
@@ -26,6 +27,7 @@ run(async () => {
   const calledTools = new Set(result.toolCalls.map(c => c.toolName));
   console.log('called tools:', [...calledTools]);
   console.log('cityAttractions blocked?', !calledTools.has('cityAttractions'));
+  console.log('warnings:', result.warnings);
   console.log(JSON.stringify(result.toolCalls, null, 2));
   console.log(JSON.stringify(result.finishReason, null, 2));
 });

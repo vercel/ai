@@ -5,7 +5,8 @@ import type { ToolSet } from '@ai-sdk/provider-utils';
  * - A number representing milliseconds
  * - An object with `totalMs` property for the total timeout in milliseconds
  * - An object with `stepMs` property for the timeout of each step in milliseconds
- * - An object with `chunkMs` property for the timeout between stream chunks (streaming only)
+ * - An object with `firstChunkMs` property for the timeout until the first content chunk of each step (streaming only)
+ * - An object with `chunkMs` property for the timeout between content chunks (streaming only)
  * - An object with `toolMs` property for the default timeout for all tool executions
  * - An object with `tools` property for per-tool timeout overrides using `{toolName}Ms` keys
  */
@@ -14,6 +15,7 @@ export type TimeoutConfiguration<TOOLS extends ToolSet> =
   | {
       totalMs?: number;
       stepMs?: number;
+      firstChunkMs?: number;
       chunkMs?: number;
       toolMs?: number;
       tools?: Partial<Record<`${keyof TOOLS & string}Ms`, number>>;
@@ -53,8 +55,24 @@ export function getStepTimeoutMs(
 }
 
 /**
+ * Extracts the first chunk timeout value in milliseconds from a TimeoutConfiguration.
+ * This timeout is for streaming only - it aborts if no content chunk is received within the specified duration.
+ *
+ * @param timeout - The timeout configuration.
+ * @returns The first chunk timeout in milliseconds, or undefined if no first chunk timeout is configured.
+ */
+export function getFirstChunkTimeoutMs(
+  timeout: TimeoutConfiguration<any> | undefined,
+): number | undefined {
+  if (timeout == null || typeof timeout === 'number') {
+    return undefined;
+  }
+  return timeout.firstChunkMs;
+}
+
+/**
  * Extracts the chunk timeout value in milliseconds from a TimeoutConfiguration.
- * This timeout is for streaming only - it aborts if no new chunk is received within the specified duration.
+ * This timeout is for streaming only - it aborts if no new content chunk is received within the specified duration.
  *
  * @param timeout - The timeout configuration.
  * @returns The chunk timeout in milliseconds, or undefined if no chunk timeout is configured.

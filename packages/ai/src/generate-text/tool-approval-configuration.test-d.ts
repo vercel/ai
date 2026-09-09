@@ -5,7 +5,7 @@ import {
   type ModelMessage,
 } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import type { ToolApprovalConfiguration } from './tool-approval-configuration';
 import type { TypedToolCall } from './tool-call';
 
@@ -32,7 +32,10 @@ describe('ToolApprovalConfiguration', () => {
   describe('per-tool (object) configuration', () => {
     it('allows string statuses and object statuses with an optional reason', () => {
       const _config: ToolApprovalConfiguration<Tools, Context> = {
-        weather: 'not-applicable',
+        weather: {
+          type: 'user-approval',
+          reason: 'requires operator review',
+        },
         calculator: { type: 'denied', reason: 'blocked by policy' },
       };
     });

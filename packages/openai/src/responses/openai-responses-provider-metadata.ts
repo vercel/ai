@@ -15,6 +15,7 @@ export type ResponsesProviderMetadata = {
   responseId: string | null | undefined;
   logprobs?: Array<OpenAIResponsesLogprobs>;
   serviceTier?: string;
+  reasoningContext?: string;
 };
 
 export type ResponsesReasoningProviderMetadata = {
@@ -28,6 +29,22 @@ export type OpenaiResponsesReasoningProviderMetadata = {
 
 export type OpenaiResponsesProviderMetadata = {
   openai: ResponsesProviderMetadata;
+};
+
+export type ResponsesToolCallProviderMetadata = {
+  itemId: string;
+  async?: boolean;
+  namespace?: string;
+  caller?:
+    | { type: 'direct' }
+    | {
+        type: 'program';
+        callerId: string;
+      };
+};
+
+export type OpenaiResponsesToolCallProviderMetadata = {
+  openai: ResponsesToolCallProviderMetadata;
 };
 
 export type ResponsesCompactionProviderMetadata = {

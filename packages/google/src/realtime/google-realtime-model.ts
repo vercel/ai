@@ -8,25 +8,16 @@ import type {
 } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
+  getRealtimeBaseURL,
+  getRealtimeWebSocketURL,
+} from '../get-realtime-base-url';
+import {
   GoogleRealtimeEventMapper,
   buildGoogleSessionConfig,
 } from './google-realtime-event-mapper';
 
 const realtimeWebSocketPath =
   'google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained';
-
-function getRealtimeBaseURL(baseURL: string): URL {
-  const url = new URL(baseURL);
-  const pathSegments = url.pathname.split('/');
-  const version = pathSegments.at(-1);
-
-  if (version === 'v1beta' || version === 'v1alpha') {
-    pathSegments.pop();
-    url.pathname = pathSegments.join('/') || '/';
-  }
-
-  return url;
-}
 
 function getAuthTokensURL(baseURL: string): string {
   const url = getRealtimeBaseURL(baseURL);
@@ -35,10 +26,7 @@ function getAuthTokensURL(baseURL: string): string {
 }
 
 function getWebSocketURL(baseURL: string): string {
-  const url = getRealtimeBaseURL(baseURL);
-  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-  url.pathname = `${url.pathname.replace(/\/$/, '')}/ws/${realtimeWebSocketPath}`;
-  return url.toString();
+  return getRealtimeWebSocketURL(baseURL, realtimeWebSocketPath).toString();
 }
 
 export type GoogleRealtimeModelConfig = {

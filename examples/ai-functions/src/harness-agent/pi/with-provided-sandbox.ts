@@ -1,9 +1,11 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { pi } from '@ai-sdk/harness-pi';
+import { createPi } from './_create';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { Sandbox } from '@vercel/sandbox';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
+
+const pi = createPi();
 
 run(async () => {
   const sandbox = await Sandbox.create({
@@ -13,11 +15,11 @@ run(async () => {
 
   const agent = new HarnessAgent({
     harness: pi,
-    sandbox: createVercelSandbox({ sandbox }),
   });
 
-  let exitCode = 0;
-  const session = await agent.createSession();
+  const sandboxProvider = createVercelSandbox({ sandbox });
+  const sandboxSession = await sandboxProvider.createSession();
+  const session = await agent.createSession({ sandboxSession });
   try {
     const result = await agent.stream({
       session,
@@ -28,12 +30,8 @@ run(async () => {
 
     console.log('finishReason:', await result.finishReason);
     console.log('usage:', await result.usage);
-  } catch (err) {
-    exitCode = 1;
-    console.error('[example] failed:', err);
   } finally {
     await session.destroy();
     await sandbox.stop().catch(() => {});
-    process.exit(exitCode);
   }
 });

@@ -279,30 +279,27 @@ function getModality(mediaType: string | undefined): string {
 
 /**
  * Converts a LanguageModelV4Prompt to the gen_ai.input.messages SemConv format.
- * System messages are excluded (they go into gen_ai.system_instructions).
+ * Messages are preserved in the order they were sent to the model.
  */
 export function formatInputMessages(
   prompt: LanguageModelV4Prompt,
 ): SemConvInputMessage[] {
-  return prompt
-    .filter(msg => msg.role !== 'system')
-    .map((message: LanguageModelV4Message) => {
-      if (message.role === 'system') {
-        return {
-          role: 'system',
-          parts: [{ type: 'text', content: message.content }],
-        };
-      }
+  return prompt.map((message: LanguageModelV4Message) => {
+    if (message.role === 'system') {
+      return {
+        role: 'system',
+        parts: [{ type: 'text', content: message.content }],
+      };
+    }
 
-      const parts = message.content.map(convertMessagePartToSemConv);
-      return { role: message.role, parts };
-    });
+    const parts = message.content.map(convertMessagePartToSemConv);
+    return { role: message.role, parts };
+  });
 }
 
 /**
  * Converts user-facing ModelMessage[] (and optional prompt string) to the
- * gen_ai.input.messages SemConv format. System messages are excluded
- * (they belong in gen_ai.system_instructions).
+ * gen_ai.input.messages SemConv format while preserving message order.
  */
 export function formatModelMessages({
   prompt,
@@ -335,10 +332,13 @@ export function formatModelMessages({
   return result;
 }
 
-function convertModelMessageToSemConv(
-  msg: ModelMessage,
-): SemConvInputMessage | undefined {
-  if (msg.role === 'system') return undefined;
+function convertModelMessageToSemConv(msg: ModelMessage): SemConvInputMessage {
+  if (msg.role === 'system') {
+    return {
+      role: 'system',
+      parts: [{ type: 'text', content: msg.content }],
+    };
+  }
 
   if (msg.role === 'user') {
     if (typeof msg.content === 'string') {
@@ -530,7 +530,8 @@ function convertModelMessageToSemConv(
     return { role: 'tool', parts };
   }
 
-  return undefined;
+  const _exhaustive: never = msg;
+  return _exhaustive;
 }
 
 /**
@@ -553,6 +554,7 @@ export function formatOutputMessages({
   text,
   reasoning,
   toolCalls,
+  toolResults,
   files,
   finishReason,
 }: {
@@ -562,6 +564,10 @@ export function formatOutputMessages({
     toolCallId: string;
     toolName: string;
     input: unknown;
+  }>;
+  toolResults?: ReadonlyArray<{
+    toolCallId: string;
+    output: unknown;
   }>;
   files?: ReadonlyArray<{ mediaType: string; base64: string }>;
   finishReason: string;
@@ -587,6 +593,16 @@ export function formatOutputMessages({
         id: tc.toolCallId,
         name: tc.toolName,
         arguments: tc.input,
+      });
+    }
+  }
+
+  if (toolResults) {
+    for (const toolResult of toolResults) {
+      parts.push({
+        type: 'tool_call_response',
+        id: toolResult.toolCallId,
+        response: toolResult.output,
       });
     }
   }

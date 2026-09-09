@@ -17,7 +17,10 @@ import {
 import { AmazonBedrockChatLanguageModel } from './amazon-bedrock-chat-language-model';
 import type { AmazonBedrockChatModelId } from './amazon-bedrock-chat-language-model-options';
 import { AmazonBedrockEmbeddingModel } from './amazon-bedrock-embedding-model';
-import type { AmazonBedrockEmbeddingModelId } from './amazon-bedrock-embedding-model-options';
+import type {
+  AmazonBedrockEmbeddingModelId,
+  AmazonBedrockEmbeddingModelSettings,
+} from './amazon-bedrock-embedding-model-options';
 import { AmazonBedrockImageModel } from './amazon-bedrock-image-model';
 import type { AmazonBedrockImageModelId } from './amazon-bedrock-image-settings';
 import {
@@ -119,22 +122,34 @@ export interface AmazonBedrockProvider extends ProviderV4 {
   /**
    * Creates a model for text embeddings.
    */
-  embedding(modelId: AmazonBedrockEmbeddingModelId): EmbeddingModelV4;
+  embedding(
+    modelId: AmazonBedrockEmbeddingModelId,
+    settings?: AmazonBedrockEmbeddingModelSettings,
+  ): EmbeddingModelV4;
 
   /**
    * Creates a model for text embeddings.
    */
-  embeddingModel(modelId: AmazonBedrockEmbeddingModelId): EmbeddingModelV4;
+  embeddingModel(
+    modelId: AmazonBedrockEmbeddingModelId,
+    settings?: AmazonBedrockEmbeddingModelSettings,
+  ): EmbeddingModelV4;
 
   /**
    * @deprecated Use `embedding` instead.
    */
-  textEmbedding(modelId: AmazonBedrockEmbeddingModelId): EmbeddingModelV4;
+  textEmbedding(
+    modelId: AmazonBedrockEmbeddingModelId,
+    settings?: AmazonBedrockEmbeddingModelSettings,
+  ): EmbeddingModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
-  textEmbeddingModel(modelId: AmazonBedrockEmbeddingModelId): EmbeddingModelV4;
+  textEmbeddingModel(
+    modelId: AmazonBedrockEmbeddingModelId,
+    settings?: AmazonBedrockEmbeddingModelSettings,
+  ): EmbeddingModelV4;
 
   /**
    * Creates a model for image generation.
@@ -310,11 +325,15 @@ export function createAmazonBedrock(
     return createChatModel(modelId);
   };
 
-  const createEmbeddingModel = (modelId: AmazonBedrockEmbeddingModelId) =>
+  const createEmbeddingModel = (
+    modelId: AmazonBedrockEmbeddingModelId,
+    settings: AmazonBedrockEmbeddingModelSettings = {},
+  ) =>
     new AmazonBedrockEmbeddingModel(modelId, {
       baseUrl: getAmazonBedrockRuntimeBaseUrl,
       headers: getHeaders,
       fetch: fetchFunction,
+      modelFamily: settings.modelFamily,
     });
 
   const createImageModel = (modelId: AmazonBedrockImageModelId) =>

@@ -57,6 +57,7 @@ The AI SDK comes with several built-in middlewares that you can use to configure
 - `extractReasoningMiddleware`: Extracts reasoning information from the generated text and exposes it as a `reasoning` property on the result.
 - `extractJsonMiddleware`: Extracts JSON from text content by stripping markdown code fences. Useful when using `Output.object()` with models that wrap JSON responses in code blocks.
 - `simulateStreamingMiddleware`: Simulates streaming behavior with responses from non-streaming language models.
+- `defaultInstructionsMiddleware`: Applies default instructions when a call does not provide its own instructions.
 - `defaultSettingsMiddleware`: Applies default settings to a language model.
 - `addToolInputExamplesMiddleware`: Adds tool input examples to tool descriptions for providers that don't natively support the `inputExamples` property.
 
@@ -158,6 +159,33 @@ const model = wrapLanguageModel({
   }),
 });
 ```
+
+### Default Instructions
+
+The `defaultInstructionsMiddleware` function applies instructions to calls that
+do not already contain a system message. Instructions provided directly on a
+call take precedence over the defaults.
+
+```ts
+import { wrapLanguageModel, defaultInstructionsMiddleware } from 'ai';
+
+const model = wrapLanguageModel({
+  model: yourModel,
+  middleware: defaultInstructionsMiddleware({
+    instructions: 'You are a concise technical assistant.',
+  }),
+});
+```
+
+The `instructions` option also accepts a `SystemModelMessage` or an array of
+`SystemModelMessage` objects when you need provider options on an instruction.
+
+<Note>
+  The middleware treats any system message in the normalized prompt as
+  call-level instructions and does not add the defaults. Only enable
+  `allowSystemInMessages` for trusted message histories, because a system
+  message in that history can override these defaults.
+</Note>
 
 ### Add Tool Input Examples
 
@@ -271,15 +299,15 @@ Find more examples at this [link](https://github.com/minpeter/ai-sdk-tool-call-m
 <Note>
   Implementing language model middleware is advanced functionality and requires
   a solid understanding of the [language model
-  specification](https://github.com/vercel/ai/blob/v5/packages/provider/src/language-model/v2/language-model-v2.ts).
+  specification](https://github.com/vercel/ai/blob/main/packages/provider/src/language-model/v4/language-model-v4.ts).
 </Note>
 
 You can implement any of the following three function to modify the behavior of the language model:
 
 1. `transformParams`: Transforms the parameters before they are passed to the language model, for both `doGenerate` and `doStream`.
-2. `wrapGenerate`: Wraps the `doGenerate` method of the [language model](https://github.com/vercel/ai/blob/v5/packages/provider/src/language-model/v2/language-model-v2.ts).
+2. `wrapGenerate`: Wraps the `doGenerate` method of the [language model](https://github.com/vercel/ai/blob/main/packages/provider/src/language-model/v4/language-model-v4.ts).
    You can modify the parameters, call the language model, and modify the result.
-3. `wrapStream`: Wraps the `doStream` method of the [language model](https://github.com/vercel/ai/blob/v5/packages/provider/src/language-model/v2/language-model-v2.ts).
+3. `wrapStream`: Wraps the `doStream` method of the [language model](https://github.com/vercel/ai/blob/main/packages/provider/src/language-model/v4/language-model-v4.ts).
    You can modify the parameters, call the language model, and modify the result.
 
 Here are some examples of how to implement language model middleware:
@@ -307,9 +335,13 @@ export const yourLogMiddleware: LanguageModelV4Middleware = {
     console.log(`params: ${JSON.stringify(params, null, 2)}`);
 
     const result = await doGenerate();
+    const generatedText = result.content
+      .filter(part => part.type === 'text')
+      .map(part => part.text)
+      .join('');
 
     console.log('doGenerate finished');
-    console.log(`generated text: ${result.text}`);
+    console.log(`generated text: ${generatedText}`);
 
     return result;
   },
@@ -437,12 +469,16 @@ import type { LanguageModelV4Middleware } from '@ai-sdk/provider';
 
 export const yourGuardrailMiddleware: LanguageModelV4Middleware = {
   wrapGenerate: async ({ doGenerate }) => {
-    const { text, ...rest } = await doGenerate();
+    const result = await doGenerate();
 
     // filtering approach, e.g. for PII or other sensitive information:
-    const cleanedText = text?.replace(/badword/g, '<REDACTED>');
+    const content = result.content.map(part =>
+      part.type === 'text'
+        ? { ...part, text: part.text.replace(/badword/g, '<REDACTED>') }
+        : part,
+    );
 
-    return { text: cleanedText, ...rest };
+    return { ...result, content };
   },
 
   // here you would implement the guardrail logic for streaming

@@ -44,6 +44,8 @@ export const anthropicTools = {
    *
    * @param model - The advisor model ID (required), e.g. `"claude-opus-4-8"`.
    * @param maxUses - Maximum advisor calls per request (per-request cap).
+   * @param maxTokens - Maximum advisor output tokens per call, including
+   * thinking and text. Minimum 1024; Anthropic recommends starting with 2048.
    * @param caching - Enables prompt caching for the advisor's transcript
    * across calls within a conversation. Worthwhile from ~3 advisor calls
    * per conversation.

@@ -1,5 +1,5 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { createDeepAgents } from '@ai-sdk/harness-deepagents';
+import { deepAgents } from '@ai-sdk/harness-deepagents';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import type { InferUITools, UIMessage } from 'ai';
 import {
@@ -18,7 +18,7 @@ will exceed sandbox memory. When asked to do this, use the corresponding
 `;
 
 export const aiSdkCodingDeepAgentsHarnessAgent = new HarnessAgent({
-  harness: createDeepAgents({ recursionLimit: 200 }),
+  harness: deepAgents,
   instructions,
   sandbox: createVercelSandbox({
     runtime: 'node24',

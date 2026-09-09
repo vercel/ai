@@ -49,6 +49,101 @@ function prepareVersionMetadataResponse() {
 
 describe('AnthropicSkills', () => {
   describe('uploadSkill', () => {
+    it.each([
+      {
+        skillId: 'skill/../../admin',
+        version: 'v1/../../admin',
+        expectedSkillId: 'skill%2F..%2F..%2Fadmin',
+        expectedVersion: 'v1%2F..%2F..%2Fadmin',
+      },
+      {
+        skillId: '.',
+        version: 'version-1',
+        expectedSkillId: '%252E',
+        expectedVersion: 'version-1',
+      },
+      {
+        skillId: '..',
+        version: 'version-1',
+        expectedSkillId: '%252E%252E',
+        expectedVersion: 'version-1',
+      },
+      {
+        skillId: 'skill-1',
+        version: '.',
+        expectedSkillId: 'skill-1',
+        expectedVersion: '%252E',
+      },
+      {
+        skillId: 'skill-1',
+        version: '..',
+        expectedSkillId: 'skill-1',
+        expectedVersion: '%252E%252E',
+      },
+    ])(
+      'should preserve skill $skillId and version $version as URL path segments',
+      async ({ skillId, version, expectedSkillId, expectedVersion }) => {
+        const requestUrls: string[] = [];
+        let callCount = 0;
+        const anthropic = createAnthropic({
+          apiKey: 'test-api-key',
+          baseURL: 'https://api.anthropic.com/v1',
+          fetch: async input => {
+            requestUrls.push(
+              new Request(
+                typeof input === 'string'
+                  ? input
+                  : input instanceof URL
+                    ? input.href
+                    : input,
+              ).url,
+            );
+
+            callCount++;
+            return callCount === 1
+              ? new Response(
+                  JSON.stringify({
+                    id: skillId,
+                    latest_version: version,
+                    source: 'custom',
+                    created_at: '2026-08-24T00:00:00Z',
+                    updated_at: '2026-08-24T00:00:00Z',
+                  }),
+                  {
+                    status: 200,
+                    headers: { 'content-type': 'application/json' },
+                  },
+                )
+              : new Response(
+                  JSON.stringify({
+                    type: 'skill_version',
+                    skill_id: skillId,
+                    name: 'test-skill',
+                    description: 'test skill',
+                  }),
+                  {
+                    status: 200,
+                    headers: { 'content-type': 'application/json' },
+                  },
+                );
+          },
+        });
+
+        await anthropic.skills().uploadSkill({
+          files: [
+            {
+              path: 'index.ts',
+              data: { type: 'data', data: testFileContentBase64 },
+            },
+          ],
+        });
+
+        expect(requestUrls[1]).toBe(
+          `https://api.anthropic.com/v1/skills/${expectedSkillId}/versions/${expectedVersion}`,
+        );
+      },
+    );
+
     it('should send files as multipart form data', async () => {
       prepareResponse({
         url: 'https://api.anthropic.com/v1/skills',

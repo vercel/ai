@@ -52,7 +52,7 @@ describe('validateApprovedToolApprovals', () => {
     expect(result.deniedToolApprovals).toHaveLength(0);
   });
 
-  it('should throw InvalidToolInputError when the input does not match the schema', async () => {
+  it('should return invalid approved tool inputs as recoverable errors', async () => {
     const tools = {
       tool1: tool({
         inputSchema: z.object({ value: z.string() }),
@@ -68,19 +68,28 @@ describe('validateApprovedToolApprovals', () => {
       input: { value: 42 },
     });
 
-    await expect(
-      validateApprovedToolApprovals({
-        approvedToolApprovals: [approval],
-        tools,
-        toolApproval: undefined,
-        messages: [],
-        toolsContext: {} as any,
-        runtimeContext: {},
-      }),
-    ).rejects.toThrowError(/Invalid input for tool tool1/);
+    const result = await validateApprovedToolApprovals({
+      approvedToolApprovals: [approval],
+      tools,
+      toolApproval: undefined,
+      messages: [],
+      toolsContext: {} as any,
+      runtimeContext: {},
+    });
+
+    expect(result.approvedToolApprovals).toHaveLength(0);
+    expect(result.deniedToolApprovals).toHaveLength(0);
+    expect(result.invalidToolApprovals).toMatchObject([
+      {
+        toolCall: approval.toolCall,
+        error: {
+          name: 'AI_InvalidToolInputError',
+        },
+      },
+    ]);
   });
 
-  it('should throw when input contains an extra/forged property not in the schema', async () => {
+  it('should return extra forged properties as invalid tool input errors', async () => {
     const tools = {
       deleteFile: tool({
         inputSchema: z.object({ path: z.string() }).strict(),
@@ -95,16 +104,19 @@ describe('validateApprovedToolApprovals', () => {
       input: { path: '/app/.env', extra: 'forged' },
     });
 
-    await expect(
-      validateApprovedToolApprovals({
-        approvedToolApprovals: [approval],
-        tools,
-        toolApproval: undefined,
-        messages: [],
-        toolsContext: {} as any,
-        runtimeContext: {},
-      }),
-    ).rejects.toThrowError(/Invalid input for tool deleteFile/);
+    const result = await validateApprovedToolApprovals({
+      approvedToolApprovals: [approval],
+      tools,
+      toolApproval: undefined,
+      messages: [],
+      toolsContext: {} as any,
+      runtimeContext: {},
+    });
+
+    expect(result.approvedToolApprovals).toHaveLength(0);
+    expect(result.invalidToolApprovals[0].error.message).toMatch(
+      /Invalid input for tool deleteFile/,
+    );
   });
 
   it('should move approvals to denied when the approval policy denies them', async () => {

@@ -85,6 +85,10 @@ describe('stream data stream', () => {
         });
       });
     });
+
+    it('should reset the input after submission', () => {
+      expect(screen.getByTestId('input')).toHaveValue('');
+    });
   });
 
   describe('loading state', () => {

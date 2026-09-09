@@ -7,10 +7,12 @@ import {
 } from 'ai';
 import { normalizeHeaders } from '@ai-sdk/provider-utils';
 
-export type CompletionOptions = Readonly<UseCompletionOptions>;
+export type CompletionOptions<BODY extends object = object> = Readonly<
+  UseCompletionOptions<BODY>
+>;
 
-export class Completion {
-  readonly #options: CompletionOptions;
+export class Completion<BODY extends object = object> {
+  readonly #options: CompletionOptions<BODY>;
 
   // Static config
   readonly id: string;
@@ -25,7 +27,7 @@ export class Completion {
 
   #abortController: AbortController | null = null;
 
-  constructor(options: CompletionOptions = {}) {
+  constructor(options: CompletionOptions<NoInfer<BODY>> = {}) {
     this.#options = options;
     this.#completion.set(options.initialCompletion ?? '');
     this.#input.set(options.initialInput ?? '');
@@ -73,7 +75,7 @@ export class Completion {
   };
 
   /** Send a new prompt to the API endpoint and update the completion state. */
-  complete = async (prompt: string, options?: CompletionRequestOptions) =>
+  complete = async (prompt: string, options?: CompletionRequestOptions<BODY>) =>
     this.#triggerRequest(prompt, options);
 
   /** Form submission handler to automatically reset input and call the completion API */
@@ -86,7 +88,7 @@ export class Completion {
 
   #triggerRequest = async (
     prompt: string,
-    options?: CompletionRequestOptions,
+    options?: CompletionRequestOptions<BODY>,
   ) => {
     return callCompletionApi({
       api: this.api,

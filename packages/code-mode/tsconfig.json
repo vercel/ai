@@ -1,0 +1,22 @@
+{
+  "extends": "./node_modules/@vercel/ai-tsconfig/ts-library.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "composite": true,
+    "rootDir": "src",
+    "outDir": "dist",
+    "stripInternal": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": [
+    "dist",
+    "build",
+    "node_modules",
+    "src/**/*.test.ts",
+    "src/utils/test-helpers.ts"
+  ],
+  "references": [{ "path": "../ai" }]
+}

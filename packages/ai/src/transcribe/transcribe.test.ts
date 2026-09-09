@@ -115,6 +115,38 @@ describe('transcribe', () => {
     });
   });
 
+  it('should detect MP4 audio with an ftyp box', async () => {
+    const mp4AudioData = new Uint8Array([
+      0x00,
+      0x00,
+      0x00,
+      0x1c, // box size
+      0x66,
+      0x74,
+      0x79,
+      0x70, // "ftyp"
+      0x4d,
+      0x34,
+      0x41,
+      0x20, // "M4A "
+    ]);
+    let capturedArgs!: Parameters<TranscriptionModelV4['doGenerate']>[0];
+
+    await transcribe({
+      model: new MockTranscriptionModelV4({
+        doGenerate: async args => {
+          capturedArgs = args;
+          return createMockResponse({
+            ...sampleTranscript,
+          });
+        },
+      }),
+      audio: mp4AudioData,
+    });
+
+    expect(capturedArgs.mediaType).toMatchInlineSnapshot(`"audio/mp4"`);
+  });
+
   it('should return warnings', async () => {
     const result = await transcribe({
       model: new MockTranscriptionModelV4({
