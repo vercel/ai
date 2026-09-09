@@ -1,5 +1,14 @@
 # @ai-sdk/anthropic
 
+## 4.0.52
+
+### Patch Changes
+
+- 5a7e647: feat(anthropic): add batch cancellation and listing
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/provider-utils@5.0.39
+
 ## 4.0.51
 
 ### Patch Changes
