@@ -1,20 +1,7 @@
 import type { EmbeddingModelV2 } from '@ai-sdk/provider';
 import assert from 'node:assert';
-<<<<<<< HEAD
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-=======
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-  vitest,
-} from 'vitest';
 import { InvalidResponseDataError } from '../error';
-import * as logWarningsModule from '../logger/log-warnings';
->>>>>>> 27f6d7afbe (fix: reject empty embedding model responses instead of returning undefined (#20358))
 import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockTracer } from '../test/mock-tracer';
 import type { Embedding, EmbeddingModelUsage } from '../types';
@@ -42,21 +29,20 @@ describe('result.embedding', () => {
   });
 
   it('should reject when the model returns no embeddings', async () => {
-    const model = new MockEmbeddingModelV4({
+    const model = new MockEmbeddingModelV2({
       doEmbed: async () => ({
         embeddings: [],
         usage: { tokens: 5 },
-        warnings: [],
       }),
     });
-    const onEnd = vi.fn();
-    const onError = vi.fn();
+    const tracer = new MockTracer();
 
     const result = embed({
       model,
       value: testValue,
-      telemetry: {
-        integrations: { onEnd, onError },
+      experimental_telemetry: {
+        isEnabled: true,
+        tracer,
       },
     });
 
@@ -69,8 +55,13 @@ describe('result.embedding', () => {
       return true;
     });
     expect(model.doEmbedCalls).toHaveLength(1);
-    expect(onEnd).not.toHaveBeenCalled();
-    expect(onError).toHaveBeenCalledOnce();
+    expect(tracer.spans).toHaveLength(2);
+    expect(tracer.spans.every(span => span.status?.code === 2)).toBe(true);
+    expect(
+      tracer.spans.every(
+        span => span.events.length === 1 && span.events[0].name === 'exception',
+      ),
+    ).toBe(true);
   });
 });
 
