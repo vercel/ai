@@ -10,13 +10,8 @@ export function getTextFromDataUrl(dataUrl: string): string {
   }
 
   try {
-<<<<<<< HEAD
-    return window.atob(base64Content);
-  } catch (error) {
-=======
     return globalThis.atob(base64Content);
-  } catch {
->>>>>>> 8cdb2a79bf (fix: decode valid text data URLs in Node.js (#20354))
+  } catch (error) {
     throw new Error(`Error decoding data URL`);
   }
 }
