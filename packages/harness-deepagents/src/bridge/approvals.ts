@@ -13,7 +13,31 @@ export const NATIVE_TOOL_KIND: Readonly<
   grep: 'readonly',
   glob: 'readonly',
   ls: 'readonly',
+  task: 'edit',
+  write_todos: 'edit',
 };
+
+const NATIVE_TO_COMMON: Readonly<Record<string, string>> = {
+  read_file: 'read',
+  write_file: 'write',
+  edit_file: 'edit',
+  execute: 'bash',
+};
+
+export function toCommonName(nativeName: string): string {
+  return NATIVE_TO_COMMON[nativeName] ?? nativeName;
+}
+
+export function isBuiltinToolIncluded(input: {
+  nativeName: string;
+  toolFiltering: StartMessage['builtinToolFiltering'];
+}): boolean {
+  if (input.toolFiltering == null) return true;
+  const toolName = toCommonName(input.nativeName);
+  return input.toolFiltering.mode === 'allow'
+    ? input.toolFiltering.toolNames.includes(toolName)
+    : !input.toolFiltering.toolNames.includes(toolName);
+}
 
 export function builtinToolRequiresApproval(
   kind: 'readonly' | 'edit' | 'bash',
@@ -27,16 +51,23 @@ export function builtinToolRequiresApproval(
 // Per-tool HITL config for createDeepAgent; only built-ins are gated (host tools approve at the agent layer).
 export function buildInterruptOn(
   permissionMode: PermissionMode | undefined,
+  builtinToolFiltering: StartMessage['builtinToolFiltering'],
 ):
   | Record<string, { allowedDecisions: Array<'approve' | 'reject'> }>
   | undefined {
-  if (!permissionMode || permissionMode === 'allow-all') return undefined;
   const config: Record<
     string,
     { allowedDecisions: Array<'approve' | 'reject'> }
   > = {};
   for (const [nativeName, kind] of Object.entries(NATIVE_TOOL_KIND)) {
-    if (builtinToolRequiresApproval(kind, permissionMode)) {
+    if (
+      permissionMode != null &&
+      isBuiltinToolIncluded({
+        nativeName,
+        toolFiltering: builtinToolFiltering,
+      }) &&
+      builtinToolRequiresApproval(kind, permissionMode)
+    ) {
       config[nativeName] = { allowedDecisions: ['approve', 'reject'] };
     }
   }

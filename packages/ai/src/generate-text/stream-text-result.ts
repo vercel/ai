@@ -300,8 +300,9 @@ export interface StreamTextResult<
 
   /**
    * A text stream that returns only the generated text deltas. You can use it
-   * as either an AsyncIterable or a ReadableStream. When an error occurs, the
-   * stream will throw the error.
+   * as either an AsyncIterable or a ReadableStream. Error parts are not
+   * surfaced in this stream. Use the `onError` callback or `stream` to observe
+   * them.
    */
   readonly textStream: AsyncIterableStream<string>;
 
@@ -381,7 +382,7 @@ export interface StreamTextResult<
   pipeUIMessageStreamToResponse<UI_MESSAGE extends UIMessage>(
     response: ServerResponse,
     options?: UIMessageStreamResponseInit & UIMessageStreamOptions<UI_MESSAGE>,
-  ): void;
+  ): Promise<void>;
 
   /**
    * Writes text delta output to a Node.js response-like object.
@@ -395,7 +396,10 @@ export interface StreamTextResult<
    *   `pipeTextStreamToResponse` helpers from `'ai'` with `result.stream`
    *   instead. This method will be removed in the next major release.
    */
-  pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit): void;
+  pipeTextStreamToResponse(
+    response: ServerResponse,
+    init?: ResponseInit,
+  ): Promise<void>;
 
   /**
    * Converts the result to a streamed response object with a stream data part stream.

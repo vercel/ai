@@ -3,6 +3,7 @@ import {
   detectMediaType,
   getTopLevelMediaType,
   isFullMediaType,
+  MAX_ID3_TAG_BYTES,
 } from './detect-media-type';
 import { convertUint8ArrayToBase64 } from './uint8-utils';
 
@@ -397,6 +398,55 @@ describe('detectMediaType signature matching', () => {
         }),
       ).toBe('audio/mpeg');
     });
+
+    // Builds an ID3v2-tagged MP3 with a `tagBody`-byte tag and the frame sync
+    // placed immediately after the tag.
+    const buildID3Mp3 = (tagBody: number): Uint8Array => {
+      const bytes = new Uint8Array(10 + tagBody + 2);
+      bytes[0] = 0x49; // 'I'
+      bytes[1] = 0x44; // 'D'
+      bytes[2] = 0x33; // '3'
+      // synchsafe size = tagBody
+      bytes[6] = (tagBody >>> 21) & 0x7f;
+      bytes[7] = (tagBody >>> 14) & 0x7f;
+      bytes[8] = (tagBody >>> 7) & 0x7f;
+      bytes[9] = tagBody & 0x7f;
+      // MP3 frame sync, placed right after the tag
+      bytes[10 + tagBody] = 0xff;
+      bytes[10 + tagBody + 1] = 0xfb;
+      return bytes;
+    };
+
+    // At the size limit the frame still falls inside the scanned prefix, and
+    // the base64 and raw-byte paths must agree.
+    it('detects an ID3-tagged MP3 whose tag is at the scan limit', () => {
+      const atLimit = buildID3Mp3(MAX_ID3_TAG_BYTES);
+      expect(detectMediaType({ data: atLimit, topLevelType: 'audio' })).toBe(
+        'audio/mpeg',
+      );
+      expect(
+        detectMediaType({
+          data: convertUint8ArrayToBase64(atLimit),
+          topLevelType: 'audio',
+        }),
+      ).toBe('audio/mpeg');
+    });
+
+    // One byte past the limit the frame is beyond the scanned prefix, so it is
+    // not detected. This also proves the decode stops at the bound rather than
+    // reading the whole input; both representations must agree.
+    it('does not detect an ID3-tagged MP3 whose tag exceeds the scan limit', () => {
+      const overLimit = buildID3Mp3(MAX_ID3_TAG_BYTES + 1);
+      expect(
+        detectMediaType({ data: overLimit, topLevelType: 'audio' }),
+      ).toBeUndefined();
+      expect(
+        detectMediaType({
+          data: convertUint8ArrayToBase64(overLimit),
+          topLevelType: 'audio',
+        }),
+      ).toBeUndefined();
+    });
   });
 
   describe('WAV', () => {
@@ -544,7 +594,20 @@ describe('detectMediaType signature matching', () => {
 
   describe('MP4', () => {
     it('should detect MP4 from bytes', () => {
-      const mp4Bytes = new Uint8Array([0x66, 0x74, 0x79, 0x70]);
+      const mp4Bytes = new Uint8Array([
+        0x00,
+        0x00,
+        0x00,
+        0x1c, // box size
+        0x66,
+        0x74,
+        0x79,
+        0x70, // "ftyp"
+        0x4d,
+        0x34,
+        0x41,
+        0x20, // "M4A "
+      ]);
       expect(
         detectMediaType({
           data: mp4Bytes,
@@ -554,10 +617,23 @@ describe('detectMediaType signature matching', () => {
     });
 
     it('should detect MP4 from base64', () => {
-      const mp4Base64 = 'ZnR5cA'; // Base64 string starting with MP4 signature
+      const mp4Bytes = new Uint8Array([
+        0x00,
+        0x00,
+        0x00,
+        0x1c, // box size
+        0x66,
+        0x74,
+        0x79,
+        0x70, // "ftyp"
+        0x4d,
+        0x34,
+        0x41,
+        0x20, // "M4A "
+      ]);
       expect(
         detectMediaType({
-          data: mp4Base64,
+          data: convertUint8ArrayToBase64(mp4Bytes),
           topLevelType: 'audio',
         }),
       ).toBe('audio/mp4');

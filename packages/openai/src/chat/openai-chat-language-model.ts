@@ -26,7 +26,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
-import { throwIfOpenAIStreamErrorBeforeOutput } from '../openai-stream-error';
+import {
+  createOpenAIProviderStreamError,
+  throwIfOpenAIStreamErrorBeforeOutput,
+} from '../openai-stream-error';
 import {
   convertOpenAIChatUsage,
   type OpenAIChatUsage,
@@ -115,9 +118,24 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
 
     // AI SDK reasoning values map directly to the OpenAI reasoning values.
-    const resolvedReasoningEffort =
+    let resolvedReasoningEffort =
       openaiOptions.reasoningEffort ??
       (isCustomReasoning(reasoning) ? reasoning : undefined);
+
+    if (
+      resolvedReasoningEffort != null &&
+      modelCapabilities.supportedReasoningEfforts != null &&
+      !modelCapabilities.supportedReasoningEfforts.includes(
+        resolvedReasoningEffort,
+      )
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'reasoningEffort',
+        details: `${this.modelId} only supports the following reasoning efforts: ${modelCapabilities.supportedReasoningEfforts.join(', ')}`,
+      });
+      resolvedReasoningEffort = undefined;
+    }
 
     const isReasoningModel =
       openaiOptions.forceReasoning ?? modelCapabilities.isReasoningModel;
@@ -196,12 +214,26 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       reasoning_effort: resolvedReasoningEffort,
       service_tier: openaiOptions.serviceTier,
       prompt_cache_key: openaiOptions.promptCacheKey,
+      prompt_cache_options: openaiOptions.promptCacheOptions,
       prompt_cache_retention: openaiOptions.promptCacheRetention,
       safety_identifier: openaiOptions.safetyIdentifier,
 
       // messages:
       messages,
     };
+
+    if (
+      modelCapabilities.supportedReasoningEfforts != null &&
+      baseArgs.prompt_cache_retention != null
+    ) {
+      baseArgs.prompt_cache_retention = undefined;
+      warnings.push({
+        type: 'unsupported',
+        feature: 'promptCacheRetention',
+        details:
+          'promptCacheRetention is not supported by GPT-6 and later models; use promptCacheOptions instead',
+      });
+    }
 
     // remove unsupported settings for reasoning models
     // see https://platform.openai.com/docs/guides/reasoning#limitations
@@ -307,7 +339,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     // Validate priority processing support
     if (
-      openaiOptions.serviceTier === 'priority' &&
+      (openaiOptions.serviceTier === 'priority' ||
+        openaiOptions.serviceTier === 'fast') &&
       !modelCapabilities.supportsPriorityProcessing
     ) {
       warnings.push({
@@ -375,7 +408,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     for (const toolCall of choice.message.tool_calls ?? []) {
       content.push({
         type: 'tool-call' as const,
-        toolCallId: toolCall.id ?? generateId(),
+        toolCallId: toolCall.id || generateId(),
         toolName: toolCall.function.name,
         input: toolCall.function.arguments!,
       });
@@ -507,7 +540,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
             // handle error chunks:
             if ('error' in value) {
               finishReason = { unified: 'error', raw: undefined };
-              controller.enqueue({ type: 'error', error: value.error });
+              controller.enqueue({
+                type: 'error',
+                error:
+                  createOpenAIProviderStreamError(value.error) ?? value.error,
+              });
               return;
             }
 

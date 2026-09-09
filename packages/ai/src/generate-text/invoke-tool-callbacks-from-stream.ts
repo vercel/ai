@@ -1,5 +1,15 @@
 import type { Context, ModelMessage, ToolSet } from '@ai-sdk/provider-utils';
+import { createIdMap } from '../util/create-id-map';
+import { getOwn } from '../util/get-own';
 import type { LanguageModelStreamPart } from './stream-language-model-call';
+import {
+  isStreamRetryAttemptBoundaryPart,
+  type StreamRetryAttemptBoundaryPart,
+} from './stream-retry-attempt-boundary';
+
+type ToolCallbackStreamPart<TOOLS extends ToolSet> =
+  | LanguageModelStreamPart<TOOLS>
+  | StreamRetryAttemptBoundaryPart;
 
 export function invokeToolCallbacksFromStream<
   TOOLS extends ToolSet,
@@ -11,26 +21,30 @@ export function invokeToolCallbacksFromStream<
   abortSignal,
   runtimeContext,
 }: {
-  stream: ReadableStream<LanguageModelStreamPart<TOOLS>>;
+  stream: ReadableStream<ToolCallbackStreamPart<TOOLS>>;
   tools: TOOLS | undefined;
   stepInputMessages: Array<ModelMessage>;
   abortSignal: AbortSignal | undefined;
   runtimeContext: RUNTIME_CONTEXT;
-}): ReadableStream<LanguageModelStreamPart<TOOLS>> {
+}): ReadableStream<ToolCallbackStreamPart<TOOLS>> {
   if (tools == null) return stream;
 
-  const ongoingToolCallToolNames: Record<string, string> = {};
+  const ongoingToolCallToolNames: Record<string, string> = createIdMap();
 
   return stream.pipeThrough(
     new TransformStream({
       async transform(chunk, controller) {
         controller.enqueue(chunk);
 
+        if (isStreamRetryAttemptBoundaryPart(chunk)) {
+          return;
+        }
+
         switch (chunk.type) {
           case 'tool-input-start': {
             ongoingToolCallToolNames[chunk.id] = chunk.toolName;
 
-            const tool = tools?.[chunk.toolName];
+            const tool = getOwn(tools, chunk.toolName);
             if (tool?.onInputStart != null) {
               await tool.onInputStart({
                 toolCallId: chunk.id,
@@ -45,7 +59,7 @@ export function invokeToolCallbacksFromStream<
 
           case 'tool-input-delta': {
             const toolName = ongoingToolCallToolNames[chunk.id];
-            const tool = tools?.[toolName];
+            const tool = getOwn(tools, toolName);
 
             if (tool?.onInputDelta != null) {
               await tool.onInputDelta({
@@ -62,7 +76,7 @@ export function invokeToolCallbacksFromStream<
 
           case 'tool-call': {
             const toolName = ongoingToolCallToolNames[chunk.toolCallId];
-            const tool = tools?.[toolName];
+            const tool = getOwn(tools, toolName);
 
             delete ongoingToolCallToolNames[chunk.toolCallId];
 

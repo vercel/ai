@@ -4,9 +4,8 @@ import { DownloadError } from './download-error';
  * Validates that a URL is safe to download from, blocking private/internal addresses
  * to prevent SSRF attacks.
  *
- * Note: this performs string/literal-IP checks only. It does not resolve DNS, so a
- * hostname that resolves to a private address is not blocked here (see callers, which
- * should additionally constrain egress at the network layer when handling untrusted URLs).
+ * Note: this function performs string/literal-IP checks only. The Node.js
+ * download fetch additionally validates and pins DNS results at connect time.
  *
  * @param url - The URL string to validate.
  * @throws DownloadError if the URL is unsafe.
@@ -83,6 +82,34 @@ export function validateDownloadUrl(url: string): void {
   }
 }
 
+/**
+ * Validates an address returned by DNS before it is used to open a socket.
+ * This is intentionally not exported from the package entry point.
+ */
+export function validateDownloadAddress({
+  address,
+  family,
+  hostname,
+}: {
+  address: string;
+  family: number;
+  hostname: string;
+}): void {
+  const isUnsafe =
+    family === 4
+      ? !isIPv4(address) || isPrivateIPv4(address)
+      : family === 6
+        ? isPrivateIPv6(address)
+        : true;
+
+  if (isUnsafe) {
+    throw new DownloadError({
+      url: hostname,
+      message: `Hostname ${hostname} resolved to disallowed IP address ${address}`,
+    });
+  }
+}
+
 function isIPv4(hostname: string): boolean {
   const parts = hostname.split('.');
   if (parts.length !== 4) return false;
@@ -112,12 +139,18 @@ function isPrivateIPv4(ip: string): boolean {
   if (a === 172 && b >= 16 && b <= 31) return true;
   // 192.0.0.0/24 (IETF protocol assignments)
   if (a === 192 && b === 0 && c === 0) return true;
+  // 192.0.2.0/24 (TEST-NET-1, documentation)
+  if (a === 192 && b === 0 && c === 2) return true;
   // 192.168.0.0/16
   if (a === 192 && b === 168) return true;
   // 198.18.0.0/15 (benchmarking)
   if (a === 198 && (b === 18 || b === 19)) return true;
-  // 240.0.0.0/4 (reserved, includes 255.255.255.255 broadcast)
-  if (a >= 240) return true;
+  // 198.51.100.0/24 (TEST-NET-2, documentation)
+  if (a === 198 && b === 51 && c === 100) return true;
+  // 203.0.113.0/24 (TEST-NET-3, documentation)
+  if (a === 203 && b === 0 && c === 113) return true;
+  // 224.0.0.0/4 (multicast) and 240.0.0.0/4 (reserved, incl. 255.255.255.255 broadcast)
+  if (a >= 224) return true;
 
   return false;
 }
@@ -197,6 +230,12 @@ function isPrivateIPv6(ip: string): boolean {
 
   // ff00::/8 (multicast)
   if ((groups[0] & 0xff00) === 0xff00) return true;
+
+  // 2001:db8::/32 (documentation range, not globally routable)
+  if (groups[0] === 0x2001 && groups[1] === 0x0db8) return true;
+
+  // 3fff::/20 (documentation range, RFC 9637)
+  if (groups[0] === 0x3fff && (groups[1] & 0xf000) === 0x0000) return true;
 
   // Addresses that embed an IPv4 address in their last 32 bits. For these we
   // extract the embedded IPv4 and reuse the IPv4 private-range checks, so that

@@ -1,4 +1,5 @@
 import { beforeEach, describe, it, expect } from 'vitest';
+import type { JSONSchema7 } from '@ai-sdk/provider';
 import {
   GoogleRealtimeEventMapper,
   buildGoogleSessionConfig,
@@ -341,6 +342,55 @@ describe('GoogleRealtimeEventMapper', () => {
         type: 'custom',
         rawType: 'toolCallCancellation',
         raw,
+      });
+    });
+
+    it('maps goAway to a stable custom lifecycle event', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = { goAway: { timeLeft: '30s' } };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'custom',
+        rawType: 'goAway',
+        raw,
+      });
+    });
+
+    it('maps sessionResumptionUpdate to a stable custom lifecycle event', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = {
+        sessionResumptionUpdate: {
+          newHandle: 'resume-handle',
+          resumable: true,
+          lastConsumedClientMessageIndex: '42',
+        },
+      };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'custom',
+        rawType: 'sessionResumptionUpdate',
+        raw,
+      });
+    });
+
+    it('keeps generationComplete distinct from turnComplete', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = { serverContent: { generationComplete: true } };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'custom',
+        rawType: 'generationComplete',
+        raw,
+      });
+
+      const next = mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: { parts: [{ text: 'still turn zero' }] },
+        },
+      });
+      expect(next).toMatchObject({
+        type: 'text-delta',
+        responseId: 'google-resp-0',
       });
     });
 
@@ -704,6 +754,49 @@ describe('buildGoogleSessionConfig', () => {
         },
       ]
     `);
+  });
+
+  it('builds config with inlined local JSON Schema references', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        tools: [
+          {
+            type: 'function',
+            name: 'formatDate',
+            description: 'Format a date',
+            parameters: {
+              type: 'object',
+              properties: {
+                locale: { $ref: '#/$defs/Locale' },
+              },
+              required: ['locale'],
+              $defs: {
+                Locale: { type: 'string', enum: ['de', 'en'] },
+              },
+            } as JSONSchema7,
+          },
+        ],
+      },
+      'gemini-2.0-flash',
+    );
+
+    expect(result.tools).toEqual([
+      {
+        functionDeclarations: [
+          {
+            name: 'formatDate',
+            description: 'Format a date',
+            parameters: {
+              type: 'object',
+              properties: {
+                locale: { type: 'string', enum: ['de', 'en'] },
+              },
+              required: ['locale'],
+            },
+          },
+        ],
+      },
+    ]);
   });
 
   it('maps output modalities to uppercase', () => {

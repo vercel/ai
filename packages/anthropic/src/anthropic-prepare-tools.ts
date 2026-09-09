@@ -358,6 +358,9 @@ export async function prepareTools({
               name: 'advisor',
               model: args.model,
               ...(args.maxUses !== undefined && { max_uses: args.maxUses }),
+              ...(args.maxTokens !== undefined && {
+                max_tokens: args.maxTokens,
+              }),
               ...(args.caching !== undefined && { caching: args.caching }),
             });
             break;

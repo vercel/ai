@@ -324,6 +324,54 @@ describe('prepareResponsesTools', () => {
     });
   });
 
+  describe('image_generation', () => {
+    it('should prepare image_generation tool with no args', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'xai.image_generation',
+            name: 'image_generation',
+            args: {},
+          },
+        ],
+      });
+
+      expect(result.tools).toMatchInlineSnapshot(`
+        [
+          {
+            "action": undefined,
+            "type": "image_generation",
+          },
+        ]
+      `);
+    });
+
+    it('should prepare image_generation tool with action', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'xai.image_generation',
+            name: 'image_generation',
+            args: {
+              action: 'generate',
+            },
+          },
+        ],
+      });
+
+      expect(result.tools).toMatchInlineSnapshot(`
+        [
+          {
+            "action": "generate",
+            "type": "image_generation",
+          },
+        ]
+      `);
+    });
+  });
+
   describe('file_search', () => {
     it('should prepare file_search tool with vector store IDs', async () => {
       const result = await prepareResponsesTools({

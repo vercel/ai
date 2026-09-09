@@ -10,6 +10,7 @@ import {
   isFullMediaType,
   resolveFullMediaType,
   resolveProviderReference,
+  secureJsonParse,
 } from '@ai-sdk/provider-utils';
 import type {
   GoogleInteractionsContent,
@@ -19,6 +20,7 @@ import type {
   GoogleInteractionsInput,
   GoogleInteractionsStep,
   GoogleInteractionsTextContent,
+  GoogleInteractionsVideoProcessing,
 } from './google-interactions-prompt';
 
 export type GoogleInteractionsMediaResolution =
@@ -162,6 +164,44 @@ export function convertToGoogleInteractionsInput({
             if (fileBlock != null) {
               pendingModelOutput.push(fileBlock);
             }
+          } else if (part.type === 'custom') {
+            flushModelOutput();
+            const google = part.providerOptions?.google as
+              | {
+                  processingId?: unknown;
+                  processingCallId?: unknown;
+                  signature?: unknown;
+                }
+              | undefined;
+            const signature =
+              typeof google?.signature === 'string'
+                ? google.signature
+                : undefined;
+
+            if (
+              part.kind === 'google.processing_call' &&
+              typeof google?.processingId === 'string'
+            ) {
+              steps.push({
+                type: 'processing_call',
+                id: google.processingId,
+                ...(signature != null ? { signature } : {}),
+              });
+            } else if (
+              part.kind === 'google.processing_result' &&
+              typeof google?.processingCallId === 'string'
+            ) {
+              steps.push({
+                type: 'processing_result',
+                call_id: google.processingCallId,
+                ...(signature != null ? { signature } : {}),
+              });
+            } else {
+              warnings.push({
+                type: 'other',
+                message: `google.interactions: unsupported or invalid custom assistant content part "${part.kind}"; part dropped.`,
+              });
+            }
           } else if (part.type === 'tool-call') {
             flushModelOutput();
             const signature = part.providerOptions?.google?.signature as
@@ -262,6 +302,7 @@ function convertFilePartToContent({
       kind = 'video';
       break;
     case 'application':
+    case 'text':
       kind = 'document';
       break;
     default:
@@ -280,6 +321,8 @@ function convertFilePartToContent({
     mediaResolution != null && (kind === 'image' || kind === 'video')
       ? { resolution: mediaResolution }
       : {};
+  const processingField =
+    kind === 'video' ? getVideoProcessingField({ part, warnings }) : {};
 
   switch (part.data.type) {
     case 'data': {
@@ -289,6 +332,7 @@ function convertFilePartToContent({
         data: convertToBase64(part.data.data),
         mime_type: mimeType,
         ...resolutionField,
+        ...processingField,
       };
     }
     case 'url': {
@@ -299,6 +343,7 @@ function convertFilePartToContent({
           ? { mime_type: part.mediaType }
           : {}),
         ...resolutionField,
+        ...processingField,
       };
     }
     case 'reference': {
@@ -313,9 +358,65 @@ function convertFilePartToContent({
           ? { mime_type: part.mediaType }
           : {}),
         ...resolutionField,
+        ...processingField,
       };
     }
   }
+}
+
+function getVideoProcessingField({
+  part,
+  warnings,
+}: {
+  part: LanguageModelV4FilePart;
+  warnings: Array<SharedV4Warning>;
+}): { processing?: GoogleInteractionsVideoProcessing } {
+  const processing = (
+    part.providerOptions?.google as
+      | {
+          processing?: unknown;
+        }
+      | undefined
+  )?.processing;
+
+  if (processing == null) {
+    return {};
+  }
+
+  if (processing === 'agentic' || processing === 'static') {
+    return { processing };
+  }
+
+  if (
+    typeof processing === 'object' &&
+    !Array.isArray(processing) &&
+    (processing as { type?: unknown }).type === 'static'
+  ) {
+    const config = processing as {
+      startOffset?: unknown;
+      endOffset?: unknown;
+      fps?: unknown;
+    };
+    return {
+      processing: {
+        type: 'static',
+        ...(typeof config.startOffset === 'number'
+          ? { start_offset: config.startOffset }
+          : {}),
+        ...(typeof config.endOffset === 'number'
+          ? { end_offset: config.endOffset }
+          : {}),
+        ...(typeof config.fps === 'number' ? { fps: config.fps } : {}),
+      },
+    };
+  }
+
+  warnings.push({
+    type: 'other',
+    message:
+      'google.interactions: invalid providerOptions.google.processing on video file part; expected "agentic", "static", or a static processing configuration. Option dropped.',
+  });
+  return {};
 }
 
 /*
@@ -376,7 +477,7 @@ function compactPromptForPreviousInteraction({
 
 function safeParseToolArgs(input: string): Record<string, unknown> {
   try {
-    const parsed = JSON.parse(input);
+    const parsed = secureJsonParse(input);
     if (
       parsed != null &&
       typeof parsed === 'object' &&

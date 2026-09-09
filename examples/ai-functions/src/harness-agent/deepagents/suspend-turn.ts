@@ -1,8 +1,10 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { deepAgents } from '@ai-sdk/harness-deepagents';
+import { createDeepAgents } from './_create';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
+
+const deepAgents = createDeepAgents();
 
 const prompt = `
 Create a complete retro Snake game in this workspace.
@@ -31,7 +33,6 @@ run(async () => {
     sandbox,
   });
 
-  let exitCode = 0;
   let session = await agent.createSession();
   try {
     console.log('--- turn 1: stream ---');
@@ -55,11 +56,7 @@ run(async () => {
 
     console.log('finishReason:', await continued.finishReason);
     console.log('usage:', await continued.usage);
-  } catch (err) {
-    exitCode = 1;
-    console.error('[example] failed:', err);
   } finally {
     await session.destroy();
-    process.exit(exitCode);
   }
 });

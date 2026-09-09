@@ -13,6 +13,7 @@
   ],
   "references": [
     { "path": "../harness" },
-    { "path": "../provider-utils" }
+    { "path": "../provider-utils" },
+    { "path": "../sandbox-just-bash" }
   ]
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { serializeModelOptions } from './serialize-model-options';
+import { SerializationError } from './serialization-error';
 
 type TestConfig = Record<string, unknown> & {
   headers?: () => Record<string, string | undefined>;
@@ -103,7 +104,7 @@ describe('serializeModelOptions', () => {
           headers: async () => ({ 'x-api-key': 'sk-test' }),
         },
       }),
-    ).toThrow('Promise returned from resolveSync');
+    ).toThrow(SerializationError);
   });
 
   it('throws when headers is a function returning a Promise', () => {
@@ -115,7 +116,24 @@ describe('serializeModelOptions', () => {
           headers: () => Promise.resolve({ 'x-api-key': 'sk-test' }),
         },
       }),
-    ).toThrow('Promise returned from resolveSync');
+    ).toThrow('Cannot serialize asynchronous model options.');
+  });
+
+  it('marks serialization errors for cross-realm detection', () => {
+    let serializationError: unknown;
+
+    try {
+      serializeModelOptions({
+        modelId: 'model',
+        config: {
+          headers: async () => ({}),
+        },
+      });
+    } catch (error) {
+      serializationError = error;
+    }
+
+    expect(SerializationError.isInstance(serializationError)).toBe(true);
   });
 
   it('filters out class instances', () => {

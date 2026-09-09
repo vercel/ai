@@ -1,0 +1,23 @@
+{
+  "task": "transcribe",
+  "duration": 3.2,
+  "text": "Hello from Alice. Hello from Bob.",
+  "segments": [
+    {
+      "type": "transcript.text.segment",
+      "id": "seg_001",
+      "start": 0,
+      "end": 1.5,
+      "text": "Hello from Alice.",
+      "speaker": "A"
+    },
+    {
+      "type": "transcript.text.segment",
+      "id": "seg_002",
+      "start": 1.5,
+      "end": 3.2,
+      "text": "Hello from Bob.",
+      "speaker": "B"
+    }
+  ]
+}

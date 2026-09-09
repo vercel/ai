@@ -54,11 +54,6 @@ export function frameInstructions(
   );
 }
 
-/** POSIX shell single-quote escape. */
-export function shellQuote(value: string): string {
-  return `'${value.replace(/'/g, `'\\''`)}'`;
-}
-
 /** Serialize a tool output to the string Pi feeds back to the model. */
 export function serializeToolOutput(output: unknown): string {
   if (typeof output === 'string') {

@@ -9,9 +9,15 @@ import type {
 } from '@ai-sdk/provider-utils';
 import type { TimeoutConfiguration } from '../prompt/request-options';
 import type { Telemetry, TelemetryDispatcher } from '../telemetry/telemetry';
+import { getOwn } from '../util/get-own';
 import { executeToolCall } from './execute-tool-call';
+import { isToolExecutionAllowedFinishReason } from './is-tool-execution-allowed-finish-reason';
 import { resolveToolApproval } from './resolve-tool-approval';
 import type { LanguageModelStreamPart } from './stream-language-model-call';
+import {
+  isStreamRetryAttemptBoundaryPart,
+  type StreamRetryAttemptBoundaryPart,
+} from './stream-retry-attempt-boundary';
 import { maybeSignApproval } from './tool-approval-signature';
 import type { ToolApprovalConfiguration } from './tool-approval-configuration';
 import type { TypedToolCall } from './tool-call';
@@ -28,7 +34,12 @@ export type ToolExecutionEndStreamPart = {
 
 export type ExecuteToolsStreamPart<TOOLS extends ToolSet = ToolSet> =
   | LanguageModelStreamPart<TOOLS>
-  | ToolExecutionEndStreamPart;
+  | ToolExecutionEndStreamPart
+  | StreamRetryAttemptBoundaryPart;
+
+type ExecuteToolsInputStreamPart<TOOLS extends ToolSet> =
+  | LanguageModelStreamPart<TOOLS>
+  | StreamRetryAttemptBoundaryPart;
 
 export function executeToolsFromStream<
   TOOLS extends ToolSet,
@@ -51,7 +62,7 @@ export function executeToolsFromStream<
   executeToolInTelemetryContext,
   runInTracingChannelSpan,
 }: {
-  stream: ReadableStream<LanguageModelStreamPart<TOOLS>>;
+  stream: ReadableStream<ExecuteToolsInputStreamPart<TOOLS>>;
   tools: TOOLS | undefined;
   callId: string;
   messages: ModelMessage[];
@@ -75,17 +86,22 @@ export function executeToolsFromStream<
   // forward stream
   return stream.pipeThrough(
     new TransformStream<
-      LanguageModelStreamPart<TOOLS>,
+      ExecuteToolsInputStreamPart<TOOLS>,
       ExecuteToolsStreamPart<TOOLS>
     >({
       async transform(
-        chunk: LanguageModelStreamPart<TOOLS>,
+        chunk: ExecuteToolsInputStreamPart<TOOLS>,
         controller: TransformStreamDefaultController<
           ExecuteToolsStreamPart<TOOLS>
         >,
       ) {
         // immediately forward all chunks
         controller.enqueue(chunk);
+
+        if (isStreamRetryAttemptBoundaryPart(chunk)) {
+          toolCallsToExecute.length = 0;
+          return;
+        }
 
         const chunkType = chunk.type;
 
@@ -95,7 +111,7 @@ export function executeToolsFromStream<
               return;
             }
 
-            const tool = tools?.[chunk.toolName];
+            const tool = getOwn(tools, chunk.toolName);
 
             if (tool == null) {
               // ignore tool calls for tools that are not available,
@@ -139,6 +155,9 @@ export function executeToolsFromStream<
                   type: 'tool-approval-request',
                   approvalId,
                   toolCall: chunk,
+                  ...(toolApprovalStatus.reason != null
+                    ? { reason: toolApprovalStatus.reason }
+                    : {}),
                   ...(signature != null ? { signature } : {}),
                 });
 
@@ -196,6 +215,10 @@ export function executeToolsFromStream<
           }
 
           case 'model-call-end': {
+            if (!isToolExecutionAllowedFinishReason(chunk.finishReason)) {
+              return;
+            }
+
             await Promise.all(
               toolCallsToExecute.map(async toolCall => {
                 try {

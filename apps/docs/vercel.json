@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "pnpm build:site",
+  "git": {
+    "deploymentEnabled": {
+      "release-v*": false,
+      "changeset-release/release-v*": false,
+      "changesets-ghcommit-temp/**": false,
+      "backport-pr-*": false
+    }
+  }
+}

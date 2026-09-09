@@ -3,6 +3,10 @@ import fs from 'node:fs';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createOpenAI } from '../openai-provider';
 import { OpenAIImageModel } from './openai-image-model';
+import type {
+  OpenAIImageModelEditOptions,
+  OpenAIImageModelGenerationOptions,
+} from './openai-image-model-options';
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('../version', () => ({
@@ -46,6 +50,39 @@ function prepareEditFixtureResponse(
 }
 
 describe('doGenerate', () => {
+  describe.each(['gpt-image-2.5-flare', 'gpt-image-2.5-sunburst'])(
+    '%s quality',
+    modelId => {
+      it.each(['xhigh', 'max'] as const)(
+        'should pass %s quality',
+        async quality => {
+          prepareJsonFixtureResponse('openai-image');
+
+          await provider.image(modelId).doGenerate({
+            prompt,
+            files: undefined,
+            mask: undefined,
+            n: 1,
+            size: '1024x1024',
+            aspectRatio: undefined,
+            seed: undefined,
+            providerOptions: {
+              openai: { quality } satisfies OpenAIImageModelGenerationOptions,
+            },
+          });
+
+          expect(await server.calls[0].requestBodyJson).toStrictEqual({
+            model: modelId,
+            prompt,
+            n: 1,
+            size: '1024x1024',
+            quality,
+          });
+        },
+      );
+    },
+  );
+
   it('should pass the model and the settings', async () => {
     prepareJsonFixtureResponse('openai-image');
 
@@ -201,6 +238,9 @@ describe('doGenerate', () => {
     const defaultModel = provider.image('dall-e-2');
     expect(defaultModel.maxImagesPerCall).toBe(10);
 
+    const futureGptImageModel = provider.image('gpt-image-99');
+    expect(futureGptImageModel.maxImagesPerCall).toBe(10);
+
     const unknownModel = provider.image('unknown-model' as any);
     expect(unknownModel.maxImagesPerCall).toBe(1);
   });
@@ -316,6 +356,33 @@ describe('doGenerate', () => {
       await server.calls[server.calls.length - 1].requestBodyJson;
     expect(requestBody).toStrictEqual({
       model: 'gpt-image-2',
+      prompt,
+      n: 1,
+      size: '1024x1024',
+    });
+
+    expect(requestBody).not.toHaveProperty('response_format');
+  });
+
+  it('should not include response_format for future gpt-image models', async () => {
+    prepareJsonFixtureResponse('openai-image');
+
+    const gptImageModel = provider.image('gpt-image-99');
+    await gptImageModel.doGenerate({
+      prompt,
+      files: undefined,
+      mask: undefined,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    const requestBody =
+      await server.calls[server.calls.length - 1].requestBodyJson;
+    expect(requestBody).toStrictEqual({
+      model: 'gpt-image-99',
       prompt,
       n: 1,
       size: '1024x1024',
@@ -571,6 +638,42 @@ describe('doGenerate', () => {
 });
 
 describe('doGenerate - image editing', () => {
+  describe.each(['gpt-image-2.5-flare', 'gpt-image-2.5-sunburst'])(
+    '%s quality',
+    modelId => {
+      it.each(['xhigh', 'max'] as const)(
+        'should pass %s quality',
+        async quality => {
+          prepareEditFixtureResponse('openai-image-edit');
+
+          await provider.image(modelId).doGenerate({
+            prompt,
+            files: [
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: new Uint8Array([137, 80, 78, 71]),
+              },
+            ],
+            mask: undefined,
+            n: 1,
+            size: '1024x1024',
+            aspectRatio: undefined,
+            seed: undefined,
+            providerOptions: {
+              openai: { quality } satisfies OpenAIImageModelEditOptions,
+            },
+          });
+
+          expect(await server.calls[0].requestBodyMultipart).toMatchObject({
+            model: modelId,
+            quality,
+          });
+        },
+      );
+    },
+  );
+
   it('should call /images/edits endpoint when files are provided', async () => {
     prepareEditFixtureResponse('openai-image-edit');
 

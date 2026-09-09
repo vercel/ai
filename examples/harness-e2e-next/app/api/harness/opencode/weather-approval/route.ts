@@ -1,10 +1,12 @@
 import { weatherApprovalOpenCodeHarnessAgent } from '@/agent/harness/opencode/weather-approval-agent';
+import { getHarnessE2EErrorMessage } from '@/util/harness-ui-stream';
 import {
   detachAndPersist,
   resumeOrCreateSession,
 } from '@/util/harness-resume-store';
 import {
   convertToModelMessages,
+  createUIMessageStream,
   createUIMessageStreamResponse,
   toUIMessageStream,
   type UIMessage,
@@ -22,21 +24,29 @@ export async function POST(request: Request) {
   const chatId = body.id;
   const messages = await convertToModelMessages(body.messages);
 
-  const session = await resumeOrCreateSession(
-    weatherApprovalOpenCodeHarnessAgent,
-    chatId,
-  );
-
-  const result = await weatherApprovalOpenCodeHarnessAgent.stream({
-    session,
-    messages,
-  });
-
   return createUIMessageStreamResponse({
-    stream: toUIMessageStream({
-      stream: result.stream,
-      originalMessages: body.messages,
-      onFinish: () => detachAndPersist(chatId, session),
+    stream: createUIMessageStream({
+      execute: async ({ writer }) => {
+        const session = await resumeOrCreateSession(
+          weatherApprovalOpenCodeHarnessAgent,
+          chatId,
+        );
+
+        const result = await weatherApprovalOpenCodeHarnessAgent.stream({
+          session,
+          messages,
+        });
+
+        writer.merge(
+          toUIMessageStream({
+            stream: result.stream,
+            onError: getHarnessE2EErrorMessage,
+            originalMessages: body.messages,
+            onFinish: () => detachAndPersist(chatId, session),
+          }),
+        );
+      },
+      onError: getHarnessE2EErrorMessage,
     }),
   });
 }

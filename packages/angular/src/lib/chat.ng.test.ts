@@ -7,6 +7,9 @@ import {
   DefaultChatTransport,
   isToolUIPart,
   TextStreamChatTransport,
+  type ChatTransport,
+  type UIMessage,
+  type UIMessageChunk,
 } from 'ai';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Chat } from './chat.ng';
@@ -31,6 +34,71 @@ function createFileList(...files: File[]): FileList {
 
 const server = createTestServer({
   '/api/chat': {},
+});
+
+function createEmptyTransport<UI_MESSAGE extends UIMessage>() {
+  const sendMessages: ChatTransport<UI_MESSAGE>['sendMessages'] = vi.fn(
+    async () =>
+      new ReadableStream<UIMessageChunk>({
+        start(controller) {
+          controller.close();
+        },
+      }),
+  );
+
+  const transport: ChatTransport<UI_MESSAGE> = {
+    sendMessages,
+    async reconnectToStream() {
+      return null;
+    },
+  };
+
+  return { transport, sendMessages };
+}
+
+describe('Chat', () => {
+  type MessageWithCallback = UIMessage<{
+    callback: () => void;
+  }>;
+
+  it('submits a user message with non-cloneable metadata', async () => {
+    const { transport, sendMessages } =
+      createEmptyTransport<MessageWithCallback>();
+    const chat = new Chat<MessageWithCallback>({
+      generateId: mockId(),
+      transport,
+    });
+
+    await chat.sendMessage({
+      text: 'hello',
+      metadata: { callback: () => undefined },
+    });
+
+    expect(chat.error).toBeUndefined();
+    expect(sendMessages).toHaveBeenCalledOnce();
+  });
+
+  it('resubmits an assistant message with non-cloneable metadata', async () => {
+    const { transport, sendMessages } =
+      createEmptyTransport<MessageWithCallback>();
+    const chat = new Chat<MessageWithCallback>({
+      generateId: mockId(),
+      messages: [
+        {
+          id: 'assistant-message',
+          role: 'assistant',
+          metadata: { callback: () => undefined },
+          parts: [{ type: 'text', text: 'previous response' }],
+        },
+      ],
+      transport,
+    });
+
+    await chat.sendMessage();
+
+    expect(chat.error).toBeUndefined();
+    expect(sendMessages).toHaveBeenCalledOnce();
+  });
 });
 
 describe('data protocol stream', () => {

@@ -32,7 +32,6 @@ type ZodShape = Record<string, z.ZodTypeAny>;
 
 const schemas: ToolSchema[] = JSON.parse(process.env.TOOL_SCHEMAS || '[]');
 const relayUrl = process.env.TOOL_RELAY_URL || '';
-const relayToken = process.env.TOOL_RELAY_TOKEN || '';
 
 if (!schemas.length || !relayUrl) {
   process.stderr.write(
@@ -56,7 +55,6 @@ for (const schema of schemas) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(relayToken ? { Authorization: `Bearer ${relayToken}` } : {}),
           },
           body: JSON.stringify({ requestId, toolName: schema.name, input }),
         });

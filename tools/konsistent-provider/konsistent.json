@@ -30,6 +30,12 @@
         },
         "aisdk/provider-model-file-with-subtype-must-export-model-class",
         "aisdk/provider-video-model-file-must-export-model-class",
+        {
+          "use": "aisdk/provider-model-file-must-have-matching-model-options-file",
+          "excludeFiles": ["${providerId}-video-model.ts"]
+        },
+        "aisdk/provider-model-file-with-subtype-must-have-matching-model-options-file",
+        "aisdk/provider-video-model-file-must-have-matching-model-options-file",
         "aisdk/provider-language-model-file-must-import-workflow-serialization",
         "aisdk/provider-model-options-file-must-export-model-options-type",
         "aisdk/provider-model-options-file-with-subtype-must-export-model-options-type"

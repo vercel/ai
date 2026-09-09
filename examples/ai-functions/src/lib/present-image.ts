@@ -1,4 +1,4 @@
-import type { Experimental_GeneratedImage as GeneratedImage } from 'ai';
+import type { GeneratedFile } from 'ai';
 import fs from 'node:fs';
 import imageType from 'image-type';
 import path from 'node:path';
@@ -13,7 +13,7 @@ const OUTPUT_DIR = 'output';
  * timestamps.
  * @param images - An array of generated images to process and display.
  */
-export async function presentImages(images: GeneratedImage[]) {
+export async function presentImages(images: GeneratedFile[]) {
   const timestamp = Date.now();
   for (const [index, image] of images.entries()) {
     const srcBuffer = image.uint8Array;

@@ -23,6 +23,7 @@ export class GatewayResponseError extends GatewayError {
     validationError,
     cause,
     generationId,
+    isRetryable,
   }: {
     message?: string;
     statusCode?: number;
@@ -30,8 +31,9 @@ export class GatewayResponseError extends GatewayError {
     validationError?: TypeValidationError;
     cause?: unknown;
     generationId?: string;
+    isRetryable?: boolean;
   } = {}) {
-    super({ message, statusCode, cause, generationId });
+    super({ message, statusCode, cause, generationId, isRetryable });
     this.response = response;
     this.validationError = validationError;
   }

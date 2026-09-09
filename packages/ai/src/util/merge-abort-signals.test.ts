@@ -1,7 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mergeAbortSignals } from './merge-abort-signals';
 
 describe('mergeAbortSignals', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it('should return a signal that is initially not aborted', () => {
     const controller1 = new AbortController();
     const controller2 = new AbortController();
@@ -159,6 +163,20 @@ describe('mergeAbortSignals', () => {
 
   it('should return the original signal when only one signal provided', () => {
     const controller = new AbortController();
+
+    const merged = mergeAbortSignals(controller.signal);
+
+    expect(merged).toBe(controller.signal);
+  });
+
+  it('should accept a signal when the global AbortSignal is not a constructor', () => {
+    const controller = new AbortController();
+    const nativeAbortSignal = AbortSignal;
+
+    vi.stubGlobal('AbortSignal', {
+      any: nativeAbortSignal.any,
+      timeout: nativeAbortSignal.timeout,
+    });
 
     const merged = mergeAbortSignals(controller.signal);
 

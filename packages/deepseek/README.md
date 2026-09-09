@@ -35,7 +35,7 @@ import { deepseek } from '@ai-sdk/deepseek';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: deepseek('deepseek-chat'),
+  model: deepseek('deepseek-v4-flash'),
   prompt: 'Write a JavaScript function that sorts a list:',
 });
 ```

@@ -4,6 +4,7 @@ import type { WeatherOpenCodeHarnessAgentMessage } from '@/agent/harness/opencod
 import { Response } from '@/components/ai-elements/response';
 import { useChatId } from '@/components/chat-id-provider';
 import ChatInput from '@/components/chat-input';
+import AskUserQuestionsToolView from '@/components/tool/ask-user-questions-tool-view';
 import DynamicToolView from '@/components/tool/dynamic-tool-view';
 import HarnessBashToolView from '@/components/tool/harness-bash-tool-view';
 import HarnessFileToolView from '@/components/tool/harness-file-tool-view';
@@ -13,6 +14,7 @@ import { useChat } from '@ai-sdk/react';
 import {
   DefaultChatTransport,
   lastAssistantMessageIsCompleteWithApprovalResponses,
+  lastAssistantMessageIsCompleteWithToolCalls,
 } from 'ai';
 
 export default function WeatherOpenCodeHarnessChat({
@@ -30,12 +32,15 @@ export default function WeatherOpenCodeHarnessChat({
     messages,
     regenerate,
     addToolApprovalResponse,
+    addToolOutput,
   } = useChat<WeatherOpenCodeHarnessAgentMessage>({
     id: chatId,
     transport: new DefaultChatTransport({
       api: apiRoute,
     }),
-    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
+    sendAutomaticallyWhen: options =>
+      lastAssistantMessageIsCompleteWithToolCalls(options) ||
+      lastAssistantMessageIsCompleteWithApprovalResponses(options),
   });
 
   return (
@@ -91,6 +96,21 @@ export default function WeatherOpenCodeHarnessChat({
                     key={index}
                     invocation={part}
                     addToolApprovalResponse={addToolApprovalResponse}
+                  />
+                );
+              }
+              case 'tool-askUserQuestions': {
+                return (
+                  <AskUserQuestionsToolView
+                    key={part.toolCallId}
+                    invocation={part}
+                    onResponse={({ toolCallId, output }) =>
+                      addToolOutput({
+                        tool: 'askUserQuestions',
+                        toolCallId,
+                        output,
+                      })
+                    }
                   />
                 );
               }

@@ -14,9 +14,9 @@
   "dependencies": {
     "@ai-sdk/angular": "workspace:*",
     "@ai-sdk/openai": "workspace:*",
-    "@angular/common": "^20.3.25",
-    "@angular/compiler": "^20.3.25",
-    "@angular/core": "^20.3.25",
+    "@angular/common": "^20.3.27",
+    "@angular/compiler": "^20.3.27",
+    "@angular/core": "^20.3.27",
     "@angular/forms": "^20.3.25",
     "@angular/platform-browser": "^20.3.25",
     "@angular/platform-browser-dynamic": "^20.3.25",
@@ -34,7 +34,7 @@
     "@types/express": "5.0.0",
     "@types/node": "22.19.19",
     "concurrently": "^9.2.1",
-    "tsx": "4.19.2",
+    "tsx": "4.23.12",
     "typescript": "5.8.3"
   }
 }

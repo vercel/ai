@@ -1,4 +1,5 @@
 import type { APICallError } from '@ai-sdk/provider';
+import { secureJsonParse } from '@ai-sdk/provider-utils';
 
 export function extractApiCallResponse(error: APICallError): unknown {
   if (error.data !== undefined) {
@@ -6,7 +7,7 @@ export function extractApiCallResponse(error: APICallError): unknown {
   }
   if (error.responseBody != null) {
     try {
-      return JSON.parse(error.responseBody);
+      return secureJsonParse(error.responseBody);
     } catch {
       return error.responseBody;
     }

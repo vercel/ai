@@ -84,7 +84,7 @@ describe('asVideoModelV4', () => {
 
       const result = asVideoModelV4(v3Model);
 
-      const response = await result.doGenerate({
+      const response = await result.doGenerate!({
         prompt: 'a test video',
         n: 1,
         aspectRatio: undefined,
@@ -94,6 +94,8 @@ describe('asVideoModelV4', () => {
         seed: undefined,
         generateAudio: undefined,
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         providerOptions: {},
       });
 

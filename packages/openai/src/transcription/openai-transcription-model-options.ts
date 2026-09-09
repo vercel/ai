@@ -12,6 +12,7 @@ export type OpenAITranscriptionModelId =
   | 'gpt-4o-mini-transcribe-2025-12-15'
   | 'gpt-4o-transcribe'
   | 'gpt-4o-transcribe-diarize'
+  | 'gpt-realtime-whisper'
   | (string & {});
 
 // https://platform.openai.com/docs/api-reference/audio/createTranscription
@@ -47,6 +48,47 @@ export const openAITranscriptionModelOptions = lazySchema(() =>
       timestampGranularities: z
         .array(z.enum(['word', 'segment']))
         .default(['segment'])
+        .optional(),
+
+      /**
+       * The format of the transcription response.
+       */
+      responseFormat: z
+        .enum(['json', 'verbose_json', 'diarized_json'])
+        .optional(),
+
+      /**
+       * Controls how the audio is split into chunks before transcription.
+       */
+      chunkingStrategy: z
+        .union([
+          z.literal('auto'),
+          z.object({
+            type: z.literal('server_vad'),
+            threshold: z.number().min(0).max(1).optional(),
+            prefixPaddingMs: z.number().int().min(0).optional(),
+            silenceDurationMs: z.number().int().min(0).optional(),
+          }),
+        ])
+        .optional(),
+
+      /**
+       * Options for streaming transcription models such as `gpt-realtime-whisper`.
+       */
+      streaming: z
+        .object({
+          /**
+           * Latency/accuracy tradeoff for realtime transcription.
+           */
+          delay: z
+            .enum(['minimal', 'low', 'medium', 'high', 'xhigh'])
+            .optional(),
+
+          /**
+           * Additional fields to include in realtime transcription events.
+           */
+          include: z.array(z.string()).optional(),
+        })
         .optional(),
     }),
   ),

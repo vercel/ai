@@ -1,11 +1,13 @@
 import { createBaseten } from '@ai-sdk/baseten';
 import { embedMany } from 'ai';
+import { requireEnv } from '../../lib/require-env';
 import { run } from '../../lib/run';
 
 run(async () => {
-  // Using Performance Client with custom model URL for batch embeddings
-  // Performance Client automatically handles batching and parallel processing
-  const EMBEDDING_MODEL_ID = '<model-id>'; // e.g. 03y7n6e3
+  // Plain HTTP against a dedicated BEI deployment. `embedMany` splits inputs
+  // into chunks of 128 and runs them in parallel, so the list below could be
+  // arbitrarily long.
+  const EMBEDDING_MODEL_ID = requireEnv('EMBEDDING_MODEL_ID'); // e.g. 03y7n6e3
   const EMBEDDING_MODEL_URL = `https://model-${EMBEDDING_MODEL_ID}.api.baseten.co/environments/production/sync`;
 
   const baseten = createBaseten({
