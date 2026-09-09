@@ -763,4 +763,39 @@ describe('amazon-bedrock-anthropic-provider', () => {
       'https://bedrock-runtime.us-east-1.amazonaws.com/model/us.anthropic.claude-3-5-sonnet-20240620-v1%3A0/invoke',
     );
   });
+
+  it('should use mantle endpoint correctly', () => {
+    const provider = createAmazonBedrockAnthropic({
+      region: 'us-east-1',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+      endpoint: 'mantle',
+    });
+    provider('test-model-id');
+
+    const constructorCall = vi.mocked(AnthropicLanguageModel).mock.calls[
+      vi.mocked(AnthropicLanguageModel).mock.calls.length - 1
+    ];
+    const config = constructorCall[1];
+
+    const url = config.buildRequestUrl?.(
+      'https://bedrock-mantle.us-east-1.api.aws/anthropic',
+      false,
+    );
+    expect(url).toBe(
+      'https://bedrock-mantle.us-east-1.api.aws/anthropic/v1/messages',
+    );
+
+    const transformedBody = config.transformRequestBody?.(
+      {
+        model: 'test-model-id',
+        messages: [{ role: 'user', content: 'Hello' }],
+        max_tokens: 1024,
+      },
+      new Set(),
+    );
+
+    expect(transformedBody).toHaveProperty('model', 'test-model-id');
+    expect(transformedBody).not.toHaveProperty('anthropic_version');
+  });
 });
