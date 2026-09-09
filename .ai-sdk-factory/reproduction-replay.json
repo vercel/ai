@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "issueId": 17930,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/mistral-reasoning-history.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/tsconfig.json",
+    "examples/ai-functions/src/reproduction/mistral-reasoning-history.ts",
+    "packages/mistral/src/__fixtures__/mistral-reasoning-history-live.json",
+    "packages/mistral/src/mistral-chat-language-model.test.ts",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "BUG REPRODUCED: Mistral reasoning history was flattened into one plain string and the visible answer was appended to the reasoning text."
+  }
+}
