@@ -1,6 +1,9 @@
 import fs from 'node:fs';
 
-import type { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import {
+  InvalidResponseDataError,
+  type LanguageModelV2Prompt,
+} from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
@@ -231,6 +234,41 @@ describe('doGenerate', () => {
       },
     };
   }
+
+  it('should throw an invalid response error when response has no choices', async () => {
+    const response = {
+      id: 'chatcmpl-empty',
+      object: 'chat.completion',
+      created: 1711115037,
+      model: 'gpt-3.5-turbo-0125',
+      choices: [],
+      usage: {
+        prompt_tokens: 4,
+        total_tokens: 4,
+        completion_tokens: 0,
+      },
+    };
+
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: response,
+    };
+
+    let error: unknown;
+    try {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+    } catch (caughtError) {
+      error = caughtError;
+    }
+
+    expect(InvalidResponseDataError.isInstance(error)).toBe(true);
+    expect(error).toMatchObject({
+      data: response,
+      message: 'Response did not contain any choices.',
+    });
+  });
 
   it('should extract text response', async () => {
     prepareJsonResponse({ content: 'Hello, World!' });
