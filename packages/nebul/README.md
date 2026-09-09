@@ -1,6 +1,6 @@
 # AI SDK - Nebul Provider
 
-The **Nebul provider** for the [AI SDK](https://ai-sdk.dev/docs) contains language, embedding, image, transcription, speech, and reranking model support for the [Nebul Inference API](https://docs.nebul.com/docs/inference-api).
+The **Nebul provider** for the [AI SDK](https://ai-sdk.dev/docs) contains language, embedding, image, transcription, speech, and reranking model support for the [Nebul Inference API](https://docs.nebul.io/docs/inference-api).
 
 > **Deploying to Vercel?** With Vercel's AI Gateway you can access Nebul (and hundreds of models from other providers) without installing an additional provider package. [Get started with AI Gateway](https://vercel.com/ai-gateway).
 
