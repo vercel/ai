@@ -96,7 +96,7 @@ export async function listBatches({
 }: ListBatchesOptions = {}): Promise<ListBatchesResult> {
   const batchApi = resolveBatchApi(provider);
 
-  const doListBatches = batchApi.doListBatches;
+  const doListBatches = batchApi.doListBatches?.bind(batchApi);
   if (doListBatches == null) {
     throw new UnsupportedFunctionalityError({
       functionality: 'batch listing',

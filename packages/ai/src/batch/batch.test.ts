@@ -103,6 +103,18 @@ describe('cancelBatch', () => {
 });
 
 describe('listBatches', () => {
+  it('preserves the batch API as the method receiver', async () => {
+    const batchApi = createMockBatchApi();
+    batchApi.doListBatches = async function () {
+      expect(this).toBe(batchApi);
+      return { batches: [] };
+    };
+
+    await expect(
+      listBatches({ provider: batchApi, maxRetries: 0 }),
+    ).resolves.toEqual({ batches: [] });
+  });
+
   it('returns normalized batch references and the next cursor', async () => {
     const batchApi = createMockBatchApi({
       doListBatches: async options => {
