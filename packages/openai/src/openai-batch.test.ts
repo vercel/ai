@@ -12,6 +12,7 @@ const urls = {
   files: 'https://api.openai.com/v1/files',
   batches: 'https://api.openai.com/v1/batches',
   batch: 'https://api.openai.com/v1/batches/batch_123',
+  cancel: 'https://api.openai.com/v1/batches/batch_123/cancel',
   output: 'https://api.openai.com/v1/files/file-output/content',
   errors: 'https://api.openai.com/v1/files/file-errors/content',
 } as const;
@@ -20,6 +21,7 @@ const server = createTestServer({
   [urls.files]: {},
   [urls.batches]: {},
   [urls.batch]: {},
+  [urls.cancel]: {},
   [urls.output]: {},
   [urls.errors]: {},
 });
@@ -396,6 +398,136 @@ describe('OpenAI batch service', () => {
     expect(mockFetch.mock.calls[1][1].signal).toBe(abortController.signal);
   });
 
+  it('cancels a batch', async () => {
+    server.urls[urls.cancel].response = {
+      type: 'json-value',
+      body: batchResponse({ status: 'cancelling' }),
+    };
+    const mockFetch = vi.fn().mockImplementation(globalThis.fetch);
+    const abortController = new AbortController();
+    const batch = createOpenAI({
+      apiKey: 'test-api-key',
+      headers: { 'Provider-Header': 'provider' },
+      fetch: mockFetch,
+    }).experimental_batch();
+
+    await expect(
+      batch.doCancelBatch!({
+        batchId: 'batch_123',
+        headers: { 'Operation-Header': 'operation' },
+        abortSignal: abortController.signal,
+      }),
+    ).resolves.toEqual({});
+
+    expect(server.calls[0].requestMethod).toBe('POST');
+    await expect(server.calls[0].requestBodyJson).resolves.toEqual({});
+    expect(server.calls[0].requestHeaders).toMatchObject({
+      authorization: 'Bearer test-api-key',
+      'provider-header': 'provider',
+      'operation-header': 'operation',
+    });
+    expect(mockFetch.mock.calls[0][1].signal).toBe(abortController.signal);
+  });
+
+  it('lists and normalizes a page of batches', async () => {
+    server.urls[urls.batches].response = {
+      type: 'json-value',
+      body: {
+        object: 'list',
+        data: [
+          batchResponse({
+            id: 'batch_123',
+            status: 'in_progress',
+            request_counts: { total: 3, completed: 1, failed: 0 },
+          }),
+          batchResponse({
+            id: 'batch_122',
+            status: 'completed',
+            request_counts: { total: 2, completed: 2, failed: 0 },
+          }),
+        ],
+        first_id: 'batch_123',
+        last_id: 'batch_122',
+        has_more: true,
+      },
+    };
+    const mockFetch = vi.fn().mockImplementation(globalThis.fetch);
+    const abortController = new AbortController();
+    const batch = createOpenAI({
+      apiKey: 'test-api-key',
+      headers: { 'Provider-Header': 'provider' },
+      fetch: mockFetch,
+    }).experimental_batch();
+
+    await expect(
+      batch.doListBatches!({
+        limit: 2,
+        cursor: 'batch_122',
+        headers: { 'Operation-Header': 'operation' },
+        abortSignal: abortController.signal,
+      }),
+    ).resolves.toEqual({
+      batches: [
+        {
+          batchId: 'batch_123',
+          status: 'pending',
+          rawStatus: 'in_progress',
+          requestCounts: {
+            total: 3,
+            pending: 2,
+            completed: 1,
+            failed: 0,
+          },
+          createdAt: '2023-11-14T22:13:20.000Z',
+          expiresAt: '2023-11-15T22:13:20.000Z',
+        },
+        {
+          batchId: 'batch_122',
+          status: 'completed',
+          rawStatus: 'completed',
+          requestCounts: {
+            total: 2,
+            pending: 0,
+            completed: 2,
+            failed: 0,
+          },
+          createdAt: '2023-11-14T22:13:20.000Z',
+          expiresAt: '2023-11-15T22:13:20.000Z',
+        },
+      ],
+      nextCursor: 'batch_122',
+    });
+
+    expect(server.calls[0].requestHeaders).toMatchObject({
+      authorization: 'Bearer test-api-key',
+      'provider-header': 'provider',
+      'operation-header': 'operation',
+    });
+    expect(
+      Object.fromEntries(new URL(server.calls[0].requestUrl).searchParams),
+    ).toEqual({
+      limit: '2',
+      after: 'batch_122',
+    });
+    expect(mockFetch.mock.calls[0][1].signal).toBe(abortController.signal);
+  });
+
+  it('omits the next cursor when there are no more batches', async () => {
+    server.urls[urls.batches].response = {
+      type: 'json-value',
+      body: {
+        object: 'list',
+        data: [],
+        first_id: null,
+        last_id: null,
+        has_more: false,
+      },
+    };
+    const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
+
+    await expect(batch.doListBatches!({})).resolves.toEqual({ batches: [] });
+  });
+
   it.each([
     ['validating', 'pending'],
     ['in_progress', 'pending'],
@@ -762,6 +894,8 @@ describe('OpenAI batch service', () => {
     expect(batch.doStartBatch).toBeTypeOf('function');
     expect(batch.doGetBatchStatus).toBeTypeOf('function');
     expect(batch.doGetBatchResults).toBeTypeOf('function');
+    expect(batch.doCancelBatch).toBeTypeOf('function');
+    expect(batch.doListBatches).toBeTypeOf('function');
 
     expect((provider('gpt-5.6') as any).doStartBatch).toBeUndefined();
     expect((provider.responses('gpt-5.6') as any).doStartBatch).toBeUndefined();

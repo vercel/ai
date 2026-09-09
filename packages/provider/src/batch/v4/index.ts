@@ -1,7 +1,11 @@
 export type {
   BatchV4 as Experimental_BatchV4,
+  BatchV4CancelResult as Experimental_BatchV4CancelResult,
   BatchV4Error as Experimental_BatchV4Error,
   BatchV4ItemResult as Experimental_BatchV4ItemResult,
+  BatchV4ListItem as Experimental_BatchV4ListItem,
+  BatchV4ListOptions as Experimental_BatchV4ListOptions,
+  BatchV4ListResult as Experimental_BatchV4ListResult,
   BatchV4ModelIds as Experimental_BatchV4ModelIds,
   BatchV4OperationOptions as Experimental_BatchV4OperationOptions,
   BatchV4Request as Experimental_BatchV4Request,

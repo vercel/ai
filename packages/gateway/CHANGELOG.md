@@ -1,5 +1,15 @@
 # @ai-sdk/gateway
 
+## 4.0.77
+
+### Patch Changes
+
+- aa4cc14: Preserve image-result retryability returned by the AI Gateway.
+- f102e41: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/provider-utils@5.0.38
+
 ## 4.0.76
 
 ### Patch Changes
