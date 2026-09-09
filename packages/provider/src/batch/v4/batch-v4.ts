@@ -91,6 +91,37 @@ export type BatchV4OperationOptions = {
   readonly batchId: string;
 } & BatchV4CallOptions;
 
+/**
+ * Result of requesting cancellation of a batch.
+ */
+export type BatchV4CancelResult = {
+  readonly providerMetadata?: SharedV4ProviderMetadata;
+};
+
+/**
+ * Options for listing batches.
+ */
+export type BatchV4ListOptions = BatchV4CallOptions & {
+  readonly limit?: number;
+  readonly cursor?: string;
+};
+
+/**
+ * A batch returned by a list operation.
+ */
+export type BatchV4ListItem = BatchV4Status & {
+  readonly batchId: string;
+};
+
+/**
+ * Result of listing batches.
+ */
+export type BatchV4ListResult = {
+  readonly batches: Array<BatchV4ListItem>;
+  readonly nextCursor?: string;
+  readonly providerMetadata?: SharedV4ProviderMetadata;
+};
+
 type BatchV4ItemResultBase<RESULT> =
   | {
       readonly id: string;
@@ -157,4 +188,10 @@ export type BatchV4<ModelIds extends BatchV4ModelIds = BatchV4ModelIds> = {
   doGetBatchResults(
     options: BatchV4OperationOptions,
   ): PromiseLike<ReadableStream<BatchV4ItemResult>>;
+
+  doCancelBatch?(
+    options: BatchV4OperationOptions,
+  ): PromiseLike<BatchV4CancelResult>;
+
+  doListBatches?(options: BatchV4ListOptions): PromiseLike<BatchV4ListResult>;
 };

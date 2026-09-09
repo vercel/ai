@@ -31,13 +31,113 @@ import type {
   BatchProvider,
   BatchReference,
   BatchStatus,
+  CancelBatchOptions,
+  CancelBatchResult,
   GetBatchResultsOptions,
   GetBatchStatusOptions,
+  ListBatchesOptions,
+  ListBatchesResult,
   StartBatchOptions,
   StartBatchResult,
   TextBatchGenerationResult,
   TextBatchItemResult,
 } from './batch-types';
+
+/**
+ * Requests cancellation of a batch.
+ */
+export async function cancelBatch({
+  provider,
+  batch,
+  providerOptions,
+  abortSignal,
+  headers,
+  timeout,
+}: CancelBatchOptions): Promise<CancelBatchResult> {
+  const batchApi = resolveBatchApi(provider);
+  validateBatchReference({ batchApi, batch });
+
+  if (batchApi.doCancelBatch == null) {
+    throw new UnsupportedFunctionalityError({
+      functionality: 'batch cancellation',
+      message: 'The provider does not support batch cancellation.',
+    });
+  }
+
+  const operationAbortSignal = mergeAbortSignals(
+    abortSignal,
+    getTotalTimeoutMs(timeout),
+  );
+
+  try {
+    return await batchApi.doCancelBatch({
+      batchId: batch.id,
+      providerOptions,
+      abortSignal: operationAbortSignal,
+      headers: withUserAgentSuffix(headers ?? {}, `ai/${VERSION}`),
+    });
+  } catch (error) {
+    throw wrapGatewayError(error);
+  }
+}
+
+/**
+ * Lists a page of batches.
+ */
+export async function listBatches({
+  provider,
+  providerOptions,
+  limit,
+  cursor,
+  maxRetries,
+  abortSignal,
+  headers,
+  timeout,
+}: ListBatchesOptions = {}): Promise<ListBatchesResult> {
+  const batchApi = resolveBatchApi(provider);
+
+  const doListBatches = batchApi.doListBatches?.bind(batchApi);
+  if (doListBatches == null) {
+    throw new UnsupportedFunctionalityError({
+      functionality: 'batch listing',
+      message: 'The provider does not support listing batches.',
+    });
+  }
+
+  const operationAbortSignal = mergeAbortSignals(
+    abortSignal,
+    getTotalTimeoutMs(timeout),
+  );
+  const { retry } = prepareRetries({
+    maxRetries,
+    abortSignal: operationAbortSignal,
+  });
+
+  try {
+    const { batches, nextCursor, providerMetadata } = await retry(() =>
+      doListBatches({
+        providerOptions,
+        abortSignal: operationAbortSignal,
+        headers: withUserAgentSuffix(headers ?? {}, `ai/${VERSION}`),
+        ...(limit != null && { limit }),
+        ...(cursor != null && { cursor }),
+      }),
+    );
+
+    return {
+      batches: batches.map(({ batchId, ...status }) => ({
+        version: 2,
+        id: batchId,
+        provider: batchApi.provider,
+        ...status,
+      })),
+      ...(nextCursor != null && { nextCursor }),
+      ...(providerMetadata != null && { providerMetadata }),
+    };
+  } catch (error) {
+    throw wrapGatewayError(error);
+  }
+}
 
 /**
  * Starts a batch.

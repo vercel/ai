@@ -10,7 +10,13 @@ import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it, vi } from 'vitest';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { MockProviderV4 } from '../test/mock-provider-v4';
-import { getBatchResults, getBatchStatus, startBatch } from './batch';
+import {
+  cancelBatch,
+  getBatchResults,
+  getBatchStatus,
+  listBatches,
+  startBatch,
+} from './batch';
 import type { BatchReference } from './batch-types';
 
 vi.mock('../version', () => ({ VERSION: '0.0.0-test' }));
@@ -43,10 +49,14 @@ function createMockBatchApi({
   }),
   doGetBatchStatus = async () => ({ status: 'pending' as const }),
   doGetBatchResults = async () => convertArrayToReadableStream([]),
+  doCancelBatch,
+  doListBatches,
 }: {
   doStartBatch?: BatchV4['doStartBatch'];
   doGetBatchStatus?: BatchV4['doGetBatchStatus'];
   doGetBatchResults?: BatchV4['doGetBatchResults'];
+  doCancelBatch?: BatchV4['doCancelBatch'];
+  doListBatches?: BatchV4['doListBatches'];
 } = {}): BatchV4 {
   return {
     specificationVersion: 'v4',
@@ -55,8 +65,108 @@ function createMockBatchApi({
     doStartBatch: doStartBatch,
     doGetBatchStatus: doGetBatchStatus,
     doGetBatchResults: doGetBatchResults,
+    doCancelBatch,
+    doListBatches,
   };
 }
+
+describe('cancelBatch', () => {
+  it('requests cancellation and returns provider metadata', async () => {
+    const calls: BatchV4OperationOptions[] = [];
+    const batchApi = createMockBatchApi({
+      doCancelBatch: async options => {
+        calls.push(options);
+        return { providerMetadata: { mock: { cancellation: 'requested' } } };
+      },
+    });
+
+    await expect(
+      cancelBatch({ provider: batchApi, batch: batchReference }),
+    ).resolves.toEqual({
+      providerMetadata: { mock: { cancellation: 'requested' } },
+    });
+    expect(calls).toEqual([
+      {
+        batchId: 'batch-123',
+        providerOptions: undefined,
+        abortSignal: undefined,
+        headers: { 'user-agent': 'ai/0.0.0-test' },
+      },
+    ]);
+  });
+
+  it('throws when cancellation is unsupported', async () => {
+    await expect(
+      cancelBatch({ provider: createMockBatchApi(), batch: batchReference }),
+    ).rejects.toMatchObject({ functionality: 'batch cancellation' });
+  });
+});
+
+describe('listBatches', () => {
+  it('preserves the batch API as the method receiver', async () => {
+    const batchApi = createMockBatchApi();
+    batchApi.doListBatches = async function () {
+      expect(this).toBe(batchApi);
+      return { batches: [] };
+    };
+
+    await expect(
+      listBatches({ provider: batchApi, maxRetries: 0 }),
+    ).resolves.toEqual({ batches: [] });
+  });
+
+  it('returns normalized batch references and the next cursor', async () => {
+    const batchApi = createMockBatchApi({
+      doListBatches: async options => {
+        expect(options).toEqual({
+          providerOptions: undefined,
+          abortSignal: undefined,
+          headers: { 'user-agent': 'ai/0.0.0-test' },
+          limit: 20,
+          cursor: 'cursor-1',
+        });
+        return {
+          batches: [
+            {
+              batchId: 'batch-456',
+              status: 'completed',
+              rawStatus: 'done',
+            },
+          ],
+          nextCursor: 'cursor-2',
+          providerMetadata: { mock: { page: 1 } },
+        };
+      },
+    });
+
+    await expect(
+      listBatches({
+        provider: batchApi,
+        limit: 20,
+        cursor: 'cursor-1',
+        maxRetries: 0,
+      }),
+    ).resolves.toEqual({
+      batches: [
+        {
+          version: 2,
+          id: 'batch-456',
+          provider: 'mock-provider',
+          status: 'completed',
+          rawStatus: 'done',
+        },
+      ],
+      nextCursor: 'cursor-2',
+      providerMetadata: { mock: { page: 1 } },
+    });
+  });
+
+  it('throws when listing is unsupported', async () => {
+    await expect(
+      listBatches({ provider: createMockBatchApi() }),
+    ).rejects.toMatchObject({ functionality: 'batch listing' });
+  });
+});
 
 describe('startBatch', () => {
   it('uses the global default provider when provider is omitted', async () => {
