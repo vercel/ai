@@ -377,6 +377,13 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     });
 
     const choice = response.choices[0];
+    if (choice == null) {
+      throw new InvalidResponseDataError({
+        data: rawResponse,
+        message: 'Response did not contain any choices.',
+      });
+    }
+
     const content: Array<LanguageModelV2Content> = [];
 
     // text content:
