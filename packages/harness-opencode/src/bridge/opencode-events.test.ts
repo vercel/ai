@@ -81,6 +81,17 @@ describe('OpenCode event helpers', () => {
     ).toBe('session-1');
   });
 
+  it.each([
+    ['message.updated', { info: { sessionID: 'child-session' } }],
+    ['session.created', { info: { id: 'child-session' } }],
+    ['session.updated', { info: { id: 'child-session' } }],
+    ['session.deleted', { info: { id: 'child-session' } }],
+  ])('finds nested session ids for %s events', (type, properties) => {
+    expect(getOpenCodeEventSessionId({ type, properties })).toBe(
+      'child-session',
+    );
+  });
+
   it('emits the resolved assistant model once', () => {
     const state = createTranslationState();
     const emitted: Record<string, unknown>[] = [];

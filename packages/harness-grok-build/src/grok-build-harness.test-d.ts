@@ -3,7 +3,9 @@ import { createGrokBuild } from './grok-build-harness';
 
 test('preserves Grok Build built-in tool types', () => {
   const harness = createGrokBuild({
+    credentialForwarding: async ({ credential }) => credential,
     mintBridgeToken: sandboxId => sandboxId,
+    reasoningEffort: 'high',
   });
 
   expectTypeOf<keyof typeof harness.builtinTools>().toEqualTypeOf<
@@ -27,7 +29,7 @@ test('preserves Grok Build built-in tool types', () => {
     | 'workflow'
     | 'enter_plan_mode'
     | 'exit_plan_mode'
-    | 'ask_user_question'
+    | 'askUserQuestions'
     | 'image_gen'
     | 'image_edit'
     | 'image_to_video'

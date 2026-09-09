@@ -1,3 +1,5 @@
+import type { Experimental_VideoModelV4 as VideoModelV4 } from '@ai-sdk/provider';
+import { DownloadError, type FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { KlingAIVideoModel } from './klingai-video-model';
@@ -115,18 +117,23 @@ const i2vDefaultOptions = {
 const TEST_BASE_URL = 'https://api-singapore.klingai.com';
 
 function createBasicModel({
+  baseURL = TEST_BASE_URL,
+  fetch,
   headers,
   currentDate,
   modelId = 'kling-v2.6-motion-control',
 }: {
+  baseURL?: string;
+  fetch?: FetchFunction;
   headers?: Record<string, string | undefined>;
   currentDate?: () => Date;
   modelId?: string;
 } = {}) {
   return new KlingAIVideoModel(modelId, {
     provider: 'klingai.video',
-    baseURL: TEST_BASE_URL,
+    baseURL,
     headers: headers ?? { Authorization: 'Bearer test-jwt-token' },
+    fetch,
     _internal: {
       currentDate,
     },
@@ -172,6 +179,12 @@ describe('KlingAIVideoModel', () => {
       response: {
         type: 'json-value',
         body: successfulTaskResponse,
+      },
+    },
+    [`${TEST_BASE_URL}/v1/videos/multi-image2video`]: {
+      response: {
+        type: 'json-value',
+        body: createTaskResponse,
       },
     },
   });
@@ -1221,6 +1234,103 @@ describe('KlingAIVideoModel', () => {
     });
   });
 
+  describe('webhooks', () => {
+    it('should leave the generic webhook hook undefined', () => {
+      const model: VideoModelV4 = createBasicModel();
+      expect(model.handleWebhookOption).toBeUndefined();
+    });
+
+    describe.each([
+      {
+        endpoint: 'text2video',
+        modelId: 'kling-v2.6-t2v',
+        options: t2vDefaultOptions,
+      },
+      {
+        endpoint: 'image2video',
+        modelId: 'kling-v2.6-i2v',
+        options: i2vDefaultOptions,
+      },
+      {
+        endpoint: 'multi-image2video',
+        modelId: 'kling-v1.6-i2v',
+        options: {
+          ...t2vDefaultOptions,
+          inputReferences: [
+            {
+              type: 'url' as const,
+              url: 'https://example.com/character-1.png',
+            },
+            {
+              type: 'url' as const,
+              url: 'https://example.com/character-2.png',
+            },
+          ],
+        },
+      },
+      {
+        endpoint: 'motion-control',
+        modelId: 'kling-v2.6-motion-control',
+        options: defaultOptions,
+      },
+    ])('$endpoint', ({ endpoint, modelId, options }) => {
+      it.each([
+        {
+          name: 'explicit URL',
+          webhookUrl: 'https://example.com/webhook',
+          rawUrl: undefined,
+          expected: 'https://example.com/webhook',
+        },
+        {
+          name: 'no callback',
+          webhookUrl: undefined,
+          rawUrl: undefined,
+          expected: undefined,
+        },
+        {
+          name: 'raw passthrough',
+          webhookUrl: undefined,
+          rawUrl: 'https://example.com/raw',
+          expected: 'https://example.com/raw',
+        },
+        {
+          name: 'explicit URL overrides raw',
+          webhookUrl: 'https://example.com/webhook',
+          rawUrl: 'https://example.com/raw',
+          expected: 'https://example.com/webhook',
+        },
+      ])('should submit $name', async ({ webhookUrl, rawUrl, expected }) => {
+        const result = await createBasicModel({ modelId }).doStart({
+          ...options,
+          webhookUrl,
+          providerOptions: {
+            klingai: {
+              ...options.providerOptions.klingai,
+              ...(rawUrl != null ? { callback_url: rawUrl } : {}),
+            },
+          },
+        });
+
+        expect(result.operation).toStrictEqual({
+          taskId: 'task-abc-123',
+          endpointPath: `/v1/videos/${endpoint}`,
+        });
+        const body = await server.calls[0].requestBodyJson;
+        if (expected == null) {
+          expect(body).not.toHaveProperty('callback_url');
+        } else {
+          expect(body).toHaveProperty('callback_url', expected);
+        }
+        if (endpoint === 'multi-image2video') {
+          expect(body.image_list).toStrictEqual([
+            { image: 'https://example.com/character-1.png' },
+            { image: 'https://example.com/character-2.png' },
+          ]);
+        }
+      });
+    });
+  });
+
   describe('doStatus', () => {
     it('should return completed with video data when succeed', async () => {
       const model = createBasicModel({ modelId: 'kling-v2.6-t2v' });
@@ -1422,6 +1532,40 @@ describe('KlingAIVideoModel', () => {
         authorization: 'Bearer custom-token',
         'x-request-header': 'request-value',
       });
+    });
+
+    it('should validate redirects after trusting the configured origin', async () => {
+      const calls: Array<{ url: string; init?: RequestInit }> = [];
+      const fetch: FetchFunction = async (url, init) => {
+        calls.push({ url: url.toString(), init });
+        return new Response(null, {
+          status: 302,
+          headers: {
+            Location: 'http://169.254.169.254/latest/meta-data/',
+          },
+        });
+      };
+      const model = createBasicModel({
+        baseURL: 'http://localhost:3000',
+        fetch,
+        modelId: 'kling-v2.6-t2v',
+      });
+
+      await expect(
+        model.doStatus({
+          operation: {
+            taskId: 'task-abc-123',
+            endpointPath: '/v1/videos/text2video',
+          },
+        }),
+      ).rejects.toBeInstanceOf(DownloadError);
+
+      expect(calls).toStrictEqual([
+        {
+          url: 'http://localhost:3000/v1/videos/text2video/task-abc-123',
+          init: expect.objectContaining({ redirect: 'manual' }),
+        },
+      ]);
     });
 
     it('should include response metadata', async () => {

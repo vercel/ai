@@ -106,7 +106,42 @@ export type AmazonBedrockFilePartProviderOptions = z.infer<
   typeof amazonBedrockFilePartProviderOptions
 >;
 
+/**
+ * Amazon Bedrock text part provider options for guardrail content.
+ * These options apply to individual text parts.
+ */
+export const amazonBedrockTextPartProviderOptions = z.object({
+  guardContent: z.boolean().optional(),
+  guardContentQualifiers: z
+    .array(z.enum(['grounding_source', 'query', 'guard_content']))
+    .optional(),
+});
+
+export type AmazonBedrockTextPartProviderOptions = z.infer<
+  typeof amazonBedrockTextPartProviderOptions
+>;
+
+/**
+ * Amazon Bedrock image part provider options for guardrail content.
+ * These options apply to individual image parts.
+ */
+export const amazonBedrockImagePartProviderOptions = z.object({
+  guardContent: z.boolean().optional(),
+});
+
+export type AmazonBedrockImagePartProviderOptions = z.infer<
+  typeof amazonBedrockImagePartProviderOptions
+>;
+
 export const amazonBedrockLanguageModelChatOptions = z.object({
+  /**
+   * Determines how structured outputs are generated for Anthropic models.
+   *
+   * - `outputFormat`: Use the native `output_config.format` parameter.
+   * - `jsonTool`: Use a special 'json' tool to specify the structured output format.
+   * - `auto`: Use `outputFormat` when supported, otherwise use `jsonTool` (default).
+   */
+  structuredOutputMode: z.enum(['outputFormat', 'jsonTool', 'auto']).optional(),
   /**
    * Additional inference parameters that the model supports,
    * beyond the base set of inference parameters that Converse

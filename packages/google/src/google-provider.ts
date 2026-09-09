@@ -1,5 +1,6 @@
 import type {
   EmbeddingModelV4,
+  Experimental_BatchV4 as BatchV4,
   Experimental_VideoModelV4,
   FilesV4,
   ImageModelV4,
@@ -9,6 +10,7 @@ import type {
   Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
   SpeechModelV4,
   Experimental_SpeechTranslationModelV4 as SpeechTranslationModelV4,
+  TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
@@ -21,6 +23,7 @@ import {
 import { VERSION } from './version';
 import { GoogleEmbeddingModel } from './google-embedding-model';
 import type { GoogleEmbeddingModelId } from './google-embedding-model-options';
+import { GoogleBatch } from './google-batch';
 import { GoogleLanguageModel } from './google-language-model';
 import type { GoogleModelId } from './google-language-model-options';
 import { googleTools } from './google-tools';
@@ -42,8 +45,14 @@ import {
 import type { GoogleInteractionsModelId } from './interactions/google-interactions-language-model-options';
 import type { GoogleInteractionsAgentName } from './interactions/google-interactions-agent';
 import { GoogleRealtimeModel } from './realtime/google-realtime-model';
+import { GoogleTranscriptionModel } from './transcription/google-transcription-model';
+import type { GoogleTranscriptionModelId } from './transcription/google-transcription-model-options';
 import { GoogleSpeechTranslationModel } from './speech-translation/google-speech-translation-model';
 import type { GoogleSpeechTranslationModelId } from './speech-translation/google-speech-translation-model-options';
+
+const DEFAULT_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
+const googleFilesUrlPattern =
+  /^https:\/\/generativelanguage\.googleapis\.com\/v1beta\/files\/.*$/;
 
 export interface GoogleProvider extends ProviderV4 {
   (modelId: GoogleModelId): LanguageModelV4;
@@ -51,6 +60,8 @@ export interface GoogleProvider extends ProviderV4 {
   languageModel(modelId: GoogleModelId): LanguageModelV4;
 
   chat(modelId: GoogleModelId): LanguageModelV4;
+
+  experimental_batch(): BatchV4<{ text: GoogleModelId }>;
 
   /**
    * Creates a model for image generation.
@@ -118,6 +129,19 @@ export interface GoogleProvider extends ProviderV4 {
    * Creates a model for speech generation (text-to-speech).
    */
   speechModel(modelId: GoogleSpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates a model for transcription (speech-to-text). Unary models
+   * (e.g. `gemini-3.5-transcribe`) transcribe audio files; live models
+   * (e.g. `gemini-3.5-transcribe-live`) stream transcription over the
+   * Gemini Live API WebSocket via `experimental_streamTranscribe`.
+   */
+  transcription(modelId: GoogleTranscriptionModelId): TranscriptionModelV4;
+
+  /**
+   * Creates a model for transcription (speech-to-text).
+   */
+  transcriptionModel(modelId: GoogleTranscriptionModelId): TranscriptionModelV4;
 
   files(): FilesV4;
 
@@ -220,9 +244,7 @@ function supportsExternalFileUrls(modelId: string) {
 export function createGoogle(
   options: GoogleProviderSettings = {},
 ): GoogleProvider {
-  const baseURL =
-    withoutTrailingSlash(options.baseURL) ??
-    'https://generativelanguage.googleapis.com/v1beta';
+  const baseURL = withoutTrailingSlash(options.baseURL) ?? DEFAULT_BASE_URL;
 
   const providerName = options.name ?? 'google.generative-ai';
 
@@ -239,33 +261,49 @@ export function createGoogle(
       `ai-sdk/google/${VERSION}`,
     );
 
+  const getSupportedUrls = (
+    modelId?: GoogleModelId,
+    includeExternalUrls = modelId == null || supportsExternalFileUrls(modelId),
+  ) => ({
+    '*': [
+      googleFilesUrlPattern,
+      new RegExp(`^${baseURL}/files/.*$`),
+      new RegExp(
+        `^https://(?:www\\.)?youtube\\.com/watch\\?v=[\\w-]+(?:&[\\w=&.-]*)?$`,
+      ),
+      new RegExp(`^https://youtu\\.be/[\\w-]+(?:\\?[\\w=&.-]*)?$`),
+    ],
+    ...(includeExternalUrls
+      ? Object.fromEntries(
+          supportedExternalUrlMediaTypes.map(mediaType => [
+            mediaType,
+            [externalHttpsUrlPattern],
+          ]),
+        )
+      : {}),
+  });
+
+  const languageModelConfig = {
+    provider: providerName,
+    baseURL,
+    headers: getHeaders,
+    generateId: options.generateId ?? generateId,
+    fetch: options.fetch,
+  };
+
   const createChatModel = (modelId: GoogleModelId) =>
     new GoogleLanguageModel(modelId, {
-      provider: providerName,
-      baseURL,
-      headers: getHeaders,
-      generateId: options.generateId ?? generateId,
-      supportedUrls: () => ({
-        '*': [
-          // Google Generative Language "files" endpoint
-          // e.g. https://generativelanguage.googleapis.com/v1beta/files/...
-          new RegExp(`^${baseURL}/files/.*$`),
-          // YouTube URLs (public or unlisted videos)
-          new RegExp(
-            `^https://(?:www\\.)?youtube\\.com/watch\\?v=[\\w-]+(?:&[\\w=&.-]*)?$`,
-          ),
-          new RegExp(`^https://youtu\\.be/[\\w-]+(?:\\?[\\w=&.-]*)?$`),
-        ],
-        ...(supportsExternalFileUrls(modelId)
-          ? Object.fromEntries(
-              supportedExternalUrlMediaTypes.map(mediaType => [
-                mediaType,
-                [externalHttpsUrlPattern],
-              ]),
-            )
-          : {}),
-      }),
-      fetch: options.fetch,
+      ...languageModelConfig,
+      supportedUrls: () => getSupportedUrls(modelId),
+    });
+
+  const createBatch = () =>
+    new GoogleBatch({
+      provider: `${providerName.replace(/\.generative-ai$/, '')}.batch`,
+      config: languageModelConfig,
+      // Batch prompt conversion happens before the model is available to the
+      // provider. Only advertise URL support shared by every batch model.
+      supportedUrls: getSupportedUrls(undefined, false),
     });
 
   const createEmbeddingModel = (modelId: GoogleEmbeddingModelId) =>
@@ -330,6 +368,15 @@ export function createGoogle(
       fetch: options.fetch,
     });
 
+  const createTranscriptionModel = (modelId: GoogleTranscriptionModelId) =>
+    new GoogleTranscriptionModel(modelId, {
+      provider: `${providerName}.transcription`,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      webSocket: options.webSocket,
+    });
+
   const experimentalRealtimeFactory = Object.assign(
     (modelId: string) => createRealtimeModel(modelId),
     {
@@ -380,6 +427,7 @@ export function createGoogle(
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.generativeAI = createChatModel;
+  provider.experimental_batch = createBatch;
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
@@ -392,6 +440,8 @@ export function createGoogle(
   provider.files = createFiles;
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
+  provider.transcription = createTranscriptionModel;
+  provider.transcriptionModel = createTranscriptionModel;
   provider.translation = createSpeechTranslationModel;
   provider.speechTranslationModel = createSpeechTranslationModel;
   provider.interactions = createInteractionsModel;

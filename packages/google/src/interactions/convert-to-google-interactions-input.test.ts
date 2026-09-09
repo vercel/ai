@@ -633,6 +633,88 @@ describe('convertToGoogleInteractionsInput', () => {
         ]
       `);
     });
+
+    it('maps per-file agentic processing onto a video block', () => {
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'video',
+              data: {
+                type: 'url',
+                url: new URL('https://www.youtube.com/watch?v=abc123'),
+              },
+              providerOptions: {
+                google: { processing: 'agentic' },
+              },
+            },
+          ],
+        },
+      ];
+
+      const result = convertToGoogleInteractionsInput({ prompt });
+
+      expect(result.input).toEqual([
+        {
+          type: 'user_input',
+          content: [
+            {
+              type: 'video',
+              uri: 'https://www.youtube.com/watch?v=abc123',
+              processing: 'agentic',
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('maps camel-case static processing options onto the wire format', () => {
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'video/mp4',
+              data: { type: 'data', data: 'AAAA' },
+              providerOptions: {
+                google: {
+                  processing: {
+                    type: 'static',
+                    startOffset: 1200,
+                    endOffset: 1500,
+                    fps: 0.5,
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ];
+
+      const result = convertToGoogleInteractionsInput({ prompt });
+
+      expect(result.input).toEqual([
+        {
+          type: 'user_input',
+          content: [
+            {
+              type: 'video',
+              data: 'AAAA',
+              mime_type: 'video/mp4',
+              processing: {
+                type: 'static',
+                start_offset: 1200,
+                end_offset: 1500,
+                fps: 0.5,
+              },
+            },
+          ],
+        },
+      ]);
+    });
   });
 
   describe('text file parts', () => {
@@ -918,6 +1000,51 @@ describe('convertToGoogleInteractionsInput', () => {
       }>;
       const fnCall = steps.find(step => step.type === 'function_call');
       expect(fnCall?.signature).toBe('sig-xyz');
+    });
+
+    it('round-trips custom video processing parts', () => {
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'custom',
+              kind: 'google.processing_call',
+              providerOptions: {
+                google: {
+                  processingId: 'processing-1',
+                  signature: 'call-signature',
+                },
+              },
+            },
+            {
+              type: 'custom',
+              kind: 'google.processing_result',
+              providerOptions: {
+                google: {
+                  processingCallId: 'processing-1',
+                  signature: 'result-signature',
+                },
+              },
+            },
+          ],
+        },
+      ];
+
+      const result = convertToGoogleInteractionsInput({ prompt });
+
+      expect(result.input).toEqual([
+        {
+          type: 'processing_call',
+          id: 'processing-1',
+          signature: 'call-signature',
+        },
+        {
+          type: 'processing_result',
+          call_id: 'processing-1',
+          signature: 'result-signature',
+        },
+      ]);
     });
   });
 

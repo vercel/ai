@@ -262,6 +262,54 @@ describe('prepareTools', () => {
       });
     });
 
+    it.each([
+      {
+        toolChoice: undefined,
+        expected: { type: 'auto', disable_parallel_tool_use: true },
+      },
+      {
+        toolChoice: { type: 'auto' } as const,
+        expected: { type: 'auto', disable_parallel_tool_use: true },
+      },
+      {
+        toolChoice: { type: 'required' } as const,
+        expected: { type: 'any', disable_parallel_tool_use: true },
+      },
+      {
+        toolChoice: {
+          type: 'tool',
+          toolName: 'testFunction',
+        } as const,
+        expected: {
+          type: 'tool',
+          name: 'testFunction',
+          disable_parallel_tool_use: true,
+        },
+      },
+    ])(
+      'should use Anthropic tool choice fields when parallel tool use is disabled',
+      async ({ toolChoice, expected }) => {
+        const result = await prepareTools({
+          tools: [
+            {
+              type: 'function',
+              name: 'testFunction',
+              description: 'Test',
+              inputSchema: {},
+            },
+          ],
+          toolChoice,
+          modelId: ANTHROPIC_MODEL,
+          disableParallelToolUse: true,
+        });
+
+        expect(result.additionalTools).toEqual({
+          tool_choice: expected,
+        });
+        expect(result.toolConfig.toolChoice).toBeUndefined();
+      },
+    );
+
     it('should filter function tools to only the named tool when tool choice is "tool"', async () => {
       const result = await prepareTools({
         tools: [
@@ -316,6 +364,27 @@ describe('prepareTools', () => {
           },
         },
       ]);
+    });
+
+    it.each([
+      'anthropic.claude-sonnet-4-6-v1',
+      'us.anthropic.claude-haiku-4-5-20251001-v1:0',
+    ])('should keep strict mode enabled for %s', async modelId => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: true,
+          },
+        ],
+        modelId,
+      });
+
+      expect((result.toolConfig.tools![0] as any).toolSpec.strict).toBe(true);
+      expect(result.toolWarnings).toEqual([]);
     });
 
     it('should pass through strict mode when strict is false', async () => {

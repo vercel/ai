@@ -42,6 +42,14 @@ export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   // Claude SDK so the in-workdir thread state is rehydrated. The host sets this
   // on the first prompt after a cross-process resume.
   continue: z.boolean().optional(),
+  // Exact conversation to resume, as the Claude SDK's `resume` option.
+  //
+  // Preferred over `continue` whenever the host knows which conversation it
+  // means: `continue` resolves to the most recent thread in the workdir, which
+  // is the wrong one as soon as anything else has run there since — including
+  // a resume that itself started a new thread. Mutually exclusive with
+  // `continue` in the SDK, so the bridge sends one or the other.
+  resumeSessionId: z.string().optional(),
 });
 
 export type StartMessage = z.infer<typeof startMessageSchema>;

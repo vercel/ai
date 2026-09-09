@@ -61,27 +61,28 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
 
     const body: DeepgramTranscriptionAPITypes = {
       model: this.modelId,
-      diarize: true,
     };
 
     // Add provider-specific options
     if (deepgramOptions) {
       body.detect_entities = deepgramOptions.detectEntities ?? undefined;
       body.detect_language = deepgramOptions.detectLanguage ?? undefined;
+      body.diarize = deepgramOptions.diarize ?? undefined;
       body.filler_words = deepgramOptions.fillerWords ?? undefined;
+      body.intents = deepgramOptions.intents ?? undefined;
+      body.keyterm = deepgramOptions.keyterm ?? undefined;
       body.language = deepgramOptions.language ?? undefined;
+      body.paragraphs = deepgramOptions.paragraphs ?? undefined;
       body.punctuate = deepgramOptions.punctuate ?? undefined;
       body.redact = deepgramOptions.redact ?? undefined;
+      body.replace = deepgramOptions.replace ?? undefined;
       body.search = deepgramOptions.search ?? undefined;
+      body.sentiment = deepgramOptions.sentiment ?? undefined;
       body.smart_format = deepgramOptions.smartFormat ?? undefined;
       body.summarize = deepgramOptions.summarize ?? undefined;
       body.topics = deepgramOptions.topics ?? undefined;
       body.utterances = deepgramOptions.utterances ?? undefined;
       body.utt_split = deepgramOptions.uttSplit ?? undefined;
-
-      if (typeof deepgramOptions.diarize === 'boolean') {
-        body.diarize = deepgramOptions.diarize;
-      }
     }
 
     // Convert body to URL query parameters

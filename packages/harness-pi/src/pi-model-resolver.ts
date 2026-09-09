@@ -56,7 +56,7 @@ export function createPiModelResolver({
     return cachedModels;
   };
 
-  return (modelId: string | undefined): PiModel | undefined => {
+  return (modelId?: string): PiModel | undefined => {
     const useGateway = Boolean(getAiGatewayAuthFromEnv({ env }).apiKey);
     const effectiveId =
       modelId ?? (useGateway ? DEFAULT_PI_GATEWAY_MODEL_ID : undefined);

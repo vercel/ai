@@ -1166,8 +1166,17 @@ class DefaultMCPClient implements MCPClient {
   }: {
     schemas?: TOOL_SCHEMAS;
   } = {}): Promise<McpToolSet<TOOL_SCHEMAS>> {
-    const definitions = await this.listTools();
-    return this.toolsFromDefinitions(definitions, {
+    let definitions = await this.listTools();
+    const tools = [...definitions.tools];
+
+    while (definitions.nextCursor != null) {
+      definitions = await this.listTools({
+        params: { cursor: definitions.nextCursor },
+      });
+      tools.push(...definitions.tools);
+    }
+
+    return this.toolsFromDefinitions({ ...definitions, tools }, {
       schemas,
     } as { schemas?: TOOL_SCHEMAS });
   }
@@ -1208,6 +1217,27 @@ class DefaultMCPClient implements MCPClient {
         clientName: this.clientInfo.name,
         toolName: name,
         ...(resolvedTitle != null ? { title: resolvedTitle } : {}),
+        ...(annotations != null
+          ? {
+              annotations: {
+                ...(annotations.title != null
+                  ? { title: annotations.title }
+                  : {}),
+                ...(annotations.readOnlyHint != null
+                  ? { readOnlyHint: annotations.readOnlyHint }
+                  : {}),
+                ...(annotations.destructiveHint != null
+                  ? { destructiveHint: annotations.destructiveHint }
+                  : {}),
+                ...(annotations.idempotentHint != null
+                  ? { idempotentHint: annotations.idempotentHint }
+                  : {}),
+                ...(annotations.openWorldHint != null
+                  ? { openWorldHint: annotations.openWorldHint }
+                  : {}),
+              },
+            }
+          : {}),
         ...(appMeta?.resourceUri != null
           ? {
               app: {
@@ -1296,7 +1326,10 @@ class DefaultMCPClient implements MCPClient {
 
     // Fallback
     if ('content' in result && Array.isArray(result.content)) {
-      const textContent = result.content.find(c => c.type === 'text');
+      const textContent = result.content.find(
+        (content: { type: string; [key: string]: unknown }) =>
+          content.type === 'text',
+      );
       if (textContent && 'text' in textContent) {
         const parseResult = await safeParseJSON({
           text: textContent.text,

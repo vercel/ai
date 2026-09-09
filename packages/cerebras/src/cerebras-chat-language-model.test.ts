@@ -139,7 +139,7 @@ describe('doGenerate', () => {
         'cerebras-structured-output-tools.1',
       );
       const model = createCerebras({ apiKey: 'test-api-key', fetch })(
-        'zai-glm-4.7',
+        'gpt-oss-120b',
       );
 
       const result = await model.doGenerate({
@@ -174,7 +174,7 @@ describe('doGenerate', () => {
         'cerebras-structured-output-tools.2',
       );
       const model = createCerebras({ apiKey: 'test-api-key', fetch })(
-        'zai-glm-4.7',
+        'gpt-oss-120b',
       );
 
       const result = await model.doGenerate({
@@ -207,7 +207,7 @@ describe('doGenerate', () => {
         'cerebras-structured-output-tools.2',
       );
       const model = createCerebras({ apiKey: 'test-api-key', fetch })(
-        'zai-glm-4.7',
+        'gpt-oss-120b',
       );
 
       const result = await model.doGenerate({ prompt: TEST_PROMPT });
@@ -247,7 +247,7 @@ describe('doStream', () => {
         'cererebras-structured-output-tools.1',
       );
       const model = createCerebras({ apiKey: 'test-api-key', fetch })(
-        'zai-glm-4.7',
+        'gpt-oss-120b',
       );
 
       const { stream } = await model.doStream({
@@ -304,7 +304,7 @@ describe('doStream', () => {
         'cererebras-structured-output-tools.1',
       );
       const model = createCerebras({ apiKey: 'test-api-key', fetch })(
-        'zai-glm-4.7',
+        'gpt-oss-120b',
       );
 
       const { stream } = await model.doStream({

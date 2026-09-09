@@ -24,6 +24,7 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
   type Resolvable,
+  type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
 import type { GoogleVertexConfig } from './google-vertex-config';
@@ -36,6 +37,7 @@ import { GoogleVertexCloudTTSSpeechModel } from './google-vertex-cloud-tts-speec
 import { googleVertexTools } from './google-vertex-tools';
 import { GoogleVertexTranscriptionModel } from './google-vertex-transcription-model';
 import type { GoogleVertexTranscriptionModelId } from './google-vertex-transcription-model-options';
+import { GoogleVertexGeminiTranscriptionModel } from './gemini-transcription/google-vertex-gemini-transcription-model';
 import { GoogleVertexVideoModel } from './google-vertex-video-model';
 import type { GoogleVertexVideoModelId } from './google-vertex-video-settings';
 import type { GoogleVertexSpeechModelId } from './google-vertex-speech-model-options';
@@ -184,6 +186,13 @@ export interface GoogleVertexProviderSettings {
    * Base URL for the Google Vertex API calls.
    */
   baseURL?: string;
+
+  /**
+   * Custom WebSocket implementation for streaming transcription. Useful for
+   * runtimes that need a WebSocket constructor with header support (e.g. the
+   * `ws` package in Node.js, which Vertex's OAuth Bearer header requires).
+   */
+  webSocket?: WebSocketConstructor;
 }
 
 /**
@@ -359,6 +368,22 @@ export function createGoogleVertex(
     }
 
     const config = createConfig('transcription');
+
+    // Gemini transcription models (`gemini-3.5-transcribe[-live]`) use the
+    // Vertex generateContent / Live API surfaces; everything else routes to
+    // Cloud Speech-to-Text (Chirp, telephony).
+    if (modelId.startsWith('gemini')) {
+      return new GoogleVertexGeminiTranscriptionModel(modelId, {
+        provider: config.provider,
+        baseURL: loadBaseURL(),
+        headers: config.headers,
+        fetch: config.fetch,
+        webSocket: options.webSocket,
+        project: loadGoogleVertexProject(),
+        location: loadGoogleVertexLocation(),
+      });
+    }
+
     return new GoogleVertexTranscriptionModel(modelId, {
       provider: config.provider,
       headers: config.headers,

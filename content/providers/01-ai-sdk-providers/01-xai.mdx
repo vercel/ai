@@ -625,6 +625,26 @@ The following provider options are available:
   tools with client-side function tools in the same request.
 </Note>
 
+## Batch
+
+<Note type="warning">
+  Batch support is experimental and the API may change in patch releases.
+</Note>
+
+The xAI provider supports asynchronous text generation through the [Batch
+API](https://docs.x.ai/developers/advanced-api-usage/batch-api). Pass the xAI
+provider to the AI SDK's [Batch](/docs/ai-sdk-core/batch) API
+for the complete workflow, including polling, persistence, and result handling.
+
+Each request specifies its `type` and `model`. xAI supports using different
+text models within the same batch.
+
+<Note>
+  The xAI Batch API does not support per-batch webhooks. When you provide a
+  `webhookUrl`, the provider returns an unsupported warning and starts the batch
+  without a webhook.
+</Note>
+
 ## Model Capabilities
 
 | Model                         | Image Input | Object Generation | Tool Usage | Tool Streaming | Reasoning |

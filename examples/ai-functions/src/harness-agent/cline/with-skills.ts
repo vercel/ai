@@ -13,8 +13,9 @@ const cline = createCline();
  * auto-fire on every turn. The description has to advertise *when to use
  * this skill* so the agent can recognise the match.
  *
- * Cline materialises skills into `.cline/skills/<name>/SKILL.md` inside the
- * sandbox workspace; Cline's resource loader picks them up from there.
+ * The Cline adapter exposes skills through Cline's native `skills` tool. The
+ * skill instructions and attached files stay in the host process until the
+ * model invokes that tool.
  */
 run(async () => {
   const sandbox = createVercelSandbox({

@@ -511,7 +511,7 @@ describe('createVercelSandbox (create from scratch)', () => {
     expect(error).toBe(cause);
   });
 
-  it('applies a 30 minute default timeout when none is provided', async () => {
+  it('preserves the Node 24 runtime and 30 minute timeout defaults', async () => {
     const { sandbox } = makeMockSandbox();
     createMock.mockResolvedValueOnce(sandbox);
 
@@ -519,8 +519,61 @@ describe('createVercelSandbox (create from scratch)', () => {
 
     expect(createMock).toHaveBeenCalledTimes(1);
     expect(createMock.mock.calls[0][0]).toMatchObject({
+      runtime: 'node24',
       timeout: 30 * 60 * 1_000,
     });
+  });
+
+  it('does not add the legacy runtime when an image is provided', async () => {
+    const { sandbox } = makeMockSandbox();
+    createMock.mockResolvedValueOnce(sandbox);
+
+    await createVercelSandbox({
+      image: 'vercel/sandbox/universal',
+    }).createSession();
+
+    expect(createMock.mock.calls[0][0]).toMatchObject({
+      image: 'vercel/sandbox/universal',
+    });
+    expect(createMock.mock.calls[0][0]).not.toHaveProperty('runtime');
+  });
+
+  it('uses an image for a template without forwarding it to snapshot forks', async () => {
+    const { sandbox: template } = makeMockSandbox();
+    const { sandbox: fork } = makeMockSandbox();
+    Object.assign(template, { currentSnapshotId: 'snap_123' });
+    getOrCreateMock.mockResolvedValueOnce(template);
+    createMock.mockResolvedValueOnce(fork);
+
+    await createVercelSandbox({
+      image: 'vercel/sandbox/universal',
+    }).createSession({
+      identity: 'template-test',
+      onFirstCreate: async () => {},
+    });
+
+    expect(getOrCreateMock.mock.calls[0][0]).toMatchObject({
+      image: 'vercel/sandbox/universal',
+    });
+    expect(createMock.mock.calls[0][0]).toMatchObject({
+      source: { type: 'snapshot', snapshotId: 'snap_123' },
+    });
+    expect(createMock.mock.calls[0][0]).not.toHaveProperty('image');
+    expect(createMock.mock.calls[0][0]).not.toHaveProperty('runtime');
+  });
+
+  it('does not add the legacy runtime when restoring a snapshot', async () => {
+    const { sandbox } = makeMockSandbox();
+    createMock.mockResolvedValueOnce(sandbox);
+
+    await createVercelSandbox({
+      source: { type: 'snapshot', snapshotId: 'snap_123' },
+    }).createSession();
+
+    expect(createMock.mock.calls[0][0]).toMatchObject({
+      source: { type: 'snapshot', snapshotId: 'snap_123' },
+    });
+    expect(createMock.mock.calls[0][0]).not.toHaveProperty('runtime');
   });
 
   it('respects an explicitly provided timeout', async () => {

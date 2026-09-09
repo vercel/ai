@@ -205,3 +205,9 @@ export type HarnessV1RequestTransformation = {
     readonly headers: Readonly<Record<string, string>>;
   };
 };
+
+export type HarnessV1RequestTransformationSources<AuthenticationMode> = {
+  env: Record<string, string>;
+  sandboxEnv: Record<string, string>;
+  auth: AuthenticationMode;
+};

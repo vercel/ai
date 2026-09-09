@@ -1,5 +1,143 @@
 # @ai-sdk/google
 
+## 4.0.67
+
+### Patch Changes
+
+- ab6e9f9: feat(google): add batch cancellation and listing
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/provider-utils@5.0.39
+
+## 4.0.66
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/provider-utils@5.0.38
+
+## 4.0.65
+
+### Patch Changes
+
+- a4ba394: feat: support per-request models in batch
+- 45099da: Retry unclassified empty image results, preserve retry-attempt accounting, add provider-independent result retryability classification, and mark Google and Google Vertex prompt blocks as terminal.
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+
+## 4.0.64
+
+### Patch Changes
+
+- d4485fe: feat(ai): support minItems and maxItems in array outputs
+- 63533eb: fix(google): map code execution tool name- #20260
+
+## 4.0.63
+
+### Patch Changes
+
+- 18ad19c: feat(google): support agentic video processing in the Interactions API
+- 048ce06: feat(batch): surface the uploaded input file on the batch start result (`providerMetadata.<provider>.inputFileId` / `inputFileExpiresAt`) and accept an `inputFileExpiresAfter` provider option on the OpenAI and xAI batch input file upload
+- 622fa7f: feat(google): add gemini-3.8-flash model
+
+## 4.0.62
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
+## 4.0.61
+
+### Patch Changes
+
+- 5190b67: feat(provider): extend the FilesV4 interface with optional `getFileMetadata`, `downloadFile` (streaming), and `deleteFile` operations, plus `abortSignal`/`headers` call options and a `{ type: 'stream' }` upload data variant; upload results now expose `byteSize`, `createdAt`, and `expiresAt` (also surfaced by the core `uploadFile()` helper, which now forwards `abortSignal`/`headers`); add `postMultipartStreamToApi` (streaming multipart uploads with deterministic part ordering and failure-path stream teardown), `deleteFromApi`, and `createBinaryStreamResponseHandler` to provider-utils
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+
+## 4.0.60
+
+### Patch Changes
+
+- e07b577: feat: add tool calling support to batch
+
+## 4.0.59
+
+### Patch Changes
+
+- ca29e9b: fix(google): support video response formats in Gemini Interactions
+
+## 4.0.58
+
+### Patch Changes
+
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 4.0.57
+
+### Patch Changes
+
+- 949ef93: fix(google): recognize Google Files URLs when using a baseUrl
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
+## 4.0.56
+
+### Patch Changes
+
+- 3ad9da9: Preserve complete Google Generative Language usage metadata in raw usage results.
+- e9bc618: Omit unsupported frequency and presence penalties from Gemini 2.5 requests and return warnings instead.
+
+## 4.0.55
+
+### Patch Changes
+
+- 56d492f: Surface prompt-level Google safety blocks without candidates as content-filter results with prompt feedback metadata.
+
+## 4.0.54
+
+### Patch Changes
+
+- 1f7835c: feat (provider/google, provider/google-vertex): Gemini 3.5 Transcribe support — unary transcription (`gemini-3.5-transcribe`) via generateContent with language detection, speaker diarization, word timestamps, and custom vocabulary, plus streaming transcription (`gemini-3.5-transcribe-live`) over the Live API WebSocket with `mode: 'VERBATIM' | 'SMART'` transcription formatting
+
+## 4.0.53
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 4.0.52
+
+### Patch Changes
+
+- 7de3612: Encode provider-returned identifiers before using them in credentialed follow-up request paths.
+- a9782e1: fix: align batch result parsing, request counts, and lifecycle behavior across providers
+- 92e08e6: Preserve recursive tool input schemas without aborting Google model calls.
+- 35841f5: feat: normalize mid-stream provider error events across supported providers into public StreamProviderError instances and preserve provider-owned type, code, status, retry, and raw payload metadata
+- 0246209: Fix Google file uploads failing to type-check with TypeScript 5.9 DOM types.
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
+## 4.0.51
+
+### Patch Changes
+
+- e7fc90e: feat(google): support the Gemini Batch API with experimental_startTextBatch
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
 ## 4.0.50
 
 ### Patch Changes

@@ -1,4 +1,7 @@
-import type { LanguageModelV4ProviderTool } from '@ai-sdk/provider';
+import type {
+  JSONSchema7,
+  LanguageModelV4ProviderTool,
+} from '@ai-sdk/provider';
 import { expect, it } from 'vitest';
 import { prepareTools } from './google-prepare-tools';
 
@@ -48,6 +51,51 @@ it('should correctly prepare function tools', () => {
   ]);
   expect(result.toolConfig).toBeUndefined();
   expect(result.toolWarnings).toEqual([]);
+});
+
+it('should preserve recursive function tool schemas as JSON Schema', () => {
+  const inputSchema = {
+    type: 'object',
+    properties: {
+      condition: { $ref: '#/$defs/Condition' },
+    },
+    required: ['condition'],
+    $defs: {
+      Condition: {
+        type: 'object',
+        properties: {
+          children: {
+            type: 'array',
+            items: { $ref: '#/$defs/Condition' },
+          },
+        },
+      },
+    },
+  } as JSONSchema7;
+
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'search',
+        description: 'Search with a condition tree',
+        inputSchema,
+      },
+    ],
+    modelId: 'gemini-2.5-flash',
+  });
+
+  expect(result.tools).toEqual([
+    {
+      functionDeclarations: [
+        {
+          name: 'search',
+          description: 'Search with a condition tree',
+          parametersJsonSchema: inputSchema,
+        },
+      ],
+    },
+  ]);
 });
 
 it('should correctly prepare provider-defined tools as array', () => {

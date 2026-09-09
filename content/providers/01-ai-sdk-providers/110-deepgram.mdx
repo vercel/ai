@@ -55,23 +55,29 @@ You can use the following optional settings to customize the Deepgram provider i
 You can create models that call the [Deepgram text-to-speech API](https://developers.deepgram.com/docs/text-to-speech)
 using the `.speech()` factory method.
 
-The first argument is the model id, which includes the voice. Deepgram embeds the voice directly in the model ID (e.g., `aura-2-helena-en`).
-
-```ts
-const model = deepgram.speech('aura-2-helena-en');
-```
-
-You can use the model with the `generateSpeech` function:
+The first argument is the voice family ID: `aura-2` (current generation) or
+`aura` (Aura-1). The voice and language are selected with the
+`generateSpeech` `voice` and `language` options — the provider composes the
+upstream Deepgram model ID as `<family>-<voice>-<language>` (language
+defaults to `en`):
 
 ```ts
 import { generateSpeech } from 'ai';
 import { deepgram } from '@ai-sdk/deepgram';
 
 const result = await generateSpeech({
-  model: deepgram.speech('aura-2-helena-en'),
+  model: deepgram.speech('aura-2'),
+  voice: 'thalia',
+  language: 'en',
   text: 'Hello, world!',
 });
 ```
+
+<Note>
+  Full voice model IDs (e.g. `deepgram.speech('aura-2-helena-en')`) still pass
+  through, but the family ID + `voice`/`language` form above is the recommended
+  path — it matches voice selection in the other speech providers.
+</Note>
 
 You can also pass additional provider-specific options using the `providerOptions` argument:
 
@@ -80,7 +86,8 @@ import { generateSpeech } from 'ai';
 import { deepgram, type DeepgramSpeechModelOptions } from '@ai-sdk/deepgram';
 
 const result = await generateSpeech({
-  model: deepgram.speech('aura-2-helena-en'),
+  model: deepgram.speech('aura-2'),
+  voice: 'helena',
   text: 'Hello, world!',
   providerOptions: {
     deepgram: {
@@ -140,19 +147,26 @@ The following provider options are available:
   Label your requests for identification during usage reporting.
   Optional.
 
+Speech results include Deepgram response details in
+`providerMetadata.deepgram`: `modelName` (the resolved upstream model),
+`modelUuid`, `additionalModelUuids`, `charCount` (the billed character
+count), `breaksApplied`, `pronunciationsApplied`,
+`pronunciationWarnings` (when present), and `requestId`.
+
+The `generateSpeech` `speed` option is passed through to Deepgram's `speed`
+parameter. Deepgram accepts speeds in the 0.7–1.5 range and rejects
+out-of-range values with a 400 error; speed is not supported for all
+languages. `instructions` is not supported and is ignored with a warning.
+
 ### Model Capabilities
 
-| Model                                                            |
-| ---------------------------------------------------------------- |
-| `aura-2-asteria-en`                                              |
-| `aura-2-thalia-en`                                               |
-| `aura-2-helena-en`                                               |
-| `aura-2-orpheus-en`                                              |
-| `aura-2-zeus-en`                                                 |
-| `aura-asteria-en`                                                |
-| `aura-luna-en`                                                   |
-| `aura-stella-en`                                                 |
-| [+ more voices](https://developers.deepgram.com/docs/tts-models) |
+| Family   | Voices (selected via the `voice` option)                                    |
+| -------- | --------------------------------------------------------------------------- |
+| `aura-2` | 41 English, 17 Spanish, 9 Dutch, 7 German, 10 Italian, 5 Japanese, 2 French |
+| `aura`   | 12 English (Aura-1)                                                         |
+
+See the [full voice list](https://developers.deepgram.com/docs/tts-models)
+for all voice names and accents.
 
 ## Transcription Models
 
@@ -239,7 +253,8 @@ The following provider options are available:
 - **diarize** _boolean_
 
   Whether to identify different speakers in the transcription.
-  Defaults to `true`.
+  Defaults to `false`. Note that Deepgram bills speaker diarization as a
+  per-minute add-on.
   Optional.
 
 - **utterances** _boolean_
@@ -255,6 +270,31 @@ The following provider options are available:
 - **fillerWords** _boolean_
 
   Whether to include filler words (um, uh, etc.) in the transcription.
+  Optional.
+
+- **paragraphs** _boolean_
+
+  Whether to format the transcription into paragraphs.
+  Optional.
+
+- **intents** _boolean_
+
+  Whether to detect intents in the transcription.
+  Optional.
+
+- **sentiment** _boolean_
+
+  Whether to analyze sentiment in the transcription.
+  Optional.
+
+- **keyterm** _string_
+
+  Key term to improve recognition accuracy for.
+  Optional.
+
+- **replace** _string_
+
+  String to replace redacted content with.
   Optional.
 
 ### Model Capabilities

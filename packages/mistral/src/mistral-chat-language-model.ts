@@ -29,6 +29,7 @@ import {
 import { z } from 'zod/v4';
 import {
   convertMistralUsage,
+  mistralUsageSchema,
   type MistralUsage,
 } from './convert-mistral-usage';
 import { convertToMistralChatMessages } from './convert-to-mistral-chat-messages';
@@ -197,6 +198,9 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       // mistral-specific provider options:
       document_image_limit: options.documentImageLimit,
       document_page_limit: options.documentPageLimit,
+      ...(options.promptCacheKey !== undefined
+        ? { prompt_cache_key: options.promptCacheKey }
+        : {}),
 
       // messages:
       messages: convertToMistralChatMessages(prompt),
@@ -549,19 +553,6 @@ const mistralContentSchema = z
     ),
   ])
   .nullish();
-
-const mistralUsageSchema = z.object({
-  prompt_tokens: z.number(),
-  completion_tokens: z.number(),
-  total_tokens: z.number(),
-  num_cached_tokens: z.number().nullish(),
-  prompt_tokens_details: z
-    .object({ cached_tokens: z.number().nullish() })
-    .nullish(),
-  prompt_token_details: z
-    .object({ cached_tokens: z.number().nullish() })
-    .nullish(),
-});
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency

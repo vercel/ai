@@ -11,7 +11,7 @@ import type {
   InferUITools,
   UIMessage,
 } from './ui-messages';
-import { validateUIMessages } from './validate-ui-messages';
+import { validateUIMessagesForAgent } from './validate-ui-messages';
 
 /**
  * Options for the `DirectChatTransport` class.
@@ -93,7 +93,7 @@ export class DirectChatTransport<
     ReadableStream<UIMessageChunk>
   > {
     // Validate the incoming UI messages
-    const validatedMessages = await validateUIMessages<UI_MESSAGE>({
+    const validatedMessages = await validateUIMessagesForAgent<UI_MESSAGE>({
       messages,
       // tools are compatible; the casting is required because the context param is
       // not available in ui messages

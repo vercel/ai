@@ -18,15 +18,17 @@ export type OutboundMessage = z.infer<typeof outboundMessageSchema>;
 
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   instructions: z.string().optional(),
-  reasoningEffort: z.enum(['low', 'medium', 'high']).optional(),
+  reasoningEffort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
   webSearch: z.boolean().optional(),
   codexConfig: z.record(z.string(), z.unknown()).optional(),
   mcpServers: z.record(z.string(), z.unknown()).optional(),
+  headers: z.record(z.string(), z.string()).optional(),
   // Resume signal. When supplied, the bridge calls
   // `codex.resumeThread(resumeThreadId, …)` instead of starting a fresh thread.
   // The host sources the id from lifecycle state `data` cached from a prior
   // `agent.detach`.
   resumeThreadId: z.string().optional(),
+  restartThread: z.boolean().optional(),
 });
 
 export type StartMessage = z.infer<typeof startMessageSchema>;

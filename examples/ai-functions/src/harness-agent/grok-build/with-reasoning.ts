@@ -4,7 +4,9 @@ import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
-const grokBuild = createGrokBuild();
+const grokBuild = createGrokBuild({
+  reasoningEffort: 'high',
+});
 
 run(async () => {
   const sandbox = createVercelSandbox({

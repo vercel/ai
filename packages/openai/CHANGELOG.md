@@ -1,5 +1,161 @@
 # @ai-sdk/openai
 
+## 4.0.65
+
+### Patch Changes
+
+- 9942196: feat(openai): add batch cancellation and listing
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/provider-utils@5.0.39
+
+## 4.0.64
+
+### Patch Changes
+
+- ccb8952: fix(openai): return an AI SDK error for empty chat completion choices
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/provider-utils@5.0.38
+
+## 4.0.63
+
+### Patch Changes
+
+- 85db433: Include explicit message item types in Azure AI Foundry Responses requests.
+- 5fb2a64: feat(openai): add GPT Image 2.5 Flare and Sunburst model IDs
+- e105b2b: fix(openai): reject denied programmatic tool calls
+- 45f2b6a: fix(openai): report apply patch responses with a tool-calls finish reason
+
+## 4.0.62
+
+### Patch Changes
+
+- 8487955: Add `xhigh` and `max` quality support for GPT Image 2.5 Flare and Sunburst in image generation, image editing, and the Responses API image generation tool.
+
+## 4.0.61
+
+### Patch Changes
+
+- a4ba394: feat: support per-request models in batch
+- 4a09793: feat(openai): add async tool calling
+- 685ed8c: chore: fix failing CI
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+
+## 4.0.60
+
+### Patch Changes
+
+- 17e489e: feat(openai): add GPT-6 reasoning configuration updates
+
+## 4.0.59
+
+### Patch Changes
+
+- 4af00d1: feat(openai): add support for the gpt-6-astra
+- abb9ebf: feat(openai): support `gpt-4o-transcribe-diarize`, including chunking and diarized speaker metadata
+
+## 4.0.58
+
+### Patch Changes
+
+- b54e551: fix(openai): support documented Responses image generation options
+- 17d3436: feat(openai): add support for ultrafast service tier
+
+## 4.0.57
+
+### Patch Changes
+
+- 048ce06: feat(batch): surface the uploaded input file on the batch start result (`providerMetadata.<provider>.inputFileId` / `inputFileExpiresAt`) and accept an `inputFileExpiresAfter` provider option on the OpenAI and xAI batch input file upload
+- 7243530: fix(openai): preserve complete Responses API raw usage objects
+
+## 4.0.56
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
+## 4.0.55
+
+### Patch Changes
+
+- 3fc40db: feat(openai): implement `getFileMetadata`, `downloadFile` (streaming), and `deleteFile` on the OpenAI files interface, support streaming uploads via `{ type: 'stream' }` data, expose `byteSize`/`createdAt`/`expiresAt` on upload results, and thread `abortSignal`/`headers` through all file operations; blank and dot-segment file ids are rejected/encoded so they cannot retarget request paths
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+
+## 4.0.54
+
+### Patch Changes
+
+- f6fac50: fix(openai): handle null usage in responses
+- e07b577: feat: add tool calling support to batch
+
+## 4.0.53
+
+### Patch Changes
+
+- 7439d7a: Fix workflow deserialization for OpenAI Responses models.
+
+## 4.0.52
+
+### Patch Changes
+
+- 1c68540: Preserve explicit prompt cache breakpoints on scalar Responses tool results.
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 4.0.51
+
+### Patch Changes
+
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
+## 4.0.50
+
+### Patch Changes
+
+- e6a2992: Fix Responses history serialization for regular functions named `tool_search`.
+
+## 4.0.49
+
+### Patch Changes
+
+- 2523403: Normalize non-object replayed Chat Completions tool arguments to empty objects.
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 4.0.48
+
+### Patch Changes
+
+- a9782e1: fix: align batch result parsing, request counts, and lifecycle behavior across providers
+- eee6200: Signal schema-invalid known Responses stream events and preserve the error finish reason.
+- 35841f5: feat: normalize mid-stream provider error events across supported providers into public StreamProviderError instances and preserve provider-owned type, code, status, retry, and raw payload metadata
+- d2f3353: Split OpenAI and Azure OpenAI embedding requests by a conservative UTF-8 byte budget derived from their aggregate token limit, in addition to input count limits.
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
+## 4.0.47
+
+### Patch Changes
+
+- 591d25b: feat: add batch completion webhooks. `experimental_startTextBatch` accepts a `webhookUrl`, and the gateway provider registers it through the batch `callbackUrl` contract and exports typed async-job metadata. Direct Anthropic and OpenAI batch providers return an unsupported warning when the option is provided.
+- 2214258: Prevent negative text output token counts when providers report reasoning tokens. Perplexity reasoning tokens are now treated as separate from completion tokens.
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
 ## 4.0.46
 
 ### Patch Changes

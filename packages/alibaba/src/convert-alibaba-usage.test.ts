@@ -24,6 +24,22 @@ describe('convertAlibabaUsage', () => {
     expect(result.inputTokens.noCache).toBe(30);
   });
 
+  it('clamps text tokens at 0 when reasoning exceeds completion', () => {
+    const result = convertAlibabaUsage({
+      prompt_tokens: 951,
+      completion_tokens: 6000,
+      completion_tokens_details: {
+        reasoning_tokens: 6001,
+      },
+    });
+
+    expect(result.outputTokens).toEqual({
+      total: 6000,
+      text: 0,
+      reasoning: 6001,
+    });
+  });
+
   it('should return null usage when the response carries none', () => {
     expect(convertAlibabaUsage(undefined)).toEqual({
       inputTokens: {

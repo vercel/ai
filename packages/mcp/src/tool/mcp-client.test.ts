@@ -178,6 +178,67 @@ class ProtocolDiscoveryTransport implements MCPTransport {
   }
 }
 
+class PaginatedToolsTransport implements MCPTransport {
+  readonly toolListCursors: Array<string | undefined> = [];
+
+  onmessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+
+  async start(): Promise<void> {}
+
+  async close(): Promise<void> {
+    this.onclose?.();
+  }
+
+  async send(message: JSONRPCMessage): Promise<void> {
+    if (!('method' in message) || !('id' in message)) {
+      return;
+    }
+
+    if (message.method === 'initialize') {
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          protocolVersion: LATEST_LEGACY_PROTOCOL_VERSION,
+          serverInfo: { name: 'paginated-tools-server', version: '1.0.0' },
+          capabilities: { tools: {} },
+        },
+      });
+      return;
+    }
+
+    if (message.method === 'tools/list') {
+      const cursor = message.params?.cursor as string | undefined;
+      this.toolListCursors.push(cursor);
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result:
+          cursor == null
+            ? {
+                tools: [
+                  {
+                    name: 'first-page-tool',
+                    inputSchema: { type: 'object' },
+                  },
+                ],
+                nextCursor: 'second-page',
+              }
+            : {
+                tools: [
+                  {
+                    name: 'second-page-tool',
+                    inputSchema: { type: 'object' },
+                  },
+                ],
+              },
+      });
+    }
+  }
+}
+
 class FailsFirstToolCallTransport implements MCPTransport {
   toolCallAttempts = 0;
 
@@ -483,6 +544,44 @@ describe('MCPClient', () => {
     `);
   });
 
+  it('should normalize structured tool results that omit content', async () => {
+    const structuredContent = {
+      products: [{ id: 'gid://shopify/Product/1', title: 'Trail Shoes' }],
+    };
+    client = await createMCPClient({
+      transport: new MockMCPTransport({
+        toolCallResults: {
+          'mock-tool': {
+            structuredContent,
+          } as unknown as CallToolResult,
+        },
+      }),
+    });
+
+    await expect(
+      client.callTool({ name: 'mock-tool', arguments: { foo: 'bar' } }),
+    ).resolves.toEqual({
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(structuredContent),
+        },
+      ],
+      structuredContent,
+      isError: false,
+    });
+  });
+
+  it('should return tools from all paginated tool list responses', async () => {
+    const transport = new PaginatedToolsTransport();
+    client = await createMCPClient({ transport });
+
+    const tools = await client.tools();
+
+    expect(Object.keys(tools)).toEqual(['first-page-tool', 'second-page-tool']);
+    expect(transport.toolListCursors).toEqual([undefined, 'second-page']);
+  });
+
   it('should expose MCP tool metadata on dynamic tools', async () => {
     client = await createMCPClient({
       transport: { type: 'sse', url: 'https://example.com/sse' },
@@ -597,8 +696,15 @@ describe('MCPClient', () => {
   });
 
   it('should create tools from cached definitions via toolsFromDefinitions()', async () => {
+    const structuredContent = { value: 42 };
     client = await createMCPClient({
-      transport: { type: 'sse', url: 'https://example.com/sse' },
+      transport: new MockMCPTransport({
+        toolCallResults: {
+          'mock-tool': {
+            structuredContent,
+          } as unknown as CallToolResult,
+        },
+      }),
     });
 
     // Get definitions (this would normally be cached)
@@ -617,8 +723,10 @@ describe('MCPClient', () => {
       { foo: 'bar' },
       { messages: [], toolCallId: '1', context: {} },
     );
-    expect(result).toMatchObject({
-      content: [{ type: 'text', text: 'Mock tool call result' }],
+    expect(result).toEqual({
+      content: [{ type: 'text', text: JSON.stringify(structuredContent) }],
+      structuredContent,
+      isError: false,
     });
   });
 
@@ -804,7 +912,7 @@ describe('MCPClient', () => {
             'get-mixed': {
               content: [
                 { type: 'text', text: 'Here is an image:' },
-                { type: 'image', data: 'base64data', mimeType: 'image/png' },
+                { type: 'image', data: 'aGVsbG8=', mimeType: 'image/png' },
               ],
               isError: false,
             },
@@ -829,13 +937,12 @@ describe('MCPClient', () => {
               "type": "text",
             },
             {
-              "data": "base64data",
+              "data": "aGVsbG8=",
               "mimeType": "image/png",
               "type": "image",
             },
           ],
           "isError": false,
-          "toolResult": undefined,
         }
       `);
 
@@ -847,7 +954,7 @@ describe('MCPClient', () => {
         output: {
           content: [
             { type: 'text', text: 'Here is an image:' },
-            { type: 'image', data: 'base64data', mimeType: 'image/png' },
+            { type: 'image', data: 'aGVsbG8=', mimeType: 'image/png' },
           ],
           isError: false,
         },
@@ -862,7 +969,7 @@ describe('MCPClient', () => {
           },
           {
             "data": {
-              "data": "base64data",
+              "data": "aGVsbG8=",
               "type": "data",
             },
             "mediaType": "image/png",
@@ -913,7 +1020,6 @@ describe('MCPClient', () => {
             },
           ],
           "isError": false,
-          "toolResult": undefined,
         }
       `);
 
@@ -953,9 +1059,9 @@ describe('MCPClient', () => {
           ],
           toolCallResults: {
             'get-raw': {
-              value: 42,
+              toolResult: { value: 42 },
               isError: false,
-            } as unknown as CallToolResult,
+            },
           },
         }),
     );
@@ -972,8 +1078,9 @@ describe('MCPClient', () => {
     ).toMatchInlineSnapshot(`
         {
           "isError": false,
-          "toolResult": undefined,
-          "value": 42,
+          "toolResult": {
+            "value": 42,
+          },
         }
       `);
 
@@ -982,14 +1089,16 @@ describe('MCPClient', () => {
       (tool.toModelOutput as Function)({
         toolCallId: '1',
         input: {},
-        output: { value: 42, isError: false },
+        output: { toolResult: { value: 42 }, isError: false },
       }),
     ).toMatchInlineSnapshot(`
       {
         "type": "json",
         "value": {
           "isError": false,
-          "value": 42,
+          "toolResult": {
+            "value": 42,
+          },
         },
       }
     `);
@@ -2296,17 +2405,11 @@ describe('MCPClient', () => {
         ],
         toolCallResults: {
           'weather-tool': {
-            content: [
-              {
-                type: 'text',
-                text: '{"temperature": 22.5, "conditions": "Sunny"}',
-              },
-            ],
             structuredContent: {
               temperature: 22.5,
               conditions: 'Sunny',
             },
-          },
+          } as unknown as CallToolResult,
         },
       });
 
@@ -2884,6 +2987,59 @@ describe('MCPClient', () => {
           { messages: [], toolCallId: '1', context: {} },
         ),
       ).rejects.toThrow(MCPClientError);
+    });
+  });
+
+  describe('tool annotations support', () => {
+    it('should expose MCP tool annotations on dynamic and typed tools', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideTools: [
+          {
+            name: 'annotated-tool',
+            description: 'A tool with behavioral annotations',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+            annotations: {
+              title: 'Annotated Tool',
+              readOnlyHint: false,
+              destructiveHint: true,
+              idempotentHint: false,
+              openWorldHint: true,
+            },
+          },
+        ],
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      const dynamicTools = await client.tools();
+      const typedTools = await client.tools({
+        schemas: {
+          'annotated-tool': {
+            inputSchema: z.object({}),
+          },
+        },
+      });
+
+      expect(dynamicTools['annotated-tool'].metadata).toEqual({
+        clientName: 'ai-sdk-mcp-client',
+        toolName: 'annotated-tool',
+        title: 'Annotated Tool',
+        annotations: {
+          title: 'Annotated Tool',
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: false,
+          openWorldHint: true,
+        },
+      });
+      expect(typedTools['annotated-tool'].metadata).toEqual(
+        dynamicTools['annotated-tool'].metadata,
+      );
     });
   });
 

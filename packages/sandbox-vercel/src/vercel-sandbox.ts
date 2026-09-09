@@ -63,6 +63,7 @@ export type VercelSandboxSettings =
  * too short for multi-step workflows — the VM expires between steps.
  */
 const DEFAULT_SANDBOX_TIMEOUT_MS = 30 * 60 * 1_000;
+const DEFAULT_SANDBOX_RUNTIME = 'node24';
 
 const VERCEL_PROVIDER_ID = 'vercel-sandbox';
 const TEMPLATE_NAME_PREFIX = 'ai-sdk-harness';
@@ -72,6 +73,18 @@ const SNAPSHOT_POLL_TIMEOUT_MS = 30_000;
 
 function sessionSandboxName(sessionId: string): string {
   return `${SESSION_NAME_PREFIX}-${sessionId}`;
+}
+
+function hasExplicitSandboxEnvironment(params: object): boolean {
+  return (
+    ('runtime' in params && params.runtime != null) ||
+    ('image' in params && params.image != null) ||
+    ('source' in params &&
+      typeof params.source === 'object' &&
+      params.source != null &&
+      'type' in params.source &&
+      params.source.type === 'snapshot')
+  );
 }
 
 export function createVercelSandbox(
@@ -120,10 +133,16 @@ export class VercelSandboxProvider implements HarnessV1SandboxProvider {
       name: explicitName,
       ...createParams
     } = settings;
-    const baseParams: BaseCreateSandboxParams = {
+    // Sandbox v3 changed its implicit default from the Node 24 runtime to the
+    // Universal managed image. Keep this adapter's existing default stable while
+    // allowing callers to opt into managed images explicitly.
+    const baseParams = {
+      ...(hasExplicitSandboxEnvironment(createParams)
+        ? {}
+        : { runtime: DEFAULT_SANDBOX_RUNTIME }),
       ...createParams,
       timeout: createParams.timeout ?? DEFAULT_SANDBOX_TIMEOUT_MS,
-    };
+    } as BaseCreateSandboxParams;
 
     const identity = options?.identity;
     const onFirstCreate = options?.onFirstCreate;
@@ -202,6 +221,7 @@ export class VercelSandboxProvider implements HarnessV1SandboxProvider {
 
     const {
       runtime: _ignoredRuntime,
+      image: _ignoredImage,
       source: _ignoredSource,
       persistent: _ignoredPersistent,
       ...forkParams

@@ -2,6 +2,7 @@ import {
   type Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
   type Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
   type Experimental_VideoModelV4,
+  type Experimental_BatchV4 as BatchV4,
   type FilesV4,
   type ImageModelV4,
   type LanguageModelV4,
@@ -22,6 +23,7 @@ import { XaiChatLanguageModel } from './xai-chat-language-model';
 import type { XaiChatModelId } from './xai-chat-language-model-options';
 import { XaiImageModel } from './xai-image-model';
 import type { XaiImageModelId } from './xai-image-settings';
+import { XaiBatch } from './xai-batch';
 import { XaiResponsesLanguageModel } from './responses/xai-responses-language-model';
 import type { XaiResponsesModelId } from './responses/xai-responses-language-model-options';
 import { XaiRealtimeModel } from './realtime/xai-realtime-model';
@@ -50,6 +52,11 @@ export interface XaiProvider extends ProviderV4 {
    * Creates an Xai responses model for text generation.
    */
   responses: (modelId: XaiResponsesModelId) => LanguageModelV4;
+
+  /**
+   * Returns a BatchV4 interface for processing batches with xAI.
+   */
+  experimental_batch(): BatchV4<{ text: XaiResponsesModelId }>;
 
   /**
    * Creates an Xai image model for image generation.
@@ -248,6 +255,18 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
       fetch: options.fetch,
     });
 
+  const createBatch = () =>
+    new XaiBatch({
+      provider: 'xai.batch',
+      config: {
+        provider: 'xai.responses',
+        baseURL,
+        headers: getHeaders,
+        generateId,
+        fetch: options.fetch,
+      },
+    });
+
   const provider = (modelId: XaiResponsesModelId) =>
     createResponsesLanguageModel(modelId);
 
@@ -269,6 +288,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   provider.transcriptionModel = createTranscriptionModel;
   provider.transcription = createTranscriptionModel;
   provider.files = createFiles;
+  provider.experimental_batch = createBatch;
   provider.tools = xaiTools;
 
   return provider;

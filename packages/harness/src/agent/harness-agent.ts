@@ -1,6 +1,6 @@
 import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-unsupported-error';
 import type {
-  HarnessV1Bootstrap,
+  HarnessV1,
   HarnessV1BuiltinToolFiltering,
   HarnessV1JSONSchema,
   HarnessV1NetworkSandboxSession,
@@ -10,11 +10,16 @@ import {
   asArray,
   asSchema,
   generateId,
+  normalizeHeaders,
+  validateTypes,
   type Context,
   type Experimental_SandboxSession as SandboxSession,
   type ModelMessage,
+  type ToolApprovalResponse,
+  type ToolResultPart,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
+import { mergeCallbacks } from 'ai/internal';
 import type {
   Agent,
   AgentCallParameters,
@@ -38,16 +43,11 @@ import type {
   HarnessAgentPermissionMode,
   HarnessAgentPrompt,
   HarnessAgentResumeSessionState,
+  HarnessAgentSkill,
   HarnessAgentToolSpec,
 } from './harness-agent-types';
-import {
-  collectHarnessAgentToolApprovalContinuations,
-  type HarnessAgentToolApprovalContinuation,
-} from './harness-agent-tool-approval-continuation';
-import {
-  collectHarnessAgentToolResultContinuations,
-  type HarnessAgentToolResultContinuation,
-} from './harness-agent-tool-result-continuation';
+import { collectHarnessAgentToolApprovalContinuations } from './harness-agent-tool-approval-continuation';
+import { collectHarnessAgentToolResultContinuations } from './harness-agent-tool-result-continuation';
 import {
   applyBootstrapRecipe,
   hashHarnessBootstrap,
@@ -67,6 +67,7 @@ import {
 import { resolveHarnessAgentToolFiltering } from './internal/tool-filtering';
 import { resolveSandboxDefaultWorkingDirectory } from '../utils/resolve-sandbox-default-working-directory';
 import { getRestrictedSandboxSession } from '../utils/get-restricted-sandbox-session';
+import type { HarnessAgentLifecycleCallbacks } from './internal/turn-telemetry';
 
 export type { HarnessAllTools } from './harness-agent-tool-types';
 
@@ -83,6 +84,54 @@ export interface HarnessAgentCallExtensions {
    */
   session: HarnessAgentSession;
 }
+
+type HarnessAgentContinueTurnInput = {
+  toolApprovalContinuations: readonly ToolApprovalResponse[];
+  toolResultContinuations: readonly ToolResultPart[];
+};
+
+type PreparedHarnessAgentTurnSettings<
+  THarness extends HarnessAgentAdapter<any>,
+  TUserTools extends ToolSet,
+> = {
+  model: string | undefined;
+  skills: ReadonlyArray<HarnessAgentSkill>;
+  instructions: string | undefined;
+  tools: HarnessAllTools<THarness, TUserTools>;
+  activeTools: TUserTools;
+  toolSpecs: HarnessAgentToolSpec[];
+  builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
+};
+
+type PreparedHarnessAgentPromptTurnInput<
+  THarness extends HarnessAgentAdapter<any>,
+  TUserTools extends ToolSet,
+> = PreparedHarnessAgentTurnSettings<THarness, TUserTools> & {
+  prompt: HarnessAgentPrompt;
+};
+
+type PreparedHarnessAgentContinueTurnInput<
+  THarness extends HarnessAgentAdapter<any>,
+  TUserTools extends ToolSet,
+> = PreparedHarnessAgentTurnSettings<THarness, TUserTools> & {
+  toolApprovalContinuations: readonly ToolApprovalResponse[];
+  toolResultContinuations: readonly ToolResultPart[];
+};
+
+type HarnessAgentTurnResult<
+  THarness extends HarnessAgentAdapter<any>,
+  TUserTools extends ToolSet,
+  RUNTIME_CONTEXT extends Context,
+  OUTPUT extends Output,
+> = {
+  result: StreamTextResult<
+    HarnessAllTools<THarness, TUserTools>,
+    RUNTIME_CONTEXT,
+    OUTPUT
+  >;
+  done: Promise<void>;
+  ready: Promise<void>;
+};
 
 /**
  * AI SDK `Agent` implementation that drives a third-party agent runtime
@@ -124,8 +173,9 @@ export class HarnessAgent<
   TUserTools extends ToolSet = {},
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = never,
+  CALL_OPTIONS = never,
 > implements Agent<
-  never,
+  CALL_OPTIONS,
   HarnessAllTools<THarness, TUserTools>,
   RUNTIME_CONTEXT,
   OUTPUT
@@ -145,24 +195,26 @@ export class HarnessAgent<
     THarness,
     TUserTools,
     RUNTIME_CONTEXT,
-    OUTPUT
+    OUTPUT,
+    CALL_OPTIONS
   >;
   private readonly stopConditions: Array<
     StopCondition<HarnessAllTools<THarness, TUserTools>, RUNTIME_CONTEXT>
   >;
   private readonly sandboxConfig: HarnessAgentSandboxConfig;
-  private readonly activeUserTools: TUserTools;
   private readonly builtinToolFiltering:
     | HarnessV1BuiltinToolFiltering
     | undefined;
   private readonly permissionMode: HarnessAgentPermissionMode;
+  private readonly headers: Readonly<Record<string, string>> | undefined;
 
   constructor(
     settings: HarnessAgentSettings<
       THarness,
       TUserTools,
       RUNTIME_CONTEXT,
-      OUTPUT
+      OUTPUT,
+      CALL_OPTIONS
     >,
   ) {
     const sandboxConfig = resolveSandboxConfig(settings);
@@ -171,8 +223,28 @@ export class HarnessAgent<
     this.stopConditions =
       settings.stopWhen == null ? [] : asArray(settings.stopWhen);
     this.sandboxConfig = sandboxConfig;
+    const forbiddenHeaders = new Set([
+      'authorization',
+      'x-api-key',
+      'user-agent',
+      'x-client-app',
+    ]);
+    const forbiddenHeader = Object.keys(settings.headers ?? {})
+      .map(name => name.toLowerCase())
+      .find(name => forbiddenHeaders.has(name));
+    if (forbiddenHeader != null) {
+      throw new Error(
+        `HarnessAgent: \`headers\` must not include the managed header \`${forbiddenHeader}\`.`,
+      );
+    }
+    const headers = normalizeHeaders(settings.headers);
+    this.headers = Object.keys(headers).length === 0 ? undefined : headers;
     this.id = settings.id;
     const userTools = settings.tools ?? ({} as TUserTools);
+    assertNoReservedQuestionTool({
+      harness: settings.harness,
+      userTools,
+    });
     this.permissionMode = resolvePermissionMode({
       permissionMode: settings.permissionMode,
     });
@@ -187,7 +259,6 @@ export class HarnessAgent<
       activeTools: settings.activeTools,
       inactiveTools: settings.inactiveTools,
     });
-    this.activeUserTools = toolFiltering.activeUserTools;
     this.builtinToolFiltering = toolFiltering.builtinToolFiltering;
     if (
       Object.keys(settings.harness.builtinTools).length > 0 &&
@@ -329,6 +400,7 @@ export class HarnessAgent<
         );
       }
 
+      const recipe = await harness.getBootstrap?.({ abortSignal });
       if (isResumedSession) {
         if (sandboxProvider.resumeSession == null) {
           throw new HarnessCapabilityUnsupportedError({
@@ -348,16 +420,34 @@ export class HarnessAgent<
           sessionId,
           workDir: this.sandboxConfig.workDir,
         });
-      } else {
-        // The logic in this clause applies the bootstrap plan, including both the harness
-        // bootstrap recipe and agent specific sandbox configuration.
-        // The logic matches largely what `prepareHarnessSandboxTemplate()` and
-        // `prepareSandboxForHarness()` do, so they will have to remain aligned.
-        let recipe: HarnessV1Bootstrap | undefined;
-        if (harness.getBootstrap != null) {
-          recipe = await harness.getBootstrap({ abortSignal });
-        }
 
+        // Ensure the harness bootstrap recipe on resumed sessions too. The
+        // marker is keyed by recipe identity, so a resume whose bootstrap is
+        // already current costs one file read, while a resume into a sandbox
+        // bootstrapped by an older adapter build — a snapshot that outlived
+        // the harness version that made it — would otherwise keep running a
+        // stale bridge against a newer host, silently missing whatever the
+        // newer protocol added.
+        if (recipe != null) {
+          const recipeIdentity = await hashHarnessBootstrap(recipe);
+          try {
+            await applyBootstrapRecipe({
+              session: resumedSandboxSession.restricted(),
+              recipe,
+              identity: recipeIdentity,
+              defaultWorkingDirectory:
+                resumedSandboxSession.defaultWorkingDirectory,
+              abortSignal,
+            });
+          } catch (err) {
+            await cleanupAfterStartFailure({
+              sandboxSession,
+              ownsSandboxLifecycle,
+            });
+            throw err;
+          }
+        }
+      } else {
         // Defines the hashes based on both harness bootstrap recipe and
         // consumer-defined onBootstrap callback.
         const sandboxBootstrapPlan = await createSandboxBootstrapPlan({
@@ -432,7 +522,7 @@ export class HarnessAgent<
     try {
       const baseStartOptions = {
         sessionId,
-        skills: this.settings.skills,
+        ...(this.headers == null ? {} : { headers: this.headers }),
         resumeFrom: validatedResumeFrom,
         continueFrom: effectiveContinueFrom,
         permissionMode: this.permissionMode,
@@ -455,6 +545,7 @@ export class HarnessAgent<
         toolApproval: this.settings.toolApproval,
         pendingToolApprovals: effectiveContinueFrom?.pendingToolApprovals,
         pendingToolResults: effectiveContinueFrom?.pendingToolResults,
+        turnSettings: effectiveContinueFrom?.turnSettings,
         turnState:
           effectiveContinueFrom == null
             ? 'idle'
@@ -477,7 +568,7 @@ export class HarnessAgent<
 
   async generate(
     options: AgentCallParameters<
-      never,
+      CALL_OPTIONS,
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT
     > &
@@ -489,23 +580,24 @@ export class HarnessAgent<
       OUTPUT
     >
   > {
-    const turnInput = this._resolveTurnInput(options);
+    const continueTurnInput = this._resolveContinueTurnInput(options);
     const runtimeContext = {} as RUNTIME_CONTEXT;
-    const responseFormat = await this._resolveResponseFormat();
-    const { result, done } = this._startTurn({
-      session: options.session,
-      turnInput,
-      runtimeContext,
-      abortSignal: options.abortSignal,
-      responseFormat,
-    });
+    const { result, done } =
+      continueTurnInput == null
+        ? await this._startPromptTurn({ options, runtimeContext })
+        : await this._startContinueTurn({
+            session: options.session,
+            turnInput: continueTurnInput,
+            runtimeContext,
+            abortSignal: options.abortSignal,
+          });
     await done;
     return this._toGenerateResult(result);
   }
 
   async stream(
     options: AgentStreamParameters<
-      never,
+      CALL_OPTIONS,
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT
     > &
@@ -517,16 +609,18 @@ export class HarnessAgent<
       OUTPUT
     >
   > {
-    const turnInput = this._resolveTurnInput(options);
+    const continueTurnInput = this._resolveContinueTurnInput(options);
     const runtimeContext = {} as RUNTIME_CONTEXT;
-    const responseFormat = await this._resolveResponseFormat();
-    const { result } = this._startTurn({
-      session: options.session,
-      turnInput,
-      runtimeContext,
-      abortSignal: options.abortSignal,
-      responseFormat,
-    });
+    const { result, ready } =
+      continueTurnInput == null
+        ? await this._startPromptTurn({ options, runtimeContext })
+        : await this._startContinueTurn({
+            session: options.session,
+            turnInput: continueTurnInput,
+            runtimeContext,
+            abortSignal: options.abortSignal,
+          });
+    await ready;
     return result;
   }
 
@@ -537,8 +631,8 @@ export class HarnessAgent<
    */
   async continueGenerate(options: {
     session: HarnessAgentSession;
-    toolApprovalContinuations?: readonly HarnessAgentToolApprovalContinuation[];
-    toolResultContinuations?: readonly HarnessAgentToolResultContinuation[];
+    toolApprovalContinuations?: readonly ToolApprovalResponse[];
+    toolResultContinuations?: readonly ToolResultPart[];
     abortSignal?: AbortSignal;
   }): Promise<
     GenerateTextResult<
@@ -548,18 +642,14 @@ export class HarnessAgent<
     >
   > {
     const runtimeContext = {} as RUNTIME_CONTEXT;
-    const responseFormat = await this._resolveResponseFormat();
-
-    const { result, done } = this._startTurn({
+    const { result, done } = await this._startContinueTurn({
       session: options.session,
       turnInput: {
-        mode: 'continue',
         toolApprovalContinuations: options.toolApprovalContinuations ?? [],
         toolResultContinuations: options.toolResultContinuations ?? [],
       },
       runtimeContext,
       abortSignal: options.abortSignal,
-      responseFormat,
     });
     await done;
     return this._toGenerateResult(result);
@@ -575,8 +665,8 @@ export class HarnessAgent<
    */
   async continueStream(options: {
     session: HarnessAgentSession;
-    toolApprovalContinuations?: readonly HarnessAgentToolApprovalContinuation[];
-    toolResultContinuations?: readonly HarnessAgentToolResultContinuation[];
+    toolApprovalContinuations?: readonly ToolApprovalResponse[];
+    toolResultContinuations?: readonly ToolResultPart[];
     abortSignal?: AbortSignal;
   }): Promise<
     StreamTextResult<
@@ -586,19 +676,16 @@ export class HarnessAgent<
     >
   > {
     const runtimeContext = {} as RUNTIME_CONTEXT;
-    const responseFormat = await this._resolveResponseFormat();
-
-    const { result } = this._startTurn({
+    const { result, ready } = await this._startContinueTurn({
       session: options.session,
       turnInput: {
-        mode: 'continue',
         toolApprovalContinuations: options.toolApprovalContinuations ?? [],
         toolResultContinuations: options.toolResultContinuations ?? [],
       },
       runtimeContext,
       abortSignal: options.abortSignal,
-      responseFormat,
     });
+    await ready;
     return result;
   }
 
@@ -618,88 +705,137 @@ export class HarnessAgent<
 
   // ─── Internals ──────────────────────────────────────────────────────
 
-  private _startTurn(input: {
-    session: HarnessAgentSession;
-    turnInput:
-      | { mode: 'prompt'; prompt: HarnessAgentPrompt }
-      | {
-          mode: 'continue';
-          toolApprovalContinuations: readonly HarnessAgentToolApprovalContinuation[];
-          toolResultContinuations: readonly HarnessAgentToolResultContinuation[];
-        };
-    runtimeContext: RUNTIME_CONTEXT;
-    abortSignal: AbortSignal | undefined;
-    responseFormat: HarnessV1ResponseFormat | undefined;
-  }): {
-    result: StreamTextResult<
+  private async _startPromptTurn(input: {
+    options: AgentCallParameters<
+      CALL_OPTIONS,
       HarnessAllTools<THarness, TUserTools>,
-      RUNTIME_CONTEXT,
-      OUTPUT
-    >;
-    done: Promise<void>;
-  } {
-    if (input.turnInput.mode === 'continue') {
-      return input.session.continueTurn<
-        HarnessAllTools<THarness, TUserTools>,
-        RUNTIME_CONTEXT,
-        OUTPUT
-      >({
-        instructions: this.settings.instructions,
-        tools: this.tools,
-        activeTools: this.activeUserTools,
-        toolSpecs: this._toToolSpecs(),
-        builtinToolFiltering: this.builtinToolFiltering,
-        runtimeContext: input.runtimeContext,
-        abortSignal: input.abortSignal,
-        responseFormat: input.responseFormat,
-        output: this.settings.output,
-        telemetry: this.settings.telemetry,
-        stopConditions: this.stopConditions,
-        toolApprovalContinuations: input.turnInput.toolApprovalContinuations,
-        toolResultContinuations: input.turnInput.toolResultContinuations,
-      });
-    }
+      RUNTIME_CONTEXT
+    > &
+      HarnessAgentCallExtensions;
+    runtimeContext: RUNTIME_CONTEXT;
+  }): Promise<
+    HarnessAgentTurnResult<THarness, TUserTools, RUNTIME_CONTEXT, OUTPUT>
+  > {
+    const turnInput = await this._preparePromptTurnInput(input.options);
+    const responseFormat = await this._resolveResponseFormat();
 
-    return input.session.promptTurn<
+    return input.options.session.promptTurn<
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT,
       OUTPUT
     >({
-      prompt: input.turnInput.prompt,
-      instructions: this.settings.instructions,
-      tools: this.tools,
-      activeTools: this.activeUserTools,
-      toolSpecs: this._toToolSpecs(),
-      builtinToolFiltering: this.builtinToolFiltering,
+      ...this._buildTurnOptions({
+        turnSettings: turnInput,
+        runtimeContext: input.runtimeContext,
+        abortSignal: input.options.abortSignal,
+        responseFormat,
+        callbacks: this._resolveLifecycleCallbacks(input.options),
+      }),
+      prompt: turnInput.prompt,
+    });
+  }
+
+  private async _startContinueTurn(input: {
+    session: HarnessAgentSession;
+    turnInput: HarnessAgentContinueTurnInput;
+    runtimeContext: RUNTIME_CONTEXT;
+    abortSignal: AbortSignal | undefined;
+  }): Promise<
+    HarnessAgentTurnResult<THarness, TUserTools, RUNTIME_CONTEXT, OUTPUT>
+  > {
+    const turnInput = this._prepareContinueTurnInput(input.turnInput);
+    const responseFormat = await this._resolveResponseFormat();
+
+    return input.session.continueTurn<
+      HarnessAllTools<THarness, TUserTools>,
+      RUNTIME_CONTEXT,
+      OUTPUT
+    >({
+      ...this._buildTurnOptions({
+        turnSettings: turnInput,
+        runtimeContext: input.runtimeContext,
+        abortSignal: input.abortSignal,
+        responseFormat,
+        callbacks: this._resolveLifecycleCallbacks(),
+      }),
+      toolApprovalContinuations: turnInput.toolApprovalContinuations,
+      toolResultContinuations: turnInput.toolResultContinuations,
+    });
+  }
+
+  private _buildTurnOptions(input: {
+    turnSettings: PreparedHarnessAgentTurnSettings<THarness, TUserTools>;
+    runtimeContext: RUNTIME_CONTEXT;
+    abortSignal: AbortSignal | undefined;
+    responseFormat: HarnessV1ResponseFormat | undefined;
+    callbacks: HarnessAgentLifecycleCallbacks<
+      HarnessAllTools<THarness, TUserTools>,
+      RUNTIME_CONTEXT,
+      OUTPUT
+    >;
+  }) {
+    return {
+      model: input.turnSettings.model,
+      skills: input.turnSettings.skills,
+      instructions: input.turnSettings.instructions,
+      tools: input.turnSettings.tools,
+      activeTools: input.turnSettings.activeTools,
+      toolSpecs: input.turnSettings.toolSpecs,
+      builtinToolFiltering: input.turnSettings.builtinToolFiltering,
       runtimeContext: input.runtimeContext,
       abortSignal: input.abortSignal,
       responseFormat: input.responseFormat,
       output: this.settings.output,
       telemetry: this.settings.telemetry,
+      callbacks: input.callbacks,
       stopConditions: this.stopConditions,
-    });
+    };
   }
 
-  /*
-   * Reduce AI SDK input to the single user message the harness should run
-   * for this turn. The harness session owns prior-turn state (system
-   * prompt, assistant turns, tool results) — we never replay it. A bare
-   * string is forwarded as-is; a message array is collapsed to its last
-   * `role: 'user'` entry. Inputs whose only messages are non-user (system,
-   * assistant, tool) have no fresh user input and are rejected.
-   */
-  private _resolveTurnInput(options: {
+  private _resolveLifecycleCallbacks(
+    call?: AgentCallParameters<
+      CALL_OPTIONS,
+      HarnessAllTools<THarness, TUserTools>,
+      RUNTIME_CONTEXT
+    >,
+  ): HarnessAgentLifecycleCallbacks<
+    HarnessAllTools<THarness, TUserTools>,
+    RUNTIME_CONTEXT,
+    OUTPUT
+  > {
+    return {
+      onStart: mergeCallbacks(
+        this.settings.onStart,
+        call?.onStart ?? call?.experimental_onStart,
+      ),
+      onStepStart: mergeCallbacks(
+        this.settings.onStepStart,
+        call?.onStepStart ?? call?.experimental_onStepStart,
+      ),
+      onLanguageModelCallStart: this.settings.onLanguageModelCallStart,
+      onLanguageModelCallEnd: this.settings.onLanguageModelCallEnd,
+      onToolExecutionStart: mergeCallbacks(
+        this.settings.onToolExecutionStart,
+        call?.onToolExecutionStart ?? call?.experimental_onToolCallStart,
+      ),
+      onToolExecutionEnd: mergeCallbacks(
+        this.settings.onToolExecutionEnd,
+        call?.onToolExecutionEnd ?? call?.experimental_onToolCallFinish,
+      ),
+      onStepEnd: mergeCallbacks(
+        this.settings.onStepEnd,
+        call?.onStepEnd ?? call?.onStepFinish,
+      ),
+      onEnd: mergeCallbacks(this.settings.onEnd, call?.onEnd ?? call?.onFinish),
+    };
+  }
+
+  private _resolveContinueTurnInput(options: {
     prompt?: string | ModelMessage[];
     messages?: ModelMessage[];
-  }):
-    | { mode: 'prompt'; prompt: HarnessAgentPrompt }
-    | {
-        mode: 'continue';
-        toolApprovalContinuations: readonly HarnessAgentToolApprovalContinuation[];
-        toolResultContinuations: readonly HarnessAgentToolResultContinuation[];
-      } {
+  }): HarnessAgentContinueTurnInput | undefined {
     if (typeof options.prompt === 'string') {
-      return { mode: 'prompt', prompt: options.prompt };
+      return undefined;
     }
     const messages = Array.isArray(options.prompt)
       ? options.prompt
@@ -714,15 +850,36 @@ export class HarnessAgent<
         toolResultContinuations.length > 0
       ) {
         return {
-          mode: 'continue',
           toolApprovalContinuations,
           toolResultContinuations,
         };
       }
+    }
+    return undefined;
+  }
+
+  /*
+   * Reduce AI SDK input to the single user message the harness should run
+   * for this turn. The harness session owns prior-turn state (system
+   * prompt, assistant turns, tool results) — we never replay it. A bare
+   * string is forwarded as-is; a message array is collapsed to its last
+   * `role: 'user'` entry. Inputs whose only messages are non-user (system,
+   * assistant, tool) have no fresh user input and are rejected.
+   */
+  private _resolvePromptTurnInput(options: {
+    prompt?: string | ModelMessage[];
+    messages?: ModelMessage[];
+  }): HarnessAgentPrompt {
+    if (typeof options.prompt === 'string') {
+      return options.prompt;
+    }
+    const messages = Array.isArray(options.prompt)
+      ? options.prompt
+      : options.messages;
+    if (Array.isArray(messages)) {
       for (let i = messages.length - 1; i >= 0; i--) {
         const message = messages[i];
-        if (message?.role === 'user')
-          return { mode: 'prompt', prompt: message };
+        if (message?.role === 'user') return message;
       }
       throw new Error(
         'HarnessAgent: messages must contain at least one `role: "user"` entry.',
@@ -731,15 +888,146 @@ export class HarnessAgent<
     throw new Error('HarnessAgent: either `prompt` or `messages` is required.');
   }
 
+  private async _preparePromptTurnInput(
+    options: AgentCallParameters<
+      CALL_OPTIONS,
+      HarnessAllTools<THarness, TUserTools>,
+      RUNTIME_CONTEXT
+    > &
+      HarnessAgentCallExtensions,
+  ): Promise<PreparedHarnessAgentPromptTurnInput<THarness, TUserTools>> {
+    let callOptions = options;
+    if (
+      this.settings.callOptionsSchema != null &&
+      options.options !== undefined
+    ) {
+      const validatedOptions = await validateTypes({
+        value: options.options,
+        schema: this.settings.callOptionsSchema,
+        context: { field: 'options' },
+      });
+      callOptions = {
+        ...options,
+        options: validatedOptions,
+      } as unknown as typeof options;
+    }
+
+    const {
+      session: _session,
+      abortSignal: _abortSignal,
+      timeout: _timeout,
+      onStart: _onStart,
+      experimental_onStart: _experimentalOnStart,
+      onStepStart: _onStepStart,
+      experimental_onStepStart: _experimentalOnStepStart,
+      onToolExecutionStart: _onToolExecutionStart,
+      experimental_onToolCallStart: _experimentalOnToolCallStart,
+      onToolExecutionEnd: _onToolExecutionEnd,
+      experimental_onToolCallFinish: _experimentalOnToolCallFinish,
+      onStepEnd: _onStepEnd,
+      onStepFinish: _onStepFinish,
+      onEnd: _onEnd,
+      onFinish: _onFinish,
+      experimental_sandbox: _experimentalSandbox,
+      ...promptOptions
+    } = callOptions;
+
+    const baseCallArgs = {
+      model: this.settings.model,
+      skills: this.settings.skills,
+      instructions: this.settings.instructions,
+      tools: this.settings.tools,
+      ...promptOptions,
+    };
+    const preparedCallArgs =
+      (await this.settings.prepareCall?.(
+        baseCallArgs as Parameters<
+          NonNullable<
+            HarnessAgentSettings<
+              THarness,
+              TUserTools,
+              RUNTIME_CONTEXT,
+              OUTPUT,
+              CALL_OPTIONS
+            >['prepareCall']
+          >
+        >[0],
+      )) ?? baseCallArgs;
+    if (this._resolveContinueTurnInput(preparedCallArgs) != null) {
+      throw new Error(
+        'HarnessAgent.prepareCall must return a fresh user prompt, not a tool continuation.',
+      );
+    }
+
+    return {
+      prompt: this._resolvePromptTurnInput(preparedCallArgs),
+      ...this._prepareTurnSettings({
+        model: preparedCallArgs.model,
+        skills: preparedCallArgs.skills,
+        instructions: preparedCallArgs.instructions,
+        tools: preparedCallArgs.tools,
+      }),
+    };
+  }
+
+  private _prepareContinueTurnInput(options: {
+    toolApprovalContinuations?: readonly ToolApprovalResponse[];
+    toolResultContinuations?: readonly ToolResultPart[];
+  }): PreparedHarnessAgentContinueTurnInput<THarness, TUserTools> {
+    return {
+      ...this._prepareTurnSettings({
+        model: this.settings.model,
+        skills: this.settings.skills,
+        instructions: this.settings.instructions,
+        tools: this.settings.tools,
+      }),
+      toolApprovalContinuations: options.toolApprovalContinuations ?? [],
+      toolResultContinuations: options.toolResultContinuations ?? [],
+    };
+  }
+
+  private _prepareTurnSettings(options: {
+    model?: string;
+    skills?: ReadonlyArray<HarnessAgentSkill>;
+    instructions?: string;
+    tools?: TUserTools;
+  }): PreparedHarnessAgentTurnSettings<THarness, TUserTools> {
+    const userTools = options.tools ?? ({} as TUserTools);
+    assertNoReservedQuestionTool({
+      harness: this.settings.harness,
+      userTools,
+    });
+    const tools = {
+      ...this.settings.harness.builtinTools,
+      ...userTools,
+    } as HarnessAllTools<THarness, TUserTools>;
+    const toolFiltering = resolveHarnessAgentToolFiltering({
+      harness: this.settings.harness,
+      userTools,
+      allTools: tools,
+      activeTools: this.settings.activeTools,
+      inactiveTools: this.settings.inactiveTools,
+    });
+    return {
+      model: options.model,
+      skills: options.skills ?? [],
+      instructions: options.instructions,
+      tools,
+      activeTools: toolFiltering.activeUserTools,
+      toolSpecs: this._toToolSpecs(toolFiltering.activeUserTools),
+      builtinToolFiltering: toolFiltering.builtinToolFiltering,
+    };
+  }
+
   /*
    * Wire-format projection of user-defined tools only. Harness builtins are
    * executed by the runtime and the bridge already knows about them — we
    * never re-declare them over the wire.
    */
-  private _toToolSpecs(): HarnessAgentToolSpec[] {
+  private _toToolSpecs(activeUserTools: TUserTools): HarnessAgentToolSpec[] {
     const specs: HarnessAgentToolSpec[] = [];
     for (const [name, tool] of Object.entries(
-      this.activeUserTools as Record<string, unknown>,
+      activeUserTools as Record<string, unknown>,
     )) {
       const t = tool as {
         description?: string;
@@ -809,6 +1097,23 @@ export class HarnessAgent<
         ? {}
         : { description: responseFormat.description }),
     };
+  }
+}
+
+function assertNoReservedQuestionTool(input: {
+  harness: HarnessV1;
+  userTools: ToolSet;
+}): void {
+  if (
+    Object.prototype.hasOwnProperty.call(
+      input.harness.builtinTools,
+      'askUserQuestions',
+    ) &&
+    Object.prototype.hasOwnProperty.call(input.userTools, 'askUserQuestions')
+  ) {
+    throw new Error(
+      "HarnessAgent tool name 'askUserQuestions' is reserved for harness question requests.",
+    );
   }
 }
 

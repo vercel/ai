@@ -1,5 +1,211 @@
 # @ai-sdk/react
 
+## 4.0.100
+
+### Patch Changes
+
+- Updated dependencies [ef3bac4]
+- Updated dependencies [9942196]
+  - ai@7.0.97
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/mcp@2.0.48
+  - @ai-sdk/provider-utils@5.0.39
+
+## 4.0.99
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+- Updated dependencies [c595e6e]
+  - @ai-sdk/provider@4.0.12
+  - ai@7.0.96
+  - @ai-sdk/mcp@2.0.47
+  - @ai-sdk/provider-utils@5.0.38
+
+## 4.0.98
+
+### Patch Changes
+
+- Updated dependencies [27f6d7a]
+  - ai@7.0.95
+
+## 4.0.97
+
+### Patch Changes
+
+- Updated dependencies [a4ba394]
+- Updated dependencies [36b3364]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - ai@7.0.94
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+  - @ai-sdk/mcp@2.0.46
+
+## 4.0.96
+
+### Patch Changes
+
+- Updated dependencies [33ba8fd]
+- Updated dependencies [df6c009]
+- Updated dependencies [6ee74a3]
+- Updated dependencies [f13d371]
+- Updated dependencies [d4485fe]
+- Updated dependencies [4f201cc]
+- Updated dependencies [8cdb2a7]
+- Updated dependencies [3da84fd]
+- Updated dependencies [0f2281e]
+- Updated dependencies [fc8e8ac]
+- Updated dependencies [ee8391e]
+  - @ai-sdk/mcp@2.0.45
+  - ai@7.0.93
+
+## 4.0.95
+
+### Patch Changes
+
+- d1904d3: fix(ai): surface fallback errors for empty HTTP response bodies
+- Updated dependencies [a51cc94]
+- Updated dependencies [809e922]
+- Updated dependencies [d1904d3]
+- Updated dependencies [84e5a79]
+- Updated dependencies [a8e8ad0]
+  - ai@7.0.92
+  - @ai-sdk/mcp@2.0.44
+
+## 4.0.94
+
+### Patch Changes
+
+- Updated dependencies [802af1e]
+  - ai@7.0.91
+
+## 4.0.93
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+  - ai@7.0.90
+  - @ai-sdk/mcp@2.0.43
+
+## 4.0.92
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+  - ai@7.0.89
+  - @ai-sdk/mcp@2.0.42
+
+## 4.0.91
+
+### Patch Changes
+
+- Updated dependencies [8b6b756]
+- Updated dependencies [e07b577]
+  - ai@7.0.88
+
+## 4.0.90
+
+### Patch Changes
+
+- Updated dependencies [850d863]
+  - ai@7.0.87
+
+## 4.0.89
+
+### Patch Changes
+
+- Updated dependencies [11109ae]
+  - ai@7.0.86
+
+## 4.0.88
+
+### Patch Changes
+
+- Updated dependencies [55a9981]
+- Updated dependencies [dd32de2]
+- Updated dependencies [aa45741]
+- Updated dependencies [cc29073]
+  - ai@7.0.85
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/mcp@2.0.41
+  - @ai-sdk/provider-utils@5.0.34
+
+## 4.0.87
+
+### Patch Changes
+
+- Updated dependencies [6669d69]
+- Updated dependencies [a6463ca]
+- Updated dependencies [e604532]
+- Updated dependencies [90192f1]
+  - ai@7.0.84
+  - @ai-sdk/provider-utils@5.0.33
+  - @ai-sdk/mcp@2.0.40
+
+## 4.0.86
+
+### Patch Changes
+
+- Updated dependencies [8dd86a9]
+- Updated dependencies [fda13b3]
+- Updated dependencies [957146c]
+- Updated dependencies [ce6849a]
+  - ai@7.0.83
+
+## 4.0.85
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - ai@7.0.82
+  - @ai-sdk/provider-utils@5.0.32
+  - @ai-sdk/mcp@2.0.39
+
+## 4.0.84
+
+### Patch Changes
+
+- ai@7.0.81
+
+## 4.0.83
+
+### Patch Changes
+
+- Updated dependencies [a9782e1]
+- Updated dependencies [bf591f0]
+- Updated dependencies [35841f5]
+- Updated dependencies [fe69342]
+- Updated dependencies [d2f3353]
+- Updated dependencies [eed7950]
+  - @ai-sdk/provider-utils@5.0.31
+  - @ai-sdk/mcp@2.0.38
+  - ai@7.0.80
+
+## 4.0.82
+
+### Patch Changes
+
+- Updated dependencies [b251584]
+- Updated dependencies [1175434]
+- Updated dependencies [591d25b]
+- Updated dependencies [9de0baf]
+  - ai@7.0.79
+  - @ai-sdk/mcp@2.0.37
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 4.0.81
+
+### Patch Changes
+
+- Updated dependencies [96970bb]
+  - ai@7.0.78
+
 ## 4.0.80
 
 ### Patch Changes

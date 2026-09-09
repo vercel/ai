@@ -38,6 +38,6 @@ try {
 
 The adapter uses `@ai-sdk/harness-acp`, which installs the pinned Grok Build CLI inside the sandbox. The sandbox must provide network access and at least one exposed TCP port.
 
-Set `XAI_API_KEY` for direct authentication. Set `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` to use AI Gateway instead.
+Set `XAI_API_KEY` for direct authentication. Set `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` to use AI Gateway instead, or pass an isolated authentication environment with `createGrokBuild({ auth: { AI_GATEWAY_API_KEY: token } })`.
 
 See the [Grok Build harness documentation](https://ai-sdk.dev/providers/ai-sdk-harnesses/grok-build) for settings, tools, and limitations.

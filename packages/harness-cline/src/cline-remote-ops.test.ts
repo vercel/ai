@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { createClineRemoteOps } from './cline-remote-ops';
 
 const WORK_DIR = '/sandbox/work/cline-s1';
-const SKILL_ROOT = '/sandbox/home/.agents/skills';
 
 type RunInput = {
   command: string;
@@ -199,43 +198,7 @@ describe('file operations', () => {
     expect(run).not.toHaveBeenCalled();
   });
 
-  it('allows read-only operations in configured roots but rejects edits', async () => {
-    const skillPath = `${SKILL_ROOT}/weather/SKILL.md`;
-    const run = vi.fn(async ({ command }: { command: string }) => ({
-      exitCode: 0,
-      stdout: command.includes('ls -1Ap')
-        ? 'SKILL.md\n'
-        : command.includes('find ')
-          ? `${skillPath}\n`
-          : '',
-      stderr: '',
-    }));
-    const { sandbox } = createFakeSandbox({
-      files: new Map([[skillPath, 'skill contents']]),
-      existingPaths: new Set([WORK_DIR, SKILL_ROOT, `${SKILL_ROOT}/weather`]),
-      run,
-    });
-    const ops = createClineRemoteOps({
-      sandbox,
-      workDir: WORK_DIR,
-      readableRoots: [{ sandboxDir: SKILL_ROOT }],
-    });
-
-    expect(await ops.readFile(skillPath)).toBe('skill contents');
-    expect(await ops.grep('skill', { path: skillPath })).toBe(
-      'No matches found',
-    );
-    expect(await ops.glob('*', skillPath)).toEqual(['SKILL.md']);
-    expect(await ops.ls(`${SKILL_ROOT}/weather`)).toEqual(['SKILL.md']);
-    await expect(ops.writeFile(skillPath, 'owned')).rejects.toThrow(
-      /escapes the workspace/,
-    );
-    await expect(ops.editFile(skillPath, 'skill', 'owned')).rejects.toThrow(
-      /escapes the workspace/,
-    );
-  });
-
-  it('rejects symlinks that resolve outside the allowed roots', async () => {
+  it('rejects symlinks that resolve outside the workspace', async () => {
     const linkedPath = `${WORK_DIR}/linked-secret`;
     const outsidePath = '/sandbox/work/cline-s2/.env';
     const { sandbox, readTextFile, writeTextFile } = createFakeSandbox({
@@ -247,16 +210,16 @@ describe('file operations', () => {
     const ops = createClineRemoteOps({ sandbox, workDir: WORK_DIR });
 
     await expect(ops.readFile('linked-secret')).rejects.toThrow(
-      /escapes the readable roots/,
+      /escapes the workspace/,
     );
     await expect(ops.grep('SECRET', { path: 'linked-secret' })).rejects.toThrow(
-      /escapes the readable roots/,
+      /escapes the workspace/,
     );
     await expect(ops.glob('*', 'linked-secret')).rejects.toThrow(
-      /escapes the readable roots/,
+      /escapes the workspace/,
     );
     await expect(ops.ls('linked-secret')).rejects.toThrow(
-      /escapes the readable roots/,
+      /escapes the workspace/,
     );
     await expect(ops.writeFile('linked-secret', 'owned')).rejects.toThrow(
       /escapes the workspace/,

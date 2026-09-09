@@ -14,6 +14,18 @@ const config: NextConfig = {
     ],
   },
   redirects: () => [
+    // AI SDK 4 is archived separately so it remains available without adding
+    // its content families to this app's already memory-intensive build.
+    {
+      source: '/v4',
+      destination: 'https://v4.ai-sdk.dev/docs/introduction',
+      permanent: true,
+    },
+    {
+      source: '/v4/:path*',
+      destination: 'https://v4.ai-sdk.dev/:path*',
+      permanent: true,
+    },
     {
       source: '/v7',
       destination: '/',

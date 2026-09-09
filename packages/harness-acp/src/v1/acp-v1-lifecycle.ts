@@ -6,8 +6,8 @@ import type {
 
 export type ACPPromptGuidanceLifecycleState = {
   readonly initialGuidanceApplied?: boolean;
-  readonly skillsMaterialized?: boolean;
-  readonly skillsFingerprint?: string;
+  readonly instructionsFingerprint?: string;
+  readonly skillsDirectory?: string;
 };
 
 export type ACPBridgeCoordinates = {
@@ -21,6 +21,7 @@ export type ACPBridgeCoordinates = {
 export type ACPLifecycleData = ACPPromptGuidanceLifecycleState & {
   readonly implementationIdentity: string;
   readonly authenticationProfile?: ACPAuthenticationProfileIdentity;
+  readonly sandboxCredentialEnvironment?: Readonly<Record<string, string>>;
   readonly acpSessionId?: string;
   readonly bridge?: ACPBridgeCoordinates;
   readonly coldSession?: ACPColdSessionState;
@@ -43,27 +44,6 @@ export function resolveACPInitialGuidanceApplied({
 }): boolean {
   if (!isResume) return false;
   return lifecycleState?.initialGuidanceApplied ?? true;
-}
-
-export function shouldMaterializeACPSkills({
-  isResume,
-  lifecycleState,
-  skillsFingerprint,
-}: {
-  isResume: boolean;
-  lifecycleState: ACPPromptGuidanceLifecycleState | undefined;
-  skillsFingerprint: string;
-}): boolean {
-  if (
-    isResume &&
-    lifecycleState?.skillsFingerprint != null &&
-    lifecycleState.skillsFingerprint !== skillsFingerprint
-  ) {
-    throw new Error(
-      'ACP lifecycle state was created with a different set of skills.',
-    );
-  }
-  return !isResume || lifecycleState?.skillsMaterialized !== true;
 }
 
 export function validateACPLifecycleCompatibility({

@@ -7,6 +7,16 @@ export type AmazonBedrockEmbeddingModelId =
   | 'cohere.embed-multilingual-v3'
   | (string & {});
 
+export type AmazonBedrockEmbeddingModelSettings = {
+  /**
+   * The embedding model family.
+   *
+   * Specify this when the model ID does not identify the underlying model,
+   * such as an application inference profile ARN.
+   */
+  modelFamily?: 'titan' | 'cohere' | 'nova';
+};
+
 export const amazonBedrockEmbeddingModelOptionsSchema = z.object({
   /**
    * The number of dimensions the resulting output embeddings should have (defaults to 1024).

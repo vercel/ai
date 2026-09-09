@@ -1,5 +1,88 @@
 # @ai-sdk/mistral
 
+## 4.0.42
+
+### Patch Changes
+
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/provider-utils@5.0.39
+
+## 4.0.41
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/provider-utils@5.0.38
+
+## 4.0.40
+
+### Patch Changes
+
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+
+## 4.0.39
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
+## 4.0.38
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+
+## 4.0.37
+
+### Patch Changes
+
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 4.0.36
+
+### Patch Changes
+
+- e83d6dc: Preserve complete Mistral chat usage objects in raw usage metadata.
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
+## 4.0.35
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 4.0.34
+
+### Patch Changes
+
+- ff35434: Add the `promptCacheKey` chat provider option for Mistral prompt cache affinity.
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
+## 4.0.33
+
+### Patch Changes
+
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
 ## 4.0.32
 
 ### Patch Changes

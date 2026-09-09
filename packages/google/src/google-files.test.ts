@@ -1,3 +1,4 @@
+import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
 import { describe, expect, it, vi } from 'vitest';
 import { GoogleFiles } from './google-files';
 
@@ -65,7 +66,9 @@ function createMockFiles({
       );
     }
 
-    if (urlString.includes(fileResource.name)) {
+    if (
+      urlString.startsWith('https://generativelanguage.googleapis.com/v1beta/')
+    ) {
       pollIndex++;
       const pollState =
         pollIndex < pollResponses.length
@@ -103,6 +106,53 @@ describe('GoogleFiles', () => {
   });
 
   describe('uploadFile', () => {
+    it('should reject stream data at runtime and cancel the stream', async () => {
+      const cancelSpy = vi.fn();
+      const stream = new ReadableStream<Uint8Array>({ cancel: cancelSpy });
+      const { files, fetchFn } = createMockFiles();
+
+      await expect(
+        files.uploadFile({
+          data: { type: 'stream', stream },
+          mediaType: 'application/pdf',
+        }),
+      ).rejects.toThrow(UnsupportedFunctionalityError);
+
+      await vi.waitFor(() => expect(cancelSpy).toHaveBeenCalled());
+      expect(fetchFn).not.toHaveBeenCalled();
+    });
+
+    it('should thread per-call headers and abortSignal through the upload', async () => {
+      const captured: Array<{ url: string; init: RequestInit | undefined }> =
+        [];
+      const { files } = createMockFiles({
+        onRequest: (url, init) => captured.push({ url, init }),
+      });
+      const controller = new AbortController();
+
+      await files.uploadFile({
+        data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
+        mediaType: 'application/pdf',
+        abortSignal: controller.signal,
+        headers: { 'x-request-id': 'req-1' },
+      });
+
+      const initCall = captured.find(({ url }) =>
+        url.includes('/upload/v1beta/files'),
+      );
+      const initHeaders = (initCall?.init?.headers ?? {}) as Record<
+        string,
+        string
+      >;
+      expect(initHeaders['x-request-id']).toBe('req-1');
+      expect(initCall?.init?.signal).toBe(controller.signal);
+
+      const uploadCall = captured.find(
+        ({ url }) => url === 'https://upload.example.com/resume',
+      );
+      expect(uploadCall?.init?.signal).toBe(controller.signal);
+    });
+
     it('should send correct headers for resumable upload initiation', async () => {
       let capturedInit: RequestInit | undefined;
       const { files } = createMockFiles({
@@ -173,7 +223,7 @@ describe('GoogleFiles', () => {
       expect(JSON.parse(capturedBody!)).toEqual({ file: {} });
     });
 
-    it('should let fetch derive the content length for the upload body', async () => {
+    it('should send ArrayBuffer-backed data and let fetch derive its content length', async () => {
       let capturedUploadInit: RequestInit | undefined;
       const uploadUrl = 'https://upload.example.com/resume-session';
       const { files } = createMockFiles({
@@ -185,7 +235,9 @@ describe('GoogleFiles', () => {
         },
       });
 
-      const bytes = new Uint8Array([10, 20, 30]);
+      const bytes = new Uint8Array(new SharedArrayBuffer(3));
+      bytes.set([10, 20, 30]);
+
       await files.uploadFile({
         data: { type: 'data', data: bytes },
         mediaType: 'application/octet-stream',
@@ -197,7 +249,38 @@ describe('GoogleFiles', () => {
       expect(headers).not.toHaveProperty('Content-Length');
       expect(headers['X-Goog-Upload-Offset']).toBe('0');
       expect(headers['X-Goog-Upload-Command']).toBe('upload, finalize');
-      expect(capturedUploadInit?.body).toEqual(bytes);
+
+      const body = capturedUploadInit?.body;
+      expect(body).toBeInstanceOf(Uint8Array);
+      if (!(body instanceof Uint8Array)) {
+        throw new Error('Expected upload body to be a Uint8Array');
+      }
+      expect(body.buffer).toBeInstanceOf(ArrayBuffer);
+      expect(Array.from(body)).toEqual([10, 20, 30]);
+    });
+
+    it('should preserve ArrayBuffer-backed upload data', async () => {
+      let capturedUploadInit: RequestInit | undefined;
+      const uploadUrl = 'https://upload.example.com/resume-session';
+      const { files } = createMockFiles({
+        uploadUrl,
+        onRequest: (url, init) => {
+          if (url === uploadUrl) {
+            capturedUploadInit = init;
+          }
+        },
+      });
+
+      const bytes = new Uint8Array(new ArrayBuffer(5), 1, 3);
+      bytes.set([10, 20, 30]);
+
+      await files.uploadFile({
+        data: { type: 'data', data: bytes },
+        mediaType: 'application/octet-stream',
+        providerOptions: {},
+      });
+
+      expect(capturedUploadInit?.body).toBe(bytes);
     });
 
     it('should return providerReference with google key set to file URI', async () => {
@@ -293,6 +376,74 @@ describe('GoogleFiles', () => {
     });
 
     describe('polling', () => {
+      it.each([
+        {
+          name: 'files/abc/../../secret',
+          expectedPath: 'files%2Fabc%2F..%2F..%2Fsecret',
+        },
+        { name: 'files/.', expectedPath: 'files/%252E' },
+        { name: 'files/..', expectedPath: 'files/%252E%252E' },
+        { name: '.', expectedPath: '%252E' },
+        { name: '..', expectedPath: '%252E%252E' },
+      ])(
+        'should preserve $name in the polling URL',
+        async ({ name, expectedPath }) => {
+          const fileResource = {
+            ...defaultFileResource,
+            name,
+          };
+          let pollUrl: string | undefined;
+          const { files } = createMockFiles({
+            fileResource,
+            pollResponses: [{ state: 'PROCESSING' }, { state: 'ACTIVE' }],
+            onRequest: url => {
+              if (
+                url.startsWith(
+                  'https://generativelanguage.googleapis.com/v1beta/',
+                )
+              ) {
+                pollUrl = url;
+              }
+            },
+          });
+
+          await files.uploadFile({
+            data: { type: 'data', data: new Uint8Array([1]) },
+            mediaType: 'application/octet-stream',
+            providerOptions: {
+              google: { pollIntervalMs: 1 },
+            },
+          });
+
+          expect(pollUrl).toBe(
+            `https://generativelanguage.googleapis.com/v1beta/${expectedPath}`,
+          );
+        },
+      );
+
+      it('should reject promptly when aborted during the polling delay', async () => {
+        const { files } = createMockFiles({
+          pollResponses: [{ state: 'PROCESSING' }, { state: 'PROCESSING' }],
+        });
+        const controller = new AbortController();
+
+        // a long interval that only an abort-aware delay can escape
+        const uploadPromise = files.uploadFile({
+          data: { type: 'data', data: new Uint8Array([1]) },
+          mediaType: 'application/octet-stream',
+          abortSignal: controller.signal,
+          providerOptions: {
+            google: { pollIntervalMs: 60_000, pollTimeoutMs: 120_000 },
+          },
+        });
+
+        setTimeout(() => controller.abort(), 10);
+
+        const start = Date.now();
+        await expect(uploadPromise).rejects.toThrow();
+        expect(Date.now() - start).toBeLessThan(5000);
+      });
+
       it('should poll until file state becomes ACTIVE', async () => {
         let pollCount = 0;
         const { files, fetchFn } = createMockFiles({
@@ -317,6 +468,9 @@ describe('GoogleFiles', () => {
           call[0].toString().includes(defaultFileResource.name),
         );
         expect(pollCalls.length).toBeGreaterThanOrEqual(1);
+        expect(pollCalls[0]?.[0].toString()).toBe(
+          `https://generativelanguage.googleapis.com/v1beta/${defaultFileResource.name}`,
+        );
       });
 
       it('should not poll when file is immediately ACTIVE', async () => {

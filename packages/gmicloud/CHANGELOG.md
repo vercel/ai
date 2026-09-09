@@ -1,5 +1,112 @@
 # @ai-sdk/gmicloud
 
+## 3.0.18
+
+### Patch Changes
+
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/openai-compatible@3.0.47
+  - @ai-sdk/provider-utils@5.0.39
+
+## 3.0.17
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+- Updated dependencies [ccb8952]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/openai-compatible@3.0.46
+  - @ai-sdk/provider-utils@5.0.38
+
+## 3.0.16
+
+### Patch Changes
+
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+  - @ai-sdk/openai-compatible@3.0.45
+
+## 3.0.15
+
+### Patch Changes
+
+- Updated dependencies [e5a22f0]
+  - @ai-sdk/openai-compatible@3.0.44
+
+## 3.0.14
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+  - @ai-sdk/openai-compatible@3.0.43
+
+## 3.0.13
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+  - @ai-sdk/openai-compatible@3.0.42
+
+## 3.0.12
+
+### Patch Changes
+
+- Updated dependencies [23eb659]
+- Updated dependencies [aa45741]
+  - @ai-sdk/openai-compatible@3.0.41
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 3.0.11
+
+### Patch Changes
+
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+  - @ai-sdk/openai-compatible@3.0.40
+
+## 3.0.10
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+  - @ai-sdk/openai-compatible@3.0.39
+
+## 3.0.9
+
+### Patch Changes
+
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+  - @ai-sdk/openai-compatible@3.0.38
+
+## 3.0.8
+
+### Patch Changes
+
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/openai-compatible@3.0.37
+  - @ai-sdk/provider-utils@5.0.30
+
+## 3.0.7
+
+### Patch Changes
+
+- Updated dependencies [ece5bdb]
+  - @ai-sdk/openai-compatible@3.0.36
+
 ## 3.0.6
 
 ### Patch Changes

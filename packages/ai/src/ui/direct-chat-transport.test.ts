@@ -1,5 +1,10 @@
-import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
+import { tool } from '@ai-sdk/provider-utils';
+import {
+  convertArrayToReadableStream,
+  convertReadableStreamToArray,
+} from '@ai-sdk/provider-utils/test';
 import { describe, expect, it, beforeEach } from 'vitest';
+import { z } from 'zod/v4';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { ToolLoopAgent } from '../agent/tool-loop-agent';
 import { DirectChatTransport } from './direct-chat-transport';
@@ -420,6 +425,112 @@ describe('DirectChatTransport', () => {
           abortSignal: undefined,
         }),
       ).rejects.toThrow();
+    });
+
+    it('should reject stale terminal input for a currently available tool', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        tools: {
+          current: tool({
+            inputSchema: z.object({ current: z.string() }),
+            outputSchema: z.object({ result: z.string() }),
+          }),
+        },
+      });
+      const transport = new DirectChatTransport({ agent });
+
+      await expect(
+        transport.sendMessages({
+          chatId: 'chat-1',
+          messageId: undefined,
+          trigger: 'submit-message',
+          messages: [
+            {
+              id: 'assistant-1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-current',
+                  toolCallId: 'call-1',
+                  state: 'output-available',
+                  input: { previous: 'value' } as never,
+                  output: { result: 'done' },
+                },
+              ],
+            },
+          ],
+          abortSignal: undefined,
+        }),
+      ).rejects.toThrowError(
+        'Type validation failed for messages[0].parts[0].input',
+      );
+    });
+
+    it('should continue with terminal tool history when tools are omitted', async () => {
+      const agent = new ToolLoopAgent({ model: mockModel });
+      const transport = new DirectChatTransport({ agent });
+
+      const stream = await transport.sendMessages({
+        chatId: 'chat-1',
+        messageId: undefined,
+        trigger: 'submit-message',
+        messages: [
+          {
+            id: 'assistant-1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-removed' as never,
+                toolCallId: 'call-1',
+                state: 'output-available',
+                input: { previous: 'value' } as never,
+                output: { result: 'done' } as never,
+              },
+            ],
+          },
+          {
+            id: 'user-1',
+            role: 'user',
+            parts: [{ type: 'text', text: 'continue' }],
+          },
+        ],
+        abortSignal: undefined,
+      });
+
+      await convertReadableStreamToArray(stream);
+
+      expect(mockModel.doStreamCalls).toHaveLength(1);
+      expect(mockModel.doStreamCalls[0].prompt).toMatchObject([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'removed',
+              input: { previous: 'value' },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'removed',
+              output: {
+                type: 'json',
+                value: { result: 'done' },
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'continue' }],
+        },
+      ]);
     });
   });
 

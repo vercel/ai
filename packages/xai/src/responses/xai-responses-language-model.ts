@@ -13,6 +13,7 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  createProviderStreamError,
   isCustomReasoning,
   mapReasoningToProviderEffort,
   parseProviderOptions,
@@ -21,16 +22,20 @@ import {
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   type FetchFunction,
+  type InferSchema,
   type ParseResult,
 } from '@ai-sdk/provider-utils';
 import type { z } from 'zod/v4';
 import { getResponseMetadata } from '../get-response-metadata';
 import { supportsReasoningEffort } from '../supports-reasoning-effort';
+import type { webSearchOutputSchema } from '../tool/web-search';
 import { xaiFailedResponseHandler } from '../xai-error';
 import { convertToXaiResponsesInput } from './convert-to-xai-responses-input';
 import { convertXaiResponsesUsage } from './convert-xai-responses-usage';
 import { mapXaiResponsesFinishReason } from './map-xai-responses-finish-reason';
 import {
+  webSearchWireActionSchema,
+  webSearchWireSourceSchema,
   xaiResponsesChunkSchema,
   xaiResponsesResponseSchema,
   type XaiResponsesIncludeOptions,
@@ -41,12 +46,106 @@ import {
 } from './xai-responses-language-model-options';
 import { prepareResponsesTools } from './xai-responses-prepare-tools';
 
-type XaiResponsesConfig = {
+export type XaiResponsesConfig = {
   provider: string;
   baseURL: string | undefined;
   headers?: () => Record<string, string | undefined>;
   generateId: () => string;
   fetch?: FetchFunction;
+};
+
+function createXaiResponsesStreamError({
+  message,
+  code,
+  eventType,
+  data,
+}: {
+  message: string;
+  code?: string | null;
+  eventType: 'error' | 'response.failed';
+  data: unknown;
+}) {
+  const statusCode = getHttpStatusCode(code);
+
+  return createProviderStreamError({
+    message,
+    type: eventType,
+    code: code ?? undefined,
+    ...(statusCode != null
+      ? {
+          statusCode,
+          isRetryable: isRetryableStatusCode(statusCode),
+        }
+      : getXaiResponsesStreamErrorMetadata(code)),
+    data,
+  });
+}
+
+function getXaiResponsesStreamErrorMetadata(code?: string | null): {
+  statusCode?: number;
+  isRetryable?: boolean;
+} {
+  switch (code) {
+    case 'rate_limit_exceeded':
+    case 'rate_limit_error':
+      return { statusCode: 429, isRetryable: true };
+    case 'insufficient_quota':
+      return { statusCode: 429, isRetryable: false };
+    case 'api_error':
+    case 'internal_server_error':
+    case 'server_error':
+      return { statusCode: 500, isRetryable: true };
+    case 'overloaded_error':
+    case 'service_unavailable':
+      return { statusCode: 503, isRetryable: true };
+    case 'timeout':
+    case 'timeout_error':
+      return { statusCode: 504, isRetryable: true };
+    case 'authentication_error':
+    case 'invalid_api_key':
+      return { statusCode: 401, isRetryable: false };
+    case 'permission_error':
+      return { statusCode: 403, isRetryable: false };
+    case 'not_found_error':
+    case 'model_not_found':
+      return { statusCode: 404, isRetryable: false };
+    case 'bad_request':
+    case 'context_length_exceeded':
+    case 'invalid_request_error':
+      return { statusCode: 400, isRetryable: false };
+    default:
+      return {};
+  }
+}
+
+function getHttpStatusCode(value: unknown): number | undefined {
+  const statusCode =
+    typeof value === 'string' && /^\d{3}$/.test(value) ? Number(value) : value;
+
+  return typeof statusCode === 'number' &&
+    Number.isInteger(statusCode) &&
+    statusCode >= 400 &&
+    statusCode <= 599
+    ? statusCode
+    : undefined;
+}
+
+function isRetryableStatusCode(statusCode: number): boolean {
+  return (
+    statusCode === 408 ||
+    statusCode === 409 ||
+    statusCode === 429 ||
+    statusCode >= 500
+  );
+}
+
+export const xaiResponsesSupportedUrls: Record<string, RegExp[]> = {
+  'image/*': [/^https?:\/\/.*$/],
+  // xAI's Responses API accepts non-image documents (PDF, plain text, CSV, etc.) as
+  // `{ type: 'input_file', file_url }`. Keeping these URLs intact here lets them pass
+  // through to the converter instead of being downloaded to bytes by the SDK.
+  'application/pdf': [/^https?:\/\/.*$/],
+  'text/*': [/^https?:\/\/.*$/],
 };
 
 export class XaiResponsesLanguageModel implements LanguageModelV4 {
@@ -79,31 +178,30 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     return this.config.provider;
   }
 
-  readonly supportedUrls: Record<string, RegExp[]> = {
-    'image/*': [/^https?:\/\/.*$/],
-    // xAI's Responses API accepts non-image documents (PDF, plain text, CSV, etc.) as
-    // `{ type: 'input_file', file_url }`. Keeping these URLs intact here lets them pass
-    // through to the converter instead of being downloaded to bytes by the SDK.
-    'application/pdf': [/^https?:\/\/.*$/],
-    'text/*': [/^https?:\/\/.*$/],
-  };
+  readonly supportedUrls = xaiResponsesSupportedUrls;
 
-  private async getArgs({
-    prompt,
-    maxOutputTokens,
-    temperature,
-    topP,
-    topK,
-    frequencyPenalty,
-    presencePenalty,
-    stopSequences,
-    seed,
-    responseFormat,
-    providerOptions,
-    tools,
-    toolChoice,
-    reasoning,
-  }: LanguageModelV4CallOptions) {
+  static async prepareRequest({
+    modelId,
+    options: {
+      prompt,
+      maxOutputTokens,
+      temperature,
+      topP,
+      topK,
+      frequencyPenalty,
+      presencePenalty,
+      stopSequences,
+      seed,
+      responseFormat,
+      providerOptions,
+      tools,
+      toolChoice,
+      reasoning,
+    },
+  }: {
+    modelId: XaiResponsesModelId;
+    options: LanguageModelV4CallOptions;
+  }) {
     const warnings: SharedV4Warning[] = [];
 
     const options =
@@ -186,7 +284,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
 
     let resolvedReasoningEffort = options.reasoningEffort;
     if (resolvedReasoningEffort == null && isCustomReasoning(reasoning)) {
-      if (!supportsReasoningEffort(this.modelId)) {
+      if (!supportsReasoningEffort(modelId)) {
         warnings.push({
           type: 'unsupported',
           feature: 'reasoning',
@@ -202,7 +300,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             low: 'low',
             medium: 'medium',
             high: 'high',
-            xhigh: this.modelId === 'grok-4.6' ? 'xhigh' : 'high',
+            xhigh: modelId === 'grok-4.6' ? 'xhigh' : 'high',
           },
           warnings,
         });
@@ -210,7 +308,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     }
 
     const baseArgs: Record<string, unknown> = {
-      model: this.modelId,
+      model: modelId,
       input,
       logprobs:
         options.logprobs === true || options.topLogprobs != null
@@ -278,6 +376,13 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       fileSearchToolName,
       imageGenerationToolName,
     };
+  }
+
+  private getArgs(options: LanguageModelV4CallOptions) {
+    return XaiResponsesLanguageModel.prepareRequest({
+      modelId: this.modelId,
+      options,
+    });
   }
 
   async doGenerate(
@@ -435,6 +540,15 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
           input: toolInput,
           providerExecuted: true,
         });
+
+        if (part.type === 'web_search_call') {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName,
+            result: mapWebSearchAction(part.action),
+          });
+        }
 
         continue;
       }
@@ -820,11 +934,31 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                 usage = convertXaiResponsesUsage(event.response.usage);
               }
 
+              if (event.response.error != null) {
+                controller.enqueue({
+                  type: 'error',
+                  error: createXaiResponsesStreamError({
+                    message: event.response.error.message,
+                    code: event.response.error.code,
+                    eventType: event.type,
+                    data: event,
+                  }),
+                });
+              }
+
               return;
             }
 
             if (event.type === 'error') {
-              controller.enqueue({ type: 'error', error: event });
+              controller.enqueue({
+                type: 'error',
+                error: createXaiResponsesStreamError({
+                  message: event.message,
+                  code: event.code,
+                  eventType: event.type,
+                  data: event,
+                }),
+              });
               return;
             }
 
@@ -1133,7 +1267,10 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                     type: 'tool-result',
                     toolCallId: part.id,
                     toolName,
-                    result: {},
+                    result:
+                      part.type === 'web_search_call'
+                        ? mapWebSearchAction(part.action)
+                        : {},
                   });
                 }
 
@@ -1249,5 +1386,38 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       request: { body },
       response: { headers: responseHeaders },
     };
+  }
+}
+
+function mapWebSearchAction(
+  action: unknown,
+): InferSchema<typeof webSearchOutputSchema> {
+  const parsed = webSearchWireActionSchema.safeParse(action);
+  if (!parsed.success) return {};
+
+  const a = parsed.data;
+  const sources = a.sources?.flatMap(s => {
+    const source = webSearchWireSourceSchema.safeParse(s);
+    return source.success ? [source.data] : [];
+  });
+  const sourcesExtra = sources != null && sources.length > 0 ? { sources } : {};
+
+  switch (a.type) {
+    case 'search':
+      return {
+        action: {
+          type: 'search',
+          ...(a.query != null && { query: a.query }),
+          ...(a.queries != null && { queries: a.queries }),
+        },
+        ...sourcesExtra,
+      };
+    case 'open_page':
+      return { action: { type: 'openPage', url: a.url }, ...sourcesExtra };
+    case 'find_in_page':
+      return {
+        action: { type: 'findInPage', url: a.url, pattern: a.pattern },
+        ...sourcesExtra,
+      };
   }
 }

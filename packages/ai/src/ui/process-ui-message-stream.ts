@@ -748,6 +748,12 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               toolInvocation.state = 'approval-requested';
               toolInvocation.approval = {
                 id: chunk.approvalId,
+                ...(chunk.approvalDescriptor != null
+                  ? { descriptor: chunk.approvalDescriptor }
+                  : {}),
+                ...(chunk.reason != null
+                  ? { requestReason: chunk.reason }
+                  : {}),
                 ...(chunk.isAutomatic === true ? { isAutomatic: true } : {}),
                 ...(chunk.signature != null
                   ? { signature: chunk.signature }
@@ -768,13 +774,10 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
               toolInvocation.state = 'approval-responded';
               toolInvocation.approval = {
+                ...approval,
                 id: chunk.approvalId,
                 approved: chunk.approved,
                 ...(chunk.reason != null ? { reason: chunk.reason } : {}),
-                ...(approval.isAutomatic === true ? { isAutomatic: true } : {}),
-                ...(approval.signature != null
-                  ? { signature: approval.signature }
-                  : {}),
               };
               if (chunk.providerExecuted != null) {
                 toolInvocation.providerExecuted = chunk.providerExecuted;
@@ -881,9 +884,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'finish-step': {
-              // reset the current text and reasoning parts
-              state.activeTextParts = createIdMap();
-              state.activeReasoningParts = createIdMap();
+              // Active parts are closed by their explicit end chunks. A merged
+              // stream's step can finish while another stream's part is active.
               break;
             }
 

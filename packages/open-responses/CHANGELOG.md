@@ -1,5 +1,106 @@
 # @ai-sdk/open-responses
 
+## 2.0.43
+
+### Patch Changes
+
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/provider-utils@5.0.39
+
+## 2.0.42
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/provider-utils@5.0.38
+
+## 2.0.41
+
+### Patch Changes
+
+- d127e7a: fix(open-responses): include image detail in input image parts
+
+## 2.0.40
+
+### Patch Changes
+
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+
+## 2.0.39
+
+### Patch Changes
+
+- 4210d0b: feat(open-responses): add strict assistant history serialization without synthetic item IDs
+
+## 2.0.38
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
+## 2.0.37
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+
+## 2.0.36
+
+### Patch Changes
+
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 2.0.35
+
+### Patch Changes
+
+- 9a68261: add experimental codecs for Open Responses extension tools, items, and events, including lossless history replay
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
+## 2.0.34
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 2.0.33
+
+### Patch Changes
+
+- a0d2e8c: Stream Open Responses reasoning summary text deltas as reasoning output.
+
+## 2.0.32
+
+### Patch Changes
+
+- 35841f5: feat: normalize mid-stream provider error events across supported providers into public StreamProviderError instances and preserve provider-owned type, code, status, retry, and raw payload metadata
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
+## 2.0.31
+
+### Patch Changes
+
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
 ## 2.0.30
 
 ### Patch Changes
