@@ -2,6 +2,8 @@ import type {
   Experimental_BatchV4 as BatchV4,
   Experimental_BatchV4Error as BatchV4Error,
   Experimental_BatchV4ItemResult as BatchV4ItemResult,
+  Experimental_BatchV4ListOptions as BatchV4ListOptions,
+  Experimental_BatchV4ListResult as BatchV4ListResult,
   Experimental_BatchV4OperationOptions as BatchV4OperationOptions,
   Experimental_BatchV4Request as BatchV4Request,
   Experimental_BatchV4Status as BatchV4Status,
@@ -14,16 +16,20 @@ import type {
 } from '@ai-sdk/provider';
 import { expectTypeOf, it } from 'vitest';
 import {
+  experimental_cancelBatch as cancelBatch,
   experimental_getBatchResults as getBatchResults,
   experimental_getBatchStatus as getBatchStatus,
   experimental_startBatch as startBatch,
+  experimental_listBatches as listBatches,
   type GatewayProviderMetadata,
   type Experimental_BatchError as BatchError,
   type Experimental_BatchProvider as BatchProvider,
   type Experimental_BatchReference as BatchReference,
   type Experimental_BatchStatus as BatchStatus,
+  type Experimental_CancelBatchResult as CancelBatchResult,
   type Experimental_GetBatchResultsOptions as GetBatchResultsOptions,
   type Experimental_GetBatchStatusOptions as GetBatchStatusOptions,
+  type Experimental_ListBatchesResult as ListBatchesResult,
   type Experimental_StartBatchOptions as StartBatchOptions,
   type Experimental_StartBatchResult as StartBatchResult,
   type Experimental_Batch as Batch,
@@ -181,6 +187,12 @@ it('defines batch support as a standalone provider service', () => {
   expectTypeOf<ReturnType<TestBatchApi['doGetBatchResults']>>().toEqualTypeOf<
     PromiseLike<ReadableStream<BatchV4ItemResult>>
   >();
+  expectTypeOf<
+    NonNullable<TestBatchApi['doListBatches']>
+  >().parameters.toEqualTypeOf<[BatchV4ListOptions]>();
+  expectTypeOf<
+    ReturnType<NonNullable<TestBatchApi['doListBatches']>>
+  >().toEqualTypeOf<PromiseLike<BatchV4ListResult>>();
   expectTypeOf<BatchV4ItemResult>().toEqualTypeOf<TextBatchV4ItemResult>();
   expectTypeOf<
     Extract<TextBatchV4ItemResult, { status: 'succeeded' }>['result']
@@ -233,11 +245,15 @@ it('allows the default provider to be omitted', () => {
 
   getBatchStatus({ batch: {} as BatchReference });
   getBatchResults({ batch: {} as BatchReference });
+  cancelBatch({ batch: {} as BatchReference });
+  listBatches();
 });
 
 it('exports the experimental batch functions with the public result types', () => {
   expectTypeOf(startBatch).returns.resolves.toEqualTypeOf<StartBatchResult>();
   expectTypeOf(getBatchStatus).returns.resolves.toEqualTypeOf<BatchStatus>();
+  expectTypeOf(cancelBatch).returns.resolves.toEqualTypeOf<CancelBatchResult>();
+  expectTypeOf(listBatches).returns.resolves.toEqualTypeOf<ListBatchesResult>();
   getBatchStatus({
     provider: {} as BatchV4,
     batch: {} as BatchReference,
