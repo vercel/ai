@@ -429,7 +429,15 @@ jobs:
           # group, leaving it alive and holding an apt/dpkg lock after timeout
           # exits. Run Playwright as root so apt-get stays in the process group,
           # then wait for every apt/dpkg lock before retrying.
+          #
+          # Playwright uses its own Chromium binary and does not need the
+          # Google Chrome APT repository preconfigured on GitHub runners. That
+          # repository can temporarily serve mismatched Release and Packages
+          # metadata, which makes the apt-get update in install-deps fail.
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list
+
           ATTEMPTS=3
+          RETRY_BACKOFF_SECONDS=15
           PER_ATTEMPT_TIMEOUT=15m
           APT_LOCKS=(
             /var/lib/apt/lists/lock
@@ -489,6 +497,7 @@ jobs:
             else
               echo "Attempt $attempt failed with exit code $STATUS, retrying..."
             fi
+            sleep "$((attempt * RETRY_BACKOFF_SECONDS))"
           done
 
       - name: Install Playwright browsers
