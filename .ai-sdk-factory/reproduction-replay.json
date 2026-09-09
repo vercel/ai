@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 17957,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-17957-warning-banner-stdout.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-17957-warning-banner-stdout.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "REPRODUCED issue #17957: warning banner on stdout corrupts JSON output"
+  }
+}
