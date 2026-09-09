@@ -1,3 +1,8 @@
+// atob needs to be invoked as a function call, not as a method call.
+// Otherwise Cloudflare will throw a
+// "TypeError: Illegal invocation: function called with incorrect this reference"
+const { atob } = globalThis;
+
 /**
  * Converts a data URL of type text/* to a text string.
  */
@@ -10,7 +15,7 @@ export function getTextFromDataUrl(dataUrl: string): string {
   }
 
   try {
-    return globalThis.atob(base64Content);
+    return atob(base64Content);
   } catch {
     throw new Error(`Error decoding data URL`);
   }

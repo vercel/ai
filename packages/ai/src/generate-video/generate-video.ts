@@ -489,7 +489,7 @@ async function executeStartStatusFlow({
   const earlyWarnings: Experimental_VideoModelV4Result['warnings'] = [];
   let webhookUrl: string | undefined;
   let webhookReceived:
-    | PromiseLike<Experimental_VideoModelV4OperationWebhook>
+    | Promise<Experimental_VideoModelV4OperationWebhook>
     | undefined;
 
   if (webhookFactory != null) {
@@ -497,8 +497,10 @@ async function executeStartStatusFlow({
       const result = await model.handleWebhookOption({
         webhook: webhookFactory,
       });
+      webhookReceived = Promise.resolve(result.received);
+      // Observe early failures without changing the error awaited after doStart.
+      webhookReceived.catch(() => {});
       webhookUrl = result.webhookUrl;
-      webhookReceived = result.received;
     } else {
       earlyWarnings.push({
         type: 'unsupported',
