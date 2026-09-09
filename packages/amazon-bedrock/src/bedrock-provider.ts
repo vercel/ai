@@ -10,7 +10,6 @@ import {
   generateId,
   loadOptionalSetting,
   loadSetting,
-  withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
@@ -30,6 +29,7 @@ import {
 } from './bedrock-sigv4-fetch';
 import { BedrockRerankingModel } from './reranking/bedrock-reranking-model';
 import type { BedrockRerankingModelId } from './reranking/bedrock-reranking-options';
+import { resolveBedrockBaseURL } from './resolve-bedrock-base-url';
 import { VERSION } from './version';
 
 export interface AmazonBedrockProviderSettings {
@@ -85,7 +85,9 @@ export interface AmazonBedrockProviderSettings {
   sessionToken?: string;
 
   /**
-   * Base URL for the Bedrock API calls.
+   * Base URL for the Bedrock API calls. When omitted, the provider uses
+   * service-specific AWS endpoint environment variables, then `AWS_ENDPOINT_URL`,
+   * before generating an endpoint from the AWS region.
    */
   baseURL?: string;
 
@@ -284,26 +286,34 @@ export function createAmazonBedrock(
   };
 
   const getBedrockRuntimeBaseUrl = (): string =>
-    withoutTrailingSlash(
-      options.baseURL ??
-        `https://bedrock-runtime.${loadSetting({
+    resolveBedrockBaseURL({
+      baseURL: options.baseURL,
+      getRegion: () =>
+        loadSetting({
           settingValue: options.region,
           settingName: 'region',
           environmentVariableName: 'AWS_REGION',
           description: 'AWS region',
-        })}.amazonaws.com`,
-    ) ?? `https://bedrock-runtime.us-east-1.amazonaws.com`;
+        }),
+      service: 'bedrock-runtime',
+      serviceEndpointUrlEnvironmentVariableName:
+        'AWS_ENDPOINT_URL_BEDROCK_RUNTIME',
+    });
 
   const getBedrockAgentRuntimeBaseUrl = (): string =>
-    withoutTrailingSlash(
-      options.baseURL ??
-        `https://bedrock-agent-runtime.${loadSetting({
+    resolveBedrockBaseURL({
+      baseURL: options.baseURL,
+      getRegion: () =>
+        loadSetting({
           settingValue: options.region,
           settingName: 'region',
           environmentVariableName: 'AWS_REGION',
           description: 'AWS region',
-        })}.amazonaws.com`,
-    ) ?? `https://bedrock-agent-runtime.us-west-2.amazonaws.com`;
+        }),
+      service: 'bedrock-agent-runtime',
+      serviceEndpointUrlEnvironmentVariableName:
+        'AWS_ENDPOINT_URL_BEDROCK_AGENT_RUNTIME',
+    });
 
   const createChatModel = (modelId: BedrockChatModelId) =>
     new BedrockChatLanguageModel(modelId, {
