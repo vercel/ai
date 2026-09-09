@@ -62,6 +62,12 @@ export interface GoogleVertexMaasProviderSettings {
    * or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+
+  /**
+   * Include usage information in streaming responses.
+   * Forwarded to the underlying OpenAI-compatible provider.
+   */
+  includeUsage?: boolean;
 }
 
 /**
@@ -114,6 +120,7 @@ export function createGoogleVertexMaas(
       name: 'vertex.maas',
       baseURL: loadBaseURL(),
       fetch: options.fetch,
+      includeUsage: options.includeUsage,
       transformRequestBody: transformGoogleVertexMaasRequestBody,
     }));
 

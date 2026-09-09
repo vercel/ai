@@ -63,6 +63,7 @@ describe('google-vertex-maas-provider', () => {
         {
           "baseURL": "https://aiplatform.googleapis.com/v1/projects/test-project/locations/global/endpoints/openapi",
           "fetch": undefined,
+          "includeUsage": undefined,
           "name": "vertex.maas",
           "transformRequestBody": [Function],
         }
@@ -82,6 +83,7 @@ describe('google-vertex-maas-provider', () => {
         {
           "baseURL": "https://us-central1-aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/endpoints/openapi",
           "fetch": undefined,
+          "includeUsage": undefined,
           "name": "vertex.maas",
           "transformRequestBody": [Function],
         }
@@ -101,6 +103,7 @@ describe('google-vertex-maas-provider', () => {
         {
           "baseURL": "https://aiplatform.eu.rep.googleapis.com/v1/projects/test-project/locations/eu/endpoints/openapi",
           "fetch": undefined,
+          "includeUsage": undefined,
           "name": "vertex.maas",
           "transformRequestBody": [Function],
         }
@@ -267,5 +270,19 @@ describe('google-vertex-maas-provider', () => {
     provider('model-2');
 
     expect(createOpenAICompatible).toHaveBeenCalledTimes(1);
+  });
+
+  it('should forward includeUsage to createOpenAICompatible', () => {
+    const provider = createGoogleVertexMaas({
+      project: 'test-project',
+      location: 'global',
+      includeUsage: true,
+    });
+
+    provider('test-model');
+
+    expect(createOpenAICompatible).toHaveBeenCalledWith(
+      expect.objectContaining({ includeUsage: true }),
+    );
   });
 });
