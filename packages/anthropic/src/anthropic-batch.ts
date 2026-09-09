@@ -148,6 +148,24 @@ type AnthropicBatchResultLine = InferSchema<
 
 type AnthropicResponse = InferSchema<typeof anthropicResponseSchema>;
 
+function assertTextBatchRequests(
+  requests: BatchV4StartOptions['requests'],
+): asserts requests is ReadonlyArray<AnthropicBatchRequest> {
+  for (const request of requests) {
+    switch (request.type) {
+      case 'text':
+        break;
+      default: {
+        const _exhaustiveCheck: never = request.type;
+        throw new UnsupportedFunctionalityError({
+          functionality: `batch request type: ${_exhaustiveCheck}`,
+          message: `The Anthropic Message Batches API does not support batch requests with type "${_exhaustiveCheck}".`,
+        });
+      }
+    }
+  }
+}
+
 export class AnthropicBatch implements BatchV4<{
   readonly text: AnthropicModelId;
 }> {
@@ -174,9 +192,8 @@ export class AnthropicBatch implements BatchV4<{
     headers,
     abortSignal,
     webhookUrl,
-  }: BatchV4StartOptions<{
-    text: AnthropicModelId;
-  }>): Promise<BatchV4StartResult> {
+  }: BatchV4StartOptions): Promise<BatchV4StartResult> {
+    assertTextBatchRequests(requests);
     validateRequestIds(requests);
 
     const explicitBatchBetas = new Set(

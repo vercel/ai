@@ -1,5 +1,6 @@
 import {
   InvalidArgumentError,
+  UnsupportedFunctionalityError,
   type Experimental_BatchV4 as BatchV4,
   type Experimental_BatchV4Error as BatchV4Error,
   type Experimental_BatchV4ItemResult as BatchV4ItemResult,
@@ -80,6 +81,24 @@ type XaiBatchResponseConversion =
   | { success: true; result: LanguageModelV4GenerateResult }
   | { success: false; error: BatchV4Error };
 
+function assertTextBatchRequests(
+  requests: BatchV4StartOptions['requests'],
+): asserts requests is ReadonlyArray<XaiBatchRequest> {
+  for (const request of requests) {
+    switch (request.type) {
+      case 'text':
+        break;
+      default: {
+        const _exhaustiveCheck: never = request.type;
+        throw new UnsupportedFunctionalityError({
+          functionality: `batch request type: ${_exhaustiveCheck}`,
+          message: `The xAI Batch API does not support batch requests with type "${_exhaustiveCheck}".`,
+        });
+      }
+    }
+  }
+}
+
 const xaiBatchResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
@@ -150,8 +169,9 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
   }
 
   async doStartBatch(
-    options: BatchV4StartOptions<XaiBatchModelIds>,
+    options: BatchV4StartOptions,
   ): Promise<BatchV4StartResult> {
+    assertTextBatchRequests(options.requests);
     const fileParts: string[] = [];
     const warnings: BatchV4StartResult['warnings'] =
       options.webhookUrl == null

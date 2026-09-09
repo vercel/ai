@@ -2,6 +2,7 @@ import {
   UnsupportedFunctionalityError,
   type Experimental_BatchV4 as BatchV4,
   type Experimental_BatchV4ItemResult as BatchV4ItemResult,
+  type Experimental_BatchV4StartOptions as BatchV4StartOptions,
   type LanguageModelV4GenerateResult,
   type LanguageModelV4ToolCall,
   type ProviderV4,
@@ -28,6 +29,7 @@ import { VERSION } from '../version';
 import { asProviderV4 } from '../model/as-provider-v4';
 import type {
   BatchItemResult,
+  BatchRequest,
   BatchProvider,
   BatchReference,
   BatchStatus,
@@ -163,10 +165,12 @@ export async function startBatch<
   );
   const supportedUrls = await batchApi.supportedUrls;
   operationAbortSignal?.throwIfAborted();
-  const normalizedRequests = [];
+  const normalizedRequests: Array<BatchV4StartOptions['requests'][number]> = [];
   const toolsByName = new Map<string, unknown>();
 
   for (const request of requests) {
+    validateBatchRequestType(request);
+
     switch (request.type) {
       case 'text': {
         const standardizedPrompt = await standardizePrompt(request);
@@ -238,6 +242,21 @@ export async function startBatch<
     };
   } catch (error) {
     throw wrapGatewayError(error);
+  }
+}
+
+function validateBatchRequestType(request: BatchRequest) {
+  switch (request.type) {
+    case 'text':
+      return;
+    default: {
+      const _exhaustiveCheck: never = request.type;
+      throw new InvalidArgumentError({
+        parameter: 'requests',
+        value: _exhaustiveCheck,
+        message: `Unsupported batch request type "${_exhaustiveCheck}".`,
+      });
+    }
   }
 }
 

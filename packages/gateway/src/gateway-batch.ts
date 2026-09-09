@@ -1,11 +1,13 @@
 import {
   InvalidArgumentError,
+  UnsupportedFunctionalityError,
   type Experimental_BatchV4 as BatchV4,
   type Experimental_BatchV4ItemResult as BatchV4ItemResult,
   type Experimental_BatchV4OperationOptions as BatchV4OperationOptions,
   type Experimental_BatchV4StartResult as BatchV4StartResult,
   type Experimental_BatchV4Status as BatchV4Status,
   type Experimental_BatchV4StartOptions as BatchV4StartOptions,
+  type Experimental_TextBatchV4Request as TextBatchV4Request,
   type LanguageModelV4CallOptions,
   type SharedV4ProviderMetadata,
   type SharedV4ProviderOptions,
@@ -49,9 +51,8 @@ export class GatewayBatch implements BatchV4<{ text: GatewayModelId }> {
     headers,
     abortSignal,
     webhookUrl,
-  }: BatchV4StartOptions<{
-    text: GatewayModelId;
-  }>): Promise<BatchV4StartResult> {
+  }: BatchV4StartOptions): Promise<BatchV4StartResult> {
+    assertTextBatchRequests(requests);
     const modelId = validateSingleModel(requests);
 
     const resolvedHeaders = this.config.headers
@@ -251,7 +252,7 @@ function maybeBase64EncodeFileData<T extends { type: string }>(data: T): T {
 }
 
 function validateSingleModel(
-  requests: BatchV4StartOptions<{ text: GatewayModelId }>['requests'],
+  requests: ReadonlyArray<TextBatchV4Request<GatewayModelId>>,
 ): GatewayModelId {
   const modelId = requests[0]?.modelId;
 
@@ -274,6 +275,24 @@ function validateSingleModel(
   }
 
   return modelId;
+}
+
+function assertTextBatchRequests(
+  requests: BatchV4StartOptions['requests'],
+): asserts requests is ReadonlyArray<TextBatchV4Request<GatewayModelId>> {
+  for (const request of requests) {
+    switch (request.type) {
+      case 'text':
+        break;
+      default: {
+        const _exhaustiveCheck: never = request.type;
+        throw new UnsupportedFunctionalityError({
+          functionality: `batch request type: ${_exhaustiveCheck}`,
+          message: `The AI Gateway Batch API does not support batch requests with type "${_exhaustiveCheck}".`,
+        });
+      }
+    }
+  }
 }
 
 /**
