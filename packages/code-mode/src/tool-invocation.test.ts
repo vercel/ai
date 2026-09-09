@@ -1,4 +1,4 @@
-import { generateText, tool } from 'ai';
+import { generateText, isStepCount, tool } from 'ai';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import {
@@ -246,7 +246,8 @@ describe('AI SDK tool bridge', () => {
 
   it('announces changed tools in conversation while keeping the model tool stable', async () => {
     const modelToolDescriptions: Array<string | undefined> = [];
-    const prompts: unknown[] = [];
+    const prompts: unknown[][] = [];
+    let modelCallCount = 0;
     const model = {
       specificationVersion: 'v4' as const,
       provider: 'test',
@@ -257,7 +258,40 @@ describe('AI SDK tool bridge', () => {
         prompt: unknown;
       }) => {
         modelToolDescriptions.push(options.tools?.[0]?.description);
-        prompts.push(options.prompt);
+        prompts.push(options.prompt as unknown[]);
+
+        if (modelCallCount++ === 0) {
+          return {
+            content: [
+              {
+                type: 'tool-call' as const,
+                toolCallType: 'function' as const,
+                toolCallId: 'call-1',
+                toolName: 'code_mode',
+                input: '{"js":"return await tools.lookup({ id: \\"one\\" });"}',
+              },
+            ],
+            finishReason: {
+              unified: 'tool-calls' as const,
+              raw: 'tool_calls',
+            },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: 1,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 1,
+                text: 1,
+                reasoning: undefined,
+              },
+            },
+            warnings: [],
+          };
+        }
+
         return {
           content: [{ type: 'text' as const, text: 'done' }],
           finishReason: { unified: 'stop' as const, raw: 'stop' },
@@ -297,7 +331,7 @@ describe('AI SDK tool bridge', () => {
         lookup: ['code_mode'],
       },
       prompt: 'Look up record one.',
-      include: { requestMessages: true },
+      stopWhen: isStepCount(5),
     });
 
     await generateText({
@@ -317,13 +351,13 @@ describe('AI SDK tool bridge', () => {
         lookup: ['code_mode'],
       },
       messages: [
-        ...first.finalStep.request.messages!,
-        ...first.responseMessages,
+        { role: 'user', content: 'Look up record one.' },
+        ...first.experimental_continuationMessages,
         { role: 'user', content: 'Look up record two in us-east.' },
       ],
     });
 
-    expect(modelToolDescriptions[0]).toBe(modelToolDescriptions[1]);
+    expect(modelToolDescriptions[0]).toBe(modelToolDescriptions[2]);
     expect(modelToolDescriptions[0]).not.toContain('lookup');
     expect(JSON.stringify(prompts[0])).toContain(
       'Code mode capability update.',
@@ -332,13 +366,14 @@ describe('AI SDK tool bridge', () => {
       'lookup: (input: { id: string; })',
     );
     expect(
-      JSON.stringify(prompts[1]).match(/Code mode capability update/g),
+      JSON.stringify(prompts[2]).match(/Code mode capability update/g),
     ).toHaveLength(2);
-    expect(JSON.stringify(prompts[1])).toContain(
+    expect(JSON.stringify(prompts[2])).toContain(
       'Apply only these changes to the previous code mode capability catalog.',
     );
-    expect(JSON.stringify(prompts[1])).toContain(
+    expect(JSON.stringify(prompts[2])).toContain(
       'lookup: (input: { id: string; region: string; })',
     );
+    expect(prompts[2]!.slice(0, prompts[1]!.length)).toEqual(prompts[1]);
   });
 });
