@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.95
+
+### Patch Changes
+
+- 27f6d7a: fix(ai): reject embedding model responses that contain no embeddings
+
 ## 7.0.94
 
 ### Patch Changes
