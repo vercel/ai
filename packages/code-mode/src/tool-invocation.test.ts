@@ -365,6 +365,16 @@ describe('AI SDK tool bridge', () => {
     expect(JSON.stringify(prompts[0])).toContain(
       'lookup: (input: { id: string; })',
     );
+    expect(JSON.stringify(prompts[0])).not.toContain('codeModeCatalog');
+    expect(first.experimental_continuationMessages).toContainEqual(
+      expect.objectContaining({
+        providerOptions: {
+          'ai-sdk': expect.objectContaining({
+            codeModeCatalog: expect.anything(),
+          }),
+        },
+      }),
+    );
     expect(
       JSON.stringify(prompts[2]).match(/Code mode capability update/g),
     ).toHaveLength(2);
