@@ -24,6 +24,10 @@ import type {
 import { AmazonBedrockImageModel } from './amazon-bedrock-image-model';
 import type { AmazonBedrockImageModelId } from './amazon-bedrock-image-settings';
 import {
+  AmazonBedrockPegasusLanguageModel,
+  isAmazonBedrockPegasusModelId,
+} from './amazon-bedrock-pegasus-language-model';
+import {
   createApiKeyFetchFunction,
   createSigV4FetchFunction,
   type AmazonBedrockCredentials,
@@ -308,12 +312,18 @@ export function createAmazonBedrock(
     ) ?? `https://bedrock-agent-runtime.us-west-2.amazonaws.com`;
 
   const createChatModel = (modelId: AmazonBedrockChatModelId) =>
-    new AmazonBedrockChatLanguageModel(modelId, {
-      baseUrl: getAmazonBedrockRuntimeBaseUrl,
-      headers: getHeaders,
-      fetch: fetchFunction,
-      generateId,
-    });
+    isAmazonBedrockPegasusModelId(modelId)
+      ? new AmazonBedrockPegasusLanguageModel(modelId, {
+          baseUrl: getAmazonBedrockRuntimeBaseUrl,
+          headers: getHeaders,
+          fetch: fetchFunction,
+        })
+      : new AmazonBedrockChatLanguageModel(modelId, {
+          baseUrl: getAmazonBedrockRuntimeBaseUrl,
+          headers: getHeaders,
+          fetch: fetchFunction,
+          generateId,
+        });
 
   const provider = function (modelId: AmazonBedrockChatModelId) {
     if (new.target) {

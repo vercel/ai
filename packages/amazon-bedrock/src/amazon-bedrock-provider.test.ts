@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { AmazonBedrockChatLanguageModel } from './amazon-bedrock-chat-language-model';
 import { AmazonBedrockEmbeddingModel } from './amazon-bedrock-embedding-model';
 import { AmazonBedrockImageModel } from './amazon-bedrock-image-model';
+import { AmazonBedrockPegasusLanguageModel } from './amazon-bedrock-pegasus-language-model';
 import { createAmazonBedrock } from './amazon-bedrock-provider';
 import {
   createApiKeyFetchFunction,
@@ -18,6 +19,8 @@ const AmazonBedrockChatLanguageModelMock =
 const AmazonBedrockEmbeddingModelMock =
   AmazonBedrockEmbeddingModel as unknown as Mock;
 const AmazonBedrockImageModelMock = AmazonBedrockImageModel as unknown as Mock;
+const AmazonBedrockPegasusLanguageModelMock =
+  AmazonBedrockPegasusLanguageModel as unknown as Mock;
 
 vi.mock('./amazon-bedrock-chat-language-model', () => ({
   AmazonBedrockChatLanguageModel: vi.fn(),
@@ -29,6 +32,12 @@ vi.mock('./amazon-bedrock-embedding-model', () => ({
 
 vi.mock('./amazon-bedrock-image-model', () => ({
   AmazonBedrockImageModel: vi.fn(),
+}));
+
+vi.mock('./amazon-bedrock-pegasus-language-model', () => ({
+  AmazonBedrockPegasusLanguageModel: vi.fn(),
+  isAmazonBedrockPegasusModelId: (modelId: string) =>
+    /(?:^|\.)twelvelabs\.pegasus-/.test(modelId),
 }));
 
 vi.mock('./amazon-bedrock-sigv4-fetch', () => ({
@@ -119,6 +128,20 @@ describe('AmazonBedrockProvider', () => {
         'ai-sdk/amazon-bedrock/0.0.0-test',
       );
       expect(constructorCall[1].baseUrl()).toBe('https://custom.url');
+    });
+
+    it('uses the Pegasus InvokeModel adapter for TwelveLabs Pegasus model IDs', () => {
+      const provider = createAmazonBedrock();
+      provider('us.twelvelabs.pegasus-1-2-v1:0');
+
+      expect(AmazonBedrockPegasusLanguageModelMock).toHaveBeenCalledWith(
+        'us.twelvelabs.pegasus-1-2-v1:0',
+        expect.objectContaining({
+          baseUrl: expect.any(Function),
+          headers: expect.any(Function),
+        }),
+      );
+      expect(AmazonBedrockChatLanguageModelMock).not.toHaveBeenCalled();
     });
 
     it('should accept a credentialProvider in options', () => {
