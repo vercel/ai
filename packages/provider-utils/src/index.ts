@@ -23,6 +23,14 @@ export * from './get-error-message';
 export * from './get-from-api';
 export { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-agent';
 export { injectJsonInstructionIntoMessages } from './inject-json-instruction';
+export {
+  convertJsonResponseToolStream,
+  getJsonResponseToolOutput,
+  isJsonResponseToolText,
+  jsonResponseToolMetadata,
+  prepareJsonResponseTool,
+  type JsonResponseTool,
+} from './json-response-tool';
 export * from './is-abort-error';
 export { isBrowserRuntime } from './is-browser-runtime';
 export { isNonNullable } from './is-non-nullable';

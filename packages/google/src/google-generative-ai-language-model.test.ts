@@ -27,6 +27,32 @@ const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
+const PROMPT_WITH_RESOLVE_DATE_RESULT: LanguageModelV3Prompt = [
+  ...TEST_PROMPT,
+  {
+    role: 'assistant',
+    content: [
+      {
+        type: 'tool-call',
+        toolCallId: 'resolve-date-call',
+        toolName: 'resolveDate',
+        input: { expression: 'tomorrow' },
+      },
+    ],
+  },
+  {
+    role: 'tool',
+    content: [
+      {
+        type: 'tool-result',
+        toolCallId: 'resolve-date-call',
+        toolName: 'resolveDate',
+        output: { type: 'text', value: '2026-09-04' },
+      },
+    ],
+  },
+];
+
 const SAFETY_RATINGS = [
   {
     category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
@@ -1989,6 +2015,452 @@ describe('doGenerate', () => {
         ],
       }
     `);
+  });
+
+  it('should use a JSON response tool when structured output is combined with function tools', async () => {
+    server.urls[TEST_URL_GEMINI_2_5_FLASH_LITE].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              role: 'model',
+              parts: [
+                {
+                  functionCall: {
+                    id: 'json-call',
+                    name: 'json',
+                    args: { date: '2026-09-04' },
+                  },
+                },
+              ],
+            },
+            finishReason: 'STOP',
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 1,
+          candidatesTokenCount: 1,
+          totalTokenCount: 2,
+        },
+      },
+    };
+
+    const result = await provider
+      .languageModel('gemini-2.5-flash-lite')
+      .doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { date: { type: 'string' } },
+            required: ['date'],
+            additionalProperties: false,
+          },
+        },
+        tools: [
+          {
+            type: 'function',
+            name: 'resolveDate',
+            description: 'Resolve a relative date.',
+            inputSchema: {
+              type: 'object',
+              properties: { expression: { type: 'string' } },
+              required: ['expression'],
+              additionalProperties: false,
+            },
+          },
+        ],
+      });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {},
+      toolConfig: {
+        functionCallingConfig: { mode: 'ANY' },
+      },
+      tools: [
+        {
+          functionDeclarations: [
+            { name: 'resolveDate' },
+            {
+              name: 'json',
+              parameters: {
+                type: 'object',
+                properties: { date: { type: 'string' } },
+                required: ['date'],
+              },
+            },
+          ],
+        },
+      ],
+    });
+    expect(result.content).toEqual([
+      {
+        type: 'text',
+        text: '{"date":"2026-09-04"}',
+        providerMetadata: {
+          'ai-sdk': { jsonResponseTool: true },
+        },
+      },
+    ]);
+    expect(result.finishReason).toEqual({
+      unified: 'stop',
+      raw: 'STOP',
+    });
+  });
+
+  it('should preserve a named tool choice until the selected tool has a result', async () => {
+    server.urls[TEST_URL_GEMINI_2_5_FLASH_LITE].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              role: 'model',
+              parts: [
+                {
+                  functionCall: {
+                    id: 'resolve-date-call',
+                    name: 'resolveDate',
+                    args: { expression: 'tomorrow' },
+                  },
+                },
+              ],
+            },
+            finishReason: 'STOP',
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 1,
+          candidatesTokenCount: 1,
+          totalTokenCount: 2,
+        },
+      },
+    };
+
+    const result = await provider
+      .languageModel('gemini-2.5-flash-lite')
+      .doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { date: { type: 'string' } },
+            required: ['date'],
+            additionalProperties: false,
+          },
+        },
+        tools: [
+          {
+            type: 'function',
+            name: 'resolveDate',
+            inputSchema: {
+              type: 'object',
+              properties: { expression: { type: 'string' } },
+              required: ['expression'],
+              additionalProperties: false,
+            },
+          },
+        ],
+        toolChoice: { type: 'tool', toolName: 'resolveDate' },
+      });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.generationConfig).toEqual({});
+    expect(requestBody.toolConfig).toEqual({
+      functionCallingConfig: {
+        mode: 'ANY',
+        allowedFunctionNames: ['resolveDate'],
+      },
+    });
+    expect(
+      requestBody.tools[0].functionDeclarations.map(
+        (tool: { name: string }) => tool.name,
+      ),
+    ).toEqual(['resolveDate']);
+    expect(result.content).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'resolve-date-call',
+        toolName: 'resolveDate',
+        input: '{"expression":"tomorrow"}',
+      },
+    ]);
+  });
+
+  it('should use native structured output after a named tool result', async () => {
+    server.urls[TEST_URL_GEMINI_2_5_FLASH_LITE].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              role: 'model',
+              parts: [
+                {
+                  text: '{"date":"2026-09-04"}',
+                },
+              ],
+            },
+            finishReason: 'STOP',
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 1,
+          candidatesTokenCount: 1,
+          totalTokenCount: 2,
+        },
+      },
+    };
+
+    const result = await provider
+      .languageModel('gemini-2.5-flash-lite')
+      .doGenerate({
+        prompt: PROMPT_WITH_RESOLVE_DATE_RESULT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { date: { type: 'string' } },
+            required: ['date'],
+            additionalProperties: false,
+          },
+        },
+        tools: [
+          {
+            type: 'function',
+            name: 'resolveDate',
+            inputSchema: {
+              type: 'object',
+              properties: { expression: { type: 'string' } },
+              required: ['expression'],
+              additionalProperties: false,
+            },
+          },
+        ],
+        toolChoice: { type: 'tool', toolName: 'resolveDate' },
+        toolChoiceSatisfied: true,
+      });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.generationConfig).toMatchObject({
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: 'object',
+        properties: { date: { type: 'string' } },
+        required: ['date'],
+      },
+    });
+    expect(requestBody).not.toHaveProperty('tools');
+    expect(requestBody).not.toHaveProperty('toolConfig');
+    expect(result.content).toEqual([
+      {
+        type: 'text',
+        text: '{"date":"2026-09-04"}',
+      },
+    ]);
+  });
+
+  it('should wrap and unwrap a root array JSON response tool', async () => {
+    server.urls[TEST_URL_GEMINI_2_5_FLASH_LITE].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              role: 'model',
+              parts: [
+                {
+                  functionCall: {
+                    id: 'json-call',
+                    name: 'json',
+                    args: {
+                      value: ['2026-09-04', '2026-09-05'],
+                    },
+                  },
+                },
+              ],
+            },
+            finishReason: 'STOP',
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 1,
+          candidatesTokenCount: 1,
+          totalTokenCount: 2,
+        },
+      },
+    };
+
+    const result = await provider
+      .languageModel('gemini-2.5-flash-lite')
+      .doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'array',
+            items: { type: 'string' },
+          },
+        },
+        tools: [
+          {
+            type: 'function',
+            name: 'resolveDate',
+            inputSchema: {
+              type: 'object',
+              properties: { expression: { type: 'string' } },
+            },
+          },
+        ],
+      });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(
+      requestBody.tools[0].functionDeclarations[1].parameters,
+    ).toMatchObject({
+      type: 'object',
+      properties: {
+        value: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+      },
+      required: ['value'],
+    });
+    expect(result.content).toEqual([
+      {
+        type: 'text',
+        text: '["2026-09-04","2026-09-05"]',
+        providerMetadata: {
+          'ai-sdk': { jsonResponseTool: true },
+        },
+      },
+    ]);
+  });
+
+  it('should omit tools and preserve native structured output when toolChoice is none', async () => {
+    prepareJsonFixtureResponse('google-text', {
+      url: TEST_URL_GEMINI_2_5_FLASH_LITE,
+    });
+
+    await provider.languageModel('gemini-2.5-flash-lite').doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { date: { type: 'string' } },
+          required: ['date'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          type: 'function',
+          name: 'resolveDate',
+          inputSchema: {
+            type: 'object',
+            properties: { expression: { type: 'string' } },
+            required: ['expression'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      toolChoice: { type: 'none' },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.generationConfig).toMatchObject({
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: 'object',
+        properties: { date: { type: 'string' } },
+        required: ['date'],
+      },
+    });
+    expect(requestBody).not.toHaveProperty('tools');
+    expect(requestBody).not.toHaveProperty('toolConfig');
+  });
+
+  it('should keep a user-defined json tool distinct from the response tool', async () => {
+    server.urls[TEST_URL_GEMINI_2_5_FLASH_LITE].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              role: 'model',
+              parts: [
+                {
+                  functionCall: {
+                    id: 'user-json-call',
+                    name: 'json',
+                    args: { value: 'test' },
+                  },
+                },
+              ],
+            },
+            finishReason: 'STOP',
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 1,
+          candidatesTokenCount: 1,
+          totalTokenCount: 2,
+        },
+      },
+    };
+
+    const result = await provider
+      .languageModel('gemini-2.5-flash-lite')
+      .doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { date: { type: 'string' } },
+            required: ['date'],
+            additionalProperties: false,
+          },
+        },
+        tools: [
+          {
+            type: 'function',
+            name: 'json',
+            inputSchema: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+            },
+          },
+        ],
+      });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(
+      requestBody.tools[0].functionDeclarations.map(
+        (tool: { name: string }) => tool.name,
+      ),
+    ).toEqual(['json', 'json_1']);
+    expect(result.content).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'user-json-call',
+        toolName: 'json',
+        input: '{"value":"test"}',
+        providerMetadata: undefined,
+      },
+    ]);
   });
 
   it('should pass headers', async () => {
@@ -4629,6 +5101,157 @@ describe('doStream', () => {
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+    });
+  });
+
+  it('should stream a collision-free JSON response tool as text', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                role: 'model',
+                parts: [
+                  {
+                    functionCall: {
+                      id: 'json-call',
+                      name: 'json_1',
+                      args: { date: '2026-09-04' },
+                    },
+                  },
+                ],
+              },
+              finishReason: 'STOP',
+            },
+          ],
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { date: { type: 'string' } },
+          required: ['date'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          type: 'function',
+          name: 'json',
+          inputSchema: {
+            type: 'object',
+            properties: { expression: { type: 'string' } },
+            required: ['expression'],
+            additionalProperties: false,
+          },
+        },
+      ],
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(events).toContainEqual({
+      type: 'text-delta',
+      id: 'json-call',
+      delta: '{"date":"2026-09-04"}',
+      providerMetadata: {
+        'ai-sdk': { jsonResponseTool: true },
+      },
+    });
+    expect(events).not.toContainEqual(
+      expect.objectContaining({ type: 'tool-call', toolName: 'json_1' }),
+    );
+    expect(events.at(-1)).toMatchObject({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'STOP' },
+    });
+    expect(
+      requestBody.tools[0].functionDeclarations.map(
+        (tool: { name: string }) => tool.name,
+      ),
+    ).toEqual(['json', 'json_1']);
+  });
+
+  it('should stream an unwrapped root array JSON response tool as text', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                role: 'model',
+                parts: [
+                  {
+                    functionCall: {
+                      id: 'json-call',
+                      name: 'json',
+                      args: {
+                        value: ['2026-09-04', '2026-09-05'],
+                      },
+                    },
+                  },
+                ],
+              },
+              finishReason: 'STOP',
+            },
+          ],
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+      },
+      tools: [
+        {
+          type: 'function',
+          name: 'resolveDate',
+          inputSchema: {
+            type: 'object',
+            properties: { expression: { type: 'string' } },
+          },
+        },
+      ],
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(events).toContainEqual({
+      type: 'text-delta',
+      id: 'json-call',
+      delta: '["2026-09-04","2026-09-05"]',
+      providerMetadata: {
+        'ai-sdk': { jsonResponseTool: true },
+      },
+    });
+    expect(events.at(-1)).toMatchObject({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'STOP' },
+    });
+    expect(
+      requestBody.tools[0].functionDeclarations[1].parameters,
+    ).toMatchObject({
+      type: 'object',
+      properties: {
+        value: { type: 'array', items: { type: 'string' } },
+      },
+      required: ['value'],
     });
   });
 
