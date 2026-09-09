@@ -179,6 +179,83 @@ const result = streamText({
 });
 ```
 
+### ToolLoopAgent
+
+You can provide a sequence of mock responses to test an agent that calls a tool
+and continues to a final response:
+
+```ts
+import { ToolLoopAgent, tool } from 'ai';
+import { MockLanguageModelV3 } from 'ai/test';
+import { expect, it } from 'vitest';
+import { z } from 'zod';
+
+it('executes a tool and continues the loop', async () => {
+  const weatherRequests: string[] = [];
+  const usage = {
+    inputTokens: {
+      total: 10,
+      noCache: 10,
+      cacheRead: undefined,
+      cacheWrite: undefined,
+    },
+    outputTokens: {
+      total: 5,
+      text: 5,
+      reasoning: undefined,
+    },
+  };
+
+  const model = new MockLanguageModelV3({
+    doGenerate: [
+      {
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: '{"city":"San Francisco"}',
+          },
+        ],
+        finishReason: { unified: 'tool-calls', raw: undefined },
+        usage,
+        warnings: [],
+      },
+      {
+        content: [
+          { type: 'text', text: 'It is 72°F in San Francisco.' },
+        ],
+        finishReason: { unified: 'stop', raw: undefined },
+        usage,
+        warnings: [],
+      },
+    ],
+  });
+
+  const agent = new ToolLoopAgent({
+    model,
+    tools: {
+      weather: tool({
+        description: 'Get the weather for a city.',
+        inputSchema: z.object({ city: z.string() }),
+        execute: async ({ city }) => {
+          weatherRequests.push(city);
+          return { temperature: 72 };
+        },
+      }),
+    },
+  });
+
+  const result = await agent.generate({
+    prompt: 'What is the weather in San Francisco?',
+  });
+
+  expect(weatherRequests).toEqual(['San Francisco']);
+  expect(result.text).toBe('It is 72°F in San Francisco.');
+  expect(model.doGenerateCalls).toHaveLength(2);
+});
+```
+
 ### Simulate UI Message Stream Responses
 
 You can also simulate [UI Message Stream](/docs/ai-sdk-ui/stream-protocol#ui-message-stream) responses for testing,
