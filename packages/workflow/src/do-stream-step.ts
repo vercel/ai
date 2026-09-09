@@ -46,6 +46,8 @@ export interface ProviderExecutedToolResult {
   toolName: string;
   result: unknown;
   isError?: boolean;
+  dynamic?: boolean;
+  providerMetadata?: SharedV4ProviderMetadata;
 }
 
 /**
@@ -407,6 +409,8 @@ export async function doStreamStep(
               toolName: part.toolName,
               result: part.output,
               isError: false,
+              dynamic: part.dynamic,
+              providerMetadata: part.providerMetadata,
             });
           }
           break;
@@ -420,6 +424,8 @@ export async function doStreamStep(
               toolName: errorPart.toolName,
               result: errorPart.error,
               isError: true,
+              dynamic: errorPart.dynamic,
+              providerMetadata: errorPart.providerMetadata,
             });
           }
           break;

@@ -55,6 +55,7 @@ import { createLanguageModelToolResultOutput } from './create-language-model-too
 import type {
   ModelCallStreamPart,
   ModelStopCondition,
+  ProviderExecutedToolResult,
 } from './do-stream-step.js';
 import { resolveToolContext } from './resolve-tool-context.js';
 import { streamTextIterator } from './stream-text-iterator.js';
@@ -3138,10 +3139,7 @@ function aggregateUsage(steps: StepResult<any, any>[]): LanguageModelUsage {
 
 async function resolveProviderToolResult(
   toolCall: { toolCallId: string; toolName: string; input: unknown },
-  providerExecutedToolResults?: Map<
-    string,
-    { toolCallId: string; toolName: string; result: unknown; isError?: boolean }
-  >,
+  providerExecutedToolResults?: Map<string, ProviderExecutedToolResult>,
   tools?: ToolSet,
   download?: DownloadFunction,
 ): Promise<WorkflowToolExecutionResult | undefined> {
@@ -3176,11 +3174,7 @@ async function resolveProviderToolResult(
   }
 
   const result = streamResult.result;
-  const errorMode = streamResult.isError
-    ? typeof result === 'string'
-      ? 'text'
-      : 'json'
-    : 'none';
+  const errorMode = streamResult.isError ? 'json' : 'none';
 
   return {
     modelResult: {
@@ -3197,6 +3191,9 @@ async function resolveProviderToolResult(
         supportedUrls: {},
         download,
       }),
+      ...(streamResult.providerMetadata != null
+        ? { providerOptions: streamResult.providerMetadata }
+        : {}),
     },
     rawOutput: result,
     isError: streamResult.isError === true,
