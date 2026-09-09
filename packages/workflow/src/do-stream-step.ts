@@ -117,6 +117,10 @@ export type DoStreamStepRawContentPart =
   | {
       type: 'tool-call';
       toolCallIndex: number;
+    }
+  | {
+      type: 'provider-tool-result';
+      toolCallId: string;
     };
 
 /**
@@ -412,6 +416,10 @@ export async function doStreamStep(
               dynamic: part.dynamic,
               providerMetadata: part.providerMetadata,
             });
+            content.push({
+              type: 'provider-tool-result',
+              toolCallId: part.toolCallId,
+            });
           }
           break;
         case 'tool-error': {
@@ -426,6 +434,10 @@ export async function doStreamStep(
               isError: true,
               dynamic: errorPart.dynamic,
               providerMetadata: errorPart.providerMetadata,
+            });
+            content.push({
+              type: 'provider-tool-result',
+              toolCallId: errorPart.toolCallId,
             });
           }
           break;

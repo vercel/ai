@@ -3,20 +3,31 @@ import type {
   LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
 
+export interface ProviderExecutedToolResultPosition {
+  toolCallId: string;
+  contentIndex: number;
+}
+
 export function addToolResultsToConversation({
   messages,
   toolResults,
   providerExecutedToolCallIds,
+  providerExecutedToolResultPositions = [],
 }: {
   messages: LanguageModelV4Prompt;
   toolResults: LanguageModelV4ToolResultPart[];
   providerExecutedToolCallIds: Set<string>;
+  providerExecutedToolResultPositions?: ProviderExecutedToolResultPosition[];
 }) {
+  const providerResultIds = new Set([
+    ...providerExecutedToolCallIds,
+    ...providerExecutedToolResultPositions.map(position => position.toolCallId),
+  ]);
   const providerResults = new Map<string, LanguageModelV4ToolResultPart[]>();
   const clientResults: LanguageModelV4ToolResultPart[] = [];
 
   for (const toolResult of toolResults) {
-    if (providerExecutedToolCallIds.has(toolResult.toolCallId)) {
+    if (providerResultIds.has(toolResult.toolCallId)) {
       const results = providerResults.get(toolResult.toolCallId) ?? [];
       results.push(toolResult);
       providerResults.set(toolResult.toolCallId, results);
@@ -39,10 +50,30 @@ export function addToolResultsToConversation({
     }
 
     if (assistantMessage != null) {
-      const content: typeof assistantMessage.content = [];
+      let content = [...assistantMessage.content];
 
-      for (const part of assistantMessage.content) {
-        content.push(part);
+      for (const position of [...providerExecutedToolResultPositions].sort(
+        (a, b) => a.contentIndex - b.contentIndex,
+      )) {
+        const results = providerResults.get(position.toolCallId);
+        if (results == null || results.length === 0) {
+          continue;
+        }
+
+        const [result, ...remainingResults] = results;
+        content.splice(position.contentIndex, 0, result);
+
+        if (remainingResults.length === 0) {
+          providerResults.delete(position.toolCallId);
+        } else {
+          providerResults.set(position.toolCallId, remainingResults);
+        }
+      }
+
+      const contentWithFallbackResults: typeof assistantMessage.content = [];
+
+      for (const part of content) {
+        contentWithFallbackResults.push(part);
 
         if (part.type !== 'tool-call') {
           continue;
@@ -54,14 +85,14 @@ export function addToolResultsToConversation({
         }
 
         providerResults.delete(part.toolCallId);
-        content.push(...results);
+        contentWithFallbackResults.push(...results);
       }
 
       for (const results of providerResults.values()) {
-        content.push(...results);
+        contentWithFallbackResults.push(...results);
       }
 
-      assistantMessage.content = content;
+      assistantMessage.content = contentWithFallbackResults;
     }
   }
 
