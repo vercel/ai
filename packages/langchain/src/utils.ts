@@ -17,6 +17,7 @@ import type {
   ProviderMetadata,
   JSONValue,
 } from 'ai';
+import { secureJsonParse } from '@ai-sdk/provider-utils';
 
 import type {
   LangGraphEventState,
@@ -2044,7 +2045,7 @@ export function processLangGraphEvent(
                       let args: unknown;
                       try {
                         args = functionData?.arguments
-                          ? JSON.parse(functionData.arguments)
+                          ? secureJsonParse(functionData.arguments)
                           : {};
                       } catch {
                         args = {};
