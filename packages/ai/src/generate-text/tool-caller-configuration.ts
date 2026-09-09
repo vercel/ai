@@ -207,13 +207,13 @@ export function appendToolCallerMessages({
     latestUserText == null ? [] : [latestUserText],
   );
   const additions = toolCallerMessages.filter(message => {
-    if (
-      typeof message.content !== 'string' ||
-      existingUserText.has(message.content)
-    ) {
-      return false;
+    if (typeof message.content === 'string') {
+      if (existingUserText.has(message.content)) {
+        return false;
+      }
+      existingUserText.add(message.content);
     }
-    existingUserText.add(message.content);
+
     return true;
   });
 
