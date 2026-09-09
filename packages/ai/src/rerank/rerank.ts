@@ -293,12 +293,6 @@ export async function rerank<VALUE extends JSONObject | string>({
 
         validateRankingIndices({ ranking, documents });
 
-        const resultRanking = ranking.map(ranking => ({
-          originalIndex: ranking.index,
-          score: ranking.relevanceScore,
-          document: documents[ranking.index],
-        }));
-
         logWarnings({
           warnings: warnings ?? [],
           provider: model.provider,
@@ -313,7 +307,11 @@ export async function rerank<VALUE extends JSONObject | string>({
             modelId: model.modelId,
             documents,
             query,
-            ranking: resultRanking,
+            ranking: ranking.map(ranking => ({
+              originalIndex: ranking.index,
+              score: ranking.relevanceScore,
+              document: documents[ranking.index],
+            })),
             warnings: warnings ?? [],
             providerMetadata,
             response: {
@@ -329,7 +327,11 @@ export async function rerank<VALUE extends JSONObject | string>({
 
         return new DefaultRerankResult({
           originalDocuments: documents,
-          ranking: resultRanking,
+          ranking: ranking.map(ranking => ({
+            originalIndex: ranking.index,
+            score: ranking.relevanceScore,
+            document: documents[ranking.index],
+          })),
           providerMetadata,
           response: {
             id: response?.id,

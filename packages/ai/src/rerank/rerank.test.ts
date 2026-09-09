@@ -678,6 +678,49 @@ describe('rerank', () => {
       ]);
     });
 
+    it('should isolate the result from ranking mutations in onEnd', async () => {
+      const result = await rerank({
+        model: mockModel,
+        documents: [
+          'sunny day at the beach',
+          'rainy day in the city',
+          'cloudy day in the mountains',
+        ],
+        query: 'rainy day',
+        onEnd: async event => {
+          event.ranking[0].document = 'mutated document';
+          event.ranking.push({
+            originalIndex: 0,
+            score: 0,
+            document: 'appended document',
+          });
+        },
+      });
+
+      expect(result.ranking).toEqual([
+        {
+          originalIndex: 2,
+          score: 0.9,
+          document: 'cloudy day in the mountains',
+        },
+        {
+          originalIndex: 0,
+          score: 0.8,
+          document: 'sunny day at the beach',
+        },
+        {
+          originalIndex: 1,
+          score: 0.7,
+          document: 'rainy day in the city',
+        },
+      ]);
+      expect(result.rerankedDocuments).toEqual([
+        'cloudy day in the mountains',
+        'sunny day at the beach',
+        'rainy day in the city',
+      ]);
+    });
+
     it('should include model information', async () => {
       let endEvent!: RerankEndEvent;
 
