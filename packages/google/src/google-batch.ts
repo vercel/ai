@@ -188,7 +188,7 @@ export class GoogleBatch implements BatchV4<{ readonly text: GoogleModelId }> {
   }
 
   async doStartBatch(
-    options: BatchV4StartOptions,
+    options: BatchV4StartOptions<{ text: GoogleModelId }>,
   ): Promise<BatchV4StartResult> {
     assertTextBatchRequests(options.requests);
     const modelId = getGoogleBatchModelId(options.requests);

@@ -51,7 +51,9 @@ export class GatewayBatch implements BatchV4<{ text: GatewayModelId }> {
     headers,
     abortSignal,
     webhookUrl,
-  }: BatchV4StartOptions): Promise<BatchV4StartResult> {
+  }: BatchV4StartOptions<{
+    text: GatewayModelId;
+  }>): Promise<BatchV4StartResult> {
     assertTextBatchRequests(requests);
     const modelId = validateSingleModel(requests);
 

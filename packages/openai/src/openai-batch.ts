@@ -191,7 +191,7 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
   }
 
   async doStartBatch(
-    options: BatchV4StartOptions,
+    options: BatchV4StartOptions<OpenAIBatchModelIds>,
   ): Promise<BatchV4StartResult> {
     assertTextBatchRequests(options.requests);
     validateSingleModel(options.requests);

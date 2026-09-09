@@ -182,7 +182,7 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
   }
 
   async doStartBatch(
-    options: BatchV4StartOptions,
+    options: BatchV4StartOptions<XaiBatchModelIds>,
   ): Promise<BatchV4StartResult> {
     assertTextBatchRequests(options.requests);
     const fileParts: string[] = [];

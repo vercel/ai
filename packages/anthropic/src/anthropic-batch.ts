@@ -206,7 +206,9 @@ export class AnthropicBatch implements BatchV4<{
     headers,
     abortSignal,
     webhookUrl,
-  }: BatchV4StartOptions): Promise<BatchV4StartResult> {
+  }: BatchV4StartOptions<{
+    text: AnthropicModelId;
+  }>): Promise<BatchV4StartResult> {
     assertTextBatchRequests(requests);
     validateRequestIds(requests);
 
