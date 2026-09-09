@@ -159,7 +159,9 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
     };
 
     const { responseHeaders, value: response } = await postJsonToApi<{
-      predictions: Array<{ bytesBase64Encoded: string }>;
+      predictions: Array<
+        { bytesBase64Encoded: string } | { raiFilteredReason: string }
+      >;
     }>({
       url: `${this.config.baseURL}/models/${this.modelId}:predict`,
       headers: combineHeaders(await resolve(this.config.headers), headers),
@@ -171,14 +173,22 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
       abortSignal,
       fetch: this.config.fetch,
     });
+    const imagePredictions = response.predictions.filter(
+      (prediction): prediction is { bytesBase64Encoded: string } =>
+        'bytesBase64Encoded' in prediction,
+    );
+
     return {
-      images: response.predictions.map(
-        (p: { bytesBase64Encoded: string }) => p.bytesBase64Encoded,
+      images: imagePredictions.map(
+        ({ bytesBase64Encoded }) => bytesBase64Encoded,
       ),
+      ...(response.predictions.some(
+        prediction => 'raiFilteredReason' in prediction,
+      ) && { isRetryable: false }),
       warnings,
       providerMetadata: {
         google: {
-          images: response.predictions.map(() => ({
+          images: imagePredictions.map(() => ({
             // Add any prediction-specific metadata here
           })),
         },
@@ -378,7 +388,12 @@ const googleImageResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       predictions: z
-        .array(z.object({ bytesBase64Encoded: z.string() }))
+        .array(
+          z.union([
+            z.object({ bytesBase64Encoded: z.string() }),
+            z.object({ raiFilteredReason: z.string() }),
+          ]),
+        )
         .default([]),
     }),
   ),

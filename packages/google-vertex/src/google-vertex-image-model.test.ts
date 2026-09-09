@@ -127,6 +127,34 @@ describe('GoogleVertexImageModel', () => {
       `);
     });
 
+    it('should classify RAI-filtered results as terminal', async () => {
+      server.urls[GENERATE_URL].response = {
+        type: 'json-value',
+        body: {
+          predictions: [
+            {
+              raiFilteredReason:
+                'Your current safety filter threshold filtered out the image.',
+            },
+          ],
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.images).toEqual([]);
+      expect(result.isRetryable).toBe(false);
+    });
+
     it('should return full result snapshot', async () => {
       const testDate = new Date('2024-03-15T12:00:00Z');
       const customModel = new GoogleVertexImageModel(
