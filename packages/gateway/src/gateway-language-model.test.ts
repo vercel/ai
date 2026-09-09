@@ -15,6 +15,7 @@ import {
   GatewayModelNotFoundError,
   GatewayResponseError,
 } from './errors';
+import fs from 'node:fs';
 import { describe, it, expect, vi } from 'vitest';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
@@ -106,6 +107,54 @@ describe('GatewayLanguageModel', () => {
       });
 
       expect(content).toEqual({ type: 'text', text: 'Hello, World!' });
+    });
+
+    it('should preserve a recorded no-tool response when required tool choice was forwarded', async () => {
+      const fixture = JSON.parse(
+        fs.readFileSync(
+          new URL(
+            './__fixtures__/issue-8992-deepinfra-required-tool-choice.json',
+            import.meta.url,
+          ),
+          'utf8',
+        ),
+      );
+
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'json-value',
+        body: {
+          content: fixture.response.content,
+          finishReason: fixture.response.finishReason.unified,
+          usage: {
+            inputTokens: fixture.response.usage.inputTokens.total,
+            outputTokens: fixture.response.usage.outputTokens.total,
+            totalTokens: fixture.response.usage.raw.total_tokens,
+            reasoningTokens: fixture.response.usage.outputTokens.reasoning,
+            cachedInputTokens: fixture.response.usage.inputTokens.cacheRead,
+          },
+          providerMetadata: fixture.response.providerMetadata,
+          warnings: fixture.response.warnings,
+        },
+      };
+
+      const result = await createTestModel().doGenerate({
+        prompt: fixture.request.prompt,
+        tools: fixture.request.tools,
+        toolChoice: fixture.request.toolChoice,
+        providerOptions: fixture.request.providerOptions,
+        maxOutputTokens: fixture.request.maxOutputTokens,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        toolChoice: { type: 'required' },
+        providerOptions: { gateway: { only: ['deepinfra'] } },
+      });
+      expect(result.content).toEqual(fixture.response.content);
+      expect(
+        result.content.filter(
+          (part: { type: string }) => part.type === 'tool-call',
+        ),
+      ).toHaveLength(0);
     });
 
     it('should extract usage information', async () => {
