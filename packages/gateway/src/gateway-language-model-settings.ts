@@ -85,6 +85,7 @@ export type GatewayModelId =
   | 'google/gemma-4-26b-a4b-it'
   | 'google/gemma-4-31b-it'
   | 'inception/mercury-2'
+  | 'inception/mercury-2.5'
   | 'inception/mercury-coder-small'
   | 'inclusionai/ling-3.0-flash'
   | 'inclusionai/ling-3.0-flash-fin'
@@ -231,7 +232,6 @@ export type GatewayModelId =
   | 'thinkingmachines/inkling-small'
   | 'xiaomi/mimo-v2.5'
   | 'xiaomi/mimo-v2.5-pro'
-  | 'xiaomi/mimo-v2.5-pro-ultraspeed'
   | 'zai/glm-4.5'
   | 'zai/glm-4.5-air'
   | 'zai/glm-4.5v'
@@ -247,6 +247,5 @@ export type GatewayModelId =
   | 'zai/glm-5.3'
   | 'zai/glm-5.3-fast'
   | 'zai/glm-5.3-flash'
-  | 'zai/glm-5.3-promo-50'
   | 'zai/glm-5v-turbo'
   | (string & {});
