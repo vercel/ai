@@ -12,6 +12,7 @@ import {
   imageMediaTypeSignatures,
 } from '../util/detect-media-type';
 import { prepareRetries } from '../util/prepare-retries';
+import { RetryError } from '../util/retry-error';
 import {
   type GeneratedFile,
   DefaultGeneratedFile,
@@ -22,6 +23,15 @@ import type { GenerateImageResult } from './generate-image-result';
 import { logWarnings } from '../logger/log-warnings';
 import { VERSION } from '../version';
 import { resolveImageModel } from '../model/resolve-model';
+
+type ImageModelV2Result = Awaited<ReturnType<ImageModelV2['doGenerate']>>;
+
+class RetryableNoImageResultError extends Error {
+  constructor() {
+    super('No image generated.');
+    this.name = 'RetryableNoImageResultError';
+  }
+}
 
 /**
 Generates images using an image model.
@@ -34,7 +44,7 @@ Generates images using an image model.
 @param seed - Seed for the image generation.
 @param providerOptions - Additional provider-specific options that are passed through to the provider
 as body parameters.
-@param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
+@param maxRetries - Maximum number of retries per image model call, including retries after unclassified empty responses. Empty responses marked as not retryable by the provider are not retried. Set to 0 to disable retries. Default: 2.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
 @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
@@ -105,7 +115,9 @@ record is keyed by the provider-specific metadata key.
   providerOptions?: ProviderOptions;
 
   /**
-Maximum number of retries per embedding model call. Set to 0 to disable retries.
+Maximum number of retries per image model call, including retries after
+unclassified empty responses. Empty responses marked as not retryable by the
+provider are not retried. Set to 0 to disable retries.
 
 @default 2
    */
@@ -132,6 +144,8 @@ Only applicable for HTTP-based providers.
   const { retry } = prepareRetries({
     maxRetries: maxRetriesArg,
     abortSignal,
+    additionalRetryableError: error =>
+      error instanceof RetryableNoImageResultError,
   });
 
   // default to 1 if the model has not specified limits on
@@ -150,22 +164,51 @@ Only applicable for HTTP-based providers.
     return remainder === 0 ? maxImagesPerCallWithDefault : remainder;
   });
 
-  const results = await Promise.all(
-    callImageCounts.map(async callImageCount =>
-      retry(() =>
-        model.doGenerate({
-          prompt,
-          n: callImageCount,
-          abortSignal,
-          headers: headersWithUserAgent,
-          size,
-          aspectRatio,
-          seed,
-          providerOptions: providerOptions ?? {},
-        }),
-      ),
-    ),
+  const resultGroups = await Promise.all(
+    callImageCounts.map(async callImageCount => {
+      const callResults: Array<ImageModelV2Result> = [];
+
+      try {
+        await retry(async () => {
+          const result = await model.doGenerate({
+            prompt,
+            n: callImageCount,
+            abortSignal,
+            headers: headersWithUserAgent,
+            size,
+            aspectRatio,
+            seed,
+            providerOptions: providerOptions ?? {},
+          });
+
+          callResults.push(result);
+
+          if (result.images.length === 0 && result.isRetryable !== false) {
+            throw new RetryableNoImageResultError();
+          }
+
+          return result;
+        });
+
+        return callResults;
+      } catch (error) {
+        const noImageResultError =
+          error instanceof RetryableNoImageResultError
+            ? error
+            : RetryError.isInstance(error) &&
+                error.lastError instanceof RetryableNoImageResultError
+              ? error.lastError
+              : undefined;
+
+        if (noImageResultError != null) {
+          return callResults;
+        }
+
+        throw error;
+      }
+    }),
   );
+  const results = resultGroups.flat();
 
   // collect result images, warnings, and response metadata
   const images: Array<DefaultGeneratedFile> = [];

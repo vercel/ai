@@ -43,8 +43,10 @@ const createMockResponse = (options: {
   modelId?: string;
   providerMetaData?: ImageModelV2ProviderMetadata;
   headers?: Record<string, string>;
+  isRetryable?: boolean;
 }) => ({
   images: options.images,
+  isRetryable: options.isRetryable,
   warnings: options.warnings ?? [],
   providerMetadata: options.providerMetaData ?? {
     testProvider: {
@@ -532,6 +534,182 @@ describe('generateImage', () => {
   });
 
   describe('error handling', () => {
+    it('should retry when no images are returned and a later attempt succeeds', async () => {
+      vi.useFakeTimers();
+
+      try {
+        let callCount = 0;
+        const firstTimestamp = new Date('2024-01-01T00:00:00.000Z');
+        const secondTimestamp = new Date('2024-01-02T00:00:00.000Z');
+
+        const resultPromise = generateImage({
+          model: new MockImageModelV2({
+            doGenerate: async () => {
+              callCount += 1;
+
+              return callCount === 1
+                ? createMockResponse({
+                    images: [],
+                    warnings: [
+                      {
+                        type: 'other',
+                        message: 'First attempt returned no images.',
+                      },
+                    ],
+                    timestamp: firstTimestamp,
+                    modelId: 'empty-attempt-model',
+                    providerMetaData: {
+                      testProvider: {
+                        images: [],
+                        attempt: 'empty',
+                      },
+                    },
+                  })
+                : createMockResponse({
+                    images: [pngBase64],
+                    warnings: [
+                      {
+                        type: 'other',
+                        message: 'Second attempt returned an image.',
+                      },
+                    ],
+                    timestamp: secondTimestamp,
+                    modelId: 'successful-attempt-model',
+                    providerMetaData: {
+                      testProvider: {
+                        images: [{ attempt: 'success' }],
+                        attempt: 'success',
+                      },
+                    },
+                  });
+            },
+          }),
+          prompt,
+          maxRetries: 2,
+        });
+
+        await vi.runAllTimersAsync();
+
+        const result = await resultPromise;
+
+        expect(callCount).toBe(2);
+        expect(result.images).toHaveLength(1);
+        expect(result.warnings).toStrictEqual([
+          {
+            type: 'other',
+            message: 'First attempt returned no images.',
+          },
+          {
+            type: 'other',
+            message: 'Second attempt returned an image.',
+          },
+        ]);
+        expect(result.responses).toStrictEqual([
+          {
+            timestamp: firstTimestamp,
+            modelId: 'empty-attempt-model',
+            headers: {},
+          },
+          {
+            timestamp: secondTimestamp,
+            modelId: 'successful-attempt-model',
+            headers: {},
+          },
+        ]);
+        expect(result.providerMetadata).toStrictEqual({
+          testProvider: {
+            images: [{ attempt: 'success' }],
+          },
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('should not retry provider-classified terminal empty results', async () => {
+      let callCount = 0;
+
+      await expect(
+        generateImage({
+          model: new MockImageModelV2({
+            doGenerate: async () => {
+              callCount += 1;
+
+              return createMockResponse({
+                images: [],
+                timestamp: testDate,
+                isRetryable: false,
+                providerMetaData: {
+                  testProvider: {
+                    images: [],
+                    reason: 'content-filter',
+                  },
+                },
+              });
+            },
+          }),
+          prompt,
+          maxRetries: 2,
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_NoImageGeneratedError',
+        responses: [
+          {
+            timestamp: testDate,
+          },
+        ],
+      });
+
+      expect(callCount).toBe(1);
+    });
+
+    it('should throw NoImageGeneratedError after no-image retries are exhausted', async () => {
+      vi.useFakeTimers();
+
+      try {
+        let callCount = 0;
+        const firstTimestamp = new Date('2024-01-01T00:00:00.000Z');
+        const secondTimestamp = new Date('2024-01-02T00:00:00.000Z');
+
+        const resultPromise = generateImage({
+          model: new MockImageModelV2({
+            doGenerate: async () => {
+              callCount += 1;
+
+              return createMockResponse({
+                images: [],
+                timestamp: callCount === 1 ? firstTimestamp : secondTimestamp,
+              });
+            },
+          }),
+          prompt,
+          maxRetries: 1,
+        });
+
+        const errorAssertion = expect(resultPromise).rejects.toMatchObject({
+          name: 'AI_NoImageGeneratedError',
+          message: 'No image generated.',
+          responses: [
+            {
+              timestamp: firstTimestamp,
+              modelId: expect.any(String),
+            },
+            {
+              timestamp: secondTimestamp,
+              modelId: expect.any(String),
+            },
+          ],
+        });
+
+        await vi.runAllTimersAsync();
+        await errorAssertion;
+
+        expect(callCount).toBe(2);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it('should throw NoImageGeneratedError when no images are returned', async () => {
       await expect(
         generateImage({
@@ -543,6 +721,7 @@ describe('generateImage', () => {
               }),
           }),
           prompt,
+          maxRetries: 0,
         }),
       ).rejects.toMatchObject({
         name: 'AI_NoImageGeneratedError',
@@ -571,6 +750,7 @@ describe('generateImage', () => {
               }),
           }),
           prompt,
+          maxRetries: 0,
         }),
       ).rejects.toMatchObject({
         name: 'AI_NoImageGeneratedError',
