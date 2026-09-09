@@ -66,10 +66,12 @@ describe('GatewayImageModel', () => {
   describe('doGenerate', () => {
     function prepareJsonResponse({
       images = ['base64-image-1'],
+      isRetryable,
       warnings,
       providerMetadata,
     }: {
       images?: string[];
+      isRetryable?: boolean;
       warnings?: Array<{ type: 'other'; message: string }>;
       providerMetadata?: Record<string, unknown>;
     } = {}) {
@@ -77,6 +79,7 @@ describe('GatewayImageModel', () => {
         type: 'json-value',
         body: {
           images,
+          ...(isRetryable != null && { isRetryable }),
           ...(warnings && { warnings }),
           ...(providerMetadata && { providerMetadata }),
         },
@@ -167,6 +170,21 @@ describe('GatewayImageModel', () => {
       });
 
       expect(result.images).toEqual(mockImages);
+    });
+
+    it('should preserve response retryability', async () => {
+      prepareJsonResponse({ images: [], isRetryable: false });
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.isRetryable).toBe(false);
     });
 
     it('should return provider metadata correctly', async () => {

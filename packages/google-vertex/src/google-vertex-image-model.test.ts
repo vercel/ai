@@ -29,8 +29,30 @@ describe('GoogleVertexImageModel', () => {
   describe('doGenerate', () => {
     function prepareJsonResponse({
       headers,
+      predictions = [
+        {
+          mimeType: 'image/png',
+          prompt: 'revised prompt 1',
+          bytesBase64Encoded: 'base64-image-1',
+        },
+        {
+          mimeType: 'image/png',
+          prompt: 'revised prompt 2',
+          bytesBase64Encoded: 'base64-image-2',
+          someFutureField: 'some future value',
+        },
+      ],
     }: {
       headers?: Record<string, string>;
+      predictions?: Array<
+        | {
+            mimeType: string;
+            prompt?: string;
+            bytesBase64Encoded: string;
+            someFutureField?: string;
+          }
+        | { raiFilteredReason: string }
+      >;
     } = {}) {
       server.urls[
         'https://api.example.com/models/imagen-3.0-generate-002:predict'
@@ -38,19 +60,7 @@ describe('GoogleVertexImageModel', () => {
         type: 'json-value',
         headers,
         body: {
-          predictions: [
-            {
-              mimeType: 'image/png',
-              prompt: 'revised prompt 1',
-              bytesBase64Encoded: 'base64-image-1',
-            },
-            {
-              mimeType: 'image/png',
-              prompt: 'revised prompt 2',
-              bytesBase64Encoded: 'base64-image-2',
-              someFutureField: 'some future value',
-            },
-          ],
+          predictions,
         },
       };
     }
@@ -112,6 +122,29 @@ describe('GoogleVertexImageModel', () => {
       });
 
       expect(result.images).toStrictEqual(['base64-image-1', 'base64-image-2']);
+    });
+
+    it('should classify RAI-filtered results as terminal', async () => {
+      prepareJsonResponse({
+        predictions: [
+          {
+            raiFilteredReason:
+              'Your current safety filter threshold filtered out the image.',
+          },
+        ],
+      });
+
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.images).toEqual([]);
+      expect(result.isRetryable).toBe(false);
     });
 
     it('sends aspect ratio in the request', async () => {

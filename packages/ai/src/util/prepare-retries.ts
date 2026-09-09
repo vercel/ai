@@ -10,9 +10,11 @@ import {
 export function prepareRetries({
   maxRetries,
   abortSignal,
+  additionalRetryableError,
 }: {
   maxRetries: number | undefined;
   abortSignal: AbortSignal | undefined;
+  additionalRetryableError?: (error: unknown) => boolean;
 }): {
   maxRetries: number;
   retry: RetryFunction;
@@ -42,6 +44,7 @@ export function prepareRetries({
     retry: retryWithExponentialBackoffRespectingRetryHeaders({
       maxRetries: maxRetriesResult,
       abortSignal,
+      additionalRetryableError,
     }),
   };
 }
