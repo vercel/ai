@@ -1,5 +1,14 @@
 # @ai-sdk/xai
 
+## 4.0.57
+
+### Patch Changes
+
+- 4b8c4fa: feat(xai): add batch cancellation and listing
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/provider-utils@5.0.39
+
 ## 4.0.56
 
 ### Patch Changes

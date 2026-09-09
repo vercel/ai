@@ -1,5 +1,14 @@
 # @ai-sdk/openai
 
+## 4.0.65
+
+### Patch Changes
+
+- 9942196: feat(openai): add batch cancellation and listing
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/provider-utils@5.0.39
+
 ## 4.0.64
 
 ### Patch Changes
