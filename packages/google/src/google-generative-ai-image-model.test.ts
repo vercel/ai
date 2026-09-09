@@ -31,8 +31,15 @@ describe('GoogleGenerativeAIImageModel', () => {
   describe('doGenerate', () => {
     function prepareJsonResponse({
       headers,
+      predictions = [
+        { bytesBase64Encoded: 'base64-image-1' },
+        { bytesBase64Encoded: 'base64-image-2' },
+      ],
     }: {
       headers?: Record<string, string>;
+      predictions?: Array<
+        { bytesBase64Encoded: string } | { raiFilteredReason: string }
+      >;
     } = {}) {
       const url =
         'https://api.example.com/v1beta/models/imagen-3.0-generate-002:predict';
@@ -40,10 +47,7 @@ describe('GoogleGenerativeAIImageModel', () => {
         type: 'json-value',
         headers,
         body: {
-          predictions: [
-            { bytesBase64Encoded: 'base64-image-1' },
-            { bytesBase64Encoded: 'base64-image-2' },
-          ],
+          predictions,
         },
       };
     }
@@ -127,6 +131,31 @@ describe('GoogleGenerativeAIImageModel', () => {
       });
 
       expect(result.images).toStrictEqual(['base64-image-1', 'base64-image-2']);
+    });
+
+    it('should classify RAI-filtered results as terminal', async () => {
+      prepareJsonResponse({
+        predictions: [
+          {
+            raiFilteredReason:
+              'Your current safety filter threshold filtered out the image.',
+          },
+        ],
+      });
+
+      const result = await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.images).toEqual([]);
+      expect(result.isRetryable).toBe(false);
     });
 
     it('sends aspect ratio in the request', async () => {
@@ -586,6 +615,7 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
       });
 
       expect(result.images).toEqual([]);
+      expect(result.isRetryable).toBe(false);
       expect(result.providerMetadata?.google).toMatchObject({
         promptFeedback: {
           blockReason: 'PROHIBITED_CONTENT',
