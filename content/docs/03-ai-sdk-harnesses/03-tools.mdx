@@ -228,7 +228,8 @@ Available values are:
 - `allow-reads`: allow reads, but request approval for edits and shell commands
   when the adapter supports built-in approvals.
 
-Use `toolApproval` for host-executed tools:
+Use `toolApproval` for host-executed tools. A static map applies one status per
+tool:
 
 ```ts
 const agent = new HarnessAgent({
@@ -246,6 +247,69 @@ const agent = new HarnessAgent({
 
 `toolApproval` accepts the same status values as AI SDK tool approval status
 objects: `not-applicable`, `approved`, `user-approval`, and `denied`.
+
+For input-dependent policies, pass AI SDK's generic approval callback:
+
+```ts
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { claudeCode } from '@ai-sdk/harness-claude-code';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { tool, type GenericToolApprovalFunction } from 'ai';
+import { z } from 'zod';
+
+const tools = {
+  workspaceFile: tool({
+    inputSchema: z.object({
+      operation: z.enum(['read', 'write']),
+      path: z.string(),
+    }),
+    execute: async input => {
+      // perform the host-side operation
+    },
+  }),
+};
+
+const toolApproval = (async ({ toolCall }) => {
+  if (toolCall.dynamic || toolCall.toolName !== 'workspaceFile') {
+    return { type: 'denied', reason: 'unknown host tool' };
+  }
+  if (!toolCall.input.path.startsWith('workspace/')) {
+    return { type: 'denied', reason: 'path is outside workspace/' };
+  }
+  return toolCall.input.operation === 'read' ? 'approved' : 'user-approval';
+}) satisfies GenericToolApprovalFunction<
+  typeof tools,
+  {},
+  Record<string, unknown>
+>;
+
+const agent = new HarnessAgent({
+  harness: claudeCode,
+  sandbox: createVercelSandbox({ runtime: 'node24' }),
+  tools,
+  toolApproval,
+});
+```
+
+The callback is evaluated after custom-tool input parsing and only for
+host-executed tools; it does not override adapter-native built-in permissions.
+You can reuse the same `GenericToolApprovalFunction` with `streamText` or a
+`ToolLoopAgent` configured with the same tools.
+
+The callback context is limited to data held by the host:
+
+- `messages` contains the current result slice's host-visible user input. It is
+  not the native agent's complete conversation history and is empty for
+  continuation slices.
+- `toolsContext` and `runtimeContext` are currently empty objects for
+  `HarnessAgent`.
+- The callback itself is not serialized into suspended or resumed session
+  state. Recreate it with the agent and executable tools in the resuming host.
+- An approval response for an existing pending request continues that request
+  without evaluating the callback again.
+
+Tool inputs are model-controlled. For authorization-sensitive policies,
+validate every relevant field and prefer a deny-by-default fallback.
 
 When approval is required, the stream pauses after a `tool-approval-request`.
 Continue the same session by sending a tool approval response message. In UI

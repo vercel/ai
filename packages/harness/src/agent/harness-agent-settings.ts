@@ -13,12 +13,14 @@ import type {
   Context,
   Experimental_SandboxSession as SandboxSession,
   FlexibleSchema,
+  InferToolSetContext,
   MaybePromiseLike,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type {
   ActiveTools,
   AgentCallParameters,
+  GenericToolApprovalFunction,
   GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepEndCallback,
@@ -35,9 +37,16 @@ import type {
 } from 'ai';
 import type { HarnessAllTools } from './harness-agent-tool-types';
 
-export type HarnessAgentToolApprovalConfiguration = Readonly<
-  Record<string, ToolApprovalStatus>
->;
+export type HarnessAgentToolApprovalConfiguration<
+  TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+> =
+  | Readonly<Record<string, ToolApprovalStatus>>
+  | GenericToolApprovalFunction<
+      TOOLS,
+      InferToolSetContext<TOOLS>,
+      RUNTIME_CONTEXT
+    >;
 
 export type HarnessAgentSandboxConfig = {
   /**
@@ -328,14 +337,22 @@ export type HarnessAgentSettings<
   readonly permissionMode?: HarnessAgentPermissionMode;
 
   /**
-   * Per custom-tool approval statuses. This mirrors AI SDK `toolApproval`
-   * object configuration for host-executed tools, without callback support.
+   * Approval policy for host-executed custom tools. Accepts either a static
+   * per-tool status map or AI SDK's generic tool approval callback.
+   *
+   * The callback runs after the custom tool input has been parsed. It is not
+   * called for adapter-native built-in tools. Its `messages` contain only the
+   * host-visible input for the current result slice, not the native agent's
+   * full conversation history, and can be empty during continuation slices.
    *
    * `not-applicable` and `approved` run the tool, `user-approval` pauses the
    * turn for a user decision, and `denied` immediately submits an
    * `execution-denied` result.
    */
-  readonly toolApproval?: HarnessAgentToolApprovalConfiguration;
+  readonly toolApproval?: HarnessAgentToolApprovalConfiguration<
+    NoInfer<TUserTools>,
+    RUNTIME_CONTEXT
+  >;
 
   /**
    * Optional sandbox provider used to create or resume network sandbox

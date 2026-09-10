@@ -919,6 +919,50 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
+  test('evaluates generic tool approval callbacks for host tools', async () => {
+    const { harness, toolResults } = mockHarness({
+      script: () => [
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'readFile',
+          input: JSON.stringify({ path: 'public/readme.md' }),
+        },
+        ...finishEvents(),
+      ],
+    });
+    const readFile = tool({
+      inputSchema: z.object({ path: z.string() }),
+      execute: async ({ path }) => ({ path, content: 'hello' }),
+    });
+    const toolApproval = vi.fn(({ toolCall, messages }) => {
+      expect(messages).toEqual([{ role: 'user', content: 'Read the file.' }]);
+      if (toolCall.dynamic || toolCall.toolName !== 'readFile') return 'denied';
+      return toolCall.input.path.startsWith('public/') ? 'approved' : 'denied';
+    });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+      tools: { readFile },
+      toolApproval,
+    });
+    const session = await agent.createSession();
+    const result = await agent.stream({
+      session,
+      prompt: 'Read the file.',
+    });
+    await result.consumeStream();
+
+    expect(toolApproval).toHaveBeenCalledOnce();
+    expect(toolResults).toEqual([
+      {
+        toolCallId: 'call-1',
+        output: { path: 'public/readme.md', content: 'hello' },
+      },
+    ]);
+    await session.destroy();
+  });
+
   test('experimental_steer() rejects after the active turn is suspended', async () => {
     let finishPrompt!: () => void;
     const promptDone = new Promise<void>(resolve => {
