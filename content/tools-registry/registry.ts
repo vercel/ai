@@ -268,6 +268,40 @@ console.log(text);`,
     npmUrl: 'https://www.npmjs.com/package/firecrawl-aisdk',
   },
   {
+    slug: 'scrapegraph',
+    name: 'ScrapeGraphAI',
+    description:
+      'ScrapeGraphAI turns webpages into clean markdown and structured data for AI agents. Use it to scrape pages, extract JSON with natural-language instructions, crawl sites, search the web, and monitor page changes.',
+    packageName: '@scrapegraph-ai/ai-sdk',
+    tags: ['scraping', 'extraction', 'crawling', 'search', 'web'],
+    apiKeyEnvName: 'SGAI_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @scrapegraph-ai/ai-sdk',
+      npm: 'npm install @scrapegraph-ai/ai-sdk',
+      yarn: 'yarn add @scrapegraph-ai/ai-sdk',
+      bun: 'bun add @scrapegraph-ai/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { scrapeTool } from '@scrapegraph-ai/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-nano',
+  prompt:
+    'Scrape https://news.ycombinator.com and summarize the top stories people are discussing today.',
+  tools: {
+    scrape: scrapeTool(),
+  },
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl:
+      'https://github.com/ScrapeGraphAI/scrapegraph-sdk/tree/main/packages/ai-sdk#readme',
+    apiKeyUrl: 'https://dashboard.scrapegraphai.com',
+    websiteUrl: 'https://scrapegraphai.com',
+    npmUrl: 'https://www.npmjs.com/package/@scrapegraph-ai/ai-sdk',
+  },
+  {
     slug: 'bedrock-agentcore',
     name: 'Amazon Bedrock AgentCore',
     description:
