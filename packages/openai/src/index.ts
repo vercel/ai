@@ -1,5 +1,12 @@
 export { createOpenAI, openai } from './openai-provider';
 export type { OpenAIProvider, OpenAIProviderSettings } from './openai-provider';
+export { OpenAIRealtimeModelLive as Experimental_OpenAIRealtimeModelLive } from './live/openai-realtime-model-live';
+export type { OpenAIRealtimeModelLiveConfig as Experimental_OpenAIRealtimeModelLiveConfig } from './live/openai-realtime-model-live';
+export type {
+  OpenAIRealtimeModelLiveId as Experimental_OpenAIRealtimeModelLiveId,
+  OpenAIRealtimeModelLiveOptions as Experimental_OpenAIRealtimeModelLiveOptions,
+  OpenAIRealtimeModelLiveUpdateOptions as Experimental_OpenAIRealtimeModelLiveUpdateOptions,
+} from './live/openai-realtime-model-live-options';
 export { OpenAIRealtimeModel as Experimental_OpenAIRealtimeModel } from './realtime/openai-realtime-model';
 export type { OpenAIRealtimeModelConfig as Experimental_OpenAIRealtimeModelConfig } from './realtime/openai-realtime-model';
 export type {

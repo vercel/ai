@@ -1,3 +1,4 @@
+import type { SharedV4ProviderOptions } from '../../shared/v4/shared-v4-provider-options';
 import type { RealtimeModelV4ConversationItem } from './realtime-model-v4-conversation-item';
 import type { RealtimeModelV4SessionConfig } from './realtime-model-v4-session-config';
 
@@ -12,6 +13,55 @@ export type RealtimeModelV4ClientEvent =
   | {
       type: 'session-update';
       config: RealtimeModelV4SessionConfig;
+      eventId?: string;
+    }
+  | {
+      type: 'session-start';
+      config: RealtimeModelV4SessionConfig;
+      eventId?: string;
+    }
+  | {
+      type: 'session-close';
+      eventId?: string;
+    }
+  | {
+      type: 'input-audio-mute';
+      eventId?: string;
+    }
+  | {
+      type: 'input-audio-unmute';
+      eventId?: string;
+    }
+  | {
+      type: 'context-append';
+      content: string;
+      delegationId: string | null;
+      eventId?: string;
+      providerOptions?: SharedV4ProviderOptions;
+    }
+
+  // ── Delegated backend (requires a provider-managed backend) ──────────
+  | {
+      type: 'backend-tool-result';
+      callId: string;
+      output: string;
+      eventId?: string;
+    }
+  | {
+      type: 'backend-response-create';
+      eventId?: string;
+    }
+  | {
+      type: 'backend-input-create';
+      content: Array<
+        | { type: 'text'; text: string }
+        | {
+            type: 'image';
+            url: string;
+            providerOptions?: SharedV4ProviderOptions;
+          }
+      >;
+      eventId?: string;
     }
 
   // ── Input audio buffer ─────────────────────────────────────────────
@@ -22,6 +72,7 @@ export type RealtimeModelV4ClientEvent =
        * Base64-encoded audio chunk to append to the input buffer.
        */
       audio: string;
+      eventId?: string;
     }
   | {
       type: 'input-audio-commit';
