@@ -1579,6 +1579,73 @@ describe('convertToLanguageModelMessage', () => {
         });
       });
 
+      it.each([
+        ['BM25 ranking notes', 'image/bmp'],
+        ['GIF support notes', 'image/gif'],
+      ])(
+        'should keep an explicit non-image mediaType when the data starts with an image signature (%s)',
+        async (text, _sniffedAs) => {
+          const result = await convertToLanguageModelPrompt({
+            prompt: {
+              instructions: undefined,
+              messages: [
+                {
+                  role: 'user',
+                  content: [
+                    {
+                      type: 'file',
+                      filename: 'notes.txt',
+                      mediaType: 'text/plain',
+                      data: new TextEncoder().encode(text),
+                    },
+                  ],
+                },
+              ],
+            },
+            supportedUrls: {},
+            download: undefined,
+          });
+
+          expect(result[0].content[0]).toMatchObject({
+            type: 'file',
+            filename: 'notes.txt',
+            mediaType: 'text/plain',
+          });
+        },
+      );
+
+      it('should still detect the image type for a generic mediaType', async () => {
+        const result = await convertToLanguageModelPrompt({
+          prompt: {
+            instructions: undefined,
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'file',
+                    mediaType: 'image',
+                    data: new Uint8Array([0x42, 0x4d, 0x00, 0x00]),
+                  },
+                  {
+                    type: 'file',
+                    mediaType: 'application/octet-stream',
+                    data: new Uint8Array([0x47, 0x49, 0x46, 0x38]),
+                  },
+                ],
+              },
+            ],
+          },
+          supportedUrls: {},
+          download: undefined,
+        });
+
+        expect(result[0].content).toMatchObject([
+          { type: 'file', mediaType: 'image/bmp' },
+          { type: 'file', mediaType: 'image/gif' },
+        ]);
+      });
+
       it('should prefer detected mediaType', async () => {
         const result = convertToLanguageModelMessage({
           message: {

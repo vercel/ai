@@ -581,7 +581,8 @@ function convertPartToLanguageModelPart(
 
   if (
     data.type === 'data' &&
-    (data.data instanceof Uint8Array || typeof data.data === 'string')
+    (data.data instanceof Uint8Array || typeof data.data === 'string') &&
+    shouldDetectImageMediaType(mediaType)
   ) {
     const imageMediaType = detectMediaType({
       data: data.data,
@@ -603,6 +604,24 @@ function convertPartToLanguageModelPart(
     data,
     providerOptions: part.providerOptions,
   };
+}
+
+/**
+ * Whether the image signature sniffing may replace the given media type.
+ *
+ * Sniffing exists to fill in a missing or generic type (`image`, `image/*`,
+ * `application/octet-stream`) and to correct a mislabeled image type
+ * (`image/png` for JPEG bytes). It must not override an explicit non-image
+ * type: a `text/plain` file whose bytes happen to start with `BM` or `GIF`
+ * is not a bitmap or a GIF.
+ */
+function shouldDetectImageMediaType(mediaType: string | undefined): boolean {
+  return (
+    mediaType == null ||
+    !isFullMediaType(mediaType) ||
+    mediaType === 'application/octet-stream' ||
+    mediaType.startsWith('image/')
+  );
 }
 
 export function mapToolResultOutput({
