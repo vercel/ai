@@ -44,6 +44,8 @@ export type OpenAICompatibleImageModelConfig = {
 export class OpenAICompatibleImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 10;
+  readonly supportsFileInputs = undefined;
+  readonly supportsMaskInputs = undefined;
 
   get provider(): string {
     return this.config.provider;

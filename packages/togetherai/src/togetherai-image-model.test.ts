@@ -39,6 +39,37 @@ const server = createTestServer({
   },
 });
 
+describe('capabilities', () => {
+  it.each([
+    {
+      modelId: 'black-forest-labs/FLUX.1-kontext-pro',
+      supportsFileInputs: true,
+      supportsMaskInputs: false,
+    },
+    {
+      modelId: 'stabilityai/stable-diffusion-xl-base-1.0',
+      supportsFileInputs: false,
+      supportsMaskInputs: false,
+    },
+    {
+      modelId: 'custom/image-model',
+      supportsFileInputs: undefined,
+      supportsMaskInputs: undefined,
+    },
+  ] as const)(
+    'advertises file=$supportsFileInputs and mask=$supportsMaskInputs for $modelId',
+    ({ modelId, supportsFileInputs, supportsMaskInputs }) => {
+      const model = new TogetherAIImageModel(modelId, {
+        provider: 'togetherai',
+        baseURL: 'https://api.example.com',
+      });
+
+      expect(model.supportsFileInputs).toBe(supportsFileInputs);
+      expect(model.supportsMaskInputs).toBe(supportsMaskInputs);
+    },
+  );
+});
+
 describe('doGenerate', () => {
   it('should pass the correct parameters including size and seed', async () => {
     const model = createBasicModel();

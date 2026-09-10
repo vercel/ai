@@ -41,6 +41,18 @@ export class QuiverAIImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 16;
 
+  get supportsFileInputs(): boolean | undefined {
+    return this.modelId === 'arrow-1' ||
+      this.modelId === 'arrow-1.1' ||
+      this.modelId === 'arrow-1.1-max'
+      ? true
+      : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs === true ? false : undefined;
+  }
+
   get provider(): string {
     return this.config.provider;
   }
