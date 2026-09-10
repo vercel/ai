@@ -23,6 +23,9 @@ const initiateFixture = JSON.parse(
 const resultFixture = JSON.parse(
   fs.readFileSync('src/__fixtures__/gladia-result.json', 'utf8'),
 );
+const diarizationResultFixture = JSON.parse(
+  fs.readFileSync('src/__fixtures__/gladia-result-diarization.json', 'utf8'),
+);
 
 const server = createTestServer({
   'https://api.gladia.io/v2/upload': {
@@ -123,6 +126,77 @@ describe('doGenerate', () => {
 
       expect(result.text).toBe(
         resultFixture.result.transcription.full_transcript,
+      );
+    });
+
+    it('should surface diarization utterance fields in provider metadata', async () => {
+      server.urls[initiateFixture.result_url].response = {
+        type: 'json-value',
+        body: diarizationResultFixture,
+      };
+
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          gladia: {
+            diarization: true,
+            diarizationConfig: {
+              numberOfSpeakers: 2,
+            },
+          },
+        },
+      });
+
+      expect(await server.calls[1].requestBodyJson).toMatchObject({
+        diarization: true,
+        diarization_config: {
+          number_of_speakers: 2,
+        },
+      });
+      const metadataUtterances = (
+        result.providerMetadata?.gladia as
+          | {
+              result: {
+                transcription: {
+                  utterances: unknown[];
+                };
+              };
+            }
+          | undefined
+      )?.result.transcription.utterances;
+
+      expect(metadataUtterances).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            text: 'Hola,',
+            speaker: 0,
+            confidence: 0.73,
+            language: 'es',
+            words: [
+              {
+                word: 'Hola,',
+                start: 1.2160000000000002,
+                end: 1.3760000000000001,
+                confidence: 0.73,
+              },
+            ],
+          }),
+          expect.objectContaining({
+            text: 'Hola,',
+            speaker: 1,
+            confidence: 0.72,
+            language: 'es',
+            words: [
+              {
+                word: ' Hola,',
+                start: 5.259,
+                end: 5.599,
+                confidence: 0.72,
+              },
+            ],
+          }),
+        ]),
       );
     });
 
