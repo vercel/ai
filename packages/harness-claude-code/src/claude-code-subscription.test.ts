@@ -1,3 +1,4 @@
+import type * as NodeChildProcess from 'node:child_process';
 import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -8,12 +9,17 @@ import {
 } from './claude-code-subscription';
 
 const mocks = vi.hoisted(() => ({
+  execFileAsync: vi.fn(),
   execFileSync: vi.fn(),
 }));
 
-vi.mock('node:child_process', () => ({
-  execFileSync: mocks.execFileSync,
-}));
+vi.mock('node:child_process', async importOriginal => {
+  const actual = await importOriginal<typeof NodeChildProcess>();
+  const execFile = Object.assign(vi.fn(), {
+    [Symbol.for('nodejs.util.promisify.custom')]: mocks.execFileAsync,
+  });
+  return { ...actual, execFile, execFileSync: mocks.execFileSync };
+});
 
 afterEach(() => {
   vi.resetAllMocks();
@@ -28,15 +34,16 @@ describe('readClaudeCodeSubscription', () => {
       join(configDirectory, '.credentials.json'),
       JSON.stringify({ mcpOAuth: {} }),
     );
-    mocks.execFileSync.mockReturnValue(
-      JSON.stringify({
+    mocks.execFileAsync.mockResolvedValue({
+      stdout: JSON.stringify({
         claudeAiOauth: {
           accessToken: 'keychain-access-token',
           refreshToken: 'keychain-refresh-token',
           expiresAt: Date.now() + 60 * 60 * 1000,
         },
       }),
-    );
+      stderr: '',
+    });
 
     await expect(
       readClaudeCodeSubscription({
@@ -48,7 +55,7 @@ describe('readClaudeCodeSubscription', () => {
       CLAUDE_CODE_OAUTH_TOKEN: 'keychain-access-token',
       ANTHROPIC_BASE_URL: 'https://api.anthropic.com',
     });
-    expect(mocks.execFileSync).toHaveBeenCalledTimes(1);
+    expect(mocks.execFileAsync).toHaveBeenCalledTimes(1);
   });
 });
 

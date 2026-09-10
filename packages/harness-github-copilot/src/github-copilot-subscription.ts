@@ -6,8 +6,8 @@ import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import type { ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import {
-  getAiGatewayAuthFromEnv,
   isHarnessAuthenticationEnvironment,
+  shouldResolveNativeSubscription,
 } from '@ai-sdk/harness/utils';
 import { isRecord } from '@ai-sdk/provider-utils';
 import { parse, type ParseError } from 'jsonc-parser';
@@ -53,14 +53,15 @@ export async function resolveGitHubCopilotSubscriptionEnvironment({
   }) => Promise<GitHubCopilotSubscription | undefined>;
 }): Promise<Readonly<Record<string, string | undefined>>> {
   if (isHarnessAuthenticationEnvironment(auth)) return auth;
-  if (auth === 'ai-gateway') return env;
-  if (auth !== 'direct' && getAiGatewayAuthFromEnv({ env }).apiKey != null) {
-    return env;
-  }
   if (
-    env.COPILOT_GITHUB_TOKEN != null ||
-    env.GH_TOKEN != null ||
-    env.GITHUB_TOKEN != null
+    !shouldResolveNativeSubscription({
+      auth,
+      env,
+      hasDirectCredential:
+        env.COPILOT_GITHUB_TOKEN != null ||
+        env.GH_TOKEN != null ||
+        env.GITHUB_TOKEN != null,
+    })
   ) {
     return env;
   }

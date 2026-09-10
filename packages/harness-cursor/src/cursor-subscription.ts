@@ -1,17 +1,15 @@
-import { execFile } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { promisify } from 'node:util';
 import type { ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import {
-  getAiGatewayAuthFromEnv,
+  getJwtExpiresAt,
   isAccessTokenExpiringSoon,
   isHarnessAuthenticationEnvironment,
+  readMacOSKeychainGenericPassword,
+  shouldResolveNativeSubscription,
 } from '@ai-sdk/harness/utils';
 import { isRecord, safeParseJSON } from '@ai-sdk/provider-utils';
-
-const execFileAsync = promisify(execFile);
 
 export async function resolveCursorSubscriptionEnvironment({
   auth,
@@ -21,11 +19,15 @@ export async function resolveCursorSubscriptionEnvironment({
   env: Readonly<Record<string, string | undefined>>;
 }): Promise<Readonly<Record<string, string | undefined>>> {
   if (isHarnessAuthenticationEnvironment(auth)) return auth;
-  if (auth === 'ai-gateway') return env;
-  if (auth !== 'direct' && getAiGatewayAuthFromEnv({ env }).apiKey != null) {
+  if (
+    !shouldResolveNativeSubscription({
+      auth,
+      env,
+      hasDirectCredential: env.CURSOR_API_KEY != null,
+    })
+  ) {
     return env;
   }
-  if (env.CURSOR_API_KEY != null) return env;
   const subscription = await readCursorSubscription({ env });
   return subscription == null ? env : { ...env, CURSOR_API_KEY: subscription };
 }
@@ -47,11 +49,14 @@ export async function readCursorSubscription({
   const accessToken =
     fileCredential ??
     (platform === 'darwin' && env.AGENT_CLI_CREDENTIAL_STORE !== 'file'
-      ? await readMacOSCursorAccessToken()
+      ? await readMacOSKeychainGenericPassword({
+          service: 'cursor-access-token',
+          account: 'cursor-user',
+        })
       : undefined);
   if (accessToken == null) return undefined;
 
-  const expiresAt = getJwtExpiry(accessToken);
+  const expiresAt = await getJwtExpiresAt({ token: accessToken });
   if (expiresAt != null && isAccessTokenExpiringSoon({ expiresAt })) {
     throw new Error(
       'Cursor subscription access token is expiring soon. Run Cursor login again.',
@@ -92,32 +97,4 @@ async function parseAccessToken(text: string): Promise<string | undefined> {
   return typeof parsed.value.accessToken === 'string'
     ? parsed.value.accessToken
     : undefined;
-}
-
-async function readMacOSCursorAccessToken(): Promise<string | undefined> {
-  try {
-    const result = await execFileAsync('/usr/bin/security', [
-      'find-generic-password',
-      '-s',
-      'cursor-access-token',
-      '-a',
-      'cursor-user',
-      '-w',
-    ]);
-    return result.stdout.trim() || undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-function getJwtExpiry(token: string): number | undefined {
-  const payload = token.split('.')[1];
-  if (payload == null) return undefined;
-  try {
-    const decoded = Buffer.from(payload, 'base64url').toString('utf8');
-    const match = /(?:^|[,{}])\s*"exp"\s*:\s*(\d+)/.exec(decoded);
-    return match == null ? undefined : Number(match[1]) * 1000;
-  } catch {
-    return undefined;
-  }
 }

@@ -10,7 +10,9 @@ import {
   createCredentialRequestTransformation,
   isAccessTokenExpiringSoon,
   isHarnessAuthenticationEnvironment,
+  readMacOSKeychainGenericPassword,
   refreshOAuthAccessToken,
+  shouldResolveNativeSubscription,
 } from '@ai-sdk/harness/utils';
 import { isRecord, safeParseJSON } from '@ai-sdk/provider-utils';
 import {
@@ -64,12 +66,17 @@ export async function resolveClaudeCodeAuthentication({
   const environmentWithoutHelper = resolveClaudeCodeEnv(auth, processEnv, {
     readApiKeyHelper: () => undefined,
   });
+  if (isHarnessAuthenticationEnvironment(auth)) {
+    return environmentWithoutHelper;
+  }
   if (
-    isHarnessAuthenticationEnvironment(auth) ||
-    auth === 'ai-gateway' ||
-    environmentWithoutHelper.AI_GATEWAY_API_KEY != null ||
-    environmentWithoutHelper.ANTHROPIC_API_KEY != null ||
-    environmentWithoutHelper.ANTHROPIC_AUTH_TOKEN != null
+    !shouldResolveNativeSubscription({
+      auth,
+      env: environmentWithoutHelper,
+      hasDirectCredential:
+        environmentWithoutHelper.ANTHROPIC_API_KEY != null ||
+        environmentWithoutHelper.ANTHROPIC_AUTH_TOKEN != null,
+    })
   ) {
     return environmentWithoutHelper;
   }
@@ -178,23 +185,11 @@ async function readClaudeCredentialStore({
     return undefined;
   }
   const service = 'Claude Code-credentials';
-  let keychainText: string;
-  try {
-    keychainText = execFileSync(
-      '/usr/bin/security',
-      [
-        'find-generic-password',
-        '-s',
-        service,
-        '-a',
-        process.env.USER ?? '',
-        '-w',
-      ],
-      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
-    ).trim();
-  } catch {
-    return undefined;
-  }
+  const keychainText = await readMacOSKeychainGenericPassword({
+    service,
+    account: process.env.USER ?? '',
+  });
+  if (keychainText == null) return undefined;
   const value = await parseClaudeCredentialFile(keychainText);
   if (value == null) return undefined;
   return {

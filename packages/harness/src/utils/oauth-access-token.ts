@@ -1,4 +1,5 @@
 import { isRecord, safeParseJSON } from '@ai-sdk/provider-utils';
+import { getJwtExpiresAt } from './native-subscription/jwt';
 
 const DEFAULT_REFRESH_WINDOW_MS = 300_000;
 
@@ -119,23 +120,8 @@ async function resolveExpiresAt({
     return Date.now() + expiresIn * 1000;
   }
 
-  const segments = accessToken.split('.');
-  if (segments.length === 3) {
-    try {
-      const payloadText = Buffer.from(segments[1], 'base64url').toString(
-        'utf8',
-      );
-      const parsed = await safeParseJSON({ text: payloadText });
-      if (
-        parsed.success &&
-        isRecord(parsed.value) &&
-        typeof parsed.value.exp === 'number' &&
-        Number.isFinite(parsed.value.exp)
-      ) {
-        return parsed.value.exp * 1000;
-      }
-    } catch {}
-  }
+  const jwtExpiresAt = await getJwtExpiresAt({ token: accessToken });
+  if (jwtExpiresAt != null) return jwtExpiresAt;
 
   throw new Error(
     'OAuth access token refresh response does not include a usable expiry.',

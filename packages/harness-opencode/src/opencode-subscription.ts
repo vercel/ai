@@ -9,6 +9,7 @@ import {
   createCredentialRequestTransformation,
   isAccessTokenExpiringSoon,
   isHarnessAuthenticationEnvironment,
+  parseJwtPayload,
   refreshOAuthAccessToken,
 } from '@ai-sdk/harness/utils';
 import { isRecord, safeParseJSON } from '@ai-sdk/provider-utils';
@@ -651,20 +652,11 @@ function normalizeDomain(value: string): string {
 async function extractOpenAIAccountId(
   accessToken: string,
 ): Promise<string | undefined> {
-  const payload = accessToken.split('.')[1];
-  if (payload == null) return undefined;
-  try {
-    const parsed = await safeParseJSON({
-      text: Buffer.from(payload, 'base64url').toString('utf8'),
-    });
-    if (!parsed.success || !isRecord(parsed.value)) return undefined;
-    const auth = parsed.value['https://api.openai.com/auth'];
-    if (!isRecord(auth)) return undefined;
-    const accountId = auth.chatgpt_account_id;
-    return typeof accountId === 'string' ? accountId : undefined;
-  } catch {
-    return undefined;
-  }
+  const payload = await parseJwtPayload({ token: accessToken });
+  const auth = payload?.['https://api.openai.com/auth'];
+  if (!isRecord(auth)) return undefined;
+  const accountId = auth.chatgpt_account_id;
+  return typeof accountId === 'string' ? accountId : undefined;
 }
 
 async function readStore({

@@ -12,9 +12,12 @@ import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import {
+  getJwtExpiresAt,
   isAccessTokenExpiringSoon,
   isHarnessAuthenticationEnvironment,
+  readMacOSKeychainGenericPassword,
   refreshOAuthAccessToken,
+  shouldResolveNativeSubscription,
 } from '@ai-sdk/harness/utils';
 import { isRecord, safeParseJSON } from '@ai-sdk/provider-utils';
 import { resolveCodexEnv, type CodexAuthenticationMode } from './codex-auth';
@@ -67,11 +70,15 @@ export async function resolveCodexAuthentication({
   }) => Promise<CodexResolvedAuthentication | undefined>;
 }): Promise<CodexResolvedAuthentication> {
   const environment = resolveCodexEnv(auth, processEnv);
+  if (isHarnessAuthenticationEnvironment(auth)) {
+    return { environment };
+  }
   if (
-    isHarnessAuthenticationEnvironment(auth) ||
-    auth === 'ai-gateway' ||
-    environment.AI_GATEWAY_API_KEY != null ||
-    environment.CODEX_API_KEY != null
+    !shouldResolveNativeSubscription({
+      auth,
+      env: environment,
+      hasDirectCredential: environment.CODEX_API_KEY != null,
+    })
   ) {
     return { environment };
   }
@@ -110,7 +117,7 @@ export async function readCodexSubscription({
   });
   if (stored == null) return undefined;
 
-  const credential = toCodexCredential(stored.value);
+  const credential = await toCodexCredential(stored.value);
   if (credential == null) return undefined;
 
   let accessToken = credential.accessToken;
@@ -255,14 +262,15 @@ async function parseCodexAuthFile(
     : undefined;
 }
 
-function toCodexCredential(value: CodexAuthFile):
+async function toCodexCredential(value: CodexAuthFile): Promise<
   | {
       accessToken: string;
       refreshToken: string;
       expiresAt: number;
       accountId?: string;
     }
-  | undefined {
+  | undefined
+> {
   if (value.auth_mode !== 'chatgpt' || !isRecord(value.tokens)) {
     return undefined;
   }
@@ -271,7 +279,7 @@ function toCodexCredential(value: CodexAuthFile):
   if (typeof accessToken !== 'string' || typeof refreshToken !== 'string') {
     return undefined;
   }
-  const expiresAt = getJwtExpiry(accessToken);
+  const expiresAt = await getJwtExpiresAt({ token: accessToken });
   if (expiresAt == null) return undefined;
   const accountId = value.tokens.account_id;
   return {
@@ -280,18 +288,6 @@ function toCodexCredential(value: CodexAuthFile):
     expiresAt,
     ...(typeof accountId === 'string' ? { accountId } : {}),
   };
-}
-
-function getJwtExpiry(token: string): number | undefined {
-  const payload = token.split('.')[1];
-  if (payload == null) return undefined;
-  try {
-    const decoded = Buffer.from(payload, 'base64url').toString('utf8');
-    const match = /(?:^|[,{}])\s*"exp"\s*:\s*(\d+)/.exec(decoded);
-    return match == null ? undefined : Number(match[1]) * 1000;
-  } catch {
-    return undefined;
-  }
 }
 
 async function writeCodexAuthFile({
@@ -318,19 +314,7 @@ function createCodexKeyring({
   if (platform === 'darwin') {
     return {
       async read({ service, account }) {
-        try {
-          const result = await execFileAsync('/usr/bin/security', [
-            'find-generic-password',
-            '-s',
-            service,
-            '-a',
-            account,
-            '-w',
-          ]);
-          return result.stdout.trim() || undefined;
-        } catch {
-          return undefined;
-        }
+        return readMacOSKeychainGenericPassword({ service, account });
       },
       async write({ service, account, value }) {
         const command = `add-generic-password -U -s ${shellQuoteForSecurity(service)} -a ${shellQuoteForSecurity(account)} -X ${Buffer.from(value, 'utf8').toString('hex')}\n`;

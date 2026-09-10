@@ -3,10 +3,10 @@ import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import type { ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import {
-  getAiGatewayAuthFromEnv,
   isAccessTokenExpiringSoon,
   isHarnessAuthenticationEnvironment,
   refreshOAuthAccessToken,
+  shouldResolveNativeSubscription,
 } from '@ai-sdk/harness/utils';
 import { isRecord, safeParseJSON } from '@ai-sdk/provider-utils';
 
@@ -21,11 +21,15 @@ export async function resolveGrokBuildSubscriptionEnvironment({
   env: Readonly<Record<string, string | undefined>>;
 }): Promise<Readonly<Record<string, string | undefined>>> {
   if (isHarnessAuthenticationEnvironment(auth)) return auth;
-  if (auth === 'ai-gateway') return env;
-  if (auth !== 'direct' && getAiGatewayAuthFromEnv({ env }).apiKey != null) {
+  if (
+    !shouldResolveNativeSubscription({
+      auth,
+      env,
+      hasDirectCredential: env.XAI_API_KEY != null,
+    })
+  ) {
     return env;
   }
-  if (env.XAI_API_KEY != null) return env;
 
   const subscription = await readGrokBuildSubscription({ env });
   return subscription == null ? env : { ...env, ...subscription };

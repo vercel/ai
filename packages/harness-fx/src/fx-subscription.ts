@@ -6,10 +6,11 @@ import type {
   ACPAuthenticationMode,
 } from '@ai-sdk/harness-acp';
 import {
-  getAiGatewayAuthFromEnv,
   isAccessTokenExpiringSoon,
   isHarnessAuthenticationEnvironment,
+  parseJwtPayload,
   refreshOAuthAccessToken,
+  shouldResolveNativeSubscription,
 } from '@ai-sdk/harness/utils';
 import { isRecord, safeParseJSON } from '@ai-sdk/provider-utils';
 
@@ -50,8 +51,13 @@ export async function resolveFxSubscriptionEnvironment({
   fetch?: typeof globalThis.fetch;
 }): Promise<Readonly<Record<string, string | undefined>>> {
   if (isHarnessAuthenticationEnvironment(auth)) return auth;
-  if (auth === 'ai-gateway') return env;
-  if (auth !== 'direct' && getAiGatewayAuthFromEnv({ env }).apiKey != null) {
+  if (
+    !shouldResolveNativeSubscription({
+      auth,
+      env,
+      hasDirectCredential: false,
+    })
+  ) {
     return env;
   }
 
@@ -312,22 +318,14 @@ async function extractChatGptAccountId({
 }: {
   accessToken: string;
 }): Promise<string> {
-  const segments = accessToken.split('.');
-  if (segments.length === 3) {
-    try {
-      const payload = Buffer.from(segments[1], 'base64url').toString('utf8');
-      const parsed = await safeParseJSON({ text: payload });
-      if (parsed.success && isRecord(parsed.value)) {
-        const auth = parsed.value['https://api.openai.com/auth'];
-        if (
-          isRecord(auth) &&
-          typeof auth.chatgpt_account_id === 'string' &&
-          auth.chatgpt_account_id.length > 0
-        ) {
-          return auth.chatgpt_account_id;
-        }
-      }
-    } catch {}
+  const payload = await parseJwtPayload({ token: accessToken });
+  const auth = payload?.['https://api.openai.com/auth'];
+  if (
+    isRecord(auth) &&
+    typeof auth.chatgpt_account_id === 'string' &&
+    auth.chatgpt_account_id.length > 0
+  ) {
+    return auth.chatgpt_account_id;
   }
   throw new Error('fx ChatGPT access token does not contain an account ID.');
 }

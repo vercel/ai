@@ -1,6 +1,9 @@
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { isHarnessAuthenticationEnvironment } from '@ai-sdk/harness/utils';
+import {
+  isHarnessAuthenticationEnvironment,
+  shouldResolveNativeSubscription,
+} from '@ai-sdk/harness/utils';
 import {
   Llms,
   ProviderSettingsManager,
@@ -30,12 +33,16 @@ export async function resolveClineAuthentication({
   }) => Promise<string | undefined>;
 }): Promise<ClineResolvedAuthentication> {
   const environment = resolveClineEnv({ auth, env });
+  if (isHarnessAuthenticationEnvironment(auth)) {
+    return { environment };
+  }
   if (
-    apiKey != null ||
-    isHarnessAuthenticationEnvironment(auth) ||
-    auth === 'ai-gateway' ||
-    environment.AI_GATEWAY_API_KEY != null ||
-    hasApplicableProviderApiKey({ providerId, env })
+    !shouldResolveNativeSubscription({
+      auth,
+      env: environment,
+      hasDirectCredential:
+        apiKey != null || hasApplicableProviderApiKey({ providerId, env }),
+    })
   ) {
     return { environment };
   }
