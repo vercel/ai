@@ -4,6 +4,7 @@ import { z } from 'zod/v4';
 import { DEFAULT_MAX_DOWNLOAD_SIZE } from './read-response-with-size-limit';
 import {
   createJsonErrorResponseHandler,
+  createEventSourceResponseHandler,
   createBinaryResponseHandler,
   createBinaryStreamResponseHandler,
   createEventSourceResponseHandler,
@@ -11,6 +12,7 @@ import {
   createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
 } from './response-handler';
+import { convertReadableStreamToArray } from './test';
 
 function createOversizedResponse({
   body = '{}',
@@ -266,6 +268,39 @@ describe('createJsonErrorResponseHandler', () => {
     ).rejects.toThrow('exceeded maximum size');
 
     expect(cancelled()).toBe(true);
+  });
+});
+
+describe('createEventSourceResponseHandler', () => {
+  it('should ignore empty data events', async () => {
+    const rawData = {
+      type: 'message',
+      value: 'ok',
+    };
+
+    const response = new Response(
+      `data:\n\ndata: ${JSON.stringify(rawData)}\n\ndata: [DONE]\n\n`,
+    );
+    const handler = createEventSourceResponseHandler(
+      z.object({
+        type: z.literal('message'),
+        value: z.string(),
+      }),
+    );
+
+    const result = await handler({
+      url: 'test-url',
+      requestBodyValues: {},
+      response,
+    });
+
+    await expect(convertReadableStreamToArray(result.value)).resolves.toEqual([
+      {
+        success: true,
+        value: rawData,
+        rawValue: rawData,
+      },
+    ]);
   });
 });
 
