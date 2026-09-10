@@ -269,6 +269,11 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     relay?.close();
   }
 
+  // Codex normally closes the inferred step through `turn.completed`, but an
+  // exhausted or cooperatively aborted iterator can reach this boundary
+  // without that event. Keep the Harness stream valid before emitting its
+  // terminal part. `finishTurn()` is idempotent when the terminal event ran.
+  stepTracker.finishTurn();
   emit({
     type: 'finish',
     finishReason: { unified: 'stop', raw: 'stop' },
