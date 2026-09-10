@@ -1,12 +1,7 @@
-import {
-  WORKFLOW_DESERIALIZE,
-  WORKFLOW_SERIALIZE,
-} from '@ai-sdk/provider-utils';
+import type { Experimental_TextBatchV4Request as TextBatchV4Request } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it, vi } from 'vitest';
-import { GoogleBatchLanguageModel } from './google-batch';
-import type { GoogleLanguageModelConfig } from './google-language-model';
 import { createGoogle } from './google-provider';
 
 vi.mock('./version', () => ({
@@ -19,7 +14,10 @@ const urls = {
     'https://generativelanguage.googleapis.com/upload/v1beta/files/session-123',
   create:
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:batchGenerateContent',
+  batches: 'https://generativelanguage.googleapis.com/v1beta/batches',
   batch: 'https://generativelanguage.googleapis.com/v1beta/batches/batch-123',
+  cancel:
+    'https://generativelanguage.googleapis.com/v1beta/batches/batch-123:cancel',
   output:
     'https://generativelanguage.googleapis.com/download/v1beta/files/batch-output:download?alt=media',
 } as const;
@@ -28,20 +26,13 @@ const server = createTestServer({
   [urls.uploadStart]: {},
   [urls.uploadSession]: {},
   [urls.create]: {},
+  [urls.batches]: {},
   [urls.batch]: {},
+  [urls.cancel]: {},
   [urls.output]: {},
 });
 
-const config: GoogleLanguageModelConfig = {
-  provider: 'google.generative-ai',
-  baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-  headers: { 'x-goog-api-key': 'test-api-key' },
-  generateId: () => 'test-id',
-};
-
-type BatchRequest = Parameters<
-  GoogleBatchLanguageModel['experimental_doStartBatch']
->[0]['requests'][number];
+type BatchRequest = TextBatchV4Request<'gemini-2.5-flash'>;
 
 function request(
   id: string,
@@ -50,6 +41,8 @@ function request(
 ): BatchRequest {
   return {
     id,
+    type: 'text',
+    modelId: 'gemini-2.5-flash',
     options: {
       prompt: [
         {
@@ -166,7 +159,43 @@ function prepareOutput(lines: unknown[]) {
   };
 }
 
-describe('GoogleBatchLanguageModel', () => {
+describe('GoogleBatch', () => {
+  it('rejects unsupported request types before creating a batch', async () => {
+    const batch = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
+
+    await expect(
+      batch.doStartBatch({
+        requests: [{ id: 'image-1', type: 'image' } as never],
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_UnsupportedFunctionalityError',
+      functionality: 'batch request type: image',
+    });
+
+    expect(server.calls).toHaveLength(0);
+  });
+
+  it('rejects mixed models before creating a batch', async () => {
+    const batch = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
+
+    await expect(
+      batch.doStartBatch({
+        requests: [
+          request('flash', 'Hello'),
+          {
+            ...request('pro', 'Hello'),
+            modelId: 'gemini-2.5-pro',
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_InvalidArgumentError',
+      argument: 'requests',
+      message:
+        'Google batches require every request to use the same model because the model is part of the batch endpoint.',
+    });
+  });
+
   it('starts a batch with inline requests when the creation body is under 20 MB', async () => {
     server.urls[urls.create].response = {
       type: 'json-value',
@@ -191,12 +220,14 @@ describe('GoogleBatchLanguageModel', () => {
       generateId: () => 'test-id',
       headers: { 'Provider-Header': 'provider' },
       fetch: mockFetch,
-    })('gemini-2.5-flash');
+    }).experimental_batch();
 
-    const result = await model.experimental_doStartBatch({
+    const result = await model.doStartBatch({
       requests: [
         {
           id: 'france',
+          type: 'text',
+          modelId: 'gemini-2.5-flash',
           options: {
             prompt: [
               {
@@ -316,6 +347,137 @@ describe('GoogleBatchLanguageModel', () => {
     expect(mockFetch.mock.calls[0][1]?.signal).toBe(abortController.signal);
   });
 
+  it('cancels a batch', async () => {
+    server.urls[urls.cancel].response = {
+      type: 'json-value',
+      body: {},
+    };
+    const mockFetch = vi.fn().mockImplementation(globalThis.fetch);
+    const abortController = new AbortController();
+    const batch = createGoogle({
+      apiKey: 'test-api-key',
+      headers: { 'Provider-Header': 'provider' },
+      fetch: mockFetch,
+    }).experimental_batch();
+
+    await expect(
+      batch.doCancelBatch!({
+        batchId: 'batches/batch-123',
+        headers: { 'Operation-Header': 'operation' },
+        abortSignal: abortController.signal,
+      }),
+    ).resolves.toEqual({});
+
+    expect(server.calls[0].requestMethod).toBe('POST');
+    await expect(server.calls[0].requestBodyJson).resolves.toEqual({});
+    expect(server.calls[0].requestHeaders).toMatchObject({
+      'x-goog-api-key': 'test-api-key',
+      'provider-header': 'provider',
+      'operation-header': 'operation',
+    });
+    expect(mockFetch.mock.calls[0][1]?.signal).toBe(abortController.signal);
+  });
+
+  it('lists and normalizes a page of batches', async () => {
+    server.urls[urls.batches].response = {
+      type: 'json-value',
+      body: {
+        operations: [
+          operation({
+            state: 'BATCH_STATE_RUNNING',
+            batchStats: {
+              requestCount: '3',
+              successfulRequestCount: '1',
+              failedRequestCount: '0',
+              pendingRequestCount: '2',
+            },
+          }),
+          operation(
+            {
+              state: 'BATCH_STATE_SUCCEEDED',
+              batchStats: {
+                requestCount: '2',
+                successfulRequestCount: '2',
+                failedRequestCount: '0',
+              },
+            },
+            { name: 'batches/batch-122' },
+          ),
+        ],
+        nextPageToken: 'page-token-2',
+      },
+    };
+    const mockFetch = vi.fn().mockImplementation(globalThis.fetch);
+    const abortController = new AbortController();
+    const batch = createGoogle({
+      apiKey: 'test-api-key',
+      headers: { 'Provider-Header': 'provider' },
+      fetch: mockFetch,
+    }).experimental_batch();
+
+    await expect(
+      batch.doListBatches!({
+        limit: 2,
+        cursor: 'page-token-1',
+        headers: { 'Operation-Header': 'operation' },
+        abortSignal: abortController.signal,
+      }),
+    ).resolves.toEqual({
+      batches: [
+        {
+          batchId: 'batches/batch-123',
+          status: 'pending',
+          rawStatus: 'BATCH_STATE_RUNNING',
+          requestCounts: {
+            total: 3,
+            pending: 2,
+            completed: 1,
+            failed: 0,
+          },
+          createdAt: '2026-08-04T12:34:56.123Z',
+        },
+        {
+          batchId: 'batches/batch-122',
+          status: 'completed',
+          rawStatus: 'BATCH_STATE_SUCCEEDED',
+          requestCounts: {
+            total: 2,
+            pending: 0,
+            completed: 2,
+            failed: 0,
+          },
+          createdAt: '2026-08-04T12:34:56.123Z',
+        },
+      ],
+      nextCursor: 'page-token-2',
+    });
+
+    expect(server.calls[0].requestHeaders).toMatchObject({
+      'x-goog-api-key': 'test-api-key',
+      'provider-header': 'provider',
+      'operation-header': 'operation',
+    });
+    expect(
+      Object.fromEntries(new URL(server.calls[0].requestUrl).searchParams),
+    ).toEqual({ pageSize: '2', pageToken: 'page-token-1' });
+    expect(mockFetch.mock.calls[0][1]?.signal).toBe(abortController.signal);
+  });
+
+  it.each([{}, { operations: [], nextPageToken: null }])(
+    'returns an empty terminal page for %j',
+    async response => {
+      server.urls[urls.batches].response = {
+        type: 'json-value',
+        body: response,
+      };
+      const batch = createGoogle({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
+
+      await expect(batch.doListBatches!({})).resolves.toEqual({ batches: [] });
+    },
+  );
+
   it('uses a resumable file upload when the creation body reaches 20 MB', async () => {
     prepareUpload();
     server.urls[urls.create].response = {
@@ -367,9 +529,9 @@ describe('GoogleBatchLanguageModel', () => {
       generateId: () => 'test-id',
       headers: { 'Provider-Header': 'provider' },
       fetch: mockFetch,
-    })('gemini-2.5-flash');
+    }).experimental_batch();
 
-    const result = await model.experimental_doStartBatch({
+    const result = await model.doStartBatch({
       requests: [
         request('small-request', 'small'),
         request('large-request', prompt),
@@ -443,6 +605,37 @@ describe('GoogleBatchLanguageModel', () => {
     }
   });
 
+  it.each(['inline', 'file'] as const)(
+    'omits webhook configuration for %s input when no webhook URL is provided',
+    async inputType => {
+      prepareUpload();
+      server.urls[urls.create].response = {
+        type: 'json-value',
+        body: operation(),
+      };
+
+      await createGoogle({ apiKey: 'test-api-key' })
+        .experimental_batch()
+        .doStartBatch({
+          requests: [
+            request(
+              'request-1',
+              inputType === 'file' ? 'a'.repeat(20_000_000) : 'Hello',
+            ),
+          ],
+        });
+
+      expect(server.calls.map(call => call.requestUrl)).toEqual(
+        inputType === 'file'
+          ? [urls.uploadStart, urls.uploadSession, urls.create]
+          : [urls.create],
+      );
+      const body =
+        await server.calls[inputType === 'file' ? 2 : 0].requestBodyJson;
+      expect(body.batch).not.toHaveProperty('webhookConfig');
+    },
+  );
+
   it.each([
     ['JOB_STATE_PENDING', 'pending'],
     ['JOB_STATE_RUNNING', 'pending'],
@@ -456,10 +649,10 @@ describe('GoogleBatchLanguageModel', () => {
       type: 'json-value',
       body: operation({ state: rawStatus }),
     };
-    const model = createGoogle({ apiKey: 'test-api-key' })('gemini-2.5-flash');
+    const model = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
 
     await expect(
-      model.experimental_doGetBatchStatus({
+      model.doGetBatchStatus({
         batchId: 'batches/batch-123',
       }),
     ).resolves.toMatchObject({ status, rawStatus });
@@ -480,12 +673,12 @@ describe('GoogleBatchLanguageModel', () => {
         type: 'json-value',
         body: operation({ state: undefined }, { done, error }),
       };
-      const model = createGoogle({ apiKey: 'test-api-key' })(
-        'gemini-2.5-flash',
-      );
+      const model = createGoogle({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
       await expect(
-        model.experimental_doGetBatchStatus({
+        model.doGetBatchStatus({
           batchId: 'batches/batch-123',
         }),
       ).resolves.toMatchObject({ status });
@@ -514,10 +707,10 @@ describe('GoogleBatchLanguageModel', () => {
         },
       ),
     };
-    const model = createGoogle({ apiKey: 'test-api-key' })('gemini-2.5-flash');
+    const model = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
 
     await expect(
-      model.experimental_doGetBatchStatus({
+      model.doGetBatchStatus({
         batchId: 'batches/batch-123',
       }),
     ).resolves.toMatchObject({
@@ -569,10 +762,10 @@ describe('GoogleBatchLanguageModel', () => {
       type: 'json-value',
       body: operation({ batchStats }),
     };
-    const model = createGoogle({ apiKey: 'test-api-key' })('gemini-2.5-flash');
+    const model = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
 
     await expect(
-      model.experimental_doGetBatchStatus({
+      model.doGetBatchStatus({
         batchId: 'batches/batch-123',
       }),
     ).resolves.toMatchObject({ requestCounts });
@@ -604,9 +797,9 @@ describe('GoogleBatchLanguageModel', () => {
     const model = createGoogle({
       apiKey: 'test-api-key',
       generateId: () => 'test-id',
-    })('gemini-2.5-flash');
+    }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       batchId: 'batches/batch-123',
     });
     const results = await convertReadableStreamToArray(stream);
@@ -695,9 +888,9 @@ describe('GoogleBatchLanguageModel', () => {
         },
       ),
     };
-    const model = createGoogle({ apiKey: 'test-api-key' })('gemini-2.5-flash');
+    const model = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       batchId: 'batches/batch-123',
     });
 
@@ -727,14 +920,15 @@ describe('GoogleBatchLanguageModel', () => {
         error: { code: 1, message: 'The request was cancelled.' },
       },
     ]);
-    const model = createGoogle({ apiKey: 'test-api-key' })('gemini-2.5-flash');
+    const model = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       batchId: 'batches/batch-123',
     });
 
     await expect(convertReadableStreamToArray(stream)).resolves.toEqual([
       {
+        type: 'text',
         id: 'cancelled-request',
         status: 'cancelled',
         error: {
@@ -765,16 +959,17 @@ describe('GoogleBatchLanguageModel', () => {
           },
         },
       ]);
-      const model = createGoogle({ apiKey: 'test-api-key' })(
-        'gemini-2.5-flash',
-      );
+      const model = createGoogle({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
-      const stream = await model.experimental_doGetBatchResults({
+      const stream = await model.doGetBatchResults({
         batchId: 'batches/batch-123',
       });
 
       await expect(convertReadableStreamToArray(stream)).resolves.toEqual([
         {
+          type: 'text',
           id: 'blocked-request',
           status: 'failed',
           error: {
@@ -812,9 +1007,9 @@ describe('GoogleBatchLanguageModel', () => {
         }),
       ],
     };
-    const model = createGoogle({ apiKey: 'test-api-key' })('gemini-2.5-flash');
+    const model = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       batchId: 'batches/batch-123',
     });
 
@@ -856,9 +1051,9 @@ describe('GoogleBatchLanguageModel', () => {
     const model = createGoogle({
       apiKey: 'test-api-key',
       fetch: mockFetch,
-    })('gemini-2.5-flash');
+    }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       batchId: 'batches/batch-123',
     });
 
@@ -882,9 +1077,9 @@ describe('GoogleBatchLanguageModel', () => {
         output: undefined,
       }),
     };
-    const model = createGoogle({ apiKey: 'test-api-key' })('gemini-2.5-flash');
+    const model = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
 
-    const stream = await model.experimental_doGetBatchResults({
+    const stream = await model.doGetBatchResults({
       batchId: 'batches/batch-123',
     });
 
@@ -904,10 +1099,10 @@ describe('GoogleBatchLanguageModel', () => {
         },
       }),
     };
-    const model = createGoogle({ apiKey: 'test-api-key' })('gemini-2.5-flash');
+    const model = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
 
     await expect(
-      model.experimental_doGetBatchStatus({
+      model.doGetBatchStatus({
         batchId: 'batches/batch-123',
       }),
     ).rejects.toMatchObject({
@@ -930,10 +1125,10 @@ describe('GoogleBatchLanguageModel', () => {
         },
       }),
     };
-    const model = createGoogle({ apiKey: 'test-api-key' })('gemini-2.5-flash');
+    const model = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
 
     await expect(
-      model.experimental_doStartBatch({
+      model.doStartBatch({
         requests: [request('france', 'What is the capital of France?')],
       }),
     ).rejects.toMatchObject({
@@ -941,36 +1136,6 @@ describe('GoogleBatchLanguageModel', () => {
       message: 'The batch input was invalid.',
       statusCode: 400,
       url: urls.create,
-    });
-  });
-
-  it('preserves batch support and ID generation across a workflow round trip', async () => {
-    server.urls[urls.create].response = {
-      type: 'json-value',
-      body: operation(),
-    };
-    const serialized = GoogleBatchLanguageModel[WORKFLOW_SERIALIZE](
-      new GoogleBatchLanguageModel('gemini-2.5-flash', config),
-    );
-    expect(serialized.config).not.toHaveProperty('generateId');
-    const model = GoogleBatchLanguageModel[WORKFLOW_DESERIALIZE](
-      serialized as unknown as {
-        modelId: string;
-        config: GoogleLanguageModelConfig;
-      },
-    );
-
-    expect(model.experimental_doStartBatch).toBeTypeOf('function');
-    expect(model.experimental_doGetBatchStatus).toBeTypeOf('function');
-    expect(model.experimental_doGetBatchResults).toBeTypeOf('function');
-
-    await model.experimental_doStartBatch({
-      requests: [request('france', 'What is the capital of France?')],
-    });
-    await expect(server.calls[0].requestBodyJson).resolves.toMatchObject({
-      batch: {
-        displayName: expect.stringMatching(/^ai-sdk-batch-/),
-      },
     });
   });
 
@@ -983,12 +1148,12 @@ describe('GoogleBatchLanguageModel', () => {
           { done: false },
         ),
       };
-      const model = createGoogle({ apiKey: 'test-api-key' })(
-        'gemini-2.5-flash',
-      );
+      const model = createGoogle({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
       await expect(
-        model.experimental_doGetBatchResults({
+        model.doGetBatchResults({
           batchId: 'batches/batch-123',
         }),
       ).rejects.toMatchObject({
@@ -1018,11 +1183,11 @@ describe('GoogleBatchLanguageModel', () => {
           response: googleResponse({ id: 'response-valid', text: 'Paris' }),
         },
       ]);
-      const model = createGoogle({ apiKey: 'test-api-key' })(
-        'gemini-2.5-flash',
-      );
+      const model = createGoogle({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
-      const stream = await model.experimental_doGetBatchResults({
+      const stream = await model.doGetBatchResults({
         batchId: 'batches/batch-123',
       });
       const results = await convertReadableStreamToArray(stream);
@@ -1050,12 +1215,12 @@ describe('GoogleBatchLanguageModel', () => {
         type: 'json-value',
         body: operation({ output: undefined }),
       };
-      const model = createGoogle({ apiKey: 'test-api-key' })(
-        'gemini-2.5-flash',
-      );
+      const model = createGoogle({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
       await expect(
-        model.experimental_doGetBatchResults({
+        model.doGetBatchResults({
           batchId: 'batches/batch-123',
         }),
       ).rejects.toMatchObject({
@@ -1117,11 +1282,11 @@ describe('GoogleBatchLanguageModel', () => {
           },
         },
       ]);
-      const model = createGoogle({ apiKey: 'test-api-key' })(
-        'gemini-2.5-flash',
-      );
+      const model = createGoogle({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
 
-      const stream = await model.experimental_doGetBatchResults({
+      const stream = await model.doGetBatchResults({
         batchId: 'batches/batch-123',
       });
       const results = await convertReadableStreamToArray(stream);

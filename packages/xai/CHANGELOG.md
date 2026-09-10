@@ -1,5 +1,34 @@
 # @ai-sdk/xai
 
+## 4.0.57
+
+### Patch Changes
+
+- 4b8c4fa: feat(xai): add batch cancellation and listing
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/provider-utils@5.0.39
+
+## 4.0.56
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/provider-utils@5.0.38
+
+## 4.0.55
+
+### Patch Changes
+
+- a4ba394: feat: support per-request models in batch
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+
 ## 4.0.54
 
 ### Patch Changes

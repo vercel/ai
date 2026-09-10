@@ -1,5 +1,49 @@
 # @ai-sdk/harness-cline
 
+## 1.0.34
+
+### Patch Changes
+
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/harness@1.0.107
+  - @ai-sdk/provider-utils@5.0.39
+
+## 1.0.33
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/harness@1.0.106
+  - @ai-sdk/provider-utils@5.0.38
+
+## 1.0.32
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.105
+
+## 1.0.31
+
+### Patch Changes
+
+- c04ded8: chore(harness): remove formerly deprecated `model` and `modelId` config on harness adapter settings
+- Updated dependencies [c04ded8]
+  - @ai-sdk/harness@1.0.104
+
+## 1.0.30
+
+### Patch Changes
+
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+  - @ai-sdk/harness@1.0.103
+
 ## 1.0.29
 
 ### Patch Changes

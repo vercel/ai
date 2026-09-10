@@ -1,5 +1,45 @@
 # @ai-sdk/google-vertex
 
+## 5.0.79
+
+### Patch Changes
+
+- Updated dependencies [9942196]
+- Updated dependencies [ab6e9f9]
+- Updated dependencies [5a7e647]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/google@4.0.67
+  - @ai-sdk/anthropic@4.0.52
+  - @ai-sdk/openai-compatible@3.0.47
+  - @ai-sdk/provider-utils@5.0.39
+
+## 5.0.78
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+- Updated dependencies [ccb8952]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/openai-compatible@3.0.46
+  - @ai-sdk/anthropic@4.0.51
+  - @ai-sdk/google@4.0.66
+  - @ai-sdk/provider-utils@5.0.38
+
+## 5.0.77
+
+### Patch Changes
+
+- 45099da: Retry unclassified empty image results, preserve retry-attempt accounting, add provider-independent result retryability classification, and mark Google and Google Vertex prompt blocks as terminal.
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/anthropic@4.0.50
+  - @ai-sdk/google@4.0.65
+  - @ai-sdk/provider-utils@5.0.37
+  - @ai-sdk/openai-compatible@3.0.45
+
 ## 5.0.76
 
 ### Patch Changes

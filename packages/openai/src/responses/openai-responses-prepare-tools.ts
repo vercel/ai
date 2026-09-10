@@ -33,6 +33,11 @@ type AllowedToolResolution =
 
 export type OpenAIToolOptions = {
   allowedCallers?: Array<'direct' | 'programmatic'>;
+  /**
+   * Whether the model can continue generating after calling this tool without
+   * waiting for its result.
+   */
+  async?: boolean;
   deferLoading?: boolean;
   outputSchema?: JSONObject;
   namespace?: {
@@ -48,6 +53,7 @@ export async function prepareResponsesTools({
   toolNameMapping,
   customProviderToolNames,
   outputSchemaToolNames,
+  supportsAsyncToolCalling = true,
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice: LanguageModelV4CallOptions['toolChoice'] | undefined;
@@ -58,6 +64,7 @@ export async function prepareResponsesTools({
   toolNameMapping?: ToolNameMapping;
   customProviderToolNames?: Set<string>;
   outputSchemaToolNames?: Set<string>;
+  supportsAsyncToolCalling?: boolean;
 }): Promise<{
   tools?: Array<OpenAIResponsesTool>;
   toolChoice?:
@@ -140,6 +147,12 @@ export async function prepareResponsesTools({
         const openaiFunctionTool = prepareFunctionTool({
           tool,
           options: openaiOptions,
+          async: resolveAsyncToolOption({
+            value: openaiOptions?.async,
+            supportsAsyncToolCalling,
+            toolName: tool.name,
+            toolWarnings,
+          }),
         });
         const namespace = openaiOptions?.namespace;
 
@@ -378,6 +391,14 @@ export async function prepareResponsesTools({
               type: 'custom',
               name: tool.name,
               description: args.description,
+              ...(resolveAsyncToolOption({
+                value: args.async,
+                supportsAsyncToolCalling,
+                toolName: tool.name,
+                toolWarnings,
+              }) != null
+                ? { async: args.async }
+                : {}),
               format: args.format,
             });
             resolvedCustomProviderToolNames.add(tool.name);
@@ -606,9 +627,11 @@ function toAllowedToolResolution(
 function prepareFunctionTool({
   tool,
   options,
+  async,
 }: {
   tool: LanguageModelV4FunctionTool;
   options: OpenAIToolOptions | undefined;
+  async: boolean | undefined;
 }): OpenAIResponsesFunctionTool {
   const deferLoading = options?.deferLoading;
 
@@ -617,6 +640,7 @@ function prepareFunctionTool({
     name: tool.name,
     description: tool.description,
     parameters: tool.inputSchema,
+    ...(async != null ? { async } : {}),
     ...(tool.strict != null ? { strict: tool.strict } : {}),
     ...(deferLoading != null ? { defer_loading: deferLoading } : {}),
     ...(options?.allowedCallers != null
@@ -626,6 +650,29 @@ function prepareFunctionTool({
       ? { output_schema: options.outputSchema as JSONSchema7 }
       : {}),
   };
+}
+
+function resolveAsyncToolOption({
+  value,
+  supportsAsyncToolCalling,
+  toolName,
+  toolWarnings,
+}: {
+  value: boolean | undefined;
+  supportsAsyncToolCalling: boolean;
+  toolName: string;
+  toolWarnings: SharedV4Warning[];
+}): boolean | undefined {
+  if (value !== true || supportsAsyncToolCalling) {
+    return value;
+  }
+
+  toolWarnings.push({
+    type: 'unsupported',
+    feature: `async tool calling for "${toolName}"`,
+    details: 'Async tool calling is only supported by GPT-6 and later models.',
+  });
+  return undefined;
 }
 
 function mapShellEnvironment(environment: {

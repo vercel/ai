@@ -1,5 +1,52 @@
 # ai
 
+## 7.0.97
+
+### Patch Changes
+
+- ef3bac4: Observe video webhook receiver rejections before generation starts to prevent unhandled rejections during or after a failed start. Preserve start error precedence and assimilate custom receivers only once.
+- 9942196: feat: add batch cancel and list APIs
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/gateway@4.0.78
+  - @ai-sdk/provider-utils@5.0.39
+
+## 7.0.96
+
+### Patch Changes
+
+- 912fb01: feat: add batch cancel and list APIs
+- c595e6e: fix(ai): call `atob` without a receiver for Cloudflare Workers compatibility
+- Updated dependencies [912fb01]
+- Updated dependencies [aa4cc14]
+- Updated dependencies [f102e41]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/gateway@4.0.77
+  - @ai-sdk/provider-utils@5.0.38
+
+## 7.0.95
+
+### Patch Changes
+
+- 27f6d7a: fix(ai): reject embedding model responses that contain no embeddings
+
+## 7.0.94
+
+### Patch Changes
+
+- a4ba394: feat: support per-request models in batch
+- 36b3364: fix(ai): enforce tool choices in streamText
+- 45099da: Retry unclassified empty image results, preserve retry-attempt accounting, add provider-independent result retryability classification, and mark Google and Google Vertex prompt blocks as terminal.
+- Updated dependencies [a4ba394]
+- Updated dependencies [e9bf5e3]
+- Updated dependencies [45099da]
+- Updated dependencies [56c004c]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/gateway@4.0.76
+  - @ai-sdk/provider-utils@5.0.37
+
 ## 7.0.93
 
 ### Patch Changes
