@@ -1325,7 +1325,7 @@ describe('Anthropic batch', () => {
       },
     ]);
     const result = results[0];
-    if (result?.status !== 'succeeded') {
+    if (result?.type !== 'text' || result.status !== 'succeeded') {
       throw new Error('Expected a succeeded batch result.');
     }
     expect(result.result.content[1]).not.toHaveProperty('result.0.title');

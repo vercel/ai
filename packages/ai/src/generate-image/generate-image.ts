@@ -381,7 +381,7 @@ class DefaultGenerateImageResult implements GenerateImageResult {
 /**
  * Extracts per-image metadata from the legacy `providerMetadata.<provider>.images` result shape.
  */
-function getImageProviderMetadata(
+export function getImageProviderMetadata(
   providerMetadata: ImageModelV4ProviderMetadata | undefined,
   imageIndex: number,
 ): Record<string, JSONObject> | undefined {
@@ -442,7 +442,7 @@ function addDecimalStrings(
       )}`.replace(/\.?0+$/, '');
 }
 
-function normalizePrompt(
+export function normalizePrompt(
   prompt: GenerateImagePrompt,
 ): Pick<ImageModelV4CallOptions, 'prompt' | 'files' | 'mask'> {
   if (typeof prompt === 'string') {
