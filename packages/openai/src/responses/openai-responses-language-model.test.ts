@@ -7732,6 +7732,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "call_custom_sql_001",
+                "inputFormat": "text",
                 "toolName": "write_sql",
                 "type": "tool-input-start",
               },

@@ -358,6 +358,7 @@ describe('toUIMessageChunk', () => {
     ).toEqual({
       type: 'tool-input-start',
       toolCallId: 'call-1',
+      inputFormat: 'json',
       toolName: 'dynamicTool',
       providerExecuted: true,
       providerMetadata,
@@ -379,6 +380,7 @@ describe('toUIMessageChunk', () => {
     ).toEqual({
       type: 'tool-input-start',
       toolCallId: 'call-2',
+      inputFormat: 'json',
       toolName: 'providerTool',
       dynamic: true,
     });

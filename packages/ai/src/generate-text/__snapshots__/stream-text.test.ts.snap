@@ -670,6 +670,7 @@ exports[`streamText > result.toUIMessageStream > should send tool call, tool cal
     "type": "start-step",
   },
   {
+    "inputFormat": "json",
     "toolCallId": "call-1",
     "toolName": "tool1",
     "type": "tool-input-start",

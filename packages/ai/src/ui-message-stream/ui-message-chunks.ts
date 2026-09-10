@@ -47,6 +47,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         type: z.literal('tool-input-start'),
         toolCallId: z.string(),
         toolName: z.string(),
+        inputFormat: z.enum(['json', 'text']).optional(),
         providerExecuted: z.boolean().optional(),
         providerMetadata: providerMetadataSchema.optional(),
         toolMetadata: toolMetadataSchema.optional(),
@@ -340,6 +341,7 @@ export type UIMessageChunk<
       type: 'tool-input-start';
       toolCallId: string;
       toolName: string;
+      inputFormat?: 'json' | 'text';
       providerExecuted?: boolean;
       providerMetadata?: ProviderMetadata;
       toolMetadata?: JSONObject;

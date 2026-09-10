@@ -77,6 +77,43 @@ describe('toUIMessageStream', () => {
     ]);
   });
 
+  it('preserves the tool input format without a tool set', async () => {
+    const parts: TextStreamPart<{}>[] = [
+      {
+        type: 'tool-input-start',
+        id: 'text-call',
+        toolName: 'writeText',
+        inputFormat: 'text',
+      },
+      {
+        type: 'tool-input-start',
+        id: 'json-call',
+        toolName: 'writeJson',
+      },
+    ];
+
+    const chunks = await convertReadableStreamToArray(
+      toUIMessageStream({
+        stream: convertArrayToReadableStream(parts),
+      }),
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'tool-input-start',
+        toolCallId: 'text-call',
+        toolName: 'writeText',
+        inputFormat: 'text',
+      },
+      {
+        type: 'tool-input-start',
+        toolCallId: 'json-call',
+        toolName: 'writeJson',
+        inputFormat: 'json',
+      },
+    ]);
+  });
+
   it('attaches the generated message id to the start chunk when provided', async () => {
     const parts: TextStreamPart<{}>[] = [{ type: 'start' }];
     const generateMessageId = vi.fn(() => 'msg-123');
