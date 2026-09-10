@@ -25,6 +25,19 @@ export function addToolResultsToConversation({
   ]);
   const providerResults = new Map<string, LanguageModelV4ToolResultPart[]>();
   const clientResults: LanguageModelV4ToolResultPart[] = [];
+  let assistantMessageIndex = -1;
+  let assistantMessage:
+    | Extract<LanguageModelV4Prompt[number], { role: 'assistant' }>
+    | undefined;
+
+  for (let index = messages.length - 1; index >= 0; index--) {
+    const message = messages[index];
+    if (message.role === 'assistant') {
+      assistantMessageIndex = index;
+      assistantMessage = message;
+      break;
+    }
+  }
 
   for (const toolResult of toolResults) {
     if (providerResultIds.has(toolResult.toolCallId)) {
@@ -37,18 +50,6 @@ export function addToolResultsToConversation({
   }
 
   if (providerResults.size > 0) {
-    let assistantMessage:
-      | Extract<LanguageModelV4Prompt[number], { role: 'assistant' }>
-      | undefined;
-
-    for (let index = messages.length - 1; index >= 0; index--) {
-      const message = messages[index];
-      if (message.role === 'assistant') {
-        assistantMessage = message;
-        break;
-      }
-    }
-
     if (assistantMessage != null) {
       let content = [...assistantMessage.content];
 
@@ -102,4 +103,6 @@ export function addToolResultsToConversation({
       content: clientResults,
     });
   }
+
+  return assistantMessageIndex < 0 ? [] : messages.slice(assistantMessageIndex);
 }

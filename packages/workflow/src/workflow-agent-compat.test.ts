@@ -1340,6 +1340,9 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         { type: 'tool-result', toolCallId: 'call-a' },
         { type: 'tool-result', toolCallId: 'call-b' },
       ]);
+      expect(result.steps[0]?.response.messages).toEqual(
+        result.messages.slice(1),
+      );
     });
 
     it('replays deferred provider results emitted in a later response', async () => {
@@ -1458,6 +1461,96 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
           ? finalAssistantMessage.content.map(part => part.type)
           : [],
       ).toEqual(['tool-result', 'text']);
+      expect(result.messages.slice(1)).toEqual(
+        result.steps.flatMap(step => step.response.messages),
+      );
+    });
+
+    it('preserves provider result order and response messages when a client tool pauses the loop', async () => {
+      const model = new MockLanguageModelV4({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start' as const, warnings: [] },
+            {
+              type: 'tool-call' as const,
+              toolCallId: 'provider-call',
+              toolName: 'providerTool',
+              input: '{}',
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-call' as const,
+              toolCallId: 'client-call',
+              toolName: 'clientTool',
+              input: '{}',
+            },
+            {
+              type: 'tool-result' as const,
+              toolCallId: 'provider-call',
+              toolName: 'providerTool',
+              result: { value: 'provider result' },
+              providerExecuted: true,
+            },
+            {
+              ...dummyStreamFinish,
+              finishReason: {
+                unified: 'tool-calls' as const,
+                raw: 'tool-calls',
+              },
+            },
+          ]),
+        }),
+      });
+      const agent = new WorkflowAgent({
+        model,
+        tools: {
+          providerTool: tool({
+            type: 'provider',
+            id: 'test.provider_tool',
+            isProviderExecuted: true,
+            args: {},
+            inputSchema: z.object({}),
+          }),
+          clientTool: tool({
+            inputSchema: z.object({}),
+          }),
+        },
+      });
+
+      const { writable } = createMockWritable();
+      const result = await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable,
+      });
+
+      expect(model.doStreamCalls).toHaveLength(1);
+      expect(result.toolCalls.map(toolCall => toolCall.toolCallId)).toEqual([
+        'provider-call',
+        'client-call',
+      ]);
+      expect(
+        result.toolResults.map(toolResult => toolResult.toolCallId),
+      ).toEqual(['provider-call']);
+
+      const responseMessages = result.steps[0]?.response.messages ?? [];
+      expect(responseMessages).toEqual(result.messages.slice(1));
+      expect(
+        responseMessages.flatMap(message =>
+          message.role === 'assistant' && Array.isArray(message.content)
+            ? message.content.map(part => ({
+                type: part.type,
+                toolCallId:
+                  part.type === 'tool-call' || part.type === 'tool-result'
+                    ? part.toolCallId
+                    : undefined,
+              }))
+            : [],
+        ),
+      ).toEqual([
+        { type: 'tool-call', toolCallId: 'provider-call' },
+        { type: 'tool-call', toolCallId: 'client-call' },
+        { type: 'tool-result', toolCallId: 'provider-call' },
+      ]);
     });
   });
 

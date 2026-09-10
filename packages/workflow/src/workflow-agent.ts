@@ -2352,6 +2352,7 @@ export class WorkflowAgent<
           toolsContext: yieldedToolsContext,
           experimental_sandbox: stepSandbox,
           providerExecutedToolResults,
+          providerExecutedToolResultPositions,
         } = result.value;
         const capturedProviderToolResults =
           providerExecutedToolResults ??
@@ -2526,7 +2527,7 @@ export class WorkflowAgent<
 
             addToolResultsToStep(step, executedResults);
 
-            addToolResultsToConversation({
+            const responseMessages = addToolResultsToConversation({
               messages: iterMessages,
               toolResults: resolvedResults,
               providerExecutedToolCallIds: new Set(
@@ -2534,7 +2535,13 @@ export class WorkflowAgent<
                   toolCall => toolCall.toolCallId,
                 ),
               ),
+              providerExecutedToolResultPositions,
             });
+            step?.response.messages.push(
+              ...(responseMessages as unknown as NonNullable<
+                typeof step
+              >['response']['messages']),
+            );
 
             const messages = iterMessages as unknown as ModelMessage[];
             const lastStep = steps[steps.length - 1];

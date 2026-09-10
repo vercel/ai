@@ -96,6 +96,8 @@ export interface StreamTextIteratorYieldValue {
   toolsContext?: Record<string, Context | undefined>;
   /** Provider-executed tool results (keyed by tool call ID) */
   providerExecutedToolResults?: Map<string, ProviderExecutedToolResult>;
+  /** Original positions of provider-executed results in assistant content. */
+  providerExecutedToolResultPositions?: ProviderExecutedToolResultPosition[];
   /** The sandbox selected for the current step. */
   experimental_sandbox?: SandboxSession;
 }
@@ -488,9 +490,10 @@ export async function* streamTextIterator({
           toolsContext: currentToolsContext,
           experimental_sandbox: stepSandbox,
           providerExecutedToolResults,
+          providerExecutedToolResultPositions,
         };
 
-        addToolResultsToConversation({
+        const responseMessages = addToolResultsToConversation({
           messages: conversationPrompt,
           toolResults,
           providerExecutedToolCallIds: new Set([
@@ -501,6 +504,9 @@ export async function* streamTextIterator({
           ]),
           providerExecutedToolResultPositions,
         });
+        step.response.messages.push(
+          ...(responseMessages as unknown as typeof step.response.messages),
+        );
 
         const stopConditionList =
           stopConditions == null
@@ -523,10 +529,14 @@ export async function* streamTextIterator({
         const { content: assistantContent } = getAssistantMessageContent(step);
 
         if (assistantContent.length > 0) {
-          conversationPrompt.push({
+          const assistantMessage = {
             role: 'assistant',
             content: assistantContent,
-          });
+          } as const;
+          conversationPrompt.push(assistantMessage);
+          step.response.messages.push(
+            assistantMessage as unknown as (typeof step.response.messages)[number],
+          );
         }
 
         done = true;
