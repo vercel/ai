@@ -85,6 +85,8 @@ function convertJSONSchemaDefinition(
     required,
     properties,
     items,
+    minItems,
+    maxItems,
     allOf,
     anyOf,
     oneOf,
@@ -146,6 +148,14 @@ function convertJSONSchemaDefinition(
           convertJSONSchemaDefinition(item, false, referenceContext),
         )
       : convertJSONSchemaDefinition(items, false, referenceContext);
+  }
+
+  if (minItems !== undefined) {
+    result.minItems = minItems;
+  }
+
+  if (maxItems !== undefined) {
+    result.maxItems = maxItems;
   }
 
   if (allOf) {
