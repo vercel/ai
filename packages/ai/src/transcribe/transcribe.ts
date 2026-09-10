@@ -93,6 +93,7 @@ export async function transcribe({
   download?: (options: {
     url: URL;
     abortSignal?: AbortSignal;
+    headers?: Record<string, string>;
   }) => Promise<{ data: Uint8Array; mediaType: string | undefined }>;
 }): Promise<TranscriptionResult> {
   const resolvedModel = resolveTranscriptionModel(model);
@@ -112,7 +113,13 @@ export async function transcribe({
 
   const audioData =
     audio instanceof URL
-      ? (await downloadFn({ url: audio, abortSignal })).data
+      ? (
+          await downloadFn({
+            url: audio,
+            headers: headersWithUserAgent,
+            abortSignal,
+          })
+        ).data
       : convertDataContentToUint8Array(audio);
 
   const result = await retry(() =>

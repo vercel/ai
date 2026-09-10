@@ -351,6 +351,87 @@ describe('experimental_generateVideo', () => {
       // Should detect MP4 from file signature, not use octet-stream
       expect(result.video.mediaType).toBe('video/mp4');
     });
+
+    it('should forward headers to download fetch for authenticated URLs', async () => {
+      const fetchSpy = vi.fn(async (_url: string, init?: RequestInit) => {
+        const headers = new Headers(init?.headers);
+        if (headers.get('Authorization') === 'Bearer test-token') {
+          return new Response(convertBase64ToUint8Array(mp4Base64), {
+            status: 200,
+            headers: { 'content-type': 'video/mp4' },
+          });
+        }
+        return new Response('Unauthorized', { status: 401 });
+      });
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementationOnce(
+        fetchSpy as unknown as typeof fetch,
+      );
+
+      const result = await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: async () =>
+            createMockResponse({
+              videos: [
+                {
+                  type: 'url',
+                  url: 'https://example.com/video?token=abc',
+                  mediaType: 'video/mp4',
+                },
+              ],
+            }),
+        }),
+        prompt,
+        headers: { Authorization: 'Bearer test-token' },
+      });
+
+      expect(fetchSpy).toHaveBeenCalled();
+      const calledHeaders = new Headers(
+        (fetchSpy.mock.calls[0][1] as RequestInit).headers,
+      );
+      expect(calledHeaders.get('Authorization')).toBe('Bearer test-token');
+      expect(calledHeaders.get('user-agent')).toContain('ai/');
+      expect(result.video.mediaType).toBe('video/mp4');
+    });
+
+    it('should work with custom download function receiving headers', async () => {
+      const customDownload = vi.fn(
+        async ({
+          url,
+          headers,
+        }: {
+          url: URL;
+          headers?: Record<string, string>;
+        }) => {
+          expect(url.toString()).toBe('https://example.com/video');
+          expect(headers?.authorization).toBe('Bearer custom-token');
+          return {
+            data: convertBase64ToUint8Array(mp4Base64),
+            mediaType: 'video/mp4',
+          };
+        },
+      );
+
+      const result = await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: async () =>
+            createMockResponse({
+              videos: [
+                {
+                  type: 'url',
+                  url: 'https://example.com/video',
+                  mediaType: 'video/mp4',
+                },
+              ],
+            }),
+        }),
+        prompt,
+        headers: { Authorization: 'Bearer custom-token' },
+        download: customDownload,
+      });
+
+      expect(customDownload).toHaveBeenCalled();
+      expect(result.video.mediaType).toBe('video/mp4');
+    });
   });
 
   describe('when several calls are required', () => {
