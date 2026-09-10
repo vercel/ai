@@ -14,6 +14,7 @@ import type {
   Experimental_SandboxSession as SandboxSession,
   FlexibleSchema,
   MaybePromiseLike,
+  SystemModelMessage,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type {
@@ -159,9 +160,10 @@ export type HarnessAgentSettings<
    * Instructions for the underlying agent runtime. Adapters append these to a
    * native system or developer prompt when supported. Otherwise, they prepend
    * them to the user message. `prepareCall` can replace them between completed
-   * turns.
+   * turns. When a `SystemModelMessage` is provided, only its `content` is
+   * forwarded to the harness adapter.
    */
-  readonly instructions?: string;
+  readonly instructions?: string | SystemModelMessage;
 
   /**
    * Additional HTTP headers to be sent with every model request.
