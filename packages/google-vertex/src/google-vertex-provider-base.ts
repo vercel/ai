@@ -294,6 +294,7 @@ export function createGoogleVertex(
           /^gs:\/\/.*$/,
         ],
       }),
+      downloadToolResultFiles: true,
     });
   };
 

@@ -40,6 +40,7 @@ import {
 } from './convert-google-usage';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import { convertToGoogleMessages } from './convert-to-google-messages';
+import { downloadToolResultFiles } from './download-tool-result-files';
 import { getModelPath } from './get-model-path';
 import { googleFailedResponseHandler } from './google-error';
 import {
@@ -76,6 +77,11 @@ export type GoogleLanguageModelConfig = {
    * The supported URLs for the model.
    */
   supportedUrls?: () => LanguageModelV4['supportedUrls'];
+
+  /**
+   * Whether remote files in tool results must be downloaded before conversion.
+   */
+  downloadToolResultFiles?: boolean;
 };
 
 export class GoogleLanguageModel implements LanguageModelV4 {
@@ -132,6 +138,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       toolChoice,
       reasoning,
       providerOptions,
+      abortSignal,
     },
     isStreaming = false,
   }: {
@@ -287,14 +294,21 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
     const { usesGemini3Features } = getGoogleModelCapabilities(modelId);
 
-    const { contents, systemInstruction } = convertToGoogleMessages(prompt, {
-      isGemmaModel,
-      isGemini3Model: usesGemini3Features,
-      onWarning: warning => warnings.push(warning),
-      providerOptionsNames,
-      supportsFunctionResponseParts: usesGemini3Features,
-      includeFunctionCallIds: !isVertexProvider,
-    });
+    const promptWithDownloadedToolResultFiles = config.downloadToolResultFiles
+      ? await downloadToolResultFiles(prompt, abortSignal)
+      : prompt;
+
+    const { contents, systemInstruction } = convertToGoogleMessages(
+      promptWithDownloadedToolResultFiles,
+      {
+        isGemmaModel,
+        isGemini3Model: usesGemini3Features,
+        onWarning: warning => warnings.push(warning),
+        providerOptionsNames,
+        supportsFunctionResponseParts: usesGemini3Features,
+        includeFunctionCallIds: !isVertexProvider,
+      },
+    );
 
     const {
       tools: googleTools,
