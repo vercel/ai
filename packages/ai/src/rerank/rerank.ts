@@ -1,5 +1,18 @@
+<<<<<<< HEAD
 import type { JSONObject, RerankingModelV3CallOptions } from '@ai-sdk/provider';
 import type { ProviderOptions } from '@ai-sdk/provider-utils';
+=======
+import {
+  InvalidResponseDataError,
+  type JSONObject,
+  type RerankingModelV4CallOptions,
+  type RerankingModelV4Result,
+} from '@ai-sdk/provider';
+import {
+  createIdGenerator,
+  type ProviderOptions,
+} from '@ai-sdk/provider-utils';
+>>>>>>> f87bf07ebe (fix: rerank() returns undefined documents for invalid provider ranking indices (#20423))
 import { prepareRetries } from '../../src/util/prepare-retries';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
@@ -184,10 +197,55 @@ export async function rerank<VALUE extends JSONObject | string>({
 
               return {
                 ranking,
+<<<<<<< HEAD
                 providerMetadata: modelResponse.providerMetadata,
                 response: modelResponse.response,
                 warnings: modelResponse.warnings,
               };
+=======
+              },
+              callbacks: [telemetryDispatcher.onRerankEnd],
+            });
+
+            return {
+              ranking,
+              providerMetadata: modelResponse.providerMetadata,
+              response: modelResponse.response,
+              warnings: modelResponse.warnings,
+            };
+          },
+        );
+
+        validateRankingIndices({ ranking, documents });
+
+        logWarnings({
+          warnings: warnings ?? [],
+          provider: model.provider,
+          model: model.modelId,
+        });
+
+        await notify({
+          event: {
+            callId,
+            operationId: 'ai.rerank',
+            provider: model.provider,
+            modelId: model.modelId,
+            documents,
+            query,
+            ranking: ranking.map(ranking => ({
+              originalIndex: ranking.index,
+              score: ranking.relevanceScore,
+              document: documents[ranking.index],
+            })),
+            warnings: warnings ?? [],
+            providerMetadata,
+            response: {
+              id: response?.id,
+              timestamp: response?.timestamp ?? new Date(),
+              modelId: response?.modelId ?? model.modelId,
+              headers: response?.headers,
+              body: response?.body,
+>>>>>>> f87bf07ebe (fix: rerank() returns undefined documents for invalid provider ranking indices (#20423))
             },
           }),
       );
@@ -216,6 +274,23 @@ export async function rerank<VALUE extends JSONObject | string>({
       });
     },
   });
+}
+
+function validateRankingIndices<VALUE>({
+  ranking,
+  documents,
+}: {
+  ranking: RerankingModelV4Result['ranking'];
+  documents: Array<VALUE>;
+}) {
+  for (const { index } of ranking) {
+    if (!Number.isInteger(index) || index < 0 || index >= documents.length) {
+      throw new InvalidResponseDataError({
+        data: ranking,
+        message: `Invalid ranking index ${index}. Expected an integer between 0 and ${documents.length - 1}.`,
+      });
+    }
+  }
 }
 
 class DefaultRerankResult<VALUE> implements RerankResult<VALUE> {
