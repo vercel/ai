@@ -16,7 +16,9 @@ export function isMistralModel(modelId: string): boolean {
  * Bedrock generates tool call IDs in formats like `tooluse_bpe71yCfRu2b5i-nKGDr5g`,
  * which are incompatible with Mistral's requirements.
  *
- * This function extracts the first 9 alphanumeric characters from the ID.
+ * This function extracts the last 9 alphanumeric characters from the ID.
+ * Taking the last 9 preserves more entropy from the random suffix,
+ * reducing collision risk when multiple tool calls are made in parallel.
  *
  * @param toolCallId - The original tool call ID from Bedrock
  * @param isMistral - Whether the model is a Mistral model
@@ -30,7 +32,8 @@ export function normalizeToolCallId(
     return toolCallId;
   }
 
-  // Extract only alphanumeric characters and take first 9
+  // Extract only alphanumeric characters and take last 9
+  // Taking last 9 preserves more entropy from the random suffix
   const alphanumericChars = toolCallId.replace(/[^a-zA-Z0-9]/g, '');
-  return alphanumericChars.slice(0, 9);
+  return alphanumericChars.slice(-9);
 }
