@@ -13,19 +13,31 @@ type UseRealtimeOptions = RealtimeSessionOptions;
 type RealtimeStateKey = keyof RealtimeState;
 type RealtimeStoreKey = {
   model: RealtimeSessionOptions['model'];
-  token: RealtimeSessionOptions['api']['token'];
+  token: string | undefined;
+  websocket: string | undefined;
+  protocols: string;
+  startupTimeoutMs: RealtimeSessionOptions['startupTimeoutMs'];
+  closeTimeoutMs: RealtimeSessionOptions['closeTimeoutMs'];
   sessionConfig: RealtimeSessionOptions['sessionConfig'];
   sampleRate: RealtimeSessionOptions['sampleRate'];
   maxEvents: RealtimeSessionOptions['maxEvents'];
+  autoContinueTools: RealtimeSessionOptions['autoContinueTools'];
+  maxPlaybackBufferSeconds: RealtimeSessionOptions['maxPlaybackBufferSeconds'];
 };
 
 function getRealtimeStoreKey(options: UseRealtimeOptions): RealtimeStoreKey {
   return {
     model: options.model,
     token: options.api.token,
+    websocket: options.api.websocket,
+    protocols: JSON.stringify(options.api.protocols ?? []),
+    startupTimeoutMs: options.startupTimeoutMs,
+    closeTimeoutMs: options.closeTimeoutMs,
     sessionConfig: options.sessionConfig,
     sampleRate: options.sampleRate,
     maxEvents: options.maxEvents,
+    autoContinueTools: options.autoContinueTools,
+    maxPlaybackBufferSeconds: options.maxPlaybackBufferSeconds,
   };
 }
 
@@ -36,9 +48,15 @@ function shouldCreateRealtimeStore(
   return (
     currentKey.model !== nextOptions.model ||
     currentKey.token !== nextOptions.api.token ||
+    currentKey.websocket !== nextOptions.api.websocket ||
+    currentKey.protocols !== JSON.stringify(nextOptions.api.protocols ?? []) ||
+    currentKey.startupTimeoutMs !== nextOptions.startupTimeoutMs ||
+    currentKey.closeTimeoutMs !== nextOptions.closeTimeoutMs ||
     currentKey.sessionConfig !== nextOptions.sessionConfig ||
     currentKey.sampleRate !== nextOptions.sampleRate ||
-    currentKey.maxEvents !== nextOptions.maxEvents
+    currentKey.maxEvents !== nextOptions.maxEvents ||
+    currentKey.autoContinueTools !== nextOptions.autoContinueTools ||
+    currentKey.maxPlaybackBufferSeconds !== nextOptions.maxPlaybackBufferSeconds
   );
 }
 
@@ -80,6 +98,10 @@ class RealtimeStore extends AbstractRealtimeSession {
     return this.state.isPlaying;
   }
 
+  get session(): RealtimeState['session'] {
+    return this.state.session;
+  }
+
   subscribe(key: RealtimeStateKey, onChange: () => void): () => void {
     this.callbacks[key].add(onChange);
 
@@ -95,36 +117,6 @@ class RealtimeStore extends AbstractRealtimeSession {
     this.state = { ...this.state, [key]: value };
     this.callbacks[key].forEach(callback => callback());
   }
-
-  protected pushMessage(message: UIMessage): void {
-    this.state = {
-      ...this.state,
-      messages: [...this.state.messages, message],
-    };
-    this.callbacks.messages.forEach(callback => callback());
-  }
-
-  protected updateMessages(
-    updater: (messages: UIMessage[]) => UIMessage[],
-  ): void {
-    this.state = {
-      ...this.state,
-      messages: updater(this.state.messages),
-    };
-    this.callbacks.messages.forEach(callback => callback());
-  }
-
-  protected pushEvent(event: RealtimeServerEvent): void {
-    const nextEvents = [...this.state.events, event];
-    this.state = {
-      ...this.state,
-      events:
-        nextEvents.length > this.maxEvents
-          ? nextEvents.slice(-this.maxEvents)
-          : nextEvents,
-    };
-    this.callbacks.events.forEach(callback => callback());
-  }
 }
 
 type UseRealtimeReturn = {
@@ -133,8 +125,12 @@ type UseRealtimeReturn = {
   events: RealtimeServerEvent[];
   isCapturing: boolean;
   isPlaying: boolean;
+  session?: RealtimeState['session'];
 
-  connect: () => Promise<void>;
+  connect: RealtimeStore['connect'];
+  close: RealtimeStore['close'];
+  resumePlayback: () => Promise<void>;
+  resumeAudioCapture: () => Promise<void>;
   disconnect: () => void;
   addToolOutput: (callId: string, result: unknown) => void;
   sendEvent: RealtimeStore['sendEvent'];
@@ -218,6 +214,12 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
     () => rt.isPlaying,
   );
 
+  const session = useSyncExternalStore(
+    useCallback(cb => rt.subscribe('session', cb), [rt]),
+    () => rt.session,
+    () => rt.session,
+  );
+
   useEffect(() => {
     return () => rt.dispose();
   }, [rt]);
@@ -228,6 +230,10 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
     events,
     isCapturing,
     isPlaying,
+    session,
+    close: rt.close.bind(rt),
+    resumePlayback: rt.resumePlayback.bind(rt),
+    resumeAudioCapture: rt.resumeAudioCapture.bind(rt),
     connect: rt.connect.bind(rt),
     disconnect: rt.disconnect.bind(rt),
     addToolOutput: rt.addToolOutput.bind(rt),

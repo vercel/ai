@@ -47,9 +47,80 @@ const { text } = await generateText({
 
 `openai.experimental_live('gpt-live-1')` implements the existing
 `Experimental_RealtimeModelV4` specification with continuous conversation semantics.
-This provider supplies transport configuration and event conversion for headless
-sessions with an application-owned server WebSocket, audio capture/playback, and
-delegated work.
+This provider supplies transport configuration and event conversion for realtime
+runtimes. The primary low-level path below uses an application-owned server
+WebSocket, audio capture/playback, and delegated work.
+
+#### React sessions
+
+`experimental_useRealtime` supports Live through a WebSocket relay. Keep the model and
+session configuration stable (module scope or `useMemo`); replacing either object
+replaces the hook's session.
+
+```tsx
+import { openai } from '@ai-sdk/openai';
+import { experimental_useRealtime as useRealtime } from '@ai-sdk/react';
+
+const model = openai.experimental_live('gpt-live-1');
+const sessionConfig = { instructions: 'Be a concise, friendly assistant.' };
+
+function Conversation() {
+  const rt = useRealtime({
+    model,
+    api: { websocket: 'wss://your-app.example/live' },
+    sessionConfig,
+  });
+
+  return (
+    <>
+      <button onClick={() => rt.connect()}>Connect microphone</button>
+      <button onClick={() => rt.close()}>End conversation</button>
+      <p>
+        {rt.status} · {rt.session?.usage?.seconds} seconds
+      </p>
+    </>
+  );
+}
+```
+
+The relay holds server credentials and forwards native provider text frames in
+both directions. Never expose the OpenAI project key in its URL or subprotocols.
+The hook requests microphone access, sends startup configuration, and starts paced
+PCM16 capture only after `session-started`. Browser WebSocket capture/playback supports
+PCM16; use the low-level provider for application-owned G.711 streams.
+
+Existing realtime models continue using `api: { token: ... }`.
+
+Wait for `status === 'connected'` before sending commands. `connect({ stream })`
+accepts a caller-owned media stream; the SDK releases but does not stop those tracks.
+`close()` drains until final usage or `closeTimeoutMs` (15 seconds by default).
+Read `session.finalization` to distinguish `confirmed` from `unconfirmed` close;
+`disconnect()` and component unmount force cleanup. `resumePlayback()` retries
+playback after a browser autoplay restriction.
+
+`session.transcripts` preserves exact fragments and overlapping timestamps;
+`session.delegations` exposes application work requests. Client delegation remains
+application-controlled through `onEvent` and `context-append`. In Responses mode,
+`onToolCall` can return a result for automatic submission, or `undefined` to supply
+it later through `addToolOutput()`. Set `autoContinueTools: true` to automatically
+continue once all function results have been submitted; this is off by default for
+Live. Otherwise send `backend-response-create` explicitly after the pending results.
+The runtime ignores stale automatic results
+after reconnection. `sendTextMessage()` supplies backend text, not a voice turn.
+`session.backendUsage` is separate from cumulative voice duration. The hook retains
+bounded event/transcript/usage history (`maxEvents`); archive via `onEvent` if needed.
+
+Capture can be stopped and restarted without replacing the session: use
+`stopAudioCapture()`, `startAudioCapture(stream)`, or `resumeAudioCapture()`.
+`connect({ capture: false })` leaves capture application-managed. Provider input
+mute is separate from local microphone capture. A playback buffer overflow drops
+stale local audio and reports a recoverable gap; `resumePlayback()` restarts at the
+live edge without closing the conversation. See the
+[hook reference](https://ai-sdk.dev/docs/reference/ai-sdk-ui/use-realtime) for lifecycle,
+timeouts, ownership, and experimental API compatibility.
+
+Runnable examples: `examples/ai-e2e-next/app/realtime-live` and
+`examples/ai-functions/src/realtime/openai/live-relay.ts`.
 
 #### Headless sessions
 
@@ -64,7 +135,7 @@ const liveOptions = {
   delegation: {
     type: 'responses',
     responses: {
-      model: 'gpt-5-mini',
+      model: 'gpt-5.6-luna',
       tools: [{ type: 'web_search' }],
       toolChoice: 'auto',
     },
@@ -151,7 +222,8 @@ mode cannot be updated. Use `context-append` with plain-string `content`,
 (`null` for session context), and optional `eventId`. Mute/unmute commands are
 `input-audio-mute` and `input-audio-unmute`. Legacy voice-turn commands, including
 `response-create`, buffer commit/clear, and conversation-item operations, throw.
-Omitting the OpenAI channel selects `thinking` for silent factual context.
+Omitting the OpenAI channel selects `thinking` for silent factual context; the
+shared runtime passes provider options through without interpreting the namespace.
 
 For Responses delegation, register custom functions in
 `providerOptions.openai.delegation.responses.tools`. Use these typed commands:
