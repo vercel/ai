@@ -92,6 +92,7 @@
     "just-bash": "^2.14.5",
     "mathjs": "^15.2.0",
     "sharp": "^0.33.5",
+    "superjson": "2.2.6",
     "terminal-image": "^2.0.0",
     "undici": "^8.9.0",
     "valibot": "1.1.0",
