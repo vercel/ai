@@ -1798,6 +1798,49 @@ describe('AnthropicLanguageModel', () => {
       `);
     });
 
+    it('should expose empty preserved thinking input transformations', async () => {
+      prepareJsonFixtureResponse('anthropic-preserved-thinking-empty.1');
+
+      const result = await provider('claude-fable-5-1').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(
+        result.providerMetadata?.anthropic?.inputTransformations,
+      ).toMatchInlineSnapshot(`[]`);
+    });
+
+    it('should expose dropped preserved thinking input transformations', async () => {
+      prepareJsonFixtureResponse('anthropic-preserved-thinking-dropped.1');
+
+      const result = await provider('claude-fable-5-1').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.providerMetadata?.anthropic?.inputTransformations)
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "path": "messages.1.content.0",
+            "reason": "prefix_binding_mismatch",
+            "type": "drop",
+          },
+        ]
+      `);
+    });
+
+    it('should omit preserved thinking input transformations when absent', async () => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      const result = await provider('claude-fable-5-1').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(
+        result.providerMetadata?.anthropic?.inputTransformations,
+      ).toBeUndefined();
+    });
+
     describe('refusal stop reason', () => {
       it('should map a classifier refusal to content-filter and expose stop details', async () => {
         prepareJsonFixtureResponse('anthropic-refusal');
@@ -7328,6 +7371,31 @@ describe('AnthropicLanguageModel', () => {
       });
     });
 
+    it('should expose streamed preserved thinking input transformations', async () => {
+      prepareChunksFixtureResponse('anthropic-preserved-thinking-dropped.1');
+
+      const { stream } = await provider('claude-fable-5-1').doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+      const finishPart = result.find(part => part.type === 'finish');
+
+      expect(
+        finishPart?.type === 'finish'
+          ? finishPart.providerMetadata?.anthropic?.inputTransformations
+          : undefined,
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "path": "messages.1.content.0",
+            "reason": "prefix_binding_mismatch",
+            "type": "drop",
+          },
+        ]
+      `);
+    });
+
     it('should map a streamed classifier refusal to content-filter and expose stop details', async () => {
       prepareChunksFixtureResponse('anthropic-refusal');
 
@@ -11888,6 +11956,52 @@ describe('claude-opus-4-7 specific behavior', () => {
         prefix_mismatch_behavior: 'drop_block',
       },
     });
+    expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+      'thinking-binding-controls-2026-08-01',
+    );
+  });
+
+  it('should serialize strict thinking binding controls with adaptive thinking', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    await provider('claude-fable-5-1').doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      maxOutputTokens: 4096,
+      providerOptions: {
+        anthropic: {
+          thinking: {
+            type: 'adaptive',
+            blockBinding: {
+              prefixMismatchBehavior: 'error',
+            },
+          },
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "max_tokens": 4096,
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "model": "claude-fable-5-1",
+        "thinking": {
+          "block_binding": {
+            "prefix_mismatch_behavior": "error",
+          },
+          "type": "adaptive",
+        },
+      }
+    `);
     expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
       'thinking-binding-controls-2026-08-01',
     );

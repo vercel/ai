@@ -1,6 +1,7 @@
 import type { Experimental_TextBatchV4Request as TextBatchV4Request } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import fs from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { AnthropicLanguageModel } from './anthropic-language-model';
 import type { AnthropicLanguageModelOptions } from './anthropic-language-model-options';
@@ -92,6 +93,12 @@ function messageResultBody(text: string) {
       cache_read_input_tokens: 2,
     },
   };
+}
+
+function readJsonFixture(filename: string) {
+  return JSON.parse(
+    fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+  );
 }
 
 describe('Anthropic batch', () => {
@@ -290,6 +297,72 @@ describe('Anthropic batch', () => {
         'Anthropic Message Batches do not support per-request betas (request "request-1"). Set providerOptions.anthropic.anthropicBeta on startBatch instead.',
     });
     expect(server.calls).toHaveLength(0);
+  });
+
+  it('starts a batch with thinking binding controls', async () => {
+    server.urls[urls.batches].response = {
+      type: 'json-value',
+      body: batchResponse({ processing_status: 'in_progress' }),
+    };
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+
+    await model.doStartBatch({
+      requests: [
+        {
+          id: 'preserved-thinking',
+          ...request('Continue the conversation.', {
+            maxOutputTokens: 4096,
+            providerOptions: {
+              anthropic: {
+                thinking: {
+                  type: 'adaptive',
+                  blockBinding: {
+                    prefixMismatchBehavior: 'error',
+                  },
+                },
+              } satisfies AnthropicLanguageModelOptions,
+            },
+          }),
+          modelId: 'claude-fable-5-1',
+        },
+      ],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "requests": [
+          {
+            "custom_id": "preserved-thinking",
+            "params": {
+              "max_tokens": 5120,
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "text": "Continue the conversation.",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "claude-fable-5-1",
+              "thinking": {
+                "block_binding": {
+                  "prefix_mismatch_behavior": "error",
+                },
+                "type": "adaptive",
+              },
+            },
+          },
+        ],
+      }
+    `);
+    expect(
+      server.calls[0].requestHeaders['anthropic-beta'],
+    ).toMatchInlineSnapshot(`"thinking-binding-controls-2026-08-01"`);
   });
 
   it('rejects structured-output modes that require start-call context', async () => {
@@ -869,6 +942,48 @@ describe('Anthropic batch', () => {
       urls.batch,
       urls.results,
     ]);
+  });
+
+  it('preserves input transformations in batch result metadata', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse(),
+    };
+    server.urls[urls.results].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          custom_id: 'preserved-thinking',
+          result: {
+            type: 'succeeded',
+            message: readJsonFixture('anthropic-preserved-thinking-dropped.1'),
+          },
+        }),
+      ],
+    };
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+
+    const stream = await model.doGetBatchResults({
+      batchId: 'msgbatch_123',
+    });
+    const results = await convertReadableStreamToArray(stream);
+    const result = results[0];
+
+    expect(
+      result?.type === 'text' && result.status === 'succeeded'
+        ? result.result.providerMetadata?.anthropic?.inputTransformations
+        : undefined,
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "path": "messages.1.content.0",
+          "reason": "prefix_binding_mismatch",
+          "type": "drop",
+        },
+      ]
+    `);
   });
 
   it('preserves client and provider-executed tool content', async () => {
