@@ -18,7 +18,9 @@ export const POST = async ({ request }: { request: Request }) => {
 
   const result = streamText({
     model: openai('gpt-4o'),
-    messages: convertToModelMessages(messages),
+    system:
+      'You are a helpful assistant that can answer questions and use the available tools.',
+    messages: await convertToModelMessages(messages),
     stopWhen: isStepCount(5), // multi-steps for server-side tools
     tools: {
       // server-side tool with execute function:
