@@ -1,6 +1,9 @@
 import { z } from 'zod/v4';
 
-export type MistralSpeechModelId = 'voxtral-mini-tts-2603' | (string & {});
+export type MistralSpeechModelId =
+  | 'voxtral-mini-tts-2603'
+  | 'voxtral-mini-tts-latest'
+  | (string & {});
 
 export const mistralSpeechModelOptions = z.object({
   /**

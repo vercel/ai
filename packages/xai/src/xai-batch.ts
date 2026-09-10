@@ -1,23 +1,33 @@
 import {
   InvalidArgumentError,
+  UnsupportedFunctionalityError,
   type Experimental_BatchV4 as BatchV4,
+  type Experimental_BatchV4CancelResult as BatchV4CancelResult,
   type Experimental_BatchV4Error as BatchV4Error,
   type Experimental_BatchV4ItemResult as BatchV4ItemResult,
+  type Experimental_BatchV4ListOptions as BatchV4ListOptions,
+  type Experimental_BatchV4ListResult as BatchV4ListResult,
   type Experimental_BatchV4OperationOptions as BatchV4OperationOptions,
   type Experimental_BatchV4StartResult as BatchV4StartResult,
   type Experimental_BatchV4Status as BatchV4Status,
   type Experimental_TextBatchV4Request as TextBatchV4Request,
+  type Experimental_ImageBatchV4Request as ImageBatchV4Request,
+  type Experimental_ImageBatchV4ItemResult as ImageBatchV4ItemResult,
   type Experimental_TextBatchV4ItemResult as TextBatchV4ItemResult,
   type Experimental_BatchV4StartOptions as BatchV4StartOptions,
   type LanguageModelV4Content,
   type LanguageModelV4GenerateResult,
   type SharedV4ProviderMetadata,
   type SharedV4Warning,
+  type ImageModelV4Result,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertImageModelFileToDataUri,
+  convertBase64ToUint8Array,
   convertAsyncIteratorToReadableStream,
   createJsonResponseHandler,
+  createBinaryResponseHandler,
   createNullLanguageModelUsage,
   getFromApi,
   lazySchema,
@@ -45,6 +55,8 @@ import {
   type XaiResponsesConfig,
 } from './responses/xai-responses-language-model';
 import type { XaiResponsesModelId } from './responses/xai-responses-language-model-options';
+import type { XaiImageModelId } from './xai-image-settings';
+import { xaiImageModelOptions } from './xai-image-model-options';
 
 const xaiBatchEndpoint = '/v1/responses';
 const xaiBatchName = 'ai-sdk-text-batch';
@@ -68,38 +80,70 @@ const xaiBatchProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-type XaiBatchModelIds = { readonly text: XaiResponsesModelId };
+type XaiBatchModelIds = {
+  readonly text: XaiResponsesModelId;
+  readonly image: XaiImageModelId;
+};
 type XaiBatchRequest = TextBatchV4Request<XaiResponsesModelId>;
+type XaiImageBatchRequest = ImageBatchV4Request<XaiImageModelId>;
+
+function assertSupportedBatchRequests(
+  requests: BatchV4StartOptions<XaiBatchModelIds>['requests'],
+) {
+  for (const request of requests) {
+    const requestType = request.type;
+    if (requestType !== 'text' && requestType !== 'image') {
+      throw new UnsupportedFunctionalityError({
+        functionality: `batch request type: ${requestType}`,
+        message: `The xAI Batch API does not support batch requests with type "${requestType}".`,
+      });
+    }
+  }
+}
 
 type XaiBatchPreparedRequest = {
+  endpoint: string;
   body: unknown;
   warnings: SharedV4Warning[];
 };
+
+const xaiBatchImageResponseSchema = z.object({
+  data: z.array(
+    z.object({
+      url: z.string().nullish(),
+      b64_json: z.string().nullish(),
+      revised_prompt: z.string().nullish(),
+      respect_moderation: z.boolean().nullish(),
+    }),
+  ),
+  usage: z.object({ cost_in_usd_ticks: z.number().nullish() }).nullish(),
+});
 
 type XaiBatchResponseConversion =
   | { success: true; result: LanguageModelV4GenerateResult }
   | { success: false; error: BatchV4Error };
 
+const xaiBatchResponseZodSchema = () =>
+  z.object({
+    batch_id: z.string(),
+    name: z.string().nullish(),
+    create_time: z.string().nullish(),
+    expire_time: z.string().nullish(),
+    cancel_time: z.string().nullish(),
+    cancel_by_xai_message: z.string().nullish(),
+    state: z
+      .object({
+        num_requests: z.number().nullish(),
+        num_pending: z.number().nullish(),
+        num_success: z.number().nullish(),
+        num_error: z.number().nullish(),
+        num_cancelled: z.number().nullish(),
+      })
+      .nullish(),
+  });
+
 const xaiBatchResponseSchema = lazySchema(() =>
-  zodSchema(
-    z.object({
-      batch_id: z.string(),
-      name: z.string().nullish(),
-      create_time: z.string().nullish(),
-      expire_time: z.string().nullish(),
-      cancel_time: z.string().nullish(),
-      cancel_by_xai_message: z.string().nullish(),
-      state: z
-        .object({
-          num_requests: z.number().nullish(),
-          num_pending: z.number().nullish(),
-          num_success: z.number().nullish(),
-          num_error: z.number().nullish(),
-          num_cancelled: z.number().nullish(),
-        })
-        .nullish(),
-    }),
-  ),
+  zodSchema(xaiBatchResponseZodSchema()),
 );
 
 type XaiBatchResponse = InferSchema<typeof xaiBatchResponseSchema>;
@@ -116,6 +160,7 @@ const xaiBatchResultSchema = z.object({
       response: z
         .object({
           chat_get_completion: z.unknown().nullish(),
+          image_generation: z.unknown().nullish(),
         })
         .nullish(),
       error: xaiBatchErrorSchema.nullish(),
@@ -130,6 +175,15 @@ const xaiBatchResultsPageSchema = lazySchema(() =>
   zodSchema(
     z.object({
       results: z.array(xaiBatchResultSchema),
+      pagination_token: z.string().nullish(),
+    }),
+  ),
+);
+
+const xaiBatchListResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      batches: z.array(xaiBatchResponseZodSchema()),
       pagination_token: z.string().nullish(),
     }),
   ),
@@ -152,6 +206,7 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
   async doStartBatch(
     options: BatchV4StartOptions<XaiBatchModelIds>,
   ): Promise<BatchV4StartResult> {
+    assertSupportedBatchRequests(options.requests);
     const fileParts: string[] = [];
     const warnings: BatchV4StartResult['warnings'] =
       options.webhookUrl == null
@@ -180,7 +235,7 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
         JSON.stringify({
           custom_id: request.id,
           method: 'POST',
-          url: xaiBatchEndpoint,
+          url: preparedRequest.endpoint,
           body: preparedRequest.body,
         }),
         '\n',
@@ -262,6 +317,58 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
     return convertXaiBatchStatus(await this.retrieveBatch(options));
   }
 
+  async doCancelBatch(
+    options: BatchV4OperationOptions,
+  ): Promise<BatchV4CancelResult> {
+    await postJsonToApi({
+      url: this.getUrl(
+        `/batches/${encodeURIComponent(options.batchId)}:cancel`,
+      ),
+      headers: combineHeaders(this.options.config.headers?.(), options.headers),
+      body: {},
+      failedResponseHandler: xaiFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        xaiBatchResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.options.config.fetch,
+    });
+
+    return {};
+  }
+
+  async doListBatches(options: BatchV4ListOptions): Promise<BatchV4ListResult> {
+    const url = new URL(this.getUrl('/batches'));
+    if (options.limit != null) {
+      url.searchParams.set('limit', String(options.limit));
+    }
+    if (options.cursor != null) {
+      url.searchParams.set('pagination_token', options.cursor);
+    }
+
+    const { value: page } = await getFromApi({
+      url: url.toString(),
+      headers: combineHeaders(this.options.config.headers?.(), options.headers),
+      failedResponseHandler: xaiFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        xaiBatchListResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.options.config.fetch,
+      validateUrl: false,
+    });
+
+    return {
+      batches: page.batches.map(batch => ({
+        batchId: batch.batch_id,
+        ...convertXaiBatchStatus(batch),
+      })),
+      ...(page.pagination_token != null
+        ? { nextCursor: page.pagination_token }
+        : {}),
+    };
+  }
+
   async doGetBatchResults(
     options: BatchV4OperationOptions,
   ): Promise<ReadableStream<BatchV4ItemResult>> {
@@ -327,7 +434,7 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
       });
 
       for (const result of page.results) {
-        yield await this.convertBatchResult(result);
+        yield await this.convertBatchResult(result, options.abortSignal);
       }
 
       paginationToken = page.pagination_token ?? undefined;
@@ -336,7 +443,8 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
 
   private async convertBatchResult(
     result: XaiBatchResult,
-  ): Promise<TextBatchV4ItemResult> {
+    abortSignal: AbortSignal | undefined,
+  ): Promise<TextBatchV4ItemResult | ImageBatchV4ItemResult> {
     const error = result.batch_result?.error;
     if (
       (result.error_message?.length ?? 0) > 0 ||
@@ -380,18 +488,149 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
           };
     }
 
+    if (response?.image_generation != null) {
+      const validation = await safeValidateTypes({
+        value: response.image_generation,
+        schema: zodSchema(xaiBatchImageResponseSchema),
+      });
+      if (!validation.success) {
+        return invalidXaiImageBatchResult(result.batch_request_id);
+      }
+      if (
+        validation.value.data.some(image => image.respect_moderation === false)
+      ) {
+        return {
+          type: 'image',
+          id: result.batch_request_id,
+          status: 'failed',
+          error: {
+            message:
+              'Image generation was blocked due to a content policy violation.',
+          },
+        };
+      }
+      const imageResult = await this.convertImageBatchResponse(
+        validation.value,
+        abortSignal,
+      );
+      return {
+        type: 'image',
+        id: result.batch_request_id,
+        status: 'succeeded',
+        result: imageResult,
+      };
+    }
+
     return invalidXaiBatchResult(result.batch_request_id);
   }
 
   private async prepareRequest(
-    request: XaiBatchRequest,
+    request: XaiBatchRequest | XaiImageBatchRequest,
   ): Promise<XaiBatchPreparedRequest> {
-    const { args: body, warnings } =
-      await XaiResponsesLanguageModel.prepareRequest({
-        modelId: request.modelId,
-        options: request.options,
+    if (request.type === 'text') {
+      const { args: body, warnings } =
+        await XaiResponsesLanguageModel.prepareRequest({
+          modelId: request.modelId,
+          options: request.options,
+        });
+      return { endpoint: xaiBatchEndpoint, body, warnings };
+    }
+
+    const { prompt, n, size, aspectRatio, seed, files, mask, providerOptions } =
+      request.options;
+    const warnings: SharedV4Warning[] = [];
+    if (size != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'size',
+        details:
+          'This model does not support the `size` option. Use `aspectRatio` instead.',
       });
-    return { body, warnings };
+    }
+    if (seed != null) warnings.push({ type: 'unsupported', feature: 'seed' });
+    if (mask != null) warnings.push({ type: 'unsupported', feature: 'mask' });
+
+    const xaiOptions = await parseProviderOptions({
+      provider: 'xai',
+      providerOptions,
+      schema: xaiImageModelOptions,
+    });
+    const imageUrls = (files ?? []).map(convertImageModelFileToDataUri);
+    const body: Record<string, unknown> = {
+      model: request.modelId,
+      prompt,
+      n,
+      response_format: 'b64_json',
+    };
+    if (aspectRatio != null) body.aspect_ratio = aspectRatio;
+    if (xaiOptions?.output_format != null)
+      body.output_format = xaiOptions.output_format;
+    if (xaiOptions?.sync_mode != null) body.sync_mode = xaiOptions.sync_mode;
+    if (xaiOptions?.aspect_ratio != null && aspectRatio == null)
+      body.aspect_ratio = xaiOptions.aspect_ratio;
+    if (xaiOptions?.resolution != null) body.resolution = xaiOptions.resolution;
+    if (xaiOptions?.quality != null) body.quality = xaiOptions.quality;
+    if (xaiOptions?.user != null) body.user = xaiOptions.user;
+    if (imageUrls.length === 1) {
+      body.image = { url: imageUrls[0], type: 'image_url' };
+    } else if (imageUrls.length > 1) {
+      body.images = imageUrls.map(url => ({ url, type: 'image_url' }));
+    }
+
+    return {
+      endpoint: files?.length ? '/v1/images/edits' : '/v1/images/generations',
+      body,
+      warnings,
+    };
+  }
+
+  private async convertImageBatchResponse(
+    response: z.infer<typeof xaiBatchImageResponseSchema>,
+    abortSignal: AbortSignal | undefined,
+  ): Promise<ImageModelV4Result> {
+    const hasAllBase64 = response.data.every(image => image.b64_json != null);
+    const images = hasAllBase64
+      ? response.data.map(image => image.b64_json!)
+      : await Promise.all(
+          response.data.map(async image => {
+            if (image.b64_json != null) {
+              return convertBase64ToUint8Array(image.b64_json);
+            }
+            if (image.url == null) {
+              throw new InvalidArgumentError({
+                argument: 'batchResult',
+                message: 'xAI returned an image without data or a URL.',
+              });
+            }
+            const { value } = await getFromApi({
+              url: image.url,
+              validateUrl: true,
+              trustedOrigin: this.options.config.baseURL,
+              abortSignal,
+              failedResponseHandler: xaiFailedResponseHandler,
+              successfulResponseHandler: createBinaryResponseHandler(),
+              fetch: this.options.config.fetch,
+            });
+            return value;
+          }),
+        );
+    return {
+      images,
+      warnings: [],
+      response: { timestamp: new Date(), modelId: '', headers: undefined },
+      providerMetadata: {
+        xai: {
+          images: response.data.map(item =>
+            item.revised_prompt != null
+              ? { revisedPrompt: item.revised_prompt }
+              : {},
+          ),
+          ...(response.usage?.cost_in_usd_ticks != null
+            ? { costInUsdTicks: response.usage.cost_in_usd_ticks }
+            : {}),
+        },
+      },
+    };
   }
 
   private getUrl(path: string) {
@@ -482,6 +721,18 @@ function invalidXaiBatchResult(id: string): TextBatchV4ItemResult {
     status: 'failed',
     error: {
       message: 'xAI returned an invalid Responses batch result.',
+      code: 'invalid_response',
+    },
+  };
+}
+
+function invalidXaiImageBatchResult(id: string): ImageBatchV4ItemResult {
+  return {
+    type: 'image',
+    id,
+    status: 'failed',
+    error: {
+      message: 'xAI returned an invalid image batch result.',
       code: 'invalid_response',
     },
   };

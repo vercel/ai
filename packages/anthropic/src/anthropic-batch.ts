@@ -3,7 +3,10 @@ import {
   InvalidResponseDataError,
   UnsupportedFunctionalityError,
   type Experimental_BatchV4 as BatchV4,
+  type Experimental_BatchV4CancelResult as BatchV4CancelResult,
   type Experimental_BatchV4ItemResult as BatchV4ItemResult,
+  type Experimental_BatchV4ListOptions as BatchV4ListOptions,
+  type Experimental_BatchV4ListResult as BatchV4ListResult,
   type Experimental_BatchV4OperationOptions as BatchV4OperationOptions,
   type Experimental_BatchV4StartResult as BatchV4StartResult,
   type Experimental_BatchV4Status as BatchV4Status,
@@ -64,25 +67,36 @@ const anthropicBatchProviderOptionsSchema = anthropicLanguageModelOptions.pick({
 
 type AnthropicBatchRequest = TextBatchV4Request<AnthropicModelId>;
 
+const anthropicBatchResponseZodSchema = () =>
+  z.object({
+    id: z.string(),
+    type: z.literal('message_batch'),
+    processing_status: z.string(),
+    request_counts: z.object({
+      processing: z.number(),
+      succeeded: z.number(),
+      errored: z.number(),
+      canceled: z.number(),
+      expired: z.number(),
+    }),
+    created_at: z.string(),
+    expires_at: z.string(),
+    archived_at: z.string().nullish(),
+    cancel_initiated_at: z.string().nullish(),
+    ended_at: z.string().nullish(),
+    results_url: z.string().nullish(),
+  });
+
 const anthropicBatchResponseSchema = lazySchema(() =>
+  zodSchema(anthropicBatchResponseZodSchema()),
+);
+
+const anthropicBatchListResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      id: z.string(),
-      type: z.literal('message_batch'),
-      processing_status: z.string(),
-      request_counts: z.object({
-        processing: z.number(),
-        succeeded: z.number(),
-        errored: z.number(),
-        canceled: z.number(),
-        expired: z.number(),
-      }),
-      created_at: z.string(),
-      expires_at: z.string(),
-      archived_at: z.string().nullish(),
-      cancel_initiated_at: z.string().nullish(),
-      ended_at: z.string().nullish(),
-      results_url: z.string().nullish(),
+      data: z.array(anthropicBatchResponseZodSchema()),
+      has_more: z.boolean(),
+      last_id: z.string().nullish(),
     }),
   ),
 );
@@ -148,6 +162,20 @@ type AnthropicBatchResultLine = InferSchema<
 
 type AnthropicResponse = InferSchema<typeof anthropicResponseSchema>;
 
+function assertTextBatchRequests(
+  requests: BatchV4StartOptions['requests'],
+): asserts requests is ReadonlyArray<AnthropicBatchRequest> {
+  for (const request of requests) {
+    const requestType = request.type;
+    if (requestType !== 'text') {
+      throw new UnsupportedFunctionalityError({
+        functionality: `batch request type: ${requestType}`,
+        message: `The Anthropic Message Batches API does not support batch requests with type "${requestType}".`,
+      });
+    }
+  }
+}
+
 export class AnthropicBatch implements BatchV4<{
   readonly text: AnthropicModelId;
 }> {
@@ -177,6 +205,7 @@ export class AnthropicBatch implements BatchV4<{
   }: BatchV4StartOptions<{
     text: AnthropicModelId;
   }>): Promise<BatchV4StartResult> {
+    assertTextBatchRequests(requests);
     validateRequestIds(requests);
 
     const explicitBatchBetas = new Set(
@@ -293,6 +322,56 @@ export class AnthropicBatch implements BatchV4<{
     options: BatchV4OperationOptions,
   ): Promise<BatchV4Status> {
     return convertAnthropicBatchStatus(await this.retrieveBatch(options));
+  }
+
+  async doCancelBatch(
+    options: BatchV4OperationOptions,
+  ): Promise<BatchV4CancelResult> {
+    await postJsonToApi({
+      url: this.getBatchUrl(`/${encodeURIComponent(options.batchId)}/cancel`),
+      headers: await this.getBatchHeaders(options.headers),
+      body: {},
+      failedResponseHandler: anthropicFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        anthropicBatchResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.options.config.fetch,
+    });
+
+    return {};
+  }
+
+  async doListBatches(options: BatchV4ListOptions): Promise<BatchV4ListResult> {
+    const url = new URL(this.getBatchUrl(''));
+    if (options.limit != null) {
+      url.searchParams.set('limit', String(options.limit));
+    }
+    if (options.cursor != null) {
+      url.searchParams.set('after_id', options.cursor);
+    }
+
+    const { value: page } = await getFromApi({
+      url: url.toString(),
+      validateUrl: false,
+      headers: await this.getBatchHeaders(options.headers),
+      failedResponseHandler: anthropicFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        anthropicBatchListResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.options.config.fetch,
+    });
+
+    return {
+      batches: page.data.map(batch => ({
+        batchId: batch.id,
+        ...convertAnthropicBatchStatus(batch),
+      })),
+      ...(page.has_more && page.last_id != null
+        ? { nextCursor: page.last_id }
+        : {}),
+    };
   }
 
   async doGetBatchResults(

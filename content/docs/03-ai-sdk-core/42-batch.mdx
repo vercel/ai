@@ -15,10 +15,10 @@ application does not need to keep the request open while the model generates
 the results. This is useful for workloads such as classification,
 summarization, and content generation that do not need an immediate response.
 
-The batch API is designed to support multiple request types. Currently, only
-`type: 'text'` is supported.
+The batch API supports text generation with `type: 'text'` and image generation
+with `type: 'image'`.
 
-The AI SDK provides three functions for the batch lifecycle:
+The AI SDK provides five functions for the batch lifecycle:
 
 - [`experimental_startBatch`](/docs/reference/ai-sdk-core/start-batch)
   submits a batch and returns its initial status and a serializable reference.
@@ -26,17 +26,29 @@ The AI SDK provides three functions for the batch lifecycle:
   retrieves the latest status and request counts.
 - [`experimental_getBatchResults`](/docs/reference/ai-sdk-core/get-batch-results)
   asynchronously iterates over the terminal result for each request.
+- [`experimental_cancelBatch`](/docs/reference/ai-sdk-core/cancel-batch)
+  requests cancellation of a batch.
+- [`experimental_listBatches`](/docs/reference/ai-sdk-core/list-batches)
+  lists batches and their latest statuses.
 
-All three functions are exported from `ai`. The examples below use aliases so
+All five functions are exported from `ai`. The examples below use aliases so
 the shorter names can be used in application code:
 
 ```ts
 import {
+  experimental_cancelBatch as cancelBatch,
   experimental_getBatchResults as getBatchResults,
   experimental_getBatchStatus as getBatchStatus,
+  experimental_listBatches as listBatches,
   experimental_startBatch as startBatch,
 } from 'ai';
 ```
+
+Cancellation and listing are optional provider capabilities. Calling either
+function with a provider that does not implement it throws an
+`UnsupportedFunctionalityError`. In the cancellation and listing examples
+below, `provider` represents a batch provider that implements the respective
+capability.
 
 ## Supported providers
 
@@ -44,13 +56,13 @@ Batch processing requires a provider that implements the batch interface.
 Support is provider- and model-specific. The first-party providers with
 support are:
 
-| Provider                                             | Provider value | Model example                  | Provider API                                                                                  |
-| ---------------------------------------------------- | -------------- | ------------------------------ | --------------------------------------------------------------------------------------------- |
-| [Anthropic](/providers/ai-sdk-providers/anthropic)   | `anthropic`    | `'claude-haiku-4-5'`           | [Message Batches API](https://platform.claude.com/docs/en/build-with-claude/batch-processing) |
-| [Google](/providers/ai-sdk-providers/google)         | `google`       | `'gemini-3.6-flash'`           | [Gemini Batch API](https://ai.google.dev/gemini-api/docs/batch-api)                           |
-| [OpenAI](/providers/ai-sdk-providers/openai)         | `openai`       | `'gpt-4.1-nano'`               | [Batch API](https://developers.openai.com/api/docs/guides/batch)                              |
-| [xAI](/providers/ai-sdk-providers/xai)               | `xai`          | `'grok-4.3'`                   | [Batch API](https://docs.x.ai/developers/advanced-api-usage/batch-api)                        |
-| [AI Gateway](/providers/ai-sdk-providers/ai-gateway) | global default | `'anthropic/claude-haiku-4.5'` | [Batch processing](https://vercel.com/docs/ai-gateway/models-and-providers/batch-processing)  |
+| Provider                                             | Provider value | Request types | Provider API                                                                                  |
+| ---------------------------------------------------- | -------------- | ------------- | --------------------------------------------------------------------------------------------- |
+| [Anthropic](/providers/ai-sdk-providers/anthropic)   | `anthropic`    | text          | [Message Batches API](https://platform.claude.com/docs/en/build-with-claude/batch-processing) |
+| [Google](/providers/ai-sdk-providers/google)         | `google`       | text, image   | [Gemini Batch API](https://ai.google.dev/gemini-api/docs/batch-api)                           |
+| [OpenAI](/providers/ai-sdk-providers/openai)         | `openai`       | text          | [Batch API](https://developers.openai.com/api/docs/guides/batch)                              |
+| [xAI](/providers/ai-sdk-providers/xai)               | `xai`          | text, image   | [Batch API](https://docs.x.ai/developers/advanced-api-usage/batch-api)                        |
+| [AI Gateway](/providers/ai-sdk-providers/ai-gateway) | global default | text          | [Batch processing](https://vercel.com/docs/ai-gateway/models-and-providers/batch-processing)  |
 
 See the provider documentation for the supported models, limits, and native
 batch behavior. For example, OpenAI batch support is available through the
@@ -112,6 +124,45 @@ before the process exits if the batch will be completed by another process or
 at a later time. When retrieving a batch, pass the same provider. The AI SDK
 uses the reference to ensure that a batch is not read through an incompatible
 provider.
+
+### Image requests
+
+Image requests use the same prompt and generation settings as `generateImage`:
+`prompt`, `n`, `size`, `aspectRatio`, `seed`, and `providerOptions`. A prompt
+can also contain input images and a mask for providers that support image
+editing. Provider batch endpoints may support only a subset of these options;
+unsupported options produce warnings or errors.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { experimental_startBatch as startBatch } from 'ai';
+
+const batch = await startBatch({
+  provider: google,
+  requests: [
+    {
+      id: 'red-panda',
+      type: 'image',
+      model: 'gemini-2.5-flash-image',
+      prompt: 'A red panda reading beside a cabin window',
+      aspectRatio: '16:9',
+    },
+  ],
+});
+```
+
+Successful image items have an `images` array of `GeneratedFile` values, plus
+image warnings, response metadata, usage, and provider metadata when the
+provider supplies them. Successful text items have `text` and `content`
+properties. Use the `type` property to narrow mixed results:
+
+```ts
+for await (const item of getBatchResults({ provider: google, batch })) {
+  if (item.type === 'image' && item.status === 'succeeded') {
+    console.log(item.images);
+  }
+}
+```
 
 ## Batch tools
 
@@ -218,6 +269,55 @@ support and payloads are provider-specific. The provider pages linked above
 describe their webhook behavior; providers that do not support webhooks return
 an unsupported warning and continue without one.
 
+## Cancelling a batch
+
+Use `cancelBatch` to ask the provider to stop processing a batch:
+
+```ts
+const result = await cancelBatch({
+  provider,
+  batch,
+});
+
+console.log(result.providerMetadata);
+```
+
+A successful call means that the provider accepted the cancellation request.
+It does not guarantee that cancellation has finished or that every pending
+request will be cancelled. Use `getBatchStatus` to retrieve the latest status
+after requesting cancellation.
+
+The result can include provider metadata with additional information from the
+cancellation response.
+
+## Listing batches
+
+Use `listBatches` to retrieve batches from the provider. Results are paginated.
+Pass the returned `nextCursor` as `cursor` to retrieve the next page:
+
+```ts
+let cursor: string | undefined;
+
+do {
+  const page = await listBatches({
+    provider,
+    limit: 20,
+    cursor,
+  });
+
+  for (const batch of page.batches) {
+    console.log(batch.id, batch.status);
+  }
+
+  cursor = page.nextCursor;
+} while (cursor != null);
+```
+
+Each item is a serializable batch reference with its latest normalized status,
+so it can be passed directly to `getBatchStatus`, `getBatchResults`, or
+`cancelBatch`. Cursors are opaque and provider-specific; applications should
+store or pass them unchanged rather than inspect their contents.
+
 ## Retrieving results
 
 After the batch is complete, `getBatchResults` returns an async iterable. Each
@@ -257,14 +357,14 @@ sensitive data.
 
 ## Request controls
 
-`getBatchStatus` and `getBatchResults` accept `providerOptions`, `headers`,
-`timeout`, `abortSignal`, and `maxRetries` for the current status or result
-retrieval operation:
+All batch lifecycle functions accept `providerOptions`, `headers`, `timeout`,
+and `abortSignal` for the current operation. `getBatchStatus`,
+`getBatchResults`, and `listBatches` also accept `maxRetries`:
 
-- `maxRetries` controls retries for status and result retrieval. It does not
-  retry batch creation, which could create a duplicate batch. It defaults to 2;
-  set it to 0 to disable retries.
-- `abortSignal` cancels the current status or result request.
+- `maxRetries` controls retries for status, result retrieval, and listing. It
+  does not retry batch creation or cancellation. It defaults to 2; set it to 0
+  to disable retries.
+- `abortSignal` cancels the current API request.
 - `timeout` limits the current HTTP operation.
 
 These controls affect communication with the provider. They do not change the
