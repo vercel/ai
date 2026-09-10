@@ -23,6 +23,9 @@ const initiateFixture = JSON.parse(
 const resultFixture = JSON.parse(
   fs.readFileSync('src/__fixtures__/gladia-result.json', 'utf8'),
 );
+const diarizationResultFixture = JSON.parse(
+  fs.readFileSync('src/__fixtures__/gladia-result-diarization.json', 'utf8'),
+);
 
 const server = createTestServer({
   'https://api.gladia.io/v2/upload': {
@@ -203,6 +206,37 @@ describe('doGenerate', () => {
 
       expect(result.response.timestamp.getTime()).toEqual(testDate.getTime());
       expect(result.response.modelId).toBe('default');
+    });
+
+    it('should retain diarization utterance metadata', async () => {
+      server.urls[initiateFixture.result_url].response = {
+        type: 'json-value',
+        body: diarizationResultFixture,
+      };
+
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          gladia: {
+            diarization: true,
+          },
+        },
+      });
+
+      const rawUtterance =
+        diarizationResultFixture.result.transcription.utterances[0];
+      const gladiaMetadata = result.providerMetadata?.gladia;
+      expect(gladiaMetadata).toBeDefined();
+      const metadataUtterance = (gladiaMetadata as any).result.transcription
+        .utterances[0];
+
+      expect(metadataUtterance).toMatchObject({
+        speaker: rawUtterance.speaker,
+        confidence: rawUtterance.confidence,
+        language: rawUtterance.language,
+        words: rawUtterance.words,
+      });
     });
   });
 });

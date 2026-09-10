@@ -1,0 +1,1309 @@
+{
+  "id": "1fa428c1-a297-4df3-9e4c-9d5a1fe0c5bb",
+  "request_id": "G-1fa428c1",
+  "version": 2,
+  "status": "done",
+  "created_at": "2026-09-10T17:29:05.821Z",
+  "completed_at": "2026-09-10T17:29:12.306Z",
+  "custom_metadata": null,
+  "error_code": null,
+  "kind": "pre-recorded",
+  "file": {
+    "id": "b878ba54-68ff-4658-8ef3-b77d6db9e667",
+    "filename": "audio.mp3",
+    "source": null,
+    "audio_duration": 36.736,
+    "number_of_channels": 1
+  },
+  "request_params": {
+    "audio_url": "https://api.gladia.io/file/b878ba54-68ff-4658-8ef3-b77d6db9e667",
+    "model": "solaria-1",
+    "sentences": false,
+    "subtitles": false,
+    "moderation": false,
+    "diarization": true,
+    "translation": false,
+    "audio_to_llm": false,
+    "display_mode": false,
+    "pii_redaction": false,
+    "summarization": false,
+    "audio_enhancer": false,
+    "chapterization": false,
+    "custom_spelling": false,
+    "detect_language": true,
+    "language_config": {
+      "languages": []
+    },
+    "name_consistency": false,
+    "sentiment_analysis": false,
+    "diarization_enhanced": false,
+    "punctuation_enhanced": false,
+    "enable_code_switching": false,
+    "named_entity_recognition": false,
+    "accurate_words_timestamps": false,
+    "skip_channel_deduplication": false,
+    "structured_data_extraction": false
+  },
+  "result": {
+    "metadata": {
+      "audio_duration": 36.736,
+      "number_of_distinct_channels": 1,
+      "billing_time": 36.736,
+      "transcription_time": 6.485
+    },
+    "transcription": {
+      "languages": [
+        "en"
+      ],
+      "utterances": [
+        {
+          "text": "Galileo was an American robotic space program that studied the planet Jupiter and its moons,",
+          "language": "en",
+          "start": 0.14,
+          "end": 5.342,
+          "confidence": 0.98,
+          "channel": 0,
+          "words": [
+            {
+              "word": "Galileo",
+              "start": 0.14,
+              "end": 0.6399999999999999,
+              "confidence": 0.93
+            },
+            {
+              "word": " was",
+              "start": 0.76,
+              "end": 0.8799999999999999,
+              "confidence": 1
+            },
+            {
+              "word": " an",
+              "start": 0.8999999999999999,
+              "end": 1.02,
+              "confidence": 1
+            },
+            {
+              "word": " American",
+              "start": 1.021,
+              "end": 1.48,
+              "confidence": 1
+            },
+            {
+              "word": " robotic",
+              "start": 1.56,
+              "end": 2.041,
+              "confidence": 0.96
+            },
+            {
+              "word": " space",
+              "start": 2.121,
+              "end": 2.4010000000000002,
+              "confidence": 1
+            },
+            {
+              "word": " program",
+              "start": 2.441,
+              "end": 2.861,
+              "confidence": 1
+            },
+            {
+              "word": " that",
+              "start": 2.9210000000000003,
+              "end": 3.041,
+              "confidence": 1
+            },
+            {
+              "word": " studied",
+              "start": 3.121,
+              "end": 3.481,
+              "confidence": 0.99
+            },
+            {
+              "word": " the",
+              "start": 3.482,
+              "end": 3.601,
+              "confidence": 0.96
+            },
+            {
+              "word": " planet",
+              "start": 3.621,
+              "end": 3.961,
+              "confidence": 1
+            },
+            {
+              "word": " Jupiter",
+              "start": 4.0009999999999994,
+              "end": 4.441,
+              "confidence": 0.93
+            },
+            {
+              "word": " and",
+              "start": 4.601,
+              "end": 4.720999999999999,
+              "confidence": 1
+            },
+            {
+              "word": " its",
+              "start": 4.741,
+              "end": 4.861,
+              "confidence": 1
+            },
+            {
+              "word": " moons,",
+              "start": 4.941,
+              "end": 5.342,
+              "confidence": 0.98
+            }
+          ],
+          "speaker": 0
+        },
+        {
+          "text": "as well as several other solar system bodies.",
+          "language": "en",
+          "start": 5.662,
+          "end": 8.102,
+          "confidence": 0.97,
+          "channel": 0,
+          "words": [
+            {
+              "word": " as",
+              "start": 5.662,
+              "end": 5.782,
+              "confidence": 1
+            },
+            {
+              "word": " well",
+              "start": 5.842,
+              "end": 6.002,
+              "confidence": 1
+            },
+            {
+              "word": " as",
+              "start": 6.002999999999999,
+              "end": 6.122,
+              "confidence": 1
+            },
+            {
+              "word": " several",
+              "start": 6.2219999999999995,
+              "end": 6.542,
+              "confidence": 1
+            },
+            {
+              "word": " other",
+              "start": 6.6419999999999995,
+              "end": 6.842,
+              "confidence": 0.97
+            },
+            {
+              "word": " solar",
+              "start": 6.941999999999999,
+              "end": 7.242,
+              "confidence": 0.79
+            },
+            {
+              "word": " system",
+              "start": 7.282,
+              "end": 7.622,
+              "confidence": 1
+            },
+            {
+              "word": " bodies.",
+              "start": 7.6819999999999995,
+              "end": 8.102,
+              "confidence": 1
+            }
+          ],
+          "speaker": 0
+        },
+        {
+          "text": "Named after the Italian astronomer Galileo Galilei,",
+          "language": "en",
+          "start": 9.143,
+          "end": 12.124,
+          "confidence": 0.93,
+          "channel": 0,
+          "words": [
+            {
+              "word": " Named",
+              "start": 9.143,
+              "end": 9.443,
+              "confidence": 0.99
+            },
+            {
+              "word": " after",
+              "start": 9.543000000000001,
+              "end": 9.763,
+              "confidence": 1
+            },
+            {
+              "word": " the",
+              "start": 9.764000000000001,
+              "end": 9.883000000000001,
+              "confidence": 1
+            },
+            {
+              "word": " Italian",
+              "start": 9.923,
+              "end": 10.383000000000001,
+              "confidence": 1
+            },
+            {
+              "word": " astronomer",
+              "start": 10.443,
+              "end": 10.983,
+              "confidence": 0.8
+            },
+            {
+              "word": " Galileo",
+              "start": 11.043000000000001,
+              "end": 11.504000000000001,
+              "confidence": 0.94
+            },
+            {
+              "word": " Galilei,",
+              "start": 11.624,
+              "end": 12.124,
+              "confidence": 0.77
+            }
+          ],
+          "speaker": 0
+        },
+        {
+          "text": "the Galileo spacecraft consisted of an orbiter and an atmospheric entry probe.",
+          "language": "en",
+          "start": 12.424000000000001,
+          "end": 17.244999999999997,
+          "confidence": 0.95,
+          "channel": 0,
+          "words": [
+            {
+              "word": " the",
+              "start": 12.424000000000001,
+              "end": 12.544,
+              "confidence": 1
+            },
+            {
+              "word": " Galileo",
+              "start": 12.604000000000001,
+              "end": 13.104000000000001,
+              "confidence": 0.93
+            },
+            {
+              "word": " spacecraft",
+              "start": 13.264000000000001,
+              "end": 13.884,
+              "confidence": 1
+            },
+            {
+              "word": " consisted",
+              "start": 13.924000000000001,
+              "end": 14.524000000000001,
+              "confidence": 0.95
+            },
+            {
+              "word": " of",
+              "start": 14.584,
+              "end": 14.704,
+              "confidence": 1
+            },
+            {
+              "word": " an",
+              "start": 14.705,
+              "end": 14.805,
+              "confidence": 1
+            },
+            {
+              "word": " orbiter",
+              "start": 14.885,
+              "end": 15.265,
+              "confidence": 0.75
+            },
+            {
+              "word": " and",
+              "start": 15.425,
+              "end": 15.545,
+              "confidence": 0.99
+            },
+            {
+              "word": " an",
+              "start": 15.546000000000001,
+              "end": 15.665000000000001,
+              "confidence": 0.84
+            },
+            {
+              "word": " atmospheric",
+              "start": 15.745000000000001,
+              "end": 16.404999999999998,
+              "confidence": 0.97
+            },
+            {
+              "word": " entry",
+              "start": 16.485,
+              "end": 16.724999999999998,
+              "confidence": 0.99
+            },
+            {
+              "word": " probe.",
+              "start": 16.805,
+              "end": 17.244999999999997,
+              "confidence": 0.99
+            }
+          ],
+          "speaker": 0
+        },
+        {
+          "text": "It was delivered into Earth orbit on October 18,",
+          "language": "en",
+          "start": 18.186,
+          "end": 20.926,
+          "confidence": 0.85,
+          "channel": 0,
+          "words": [
+            {
+              "word": " It",
+              "start": 18.186,
+              "end": 18.305999999999997,
+              "confidence": 1
+            },
+            {
+              "word": " was",
+              "start": 18.325999999999997,
+              "end": 18.445999999999998,
+              "confidence": 1
+            },
+            {
+              "word": " delivered",
+              "start": 18.526,
+              "end": 18.945999999999998,
+              "confidence": 1
+            },
+            {
+              "word": " into",
+              "start": 19.006,
+              "end": 19.206,
+              "confidence": 1
+            },
+            {
+              "word": " Earth",
+              "start": 19.285999999999998,
+              "end": 19.485999999999997,
+              "confidence": 0.92
+            },
+            {
+              "word": " orbit",
+              "start": 19.586,
+              "end": 19.846,
+              "confidence": 0.76
+            },
+            {
+              "word": " on",
+              "start": 19.926,
+              "end": 20.046,
+              "confidence": 1
+            },
+            {
+              "word": " October",
+              "start": 20.066,
+              "end": 20.526,
+              "confidence": 1
+            },
+            {
+              "word": " 18,",
+              "start": 20.526999999999997,
+              "end": 20.926,
+              "confidence": 0
+            }
+          ],
+          "speaker": 0
+        },
+        {
+          "text": "1989,",
+          "language": "en",
+          "start": 20.927,
+          "end": 22.506999999999998,
+          "confidence": 0,
+          "channel": 0,
+          "words": [
+            {
+              "word": " 1989,",
+              "start": 20.927,
+              "end": 22.506999999999998,
+              "confidence": 0
+            }
+          ],
+          "speaker": 0
+        },
+        {
+          "text": "by Space Shuttle Atlantis on the STS-34 mission.",
+          "language": "en",
+          "start": 22.508,
+          "end": 25.968,
+          "confidence": 0.95,
+          "channel": 0,
+          "words": [
+            {
+              "word": " by",
+              "start": 22.508,
+              "end": 22.627,
+              "confidence": 1
+            },
+            {
+              "word": " Space",
+              "start": 22.686999999999998,
+              "end": 22.987,
+              "confidence": 1
+            },
+            {
+              "word": " Shuttle",
+              "start": 23.026999999999997,
+              "end": 23.326999999999998,
+              "confidence": 0.69
+            },
+            {
+              "word": " Atlantis",
+              "start": 23.346999999999998,
+              "end": 23.866999999999997,
+              "confidence": 0.96
+            },
+            {
+              "word": " on",
+              "start": 23.947,
+              "end": 24.067,
+              "confidence": 1
+            },
+            {
+              "word": " the",
+              "start": 24.067999999999998,
+              "end": 24.166999999999998,
+              "confidence": 0.96
+            },
+            {
+              "word": " STS-34",
+              "start": 24.326999999999998,
+              "end": 24.808,
+              "confidence": 0.99
+            },
+            {
+              "word": " mission.",
+              "start": 25.607999999999997,
+              "end": 25.968,
+              "confidence": 0.96
+            }
+          ],
+          "speaker": 0
+        },
+        {
+          "text": "and arrived at Jupiter on December 7,",
+          "language": "en",
+          "start": 26.400000000000002,
+          "end": 28.523,
+          "confidence": 0.85,
+          "channel": 0,
+          "words": [
+            {
+              "word": " and",
+              "start": 26.400000000000002,
+              "end": 26.52,
+              "confidence": 0.98
+            },
+            {
+              "word": " arrived",
+              "start": 26.54,
+              "end": 26.961000000000002,
+              "confidence": 1
+            },
+            {
+              "word": " at",
+              "start": 26.962,
+              "end": 27.081,
+              "confidence": 1
+            },
+            {
+              "word": " Jupiter",
+              "start": 27.141000000000002,
+              "end": 27.602,
+              "confidence": 0.96
+            },
+            {
+              "word": " on",
+              "start": 27.662,
+              "end": 27.782,
+              "confidence": 1
+            },
+            {
+              "word": " December",
+              "start": 27.802,
+              "end": 28.202,
+              "confidence": 0.98
+            },
+            {
+              "word": " 7,",
+              "start": 28.302,
+              "end": 28.523,
+              "confidence": 0.01
+            }
+          ],
+          "speaker": 0
+        },
+        {
+          "text": "1995,",
+          "language": "en",
+          "start": 28.524,
+          "end": 29.844,
+          "confidence": 0,
+          "channel": 0,
+          "words": [
+            {
+              "word": " 1995,",
+              "start": 28.524,
+              "end": 29.844,
+              "confidence": 0
+            }
+          ],
+          "speaker": 0
+        },
+        {
+          "text": "after gravity-assist flybys of Venus and Earth,",
+          "language": "en",
+          "start": 30.245,
+          "end": 32.848,
+          "confidence": 0.96,
+          "channel": 0,
+          "words": [
+            {
+              "word": " after",
+              "start": 30.245,
+              "end": 30.505000000000003,
+              "confidence": 1
+            },
+            {
+              "word": " gravity-assist",
+              "start": 30.545,
+              "end": 31.306,
+              "confidence": 0.99
+            },
+            {
+              "word": " flybys",
+              "start": 31.346,
+              "end": 31.807000000000002,
+              "confidence": 0.78
+            },
+            {
+              "word": " of",
+              "start": 31.808,
+              "end": 31.927,
+              "confidence": 1
+            },
+            {
+              "word": " Venus",
+              "start": 31.967,
+              "end": 32.327,
+              "confidence": 0.99
+            },
+            {
+              "word": " and",
+              "start": 32.408,
+              "end": 32.528,
+              "confidence": 1
+            },
+            {
+              "word": " Earth,",
+              "start": 32.568,
+              "end": 32.848,
+              "confidence": 0.97
+            }
+          ],
+          "speaker": 0
+        },
+        {
+          "text": "and became the first spacecraft to orbit Jupiter.",
+          "language": "en",
+          "start": 33.128,
+          "end": 35.812,
+          "confidence": 0.96,
+          "channel": 0,
+          "words": [
+            {
+              "word": " and",
+              "start": 33.128,
+              "end": 33.249,
+              "confidence": 0.95
+            },
+            {
+              "word": " became",
+              "start": 33.289,
+              "end": 33.589,
+              "confidence": 1
+            },
+            {
+              "word": " the",
+              "start": 33.59,
+              "end": 33.709,
+              "confidence": 0.97
+            },
+            {
+              "word": " first",
+              "start": 33.789,
+              "end": 34.11,
+              "confidence": 1
+            },
+            {
+              "word": " spacecraft",
+              "start": 34.17,
+              "end": 34.811,
+              "confidence": 1
+            },
+            {
+              "word": " to",
+              "start": 34.831,
+              "end": 34.951,
+              "confidence": 1
+            },
+            {
+              "word": " orbit",
+              "start": 35.051,
+              "end": 35.291,
+              "confidence": 0.74
+            },
+            {
+              "word": " Jupiter.",
+              "start": 35.351,
+              "end": 35.812,
+              "confidence": 0.98
+            }
+          ],
+          "speaker": 0
+        }
+      ],
+      "full_transcript": "Galileo was an American robotic space program that studied the planet Jupiter and its moons, as well as several other solar system bodies. Named after the Italian astronomer Galileo Galilei, the Galileo spacecraft consisted of an orbiter and an atmospheric entry probe. It was delivered into Earth orbit on October 18, 1989, by Space Shuttle Atlantis on the STS-34 mission. and arrived at Jupiter on December 7, 1995, after gravity-assist flybys of Venus and Earth, and became the first spacecraft to orbit Jupiter."
+    },
+    "diarization": {
+      "success": true,
+      "is_empty": false,
+      "exec_time": 6,
+      "results": [
+        {
+          "text": "Galileo was an American robotic space program that studied the planet Jupiter and its moons,",
+          "language": "en",
+          "start": 0.14,
+          "end": 5.342,
+          "confidence": 0.98,
+          "channel": 0,
+          "words": [
+            {
+              "word": "Galileo",
+              "start": 0.14,
+              "end": 0.6399999999999999,
+              "confidence": 0.93
+            },
+            {
+              "word": " was",
+              "start": 0.76,
+              "end": 0.8799999999999999,
+              "confidence": 1
+            },
+            {
+              "word": " an",
+              "start": 0.8999999999999999,
+              "end": 1.02,
+              "confidence": 1
+            },
+            {
+              "word": " American",
+              "start": 1.021,
+              "end": 1.48,
+              "confidence": 1
+            },
+            {
+              "word": " robotic",
+              "start": 1.56,
+              "end": 2.041,
+              "confidence": 0.96
+            },
+            {
+              "word": " space",
+              "start": 2.121,
+              "end": 2.4010000000000002,
+              "confidence": 1
+            },
+            {
+              "word": " program",
+              "start": 2.441,
+              "end": 2.861,
+              "confidence": 1
+            },
+            {
+              "word": " that",
+              "start": 2.9210000000000003,
+              "end": 3.041,
+              "confidence": 1
+            },
+            {
+              "word": " studied",
+              "start": 3.121,
+              "end": 3.481,
+              "confidence": 0.99
+            },
+            {
+              "word": " the",
+              "start": 3.482,
+              "end": 3.601,
+              "confidence": 0.96
+            },
+            {
+              "word": " planet",
+              "start": 3.621,
+              "end": 3.961,
+              "confidence": 1
+            },
+            {
+              "word": " Jupiter",
+              "start": 4.0009999999999994,
+              "end": 4.441,
+              "confidence": 0.93
+            },
+            {
+              "word": " and",
+              "start": 4.601,
+              "end": 4.720999999999999,
+              "confidence": 1
+            },
+            {
+              "word": " its",
+              "start": 4.741,
+              "end": 4.861,
+              "confidence": 1
+            },
+            {
+              "word": " moons,",
+              "start": 4.941,
+              "end": 5.342,
+              "confidence": 0.98
+            }
+          ],
+          "speaker": 0
+        },
+        {
+          "text": "as well as several other solar system bodies.",
+          "language": "en",
+          "start": 5.662,
+          "end": 8.102,
+          "confidence": 0.97,
+          "channel": 0,
+          "words": [
+            {
+              "word": " as",
+              "start": 5.662,
+              "end": 5.782,
+              "confidence": 1
+            },
+            {
+              "word": " well",
+              "start": 5.842,
+              "end": 6.002,
+              "confidence": 1
+            },
+            {
+              "word": " as",
+              "start": 6.002999999999999,
+              "end": 6.122,
+              "confidence": 1
+            },
+            {
+              "word": " several",
+              "start": 6.2219999999999995,
+              "end": 6.542,
+              "confidence": 1
+            },
+            {
+              "word": " other",
+              "start": 6.6419999999999995,
+              "end": 6.842,
+              "confidence": 0.97
+            },
+            {
+              "word": " solar",
+              "start": 6.941999999999999,
+              "end": 7.242,
+              "confidence": 0.79
+            },
+            {
+              "word": " system",
+              "start": 7.282,
+              "end": 7.622,
+              "confidence": 1
+            },
+            {
+              "word": " bodies.",
+              "start": 7.6819999999999995,
+              "end": 8.102,
+              "confidence": 1
+            }
+          ],
+          "speaker": 0
+        },
+        {
+          "text": "Named after the Italian astronomer Galileo Galilei,",
+          "language": "en",
+          "start": 9.143,
+          "end": 12.124,
+          "confidence": 0.93,
+          "channel": 0,
+          "words": [
+            {
+              "word": " Named",
+              "start": 9.143,
+              "end": 9.443,
+              "confidence": 0.99
+            },
+            {
+              "word": " after",
+              "start": 9.543000000000001,
+              "end": 9.763,
+              "confidence": 1
+            },
+            {
+              "word": " the",
+              "start": 9.764000000000001,
+              "end": 9.883000000000001,
+              "confidence": 1
+            },
+            {
+              "word": " Italian",
+              "start": 9.923,
+              "end": 10.383000000000001,
+              "confidence": 1
+            },
+            {
+              "word": " astronomer",
+              "start": 10.443,
+              "end": 10.983,
+              "confidence": 0.8
+            },
+            {
+              "word": " Galileo",
+              "start": 11.043000000000001,
+              "end": 11.504000000000001,
+              "confidence": 0.94
+            },
+            {
+              "word": " Galilei,",
+              "start": 11.624,
+              "end": 12.124,
+              "confidence": 0.77
+            }
+          ],
+          "speaker": 0
+        },
+        {
+          "text": "the Galileo spacecraft consisted of an orbiter and an atmospheric entry probe.",
+          "language": "en",
+          "start": 12.424000000000001,
+          "end": 17.244999999999997,
+          "confidence": 0.95,
+          "channel": 0,
+          "words": [
+            {
+              "word": " the",
+              "start": 12.424000000000001,
+              "end": 12.544,
+              "confidence": 1
+            },
+            {
+              "word": " Galileo",
+              "start": 12.604000000000001,
+              "end": 13.104000000000001,
+              "confidence": 0.93
+            },
+            {
+              "word": " spacecraft",
+              "start": 13.264000000000001,
+              "end": 13.884,
+              "confidence": 1
+            },
+            {
+              "word": " consisted",
+              "start": 13.924000000000001,
+              "end": 14.524000000000001,
+              "confidence": 0.95
+            },
+            {
+              "word": " of",
+              "start": 14.584,
+              "end": 14.704,
+              "confidence": 1
+            },
+            {
+              "word": " an",
+              "start": 14.705,
+              "end": 14.805,
+              "confidence": 1
+            },
+            {
+              "word": " orbiter",
+              "start": 14.885,
+              "end": 15.265,
+              "confidence": 0.75
+            },
+            {
+              "word": " and",
+              "start": 15.425,
+              "end": 15.545,
+              "confidence": 0.99
+            },
+            {
+              "word": " an",
+              "start": 15.546000000000001,
+              "end": 15.665000000000001,
+              "confidence": 0.84
+            },
+            {
+              "word": " atmospheric",
+              "start": 15.745000000000001,
+              "end": 16.404999999999998,
+              "confidence": 0.97
+            },
+            {
+              "word": " entry",
+              "start": 16.485,
+              "end": 16.724999999999998,
+              "confidence": 0.99
+            },
+            {
+              "word": " probe.",
+              "start": 16.805,
+              "end": 17.244999999999997,
+              "confidence": 0.99
+            }
+          ],
+          "speaker": 0
+        },
+        {
+          "text": "It was delivered into Earth orbit on October 18,",
+          "language": "en",
+          "start": 18.186,
+          "end": 20.926,
+          "confidence": 0.85,
+          "channel": 0,
+          "words": [
+            {
+              "word": " It",
+              "start": 18.186,
+              "end": 18.305999999999997,
+              "confidence": 1
+            },
+            {
+              "word": " was",
+              "start": 18.325999999999997,
+              "end": 18.445999999999998,
+              "confidence": 1
+            },
+            {
+              "word": " delivered",
+              "start": 18.526,
+              "end": 18.945999999999998,
+              "confidence": 1
+            },
+            {
+              "word": " into",
+              "start": 19.006,
+              "end": 19.206,
+              "confidence": 1
+            },
+            {
+              "word": " Earth",
+              "start": 19.285999999999998,
+              "end": 19.485999999999997,
+              "confidence": 0.92
+            },
+            {
+              "word": " orbit",
+              "start": 19.586,
+              "end": 19.846,
+              "confidence": 0.76
+            },
+            {
+              "word": " on",
+              "start": 19.926,
+              "end": 20.046,
+              "confidence": 1
+            },
+            {
+              "word": " October",
+              "start": 20.066,
+              "end": 20.526,
+              "confidence": 1
+            },
+            {
+              "word": " 18,",
+              "start": 20.526999999999997,
+              "end": 20.926,
+              "confidence": 0
+            }
+          ],
+          "speaker": 0
+        },
+        {
+          "text": "1989,",
+          "language": "en",
+          "start": 20.927,
+          "end": 22.506999999999998,
+          "confidence": 0,
+          "channel": 0,
+          "words": [
+            {
+              "word": " 1989,",
+              "start": 20.927,
+              "end": 22.506999999999998,
+              "confidence": 0
+            }
+          ],
+          "speaker": 0
+        },
+        {
+          "text": "by Space Shuttle Atlantis on the STS-34 mission.",
+          "language": "en",
+          "start": 22.508,
+          "end": 25.968,
+          "confidence": 0.95,
+          "channel": 0,
+          "words": [
+            {
+              "word": " by",
+              "start": 22.508,
+              "end": 22.627,
+              "confidence": 1
+            },
+            {
+              "word": " Space",
+              "start": 22.686999999999998,
+              "end": 22.987,
+              "confidence": 1
+            },
+            {
+              "word": " Shuttle",
+              "start": 23.026999999999997,
+              "end": 23.326999999999998,
+              "confidence": 0.69
+            },
+            {
+              "word": " Atlantis",
+              "start": 23.346999999999998,
+              "end": 23.866999999999997,
+              "confidence": 0.96
+            },
+            {
+              "word": " on",
+              "start": 23.947,
+              "end": 24.067,
+              "confidence": 1
+            },
+            {
+              "word": " the",
+              "start": 24.067999999999998,
+              "end": 24.166999999999998,
+              "confidence": 0.96
+            },
+            {
+              "word": " STS-34",
+              "start": 24.326999999999998,
+              "end": 24.808,
+              "confidence": 0.99
+            },
+            {
+              "word": " mission.",
+              "start": 25.607999999999997,
+              "end": 25.968,
+              "confidence": 0.96
+            }
+          ],
+          "speaker": 0
+        },
+        {
+          "text": "and arrived at Jupiter on December 7,",
+          "language": "en",
+          "start": 26.400000000000002,
+          "end": 28.523,
+          "confidence": 0.85,
+          "channel": 0,
+          "words": [
+            {
+              "word": " and",
+              "start": 26.400000000000002,
+              "end": 26.52,
+              "confidence": 0.98
+            },
+            {
+              "word": " arrived",
+              "start": 26.54,
+              "end": 26.961000000000002,
+              "confidence": 1
+            },
+            {
+              "word": " at",
+              "start": 26.962,
+              "end": 27.081,
+              "confidence": 1
+            },
+            {
+              "word": " Jupiter",
+              "start": 27.141000000000002,
+              "end": 27.602,
+              "confidence": 0.96
+            },
+            {
+              "word": " on",
+              "start": 27.662,
+              "end": 27.782,
+              "confidence": 1
+            },
+            {
+              "word": " December",
+              "start": 27.802,
+              "end": 28.202,
+              "confidence": 0.98
+            },
+            {
+              "word": " 7,",
+              "start": 28.302,
+              "end": 28.523,
+              "confidence": 0.01
+            }
+          ],
+          "speaker": 0
+        },
+        {
+          "text": "1995,",
+          "language": "en",
+          "start": 28.524,
+          "end": 29.844,
+          "confidence": 0,
+          "channel": 0,
+          "words": [
+            {
+              "word": " 1995,",
+              "start": 28.524,
+              "end": 29.844,
+              "confidence": 0
+            }
+          ],
+          "speaker": 0
+        },
+        {
+          "text": "after gravity-assist flybys of Venus and Earth,",
+          "language": "en",
+          "start": 30.245,
+          "end": 32.848,
+          "confidence": 0.96,
+          "channel": 0,
+          "words": [
+            {
+              "word": " after",
+              "start": 30.245,
+              "end": 30.505000000000003,
+              "confidence": 1
+            },
+            {
+              "word": " gravity-assist",
+              "start": 30.545,
+              "end": 31.306,
+              "confidence": 0.99
+            },
+            {
+              "word": " flybys",
+              "start": 31.346,
+              "end": 31.807000000000002,
+              "confidence": 0.78
+            },
+            {
+              "word": " of",
+              "start": 31.808,
+              "end": 31.927,
+              "confidence": 1
+            },
+            {
+              "word": " Venus",
+              "start": 31.967,
+              "end": 32.327,
+              "confidence": 0.99
+            },
+            {
+              "word": " and",
+              "start": 32.408,
+              "end": 32.528,
+              "confidence": 1
+            },
+            {
+              "word": " Earth,",
+              "start": 32.568,
+              "end": 32.848,
+              "confidence": 0.97
+            }
+          ],
+          "speaker": 0
+        },
+        {
+          "text": "and became the first spacecraft to orbit Jupiter.",
+          "language": "en",
+          "start": 33.128,
+          "end": 35.812,
+          "confidence": 0.96,
+          "channel": 0,
+          "words": [
+            {
+              "word": " and",
+              "start": 33.128,
+              "end": 33.249,
+              "confidence": 0.95
+            },
+            {
+              "word": " became",
+              "start": 33.289,
+              "end": 33.589,
+              "confidence": 1
+            },
+            {
+              "word": " the",
+              "start": 33.59,
+              "end": 33.709,
+              "confidence": 0.97
+            },
+            {
+              "word": " first",
+              "start": 33.789,
+              "end": 34.11,
+              "confidence": 1
+            },
+            {
+              "word": " spacecraft",
+              "start": 34.17,
+              "end": 34.811,
+              "confidence": 1
+            },
+            {
+              "word": " to",
+              "start": 34.831,
+              "end": 34.951,
+              "confidence": 1
+            },
+            {
+              "word": " orbit",
+              "start": 35.051,
+              "end": 35.291,
+              "confidence": 0.74
+            },
+            {
+              "word": " Jupiter.",
+              "start": 35.351,
+              "end": 35.812,
+              "confidence": 0.98
+            }
+          ],
+          "speaker": 0
+        }
+      ],
+      "error": null
+    }
+  }
+}
