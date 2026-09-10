@@ -12,6 +12,47 @@ export type RealtimeModelV4ClientEvent =
   | {
       type: 'session-update';
       config: RealtimeModelV4SessionConfig;
+      eventId?: string;
+    }
+  | {
+      type: 'session-start';
+      config: RealtimeModelV4SessionConfig;
+      eventId?: string;
+    }
+  | {
+      type: 'session-close';
+      eventId?: string;
+    }
+  | {
+      type: 'input-audio-mute' | 'input-audio-unmute';
+      eventId?: string;
+    }
+  | {
+      type: 'context-append';
+      channel: 'instructions' | 'thinking' | 'commentary';
+      content: string;
+      delegationId: string | null;
+      eventId?: string;
+    }
+
+  // ── Delegated backend (requires a provider-managed backend) ──────────
+  | {
+      type: 'backend-tool-result';
+      callId: string;
+      output: string;
+      eventId?: string;
+    }
+  | {
+      type: 'backend-response-create';
+      eventId?: string;
+    }
+  | {
+      type: 'backend-input-create';
+      content: Array<
+        | { type: 'text'; text: string }
+        | { type: 'image'; url: string; detail?: 'auto' | 'low' | 'high' }
+      >;
+      eventId?: string;
     }
 
   // ── Input audio buffer ─────────────────────────────────────────────
@@ -22,6 +63,7 @@ export type RealtimeModelV4ClientEvent =
        * Base64-encoded audio chunk to append to the input buffer.
        */
       audio: string;
+      eventId?: string;
     }
   | {
       type: 'input-audio-commit';

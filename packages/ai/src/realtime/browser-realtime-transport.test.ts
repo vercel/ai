@@ -86,7 +86,7 @@ describe('BrowserRealtimeTransport', () => {
     expect(onOpen).toHaveBeenCalledOnce();
   });
 
-  it('closes an existing socket before reconnecting', () => {
+  it('closes an existing socket before reconnecting', async () => {
     const onClose = vi.fn();
     const transport = new BrowserRealtimeTransport({
       model,
@@ -115,6 +115,7 @@ describe('BrowserRealtimeTransport', () => {
     expect(onClose).not.toHaveBeenCalled();
 
     secondSocket.onclose?.();
+    await flush();
     expect(onClose).toHaveBeenCalledOnce();
   });
 

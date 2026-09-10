@@ -8,6 +8,7 @@ export { AbstractRealtimeSession as Experimental_AbstractRealtimeSession } from 
 export type {
   RealtimeSessionOptions as Experimental_RealtimeSessionOptions,
   RealtimeState as Experimental_RealtimeState,
+  RealtimeLiveState as Experimental_RealtimeLiveState,
   RealtimeStatus as Experimental_RealtimeStatus,
 } from './realtime-session';
 export type { RealtimeSetupResponse as Experimental_RealtimeSetupResponse } from './realtime-types';

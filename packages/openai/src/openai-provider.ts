@@ -34,6 +34,8 @@ import { openaiTools } from './openai-tools';
 import { OpenAIBatch } from './openai-batch';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
 import { OpenAIRealtimeModel } from './realtime/openai-realtime-model';
+import { OpenAILiveModel } from './live/openai-live-model';
+import type { OpenAILiveModelId } from './live/openai-live-options';
 import type { OpenAIResponsesModelId } from './responses/openai-responses-language-model-options';
 import { OpenAISpeechModel } from './speech/openai-speech-model';
 import type { OpenAISpeechModelId } from './speech/openai-speech-model-options';
@@ -126,6 +128,9 @@ export interface OpenAIProvider extends ProviderV4 {
    * communication over WebSocket.
    */
   experimental_realtime: RealtimeFactoryV4;
+
+  /** Creates an experimental continuous Live model with server WS and WebRTC SDP support. */
+  live(modelId: OpenAILiveModelId): OpenAILiveModel;
 
   /**
    * Returns a FilesV4 interface for uploading files to OpenAI.
@@ -394,6 +399,13 @@ export function createOpenAI(
   provider.experimental_batch = createBatch;
 
   provider.experimental_realtime = experimentalRealtimeFactory;
+  provider.live = (modelId: OpenAILiveModelId) =>
+    new OpenAILiveModel(modelId, {
+      provider: `${providerName}.live`,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
 
   provider.tools = openaiTools;
 

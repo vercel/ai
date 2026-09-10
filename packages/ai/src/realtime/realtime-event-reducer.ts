@@ -10,7 +10,23 @@ export type RealtimeStatus =
   | 'disconnected'
   | 'connecting'
   | 'connected'
+  | 'closing'
   | 'error';
+
+export type RealtimeLiveState = {
+  delegationMode?: 'client' | 'responses';
+  sessionId?: string;
+  transcripts: Extract<RealtimeServerEvent, { type: 'transcript-fragment' }>[];
+  delegations: Extract<RealtimeServerEvent, { type: 'delegation-created' }>[];
+  backendUsage?: Extract<
+    RealtimeServerEvent,
+    { type: 'backend-response-done' }
+  >[];
+  usage?: { seconds: number };
+  finalization: 'pending' | 'confirmed' | 'unconfirmed';
+  terminationReason?: string;
+  isInputMuted: boolean;
+};
 
 export interface RealtimeState {
   status: RealtimeStatus;
@@ -18,6 +34,7 @@ export interface RealtimeState {
   events: RealtimeServerEvent[];
   isCapturing: boolean;
   isPlaying: boolean;
+  live?: RealtimeLiveState;
 }
 
 export type RealtimeReducerEffect =

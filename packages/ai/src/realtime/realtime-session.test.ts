@@ -1,10 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import type { RealtimeModel } from '../types/realtime-model';
 
 // Capture transport instances and outgoing events. The transport is created
 // inside the session constructor, so we replace it with a controllable fake
 // that lets the test feed server events and observe sent client events.
 const sentEvents: Array<{ type: string; [key: string]: unknown }> = [];
 const transportInstances: Array<{
+  connect: ReturnType<typeof vi.fn>;
   emitServerEvent: (event: unknown) => Promise<void> | void;
 }> = [];
 
@@ -72,11 +74,107 @@ const responseDone = () => ({
   raw: {},
 });
 
+function createModel(
+  capabilities?: RealtimeModel['capabilities'],
+): RealtimeModel {
+  return {
+    specificationVersion: 'v4',
+    provider: 'test',
+    modelId: 'test',
+    capabilities,
+    doCreateClientSecret: vi.fn(),
+    getWebSocketConfig: vi.fn(),
+    parseServerEvent: vi.fn(),
+    serializeClientEvent: vi.fn(),
+    buildSessionConfig: vi.fn(),
+  };
+}
+
 describe('AbstractRealtimeSession', () => {
   beforeEach(() => {
     sentEvents.length = 0;
     transportInstances.length = 0;
   });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it.each(['websocket', 'webrtc'] as const)(
+    'requires a session endpoint for continuous %s models without requesting a token',
+    async transport => {
+      const fetch = vi.spyOn(globalThis, 'fetch');
+      const model = createModel({
+        conversation: 'continuous',
+        transports: [transport],
+      });
+
+      const onError = vi.fn();
+      await new TestSession({
+        model,
+        api: { token: '/api/token' },
+        onError,
+      }).connect();
+      expect(onError).toHaveBeenCalledWith(
+        new Error(
+          'Continuous realtime models require api.websocket or api.session',
+        ),
+      );
+      expect(fetch).not.toHaveBeenCalled();
+      expect(model.doCreateClientSecret).not.toHaveBeenCalled();
+      expect(model.getWebSocketConfig).not.toHaveBeenCalled();
+      expect(sentEvents).toHaveLength(0);
+    },
+  );
+
+  it.each([undefined, 'turn-based'] as const)(
+    'preserves the token connection flow with %s conversation capabilities',
+    async conversation => {
+      const fetch = vi
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValue(
+          Response.json({ token: 'secret', url: 'wss://example.com/realtime' }),
+        );
+      const onError = vi.fn();
+      const session = new TestSession({
+        model: createModel(
+          conversation === undefined
+            ? undefined
+            : { conversation, transports: ['websocket'] },
+        ),
+        api: { token: '/api/token' },
+        sessionConfig: { instructions: 'Be concise.' },
+        onError,
+      });
+
+      await session.connect();
+
+      expect(onError).not.toHaveBeenCalled();
+      expect(fetch).toHaveBeenCalledExactlyOnceWith('/api/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionConfig: { instructions: 'Be concise.' },
+        }),
+        signal: expect.any(AbortSignal),
+      });
+      expect(transportInstances[0].connect).toHaveBeenCalledExactlyOnceWith({
+        token: 'secret',
+        url: 'wss://example.com/realtime',
+        onOpen: expect.any(Function),
+      });
+      transportInstances[0].connect.mock.calls[0][0].onOpen();
+      session.sendTextMessage('Hello');
+      expect(sentEvents).toEqual([
+        { type: 'session-update', config: { instructions: 'Be concise.' } },
+        {
+          type: 'conversation-item-create',
+          item: { type: 'text-message', role: 'user', text: 'Hello' },
+        },
+        { type: 'response-create' },
+      ]);
+    },
+  );
 
   it('does not error when onToolCall returns undefined (manual flow)', async () => {
     const onError = vi.fn();

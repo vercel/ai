@@ -13,7 +13,12 @@ type UseRealtimeOptions = RealtimeSessionOptions;
 type RealtimeStateKey = keyof RealtimeState;
 type RealtimeStoreKey = {
   model: RealtimeSessionOptions['model'];
-  token: RealtimeSessionOptions['api']['token'];
+  token: string | undefined;
+  session: string | undefined;
+  websocket: string | undefined;
+  protocols: string;
+  startupTimeoutMs: RealtimeSessionOptions['startupTimeoutMs'];
+  closeTimeoutMs: RealtimeSessionOptions['closeTimeoutMs'];
   sessionConfig: RealtimeSessionOptions['sessionConfig'];
   sampleRate: RealtimeSessionOptions['sampleRate'];
   maxEvents: RealtimeSessionOptions['maxEvents'];
@@ -23,6 +28,11 @@ function getRealtimeStoreKey(options: UseRealtimeOptions): RealtimeStoreKey {
   return {
     model: options.model,
     token: options.api.token,
+    session: options.api.session,
+    websocket: options.api.websocket,
+    protocols: JSON.stringify(options.api.protocols ?? []),
+    startupTimeoutMs: options.startupTimeoutMs,
+    closeTimeoutMs: options.closeTimeoutMs,
     sessionConfig: options.sessionConfig,
     sampleRate: options.sampleRate,
     maxEvents: options.maxEvents,
@@ -36,6 +46,11 @@ function shouldCreateRealtimeStore(
   return (
     currentKey.model !== nextOptions.model ||
     currentKey.token !== nextOptions.api.token ||
+    currentKey.session !== nextOptions.api.session ||
+    currentKey.websocket !== nextOptions.api.websocket ||
+    currentKey.protocols !== JSON.stringify(nextOptions.api.protocols ?? []) ||
+    currentKey.startupTimeoutMs !== nextOptions.startupTimeoutMs ||
+    currentKey.closeTimeoutMs !== nextOptions.closeTimeoutMs ||
     currentKey.sessionConfig !== nextOptions.sessionConfig ||
     currentKey.sampleRate !== nextOptions.sampleRate ||
     currentKey.maxEvents !== nextOptions.maxEvents
@@ -51,12 +66,13 @@ class RealtimeStore extends AbstractRealtimeSession {
     isPlaying: false,
   };
 
-  private callbacks: { [K in RealtimeStateKey]: Set<() => void> } = {
+  private callbacks: { [K in RealtimeStateKey]-?: Set<() => void> } = {
     status: new Set(),
     messages: new Set(),
     events: new Set(),
     isCapturing: new Set(),
     isPlaying: new Set(),
+    live: new Set(),
   };
 
   get status(): RealtimeStatus {
@@ -77,6 +93,10 @@ class RealtimeStore extends AbstractRealtimeSession {
 
   get isPlaying(): boolean {
     return this.state.isPlaying;
+  }
+
+  get live(): RealtimeState['live'] {
+    return this.state.live;
   }
 
   subscribe(key: RealtimeStateKey, onChange: () => void): () => void {
@@ -132,8 +152,11 @@ type UseRealtimeReturn = {
   events: RealtimeServerEvent[];
   isCapturing: boolean;
   isPlaying: boolean;
+  live?: RealtimeState['live'];
 
-  connect: () => Promise<void>;
+  connect: RealtimeStore['connect'];
+  close: RealtimeStore['close'];
+  resumePlayback: () => Promise<void>;
   disconnect: () => void;
   addToolOutput: (callId: string, result: unknown) => void;
   sendEvent: RealtimeStore['sendEvent'];
@@ -217,6 +240,12 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
     () => rt.isPlaying,
   );
 
+  const live = useSyncExternalStore(
+    useCallback(cb => rt.subscribe('live', cb), [rt]),
+    () => rt.live,
+    () => rt.live,
+  );
+
   useEffect(() => {
     return () => rt.dispose();
   }, [rt]);
@@ -227,6 +256,9 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
     events,
     isCapturing,
     isPlaying,
+    live,
+    close: rt.close.bind(rt),
+    resumePlayback: rt.resumePlayback.bind(rt),
     connect: rt.connect.bind(rt),
     disconnect: rt.disconnect.bind(rt),
     addToolOutput: rt.addToolOutput.bind(rt),
