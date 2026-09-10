@@ -1,0 +1,59 @@
+[
+  {
+    "type": "assistant",
+    "message": {
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_01W2CmYa1N9rxWbXuZSuPigh",
+          "name": "Bash",
+          "input": {
+            "command": "printf issue-20633"
+          }
+        }
+      ],
+      "usage": {
+        "input_tokens": 10,
+        "cache_creation_input_tokens": 7260,
+        "cache_read_input_tokens": 0,
+        "output_tokens": 7
+      }
+    }
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "message_delta",
+      "delta": {
+        "stop_reason": "tool_use",
+        "stop_sequence": null
+      },
+      "usage": {
+        "input_tokens": 10,
+        "cache_creation_input_tokens": 7260,
+        "cache_read_input_tokens": 0,
+        "output_tokens": 115
+      }
+    }
+  },
+  {
+    "type": "user",
+    "message": {
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01W2CmYa1N9rxWbXuZSuPigh",
+          "content": "issue-20633",
+          "is_error": false
+        }
+      ]
+    },
+    "tool_use_result": {
+      "stdout": "issue-20633",
+      "stderr": "",
+      "interrupted": false,
+      "isImage": false,
+      "noOutputExpected": false
+    }
+  }
+]

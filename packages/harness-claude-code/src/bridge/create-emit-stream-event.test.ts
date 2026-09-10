@@ -449,6 +449,41 @@ describe('createEmitStreamEvent', () => {
     `);
   });
 
+  it('uses message_delta usage for a completed model step', () => {
+    const messages = JSON.parse(
+      readFileSync(
+        new URL(
+          './__fixtures__/issue-20633-direct-step-usage.json',
+          import.meta.url,
+        ),
+        'utf8',
+      ),
+    ) as ClaudeMessage[];
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => (name === 'Bash' ? 'bash' : name),
+    });
+
+    for (const message of messages) {
+      emitStreamEvent(message);
+    }
+
+    expect(emitted.find(event => event.type === 'finish-step')).toMatchObject({
+      usage: {
+        outputTokens: {
+          total: 115,
+          text: 115,
+        },
+      },
+    });
+  });
+
   it('keeps subagent messages out of the main Agent-tool step', () => {
     const messages = JSON.parse(
       readFileSync(
