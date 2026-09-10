@@ -1,0 +1,54 @@
+{
+  "error": {
+    "message": "Unable to submit request because it included too many instances. Reduce the number of instances and try again. Learn more: https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/text-embeddings: Unable to submit request because it has a batchSize value of 251 but the supported range is from 1 (inclusive) to 251 (exclusive). Update the value and try again.",
+    "type": "AI_APICallError",
+    "param": {
+      "error": "Unable to submit request because it included too many instances. Reduce the number of instances and try again. Learn more: https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/text-embeddings: Unable to submit request because it has a batchSize value of 251 but the supported range is from 1 (inclusive) to 251 (exclusive). Update the value and try again.",
+      "statusCode": 400,
+      "name": "AI_APICallError",
+      "message": "Unable to submit request because it included too many instances. Reduce the number of instances and try again. Learn more: https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/text-embeddings: Unable to submit request because it has a batchSize value of 251 but the supported range is from 1 (inclusive) to 251 (exclusive). Update the value and try again.",
+      "isRetryable": false,
+      "type": "AI_APICallError"
+    }
+  },
+  "providerMetadata": {
+    "gateway": {
+      "routing": {
+        "originalModelId": "google/gemini-embedding-001",
+        "resolvedProvider": "vertex",
+        "fallbacksAvailable": [
+          "google"
+        ],
+        "canonicalSlug": "google/gemini-embedding-001",
+        "modelAttemptCount": 1,
+        "modelAttempts": [
+          {
+            "canonicalSlug": "google/gemini-embedding-001",
+            "success": false,
+            "providerAttemptCount": 1,
+            "providerAttempts": [
+              {
+                "provider": "vertex",
+                "credentialType": "system",
+                "success": false,
+                "error": "Unable to submit request because it included too many instances. Reduce the number of instances and try again. Learn more: https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/text-embeddings: Unable to submit request because it has a batchSize value of 251 but the supported range is from 1 (inclusive) to 251 (exclusive). Update the value and try again.",
+                "startTime": 1787945188168,
+                "endTime": 1787945188327,
+                "statusCode": 400
+              }
+            ]
+          }
+        ],
+        "totalProviderAttemptCount": 1,
+        "skippedProviderAttempts": [
+          {
+            "credentialType": "system",
+            "provider": "google",
+            "reason": "zdr_not_supported"
+          }
+        ]
+      },
+      "generationId": "gen_01M14XCYS24SW5QTYWW2VWT02W"
+    }
+  }
+}
