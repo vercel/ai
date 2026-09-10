@@ -586,4 +586,39 @@ console.log(result.text);`,
     websiteUrl: 'https://nitrosend.com',
     npmUrl: 'https://www.npmjs.com/package/@nitrosend/ai-sdk',
   },
+  {
+    slug: 'webz-news-search',
+    name: 'Webz.io Contextual News Search',
+    description:
+      'Search global news using natural-language, semantic and keyword queries with filters for date, country, language, category and sentiment. Built for AI agents, RAG, research, monitoring and due diligence.',
+    packageName: '@webz.io/ai-sdk',
+    tags: ['search', 'news', 'mcp'],
+    apiKeyEnvName: 'WEBZ_API_TOKEN',
+    installCommand: {
+      pnpm: 'pnpm add @webz.io/ai-sdk',
+      npm: 'npm install @webz.io/ai-sdk',
+      yarn: 'yarn add @webz.io/ai-sdk',
+      bun: 'bun add @webz.io/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { getWebzTools } from '@webz.io/ai-sdk';
+
+const { tools, close } = await getWebzTools();
+
+try {
+  const { text } = await generateText({
+    model: 'openai/gpt-4.1-mini',
+    prompt: 'Find recent articles about Nvidia supply-chain risks',
+    tools,
+    stopWhen: isStepCount(5),
+  });
+  console.log(text);
+} finally {
+  await close();
+}`,
+    docsUrl: 'https://docs.webz.io/docs/webz/news-search-api-mcp',
+    apiKeyUrl: 'https://webz.io',
+    websiteUrl: 'https://webz.io',
+    npmUrl: 'https://www.npmjs.com/package/@webz.io/ai-sdk',
+  },
 ];
