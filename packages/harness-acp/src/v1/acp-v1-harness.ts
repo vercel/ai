@@ -279,7 +279,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       }
       const implementationEnvironment = resolveImplementationEnvironment({
         implementation,
-        env,
+        env: { ...env, ...authenticationEnvironment },
         credentialEnv: authenticationEnvironment,
       });
       let sandboxImplementationEnvironment = implementationEnvironment;

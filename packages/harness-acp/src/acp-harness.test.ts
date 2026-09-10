@@ -651,9 +651,8 @@ describe('createACP', () => {
     );
   });
 
-  it('brokers direct credentials before launching the sandbox bridge', async () => {
-    vi.stubEnv('PROVIDER_API_KEY', 'direct-secret');
-    vi.stubEnv('PROVIDER_BASE_URL', 'https://provider.example/v1');
+  it('brokers host-resolved direct credentials before launching the sandbox bridge', async () => {
+    vi.stubEnv('HOST_PROVIDER_BASE_URL', 'https://host-provider.example/v1');
     const addRequestTransformations = vi.fn(async () => {});
     const credentialBrokering = vi.fn(
       ({
@@ -699,10 +698,14 @@ describe('createACP', () => {
     const harness = createACP({
       harnessId: 'direct-brokered-acp',
       ...agentSettings,
-      forwardEnv: ['PROVIDER_BASE_URL'],
+      forwardEnv: ['PROVIDER_BASE_URL', 'HOST_PROVIDER_BASE_URL'],
       credentialEnv: ['PROVIDER_API_KEY'],
       credentialBrokering,
       credentialForwarding,
+      resolveAuthenticationEnvironment: async () => ({
+        PROVIDER_API_KEY: 'direct-secret',
+        PROVIDER_BASE_URL: 'https://provider.example/v1',
+      }),
       env: { STATIC_SETTING: 'literal-value' },
     });
 
@@ -721,11 +724,13 @@ describe('createACP', () => {
       env: {
         PROVIDER_API_KEY: 'direct-secret',
         PROVIDER_BASE_URL: 'https://provider.example/v1',
+        HOST_PROVIDER_BASE_URL: 'https://host-provider.example/v1',
         STATIC_SETTING: 'literal-value',
       },
       sandboxEnv: {
         PROVIDER_API_KEY: 'ephemeral-PROVIDER_API_KEY',
         PROVIDER_BASE_URL: 'https://provider.example/v1',
+        HOST_PROVIDER_BASE_URL: 'https://host-provider.example/v1',
         STATIC_SETTING: 'literal-value',
       },
     });
@@ -749,6 +754,7 @@ describe('createACP', () => {
     expect(spawns[0]!.env).toMatchObject({
       PROVIDER_API_KEY: 'ephemeral-PROVIDER_API_KEY',
       PROVIDER_BASE_URL: 'https://provider.example/v1',
+      HOST_PROVIDER_BASE_URL: 'https://host-provider.example/v1',
       STATIC_SETTING: 'literal-value',
     });
     expect(credentialForwarding).toHaveBeenCalledExactlyOnceWith({
