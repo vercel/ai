@@ -41,7 +41,7 @@
     "konsistent": "1.0.0-beta.9",
     "konsistent-provider": "workspace:*",
     "lint-staged": "^15.5.1",
-    "next": "15.5.21",
+    "next": "15.5.24",
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",
     "playwright": "^1.61.1",
