@@ -179,6 +179,167 @@ const result = streamText({
 });
 ```
 
+### Testing Agents (Multi-Step Tool Calls)
+
+[Agents](/docs/agents) run `generateText` or `streamText` with tools in a loop,
+where each step can call tools, produce text, or both. To test a multi-step
+loop, pass an array of results to `doGenerate`. The mock model returns one entry
+per call, so you can script each step of the loop. Provide at least one entry
+per model call, and create a fresh model for each run: the entries are consumed
+in order and are not replayed:
+
+```ts
+import { generateText, isStepCount, tool } from 'ai';
+import { MockLanguageModelV4 } from 'ai/test';
+import { z } from 'zod';
+
+const usage = {
+  inputTokens: {
+    total: 10,
+    noCache: 10,
+    cacheRead: undefined,
+    cacheWrite: undefined,
+  },
+  outputTokens: {
+    total: 20,
+    text: 20,
+    reasoning: undefined,
+  },
+};
+
+const createModel = () =>
+  new MockLanguageModelV4({
+    doGenerate: [
+      // first step: the model calls the weather tool
+      {
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: `{ "city": "San Francisco" }`,
+          },
+        ],
+        finishReason: { unified: 'tool-calls', raw: undefined },
+        usage,
+        warnings: [],
+      },
+      // second step: the model answers using the tool result
+      {
+        content: [{ type: 'text', text: 'It is sunny in San Francisco.' }],
+        finishReason: { unified: 'stop', raw: undefined },
+        usage,
+        warnings: [],
+      },
+    ],
+  });
+
+const weather = tool({
+  description: 'Get the weather for a city',
+  inputSchema: z.object({ city: z.string() }),
+  execute: async ({ city }) => `It is sunny in ${city}.`,
+});
+
+const result = await generateText({
+  model: createModel(),
+  tools: { weather },
+  stopWhen: isStepCount(5),
+  prompt: 'What is the weather in San Francisco?',
+});
+
+console.log(result.steps.length); // 2
+console.log(result.toolCalls[0].input); // { city: 'San Francisco' }
+console.log(result.toolResults[0].output); // 'It is sunny in San Francisco.'
+console.log(result.text); // 'It is sunny in San Francisco.'
+```
+
+### Streaming Tool Calls
+
+To test streaming agents, pass an array of stream results to `doStream`, one
+per step. Tool inputs stream as `tool-input-start`, `tool-input-delta`, and
+`tool-input-end` parts, followed by a `tool-call` part with the complete
+input:
+
+```ts
+import { isStepCount, simulateReadableStream, streamText, tool } from 'ai';
+import { MockLanguageModelV4 } from 'ai/test';
+import { z } from 'zod';
+
+const usage = {
+  inputTokens: {
+    total: 10,
+    noCache: 10,
+    cacheRead: undefined,
+    cacheWrite: undefined,
+  },
+  outputTokens: {
+    total: 20,
+    text: 20,
+    reasoning: undefined,
+  },
+};
+
+const result = streamText({
+  model: new MockLanguageModelV4({
+    doStream: [
+      // first step: the model streams a tool call
+      {
+        stream: simulateReadableStream({
+          chunks: [
+            { type: 'tool-input-start', id: 'call-1', toolName: 'weather' },
+            { type: 'tool-input-delta', id: 'call-1', delta: '{ "city":' },
+            { type: 'tool-input-delta', id: 'call-1', delta: ' "San' },
+            { type: 'tool-input-delta', id: 'call-1', delta: ' Francisco" }' },
+            { type: 'tool-input-end', id: 'call-1' },
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'weather',
+              input: `{ "city": "San Francisco" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: { unified: 'tool-calls', raw: undefined },
+              usage,
+            },
+          ],
+        }),
+      },
+      // second step: the model streams the final text
+      {
+        stream: simulateReadableStream({
+          chunks: [
+            { type: 'text-start', id: 'text-1' },
+            { type: 'text-delta', id: 'text-1', delta: 'It is sunny ' },
+            { type: 'text-delta', id: 'text-1', delta: 'in San Francisco.' },
+            { type: 'text-end', id: 'text-1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: undefined },
+              usage,
+            },
+          ],
+        }),
+      },
+    ],
+  }),
+  tools: {
+    weather: tool({
+      description: 'Get the weather for a city',
+      inputSchema: z.object({ city: z.string() }),
+      execute: async ({ city }) => `It is sunny in ${city}.`,
+    }),
+  },
+  stopWhen: isStepCount(5),
+  prompt: 'What is the weather in San Francisco?',
+});
+
+await result.consumeStream();
+
+console.log((await result.steps).length); // 2
+console.log(await result.text); // 'It is sunny in San Francisco.'
+```
+
 ### Simulate UI Message Stream Responses
 
 You can also simulate [UI Message Stream](/docs/ai-sdk-ui/stream-protocol#ui-message-stream-example) responses for testing,
