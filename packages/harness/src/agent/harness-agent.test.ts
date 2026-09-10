@@ -1731,6 +1731,109 @@ describe('HarnessAgent', () => {
     await resumed.destroy();
   });
 
+  test.each(['detach', 'stop'] as const)(
+    'session.%s() preserves an in-flight host result in its nested continuation',
+    async lifecycleMethod => {
+      let releaseWork!: () => void;
+      const work = new Promise<void>(resolve => {
+        releaseWork = resolve;
+      });
+      let resolveStarted!: () => void;
+      const started = new Promise<void>(resolve => {
+        resolveStarted = resolve;
+      });
+      let closeStream!: () => void;
+      const streamDone = new Promise<void>(resolve => {
+        closeStream = resolve;
+      });
+      let resolveClosed!: () => void;
+      const closed = new Promise<void>(resolve => {
+        resolveClosed = resolve;
+      });
+      let channelClosed = false;
+      const execute = vi.fn(async () => {
+        resolveStarted();
+        await work;
+        return { answer: 'retained' };
+      });
+      const toolCall = {
+        type: 'tool-call' as const,
+        toolCallId: 'call-1',
+        toolName: 'research',
+        input: '{}',
+      };
+      const { harness, toolResults, doContinueTurn } = mockHarness({
+        script: () => [toolCall],
+        promptDone: () => streamDone,
+        onDoStart: () => {
+          channelClosed = false;
+        },
+        onSuspendTurn: () => {
+          channelClosed = true;
+          closeStream();
+          resolveClosed();
+        },
+        onSubmitToolResult: async () => {
+          if (channelClosed) throw new Error('channel is closed');
+        },
+        continueScript: () => [
+          {
+            type: 'tool-result',
+            toolCallId: toolCall.toolCallId,
+            toolName: toolCall.toolName,
+            result: { answer: 'retained' },
+          },
+          ...finishEvents(),
+        ],
+      });
+      const agent = new HarnessAgent({
+        harness,
+        sandbox: makeSandboxProvider(),
+        tools: {
+          research: tool({ inputSchema: z.object({}), execute }),
+        },
+      });
+      const session = await agent.createSession();
+      const first = await agent.stream({ session, prompt: 'research' });
+      const firstRead = first.consumeStream();
+      await started;
+
+      const ending =
+        lifecycleMethod === 'detach' ? session.detach() : session.stop();
+      await closed;
+      releaseWork();
+      const resumeFrom = await ending;
+      await firstRead;
+
+      expect(resumeFrom.continueFrom?.pendingToolResults).toEqual([
+        {
+          toolCallId: toolCall.toolCallId,
+          toolName: toolCall.toolName,
+          input: toolCall.input,
+          completedResult: { output: { answer: 'retained' } },
+        },
+      ]);
+      expect(toolResults).toEqual([]);
+
+      const resumed = await agent.createSession({
+        sessionId: session.sessionId,
+        resumeFrom: structuredClone(resumeFrom),
+      });
+      const second = await agent.continueStream({ session: resumed });
+      await second.consumeStream();
+
+      expect(execute).toHaveBeenCalledOnce();
+      expect(doContinueTurn).toHaveBeenCalledOnce();
+      expect(toolResults).toEqual([
+        {
+          toolCallId: toolCall.toolCallId,
+          output: { answer: 'retained' },
+        },
+      ]);
+      await resumed.destroy();
+    },
+  );
+
   test('keeps a turn unfinished when suspension closes its stream mid-step', async () => {
     let resolvePromptDone!: () => void;
     const promptDone = new Promise<void>(resolve => {
