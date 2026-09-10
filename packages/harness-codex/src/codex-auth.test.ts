@@ -8,6 +8,7 @@ import {
   resolveCodexEnv,
 } from './codex-auth';
 import {
+  createCodexSubscriptionRequestTransformations,
   readCodexSubscription,
   resolveCodexAuthentication,
 } from './codex-subscription';
@@ -423,14 +424,14 @@ describe('createCodexRequestTransformations', () => {
 
   it('adds the ChatGPT account header only at the host boundary', () => {
     expect(
-      createCodexRequestTransformations({
+      createCodexSubscriptionRequestTransformations({
         env: {
           CODEX_API_KEY: 'host-access-token',
           OPENAI_BASE_URL: 'https://chatgpt.com/backend-api/codex',
         },
         sandboxEnv: { CODEX_API_KEY: 'sandbox-placeholder' },
         auth: 'direct',
-        additionalHeaders: { 'ChatGPT-Account-ID': 'account-id' },
+        requestHeaders: { 'ChatGPT-Account-ID': 'account-id' },
       }),
     ).toEqual([
       expect.objectContaining({

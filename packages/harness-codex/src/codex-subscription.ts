@@ -11,6 +11,10 @@ import {
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { promisify } from 'node:util';
+import type {
+  HarnessV1RequestTransformation,
+  HarnessV1RequestTransformationSources,
+} from '@ai-sdk/harness';
 import {
   getJwtExpiresAt,
   isAccessTokenExpiringSoon,
@@ -20,7 +24,12 @@ import {
   shouldResolveNativeSubscription,
 } from '@ai-sdk/harness/utils';
 import { isRecord, safeParseJSON } from '@ai-sdk/provider-utils';
-import { resolveCodexEnv, type CodexAuthenticationMode } from './codex-auth';
+import {
+  createCodexRequestTransformations,
+  resolveCodexEnv,
+  type CodexAuthenticationMode,
+  type CodexResolvedAuthenticationMode,
+} from './codex-auth';
 
 const CHATGPT_CODEX_BASE_URL = 'https://chatgpt.com/backend-api/codex';
 const OPENAI_TOKEN_URL = 'https://auth.openai.com/oauth/token';
@@ -31,6 +40,27 @@ export type CodexResolvedAuthentication = {
   readonly environment: Record<string, string>;
   readonly requestHeaders?: Readonly<Record<string, string>>;
 };
+
+export function createCodexSubscriptionRequestTransformations({
+  requestHeaders,
+  ...sources
+}: HarnessV1RequestTransformationSources<CodexResolvedAuthenticationMode> & {
+  requestHeaders?: Readonly<Record<string, string>>;
+}): HarnessV1RequestTransformation[] {
+  const transformations = createCodexRequestTransformations(sources);
+  if (requestHeaders == null) return transformations;
+
+  return transformations.map(transformation => ({
+    ...transformation,
+    transform: {
+      ...transformation.transform,
+      headers: {
+        ...transformation.transform.headers,
+        ...requestHeaders,
+      },
+    },
+  }));
+}
 
 type CodexAuthCredentialsStoreMode = 'file' | 'keyring' | 'auto' | 'ephemeral';
 

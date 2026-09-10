@@ -52,12 +52,14 @@ import {
 } from './codex-bootstrap';
 import {
   CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES,
-  createCodexRequestTransformations,
   DEFAULT_OPENAI_BASE_URL,
   resolveCodexAuthenticationMode,
   type CodexAuthenticationMode,
 } from './codex-auth';
-import { resolveCodexAuthentication } from './codex-subscription';
+import {
+  createCodexSubscriptionRequestTransformations,
+  resolveCodexAuthentication,
+} from './codex-subscription';
 import {
   outboundMessageSchema,
   type InboundMessage,
@@ -287,12 +289,13 @@ export function createCodex(
           ...resolvedAuthEnvironment,
           ...sandboxCredentialEnvironment,
         };
-        const requestTransformations = createCodexRequestTransformations({
-          env: resolvedAuthEnvironment,
-          sandboxEnv: sandboxAuthEnvironment,
-          auth: authenticationMode,
-          additionalHeaders: resolvedAuthentication.requestHeaders,
-        });
+        const requestTransformations =
+          createCodexSubscriptionRequestTransformations({
+            env: resolvedAuthEnvironment,
+            sandboxEnv: sandboxAuthEnvironment,
+            auth: authenticationMode,
+            requestHeaders: resolvedAuthentication.requestHeaders,
+          });
         if (requestTransformations.length > 0) {
           await sandboxSession.addRequestTransformations(
             requestTransformations,
