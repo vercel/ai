@@ -5722,7 +5722,7 @@ describe('AnthropicLanguageModel', () => {
       });
     });
 
-    it('should set effort', async () => {
+    it('should set effort without legacy anthropic-beta header', async () => {
       prepareJsonFixtureResponse('anthropic-text');
 
       const result = await model.doGenerate({
