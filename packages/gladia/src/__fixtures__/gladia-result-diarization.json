@@ -1,0 +1,164 @@
+{
+  "status": "done",
+  "result": {
+    "metadata": {
+      "audio_duration": 82.688
+    },
+    "transcription": {
+      "full_transcript": "Hola, Sasha, ¿qué tal? Hace mucho tiempo que no nos vemos. ¿Cómo vas? Hola, ¿qué tal? Yo estoy muy bien. ¿Qué tal estás tú? Yo muy bien. ¿Qué has hecho ayer? Pues ayer estuve trabajando todo el día. Desde que tengo el trabajo nuevo no paro. Tengo muchas cosas que hacer y a veces pienso que no me da tiempo. Qué lío. ¿Y qué estás haciendo exactamente? Trabajo de periodista en una compañía española para el diario ASS. ¡Qué guay ¿Y cuánto tiempo trabajas en esta empresa? Bueno, me he quedado aquí hace poco, pero me gusta mucho trabajar aquí, me siento muy bien, hago lo que me gusta. ¿Y no te asusta la Rusia? No, me gusta mucho vivir aquí, me gusta mucho el clima, la gente, todo es genial, el lugar es genial. ¿Y dónde ves a ti misma en el futuro, como en cinco años? Bueno, me gustaría empezar mi nueva empresa y empezar a construir una nueva startup que tengo en mente, pero todavía tengo algunas ideas. Y finalmente, tenemos que hablar en francés. Así que sé que no hablas francés, pero puedes decirme un palabra para terminar la conversación. Sí, gracias. Sí.",
+      "languages": ["es"],
+      "utterances": [
+        {
+          "text": "Hola,",
+          "language": "es",
+          "start": 1.2160000000000002,
+          "end": 1.3760000000000001,
+          "confidence": 0.73,
+          "channel": 0,
+          "words": [
+            {
+              "word": "Hola,",
+              "start": 1.2160000000000002,
+              "end": 1.3760000000000001,
+              "confidence": 0.73
+            }
+          ],
+          "speaker": 0
+        },
+        {
+          "text": "Sasha,",
+          "language": "es",
+          "start": 1.476,
+          "end": 1.7160000000000002,
+          "confidence": 0.6,
+          "channel": 0,
+          "words": [
+            {
+              "word": " Sasha,",
+              "start": 1.476,
+              "end": 1.7160000000000002,
+              "confidence": 0.6
+            }
+          ],
+          "speaker": 0
+        },
+        {
+          "text": "¿qué tal?",
+          "language": "es",
+          "start": 1.7560000000000002,
+          "end": 2.157,
+          "confidence": 0.99,
+          "channel": 0,
+          "words": [
+            {
+              "word": " ¿qué",
+              "start": 1.7560000000000002,
+              "end": 1.8770000000000002,
+              "confidence": 0.98
+            },
+            {
+              "word": " tal?",
+              "start": 1.9170000000000003,
+              "end": 2.157,
+              "confidence": 1
+            }
+          ],
+          "speaker": 0
+        },
+        {
+          "text": "Hace mucho tiempo que no nos vemos.",
+          "language": "es",
+          "start": 2.337,
+          "end": 3.718,
+          "confidence": 0.96,
+          "channel": 0,
+          "words": [
+            {
+              "word": " Hace",
+              "start": 2.337,
+              "end": 2.4770000000000003,
+              "confidence": 0.96
+            },
+            {
+              "word": " mucho",
+              "start": 2.5570000000000004,
+              "end": 2.737,
+              "confidence": 0.99
+            },
+            {
+              "word": " tiempo",
+              "start": 2.777,
+              "end": 2.957,
+              "confidence": 0.99
+            },
+            {
+              "word": " que",
+              "start": 2.958,
+              "end": 3.077,
+              "confidence": 0.98
+            },
+            {
+              "word": " no",
+              "start": 3.0780000000000003,
+              "end": 3.157,
+              "confidence": 0.98
+            },
+            {
+              "word": " nos",
+              "start": 3.177,
+              "end": 3.318,
+              "confidence": 0.86
+            },
+            {
+              "word": " vemos.",
+              "start": 3.378,
+              "end": 3.718,
+              "confidence": 0.99
+            }
+          ],
+          "speaker": 0
+        },
+        {
+          "text": "¿Cómo vas?",
+          "language": "es",
+          "start": 3.918,
+          "end": 4.378,
+          "confidence": 0.99,
+          "channel": 0,
+          "words": [
+            {
+              "word": " ¿Cómo",
+              "start": 3.918,
+              "end": 4.078,
+              "confidence": 0.99
+            },
+            {
+              "word": " vas?",
+              "start": 4.138,
+              "end": 4.378,
+              "confidence": 0.99
+            }
+          ],
+          "speaker": 0
+        },
+        {
+          "text": "Hola,",
+          "language": "es",
+          "start": 5.259,
+          "end": 5.599,
+          "confidence": 0.72,
+          "channel": 0,
+          "words": [
+            {
+              "word": " Hola,",
+              "start": 5.259,
+              "end": 5.599,
+              "confidence": 0.72
+            }
+          ],
+          "speaker": 1
+        }
+      ]
+    }
+  }
+}
