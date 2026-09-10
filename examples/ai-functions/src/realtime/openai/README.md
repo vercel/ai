@@ -25,6 +25,15 @@ typed request with **Send to backend** to exercise the tool loop. Client mode ex
 delegations and context appends; application-owned agents can return results through
 the same commands. Captions remain timestamped fragments rather than completed turns.
 
+Select **WebRTC** for the optional direct-browser path. `/api/realtime-live` performs
+only an HTTP SDP exchange using the server's OpenAI key; media travels between the browser and OpenAI.
+The server is not a WebRTC media relay. The OpenAI key is never sent to the browser.
+The example route needs application authentication before deployment. It installs
+server-owned client/server event allowlists and ignores browser permission overrides.
+`session.update` is deliberately unavailable from this example's browser channel.
+
 The browser WS runtime currently supports PCM16 only. The low-level provider also
 supports G.711 for applications supplying their own encoded streams. Read authoritative
 voice seconds from `session.usage` and `session.finalization`, separately from `backendUsage`.
+WebRTC's 15-second initialization amount is credited against running duration, not
+added to the final provider usage.

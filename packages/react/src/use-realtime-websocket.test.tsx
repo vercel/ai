@@ -8,7 +8,7 @@ import {
 import {
   flushEvents,
   liveModel,
-} from '../../ai/src/realtime/__fixtures__/fake-realtime';
+} from '../../ai/src/realtime/__fixtures__/fake-webrtc';
 
 vi.mock('ai', async () => import('../../ai/src/realtime'));
 const { experimental_useRealtime } = await import('./use-realtime');

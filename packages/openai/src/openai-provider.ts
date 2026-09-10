@@ -129,7 +129,7 @@ export interface OpenAIProvider extends ProviderV4 {
    */
   experimental_realtime: RealtimeFactoryV4;
 
-  /** Creates an experimental continuous Live model with server WebSocket support. */
+  /** Creates an experimental continuous Live model with server WS and WebRTC SDP support. */
   experimental_live(
     modelId: OpenAIRealtimeModelLiveId,
   ): OpenAIRealtimeModelLive;
@@ -406,6 +406,7 @@ export function createOpenAI(
       provider: `${providerName}.live`,
       baseURL,
       headers: getHeaders,
+      fetch: options.fetch,
     });
 
   provider.tools = openaiTools;

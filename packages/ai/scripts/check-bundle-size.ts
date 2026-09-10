@@ -2,8 +2,8 @@ import { build } from 'esbuild';
 import { writeFileSync, statSync } from 'fs';
 import { join } from 'path';
 
-// Stage 2 adds the realtime WebSocket runtime; named probes guard tree shaking.
-const LIMIT = 504 * 1024;
+// Both realtime transports add ~32 KiB to all exports; named probes guard tree shaking.
+const LIMIT = 512 * 1024;
 
 interface BundleResult {
   size: number;

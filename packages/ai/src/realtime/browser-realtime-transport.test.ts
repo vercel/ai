@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BrowserRealtimeTransport } from './browser-realtime-transport';
-import { deferred } from './__fixtures__/fake-realtime';
+import { deferred } from './__fixtures__/fake-webrtc';
 
 class MockWebSocket {
   static CONNECTING = 0;
