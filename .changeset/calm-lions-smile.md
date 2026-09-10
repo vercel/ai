@@ -2,4 +2,4 @@
 '@ai-sdk/workflow': patch
 ---
 
-fix(workflow): replay provider-executed tool results in assistant messages
+fix(workflow): preserve provider-executed tool results across terminal, deferred, and paused responses
