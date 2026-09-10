@@ -45,9 +45,6 @@ export function createClaudeCodeSubscriptionRequestTransformations({
       },
       transformHeaders: {
         Authorization: `Bearer ${environment.CLAUDE_CODE_OAUTH_TOKEN}`,
-        'anthropic-beta': 'claude-code-20250219,oauth-2025-04-20',
-        'anthropic-dangerous-direct-browser-access': 'true',
-        'x-app': 'cli',
       },
     }),
   ];
@@ -86,10 +83,12 @@ export async function resolveClaudeCodeAuthentication({
 export async function readClaudeCodeSubscription({
   env = process.env,
   homeDirectory = homedir(),
+  platform = process.platform,
   fetch,
 }: {
   env?: Record<string, string | undefined>;
   homeDirectory?: string;
+  platform?: NodeJS.Platform;
   fetch?: typeof globalThis.fetch;
 } = {}): Promise<Record<string, string> | undefined> {
   const configDirectory = resolve(
@@ -100,20 +99,12 @@ export async function readClaudeCodeSubscription({
     credentialPath,
     homeDirectory,
     configDirectory,
+    platform,
   });
   if (stored == null) return undefined;
-  const oauth = stored.value.claudeAiOauth;
-  if (!isRecord(oauth)) return undefined;
-  const accessToken = oauth.accessToken;
-  const refreshToken = oauth.refreshToken;
-  const expiresAt = oauth.expiresAt;
-  if (
-    typeof accessToken !== 'string' ||
-    typeof refreshToken !== 'string' ||
-    typeof expiresAt !== 'number'
-  ) {
-    return undefined;
-  }
+  const oauth = getClaudeOAuthCredential({ value: stored.value });
+  if (oauth == null) return undefined;
+  const { accessToken, refreshToken, expiresAt } = oauth;
 
   let resolvedAccessToken = accessToken;
   if (isAccessTokenExpiringSoon({ expiresAt })) {
@@ -147,14 +138,22 @@ type ClaudeCredentialFile = {
   readonly [key: string]: unknown;
 };
 
+type ClaudeOAuthCredential = Record<string, unknown> & {
+  readonly accessToken: string;
+  readonly refreshToken: string;
+  readonly expiresAt: number;
+};
+
 async function readClaudeCredentialStore({
   credentialPath,
   homeDirectory,
   configDirectory,
+  platform,
 }: {
   credentialPath: string;
   homeDirectory: string;
   configDirectory: string;
+  platform: NodeJS.Platform;
 }): Promise<
   | {
       value: ClaudeCredentialFile;
@@ -165,15 +164,16 @@ async function readClaudeCredentialStore({
   const text = await readFile(credentialPath, 'utf8').catch(() => undefined);
   if (text != null) {
     const value = await parseClaudeCredentialFile(text);
-    if (value == null) return undefined;
-    return {
-      value,
-      write: updated =>
-        writeClaudeCredentialFile({ credentialPath, value: updated }),
-    };
+    if (value != null && getClaudeOAuthCredential({ value }) != null) {
+      return {
+        value,
+        write: updated =>
+          writeClaudeCredentialFile({ credentialPath, value: updated }),
+      };
+    }
   }
 
-  if (process.platform !== 'darwin') return undefined;
+  if (platform !== 'darwin') return undefined;
   if (configDirectory !== resolve(join(homeDirectory, '.claude'))) {
     return undefined;
   }
@@ -216,6 +216,23 @@ async function readClaudeCredentialStore({
       );
     },
   };
+}
+
+function getClaudeOAuthCredential({
+  value,
+}: {
+  value: ClaudeCredentialFile;
+}): ClaudeOAuthCredential | undefined {
+  const oauth = value.claudeAiOauth;
+  if (
+    !isRecord(oauth) ||
+    typeof oauth.accessToken !== 'string' ||
+    typeof oauth.refreshToken !== 'string' ||
+    typeof oauth.expiresAt !== 'number'
+  ) {
+    return undefined;
+  }
+  return oauth as ClaudeOAuthCredential;
 }
 
 async function parseClaudeCredentialFile(
