@@ -1,0 +1,177 @@
+---
+title: AI Power Grid
+description: Use community-operated text and media models through AI Power Grid.
+---
+
+# AI Power Grid Provider
+
+The [AI Power Grid](https://aipowergrid.io/) community provider supplies AI SDK
+models for text, image, and experimental video generation. It also includes a
+typed music helper because music generation is not speech synthesis.
+
+## Setup
+
+Install the provider with AI SDK 7:
+
+<InstallPackages packages="ai @aipowergrid/ai-sdk-provider" />
+
+Create a scoped key in the [Grid Console](https://console.aipowergrid.io/dashboard/api-key).
+Use `inference.submit` for generation and add `account.read` when the application
+uses model discovery, quotes, or credit summaries. Keep the key server-side:
+
+```bash
+AIPG_API_KEY=grid_...
+```
+
+Do not expose the key through client components, browser JavaScript, or public
+environment-variable prefixes such as `NEXT_PUBLIC_*` and `VITE_*`.
+
+## Provider Instance
+
+Import the default provider when `AIPG_API_KEY` is available in the server
+environment:
+
+```ts
+import { aipg } from '@aipowergrid/ai-sdk-provider';
+```
+
+Use `createAipg` to pass configuration explicitly:
+
+```ts
+import { createAipg } from '@aipowergrid/ai-sdk-provider';
+
+const aipg = createAipg({
+  apiKey: process.env.AIPG_API_KEY,
+});
+```
+
+## Text Generation
+
+`auto` lets Grid route a request to an available text worker:
+
+```ts
+import { generateText } from 'ai';
+import { aipg } from '@aipowergrid/ai-sdk-provider';
+
+const { text } = await generateText({
+  model: aipg('auto'),
+  prompt: 'Explain verifiable inference in two sentences.',
+});
+```
+
+### Streaming
+
+```ts
+import { streamText } from 'ai';
+import { aipg } from '@aipowergrid/ai-sdk-provider';
+
+const result = streamText({
+  model: aipg('auto'),
+  prompt: 'Give me three names for a distributed image application.',
+  maxOutputTokens: 128,
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+Pass a named model returned by `aipg.listTextModels()` when the application
+must pin a currently advertised backend. Availability follows connected
+workers and can change between discovery and dispatch.
+
+## Image Generation
+
+```ts
+import { generateImage } from 'ai';
+import { aipg } from '@aipowergrid/ai-sdk-provider';
+
+const result = await generateImage({
+  model: aipg.imageModel('Krea 2 Turbo'),
+  prompt: 'A solar-powered compute cooperative, editorial photography',
+  size: '1024x1024',
+  providerOptions: {
+    aipg: {
+      negativePrompt: 'text, watermark',
+      outputFormat: 'webp',
+    },
+  },
+});
+```
+
+The image model accepts one inline source image for image-to-image generation.
+Remote source URLs and masks are rejected rather than silently ignored.
+
+## Video Generation
+
+AI SDK 7 currently marks video generation experimental:
+
+```ts
+import { experimental_generateVideo as generateVideo } from 'ai';
+import { aipg } from '@aipowergrid/ai-sdk-provider';
+
+const result = await generateVideo({
+  model: aipg.videoModel('LTX Director 2.0'),
+  prompt: 'Slow camera push through a luminous server hall',
+  resolution: '768x512',
+  duration: 4,
+  fps: 24,
+});
+```
+
+Image-to-video models such as `LTX-2.3` require one inline start frame. Remote
+URL inputs, frame arrays, and reference collections are rejected because the
+current Grid request contract does not support them.
+
+## Music Generation
+
+Music uses an explicit helper instead of the AI SDK speech interface:
+
+```ts
+import { aipg } from '@aipowergrid/ai-sdk-provider';
+
+const song = await aipg.generateMusic({
+  prompt: 'Upbeat synth rock, confident, clean harmony',
+  lyrics: 'Power moves across the grid',
+  seconds: 30,
+  bpm: 112,
+  keyScale: 'A minor',
+});
+```
+
+## Discovery, Credits, and Quotes
+
+```ts
+const textModels = await aipg.listTextModels();
+const onlineCapacity = await aipg.listOnlineModels();
+const credits = await aipg.credits();
+const quote = await aipg.quote({
+  model: 'Krea 2 Turbo',
+  modality: 'image',
+  n: 1,
+});
+```
+
+Media calls verify that the selected model is online for the requested modality
+before dispatch. The quote endpoint and settled Grid credit balance are the
+billing authority; callers should not hard-code a price from this page.
+
+## Errors and Trust Boundary
+
+Non-successful Grid responses surface as `AipgApiError` with an HTTP `status`
+and bounded message. Applications must handle authentication, insufficient
+credit, unavailable-model, timeout, and worker-failure responses. A model in a
+discovery result is current capacity evidence, not an uptime guarantee.
+
+Grid routes requests to remote, community-operated workers. The worker executing
+a request may be able to inspect its plaintext input and output. Do not send
+secrets, credentials, personal data, or regulated content unless a separately
+documented confidential tier meets the application's requirements.
+
+This community provider is maintained by AI Power Grid and does not imply a
+partnership with Vercel.
+
+## Additional Resources
+
+- [`@aipowergrid/ai-sdk-provider` on npm](https://www.npmjs.com/package/@aipowergrid/ai-sdk-provider)
+- [Source and documentation](https://github.com/AIPowerGrid/grid-provider-integrations/tree/main/ai-sdk-aipg)
