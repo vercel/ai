@@ -127,8 +127,90 @@ describe('doGenerate', () => {
       mediaType: 'audio/wav',
     });
 
+<<<<<<< HEAD
     expect(await server.calls[1].requestBodyJson).toMatchObject({
       audio_url: 'https://storage.gladia.io/mock-upload-url',
+=======
+    it('should extract the transcription text', async () => {
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      expect(result.text).toBe(
+        resultFixture.result.transcription.full_transcript,
+      );
+    });
+
+    it('should preserve utterance metadata in provider metadata', async () => {
+      const utterances = resultFixture.result.transcription.utterances.map(
+        (utterance: Record<string, unknown>, index: number) => ({
+          ...utterance,
+          speaker: index === 0 ? 0 : `speaker-${index}`,
+        }),
+      );
+      server.urls[initiateFixture.result_url].response = {
+        type: 'json-value',
+        body: {
+          ...resultFixture,
+          result: {
+            ...resultFixture.result,
+            transcription: {
+              ...resultFixture.result.transcription,
+              utterances,
+            },
+          },
+        },
+      };
+
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      const gladiaMetadata = result.providerMetadata?.gladia;
+      expect(gladiaMetadata).toBeDefined();
+      const metadataUtterances = (
+        gladiaMetadata as {
+          result: {
+            transcription: {
+              utterances: Record<string, unknown>[];
+            };
+          };
+        }
+      ).result.transcription.utterances;
+
+      expect(metadataUtterances[0]).toMatchObject({
+        speaker: 0,
+        confidence: utterances[0].confidence,
+        language: utterances[0].language,
+        words: utterances[0].words,
+      });
+      expect(metadataUtterances[1]).toMatchObject({
+        speaker: 'speaker-1',
+      });
+    });
+
+    it('should generate full response', async () => {
+      const testDate = new Date(0);
+      const customModel = new GladiaTranscriptionModel('default', {
+        provider: 'test-provider',
+        url: ({ path }) => `https://api.gladia.io${path}`,
+        headers: () => ({}),
+        _internal: {
+          currentDate: () => testDate,
+        },
+      });
+
+      const result = await customModel.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      expect(result).toMatchSnapshot({
+        providerMetadata: expect.anything(),
+      });
+>>>>>>> c889fd51c2 (fix: preserve Gladia diarization and utterance details in transcription metadata (#20595))
     });
   });
 
