@@ -142,6 +142,14 @@ export class GatewayLanguageModel implements LanguageModelV4 {
         fetch: this.config.fetch,
       });
 
+      // The Gateway translates upstream provider responses, and the
+      // `response-metadata` frames it emits name the upstream provider's own
+      // model (e.g. Google's `gemini-3-flash-preview`) rather than the gateway
+      // model that was requested and served. Surface the served model instead:
+      // the `x-model-id` response header is authoritative (it also survives
+      // fallback routing); the requested model id is the fallback.
+      const servedModelId =
+        readResponseHeader(responseHeaders, 'x-model-id') ?? this.modelId;
       return {
         stream: response.pipeThrough(
           new TransformStream<
@@ -163,12 +171,14 @@ export class GatewayLanguageModel implements LanguageModelV4 {
                   return; // Skip raw chunks if not requested
                 }
 
-                if (
-                  streamPart.type === 'response-metadata' &&
-                  streamPart.timestamp &&
-                  typeof streamPart.timestamp === 'string'
-                ) {
-                  streamPart.timestamp = new Date(streamPart.timestamp);
+                if (streamPart.type === 'response-metadata') {
+                  if (
+                    streamPart.timestamp &&
+                    typeof streamPart.timestamp === 'string'
+                  ) {
+                    streamPart.timestamp = new Date(streamPart.timestamp);
+                  }
+                  streamPart.modelId = servedModelId;
                 }
 
                 controller.enqueue(streamPart);
@@ -242,4 +252,20 @@ function maybeBase64EncodeFileData<T extends { type: string }>(data: T): T {
     }
   }
   return data;
+}
+
+function readResponseHeader(
+  headers: Record<string, string> | undefined,
+  name: string,
+): string | undefined {
+  if (headers == null) {
+    return undefined;
+  }
+  const lowerCaseName = name.toLowerCase();
+  for (const [key, value] of Object.entries(headers)) {
+    if (key.toLowerCase() === lowerCaseName) {
+      return value;
+    }
+  }
+  return undefined;
 }

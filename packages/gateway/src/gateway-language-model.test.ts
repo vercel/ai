@@ -1420,6 +1420,100 @@ describe('GatewayLanguageModel', () => {
     });
   });
 
+  describe('response-metadata model id', () => {
+    it('should report the served model from the x-model-id header instead of the upstream provider model', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        headers: { 'x-model-id': 'google/gemini-3.6-flash' },
+        chunks: [
+          `data: {"type":"stream-start","warnings":[]}\n\n`,
+          `data: {"type":"response-metadata","id":"test-id","modelId":"gemini-3-flash-preview"}\n\n`,
+          `data: {"type":"text-delta","textDelta":"Hello"}\n\n`,
+          `data: {"type":"finish","finishReason":"stop","usage":{"prompt_tokens":10,"completion_tokens":5}}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+      expect(chunks[1]).toMatchObject({
+        type: 'response-metadata',
+        id: 'test-id',
+        modelId: 'google/gemini-3.6-flash',
+      });
+    });
+
+    it('should match the x-model-id header case-insensitively', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        headers: { 'X-Model-Id': 'google/gemini-3.6-flash' },
+        chunks: [
+          `data: {"type":"stream-start","warnings":[]}\n\n`,
+          `data: {"type":"response-metadata","id":"test-id","modelId":"gemini-3-flash-preview"}\n\n`,
+          `data: {"type":"finish","finishReason":"stop","usage":{"prompt_tokens":10,"completion_tokens":5}}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+      expect(chunks[1]).toMatchObject({
+        type: 'response-metadata',
+        modelId: 'google/gemini-3.6-flash',
+      });
+    });
+
+    it('should fall back to the requested model id when no x-model-id header is present', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"stream-start","warnings":[]}\n\n`,
+          `data: {"type":"response-metadata","id":"test-id","modelId":"gemini-3-flash-preview"}\n\n`,
+          `data: {"type":"finish","finishReason":"stop","usage":{"prompt_tokens":10,"completion_tokens":5}}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+      expect(chunks[1]).toMatchObject({
+        type: 'response-metadata',
+        modelId: 'test-model',
+      });
+    });
+
+    it('should report the requested model id when the response-metadata chunk omits modelId', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"stream-start","warnings":[]}\n\n`,
+          `data: {"type":"response-metadata","id":"test-id"}\n\n`,
+          `data: {"type":"finish","finishReason":"stop","usage":{"prompt_tokens":10,"completion_tokens":5}}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+      expect(chunks[1]).toMatchObject({
+        type: 'response-metadata',
+        modelId: 'test-model',
+      });
+    });
+  });
+
   describe('Provider Options', () => {
     function prepareJsonResponse({
       content = { type: 'text', text: '' },
