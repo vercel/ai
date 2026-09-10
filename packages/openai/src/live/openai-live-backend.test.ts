@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { openai } from '../index';
 
-const model = openai.live('gpt-live-1');
+const model = openai.experimental_live('gpt-live-1');
 
 describe('Live delegated backend events through the public provider', () => {
   it('exposes Responses delegation metadata while preserving opaque IDs', () => {
@@ -14,14 +14,16 @@ describe('Live delegated backend events through the public provider', () => {
         response_id: 'resp_opaque',
       },
     };
-    expect(model.parseServerEvent(raw)).toEqual({
-      type: 'delegation-created',
-      delegationId: 'item_opaque',
-      target: 'responses',
-      offsetMs: 125,
-      responseId: 'resp_opaque',
-      raw,
-    });
+    expect(model.parseServerEvent(raw)).toEqual([
+      {
+        type: 'delegation-created',
+        delegationId: 'item_opaque',
+        target: 'provider',
+        offsetMs: 125,
+        responseId: 'resp_opaque',
+        raw,
+      },
+    ]);
   });
 
   it.each(['delegation-1', null, undefined])(

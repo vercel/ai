@@ -9,7 +9,7 @@ export type RealtimeModelV4ServerEvent =
   | {
       type: 'session-started';
       sessionId: string;
-      delegationMode?: 'client' | 'responses';
+      delegationMode?: 'client' | 'provider';
       raw: unknown;
     }
   | {
@@ -42,7 +42,7 @@ export type RealtimeModelV4ServerEvent =
   | {
       type: 'delegation-created';
       delegationId: string;
-      target?: 'client' | 'responses';
+      target?: 'client' | 'provider';
       offsetMs?: number;
       responseId?: string;
       raw: unknown;

@@ -3,6 +3,31 @@ import { deferred, flushEvents, liveModel } from './__fixtures__/fake-webrtc';
 import { RealtimeEventChannel } from './realtime-event-channel';
 
 describe('RealtimeEventChannel', () => {
+  it('fails closed on the byte budget and preserves accepted frames without accepting later input', async () => {
+    const blocked = deferred<string>();
+    const first = new Blob();
+    vi.spyOn(first, 'text').mockReturnValue(blocked.promise);
+    const onEvent = vi.fn();
+    const onFatalError = vi.fn();
+    const codec = new RealtimeEventChannel({
+      model: liveModel(),
+      send: vi.fn(),
+      onEvent,
+      onError: vi.fn(),
+      onFatalError,
+      maxPendingBytes: 128,
+    });
+    codec.receive(first);
+    codec.receive('x'.repeat(65));
+    codec.receive('{}');
+    expect(onFatalError).toHaveBeenCalledOnce();
+    expect(() => codec.send({ type: 'input-audio-mute' })).toThrow('closed');
+    blocked.resolve('{"type":"session-usage","usage":{"seconds":1},"raw":{}}');
+    await codec.finish();
+    expect(onEvent).toHaveBeenCalledOnce();
+    expect(onEvent.mock.calls[0][0].usage.seconds).toBe(1);
+  });
+
   it('creates isolated model parsers for every connection', async () => {
     const model = liveModel();
     model.createServerEventParser = vi.fn(() => {
@@ -108,7 +133,9 @@ describe('RealtimeEventChannel', () => {
     codec.receive('{"type":"session-usage","usage":{"seconds":1},"raw":{}}');
     codec.receive('{"type":"session-usage","usage":{"seconds":2},"raw":{}}');
     expect(error).toHaveBeenCalledWith(
-      new Error('Realtime incoming queue is full'),
+      new Error(
+        'Realtime incoming queue is full; input protocol continuity was lost',
+      ),
     );
     codec.dispose();
     pending.resolve(null);
@@ -132,5 +159,8 @@ describe('RealtimeEventChannel', () => {
     codec.receive('{"type":"session-usage","usage":{"seconds":2},"raw":{}}');
     await flushEvents();
     expect(onEvent).toHaveBeenCalledTimes(2);
+    codec.receive('{"type":"session-usage","usage":{"seconds":3},"raw":{}}');
+    await flushEvents();
+    expect(onEvent).toHaveBeenCalledTimes(3);
   });
 });

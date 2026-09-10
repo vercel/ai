@@ -36,6 +36,7 @@ describe('Live over an application WebSocket relay', () => {
     const session = new Session({
       model: liveModel(),
       api: { websocket: 'wss://app.example/live', protocols: ['app-protocol'] },
+      autoContinueTools: true,
       ...options,
     });
     sessions.push(session);
@@ -47,7 +48,7 @@ describe('Live over an application WebSocket relay', () => {
   };
   const ready = async (
     session: Session,
-    delegationMode: 'client' | 'responses' = 'responses',
+    delegationMode: 'client' | 'provider' = 'provider',
   ) => {
     await session.connect();
     socket().open();
@@ -305,22 +306,33 @@ describe('Live over an application WebSocket relay', () => {
     ).toHaveLength(1);
   });
 
-  it('bounds command ID tracking and clears it on a new connection', async () => {
+  it('permits more than 4096 acknowledged commands while retaining recent duplicate protection', async () => {
     const session = create();
     await ready(session);
-    for (let i = 0; i < 4096; i++) {
+    for (let i = 0; i < 4100; i++) {
       await session.sendEvent({
         type: 'context-append',
-        channel: 'thinking',
         delegationId: null,
         content: '',
         eventId: `id-${i}`,
       });
+      await emit({
+        type: 'command-acknowledged',
+        command: 'context.append',
+        clientEventId: `id-${i}`,
+        raw: {},
+      });
     }
     await emit(call);
-    expect(() => session.addToolOutput('call-1', 'result')).toThrow(
-      'tracking is full',
-    );
+    session.addToolOutput('call-1', 'result');
+    expect(() =>
+      session.sendEvent({
+        type: 'context-append',
+        delegationId: null,
+        content: '',
+        eventId: 'id-4099',
+      }),
+    ).toThrow('fresh eventId');
     session.disconnect();
     browser.getUserMedia.mockResolvedValue(fakeStream().stream);
     await ready(session);
@@ -410,7 +422,7 @@ describe('Live over an application WebSocket relay', () => {
         inputBuffer: { getChannelData: () => new Float32Array(1024) },
       });
       await flushEvents();
-      expect(session.snapshot.live?.finalization).toBe('pending');
+      expect(session.snapshot.session?.finalization).toBe('pending');
       expect(onError).not.toHaveBeenCalled();
       text.resolve(
         JSON.stringify({
@@ -421,7 +433,7 @@ describe('Live over an application WebSocket relay', () => {
         }),
       );
       await flushEvents();
-      expect(session.snapshot.live).toMatchObject({
+      expect(session.snapshot.session).toMatchObject({
         finalization: 'confirmed',
         usage: { seconds: 12 },
       });
@@ -547,7 +559,7 @@ describe('Live over an application WebSocket relay', () => {
     await emit({
       type: 'session-started',
       sessionId: 'live-1',
-      delegationMode: 'responses',
+      delegationMode: 'provider',
       raw: {},
     });
     expect(session.snapshot.status).toBe('connected');
@@ -559,7 +571,7 @@ describe('Live over an application WebSocket relay', () => {
     await emit({
       type: 'session-started',
       sessionId: 'live-1',
-      delegationMode: 'responses',
+      delegationMode: 'provider',
       raw: {},
     });
     expect(browser.getUserMedia).toHaveBeenCalledOnce();
@@ -651,7 +663,7 @@ describe('Live over an application WebSocket relay', () => {
     await flushEvents();
     expect(stale.sent).toEqual([]);
     expect(session.snapshot.status).toBe('connecting');
-    expect(session.snapshot.live?.sessionId).toBeUndefined();
+    expect(session.snapshot.session?.sessionId).toBeUndefined();
     expect(browser.getUserMedia).not.toHaveBeenCalled();
   });
 
@@ -666,17 +678,19 @@ describe('Live over an application WebSocket relay', () => {
     expect(socket().close).toHaveBeenCalledOnce();
   });
 
-  it('cleans up after microphone permission failure without stranding a live socket', async () => {
+  it('reports microphone permission failure recoverably and permits another capture attempt', async () => {
     const onError = vi.fn();
     browser.getUserMedia.mockRejectedValueOnce(new Error('permission denied'));
     const session = create({ onError });
     await ready(session);
-    expect(session.snapshot.status).toBe('error');
-    expect(socket().close).toHaveBeenCalledOnce();
+    expect(session.snapshot.status).toBe('connected');
+    expect(socket().close).not.toHaveBeenCalled();
     expect(onError).toHaveBeenCalledWith(new Error('permission denied'));
+    await session.resumeAudioCapture();
+    expect(session.snapshot.isCapturing).toBe(true);
   });
 
-  it('rejects codec changes mid-session and fails bounded playback instead of growing latency', async () => {
+  it('rejects codec changes and pauses overflowing playback until explicit recovery', async () => {
     const onError = vi.fn();
     const session = create({ onError });
     await ready(session);
@@ -691,10 +705,20 @@ describe('Live over an application WebSocket relay', () => {
       delta: encodeRealtimeAudio(new Float32Array(24000 * 3)),
       raw: {},
     });
-    expect(session.snapshot.status).toBe('error');
+    expect(session.snapshot.status).toBe('connected');
     expect(onError).toHaveBeenCalledWith(
-      new Error('Realtime audio playback buffer is full'),
+      new Error(
+        'Realtime audio playback buffer is full; playback paused, call resumePlayback() to resume at the live edge',
+      ),
     );
+    expect(session.snapshot.isPlaying).toBe(false);
+    await session.resumePlayback();
+    await emit({
+      type: 'audio-chunk',
+      delta: encodeRealtimeAudio(new Float32Array(240)),
+      raw: {},
+    });
+    expect(session.snapshot.isPlaying).toBe(true);
   });
 
   it('drains terminal usage already received before the socket close event', async () => {
@@ -710,7 +734,7 @@ describe('Live over an application WebSocket relay', () => {
     });
     socket().close();
     await closing;
-    expect(session.snapshot.live).toMatchObject({
+    expect(session.snapshot.session).toMatchObject({
       usage: { seconds: 12 },
       finalization: 'confirmed',
     });
@@ -737,7 +761,7 @@ describe('Live over an application WebSocket relay', () => {
     socket().close();
     serialized.resolve({ type: 'input-audio-append', audio: '' });
     await flushEvents();
-    expect(session.snapshot.live?.finalization).toBe('confirmed');
+    expect(session.snapshot.session?.finalization).toBe('confirmed');
     expect(session.snapshot.status).toBe('disconnected');
   });
 
@@ -756,7 +780,7 @@ describe('Live over an application WebSocket relay', () => {
     });
     socket().close();
     await flushEvents();
-    expect(session.snapshot.live?.finalization).toBe('pending');
+    expect(session.snapshot.session?.finalization).toBe('pending');
     text.resolve(
       JSON.stringify({
         type: 'session-usage',
@@ -765,8 +789,8 @@ describe('Live over an application WebSocket relay', () => {
       }),
     );
     await flushEvents();
-    expect(session.snapshot.live?.finalization).toBe('confirmed');
-    expect(session.snapshot.live?.usage).toEqual({ seconds: 12 });
+    expect(session.snapshot.session?.finalization).toBe('confirmed');
+    expect(session.snapshot.session?.usage).toEqual({ seconds: 12 });
   });
 
   it('keeps the last usage as unconfirmed on loss and has a 15-second graceful close deadline', async () => {
@@ -779,7 +803,7 @@ describe('Live over an application WebSocket relay', () => {
     expect(session.snapshot.status).toBe('closing');
     await vi.advanceTimersByTimeAsync(1);
     await closing;
-    expect(session.snapshot.live).toMatchObject({
+    expect(session.snapshot.session).toMatchObject({
       usage: { seconds: 5 },
       finalization: 'unconfirmed',
     });
@@ -788,13 +812,12 @@ describe('Live over an application WebSocket relay', () => {
   it('uses only server-confirmed delegation mode to gate backend submissions', async () => {
     const session = create();
     await ready(session, 'client');
-    expect(session.snapshot.live?.delegationMode).toBe('client');
+    expect(session.snapshot.session?.delegationMode).toBe('client');
     expect(() => session.sendTextMessage('backend')).toThrow(
-      'responses delegation mode',
+      'provider delegation mode',
     );
     await session.sendEvent({
       type: 'context-append',
-      channel: 'thinking',
       delegationId: 'd1',
       content: 'app-owned context',
     });

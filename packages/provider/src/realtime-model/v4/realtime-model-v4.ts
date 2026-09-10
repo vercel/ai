@@ -33,6 +33,16 @@ export type RealtimeModelV4 = {
   readonly capabilities?: {
     conversation: 'continuous' | 'turn-based';
     transports: readonly ('websocket' | 'webrtc')[];
+    /** Omission preserves the legacy client-secret WebSocket connection. */
+    connections?: readonly (
+      | 'client-secret-websocket'
+      | 'server-websocket'
+      | 'webrtc'
+    )[];
+    /** Omission preserves session-update startup. WebRTC setup may start the session. */
+    startup?: 'session-start' | 'session-update';
+    /** Omission preserves transport-close finalization. */
+    finalization?: 'session-close' | 'transport-close';
   };
 
   /** Server-only connection settings. Headers can contain long-lived credentials. */
@@ -57,7 +67,7 @@ export type RealtimeModelV4 = {
    *
    * Naming: "do" prefix to prevent accidental direct usage by the user.
    */
-  doCreateClientSecret(
+  doCreateClientSecret?(
     options: RealtimeModelV4ClientSecretOptions,
   ): PromiseLike<RealtimeModelV4ClientSecretResult>;
 
@@ -66,7 +76,7 @@ export type RealtimeModelV4 = {
    * when connecting. Each provider has its own authentication mechanism
    * (e.g. OpenAI uses subprotocol headers, xAI may use query params).
    */
-  getWebSocketConfig(options: { token: string; url: string }): {
+  getWebSocketConfig?(options: { token: string; url: string }): {
     url: string;
     protocols?: string[];
   };

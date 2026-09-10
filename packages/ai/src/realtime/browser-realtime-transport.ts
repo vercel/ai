@@ -9,6 +9,7 @@ export type BrowserRealtimeTransportOptions = {
   model: RealtimeModel;
   onServerEvent: (event: RealtimeServerEvent) => void | Promise<void>;
   onError: (error: Error) => void;
+  onFatalError?: (error: Error, drain?: Promise<void>) => void;
   onClose: () => void;
 };
 
@@ -21,8 +22,9 @@ export class BrowserRealtimeTransport {
   private codec: RealtimeEventChannel | undefined;
   private epoch = 0;
   private drainTimer?: ReturnType<typeof setTimeout>;
+  private failing = false;
 
-  constructor(options: BrowserRealtimeTransportOptions) {
+  constructor(private readonly options: BrowserRealtimeTransportOptions) {
     this.model = options.model;
     this.onServerEvent = options.onServerEvent;
     this.onError = options.onError;
@@ -43,7 +45,7 @@ export class BrowserRealtimeTransport {
     url: string;
     /** Omit token to connect directly to an application-owned relay. */
     protocols?: string[];
-    onOpen: () => void;
+    onOpen: () => void | Promise<void>;
   }): void {
     this.disconnect();
 
@@ -51,7 +53,9 @@ export class BrowserRealtimeTransport {
     const wsConfig =
       token == null
         ? { url, protocols }
-        : this.model.getWebSocketConfig({ token, url });
+        : this.model.getWebSocketConfig?.({ token, url });
+    if (wsConfig == null)
+      throw new Error('Model does not support client-secret WebSockets');
     const ws = new WebSocket(wsConfig.url, wsConfig.protocols);
 
     // Track the socket immediately (not just in `onopen`) so that calling
@@ -59,6 +63,7 @@ export class BrowserRealtimeTransport {
     // `close()` would be a no-op and the socket could open afterwards and fire
     // the `onOpen` (session-update) callback against a disconnected session.
     this.ws = ws;
+    let starting = false;
     const codec = new RealtimeEventChannel({
       model: this.model,
       send: data => {
@@ -69,17 +74,30 @@ export class BrowserRealtimeTransport {
         this.sendRaw(data);
       },
       onEvent: this.onServerEvent,
-      onError: this.onError,
+      onError: error => {
+        if (!starting) this.onError(error);
+      },
+      onFatalError: error => this.fail(error),
     });
     this.codec = codec;
 
     ws.onopen = () => {
       // Ignore a late open for a socket that has since been replaced/closed.
       if (this.ws !== ws) return;
+      starting = true;
       try {
-        onOpen();
+        void Promise.resolve(onOpen())
+          .catch(error => {
+            if (this.ws === ws)
+              this.fail(
+                error instanceof Error ? error : new Error(String(error)),
+              );
+          })
+          .finally(() => {
+            starting = false;
+          });
       } catch (error) {
-        this.onError(error instanceof Error ? error : new Error(String(error)));
+        this.fail(error instanceof Error ? error : new Error(String(error)));
       }
     };
 
@@ -88,7 +106,7 @@ export class BrowserRealtimeTransport {
     };
 
     ws.onerror = () => {
-      if (this.ws === ws) this.onError(new Error('WebSocket connection error'));
+      if (this.ws === ws) this.fail(new Error('WebSocket connection error'));
     };
 
     ws.onclose = () => {
@@ -99,10 +117,14 @@ export class BrowserRealtimeTransport {
           clearTimeout(this.drainTimer);
           this.epoch++;
           codec.dispose();
-          this.onClose();
+          try {
+            this.onClose();
+          } catch (error) {
+            this.reportCallbackError(error);
+          }
         };
         this.drainTimer = setTimeout(complete, 1_000);
-        void codec.finish().then(complete);
+        void this.awaitDrain(codec.finish(), complete);
       }
     };
   }
@@ -114,6 +136,7 @@ export class BrowserRealtimeTransport {
     this.ws = null;
     this.codec?.dispose();
     this.codec = undefined;
+    this.failing = false;
     ws?.close();
   }
 
@@ -121,7 +144,74 @@ export class BrowserRealtimeTransport {
     event: RealtimeClientEvent,
     shouldSend?: () => boolean,
   ): Promise<void> {
-    return this.codec?.send(event, shouldSend) ?? Promise.resolve();
+    if (this.failing) throw new Error('Realtime connection is closed');
+    if (this.codec == null) return Promise.resolve();
+    try {
+      const sent = this.codec.send(event, shouldSend);
+      if (event.type === 'input-audio-append')
+        void sent.catch(error => {
+          if (this.isOpen) this.fail(error);
+        });
+      return sent;
+    } catch (error) {
+      if (event.type === 'input-audio-append' && this.isOpen)
+        this.fail(error instanceof Error ? error : new Error(String(error)));
+      throw error;
+    }
+  }
+
+  finish(): Promise<void> {
+    return this.codec?.finish() ?? Promise.resolve();
+  }
+
+  private fail(error: Error): void {
+    if (this.failing) return;
+    this.failing = true;
+    const ws = this.ws;
+    this.ws = null;
+    ws?.close();
+    const drain = this.finish();
+    if (this.options.onFatalError != null)
+      this.options.onFatalError(error, drain);
+    else {
+      const epoch = this.epoch;
+      const complete = () => {
+        if (epoch !== this.epoch) return;
+        this.disconnect();
+        try {
+          this.onClose();
+        } catch (cause) {
+          this.reportCallbackError(cause);
+        }
+      };
+      this.drainTimer = setTimeout(complete, 1_000);
+      void this.awaitDrain(drain, complete);
+      this.reportCallbackError(error);
+    }
+  }
+
+  private async awaitDrain(
+    drain: Promise<void>,
+    complete: () => void,
+  ): Promise<void> {
+    try {
+      await drain;
+    } catch {
+      /* Transport loss still requires finalization. */
+    }
+    try {
+      complete();
+    } catch (error) {
+      this.reportCallbackError(error);
+    }
+  }
+
+  private reportCallbackError(error: unknown): void {
+    try {
+      this.onError(error instanceof Error ? error : new Error(String(error)));
+    } catch {
+      /* Application callbacks cannot interrupt teardown. */
+    }
   }
 
   sendRaw(data: unknown): void {

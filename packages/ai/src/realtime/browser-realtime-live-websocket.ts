@@ -18,15 +18,18 @@ export class BrowserRealtimeLiveWebSocket {
   private capturingStarted = false;
   private stream?: MediaStream;
   private pendingAudio = 0;
+  private captureGeneration = 0;
+  private captureEnabled = true;
 
   constructor(
     private readonly options: {
       model: RealtimeModel;
       sessionConfig?: Partial<RealtimeSessionConfig>;
       sampleRate?: number;
+      maxPlaybackBufferSeconds?: number;
       onEvent: (event: RealtimeServerEvent) => Promise<void>;
       onError: (error: Error) => void;
-      onFatalError: (error: Error) => void;
+      onFatalError: (error: Error, drain?: Promise<void>) => void;
       onClose: () => void;
       onCapturing: (value: boolean) => void;
       onPlaying: (value: boolean) => void;
@@ -54,18 +57,16 @@ export class BrowserRealtimeLiveWebSocket {
     this.transport = new BrowserRealtimeTransport({
       model: options.model,
       onServerEvent: options.onEvent,
-      onError: error => {
-        if (!this.capturingStarted) options.onFatalError(error);
-        else options.onError(error);
-      },
+      onError: options.onError,
+      onFatalError: options.onFatalError,
       onClose: options.onClose,
     });
     this.audio = new BrowserRealtimeAudio({
       captureSampleRate: this.config.inputAudioFormat?.rate ?? sampleRate,
       playbackSampleRate: this.config.outputAudioFormat?.rate ?? sampleRate,
-      maxPlaybackSeconds: 2,
+      maxPlaybackSeconds: options.maxPlaybackBufferSeconds ?? 2,
       onAudio: audio => this.sendAudio(audio),
-      onError: options.onFatalError,
+      onError: options.onError,
       onCapturingChange: options.onCapturing,
       onPlayingChange: options.onPlaying,
     });
@@ -75,6 +76,7 @@ export class BrowserRealtimeLiveWebSocket {
     url: string;
     protocols?: string[];
     stream?: MediaStream;
+    capture?: boolean;
   }): void {
     this.dispose();
     for (const format of [
@@ -95,6 +97,7 @@ export class BrowserRealtimeLiveWebSocket {
         throw new Error('Invalid realtime PCM sample rate');
     }
     this.stream = options.stream;
+    this.captureEnabled = options.capture !== false;
     // Create/resume playback while connect is still in the caller's user gesture.
     this.audio.ensurePlaybackContext();
     const generation = this.generation;
@@ -105,8 +108,8 @@ export class BrowserRealtimeLiveWebSocket {
       url: options.url,
       protocols: options.protocols,
       onOpen: () => {
-        this.transport.sendEvent({
-          type: 'session-start',
+        return this.transport.sendEvent({
+          type: this.options.model.capabilities?.startup ?? 'session-update',
           config: this.config,
         });
       },
@@ -114,36 +117,38 @@ export class BrowserRealtimeLiveWebSocket {
   }
 
   startCapture(): void {
-    if (this.capturingStarted) return;
+    this.ready = true;
+    if (!this.captureEnabled || this.capturingStarted) return;
+    void this.resumeCapture().catch(error => this.options.onError(error));
+  }
+
+  async resumeCapture(suppliedStream?: MediaStream): Promise<void> {
+    this.stopCapture();
     this.ready = true;
     this.capturingStarted = true;
-    const generation = this.generation;
+    this.captureEnabled = true;
+    if (suppliedStream != null) this.stream = suppliedStream;
+    const generation = this.captureGeneration;
     const supplied = this.stream;
-    void (async () => {
-      const stream =
-        supplied ??
-        (await navigator.mediaDevices.getUserMedia({ audio: true }));
-      if (generation !== this.generation || !this.ready) {
-        if (supplied == null) stream.getTracks().forEach(track => track.stop());
-        return;
-      }
-      if (!stream.getAudioTracks().some(track => track.readyState === 'live')) {
-        if (supplied == null) stream.getTracks().forEach(track => track.stop());
-        throw new Error('Realtime requires a live audio track');
-      }
-      this.audio.startCapture(stream, { ownsStream: supplied == null });
-    })().catch(error => {
-      if (generation === this.generation)
-        this.options.onFatalError(
-          error instanceof Error ? error : new Error(String(error)),
-        );
-    });
+    const stream =
+      supplied ?? (await navigator.mediaDevices.getUserMedia({ audio: true }));
+    if (generation !== this.captureGeneration || !this.ready) {
+      if (supplied == null) stream.getTracks().forEach(track => track.stop());
+      return;
+    }
+    if (!stream.getAudioTracks().some(track => track.readyState === 'live')) {
+      if (supplied == null) stream.getTracks().forEach(track => track.stop());
+      throw new Error('Realtime requires a live audio track');
+    }
+    this.audio.startCapture(stream, { ownsStream: supplied == null });
   }
 
   private sendAudio(audio: string): void {
     if (!this.ready || !this.transport.isOpen) return;
-    if (this.pendingAudio >= 8)
-      throw new Error('Realtime audio send queue is full');
+    if (this.pendingAudio >= 8) {
+      this.options.onFatalError(new Error('Realtime audio send queue is full'));
+      return;
+    }
     const generation = this.generation;
     let sent: Promise<void>;
     try {
@@ -192,7 +197,7 @@ export class BrowserRealtimeLiveWebSocket {
     try {
       this.audio.playAudio(audio);
     } catch (error) {
-      this.options.onFatalError(
+      this.options.onError(
         error instanceof Error ? error : new Error(String(error)),
       );
     }
@@ -205,11 +210,19 @@ export class BrowserRealtimeLiveWebSocket {
   }
 
   stopCapture(): void {
+    this.captureGeneration++;
     this.ready = false;
+    this.capturingStarted = false;
+    this.captureEnabled = false;
     this.audio.stopCapture();
   }
 
+  finish(): Promise<void> {
+    return this.transport.finish();
+  }
+
   dispose(): void {
+    this.stopCapture();
     this.generation++;
     this.ready = false;
     this.capturingStarted = false;

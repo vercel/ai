@@ -5,9 +5,10 @@ import {
 } from '@ai-sdk/provider';
 import { z } from 'zod/v4';
 import {
-  openaiLiveProviderOptionsSchema,
-  openaiLiveResponsesOptionsSchema,
-} from './openai-live-options';
+  openaiRealtimeModelLiveOptionsSchema,
+  openaiRealtimeModelLiveUpdateOptionsSchema,
+  type OpenAIRealtimeModelLiveUpdateOptions,
+} from './openai-realtime-model-live-options';
 
 const audioFormatSchema = z.union([
   z.strictObject({
@@ -41,13 +42,13 @@ export function buildOpenAILiveSessionConfig(
     }
   }
 
-  const options = openaiLiveProviderOptionsSchema.parse(
+  const options = openaiRealtimeModelLiveOptionsSchema.parse(
     config.providerOptions?.openai ?? {},
   );
-  if (options.delegation?.type === 'responses') {
-    openaiLiveResponsesOptionsSchema
-      .extend({ model: z.string().min(1) })
-      .parse(options.delegation.responses);
+  if (options.client !== undefined && transport !== 'webrtc') {
+    throw new UnsupportedFunctionalityError({
+      functionality: 'OpenAI Live client permissions outside WebRTC startup',
+    });
   }
   if (options.voice != null && config.voice != null) {
     throw new InvalidArgumentError({
@@ -101,7 +102,46 @@ export function buildOpenAILiveSessionConfig(
       output: { voice: options.voice ?? config.voice ?? 'marin' },
     },
     ...(options.delegation !== undefined
-      ? { delegation: options.delegation }
+      ? {
+          delegation:
+            options.delegation?.type === 'responses'
+              ? {
+                  type: 'responses',
+                  responses: convertResponsesOptions(
+                    options.delegation.responses,
+                  ),
+                }
+              : options.delegation,
+        }
+      : {}),
+    ...(options.client !== undefined
+      ? {
+          client: {
+            data_channel: {
+              ...(options.client.dataChannel.allowedClientEvents !== undefined
+                ? {
+                    allowed_client_events:
+                      options.client.dataChannel.allowedClientEvents,
+                  }
+                : {}),
+              ...(options.client.dataChannel.allowedServerEvents !== undefined
+                ? {
+                    allowed_server_events:
+                      options.client.dataChannel.allowedServerEvents === 'all'
+                        ? 'all'
+                        : options.client.dataChannel.allowedServerEvents.map(
+                            selector => ({
+                              type: selector.type,
+                              ...(selector.responseEvent !== undefined
+                                ? { response_event: selector.responseEvent }
+                                : {}),
+                            }),
+                          ),
+                  }
+                : {}),
+            },
+          },
+        }
       : {}),
     ...(options.input !== undefined ? { input: options.input } : {}),
     ...(options.store !== undefined ? { store: options.store } : {}),
@@ -117,13 +157,33 @@ export function buildOpenAILiveSessionUpdate(
         'OpenAI Live session updates outside delegation.responses; use context-append or create a new session',
     });
   }
-  const options = z
-    .strictObject({
-      delegation: z.strictObject({
-        type: z.literal('responses').optional(),
-        responses: openaiLiveResponsesOptionsSchema,
-      }),
-    })
-    .parse(config.providerOptions?.openai);
-  return { delegation: { responses: options.delegation.responses } };
+  const options = openaiRealtimeModelLiveUpdateOptionsSchema.parse(
+    config.providerOptions?.openai,
+  );
+  return {
+    delegation: {
+      type: 'responses',
+      responses: convertResponsesOptions(options.delegation.responses),
+    },
+  };
+}
+
+function convertResponsesOptions({
+  toolChoice,
+  parallelToolCalls,
+  maxOutputTokens,
+  serviceTier,
+  ...options
+}: OpenAIRealtimeModelLiveUpdateOptions['delegation']['responses']) {
+  return {
+    ...options,
+    ...(toolChoice !== undefined ? { tool_choice: toolChoice } : {}),
+    ...(parallelToolCalls !== undefined
+      ? { parallel_tool_calls: parallelToolCalls }
+      : {}),
+    ...(maxOutputTokens !== undefined
+      ? { max_output_tokens: maxOutputTokens }
+      : {}),
+    ...(serviceTier !== undefined ? { service_tier: serviceTier } : {}),
+  };
 }

@@ -1,3 +1,4 @@
+import type { SharedV4ProviderOptions } from '../../shared/v4/shared-v4-provider-options';
 import type { RealtimeModelV4ConversationItem } from './realtime-model-v4-conversation-item';
 import type { RealtimeModelV4SessionConfig } from './realtime-model-v4-session-config';
 
@@ -24,15 +25,19 @@ export type RealtimeModelV4ClientEvent =
       eventId?: string;
     }
   | {
-      type: 'input-audio-mute' | 'input-audio-unmute';
+      type: 'input-audio-mute';
+      eventId?: string;
+    }
+  | {
+      type: 'input-audio-unmute';
       eventId?: string;
     }
   | {
       type: 'context-append';
-      channel: 'instructions' | 'thinking' | 'commentary';
       content: string;
       delegationId: string | null;
       eventId?: string;
+      providerOptions?: SharedV4ProviderOptions;
     }
 
   // ── Delegated backend (requires a provider-managed backend) ──────────
@@ -50,7 +55,11 @@ export type RealtimeModelV4ClientEvent =
       type: 'backend-input-create';
       content: Array<
         | { type: 'text'; text: string }
-        | { type: 'image'; url: string; detail?: 'auto' | 'low' | 'high' }
+        | {
+            type: 'image';
+            url: string;
+            providerOptions?: SharedV4ProviderOptions;
+          }
       >;
       eventId?: string;
     }

@@ -22,6 +22,9 @@ type RealtimeStoreKey = {
   sessionConfig: RealtimeSessionOptions['sessionConfig'];
   sampleRate: RealtimeSessionOptions['sampleRate'];
   maxEvents: RealtimeSessionOptions['maxEvents'];
+  autoContinueTools: RealtimeSessionOptions['autoContinueTools'];
+  maxPlaybackBufferSeconds: RealtimeSessionOptions['maxPlaybackBufferSeconds'];
+  rtcDisconnectTimeoutMs: RealtimeSessionOptions['rtcDisconnectTimeoutMs'];
 };
 
 function getRealtimeStoreKey(options: UseRealtimeOptions): RealtimeStoreKey {
@@ -36,6 +39,9 @@ function getRealtimeStoreKey(options: UseRealtimeOptions): RealtimeStoreKey {
     sessionConfig: options.sessionConfig,
     sampleRate: options.sampleRate,
     maxEvents: options.maxEvents,
+    autoContinueTools: options.autoContinueTools,
+    maxPlaybackBufferSeconds: options.maxPlaybackBufferSeconds,
+    rtcDisconnectTimeoutMs: options.rtcDisconnectTimeoutMs,
   };
 }
 
@@ -53,7 +59,11 @@ function shouldCreateRealtimeStore(
     currentKey.closeTimeoutMs !== nextOptions.closeTimeoutMs ||
     currentKey.sessionConfig !== nextOptions.sessionConfig ||
     currentKey.sampleRate !== nextOptions.sampleRate ||
-    currentKey.maxEvents !== nextOptions.maxEvents
+    currentKey.maxEvents !== nextOptions.maxEvents ||
+    currentKey.autoContinueTools !== nextOptions.autoContinueTools ||
+    currentKey.maxPlaybackBufferSeconds !==
+      nextOptions.maxPlaybackBufferSeconds ||
+    currentKey.rtcDisconnectTimeoutMs !== nextOptions.rtcDisconnectTimeoutMs
   );
 }
 
@@ -72,7 +82,7 @@ class RealtimeStore extends AbstractRealtimeSession {
     events: new Set(),
     isCapturing: new Set(),
     isPlaying: new Set(),
-    live: new Set(),
+    session: new Set(),
   };
 
   get status(): RealtimeStatus {
@@ -95,8 +105,8 @@ class RealtimeStore extends AbstractRealtimeSession {
     return this.state.isPlaying;
   }
 
-  get live(): RealtimeState['live'] {
-    return this.state.live;
+  get session(): RealtimeState['session'] {
+    return this.state.session;
   }
 
   subscribe(key: RealtimeStateKey, onChange: () => void): () => void {
@@ -114,36 +124,6 @@ class RealtimeStore extends AbstractRealtimeSession {
     this.state = { ...this.state, [key]: value };
     this.callbacks[key].forEach(callback => callback());
   }
-
-  protected pushMessage(message: UIMessage): void {
-    this.state = {
-      ...this.state,
-      messages: [...this.state.messages, message],
-    };
-    this.callbacks.messages.forEach(callback => callback());
-  }
-
-  protected updateMessages(
-    updater: (messages: UIMessage[]) => UIMessage[],
-  ): void {
-    this.state = {
-      ...this.state,
-      messages: updater(this.state.messages),
-    };
-    this.callbacks.messages.forEach(callback => callback());
-  }
-
-  protected pushEvent(event: RealtimeServerEvent): void {
-    const nextEvents = [...this.state.events, event];
-    this.state = {
-      ...this.state,
-      events:
-        nextEvents.length > this.maxEvents
-          ? nextEvents.slice(-this.maxEvents)
-          : nextEvents,
-    };
-    this.callbacks.events.forEach(callback => callback());
-  }
 }
 
 type UseRealtimeReturn = {
@@ -152,11 +132,12 @@ type UseRealtimeReturn = {
   events: RealtimeServerEvent[];
   isCapturing: boolean;
   isPlaying: boolean;
-  live?: RealtimeState['live'];
+  session?: RealtimeState['session'];
 
   connect: RealtimeStore['connect'];
   close: RealtimeStore['close'];
   resumePlayback: () => Promise<void>;
+  resumeAudioCapture: () => Promise<void>;
   disconnect: () => void;
   addToolOutput: (callId: string, result: unknown) => void;
   sendEvent: RealtimeStore['sendEvent'];
@@ -240,10 +221,10 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
     () => rt.isPlaying,
   );
 
-  const live = useSyncExternalStore(
-    useCallback(cb => rt.subscribe('live', cb), [rt]),
-    () => rt.live,
-    () => rt.live,
+  const session = useSyncExternalStore(
+    useCallback(cb => rt.subscribe('session', cb), [rt]),
+    () => rt.session,
+    () => rt.session,
   );
 
   useEffect(() => {
@@ -256,9 +237,10 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
     events,
     isCapturing,
     isPlaying,
-    live,
+    session,
     close: rt.close.bind(rt),
     resumePlayback: rt.resumePlayback.bind(rt),
+    resumeAudioCapture: rt.resumeAudioCapture.bind(rt),
     connect: rt.connect.bind(rt),
     disconnect: rt.disconnect.bind(rt),
     addToolOutput: rt.addToolOutput.bind(rt),

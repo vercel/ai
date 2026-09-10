@@ -1,5 +1,6 @@
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import type { RealtimeServerEvent } from '../types/realtime-model';
+import type { RealtimeSessionState } from './realtime-session-state';
 import type {
   DynamicToolUIPart,
   TextUIPart,
@@ -13,28 +14,13 @@ export type RealtimeStatus =
   | 'closing'
   | 'error';
 
-export type RealtimeLiveState = {
-  delegationMode?: 'client' | 'responses';
-  sessionId?: string;
-  transcripts: Extract<RealtimeServerEvent, { type: 'transcript-fragment' }>[];
-  delegations: Extract<RealtimeServerEvent, { type: 'delegation-created' }>[];
-  backendUsage?: Extract<
-    RealtimeServerEvent,
-    { type: 'backend-response-done' }
-  >[];
-  usage?: { seconds: number };
-  finalization: 'pending' | 'confirmed' | 'unconfirmed';
-  terminationReason?: string;
-  isInputMuted: boolean;
-};
-
 export interface RealtimeState {
   status: RealtimeStatus;
   messages: UIMessage[];
   events: RealtimeServerEvent[];
   isCapturing: boolean;
   isPlaying: boolean;
-  live?: RealtimeLiveState;
+  session?: RealtimeSessionState;
 }
 
 export type RealtimeReducerEffect =

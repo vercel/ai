@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createOpenAI } from '../index';
 
-const model = createOpenAI().live('gpt-live-1');
+const model = createOpenAI().experimental_live('gpt-live-1');
 
 describe('OpenAI Live server events', () => {
   it.each([
@@ -164,10 +164,10 @@ describe('OpenAI Live server events', () => {
     ],
   ])('normalizes %j and retains the original event', (raw, expected) => {
     const parsed = model.parseServerEvent(raw);
-    expect(parsed).toMatchObject(expected);
-    expect(Array.isArray(parsed) ? parsed[0].raw : parsed.raw).toBe(raw);
-    expect(parsed).not.toHaveProperty('itemId');
-    expect(parsed).not.toHaveProperty('responseId');
+    expect(parsed).toMatchObject([expected]);
+    expect(parsed[0].raw).toBe(raw);
+    expect(parsed[0]).not.toHaveProperty('itemId');
+    expect(parsed[0]).not.toHaveProperty('responseId');
   });
 
   it('retains cumulative usage snapshots rather than summing updates', () => {
@@ -177,7 +177,7 @@ describe('OpenAI Live server events', () => {
           type: 'session.usage.updated',
           usage: { seconds },
         }),
-      ).toMatchObject({ type: 'session-usage', usage: { seconds } });
+      ).toMatchObject([{ type: 'session-usage', usage: { seconds } }]);
     }
   });
 
@@ -185,13 +185,15 @@ describe('OpenAI Live server events', () => {
     'handles an error code of %s and keeps the raw value',
     code => {
       const raw = { type: 'error', error: { message: 'Rejected', code } };
-      expect(model.parseServerEvent(raw)).toEqual({
-        type: 'error',
-        message: 'Rejected',
-        code: code ?? undefined,
-        clientEventId: undefined,
-        raw,
-      });
+      expect(model.parseServerEvent(raw)).toEqual([
+        {
+          type: 'error',
+          message: 'Rejected',
+          code: code ?? undefined,
+          clientEventId: undefined,
+          raw,
+        },
+      ]);
     },
   );
 
@@ -217,7 +219,7 @@ describe('OpenAI Live server events', () => {
           raw,
         },
       ]);
-      expect(Array.isArray(parsed) ? parsed[0].raw : parsed.raw).toBe(raw);
+      expect(parsed[0].raw).toBe(raw);
     },
   );
 
@@ -225,11 +227,13 @@ describe('OpenAI Live server events', () => {
     'preserves unknown %s events as custom',
     type => {
       const raw = { type, additional: true };
-      expect(model.parseServerEvent(raw)).toEqual({
-        type: 'custom',
-        rawType: type,
-        raw,
-      });
+      expect(model.parseServerEvent(raw)).toEqual([
+        {
+          type: 'custom',
+          rawType: type,
+          raw,
+        },
+      ]);
     },
   );
 
@@ -277,11 +281,13 @@ describe('OpenAI Live server events', () => {
     'reports invalid known events without signaling readiness or finalization: %j',
     raw => {
       const parsed = model.parseServerEvent(raw);
-      expect(parsed).toMatchObject({
-        type: 'error',
-        code: 'invalid_server_event',
-      });
-      expect(Array.isArray(parsed) ? parsed[0].raw : parsed.raw).toBe(raw);
+      expect(parsed).toMatchObject([
+        {
+          type: 'error',
+          code: 'invalid_server_event',
+        },
+      ]);
+      expect(parsed[0].raw).toBe(raw);
     },
   );
 });

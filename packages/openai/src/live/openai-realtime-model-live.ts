@@ -1,9 +1,6 @@
 import {
-  UnsupportedFunctionalityError,
   type Experimental_RealtimeModelV4 as RealtimeModelV4,
   type Experimental_RealtimeModelV4ClientEvent as RealtimeModelV4ClientEvent,
-  type Experimental_RealtimeModelV4ClientSecretOptions as RealtimeModelV4ClientSecretOptions,
-  type Experimental_RealtimeModelV4ClientSecretResult as RealtimeModelV4ClientSecretResult,
   type Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
 } from '@ai-sdk/provider';
 import {
@@ -18,10 +15,10 @@ import {
   parseOpenAILiveServerEvent,
   serializeOpenAILiveClientEvent,
 } from './openai-live-event-mapper';
-import type { OpenAILiveModelId } from './openai-live-options';
+import type { OpenAIRealtimeModelLiveId } from './openai-realtime-model-live-options';
 import { buildOpenAILiveSessionConfig } from './openai-live-session-config';
 
-export type OpenAILiveModelConfig = {
+export type OpenAIRealtimeModelLiveConfig = {
   provider: string;
   baseURL: string;
   headers: () => Record<string, string | undefined>;
@@ -33,16 +30,19 @@ const webRTCSessionSchema = z.object({
   transport: z.object({ type: z.literal('webrtc'), sdp: z.string().min(1) }),
 });
 
-export class OpenAILiveModel implements RealtimeModelV4 {
+export class OpenAIRealtimeModelLive implements RealtimeModelV4 {
   readonly specificationVersion = 'v4' as const;
   readonly capabilities = {
     conversation: 'continuous',
     transports: ['websocket', 'webrtc'],
+    connections: ['server-websocket', 'webrtc'],
+    startup: 'session-start',
+    finalization: 'session-close',
   } as const;
 
   constructor(
-    readonly modelId: OpenAILiveModelId,
-    private readonly config: OpenAILiveModelConfig,
+    readonly modelId: OpenAIRealtimeModelLiveId,
+    private readonly config: OpenAIRealtimeModelLiveConfig,
   ) {}
 
   get provider(): string {
@@ -90,25 +90,6 @@ export class OpenAILiveModel implements RealtimeModelV4 {
       fetch: this.config.fetch,
     });
     return { sessionId: value.session.id, sdp: value.transport.sdp };
-  }
-
-  async doCreateClientSecret(
-    _options: RealtimeModelV4ClientSecretOptions,
-  ): Promise<RealtimeModelV4ClientSecretResult> {
-    throw new UnsupportedFunctionalityError({
-      functionality:
-        'OpenAI Live ephemeral tokens; use server WebSocket headers or doCreateWebRTCSession SDP exchange',
-    });
-  }
-
-  getWebSocketConfig(_options: { token: string; url: string }): {
-    url: string;
-    protocols?: string[];
-  } {
-    throw new UnsupportedFunctionalityError({
-      functionality:
-        'OpenAI Live browser WebSocket tokens; use getServerWebSocketConfig on the server or doCreateWebRTCSession SDP exchange',
-    });
   }
 
   parseServerEvent(raw: unknown) {

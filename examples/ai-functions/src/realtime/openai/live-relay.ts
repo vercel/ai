@@ -5,7 +5,7 @@ import { WebSocket, WebSocketServer } from 'ws';
 // Local example: authenticate and authorize upgrades before exposing a relay.
 const port = Number(process.env.PORT ?? 4318);
 const allowedOrigin = process.env.ALLOWED_ORIGIN ?? 'http://localhost:3000';
-const model = openai.live('gpt-live-1');
+const model = openai.experimental_live('gpt-live-1');
 const server = createServer((_, response) => {
   response.writeHead(200, { 'Content-Type': 'text/plain' });
   response.end('OpenAI Live WebSocket relay. Connect on /live.');

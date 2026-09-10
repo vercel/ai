@@ -34,6 +34,7 @@ export class BrowserRealtimeAudio {
   private playbackStartTime = 0;
   private activeSources = new Set<AudioBufferSourceNode>();
   private isPlaying = false;
+  private playbackPaused = false;
   private readonly maxPlaybackSeconds: number;
   private readonly onError: ((error: Error) => void) | undefined;
 
@@ -52,13 +53,24 @@ export class BrowserRealtimeAudio {
       this.playbackContext = new AudioContext({
         sampleRate: this.playbackSampleRate,
       });
+      const context = this.playbackContext;
+      context.onstatechange = () => {
+        if (this.playbackContext === context)
+          this.setPlaying(
+            context.state === 'running' && this.activeSources.size > 0,
+          );
+      };
     }
   }
 
   async resumePlayback(): Promise<void> {
     this.ensurePlaybackContext();
+    if (this.playbackPaused) this.stopPlayback();
     await this.playbackContext?.resume();
-    this.setPlaying(this.activeSources.size > 0);
+    this.playbackPaused = false;
+    this.setPlaying(
+      this.playbackContext?.state === 'running' && this.activeSources.size > 0,
+    );
   }
 
   startCapture(stream: MediaStream, options?: { ownsStream?: boolean }): void {
@@ -135,6 +147,7 @@ export class BrowserRealtimeAudio {
   }
 
   playAudio(base64Audio: string): void {
+    if (this.playbackPaused) return;
     this.ensurePlaybackContext();
     const samples = decodeRealtimeAudio(base64Audio);
     if (
@@ -145,7 +158,14 @@ export class BrowserRealtimeAudio {
         samples.length / this.playbackSampleRate >
       this.maxPlaybackSeconds
     ) {
-      throw new Error('Realtime audio playback buffer is full');
+      this.playbackPaused = true;
+      this.stopPlayback();
+      this.onError?.(
+        new Error(
+          'Realtime audio playback buffer is full; playback paused, call resumePlayback() to resume at the live edge',
+        ),
+      );
+      return;
     }
     this.playbackQueue.push(samples);
     this.schedulePlayback();
@@ -180,9 +200,11 @@ export class BrowserRealtimeAudio {
   dispose(): void {
     this.stopCapture();
     this.stopPlayback();
+    if (this.playbackContext != null) this.playbackContext.onstatechange = null;
     void this.playbackContext?.close().catch(() => {});
     this.playbackContext = null;
     this.playbackTime = 0;
+    this.playbackPaused = false;
   }
 
   private setPlaying(isPlaying: boolean): void {

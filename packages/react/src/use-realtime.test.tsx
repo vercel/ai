@@ -42,6 +42,7 @@ vi.mock('ai', () => ({
     disconnect = vi.fn();
     close = vi.fn(async () => {});
     resumePlayback = vi.fn(async () => {});
+    resumeAudioCapture = vi.fn(async () => {});
     addToolOutput = vi.fn();
     sendEvent = vi.fn();
     sendTextMessage = vi.fn();

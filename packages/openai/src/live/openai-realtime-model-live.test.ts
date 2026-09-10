@@ -6,21 +6,26 @@ import {
   type Experimental_RealtimeModelV4ClientEvent as RealtimeModelV4ClientEvent,
 } from '@ai-sdk/provider';
 import { describe, expect, it, vi } from 'vitest';
-import { createOpenAI, type OpenAILiveProviderOptions } from '../index';
+import {
+  createOpenAI,
+  type Experimental_OpenAIRealtimeModelLiveOptions as OpenAIRealtimeModelLiveOptions,
+} from '../index';
 
 const options = {
   delegation: {
     type: 'responses',
     responses: {
-      model: 'gpt-5.6-luna',
+      model: 'gpt-5-mini',
       tools: [{ type: 'web_search' }],
-      tool_choice: 'auto',
+      toolChoice: 'auto',
     },
   },
-} satisfies OpenAILiveProviderOptions;
+} satisfies OpenAIRealtimeModelLiveOptions;
 
-describe('OpenAILiveModel', () => {
-  const model = createOpenAI({ apiKey: 'test-key' }).live('gpt-live-1');
+describe('OpenAIRealtimeModelLive', () => {
+  const model = createOpenAI({ apiKey: 'test-key' }).experimental_live(
+    'gpt-live-1',
+  );
 
   it('implements the existing v4 spec and declares continuous transports', () => {
     const realtime: RealtimeModelV4 = model;
@@ -30,6 +35,9 @@ describe('OpenAILiveModel', () => {
     expect(realtime.capabilities).toEqual({
       conversation: 'continuous',
       transports: ['websocket', 'webrtc'],
+      connections: ['server-websocket', 'webrtc'],
+      startup: 'session-start',
+      finalization: 'session-close',
     });
     expect(realtime.getWebRTCConfig?.()).toEqual({
       dataChannelLabel: 'oai-events',
@@ -56,7 +64,7 @@ describe('OpenAILiveModel', () => {
       organization: 'org-test',
       project: 'proj-test',
       headers: { 'X-Custom': 'value' },
-    }).live('gpt-live-1');
+    }).experimental_live('gpt-live-1');
     expect(custom.provider).toBe('custom.live');
     expect(custom.getServerWebSocketConfig()).toEqual({
       url: 'wss://example.com/proxy/v1/live/sessions',
@@ -72,7 +80,7 @@ describe('OpenAILiveModel', () => {
   it('maps an HTTP development base URL to ws', () => {
     expect(
       createOpenAI({ apiKey: 'test-key', baseURL: 'http://localhost:3000/v1' })
-        .live('gpt-live-1')
+        .experimental_live('gpt-live-1')
         .getServerWebSocketConfig().url,
     ).toBe('ws://localhost:3000/v1/live/sessions');
   });
@@ -98,7 +106,14 @@ describe('OpenAILiveModel', () => {
           format: { type: 'audio/pcm', rate: 24000 },
           output: { voice: 'marin' },
         },
-        delegation: options.delegation,
+        delegation: {
+          type: 'responses',
+          responses: {
+            model: 'gpt-5-mini',
+            tools: [{ type: 'web_search' }],
+            tool_choice: 'auto',
+          },
+        },
       },
     });
   });
@@ -162,12 +177,12 @@ describe('OpenAILiveModel', () => {
         },
         { type: 'web_search' },
       ],
-      tool_choice: { type: 'function', name: 'lookup' },
+      toolChoice: { type: 'function', name: 'lookup' },
       reasoning: { effort: 'low', summary: 'auto' },
       text: { verbosity: 'low' },
     } satisfies NonNullable<
       Extract<
-        OpenAILiveProviderOptions['delegation'],
+        OpenAIRealtimeModelLiveOptions['delegation'],
         { type: 'responses' }
       >['responses']
     >;
@@ -176,19 +191,20 @@ describe('OpenAILiveModel', () => {
         openai: { delegation: { type: 'responses', responses } },
       },
     };
+    const { toolChoice, ...unchangedResponses } = responses;
+    const wireResponses = { ...unchangedResponses, tool_choice: toolChoice };
     expect(model.buildSessionConfig(config)).toMatchObject({
-      delegation: { type: 'responses', responses },
+      delegation: { type: 'responses', responses: wireResponses },
     });
     expect(
       model.serializeClientEvent({ type: 'session-update', config }),
     ).toEqual({
       type: 'session.update',
-      session: { delegation: { responses } },
+      session: { delegation: { type: 'responses', responses: wireResponses } },
     });
   });
 
   it.each([
-    { tools: [{ type: 'function', name: 'lookup' }] },
     { tools: [{ type: 'function', name: '', parameters: {} }] },
     { tools: [{ type: 'function', name: 'lookup', parameters: [] }] },
     {
@@ -196,7 +212,7 @@ describe('OpenAILiveModel', () => {
         { type: 'function', name: 'lookup', parameters: {}, strict: 'yes' },
       ],
     },
-    { tool_choice: { type: 'function', function: { name: 'lookup' } } },
+    { toolChoice: { type: 'function', function: { name: 'lookup' } } },
     { reasoning: { effort: 'maximum' } },
     { text: { verbosity: 'verbose' } },
     { text: { format: { type: 'json_object' } } },
@@ -306,7 +322,7 @@ describe('OpenAILiveModel', () => {
                 responses: {
                   instructions: 'Updated backend instructions',
                   tools: [],
-                  tool_choice: 'none',
+                  toolChoice: 'none',
                 },
               },
             },
@@ -318,6 +334,7 @@ describe('OpenAILiveModel', () => {
       event_id: 'update-1',
       session: {
         delegation: {
+          type: 'responses',
           responses: {
             instructions: 'Updated backend instructions',
             tools: [],
@@ -393,7 +410,7 @@ describe('OpenAILiveModel', () => {
           {
             type: 'image',
             url: 'https://example.com/order.png',
-            detail: 'high',
+            providerOptions: { openai: { imageDetail: 'high' } },
           },
           { type: 'image', url: 'data:image/png;base64,AAAA' },
         ],
@@ -430,7 +447,7 @@ describe('OpenAILiveModel', () => {
         expect(
           model.serializeClientEvent({
             type: 'context-append',
-            channel,
+            providerOptions: { openai: { channel } },
             content: 'Context',
             delegationId,
             eventId: 'append-1',
@@ -465,13 +482,10 @@ describe('OpenAILiveModel', () => {
     },
   );
 
-  it('rejects ephemeral and browser WebSocket authentication explicitly', async () => {
-    await expect(model.doCreateClientSecret({})).rejects.toThrow(
-      UnsupportedFunctionalityError,
-    );
-    expect(() =>
-      model.getWebSocketConfig({ token: 'token', url: 'wss://example.com' }),
-    ).toThrow(UnsupportedFunctionalityError);
+  it('omits unsupported ephemeral and browser WebSocket capabilities', () => {
+    expect(model).not.toHaveProperty('doCreateClientSecret');
+    expect(model).not.toHaveProperty('getWebSocketConfig');
+    expect(createOpenAI()).not.toHaveProperty('live');
   });
 
   describe('doCreateWebRTCSession', () => {
@@ -492,7 +506,7 @@ describe('OpenAILiveModel', () => {
         project: 'proj-test',
         headers: { 'X-Custom': 'value' },
         fetch,
-      }).live('gpt-live-1');
+      }).experimental_live('gpt-live-1');
       await expect(
         model.doCreateWebRTCSession({
           sdp: 'offer-sdp',
@@ -519,7 +533,14 @@ describe('OpenAILiveModel', () => {
           model: 'gpt-live-1',
           instructions: 'Hello',
           audio: { output: { voice: 'marin' } },
-          delegation: options.delegation,
+          delegation: {
+            type: 'responses',
+            responses: {
+              model: 'gpt-5-mini',
+              tools: [{ type: 'web_search' }],
+              tool_choice: 'auto',
+            },
+          },
         },
         transport: { type: 'webrtc', sdp: 'offer-sdp' },
       });
@@ -530,7 +551,7 @@ describe('OpenAILiveModel', () => {
         .fn<typeof globalThis.fetch>()
         .mockResolvedValue(Response.json(success));
       await createOpenAI({ apiKey: 'test-key', fetch })
-        .live('gpt-live-1')
+        .experimental_live('gpt-live-1')
         .doCreateWebRTCSession({ sdp: 'offer' });
       expect(
         JSON.parse(fetch.mock.calls[0][1]?.body as string).session,
@@ -543,7 +564,7 @@ describe('OpenAILiveModel', () => {
         const fetch = vi.fn<typeof globalThis.fetch>();
         await expect(
           createOpenAI({ apiKey: 'test-key', fetch })
-            .live('gpt-live-1')
+            .experimental_live('gpt-live-1')
             .doCreateWebRTCSession({
               sdp: 'offer',
               sessionConfig: { [field]: { type: 'audio/pcm', rate: 24000 } },
@@ -567,7 +588,7 @@ describe('OpenAILiveModel', () => {
         .mockResolvedValue(Response.json(body));
       await expect(
         createOpenAI({ apiKey: 'test-key', fetch })
-          .live('gpt-live-1')
+          .experimental_live('gpt-live-1')
           .doCreateWebRTCSession({ sdp: 'offer' }),
       ).rejects.toThrow(APICallError);
     });
@@ -583,7 +604,7 @@ describe('OpenAILiveModel', () => {
         );
       await expect(
         createOpenAI({ apiKey: 'test-key', fetch })
-          .live('gpt-live-1')
+          .experimental_live('gpt-live-1')
           .doCreateWebRTCSession({ sdp: 'offer' }),
       ).rejects.toMatchObject({
         name: 'AI_APICallError',
@@ -597,7 +618,7 @@ describe('OpenAILiveModel', () => {
       const fetch = vi.fn<typeof globalThis.fetch>().mockRejectedValue(error);
       await expect(
         createOpenAI({ apiKey: 'test-key', fetch })
-          .live('gpt-live-1')
+          .experimental_live('gpt-live-1')
           .doCreateWebRTCSession({ sdp: 'offer' }),
       ).rejects.toBe(error);
     });

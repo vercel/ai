@@ -1,4 +1,7 @@
-import type { Experimental_RealtimeModelV4 as RealtimeModelV4 } from '@ai-sdk/provider';
+import type {
+  Experimental_RealtimeModelV4 as RealtimeModelV4,
+  Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
+} from '@ai-sdk/provider';
 import { expectTypeOf, it } from 'vitest';
 import { openai } from '../index';
 
@@ -27,6 +30,8 @@ it('accepts an existing minimal implementer without transport extensions', () =>
       | 'getHealthCheckResponse'
       | 'getWebRTCConfig'
       | 'createServerEventParser'
+      | 'doCreateClientSecret'
+      | 'getWebSocketConfig'
     >
   >();
 });
@@ -38,7 +43,7 @@ it('keeps the existing OpenAI realtime factory assignable', () => {
 });
 
 it('accepts Live as a realtime model while retaining its continuous capabilities', () => {
-  const model = openai.live('gpt-live');
+  const model = openai.experimental_live('gpt-live');
 
   expectTypeOf(model).toMatchTypeOf<RealtimeModelV4>();
   expectTypeOf(model.capabilities.conversation).toEqualTypeOf<'continuous'>();
@@ -53,8 +58,15 @@ it('accepts Live as a realtime model while retaining its continuous capabilities
     dataChannelLabel: string;
   }>();
   expectTypeOf(model.createServerEventParser()).toEqualTypeOf<
-    RealtimeModelV4['parseServerEvent']
+    (raw: unknown) => RealtimeModelV4ServerEvent[]
   >();
+  expectTypeOf(model.capabilities.connections).toEqualTypeOf<
+    readonly ['server-websocket', 'webrtc']
+  >();
+  expectTypeOf(model.capabilities.startup).toEqualTypeOf<'session-start'>();
+  expectTypeOf(
+    model.capabilities.finalization,
+  ).toEqualTypeOf<'session-close'>();
   expectTypeOf(
     model.doCreateWebRTCSession({ sdp: 'offer' }),
   ).resolves.toEqualTypeOf<{ sessionId: string; sdp: string }>();

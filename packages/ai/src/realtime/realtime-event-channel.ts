@@ -15,6 +15,7 @@ export class RealtimeEventChannel {
   private incoming = Promise.resolve();
   private outgoing = Promise.resolve();
   private incomingCount = 0;
+  private incomingBytes = 0;
   private outgoingCount = 0;
 
   constructor(
@@ -23,7 +24,9 @@ export class RealtimeEventChannel {
       send: (data: unknown) => void;
       onEvent: (event: RealtimeServerEvent) => void | Promise<void>;
       onError: (error: Error) => void;
+      onFatalError?: (error: Error) => void;
       maxPending?: number;
+      maxPendingBytes?: number;
     },
   ) {
     this.parse =
@@ -50,18 +53,24 @@ export class RealtimeEventChannel {
     }
     this.outgoingCount++;
     const operation = this.outgoing.then(async () => {
-      if (shouldSend?.() === false) return;
       if (!this.active || this.finishing)
         throw new Error('Realtime connection is closed');
+      if (shouldSend?.() === false) return;
       const data = await this.options.model.serializeClientEvent(event);
-      if (shouldSend?.() === false) return;
       if (!this.active || this.finishing)
         throw new Error('Realtime connection is closed');
+      if (shouldSend?.() === false) return;
       if (data != null) this.options.send(data);
     });
     this.outgoing = operation
       .catch(error => {
-        if (!this.finishing) this.report(error);
+        if (!this.finishing) {
+          if (event.type === 'input-audio-append')
+            this.fatal(
+              error instanceof Error ? error : new Error(String(error)),
+            );
+          else if (event.type !== 'session-close') this.report(error);
+        }
       })
       .finally(() => {
         this.outgoingCount--;
@@ -71,11 +80,27 @@ export class RealtimeEventChannel {
 
   receive(data: unknown): void {
     if (!this.active || this.finishing) return;
-    if (this.incomingCount >= (this.options.maxPending ?? 512)) {
-      this.report(new Error('Realtime incoming queue is full'));
+    const bytes =
+      typeof data === 'string'
+        ? data.length * 2
+        : data instanceof Blob
+          ? data.size
+          : ((data as ArrayBuffer).byteLength ?? 0);
+    if (
+      this.incomingCount >= (this.options.maxPending ?? 512) ||
+      this.incomingBytes + bytes >
+        (this.options.maxPendingBytes ?? 8 * 1024 * 1024)
+    ) {
+      this.finishing = true;
+      this.fatal(
+        new Error(
+          'Realtime incoming queue is full; input protocol continuity was lost',
+        ),
+      );
       return;
     }
     this.incomingCount++;
+    this.incomingBytes += bytes;
     this.incoming = this.incoming
       .then(async () => {
         if (!this.active) return;
@@ -98,13 +123,27 @@ export class RealtimeEventChannel {
         const result = this.parse(parsed.value);
         for (const event of Array.isArray(result) ? result : [result]) {
           if (!this.active) return;
-          await this.options.onEvent(event);
+          try {
+            await this.options.onEvent(event);
+          } catch (error) {
+            this.report(error);
+          }
         }
       })
-      .catch(error => this.report(error))
+      .catch(error => {
+        this.finishing = true;
+        this.fatal(error instanceof Error ? error : new Error(String(error)));
+      })
       .finally(() => {
         this.incomingCount--;
+        this.incomingBytes -= bytes;
       });
+  }
+
+  private fatal(error: Error): void {
+    if (!this.active) return;
+    if (this.options.onFatalError != null) this.options.onFatalError(error);
+    else this.report(error);
   }
 
   private report(error: unknown): void {

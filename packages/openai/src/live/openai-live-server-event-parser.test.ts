@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createOpenAI } from '../index';
 
-const model = createOpenAI({ apiKey: 'test-key' }).live('gpt-live-1');
+const model = createOpenAI({ apiKey: 'test-key' }).experimental_live(
+  'gpt-live-1',
+);
 
 function created(responseId: string, delegationId?: string | null) {
   return {
@@ -254,11 +256,13 @@ describe('OpenAI Live connection-local parser', () => {
     const parse = model.createServerEventParser();
     parse(created('resp-a', 'delegation'));
     const raw = { type: 'future.event', payload: { future: true } };
-    expect(parse(raw)).toEqual({
-      type: 'custom',
-      rawType: 'future.event',
-      raw,
-    });
+    expect(parse(raw)).toEqual([
+      {
+        type: 'custom',
+        rawType: 'future.event',
+        raw,
+      },
+    ]);
     const nested = {
       type: 'response.event',
       delegation_id: 'delegation',
@@ -381,7 +385,7 @@ describe('resolved session delegation mode', () => {
     [undefined, 'client'],
     [null, 'client'],
     [{ type: 'client' }, 'client'],
-    [{ type: 'responses', responses: { model: 'backend' } }, 'responses'],
+    [{ type: 'responses', responses: { model: 'backend' } }, 'provider'],
   ])(
     'normalizes %j as %s on both parser paths',
     (delegation, delegationMode) => {
@@ -393,12 +397,14 @@ describe('resolved session delegation mode', () => {
         model.createServerEventParser(),
         (raw: unknown) => model.parseServerEvent(raw),
       ]) {
-        expect(parse(raw)).toEqual({
-          type: 'session-started',
-          sessionId: 'session-1',
-          delegationMode,
-          raw,
-        });
+        expect(parse(raw)).toEqual([
+          {
+            type: 'session-started',
+            sessionId: 'session-1',
+            delegationMode,
+            raw,
+          },
+        ]);
       }
     },
   );
@@ -409,6 +415,6 @@ describe('resolved session delegation mode', () => {
         type: 'session.started',
         session: { id: 'session-1', delegation: { type: 'future-mode' } },
       }),
-    ).toMatchObject({ type: 'error', code: 'invalid_server_event' });
+    ).toMatchObject([{ type: 'error', code: 'invalid_server_event' }]);
   });
 });

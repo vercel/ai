@@ -12,25 +12,93 @@ description: API reference for the experimental_useRealtime hook.
 Creates a browser-side realtime session for bidirectional audio and text
 conversations with a realtime provider model.
 
-The hook connects to a realtime WebSocket using a short-lived token from your
-setup endpoint, returns messages as `UIMessage[]`, and provides controls for
-audio capture, playback, text input, and tool output.
+The hook supports token-based provider WebSockets, application-owned WebSocket
+relays, and optional direct browser WebRTC with server-side HTTP setup. It provides
+controls for capture, playback, text input, and tool output. Turn-based conversation
+messages use `UIMessage[]`; continuous transcript fragments remain in `session`.
 
 ```tsx
 import { openai } from '@ai-sdk/openai';
 import { experimental_useRealtime } from '@ai-sdk/react';
 
-const realtime = experimental_useRealtime({
-  model: openai.experimental_realtime('gpt-realtime'),
-  api: {
-    token: '/api/realtime/setup',
-  },
-});
+const model = openai.experimental_realtime('gpt-realtime');
+
+function Conversation() {
+  const realtime = experimental_useRealtime({
+    model,
+    api: { token: '/api/realtime/setup' },
+  });
+  return <button onClick={realtime.connect}>Connect</button>;
+}
 ```
 
 For AI Gateway, pass `gateway.experimental_realtime(...)` as the model and point
 `api.token` at a server-side setup endpoint that calls
 `gateway.experimental_realtime.getToken()`.
+
+Keep the model and session configuration stable across renders, using module scope
+or `useMemo`. Replacing either object replaces the hook's session.
+
+## Continuous conversations
+
+For OpenAI Live, use `openai.experimental_live()` and an application-owned WebSocket
+relay. The relay supplies server credentials and forwards the provider's native
+text frames; it must authenticate clients before accepting connections.
+
+```tsx
+const model = openai.experimental_live('gpt-live-1');
+const sessionConfig = { instructions: 'Be a concise, friendly assistant.' };
+
+function LiveConversation() {
+  const realtime = experimental_useRealtime({
+    model,
+    api: { websocket: 'wss://your-app.example/live' },
+    sessionConfig,
+  });
+  return (
+    <>
+      <button onClick={realtime.connect}>Connect microphone</button>
+      <button onClick={() => realtime.close()}>End conversation</button>
+      <p>
+        {realtime.status}: {realtime.session?.usage?.seconds} seconds
+      </p>
+    </>
+  );
+}
+```
+
+WebSocket capture/playback supports PCM16. Applications with their own audio pipeline
+can use the low-level provider for other supported codecs. OpenAI-specific settings,
+including Responses delegation and WebRTC permissions, live under `providerOptions.openai`.
+
+For optional WebRTC, pass `api: { session: '/api/live/session' }`. The endpoint receives
+`{ sdp, sessionConfig }` and returns `{ sessionId, sdp }` from the provider's
+`doCreateWebRTCSession()` method. Audio travels directly between the browser and
+OpenAI; the endpoint is an HTTP setup broker, not a WebRTC media server.
+
+## Lifecycle and failure handling
+
+Use `status === 'connected'` as the readiness signal; `connect()` does not promise
+to wait for provider readiness. Operational startup errors are reported through
+`onError` and `status`; the legacy resolve-and-report behavior is preserved.
+
+`close()` stops local capture and submissions, then drains events until the provider
+confirms final usage or the close deadline expires. A failed close-command send
+uses the shorter accepted-event drain rather than waiting for an acknowledgment
+to an unsent command. Read `session.finalization`: a fulfilled close promise does
+not by itself confirm usage. `disconnect()` and unmount release resources immediately.
+
+Command rejection and playback failures are recoverable and do not mark a healthy
+protocol connection as failed. Irrecoverable transport failures and protocol queue
+overflow stop submissions and capture, drain the accepted event prefix, and clean
+up. Events are never arbitrarily dropped while continuing with unreliable state.
+Temporary WebRTC disconnections have a bounded recovery interval; no commands or
+side-effecting tools are transparently replayed on a replacement connection.
+
+The playback budget bounds local latency and memory. On overflow, stale queued audio
+is discarded, playback pauses, and `onError` reports an audible gap. The connection
+stays alive; `resumePlayback()` resumes from fresh audio at the live edge. Captions
+and backend completion do not prove that the corresponding audio was heard.
 
 ## Import
 
@@ -52,9 +120,9 @@ For AI Gateway, pass `gateway.experimental_realtime(...)` as the model and point
     },
     {
       name: 'api',
-      type: '{ token: string }',
+      type: '{ token: string } | { websocket: string; protocols?: string[] } | { session: string }',
       description:
-        'API endpoints used by the realtime session. The token endpoint is called with POST to create the realtime setup response.',
+        'Choose one supported connection mechanism: token setup, a WebSocket relay, or an HTTP WebRTC SDP endpoint. Conversation semantics and connection capabilities are independent.',
       properties: [
         {
           type: 'Object',
@@ -62,8 +130,30 @@ For AI Gateway, pass `gateway.experimental_realtime(...)` as the model and point
             {
               name: 'token',
               type: 'string',
+              isOptional: true,
               description:
                 'The setup endpoint that returns an Experimental_RealtimeSetupResponse.',
+            },
+            {
+              name: 'websocket',
+              type: 'string',
+              isOptional: true,
+              description:
+                'Application-owned raw-protocol relay URL. Use wss in production; never put provider credentials in the URL.',
+            },
+            {
+              name: 'protocols',
+              type: 'string[]',
+              isOptional: true,
+              description:
+                'Optional relay subprotocols, supported only with websocket.',
+            },
+            {
+              name: 'session',
+              type: 'string',
+              isOptional: true,
+              description:
+                'HTTP SDP endpoint returning { sessionId, sdp }. The server owns the provider key and permission policy.',
             },
           ],
         },
@@ -89,6 +179,41 @@ For AI Gateway, pass `gateway.experimental_realtime(...)` as the model and point
       isOptional: true,
       description:
         'Maximum number of provider events to keep in the events array. Defaults to 500.',
+    },
+    {
+      name: 'autoContinueTools',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'Opt into automatic continuation after every pending provider-managed backend tool result is submitted. Defaults to false for these sessions; existing turn-based tool continuation is unchanged.',
+    },
+    {
+      name: 'startupTimeoutMs',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Readiness deadline, including transport setup. Defaults to 30000.',
+    },
+    {
+      name: 'closeTimeoutMs',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Deadline for confirmed provider finalization after graceful close. Defaults to 15000.',
+    },
+    {
+      name: 'rtcDisconnectTimeoutMs',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Grace interval for a recoverable WebRTC disconnected state. Defaults to 5000.',
+    },
+    {
+      name: 'maxPlaybackBufferSeconds',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Local PCM playback budget before reporting a recoverable gap and pausing playback. Defaults to 2.',
     },
     {
       name: 'onToolCall',
@@ -118,7 +243,7 @@ For AI Gateway, pass `gateway.experimental_realtime(...)` as the model and point
   content={[
     {
       name: 'status',
-      type: "'disconnected' | 'connecting' | 'connected' | 'error'",
+      type: "'disconnected' | 'connecting' | 'connected' | 'closing' | 'error'",
       description: 'The current connection status.',
     },
     {
@@ -144,15 +269,28 @@ For AI Gateway, pass `gateway.experimental_realtime(...)` as the model and point
       description: 'Whether model audio playback is active.',
     },
     {
-      name: 'connect',
-      type: '() => Promise<void>',
+      name: 'session',
+      type: 'Experimental_RealtimeSessionState | undefined',
       description:
-        'Fetches the setup token and opens the provider WebSocket connection.',
+        'Session lifecycle metadata where supported: sessionId, transcript fragments, delegations, cumulative voice usage, separate backendUsage snapshots, input mute, terminationReason, and pending/confirmed/unconfirmed finalization. Transcript fragments may overlap or arrive late; they are not complete turns.',
+    },
+    {
+      name: 'connect',
+      type: '(options?: { stream?: MediaStream; capture?: boolean }) => Promise<void>',
+      description:
+        'Starts the selected connection. Continuous browser sessions acquire microphone audio by default; capture: false opts out. A supplied Live stream remains caller-owned. The zero-argument overload remains usable as an event handler.',
+    },
+    {
+      name: 'close',
+      type: '(options?: { eventId?: string }) => Promise<void>',
+      description:
+        'Stops capture/submissions and waits for bounded graceful finalization where supported. Inspect session.finalization for confirmation; models without acknowledged close disconnect immediately.',
     },
     {
       name: 'disconnect',
       type: '() => void',
-      description: 'Closes the provider WebSocket connection.',
+      description:
+        'Immediately releases transports and owned media. Preserves latest usage as unconfirmed unless a terminal provider event was received.',
     },
     {
       name: 'addToolOutput',
@@ -162,13 +300,15 @@ For AI Gateway, pass `gateway.experimental_realtime(...)` as the model and point
     },
     {
       name: 'sendEvent',
-      type: '(event: Experimental_RealtimeClientEvent) => void',
-      description: 'Sends a normalized realtime client event.',
+      type: '(event: Experimental_RealtimeClientEvent) => Promise<void>',
+      description:
+        'Sends a normalized command in order. Resolves on local serialization/submission, not provider acceptance. Validation can throw synchronously; asynchronous send failures reject and are reported through onError. Backend results preserve bookkeeping but only auto-continue when opted in.',
     },
     {
       name: 'sendTextMessage',
       type: '(text: string) => void',
-      description: 'Sends a user text message and requests a response.',
+      description:
+        'Sends user text and requests a response. With a provider-managed backend, targets that backend rather than creating a voice turn; requires pending tool results to be supplied first.',
     },
     {
       name: 'sendAudio',
@@ -200,7 +340,7 @@ For AI Gateway, pass `gateway.experimental_realtime(...)` as the model and point
       name: 'startAudioCapture',
       type: '(stream: MediaStream) => void',
       description:
-        'Starts capturing microphone audio from the provided MediaStream.',
+        'Starts or replaces capture with the supplied MediaStream. Live paths borrow tracks; the existing legacy capture API retains ownership of its supplied stream. Async attachment failures are reported through onError.',
     },
     {
       name: 'stopAudioCapture',
@@ -208,9 +348,21 @@ For AI Gateway, pass `gateway.experimental_realtime(...)` as the model and point
       description: 'Stops microphone audio capture.',
     },
     {
+      name: 'resumeAudioCapture',
+      type: '() => Promise<void>',
+      description:
+        'Restarts capture, reusing a supplied Live stream or acquiring a fresh SDK-owned microphone. Does not reconnect the provider.',
+    },
+    {
       name: 'stopPlayback',
       type: '() => void',
       description: 'Stops queued model audio playback.',
+    },
+    {
+      name: 'resumePlayback',
+      type: '() => Promise<void>',
+      description:
+        'Retries browser playback after interruption, suspension, or buffer overflow. Discarded stale audio is not replayed.',
     },
   ]}
 />
@@ -242,6 +394,42 @@ const realtime = experimental_useRealtime({
 
 For tools that require user interaction, return `undefined` from `onToolCall`
 and call `addToolOutput` later.
+
+For provider-managed delegated work, automatic continuation is **opt-in** through
+`autoContinueTools: true`. Otherwise submit all required results, append any extra
+context, then send `backend-response-create` explicitly. Existing turn-based
+providers retain their automatic continuation behavior. A successful local send
+is not an acknowledgment that the provider accepted a result; correlated rejections
+permit a corrected result with a fresh command ID without rerunning its tool handler.
+
+Outstanding commands are bounded independently from the retained recent-ID history.
+Completed work does not impose a lifetime command quota. Use fresh IDs and keep
+durable operation deduplication in the application; bounded history is not a promise
+of session-long exactly-once execution.
+
+## Permissions and capture ownership
+
+WebRTC data-channel permissions are provider-specific startup policy. OpenAI exposes
+them through `providerOptions.openai.client.dataChannel`; the application server must
+construct or constrain the policy rather than trusting browser-supplied allowlists.
+Omitting a policy preserves the provider default; `[]` and `all` remain distinct.
+The SDK does not broaden an allowlist to regain readiness or finalization events.
+If those events are filtered out, readiness/finalization can time out truthfully.
+
+SDK-acquired tracks are stopped on local capture stop or cleanup. Caller-owned Live
+tracks are detached without stopping or disabling them. `stopAudioCapture()` controls
+local hardware capture; provider `input-audio-mute` controls remote audio processing
+and is tracked through its acknowledgment. These are separate operations.
+
+## Experimental compatibility
+
+This update adds explicit relay/SDP options and changes experimental `sendEvent` to
+return a promise. Existing token setups and the no-argument `connect` call remain
+supported. New session state uses `session`, not a provider-branded state object.
+Generic realtime-model consumers must check optional connection methods before calling
+them. Model interfaces and event unions are experimental; exhaustive external switches
+may need to handle the added events. OpenAI's factory is `experimental_live`, and
+its model startup/update types are exported with `Experimental_` prefixes.
 
 See [Realtime](/docs/ai-sdk-core/realtime#tool-calling) for a complete example
 with server-backed app-specific tool endpoints.

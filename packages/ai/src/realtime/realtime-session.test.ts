@@ -1,9 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { RealtimeModel } from '../types/realtime-model';
 
-// Capture transport instances and outgoing events. The transport is created
-// inside the session constructor, so we replace it with a controllable fake
-// that lets the test feed server events and observe sent client events.
+// Capture transport instances created lazily by connect().
 const sentEvents: Array<{ type: string; [key: string]: unknown }> = [];
 const transportInstances: Array<{
   connect: ReturnType<typeof vi.fn>;
@@ -27,6 +25,7 @@ vi.mock('./browser-realtime-transport', () => ({
     sendRaw = vi.fn();
     sendEvent = (event: { type: string }) => {
       sentEvents.push(event);
+      return Promise.resolve();
     };
     emitServerEvent(event: unknown) {
       return this.options.onServerEvent(event);
@@ -94,6 +93,9 @@ describe('AbstractRealtimeSession', () => {
   beforeEach(() => {
     sentEvents.length = 0;
     transportInstances.length = 0;
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      Response.json({ token: 'secret', url: 'wss://example.com/realtime' }),
+    );
   });
 
   afterEach(() => {
@@ -101,12 +103,13 @@ describe('AbstractRealtimeSession', () => {
   });
 
   it.each(['websocket', 'webrtc'] as const)(
-    'requires a session endpoint for continuous %s models without requesting a token',
+    'rejects incompatible %s connection capabilities before requesting a token',
     async transport => {
       const fetch = vi.spyOn(globalThis, 'fetch');
       const model = createModel({
         conversation: 'continuous',
         transports: [transport],
+        connections: [transport === 'webrtc' ? 'webrtc' : 'server-websocket'],
       });
 
       const onError = vi.fn();
@@ -116,9 +119,7 @@ describe('AbstractRealtimeSession', () => {
         onError,
       }).connect();
       expect(onError).toHaveBeenCalledWith(
-        new Error(
-          'Continuous realtime models require api.websocket or api.session',
-        ),
+        new Error('Realtime model does not support client-secret-websocket'),
       );
       expect(fetch).not.toHaveBeenCalled();
       expect(model.doCreateClientSecret).not.toHaveBeenCalled();
@@ -127,7 +128,7 @@ describe('AbstractRealtimeSession', () => {
     },
   );
 
-  it.each([undefined, 'turn-based'] as const)(
+  it.each([undefined, 'turn-based', 'continuous'] as const)(
     'preserves the token connection flow with %s conversation capabilities',
     async conversation => {
       const fetch = vi
@@ -178,12 +179,13 @@ describe('AbstractRealtimeSession', () => {
 
   it('does not error when onToolCall returns undefined (manual flow)', async () => {
     const onError = vi.fn();
-    new TestSession({
-      model: {} as never,
+    const session = new TestSession({
+      model: createModel(),
       api: { token: 'token' },
       onToolCall: async () => undefined,
       onError,
     });
+    await session.connect();
 
     const transport = transportInstances.at(-1)!;
     await transport.emitServerEvent(functionCallDone('call-1', 'getWeather'));
@@ -196,7 +198,12 @@ describe('AbstractRealtimeSession', () => {
 
   it('errors when no onToolCall handler is provided', async () => {
     const onError = vi.fn();
-    new TestSession({ model: {} as never, api: { token: 'token' }, onError });
+    const session = new TestSession({
+      model: createModel(),
+      api: { token: 'token' },
+      onError,
+    });
+    await session.connect();
 
     const transport = transportInstances.at(-1)!;
     await transport.emitServerEvent(functionCallDone('call-1', 'getWeather'));
@@ -209,13 +216,19 @@ describe('AbstractRealtimeSession', () => {
   });
 
   it('requests a single response after all tool outputs are submitted', async () => {
-    new TestSession({
-      model: {} as never,
+    const session = new TestSession({
+      model: createModel(),
       api: { token: 'token' },
       onToolCall: async () => ({ ok: true }),
     });
+    await session.connect();
 
     const transport = transportInstances.at(-1)!;
+    await transport.emitServerEvent({
+      type: 'session-created',
+      sessionId: 'session',
+      raw: {},
+    });
     await transport.emitServerEvent(functionCallDone('call-1', 'a'));
     await transport.emitServerEvent(functionCallDone('call-2', 'b'));
     await transport.emitServerEvent(responseDone());
@@ -235,13 +248,19 @@ describe('AbstractRealtimeSession', () => {
   });
 
   it('does not request a response before the tool-bearing response is done', async () => {
-    new TestSession({
-      model: {} as never,
+    const session = new TestSession({
+      model: createModel(),
       api: { token: 'token' },
       onToolCall: async () => ({ ok: true }),
     });
+    await session.connect();
 
     const transport = transportInstances.at(-1)!;
+    await transport.emitServerEvent({
+      type: 'session-created',
+      sessionId: 'session',
+      raw: {},
+    });
     // Output submitted before response-done arrives.
     await transport.emitServerEvent(functionCallDone('call-1', 'a'));
     await flush();

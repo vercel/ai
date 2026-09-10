@@ -1,11 +1,15 @@
 'use client';
 
-import { openai, type OpenAILiveProviderOptions } from '@ai-sdk/openai';
+import {
+  openai,
+  type Experimental_OpenAIRealtimeModelLiveOptions as OpenAIRealtimeModelLiveOptions,
+  type Experimental_OpenAIRealtimeModelLiveUpdateOptions as OpenAIRealtimeModelLiveUpdateOptions,
+} from '@ai-sdk/openai';
 import { experimental_useRealtime as useRealtime } from '@ai-sdk/react';
 import { useMemo, useRef, useState } from 'react';
 
 // Keep the model stable: changing model/config identity replaces the session.
-const model = openai.live('gpt-live-1');
+const model = openai.experimental_live('gpt-live-1');
 
 export default function LivePage() {
   const [transport, setTransport] = useState('websocket');
@@ -52,17 +56,18 @@ export default function LivePage() {
                         strict: true,
                       },
                     ],
-                    tool_choice: 'auto',
+                    toolChoice: 'auto',
                   },
                 }
               : { type: 'client' },
-        } satisfies OpenAILiveProviderOptions,
+        } satisfies OpenAIRealtimeModelLiveOptions,
       },
     }),
     [instructions, mode],
   );
   const rt = useRealtime({
     model,
+    autoContinueTools: true,
     api:
       transport === 'websocket'
         ? { websocket: endpoint }
@@ -103,7 +108,7 @@ export default function LivePage() {
       new Blob(
         [
           JSON.stringify(
-            { session: rt.live, events: evidence.current },
+            { session: rt.session, events: evidence.current },
             null,
             2,
           ),
@@ -202,14 +207,14 @@ export default function LivePage() {
           onClick={() =>
             run(() =>
               rt.sendEvent({
-                type: rt.live?.isInputMuted
+                type: rt.session?.isInputMuted
                   ? 'input-audio-unmute'
                   : 'input-audio-mute',
               }),
             )
           }
         >
-          {rt.live?.isInputMuted ? 'Unmute input' : 'Mute input'}
+          {rt.session?.isInputMuted ? 'Unmute input' : 'Mute input'}
         </button>
         <button
           id="resume"
@@ -225,7 +230,7 @@ export default function LivePage() {
             run(() =>
               rt.sendEvent({
                 type: 'context-append',
-                channel: 'instructions',
+                providerOptions: { openai: { channel: 'instructions' } },
                 delegationId: null,
                 content:
                   'Immediately greet the caller in English without waiting for them to speak, then pause and listen.',
@@ -238,15 +243,31 @@ export default function LivePage() {
         <button id="download" onClick={download}>
           Download evidence
         </button>
+        <button
+          id="stop-capture"
+          disabled={!ready}
+          onClick={() => rt.stopAudioCapture()}
+        >
+          Stop local capture
+        </button>
+        <button
+          id="resume-capture"
+          disabled={!ready}
+          onClick={() => run(() => rt.resumeAudioCapture())}
+        >
+          Resume local capture
+        </button>
       </div>
       <p id="status">
         {rt.status}
-        {rt.live?.sessionId ? ` · ${rt.live.sessionId}` : ''}
+        {rt.session?.sessionId ? ` · ${rt.session.sessionId}` : ''}
       </p>
       <p id="usage">
-        Voice seconds: {rt.live?.usage?.seconds ?? '—'} · finalization:{' '}
-        {rt.live?.finalization ?? 'not started'}
-        {rt.live?.terminationReason ? ` · ${rt.live.terminationReason}` : ''}
+        Voice seconds: {rt.session?.usage?.seconds ?? '—'} · finalization:{' '}
+        {rt.session?.finalization ?? 'not started'}
+        {rt.session?.terminationReason
+          ? ` · ${rt.session.terminationReason}`
+          : ''}
       </p>
       <p id="playback">
         Capturing: {String(rt.isCapturing)} · Playing: {String(rt.isPlaying)}
@@ -259,7 +280,7 @@ export default function LivePage() {
       <section>
         <h2>Caption fragments</h2>
         <div id="captions">
-          {rt.live?.transcripts.map((fragment, index) => (
+          {rt.session?.transcripts.map((fragment, index) => (
             <div
               key={index}
               className={fragment.speaker}
@@ -288,7 +309,7 @@ export default function LivePage() {
           onChange={event => setDelegationId(event.target.value)}
         >
           <option value="">Session-wide</option>
-          {rt.live?.delegations
+          {rt.session?.delegations
             .filter(item => item.target === 'client')
             .map(item => (
               <option key={item.delegationId} value={item.delegationId}>
@@ -307,7 +328,7 @@ export default function LivePage() {
             run(() =>
               rt.sendEvent({
                 type: 'context-append',
-                channel,
+                providerOptions: { openai: { channel } },
                 content: context,
                 delegationId: delegationId || null,
               }),
@@ -324,6 +345,40 @@ export default function LivePage() {
       {mode === 'responses' && (
         <section>
           <h2>Backend text input</h2>
+          <button
+            id="update-backend"
+            disabled={!ready}
+            onClick={() =>
+              run(() =>
+                rt.sendEvent({
+                  type: 'session-update',
+                  eventId: crypto.randomUUID(),
+                  config: {
+                    providerOptions: {
+                      openai: {
+                        delegation: {
+                          responses: {
+                            instructions: null,
+                            maxOutputTokens: null,
+                            parallelToolCalls: null,
+                            reasoning: null,
+                            serviceTier: null,
+                            text: null,
+                          },
+                        },
+                      } satisfies OpenAIRealtimeModelLiveUpdateOptions,
+                    },
+                  },
+                }),
+              )
+            }
+          >
+            Clear backend overrides
+          </button>
+          <p>
+            The WebRTC example policy deliberately denies this update command;
+            WebSocket sessions can use it.
+          </p>
           <input
             id="backend-input"
             value={backendInput}
@@ -338,7 +393,7 @@ export default function LivePage() {
           </button>
           <pre id="backend-usage">
             {JSON.stringify(
-              rt.live?.backendUsage?.map(event => ({
+              rt.session?.backendUsage?.map(event => ({
                 responseId: event.responseId,
                 usage: event.usage,
               })),

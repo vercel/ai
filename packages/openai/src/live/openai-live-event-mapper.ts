@@ -161,14 +161,17 @@ function resetBackendCorrelation(correlation: BackendCorrelation) {
 
 export function createOpenAILiveServerEventParser(): (
   raw: unknown,
-) => RealtimeModelV4ServerEvent | RealtimeModelV4ServerEvent[] {
+) => RealtimeModelV4ServerEvent[] {
   const correlation: BackendCorrelation = {
     responses: new Map(),
     count: 0,
     overflowed: false,
     closed: false,
   };
-  return raw => parseServerEvent(raw, correlation);
+  return raw => {
+    const events = parseServerEvent(raw, correlation);
+    return Array.isArray(events) ? events : [events];
+  };
 }
 
 function normalizeBackendEvent(
@@ -270,8 +273,9 @@ function normalizeBackendEvent(
 
 export function parseOpenAILiveServerEvent(
   raw: unknown,
-): RealtimeModelV4ServerEvent | RealtimeModelV4ServerEvent[] {
-  return parseServerEvent(raw);
+): RealtimeModelV4ServerEvent[] {
+  const events = parseServerEvent(raw);
+  return Array.isArray(events) ? events : [events];
 }
 
 function parseServerEvent(
@@ -306,7 +310,10 @@ function parseServerEvent(
       return {
         type: 'session-started',
         sessionId: event.session.id,
-        delegationMode: event.session.delegation?.type ?? 'client',
+        delegationMode:
+          event.session.delegation?.type === 'responses'
+            ? 'provider'
+            : 'client',
         raw,
       };
     case 'session.closed':
@@ -347,7 +354,10 @@ function parseServerEvent(
       return {
         type: 'delegation-created',
         delegationId: event.delegation.id,
-        target: event.delegation.target ?? undefined,
+        target:
+          event.delegation.target === 'responses'
+            ? 'provider'
+            : (event.delegation.target ?? undefined),
         offsetMs: event.offset_ms ?? undefined,
         ...(event.delegation.response_id != null
           ? { responseId: event.delegation.response_id }
@@ -455,28 +465,41 @@ export function serializeOpenAILiveClientEvent(
         item: {
           type: 'message',
           role: 'user',
-          content: event.content.map(part =>
-            part.type === 'text'
-              ? { type: 'input_text', text: part.text }
-              : {
-                  type: 'input_image',
-                  image_url: part.url,
-                  ...(part.detail !== undefined ? { detail: part.detail } : {}),
-                },
-          ),
+          content: event.content.map(part => {
+            if (part.type === 'text')
+              return { type: 'input_text', text: part.text };
+            const options = z
+              .strictObject({
+                imageDetail: z.enum(['auto', 'low', 'high']).optional(),
+              })
+              .parse(part.providerOptions?.openai ?? {});
+            return {
+              type: 'input_image',
+              image_url: part.url,
+              ...(options.imageDetail !== undefined
+                ? { detail: options.imageDetail }
+                : {}),
+            };
+          }),
         },
         ...eventId,
       };
     case 'context-append': {
       const context = z
         .object({
-          channel: z.enum(['instructions', 'thinking', 'commentary']),
           content: z.string(),
           delegationId: z.string().min(1).nullable(),
         })
         .parse(event);
+      const options = z
+        .strictObject({
+          channel: z
+            .enum(['instructions', 'thinking', 'commentary'])
+            .optional(),
+        })
+        .parse(event.providerOptions?.openai ?? {});
       return {
-        type: `session.${context.channel}.append`,
+        type: `session.${options.channel ?? 'thinking'}.append`,
         content: context.content,
         delegation_id: context.delegationId,
         ...eventId,

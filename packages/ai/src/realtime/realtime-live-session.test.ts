@@ -27,6 +27,7 @@ describe('continuous realtime sessions', () => {
     const session = new Session({
       model: liveModel(),
       api: { session: '/api/session' },
+      autoContinueTools: true,
       ...options,
     });
     sessions.push(session);
@@ -89,7 +90,7 @@ describe('continuous realtime sessions', () => {
       sdp: 'remote-answer',
     });
     expect(session.snapshot.status).toBe('connected');
-    expect(session.snapshot.live?.sessionId).toBe('session-1');
+    expect(session.snapshot.session?.sessionId).toBe('session-1');
     expect(session.snapshot.isCapturing).toBe(true);
     expect(channel().sent).toEqual([]);
   });
@@ -104,7 +105,7 @@ describe('continuous realtime sessions', () => {
     await emit({
       type: 'session-started',
       sessionId: 'ready',
-      delegationMode: 'responses',
+      delegationMode: 'provider',
       raw: {},
     });
     session.sendTextMessage('hello');
@@ -130,7 +131,7 @@ describe('continuous realtime sessions', () => {
     expect(browser.track.stop).toHaveBeenCalledOnce();
     expect(browser.fetch).not.toHaveBeenCalled();
     expect(FakePeerConnection.instances).toHaveLength(0);
-    expect(session.snapshot.live?.finalization).toBe('unconfirmed');
+    expect(session.snapshot.session?.finalization).toBe('unconfirmed');
   });
 
   it('aborts an SDP request and ignores its late answer after reconnect', async () => {
@@ -151,7 +152,7 @@ describe('continuous realtime sessions', () => {
     response.resolve(Response.json({ sdp: 'late', sessionId: 'late' }));
     await flushEvents();
     expect(pc.setRemoteDescription).not.toHaveBeenCalled();
-    expect(session.snapshot.live?.sessionId).toBe('session-1');
+    expect(session.snapshot.session?.sessionId).toBe('session-1');
   });
 
   it.each(['ice', 'data-channel', 'session-started'] as const)(
@@ -168,7 +169,7 @@ describe('continuous realtime sessions', () => {
       await vi.advanceTimersByTimeAsync(51);
       await connecting;
       expect(session.snapshot.status).toBe('error');
-      expect(session.snapshot.live?.finalization).toBe('unconfirmed');
+      expect(session.snapshot.session?.finalization).toBe('unconfirmed');
       expect(browser.track.stop).toHaveBeenCalledOnce();
       expect(onError).toHaveBeenCalled();
     },
@@ -189,7 +190,7 @@ describe('continuous realtime sessions', () => {
     browser.track.muted = true;
     browser.track.dispatchEvent(new Event('mute'));
     expect(session.snapshot.isCapturing).toBe(false);
-    expect(session.snapshot.live?.isInputMuted).toBe(false);
+    expect(session.snapshot.session?.isInputMuted).toBe(false);
     browser.track.muted = false;
     browser.track.dispatchEvent(new Event('unmute'));
     expect(session.snapshot.isCapturing).toBe(true);
@@ -255,7 +256,7 @@ describe('continuous realtime sessions', () => {
       },
     ];
     for (const event of fragments) await emit(event);
-    expect(session.snapshot.live?.transcripts).toEqual(fragments.slice(1));
+    expect(session.snapshot.session?.transcripts).toEqual(fragments.slice(1));
     expect(session.snapshot.messages).toEqual([]);
     expect(session.snapshot.events).toHaveLength(2);
     expect(onEvent).toHaveBeenCalledTimes(4);
@@ -270,12 +271,12 @@ describe('continuous realtime sessions', () => {
     channel().onmessage?.({ data: blob });
     channel().emit({ type: 'session-usage', usage: { seconds: 2 }, raw: {} });
     await flushEvents();
-    expect(session.snapshot.live?.usage).toBeUndefined();
+    expect(session.snapshot.session?.usage).toBeUndefined();
     delayed.resolve(
       JSON.stringify({ type: 'session-usage', usage: { seconds: 1 }, raw: {} }),
     );
     await flushEvents();
-    expect(session.snapshot.live?.usage).toEqual({ seconds: 2 });
+    expect(session.snapshot.session?.usage).toEqual({ seconds: 2 });
   });
 
   it('waits for final usage on close, rejects submissions, and survives throwing callbacks', async () => {
@@ -293,7 +294,7 @@ describe('continuous realtime sessions', () => {
     const closed = session.close();
     expect(session.close()).toBe(closed);
     expect(session.snapshot.status).toBe('closing');
-    expect(browser.track.stop).not.toHaveBeenCalled();
+    expect(browser.track.stop).toHaveBeenCalledOnce();
     expect(() => session.sendTextMessage('late')).toThrow('not accepting');
     await flushEvents();
     expect(channel().sent).toEqual([{ type: 'session-close' }]);
@@ -304,7 +305,7 @@ describe('continuous realtime sessions', () => {
       raw: {},
     });
     await closed;
-    expect(session.snapshot.live).toMatchObject({
+    expect(session.snapshot.session).toMatchObject({
       usage: { seconds: 5 },
       finalization: 'confirmed',
       terminationReason: 'requested',
@@ -326,8 +327,8 @@ describe('continuous realtime sessions', () => {
     });
     channel().close();
     await closed;
-    expect(session.snapshot.live?.finalization).toBe('confirmed');
-    expect(session.snapshot.live?.usage).toEqual({ seconds: 5 });
+    expect(session.snapshot.session?.finalization).toBe('confirmed');
+    expect(session.snapshot.session?.usage).toEqual({ seconds: 5 });
   });
 
   it.each(['timeout', 'loss'] as const)(
@@ -341,7 +342,7 @@ describe('continuous realtime sessions', () => {
       if (reason === 'loss') channel().close();
       else await vi.advanceTimersByTimeAsync(51);
       await closed;
-      expect(session.snapshot.live).toMatchObject({
+      expect(session.snapshot.session).toMatchObject({
         usage: { seconds: 4 },
         finalization: 'unconfirmed',
       });
@@ -354,21 +355,25 @@ describe('continuous realtime sessions', () => {
     await session.connect();
     await flushEvents();
     session.sendEvent({ type: 'input-audio-mute', eventId: 'mute-1' });
-    expect(session.snapshot.live?.isInputMuted).toBe(false);
+    expect(session.snapshot.session?.isInputMuted).toBe(false);
     await emit({
       type: 'command-acknowledged',
       command: 'opaque-provider-command',
       clientEventId: 'mute-1',
       raw: {},
     });
-    expect(session.snapshot.live?.isInputMuted).toBe(true);
+    expect(session.snapshot.session?.isInputMuted).toBe(true);
     expect(session.snapshot.isCapturing).toBe(true);
     expect(browser.track.enabled).toBe(true);
     expect(() => session.sendAudio('audio')).toThrow('JSON audio');
-    expect(() => session.startAudioCapture(browser.stream)).toThrow(
-      'Replacing Live',
-    );
-    expect(() => session.stopAudioCapture()).toThrow('Stopping WebRTC');
+    session.startAudioCapture(fakeStream().stream);
+    await flushEvents();
+    expect(
+      FakePeerConnection.instances[0].sender.replaceTrack,
+    ).toHaveBeenCalled();
+    session.stopAudioCapture();
+    await flushEvents();
+    expect(session.snapshot.isCapturing).toBe(false);
   });
 
   it('reflects media playback and never cuts it off on user speech or backend completion', async () => {

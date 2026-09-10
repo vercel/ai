@@ -38,10 +38,14 @@ export class FakePeerConnection {
   localDescription: { sdp: string } | null = null;
   ontrack: ((event: { streams: MediaStream[] }) => void) | null = null;
   onconnectionstatechange: (() => void) | null = null;
+  iceConnectionState = 'new';
+  oniceconnectionstatechange: (() => void) | null = null;
   onicegatheringstatechange: (() => void) | null = null;
   constructor() { FakePeerConnection.instances.push(this); }
   createDataChannel = vi.fn(() => this.dc);
-  addTrack: Mock = vi.fn();
+  sender = { replaceTrack: vi.fn(async (_track: unknown) => {}) };
+  addTrack: Mock = vi.fn(() => this.sender);
+  addTransceiver = vi.fn(() => ({ sender: this.sender }));
   createOffer = vi.fn(async () => {
     if (this.dc.onmessage == null || this.ontrack == null || this.onicegatheringstatechange == null || this.dc.onopen == null) throw new Error('Listeners were installed too late');
     return { type: 'offer', sdp: 'local-offer' };
@@ -49,7 +53,7 @@ export class FakePeerConnection {
   setLocalDescription = vi.fn(async (offer: { sdp: string }) => { this.localDescription = offer; });
   setRemoteDescription = vi.fn(async () => {
     if (FakePeerConnection.autoOpen) this.dc.open();
-    if (FakePeerConnection.autoStart) this.dc.emit({ type: 'session-started', sessionId: 'session-1', delegationMode: 'responses', raw: {} });
+    if (FakePeerConnection.autoStart) this.dc.emit({ type: 'session-started', sessionId: 'session-1', delegationMode: 'provider', raw: {} });
   });
   close = vi.fn(() => { this.connectionState = 'closed'; this.onconnectionstatechange?.(); });
 }
@@ -106,7 +110,7 @@ export function installWebRTC(): {
 export function liveModel(): RealtimeModel {
   return {
     specificationVersion: 'v4', provider: 'test', modelId: 'live',
-    capabilities: { conversation: 'continuous', transports: ['webrtc'] },
+    capabilities: { conversation: 'continuous', transports: ['webrtc', 'websocket'], connections: ['webrtc', 'server-websocket'], startup: 'session-start', finalization: 'session-close' },
     getWebRTCConfig: () => ({ dataChannelLabel: 'model-events' }),
     getWebSocketConfig: vi.fn(),
     doCreateClientSecret: vi.fn(),

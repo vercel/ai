@@ -40,7 +40,7 @@ describe('useRealtime WebSocket relay configuration', () => {
       FakeWebSocket.instances[0].emit({
         type: 'session-started',
         sessionId: 'first',
-        delegationMode: 'responses',
+        delegationMode: 'provider',
         raw: {},
       });
       await flushEvents();
@@ -54,7 +54,7 @@ describe('useRealtime WebSocket relay configuration', () => {
       });
       await flushEvents();
     });
-    expect(result.current.live?.usage).toEqual({ seconds: 2 });
+    expect(result.current.session?.usage).toEqual({ seconds: 2 });
     expect(FakeWebSocket.instances).toHaveLength(1);
     expect(result.current.status).toBe('connected');
     expect(FakeWebSocket.instances[0].close).not.toHaveBeenCalled();

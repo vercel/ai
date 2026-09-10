@@ -19,17 +19,21 @@ frames, with bounded buffering. It has a ten-minute safety deadline; use the pag
 End button to finalize usage before that deadline. A relay deadline or dropped
 connection leaves final usage unconfirmed.
 
+The example opts into automatic tool continuation with `autoContinueTools: true`.
 Responses mode supports hosted web search and a local `get_time` function. Send a
 typed request with **Send to backend** to exercise the tool loop. Client mode exposes
 delegations and context appends; application-owned agents can return results through
 the same commands. Captions remain timestamped fragments rather than completed turns.
 
 Select **WebRTC** for the optional direct-browser path. `/api/realtime-live` performs
-only an authenticated HTTP SDP exchange; media travels between the browser and OpenAI.
+only an HTTP SDP exchange using the server's OpenAI key; media travels between the browser and OpenAI.
 The server is not a WebRTC media relay. The OpenAI key is never sent to the browser.
+The example route needs application authentication before deployment. It installs
+server-owned client/server event allowlists and ignores browser permission overrides.
+`session.update` is deliberately unavailable from this example's browser channel.
 
 The browser WS runtime currently supports PCM16 only. The low-level provider also
 supports G.711 for applications supplying their own encoded streams. Read authoritative
-voice seconds from `live.usage` and `live.finalization`, separately from `backendUsage`.
+voice seconds from `session.usage` and `session.finalization`, separately from `backendUsage`.
 WebRTC's 15-second initialization amount is credited against running duration, not
 added to the final provider usage.
