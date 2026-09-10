@@ -125,6 +125,21 @@ function resultLine({ id, body }: { id: string; body: unknown }) {
 }
 
 describe('OpenAI batch service', () => {
+  it('rejects unsupported request types before uploading a batch input file', async () => {
+    const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
+
+    await expect(
+      batch.doStartBatch({
+        requests: [{ id: 'image-1', type: 'image' } as never],
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_UnsupportedFunctionalityError',
+      functionality: 'batch request type: image',
+    });
+
+    expect(server.calls).toHaveLength(0);
+  });
+
   it('creates a Responses batch from prepared JSONL requests', async () => {
     prepareCreateResponse({
       status: 'validating',

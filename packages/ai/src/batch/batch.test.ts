@@ -169,6 +169,28 @@ describe('listBatches', () => {
 });
 
 describe('startBatch', () => {
+  it('rejects unsupported request types before starting a batch', async () => {
+    const doStartBatch = vi.fn(createMockBatchApi().doStartBatch);
+    const batchApi = createMockBatchApi({ doStartBatch });
+
+    await expect(
+      startBatch({
+        provider: batchApi,
+        requests: [
+          {
+            id: 'request-1',
+            type: 'image',
+          } as never,
+        ],
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_InvalidArgumentError',
+      parameter: 'requests',
+    });
+
+    expect(doStartBatch).not.toHaveBeenCalled();
+  });
+
   it('uses the global default provider when provider is omitted', async () => {
     const calls: Array<Parameters<BatchV4['doStartBatch']>[0]> = [];
     const batchApi = createMockBatchApi({

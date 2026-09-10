@@ -160,6 +160,21 @@ function prepareOutput(lines: unknown[]) {
 }
 
 describe('GoogleBatch', () => {
+  it('rejects unsupported request types before creating a batch', async () => {
+    const batch = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
+
+    await expect(
+      batch.doStartBatch({
+        requests: [{ id: 'image-1', type: 'image' } as never],
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_UnsupportedFunctionalityError',
+      functionality: 'batch request type: image',
+    });
+
+    expect(server.calls).toHaveLength(0);
+  });
+
   it('rejects mixed models before creating a batch', async () => {
     const batch = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
 
@@ -589,6 +604,37 @@ describe('GoogleBatch', () => {
       expect(init.signal).toBe(abortController.signal);
     }
   });
+
+  it.each(['inline', 'file'] as const)(
+    'omits webhook configuration for %s input when no webhook URL is provided',
+    async inputType => {
+      prepareUpload();
+      server.urls[urls.create].response = {
+        type: 'json-value',
+        body: operation(),
+      };
+
+      await createGoogle({ apiKey: 'test-api-key' })
+        .experimental_batch()
+        .doStartBatch({
+          requests: [
+            request(
+              'request-1',
+              inputType === 'file' ? 'a'.repeat(20_000_000) : 'Hello',
+            ),
+          ],
+        });
+
+      expect(server.calls.map(call => call.requestUrl)).toEqual(
+        inputType === 'file'
+          ? [urls.uploadStart, urls.uploadSession, urls.create]
+          : [urls.create],
+      );
+      const body =
+        await server.calls[inputType === 'file' ? 2 : 0].requestBodyJson;
+      expect(body.batch).not.toHaveProperty('webhookConfig');
+    },
+  );
 
   it.each([
     ['JOB_STATE_PENDING', 'pending'],

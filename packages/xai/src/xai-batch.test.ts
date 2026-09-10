@@ -117,6 +117,21 @@ function successfulResult(id: string, text: string) {
 }
 
 describe('xAI batch', () => {
+  it('rejects unsupported request types before uploading a batch input file', async () => {
+    const batch = createXai({ apiKey: 'test-api-key' }).experimental_batch();
+
+    await expect(
+      batch.doStartBatch({
+        requests: [{ id: 'image-1', type: 'image' } as never],
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_UnsupportedFunctionalityError',
+      functionality: 'batch request type: image',
+    });
+
+    expect(server.calls).toHaveLength(0);
+  });
+
   it('uploads prepared JSONL requests and creates a file-backed batch', async () => {
     server.urls[urls.files].response = {
       type: 'json-value',

@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 4.0.13
+
+### Patch Changes
+
+- 9942196: feat: add batch cancel and list APIs
+
 ## 4.0.12
 
 ### Patch Changes

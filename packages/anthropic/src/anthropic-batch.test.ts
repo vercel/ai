@@ -95,6 +95,23 @@ function messageResultBody(text: string) {
 }
 
 describe('Anthropic batch', () => {
+  it('rejects unsupported request types before making an API request', async () => {
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+
+    await expect(
+      model.doStartBatch({
+        requests: [{ id: 'image-1', type: 'image' } as never],
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_UnsupportedFunctionalityError',
+      functionality: 'batch request type: image',
+    });
+
+    expect(server.calls).toHaveLength(0);
+  });
+
   it('starts a batch from prepared requests and combines batch and inferred betas', async () => {
     server.urls[urls.batches].response = {
       type: 'json-value',

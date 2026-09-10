@@ -1,6 +1,7 @@
 import {
   InvalidArgumentError,
   InvalidResponseDataError,
+  UnsupportedFunctionalityError,
   type Experimental_BatchV4 as BatchV4,
   type Experimental_BatchV4CancelResult as BatchV4CancelResult,
   type Experimental_BatchV4StartResult as BatchV4StartResult,
@@ -89,6 +90,24 @@ type OpenAIBatchResultConversion =
   | { success: true; result: LanguageModelV4GenerateResult }
   | { success: false; error: BatchV4Error };
 
+function assertTextBatchRequests(
+  requests: BatchV4StartOptions['requests'],
+): asserts requests is ReadonlyArray<OpenAIBatchRequest> {
+  for (const request of requests) {
+    switch (request.type) {
+      case 'text':
+        break;
+      default: {
+        const _exhaustiveCheck: never = request.type;
+        throw new UnsupportedFunctionalityError({
+          functionality: `batch request type: ${_exhaustiveCheck}`,
+          message: `The OpenAI Batch API does not support batch requests with type "${_exhaustiveCheck}".`,
+        });
+      }
+    }
+  }
+}
+
 const openaiBatchResponseZodSchema = () =>
   z.object({
     id: z.string(),
@@ -174,6 +193,7 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
   async doStartBatch(
     options: BatchV4StartOptions<OpenAIBatchModelIds>,
   ): Promise<BatchV4StartResult> {
+    assertTextBatchRequests(options.requests);
     validateSingleModel(options.requests);
 
     const fileParts: string[] = [];

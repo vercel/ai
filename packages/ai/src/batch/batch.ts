@@ -200,6 +200,14 @@ export async function startBatch<
         });
         break;
       }
+      default: {
+        const _exhaustiveCheck: never = request.type;
+        throw new InvalidArgumentError({
+          parameter: 'requests',
+          value: _exhaustiveCheck,
+          message: `Unsupported batch request type "${_exhaustiveCheck}".`,
+        });
+      }
     }
     operationAbortSignal?.throwIfAborted();
   }
