@@ -573,11 +573,13 @@ export class OpenTelemetry implements Telemetry {
       functionId: event.functionId,
     };
 
+    const runtimeContext = event.runtimeContext;
     const providerName = mapProviderName(event.provider);
     const baseSupplementalAttributes = selectSupplementalAttributes(
       telemetry,
       this.supplementalAttributes,
       {
+        runtimeContext: getRuntimeContextAttributes(runtimeContext),
         headers: getHeaderAttributes(event.headers),
       },
     );
@@ -612,7 +614,7 @@ export class OpenTelemetry implements Telemetry {
         spanType: 'operation',
         operationId: event.operationId,
         callId: event.callId,
-        runtimeContext: undefined,
+        runtimeContext,
       }),
       kind: SpanKind.CLIENT,
     });
@@ -633,7 +635,7 @@ export class OpenTelemetry implements Telemetry {
       settings: { maxRetries: event.maxRetries },
       provider: event.provider,
       modelId: event.modelId,
-      runtimeContext: undefined,
+      runtimeContext,
       baseSupplementalAttributes,
     });
   }
@@ -1262,11 +1264,13 @@ export class OpenTelemetry implements Telemetry {
       functionId: event.functionId,
     };
 
+    const runtimeContext = event.runtimeContext;
     const providerName = mapProviderName(event.provider);
     const baseSupplementalAttributes = selectSupplementalAttributes(
       telemetry,
       this.supplementalAttributes,
       {
+        runtimeContext: getRuntimeContextAttributes(runtimeContext),
         headers: getHeaderAttributes(event.headers),
       },
     );
@@ -1292,7 +1296,7 @@ export class OpenTelemetry implements Telemetry {
         spanType: 'operation',
         operationId: event.operationId,
         callId: event.callId,
-        runtimeContext: undefined,
+        runtimeContext,
       }),
       kind: SpanKind.CLIENT,
     });
@@ -1313,7 +1317,7 @@ export class OpenTelemetry implements Telemetry {
       settings: { maxRetries: event.maxRetries },
       provider: event.provider,
       modelId: event.modelId,
-      runtimeContext: undefined,
+      runtimeContext,
       baseSupplementalAttributes,
     });
   }
