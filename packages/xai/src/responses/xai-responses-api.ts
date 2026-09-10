@@ -329,6 +329,10 @@ export const xaiResponsesChunkSchema = z.union([
     response: xaiResponsesResponseSchema.partial({ usage: true, status: true }),
   }),
   z.object({
+    type: z.literal('keepalive'),
+    sequence_number: z.number().optional(),
+  }),
+  z.object({
     type: z.literal('response.output_item.added'),
     item: outputItemSchema,
     output_index: z.number(),

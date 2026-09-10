@@ -2545,6 +2545,60 @@ describe('XaiResponsesLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it('should ignore keepalive events', async () => {
+      prepareStreamChunks([
+        JSON.stringify({
+          type: 'response.created',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+          },
+        }),
+        JSON.stringify({
+          type: 'keepalive',
+          sequence_number: 5,
+        }),
+        JSON.stringify({
+          type: 'response.output_text.delta',
+          item_id: 'msg_123',
+          output_index: 0,
+          content_index: 0,
+          delta: 'OK',
+        }),
+        JSON.stringify({
+          type: 'response.completed',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast-non-reasoning',
+            status: 'completed',
+            output: [],
+            usage: {
+              input_tokens: 1,
+              output_tokens: 1,
+            },
+          },
+        }),
+      ]);
+
+      const { stream } = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts).toContainEqual({
+        type: 'text-delta',
+        id: 'text-msg_123',
+        delta: 'OK',
+      });
+      expect(parts).not.toContainEqual(
+        expect.objectContaining({ type: 'error' }),
+      );
+    });
+
     it('should warn about unsupported sampling settings', async () => {
       prepareChunksFixtureResponse('xai-text-streaming.1');
 
