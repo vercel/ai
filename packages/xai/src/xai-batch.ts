@@ -496,6 +496,19 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
       if (!validation.success) {
         return invalidXaiImageBatchResult(result.batch_request_id);
       }
+      if (
+        validation.value.data.some(image => image.respect_moderation === false)
+      ) {
+        return {
+          type: 'image',
+          id: result.batch_request_id,
+          status: 'failed',
+          error: {
+            message:
+              'Image generation was blocked due to a content policy violation.',
+          },
+        };
+      }
       const imageResult = await this.convertImageBatchResponse(
         validation.value,
         abortSignal,

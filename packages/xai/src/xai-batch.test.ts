@@ -701,6 +701,55 @@ describe('xAI batch', () => {
     ]);
   });
 
+  it('returns moderated image generation results as failed items', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse(),
+    };
+    server.urls[urls.results].response = {
+      type: 'json-value',
+      body: {
+        results: [
+          {
+            batch_request_id: 'image-1',
+            batch_result: {
+              response: {
+                image_generation: {
+                  data: [
+                    {
+                      url: null,
+                      b64_json: null,
+                      respect_moderation: false,
+                    },
+                  ],
+                },
+              },
+              error: { code: 0, message: '' },
+            },
+          },
+        ],
+        pagination_token: null,
+      },
+    };
+    const batch = createXai({ apiKey: 'test-api-key' }).experimental_batch();
+
+    const results = await convertReadableStreamToArray(
+      await batch.doGetBatchResults({ batchId: 'batch_123' }),
+    );
+
+    expect(results).toEqual([
+      {
+        type: 'image',
+        id: 'image-1',
+        status: 'failed',
+        error: {
+          message:
+            'Image generation was blocked due to a content policy violation.',
+        },
+      },
+    ]);
+  });
+
   it('preserves tool calls and fails invalid items without stopping later results', async () => {
     server.urls[urls.batch].response = {
       type: 'json-value',
