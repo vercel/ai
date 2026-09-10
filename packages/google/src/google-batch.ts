@@ -11,9 +11,12 @@ import {
   type Experimental_BatchV4OperationOptions as BatchV4OperationOptions,
   type Experimental_BatchV4StartResult as BatchV4StartResult,
   type Experimental_BatchV4Status as BatchV4Status,
-  type Experimental_TextBatchV4Request as TextBatchV4Request,
+  type Experimental_ImageBatchV4Request as ImageBatchV4Request,
   type Experimental_BatchV4StartOptions as BatchV4StartOptions,
   type LanguageModelV4GenerateResult,
+  type ImageModelV4Result,
+  type LanguageModelV4Prompt,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -24,11 +27,13 @@ import {
   getFromApi,
   lazySchema,
   normalizeBatchRequestCounts,
+  parseProviderOptions,
   postJsonToApi,
   postToApi,
   resolve,
   safeValidateTypes,
   zodSchema,
+  convertToBase64,
   type InferSchema,
   type ResponseHandler,
 } from '@ai-sdk/provider-utils';
@@ -40,7 +45,12 @@ import {
   responseSchema,
   type GoogleLanguageModelConfig,
 } from './google-language-model';
-import type { GoogleModelId } from './google-language-model-options';
+import {
+  googleLanguageModelOptions,
+  type GoogleModelId,
+} from './google-language-model-options';
+import type { GoogleImageModelId } from './google-image-settings';
+import { googleImageModelOptionsSchema } from './google-image-model-options';
 
 const googleBatchInputFileMaxBytes = 2 * 1024 * 1024 * 1024;
 const googleBatchInlineCreationMaxBytes = 20_000_000;
@@ -48,22 +58,22 @@ const supportedGoogleBatchContentTypes = new Set<
   LanguageModelV4GenerateResult['content'][number]['type']
 >(['text', 'reasoning', 'source', 'tool-call', 'tool-result']);
 
-type GoogleBatchRequest = TextBatchV4Request<GoogleModelId>;
+type GoogleImageBatchRequest = ImageBatchV4Request<GoogleImageModelId>;
+type GoogleBatchModelIds = {
+  readonly text: GoogleModelId;
+  readonly image: GoogleImageModelId;
+};
 
-function assertTextBatchRequests(
-  requests: BatchV4StartOptions['requests'],
-): asserts requests is ReadonlyArray<GoogleBatchRequest> {
+function assertSupportedBatchRequests(
+  requests: BatchV4StartOptions<GoogleBatchModelIds>['requests'],
+) {
   for (const request of requests) {
-    switch (request.type) {
-      case 'text':
-        break;
-      default: {
-        const _exhaustiveCheck: never = request.type;
-        throw new UnsupportedFunctionalityError({
-          functionality: `batch request type: ${_exhaustiveCheck}`,
-          message: `The Google Batch API does not support batch requests with type "${_exhaustiveCheck}".`,
-        });
-      }
+    const requestType = request.type;
+    if (requestType !== 'text' && requestType !== 'image') {
+      throw new UnsupportedFunctionalityError({
+        functionality: `batch request type: ${requestType}`,
+        message: `The Google Batch API does not support batch requests with type "${requestType}".`,
+      });
     }
   }
 }
@@ -169,7 +179,7 @@ const googleBatchResponsePreviewSchema = lazySchema(() =>
   ),
 );
 
-export class GoogleBatch implements BatchV4<{ readonly text: GoogleModelId }> {
+export class GoogleBatch implements BatchV4<GoogleBatchModelIds> {
   readonly specificationVersion = 'v4' as const;
   readonly provider: string;
   readonly supportedUrls: Record<string, RegExp[]>;
@@ -188,9 +198,9 @@ export class GoogleBatch implements BatchV4<{ readonly text: GoogleModelId }> {
   }
 
   async doStartBatch(
-    options: BatchV4StartOptions<{ text: GoogleModelId }>,
+    options: BatchV4StartOptions<GoogleBatchModelIds>,
   ): Promise<BatchV4StartResult> {
-    assertTextBatchRequests(options.requests);
+    assertSupportedBatchRequests(options.requests);
     const modelId = getGoogleBatchModelId(options.requests);
     const warnings: BatchV4StartResult['warnings'] = [];
     const displayName = `ai-sdk-batch-${this.batchGenerateId()}`;
@@ -216,11 +226,14 @@ export class GoogleBatch implements BatchV4<{ readonly text: GoogleModelId }> {
     let fileParts: string[] | undefined;
 
     for (const request of options.requests) {
-      const preparedRequest = await GoogleLanguageModel.prepareRequest({
-        modelId: request.modelId,
-        config: this.batchConfig,
-        options: request.options,
-      });
+      const preparedRequest =
+        request.type === 'text'
+          ? await GoogleLanguageModel.prepareRequest({
+              modelId: request.modelId,
+              config: this.batchConfig,
+              options: request.options,
+            })
+          : await this.prepareImageRequest(request);
       const inlinedRequest = {
         request: preparedRequest.args,
         metadata: { key: request.id },
@@ -622,6 +635,16 @@ export class GoogleBatch implements BatchV4<{ readonly text: GoogleModelId }> {
         warnings: [],
         providerOptionsNames: ['google'],
       });
+      const imageResult = convertGoogleImageBatchResult(result);
+      if (imageResult != null) {
+        yield {
+          type: 'image',
+          id: line.key,
+          status: 'succeeded',
+          result: imageResult,
+        };
+        continue;
+      }
       const unsupportedPart = result.content.find(
         part => !supportedGoogleBatchContentTypes.has(part.type),
       );
@@ -643,6 +666,108 @@ export class GoogleBatch implements BatchV4<{ readonly text: GoogleModelId }> {
 
       yield { type: 'text', id: line.key, status: 'succeeded', result };
     }
+  }
+
+  private async prepareImageRequest(request: GoogleImageBatchRequest) {
+    const { prompt, n, size, aspectRatio, seed, files, mask, providerOptions } =
+      request.options;
+    const warnings: SharedV4Warning[] = [];
+
+    if (mask != null) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'mask-based image editing in Google batches',
+      });
+    }
+    if (n > 1) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'multiple images per Google batch request',
+      });
+    }
+    if (size != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'size',
+        details:
+          'This model does not support the `size` option. Use `aspectRatio` instead.',
+      });
+    }
+
+    const userContent: Extract<
+      LanguageModelV4Prompt[number],
+      { role: 'user' }
+    >['content'] = [];
+    if (prompt != null) userContent.push({ type: 'text', text: prompt });
+    for (const file of files ?? []) {
+      userContent.push(
+        file.type === 'url'
+          ? {
+              type: 'file',
+              data: { type: 'url', url: new URL(file.url) },
+              mediaType: 'image/*',
+            }
+          : {
+              type: 'file',
+              data: { type: 'data', data: file.data },
+              mediaType: file.mediaType,
+            },
+      );
+    }
+
+    const googleImageOptions = await parseProviderOptions({
+      provider: 'google',
+      providerOptions,
+      schema: googleImageModelOptionsSchema,
+    });
+    const {
+      responseModalities: _responseModalities,
+      imageConfig: userImageConfig,
+      ...passthroughGoogleOptions
+    } = (await parseProviderOptions({
+      provider: 'google',
+      providerOptions,
+      schema: googleLanguageModelOptions,
+    })) ?? {};
+    const preparedGoogleOptions = await parseProviderOptions({
+      provider: 'google',
+      providerOptions: {
+        google: {
+          ...passthroughGoogleOptions,
+          responseModalities: ['IMAGE'],
+          imageConfig:
+            aspectRatio != null || userImageConfig != null
+              ? {
+                  ...userImageConfig,
+                  ...(aspectRatio != null ? { aspectRatio } : {}),
+                }
+              : undefined,
+        },
+      },
+      schema: googleLanguageModelOptions,
+    });
+
+    const prepared = await GoogleLanguageModel.prepareRequest({
+      modelId: request.modelId,
+      config: this.batchConfig,
+      options: {
+        prompt: [{ role: 'user', content: userContent }],
+        seed,
+        providerOptions: {
+          google: preparedGoogleOptions ?? { responseModalities: ['IMAGE'] },
+        },
+        tools:
+          googleImageOptions?.googleSearch != null
+            ? [
+                {
+                  type: 'provider',
+                  id: 'google.google_search',
+                  name: 'google_search',
+                  args: googleImageOptions.googleSearch,
+                },
+              ]
+            : undefined,
+      },
+    });
+    return { ...prepared, warnings: [...warnings, ...prepared.warnings] };
   }
 
   private async getHeaders(headers?: Record<string, string | undefined>) {
@@ -768,8 +893,8 @@ const googleUploadUrlResponseHandler: ResponseHandler<string> = async ({
 };
 
 function getGoogleBatchModelId(
-  requests: readonly GoogleBatchRequest[],
-): GoogleModelId {
+  requests: BatchV4StartOptions<GoogleBatchModelIds>['requests'],
+): GoogleModelId | GoogleImageModelId {
   const modelId = requests[0]?.modelId;
 
   if (modelId == null) {
@@ -790,4 +915,40 @@ function getGoogleBatchModelId(
   }
 
   return modelId;
+}
+
+function convertGoogleImageBatchResult(
+  result: LanguageModelV4GenerateResult,
+): ImageModelV4Result | undefined {
+  const images = result.content.flatMap(part =>
+    part.type === 'file' &&
+    part.mediaType.startsWith('image/') &&
+    part.data.type === 'data'
+      ? [convertToBase64(part.data.data)]
+      : [],
+  );
+  if (images.length === 0) return undefined;
+
+  const googleMetadata =
+    (result.providerMetadata?.google as Record<string, unknown> | undefined) ??
+    {};
+  return {
+    images,
+    warnings: result.warnings,
+    providerMetadata: {
+      google: { ...googleMetadata, images: images.map(() => ({})) },
+    },
+    response: {
+      timestamp: new Date(),
+      modelId: result.response?.modelId ?? '',
+      headers: result.response?.headers,
+    },
+    usage: {
+      inputTokens: result.usage.inputTokens.total,
+      outputTokens: result.usage.outputTokens.total,
+      totalTokens:
+        (result.usage.inputTokens.total ?? 0) +
+        (result.usage.outputTokens.total ?? 0),
+    },
+  };
 }
