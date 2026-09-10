@@ -542,6 +542,59 @@ describe('handleUIMessageStreamFinish', () => {
     });
   });
 
+  describe('error reporting', () => {
+    it('should not invoke onError for error chunks when processing the stream', async () => {
+      const inputChunks: UIMessageChunk[] = [
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'error', errorText: 'already reported upstream' },
+        { type: 'finish' },
+      ];
+
+      const resultStream = handleUIMessageStreamFinish<UIMessage>({
+        stream: createUIMessageStream(inputChunks),
+        messageId: 'msg-123',
+        originalMessages: [],
+        onError: mockErrorHandler,
+        // forces the processUIMessageStream path
+        onEnd: () => {},
+      });
+
+      expect(await convertReadableStreamToArray(resultStream)).toEqual(
+        inputChunks,
+      );
+      // the error chunk was already reported through the caller's onError
+      // when it was produced; re-reporting here would invoke it twice
+      expect(mockErrorHandler).not.toHaveBeenCalled();
+    });
+
+    it('should invoke onError when the step callback throws', async () => {
+      const resultStream = handleUIMessageStreamFinish<UIMessage>({
+        stream: createUIMessageStream([
+          { type: 'start', messageId: 'msg-123' },
+          { type: 'text-start', id: 'text-1' },
+          { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+          { type: 'text-end', id: 'text-1' },
+          { type: 'finish-step' },
+          { type: 'finish' },
+        ]),
+        messageId: 'msg-123',
+        originalMessages: [],
+        onError: mockErrorHandler,
+        onStepEnd: () => {
+          throw new Error('step-callback-error');
+        },
+      });
+
+      await convertReadableStreamToArray(resultStream);
+
+      expect(mockErrorHandler).toHaveBeenCalledTimes(1);
+      expect(mockErrorHandler).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ message: 'step-callback-error' }),
+      );
+    });
+  });
+
   describe('onStepFinish callback', () => {
     it('should call onStepEnd when finish-step chunk is encountered', async () => {
       const onStepEndCallback = vi.fn();
