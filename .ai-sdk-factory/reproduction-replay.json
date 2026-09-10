@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20184,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20184-mcp-commerce-approval.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20184-mcp-commerce-approval.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_20184_REPRODUCED: destructive submit_order executed without approval"
+  }
+}
