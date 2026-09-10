@@ -1,0 +1,147 @@
+---
+title: Kyma
+description: Kyma Provider for the AI SDK
+---
+
+# Kyma
+
+[Kyma API](https://kymaapi.com) is an OpenAI-compatible LLM gateway: one endpoint in front of open and frontier models, with per-model uptime measured from real traffic and published at [kymaapi.com/status](https://kymaapi.com/status). The [`@kyma-api/ai-sdk`](https://www.npmjs.com/package/@kyma-api/ai-sdk) provider wraps `@ai-sdk/openai-compatible`, so it works with every AI SDK function.
+
+API keys can be obtained for free at [kymaapi.com](https://kymaapi.com). New accounts start with free credit.
+
+## Setup
+
+The Kyma provider is available in the `@kyma-api/ai-sdk` module. You can install it with:
+
+<InstallPackages packages="@kyma-api/ai-sdk" />
+
+## API Key Setup
+
+Set your API key as the `KYMA_API_KEY` environment variable:
+
+```bash
+export KYMA_API_KEY="kyma-your-api-key"
+```
+
+## Provider Instance
+
+You can import the default provider instance `kyma` from `@kyma-api/ai-sdk`:
+
+```ts
+import { kyma } from '@kyma-api/ai-sdk';
+```
+
+If you need a customized setup, import `createKyma` and create a provider instance with your own settings:
+
+```ts
+import { createKyma } from '@kyma-api/ai-sdk';
+
+const kyma = createKyma({
+  apiKey: process.env.KYMA_API_KEY ?? '',
+  baseURL: 'https://kymaapi.com/v1', // default
+});
+```
+
+You can use the following optional settings to customize the Kyma provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls. The default prefix is `https://kymaapi.com/v1`.
+
+- **apiKey** _string_
+
+  API key sent using the `Authorization` header. Defaults to the `KYMA_API_KEY` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+## Language Models
+
+You can create language models using a provider instance. The first argument is the model ID or one of Kyma's smart aliases:
+
+```ts
+const model = kyma('best');
+```
+
+### Example
+
+```ts
+import { kyma } from '@kyma-api/ai-sdk';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: kyma('best'),
+  prompt: 'What is quantum computing?',
+});
+```
+
+Kyma models also work with `streamText`:
+
+```ts
+import { kyma } from '@kyma-api/ai-sdk';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: kyma('code'),
+  prompt: 'Write a React hook for dark mode',
+});
+
+for await (const chunk of result.textStream) {
+  console.log(chunk);
+}
+```
+
+Model IDs work the same way:
+
+```ts
+const { text } = await generateText({
+  model: kyma('deepseek-r1'),
+  prompt: "Analyze this algorithm's time complexity...",
+});
+```
+
+### Smart Aliases
+
+Use an alias instead of memorizing a model ID; Kyma keeps the mapping current as models change.
+
+| Alias          | Best for                    |
+| -------------- | ---------------------------- |
+| `best`         | Highest quality overall      |
+| `fast`         | Fastest response              |
+| `code`         | Code generation               |
+| `cheap`        | Lowest cost                   |
+| `reasoning`    | Complex reasoning             |
+| `agent`        | Agentic tool use              |
+| `vision`       | Image input                   |
+| `long-context` | Largest context window        |
+| `balanced`     | Quality and speed balance     |
+
+### Model Capabilities
+
+Kyma serves open and frontier models behind the same endpoint. Capabilities vary by model:
+
+| Model              | Image Input          | Object Generation    | Tool Usage            |
+| ------------------ | --------------------- | --------------------- | ---------------------- |
+| `qwen-3.6-plus`     | <Check />              | <Check />              | <Check />               |
+| `deepseek-v3`       | <Cross />              | <Check />              | <Check />               |
+| `deepseek-r1`       | <Cross />              | <Check />              | <Check />               |
+| `kimi-k2.6`         | <Check />              | <Check />              | <Check />               |
+| `gemma-4-31b`       | <Check />              | <Check />              | <Check />               |
+| `llama-3.3-70b`     | <Cross />              | <Check />              | <Check />               |
+| `gemini-3-flash`    | <Check />              | <Check />              | <Check />               |
+| `glm-4.5-air`       | <Cross />              | <Check />              | <Check />               |
+
+<Note>
+  Please see the [Kyma model catalog](https://docs.kymaapi.com/models/overview) for the
+  full, current list of models, context windows and pricing, plus measured uptime per
+  model at [kymaapi.com/status](https://kymaapi.com/status). The provider accepts any
+  available model ID as a string, so new models work without a package update.
+</Note>
+
+## Additional Resources
+
+- [Kyma API Docs](https://docs.kymaapi.com)
+- [Model Catalog](https://docs.kymaapi.com/models/overview)
+- [Measured Uptime](https://kymaapi.com/status)
+- [Pricing](https://docs.kymaapi.com/pricing)
