@@ -12,8 +12,8 @@ description: API reference for the experimental_useRealtime hook.
 Creates a browser-side realtime session for bidirectional audio and text
 conversations with a realtime provider model.
 
-The hook supports token-based provider WebSockets and application-owned WebSocket
-relays. It provides
+The hook supports token-based provider WebSockets, application-owned WebSocket
+relays, and optional direct browser WebRTC with server-side HTTP setup. It provides
 controls for capture, playback, text input, and tool output. Turn-based conversation
 messages use `UIMessage[]`; continuous transcript fragments remain in `session`.
 
@@ -69,8 +69,12 @@ function LiveConversation() {
 
 WebSocket capture/playback supports PCM16. Applications with their own audio pipeline
 can use the low-level provider for other supported codecs. OpenAI-specific settings,
-including Responses delegation, live under `providerOptions.openai` and use
-camelCase fields; the provider converts them to wire names.
+including Responses delegation and WebRTC permissions, live under `providerOptions.openai`.
+
+For optional WebRTC, pass `api: { session: '/api/live/session' }`. The endpoint receives
+`{ sdp, sessionConfig }` and returns `{ sessionId, sdp }` from the provider's
+`doCreateWebRTCSession()` method. Audio travels directly between the browser and
+OpenAI; the endpoint is an HTTP setup broker, not a WebRTC media server.
 
 ## Lifecycle and failure handling
 
@@ -88,8 +92,8 @@ Command rejection and playback failures are recoverable and do not mark a health
 protocol connection as failed. Irrecoverable transport failures and protocol queue
 overflow stop submissions and capture, drain the accepted event prefix, and clean
 up. Events are never arbitrarily dropped while continuing with unreliable state.
-No commands or side-effecting tools are transparently replayed on a replacement
-connection.
+Temporary WebRTC disconnections have a bounded recovery interval; no commands or
+side-effecting tools are transparently replayed on a replacement connection.
 
 The playback budget bounds local latency and memory. On overflow, stale queued audio
 is discarded, playback pauses, and `onError` reports an audible gap. The connection
@@ -116,9 +120,9 @@ and backend completion do not prove that the corresponding audio was heard.
     },
     {
       name: 'api',
-      type: '{ token: string } | { websocket: string; protocols?: string[] }',
+      type: '{ token: string } | { websocket: string; protocols?: string[] } | { session: string }',
       description:
-        'Choose one supported connection mechanism: token setup or a WebSocket relay. Conversation semantics and connection capabilities are independent.',
+        'Choose one supported connection mechanism: token setup, a WebSocket relay, or an HTTP WebRTC SDP endpoint. Conversation semantics and connection capabilities are independent.',
       properties: [
         {
           type: 'Object',
@@ -143,6 +147,13 @@ and backend completion do not prove that the corresponding audio was heard.
               isOptional: true,
               description:
                 'Optional relay subprotocols, supported only with websocket.',
+            },
+            {
+              name: 'session',
+              type: 'string',
+              isOptional: true,
+              description:
+                'HTTP SDP endpoint returning { sessionId, sdp }. The server owns the provider key and permission policy.',
             },
           ],
         },
@@ -189,6 +200,13 @@ and backend completion do not prove that the corresponding audio was heard.
       isOptional: true,
       description:
         'Deadline for confirmed provider finalization after graceful close. Defaults to 15000.',
+    },
+    {
+      name: 'rtcDisconnectTimeoutMs',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Grace interval for a recoverable WebRTC disconnected state. Defaults to 5000.',
     },
     {
       name: 'maxPlaybackBufferSeconds',
@@ -389,7 +407,14 @@ Completed work does not impose a lifetime command quota. Use fresh IDs and keep
 durable operation deduplication in the application; bounded history is not a promise
 of session-long exactly-once execution.
 
-## Capture ownership
+## Permissions and capture ownership
+
+WebRTC data-channel permissions are provider-specific startup policy. OpenAI exposes
+them through `providerOptions.openai.client.dataChannel`; the application server must
+construct or constrain the policy rather than trusting browser-supplied allowlists.
+Omitting a policy preserves the provider default; `[]` and `all` remain distinct.
+The SDK does not broaden an allowlist to regain readiness or finalization events.
+If those events are filtered out, readiness/finalization can time out truthfully.
 
 SDK-acquired tracks are stopped on local capture stop or cleanup. Caller-owned Live
 tracks are detached without stopping or disabling them. `stopAudioCapture()` controls
@@ -398,7 +423,7 @@ and is tracked through its acknowledgment. These are separate operations.
 
 ## Experimental compatibility
 
-This update adds explicit relay options and changes experimental `sendEvent` to
+This update adds explicit relay/SDP options and changes experimental `sendEvent` to
 return a promise. Existing token setups and the no-argument `connect` call remain
 supported. New session state uses `session`, not a provider-branded state object.
 Generic realtime-model consumers must check optional connection methods before calling

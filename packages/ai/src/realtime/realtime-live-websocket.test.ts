@@ -8,7 +8,7 @@ import {
   fakeStream,
   flushEvents,
   liveModel,
-} from './__fixtures__/fake-realtime';
+} from './__fixtures__/fake-webrtc';
 import {
   FakeAudioContext,
   FakeWebSocket,

@@ -24,6 +24,7 @@ const audioFormatSchema = z.union([
 export function buildOpenAILiveSessionConfig(
   config: RealtimeModelV4SessionConfig,
   modelId: string,
+  transport: 'websocket' | 'webrtc' = 'websocket',
 ): Record<string, unknown> {
   for (const key of Object.keys(config)) {
     if (
@@ -44,12 +45,28 @@ export function buildOpenAILiveSessionConfig(
   const options = openaiRealtimeModelLiveOptionsSchema.parse(
     config.providerOptions?.openai ?? {},
   );
+  if (options.client !== undefined && transport !== 'webrtc') {
+    throw new UnsupportedFunctionalityError({
+      functionality: 'OpenAI Live client permissions outside WebRTC startup',
+    });
+  }
   if (options.voice != null && config.voice != null) {
     throw new InvalidArgumentError({
       argument: 'voice',
       message: 'Choose either voice or providerOptions.openai.voice.',
     });
   }
+  if (
+    transport === 'webrtc' &&
+    (config.inputAudioFormat !== undefined ||
+      config.outputAudioFormat !== undefined)
+  ) {
+    throw new UnsupportedFunctionalityError({
+      functionality:
+        'Fixed audio formats for OpenAI Live WebRTC; audio is negotiated through SDP',
+    });
+  }
+
   const inputFormat =
     config.inputAudioFormat == null
       ? undefined
@@ -76,7 +93,12 @@ export function buildOpenAILiveSessionConfig(
       ? { instructions: config.instructions }
       : {}),
     audio: {
-      format: inputFormat ?? outputFormat ?? { type: 'audio/pcm', rate: 24000 },
+      ...(transport === 'websocket'
+        ? {
+            format: inputFormat ??
+              outputFormat ?? { type: 'audio/pcm', rate: 24000 },
+          }
+        : {}),
       output: { voice: options.voice ?? config.voice ?? 'marin' },
     },
     ...(options.delegation !== undefined
@@ -90,6 +112,35 @@ export function buildOpenAILiveSessionConfig(
                   ),
                 }
               : options.delegation,
+        }
+      : {}),
+    ...(options.client !== undefined
+      ? {
+          client: {
+            data_channel: {
+              ...(options.client.dataChannel.allowedClientEvents !== undefined
+                ? {
+                    allowed_client_events:
+                      options.client.dataChannel.allowedClientEvents,
+                  }
+                : {}),
+              ...(options.client.dataChannel.allowedServerEvents !== undefined
+                ? {
+                    allowed_server_events:
+                      options.client.dataChannel.allowedServerEvents === 'all'
+                        ? 'all'
+                        : options.client.dataChannel.allowedServerEvents.map(
+                            selector => ({
+                              type: selector.type,
+                              ...(selector.responseEvent !== undefined
+                                ? { response_event: selector.responseEvent }
+                                : {}),
+                            }),
+                          ),
+                  }
+                : {}),
+            },
+          },
         }
       : {}),
     ...(options.input !== undefined ? { input: options.input } : {}),

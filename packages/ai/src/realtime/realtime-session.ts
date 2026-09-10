@@ -7,6 +7,7 @@ import type {
 } from '../types/realtime-model';
 import { BrowserRealtimeAudio } from './browser-realtime-audio';
 import { BrowserRealtimeTransport } from './browser-realtime-transport';
+import { BrowserRealtimeWebRTC } from './browser-realtime-webrtc';
 import { BrowserRealtimeLiveWebSocket } from './browser-realtime-live-websocket';
 import { RealtimeAttempt } from './realtime-attempt';
 import { RealtimeCommandCoordinator } from './realtime-command-coordinator';
@@ -26,9 +27,10 @@ export type { RealtimeState, RealtimeStatus } from './realtime-event-reducer';
 
 export type RealtimeSessionOptions = {
   model: RealtimeModel;
-  /** websocket uses a raw-protocol relay; token fetches client-secret setup. */
+  /** websocket uses a raw-protocol relay; session exchanges SDP over HTTP. */
   api:
     | { token: string; session?: never; websocket?: never; protocols?: never }
+    | { session: string; token?: never; websocket?: never; protocols?: never }
     | {
         websocket: string;
         protocols?: string[];
@@ -44,6 +46,8 @@ export type RealtimeSessionOptions = {
   startupTimeoutMs?: number;
   /** Maximum wait for final usage after close(). Default: 15s. */
   closeTimeoutMs?: number;
+  /** Grace period for a temporarily disconnected peer. Default: 5s. */
+  rtcDisconnectTimeoutMs?: number;
   /** Local playback pauses at this budget until resumePlayback(). Default: 2s. */
   maxPlaybackBufferSeconds?: number;
   onToolCall?: (args: {
@@ -66,6 +70,7 @@ export abstract class AbstractRealtimeSession {
   private commands?: RealtimeCommandCoordinator;
   private transport?: BrowserRealtimeTransport;
   private audio?: BrowserRealtimeAudio;
+  private rtc?: BrowserRealtimeWebRTC;
   private pcm?: BrowserRealtimeLiveWebSocket;
   private suppliedStream?: MediaStream;
   private captureGeneration = 0;
@@ -91,6 +96,7 @@ export abstract class AbstractRealtimeSession {
     for (const timeout of [
       options.startupTimeoutMs ?? 30_000,
       options.closeTimeoutMs ?? 15_000,
+      options.rtcDisconnectTimeoutMs ?? 5_000,
     ]) {
       if (!Number.isFinite(timeout) || timeout <= 0 || timeout > 2_147_483_647)
         throw new Error(
@@ -109,19 +115,26 @@ export abstract class AbstractRealtimeSession {
   private validateConnection(): void {
     const { model, api } = this.options;
     const connection =
-      api.token != null ? 'client-secret-websocket' : 'server-websocket';
+      api.token != null
+        ? 'client-secret-websocket'
+        : api.session != null
+          ? 'webrtc'
+          : 'server-websocket';
+    const transport = api.session != null ? 'webrtc' : 'websocket';
     if (
       !(
         model.capabilities?.connections ?? ['client-secret-websocket']
       ).includes(connection) ||
       (model.capabilities?.transports != null &&
-        !model.capabilities.transports.includes('websocket'))
+        !model.capabilities.transports.includes(transport))
     )
       throw new Error(`Realtime model does not support ${connection}`);
     if (api.token != null && model.getWebSocketConfig == null)
       throw new Error(
         'Realtime model does not support client-secret WebSocket configuration',
       );
+    if (api.session != null && model.getWebRTCConfig == null)
+      throw new Error('Realtime model does not support WebRTC configuration');
   }
 
   connect(): Promise<void>;
@@ -167,7 +180,10 @@ export abstract class AbstractRealtimeSession {
             await this.handleServerEvent(event);
           } catch (error) {
             if (current())
-              this.fail(error, (this.pcm ?? this.transport)?.finish());
+              this.fail(
+                error,
+                (this.rtc ?? this.pcm ?? this.transport)?.finish(),
+              );
           }
         },
         onError: (error: Error) => {
@@ -206,7 +222,24 @@ export abstract class AbstractRealtimeSession {
           if (current()) this.applyState({ ...this.state, isPlaying });
         },
       };
-      if (
+      if (api.session != null) {
+        this.rtc = new BrowserRealtimeWebRTC({
+          ...callbacks,
+          disconnectTimeoutMs: this.options.rtcDisconnectTimeoutMs,
+        });
+        await this.rtc.connect({
+          api: api.session,
+          sessionConfig,
+          stream: connectOptions?.stream,
+          capture: connectOptions?.capture,
+          timeoutMs: this.options.startupTimeoutMs ?? 30_000,
+        });
+        if (current() && model.capabilities?.startup !== 'session-start')
+          await this.sendTransport({
+            type: 'session-update',
+            config: sessionConfig ?? {},
+          });
+      } else if (
         api.websocket != null &&
         model.capabilities?.conversation === 'continuous'
       ) {
@@ -318,7 +351,7 @@ export abstract class AbstractRealtimeSession {
     if (this.attempt !== attempt || !attempt.active || attempt.transportClosing)
       return;
     attempt.clearTimer('close');
-    const transport = this.pcm ?? this.transport;
+    const transport = this.rtc ?? this.pcm ?? this.transport;
     void this.drainAttempt(attempt, transport?.finish());
     void this.reportError(error);
   }
@@ -329,9 +362,11 @@ export abstract class AbstractRealtimeSession {
     this.attempt?.retire();
     this.transport?.dispose();
     this.audio?.dispose();
+    this.rtc?.dispose();
     this.pcm?.dispose();
     this.transport = undefined;
     this.audio = undefined;
+    this.rtc = undefined;
     this.pcm = undefined;
     this.commands = undefined;
     const session = this.state.session;
@@ -385,7 +420,7 @@ export abstract class AbstractRealtimeSession {
     event: RealtimeClientEvent,
     guard?: () => boolean,
   ): Promise<void> {
-    const transport = this.pcm ?? this.transport;
+    const transport = this.rtc ?? this.pcm ?? this.transport;
     if (transport == null) throw new Error('Realtime connection is not open');
     return transport.sendEvent(event, guard);
   }
@@ -400,9 +435,10 @@ export abstract class AbstractRealtimeSession {
     if (this.sessionLifecycle && this.state.status !== 'connected')
       throw new Error('Realtime session is not accepting submissions');
     if (
-      this.continuous &&
-      (event.type === 'input-audio-commit' ||
-        event.type === 'input-audio-clear')
+      (event.type === 'input-audio-append' && this.rtc != null) ||
+      (this.continuous &&
+        (event.type === 'input-audio-commit' ||
+          event.type === 'input-audio-clear'))
     )
       throw new UnsupportedFunctionalityError({
         functionality:
@@ -551,6 +587,7 @@ export abstract class AbstractRealtimeSession {
       (!this.sessionLifecycle && this.state.status === 'connecting');
     if (!accepting())
       throw new Error('Realtime session is not accepting capture');
+    if (this.rtc != null) return this.rtc.startCapture(this.suppliedStream);
     if (this.pcm != null) return this.pcm.resumeCapture(this.suppliedStream);
     const audio = this.audio;
     if (audio == null)
@@ -577,14 +614,18 @@ export abstract class AbstractRealtimeSession {
     this.captureGeneration++;
     if (this.audio != null && this.options.api.token != null)
       this.suppliedStream = undefined;
+    const attempt = this.attempt;
     this.pcm?.stopCapture();
+    void this.rtc?.stopCapture().catch(error => {
+      if (attempt?.active) this.fail(error);
+    });
     this.audio?.stopCapture();
   }
   stopPlayback(): void {
-    (this.pcm ?? this.audio)?.stopPlayback();
+    (this.rtc ?? this.pcm ?? this.audio)?.stopPlayback();
   }
   async resumePlayback(): Promise<void> {
-    await (this.pcm ?? this.audio)?.resumePlayback();
+    await (this.rtc ?? this.pcm ?? this.audio)?.resumePlayback();
   }
   dispose(): void {
     this.disconnect();

@@ -14,6 +14,7 @@ type RealtimeStateKey = keyof RealtimeState;
 type RealtimeStoreKey = {
   model: RealtimeSessionOptions['model'];
   token: string | undefined;
+  session: string | undefined;
   websocket: string | undefined;
   protocols: string;
   startupTimeoutMs: RealtimeSessionOptions['startupTimeoutMs'];
@@ -23,12 +24,14 @@ type RealtimeStoreKey = {
   maxEvents: RealtimeSessionOptions['maxEvents'];
   autoContinueTools: RealtimeSessionOptions['autoContinueTools'];
   maxPlaybackBufferSeconds: RealtimeSessionOptions['maxPlaybackBufferSeconds'];
+  rtcDisconnectTimeoutMs: RealtimeSessionOptions['rtcDisconnectTimeoutMs'];
 };
 
 function getRealtimeStoreKey(options: UseRealtimeOptions): RealtimeStoreKey {
   return {
     model: options.model,
     token: options.api.token,
+    session: options.api.session,
     websocket: options.api.websocket,
     protocols: JSON.stringify(options.api.protocols ?? []),
     startupTimeoutMs: options.startupTimeoutMs,
@@ -38,6 +41,7 @@ function getRealtimeStoreKey(options: UseRealtimeOptions): RealtimeStoreKey {
     maxEvents: options.maxEvents,
     autoContinueTools: options.autoContinueTools,
     maxPlaybackBufferSeconds: options.maxPlaybackBufferSeconds,
+    rtcDisconnectTimeoutMs: options.rtcDisconnectTimeoutMs,
   };
 }
 
@@ -48,6 +52,7 @@ function shouldCreateRealtimeStore(
   return (
     currentKey.model !== nextOptions.model ||
     currentKey.token !== nextOptions.api.token ||
+    currentKey.session !== nextOptions.api.session ||
     currentKey.websocket !== nextOptions.api.websocket ||
     currentKey.protocols !== JSON.stringify(nextOptions.api.protocols ?? []) ||
     currentKey.startupTimeoutMs !== nextOptions.startupTimeoutMs ||
@@ -56,7 +61,9 @@ function shouldCreateRealtimeStore(
     currentKey.sampleRate !== nextOptions.sampleRate ||
     currentKey.maxEvents !== nextOptions.maxEvents ||
     currentKey.autoContinueTools !== nextOptions.autoContinueTools ||
-    currentKey.maxPlaybackBufferSeconds !== nextOptions.maxPlaybackBufferSeconds
+    currentKey.maxPlaybackBufferSeconds !==
+      nextOptions.maxPlaybackBufferSeconds ||
+    currentKey.rtcDisconnectTimeoutMs !== nextOptions.rtcDisconnectTimeoutMs
   );
 }
 

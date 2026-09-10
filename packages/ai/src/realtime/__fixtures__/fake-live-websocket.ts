@@ -1,6 +1,6 @@
 import { vi, type Mock } from 'vitest';
 import type { RealtimeServerEvent } from '../../types/realtime-model';
-import { fakeStream } from './fake-realtime';
+import { installWebRTC } from './fake-webrtc';
 
 export class FakeWebSocket {
   static OPEN = 1;
@@ -53,15 +53,11 @@ export class FakeAudioContext {
   createBuffer = vi.fn((_channels: number, size: number, rate: number) => ({ duration: size / rate, getChannelData: () => new Float32Array(size) }));
 }
 
-export function installLiveWebSocket() {
-  const media = fakeStream();
-  const getUserMedia = vi.fn(async () => media.stream);
-  const fetch = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>();
-  vi.stubGlobal('navigator', { mediaDevices: { getUserMedia } });
-  vi.stubGlobal('fetch', fetch);
+export function installLiveWebSocket(): ReturnType<typeof installWebRTC> {
+  const browser = installWebRTC();
   FakeWebSocket.instances = [];
   FakeAudioContext.instances = [];
   vi.stubGlobal('WebSocket', FakeWebSocket);
   vi.stubGlobal('AudioContext', FakeAudioContext);
-  return { ...media, getUserMedia, fetch };
+  return browser;
 }

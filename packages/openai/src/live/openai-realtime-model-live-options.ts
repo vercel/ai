@@ -42,7 +42,31 @@ const openaiLiveResponsesUpdateOptionsSchema = z.strictObject({
   serviceTier: z.enum(['auto', 'default', 'flex', 'priority']).nullish(),
 });
 
+const serverEventSelectorSchema = z
+  .strictObject({
+    type: z.string(),
+    responseEvent: z.string().optional(),
+  })
+  .refine(
+    selector =>
+      (selector.type === 'response.event') ===
+      (selector.responseEvent !== undefined),
+    'responseEvent is required for response.event and forbidden for other event types.',
+  );
+
 export const openaiRealtimeModelLiveOptionsSchema = z.strictObject({
+  client: z
+    .strictObject({
+      dataChannel: z.strictObject({
+        allowedClientEvents: z
+          .union([z.literal('all'), z.array(z.string())])
+          .optional(),
+        allowedServerEvents: z
+          .union([z.literal('all'), z.array(serverEventSelectorSchema)])
+          .optional(),
+      }),
+    })
+    .optional(),
   delegation: z
     .discriminatedUnion('type', [
       z.strictObject({ type: z.literal('client') }),

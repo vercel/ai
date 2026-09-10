@@ -26,7 +26,9 @@ it('accepts an existing minimal implementer without transport extensions', () =>
       RealtimeModelV4,
       | 'capabilities'
       | 'getServerWebSocketConfig'
+      | 'doCreateWebRTCSession'
       | 'getHealthCheckResponse'
+      | 'getWebRTCConfig'
       | 'createServerEventParser'
       | 'doCreateClientSecret'
       | 'getWebSocketConfig'
@@ -46,20 +48,26 @@ it('accepts Live as a realtime model while retaining its continuous capabilities
   expectTypeOf(model).toMatchTypeOf<RealtimeModelV4>();
   expectTypeOf(model.capabilities.conversation).toEqualTypeOf<'continuous'>();
   expectTypeOf(model.capabilities.transports).toEqualTypeOf<
-    readonly ['websocket']
+    readonly ['websocket', 'webrtc']
   >();
   expectTypeOf(model.getServerWebSocketConfig()).toEqualTypeOf<{
     url: string;
     headers: Record<string, string>;
   }>();
+  expectTypeOf(model.getWebRTCConfig()).toEqualTypeOf<{
+    dataChannelLabel: string;
+  }>();
   expectTypeOf(model.createServerEventParser()).toEqualTypeOf<
     (raw: unknown) => RealtimeModelV4ServerEvent[]
   >();
   expectTypeOf(model.capabilities.connections).toEqualTypeOf<
-    readonly ['server-websocket']
+    readonly ['server-websocket', 'webrtc']
   >();
   expectTypeOf(model.capabilities.startup).toEqualTypeOf<'session-start'>();
   expectTypeOf(
     model.capabilities.finalization,
   ).toEqualTypeOf<'session-close'>();
+  expectTypeOf(
+    model.doCreateWebRTCSession({ sdp: 'offer' }),
+  ).resolves.toEqualTypeOf<{ sessionId: string; sdp: string }>();
 });

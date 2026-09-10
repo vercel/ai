@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { RealtimeClientEvent } from '../types/realtime-model';
-import { deferred } from './__fixtures__/fake-realtime';
+import { deferred } from './__fixtures__/fake-webrtc';
 import { RealtimeCommandCoordinator } from './realtime-command-coordinator';
 
 const noAckCommands = [
