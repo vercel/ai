@@ -39,6 +39,11 @@ export class BrowserRealtimeTransport {
     this.ws?.close();
     this.ws = null;
 
+    if (this.model.getWebSocketConfig == null) {
+      throw new Error(
+        'This model does not support client-secret WebSocket connections.',
+      );
+    }
     const wsConfig = this.model.getWebSocketConfig({ token, url });
     const ws = new WebSocket(wsConfig.url, wsConfig.protocols);
 
