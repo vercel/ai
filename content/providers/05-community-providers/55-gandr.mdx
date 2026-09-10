@@ -1,0 +1,55 @@
+---
+title: 'Gandr'
+description: 'Learn how to use the Gandr provider for the AI SDK.'
+---
+
+# Gandr Provider
+
+The [Gandr](https://gandr.ai) provider brings text to speech to the AI SDK: six stock voices, one engine that speaks 23 languages, and correct readback of numbers, dates and order IDs.
+
+## Setup
+
+The Gandr provider is available in the `gandr-ai-sdk` module. You can install it with:
+
+<InstallPackages packages="gandr-ai-sdk" />
+
+## Provider Instance
+
+Get a `gnd_…` API key from [gandr.ai](https://gandr.ai), then create the provider. It reads `GANDR_API_KEY` from the environment:
+
+```ts
+import { createGandr } from 'gandr-ai-sdk';
+
+const gandr = createGandr();
+```
+
+Pass `apiKey` explicitly if you prefer:
+
+```ts
+const gandr = createGandr({ apiKey: process.env.GANDR_API_KEY });
+```
+
+## Speech Models
+
+Use the standard `generateSpeech` call:
+
+```ts
+import { createGandr } from 'gandr-ai-sdk';
+import { generateSpeech } from 'ai';
+
+const gandr = createGandr();
+
+const { audio } = await generateSpeech({
+  model: gandr.speech('gandr-tts'),
+  text: 'Order number 4-2-7-1 ships on March 3rd.',
+  voice: 'gandr-leo',
+});
+// audio is a WAV file as a Uint8Array
+```
+
+Pick voices with the standard `voice` option: `gandr-ava`, `gandr-dane`, `gandr-jenny`, `gandr-leo`, `gandr-lewis`, `gandr-mia`. Set `language` to any of the 23 supported ISO codes and `speed` between 0.6 and 1.5.
+
+## Additional Resources
+
+- [Gandr documentation](https://gandr.ai/docs)
+- [gandr-ai-sdk on GitHub](https://github.com/Gandr-AI/gandr-ai-sdk)
