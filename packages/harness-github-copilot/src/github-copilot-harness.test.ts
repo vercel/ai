@@ -34,6 +34,8 @@ describe('createGitHubCopilot', () => {
       forwardEnv: settings.forwardEnv,
       credentialEnv: settings.credentialEnv,
       hasCredentialBrokering: settings.credentialBrokering != null,
+      hasAuthenticationResolver:
+        settings.resolveAuthenticationEnvironment != null,
       providerAuthentication: settings.providerAuthentication,
       modelMapping: settings.modelMapping,
       skillsDirectory: settings.skillsDirectory,
@@ -78,6 +80,7 @@ describe('createGitHubCopilot', () => {
           "GH_HOST",
         ],
         "harnessId": "github-copilot",
+        "hasAuthenticationResolver": true,
         "hasCredentialBrokering": true,
         "modelMapping": {
           "path": "model",

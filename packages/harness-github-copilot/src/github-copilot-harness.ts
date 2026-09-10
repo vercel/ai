@@ -10,6 +10,10 @@ import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
 import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import {
+  normalizeGitHubHost,
+  resolveGitHubCopilotSubscriptionEnvironment,
+} from './github-copilot-subscription';
 import { VERSION } from './version';
 
 declare const __GITHUB_COPILOT_IMPLEMENTATION_PACKAGE_JSON__: string;
@@ -260,6 +264,8 @@ export function createGitHubCopilot(
         : [`--reasoning-effort=${settings.reasoningEffort}`]),
     ],
     auth: settings.auth,
+    resolveAuthenticationEnvironment:
+      resolveGitHubCopilotSubscriptionEnvironment,
     /*
      * The Copilot CLI drops every MCP server that a client passes in ACP
      * `session/new` unless it is declared with the `http` or `sse` transport,
@@ -460,8 +466,4 @@ export function createGitHubCopilot(
     startupTimeoutMs: settings.startupTimeoutMs,
     mintBridgeToken: settings.mintBridgeToken,
   });
-}
-
-function normalizeGitHubHost(host: string): string {
-  return new URL(host.includes('://') ? host : `https://${host}`).hostname;
 }
