@@ -138,28 +138,14 @@ const result = await generateText({
     getDemand: ['code_mode'],
   },
   prompt: 'Compare inventory and demand for product sku_123.',
-  include: { requestMessages: true },
 });
 ```
 
 The AI SDK adds a complete code mode capability catalog to the conversation
 before calling the model. The catalog contains TypeScript signatures and call
 examples for the tools routed through code mode. When the effective tools or
-their definitions change later, the SDK adds only the added, updated, and
-removed tools. It adds no message when the catalog is unchanged.
-
-For discovery to remain incremental across separate generation calls, retain
-the request messages containing the generated catalog along with the response:
-
-```ts
-const messages = [
-  ...result.finalStep.request.messages!,
-  ...result.responseMessages,
-];
-```
-
-Pass `messages` plus the next user message to the next generation call. If the
-previous catalog is not present, the SDK safely starts with a complete catalog.
+their definitions change in a later step or generation call, the SDK adds a
+new catalog that replaces earlier catalogs.
 
 This mode can improve prompt-cache reuse because the provider-visible tool
 definition stays unchanged. Actual cache behavior depends on the model

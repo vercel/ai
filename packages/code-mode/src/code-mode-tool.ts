@@ -5,8 +5,10 @@ import {
   type Experimental_ToolCallerTool,
 } from 'ai';
 import { runCodeMode } from './run-code-mode.js';
-import { buildCodeModeToolDescription } from './tool-prompt.js';
-import { buildCodeModeToolCatalogUpdate } from './tool-catalog-diff.js';
+import {
+  buildCodeModeToolCatalogMessage,
+  buildCodeModeToolDescription,
+} from './tool-prompt.js';
 import type {
   CodeModeOptions,
   CodeModeTool,
@@ -76,12 +78,10 @@ export function codeModeTool(
         ),
       ...(toolDiscovery === 'conversation'
         ? {
-            prepareModelMessage: (tools, { callerName, messages }) =>
-              buildCodeModeToolCatalogUpdate({
-                tools: tools as unknown as CodeModeToolSet,
-                callerName,
-                messages,
-              }),
+            prepareModelMessage: tools =>
+              buildCodeModeToolCatalogMessage(
+                tools as unknown as CodeModeToolSet,
+              ),
           }
         : {}),
     },

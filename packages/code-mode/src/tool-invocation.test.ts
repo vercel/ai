@@ -297,7 +297,6 @@ describe('AI SDK tool bridge', () => {
         lookup: ['code_mode'],
       },
       prompt: 'Look up record one.',
-      include: { requestMessages: true },
     });
 
     await generateText({
@@ -317,7 +316,7 @@ describe('AI SDK tool bridge', () => {
         lookup: ['code_mode'],
       },
       messages: [
-        ...first.finalStep.request.messages!,
+        { role: 'user', content: 'Look up record one.' },
         ...first.responseMessages,
         { role: 'user', content: 'Look up record two in us-east.' },
       ],
@@ -333,10 +332,7 @@ describe('AI SDK tool bridge', () => {
     );
     expect(
       JSON.stringify(prompts[1]).match(/Code mode capability update/g),
-    ).toHaveLength(2);
-    expect(JSON.stringify(prompts[1])).toContain(
-      'Apply only these changes to the previous code mode capability catalog.',
-    );
+    ).toHaveLength(1);
     expect(JSON.stringify(prompts[1])).toContain(
       'lookup: (input: { id: string; region: string; })',
     );

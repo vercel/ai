@@ -1,8 +1,6 @@
 import type { ProviderOptions } from './provider-options';
-import type { ModelMessage } from './model-message';
 import type { Tool } from './tool';
 import type { ToolSet } from './tool-set';
-import type { UserModelMessage } from './user-model-message';
 
 export type ToolCallerDefinition =
   | {
@@ -15,13 +13,7 @@ export type ToolCallerDefinition =
        * returned message is added to the conversation when its content has
        * not already been announced.
        */
-      prepareModelMessage?: (
-        tools: ToolSet,
-        context: {
-          callerName: string;
-          messages: ModelMessage[];
-        },
-      ) => string | UserModelMessage | undefined;
+      prepareModelMessage?: (tools: ToolSet) => string | undefined;
     }
   | {
       type: 'provider';
