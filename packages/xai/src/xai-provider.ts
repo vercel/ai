@@ -56,7 +56,10 @@ export interface XaiProvider extends ProviderV4 {
   /**
    * Returns a BatchV4 interface for processing batches with xAI.
    */
-  experimental_batch(): BatchV4<{ text: XaiResponsesModelId }>;
+  experimental_batch(): BatchV4<{
+    text: XaiResponsesModelId;
+    image: XaiImageModelId;
+  }>;
 
   /**
    * Creates an Xai image model for image generation.
