@@ -1,0 +1,40 @@
+---
+title: Migrate AI SDK 7.x to 8.0
+description: Learn how to upgrade AI SDK 7.x applications to AI SDK 8.0.
+---
+
+# Migrate AI SDK 7.x to 8.0
+
+## `useChat` Uses a 50ms Publication Cadence by Default
+
+In AI SDK 7, omitting the React `useChat` `throttle` option published every
+message snapshot without throttling.
+
+In AI SDK 8, omitting `throttle` publishes message snapshots to React at a 50ms
+cadence. The leading publication remains immediate, and the final messages are
+flushed in the same render where `ready` or `error` becomes observable,
+including after an abort returns the chat to `ready`.
+
+This change only paces message snapshots exposed to React. Stream consumption,
+tool handling, and lifecycle callbacks remain immediate.
+
+The new default applies only to React `useChat`. Other framework integrations
+and `useCompletion` retain their existing publication behavior.
+
+Most applications do not need to change their code. Applications that
+intentionally depend on every intermediate message snapshot can restore the AI
+SDK 7 rendering behavior with `throttle: 0`:
+
+```tsx filename="app/page.tsx" highlight="2"
+const { messages, status } = useChat({
+  throttle: 0,
+});
+```
+
+Positive values continue to set a custom publication cadence:
+
+```tsx filename="app/page.tsx" highlight="2"
+const { messages, status } = useChat({
+  throttle: 100,
+});
+```

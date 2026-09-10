@@ -338,7 +338,7 @@ Allows you to easily create a conversational user interface for your chatbot app
       type: 'number',
       isOptional: true,
       description:
-        'Custom throttle wait in ms for the chat messages and data updates. Default is undefined, which disables throttling.',
+        'Publication cadence in milliseconds for React message snapshots. Defaults to 50ms. The leading snapshot is immediate, and final messages are flushed with ready or error. Set to 0 to publish every snapshot without throttling. Stream processing and callbacks are not delayed.',
     },
     {
       name: 'resume',
