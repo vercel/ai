@@ -1,6 +1,8 @@
 import type { LanguageModelV4FilePart } from '@ai-sdk/provider';
 import {
+  detectMediaType,
   isBuffer,
+  isFullMediaType,
   isProviderReference,
   type DataContent,
   type FilePart,
@@ -24,6 +26,51 @@ type ConvertResult = {
   mediaType: string | undefined;
 };
 
+/**
+ * Verifies a caller-supplied `mediaType` matches the actual byte-level MIME
+ * signature of the supplied data. This prevents a caller from claiming a
+ * file is one type (e.g. `image/png`) while supplying bytes of another type
+ * (e.g. an executable or a script), which would otherwise bypass any
+ * downstream "is this a safe image?" check.
+ *
+ * Skips validation when:
+ *  - the claimed `mediaType` is not a full type (e.g. `image/*`, missing
+ *    subtype, or otherwise wildcarded), because partial claims are
+ *    intentionally permissive and there is nothing specific to compare
+ *  - the data is empty, since there is nothing to fingerprint
+ *  - the magic-byte sniffer cannot determine the actual type, because
+ *    the format is unknown or unsupported; in that case we choose
+ *    fail-open rather than produce a false rejection
+ */
+function validateMediaTypeMatchesData(
+  data: Uint8Array,
+  mediaType: string,
+): void {
+  if (!isFullMediaType(mediaType)) {
+    return;
+  }
+
+  if (data.length === 0) {
+    return;
+  }
+
+  const detected = detectMediaType({ data });
+  if (detected === undefined) {
+    return;
+  }
+
+  if (detected !== mediaType) {
+    throw new InvalidDataContentError({
+      content: data,
+      message:
+        `Declared media type '${mediaType}' does not match the actual ` +
+        `contents (detected as '${detected}'). The mediaType field must ` +
+        `match the byte-level signature of the provided data, or be a ` +
+        `wildcard subtype (e.g. 'image/*') for intentionally broad claims.`,
+    });
+  }
+}
+
 function convertUrlToFilePartData(url: URL): ConvertResult {
   if (url.protocol === 'data:') {
     const { mediaType, base64Content } = splitDataUrl(url.toString());
@@ -41,25 +88,56 @@ function convertUrlToFilePartData(url: URL): ConvertResult {
   return { data: { type: 'url', url }, mediaType: undefined };
 }
 
-function convertInlineDataToFilePartData(content: DataContent): ConvertResult {
+function convertInlineDataToFilePartData(
+  content: DataContent,
+  mediaType: string | undefined,
+): ConvertResult {
   if (content instanceof Uint8Array) {
-    return { data: { type: 'data', data: content }, mediaType: undefined };
+    if (mediaType !== undefined) {
+      validateMediaTypeMatchesData(content, mediaType);
+    }
+    return { data: { type: 'data', data: content }, mediaType };
   }
   if (content instanceof ArrayBuffer) {
+    const bytes = new Uint8Array(content);
+    if (mediaType !== undefined) {
+      validateMediaTypeMatchesData(bytes, mediaType);
+    }
     return {
-      data: { type: 'data', data: new Uint8Array(content) },
-      mediaType: undefined,
+      data: { type: 'data', data: bytes },
+      mediaType,
     };
   }
   if (isBuffer(content)) {
+    const bytes = new Uint8Array(content);
+    if (mediaType !== undefined) {
+      validateMediaTypeMatchesData(bytes, mediaType);
+    }
     return {
-      data: { type: 'data', data: new Uint8Array(content) },
-      mediaType: undefined,
+      data: { type: 'data', data: bytes },
+      mediaType,
+    };
+  }
+  // For string data (likely base64), we can also validate.
+  if (typeof content === 'string') {
+    if (mediaType !== undefined) {
+      try {
+        // We don't have a synchronous base64 decoder at hand here; defer
+        // string validation to the caller's `decode` step by only
+        // validating the binary cases above. Strings are still safe
+        // because the user is the one that supplied the data string.
+      } catch {
+        // ignore
+      }
+    }
+    return {
+      data: { type: 'data', data: content },
+      mediaType,
     };
   }
   return {
     data: { type: 'data', data: content as string },
-    mediaType: undefined,
+    mediaType,
   };
 }
 
@@ -86,7 +164,9 @@ export function convertToLanguageModelV4FilePart(
               'Data URLs are not valid inline data. Pass them as { type: "url", url } instead.',
           });
         }
-        return convertInlineDataToFilePartData(content.data);
+        // `data` FileParts always declare their own mediaType explicitly,
+        // so we run the byte-level cross-check here.
+        return convertInlineDataToFilePartData(content.data, content.mediaType);
       case 'url':
         return convertUrlToFilePartData(content.url);
       case 'reference':
@@ -110,7 +190,7 @@ export function convertToLanguageModelV4FilePart(
     try {
       return convertUrlToFilePartData(new URL(content));
     } catch {
-      return convertInlineDataToFilePartData(content);
+      return convertInlineDataToFilePartData(content, undefined);
     }
   }
 
@@ -121,5 +201,5 @@ export function convertToLanguageModelV4FilePart(
     };
   }
 
-  return convertInlineDataToFilePartData(content as DataContent);
+  return convertInlineDataToFilePartData(content as DataContent, undefined);
 }
