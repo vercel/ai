@@ -165,6 +165,38 @@ console.log(text);
 
 For more configuration options and customization, see the [Exa AI SDK documentation](https://docs.exa.ai/reference/vercel).
 
+#### Firecrawl
+
+<Note>
+  Get your API key from the [Firecrawl
+  Dashboard](https://www.firecrawl.dev/app/api-keys).
+</Note>
+
+First, install the Firecrawl AI SDK tools:
+
+```bash
+pnpm install firecrawl-aisdk
+```
+
+Then, you can import and pass the tools into `generateText`, `streamText`, or your agent. `FirecrawlTools()` bundles three tools by default: `search` for web search, `scrape` for extracting web page content, and `interact` for navigating dynamic pages:
+
+```ts
+import { generateText, isStepCount } from 'ai';
+__PROVIDER_IMPORT__;
+import { FirecrawlTools } from 'firecrawl-aisdk';
+
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'What are the latest developments in AI?',
+  tools: FirecrawlTools(),
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);
+```
+
+For more configuration options and customization, see the [Firecrawl AI SDK documentation](https://docs.firecrawl.dev/developer-guides/llm-sdks-and-frameworks/vercel-ai-sdk).
+
 #### Parallel Web
 
 <Note>Get your API key from the [Parallel Platform](https://parallel.ai).</Note>
