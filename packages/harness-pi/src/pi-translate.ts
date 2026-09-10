@@ -1,7 +1,11 @@
 import { randomBytes } from 'node:crypto';
 import type { HarnessV1StreamPart } from '@ai-sdk/harness';
 import { secureJsonParse } from '@ai-sdk/provider-utils';
-import { extractAssistantText, type PiSessionEvent } from './pi-events';
+import {
+  extractAssistantText,
+  getPiTerminalError,
+  type PiSessionEvent,
+} from './pi-events';
 import { serializeToolOutput } from './pi-utils';
 
 /**
@@ -411,7 +415,9 @@ export function translatePiEvent(
       } else {
         state.pendingStepToolCallIds.clear();
         state.stepToolCallCount = undefined;
-        parts.push(...finishStep(state));
+        if (!getPiTerminalError(event)) {
+          parts.push(...finishStep(state));
+        }
       }
       return parts;
     }
