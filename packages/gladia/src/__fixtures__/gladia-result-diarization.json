@@ -1,0 +1,37 @@
+{
+  "status": "done",
+  "result": {
+    "metadata": {
+      "audio_duration": 20.576
+    },
+    "transcription": {
+      "full_transcript": "Split infinity.",
+      "languages": ["en"],
+      "utterances": [
+        {
+          "text": "Split infinity.",
+          "language": "en",
+          "start": 0.168,
+          "end": 1.529,
+          "confidence": 0.98,
+          "channel": 0,
+          "words": [
+            {
+              "word": "Split",
+              "start": 0.168,
+              "end": 0.668,
+              "confidence": 0.97
+            },
+            {
+              "word": " infinity.",
+              "start": 0.888,
+              "end": 1.529,
+              "confidence": 1
+            }
+          ],
+          "speaker": 0
+        }
+      ]
+    }
+  }
+}

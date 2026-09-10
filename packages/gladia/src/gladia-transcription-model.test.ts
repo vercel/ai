@@ -10,6 +10,12 @@ vi.mock('./version', () => ({
 }));
 
 const audioData = await readFile(path.join(__dirname, 'transcript-test.mp3'));
+const diarizationResponse = JSON.parse(
+  await readFile(
+    path.join(__dirname, '__fixtures__/gladia-result-diarization.json'),
+    'utf8',
+  ),
+);
 const provider = createGladia({ apiKey: 'test-api-key' });
 const model = provider.transcription();
 
@@ -170,6 +176,48 @@ describe('doGenerate', () => {
     });
 
     expect(result.text).toBe('Smoke from hundreds of wildfires.');
+  });
+
+  it('should retain Gladia diarization fields in provider metadata', async () => {
+    prepareJsonResponse();
+    server.urls['https://api.gladia.io/v2/transcription/test-id'].response = {
+      type: 'json-value',
+      body: diarizationResponse,
+    };
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        gladia: {
+          diarization: true,
+        },
+      },
+    });
+
+    expect(await server.calls[1].requestBodyJson).toMatchObject({
+      diarization: true,
+    });
+    if (!result.providerMetadata) {
+      throw new Error('Expected Gladia provider metadata.');
+    }
+    const gladiaMetadata = result.providerMetadata.gladia;
+    const transcriptionResult = gladiaMetadata.result as {
+      transcription: { utterances: Array<Record<string, unknown>> };
+    };
+    expect(transcriptionResult.transcription.utterances[0]).toMatchObject({
+      speaker: 0,
+      confidence: 0.98,
+      language: 'en',
+      words: [
+        {
+          word: 'Split',
+          start: 0.168,
+          end: 0.668,
+          confidence: 0.97,
+        },
+      ],
+    });
   });
 
   it('should include response data with timestamp, modelId and headers', async () => {
