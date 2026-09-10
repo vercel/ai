@@ -828,6 +828,9 @@ describe('WorkflowAgent', () => {
         toolName: 'WebSearch',
         result: rawProviderResult,
         isError: false,
+        providerMetadata: {
+          openai: { itemId: 'provider-result-item' },
+        },
       });
 
       const mockIterator = {
@@ -874,6 +877,9 @@ describe('WorkflowAgent', () => {
         output: {
           type: 'text',
           value: 'model sees: provider result',
+        },
+        providerOptions: {
+          openai: { itemId: 'provider-result-item' },
         },
       });
       expect(result.toolResults[0]).toMatchObject({
@@ -1048,7 +1054,8 @@ describe('WorkflowAgent', () => {
         writable: mockWritable,
       });
 
-      // Verify that the iterator was called with error-text output type
+      // Provider-executed errors use the same JSON representation as
+      // ToolLoopAgent's response-message conversion.
       expect(mockIterator.next).toHaveBeenCalledTimes(2);
       const toolResultsCall = mockIterator.next.mock.calls[1][0];
       expect(toolResultsCall).toBeDefined();
@@ -1058,8 +1065,7 @@ describe('WorkflowAgent', () => {
         toolCallId: 'provider-call-id',
         toolName: 'WebSearch',
         output: {
-          // String error results use 'error-text' type with raw value
-          type: 'error-text',
+          type: 'error-json',
           value: 'Search failed: Rate limit exceeded',
         },
       });
