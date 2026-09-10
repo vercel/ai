@@ -2,21 +2,37 @@ import { build } from 'esbuild';
 import { writeFileSync, statSync } from 'fs';
 import { join } from 'path';
 
-// Bundle size limits in bytes
-const LIMIT = 480 * 1024;
+// Stage 2 adds the realtime WebSocket runtime; named probes guard tree shaking.
+const LIMIT = 504 * 1024;
 
 interface BundleResult {
   size: number;
   path: string;
   condition: string;
+  limit: number;
 }
 
-async function bundleForNode(): Promise<BundleResult> {
-  const outfile = join(process.cwd(), 'dist-bundle-check', 'node.js');
-  const metafile = join(process.cwd(), 'dist-bundle-check', 'node-meta.json');
+async function bundleForNode(
+  entry?: 'generateText' | 'tool',
+): Promise<BundleResult> {
+  const label = entry == null ? 'node' : `node-${entry}`;
+  const outfile = join(process.cwd(), 'dist-bundle-check', `${label}.js`);
+  const metafile = join(
+    process.cwd(),
+    'dist-bundle-check',
+    `${label}-meta.json`,
+  );
 
   const result = await build({
-    entryPoints: [join(process.cwd(), 'src', 'index.ts')],
+    ...(entry == null
+      ? { entryPoints: [join(process.cwd(), 'src', 'index.ts')] }
+      : {
+          stdin: {
+            contents: `export { ${entry} } from './src/index';`,
+            resolveDir: process.cwd(),
+            loader: 'ts' as const,
+          },
+        }),
     bundle: true,
     platform: 'node',
     target: 'es2020',
@@ -30,19 +46,40 @@ async function bundleForNode(): Promise<BundleResult> {
   writeFileSync(metafile, JSON.stringify(result.metafile, null, 2));
 
   const size = statSync(outfile).size;
-  return { size, path: outfile, condition: 'node' };
+  return {
+    size,
+    path: outfile,
+    condition: label,
+    limit:
+      entry === 'tool'
+        ? 8 * 1024
+        : entry === 'generateText'
+          ? 275 * 1024
+          : LIMIT,
+  };
 }
 
-async function bundleForBrowser(): Promise<BundleResult> {
-  const outfile = join(process.cwd(), 'dist-bundle-check', 'browser.js');
+async function bundleForBrowser(
+  entry?: 'generateText' | 'tool',
+): Promise<BundleResult> {
+  const label = entry == null ? 'browser' : `browser-${entry}`;
+  const outfile = join(process.cwd(), 'dist-bundle-check', `${label}.js`);
   const metafile = join(
     process.cwd(),
     'dist-bundle-check',
-    'browser-meta.json',
+    `${label}-meta.json`,
   );
 
   const result = await build({
-    entryPoints: [join(process.cwd(), 'src', 'index.ts')],
+    ...(entry == null
+      ? { entryPoints: [join(process.cwd(), 'src', 'index.ts')] }
+      : {
+          stdin: {
+            contents: `export { ${entry} } from './src/index';`,
+            resolveDir: process.cwd(),
+            loader: 'ts' as const,
+          },
+        }),
     bundle: true,
     platform: 'browser',
     target: 'es2020',
@@ -57,7 +94,17 @@ async function bundleForBrowser(): Promise<BundleResult> {
   writeFileSync(metafile, JSON.stringify(result.metafile, null, 2));
 
   const size = statSync(outfile).size;
-  return { size, path: outfile, condition: 'browser' };
+  return {
+    size,
+    path: outfile,
+    condition: label,
+    limit:
+      entry === 'tool'
+        ? 8 * 1024
+        : entry === 'generateText'
+          ? 275 * 1024
+          : LIMIT,
+  };
 }
 
 function formatSize(bytes: number): string {
@@ -80,14 +127,17 @@ async function main() {
   console.log('📦 Checking bundle sizes...\n');
 
   try {
-    const [nodeResult, browserResult] = await Promise.all([
+    const results = await Promise.all([
       bundleForNode(),
       bundleForBrowser(),
+      bundleForNode('generateText'),
+      bundleForBrowser('generateText'),
+      bundleForNode('tool'),
+      bundleForBrowser('tool'),
     ]);
 
     console.log('Bundle sizes:');
-    const nodePass = checkSize(nodeResult, LIMIT);
-    const browserPass = checkSize(browserResult, LIMIT);
+    const checks = results.map(result => checkSize(result, result.limit));
 
     console.log('\n---');
 
@@ -98,7 +148,7 @@ async function main() {
 
     console.log('\n---');
 
-    if (nodePass && browserPass) {
+    if (checks.every(Boolean)) {
       console.log('✅ All bundle size checks passed!');
       process.exit(0);
     } else {
