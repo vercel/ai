@@ -50,6 +50,7 @@ import {
   validateApprovedToolApprovals,
   verifyToolApprovalSignature,
 } from 'ai/internal';
+import { sleep } from 'workflow';
 import { addToolResultsToConversation } from './add-tool-results-to-conversation.js';
 import { createLanguageModelToolResultOutput } from './create-language-model-tool-result-output.js';
 import type {
@@ -1699,7 +1700,7 @@ export class WorkflowAgent<
     const sandbox = options.experimental_sandbox ?? this.experimentalSandbox;
     const effectiveAbortSignal = mergeAbortSignals(
       options.abortSignal ?? effectiveGenerationSettings.abortSignal,
-      options.timeout,
+      createWorkflowTimeoutSignal(options.timeout),
     );
     const timeoutAt =
       options.timeout == null ? undefined : Date.now() + options.timeout;
@@ -3188,6 +3189,18 @@ async function writeApprovalToolResults(
   } finally {
     writer.releaseLock();
   }
+}
+
+function createWorkflowTimeoutSignal(
+  timeout: number | undefined,
+): AbortSignal | undefined {
+  if (timeout == null) {
+    return undefined;
+  }
+
+  const controller = new AbortController();
+  void sleep(timeout).then(() => controller.abort());
+  return controller.signal;
 }
 
 function aggregateUsage(steps: StepResult<any, any>[]): LanguageModelUsage {
