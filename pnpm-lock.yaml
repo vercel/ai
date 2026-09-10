@@ -510,6 +510,9 @@ importers:
       '@ai-sdk/workflow':
         specifier: workspace:*
         version: link:../../packages/workflow
+      '@ai-sdk/workflow-harness':
+        specifier: workspace:*
+        version: link:../../packages/workflow-harness
       '@ai-sdk/xai':
         specifier: workspace:*
         version: link:../../packages/xai

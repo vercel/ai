@@ -35,10 +35,15 @@ export interface HarnessWorkflowUsageSummary {
   readonly outputTokens?: number;
 }
 
-export interface HarnessWorkflowFinalResult {
+export interface HarnessWorkflowFinalResult<OUTPUT = unknown> {
   readonly sessionId: string;
   readonly finishReason: string;
   readonly usage?: HarnessWorkflowUsageSummary;
+  /**
+   * The agent's parsed and schema-validated output when the runner was called
+   * with `includeOutput: true`.
+   */
+  readonly output?: OUTPUT;
 }
 
 export interface HarnessWorkflowSerializedChunk {
@@ -75,7 +80,7 @@ export interface HarnessWorkflowStreamContext {
  *  - `continueFrom` reattaches to a suspended turn from this same run and
  *    continues it without sending `prompt` again.
  */
-export interface HarnessWorkflowState {
+export interface HarnessWorkflowState<OUTPUT = unknown> {
   /**
    * Stable harness session id; doubles as the sandbox name across processes.
    * Reuse the chat/conversation id so every user turn resumes the same warm
@@ -108,7 +113,7 @@ export interface HarnessWorkflowState {
    */
   readonly continueFrom?: HarnessV1ContinueTurnState;
   readonly streamContext?: HarnessWorkflowStreamContext;
-  readonly finalResult?: HarnessWorkflowFinalResult;
+  readonly finalResult?: HarnessWorkflowFinalResult<OUTPUT>;
   readonly error?: string;
 }
 
@@ -130,9 +135,9 @@ export interface HarnessWorkflowInput {
 }
 
 /** Initial state for one user turn (see {@link HarnessWorkflowInput}). */
-export function createHarnessWorkflowState(
+export function createHarnessWorkflowState<OUTPUT = unknown>(
   input: HarnessWorkflowInput,
-): HarnessWorkflowState {
+): HarnessWorkflowState<OUTPUT> {
   return {
     sessionId: input.sessionId,
     prompt: input.prompt ?? '',
@@ -147,9 +152,9 @@ export function createHarnessWorkflowState(
  * Collapse a terminal state into its result. Throws if the run failed; returns
  * the captured `finalResult` when finished, or a best-effort result otherwise.
  */
-export function finalizeHarnessWorkflow(
-  state: HarnessWorkflowState,
-): HarnessWorkflowFinalResult {
+export function finalizeHarnessWorkflow<OUTPUT = unknown>(
+  state: HarnessWorkflowState<OUTPUT>,
+): HarnessWorkflowFinalResult<OUTPUT> {
   if (state.status === 'failed') {
     throw new Error(state.error ?? 'harness workflow failed');
   }
