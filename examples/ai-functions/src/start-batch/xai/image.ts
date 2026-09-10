@@ -26,7 +26,14 @@ run(async () => {
 
   print('Started batch:', batch);
 
-  while ((await getBatchStatus({ provider, batch })).status === 'pending') {
+  while (true) {
+    const { status } = await getBatchStatus({ provider, batch });
+    print('Batch status:', status);
+
+    if (status !== 'pending') {
+      break;
+    }
+
     await setTimeout(10_000);
   }
 
