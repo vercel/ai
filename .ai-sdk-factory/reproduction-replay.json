@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20546,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20546-empty-tool-calls-reasoning.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20546-empty-tool-calls-reasoning.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_20546_REPRODUCED: empty tool_calls broke reasoning continuity/data integrity for deepseek, moonshotai, alibaba, xai.chat, groq"
+  }
+}
