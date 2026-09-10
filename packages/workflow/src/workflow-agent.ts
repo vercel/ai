@@ -50,10 +50,12 @@ import {
   validateApprovedToolApprovals,
   verifyToolApprovalSignature,
 } from 'ai/internal';
+import { addToolResultsToConversation } from './add-tool-results-to-conversation.js';
 import { createLanguageModelToolResultOutput } from './create-language-model-tool-result-output.js';
 import type {
   ModelCallStreamPart,
   ModelStopCondition,
+  ProviderExecutedToolResult,
 } from './do-stream-step.js';
 import { resolveToolContext } from './resolve-tool-context.js';
 import { streamTextIterator } from './stream-text-iterator.js';
@@ -1281,10 +1283,23 @@ function addToolResultsToStep(
     return;
   }
 
-  const toolOutputs = executedResults.map(result => {
+  const existingProviderResultIds = new Set(
+    step.content.flatMap(part =>
+      (part.type === 'tool-result' || part.type === 'tool-error') &&
+      part.providerExecuted
+        ? [part.toolCallId]
+        : [],
+    ),
+  );
+
+  const toolOutputs = executedResults.flatMap(result => {
     const toolCall = step.toolCalls.find(
       toolCall => toolCall.toolCallId === result.modelResult.toolCallId,
     );
+
+    if (existingProviderResultIds.has(result.modelResult.toolCallId)) {
+      return [];
+    }
 
     const common = {
       toolCallId: result.modelResult.toolCallId,
@@ -1296,17 +1311,19 @@ function addToolResultsToStep(
         : {}),
     };
 
-    return result.isError
-      ? {
-          type: 'tool-error' as const,
-          ...common,
-          error: result.rawOutput,
-        }
-      : {
-          type: 'tool-result' as const,
-          ...common,
-          output: result.rawOutput,
-        };
+    return [
+      result.isError
+        ? {
+            type: 'tool-error' as const,
+            ...common,
+            error: result.rawOutput,
+          }
+        : {
+            type: 'tool-result' as const,
+            ...common,
+            output: result.rawOutput,
+          },
+    ];
   });
 
   step.content.push(...(toolOutputs as StepResult<ToolSet, any>['content']));
@@ -2335,7 +2352,11 @@ export class WorkflowAgent<
           toolsContext: yieldedToolsContext,
           experimental_sandbox: stepSandbox,
           providerExecutedToolResults,
+          providerExecutedToolResultPositions,
         } = result.value;
+        const capturedProviderToolResults =
+          providerExecutedToolResults ??
+          new Map<string, ProviderExecutedToolResult>();
         const toolExecutionSandbox = stepSandbox ?? sandbox;
         // Capture current step number before pushing (0-based)
         const currentStepNumber = steps.length;
@@ -2349,8 +2370,10 @@ export class WorkflowAgent<
           toolsContext = yieldedToolsContext;
         }
 
-        // Only execute tools if there are tool calls
-        if (toolCalls.length > 0) {
+        // Process client tool calls and any provider results captured in this
+        // response. Deferred provider results may arrive without a matching
+        // tool call in the current step.
+        if (toolCalls.length > 0 || capturedProviderToolResults.size > 0) {
           const invalidToolCalls = toolCalls.filter(tc => tc.invalid === true);
           const validToolCalls = toolCalls.filter(tc => tc.invalid !== true);
 
@@ -2361,6 +2384,29 @@ export class WorkflowAgent<
           const providerToolCalls = validToolCalls.filter(
             tc => tc.providerExecuted,
           );
+          const providerToolCallsForResults = [
+            ...providerToolCalls,
+            ...[...capturedProviderToolResults.values()].flatMap(
+              providerResult =>
+                providerToolCalls.some(
+                  toolCall => toolCall.toolCallId === providerResult.toolCallId,
+                )
+                  ? []
+                  : [
+                      {
+                        type: 'tool-call' as const,
+                        toolCallId: providerResult.toolCallId,
+                        toolName: providerResult.toolName,
+                        input: toolCalls.find(
+                          toolCall =>
+                            toolCall.toolCallId === providerResult.toolCallId,
+                        )?.input,
+                        providerExecuted: true,
+                        dynamic: providerResult.dynamic,
+                      },
+                    ],
+            ),
+          ];
 
           // Check which tools need approval (can be async)
           const approvalNeeded = await Promise.all(
@@ -2424,11 +2470,11 @@ export class WorkflowAgent<
 
             // Collect provider tool results
             const providerResultEntries = await Promise.all(
-              providerToolCalls.map(async toolCall => ({
+              providerToolCallsForResults.map(async toolCall => ({
                 toolCall,
                 result: await resolveProviderToolResult(
                   toolCall,
-                  providerExecutedToolResults,
+                  capturedProviderToolResults,
                   effectiveTools as ToolSet,
                   download,
                 ),
@@ -2452,9 +2498,9 @@ export class WorkflowAgent<
               ({ result }) => (result == null ? [] : [result]),
             );
 
-            const continuationInvalidResults = invalidToolCalls.map(
-              createInvalidToolResult,
-            );
+            const continuationInvalidResults = invalidToolCalls
+              .filter(toolCall => !toolCall.providerExecuted)
+              .map(createInvalidToolResult);
             const resolvedResults: LanguageModelV4ToolResultPart[] = [
               ...executableResults.map(result => result.modelResult),
               ...providerResults.map(result => result.modelResult),
@@ -2481,12 +2527,21 @@ export class WorkflowAgent<
 
             addToolResultsToStep(step, executedResults);
 
-            if (resolvedResults.length > 0) {
-              iterMessages.push({
-                role: 'tool',
-                content: resolvedResults,
-              });
-            }
+            const responseMessages = addToolResultsToConversation({
+              messages: iterMessages,
+              toolResults: resolvedResults,
+              providerExecutedToolCallIds: new Set(
+                providerToolCallsForResults.map(
+                  toolCall => toolCall.toolCallId,
+                ),
+              ),
+              providerExecutedToolResultPositions,
+            });
+            step?.response.messages.push(
+              ...(responseMessages as unknown as NonNullable<
+                typeof step
+              >['response']['messages']),
+            );
 
             const messages = iterMessages as unknown as ModelMessage[];
             const lastStep = steps[steps.length - 1];
@@ -2609,11 +2664,11 @@ export class WorkflowAgent<
 
           // For provider-executed tools, use the results from the stream
           const providerToolResultEntries = await Promise.all(
-            providerToolCalls.map(async toolCall => ({
+            providerToolCallsForResults.map(async toolCall => ({
               toolCall,
               result: await resolveProviderToolResult(
                 toolCall,
-                providerExecutedToolResults,
+                capturedProviderToolResults,
                 effectiveTools as ToolSet,
                 download,
               ),
@@ -2636,9 +2691,9 @@ export class WorkflowAgent<
           const providerToolResults = providerToolResultEntries.flatMap(
             ({ result }) => (result == null ? [] : [result]),
           );
-          const continuationInvalidToolResults = invalidToolCalls.map(
-            createInvalidToolResult,
-          );
+          const continuationInvalidToolResults = invalidToolCalls
+            .filter(toolCall => !toolCall.providerExecuted)
+            .map(createInvalidToolResult);
 
           // Combine executable/provider results in the original order,
           // while preserving invalid tool calls as error results for the
@@ -2654,6 +2709,14 @@ export class WorkflowAgent<
             if (providerResult) return [providerResult];
             return [];
           });
+          const currentToolCallIds = new Set(
+            toolCalls.map(toolCall => toolCall.toolCallId),
+          );
+          executedToolResults.push(
+            ...providerToolResults.filter(
+              result => !currentToolCallIds.has(result.modelResult.toolCallId),
+            ),
+          );
           const continuationToolResults = toolCalls.flatMap(tc => {
             const invalidResult = continuationInvalidToolResults.find(
               r => r.toolCallId === tc.toolCallId,
@@ -2665,6 +2728,13 @@ export class WorkflowAgent<
             if (executedResult) return [executedResult.modelResult];
             return [];
           });
+          continuationToolResults.push(
+            ...providerToolResults.flatMap(result =>
+              currentToolCallIds.has(result.modelResult.toolCallId)
+                ? []
+                : [result.modelResult],
+            ),
+          );
 
           // Write tool results and step boundaries to the stream so the UI can
           // transition tool parts to the appropriate output state and properly
@@ -3136,10 +3206,7 @@ function aggregateUsage(steps: StepResult<any, any>[]): LanguageModelUsage {
 
 async function resolveProviderToolResult(
   toolCall: { toolCallId: string; toolName: string; input: unknown },
-  providerExecutedToolResults?: Map<
-    string,
-    { toolCallId: string; toolName: string; result: unknown; isError?: boolean }
-  >,
+  providerExecutedToolResults?: Map<string, ProviderExecutedToolResult>,
   tools?: ToolSet,
   download?: DownloadFunction,
 ): Promise<WorkflowToolExecutionResult | undefined> {
@@ -3174,11 +3241,7 @@ async function resolveProviderToolResult(
   }
 
   const result = streamResult.result;
-  const errorMode = streamResult.isError
-    ? typeof result === 'string'
-      ? 'text'
-      : 'json'
-    : 'none';
+  const errorMode = streamResult.isError ? 'json' : 'none';
 
   return {
     modelResult: {
@@ -3195,6 +3258,9 @@ async function resolveProviderToolResult(
         supportedUrls: {},
         download,
       }),
+      ...(streamResult.providerMetadata != null
+        ? { providerOptions: streamResult.providerMetadata }
+        : {}),
     },
     rawOutput: result,
     isError: streamResult.isError === true,
