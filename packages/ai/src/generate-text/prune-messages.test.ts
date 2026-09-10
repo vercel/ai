@@ -910,5 +910,71 @@ describe('pruneMessages', () => {
         `);
       });
     });
+    describe('providerOptions pruning', () => {
+      it('should keep providerOptions by default', () => {
+        const messages: ModelMessage[] = [
+          {
+            role: 'assistant',
+            providerOptions: { test: { a: 1 } },
+            content: [
+              {
+                type: 'text',
+                text: 'Hello',
+                providerOptions: { test: { b: 2 } },
+              },
+            ],
+          },
+        ];
+
+        const result = pruneMessages({ messages });
+
+        expect(result).toStrictEqual([
+          {
+            role: 'assistant',
+            providerOptions: { test: { a: 1 } },
+            content: [
+              {
+                type: 'text',
+                text: 'Hello',
+                providerOptions: { test: { b: 2 } },
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('should remove providerOptions when configured', () => {
+        const messages: ModelMessage[] = [
+          {
+            role: 'assistant',
+            providerOptions: { test: { a: 1 } },
+            content: [
+              {
+                type: 'text',
+                text: 'Hello',
+                providerOptions: { test: { b: 2 } },
+              },
+            ],
+          },
+        ];
+
+        const result = pruneMessages({
+          messages,
+          providerOptions: 'remove',
+        });
+
+        expect(result).toStrictEqual([
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Hello',
+              },
+            ],
+          },
+        ]);
+      });
+    });
   });
 });

@@ -11,6 +11,7 @@ import type {
  * @param reasoning - How to remove reasoning content from assistant messages. Default is `'none'`.
  * @param toolCalls - How to prune tool call/results/approval content. Default is `[]`.
  * @param emptyMessages - Whether to keep or remove messages whose content is empty after pruning. Default is `'remove'`.
+ * @param providerOptions - Whether to keep or remove provider-specific options. Default is `'keep'`.
  *
  * @returns The pruned list of model messages.
  */
@@ -19,6 +20,7 @@ export function pruneMessages({
   reasoning = 'none',
   toolCalls = [],
   emptyMessages = 'remove',
+  providerOptions = 'keep',
 }: {
   messages: ModelMessage[];
   reasoning?: 'all' | 'before-last-message' | 'none';
@@ -32,6 +34,7 @@ export function pruneMessages({
         tools?: string[];
       }>;
   emptyMessages?: 'keep' | 'remove';
+  providerOptions?: 'keep' | 'remove';
 }): ModelMessage[] {
   // filter reasoning parts:
   if (reasoning === 'all' || reasoning === 'before-last-message') {
@@ -190,6 +193,29 @@ export function pruneMessages({
 
   if (emptyMessages === 'remove') {
     messages = messages.filter(message => message.content.length > 0);
+  }
+
+  if (providerOptions === 'remove') {
+    messages = messages.map(message => {
+      // remove providerOptions from message
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { providerOptions: _msgProviderOptions, ...newMessage } = message;
+
+      if (typeof newMessage.content === 'string') {
+        return newMessage as ModelMessage;
+      }
+
+      // remove providerOptions from parts
+      return {
+        ...newMessage,
+        content: newMessage.content.map(part => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { providerOptions: _partProviderOptions, ...newPart } =
+            part as any;
+          return newPart;
+        }),
+      } as ModelMessage;
+    });
   }
 
   return messages;
