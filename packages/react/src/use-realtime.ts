@@ -51,12 +51,13 @@ class RealtimeStore extends AbstractRealtimeSession {
     isPlaying: false,
   };
 
-  private callbacks: { [K in RealtimeStateKey]: Set<() => void> } = {
+  private callbacks: { [K in RealtimeStateKey]-?: Set<() => void> } = {
     status: new Set(),
     messages: new Set(),
     events: new Set(),
     isCapturing: new Set(),
     isPlaying: new Set(),
+    session: new Set(),
   };
 
   get status(): RealtimeStatus {
