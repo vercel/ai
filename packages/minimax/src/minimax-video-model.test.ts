@@ -1,6 +1,7 @@
 import type {
   JSONValue,
   SharedV4ProviderOptions,
+  Experimental_VideoModelV4 as VideoModelV4,
   Experimental_VideoModelV4File,
 } from '@ai-sdk/provider';
 import { DownloadError, type FetchFunction } from '@ai-sdk/provider-utils';
@@ -136,13 +137,18 @@ describe('MiniMaxVideoModel', () => {
     });
   });
 
+  it('should leave the generic webhook hook undefined', () => {
+    const model: VideoModelV4 = createModel();
+    expect(model.handleWebhookOption).toBeUndefined();
+  });
+
   describe('doStart / doStatus', () => {
     const operation = {
       taskId: TASK_ID,
       resolvedInputs: { imageCount: 0, referenceVideoIndices: [] },
     };
 
-    it('should submit once without polling or registering a webhook', async () => {
+    it('should submit once with callback_url without polling', async () => {
       const testDate = new Date('2026-01-01T00:00:00Z');
       server.urls[CREATE_URL].response = {
         type: 'json-value',
@@ -156,10 +162,10 @@ describe('MiniMaxVideoModel', () => {
         webhookUrl: 'https://example.com/callback',
       });
 
-      expect(model).not.toHaveProperty('handleWebhookOption');
       expect(server.calls).toHaveLength(1);
       expect(server.calls[0].requestMethod).toBe('POST');
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        callback_url: 'https://example.com/callback',
         model: 'MiniMax-H3',
         content: [{ type: 'text', text: prompt }],
         resolution: '2K',
@@ -173,6 +179,16 @@ describe('MiniMaxVideoModel', () => {
         modelId: 'MiniMax-H3',
         headers: { 'x-minimax-request-id': 'start-request' },
       });
+    });
+
+    it('should omit callback_url when webhookUrl is not provided', async () => {
+      const result = await createModel().doStart(defaultOptions);
+
+      expect(server.calls).toHaveLength(1);
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'callback_url',
+      );
+      expect(result.operation).toStrictEqual(operation);
     });
 
     it('should preserve normalized inputs and metadata across JSON and a fresh model', async () => {

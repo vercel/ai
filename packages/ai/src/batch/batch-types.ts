@@ -119,6 +119,42 @@ export type StartBatchResult = Batch & {
 };
 
 /**
+ * Options for requesting cancellation of a batch.
+ */
+export type CancelBatchOptions = {
+  provider?: BatchProvider;
+  batch: BatchReference;
+  providerOptions?: ProviderOptions;
+} & BatchCallOptions;
+
+/**
+ * Result of requesting cancellation of a batch.
+ */
+export type CancelBatchResult = {
+  readonly providerMetadata?: ProviderMetadata;
+};
+
+/**
+ * Options for listing batches.
+ */
+export type ListBatchesOptions = {
+  provider?: BatchProvider;
+  providerOptions?: ProviderOptions;
+  limit?: number;
+  cursor?: string;
+  maxRetries?: number;
+} & BatchCallOptions;
+
+/**
+ * One page of listed batches.
+ */
+export type ListBatchesResult = {
+  readonly batches: Array<Batch>;
+  readonly nextCursor?: string;
+  readonly providerMetadata?: ProviderMetadata;
+};
+
+/**
  * Options for retrieving batch status.
  */
 export type GetBatchStatusOptions = {

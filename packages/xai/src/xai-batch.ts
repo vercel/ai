@@ -1,8 +1,12 @@
 import {
   InvalidArgumentError,
+  UnsupportedFunctionalityError,
   type Experimental_BatchV4 as BatchV4,
+  type Experimental_BatchV4CancelResult as BatchV4CancelResult,
   type Experimental_BatchV4Error as BatchV4Error,
   type Experimental_BatchV4ItemResult as BatchV4ItemResult,
+  type Experimental_BatchV4ListOptions as BatchV4ListOptions,
+  type Experimental_BatchV4ListResult as BatchV4ListResult,
   type Experimental_BatchV4OperationOptions as BatchV4OperationOptions,
   type Experimental_BatchV4StartResult as BatchV4StartResult,
   type Experimental_BatchV4Status as BatchV4Status,
@@ -80,26 +84,45 @@ type XaiBatchResponseConversion =
   | { success: true; result: LanguageModelV4GenerateResult }
   | { success: false; error: BatchV4Error };
 
+function assertTextBatchRequests(
+  requests: BatchV4StartOptions['requests'],
+): asserts requests is ReadonlyArray<XaiBatchRequest> {
+  for (const request of requests) {
+    switch (request.type) {
+      case 'text':
+        break;
+      default: {
+        const _exhaustiveCheck: never = request.type;
+        throw new UnsupportedFunctionalityError({
+          functionality: `batch request type: ${_exhaustiveCheck}`,
+          message: `The xAI Batch API does not support batch requests with type "${_exhaustiveCheck}".`,
+        });
+      }
+    }
+  }
+}
+
+const xaiBatchResponseZodSchema = () =>
+  z.object({
+    batch_id: z.string(),
+    name: z.string().nullish(),
+    create_time: z.string().nullish(),
+    expire_time: z.string().nullish(),
+    cancel_time: z.string().nullish(),
+    cancel_by_xai_message: z.string().nullish(),
+    state: z
+      .object({
+        num_requests: z.number().nullish(),
+        num_pending: z.number().nullish(),
+        num_success: z.number().nullish(),
+        num_error: z.number().nullish(),
+        num_cancelled: z.number().nullish(),
+      })
+      .nullish(),
+  });
+
 const xaiBatchResponseSchema = lazySchema(() =>
-  zodSchema(
-    z.object({
-      batch_id: z.string(),
-      name: z.string().nullish(),
-      create_time: z.string().nullish(),
-      expire_time: z.string().nullish(),
-      cancel_time: z.string().nullish(),
-      cancel_by_xai_message: z.string().nullish(),
-      state: z
-        .object({
-          num_requests: z.number().nullish(),
-          num_pending: z.number().nullish(),
-          num_success: z.number().nullish(),
-          num_error: z.number().nullish(),
-          num_cancelled: z.number().nullish(),
-        })
-        .nullish(),
-    }),
-  ),
+  zodSchema(xaiBatchResponseZodSchema()),
 );
 
 type XaiBatchResponse = InferSchema<typeof xaiBatchResponseSchema>;
@@ -135,6 +158,15 @@ const xaiBatchResultsPageSchema = lazySchema(() =>
   ),
 );
 
+const xaiBatchListResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      batches: z.array(xaiBatchResponseZodSchema()),
+      pagination_token: z.string().nullish(),
+    }),
+  ),
+);
+
 export class XaiBatch implements BatchV4<XaiBatchModelIds> {
   readonly specificationVersion = 'v4' as const;
   readonly provider: string;
@@ -152,6 +184,7 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
   async doStartBatch(
     options: BatchV4StartOptions<XaiBatchModelIds>,
   ): Promise<BatchV4StartResult> {
+    assertTextBatchRequests(options.requests);
     const fileParts: string[] = [];
     const warnings: BatchV4StartResult['warnings'] =
       options.webhookUrl == null
@@ -260,6 +293,58 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
     options: BatchV4OperationOptions,
   ): Promise<BatchV4Status> {
     return convertXaiBatchStatus(await this.retrieveBatch(options));
+  }
+
+  async doCancelBatch(
+    options: BatchV4OperationOptions,
+  ): Promise<BatchV4CancelResult> {
+    await postJsonToApi({
+      url: this.getUrl(
+        `/batches/${encodeURIComponent(options.batchId)}:cancel`,
+      ),
+      headers: combineHeaders(this.options.config.headers?.(), options.headers),
+      body: {},
+      failedResponseHandler: xaiFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        xaiBatchResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.options.config.fetch,
+    });
+
+    return {};
+  }
+
+  async doListBatches(options: BatchV4ListOptions): Promise<BatchV4ListResult> {
+    const url = new URL(this.getUrl('/batches'));
+    if (options.limit != null) {
+      url.searchParams.set('limit', String(options.limit));
+    }
+    if (options.cursor != null) {
+      url.searchParams.set('pagination_token', options.cursor);
+    }
+
+    const { value: page } = await getFromApi({
+      url: url.toString(),
+      headers: combineHeaders(this.options.config.headers?.(), options.headers),
+      failedResponseHandler: xaiFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        xaiBatchListResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.options.config.fetch,
+      validateUrl: false,
+    });
+
+    return {
+      batches: page.batches.map(batch => ({
+        batchId: batch.batch_id,
+        ...convertXaiBatchStatus(batch),
+      })),
+      ...(page.pagination_token != null
+        ? { nextCursor: page.pagination_token }
+        : {}),
+    };
   }
 
   async doGetBatchResults(

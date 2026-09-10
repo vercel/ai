@@ -12,6 +12,7 @@ const urls = {
   files: 'https://api.x.ai/v1/files',
   batches: 'https://api.x.ai/v1/batches',
   batch: 'https://api.x.ai/v1/batches/batch_123',
+  cancel: 'https://api.x.ai/v1/batches/batch_123:cancel',
   results: 'https://api.x.ai/v1/batches/batch_123/results',
   resultsPage1: 'https://api.x.ai/v1/batches/batch_123/results?limit=1000',
   resultsPage2:
@@ -22,6 +23,7 @@ const server = createTestServer({
   [urls.files]: {},
   [urls.batches]: {},
   [urls.batch]: {},
+  [urls.cancel]: {},
   [urls.results]: {},
 });
 
@@ -115,6 +117,21 @@ function successfulResult(id: string, text: string) {
 }
 
 describe('xAI batch', () => {
+  it('rejects unsupported request types before uploading a batch input file', async () => {
+    const batch = createXai({ apiKey: 'test-api-key' }).experimental_batch();
+
+    await expect(
+      batch.doStartBatch({
+        requests: [{ id: 'image-1', type: 'image' } as never],
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_UnsupportedFunctionalityError',
+      functionality: 'batch request type: image',
+    });
+
+    expect(server.calls).toHaveLength(0);
+  });
+
   it('uploads prepared JSONL requests and creates a file-backed batch', async () => {
     server.urls[urls.files].response = {
       type: 'json-value',
@@ -321,6 +338,123 @@ describe('xAI batch', () => {
       createdAt: '2026-08-25T12:00:00Z',
       expiresAt: '2099-08-26T12:00:00Z',
     });
+  });
+
+  it('cancels a batch', async () => {
+    server.urls[urls.cancel].response = {
+      type: 'json-value',
+      body: batchResponse({ cancel_time: '2026-08-25T12:30:00Z' }),
+    };
+    const mockFetch = vi.fn().mockImplementation(globalThis.fetch);
+    const abortController = new AbortController();
+    const batch = createXai({
+      apiKey: 'test-api-key',
+      headers: { 'Provider-Header': 'provider' },
+      fetch: mockFetch,
+    }).experimental_batch();
+
+    await expect(
+      batch.doCancelBatch!({
+        batchId: 'batch_123',
+        headers: { 'Operation-Header': 'operation' },
+        abortSignal: abortController.signal,
+      }),
+    ).resolves.toEqual({});
+
+    expect(server.calls[0].requestMethod).toBe('POST');
+    await expect(server.calls[0].requestBodyJson).resolves.toEqual({});
+    expect(server.calls[0].requestHeaders).toMatchObject({
+      authorization: 'Bearer test-api-key',
+      'provider-header': 'provider',
+      'operation-header': 'operation',
+    });
+    expect(mockFetch.mock.calls[0][1].signal).toBe(abortController.signal);
+  });
+
+  it('lists and normalizes a page of batches', async () => {
+    server.urls[urls.batches].response = {
+      type: 'json-value',
+      body: {
+        batches: [
+          batchResponse({
+            batch_id: 'batch_123',
+            state: {
+              num_requests: 3,
+              num_pending: 2,
+              num_success: 1,
+              num_error: 0,
+              num_cancelled: 0,
+            },
+          }),
+          batchResponse({ batch_id: 'batch_122' }),
+        ],
+        pagination_token: 'next/page',
+      },
+    };
+    const mockFetch = vi.fn().mockImplementation(globalThis.fetch);
+    const abortController = new AbortController();
+    const batch = createXai({
+      apiKey: 'test-api-key',
+      headers: { 'Provider-Header': 'provider' },
+      fetch: mockFetch,
+    }).experimental_batch();
+
+    await expect(
+      batch.doListBatches!({
+        limit: 2,
+        cursor: 'previous/page',
+        headers: { 'Operation-Header': 'operation' },
+        abortSignal: abortController.signal,
+      }),
+    ).resolves.toEqual({
+      batches: [
+        {
+          batchId: 'batch_123',
+          status: 'pending',
+          requestCounts: {
+            total: 3,
+            pending: 2,
+            completed: 1,
+            failed: 0,
+          },
+          createdAt: '2026-08-25T12:00:00Z',
+          expiresAt: '2099-08-26T12:00:00Z',
+        },
+        {
+          batchId: 'batch_122',
+          status: 'completed',
+          requestCounts: {
+            total: 2,
+            pending: 0,
+            completed: 2,
+            failed: 0,
+          },
+          createdAt: '2026-08-25T12:00:00Z',
+          expiresAt: '2099-08-26T12:00:00Z',
+        },
+      ],
+      nextCursor: 'next/page',
+    });
+
+    expect(server.calls[0].requestHeaders).toMatchObject({
+      authorization: 'Bearer test-api-key',
+      'provider-header': 'provider',
+      'operation-header': 'operation',
+    });
+    expect(
+      Object.fromEntries(new URL(server.calls[0].requestUrl).searchParams),
+    ).toEqual({ limit: '2', pagination_token: 'previous/page' });
+    expect(mockFetch.mock.calls[0][1].signal).toBe(abortController.signal);
+  });
+
+  it('omits the next cursor when there are no more batches', async () => {
+    server.urls[urls.batches].response = {
+      type: 'json-value',
+      body: { batches: [], pagination_token: null },
+    };
+    const batch = createXai({ apiKey: 'test-api-key' }).experimental_batch();
+
+    await expect(batch.doListBatches!({})).resolves.toEqual({ batches: [] });
   });
 
   it('omits inconsistent request counts', async () => {
@@ -744,6 +878,8 @@ describe('xAI batch', () => {
     expect(batch.doStartBatch).toBeTypeOf('function');
     expect(batch.doGetBatchStatus).toBeTypeOf('function');
     expect(batch.doGetBatchResults).toBeTypeOf('function');
+    expect(batch.doCancelBatch).toBeTypeOf('function');
+    expect(batch.doListBatches).toBeTypeOf('function');
 
     for (const model of [
       provider('grok-4.3'),
