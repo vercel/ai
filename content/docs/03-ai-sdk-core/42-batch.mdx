@@ -15,8 +15,8 @@ application does not need to keep the request open while the model generates
 the results. This is useful for workloads such as classification,
 summarization, and content generation that do not need an immediate response.
 
-The batch API is designed to support multiple request types. Currently, only
-`type: 'text'` is supported.
+The batch API supports text generation with `type: 'text'` and image generation
+with `type: 'image'`.
 
 The AI SDK provides five functions for the batch lifecycle:
 
@@ -56,13 +56,13 @@ Batch processing requires a provider that implements the batch interface.
 Support is provider- and model-specific. The first-party providers with
 support are:
 
-| Provider                                             | Provider value | Model example                  | Provider API                                                                                  |
-| ---------------------------------------------------- | -------------- | ------------------------------ | --------------------------------------------------------------------------------------------- |
-| [Anthropic](/providers/ai-sdk-providers/anthropic)   | `anthropic`    | `'claude-haiku-4-5'`           | [Message Batches API](https://platform.claude.com/docs/en/build-with-claude/batch-processing) |
-| [Google](/providers/ai-sdk-providers/google)         | `google`       | `'gemini-3.6-flash'`           | [Gemini Batch API](https://ai.google.dev/gemini-api/docs/batch-api)                           |
-| [OpenAI](/providers/ai-sdk-providers/openai)         | `openai`       | `'gpt-4.1-nano'`               | [Batch API](https://developers.openai.com/api/docs/guides/batch)                              |
-| [xAI](/providers/ai-sdk-providers/xai)               | `xai`          | `'grok-4.3'`                   | [Batch API](https://docs.x.ai/developers/advanced-api-usage/batch-api)                        |
-| [AI Gateway](/providers/ai-sdk-providers/ai-gateway) | global default | `'anthropic/claude-haiku-4.5'` | [Batch processing](https://vercel.com/docs/ai-gateway/models-and-providers/batch-processing)  |
+| Provider                                             | Provider value | Request types | Provider API                                                                                  |
+| ---------------------------------------------------- | -------------- | ------------- | --------------------------------------------------------------------------------------------- |
+| [Anthropic](/providers/ai-sdk-providers/anthropic)   | `anthropic`    | text          | [Message Batches API](https://platform.claude.com/docs/en/build-with-claude/batch-processing) |
+| [Google](/providers/ai-sdk-providers/google)         | `google`       | text, image   | [Gemini Batch API](https://ai.google.dev/gemini-api/docs/batch-api)                           |
+| [OpenAI](/providers/ai-sdk-providers/openai)         | `openai`       | text          | [Batch API](https://developers.openai.com/api/docs/guides/batch)                              |
+| [xAI](/providers/ai-sdk-providers/xai)               | `xai`          | text, image   | [Batch API](https://docs.x.ai/developers/advanced-api-usage/batch-api)                        |
+| [AI Gateway](/providers/ai-sdk-providers/ai-gateway) | global default | text          | [Batch processing](https://vercel.com/docs/ai-gateway/models-and-providers/batch-processing)  |
 
 See the provider documentation for the supported models, limits, and native
 batch behavior. For example, OpenAI batch support is available through the
@@ -124,6 +124,37 @@ before the process exits if the batch will be completed by another process or
 at a later time. When retrieving a batch, pass the same provider. The AI SDK
 uses the reference to ensure that a batch is not read through an incompatible
 provider.
+
+### Image requests
+
+Image requests use the same prompt and generation settings as `generateImage`:
+`prompt`, `n`, `size`, `aspectRatio`, `seed`, and `providerOptions`. A prompt
+can also contain input images and a mask for providers that support image
+editing. Provider batch endpoints may support only a subset of these options;
+unsupported options produce warnings or errors.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { experimental_startBatch as startBatch } from 'ai';
+
+const batch = await startBatch({
+  provider: google,
+  requests: [
+    {
+      id: 'red-panda',
+      type: 'image',
+      model: 'gemini-2.5-flash-image',
+      prompt: 'A red panda reading beside a cabin window',
+      aspectRatio: '16:9',
+    },
+  ],
+});
+```
+
+Successful image items have an `images` array of `GeneratedFile` values, plus
+image warnings, response metadata, usage, and provider metadata when the
+provider supplies them. Successful text items have `text` and `content`
+properties, so you can narrow mixed results with `'images' in item`.
 
 ## Batch tools
 
