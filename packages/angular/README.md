@@ -103,7 +103,7 @@ export class ChatComponent {
       { text: userInput },
       {
         body: {
-          selectedModel: 'openai/gpt-5.4',
+          selectedModel: 'openai/gpt-4o-mini',
         },
       },
     );
@@ -111,7 +111,7 @@ export class ChatComponent {
 }
 ```
 
-`selectedModel` should be an AI Gateway model ID like `openai/gpt-5.4`.
+`selectedModel` should be an AI Gateway model ID like `openai/gpt-4o-mini`.
 
 ### Constructor Options
 
@@ -139,6 +139,14 @@ interface ChatInit<UI_MESSAGE extends UIMessage = UIMessage> {
 
   /** Maximum conversation steps */
   maxSteps?: number;
+
+  /**
+   * Called when the stream is finished or a tool call is updated to determine
+   * whether the current messages should be resubmitted.
+   */
+  sendAutomaticallyWhen?: (options: {
+    messages: UI_MESSAGE[];
+  }) => boolean | PromiseLike<boolean>;
 
   /** Tool call handler */
   onToolCall?: (params: {
@@ -188,10 +196,17 @@ await chat.resumeStream(options?: {
   headers?: Record<string, string> | Headers;
 });
 
-// Add tool execution result
-chat.addToolResult({
-  toolCallId: string;
-  output: unknown;
+// Add tool execution output
+chat.addToolOutput({
+  tool: 'getLocation',
+  toolCallId,
+  output: location,
+});
+
+// Add tool approval response
+chat.addToolApprovalResponse({
+  id: approvalId,
+  approved: true,
 });
 
 // Stop current generation
@@ -231,6 +246,64 @@ const chat = new Chat({
     }
   },
 });
+```
+
+### Tool Approvals
+
+When a server-side tool requires user approval, the tool part enters the
+`approval-requested` state. Call `addToolApprovalResponse()` for manual
+approvals and configure `sendAutomaticallyWhen` to continue the conversation
+after all approvals have a response.
+
+```typescript
+import { Chat } from '@ai-sdk/angular';
+import { lastAssistantMessageIsCompleteWithApprovalResponses } from 'ai';
+
+const chat = new Chat({
+  sendAutomaticallyWhen:
+    lastAssistantMessageIsCompleteWithApprovalResponses,
+});
+
+chat.addToolApprovalResponse({
+  id: approvalId,
+  approved: true,
+});
+
+chat.addToolApprovalResponse({
+  id: approvalId,
+  approved: false,
+  reason: 'Denied by the user',
+});
+```
+
+```html
+@if (part.type === 'tool-getWeatherInformation') {
+  @switch (part.state) {
+    @case ('approval-requested') {
+      @if (part.approval.isAutomatic) {
+        <div>Checking approval...</div>
+      } @else {
+        <button type="button" (click)="approveTool(part.approval.id)">
+          Approve
+        </button>
+        <button type="button" (click)="denyTool(part.approval.id)">
+          Deny
+        </button>
+      }
+    }
+    @case ('approval-responded') {
+      <div>
+        Request {{ part.approval.approved ? 'approved' : 'denied' }}.
+      </div>
+    }
+    @case ('output-available') {
+      <pre>{{ part.output | json }}</pre>
+    }
+    @case ('output-denied') {
+      <div>Tool execution was denied.</div>
+    }
+  }
+}
 ```
 
 ## Completion
@@ -487,7 +560,7 @@ structuredObject.stop();
 
 ## Server Implementation
 
-When you pass a string model ID (for example `openai/gpt-5.4`), the AI SDK uses
+When you pass a string model ID (for example `openai/gpt-4o-mini`), the AI SDK uses
 AI Gateway as the default provider, so no provider import is required.
 
 ### Express.js Chat Endpoint
@@ -510,7 +583,7 @@ app.post('/api/chat', async (req, res) => {
   const { messages, selectedModel } = req.body;
 
   const result = streamText({
-    model: selectedModel || 'openai/gpt-5.4',
+    model: selectedModel || 'openai/gpt-4o-mini',
     messages: convertToModelMessages(messages),
   });
 
@@ -528,7 +601,7 @@ app.post('/api/completion', async (req, res) => {
   const { prompt } = req.body;
 
   const result = streamText({
-    model: 'openai/gpt-5.4',
+    model: 'openai/gpt-4o-mini',
     prompt,
   });
 
@@ -549,7 +622,7 @@ app.post('/api/analyze', async (req, res) => {
   const input = req.body;
 
   const result = streamObject({
-    model: 'openai/gpt-5.4',
+    model: 'openai/gpt-4o-mini',
     schema: z.object({
       title: z.string(),
       summary: z.string(),
