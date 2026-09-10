@@ -1,0 +1,110 @@
+---
+title: Poe
+description: Poe Provider for the AI SDK
+---
+
+# Poe
+
+[Poe](https://poe.com) is a unified AI platform that provides access to models from Anthropic, OpenAI, Google, and other providers through a single API. The Poe provider for the AI SDK enables seamless integration with all these models:
+
+- **Multi-Provider Access**: Use Anthropic, OpenAI, Google, and other models with a single API key
+- **Unified API**: Standardized interface across different model providers
+- **Simple Model Selection**: Specify models using `provider/model-id` format
+
+Learn more about Poe's API in the [Poe Documentation](https://creator.poe.com/docs/accessing-other-bots-on-poe).
+
+## Setup
+
+The Poe provider is available in the `ai-sdk-provider-poe` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add ai-sdk-provider-poe" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install ai-sdk-provider-poe" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add ai-sdk-provider-poe" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add ai-sdk-provider-poe" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+To create a Poe provider instance, use the `createPoe` function:
+
+```typescript
+import { createPoe } from 'ai-sdk-provider-poe';
+
+const poe = createPoe({
+  apiKey: 'YOUR_POE_API_KEY',
+});
+```
+
+You can also use the default `poe` export, which reads from the `POE_API_KEY` environment variable:
+
+```typescript
+import { poe } from 'ai-sdk-provider-poe';
+```
+
+## Language Models
+
+Models are specified using a `provider/model-id` format. The provider routes requests to the appropriate API endpoint based on the prefix:
+
+| Prefix | Provider | Endpoint |
+| --- | --- | --- |
+| `anthropic/*` | Anthropic | `/messages` |
+| `openai/*` | OpenAI | `/responses` |
+| `*/*` | Default | `/chat/completions` |
+
+```typescript
+// Anthropic models
+const claude = poe('anthropic/claude-sonnet-4-20250514');
+
+// OpenAI models
+const gpt = poe('openai/gpt-4o');
+
+// Google models (via OpenAI-compatible endpoint)
+const gemini = poe('google/gemini-2.0-flash');
+```
+
+## Examples
+
+### `generateText`
+
+```typescript
+import { poe } from 'ai-sdk-provider-poe';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: poe('anthropic/claude-sonnet-4-20250514'),
+  prompt: 'What is Poe?',
+});
+
+console.log(text);
+```
+
+### `streamText`
+
+```typescript
+import { poe } from 'ai-sdk-provider-poe';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: poe('openai/gpt-4o'),
+  prompt: 'Write a short story about AI.',
+});
+
+for await (const chunk of result.textStream) {
+  console.log(chunk);
+}
+```
+
+## Additional Resources
+
+- [Poe Provider Repository](https://github.com/poe-platform/ai-sdk-provider-poe)
+- [Poe API](https://poe.com/api)
+- [Poe API Documentation](https://creator.poe.com/docs/external-applications/external-application-guide)
