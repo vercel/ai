@@ -1,0 +1,461 @@
+{
+  "fetchedAt": "2026-07-09T15:49:21.559Z",
+  "urls": {
+    "models": "https://ai-gateway.vercel.sh/v1/models",
+    "endpoints": [
+      "https://ai-gateway.vercel.sh/v1/models/deepseek/deepseek-v3.2/endpoints",
+      "https://ai-gateway.vercel.sh/v1/models/deepseek/deepseek-v3.2-thinking/endpoints"
+    ],
+    "pages": [
+      "https://vercel.com/ai-gateway/models/deepseek-v3.2",
+      "https://vercel.com/ai-gateway/models/deepseek-v3.2-thinking"
+    ]
+  },
+  "models": {
+    "deepseek/deepseek-v3.2": {
+      "id": "deepseek/deepseek-v3.2",
+      "object": "model",
+      "created": 1755815280,
+      "released": 1764547200,
+      "owned_by": "deepseek",
+      "name": "DeepSeek V3.2",
+      "description": "DeepSeek-V3.2: Official successor to V3.2-Exp.",
+      "context_window": 128000,
+      "max_tokens": 8000,
+      "type": "language",
+      "tags": [
+        "tool-use",
+        "implicit-caching"
+      ],
+      "pricing": {
+        "input": "0.00000028",
+        "output": "0.00000042",
+        "input_cache_read": "0.000000028"
+      }
+    },
+    "deepseek/deepseek-v3.2-thinking": {
+      "id": "deepseek/deepseek-v3.2-thinking",
+      "object": "model",
+      "created": 1755815280,
+      "released": 1764547200,
+      "owned_by": "deepseek",
+      "name": "DeepSeek V3.2 Thinking",
+      "description": "DeepSeek‑V3.2 from DeepSeek harmonizes high computational efficiency with superior reasoning and agent performance. It builds on three main techniques: DeepSeek Sparse Attention for long‑context efficiency, a scalable reinforcement learning framework, and a large‑scale agentic task synthesis pipeline. This model excels at long-context reasoning and agentic tasks, efficiently handling extended inputs while maintaining strong accuracy. Its sparse attention design enables it to process complex, multi-step workflows without excessive compute costs. Overall, DeepSeek‑V3.2 targets long‑context reasoning, tool‑using agents, and efficient deployment in production environments.",
+      "context_window": 128000,
+      "max_tokens": 8000,
+      "type": "language",
+      "tags": [
+        "tool-use",
+        "implicit-caching",
+        "reasoning"
+      ],
+      "pricing": {
+        "input": "0.00000062",
+        "output": "0.00000185"
+      }
+    }
+  },
+  "endpoints": {
+    "deepseek/deepseek-v3.2": {
+      "data": {
+        "id": "deepseek/deepseek-v3.2",
+        "name": "DeepSeek V3.2",
+        "created": 1755815280,
+        "released": 1764547200,
+        "description": "DeepSeek‑V3.2 from DeepSeek harmonizes high computational efficiency with superior reasoning and agent performance. It builds on three main techniques: DeepSeek Sparse Attention for long‑context efficiency, a scalable reinforcement learning framework, and a large‑scale agentic task synthesis pipeline. This model excels at long-context reasoning and agentic tasks, efficiently handling extended inputs while maintaining strong accuracy. Its sparse attention design enables it to process complex, multi-step workflows without excessive compute costs. Overall, DeepSeek‑V3.2 targets long‑context reasoning, tool‑using agents, and efficient deployment in production environments.",
+        "architecture": {
+          "tokenizer": null,
+          "instruct_type": null,
+          "modality": "text→text",
+          "input_modalities": [
+            "text"
+          ],
+          "output_modalities": [
+            "text"
+          ]
+        },
+        "endpoints": [
+          {
+            "name": "bedrock | deepseek/deepseek-v3.2",
+            "model_name": "DeepSeek V3.2",
+            "context_length": 128000,
+            "pricing": {
+              "prompt": "0.00000062",
+              "completion": "0.00000185",
+              "request": "0",
+              "image": "0",
+              "image_output": "0",
+              "web_search": "0",
+              "internal_reasoning": "0",
+              "discount": 0
+            },
+            "provider_name": "bedrock",
+            "tags": [
+              "tool-use"
+            ],
+            "quantization": null,
+            "max_completion_tokens": 8000,
+            "max_prompt_tokens": null,
+            "supported_parameters": [
+              "max_tokens",
+              "temperature",
+              "stop",
+              "tools",
+              "tool_choice"
+            ],
+            "status": 0,
+            "uptime_last_15m": 99.8554,
+            "uptime_last_1h": 99.9222,
+            "uptime_last_1d": 99.8012,
+            "latency_last_1h": {
+              "p50": 675,
+              "p95": 2716.95
+            },
+            "throughput_last_1h": {
+              "p50": 36,
+              "p95": 67.69999999999999
+            },
+            "supports_implicit_caching": false
+          },
+          {
+            "name": "deepinfra | deepseek/deepseek-v3.2",
+            "model_name": "DeepSeek V3.2",
+            "context_length": 163842,
+            "pricing": {
+              "prompt": "0.00000026",
+              "completion": "0.00000038",
+              "request": "0",
+              "image": "0",
+              "image_output": "0",
+              "web_search": "0",
+              "internal_reasoning": "0",
+              "input_cache_read": "0.00000013",
+              "discount": 0
+            },
+            "provider_name": "deepinfra",
+            "tags": [
+              "implicit-caching",
+              "tool-use"
+            ],
+            "quantization": null,
+            "max_completion_tokens": 8000,
+            "max_prompt_tokens": null,
+            "supported_parameters": [
+              "max_tokens",
+              "temperature",
+              "stop",
+              "tools",
+              "tool_choice"
+            ],
+            "status": 0,
+            "uptime_last_15m": 100,
+            "uptime_last_1h": 100,
+            "uptime_last_1d": 99.9367,
+            "latency_last_1h": {
+              "p50": 771,
+              "p95": 3277.0499999999993
+            },
+            "throughput_last_1h": {
+              "p50": 23,
+              "p95": 29.85
+            },
+            "supports_implicit_caching": true
+          },
+          {
+            "name": "deepseek | deepseek/deepseek-v3.2",
+            "model_name": "DeepSeek V3.2",
+            "context_length": 128000,
+            "pricing": {
+              "prompt": "0.00000028",
+              "completion": "0.00000042",
+              "request": "0",
+              "image": "0",
+              "image_output": "0",
+              "web_search": "0",
+              "internal_reasoning": "0",
+              "input_cache_read": "0.000000028",
+              "discount": 0
+            },
+            "provider_name": "deepseek",
+            "tags": [
+              "tool-use",
+              "implicit-caching"
+            ],
+            "quantization": null,
+            "max_completion_tokens": 8000,
+            "max_prompt_tokens": null,
+            "supported_parameters": [
+              "max_tokens",
+              "temperature",
+              "stop",
+              "tools",
+              "tool_choice"
+            ],
+            "status": 0,
+            "uptime_last_15m": 100,
+            "uptime_last_1h": 100,
+            "uptime_last_1d": 99.9755,
+            "latency_last_1h": {
+              "p50": 992,
+              "p95": 1390.7499999999998
+            },
+            "throughput_last_1h": {
+              "p50": 81,
+              "p95": 99
+            },
+            "supports_implicit_caching": true
+          },
+          {
+            "name": "novita | deepseek/deepseek-v3.2",
+            "model_name": "DeepSeek V3.2",
+            "context_length": 163840,
+            "pricing": {
+              "prompt": "0.00000028",
+              "completion": "0.00000042",
+              "request": "0",
+              "image": "0",
+              "image_output": "0",
+              "web_search": "0",
+              "internal_reasoning": "0",
+              "input_cache_read": "0.0000001345",
+              "discount": 0
+            },
+            "provider_name": "novita",
+            "tags": [
+              "implicit-caching",
+              "tool-use"
+            ],
+            "quantization": null,
+            "max_completion_tokens": 65536,
+            "max_prompt_tokens": null,
+            "supported_parameters": [
+              "max_tokens",
+              "temperature",
+              "stop",
+              "tools",
+              "tool_choice"
+            ],
+            "status": 0,
+            "uptime_last_15m": 100,
+            "uptime_last_1h": 100,
+            "uptime_last_1d": 100,
+            "latency_last_1h": {
+              "p50": 1424,
+              "p95": 2092.299999999999
+            },
+            "throughput_last_1h": {
+              "p50": 28,
+              "p95": 30
+            },
+            "supports_implicit_caching": true
+          }
+        ]
+      }
+    },
+    "deepseek/deepseek-v3.2-thinking": {
+      "data": {
+        "id": "deepseek/deepseek-v3.2-thinking",
+        "name": "DeepSeek V3.2 Thinking",
+        "created": 1755815280,
+        "released": 1764547200,
+        "description": "DeepSeek‑V3.2 from DeepSeek harmonizes high computational efficiency with superior reasoning and agent performance. It builds on three main techniques: DeepSeek Sparse Attention for long‑context efficiency, a scalable reinforcement learning framework, and a large‑scale agentic task synthesis pipeline. This model excels at long-context reasoning and agentic tasks, efficiently handling extended inputs while maintaining strong accuracy. Its sparse attention design enables it to process complex, multi-step workflows without excessive compute costs. Overall, DeepSeek‑V3.2 targets long‑context reasoning, tool‑using agents, and efficient deployment in production environments.",
+        "architecture": {
+          "tokenizer": null,
+          "instruct_type": null,
+          "modality": "text→text",
+          "input_modalities": [
+            "text"
+          ],
+          "output_modalities": [
+            "text"
+          ]
+        },
+        "endpoints": [
+          {
+            "name": "bedrock | deepseek/deepseek-v3.2-thinking",
+            "model_name": "DeepSeek V3.2 Thinking",
+            "context_length": 128000,
+            "pricing": {
+              "prompt": "0.00000062",
+              "completion": "0.00000185",
+              "request": "0",
+              "image": "0",
+              "image_output": "0",
+              "web_search": "0",
+              "internal_reasoning": "0",
+              "discount": 0
+            },
+            "provider_name": "bedrock",
+            "tags": [
+              "tool-use"
+            ],
+            "quantization": null,
+            "max_completion_tokens": 8000,
+            "max_prompt_tokens": null,
+            "supported_parameters": [
+              "max_tokens",
+              "temperature",
+              "stop",
+              "tools",
+              "tool_choice"
+            ],
+            "status": 0,
+            "uptime_last_15m": 100,
+            "uptime_last_1h": 100,
+            "uptime_last_1d": 99.7929,
+            "latency_last_1h": {
+              "p50": 5242,
+              "p95": 9318.5
+            },
+            "throughput_last_1h": {
+              "p50": 42,
+              "p95": 69.3
+            },
+            "supports_implicit_caching": false
+          },
+          {
+            "name": "deepinfra | deepseek/deepseek-v3.2-thinking",
+            "model_name": "DeepSeek V3.2 Thinking",
+            "context_length": 163842,
+            "pricing": {
+              "prompt": "0.00000026",
+              "completion": "0.00000038",
+              "request": "0",
+              "image": "0",
+              "image_output": "0",
+              "web_search": "0",
+              "internal_reasoning": "0",
+              "input_cache_read": "0.00000013",
+              "discount": 0
+            },
+            "provider_name": "deepinfra",
+            "tags": [
+              "implicit-caching",
+              "tool-use"
+            ],
+            "quantization": null,
+            "max_completion_tokens": 8000,
+            "max_prompt_tokens": null,
+            "supported_parameters": [
+              "max_tokens",
+              "temperature",
+              "stop",
+              "tools",
+              "tool_choice"
+            ],
+            "status": 0,
+            "uptime_last_15m": 100,
+            "uptime_last_1h": 100,
+            "uptime_last_1d": 97.3822,
+            "latency_last_1h": {
+              "p50": 817.5,
+              "p95": 2743.199999999997
+            },
+            "throughput_last_1h": {
+              "p50": 18,
+              "p95": 31.89999999999999
+            },
+            "supports_implicit_caching": true
+          },
+          {
+            "name": "fireworks | deepseek/deepseek-v3.2-thinking",
+            "model_name": "DeepSeek V3.2 Thinking",
+            "context_length": 163000,
+            "pricing": {
+              "prompt": "0.00000056",
+              "completion": "0.00000168",
+              "request": "0",
+              "image": "0",
+              "image_output": "0",
+              "web_search": "0",
+              "internal_reasoning": "0",
+              "input_cache_read": "0.00000028",
+              "discount": 0
+            },
+            "provider_name": "fireworks",
+            "tags": [
+              "implicit-caching",
+              "reasoning",
+              "tool-use"
+            ],
+            "quantization": null,
+            "max_completion_tokens": 163000,
+            "max_prompt_tokens": null,
+            "supported_parameters": [
+              "max_tokens",
+              "temperature",
+              "stop",
+              "tools",
+              "tool_choice",
+              "reasoning",
+              "include_reasoning"
+            ],
+            "status": 0,
+            "uptime_last_15m": null,
+            "uptime_last_1h": null,
+            "uptime_last_1d": null,
+            "latency_last_1h": null,
+            "throughput_last_1h": null,
+            "supports_implicit_caching": true
+          },
+          {
+            "name": "novita | deepseek/deepseek-v3.2-thinking",
+            "model_name": "DeepSeek V3.2 Thinking",
+            "context_length": 163840,
+            "pricing": {
+              "prompt": "0.00000028",
+              "completion": "0.00000042",
+              "request": "0",
+              "image": "0",
+              "image_output": "0",
+              "web_search": "0",
+              "internal_reasoning": "0",
+              "input_cache_read": "0.0000001345",
+              "discount": 0
+            },
+            "provider_name": "novita",
+            "tags": [
+              "implicit-caching",
+              "tool-use"
+            ],
+            "quantization": null,
+            "max_completion_tokens": 65536,
+            "max_prompt_tokens": null,
+            "supported_parameters": [
+              "max_tokens",
+              "temperature",
+              "stop",
+              "tools",
+              "tool_choice"
+            ],
+            "status": 0,
+            "uptime_last_15m": 100,
+            "uptime_last_1h": 100,
+            "uptime_last_1d": 100,
+            "latency_last_1h": {
+              "p50": 1371.5,
+              "p95": 1781.1499999999999
+            },
+            "throughput_last_1h": {
+              "p50": 29,
+              "p95": 29.85
+            },
+            "supports_implicit_caching": true
+          }
+        ]
+      }
+    }
+  },
+  "pages": {
+    "deepseek/deepseek-v3.2": {
+      "url": "https://vercel.com/ai-gateway/models/deepseek-v3.2",
+      "headerAndProviderText": "DeepSeek V3.2 by DeepSeek on Vercel AI Gateway, Specs, Pricing & API Skip to content Copy Logo as SVG Copy Wordmark as SVG Brand Guidelines Products Agent Stack AI SDK AI Gateway Sandbox Workflows Passport eve Core Platform Security Content Delivery Fluid Compute Observability CI/CD Tools Next.js Vercel Agent Vercel Plugin Domains ↗ v0 ↗ Resources Learn Docs About Blog Changelog Knowledge Base Build AI Apps Web Apps Marketing Sites Platforms Commerce Explore Customers Marketplace Partner Finder AWS Community ↗ Enterprise Pricing Get a Demo Log In Sign Up Ask AI Dashboard Products Agent Stack AI SDK AI Gateway Sandbox Workflows Passport eve Core Platform Security Content Delivery Fluid Compute Observability CI/CD Tools Next.js Vercel Agent Vercel Plugin Domains ↗ v0 ↗ Resources Learn Docs About Blog Changelog Knowledge Base Build AI Apps Web Apps Marketing Sites Platforms Commerce Explore Customers Marketplace Partner Finder AWS Community ↗ Enterprise Pricing Get a Demo Log In Sign Up AI Gateway Overview Models Leaderboards Docs ↗ DeepSeek DeepSeek V3.2 DeepSeek V3.2 is DeepSeek's December 1, 2025 model on AI Gateway. It combines tool use with both reasoning and non-reasoning inference modes for agent-style operations. Tool Use Implicit Caching index.ts 1 import { streamText } from 'ai' 2 3 const result = streamText ( { 4 model : 'deepseek/deepseek-v3.2' , 5 prompt : 'Why is the sky blue?' 6 } ) Overview About Providers Throughput Latency Uptime Status Similar FAQ Playground Try out DeepSeek V3.2 by DeepSeek. Usage is billed to your team at API rates. Free users (those who haven't made a payment) get $5 of credits every 30 days. DeepSeek V3.2 Ask DeepSeek V3.2 anything to try it out. Explain quantum computing in simple terms Write a haiku about the ocean What are the tradeoffs of TypeScript vs JavaScript? Providers Route requests across multiple providers. Copy a provider slug to set your preference. Visit the docs for more info. Using a provider means you agree to their terms, listed under Legal. Provider Context Latency Throughput Input Output Cache Web Search Per Query Capabilities ZDR No Training Release Date DeepSeek 128K 1.0s 81tps $0.28 / M $0.42 / M Read: $0.03 /M Write: — — — 12 / 01 / 2025 DeepInfra 164K 0.8s 23tps $0.26 / M $0.38 / M Read: $0.13 /M Write: — — — 12 / 01 / 2025 Novita AI 164K 1.4s 28tps $0.28 / M $0.42 / M Read: $0.13 /M Write: — — — 12 / 01 / 2025 Bedrock 128K 0.7s 36tps $0.62 / M $1.85 / M — — 12 / 01 / 2025",
+      "aboutText": "About DeepSeek V3.2 DeepSeek V3.2 became available on AI Gateway on December 1, 2025 as the next major iteration of DeepSeek's V3 family. The key capability: the model supports combined thinking and tool use, handling tool calls in both reasoning and non-reasoning modes. This distinguishes it from models where tool use and thinking mode are mutually exclusive, which previously forced developers to choose between the two. The context window of 163.8K tokens carries over from earlier V3 generation models. Max output is 65.5K tokens in standard chat mode. DeepSeek V3.2 is the general-purpose variant in the V3.2 release, suitable for use cases from chat interfaces to multi-step agent pipelines. For workloads that need maximum reasoning depth and can tolerate higher token consumption, the DeepSeek V3.2 Thinking variant extends reasoning output up to 64,000 tokens but drops tool-use support. Access through AI Gateway removes the need for a separate provider account. Authentication uses AI Gateway API keys or OIDC tokens, and the AI SDK provides a direct integration path. You can adopt DeepSeek V3.2 without managing DeepSeek platform credentials separately. What To Consider When Choosing a Provider Configuration : DeepSeek V3.2 supports tool calls in both reasoning and non-reasoning modes. Test both paths in your integration to confirm your tool schema and response parsing logic handle the output structure from each mode correctly. Zero Data Retention : AI Gateway supports Zero Data Retention for this model via direct gateway requests (BYOK is not included). To configure this, check the documentation ↗ . Authentication : AI Gateway authenticates requests using an API key ↗ or OIDC token ↗ . You do not need to manage provider credentials directly. When to Use DeepSeek V3.2 Best For Combined tool and reasoning : Agentic applications that need both tool calling and reasoning in the same pipeline through one endpoint General-purpose V3.2 workflows : Chat and instruction-following tasks using the V3.2 generation Drop-in V3.1 upgrade : Production API integrations using the AI SDK or OpenAI-compatible interfaces Mixed task pipelines : Tool-augmented completions and reasoning chains served from a single endpoint Consider Alternatives When Maximum reasoning depth : Use DeepSeek V3.2 Thinking ( deepseek-v3.2-thinking ) for up to 64K tokens of output when tool use is not needed Benchmark-level math or code : DeepSeek-R1 remains the dedicated reasoning specialist for math and code reasoning workloads Conclusion DeepSeek V3.2 resolves a practical constraint in agent design by supporting tool calls across both reasoning and non-reasoning modes. Available through AI Gateway as of December 1, 2025, it provides a straightforward upgrade path from earlier DeepSeek V3 models."
+    },
+    "deepseek/deepseek-v3.2-thinking": {
+      "url": "https://vercel.com/ai-gateway/models/deepseek-v3.2-thinking",
+      "headerAndProviderText": "DeepSeek V3.2 by DeepSeek on Vercel AI Gateway, Specs, Pricing & API Skip to content Copy Logo as SVG Copy Wordmark as SVG Brand Guidelines Products Agent Stack AI SDK AI Gateway Sandbox Workflows Passport eve Core Platform Security Content Delivery Fluid Compute Observability CI/CD Tools Next.js Vercel Agent Vercel Plugin Domains ↗ v0 ↗ Resources Learn Docs About Blog Changelog Knowledge Base Build AI Apps Web Apps Marketing Sites Platforms Commerce Explore Customers Marketplace Partner Finder AWS Community ↗ Enterprise Pricing Get a Demo Log In Sign Up Ask AI Dashboard Products Agent Stack AI SDK AI Gateway Sandbox Workflows Passport eve Core Platform Security Content Delivery Fluid Compute Observability CI/CD Tools Next.js Vercel Agent Vercel Plugin Domains ↗ v0 ↗ Resources Learn Docs About Blog Changelog Knowledge Base Build AI Apps Web Apps Marketing Sites Platforms Commerce Explore Customers Marketplace Partner Finder AWS Community ↗ Enterprise Pricing Get a Demo Log In Sign Up AI Gateway Overview Models Leaderboards Docs ↗ DeepSeek DeepSeek V3.2 DeepSeek V3.2 is the extended reasoning variant of DeepSeek-V3.2. Available on AI Gateway since December 1, 2025, it generates up to 163K tokens of chain-of-thought reasoning for complex analytical, scientific, and multi-step problem-solving tasks. Implicit Caching Reasoning Tool Use index.ts 1 import { streamText } from 'ai' 2 3 const result = streamText ( { 4 model : 'deepseek/deepseek-v3.2-thinking' , 5 prompt : 'Why is the sky blue?' 6 } ) Overview About Providers Throughput Latency Uptime Status Similar FAQ Playground Try out DeepSeek V3.2 by DeepSeek. Usage is billed to your team at API rates. Free users (those who haven't made a payment) get $5 of credits every 30 days. DeepSeek V3.2 Ask DeepSeek V3.2 anything to try it out. Explain quantum computing in simple terms Write a haiku about the ocean What are the tradeoffs of TypeScript vs JavaScript? Providers Route requests across multiple providers. Copy a provider slug to set your preference. Visit the docs for more info. Using a provider means you agree to their terms, listed under Legal. Provider Context Latency Throughput Input Output Cache Web Search Per Query Capabilities ZDR No Training Release Date Novita AI 164K 1.4s 29tps $0.28 / M $0.42 / M Read: $0.13 /M Write: — — — + 1 12 / 01 / 2025 Fireworks 163K $0.56 / M $1.68 / M Read: $0.28 /M Write: — — — + 1 12 / 01 / 2025 Bedrock 128K 5.2s 42tps $0.62 / M $1.85 / M — — 12 / 01 / 2025 DeepInfra 164K 0.8s 18tps $0.26 / M $0.38 / M Read: $0.13 /M Write: — — — + 1 12 / 01 / 2025",
+      "aboutText": "About DeepSeek V3.2 DeepSeek V3.2 became available on AI Gateway on December 1, 2025 as the reasoning-optimized variant of the V3.2 release. It operates exclusively in thinking mode, generating extended chain-of-thought reasoning traces before producing a final answer. The output token budget extends to 163K tokens, compared to 8K for the standard V3.2 chat variant. That headroom accommodates complex multi-step reasoning chains. The trade-off is explicit: DeepSeek V3.2 does not support tool use. This makes it a pure reasoning engine rather than a tool-augmented agent. Where the standard DeepSeek-V3.2 supports tool calls across both reasoning and non-reasoning modes, the Thinking variant trades tool integration for a deeper reasoning budget. Use it when the reasoning process itself is the primary value, such as complex scientific analysis, multi-step mathematical derivation, or structured argument construction. The Thinking variant and standard V3.2 are accessible through AI Gateway under the deepseek provider without separate account setup. What To Consider When Choosing a Provider Configuration : DeepSeek V3.2 does not support tool use. If your pipeline needs both extended reasoning and tool calls, use the standard DeepSeek-V3.2 model, which supports tool calls in both reasoning and non-reasoning modes. Zero Data Retention : AI Gateway supports Zero Data Retention for this model via direct gateway requests (BYOK is not included). To configure this, check the documentation ↗ . Authentication : AI Gateway authenticates requests using an API key ↗ or OIDC token ↗ . You do not need to manage provider credentials directly. When to Use DeepSeek V3.2 Best For Complex scientific problems : A reasoning budget of 163K tokens allows thorough exploration of solution paths for mathematical and logical tasks Structured document analysis : Multi-step inference for legal reasoning, regulatory interpretation, and academic literature synthesis Chain-of-thought output : Research contexts where seeing the full reasoning trace is part of the desired output Reasoning model evaluation : The extended output budget lets you observe how the model approaches ambiguous or difficult prompts Consider Alternatives When Tool calls required : Use standard DeepSeek-V3.2, which supports tool use alongside reasoning in both modes General chat or summarization : Standard DeepSeek-V3.2 costs less per output token for instruction-following without complex reasoning Latency-critical responses : Extended reasoning traces produce longer responses with higher time-to-complete Conclusion DeepSeek V3.2 gives you a high-capacity reasoning engine with an output budget of 163K tokens through a single AI Gateway endpoint, without requiring separate provider credentials. It's most valuable when problem complexity justifies deep chain-of-thought exploration and you don't need tool-use integration."
+    }
+  }
+}
