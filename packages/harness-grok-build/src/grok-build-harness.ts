@@ -295,6 +295,7 @@ export function createGrokBuild(
   return createACP({
     auth: settings.auth,
     resolveAuthenticationEnvironment: resolveGrokBuildSubscriptionEnvironment,
+    authentication: { methodId: 'xai.api_key' },
     credentialForwarding: settings.credentialForwarding,
     port: settings.port,
     portEndpoint: settings.portEndpoint,
