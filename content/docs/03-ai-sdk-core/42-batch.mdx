@@ -154,7 +154,15 @@ const batch = await startBatch({
 Successful image items have an `images` array of `GeneratedFile` values, plus
 image warnings, response metadata, usage, and provider metadata when the
 provider supplies them. Successful text items have `text` and `content`
-properties, so you can narrow mixed results with `'images' in item`.
+properties. Use the `type` property to narrow mixed results:
+
+```ts
+for await (const item of getBatchResults({ provider: google, batch })) {
+  if (item.type === 'image' && item.status === 'succeeded') {
+    console.log(item.images);
+  }
+}
+```
 
 ## Batch tools
 
