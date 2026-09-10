@@ -1,0 +1,134 @@
+---
+title: Onlist
+description: Learn how to use the Onlist provider for the AI SDK.
+---
+
+# Onlist Provider
+
+[@onlist/ai-sdk-provider](https://github.com/OnlistTeam/ai-sdk-provider) contains language model support for [Onlist](https://onlist.io), a marketplace that routes requests to independent providers behind a single OpenAI-compatible endpoint. Models are addressed by stable `author/model` ids and include DeepSeek, Qwen, GLM, Kimi, Llama, and gpt-oss.
+
+API keys can be obtained from the [Onlist dashboard](https://onlist.io). The full catalog and per-model pricing are listed at [onlist.io/models](https://onlist.io/models).
+
+## Setup
+
+The Onlist provider is available via the `@onlist/ai-sdk-provider` module. You can install it with:
+
+<InstallPackages packages="@onlist/ai-sdk-provider" />
+
+### Environment variables
+
+Create a `.env` file with an `ONLIST_API_KEY` variable.
+
+## Provider Instance
+
+You can import the default provider instance `onlist` from `@onlist/ai-sdk-provider`:
+
+```ts
+import { onlist } from '@onlist/ai-sdk-provider';
+```
+
+If you need a customized setup, you can import `createOnlist` and create a provider instance with your settings:
+
+```ts
+import { createOnlist } from '@onlist/ai-sdk-provider';
+
+const onlist = createOnlist({
+  appName: 'My App',
+});
+```
+
+You can use the following optional settings to customize the Onlist provider instance:
+
+- **apiKey** _string_
+
+  API key that is sent using the `Authorization` header. It defaults to the `ONLIST_API_KEY` environment variable.
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls. The default prefix is `https://onlist.io/v1`.
+
+- **appName** _string_
+
+  Application name reported for attribution.
+
+- **appUrl** _string_
+
+  Application URL reported for attribution.
+
+- **headers** _Record&lt;string, string&gt;_
+
+  Custom headers to include in the requests.
+
+## Language Models
+
+You can create models with the provider instance. The first argument is the model id:
+
+```ts
+import { onlist } from '@onlist/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: onlist('deepseek/deepseek-chat-v3.1'),
+  prompt: 'Explain quantum computing in one paragraph.',
+});
+```
+
+Onlist language models can also be used with `streamText`:
+
+```ts
+import { onlist } from '@onlist/ai-sdk-provider';
+import { streamText } from 'ai';
+
+const { textStream } = streamText({
+  model: onlist('z-ai/glm-4.7'),
+  prompt: 'Write a short poem about the moon.',
+});
+
+for await (const chunk of textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+### Tool Calling
+
+```ts
+import { onlist } from '@onlist/ai-sdk-provider';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const { text } = await generateText({
+  model: onlist('qwen/qwen3-235b-a22b'),
+  tools: {
+    weather: tool({
+      description: 'Get the weather in a location',
+      inputSchema: z.object({ location: z.string() }),
+      execute: async ({ location }) => `Sunny, 22C in ${location}`,
+    }),
+  },
+  prompt: 'What is the weather in Tokyo?',
+});
+```
+
+## Provider Routing
+
+More than one provider can serve the same model. Pass a `provider` object through `providerOptions.onlist` to control which one is selected:
+
+```ts
+import { onlist } from '@onlist/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: onlist('moonshotai/kimi-k2'),
+  prompt: 'Hello',
+  providerOptions: {
+    onlist: {
+      provider: {
+        sort: 'price',
+        allow_fallbacks: false,
+      },
+    },
+  },
+});
+```
+
+`sort` accepts `price` or `throughput`. `only`, `ignore`, and `order` restrict routing to named providers, and `max_price` caps the accepted price in USD per token. Unsupported fields are ignored and reported in the `X-Onlist-Warnings` response header.
