@@ -91,6 +91,12 @@ export class TogetherAIImageModel implements ImageModelV4 {
       providerOptions,
       schema: togetheraiImageModelOptionsSchema,
     });
+    const diffusionOptions = this.supportsDiffusionOptions()
+      ? {
+          ...(seed != null ? { seed } : {}),
+          ...(togetheraiOptions ?? {}),
+        }
+      : {};
 
     // Handle image input from files
     let imageUrl: string | undefined;
@@ -114,7 +120,7 @@ export class TogetherAIImageModel implements ImageModelV4 {
       body: {
         model: this.modelId,
         prompt,
-        ...(seed != null ? { seed } : {}),
+        ...diffusionOptions,
         ...(n > 1 ? { n } : {}),
         ...(splitSize && {
           width: parseInt(splitSize[0]),
@@ -122,7 +128,6 @@ export class TogetherAIImageModel implements ImageModelV4 {
         }),
         ...(imageUrl != null ? { image_url: imageUrl } : {}),
         response_format: 'base64',
-        ...(togetheraiOptions ?? {}),
       },
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: togetheraiErrorSchema,
@@ -144,6 +149,10 @@ export class TogetherAIImageModel implements ImageModelV4 {
         headers: responseHeaders,
       },
     };
+  }
+
+  private supportsDiffusionOptions(): boolean {
+    return this.modelId !== 'google/gemini-3-pro-image';
   }
 }
 

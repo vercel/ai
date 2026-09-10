@@ -9,12 +9,14 @@ function createBasicModel({
   headers,
   fetch,
   currentDate,
+  modelId = 'stabilityai/stable-diffusion-xl',
 }: {
   headers?: () => Record<string, string>;
   fetch?: FetchFunction;
   currentDate?: () => Date;
+  modelId?: string;
 } = {}) {
-  return new TogetherAIImageModel('stabilityai/stable-diffusion-xl', {
+  return new TogetherAIImageModel(modelId, {
     provider: 'togetherai',
     baseURL: 'https://api.example.com',
     headers: headers ?? (() => ({ 'api-key': 'test-key' })),
@@ -84,6 +86,36 @@ describe('doGenerate', () => {
     expect(requestBody).toStrictEqual({
       model: 'stabilityai/stable-diffusion-xl',
       prompt,
+      response_format: 'base64',
+    });
+  });
+
+  it('should omit diffusion-only options for Gemini image models', async () => {
+    const model = createBasicModel({ modelId: 'google/gemini-3-pro-image' });
+
+    await model.doGenerate({
+      prompt,
+      files: undefined,
+      mask: undefined,
+      n: 1,
+      size: '1264x848',
+      seed: 42,
+      providerOptions: {
+        togetherai: {
+          steps: 28,
+          guidance: 3.5,
+          negative_prompt: 'low quality',
+          disable_safety_checker: true,
+        },
+      },
+      aspectRatio: undefined,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'google/gemini-3-pro-image',
+      prompt,
+      width: 1264,
+      height: 848,
       response_format: 'base64',
     });
   });
