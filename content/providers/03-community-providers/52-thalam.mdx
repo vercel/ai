@@ -1,0 +1,98 @@
+---
+title: thalam.
+description: thalam. Provider for the AI SDK
+---
+
+# thalam.
+
+[thalam.](https://www.thalam.ai) is an OpenAI-compatible AI gateway that exposes many leading models — DeepSeek, Qwen, Kimi, GLM, MiniMax, Claude, GPT, Llama, Grok, Mistral and more — through a single endpoint and API key, with per-key spend caps and audit logs.
+
+The [`@thalam/ai-sdk-provider`](https://www.npmjs.com/package/@thalam/ai-sdk-provider) package provides support for thalam. through the AI SDK's OpenAI-compatible interface.
+
+## Setup
+
+The thalam. provider is available via the `@thalam/ai-sdk-provider` module. Install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @thalam/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @thalam/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @thalam/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @thalam/ai-sdk-provider" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `thalam` from `@thalam/ai-sdk-provider`:
+
+```javascript
+import { thalam } from '@thalam/ai-sdk-provider';
+```
+
+The default instance reads your API key from the `THALAM_API_KEY` environment variable. To configure it explicitly, use `createThalam`:
+
+```javascript
+import { createThalam } from '@thalam/ai-sdk-provider';
+
+const thalam = createThalam({
+  apiKey: process.env.THALAM_API_KEY ?? '',
+});
+```
+
+You can obtain an API key from the [thalam. dashboard](https://www.thalam.ai).
+
+## Language Models
+
+You can create models by calling the provider instance with a model ID:
+
+```javascript
+const model = thalam('deepseek/deepseek-v4-pro');
+```
+
+The full model catalog is available at [thalam.ai/models](https://www.thalam.ai/models) or via `GET https://api.thalam.ai/v1/models`.
+
+## Examples
+
+### `generateText`
+
+```javascript
+import { thalam } from '@thalam/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: thalam('deepseek/deepseek-v4-pro'),
+  prompt: 'Explain what an AI gateway is in one paragraph.',
+});
+
+console.log(text);
+```
+
+### `streamText`
+
+```javascript
+import { thalam } from '@thalam/ai-sdk-provider';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: thalam('anthropic/claude-opus-4.8'),
+  prompt: 'Write a haiku about the desert.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+## Additional Resources
+
+- [thalam. documentation](https://www.thalam.ai/docs)
+- [Model catalog](https://www.thalam.ai/models)
+- [`@thalam/ai-sdk-provider` on npm](https://www.npmjs.com/package/@thalam/ai-sdk-provider)
+- [GitHub repository](https://github.com/thalam-ai/ai-sdk-provider)
