@@ -155,8 +155,10 @@ function pickAnthropic({
   const helperKey = readApiKey();
   const apiKey = processEnv.ANTHROPIC_API_KEY ?? helperKey;
   const authToken = processEnv.ANTHROPIC_AUTH_TOKEN ?? helperKey;
+  const oauthToken = processEnv.CLAUDE_CODE_OAUTH_TOKEN;
   if (apiKey) env.ANTHROPIC_API_KEY = apiKey;
   if (authToken) env.ANTHROPIC_AUTH_TOKEN = authToken;
+  if (oauthToken) env.CLAUDE_CODE_OAUTH_TOKEN = oauthToken;
   const baseUrl = processEnv.ANTHROPIC_BASE_URL;
   if (baseUrl) env.ANTHROPIC_BASE_URL = baseUrl;
   return env;

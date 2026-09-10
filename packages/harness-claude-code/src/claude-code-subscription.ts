@@ -75,7 +75,8 @@ export async function resolveClaudeCodeAuthentication({
       env: environmentWithoutHelper,
       hasDirectCredential:
         environmentWithoutHelper.ANTHROPIC_API_KEY != null ||
-        environmentWithoutHelper.ANTHROPIC_AUTH_TOKEN != null,
+        environmentWithoutHelper.ANTHROPIC_AUTH_TOKEN != null ||
+        environmentWithoutHelper.CLAUDE_CODE_OAUTH_TOKEN != null,
     })
   ) {
     return environmentWithoutHelper;

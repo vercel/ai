@@ -235,6 +235,34 @@ describe('resolveClaudeCodeAuthentication', () => {
     expect(readSubscription).not.toHaveBeenCalled();
   });
 
+  it('prefers an explicit process OAuth token over native storage', async () => {
+    const readSubscription = vi.fn();
+    await expect(
+      resolveClaudeCodeAuthentication({
+        auth: 'direct',
+        processEnv: { CLAUDE_CODE_OAUTH_TOKEN: 'process-oauth-token' },
+        readSubscription,
+      }),
+    ).resolves.toEqual({
+      CLAUDE_CODE_OAUTH_TOKEN: 'process-oauth-token',
+    });
+    expect(readSubscription).not.toHaveBeenCalled();
+  });
+
+  it('uses a supplied OAuth authentication environment without ambient or native discovery', async () => {
+    const readSubscription = vi.fn();
+    await expect(
+      resolveClaudeCodeAuthentication({
+        auth: { CLAUDE_CODE_OAUTH_TOKEN: 'supplied-oauth-token' },
+        processEnv: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+        readSubscription,
+      }),
+    ).resolves.toEqual({
+      CLAUDE_CODE_OAUTH_TOKEN: 'supplied-oauth-token',
+    });
+    expect(readSubscription).not.toHaveBeenCalled();
+  });
+
   it('uses native storage after direct environment credentials', async () => {
     const readSubscription = vi.fn(async () => ({
       CLAUDE_CODE_OAUTH_TOKEN: 'subscription-access-token',
