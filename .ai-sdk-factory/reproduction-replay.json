@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "issueId": 17326,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-17326-anthropic-gateway-usage.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-17326-anthropic-gateway-usage.ts",
+    "packages/gateway/src/anthropic-compatibility.reproduction.test.ts",
+    "packages/gateway/src/__fixtures__/issue-17326-anthropic-stream.chunks.txt",
+    "packages/gateway/src/__fixtures__/issue-17326-xai-stream.chunks.txt",
+    "packages/gateway/src/__fixtures__/issue-17326-xai-count-tokens.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #17326 REPRODUCED: message_start usage is 0/0 and non-Anthropic count_tokens returns 404"
+  }
+}

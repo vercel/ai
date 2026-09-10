@@ -1,0 +1,8 @@
+{
+  "type": "error",
+  "error": {
+    "type": "not_found_error",
+    "message": "model: xai/grok-4.5"
+  },
+  "request_id": "req_011CdDec5PgzQthY6kYpbivM"
+}
