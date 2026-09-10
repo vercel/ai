@@ -166,7 +166,10 @@ export class DeepInfraImageModel implements ImageModelV4 {
     // Use OpenAI-compatible endpoint for image editing
     // baseURL is typically https://api.deepinfra.com/v1/inference
     // We need to use https://api.deepinfra.com/v1/openai/images/edits
-    const baseUrl = this.config.baseURL.replace('/inference', '/openai');
+    // Anchored: the provider appends '/inference' to the configured baseURL, so only the
+    // trailing segment may be rewritten. A plain string replace takes the first match, and
+    // a custom baseURL whose own path contains '/inference' loses that one instead.
+    const baseUrl = this.config.baseURL.replace(/\/inference$/, '/openai');
     return `${baseUrl}/images/edits`;
   }
 }
