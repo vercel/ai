@@ -50,7 +50,7 @@ export function createAmazonBedrockEventStreamDecoder<T>(
           const exceptionType = decoded.headers[':exception-type']?.value as
             | string
             | undefined;
-          const data = textDecoder.decode(decoded.body);
+          const data = textDecoder.decode(decoded.body, { stream: true });
 
           await processEvent(
             { messageType, eventType, exceptionType, data },
