@@ -1000,6 +1000,7 @@ describe('doStream', () => {
       includeRawChunks: false,
     });
 
+<<<<<<< HEAD
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
@@ -1074,6 +1075,47 @@ describe('doStream', () => {
         },
       ]
     `);
+=======
+    it('should keep reasoning active when deltas include empty tool calls', async () => {
+      server.urls[CHAT_COMPLETIONS_URL].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+            `"choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning":"Think ","tool_calls":[]},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+            `"choices":[{"index":0,"delta":{"content":"","reasoning":"more...","tool_calls":[]},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+            `"choices":[{"index":0,"delta":{"content":"Hello","reasoning":"","tool_calls":[]},"finish_reason":"stop"}]}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      expect(
+        events.filter(({ type }) => type.startsWith('reasoning-')),
+      ).toStrictEqual([
+        { type: 'reasoning-start', id: 'reasoning-0' },
+        { type: 'reasoning-delta', id: 'reasoning-0', delta: 'Think ' },
+        { type: 'reasoning-delta', id: 'reasoning-0', delta: 'more...' },
+        { type: 'reasoning-end', id: 'reasoning-0' },
+      ]);
+    });
+
+    it('should stream reasoning', async () => {
+      const result = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
+    });
+>>>>>>> 00968508b7 (fix: preserve reasoning streams when provider deltas contain empty tool-call arrays (#20554))
   });
 
   it('should stream tool call deltas when tool call arguments are passed in the first chunk', async () => {
