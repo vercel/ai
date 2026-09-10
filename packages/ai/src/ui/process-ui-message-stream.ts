@@ -438,7 +438,19 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'text-delta': {
-              const textPart = state.activeTextParts[chunk.id];
+              let textPart = state.activeTextParts[chunk.id];
+              if (textPart == null) {
+                // Fallback for resumed streams: if we don't have it in active maps,
+                // check if there's a streaming textPart in the message we can attach to.
+                const streamingParts = state.message.parts.filter(
+                  part => part.type === 'text' && part.state === 'streaming',
+                ) as Extract<UIMessagePart<any, any>, { type: 'text' }>[];
+                if (streamingParts.length === 1) {
+                  textPart = streamingParts[0];
+                  state.activeTextParts[chunk.id] = textPart;
+                }
+              }
+
               if (textPart == null) {
                 throw new UIMessageStreamError({
                   chunkType: 'text-delta',
@@ -456,7 +468,19 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'text-end': {
-              const textPart = state.activeTextParts[chunk.id];
+              let textPart = state.activeTextParts[chunk.id];
+              if (textPart == null) {
+                // Fallback for resumed streams: if we don't have it in active maps,
+                // check if there's a streaming textPart in the message we can attach to.
+                const streamingParts = state.message.parts.filter(
+                  part => part.type === 'text' && part.state === 'streaming',
+                ) as Extract<UIMessagePart<any, any>, { type: 'text' }>[];
+                if (streamingParts.length === 1) {
+                  textPart = streamingParts[0];
+                  state.activeTextParts[chunk.id] = textPart;
+                }
+              }
+
               if (textPart == null) {
                 throw new UIMessageStreamError({
                   chunkType: 'text-end',
@@ -500,7 +524,20 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'reasoning-delta': {
-              const reasoningPart = state.activeReasoningParts[chunk.id];
+              let reasoningPart = state.activeReasoningParts[chunk.id];
+              if (reasoningPart == null) {
+                // Fallback for resumed streams: if we don't have it in active maps,
+                // check if there's a streaming reasoningPart in the message we can attach to.
+                const streamingParts = state.message.parts.filter(
+                  part =>
+                    part.type === 'reasoning' && part.state === 'streaming',
+                ) as Extract<UIMessagePart<any, any>, { type: 'reasoning' }>[];
+                if (streamingParts.length === 1) {
+                  reasoningPart = streamingParts[0];
+                  state.activeReasoningParts[chunk.id] = reasoningPart;
+                }
+              }
+
               if (reasoningPart == null) {
                 throw new UIMessageStreamError({
                   chunkType: 'reasoning-delta',
@@ -518,7 +555,20 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'reasoning-end': {
-              const reasoningPart = state.activeReasoningParts[chunk.id];
+              let reasoningPart = state.activeReasoningParts[chunk.id];
+              if (reasoningPart == null) {
+                // Fallback for resumed streams: if we don't have it in active maps,
+                // check if there's a streaming reasoningPart in the message we can attach to.
+                const streamingParts = state.message.parts.filter(
+                  part =>
+                    part.type === 'reasoning' && part.state === 'streaming',
+                ) as Extract<UIMessagePart<any, any>, { type: 'reasoning' }>[];
+                if (streamingParts.length === 1) {
+                  reasoningPart = streamingParts[0];
+                  state.activeReasoningParts[chunk.id] = reasoningPart;
+                }
+              }
+
               if (reasoningPart == null) {
                 throw new UIMessageStreamError({
                   chunkType: 'reasoning-end',
