@@ -236,6 +236,39 @@ console.log(text);`,
     npmUrl: 'https://www.npmjs.com/package/@tavily/ai-sdk',
   },
   {
+    slug: 'brightdata',
+    name: 'Bright Data',
+    description:
+      'Bright Data gives agents access to the live web with built-in anti-bot bypass. Scrape any page as clean markdown or HTML, run Google, Bing, or Yandex searches, and pull structured data from sites like Amazon, LinkedIn, Instagram, and Facebook.',
+    packageName: '@brightdata/ai-sdk',
+    tags: ['scraping', 'search', 'extraction', 'web'],
+    apiKeyEnvName: 'BRIGHTDATA_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @brightdata/ai-sdk',
+      npm: 'npm install @brightdata/ai-sdk',
+      yarn: 'yarn add @brightdata/ai-sdk',
+      bun: 'bun add @brightdata/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { scrape, search } from '@brightdata/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5.2',
+  prompt: 'What are the latest AI agent frameworks released this week?',
+  tools: {
+    scrape: scrape(),
+    search: search(),
+  },
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.brightdata.com/integrations/vercel-ai-sdk',
+    apiKeyUrl: 'https://brightdata.com/cp',
+    websiteUrl: 'https://brightdata.com',
+    npmUrl: 'https://www.npmjs.com/package/@brightdata/ai-sdk',
+  },
+  {
     slug: 'firecrawl',
     name: 'Firecrawl',
     description:
