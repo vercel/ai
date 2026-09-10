@@ -1,0 +1,94 @@
+---
+title: Lynkr
+description: Lynkr Provider for the AI SDK
+---
+
+# Lynkr
+
+[Lynkr](https://github.com/Fast-Editor/Lynkr) is a self-hosted LLM gateway and tier-routing proxy. It sits between your app and your model providers — Ollama, AWS Bedrock, OpenRouter, Databricks, Azure OpenAI, llama.cpp, LM Studio, and more — and routes each request to an appropriate model tier based on difficulty and cost:
+
+- **Self-Hosted**: Runs on your own machine or infrastructure; requests and prompts stay under your control
+- **Tier Routing**: Classifies each request and routes it to a cheap local model or a stronger hosted model as needed
+- **Multi-Provider**: One endpoint in front of Ollama, AWS Bedrock, OpenRouter, Databricks, Azure OpenAI, llama.cpp, and LM Studio
+- **Cost Savings**: Sends easy requests to inexpensive or local models, reserving premium models for hard ones
+- **OpenAI-Compatible**: Exposes a standard `/v1/chat/completions` endpoint
+
+Learn more in the [Lynkr documentation](https://github.com/Fast-Editor/Lynkr#readme).
+
+## Setup
+
+The Lynkr provider is available in the `@lynkr/ai-sdk-provider` module. You can install it with:
+
+<InstallPackages packages="@lynkr/ai-sdk-provider" />
+
+You also need a running Lynkr instance:
+
+```bash
+npm install -g lynkr
+lynkr init
+lynkr start
+```
+
+## Provider Instance
+
+To create a Lynkr provider instance, use the `createLynkr` function:
+
+```typescript
+import { createLynkr } from '@lynkr/ai-sdk-provider';
+
+const lynkr = createLynkr({
+  baseURL: 'http://localhost:8081/v1', // default — omit when running Lynkr locally
+});
+```
+
+You can also use the ready-made default instance, which points at `http://localhost:8081/v1`:
+
+```typescript
+import { lynkr } from '@lynkr/ai-sdk-provider';
+```
+
+## Language Models
+
+Lynkr routes each request to an upstream provider based on its routing configuration, so the model id acts as a routing hint rather than a fixed upstream model. Pass `'auto'` to let Lynkr's tier router choose:
+
+```typescript
+const model = lynkr('auto');
+```
+
+## Examples
+
+### `generateText`
+
+```typescript
+import { lynkr } from '@lynkr/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: lynkr('auto'),
+  prompt: 'What is a tier-routing proxy?',
+});
+
+console.log(text);
+```
+
+### `streamText`
+
+```typescript
+import { lynkr } from '@lynkr/ai-sdk-provider';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: lynkr('auto'),
+  prompt: 'Explain the benefits of self-hosting an LLM gateway.',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+## Additional Resources
+
+- [Lynkr on GitHub](https://github.com/Fast-Editor/Lynkr)
+- [`@lynkr/ai-sdk-provider` on npm](https://www.npmjs.com/package/@lynkr/ai-sdk-provider)
+- [Lynkr on npm](https://www.npmjs.com/package/lynkr)
