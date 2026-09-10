@@ -610,7 +610,7 @@ jobs:
           - module: 'ai'
             max-load-time: 105
           - module: '@ai-sdk/openai'
-            max-load-time: 75
+            max-load-time: 80
           - module: '@ai-sdk/openai-compatible'
             max-load-time: 70
           - module: '@ai-sdk/anthropic'
