@@ -151,7 +151,10 @@ export function asSchema<OBJECT>(
     : isSchema(schema)
       ? schema
       : '~standard' in schema
-        ? schema['~standard'].vendor === 'zod'
+        ? // a zod schema that cannot describe itself as Standard JSON Schema (zod 3) keeps the zod adapter;
+          // everything else, zod 4 included, goes through the Standard Schema interface
+          schema['~standard'].vendor === 'zod' &&
+          !hasStandardJsonSchema(schema as StandardSchema<OBJECT>)
           ? zodSchema(schema as ZodSchema<OBJECT>)
           : standardSchema(schema as StandardSchema<OBJECT>)
         : schema();
