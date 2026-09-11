@@ -587,9 +587,10 @@ The callback runs when each span is created and receives:
 Custom attributes are merged with AI SDK attributes on the span. AI SDK-owned
 attributes take precedence when a custom attribute uses the same key.
 
-`sensitiveRuntimeContext` is applied before telemetry integrations receive
-`runtimeContext`, so custom span enrichment does not receive top-level runtime
-context properties marked as sensitive.
+`telemetry.includeRuntimeContext` is applied before telemetry integrations receive
+`runtimeContext`, so custom span enrichment only receives top-level runtime context
+properties explicitly set to `true`. If the option is omitted, no runtime context
+properties are included.
 
 ### Supplemental AI SDK attributes on OpenTelemetry spans
 
