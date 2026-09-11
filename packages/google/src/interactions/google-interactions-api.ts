@@ -222,6 +222,22 @@ const stepSchema = () => {
     })
     .loose();
 
+  const processingCallStep = z
+    .object({
+      type: z.literal('processing_call'),
+      id: z.string(),
+      signature: z.string().nullish(),
+    })
+    .loose();
+
+  const processingResultStep = z
+    .object({
+      type: z.literal('processing_result'),
+      call_id: z.string(),
+      signature: z.string().nullish(),
+    })
+    .loose();
+
   const builtinToolCallStep = z
     .object({
       type: z.enum(BUILTIN_TOOL_CALL_STEP_TYPES),
@@ -251,6 +267,8 @@ const stepSchema = () => {
     modelOutputStep,
     functionCallStep,
     thoughtStep,
+    processingCallStep,
+    processingResultStep,
     builtinToolCallStep,
     builtinToolResultStep,
     z.object({ type: z.string() }).loose(),

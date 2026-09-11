@@ -201,7 +201,7 @@ export abstract class HttpChatTransport<
 
     if (!response.ok) {
       throw new Error(
-        (await response.text()) ?? 'Failed to fetch the chat response.',
+        (await response.text()) || 'Failed to fetch the chat response.',
       );
     }
 
@@ -257,7 +257,7 @@ export abstract class HttpChatTransport<
 
     if (!response.ok) {
       throw new Error(
-        (await response.text()) ?? 'Failed to fetch the chat response.',
+        (await response.text()) || 'Failed to fetch the chat response.',
       );
     }
 

@@ -51,6 +51,8 @@ export function createEmitStreamEvent({
     order: number;
   }) => void;
   removeHostToolCorrelationInvocation: (options: { token: string }) => void;
+  suppressToolCall: (options: { toolCallId: string }) => void;
+  getToolCall: (options: { toolCallId: string }) => ACPToolCall | undefined;
 } {
   const translator = createACPStreamTranslator({
     emit,
@@ -100,5 +102,9 @@ export function createEmitStreamEvent({
     hostToolResult: translator.hostToolResult,
     registerHostToolCorrelationInvocation: correlation.registerInvocation,
     removeHostToolCorrelationInvocation: correlation.removeInvocation,
+    suppressToolCall: correlation.suppressToolCall,
+    getToolCall: ({ toolCallId }) =>
+      correlation.getToolCall({ toolCallId }) ??
+      translator.getToolCall({ toolCallId }),
   };
 }

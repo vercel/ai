@@ -353,6 +353,13 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     });
 
     const choice = responseBody.choices[0];
+    if (choice == null) {
+      throw new InvalidResponseDataError({
+        data: rawResponse,
+        message: 'Response did not contain any choices.',
+      });
+    }
+
     const content: Array<LanguageModelV4Content> = [];
 
     content.push(...convertOpenAICompatibleContent(choice.message.content));
@@ -671,7 +678,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
               }
             }
 
-            if (delta.tool_calls != null) {
+            if (delta.tool_calls != null && delta.tool_calls.length > 0) {
               // end active reasoning block before tool calls start
               if (isActiveReasoning) {
                 controller.enqueue({

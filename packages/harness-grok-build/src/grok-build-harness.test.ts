@@ -55,6 +55,7 @@ describe('createGrokBuild', () => {
           "stdio",
         ],
         "builtinToolNames": [
+          "askUserQuestions",
           "bash",
           "edit",
           "grep",
@@ -75,7 +76,6 @@ describe('createGrokBuild', () => {
           "workflow",
           "enter_plan_mode",
           "exit_plan_mode",
-          "ask_user_question",
           "image_gen",
           "image_edit",
           "image_to_video",
@@ -91,10 +91,8 @@ describe('createGrokBuild', () => {
         "executable": "grok",
         "harnessId": "grok-build",
         "instructionMapping": {
-          "path": [
-            "rules",
-          ],
-          "type": "session-meta",
+          "path": ".grok/AGENTS.md",
+          "type": "filesystem",
         },
         "outputSchemaMapping": {
           "path": [
@@ -157,6 +155,7 @@ describe('createGrokBuild', () => {
           XAI_API_KEY: 'sandbox-xai-secret',
           GROK_XAI_API_BASE_URL: 'https://api.x.ai/v1',
         },
+        headers: { 'x-tenant': 'acme' },
       }),
     ).toEqual([
       {
@@ -171,7 +170,10 @@ describe('createGrokBuild', () => {
           ],
         },
         transform: {
-          headers: { Authorization: 'Bearer xai-secret' },
+          headers: {
+            'x-tenant': 'acme',
+            Authorization: 'Bearer xai-secret',
+          },
         },
       },
     ]);
@@ -188,7 +190,6 @@ describe('createGrokBuild', () => {
     createGrokBuild({
       auth: 'direct',
       credentialForwarding,
-      model: 'grok-code-fast-1',
       reasoningEffort: 'high',
       port: 4319,
       portEndpoint,
@@ -202,7 +203,6 @@ describe('createGrokBuild', () => {
     expect({
       auth: settings.auth,
       credentialForwarding: settings.credentialForwarding,
-      modelId: settings.modelId,
       modelMapping: settings.modelMapping,
       args: settings.args,
       port: settings.port,
@@ -213,7 +213,6 @@ describe('createGrokBuild', () => {
     }).toEqual({
       auth: 'direct',
       credentialForwarding,
-      modelId: 'grok-code-fast-1',
       modelMapping: {
         type: 'session-model',
         path: 'modelId',
@@ -232,7 +231,6 @@ describe('createGrokBuild', () => {
 
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
 
-    expect(settings.modelId).toBeUndefined();
     expect(settings.args).toEqual([
       'agent',
       '--reasoning-effort',
@@ -250,20 +248,7 @@ describe('createGrokBuild', () => {
 
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
 
-    expect(settings.modelId).toBeUndefined();
     expect(settings.args).toEqual(['agent', 'stdio']);
-    expect(settings.modelMapping).toEqual({
-      type: 'session-model',
-      path: 'modelId',
-    });
-  });
-
-  it('configures a model without a reasoning effort override', () => {
-    createGrokBuild({ model: 'grok-4.5-build' });
-
-    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
-
-    expect(settings.modelId).toBe('grok-4.5-build');
     expect(settings.modelMapping).toEqual({
       type: 'session-model',
       path: 'modelId',

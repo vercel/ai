@@ -11,24 +11,25 @@ explicit `validateUrl`.
 
 ## Deciding `true` vs `false`
 
-The test: **does the URL's host (or scheme) come from the provider's response
-body?**
-
 - **`validateUrl: true`** — the host comes from response-body data (a download
   URL like `json.audio.url` / `image.url`, or a polling URL like
   `finalPrediction.urls.get`). It is attacker-influenceable, so it is routed
   through `fetchWithValidatedRedirects`, which rejects private/loopback/link-local
   targets and re-validates every redirect hop. Blocked URLs throw
-  `DownloadError`.
+  `DownloadError`. Also use this for authenticated status polling when the
+  initial URL is built from the configured provider endpoint: pass that endpoint
+  as `trustedOrigin` so the first hop is allowed while every redirect off that
+  origin is validated.
 - **`validateUrl: false`** — the URL is built from a developer-configured
-  endpoint (`${config.baseURL}/…`, `config.url({ path })`, `${baseUrl.origin}/…`)
-  with at most a path segment or id interpolated. The host is fixed by config, so
-  there is nothing to validate, and validating it would break legitimate
-  self-hosted / localhost base URLs. (Path-only injection is not SSRF — the host
-  cannot be changed.)
+  endpoint (`${config.baseURL}/…`, `config.url({ path })`,
+  `${baseUrl.origin}/…`) with at most a path segment or id interpolated, and the
+  request does not need the validated redirect path. The host is fixed by
+  config, so validating the initial URL would break legitimate self-hosted /
+  localhost base URLs. (Path-only injection is not SSRF — the host cannot be
+  changed.)
 
-> If the host, or anything beyond a path segment, comes from a response body →
-> `validateUrl: true`.
+> If the host, or anything beyond a path segment, comes from a response body,
+> or an authenticated poll must validate redirects → `validateUrl: true`.
 
 ## Self-hosted deployments: `trustedOrigin`
 

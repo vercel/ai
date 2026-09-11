@@ -160,8 +160,11 @@ const { video } = await generateVideo({
 });
 ```
 
-Both models generate one video per call. Generation is asynchronous — the model
-creates a task and polls until it completes, then returns the resulting MP4 URL.
+Both models generate one video per call. Generation is asynchronous — by default,
+the model creates a task and polls until it completes, then returns the resulting
+MP4 URL.
+Status polls trust the configured MiniMax API origin for the first request and
+validate every redirect to another origin before following it.
 
 `duration` accepts a whole number of seconds and defaults to 5. MiniMax-H3
 supports 4 to 15 seconds; MiniMax-H3-Max supports 5 to 15 seconds. A fractional
@@ -192,6 +195,76 @@ ratio follows the input image.
   Result URLs are time-limited. Download and persist the video to your own
   storage promptly after generation.
 </Note>
+
+### Asynchronous Generation
+
+To let the SDK manage the start/status flow, pass `poll` to `generateVideo`:
+
+```ts
+import { minimax } from '@ai-sdk/minimax';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: minimax.video('MiniMax-H3'),
+  prompt: 'A white kitten chases a butterfly across a sunlit garden.',
+  poll: { intervalMs: 10000, timeoutMs: 600000 },
+});
+```
+
+Without `poll` or `webhook`, generation continues to use the provider's
+`pollIntervalMs` and `pollTimeoutMs` options. With `poll`, the SDK's polling
+settings apply instead.
+
+MiniMax does not implement the generic webhook hook. Passing `webhook` to
+`generateVideo` falls back to SDK polling without invoking the factory. MiniMax's
+challenge handshake and progress notifications require a protocol-aware receiver
+and are incompatible with the generic SDK and Workflow webhook receivers.
+
+For caller-managed scheduling, use `experimental_startVideo` to submit one task
+without polling and `experimental_getVideoStatus` to check it once, returning
+`pending`, `completed`, or `error`. Persist the complete JSON-serializable
+`operation` from `experimental_startVideo` and pass it unchanged to
+`experimental_getVideoStatus` on a model with the same configuration.
+Its `resolvedInputs` contains `imageCount` and `referenceVideoIndices`: zero-based
+positions of accepted URL-video references in the original mixed `inputReferences`
+array. Inline videos count toward the cap but are omitted from the indices;
+duplicate references keep separate indices. Neither the operation nor status
+metadata retains input URLs, prompts, inline data, or API credentials.
+Status metadata uses these indices instead of `referenceVideoUrls`; ordinary
+`generateVideo` calls without `poll` or `webhook` retain the existing URL metadata.
+See the
+[start/status example](https://github.com/vercel/ai/blob/main/examples/ai-functions/src/generate-video/minimax/start-status.ts).
+
+For application-managed callbacks, pass an explicit `webhookUrl` to
+`experimental_startVideo`:
+
+```ts
+import { minimax } from '@ai-sdk/minimax';
+import {
+  experimental_startVideo as startVideo,
+  experimental_getVideoStatus as getVideoStatus,
+} from 'ai';
+
+const model = minimax.video('MiniMax-H3');
+const { operation } = await startVideo({
+  model,
+  prompt: 'A white kitten chases a butterfly across a sunlit garden.',
+  webhookUrl: 'https://example.com/api/minimax/callback',
+});
+
+// Persist operation, then check it from your application's callback handler.
+const status = await getVideoStatus(model, { operation });
+```
+
+Your application hosts the callback endpoint and handles MiniMax's callback
+protocol; the adapter only forwards `webhookUrl` as MiniMax's `callback_url`.
+The endpoint must echo the verification `challenge` unchanged within 3 seconds
+and filter out `queued`/`running` progress updates. Handle terminal notifications
+when `task.status` is `succeeded`, `failed`, or `cancelled`, then use
+`getVideoStatus` with the persisted operation to retrieve the outcome. Neither
+the challenge nor a progress update signals completion. See the
+[MiniMax V2 API reference](https://platform.minimax.io/docs/api-reference/video-generation-v2-create.md)
+for the callback contract.
 
 ### Generation modes
 

@@ -47,6 +47,7 @@ function mockHarness(options: {
   promptDone?: (options: HarnessV1PromptTurnOptions) => Promise<void>;
   supportsSteering?: boolean;
   onSuspendTurn?: () => void | Promise<void>;
+  onSubmitToolResult?: HarnessV1PromptControl['submitToolResult'];
   continueScript?: (
     submitToolResult: (input: {
       toolCallId: string;
@@ -102,6 +103,7 @@ function mockHarness(options: {
   const doContinueTurn = vi.fn(async (opts: HarnessV1ContinueTurnOptions) => {
     const control: HarnessV1PromptControl = {
       submitToolResult: async input => {
+        await options.onSubmitToolResult?.(input);
         toolResults.push(input);
       },
       submitToolApproval: async input => {
@@ -139,6 +141,7 @@ function mockHarness(options: {
       options.onPromptTurn?.(opts);
       const control: HarnessV1PromptControl = {
         submitToolResult: async input => {
+          await options.onSubmitToolResult?.(input);
           toolResults.push(input);
         },
         submitToolApproval: async input => {
@@ -356,6 +359,157 @@ function makeLifecycleSession(options: {
 }
 
 describe('HarnessAgent', () => {
+  test('runs lifecycle callbacks in order and merges settings before call callbacks', async () => {
+    const builtinTools = {
+      bash: tool({
+        inputSchema: z.object({ command: z.string() }),
+      }),
+    };
+    const { harness } = mockHarness({
+      builtinTools,
+      script: () => [
+        { type: 'stream-start', modelId: 'resolved-model' },
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'bash',
+          input: JSON.stringify({ command: 'pwd' }),
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'bash',
+          result: { output: '/work' },
+        },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          usage: zeroUsage(),
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          totalUsage: zeroUsage(),
+        },
+      ],
+    });
+    const events: string[] = [];
+    const callIds: string[] = [];
+    let stepFromCallback: unknown;
+    let finalStepFromCallback: unknown;
+    const record = (name: string) => (event: { callId: string }) => {
+      events.push(name);
+      callIds.push(event.callId);
+    };
+    const agent = new HarnessAgent({
+      harness,
+      model: 'requested-model',
+      sandbox: makeSandboxProvider(),
+      onStart: record('settings:start'),
+      onStepStart: record('settings:step-start'),
+      onLanguageModelCallStart: event => {
+        events.push(`model-start:${event.modelId}`);
+        callIds.push(event.callId);
+      },
+      onLanguageModelCallEnd: event => {
+        events.push(`model-end:${event.content.at(-1)?.type}`);
+        callIds.push(event.callId);
+      },
+      onToolExecutionStart: record('settings:tool-start'),
+      onToolExecutionEnd: event => {
+        events.push(`settings:tool-end:${event.toolOutput.type}`);
+        callIds.push(event.callId);
+      },
+      onStepEnd: step => {
+        events.push('settings:step-end');
+        callIds.push(step.callId);
+        stepFromCallback = step;
+      },
+      onEnd: event => {
+        events.push('settings:end');
+        callIds.push(event.callId);
+        finalStepFromCallback = event.finalStep;
+      },
+    });
+    const session = await agent.createSession();
+
+    const result = await agent.generate({
+      session,
+      prompt: 'run pwd',
+      onStart: record('call:start'),
+      onStepStart: record('call:step-start'),
+      onToolExecutionStart: record('call:tool-start'),
+      onToolExecutionEnd: record('call:tool-end'),
+      onStepEnd: record('call:step-end'),
+      onEnd: record('call:end'),
+    });
+
+    expect(events).toEqual([
+      'settings:start',
+      'call:start',
+      'settings:step-start',
+      'call:step-start',
+      'model-start:resolved-model',
+      'model-end:tool-result',
+      'settings:tool-start',
+      'call:tool-start',
+      'settings:tool-end:tool-result',
+      'call:tool-end',
+      'settings:step-end',
+      'call:step-end',
+      'settings:end',
+      'call:end',
+    ]);
+    expect(new Set(callIds).size).toBe(1);
+    expect(result.steps[0]).toBe(stepFromCallback);
+    expect(result.finalStep).toBe(finalStepFromCallback);
+    expect(result.finalStep.model).toEqual({
+      provider: 'harness:mock',
+      modelId: 'resolved-model',
+    });
+    await session.destroy();
+  });
+
+  test('ignores lifecycle callback failures', async () => {
+    const { harness } = mockHarness({
+      script: () => [
+        { type: 'text-delta', id: 'text-1', delta: 'done' },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          usage: zeroUsage(),
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          totalUsage: zeroUsage(),
+        },
+      ],
+    });
+    const fail = () => {
+      throw new Error('listener failed');
+    };
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+      onStart: fail,
+      onStepStart: fail,
+      onLanguageModelCallStart: fail,
+      onLanguageModelCallEnd: fail,
+      onStepEnd: fail,
+      onEnd: fail,
+    });
+    const session = await agent.createSession();
+
+    await expect(
+      agent.generate({ session, prompt: 'go' }),
+    ).resolves.toMatchObject({
+      text: 'done',
+    });
+    await session.destroy();
+  });
+
   test('exposes the AI SDK Agent contract surface', () => {
     const { harness } = mockHarness({ script: () => [] });
     const agent = new HarnessAgent({
@@ -367,6 +521,49 @@ describe('HarnessAgent', () => {
     expect(agent.id).toBe('a1');
     expect(agent.harnessId).toBe('mock');
     expect(agent.tools).toEqual({});
+  });
+
+  test('rejects a caller-defined question tool when the harness owns that name', () => {
+    const { harness } = mockHarness({
+      script: () => [],
+      builtinTools: {
+        askUserQuestions: tool({
+          inputSchema: z.object({ questions: z.array(z.unknown()) }),
+        }),
+      },
+    });
+
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          tools: {
+            askUserQuestions: tool({
+              inputSchema: z.object({}),
+            }),
+          },
+          sandbox: makeSandboxProvider(),
+        }),
+    ).toThrow(
+      "HarnessAgent tool name 'askUserQuestions' is reserved for harness question requests.",
+    );
+  });
+
+  test('allows that caller-defined name when the harness has no question tool', () => {
+    const { harness } = mockHarness({ script: () => [] });
+
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          tools: {
+            askUserQuestions: tool({
+              inputSchema: z.object({}),
+            }),
+          },
+          sandbox: makeSandboxProvider(),
+        }),
+    ).not.toThrow();
   });
 
   test('passes the configured model to each turn', async () => {
@@ -410,6 +607,100 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
+  test('normalizes and snapshots headers before passing them to doStart', async () => {
+    const { harness, doStart } = mockHarness({
+      script: () => finishEvents(),
+    });
+    const headers: Record<string, string | undefined> = {
+      'X-Tenant': 'acme',
+      'X-Optional': undefined,
+    };
+    const agent = new HarnessAgent({
+      harness,
+      headers,
+      sandbox: makeSandboxProvider(),
+    });
+    headers['X-Tenant'] = 'mutated';
+
+    const session = await agent.createSession();
+
+    expect(doStart.mock.calls[0]?.[0]).toMatchObject({
+      headers: { 'x-tenant': 'acme' },
+    });
+    await session.destroy();
+  });
+
+  test.each([
+    'authorization',
+    'Authorization',
+    'x-api-key',
+    'X-API-Key',
+    'user-agent',
+    'User-Agent',
+    'x-client-app',
+    'X-Client-App',
+  ])('rejects the managed header %s', header => {
+    const { harness } = mockHarness({
+      script: () => finishEvents(),
+    });
+
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          headers: { [header]: 'caller-value' },
+          sandbox: makeSandboxProvider(),
+        }),
+    ).toThrow(
+      `HarnessAgent: \`headers\` must not include the managed header \`${header.toLowerCase()}\`.`,
+    );
+  });
+
+  test('rejects a managed header with an undefined value', () => {
+    const { harness } = mockHarness({
+      script: () => finishEvents(),
+    });
+
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          headers: { Authorization: undefined },
+          sandbox: makeSandboxProvider(),
+        }),
+    ).toThrow(
+      'HarnessAgent: `headers` must not include the managed header `authorization`.',
+    );
+  });
+
+  test('passes stable headers when resuming a session', async () => {
+    const { harness, doStart } = mockHarness({
+      script: () => finishEvents(),
+    });
+    const sandboxSession = makeSandboxSession();
+    const agent = new HarnessAgent({
+      harness,
+      headers: { 'x-tenant': 'acme' },
+      sandbox: makeSandboxProvider(sandboxSession),
+    });
+    const session = await agent.createSession({ sessionId: 'session-1' });
+    const resumeFrom = await session.stop();
+
+    const resumedSession = await agent.createSession({
+      sessionId: 'session-1',
+      resumeFrom,
+    });
+
+    expect(doStart).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        headers: { 'x-tenant': 'acme' },
+        resumeFrom,
+      }),
+    );
+    await resumedSession.destroy();
+  });
+
   test('prepares model, skills, instructions, tools, and the prompt for each fresh turn', async () => {
     const promptOptions: HarnessV1PromptTurnOptions[] = [];
     const { harness, doStart } = mockHarness({
@@ -440,7 +731,11 @@ describe('HarnessAgent', () => {
               content: `${options.tenant} instructions`,
             },
           ],
-          instructions: `Serve ${options.tenant}`,
+          instructions: {
+            role: 'system',
+            content: `Serve ${options.tenant}`,
+            providerOptions: { test: { cache: true } },
+          },
           tools: options.tenant === 'alpha' ? { echo } : undefined,
         };
       },
@@ -637,6 +932,7 @@ describe('HarnessAgent', () => {
       script: () => [],
       supportsSteering: true,
       promptDone: () => promptDone,
+      onSuspendTurn: () => finishPrompt(),
     });
     const agent = new HarnessAgent({
       harness,
@@ -1188,6 +1484,360 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
+  test.each([
+    { count: 1, error: false, suspendDuringValidation: false },
+    { count: 3, error: true, suspendDuringValidation: false },
+    { count: 1, error: false, suspendDuringValidation: true },
+  ])(
+    'preserves dispatched host results when the adapter suspends ($count calls, error=$error, validation=$suspendDuringValidation)',
+    async ({ count, error, suspendDuringValidation }) => {
+      let releaseWork!: () => void;
+      const work = new Promise<void>(resolve => {
+        releaseWork = resolve;
+      });
+      let resolveStarted!: () => void;
+      const started = new Promise<void>(resolve => {
+        resolveStarted = resolve;
+      });
+      let closeStream!: () => void;
+      const streamDone = new Promise<void>(resolve => {
+        closeStream = resolve;
+      });
+      let resolveClosed!: () => void;
+      const closed = new Promise<void>(resolve => {
+        resolveClosed = resolve;
+      });
+      let channelClosed = false;
+      const completed: string[] = [];
+      const execute = vi.fn(async ({ query }: { query: string }) => {
+        if (execute.mock.calls.length === count) resolveStarted();
+        await work;
+        completed.push(query);
+        if (error && query === '1') throw new Error('tool unavailable');
+        return { answer: query };
+      });
+      const calls: Extract<HarnessV1StreamPart, { type: 'tool-call' }>[] =
+        Array.from({ length: count }, (_, index) => ({
+          type: 'tool-call',
+          toolCallId: `call-${index}`,
+          toolName: 'research',
+          input: JSON.stringify({ query: String(index) }),
+        }));
+      const { harness, toolResults, prompts, doContinueTurn } = mockHarness({
+        script: () => calls,
+        promptDone: () => streamDone,
+        onDoStart: () => {
+          channelClosed = false;
+        },
+        onSuspendTurn: () => {
+          channelClosed = true;
+          closeStream();
+          resolveClosed();
+        },
+        onSubmitToolResult: async () => {
+          if (channelClosed) {
+            throw new Error(
+              'SandboxChannel: cannot send tool-result — channel is closed.',
+            );
+          }
+        },
+        continueScript: () => [
+          ...calls.map(call => ({
+            type: 'tool-result' as const,
+            toolCallId: call.toolCallId,
+            toolName: call.toolName,
+            result: { answer: call.toolCallId },
+          })),
+          ...finishEvents(),
+        ],
+      });
+      const agent = new HarnessAgent({
+        harness,
+        sandbox: makeSandboxProvider(),
+        tools: {
+          research: tool({
+            inputSchema: z.object({ query: z.string() }).refine(async () => {
+              if (suspendDuringValidation) {
+                resolveStarted();
+                await work;
+              }
+              return true;
+            }),
+            execute,
+          }),
+        },
+      });
+      const session = await agent.createSession();
+      const first = await agent.stream({ session, prompt: 'research' });
+      const firstParts: string[] = [];
+      const firstRead = (async () => {
+        for await (const part of first.fullStream) firstParts.push(part.type);
+      })();
+      await started;
+      const suspension = session.suspendTurn();
+      await closed;
+      releaseWork();
+      const continueFrom = await suspension;
+      await firstRead;
+
+      expect(completed).toHaveLength(count);
+      expect(continueFrom.pendingToolResults).toHaveLength(count);
+      expect(toolResults).toEqual([]);
+      expect(firstParts).not.toContain('error');
+      expect(firstParts.filter(type => type === 'tool-result')).toHaveLength(
+        count - Number(error),
+      );
+      expect(firstParts.filter(type => type === 'tool-error')).toHaveLength(
+        Number(error),
+      );
+
+      const resumed = await agent.createSession({
+        sessionId: session.sessionId,
+        continueFrom: structuredClone(continueFrom),
+      });
+      const second = await agent.continueStream({ session: resumed });
+      const secondParts: string[] = [];
+      for await (const part of second.fullStream) secondParts.push(part.type);
+
+      expect(execute).toHaveBeenCalledTimes(count);
+      expect(prompts).toEqual(['research']);
+      expect(doContinueTurn).toHaveBeenCalledOnce();
+      expect(toolResults).toHaveLength(count);
+      expect(toolResults).toEqual(
+        expect.arrayContaining(
+          calls.map((call, index) => ({
+            toolCallId: call.toolCallId,
+            output:
+              error && index === 1
+                ? { error: 'Error: tool unavailable' }
+                : { answer: String(index) },
+            ...(error && index === 1 ? { isError: true } : {}),
+          })),
+        ),
+      );
+      expect(secondParts).not.toContain('tool-result');
+      expect(secondParts).not.toContain('tool-error');
+      expect(secondParts.filter(type => type === 'finish-step')).toHaveLength(
+        1,
+      );
+      await expect(second.steps).resolves.toHaveLength(1);
+      await resumed.destroy();
+    },
+  );
+
+  test('preserves a resumed approved host call across another suspension', async () => {
+    let startWork!: () => void;
+    const started = new Promise<void>(resolve => {
+      startWork = resolve;
+    });
+    let finishWork!: () => void;
+    const work = new Promise<void>(resolve => {
+      finishWork = resolve;
+    });
+    let signalClosed!: () => void;
+    const closed = new Promise<void>(resolve => {
+      signalClosed = resolve;
+    });
+    let channelClosed = false;
+    let continuationCount = 0;
+    const execute = vi.fn(async () => {
+      startWork();
+      await work;
+      return { answer: 'retained' };
+    });
+    const { harness, toolResults } = mockHarness({
+      script: () => [],
+      onDoStart: () => {
+        channelClosed = false;
+      },
+      onSuspendTurn: () => {
+        channelClosed = true;
+        signalClosed();
+      },
+      onSubmitToolResult: async () => {
+        if (channelClosed) throw new Error('channel is closed');
+      },
+      continueScript: () =>
+        ++continuationCount === 1
+          ? []
+          : [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'research',
+                result: { answer: 'retained' },
+              },
+              ...finishEvents(),
+            ],
+    });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+      tools: {
+        research: tool({ inputSchema: z.object({}), execute }),
+      },
+    });
+    const session = await agent.createSession({
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'mock',
+        specificationVersion: 'harness-v1',
+        data: {},
+        pendingToolApprovals: [
+          {
+            approvalId: 'approval-1',
+            toolCallId: 'call-1',
+            toolName: 'research',
+            input: '{}',
+            kind: 'custom',
+            providerExecuted: false,
+          },
+        ],
+      },
+    });
+    const first = await agent.continueStream({
+      session,
+      toolApprovalContinuations: [
+        {
+          type: 'tool-approval-response',
+          approvalId: 'approval-1',
+          approved: true,
+        },
+      ],
+    });
+    const firstParts: string[] = [];
+    const consume = (async () => {
+      for await (const part of first.fullStream) firstParts.push(part.type);
+    })();
+    await started;
+    const suspension = session.suspendTurn();
+    await closed;
+    finishWork();
+    const continueFrom = await suspension;
+    await consume;
+
+    expect(firstParts).not.toContain('error');
+    expect(firstParts.filter(type => type === 'tool-result')).toHaveLength(1);
+    expect(continueFrom.pendingToolResults).toHaveLength(1);
+    expect(continueFrom.pendingToolApprovals).toBeUndefined();
+
+    const resumed = await agent.createSession({
+      sessionId: session.sessionId,
+      continueFrom: structuredClone(continueFrom),
+    });
+    const second = await agent.continueStream({ session: resumed });
+    await second.consumeStream();
+
+    expect(execute).toHaveBeenCalledOnce();
+    expect(toolResults).toEqual([
+      { toolCallId: 'call-1', output: { answer: 'retained' } },
+    ]);
+    await resumed.destroy();
+  });
+
+  test.each(['detach', 'stop'] as const)(
+    'session.%s() preserves an in-flight host result in its nested continuation',
+    async lifecycleMethod => {
+      let releaseWork!: () => void;
+      const work = new Promise<void>(resolve => {
+        releaseWork = resolve;
+      });
+      let resolveStarted!: () => void;
+      const started = new Promise<void>(resolve => {
+        resolveStarted = resolve;
+      });
+      let closeStream!: () => void;
+      const streamDone = new Promise<void>(resolve => {
+        closeStream = resolve;
+      });
+      let resolveClosed!: () => void;
+      const closed = new Promise<void>(resolve => {
+        resolveClosed = resolve;
+      });
+      let channelClosed = false;
+      const execute = vi.fn(async () => {
+        resolveStarted();
+        await work;
+        return { answer: 'retained' };
+      });
+      const toolCall = {
+        type: 'tool-call' as const,
+        toolCallId: 'call-1',
+        toolName: 'research',
+        input: '{}',
+      };
+      const { harness, toolResults, doContinueTurn } = mockHarness({
+        script: () => [toolCall],
+        promptDone: () => streamDone,
+        onDoStart: () => {
+          channelClosed = false;
+        },
+        onSuspendTurn: () => {
+          channelClosed = true;
+          closeStream();
+          resolveClosed();
+        },
+        onSubmitToolResult: async () => {
+          if (channelClosed) throw new Error('channel is closed');
+        },
+        continueScript: () => [
+          {
+            type: 'tool-result',
+            toolCallId: toolCall.toolCallId,
+            toolName: toolCall.toolName,
+            result: { answer: 'retained' },
+          },
+          ...finishEvents(),
+        ],
+      });
+      const agent = new HarnessAgent({
+        harness,
+        sandbox: makeSandboxProvider(),
+        tools: {
+          research: tool({ inputSchema: z.object({}), execute }),
+        },
+      });
+      const session = await agent.createSession();
+      const first = await agent.stream({ session, prompt: 'research' });
+      const firstRead = first.consumeStream();
+      await started;
+
+      const ending =
+        lifecycleMethod === 'detach' ? session.detach() : session.stop();
+      await closed;
+      releaseWork();
+      const resumeFrom = await ending;
+      await firstRead;
+
+      expect(resumeFrom.continueFrom?.pendingToolResults).toEqual([
+        {
+          toolCallId: toolCall.toolCallId,
+          toolName: toolCall.toolName,
+          input: toolCall.input,
+          completedResult: { output: { answer: 'retained' } },
+        },
+      ]);
+      expect(toolResults).toEqual([]);
+
+      const resumed = await agent.createSession({
+        sessionId: session.sessionId,
+        resumeFrom: structuredClone(resumeFrom),
+      });
+      const second = await agent.continueStream({ session: resumed });
+      await second.consumeStream();
+
+      expect(execute).toHaveBeenCalledOnce();
+      expect(doContinueTurn).toHaveBeenCalledOnce();
+      expect(toolResults).toEqual([
+        {
+          toolCallId: toolCall.toolCallId,
+          output: { answer: 'retained' },
+        },
+      ]);
+      await resumed.destroy();
+    },
+  );
+
   test('keeps a turn unfinished when suspension closes its stream mid-step', async () => {
     let resolvePromptDone!: () => void;
     const promptDone = new Promise<void>(resolve => {
@@ -1350,7 +2000,11 @@ describe('HarnessAgent', () => {
     const agent = new HarnessAgent({
       harness,
       sandbox: makeSandboxProvider(),
-      instructions: 'Be concise.',
+      instructions: {
+        role: 'system',
+        content: 'Be concise.',
+        providerOptions: { test: { cache: true } },
+      },
     });
     const session = await agent.createSession({
       continueFrom: {
@@ -1539,8 +2193,13 @@ describe('HarnessAgent', () => {
       session,
       toolResultContinuations: [
         {
+          type: 'tool-result',
           toolCallId: 'c1',
-          output: { city: 'Lima', celsius: 19 },
+          toolName: 'weather',
+          output: {
+            type: 'json',
+            value: { city: 'Lima', celsius: 19 },
+          },
         },
       ],
     });
@@ -1554,6 +2213,15 @@ describe('HarnessAgent', () => {
         toolCallId: 'c1',
         output: { city: 'Lima', celsius: 19 },
         isError: undefined,
+        toolResult: {
+          type: 'tool-result',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          output: {
+            type: 'json',
+            value: { city: 'Lima', celsius: 19 },
+          },
+        },
       },
     ]);
     expect(continuedPartTypes).toEqual([
@@ -1630,6 +2298,15 @@ describe('HarnessAgent', () => {
         toolCallId: 'c1',
         output: { city: 'Lima', celsius: 19 },
         isError: undefined,
+        toolResult: {
+          type: 'tool-result',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          output: {
+            type: 'json',
+            value: { city: 'Lima', celsius: 19 },
+          },
+        },
       },
     ]);
     expect(session.hasUnfinishedTurn()).toBe(false);

@@ -237,6 +237,29 @@ const { videos } = await generateVideo({
 });
 ```
 
+### Caller-Managed Callbacks
+
+For text-to-video, image-to-video, multi-image-to-video, and motion control,
+use `experimental_startVideo({ model, prompt, webhookUrl })` to register an
+application-owned callback receiver. The SDK forwards `webhookUrl` as
+`callback_url`, taking precedence over `providerOptions.klingai.callback_url`.
+When `webhookUrl` is omitted, a raw `callback_url` is passed through unchanged.
+
+KlingAI sends progress notifications (`task_status: 'submitted'` or
+`'processing'`) as well as terminal notifications (`'succeed'` or `'failed'`).
+Your receiver must filter progress notifications and correlate callbacks with
+the task. Use `experimental_getVideoStatus(model, { operation })` with the
+operation returned by `experimental_startVideo` to check status and retrieve
+the result after a terminal notification.
+
+These models deliberately do not expose `handleWebhookOption` because their
+callback protocol requires a progress-aware receiver. Core
+[`generateVideo({ webhook })`](/docs/reference/ai-sdk-core/generate-video)
+falls back to polling without calling the webhook factory. Plain
+`generateVideo()` also polls. Workflow's existing native webhook capability
+check rejects these direct provider models for webhook-based generation;
+use the explicit start/status flow for caller-managed callbacks.
+
 ### Video Provider Options
 
 The following provider options are available via `providerOptions.klingai`. Options vary by mode — see the
@@ -334,7 +357,9 @@ The following provider options are available via `providerOptions.klingai`. Opti
 <Note>
   Video generation is an asynchronous process that can take several minutes.
   Consider setting `pollTimeoutMs` to at least 10 minutes (600000ms) for
-  reliable operation.
+  reliable operation. Status polls trust the configured Kling AI API origin for
+  the first request and validate every redirect to another origin before
+  following it.
 </Note>
 
 ### Video Model Capabilities

@@ -1,9 +1,12 @@
 import type {
   HarnessV1Authentication,
   HarnessV1CredentialForwarding,
+  HarnessV1MintBridgeTokenCallback,
   HarnessV1PermissionMode,
   HarnessV1RequestTransformation,
+  HarnessV1StreamPart,
 } from '@ai-sdk/harness';
+import type { ToolResultPart } from '@ai-sdk/provider-utils';
 import type { ACPToolCall } from '../acp-tool-call';
 
 export type ACPSerializablePrimitive = string | number | boolean | null;
@@ -88,9 +91,11 @@ export type ACPModelMapping =
 export type ACPCredentialBrokering = ({
   env,
   sandboxEnv,
+  headers,
 }: {
   env: Readonly<Record<string, string>>;
   sandboxEnv?: Readonly<Record<string, string>>;
+  headers?: Readonly<Record<string, string>>;
 }) => ReadonlyArray<HarnessV1RequestTransformation>;
 
 export type ACPPermissionModeTarget =
@@ -122,11 +127,40 @@ export type ACPInstructionMapping =
       readonly type: 'launch-env-json';
       readonly variable: string;
       readonly path: ReadonlyArray<string>;
+    }
+  | {
+      readonly type: 'filesystem';
+      readonly path: string;
     };
 
 export type ACPOutputSchemaMapping = {
   readonly type: 'session-prompt-meta';
   readonly path: ReadonlyArray<string>;
+};
+
+/**
+ * Transport used for the harness-owned MCP server that exposes host tools to
+ * an ACP implementation.
+ */
+export type ACPHostToolMCPTransport = 'stdio' | 'http';
+
+export type ACPAskUserQuestionsSettings = {
+  readonly requestMethod: string;
+  readonly isNativeToolCall?: (options: {
+    nativeToolCall: ACPToolCall;
+  }) => boolean;
+  readonly fromNativeRequest: (options: {
+    nativeRequest: unknown;
+    nativeToolCall?: ACPToolCall;
+  }) => Extract<HarnessV1StreamPart, { type: 'tool-call' }> | null;
+  readonly toNativeResponse: (options: {
+    nativeRequest: unknown;
+    toolResult: ToolResultPart;
+  }) => unknown;
+  readonly matchesNativeRequest?: (options: {
+    previousNativeRequest: unknown;
+    nativeRequest: unknown;
+  }) => boolean;
 };
 
 export type ACPV1Settings = {
@@ -160,10 +194,6 @@ export type ACPV1Settings = {
    */
   readonly modelMapping: ACPModelMapping;
   /**
-   * @deprecated Use `model` on `HarnessAgent` instead.
-   */
-  readonly modelId?: string;
-  /**
    * Native skills directory relative to the ACP implementation's home
    * directory. Defaults to `.agents/skills`.
    */
@@ -179,6 +209,15 @@ export type ACPV1Settings = {
    * below the ACP session prompt's `_meta` field.
    */
   readonly outputSchemaMapping?: ACPOutputSchemaMapping;
+  /**
+   * Transport used for the harness-owned MCP server that exposes host tools to
+   * the ACP implementation. Defaults to `stdio`. Set this to `http` for
+   * implementations that only accept HTTP or SSE MCP servers from the client,
+   * which requires the implementation to advertise
+   * `agentCapabilities.mcpCapabilities.http`.
+   */
+  readonly hostToolMcpTransport?: ACPHostToolMCPTransport;
+  readonly askUserQuestions?: ACPAskUserQuestionsSettings;
   readonly permissionModeMapping?: ACPPermissionModeMapping;
   readonly session?: {
     readonly meta?: Readonly<Record<string, ACPSerializableValue>>;
@@ -187,5 +226,5 @@ export type ACPV1Settings = {
    * Creates the authentication token used by the sandbox bridge. Defaults to
    * a random 32-byte hexadecimal token.
    */
-  readonly mintBridgeToken?: (sandboxId: string) => string;
+  readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };

@@ -15,7 +15,8 @@ export type SkillFilePathMode = 'relative' | 'strip-leading-slashes';
 
 export type WriteSkillsOptions = {
   sandbox: Experimental_SandboxSession;
-  rootDir: string;
+  homePath: string;
+  skillsDir: string;
   skills: ReadonlyArray<HarnessV1Skill>;
   abortSignal?: AbortSignal;
   skillNamePattern?: RegExp;
@@ -57,7 +58,8 @@ type SkillsManifest = {
 
 export async function writeSkills({
   sandbox,
-  rootDir,
+  homePath,
+  skillsDir,
   skills,
   abortSignal,
   skillNamePattern = /^[A-Za-z0-9._-]+$/,
@@ -67,6 +69,7 @@ export async function writeSkills({
     `Invalid skill file path for ${skillName}: ${filePath}`,
   trailingNewline = false,
 }: WriteSkillsOptions): Promise<WriteSkillsResult> {
+  const rootDir = resolveSkillsRootDir({ homePath, skillsDir });
   const projectedSkills = skills
     .map(skill =>
       projectSkill({
@@ -525,4 +528,58 @@ function renderSkillFile({
 }): string {
   const content = `---\nname: ${skill.name}\ndescription: ${skill.description}\n---\n\n${skill.content}`;
   return trailingNewline ? `${content}\n` : content;
+}
+
+function resolveSkillsRootDir({
+  homePath,
+  skillsDir,
+}: {
+  homePath: string;
+  skillsDir: string;
+}): string {
+  if (typeof homePath !== 'string' || homePath.trim().length === 0) {
+    throw new Error('Invalid homePath: expected a non-empty string.');
+  }
+  if (!path.posix.isAbsolute(homePath)) {
+    throw new Error(
+      `Invalid homePath ${JSON.stringify(homePath)}: expected an absolute POSIX path.`,
+    );
+  }
+  if (typeof skillsDir !== 'string' || skillsDir.trim().length === 0) {
+    throw new Error(
+      `Invalid skillsDir ${JSON.stringify(skillsDir)}: expected a relative POSIX path without traversal.`,
+    );
+  }
+  const containsTraversal = skillsDir
+    .split(/[\\\/]/)
+    .some(segment => segment === '..');
+  const normalizedSkillsDir = path.posix.normalize(skillsDir.trim());
+  const normalizedNoTrailingSlash = normalizedSkillsDir.replace(/\/+$/, '');
+  if (
+    skillsDir.includes('\\') ||
+    path.posix.isAbsolute(skillsDir) ||
+    path.win32.isAbsolute(skillsDir) ||
+    containsTraversal ||
+    normalizedNoTrailingSlash === '' ||
+    normalizedNoTrailingSlash === '.' ||
+    normalizedSkillsDir.startsWith('../') ||
+    normalizedSkillsDir.includes('/../') ||
+    normalizedSkillsDir.endsWith('/..')
+  ) {
+    throw new Error(
+      `Invalid skillsDir ${JSON.stringify(skillsDir)}: expected a relative POSIX path without traversal.`,
+    );
+  }
+  const rootDir = path.posix.join(homePath, normalizedNoTrailingSlash);
+  const relative = path.posix.relative(homePath, rootDir);
+  if (
+    relative === '' ||
+    relative.startsWith('..') ||
+    path.posix.isAbsolute(relative)
+  ) {
+    throw new Error(
+      `Invalid skillsDir ${JSON.stringify(skillsDir)}: must be a subpath within homePath ${JSON.stringify(homePath)}.`,
+    );
+  }
+  return rootDir;
 }

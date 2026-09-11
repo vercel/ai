@@ -31,6 +31,7 @@ describe('createFx', () => {
       args: settings.args,
       credentialEnv: settings.credentialEnv,
       providerAuthentication: settings.providerAuthentication,
+      instructionMapping: settings.instructionMapping,
       permissionModeMapping: settings.permissionModeMapping,
       builtinTools: Object.fromEntries(
         Object.entries(
@@ -191,6 +192,10 @@ describe('createFx', () => {
         ],
         "executable": "fx",
         "harnessId": "fx",
+        "instructionMapping": {
+          "path": ".fx/AGENTS.md",
+          "type": "filesystem",
+        },
         "permissionModeMapping": {
           "allow-all": {
             "modeId": "code",
@@ -237,7 +242,6 @@ describe('createFx', () => {
     createFx({
       auth: 'direct',
       credentialForwarding,
-      model: 'openai/gpt-5.4',
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
@@ -250,7 +254,6 @@ describe('createFx', () => {
     expect({
       auth: settings.auth,
       credentialForwarding: settings.credentialForwarding,
-      modelId: settings.modelId,
       port: settings.port,
       portEndpoint: settings.portEndpoint,
       startupTimeoutMs: settings.startupTimeoutMs,
@@ -259,7 +262,6 @@ describe('createFx', () => {
     }).toEqual({
       auth: 'direct',
       credentialForwarding,
-      modelId: 'openai/gpt-5.4',
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
@@ -330,6 +332,7 @@ describe('createFx', () => {
           VERCEL_OIDC_TOKEN: 'sandbox-oidc-secret',
           AI_GATEWAY_API_KEY: 'sandbox-gateway-secret',
         },
+        headers: { 'x-tenant': 'acme' },
       }),
     ).toEqual([
       {
@@ -344,6 +347,7 @@ describe('createFx', () => {
         },
         transform: {
           headers: {
+            'x-tenant': 'acme',
             Authorization: 'Bearer oidc-secret',
             'x-client-app': 'ai-sdk/harness-fx/0.0.0-test',
           },

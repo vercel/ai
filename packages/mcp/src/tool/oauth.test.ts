@@ -594,6 +594,40 @@ describe('discoverAuthorizationServerMetadata', () => {
     expect(metadata).toEqual(tenantMetadata);
   });
 
+  it('returns OAuth metadata when an origin issuer has a trailing slash', async () => {
+    const metadataWithTrailingSlash = {
+      ...validOAuthMetadata,
+      issuer: 'https://auth.example.com/',
+    };
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => metadataWithTrailingSlash,
+    });
+
+    const metadata = await discoverAuthorizationServerMetadata(
+      'https://auth.example.com/',
+    );
+
+    expect(metadata).toEqual(metadataWithTrailingSlash);
+  });
+
+  it('rejects a trailing slash difference for an issuer with a path', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        ...validOAuthMetadata,
+        issuer: 'https://auth.example.com/tenant1/',
+      }),
+    });
+
+    await expect(
+      discoverAuthorizationServerMetadata('https://auth.example.com/tenant1'),
+    ).rejects.toThrow(/does not match expected issuer/);
+  });
+
   it('accepts OAuth metadata when code challenge methods are omitted', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,

@@ -76,6 +76,8 @@ export class DeepSeekFiles implements FilesV4 {
     data,
     mediaType,
     filename,
+    abortSignal,
+    headers,
     providerOptions,
   }: FilesV4UploadFileCallOptions): Promise<FilesV4UploadFileResult> {
     const deepSeekOptions = (await parseProviderOptions({
@@ -107,12 +109,13 @@ export class DeepSeekFiles implements FilesV4 {
 
     const { value: response } = await postFormDataToApi({
       url: `${this.config.baseURL}/files`,
-      headers: combineHeaders(this.config.headers()),
+      headers: combineHeaders(this.config.headers(), headers),
       formData,
       failedResponseHandler: deepSeekFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         deepSeekFilesResponseSchema,
       ),
+      abortSignal,
       fetch: this.config.fetch,
     });
 

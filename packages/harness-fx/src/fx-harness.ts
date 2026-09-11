@@ -3,6 +3,7 @@ import {
   type HarnessV1,
   type HarnessV1BuiltinTool,
   type HarnessV1CredentialForwarding,
+  type HarnessV1MintBridgeTokenCallback,
   type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
 import {
@@ -51,12 +52,6 @@ export type FxHarnessSettings = {
    */
   readonly credentialForwarding?: HarnessV1CredentialForwarding;
   /**
-   * Model id selected through ACP. Unset preserves fx's default.
-   *
-   * @deprecated Use `model` on `HarnessAgent` instead.
-   */
-  readonly model?: string;
-  /**
    * Overrides the sandbox port used by the ACP bridge.
    */
   readonly port?: number;
@@ -78,7 +73,7 @@ export type FxHarnessSettings = {
    * Creates the authentication token used by the sandbox bridge. Defaults to
    * a random 32-byte hexadecimal token.
    */
-  readonly mintBridgeToken?: (sandboxId: string) => string;
+  readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
 
 const terminalShellSchema = z.looseObject({
@@ -568,7 +563,6 @@ export function createFx(
   return createACP({
     auth: settings.auth,
     credentialForwarding: settings.credentialForwarding,
-    modelId: settings.model,
     port: settings.port,
     portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,
@@ -593,8 +587,12 @@ export function createFx(
       type: 'session-config-option',
       path: 'model',
     },
+    instructionMapping: {
+      type: 'filesystem',
+      path: '.fx/AGENTS.md',
+    },
     credentialEnv: ['VERCEL_OIDC_TOKEN', 'AI_GATEWAY_API_KEY'],
-    credentialBrokering: ({ env, sandboxEnv }) => {
+    credentialBrokering: ({ env, sandboxEnv, headers }) => {
       const environmentVariableName = suppliedAuthenticationEnvironment
         ? env.AI_GATEWAY_API_KEY
           ? 'AI_GATEWAY_API_KEY'
@@ -612,6 +610,7 @@ export function createFx(
             Authorization: `Bearer ${sandboxCredential}`,
           },
           transformHeaders: {
+            ...headers,
             Authorization: `Bearer ${credential}`,
             'x-client-app': FX_CLIENT_APP,
           },

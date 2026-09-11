@@ -1,0 +1,154 @@
+---
+title: experimental_startBatch
+description: API Reference for experimental_startBatch.
+---
+
+# `experimental_startBatch()`
+
+<Note type="warning">
+  Batch support is experimental and the API may change in patch releases.
+</Note>
+
+Starts an asynchronous batch of text or image generation requests. For a complete guide to the batch lifecycle, see
+[Batch](/docs/ai-sdk-core/batch).
+
+```ts
+import { experimental_startBatch as startBatch } from 'ai';
+
+const batch = await startBatch({
+  requests: [
+    {
+      id: 'france',
+      type: 'text',
+      model: 'gpt-4.1-nano',
+      prompt: 'What is the capital of France?',
+    },
+  ],
+});
+```
+
+## Import
+
+<Snippet text={`import { experimental_startBatch } from "ai"`} prompt={false} />
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'provider',
+      type: 'Experimental_BatchProvider',
+      isOptional: true,
+      description:
+        'The provider to use. Defaults to the global provider, or the AI Gateway when no global provider is configured.',
+    },
+    {
+      name: 'requests',
+      type: 'Array<Experimental_BatchRequest>',
+      description:
+        'The independent requests to process. Each request must have a unique, non-empty id, a supported type, and type-specific properties such as model and prompt or messages for text requests.',
+    },
+    {
+      name: 'providerOptions',
+      type: 'ProviderOptions',
+      isOptional: true,
+      description: 'Additional provider-specific options for the batch.',
+    },
+    {
+      name: 'webhookUrl',
+      type: 'string',
+      isOptional: true,
+      description:
+        'URL to notify when the batch reaches a terminal state. Support and payloads are provider-specific.',
+    },
+    {
+      name: 'abortSignal',
+      type: 'AbortSignal',
+      isOptional: true,
+      description:
+        'An optional abort signal to cancel the request that starts the batch.',
+    },
+    {
+      name: 'timeout',
+      type: 'number | { totalMs?: number }',
+      isOptional: true,
+      description: 'Maximum time allowed for the batch creation request.',
+    },
+    {
+      name: 'headers',
+      type: 'Record<string, string | undefined>',
+      isOptional: true,
+      description: 'Additional HTTP headers for the request.',
+    },
+  ]}
+/>
+
+### Returns
+
+<PropertiesTable
+  content={[
+    {
+      name: 'version',
+      type: '2',
+      description: 'Version of the serializable batch reference.',
+    },
+    {
+      name: 'id',
+      type: 'string',
+      description: 'Provider batch identifier.',
+    },
+    {
+      name: 'provider',
+      type: 'string',
+      description: 'Provider identifier for the batch.',
+    },
+    {
+      name: 'status',
+      type: "'pending' | 'completed' | 'failed'",
+      description: 'Initial normalized batch status.',
+    },
+    {
+      name: 'rawStatus',
+      type: 'string',
+      isOptional: true,
+      description: 'The provider-specific batch status, when available.',
+    },
+    {
+      name: 'requestCounts',
+      type: '{ total: number; pending: number; completed: number; failed: number }',
+      isOptional: true,
+      description: 'Provider-reported request counts.',
+    },
+    {
+      name: 'error',
+      type: 'Experimental_BatchError',
+      isOptional: true,
+      description: 'Error details when the batch fails.',
+    },
+    {
+      name: 'createdAt',
+      type: 'string',
+      isOptional: true,
+      description: 'Creation timestamp, when provided by the provider.',
+    },
+    {
+      name: 'expiresAt',
+      type: 'string',
+      isOptional: true,
+      description: 'Expiration timestamp, when provided by the provider.',
+    },
+    {
+      name: 'providerMetadata',
+      type: 'ProviderMetadata',
+      isOptional: true,
+      description: 'Provider-specific metadata for the batch.',
+    },
+    {
+      name: 'warnings',
+      type: 'Warning[]',
+      description: 'Warnings returned while starting the batch.',
+    },
+  ]}
+/>
