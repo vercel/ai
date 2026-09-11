@@ -658,6 +658,277 @@ describe('tool messages', () => {
     });
   });
 
+  it('should strip $ref and $defs from function response content to avoid Gemini 400 errors', async () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'get_schema',
+            toolCallId: 'testCallId',
+            output: {
+              type: 'json',
+              value: {
+                tools: [
+                  {
+                    name: 'find_records',
+                    inputSchema: {
+                      type: 'object',
+                      properties: {
+                        filter: { $ref: '#/$defs/__schema0' },
+                      },
+                      $defs: {
+                        __schema0: {
+                          type: 'object',
+                          properties: { field: { type: 'string' } },
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              functionResponse: {
+                id: 'testCallId',
+                name: 'get_schema',
+                response: {
+                  name: 'get_schema',
+                  content: {
+                    tools: [
+                      {
+                        name: 'find_records',
+                        inputSchema: {
+                          type: 'object',
+                          properties: {
+                            filter: {},
+                          },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should pass through null property values unchanged', async () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'test_tool',
+            toolCallId: 'testCallId',
+            output: {
+              type: 'json',
+              value: {
+                status: 'success',
+                data: null,
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              functionResponse: {
+                id: 'testCallId',
+                name: 'test_tool',
+                response: {
+                  name: 'test_tool',
+                  content: {
+                    status: 'success',
+                    data: null,
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should pass through non-plain objects like Date unchanged', async () => {
+    const eventDate = new Date('2026-01-01T00:00:00Z');
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'test_tool',
+            toolCallId: 'testCallId',
+            output: {
+              type: 'json',
+              value: {
+                status: 'success',
+                occurredAt: eventDate,
+              },
+            } as any,
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              functionResponse: {
+                id: 'testCallId',
+                name: 'test_tool',
+                response: {
+                  name: 'test_tool',
+                  content: {
+                    status: 'success',
+                    occurredAt: eventDate,
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should strip $ref key at top level', async () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'test_tool',
+            toolCallId: 'testCallId',
+            output: {
+              type: 'json',
+              value: {
+                $ref: '#/definitions/something',
+                result: 'value',
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              functionResponse: {
+                id: 'testCallId',
+                name: 'test_tool',
+                response: {
+                  name: 'test_tool',
+                  content: {
+                    result: 'value',
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should strip $ref from nested objects in arrays', async () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'test_tool',
+            toolCallId: 'testCallId',
+            output: {
+              type: 'json',
+              value: {
+                items: [
+                  {
+                    id: 1,
+                    $ref: '#/schema',
+                    data: 'keep this',
+                  },
+                  {
+                    id: 2,
+                    data: 'also keep',
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              functionResponse: {
+                id: 'testCallId',
+                name: 'test_tool',
+                response: {
+                  name: 'test_tool',
+                  content: {
+                    items: [
+                      {
+                        id: 1,
+                        data: 'keep this',
+                      },
+                      {
+                        id: 2,
+                        data: 'also keep',
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
   it('should convert tool result content with image-data into functionResponse parts', async () => {
     const result = convertToGoogleMessages([
       {
