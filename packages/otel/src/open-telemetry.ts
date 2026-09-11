@@ -756,6 +756,7 @@ export class OpenTelemetry implements Telemetry {
     if (!state?.inferenceSpan) return;
 
     const { telemetry } = state;
+    const providerName = mapProviderName(event.provider);
     const toolDefinitions = [...(state.inferenceToolDefinitions ?? [])];
     const definedToolNames = new Set(
       toolDefinitions.flatMap(tool =>
@@ -784,6 +785,7 @@ export class OpenTelemetry implements Telemetry {
     state.inferenceSpan.setAttributes(
       selectAttributes(telemetry, {
         ...getGenAIClientPerformanceAttributes(event.performance),
+        'gen_ai.provider.name': providerName,
         'gen_ai.response.finish_reasons': [event.finishReason],
         'gen_ai.response.id': event.responseId,
         'gen_ai.response.model': event.modelId,
