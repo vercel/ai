@@ -87,13 +87,6 @@ export class XaiImageModel implements ImageModelV4 {
       });
     }
 
-    if (mask != null) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'mask',
-      });
-    }
-
     const xaiOptions = await parseProviderOptions({
       provider: 'xai',
       providerOptions,
@@ -146,6 +139,13 @@ export class XaiImageModel implements ImageModelV4 {
       body.image = { url: imageUrls[0], type: 'image_url' };
     } else if (imageUrls.length > 1) {
       body.images = imageUrls.map(url => ({ url, type: 'image_url' }));
+    }
+
+    if (mask != null) {
+      body.mask = {
+        url: convertImageModelFileToDataUri(mask),
+        type: 'image_url',
+      };
     }
 
     const baseURL = this.config.baseURL ?? 'https://api.x.ai/v1';

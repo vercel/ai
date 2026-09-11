@@ -525,6 +525,7 @@ describe('XaiChatLanguageModel', () => {
       expect(request).toMatchInlineSnapshot(`
         {
           "body": {
+            "frequency_penalty": undefined,
             "logprobs": undefined,
             "max_completion_tokens": undefined,
             "messages": [
@@ -535,11 +536,13 @@ describe('XaiChatLanguageModel', () => {
             ],
             "model": "grok-3",
             "parallel_function_calling": undefined,
+            "presence_penalty": undefined,
             "reasoning_effort": undefined,
             "response_format": undefined,
             "search_parameters": undefined,
             "seed": undefined,
             "service_tier": undefined,
+            "stop": undefined,
             "temperature": undefined,
             "tool_choice": undefined,
             "tools": undefined,
@@ -1284,6 +1287,7 @@ describe('XaiChatLanguageModel', () => {
       expect(request).toMatchInlineSnapshot(`
         {
           "body": {
+            "frequency_penalty": undefined,
             "logprobs": undefined,
             "max_completion_tokens": undefined,
             "messages": [
@@ -1294,11 +1298,13 @@ describe('XaiChatLanguageModel', () => {
             ],
             "model": "grok-3",
             "parallel_function_calling": undefined,
+            "presence_penalty": undefined,
             "reasoning_effort": undefined,
             "response_format": undefined,
             "search_parameters": undefined,
             "seed": undefined,
             "service_tier": undefined,
+            "stop": undefined,
             "stream": true,
             "stream_options": {
               "include_usage": true,

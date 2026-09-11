@@ -559,36 +559,6 @@ describe('XaiImageModel', () => {
         });
       });
 
-      it('should warn when mask is provided', async () => {
-        const model = createModel();
-
-        const result = await model.doGenerate({
-          prompt: 'Edit this',
-          files: [
-            {
-              type: 'file',
-              data: new Uint8Array([137, 80, 78, 71]),
-              mediaType: 'image/png',
-            },
-          ],
-          mask: {
-            type: 'file',
-            data: new Uint8Array([255, 255, 255, 0]),
-            mediaType: 'image/png',
-          },
-          n: 1,
-          size: undefined,
-          aspectRatio: undefined,
-          seed: undefined,
-          providerOptions: {},
-        });
-
-        expect(result.warnings).toContainEqual({
-          type: 'unsupported',
-          feature: 'mask',
-        });
-      });
-
       it('should not warn when multiple files are provided', async () => {
         const model = createModel();
         const imageData = new Uint8Array([137, 80, 78, 71]);
