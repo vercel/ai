@@ -41,6 +41,16 @@ describe('validateUIMessages types', () => {
 
     validateUIMessages<TestMessage>({ messages: [], tools });
 
+    validateUIMessages<TestMessage>({
+      messages: [],
+      tools: {
+        weather: {
+          inputSchema: z.object({ location: z.string() }),
+          execute: async ({ location }) => `Weather in ${location}: sunny`,
+        },
+      },
+    });
+
     const mismatchedTools = {
       weather: tool({
         inputSchema: z.object({ latitude: z.number() }),
