@@ -1435,6 +1435,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             response.usage.cache_creation_input_tokens ?? null,
           stopSequence: response.stop_sequence ?? null,
           ...(stopDetails != null ? { stopDetails } : {}),
+          ...(response.input_transformations != null
+            ? { inputTransformations: response.input_transformations }
+            : {}),
 
           iterations: response.usage.iterations
             ? response.usage.iterations.map(
@@ -1572,6 +1575,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     let cacheCreationInputTokens: number | null = null;
     let stopSequence: string | null = null;
     let stopDetails: AnthropicMessageMetadata['stopDetails'] = undefined;
+    let inputTransformations: AnthropicMessageMetadata['inputTransformations'];
     let container: AnthropicMessageMetadata['container'] | null = null;
     let isJsonResponseFromTool = false;
     let isMessageOpen = false;
@@ -2430,8 +2434,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 ...(value.message.usage as JSONObject),
               };
 
+<<<<<<< HEAD:packages/anthropic/src/anthropic-messages-language-model.ts
               cacheCreationInputTokens =
                 value.message.usage.cache_creation_input_tokens ?? null;
+=======
+              if (value.message.input_transformations != null) {
+                inputTransformations = value.message.input_transformations;
+              }
+>>>>>>> e4292e7dec (feat(anthropic): expand preserved thinking support to cover `prefix_mismatch_behavior: 'error'` (#20624)):packages/anthropic/src/anthropic-language-model.ts
 
               if (value.message.container != null) {
                 container = {
@@ -2563,6 +2573,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 );
               }
 
+              if (value.input_transformations != null) {
+                inputTransformations = value.input_transformations;
+              }
+
               rawUsage = {
                 ...rawUsage,
                 ...(value.usage as JSONObject),
@@ -2580,6 +2594,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 cacheCreationInputTokens,
                 stopSequence,
                 ...(stopDetails != null ? { stopDetails } : {}),
+                ...(inputTransformations != null
+                  ? { inputTransformations }
+                  : {}),
                 iterations: usage.iterations
                   ? usage.iterations.map(
                       iter =>

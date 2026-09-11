@@ -645,6 +645,77 @@ const anthropicToolCallCallerSchema = z.union([
   }),
 ]);
 
+<<<<<<< HEAD:packages/anthropic/src/anthropic-messages-api.ts
+=======
+const anthropicCitationSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('web_search_result_location'),
+    cited_text: z.string(),
+    url: z.string(),
+    title: z.string().nullable(),
+    encrypted_index: z.string(),
+  }),
+  z.object({
+    type: z.literal('page_location'),
+    cited_text: z.string(),
+    document_index: z.number(),
+    document_title: z.string().nullable(),
+    start_page_number: z.number(),
+    end_page_number: z.number(),
+    file_id: z.string().nullish(),
+  }),
+  z.object({
+    type: z.literal('char_location'),
+    cited_text: z.string(),
+    document_index: z.number(),
+    document_title: z.string().nullable(),
+    start_char_index: z.number(),
+    end_char_index: z.number(),
+    file_id: z.string().nullish(),
+  }),
+  z.object({
+    type: z.literal('content_block_location'),
+    cited_text: z.string(),
+    document_index: z.number(),
+    document_title: z.string().nullable(),
+    start_block_index: z.number(),
+    end_block_index: z.number(),
+    file_id: z.string().nullable(),
+  }),
+  z.object({
+    type: z.literal('search_result_location'),
+    cited_text: z.string(),
+    search_result_index: z.number(),
+    source: z.string(),
+    title: z.string().nullable(),
+    start_block_index: z.number(),
+    end_block_index: z.number(),
+  }),
+]);
+
+const anthropicMcpToolResultContentSchema = z.union([
+  z.string(),
+  z.array(
+    z.union([
+      z.string(),
+      z.object({
+        type: z.literal('text'),
+        text: z.string(),
+        // MCP tool-result citations are opaque third-party pass-through data.
+        // Keep them permissive so new shapes do not reject whole responses.
+        citations: z.array(z.json()).nullable().optional(),
+      }),
+    ]),
+  ),
+]);
+
+const anthropicInputTransformationSchema = z.object({
+  type: z.string(),
+  path: z.string(),
+  reason: z.string(),
+});
+
+>>>>>>> e4292e7dec (feat(anthropic): expand preserved thinking support to cover `prefix_mismatch_behavior: 'error'` (#20624)):packages/anthropic/src/anthropic-api.ts
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 export const anthropicMessagesResponseSchema = lazySchema(() =>
@@ -934,6 +1005,9 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
       stop_reason: z.string().nullish(),
       stop_sequence: z.string().nullish(),
       stop_details: anthropicStopDetailsSchema.nullish(),
+      input_transformations: z
+        .array(anthropicInputTransformationSchema)
+        .nullish(),
       usage: z.looseObject({
         input_tokens: z.number(),
         output_tokens: z.number(),
@@ -1033,6 +1107,9 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
             )
             .nullish(),
           stop_reason: z.string().nullish(),
+          input_transformations: z
+            .array(anthropicInputTransformationSchema)
+            .nullish(),
           container: z
             .object({
               expires_at: z.string(),
@@ -1409,6 +1486,9 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
             )
             .nullish(),
         }),
+        input_transformations: z
+          .array(anthropicInputTransformationSchema)
+          .nullish(),
         context_management: z
           .object({
             applied_edits: z.array(
