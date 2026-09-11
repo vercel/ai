@@ -1,6 +1,6 @@
 ---
 title: Telnyx
-description: Telnyx Provider for the AI SDK
+description: Telnyx provider for AI SDK 6
 ---
 
 # Telnyx
@@ -18,21 +18,23 @@ Learn more in the [Telnyx documentation](https://developers.telnyx.com/docs/infe
 
 ## Setup
 
-The Telnyx provider is available in the `@telnyx/ai-sdk-provider` module. You can install it with:
+The published `@telnyx/ai-sdk-provider` package currently supports AI SDK 6 and the Provider V3 specification. It is not compatible with AI SDK 7 yet.
+
+Install it alongside AI SDK 6:
 
 <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
-    <Snippet text="pnpm add @telnyx/ai-sdk-provider ai zod" dark />
+    <Snippet text="pnpm add @telnyx/ai-sdk-provider ai@^6 zod" dark />
   </Tab>
   <Tab>
-    <Snippet text="npm install @telnyx/ai-sdk-provider ai zod" dark />
+    <Snippet text="npm install @telnyx/ai-sdk-provider ai@^6 zod" dark />
   </Tab>
   <Tab>
-    <Snippet text="yarn add @telnyx/ai-sdk-provider ai zod" dark />
+    <Snippet text="yarn add @telnyx/ai-sdk-provider ai@^6 zod" dark />
   </Tab>
 
   <Tab>
-    <Snippet text="bun add @telnyx/ai-sdk-provider ai zod" dark />
+    <Snippet text="bun add @telnyx/ai-sdk-provider ai@^6 zod" dark />
   </Tab>
 </Tabs>
 
