@@ -1,0 +1,145 @@
+---
+title: Nebius Token Factory
+description: Learn how to use the Nebius Token Factory provider for the AI SDK.
+---
+
+# Nebius Token Factory Provider
+
+[nebius-ai-provider](https://github.com/BlairCurrey/nebius-ai-provider) is a community provider for [Nebius Token Factory](https://tokenfactory.nebius.com) (formerly Nebius AI Studio), which serves open-source models such as DeepSeek, Qwen, Llama, GLM, Kimi and gpt-oss through an OpenAI-compatible API, along with embedding and image models.
+
+## Setup
+
+The Nebius provider is available via the `nebius-ai-provider` module. You can install it with:
+
+<InstallPackages packages="nebius-ai-provider" />
+
+### Environment variables
+
+Create a `.env` file with a `NEBIUS_API_KEY` variable. API keys can be obtained from the [Token Factory console](https://tokenfactory.nebius.com).
+
+## Provider Instance
+
+You can import the default provider instance `nebius` from `nebius-ai-provider`. It uses the `NEBIUS_API_KEY` environment variable:
+
+```ts
+import { nebius } from "nebius-ai-provider";
+```
+
+If you need a customized setup, you can import `createNebius` and create a provider instance with your settings:
+
+```ts
+import { createNebius } from "nebius-ai-provider";
+
+const nebius = createNebius({
+  apiKey: "your-api-key",
+});
+```
+
+You can use the following optional settings to customize the provider instance:
+
+- **baseURL** _string_
+
+  Base URL for the API calls. Defaults to
+  `https://api.tokenfactory.nebius.com/v1`. The legacy AI Studio URLs
+  (`https://api.studio.nebius.com/v1`, `https://api.studio.nebius.ai/v1`) can
+  be passed here if needed.
+
+- **apiKey** _string_
+
+  API key. Defaults to the `NEBIUS_API_KEY` environment variable.
+
+- **headers** _Record&lt;string, string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom fetch implementation for e.g. testing or proxy middleware.
+
+## Language Models
+
+You can create language models using a provider instance. Model IDs are HuggingFace-style paths from the [Token Factory model catalog](https://tokenfactory.nebius.com/models/catalog):
+
+```ts
+import { nebius } from "nebius-ai-provider";
+import { generateText } from "ai";
+
+const { text } = await generateText({
+  model: nebius("deepseek-ai/DeepSeek-V4-Flash"),
+  prompt: "Write a vegetarian lasagna recipe for 4 people.",
+});
+```
+
+Nebius language models can also be used with `streamText`, and they support tool calling and structured output.
+
+### Reasoning Models
+
+Reasoning models such as the DeepSeek-R1 family emit their chain of thought as `<think>...</think>` blocks. Use `extractReasoningMiddleware` to expose it as reasoning:
+
+```ts
+import { nebius } from "nebius-ai-provider";
+import {
+  extractReasoningMiddleware,
+  generateText,
+  wrapLanguageModel,
+} from "ai";
+
+const model = wrapLanguageModel({
+  model: nebius("deepseek-ai/DeepSeek-R1-0528"),
+  middleware: extractReasoningMiddleware({ tagName: "think" }),
+});
+
+const { text, reasoningText } = await generateText({
+  model,
+  prompt: "How many primes are there below 100?",
+});
+```
+
+## Embedding Models
+
+You can create embedding models using the `.embeddingModel()` factory method:
+
+```ts
+import { nebius } from "nebius-ai-provider";
+import { embed } from "ai";
+
+const { embedding } = await embed({
+  model: nebius.embeddingModel("Qwen/Qwen3-Embedding-8B"),
+  value: "sunny day at the beach",
+});
+```
+
+## Image Models
+
+You can create image models using the `.imageModel()` factory method:
+
+```ts
+import { nebius } from "nebius-ai-provider";
+import { experimental_generateImage as generateImage } from "ai";
+
+const { image } = await generateImage({
+  model: nebius.imageModel("black-forest-labs/flux-schnell"),
+  prompt: "A watercolor painting of a lighthouse at dawn",
+});
+```
+
+## Model Capabilities
+
+| Model                                | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ------------------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
+| `deepseek-ai/DeepSeek-V4-Flash`      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `deepseek-ai/DeepSeek-V4-Pro`        | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `deepseek-ai/DeepSeek-R1-0528`       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `Qwen/Qwen3-235B-A22B-Instruct-2507` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `Qwen/Qwen2.5-VL-72B-Instruct`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `meta-llama/Llama-3.3-70B-Instruct`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `zai-org/GLM-5.2`                    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `moonshotai/Kimi-K3`                 | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `openai/gpt-oss-120b`                | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
+<Note>
+  The table above lists popular models. Please see the [Nebius Token Factory
+  model catalog](https://tokenfactory.nebius.com/models/catalog) for the full
+  list of available models. Any model ID available on Nebius Token Factory can
+  be passed as a plain string.
+</Note>
