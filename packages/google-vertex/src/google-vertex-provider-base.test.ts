@@ -516,6 +516,7 @@ describe('google-vertex-provider-base', () => {
       .toMatchInlineSnapshot(`
         {
           "baseURL": "https://aiplatform.us.rep.googleapis.com/v1beta1/projects/test-project/locations/us/publishers/google",
+          "downloadToolResultFiles": true,
           "fetch": undefined,
           "generateId": [MockFunction],
           "headers": [Function],
@@ -536,6 +537,7 @@ describe('google-vertex-provider-base', () => {
       .toMatchInlineSnapshot(`
         {
           "baseURL": "https://aiplatform.eu.rep.googleapis.com/v1beta1/projects/test-project/locations/eu/publishers/google",
+          "downloadToolResultFiles": true,
           "fetch": undefined,
           "generateId": [MockFunction],
           "headers": [Function],
