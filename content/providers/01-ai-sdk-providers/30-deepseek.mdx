@@ -78,7 +78,7 @@ const model = deepSeek.languageModel('deepseek-v4-flash');
 DeepSeek language models can be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
-DeepSeek retired the `deepseek-chat` and `deepseek-reasoner` aliases on July 24, 2026. Use `deepseek-v4-flash` or `deepseek-v4-pro` for the current API. Custom
+DeepSeek retired the `deepseek-chat` and `deepseek-reasoner` aliases on July 24, 2026. Use `deepseek-flash` (the alias for the current V4.x Flash release), `deepseek-v4-flash`, or `deepseek-v4-pro` for the current API. Custom
 and legacy model IDs remain accepted as strings for compatibility with custom
 endpoints.
 
@@ -494,6 +494,7 @@ when its declared media type or filename indicates a supported image format.
 
 | Model                          | Text Generation | Object Generation | Image Input | Tool Usage | Tool Streaming |
 | ------------------------------ | --------------- | ----------------- | ----------- | ---------- | -------------- |
+| `deepseek-flash`               | <Check />       | <Check />         | <Cross />   | <Check />  | <Check />      |
 | `deepseek-v4-flash`            | <Check />       | <Check />         | <Cross />   | <Check />  | <Check />      |
 | `deepseek-v4-pro`              | <Check />       | <Check />         | <Cross />   | <Check />  | <Check />      |
 | `deepseek-v4-flash-vision-exp` | <Check />       | <Check />         | <Check />   | <Check />  | <Check />      |

@@ -18,6 +18,7 @@ import type {
 } from './deepseek-chat-api-types';
 import { deepseekFilePartProviderOptions } from './deepseek-file-part-options';
 import { deepseekAssistantMessageProviderOptions } from './deepseek-chat-language-model-options';
+import { isDeepSeekV4Model } from './is-deepseek-v4-model';
 
 const supportedImageMediaTypes = new Set([
   'image/gif',
@@ -45,7 +46,7 @@ export async function convertToDeepSeekChatMessages({
   messages: DeepSeekChatPrompt;
   warnings: Array<SharedV4Warning>;
 }> {
-  const isDeepSeekV4 = modelId.includes('deepseek-v4');
+  const isDeepSeekV4 = isDeepSeekV4Model(modelId);
   const messages: DeepSeekChatPrompt = [];
   const warnings: Array<SharedV4Warning> = [];
 
