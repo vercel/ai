@@ -189,13 +189,17 @@ function selectGitHubCopilotAccount({
 }): GitHubCopilotAccount | undefined {
   if (config == null) return undefined;
 
-  const lastLoggedInUser = toGitHubCopilotAccount(config.lastLoggedInUser);
-  if (lastLoggedInUser != null) return lastLoggedInUser;
-
-  if (!Array.isArray(config.loggedInUsers)) return undefined;
-  for (const value of config.loggedInUsers) {
+  for (const value of [config.last_logged_in_user, config.lastLoggedInUser]) {
     const account = toGitHubCopilotAccount(value);
     if (account != null) return account;
+  }
+
+  for (const values of [config.logged_in_users, config.loggedInUsers]) {
+    if (!Array.isArray(values)) continue;
+    for (const value of values) {
+      const account = toGitHubCopilotAccount(value);
+      if (account != null) return account;
+    }
   }
   return undefined;
 }

@@ -122,11 +122,11 @@ describe('readGitHubCopilotSubscription', () => {
       config: `
         // This file is managed by Copilot CLI.
         {
-          "lastLoggedInUser": {
+          "last_logged_in_user": {
             "host": "https://enterprise.example/",
             "login": "last-user",
           },
-          "loggedInUsers": [
+          "logged_in_users": [
             { "host": "https://github.com", "login": "first-user" }
           ],
           "copilotTokens": {
@@ -251,7 +251,7 @@ describe('readGitHubCopilotSubscription', () => {
   it('uses the first logged-in account when no last account is stored', async () => {
     const copilotHome = await createCopilotHome({
       config: JSON.stringify({
-        loggedInUsers: [
+        logged_in_users: [
           { host: 'invalid', login: '' },
           { host: 'https://github.com', login: 'first-valid-user' },
           { host: 'https://enterprise.example', login: 'second-user' },
