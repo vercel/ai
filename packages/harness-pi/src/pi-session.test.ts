@@ -1337,16 +1337,21 @@ describe('createPiSession', () => {
     vi.mocked(SettingsManager.inMemory).mockClear();
     vi.mocked(SettingsManager.create).mockClear();
 
+    vi.stubEnv('OPENAI_API_KEY', undefined);
     const sandboxSession = createSandboxSession();
-    await createPiSession({
-      sessionId: 'session-agentdir',
-      sandboxSession,
-      sessionWorkDir: '/sandbox/work',
-      settings: {},
-      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
-      isResume: false,
-      agentDir: '/custom/.pi/agent',
-    });
+    try {
+      await createPiSession({
+        sessionId: 'session-agentdir',
+        sandboxSession,
+        sessionWorkDir: '/sandbox/work',
+        settings: { auth: 'openai' },
+        clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+        isResume: false,
+        agentDir: '/custom/.pi/agent',
+      });
+    } finally {
+      vi.unstubAllEnvs();
+    }
 
     expect(ModelRuntime.create).toHaveBeenCalledWith({
       authPath: '/custom/.pi/agent/auth.json',

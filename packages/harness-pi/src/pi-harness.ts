@@ -39,9 +39,9 @@ export type PiHarnessSettings = {
   readonly thinkingLevel?: PiThinkingLevel;
   /**
    * Directory holding Pi's global agent config (auth.json, models.json,
-   * settings.json). When omitted, a per-session temp dir is used. Pass the
-   * user's agent dir (e.g. `~/.pi/agent/`) to reuse their CLI auth and
-   * model settings.
+   * settings.json). When omitted, native subscription auth is discovered from
+   * Pi's default agent directory while model and general settings remain
+   * isolated per session.
    */
   readonly agentDir?: string;
   /**
