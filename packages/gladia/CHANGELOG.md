@@ -1,5 +1,11 @@
 # @ai-sdk/gladia
 
+## 2.0.58
+
+### Patch Changes
+
+- 8be4354: fix(gladia): preserve utterance metadata in transcription results
+
 ## 2.0.57
 
 ### Patch Changes
