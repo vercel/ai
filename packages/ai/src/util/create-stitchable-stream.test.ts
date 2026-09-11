@@ -170,6 +170,28 @@ describe('createStitchableStream', () => {
       expect(stream2Cancelled).toBe(true);
     });
 
+    it('should discard streams added after cancellation and allow closing', async () => {
+      const { stream, addStream, close } = createStitchableStream<number>();
+      let lateStreamCancelled = false;
+
+      await stream.cancel();
+
+      expect(() =>
+        addStream(
+          new ReadableStream({
+            cancel() {
+              lateStreamCancelled = true;
+            },
+          }),
+        ),
+      ).not.toThrow();
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(lateStreamCancelled).toBe(true);
+      expect(() => close()).not.toThrow();
+    });
+
     it('should throw an error when adding a stream after closing', async () => {
       const { addStream, close } = createStitchableStream<number>();
 
