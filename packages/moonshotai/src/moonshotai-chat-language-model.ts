@@ -660,7 +660,6 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
             if (chunk.type === 'finish') {
               // Re-convert usage from raw data to capture cached_tokens
               controller.enqueue({
-<<<<<<< HEAD
                 ...chunk,
                 usage: rawUsage
                   ? convertMoonshotAIChatUsage(rawUsage as any)
@@ -673,87 +672,6 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
                       logprobs: { content: contentLogprobs },
                     }),
                   },
-=======
-                type: 'reasoning-delta',
-                id: 'reasoning-0',
-                delta: reasoningContent,
-              });
-            }
-
-            if (delta.content) {
-              if (!isActiveText) {
-                controller.enqueue({ type: 'text-start', id: 'txt-0' });
-                isActiveText = true;
-              }
-
-              // end reasoning when text starts:
-              if (isActiveReasoning) {
-                controller.enqueue({
-                  type: 'reasoning-end',
-                  id: 'reasoning-0',
-                });
-                isActiveReasoning = false;
-              }
-
-              controller.enqueue({
-                type: 'text-delta',
-                id: 'txt-0',
-                delta: delta.content,
-              });
-            }
-
-            if (delta.tool_calls != null && delta.tool_calls.length > 0) {
-              // end reasoning when tool calls start:
-              if (isActiveReasoning) {
-                controller.enqueue({
-                  type: 'reasoning-end',
-                  id: 'reasoning-0',
-                });
-                isActiveReasoning = false;
-              }
-
-              for (const [index, toolCallDelta] of delta.tool_calls.entries()) {
-                const toolCallIndex = toolCallDelta.index ?? index;
-                if (toolCallDelta.type != null) {
-                  toolCallTypes.set(toolCallIndex, toolCallDelta.type);
-                }
-                toolCallTracker.processDelta({
-                  ...toolCallDelta,
-                  index: toolCallIndex,
-                });
-              }
-            }
-          },
-
-          flush(controller) {
-            if (isActiveReasoning) {
-              controller.enqueue({ type: 'reasoning-end', id: 'reasoning-0' });
-            }
-
-            if (isActiveText) {
-              controller.enqueue({ type: 'text-end', id: 'txt-0' });
-            }
-
-            toolCallTracker.flush();
-
-            controller.enqueue({
-              type: 'finish',
-              finishReason,
-              usage: convertMoonshotAIChatUsage(topLevelUsage ?? choiceUsage),
-              providerMetadata: {
-                [providerOptionsName]: {
-                  ...(contentLogprobs.length > 0 && {
-                    logprobs: { content: contentLogprobs },
-                  }),
-                  ...(responseObject != null && { responseObject }),
-                  ...(choiceIndex != null && { choiceIndex }),
-                  ...(messageRole != null && { messageRole }),
-                  ...(toolCallTypes.size > 0 && {
-                    toolCallTypes: [...toolCallTypes.entries()]
-                      .sort(([left], [right]) => left - right)
-                      .map(([, type]) => type),
-                  }),
->>>>>>> 00968508b7 (fix: preserve reasoning streams when provider deltas contain empty tool-call arrays (#20554))
                 },
               });
               return;

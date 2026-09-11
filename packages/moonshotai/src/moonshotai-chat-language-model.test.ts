@@ -1256,96 +1256,8 @@ describe('MoonshotAIChatLanguageModel', () => {
     it('should send partial true when streaming', async () => {
       prepareChunksFixtureResponse('moonshot-text');
 
-<<<<<<< HEAD
       await provider.chatModel('kimi-k3').doStream({
         prompt: [
-=======
-    expect(parts[0]).toEqual({ type: 'stream-start', warnings: [] });
-    expect(parts).toContainEqual({
-      type: 'reasoning-start',
-      id: 'reasoning-0',
-    });
-    expect(parts).toContainEqual({
-      type: 'reasoning-delta',
-      id: 'reasoning-0',
-      delta: 'Thinking ',
-    });
-    expect(parts).toContainEqual({
-      type: 'reasoning-end',
-      id: 'reasoning-0',
-    });
-    expect(parts).toContainEqual({ type: 'text-start', id: 'txt-0' });
-    expect(parts).toContainEqual({
-      type: 'text-delta',
-      id: 'txt-0',
-      delta: 'Hello',
-    });
-    expect(parts).toContainEqual({ type: 'text-end', id: 'txt-0' });
-
-    const finish = parts.at(-1);
-    expect(finish).toMatchObject({
-      type: 'finish',
-      finishReason: { unified: 'stop', raw: 'stop' },
-      usage: {
-        inputTokens: { total: 9 },
-        outputTokens: { total: 12, reasoning: 7 },
-      },
-    });
-  });
-
-  it('should keep reasoning active when deltas include empty tool calls', async () => {
-    server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
-      type: 'stream-chunks',
-      chunks: [
-        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
-          `"choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"Think ","tool_calls":[]},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
-          `"choices":[{"index":0,"delta":{"content":"","reasoning_content":"more...","tool_calls":[]},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
-          `"choices":[{"index":0,"delta":{"content":"Hello","reasoning_content":"","tool_calls":[]},"finish_reason":"stop"}]}\n\n`,
-        'data: [DONE]\n\n',
-      ],
-    };
-
-    const { stream } = await provider.chatModel('kimi-k2-thinking').doStream({
-      prompt: TEST_PROMPT,
-    });
-
-    const events = await convertReadableStreamToArray(stream);
-
-    expect(
-      events.filter(({ type }) => type.startsWith('reasoning-')),
-    ).toStrictEqual([
-      { type: 'reasoning-start', id: 'reasoning-0' },
-      { type: 'reasoning-delta', id: 'reasoning-0', delta: 'Think ' },
-      { type: 'reasoning-delta', id: 'reasoning-0', delta: 'more...' },
-      { type: 'reasoning-end', id: 'reasoning-0' },
-    ]);
-  });
-
-  it.each(['choice-level finish chunk', 'separate top-level usage chunk'])(
-    'should preserve extra fields in streamed raw usage from a %s',
-    async usageLocation => {
-      const usage = {
-        prompt_tokens: 100,
-        completion_tokens: 50,
-        total_tokens: 150,
-        cached_tokens: 20,
-        provider_usage_id: 'usage-123',
-        prompt_tokens_details: {
-          cached_tokens: 20,
-          cache_type: 'ephemeral',
-        },
-        completion_tokens_details: {
-          reasoning_tokens: 10,
-          billable_tokens: 42,
-        },
-      };
-      const finishChunk = {
-        id: 'chatcmpl-raw-usage',
-        object: 'chat.completion.chunk',
-        choices: [
->>>>>>> 00968508b7 (fix: preserve reasoning streams when provider deltas contain empty tool-call arrays (#20554))
           {
             role: 'assistant',
             content: [{ type: 'text', text: 'The sky is' }],
@@ -1361,6 +1273,36 @@ describe('MoonshotAIChatLanguageModel', () => {
       expect(await server.calls[0].requestBodyJson).toMatchObject({
         messages: [{ role: 'assistant', content: 'The sky is', partial: true }],
       });
+    });
+
+    it('should keep reasoning active when deltas include empty tool calls', async () => {
+      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+            `"choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"Think ","tool_calls":[]},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+            `"choices":[{"index":0,"delta":{"content":"","reasoning_content":"more...","tool_calls":[]},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+            `"choices":[{"index":0,"delta":{"content":"Hello","reasoning_content":"","tool_calls":[]},"finish_reason":"stop"}]}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await provider.chatModel('kimi-k2-thinking').doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      expect(
+        events.filter(({ type }) => type.startsWith('reasoning-')),
+      ).toStrictEqual([
+        { type: 'reasoning-start', id: 'reasoning-0' },
+        { type: 'reasoning-delta', id: 'reasoning-0', delta: 'Think ' },
+        { type: 'reasoning-delta', id: 'reasoning-0', delta: 'more...' },
+        { type: 'reasoning-end', id: 'reasoning-0' },
+      ]);
     });
 
     it('should omit sampling options and add v2 warnings when streaming', async () => {

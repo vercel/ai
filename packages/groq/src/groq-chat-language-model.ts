@@ -375,20 +375,7 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
               });
             }
 
-<<<<<<< HEAD
             if (delta.tool_calls != null) {
-=======
-            if (delta.tool_calls != null && delta.tool_calls.length > 0) {
-              // end active reasoning block before tool calls start
-              if (isActiveReasoning) {
-                controller.enqueue({
-                  type: 'reasoning-end',
-                  id: 'reasoning-0',
-                });
-                isActiveReasoning = false;
-              }
-
->>>>>>> 00968508b7 (fix: preserve reasoning streams when provider deltas contain empty tool-call arrays (#20554))
               for (const toolCallDelta of delta.tool_calls) {
                 const index = toolCallDelta.index;
 
