@@ -43,6 +43,7 @@
     "@ai-sdk/harness-grok-build": "workspace:*",
     "@ai-sdk/harness-opencode": "workspace:*",
     "@ai-sdk/harness-pi": "workspace:*",
+    "@ai-sdk/workflow-harness": "workspace:*",
     "@ai-sdk/huggingface": "workspace:*",
     "@ai-sdk/hume": "workspace:*",
     "@ai-sdk/klingai": "workspace:*",

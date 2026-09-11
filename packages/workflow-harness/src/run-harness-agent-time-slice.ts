@@ -11,8 +11,8 @@ import {
  */
 const DEFAULT_TIME_SLICE_SECONDS = 750;
 
-export interface RunHarnessAgentTimeSliceOptions extends Omit<
-  RunHarnessAgentOptions,
+export interface RunHarnessAgentTimeSliceOptions<OUTPUT = unknown> extends Omit<
+  RunHarnessAgentOptions<OUTPUT>,
   'timeSliceSeconds'
 > {
   /**
@@ -27,9 +27,9 @@ export interface RunHarnessAgentTimeSliceOptions extends Omit<
  * When the time slice completes before the turn, the returned state has status
  * `ready_for_next_step` and carries the continuation state for the next slice.
  */
-export async function runHarnessAgentTimeSlice(
-  options: RunHarnessAgentTimeSliceOptions,
-): Promise<HarnessWorkflowState> {
+export async function runHarnessAgentTimeSlice<OUTPUT = unknown>(
+  options: RunHarnessAgentTimeSliceOptions<OUTPUT>,
+): Promise<HarnessWorkflowState<OUTPUT>> {
   return runHarnessAgent({
     ...options,
     timeSliceSeconds: options.timeSliceSeconds ?? DEFAULT_TIME_SLICE_SECONDS,

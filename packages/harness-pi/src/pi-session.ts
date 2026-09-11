@@ -44,6 +44,7 @@ import {
   resolvePiEnv,
   type PiAuthenticationMode,
 } from './pi-auth';
+import { resolvePiSubscriptionAgentDir } from './pi-subscription';
 import { getPiTerminalError, parseNativeEvent } from './pi-events';
 import { createPiModelResolver } from './pi-model-resolver';
 import { createPiPathMapper } from './pi-paths';
@@ -240,9 +241,9 @@ export interface CreatePiSessionInput {
   readonly abortSignal?: AbortSignal;
   /**
    * Directory holding Pi's global agent config (auth.json, models.json,
-   * settings.json). When omitted, a per-session temp dir is used (the
-   * harness cannot reuse existing CLI logins). Pass the user's agent dir
-   * (e.g. `~/.pi/agent/`) to reuse their CLI auth and model settings.
+   * settings.json). Native auth from this directory is considered after
+   * applicable environment credentials. Model and general settings are only
+   * reused when this option is explicit.
    */
   readonly agentDir?: string;
 }
@@ -430,9 +431,14 @@ export async function createPiSession(
    * outside that record. General Pi settings still use agentDir below.
    */
   const agentDir = input.agentDir ?? hostAgentDir;
+  const nativeAgentDir = resolvePiSubscriptionAgentDir({
+    options: input.settings.auth,
+    env: process.env,
+    agentDir: input.agentDir,
+  });
   const modelRuntime = await createPiModelRuntime({
     auth: input.settings.auth,
-    authPath: path.join(agentDir, 'auth.json'),
+    authPath: path.join(nativeAgentDir ?? hostAgentDir, 'auth.json'),
     modelsPath: path.join(agentDir, 'models.json'),
   });
   const modelRegistry = new ModelRegistry(modelRuntime);

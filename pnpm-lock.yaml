@@ -510,6 +510,9 @@ importers:
       '@ai-sdk/workflow':
         specifier: workspace:*
         version: link:../../packages/workflow
+      '@ai-sdk/workflow-harness':
+        specifier: workspace:*
+        version: link:../../packages/workflow-harness
       '@ai-sdk/xai':
         specifier: workspace:*
         version: link:../../packages/xai
@@ -3129,6 +3132,9 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+      jsonc-parser:
+        specifier: 3.3.1
+        version: 3.3.1
     devDependencies:
       '@github/copilot':
         specifier: 1.0.82

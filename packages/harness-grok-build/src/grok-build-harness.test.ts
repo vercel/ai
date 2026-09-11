@@ -43,6 +43,7 @@ describe('createGrokBuild', () => {
       source,
       executable: settings.executable,
       args: settings.args,
+      authentication: settings.authentication,
       credentialEnv: settings.credentialEnv,
       instructionMapping: settings.instructionMapping,
       outputSchemaMapping: settings.outputSchemaMapping,
@@ -54,6 +55,9 @@ describe('createGrokBuild', () => {
           "agent",
           "stdio",
         ],
+        "authentication": {
+          "methodId": "xai.api_key",
+        },
         "builtinToolNames": [
           "askUserQuestions",
           "bash",
@@ -173,6 +177,38 @@ describe('createGrokBuild', () => {
           headers: {
             'x-tenant': 'acme',
             Authorization: 'Bearer xai-secret',
+          },
+        },
+      },
+    ]);
+
+    expect(
+      settings.credentialBrokering?.({
+        env: {
+          XAI_API_KEY: 'header.payload.host-signature',
+          GROK_XAI_API_BASE_URL: 'https://cli-chat-proxy.grok.com/v1',
+          GROK_CLI_CHAT_PROXY_BASE_URL: 'https://cli-chat-proxy.grok.com/v1',
+        },
+        sandboxEnv: {
+          XAI_API_KEY: 'sandbox-placeholder',
+        },
+      }),
+    ).toEqual([
+      {
+        match: {
+          host: 'cli-chat-proxy.grok.com',
+          path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-placeholder' },
+            },
+          ],
+        },
+        transform: {
+          headers: {
+            Authorization: 'Bearer header.payload.host-signature',
+            'X-XAI-Token-Auth': 'xai-grok-cli',
           },
         },
       },
