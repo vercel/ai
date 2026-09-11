@@ -124,6 +124,7 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   const chatRef = useRef<Chat<UI_MESSAGE>>(
     'chat' in options ? options.chat : new Chat(chatOptions),
   );
+  const isChatExternallyManagedRef = useRef('chat' in options);
 
   const shouldRecreateChat =
     ('chat' in options && options.chat !== chatRef.current) ||
@@ -132,7 +133,12 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
       chatRef.current.id !== options.id);
 
   if (shouldRecreateChat) {
+    if (!isChatExternallyManagedRef.current) {
+      void chatRef.current.stop();
+    }
+
     chatRef.current = 'chat' in options ? options.chat : new Chat(chatOptions);
+    isChatExternallyManagedRef.current = 'chat' in options;
   }
 
   const chat = chatRef.current;
