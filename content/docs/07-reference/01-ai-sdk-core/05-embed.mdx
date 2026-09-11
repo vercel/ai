@@ -68,8 +68,15 @@ const { embedding } = await embed({
         'Provider-specific options that are passed through to the provider.',
     },
     {
+      name: 'runtimeContext',
+      type: 'RUNTIME_CONTEXT',
+      isOptional: true,
+      description:
+        'User-defined runtime context passed to lifecycle callbacks. Defaults to an empty object. Telemetry integrations only receive top-level properties explicitly included with telemetry.includeRuntimeContext.',
+    },
+    {
       name: 'telemetry',
-      type: 'TelemetryOptions',
+      type: 'TelemetryOptions<RUNTIME_CONTEXT>',
       isOptional: true,
       description: 'Telemetry configuration.',
       properties: [
@@ -105,6 +112,13 @@ const { embedding } = await embed({
                 'Identifier for this function. Used to group telemetry data by function.',
             },
             {
+              name: 'includeRuntimeContext',
+              type: '{ [KEY in keyof RUNTIME_CONTEXT]?: boolean }',
+              isOptional: true,
+              description:
+                'Top-level runtime context properties to include in telemetry. Only properties set to true are included. All properties are excluded by default. User callbacks still receive the full context.',
+            },
+            {
               name: 'integrations',
               isOptional: true,
               type: 'Telemetry | Telemetry[]',
@@ -117,14 +131,20 @@ const { embedding } = await embed({
     },
     {
       name: 'onStart',
-      type: '(event: EmbedStartEvent) => PromiseLike<void> | void',
+      type: '(event: EmbedStartEvent<RUNTIME_CONTEXT>) => PromiseLike<void> | void',
       isOptional: true,
       description:
         'Callback that is called when the embed operation begins, before the embedding model is called. Errors thrown in this callback are silently caught and do not break the embedding flow.',
       properties: [
         {
-          type: 'EmbedStartEvent',
+          type: 'EmbedStartEvent<RUNTIME_CONTEXT>',
           parameters: [
+            {
+              name: 'runtimeContext',
+              type: 'RUNTIME_CONTEXT',
+              description:
+                'The full, unfiltered runtime context supplied to the operation.',
+            },
             {
               name: 'callId',
               type: 'string',
@@ -171,14 +191,20 @@ const { embedding } = await embed({
     },
     {
       name: 'onEnd',
-      type: '(event: EmbedEndEvent) => PromiseLike<void> | void',
+      type: '(event: EmbedEndEvent<RUNTIME_CONTEXT>) => PromiseLike<void> | void',
       isOptional: true,
       description:
         'Callback that is called when the embed operation completes, after the embedding model returns. Errors thrown in this callback are silently caught and do not break the embedding flow.',
       properties: [
         {
-          type: 'EmbedEndEvent',
+          type: 'EmbedEndEvent<RUNTIME_CONTEXT>',
           parameters: [
+            {
+              name: 'runtimeContext',
+              type: 'RUNTIME_CONTEXT',
+              description:
+                'The full, unfiltered runtime context supplied to the operation.',
+            },
             {
               name: 'callId',
               type: 'string',
