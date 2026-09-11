@@ -20,7 +20,10 @@ export {
   readResponseWithSizeLimit,
   DEFAULT_MAX_DOWNLOAD_SIZE,
 } from './read-response-with-size-limit';
-export { fetchWithValidatedRedirects } from './fetch-with-validated-redirects';
+export {
+  fetchWithValidatedEndpoint,
+  fetchWithValidatedRedirects,
+} from './fetch-with-validated-redirects';
 export * from './fetch-function';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
 export * from './get-error-message';
