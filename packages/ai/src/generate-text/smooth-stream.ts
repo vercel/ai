@@ -159,10 +159,23 @@ export function smoothStream<TOOLS extends ToolSet>({
           return;
         }
 
-        // Flush buffer when type or id changes
+        // Empty deltas that only carry metadata (e.g. Anthropic thinking
+        // signatures) pass through untouched, so the metadata is neither
+        // merged into surrounding text nor dropped from the stream.
+        if (chunk.text.length === 0 && chunk.providerMetadata != null) {
+          flushBuffer(controller);
+          controller.enqueue(chunk);
+          return;
+        }
+
+        // Flush at metadata boundaries: one output part must not merge
+        // metadata from multiple input deltas.
         if (
-          (chunk.type !== type || chunk.id !== id) &&
-          (buffer.length > 0 || providerMetadata != null)
+          buffer.length > 0 &&
+          (chunk.type !== type ||
+            chunk.id !== id ||
+            providerMetadata != null ||
+            chunk.providerMetadata != null)
         ) {
           flushBuffer(controller);
         }
@@ -170,19 +183,26 @@ export function smoothStream<TOOLS extends ToolSet>({
         buffer += chunk.text;
         id = chunk.id;
         type = chunk.type;
-
-        // Preserve providerMetadata (e.g., Anthropic thinking signatures)
-        if (chunk.providerMetadata != null) {
-          providerMetadata = chunk.providerMetadata;
-        }
+        providerMetadata = chunk.providerMetadata;
 
         let match;
 
         while ((match = detectChunk(buffer)) != null) {
-          controller.enqueue({ type, text: match, id });
+          controller.enqueue({
+            type,
+            text: match,
+            id,
+            ...(providerMetadata != null ? { providerMetadata } : {}),
+          });
           buffer = buffer.slice(match.length);
 
           await delay(isDocumentHidden() ? null : delayInMs);
+        }
+
+        // The buffered metadata has been fully emitted with the chunked
+        // text above: clear it so it cannot leak onto later deltas.
+        if (buffer.length === 0) {
+          providerMetadata = undefined;
         }
       },
     });

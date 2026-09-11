@@ -1680,6 +1680,117 @@ describe('smoothStream', () => {
         anthropic: { redactedData: 'redacted-thinking-data' },
       });
     });
+
+    it('should preserve providerMetadata on word-chunked deltas with text (#14373)', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'reasoning-start', id: 'r1' },
+        {
+          text: 'First ',
+          type: 'reasoning-delta',
+          id: 'r1',
+          providerMetadata: { anthropic: { signature: 'sig_first' } },
+        },
+        {
+          text: 'second ',
+          type: 'reasoning-delta',
+          id: 'r1',
+          providerMetadata: { anthropic: { signature: 'sig_second' } },
+        },
+        { type: 'reasoning-end', id: 'r1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      const deltas = events.filter((e: any) => e.type === 'reasoning-delta');
+      expect(deltas).toHaveLength(2);
+      expect(deltas[0]).toEqual({
+        text: 'First ',
+        type: 'reasoning-delta',
+        id: 'r1',
+        providerMetadata: { anthropic: { signature: 'sig_first' } },
+      });
+      expect(deltas[1]).toEqual({
+        text: 'second ',
+        type: 'reasoning-delta',
+        id: 'r1',
+        providerMetadata: { anthropic: { signature: 'sig_second' } },
+      });
+    });
+
+    it('should not leak providerMetadata onto later deltas without metadata', async () => {
+      const metadata = { anthropic: { signature: 'sig_only_first' } };
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: 't1' },
+        {
+          text: 'Hello ',
+          type: 'text-delta',
+          id: 't1',
+          providerMetadata: metadata,
+        },
+        { text: 'world!', type: 'text-delta', id: 't1' },
+        { type: 'text-end', id: 't1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      const deltas = events.filter((e: any) => e.type === 'text-delta');
+      expect(deltas).toHaveLength(2);
+      expect(deltas[0]).toEqual({
+        text: 'Hello ',
+        type: 'text-delta',
+        id: 't1',
+        providerMetadata: metadata,
+      });
+      expect(deltas[1]).toEqual({
+        text: 'world!',
+        type: 'text-delta',
+        id: 't1',
+      });
+      expect(deltas[1]).not.toHaveProperty('providerMetadata');
+    });
+
+    it('should not merge metadata-only deltas into earlier buffered text', async () => {
+      const metadata = { anthropic: { signature: 'sig_trailing' } };
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: 't1' },
+        { text: 'Hello worl', type: 'text-delta', id: 't1' },
+        { text: '', type: 'text-delta', id: 't1', providerMetadata: metadata },
+        { type: 'text-end', id: 't1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      const deltas = events.filter((e: any) => e.type === 'text-delta');
+      expect(deltas).toHaveLength(3);
+      expect(deltas[0]).toEqual({
+        text: 'Hello ',
+        type: 'text-delta',
+        id: 't1',
+      });
+      expect(deltas[1]).toEqual({ text: 'worl', type: 'text-delta', id: 't1' });
+      expect(deltas[1]).not.toHaveProperty('providerMetadata');
+      expect(deltas[2]).toEqual({
+        text: '',
+        type: 'text-delta',
+        id: 't1',
+        providerMetadata: metadata,
+      });
+    });
   });
 
   describe('Intl.Segmenter chunking', () => {
