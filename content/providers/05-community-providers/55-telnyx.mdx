@@ -110,7 +110,7 @@ import { telnyx } from '@telnyx/ai-sdk-provider';
 import { experimental_generateSpeech as generateSpeech } from 'ai';
 
 const { audio } = await generateSpeech({
-  model: telnyx.speechModel('tts-1'),
+  model: telnyx.speech('Telnyx.NaturalHD.astra'),
   text: 'Hello from Telnyx!',
   voice: 'Telnyx.NaturalHD.astra',
 });
