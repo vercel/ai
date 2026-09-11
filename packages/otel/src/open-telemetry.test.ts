@@ -698,6 +698,7 @@ describe('OpenTelemetry', () => {
           "runtimeAttributes": {
             "gen_ai.client.operation.duration": 1,
             "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+            "gen_ai.provider.name": "openai",
             "gen_ai.response.finish_reasons": [
               "stop",
             ],
@@ -1723,6 +1724,7 @@ describe('OpenTelemetry', () => {
               "ai.usage.outputTokenDetails.textTokens": 15,
               "gen_ai.client.operation.duration": 1,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.provider.name": "openai",
               "gen_ai.response.finish_reasons": [
                 "stop",
               ],
@@ -1826,6 +1828,7 @@ describe('OpenTelemetry', () => {
             "runtimeAttributes": {
               "gen_ai.client.operation.duration": 1,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.provider.name": "openai",
               "gen_ai.response.finish_reasons": [
                 "stop",
               ],
@@ -2589,6 +2592,7 @@ describe('OpenTelemetry', () => {
             "runtimeAttributes": {
               "gen_ai.client.operation.duration": 1,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.provider.name": "openai",
               "gen_ai.response.finish_reasons": [
                 "stop",
               ],
@@ -2679,6 +2683,7 @@ describe('OpenTelemetry', () => {
             "runtimeAttributes": {
               "gen_ai.client.operation.duration": 1,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"tool_call"}]",
+              "gen_ai.provider.name": "openai",
               "gen_ai.response.finish_reasons": [
                 "tool-calls",
               ],
@@ -2724,6 +2729,7 @@ describe('OpenTelemetry', () => {
             "runtimeAttributes": {
               "gen_ai.client.operation.duration": 1,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.provider.name": "openai",
               "gen_ai.response.finish_reasons": [
                 "stop",
               ],
