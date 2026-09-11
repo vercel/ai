@@ -1,5 +1,13 @@
 # @ai-sdk/azure
 
+## 2.0.134
+
+### Patch Changes
+
+- Updated dependencies [41fda08]
+- Updated dependencies [2c72feb]
+  - @ai-sdk/deepseek@1.0.57
+
 ## 2.0.133
 
 ### Patch Changes
