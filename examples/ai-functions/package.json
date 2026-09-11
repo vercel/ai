@@ -83,6 +83,7 @@
     "@valibot/to-json-schema": "^1.7.0",
     "@vercel/sandbox": "^3.0.0",
     "ai": "workspace:*",
+    "ai-fallback": "3.0.0",
     "arktype": "2.1.28",
     "dotenv": "16.4.5",
     "effect": "3.21.3",
