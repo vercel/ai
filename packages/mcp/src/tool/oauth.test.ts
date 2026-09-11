@@ -137,6 +137,25 @@ describe('discoverOAuthProtectedResourceMetadata', () => {
     );
   });
 
+  it('rejects redirects from protected resource discovery to private addresses', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(null, {
+        status: 302,
+        headers: {
+          location: 'http://169.254.169.254/latest/meta-data',
+        },
+      }),
+    );
+
+    await expect(
+      discoverOAuthProtectedResourceMetadata(
+        'https://resource.example.com/mcp',
+      ),
+    ).rejects.toThrow(/169\.254\.169\.254/);
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
   it('returns metadata when first fetch fails but second without MCP header succeeds', async () => {
     // Set up a counter to control behavior
     let callCount = 0;
@@ -574,6 +593,33 @@ describe('discoverAuthorizationServerMetadata', () => {
     response_types_supported: ['code'],
     code_challenge_methods_supported: ['S256'],
   };
+
+  it('rejects private authorization server discovery targets', async () => {
+    await expect(
+      discoverAuthorizationServerMetadata(
+        'http://169.254.169.254/latest/meta-data',
+      ),
+    ).rejects.toThrow(/169\.254\.169\.254/);
+
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('rejects authorization server discovery redirects to private addresses', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(null, {
+        status: 302,
+        headers: {
+          location: 'http://127.0.0.1:4000/.well-known/openid-configuration',
+        },
+      }),
+    );
+
+    await expect(
+      discoverAuthorizationServerMetadata('https://auth.example.com'),
+    ).rejects.toThrow(/127\.0\.0\.1/);
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
 
   it('returns OAuth metadata when issuer matches path-aware discovery issuer', async () => {
     const tenantMetadata = {
@@ -2466,6 +2512,27 @@ describe('auth function', () => {
     ).rejects.toThrow(/does not match/);
 
     expect(evilTokenRequests).toHaveLength(0);
+  });
+
+  it('rejects a remote MCP server that advertises a loopback authorization server', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        resource: 'https://api.example.com/mcp-server',
+        authorization_servers: ['http://localhost:4000'],
+      }),
+    });
+
+    await expect(
+      auth(mockProvider, {
+        serverUrl: 'https://api.example.com/mcp-server',
+      }),
+    ).rejects.toThrow(
+      'OAuth endpoint URL is not allowed: http://localhost:4000/',
+    );
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
   it('allows providers to reject discovered authorization server URLs before metadata discovery', async () => {
