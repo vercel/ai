@@ -77,6 +77,7 @@ interface CallState {
   stepContext: OpenTelemetryContext | undefined;
   inferenceSpan: Span | undefined;
   inferenceContext: OpenTelemetryContext | undefined;
+  inferenceProviderName?: string;
   inferenceToolDefinitions?: ReadonlyArray<Record<string, unknown>>;
   embedSpans: Map<string, { span: Span; context: OpenTelemetryContext }>;
   rerankSpan: { span: Span; context: OpenTelemetryContext } | undefined;
@@ -684,6 +685,7 @@ export class OpenTelemetry implements Telemetry {
 
     const { telemetry } = state;
     const providerName = mapProviderName(event.provider);
+    state.inferenceProviderName = providerName;
     state.inferenceToolDefinitions = event.tools;
 
     const inferenceAttributes = selectAttributes(telemetry, {
@@ -756,6 +758,7 @@ export class OpenTelemetry implements Telemetry {
     if (!state?.inferenceSpan) return;
 
     const { telemetry } = state;
+    const providerName = mapProviderName(event.provider);
     const toolDefinitions = [...(state.inferenceToolDefinitions ?? [])];
     const definedToolNames = new Set(
       toolDefinitions.flatMap(tool =>
@@ -784,6 +787,10 @@ export class OpenTelemetry implements Telemetry {
     state.inferenceSpan.setAttributes(
       selectAttributes(telemetry, {
         ...getGenAIClientPerformanceAttributes(event.performance),
+        'gen_ai.provider.name':
+          providerName !== state.inferenceProviderName
+            ? providerName
+            : undefined,
         'gen_ai.response.finish_reasons': [event.finishReason],
         'gen_ai.response.id': event.responseId,
         'gen_ai.response.model': event.modelId,
@@ -907,6 +914,7 @@ export class OpenTelemetry implements Telemetry {
     state.inferenceSpan.end();
     state.inferenceSpan = undefined;
     state.inferenceContext = undefined;
+    state.inferenceProviderName = undefined;
     state.inferenceToolDefinitions = undefined;
   }
 
