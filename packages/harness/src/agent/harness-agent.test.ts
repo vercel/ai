@@ -731,7 +731,11 @@ describe('HarnessAgent', () => {
               content: `${options.tenant} instructions`,
             },
           ],
-          instructions: `Serve ${options.tenant}`,
+          instructions: {
+            role: 'system',
+            content: `Serve ${options.tenant}`,
+            providerOptions: { test: { cache: true } },
+          },
           tools: options.tenant === 'alpha' ? { echo } : undefined,
         };
       },
@@ -2040,7 +2044,11 @@ describe('HarnessAgent', () => {
     const agent = new HarnessAgent({
       harness,
       sandbox: makeSandboxProvider(),
-      instructions: 'Be concise.',
+      instructions: {
+        role: 'system',
+        content: 'Be concise.',
+        providerOptions: { test: { cache: true } },
+      },
     });
     const session = await agent.createSession({
       continueFrom: {

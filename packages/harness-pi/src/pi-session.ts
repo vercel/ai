@@ -1468,13 +1468,21 @@ export async function createPiSession(
       if (stopped) {
         throw new Error('Pi session has been stopped.');
       }
+      if (piSession == null) {
+        await rebuildPiSession([], true);
+        lastToolsSignature = JSON.stringify([]);
+      }
+      const session = piSession;
+      if (session == null) {
+        throw new Error('Pi session failed to initialize.');
+      }
       /*
        * Pi owns the compaction. We just request it; the resulting
        * `compaction_end` event is observed by the session subscription and
        * translated into a `compaction` stream part. The returned
        * `CompactionResult` is intentionally discarded here.
        */
-      await piSession?.compact(customInstructions);
+      await session.compact(customInstructions);
     },
 
     doDestroy: async () => {

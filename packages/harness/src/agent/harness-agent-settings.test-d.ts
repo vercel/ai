@@ -1,8 +1,12 @@
 import type { HarnessV1, HarnessV1SandboxProvider } from '../v1';
 import type { HarnessAgentSettings } from './harness-agent-settings';
 import type { HarnessAllTools } from './harness-agent-tool-types';
+<<<<<<< HEAD
 import { tool, type Context } from '@ai-sdk/provider-utils';
 import type { GenericToolApprovalFunction } from 'ai';
+=======
+import { tool, type SystemModelMessage } from '@ai-sdk/provider-utils';
+>>>>>>> origin/main
 import { describe, expectTypeOf, test } from 'vitest';
 import { z } from 'zod/v4';
 
@@ -138,7 +142,10 @@ describe('HarnessAgentSettings tool filtering types', () => {
         expectTypeOf(options).toEqualTypeOf<CallOptions>();
         return {
           ...rest,
-          instructions: `Serve ${options.tenant}`,
+          instructions: {
+            role: 'system',
+            content: `Serve ${options.tenant}`,
+          },
         };
       },
     };
@@ -162,6 +169,21 @@ describe('HarnessAgentSettings tool filtering types', () => {
     };
 
     expectTypeOf(settings.model).toEqualTypeOf<string | undefined>();
+  });
+
+  test('instructions accept a SystemModelMessage', () => {
+    const settings: Settings = {
+      harness,
+      instructions: {
+        role: 'system',
+        content: 'Serve the user.',
+        providerOptions: { test: { cache: true } },
+      },
+    };
+
+    expectTypeOf(settings.instructions).toEqualTypeOf<
+      string | SystemModelMessage | undefined
+    >();
   });
 
   test('headers accept undefined values', () => {

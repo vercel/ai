@@ -2223,6 +2223,64 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should remove string propertyNames from response schemas and warn', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                variables: {
+                  type: 'object',
+                  propertyNames: { type: 'string', pattern: '^[A-Z_]+$' },
+                  additionalProperties: { type: 'string' },
+                },
+              },
+              required: ['variables'],
+              additionalProperties: false,
+            },
+          },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-4o',
+          text: {
+            format: {
+              type: 'json_schema',
+              strict: true,
+              name: 'response',
+              schema: {
+                type: 'object',
+                properties: {
+                  variables: {
+                    type: 'object',
+                    additionalProperties: { type: 'string' },
+                  },
+                },
+                required: ['variables'],
+                additionalProperties: false,
+              },
+            },
+          },
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+        });
+
+        expect(warnings).toStrictEqual([
+          {
+            type: 'compatibility',
+            feature: 'JSON Schema propertyNames',
+            details:
+              'OpenAI does not support JSON Schema propertyNames. It was removed before sending the schema, so OpenAI will not enforce property-name constraints.',
+          },
+        ]);
+      });
+
       it('should send responseFormat json_schema format with strictJsonSchema false', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           responseFormat: {
