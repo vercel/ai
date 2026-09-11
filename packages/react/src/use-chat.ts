@@ -133,15 +133,23 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
       chatRef.current.id !== options.id);
 
   if (shouldRecreateChat) {
-    if (!isChatExternallyManagedRef.current) {
-      void chatRef.current.stop();
-    }
-
     chatRef.current = 'chat' in options ? options.chat : new Chat(chatOptions);
     isChatExternallyManagedRef.current = 'chat' in options;
   }
 
   const chat = chatRef.current;
+  const isChatExternallyManaged = isChatExternallyManagedRef.current;
+
+  useEffect(() => {
+    if (isChatExternallyManaged) {
+      return;
+    }
+
+    return () => {
+      void chat.stop();
+    };
+  }, [chat, isChatExternallyManaged]);
+
   const messagesSnapshotRef = useRef({
     chat,
     messages: chat.messages,
