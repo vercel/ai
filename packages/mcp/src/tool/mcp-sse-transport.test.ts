@@ -72,7 +72,17 @@ describe('SseMCPTransport', () => {
       body: 'Internal Server Error',
     };
 
-    await expect(transport.start()).rejects.toThrow();
+    let caughtError: MCPClientError | undefined;
+    try {
+      await transport.start();
+    } catch (error) {
+      caughtError = error as MCPClientError;
+    }
+
+    expect(caughtError).toBeInstanceOf(MCPClientError);
+    expect(caughtError?.statusCode).toBe(500);
+    expect(caughtError?.url).toBe('http://localhost:3000/sse');
+    expect(caughtError?.responseBody).toBe('Internal Server Error');
   });
 
   it('should handle valid JSON-RPC messages', async () => {
