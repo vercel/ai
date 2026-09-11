@@ -1,5 +1,5 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { generateText, type ModelMessage } from 'ai';
+import { generateText, streamText, type ModelMessage } from 'ai';
 import { print } from '../../lib/print';
 import { run } from '../../lib/run';
 
@@ -38,7 +38,7 @@ run(async () => {
     },
   ];
 
-  const secondTurn = await generateText({
+  const secondTurn = streamText({
     model: anthropic('claude-fable-5-1'),
     messages: changedHistory,
     providerOptions: {
@@ -53,9 +53,14 @@ run(async () => {
     },
   });
 
-  print('Text:', secondTurn.text);
+  for await (const textPart of secondTurn.textStream) {
+    process.stdout.write(textPart);
+  }
+  console.log();
+
   print(
     'Input transformations:',
-    secondTurn.providerMetadata?.anthropic?.inputTransformations,
+    (await secondTurn.finalStep).providerMetadata?.anthropic
+      ?.inputTransformations,
   );
 });

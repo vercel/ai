@@ -74,6 +74,7 @@ export interface RunHarnessAgentOptions<OUTPUT = unknown> {
   readonly state: HarnessWorkflowState;
   readonly timeSliceSeconds?: number;
   /**
+<<<<<<< HEAD
    * Whether to await the agent's parsed and schema-validated output after the
    * turn finishes and persist it in `finalResult.output`.
    *
@@ -87,6 +88,13 @@ export interface RunHarnessAgentOptions<OUTPUT = unknown> {
    * `resumeFrom`, so the next user turn reattaches to the same conversation
    * (multi-turn chat). Set `true` for a one-shot run that should release the
    * sandbox when the turn completes.
+=======
+   * When the run finishes or fails, whether to destroy the sandbox. Defaults to
+   * `false`: the session is parked or stopped and a fresh resume state is
+   * returned in `resumeFrom`, so the next user turn reattaches to the same
+   * conversation (multi-turn chat). Set `true` for a one-shot run that should
+   * release the sandbox when the run ends.
+>>>>>>> origin/main
    */
   readonly destroyOnFinish?: boolean;
   /**
@@ -146,15 +154,15 @@ export async function runHarnessAgent<OUTPUT = unknown>(
                   : [state.prompt],
             });
   } catch (err) {
-    await destroyQuietly(session);
+    const failedSessionState = await endFailedSession({
+      session,
+      destroyOnFinish,
+    });
     return {
       sessionId: state.sessionId,
       prompt: state.prompt,
       status: 'failed',
-      ...(state.resumeFrom != null ? { resumeFrom: state.resumeFrom } : {}),
-      ...(state.continueFrom != null
-        ? { continueFrom: state.continueFrom }
-        : {}),
+      ...failedSessionState,
       error: errorMessage(err),
     };
   }
@@ -237,16 +245,22 @@ export async function runHarnessAgent<OUTPUT = unknown>(
      * errors during suspension were already filtered above.
      */
     if (sawError) {
-      if (suspendPromise != null) await suspendPromise.catch(() => {});
-      await destroyQuietly(session);
+      const continueFrom =
+        suspendPromise == null
+          ? undefined
+          : destroyOnFinish
+            ? await suspendPromise.catch(() => undefined)
+            : await suspendPromise;
+      const failedSessionState = await endFailedSession({
+        session,
+        destroyOnFinish,
+        continueFrom,
+      });
       return {
         sessionId: state.sessionId,
         prompt: state.prompt,
         status: 'failed',
-        ...(state.resumeFrom != null ? { resumeFrom: state.resumeFrom } : {}),
-        ...(state.continueFrom != null
-          ? { continueFrom: state.continueFrom }
-          : {}),
+        ...failedSessionState,
         error: 'harness turn emitted an error',
       };
     }
@@ -657,6 +671,29 @@ async function resolveWorkflowWritable(): Promise<
 
 async function destroyQuietly(session: HarnessAgentSession): Promise<void> {
   await session.destroy().catch(() => {});
+}
+
+async function endFailedSession(options: {
+  session: HarnessAgentSession;
+  destroyOnFinish: boolean;
+  continueFrom?: HarnessV1ContinueTurnState;
+}): Promise<{
+  resumeFrom?: HarnessV1ResumeSessionState;
+  continueFrom?: HarnessV1ContinueTurnState;
+}> {
+  if (options.destroyOnFinish) {
+    await destroyQuietly(options.session);
+    return {};
+  }
+
+  if (options.continueFrom != null) {
+    return {
+      continueFrom: options.continueFrom,
+      resumeFrom: toResumeState({ continueFrom: options.continueFrom }),
+    };
+  }
+
+  return { resumeFrom: await options.session.detach() };
 }
 
 function errorMessage(err: unknown): string {

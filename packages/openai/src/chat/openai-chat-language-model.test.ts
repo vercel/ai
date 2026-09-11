@@ -1070,6 +1070,66 @@ describe('doGenerate', () => {
       expect(warnings).toEqual([]);
     });
 
+    it('should remove string propertyNames from response schemas and warn', async () => {
+      prepareJsonFixtureResponse('openai-text');
+
+      const model = provider.chat('gpt-4o-2024-08-06');
+
+      const { warnings } = await model.doGenerate({
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              variables: {
+                type: 'object',
+                propertyNames: {
+                  type: 'string',
+                  format: 'uuid',
+                },
+                additionalProperties: { type: 'string' },
+              },
+            },
+            required: ['variables'],
+            additionalProperties: false,
+          },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'response',
+            strict: true,
+            schema: {
+              type: 'object',
+              properties: {
+                variables: {
+                  type: 'object',
+                  additionalProperties: { type: 'string' },
+                },
+              },
+              required: ['variables'],
+              additionalProperties: false,
+            },
+          },
+        },
+      });
+
+      expect(warnings).toStrictEqual([
+        {
+          type: 'compatibility',
+          feature: 'JSON Schema propertyNames',
+          details:
+            'OpenAI does not support JSON Schema propertyNames. It was removed before sending the schema, so OpenAI will not enforce property-name constraints.',
+        },
+      ]);
+    });
+
     it('should use json_schema & strict with responseFormat json', async () => {
       prepareJsonFixtureResponse('openai-text');
 

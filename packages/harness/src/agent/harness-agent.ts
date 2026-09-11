@@ -15,6 +15,7 @@ import {
   type Context,
   type Experimental_SandboxSession as SandboxSession,
   type ModelMessage,
+  type SystemModelMessage,
   type ToolApprovalResponse,
   type ToolResultPart,
   type ToolSet,
@@ -989,7 +990,7 @@ export class HarnessAgent<
   private _prepareTurnSettings(options: {
     model?: string;
     skills?: ReadonlyArray<HarnessAgentSkill>;
-    instructions?: string;
+    instructions?: string | SystemModelMessage;
     tools?: TUserTools;
   }): PreparedHarnessAgentTurnSettings<THarness, TUserTools> {
     const userTools = options.tools ?? ({} as TUserTools);
@@ -1011,7 +1012,10 @@ export class HarnessAgent<
     return {
       model: options.model,
       skills: options.skills ?? [],
-      instructions: options.instructions,
+      instructions:
+        typeof options.instructions === 'string'
+          ? options.instructions
+          : options.instructions?.content,
       tools,
       activeTools: toolFiltering.activeUserTools,
       toolSpecs: this._toToolSpecs(toolFiltering.activeUserTools),
