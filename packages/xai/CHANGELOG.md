@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.94
+
+### Patch Changes
+
+- 2c72feb: fix(deepseek): preserve reasoning streams across empty tool-call deltas
+
 ## 2.0.93
 
 ### Patch Changes
