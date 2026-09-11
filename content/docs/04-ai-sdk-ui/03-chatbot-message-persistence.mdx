@@ -98,10 +98,12 @@ Older persisted tool parts in the `output-error` state may contain `rawInput`.
 This field is deprecated and will be removed in the next major version. Store
 tool arguments in `input` instead. AI SDK emits a deprecation warning when
 `validateUIMessages`, `safeValidateUIMessages`, or `convertToModelMessages`
-encounters a defined `rawInput` value.
+encounters a defined `rawInput` value. UI stream processing also warns when it
+reconstructs a static `output-error` part with `rawInput`.
 
-Migrate each legacy part by copying `rawInput` to `input` only when `input` is
-`undefined`, then remove `rawInput`:
+Migrate each legacy part by copying `rawInput` to `input` when `input` is
+`null` or `undefined`, then remove `rawInput`. This preserves the current
+backward-compatible conversion behavior:
 
 ```ts
 import { isToolUIPart } from 'ai';
@@ -120,7 +122,7 @@ const migratedParts = message.parts.map(part => {
 
   return {
     ...partWithoutRawInput,
-    input: part.input !== undefined ? part.input : rawInput,
+    input: part.input ?? rawInput,
   };
 });
 ```

@@ -108,5 +108,6 @@ in the `output-error` state. When a defined `rawInput` value is found,
 `AI_SDK_LOG_WARNINGS`.
 
 Migrate persisted messages to store tool arguments in `input` and remove
-`rawInput`. When both fields exist, treat `input` as the source of truth.
-`rawInput` will be removed in the next major version.
+`rawInput`. For backward compatibility, conversion uses `rawInput` as a
+fallback when `input` is `null` or `undefined`. `rawInput` will be removed in
+the next major version.

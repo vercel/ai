@@ -19,7 +19,7 @@ function migrateDeprecatedRawInput(messages: UIMessage[]): UIMessage[] {
 
       return {
         ...partWithoutRawInput,
-        input: part.input !== undefined ? part.input : rawInput,
+        input: part.input ?? rawInput,
       } as MessagePart;
     }),
   }));

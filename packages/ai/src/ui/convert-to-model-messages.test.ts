@@ -854,7 +854,7 @@ describe('convertToModelMessages', () => {
         });
       });
 
-      it('should prefer input over deprecated rawInput when both are present', async () => {
+      it('should preserve the deprecated rawInput fallback when input is null', async () => {
         const result = await convertToModelMessages([
           {
             role: 'assistant',
@@ -876,7 +876,7 @@ describe('convertToModelMessages', () => {
           content: [
             {
               type: 'tool-call',
-              input: null,
+              input: 'legacy input',
             },
           ],
         });
