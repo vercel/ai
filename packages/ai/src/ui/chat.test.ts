@@ -973,6 +973,129 @@ describe('Chat', () => {
     });
   });
 
+  it('should resolve stop after the stream pipeline has finished', async () => {
+    const events: Array<string> = [];
+    let controller!: ReadableStreamDefaultController<UIMessageChunk>;
+    const responseStream = new ReadableStream<UIMessageChunk>({
+      start: controllerArg => {
+        controller = controllerArg;
+
+        controller.enqueue({ type: 'start' });
+        controller.enqueue({ type: 'start-step' });
+        controller.enqueue({ type: 'text-start', id: 'text-1' });
+        controller.enqueue({
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'Hello',
+        });
+      },
+    });
+
+    const chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: {
+        sendMessages: async options => {
+          options.abortSignal?.addEventListener('abort', () => {
+            events.push('abort');
+            controller.error(new DOMException('Aborted', 'AbortError'));
+          });
+          return responseStream;
+        },
+        reconnectToStream: () => {
+          throw new Error('not implemented');
+        },
+      },
+      onFinish: () => {
+        events.push(`finish:${chat.status}`);
+      },
+    });
+
+    chat.sendMessage({
+      text: 'Hello, world!',
+    });
+
+    while ((chat.messages[1]?.parts[1] as any)?.text !== 'Hello') {
+      await vi.advanceTimersByTimeAsync(0);
+    }
+
+    expect(chat.status).toBe('streaming');
+
+    await chat.stop().then(() => events.push(`stop-resolved:${chat.status}`));
+
+    expect(events).toEqual(['abort', 'finish:ready', 'stop-resolved:ready']);
+    expect(chat.status).toBe('ready');
+  });
+
+  it('should not write buffered stream chunks after stop resolves', async () => {
+    const nextChunk = createResolvablePromise<void>();
+    let isCancelled = false;
+
+    const responseStream = new ReadableStream<UIMessageChunk>({
+      start(controller) {
+        controller.enqueue({ type: 'start' });
+        controller.enqueue({ type: 'start-step' });
+        controller.enqueue({ type: 'text-start', id: 'text-1' });
+        controller.enqueue({
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'Hello',
+        });
+      },
+      async pull(controller) {
+        await nextChunk.promise;
+
+        try {
+          controller.enqueue({
+            type: 'text-delta',
+            id: 'text-1',
+            delta: ' AFTER_STOP',
+          });
+          controller.close();
+        } catch {
+          // the stream was cancelled while the pull was pending
+        }
+      },
+      cancel() {
+        isCancelled = true;
+      },
+    });
+
+    const chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => responseStream,
+        reconnectToStream: () => {
+          throw new Error('not implemented');
+        },
+      },
+    });
+
+    chat.sendMessage({
+      text: 'Hello, world!',
+    });
+
+    while ((chat.messages[1]?.parts[1] as any)?.text !== 'Hello') {
+      await vi.advanceTimersByTimeAsync(0);
+    }
+
+    expect(chat.status).toBe('streaming');
+
+    await chat.stop();
+
+    expect(chat.status).not.toBe('streaming');
+    expect(chat.status).toBe('ready');
+
+    chat.messages = [];
+    nextChunk.resolve();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(isCancelled).toBe(true);
+    expect(chat.messages).toEqual([]);
+    expect(chat.status).toBe('ready');
+  });
+
   it('should not send a message when stopped during message preparation', async () => {
     const sendMessages = vi.fn(async () => new ReadableStream());
     const chat = new TestChat({
