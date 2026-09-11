@@ -344,3 +344,21 @@ describe('prepareTools', () => {
     ]);
   });
 });
+
+describe('prepareTools with a missing input schema', () => {
+  it('throws a descriptive error instead of sending an empty input schema', async () => {
+    await expect(
+      prepareTools({
+        tools: {
+          // simulates the AI SDK 4 `parameters` key, which no longer exists:
+          // `inputSchema` ends up undefined at runtime
+          readFile: {
+            description: 'Read a file',
+          },
+        } as unknown as ToolSet,
+      }),
+    ).rejects.toThrowError(
+      /tool "readFile" .*inputSchema|inputSchema.*tool "readFile"/i,
+    );
+  });
+});
