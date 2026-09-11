@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.131
+
+### Patch Changes
+
+- 24bda53: fix(amazon-bedrock): resolve endpoints for non-standard AWS partitions and endpoint overrides
+
 ## 3.0.130
 
 ### Patch Changes
