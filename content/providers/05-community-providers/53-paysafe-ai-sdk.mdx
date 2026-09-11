@@ -1,0 +1,59 @@
+---
+title: PaySafe
+description: Scan x402 payments for safety before your Vercel AI SDK agent settles them, with automatic provenance tagging for prompt-injection detection.
+---
+
+# `paysafe-ai-sdk`
+
+[PaySafe](https://paysafe-agent.com) is a payment security firewall for [x402](https://x402.org) micropayments. Agents that pay for APIs and data over x402 get drained in predictable ways: payments triggered by prompt-injected content, replayed authorizations, inflated prices, secrets leaking through payment metadata, lookalike tokens, and address poisoning. `paysafe-ai-sdk` gives a Vercel AI SDK agent an allow / flag / block verdict on every payment before it settles — plus an `onStepFinish` handler that makes PaySafe's strongest detector work automatically.
+
+## Installation
+
+```bash
+npm install paysafe-ai-sdk
+```
+
+## Two additions
+
+```ts
+import { generateText } from "ai";
+import { PaySafeClient } from "paysafe-x402-client";
+import { paysafeTools, paysafeProvenance } from "paysafe-ai-sdk";
+
+const paysafe = new PaySafeClient({ agentId: "my-agent" }); // free API key auto-minted (100 free scans)
+
+await generateText({
+  model,
+  tools: { ...paysafeTools(paysafe), ...yourOtherTools },
+  onStepFinish: paysafeProvenance(paysafe),
+  prompt: "...",
+});
+```
+
+## Why the provenance handler matters
+
+PaySafe's strongest check catches payments whose *decision* came from content the agent just read (a prompt-injected page or tool result). `paysafeProvenance` returns an `onStepFinish` handler that observes every tool result the step produced automatically, so the next scan is provenance-tagged and that check runs with real input — no prompt engineering required. PaySafe's own tool results are excluded so verdicts never pollute the signal. It reads both the current `toolResults[].output` shape and the older `.result` shape, and works the same under `streamText`.
+
+## The toolset
+
+- **`paysafe_scan_payment`** — call before settling any x402 payment (`direction: "outgoing"`) or before paying a received 402 offer (`direction: "incoming"`). Returns `allow` / `flag` / `block` with per-check reasons and an Ed25519-signed verdict. Pass read content as `content` to enable injection detection.
+- **`paysafe_check_reputation`** — check community reports on a counterparty wallet before dealing with it.
+- **`paysafe_report_counterparty`** — report a bad counterparty (always free) to warn other agents.
+
+## Enforcement: payments that cannot execute when blocked
+
+```ts
+import { guardedPayment } from "paysafe-ai-sdk";
+
+const safePay = guardedPayment(executeX402Payment, paysafe);
+const { result } = await safePay(payment, expectedPriceUsd);
+// throws PaySafeBlockedError on a block verdict — the executor is never called
+```
+
+For wallet-level enforcement (the signer itself refuses unscanned payments), see `wrapFetchWithPaySafe` and `PaySafeEnforcer` in the [paysafe-x402-client SDK](https://www.npmjs.com/package/paysafe-x402-client).
+
+## Reference
+
+- Package: [paysafe-ai-sdk on npm](https://www.npmjs.com/package/paysafe-ai-sdk) · [source](https://github.com/corbinallison/paysafe/tree/main/integrations/paysafe-ai-sdk)
+- Service: [PaySafe API](https://paysafe-agent.com/llms.txt) · [OpenAPI](https://paysafe-agent.com/openapi.json)
+- PaySafe is advisory and non-custodial — it never touches keys, wallets, or funds.
