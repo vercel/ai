@@ -4,6 +4,54 @@ import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { describe, it, expect } from 'vitest';
 
 describe('prepareResponsesTools', () => {
+  it('should remove string propertyNames from function tools and warn', async () => {
+    const result = await prepareResponsesTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'get_weather',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              values: {
+                type: 'object',
+                propertyNames: { type: 'string', format: 'uuid' },
+              },
+            },
+          },
+        },
+      ],
+      toolChoice: undefined,
+    });
+
+    expect(result).toEqual({
+      tools: [
+        {
+          type: 'function',
+          name: 'get_weather',
+          description: undefined,
+          parameters: {
+            type: 'object',
+            properties: {
+              values: {
+                type: 'object',
+              },
+            },
+          },
+        },
+      ],
+      toolChoice: undefined,
+      toolWarnings: [
+        {
+          type: 'compatibility',
+          feature: 'JSON Schema propertyNames',
+          details:
+            'OpenAI does not support JSON Schema propertyNames. It was removed before sending the schema, so OpenAI will not enforce property-name constraints.',
+        },
+      ],
+    });
+  });
+
   describe('async tools', () => {
     it('should pass through async mode for function tools', async () => {
       const result = await prepareResponsesTools({

@@ -70,6 +70,7 @@ import {
   isUndeclaredParallelToolCall,
 } from './expand-parallel-tool-call';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
+import { normalizeOpenAIJsonSchema } from '../normalize-openai-json-schema';
 import {
   openaiResponsesChunkSchema,
   openaiResponsesResponseSchema,
@@ -444,6 +445,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     }
 
     const strictJsonSchema = openaiOptions?.strictJsonSchema ?? true;
+    const normalizedResponseFormatSchema =
+      responseFormat?.type === 'json' && responseFormat.schema != null
+        ? normalizeOpenAIJsonSchema(responseFormat.schema)
+        : undefined;
+
+    if (normalizedResponseFormatSchema != null) {
+      warnings.push(...normalizedResponseFormatSchema.warnings);
+    }
 
     let include: OpenAIResponsesIncludeOptions = openaiOptions?.include;
 
@@ -517,13 +526,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         text: {
           ...(responseFormat?.type === 'json' && {
             format:
-              responseFormat.schema != null
+              normalizedResponseFormatSchema != null
                 ? {
                     type: 'json_schema',
                     strict: strictJsonSchema,
                     name: responseFormat.name ?? 'response',
                     description: responseFormat.description,
-                    schema: responseFormat.schema,
+                    schema: normalizedResponseFormatSchema.schema,
                   }
                 : { type: 'json_object' },
           }),
