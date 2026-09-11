@@ -186,9 +186,12 @@ export function appendToolCallerMessages({
 }: {
   messages: ModelMessage[];
   toolCallerMessages: UserModelMessage[];
-}): ModelMessage[] {
+}): {
+  messages: ModelMessage[];
+  addedMessages: UserModelMessage[];
+} {
   if (toolCallerMessages.length === 0) {
-    return messages;
+    return { messages, addedMessages: [] };
   }
 
   const latestUserText = messages.findLast(
@@ -208,5 +211,8 @@ export function appendToolCallerMessages({
     return true;
   });
 
-  return additions.length === 0 ? messages : [...messages, ...additions];
+  return {
+    messages: additions.length === 0 ? messages : [...messages, ...additions],
+    addedMessages: additions,
+  };
 }

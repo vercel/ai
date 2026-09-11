@@ -10,6 +10,7 @@ import type {
 import type { Source } from '../types/language-model';
 import type { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import type { LanguageModelUsage } from '../types/usage';
+import type { ModelMessage } from '../prompt';
 import type { InferUIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import type { UIMessageStreamOnEndCallback } from '../ui-message-stream/ui-message-stream-on-end-callback';
 import type { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
@@ -288,6 +289,17 @@ export interface StreamTextResult<
    * Automatically consumes the stream.
    */
   readonly responseMessages: PromiseLike<Array<ResponseMessage>>;
+
+  /**
+   * Messages generated during the call that can be appended to the input
+   * conversation to continue it. This includes SDK-injected messages and
+   * assistant and tool response messages.
+   *
+   * Automatically consumes the stream.
+   *
+   * @experimental
+   */
+  readonly experimental_continuationMessages: PromiseLike<Array<ModelMessage>>;
 
   /**
    * Additional provider-specific metadata from the last step.

@@ -1064,10 +1064,17 @@ export class HarnessAgent<
     // The stream is already drained by the time generate() calls this helper
     // (done has resolved). `steps` is the single source of truth the result
     // derives everything else from, mirroring core's `generateText` result.
-    const [steps, usage, responseMessages, output] = await Promise.all([
+    const [
+      steps,
+      usage,
+      responseMessages,
+      experimental_continuationMessages,
+      output,
+    ] = await Promise.all([
       streamResult.steps,
       streamResult.usage,
       streamResult.responseMessages,
+      streamResult.experimental_continuationMessages,
       this.settings.output == null
         ? Promise.resolve(undefined as never)
         : streamResult.output,
@@ -1077,7 +1084,13 @@ export class HarnessAgent<
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT,
       OUTPUT
-    >({ steps, usage, responseMessages, output });
+    >({
+      steps,
+      usage,
+      responseMessages,
+      experimental_continuationMessages,
+      output,
+    });
   }
 
   private async _resolveResponseFormat(): Promise<
@@ -1137,6 +1150,11 @@ class HarnessGenerateTextResult<
     RUNTIME_CONTEXT,
     OUTPUT
   >['responseMessages'];
+  readonly experimental_continuationMessages: GenerateTextResult<
+    TOOLS,
+    RUNTIME_CONTEXT,
+    OUTPUT
+  >['experimental_continuationMessages'];
   readonly output: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['output'];
 
   constructor(options: {
@@ -1147,11 +1165,18 @@ class HarnessGenerateTextResult<
       RUNTIME_CONTEXT,
       OUTPUT
     >['responseMessages'];
+    experimental_continuationMessages: GenerateTextResult<
+      TOOLS,
+      RUNTIME_CONTEXT,
+      OUTPUT
+    >['experimental_continuationMessages'];
     output: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['output'];
   }) {
     this.steps = options.steps;
     this.usage = options.usage;
     this.responseMessages = options.responseMessages;
+    this.experimental_continuationMessages =
+      options.experimental_continuationMessages;
     this.output = options.output;
   }
 
