@@ -1,4 +1,9 @@
-import type { JSONObject, RerankingModelV4CallOptions } from '@ai-sdk/provider';
+import {
+  InvalidResponseDataError,
+  type JSONObject,
+  type RerankingModelV4CallOptions,
+  type RerankingModelV4Result,
+} from '@ai-sdk/provider';
 import {
   createIdGenerator,
   type ProviderOptions,
@@ -286,6 +291,8 @@ export async function rerank<VALUE extends JSONObject | string>({
           },
         );
 
+        validateRankingIndices({ ranking, documents });
+
         logWarnings({
           warnings: warnings ?? [],
           provider: model.provider,
@@ -300,10 +307,10 @@ export async function rerank<VALUE extends JSONObject | string>({
             modelId: model.modelId,
             documents,
             query,
-            ranking: ranking.map(r => ({
-              originalIndex: r.index,
-              score: r.relevanceScore,
-              document: documents[r.index],
+            ranking: ranking.map(ranking => ({
+              originalIndex: ranking.index,
+              score: ranking.relevanceScore,
+              document: documents[ranking.index],
             })),
             warnings: warnings ?? [],
             providerMetadata,
@@ -340,6 +347,23 @@ export async function rerank<VALUE extends JSONObject | string>({
       }
     },
   });
+}
+
+function validateRankingIndices<VALUE>({
+  ranking,
+  documents,
+}: {
+  ranking: RerankingModelV4Result['ranking'];
+  documents: Array<VALUE>;
+}) {
+  for (const { index } of ranking) {
+    if (!Number.isInteger(index) || index < 0 || index >= documents.length) {
+      throw new InvalidResponseDataError({
+        data: ranking,
+        message: `Invalid ranking index ${index}. Expected an integer between 0 and ${documents.length - 1}.`,
+      });
+    }
+  }
 }
 
 class DefaultRerankResult<VALUE> implements RerankResult<VALUE> {
