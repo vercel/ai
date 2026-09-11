@@ -26,6 +26,7 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { azureOpenaiTools } from './azure-openai-tools';
+import { AzureSpeechTranscriptionModel } from './azure-speech-transcription-model';
 import { VERSION } from './version';
 
 export interface AzureOpenAIProvider extends ProviderV4 {
@@ -90,6 +91,11 @@ export interface AzureOpenAIProvider extends ProviderV4 {
    * Creates an Azure OpenAI model for audio transcription.
    */
   transcription(deploymentId: string): TranscriptionModelV4;
+
+  /**
+   * Creates an Azure model for Microsoft MAI-Transcribe speech-to-text.
+   */
+  maiTranscribe(deploymentId: string): TranscriptionModelV4;
 
   /**
    * Creates an Azure OpenAI model for speech generation.
@@ -340,6 +346,16 @@ export function createAzure(
       fetch,
     });
 
+  const createMAITranscribeModel = (modelId: string) =>
+    new AzureSpeechTranscriptionModel(modelId, {
+      resourceName: options.resourceName,
+      baseURL: options.baseURL,
+      apiKey: options.apiKey,
+      apiVersion: options.apiVersion ?? '2025-10-15',
+      headers: options.headers,
+      fetch,
+    });
+
   const createSpeechModel = (modelId: string) =>
     new OpenAISpeechModel(modelId, {
       provider: 'azure.speech',
@@ -371,6 +387,7 @@ export function createAzure(
   provider.imageModel = createImageModel;
   provider.responses = createResponsesModel;
   provider.transcription = createTranscriptionModel;
+  provider.maiTranscribe = createMAITranscribeModel;
   provider.speech = createSpeechModel;
   provider.tools = azureOpenaiTools;
   return provider;

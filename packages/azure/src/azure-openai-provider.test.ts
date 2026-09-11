@@ -100,6 +100,8 @@ const server = createTestServer({
   'https://test-resource.services.ai.azure.com/openai/v1/chat/completions': {},
   'https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions':
     {},
+  'https://test-resource.cognitiveservices.azure.com/speechtotext/transcriptions:transcribe':
+    {},
   'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions':
     {},
   'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/responses':
@@ -2221,6 +2223,92 @@ describe('responses', () => {
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
       });
+    });
+  });
+
+  describe('transcription', () => {
+    it('should instantiate OpenAI transcription model for whisper-1 via provider.transcription', () => {
+      const model = provider.transcription('whisper-1');
+      expect(model.modelId).toBe('whisper-1');
+      expect(model.provider).toBe('azure.transcription');
+    });
+
+    it('should support maiTranscribe helper with azure.speech provider for mai-transcribe-2', () => {
+      const model = provider.maiTranscribe('mai-transcribe-2');
+      expect(model.modelId).toBe('mai-transcribe-2');
+      expect(model.provider).toBe('azure.speech');
+    });
+
+    it('should generate transcription using Azure Speech REST API for mai-transcribe-2', async () => {
+      server.urls[
+        'https://test-resource.cognitiveservices.azure.com/speechtotext/transcriptions:transcribe'
+      ].response = {
+        type: 'json-value',
+        body: {
+          combinedPhrases: [{ text: 'Hello world from MAI-Transcribe 2' }],
+          phrases: [
+            {
+              text: 'Hello world',
+              offsetMilliseconds: 0,
+              durationMilliseconds: 1500,
+              speaker: 1,
+            },
+          ],
+          durationMilliseconds: 1500,
+          locales: ['en-US'],
+        },
+      };
+
+      const result = await provider
+        .maiTranscribe('mai-transcribe-2')
+        .doGenerate({
+          audio: new Uint8Array([1, 2, 3, 4]),
+          mediaType: 'audio/wav',
+          providerOptions: {
+            azure: {
+              locales: ['en-US'],
+              diarization: { maxSpeakers: 2 },
+              transcribeOptions: { style: 'verbatim' },
+            },
+          },
+        });
+
+      expect(result.text).toBe('Hello world from MAI-Transcribe 2');
+      expect(result.segments).toEqual([
+        {
+          text: 'Hello world',
+          startSecond: 0,
+          endSecond: 1.5,
+          speaker: '1',
+        },
+      ]);
+      expect(result.language).toBe('en-US');
+      expect(result.durationInSeconds).toBe(1.5);
+      expect(server.calls[0].requestHeaders['ocp-apim-subscription-key']).toBe(
+        'test-api-key',
+      );
+      expect(server.calls[0].requestUrlSearchParams.get('api-version')).toBe(
+        '2025-10-15',
+      );
+    });
+
+    it('should throw APICallError when Azure Speech REST API returns an error', async () => {
+      server.urls[
+        'https://test-resource.cognitiveservices.azure.com/speechtotext/transcriptions:transcribe'
+      ].response = {
+        type: 'error',
+        status: 400,
+        body: 'Invalid audio format',
+      };
+
+      await expect(
+        provider.maiTranscribe('mai-transcribe-2').doGenerate({
+          audio: new Uint8Array([1, 2, 3, 4]),
+          mediaType: 'audio/wav',
+        }),
+      ).rejects.toThrow(
+        'Azure Speech MAI-Transcribe error (400): Invalid audio format',
+      );
     });
   });
 });
