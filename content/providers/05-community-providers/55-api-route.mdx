@@ -1,0 +1,54 @@
+---
+title: API Route
+description: Learn how to use the API Route provider.
+---
+
+# API Route
+
+[API Route](https://www.api-route.com/) is an OpenAI-compatible multi-model AI API gateway. It supports GPT, Claude, Gemini, Kimi, Qwen, and other models.
+
+## Setup
+
+The API Route provider is available via the [`@api-route/ai-sdk-provider`](https://www.npmjs.com/package/@api-route/ai-sdk-provider) module. You can install it with:
+
+<InstallPackages packages="@api-route/ai-sdk-provider ai" />
+
+### API Credentials
+
+Set the `API_ROUTE_BASE_URL` and `API_ROUTE_API_KEY` environment variables with the credentials from API Route:
+
+```bash
+export API_ROUTE_BASE_URL="your-base-url"
+export API_ROUTE_API_KEY="your-api-key"
+```
+
+## Provider Instance
+
+You can import the default provider instance `apiRoute`:
+
+```ts
+import { apiRoute } from '@api-route/ai-sdk-provider';
+```
+
+## Language Models
+
+Create models for text generation with `apiRoute` and use them with `generateText`:
+
+```ts
+import { generateText } from 'ai';
+import { apiRoute } from '@api-route/ai-sdk-provider';
+
+const { text } = await generateText({
+  model: apiRoute('your-model-id'),
+  prompt: 'Hello!',
+});
+```
+
+## Features
+
+- OpenAI-compatible gateway
+- Supports GPT, Claude, Gemini, Kimi, Qwen, and other models
+- Supports streaming and tool calling
+- Uses `API_ROUTE_BASE_URL` and `API_ROUTE_API_KEY`
+
+For more information, visit the [API Route website](https://www.api-route.com/) and [API Route documentation](https://www.api-route.com/docs/overview).
