@@ -86,6 +86,7 @@ Settings:
 - `extensionFactories`: trusted inline Pi extension factories that run in the
   host Node.js process.
 - `mcpServers`: MCP server definitions keyed by server name.
+- `providers`: explicit Pi provider configurations for custom models.
 - `thinkingLevel`: Pi thinking level (`off`, `minimal`, `low`, `medium`,
   `high`, `xhigh`, or `max`).
 
@@ -152,6 +153,34 @@ With `custom`, standard providers use environment variables such as
 `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `ANTHROPIC_API_KEY`, and
 `ANTHROPIC_BASE_URL`. Other providers use a `<PREFIX>_API_KEY` and matching
 `<PREFIX>_BASE_URL` pair.
+
+Authentication variables do not identify a provider's API protocol or models.
+Register that metadata explicitly when using a custom model:
+
+```ts
+const harness = createPi({
+  auth: {
+    MYPROVIDER_API_KEY: await resolveMyProviderToken(),
+    MYPROVIDER_BASE_URL: 'https://api.example.com/v1',
+  },
+  providers: {
+    myprovider: {
+      api: 'openai-completions',
+      models: [
+        {
+          id: 'my-custom-model',
+          name: 'My Custom Model',
+          reasoning: false,
+          input: ['text'],
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          contextWindow: 128_000,
+          maxTokens: 16_384,
+        },
+      ],
+    },
+  },
+});
+```
 
 ## Sandbox
 

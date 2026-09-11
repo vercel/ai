@@ -8,6 +8,7 @@ import {
   type AgentSession,
   type AgentToolResult,
   type ExtensionFactory,
+  type ProviderConfig,
   type Skill,
   type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
@@ -222,6 +223,7 @@ export interface PiSessionSettings {
   readonly headers?: Readonly<Record<string, string>>;
   readonly thinkingLevel?: PiThinkingLevel;
   readonly mcpServers?: Record<string, unknown>;
+  readonly providers?: Readonly<Record<string, ProviderConfig>>;
   readonly extensionFactories?: ReadonlyArray<ExtensionFactory>;
 }
 
@@ -454,6 +456,14 @@ export async function createPiSession(
     clientApp: input.clientApp,
     headers: input.settings.headers,
   });
+  for (const [provider, config] of Object.entries(
+    input.settings.providers ?? {},
+  )) {
+    modelRegistry.registerProvider(provider, {
+      ...modelRegistry.getRegisteredProviderConfig(provider),
+      ...config,
+    });
+  }
   const resolveModel = createPiModelResolver({
     modelRegistry,
     env: resolverEnv,
