@@ -3,6 +3,7 @@ import {
   type AgentSession,
   type ExtensionAPI,
   type ExtensionFactory,
+  type ProviderConfig,
   type ToolDefinition,
   ModelRuntime,
   SettingsManager,
@@ -69,6 +70,7 @@ const piMock = vi.hoisted(() => {
     extensionHandlers,
     resourceLoaderReloadCount: 0,
     resourceLoaderOptions: [] as ResourceLoaderOptions[],
+    registerProvider: vi.fn(),
     session: undefined as AgentSession | undefined,
     sessionManagerOpen: vi.fn(),
   };
@@ -123,8 +125,19 @@ vi.mock('@earendil-works/pi-coding-agent', () => {
     },
     defineTool: vi.fn(tool => tool),
     ModelRegistry: class {
+      private readonly providerConfigs = new Map<string, ProviderConfig>();
+
       getAll = vi.fn(() => []);
-      registerProvider = vi.fn();
+      getRegisteredProviderConfig = vi.fn((provider: string) =>
+        this.providerConfigs.get(provider),
+      );
+      registerProvider = vi.fn((provider: string, config: ProviderConfig) => {
+        this.providerConfigs.set(provider, {
+          ...this.providerConfigs.get(provider),
+          ...config,
+        });
+        piMock.registerProvider(provider, config);
+      });
     },
     ModelRuntime: {
       create: vi.fn(async () => ({
@@ -153,6 +166,7 @@ describe('createPiSession', () => {
     piMock.extensionHandlers.clear();
     piMock.resourceLoaderReloadCount = 0;
     piMock.resourceLoaderOptions = [];
+    piMock.registerProvider.mockClear();
     piMock.session = undefined;
     mcpAdapterMock.createMcpAdapter.mockClear();
     mcpAdapterMock.mcpExtensionFactory.mockClear();
@@ -1341,6 +1355,40 @@ describe('createPiSession', () => {
     });
     expect(SettingsManager.create).toHaveBeenCalledTimes(1);
     expect(SettingsManager.inMemory).not.toHaveBeenCalled();
+  });
+
+  it('registers explicit provider model configurations', async () => {
+    const provider: ProviderConfig = {
+      apiKey: 'sk-test',
+      baseUrl: 'https://api.example.test/v1',
+      api: 'openai-completions',
+      authHeader: true,
+      models: [
+        {
+          id: 'my-custom-model',
+          name: 'My Custom Model',
+          reasoning: false,
+          input: ['text'],
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          contextWindow: 128_000,
+          maxTokens: 16_384,
+        },
+      ],
+    };
+
+    await createPiSession({
+      sessionId: 'session-custom-provider',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      settings: { providers: { myprovider: provider } },
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+      isResume: false,
+    });
+
+    expect(piMock.registerProvider).toHaveBeenLastCalledWith(
+      'myprovider',
+      provider,
+    );
   });
 
   it('falls back to temp dir and inMemory settings when agentDir is omitted', async () => {
