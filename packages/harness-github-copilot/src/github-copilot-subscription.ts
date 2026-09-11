@@ -7,6 +7,9 @@ import { promisify } from 'node:util';
 import type { ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import {
   isHarnessAuthenticationEnvironment,
+  readLinuxSecretServicePassword,
+  readMacOSKeychainPassword,
+  readWindowsCredentialManagerPassword,
   shouldResolveNativeSubscription,
 } from '@ai-sdk/harness/utils';
 import { isRecord } from '@ai-sdk/provider-utils';
@@ -80,7 +83,7 @@ export async function readGitHubCopilotSubscription({
   env = process.env,
   homeDirectory = homedir(),
   platform = process.platform,
-  readSecureCredential = readGitHubCopilotSecureCredential,
+  readSecureCredential,
   findGitHubCliExecutable = findHostGitHubCliExecutable,
   readGitHubCliToken = readHostGitHubCliToken,
 }: {
@@ -101,7 +104,10 @@ export async function readGitHubCopilotSubscription({
 
   if (account != null) {
     const accountKey = `${account.host}:${account.login}`;
-    const secureToken = await readSecureCredential({
+    const secureToken = await (
+      readSecureCredential ??
+      (options => readGitHubCopilotSecureCredential({ ...options, platform }))
+    )({
       service: COPILOT_KEYRING_SERVICE,
       account: accountKey,
     }).catch(() => undefined);
@@ -223,17 +229,26 @@ function getPlaintextToken({
 async function readGitHubCopilotSecureCredential({
   service,
   account,
+  platform,
 }: {
   service: string;
   account: string;
+  platform: NodeJS.Platform;
 }): Promise<string | undefined> {
-  try {
-    const { AsyncEntry } = await import('@napi-rs/keyring');
-    const password = await new AsyncEntry(service, account).getPassword();
-    return isNonEmptyString(password) ? password : undefined;
-  } catch {
-    return undefined;
+  if (platform === 'darwin') {
+    return readMacOSKeychainPassword({ service, account });
   }
+  if (platform === 'linux') {
+    return readLinuxSecretServicePassword({
+      attributes: { service, username: account },
+    });
+  }
+  if (platform === 'win32') {
+    return readWindowsCredentialManagerPassword({
+      targetName: `${account}.${service}`,
+    });
+  }
+  return undefined;
 }
 
 async function readHostGitHubCliToken({

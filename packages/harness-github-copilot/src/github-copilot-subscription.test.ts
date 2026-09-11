@@ -1,6 +1,7 @@
 import { chmod, mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   findHostGitHubCliExecutable,
@@ -8,22 +9,16 @@ import {
   resolveGitHubCopilotSubscriptionEnvironment,
 } from './github-copilot-subscription';
 
-const keyringMocks = vi.hoisted(() => ({
-  constructor: vi.fn(),
-  getPassword: vi.fn<() => Promise<string | undefined>>(),
+const credentialStoreMocks = vi.hoisted(() => ({
+  readLinuxSecretServicePassword: vi.fn(),
+  readMacOSKeychainPassword: vi.fn(),
+  readWindowsCredentialManagerPassword: vi.fn(),
 }));
 
-vi.mock('@napi-rs/keyring', () => ({
-  AsyncEntry: class {
-    constructor(service: string, account: string) {
-      keyringMocks.constructor(service, account);
-    }
-
-    getPassword() {
-      return keyringMocks.getPassword();
-    }
-  },
-}));
+vi.mock('@ai-sdk/harness/utils', async importOriginal => {
+  const actual = await importOriginal<typeof HarnessUtils>();
+  return { ...actual, ...credentialStoreMocks };
+});
 
 describe('resolveGitHubCopilotSubscriptionEnvironment', () => {
   it('uses an explicit authentication environment without native discovery', async () => {
@@ -117,11 +112,12 @@ describe('resolveGitHubCopilotSubscriptionEnvironment', () => {
 
 describe('readGitHubCopilotSubscription', () => {
   beforeEach(() => {
-    keyringMocks.constructor.mockClear();
-    keyringMocks.getPassword.mockReset();
+    credentialStoreMocks.readLinuxSecretServicePassword.mockReset();
+    credentialStoreMocks.readMacOSKeychainPassword.mockReset();
+    credentialStoreMocks.readWindowsCredentialManagerPassword.mockReset();
   });
 
-  it('reads the last logged-in account from the native secure store', async () => {
+  it('reads the last logged-in account from the macOS Keychain', async () => {
     const copilotHome = await createCopilotHome({
       config: `
         // This file is managed by Copilot CLI.
@@ -139,21 +135,117 @@ describe('readGitHubCopilotSubscription', () => {
         }
       `,
     });
-    keyringMocks.getPassword.mockResolvedValue('secure-token');
+    credentialStoreMocks.readMacOSKeychainPassword.mockResolvedValue(
+      'secure-token',
+    );
 
     await expect(
       readGitHubCopilotSubscription({
         env: { COPILOT_HOME: copilotHome },
+        platform: 'darwin',
         findGitHubCliExecutable: async () => undefined,
       }),
     ).resolves.toEqual({
       token: 'secure-token',
       host: 'https://enterprise.example',
     });
-    expect(keyringMocks.constructor).toHaveBeenCalledWith(
-      'copilot-cli',
-      'https://enterprise.example:last-user',
+    expect(
+      credentialStoreMocks.readMacOSKeychainPassword,
+    ).toHaveBeenCalledExactlyOnceWith({
+      service: 'copilot-cli',
+      account: 'https://enterprise.example:last-user',
+    });
+  });
+
+  it('reads the selected account from Linux Secret Service', async () => {
+    const copilotHome = await createCopilotHome({
+      config: JSON.stringify({
+        lastLoggedInUser: {
+          host: 'https://github.com',
+          login: 'octocat',
+        },
+      }),
+    });
+    credentialStoreMocks.readLinuxSecretServicePassword.mockResolvedValue(
+      'secure-token',
     );
+
+    await expect(
+      readGitHubCopilotSubscription({
+        env: { COPILOT_HOME: copilotHome },
+        platform: 'linux',
+        findGitHubCliExecutable: async () => undefined,
+      }),
+    ).resolves.toEqual({
+      token: 'secure-token',
+      host: 'https://github.com',
+    });
+    expect(
+      credentialStoreMocks.readLinuxSecretServicePassword,
+    ).toHaveBeenCalledExactlyOnceWith({
+      attributes: {
+        service: 'copilot-cli',
+        username: 'https://github.com:octocat',
+      },
+    });
+  });
+
+  it('reads the selected account from Windows Credential Manager', async () => {
+    const copilotHome = await createCopilotHome({
+      config: JSON.stringify({
+        lastLoggedInUser: {
+          host: 'https://github.com',
+          login: 'octocat',
+        },
+      }),
+    });
+    credentialStoreMocks.readWindowsCredentialManagerPassword.mockResolvedValue(
+      'secure-token',
+    );
+
+    await expect(
+      readGitHubCopilotSubscription({
+        env: { COPILOT_HOME: copilotHome },
+        platform: 'win32',
+        findGitHubCliExecutable: async () => undefined,
+      }),
+    ).resolves.toEqual({
+      token: 'secure-token',
+      host: 'https://github.com',
+    });
+    expect(
+      credentialStoreMocks.readWindowsCredentialManagerPassword,
+    ).toHaveBeenCalledExactlyOnceWith({
+      targetName: 'https://github.com:octocat.copilot-cli',
+    });
+  });
+
+  it('does not read a secure credential on unsupported platforms', async () => {
+    const copilotHome = await createCopilotHome({
+      config: JSON.stringify({
+        lastLoggedInUser: {
+          host: 'https://github.com',
+          login: 'octocat',
+        },
+      }),
+    });
+
+    await expect(
+      readGitHubCopilotSubscription({
+        env: { COPILOT_HOME: copilotHome },
+        platform: 'freebsd',
+        findGitHubCliExecutable: async () => undefined,
+      }),
+    ).resolves.toBeUndefined();
+    expect(
+      credentialStoreMocks.readLinuxSecretServicePassword,
+    ).not.toHaveBeenCalled();
+    expect(
+      credentialStoreMocks.readMacOSKeychainPassword,
+    ).not.toHaveBeenCalled();
+    expect(
+      credentialStoreMocks.readWindowsCredentialManagerPassword,
+    ).not.toHaveBeenCalled();
   });
 
   it('uses the first logged-in account when no last account is stored', async () => {
