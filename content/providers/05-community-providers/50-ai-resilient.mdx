@@ -1,0 +1,57 @@
+---
+title: ai-resilient
+description: Smart model fallback for the AI SDK — reactive fallback on rate-limit and transient errors, proactive switching before limits are hit.
+---
+
+# ai-resilient
+
+[ai-resilient](https://github.com/usmangurowa/ai-resilient) wraps a chain of AI SDK language models in a single model with smart fallback:
+
+- **Reactive fallback** to the next model on rate-limit (429/quota) and transient (5xx/network) errors — fatal errors (400/401/403) throw immediately.
+- **Proactive switching** away from models near a known rate limit, using provider rate-limit response headers (OpenAI, Anthropic, Groq, Google, Mistral) and/or self-counted usage against declared limits.
+- **Benching**: rate-limited models are taken out of rotation for their `retry-after` window (or a configured cooldown).
+- **Streaming-safe**: falls back only on errors before the first content chunk; mid-stream errors propagate.
+
+It works with `generateText`, `streamText`, `generateObject`, and `streamObject` on AI SDK v5 and v6, has zero runtime dependencies, and supports a pluggable store (default in-memory) for multi-instance deployments.
+
+## Setup
+
+ai-resilient is available in the `ai-resilient` module. You can install it with:
+
+<InstallPackages packages="ai-resilient" />
+
+## Usage
+
+Wrap your models with `createResilient` and use the result anywhere a language model is accepted:
+
+```typescript
+import { createResilient } from 'ai-resilient';
+import { groq } from '@ai-sdk/groq';
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const model = createResilient({
+  models: [
+    {
+      model: groq('llama-3.3-70b-versatile'),
+      limits: { requestsPerMinute: 30, tokensPerMinute: 6000 },
+    },
+    { model: openai('gpt-4o-mini') },
+  ],
+  onFallback: ({ from, to, reason }) => {
+    console.warn(`Falling back from ${from} to ${to}: ${reason}`);
+  },
+});
+
+const { text } = await generateText({
+  model,
+  prompt: 'Hello!',
+});
+```
+
+If all models fail, an `AllModelsExhaustedError` is thrown with the per-model attempts and error classifications.
+
+## Additional Resources
+
+- [GitHub repository](https://github.com/usmangurowa/ai-resilient)
+- [npm package](https://www.npmjs.com/package/ai-resilient)
