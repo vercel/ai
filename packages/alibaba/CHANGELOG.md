@@ -1,5 +1,11 @@
 # @ai-sdk/alibaba
 
+## 1.0.54
+
+### Patch Changes
+
+- 4bd2599: fix(deepseek): preserve reasoning streams across empty tool-call deltas
+
 ## 1.0.53
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/moonshotai
 
+## 2.0.56
+
+### Patch Changes
+
+- 4bd2599: fix(deepseek): preserve reasoning streams across empty tool-call deltas
+
 ## 2.0.55
 
 ### Patch Changes

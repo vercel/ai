@@ -75,13 +75,13 @@ importers:
         specifier: 3.0.118
         version: link:../../packages/anthropic
       '@ai-sdk/azure':
-        specifier: 3.0.119
+        specifier: 3.0.120
         version: link:../../packages/azure
       '@ai-sdk/cohere':
         specifier: 3.0.61
         version: link:../../packages/cohere
       '@ai-sdk/deepseek':
-        specifier: 2.0.63
+        specifier: 2.0.64
         version: link:../../packages/deepseek
       '@ai-sdk/fireworks':
         specifier: 2.0.85
@@ -93,7 +93,7 @@ importers:
         specifier: 4.0.199
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
-        specifier: 3.0.65
+        specifier: 3.0.66
         version: link:../../packages/groq
       '@ai-sdk/mcp':
         specifier: 1.0.80
@@ -120,7 +120,7 @@ importers:
         specifier: 2.0.52
         version: link:../../packages/valibot
       '@ai-sdk/xai':
-        specifier: 3.0.131
+        specifier: 3.0.132
         version: link:../../packages/xai
       '@modelcontextprotocol/sdk':
         specifier: ^1.26.0
