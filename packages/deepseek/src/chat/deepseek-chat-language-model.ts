@@ -549,7 +549,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
               });
             }
 
-            if (delta.tool_calls != null) {
+            if (delta.tool_calls != null && delta.tool_calls.length > 0) {
               // end reasoning when tool calls start:
               if (isActiveReasoning) {
                 controller.enqueue({
