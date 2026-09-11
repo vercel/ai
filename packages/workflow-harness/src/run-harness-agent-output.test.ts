@@ -197,6 +197,7 @@ function fakeSession(options: {
   const session = {
     sessionId: 'session-1',
     destroyCalls: 0,
+    detachCalls: 0,
     hasUnfinishedTurn: () => options.unfinishedTurn ?? false,
     async suspendTurn() {
       return (
@@ -209,6 +210,7 @@ function fakeSession(options: {
       );
     },
     async detach() {
+      session.detachCalls++;
       return {
         type: 'resume-session',
         harnessId: 'mock',
@@ -219,7 +221,10 @@ function fakeSession(options: {
     async destroy() {
       session.destroyCalls++;
     },
-  } as unknown as HarnessAgentSession & { destroyCalls: number };
+  } as unknown as HarnessAgentSession & {
+    destroyCalls: number;
+    detachCalls: number;
+  };
   return session;
 }
 
@@ -411,7 +416,7 @@ describe('runHarnessAgentStep output', () => {
     expect(state.finalResult?.output).toBeUndefined();
   });
 
-  test('destroys the session and preserves the output error before closing the stream', async () => {
+  test('detaches the session and preserves the output error before closing the stream', async () => {
     const session = fakeSession({});
     const result = streamResult<ScoreOutput>({
       output: () => Promise.reject(new Error('output validation failed')),
@@ -436,9 +441,41 @@ describe('runHarnessAgentStep output', () => {
     expect(state).toMatchObject({
       status: 'failed',
       error: 'output validation failed',
+      resumeFrom: {
+        type: 'resume-session',
+      },
     });
-    expect(session.destroyCalls).toBe(1);
+    expect(session.detachCalls).toBe(1);
+    expect(session.destroyCalls).toBe(0);
     expect(writable.isClosed()).toBe(false);
     expect(writable.chunks.at(-1)).not.toMatchObject({ type: 'finish' });
+  });
+
+  test('destroys the session when output validation fails with destroyOnFinish', async () => {
+    const session = fakeSession({});
+    const result = streamResult<ScoreOutput>({
+      output: () => Promise.reject(new Error('output validation failed')),
+    });
+    const agent: HarnessWorkflowAgent<ScoreOutput> = {
+      hasOutput: true,
+      createSession: vi.fn(async () => session),
+      stream: vi.fn(async () => result),
+      continueStream: vi.fn(async () => result),
+    };
+
+    const state = await runHarnessAgentStep({
+      agent,
+      state: createHarnessWorkflowState({
+        prompt: 'Score this.',
+        sessionId: 'session-1',
+      }),
+      destroyOnFinish: true,
+      writable: collectingWritable().writable,
+    });
+
+    expect(state.status).toBe('failed');
+    expect(state.resumeFrom).toBeUndefined();
+    expect(session.detachCalls).toBe(0);
+    expect(session.destroyCalls).toBe(1);
   });
 });

@@ -327,15 +327,15 @@ export async function runHarnessAgent<OUTPUT = unknown>(
         }
         output = await Promise.resolve(outputPromise);
       } catch (err) {
-        await destroyQuietly(session);
+        const failedSessionState = await endFailedSession({
+          session,
+          destroyOnFinish,
+        });
         return {
           sessionId: state.sessionId,
           prompt: state.prompt,
           status: 'failed',
-          ...(state.resumeFrom != null ? { resumeFrom: state.resumeFrom } : {}),
-          ...(state.continueFrom != null
-            ? { continueFrom: state.continueFrom }
-            : {}),
+          ...failedSessionState,
           error: errorMessage(err),
         };
       }
