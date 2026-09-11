@@ -3,6 +3,7 @@ import {
   type AgentSession,
   type ExtensionAPI,
   type ExtensionFactory,
+  type ProviderConfig,
   type ToolDefinition,
   ModelRuntime,
   SettingsManager,
@@ -69,6 +70,7 @@ const piMock = vi.hoisted(() => {
     extensionHandlers,
     resourceLoaderReloadCount: 0,
     resourceLoaderOptions: [] as ResourceLoaderOptions[],
+    registerProvider: vi.fn(),
     session: undefined as AgentSession | undefined,
     sessionManagerOpen: vi.fn(),
   };
@@ -123,8 +125,19 @@ vi.mock('@earendil-works/pi-coding-agent', () => {
     },
     defineTool: vi.fn(tool => tool),
     ModelRegistry: class {
+      private readonly providerConfigs = new Map<string, ProviderConfig>();
+
       getAll = vi.fn(() => []);
-      registerProvider = vi.fn();
+      getRegisteredProviderConfig = vi.fn((provider: string) =>
+        this.providerConfigs.get(provider),
+      );
+      registerProvider = vi.fn((provider: string, config: ProviderConfig) => {
+        this.providerConfigs.set(provider, {
+          ...this.providerConfigs.get(provider),
+          ...config,
+        });
+        piMock.registerProvider(provider, config);
+      });
     },
     ModelRuntime: {
       create: vi.fn(async () => ({
@@ -153,6 +166,7 @@ describe('createPiSession', () => {
     piMock.extensionHandlers.clear();
     piMock.resourceLoaderReloadCount = 0;
     piMock.resourceLoaderOptions = [];
+    piMock.registerProvider.mockClear();
     piMock.session = undefined;
     mcpAdapterMock.createMcpAdapter.mockClear();
     mcpAdapterMock.mcpExtensionFactory.mockClear();
@@ -627,6 +641,50 @@ describe('createPiSession', () => {
     ).rejects.toThrow('Invalid Pi session file name');
 
     expect(sandboxSession.readBinaryFile).not.toHaveBeenCalled();
+  });
+
+  it('initializes the restored Pi session before compacting a cold resume', async () => {
+    const { session: fakePiSession, compact, prompt } = createFakePiSession();
+    piMock.session = fakePiSession;
+    const { journal } = createJournal([userMessage('remember this')]);
+    piMock.sessionManagerOpen.mockImplementation(() => journal);
+
+    const session = await createPiSession({
+      sessionId: 'session-cold-resume-compaction',
+      sandboxSession: createSandboxSession({
+        sessionFileContent: 'pi-journal',
+      }),
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+      isResume: true,
+      resumeSessionFileName: 'pi-session.jsonl',
+    });
+
+    try {
+      expect(piMock.createAgentSession).not.toHaveBeenCalled();
+
+      await session.doCompact('preserve the decisions');
+
+      expect(piMock.sessionManagerOpen).toHaveBeenCalledOnce();
+      expect(piMock.createAgentSession).toHaveBeenCalledWith(
+        expect.objectContaining({ sessionManager: journal }),
+      );
+      expect(compact).toHaveBeenCalledWith('preserve the decisions');
+
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'continue',
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      expect(piMock.createAgentSession).toHaveBeenCalledOnce();
+      expect(prompt).toHaveBeenCalledWith('continue');
+    } finally {
+      await session.doDestroy();
+    }
   });
 
   it('appends instructions without changing the user prompt or reloading MCP extensions', async () => {
@@ -1299,6 +1357,40 @@ describe('createPiSession', () => {
     expect(SettingsManager.inMemory).not.toHaveBeenCalled();
   });
 
+  it('registers explicit provider model configurations', async () => {
+    const provider: ProviderConfig = {
+      apiKey: 'sk-test',
+      baseUrl: 'https://api.example.test/v1',
+      api: 'openai-completions',
+      authHeader: true,
+      models: [
+        {
+          id: 'my-custom-model',
+          name: 'My Custom Model',
+          reasoning: false,
+          input: ['text'],
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          contextWindow: 128_000,
+          maxTokens: 16_384,
+        },
+      ],
+    };
+
+    await createPiSession({
+      sessionId: 'session-custom-provider',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      settings: { providers: { myprovider: provider } },
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+      isResume: false,
+    });
+
+    expect(piMock.registerProvider).toHaveBeenLastCalledWith(
+      'myprovider',
+      provider,
+    );
+  });
+
   it('falls back to temp dir and inMemory settings when agentDir is omitted', async () => {
     vi.mocked(ModelRuntime.create).mockClear();
     vi.mocked(SettingsManager.inMemory).mockClear();
@@ -1343,10 +1435,11 @@ function createFakePiSession({
     }
   });
   const abort = vi.fn(async () => {});
+  const compact = vi.fn(async () => {});
   const dispose = vi.fn();
   const session = {
     abort,
-    compact: vi.fn(async () => {}),
+    compact,
     dispose,
     getSessionStats: () => ({
       tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
@@ -1358,7 +1451,7 @@ function createFakePiSession({
       return () => subscribers.delete(subscriber);
     }),
   } as unknown as AgentSession;
-  return { session, prompt, abort, dispose };
+  return { session, prompt, abort, compact, dispose };
 }
 
 async function startDeferredCrossProcessRerun({

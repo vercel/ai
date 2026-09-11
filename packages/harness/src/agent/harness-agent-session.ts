@@ -112,6 +112,7 @@ export class HarnessAgentSession {
   private turnState: HarnessAgentTurnState;
   private turnSequence = 0;
   private activeTurnSequence = 0;
+  private activePromptDone: Promise<void> | undefined;
   private activePromptControl: ActivePromptControl | undefined;
   private suspendedTurnState:
     | Promise<HarnessAgentContinueTurnState>
@@ -281,6 +282,7 @@ export class HarnessAgentSession {
         onStopConditionMet: () =>
           this.captureStopConditionBoundary({ session, turnId }),
       });
+      this.activePromptDone = turn.done;
       return {
         ...turn,
         ready: this.waitForPromptControl({ turnId }),
@@ -380,6 +382,7 @@ export class HarnessAgentSession {
         onStopConditionMet: () =>
           this.captureStopConditionBoundary({ session, turnId }),
       });
+      this.activePromptDone = turn.done;
       return {
         ...turn,
         ready: this.waitForPromptControl({ turnId }),
@@ -463,7 +466,7 @@ export class HarnessAgentSession {
     try {
       if (this.turnState !== 'idle') {
         return this.toResumeStateWithContinuation({
-          continueFrom: await this.suspendCurrentTurn({ session }),
+          continueFrom: await this.finalizeCurrentTurnSuspension({ session }),
         });
       }
       const raw = await session.doDetach();
@@ -495,7 +498,7 @@ export class HarnessAgentSession {
     try {
       if (this.turnState !== 'idle') {
         return this.toResumeStateWithContinuation({
-          continueFrom: await this.suspendCurrentTurn({ session }),
+          continueFrom: await this.finalizeCurrentTurnSuspension({ session }),
         });
       }
       const raw = await session.doStop();
@@ -556,7 +559,7 @@ export class HarnessAgentSession {
     }
     const session = this.underlyingSession;
     try {
-      return await this.suspendCurrentTurn({ session });
+      return await this.finalizeCurrentTurnSuspension({ session });
     } finally {
       this.endLocalHandle({ sessionState: 'detached' });
     }
@@ -609,6 +612,17 @@ export class HarnessAgentSession {
     const state = await this.suspendedTurnState;
     this.turnState = 'suspended';
     return state;
+  }
+
+  private async finalizeCurrentTurnSuspension(options: {
+    session: HarnessAgentAdapterSession;
+  }): Promise<HarnessAgentContinueTurnState> {
+    const state = await this.suspendCurrentTurn(options);
+    // Freeze ingress first, then include all dispatched host work in the cursor.
+    // Keep this wait outside suspendCurrentTurn because stop-condition handling
+    // invokes that helper from inside the active prompt.
+    await this.activePromptDone;
+    return this.addPendingToolState(state);
   }
 
   private async captureStopConditionBoundary(options: {
