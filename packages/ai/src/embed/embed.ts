@@ -1,11 +1,13 @@
 import {
   createIdGenerator,
+  type Context,
   withUserAgentSuffix,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
+import { InvalidResponseDataError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveEmbeddingModel } from '../model/resolve-model';
-import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
+import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type { EmbeddingModel } from '../types';
 import type { Callback } from '../util/callback';
@@ -31,6 +33,7 @@ const originalGenerateCallId = createIdGenerator({
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
  * @param telemetry - Optional telemetry configuration.
+ * @param runtimeContext - User-defined runtime context passed to callbacks and, when explicitly included, telemetry.
  *
  * @param providerOptions - Additional provider-specific options. They are passed through
  * to the provider from the AI SDK and enable provider-specific
@@ -38,7 +41,7 @@ const originalGenerateCallId = createIdGenerator({
  *
  * @returns A result object that contains the embedding, the value, and additional information.
  */
-export async function embed({
+export async function embed<RUNTIME_CONTEXT extends Context = Context>({
   model: modelArg,
   value,
   providerOptions,
@@ -47,6 +50,7 @@ export async function embed({
   headers,
   experimental_telemetry,
   telemetry = experimental_telemetry,
+  runtimeContext = {} as RUNTIME_CONTEXT,
   onStart,
   experimental_onStart,
   onEnd,
@@ -91,20 +95,25 @@ export async function embed({
   /**
    * Optional telemetry configuration.
    */
-  telemetry?: TelemetryOptions;
+  telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
 
   /**
    * Optional telemetry configuration.
    *
    * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
    */
-  experimental_telemetry?: TelemetryOptions;
+  experimental_telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
+
+  /**
+   * User-defined runtime context. Treat runtime context as immutable.
+   */
+  runtimeContext?: RUNTIME_CONTEXT;
 
   /**
    * Callback that is called when the embed operation begins,
    * before the embedding model is called.
    */
-  onStart?: Callback<EmbedStartEvent>;
+  onStart?: Callback<EmbedStartEvent<RUNTIME_CONTEXT>>;
 
   /**
    * Callback that is called when the embed operation begins,
@@ -112,13 +121,13 @@ export async function embed({
    *
    * @deprecated Use `onStart` instead.
    */
-  experimental_onStart?: Callback<EmbedStartEvent>;
+  experimental_onStart?: Callback<EmbedStartEvent<RUNTIME_CONTEXT>>;
 
   /**
    * Callback that is called when the embed operation completes,
    * after the embedding model returns.
    */
-  onEnd?: Callback<EmbedEndEvent>;
+  onEnd?: Callback<EmbedEndEvent<RUNTIME_CONTEXT>>;
 
   /**
    * Callback that is called when the embed operation completes,
@@ -126,7 +135,7 @@ export async function embed({
    *
    * @deprecated Use `onEnd` instead.
    */
-  experimental_onEnd?: Callback<EmbedEndEvent>;
+  experimental_onEnd?: Callback<EmbedEndEvent<RUNTIME_CONTEXT>>;
 
   /**
    * Internal. For test use only. May change without notice.
@@ -151,7 +160,7 @@ export async function embed({
 
   const callId = generateCallId();
 
-  const telemetryDispatcher = createTelemetryDispatcher({
+  const telemetryDispatcher = createRestrictedTelemetryDispatcher({
     telemetry,
   });
 
@@ -163,6 +172,7 @@ export async function embed({
   const startEvent = {
     callId,
     operationId: 'ai.embed',
+    runtimeContext,
     provider: model.provider,
     modelId: model.modelId,
     value,
@@ -221,6 +231,13 @@ export async function embed({
               callbacks: [telemetryDispatcher.onEmbedEnd],
             });
 
+            if (embedding == null) {
+              throw new InvalidResponseDataError({
+                data: modelResponse.embeddings,
+                message: 'No embedding generated.',
+              });
+            }
+
             return {
               embedding,
               usage,
@@ -240,6 +257,7 @@ export async function embed({
           event: {
             callId,
             operationId: 'ai.embed',
+            runtimeContext,
             provider: model.provider,
             modelId: model.modelId,
             value,

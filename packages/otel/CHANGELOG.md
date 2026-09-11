@@ -1,5 +1,71 @@
 # @ai-sdk/otel
 
+## 1.0.98
+
+### Patch Changes
+
+- db59d78: feat(ai): add runtime context attribution to embed, embedMany and rerank
+- eb70e72: fix(otel): attribute fallback spans to the successful provider
+- 2dd0244: fix(otel): preserve HTTP status codes on API error spans
+- Updated dependencies [5ec21a6]
+- Updated dependencies [db59d78]
+- Updated dependencies [7469a3b]
+- Updated dependencies [f87bf07]
+- Updated dependencies [bc5cb7a]
+- Updated dependencies [a5f449a]
+  - @ai-sdk/provider@4.0.14
+  - ai@7.0.98
+
+## 1.0.97
+
+### Patch Changes
+
+- Updated dependencies [ef3bac4]
+- Updated dependencies [9942196]
+  - ai@7.0.97
+  - @ai-sdk/provider@4.0.13
+
+## 1.0.96
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+- Updated dependencies [c595e6e]
+  - @ai-sdk/provider@4.0.12
+  - ai@7.0.96
+
+## 1.0.95
+
+### Patch Changes
+
+- Updated dependencies [27f6d7a]
+  - ai@7.0.95
+
+## 1.0.94
+
+### Patch Changes
+
+- Updated dependencies [a4ba394]
+- Updated dependencies [36b3364]
+- Updated dependencies [45099da]
+  - ai@7.0.94
+  - @ai-sdk/provider@4.0.11
+
+## 1.0.93
+
+### Patch Changes
+
+- Updated dependencies [df6c009]
+- Updated dependencies [6ee74a3]
+- Updated dependencies [f13d371]
+- Updated dependencies [d4485fe]
+- Updated dependencies [4f201cc]
+- Updated dependencies [8cdb2a7]
+- Updated dependencies [0f2281e]
+- Updated dependencies [fc8e8ac]
+- Updated dependencies [ee8391e]
+  - ai@7.0.93
+
 ## 1.0.92
 
 ### Patch Changes

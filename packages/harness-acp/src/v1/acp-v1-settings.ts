@@ -1,6 +1,7 @@
 import type {
   HarnessV1Authentication,
   HarnessV1CredentialForwarding,
+  HarnessV1MintBridgeTokenCallback,
   HarnessV1PermissionMode,
   HarnessV1RequestTransformation,
   HarnessV1StreamPart,
@@ -90,10 +91,26 @@ export type ACPModelMapping =
 export type ACPCredentialBrokering = ({
   env,
   sandboxEnv,
+  headers,
 }: {
   env: Readonly<Record<string, string>>;
   sandboxEnv?: Readonly<Record<string, string>>;
+  headers?: Readonly<Record<string, string>>;
 }) => ReadonlyArray<HarnessV1RequestTransformation>;
+
+export type ACPAuthenticationFile = {
+  /** Path relative to the ACP implementation's private home directory. */
+  readonly path: string;
+  readonly content: string;
+};
+
+export type ACPAuthenticationFiles = (options: {
+  /** Host values resolved for the implementation. */
+  readonly env: Readonly<Record<string, string>>;
+  /** Values exposed to the sandbox process after credential brokering. */
+  readonly sandboxEnv: Readonly<Record<string, string>>;
+  readonly credentialBrokeringAvailable: boolean;
+}) => ReadonlyArray<ACPAuthenticationFile>;
 
 export type ACPPermissionModeTarget =
   | {
@@ -124,12 +141,22 @@ export type ACPInstructionMapping =
       readonly type: 'launch-env-json';
       readonly variable: string;
       readonly path: ReadonlyArray<string>;
+    }
+  | {
+      readonly type: 'filesystem';
+      readonly path: string;
     };
 
 export type ACPOutputSchemaMapping = {
   readonly type: 'session-prompt-meta';
   readonly path: ReadonlyArray<string>;
 };
+
+/**
+ * Transport used for the harness-owned MCP server that exposes host tools to
+ * an ACP implementation.
+ */
+export type ACPHostToolMCPTransport = 'stdio' | 'http';
 
 export type ACPAskUserQuestionsSettings = {
   readonly requestMethod: string;
@@ -156,12 +183,25 @@ export type ACPV1Settings = {
   readonly mcpServers?: Record<string, unknown>;
   readonly isMcpToolCall?: (toolCall: ACPToolCall) => boolean;
   readonly auth?: ACPAuthenticationMode;
+  /**
+   * Resolves adapter-owned authentication on the host before any environment
+   * values are forwarded to the ACP implementation.
+   */
+  readonly resolveAuthenticationEnvironment?: (options: {
+    readonly auth: ACPAuthenticationMode | undefined;
+    readonly env: Readonly<Record<string, string | undefined>>;
+  }) => Promise<Readonly<Record<string, string | undefined>>>;
   readonly source: ACPSource;
   readonly executable: string;
   readonly args?: ReadonlyArray<string>;
   readonly forwardEnv?: ReadonlyArray<string>;
   readonly credentialEnv?: ReadonlyArray<string>;
   readonly credentialBrokering?: ACPCredentialBrokering;
+  /**
+   * Materializes private authentication files below the ACP implementation's
+   * home directory before the implementation starts.
+   */
+  readonly authenticationFiles?: ACPAuthenticationFiles;
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can
@@ -181,10 +221,6 @@ export type ACPV1Settings = {
    */
   readonly modelMapping: ACPModelMapping;
   /**
-   * @deprecated Use `model` on `HarnessAgent` instead.
-   */
-  readonly modelId?: string;
-  /**
    * Native skills directory relative to the ACP implementation's home
    * directory. Defaults to `.agents/skills`.
    */
@@ -200,6 +236,14 @@ export type ACPV1Settings = {
    * below the ACP session prompt's `_meta` field.
    */
   readonly outputSchemaMapping?: ACPOutputSchemaMapping;
+  /**
+   * Transport used for the harness-owned MCP server that exposes host tools to
+   * the ACP implementation. Defaults to `stdio`. Set this to `http` for
+   * implementations that only accept HTTP or SSE MCP servers from the client,
+   * which requires the implementation to advertise
+   * `agentCapabilities.mcpCapabilities.http`.
+   */
+  readonly hostToolMcpTransport?: ACPHostToolMCPTransport;
   readonly askUserQuestions?: ACPAskUserQuestionsSettings;
   readonly permissionModeMapping?: ACPPermissionModeMapping;
   readonly session?: {
@@ -209,5 +253,5 @@ export type ACPV1Settings = {
    * Creates the authentication token used by the sandbox bridge. Defaults to
    * a random 32-byte hexadecimal token.
    */
-  readonly mintBridgeToken?: (sandboxId: string) => string;
+  readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };

@@ -1,5 +1,72 @@
 # @ai-sdk/harness-acp
 
+## 1.0.46
+
+### Patch Changes
+
+- cdc12a1: feat(harness): add support for using adapter-native subscriptions where available
+- Updated dependencies [4d1bf28]
+- Updated dependencies [cdc12a1]
+- Updated dependencies [d70a334]
+- Updated dependencies [81ba84c]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/harness@1.0.108
+  - @ai-sdk/provider-utils@5.0.40
+
+## 1.0.45
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.107
+- @ai-sdk/provider-utils@5.0.39
+
+## 1.0.44
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.106
+- @ai-sdk/provider-utils@5.0.38
+
+## 1.0.43
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.105
+
+## 1.0.42
+
+### Patch Changes
+
+- c04ded8: chore(harness): remove formerly deprecated `model` and `modelId` config on harness adapter settings
+- Updated dependencies [c04ded8]
+  - @ai-sdk/harness@1.0.104
+
+## 1.0.41
+
+### Patch Changes
+
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider-utils@5.0.37
+  - @ai-sdk/harness@1.0.103
+
+## 1.0.40
+
+### Patch Changes
+
+- ceb601c: fix(harness-acp): fix stream translator to match most appropriate tool based on input shape when no name is present and multiple candidates would match the required arguments
+- 255cccf: feat(harness): add `writeInstructions` helper and support filesystem based `instructionsMapping` in ACP backed harness adapters
+- 668b51d: fix(harness-acp): remove problematic condition that leads to errors when using `stopWhen`
+- eeed977: feat(harness): allow passing arbitrary headers with inference requests via `headers` property in `HarnessAgentSettings`
+- 1291df7: feat(harness-acp): support control over how host tools are exposed via `hostToolMcpTransport` config
+- a39c8bf: chore(harness): clarify `writeSkills` helper intent to require materializing skills in HOME directory
+- Updated dependencies [fe86f8f]
+- Updated dependencies [255cccf]
+- Updated dependencies [eeed977]
+- Updated dependencies [a39c8bf]
+  - @ai-sdk/harness@1.0.102
+
 ## 1.0.39
 
 ### Patch Changes

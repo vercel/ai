@@ -1,5 +1,78 @@
 # @ai-sdk/harness-fx
 
+## 1.0.21
+
+### Patch Changes
+
+- cdc12a1: feat(harness): add support for using adapter-native subscriptions where available
+- Updated dependencies [4d1bf28]
+- Updated dependencies [cdc12a1]
+- Updated dependencies [d70a334]
+- Updated dependencies [81ba84c]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/harness@1.0.108
+  - @ai-sdk/harness-acp@1.0.46
+  - @ai-sdk/provider-utils@5.0.40
+
+## 1.0.20
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.107
+- @ai-sdk/provider-utils@5.0.39
+- @ai-sdk/harness-acp@1.0.45
+
+## 1.0.19
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.106
+- @ai-sdk/provider-utils@5.0.38
+- @ai-sdk/harness-acp@1.0.44
+
+## 1.0.18
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.105
+- @ai-sdk/harness-acp@1.0.43
+
+## 1.0.17
+
+### Patch Changes
+
+- c04ded8: chore(harness): remove formerly deprecated `model` and `modelId` config on harness adapter settings
+- Updated dependencies [c04ded8]
+  - @ai-sdk/harness-acp@1.0.42
+  - @ai-sdk/harness@1.0.104
+
+## 1.0.16
+
+### Patch Changes
+
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider-utils@5.0.37
+  - @ai-sdk/harness@1.0.103
+  - @ai-sdk/harness-acp@1.0.41
+
+## 1.0.15
+
+### Patch Changes
+
+- 255cccf: feat(harness): add `writeInstructions` helper and support filesystem based `instructionsMapping` in ACP backed harness adapters
+- eeed977: feat(harness): allow passing arbitrary headers with inference requests via `headers` property in `HarnessAgentSettings`
+- Updated dependencies [fe86f8f]
+- Updated dependencies [ceb601c]
+- Updated dependencies [255cccf]
+- Updated dependencies [668b51d]
+- Updated dependencies [eeed977]
+- Updated dependencies [1291df7]
+- Updated dependencies [a39c8bf]
+  - @ai-sdk/harness@1.0.102
+  - @ai-sdk/harness-acp@1.0.40
+
 ## 1.0.14
 
 ### Patch Changes

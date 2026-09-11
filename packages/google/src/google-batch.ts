@@ -1,14 +1,22 @@
 import {
   InvalidArgumentError,
   InvalidResponseDataError,
-  type Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
+  UnsupportedFunctionalityError,
+  type Experimental_BatchV4 as BatchV4,
+  type Experimental_BatchV4CancelResult as BatchV4CancelResult,
   type Experimental_BatchV4Error as BatchV4Error,
   type Experimental_BatchV4ItemResult as BatchV4ItemResult,
+  type Experimental_BatchV4ListOptions as BatchV4ListOptions,
+  type Experimental_BatchV4ListResult as BatchV4ListResult,
   type Experimental_BatchV4OperationOptions as BatchV4OperationOptions,
-  type Experimental_BatchV4StartOptions as BatchV4StartOptions,
   type Experimental_BatchV4StartResult as BatchV4StartResult,
   type Experimental_BatchV4Status as BatchV4Status,
+  type Experimental_ImageBatchV4Request as ImageBatchV4Request,
+  type Experimental_BatchV4StartOptions as BatchV4StartOptions,
   type LanguageModelV4GenerateResult,
+  type ImageModelV4Result,
+  type LanguageModelV4Prompt,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -19,13 +27,13 @@ import {
   getFromApi,
   lazySchema,
   normalizeBatchRequestCounts,
+  parseProviderOptions,
   postJsonToApi,
   postToApi,
   resolve,
   safeValidateTypes,
-  WORKFLOW_DESERIALIZE,
-  WORKFLOW_SERIALIZE,
   zodSchema,
+  convertToBase64,
   type InferSchema,
   type ResponseHandler,
 } from '@ai-sdk/provider-utils';
@@ -37,7 +45,12 @@ import {
   responseSchema,
   type GoogleLanguageModelConfig,
 } from './google-language-model';
-import type { GoogleModelId } from './google-language-model-options';
+import {
+  googleLanguageModelOptions,
+  type GoogleModelId,
+} from './google-language-model-options';
+import type { GoogleImageModelId } from './google-image-settings';
+import { googleImageModelOptionsSchema } from './google-image-model-options';
 
 const googleBatchInputFileMaxBytes = 2 * 1024 * 1024 * 1024;
 const googleBatchInlineCreationMaxBytes = 20_000_000;
@@ -45,9 +58,25 @@ const supportedGoogleBatchContentTypes = new Set<
   LanguageModelV4GenerateResult['content'][number]['type']
 >(['text', 'reasoning', 'source', 'tool-call', 'tool-result']);
 
-type GoogleBatchRequest = Parameters<
-  BatchLanguageModelV4['experimental_doStartBatch']
->[0]['requests'][number];
+type GoogleImageBatchRequest = ImageBatchV4Request<GoogleImageModelId>;
+type GoogleBatchModelIds = {
+  readonly text: GoogleModelId;
+  readonly image: GoogleImageModelId;
+};
+
+function assertSupportedBatchRequests(
+  requests: BatchV4StartOptions<GoogleBatchModelIds>['requests'],
+) {
+  for (const request of requests) {
+    const requestType = request.type;
+    if (requestType !== 'text' && requestType !== 'image') {
+      throw new UnsupportedFunctionalityError({
+        functionality: `batch request type: ${requestType}`,
+        message: `The Google Batch API does not support batch requests with type "${requestType}".`,
+      });
+    }
+  }
+}
 
 const googleRpcStatusSchema = z.object({
   code: z.union([z.number(), z.string()]).nullish(),
@@ -79,26 +108,40 @@ const googleBatchOutputSchema = z.object({
     .nullish(),
 });
 
+const googleBatchOperationZodSchema = () =>
+  z.object({
+    name: z.string(),
+    metadata: z
+      .object({
+        state: z.string().nullish(),
+        createTime: z.string().nullish(),
+        batchStats: googleBatchStatsSchema.nullish(),
+        output: googleBatchOutputSchema.nullish(),
+      })
+      .nullish(),
+    done: z.boolean().nullish(),
+    error: googleRpcStatusSchema.nullish(),
+    response: googleBatchOutputSchema.nullish(),
+  });
+
 const googleBatchOperationSchema = lazySchema(() =>
+  zodSchema(googleBatchOperationZodSchema()),
+);
+
+type GoogleBatchOperation = InferSchema<typeof googleBatchOperationSchema>;
+
+const googleBatchListResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      name: z.string(),
-      metadata: z
-        .object({
-          state: z.string().nullish(),
-          createTime: z.string().nullish(),
-          batchStats: googleBatchStatsSchema.nullish(),
-          output: googleBatchOutputSchema.nullish(),
-        })
-        .nullish(),
-      done: z.boolean().nullish(),
-      error: googleRpcStatusSchema.nullish(),
-      response: googleBatchOutputSchema.nullish(),
+      operations: z.array(googleBatchOperationZodSchema()).nullish(),
+      nextPageToken: z.string().nullish(),
     }),
   ),
 );
 
-type GoogleBatchOperation = InferSchema<typeof googleBatchOperationSchema>;
+const googleBatchCancelResponseSchema = lazySchema(() =>
+  zodSchema(z.object({})),
+);
 
 const googleFileUploadResponseSchema = lazySchema(() =>
   zodSchema(
@@ -136,33 +179,29 @@ const googleBatchResponsePreviewSchema = lazySchema(() =>
   ),
 );
 
-export class GoogleBatchLanguageModel
-  extends GoogleLanguageModel
-  implements BatchLanguageModelV4
-{
+export class GoogleBatch implements BatchV4<GoogleBatchModelIds> {
+  readonly specificationVersion = 'v4' as const;
+  readonly provider: string;
+  readonly supportedUrls: Record<string, RegExp[]>;
   private readonly batchConfig: GoogleLanguageModelConfig;
   private readonly batchGenerateId: () => string;
 
-  static [WORKFLOW_SERIALIZE](model: GoogleLanguageModel) {
-    return GoogleLanguageModel[WORKFLOW_SERIALIZE](model);
-  }
-
-  static [WORKFLOW_DESERIALIZE](options: {
-    modelId: string;
+  constructor(options: {
+    provider: string;
     config: GoogleLanguageModelConfig;
+    supportedUrls: Record<string, RegExp[]>;
   }) {
-    return new GoogleBatchLanguageModel(options.modelId, options.config);
+    this.provider = options.provider;
+    this.batchConfig = options.config;
+    this.supportedUrls = options.supportedUrls;
+    this.batchGenerateId = options.config.generateId ?? generateId;
   }
 
-  constructor(modelId: GoogleModelId, config: GoogleLanguageModelConfig) {
-    super(modelId, config);
-    this.batchConfig = config;
-    this.batchGenerateId = config.generateId ?? generateId;
-  }
-
-  async experimental_doStartBatch(
-    options: BatchV4StartOptions<GoogleBatchRequest>,
+  async doStartBatch(
+    options: BatchV4StartOptions<GoogleBatchModelIds>,
   ): Promise<BatchV4StartResult> {
+    assertSupportedBatchRequests(options.requests);
+    const modelId = getGoogleBatchModelId(options.requests);
     const warnings: BatchV4StartResult['warnings'] = [];
     const displayName = `ai-sdk-batch-${this.batchGenerateId()}`;
     const inlinedRequests: Array<{
@@ -187,7 +226,14 @@ export class GoogleBatchLanguageModel
     let fileParts: string[] | undefined;
 
     for (const request of options.requests) {
-      const preparedRequest = await this.getArgs(request.options);
+      const preparedRequest =
+        request.type === 'text'
+          ? await GoogleLanguageModel.prepareRequest({
+              modelId: request.modelId,
+              config: this.batchConfig,
+              options: request.options,
+            })
+          : await this.prepareImageRequest(request);
       const inlinedRequest = {
         request: preparedRequest.args,
         metadata: { key: request.id },
@@ -242,7 +288,7 @@ export class GoogleBatchLanguageModel
 
     const headers = await this.getHeaders(options.headers);
     const createUrl = `${this.batchConfig.baseURL}/${getModelPath(
-      this.modelId,
+      modelId,
     )}:batchGenerateContent`;
 
     if (fileParts == null) {
@@ -353,15 +399,63 @@ export class GoogleBatchLanguageModel
     };
   }
 
-  async experimental_doGetBatchStatus(
+  async doGetBatchStatus(
     options: BatchV4OperationOptions,
   ): Promise<BatchV4Status> {
     return convertGoogleBatchStatus(await this.retrieveBatch(options));
   }
 
-  async experimental_doGetBatchResults(
+  async doCancelBatch(
     options: BatchV4OperationOptions,
-  ): Promise<ReadableStream<BatchV4ItemResult<LanguageModelV4GenerateResult>>> {
+  ): Promise<BatchV4CancelResult> {
+    await postJsonToApi({
+      url: `${this.batchConfig.baseURL}/${options.batchId}:cancel`,
+      headers: await this.getHeaders(options.headers),
+      body: {},
+      failedResponseHandler: googleFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        googleBatchCancelResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.batchConfig.fetch,
+    });
+
+    return {};
+  }
+
+  async doListBatches(options: BatchV4ListOptions): Promise<BatchV4ListResult> {
+    const url = new URL(`${this.batchConfig.baseURL}/batches`);
+    if (options.limit != null) {
+      url.searchParams.set('pageSize', String(options.limit));
+    }
+    if (options.cursor != null) {
+      url.searchParams.set('pageToken', options.cursor);
+    }
+
+    const { value: page } = await getFromApi({
+      url: url.toString(),
+      headers: await this.getHeaders(options.headers),
+      failedResponseHandler: googleFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        googleBatchListResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.batchConfig.fetch,
+      validateUrl: false,
+    });
+
+    return {
+      batches: (page.operations ?? []).map(operation => ({
+        batchId: operation.name,
+        ...convertGoogleBatchStatus(operation),
+      })),
+      ...(page.nextPageToken != null ? { nextCursor: page.nextPageToken } : {}),
+    };
+  }
+
+  async doGetBatchResults(
+    options: BatchV4OperationOptions,
+  ): Promise<ReadableStream<BatchV4ItemResult>> {
     const operation = await this.retrieveBatch(options);
     const batchStatus = convertGoogleBatchStatus(operation);
 
@@ -450,7 +544,7 @@ export class GoogleBatchLanguageModel
     results:
       | Iterable<GoogleBatchResultLine>
       | AsyncIterable<GoogleBatchResultLine>,
-  ): AsyncGenerator<BatchV4ItemResult<LanguageModelV4GenerateResult>> {
+  ): AsyncGenerator<BatchV4ItemResult> {
     for await (const line of results) {
       if (line.error != null) {
         const error = convertGoogleRpcError(
@@ -462,12 +556,13 @@ export class GoogleBatchLanguageModel
             ? 'cancelled'
             : 'failed';
 
-        yield { id: line.key, status, error };
+        yield { type: 'text', id: line.key, status, error };
         continue;
       }
 
       if (line.response == null) {
         yield {
+          type: 'text',
           id: line.key,
           status: 'failed',
           error: {
@@ -491,6 +586,7 @@ export class GoogleBatchLanguageModel
         const promptFeedback = preview.value.promptFeedback ?? undefined;
         const blockReason = promptFeedback?.blockReason ?? undefined;
         yield {
+          type: 'text',
           id: line.key,
           status: 'failed',
           error: {
@@ -522,6 +618,7 @@ export class GoogleBatchLanguageModel
       });
       if (!response.success) {
         yield {
+          type: 'text',
           id: line.key,
           status: 'failed',
           error: {
@@ -532,17 +629,29 @@ export class GoogleBatchLanguageModel
         continue;
       }
 
-      const result = this.convertGenerateContentResponse({
+      const result = GoogleLanguageModel.convertGenerateContentResponse({
+        config: this.batchConfig,
         response: response.value,
         warnings: [],
         providerOptionsNames: ['google'],
       });
+      const imageResult = convertGoogleImageBatchResult(result);
+      if (imageResult != null) {
+        yield {
+          type: 'image',
+          id: line.key,
+          status: 'succeeded',
+          result: imageResult,
+        };
+        continue;
+      }
       const unsupportedPart = result.content.find(
         part => !supportedGoogleBatchContentTypes.has(part.type),
       );
 
       if (unsupportedPart != null) {
         yield {
+          type: 'text',
           id: line.key,
           status: 'failed',
           error: {
@@ -555,8 +664,110 @@ export class GoogleBatchLanguageModel
         continue;
       }
 
-      yield { id: line.key, status: 'succeeded', result };
+      yield { type: 'text', id: line.key, status: 'succeeded', result };
     }
+  }
+
+  private async prepareImageRequest(request: GoogleImageBatchRequest) {
+    const { prompt, n, size, aspectRatio, seed, files, mask, providerOptions } =
+      request.options;
+    const warnings: SharedV4Warning[] = [];
+
+    if (mask != null) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'mask-based image editing in Google batches',
+      });
+    }
+    if (n > 1) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'multiple images per Google batch request',
+      });
+    }
+    if (size != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'size',
+        details:
+          'This model does not support the `size` option. Use `aspectRatio` instead.',
+      });
+    }
+
+    const userContent: Extract<
+      LanguageModelV4Prompt[number],
+      { role: 'user' }
+    >['content'] = [];
+    if (prompt != null) userContent.push({ type: 'text', text: prompt });
+    for (const file of files ?? []) {
+      userContent.push(
+        file.type === 'url'
+          ? {
+              type: 'file',
+              data: { type: 'url', url: new URL(file.url) },
+              mediaType: 'image/*',
+            }
+          : {
+              type: 'file',
+              data: { type: 'data', data: file.data },
+              mediaType: file.mediaType,
+            },
+      );
+    }
+
+    const googleImageOptions = await parseProviderOptions({
+      provider: 'google',
+      providerOptions,
+      schema: googleImageModelOptionsSchema,
+    });
+    const {
+      responseModalities: _responseModalities,
+      imageConfig: userImageConfig,
+      ...passthroughGoogleOptions
+    } = (await parseProviderOptions({
+      provider: 'google',
+      providerOptions,
+      schema: googleLanguageModelOptions,
+    })) ?? {};
+    const preparedGoogleOptions = await parseProviderOptions({
+      provider: 'google',
+      providerOptions: {
+        google: {
+          ...passthroughGoogleOptions,
+          responseModalities: ['IMAGE'],
+          imageConfig:
+            aspectRatio != null || userImageConfig != null
+              ? {
+                  ...userImageConfig,
+                  ...(aspectRatio != null ? { aspectRatio } : {}),
+                }
+              : undefined,
+        },
+      },
+      schema: googleLanguageModelOptions,
+    });
+
+    const prepared = await GoogleLanguageModel.prepareRequest({
+      modelId: request.modelId,
+      config: this.batchConfig,
+      options: {
+        prompt: [{ role: 'user', content: userContent }],
+        seed,
+        providerOptions: {
+          google: preparedGoogleOptions ?? { responseModalities: ['IMAGE'] },
+        },
+        tools:
+          googleImageOptions?.googleSearch != null
+            ? [
+                {
+                  type: 'provider',
+                  id: 'google.google_search',
+                  name: 'google_search',
+                  args: googleImageOptions.googleSearch,
+                },
+              ]
+            : undefined,
+      },
+    });
+    return { ...prepared, warnings: [...warnings, ...prepared.warnings] };
   }
 
   private async getHeaders(headers?: Record<string, string | undefined>) {
@@ -680,3 +891,64 @@ const googleUploadUrlResponseHandler: ResponseHandler<string> = async ({
 
   return { value: uploadUrl };
 };
+
+function getGoogleBatchModelId(
+  requests: BatchV4StartOptions<GoogleBatchModelIds>['requests'],
+): GoogleModelId | GoogleImageModelId {
+  const modelId = requests[0]?.modelId;
+
+  if (modelId == null) {
+    throw new InvalidArgumentError({
+      argument: 'requests',
+      message: 'Google batches require at least one request.',
+    });
+  }
+
+  for (const request of requests) {
+    if (request.modelId !== modelId) {
+      throw new InvalidArgumentError({
+        argument: 'requests',
+        message:
+          'Google batches require every request to use the same model because the model is part of the batch endpoint.',
+      });
+    }
+  }
+
+  return modelId;
+}
+
+function convertGoogleImageBatchResult(
+  result: LanguageModelV4GenerateResult,
+): ImageModelV4Result | undefined {
+  const images = result.content.flatMap(part =>
+    part.type === 'file' &&
+    part.mediaType.startsWith('image/') &&
+    part.data.type === 'data'
+      ? [convertToBase64(part.data.data)]
+      : [],
+  );
+  if (images.length === 0) return undefined;
+
+  const googleMetadata =
+    (result.providerMetadata?.google as Record<string, unknown> | undefined) ??
+    {};
+  return {
+    images,
+    warnings: result.warnings,
+    providerMetadata: {
+      google: { ...googleMetadata, images: images.map(() => ({})) },
+    },
+    response: {
+      timestamp: new Date(),
+      modelId: result.response?.modelId ?? '',
+      headers: result.response?.headers,
+    },
+    usage: {
+      inputTokens: result.usage.inputTokens.total,
+      outputTokens: result.usage.outputTokens.total,
+      totalTokens:
+        (result.usage.inputTokens.total ?? 0) +
+        (result.usage.outputTokens.total ?? 0),
+    },
+  };
+}

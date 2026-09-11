@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DownloadError } from './download-error';
-import { fetchWithValidatedRedirects } from './fetch-with-validated-redirects';
+import {
+  fetchWithValidatedEndpoint,
+  fetchWithValidatedRedirects,
+} from './fetch-with-validated-redirects';
 
 const originalFetch = globalThis.fetch;
 
@@ -26,6 +29,45 @@ function okResponse(): Response {
     body: null,
   } as unknown as Response;
 }
+
+describe('fetchWithValidatedEndpoint', () => {
+  it('validates the URL before issuing the request', async () => {
+    const fetchMock = vi.fn();
+
+    await expect(
+      fetchWithValidatedEndpoint({
+        url: 'http://169.254.169.254/token',
+        fetch: fetchMock,
+      }),
+    ).rejects.toThrow(DownloadError);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('uses redirect: error for credential-bearing requests', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(okResponse());
+    const body = new URLSearchParams({ code: 'secret-code' });
+
+    await fetchWithValidatedEndpoint({
+      url: new URL('https://auth.example.com/token'),
+      init: {
+        method: 'POST',
+        headers: { authorization: 'Basic secret' },
+        body,
+      },
+      fetch: fetchMock,
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      new URL('https://auth.example.com/token'),
+      {
+        method: 'POST',
+        headers: { authorization: 'Basic secret' },
+        body,
+        redirect: 'error',
+      },
+    );
+  });
+});
 
 describe('fetchWithValidatedRedirects', () => {
   it('validates the initial URL before requesting it', async () => {

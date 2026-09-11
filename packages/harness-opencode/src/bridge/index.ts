@@ -342,8 +342,15 @@ function buildProviderConfig(
           apiKey: procEnv.AI_GATEWAY_API_KEY,
           baseURL: toOpenCodeGatewayBaseUrl(procEnv.AI_GATEWAY_BASE_URL),
           ...(HARNESS_CLIENT_APP
-            ? { headers: { 'x-client-app': HARNESS_CLIENT_APP } }
-            : {}),
+            ? {
+                headers: {
+                  ...start.headers,
+                  'x-client-app': HARNESS_CLIENT_APP,
+                },
+              }
+            : start.headers
+              ? { headers: start.headers }
+              : {}),
         },
         ...(modelID
           ? {
@@ -369,6 +376,7 @@ function buildProviderConfig(
           ...(procEnv.OPENAI_BASE_URL
             ? { baseURL: procEnv.OPENAI_BASE_URL }
             : {}),
+          ...(start.headers ? { headers: start.headers } : {}),
           ...parseOpenAIQueryParams(),
         },
         ...(modelID
@@ -400,6 +408,7 @@ function buildProviderConfig(
           ...(procEnv.ANTHROPIC_BASE_URL
             ? { baseURL: procEnv.ANTHROPIC_BASE_URL }
             : {}),
+          ...(start.headers ? { headers: start.headers } : {}),
         },
       },
     };
@@ -422,6 +431,7 @@ function buildProviderConfig(
           ...(procEnv.OPENAI_PROJECT
             ? { project: procEnv.OPENAI_PROJECT }
             : {}),
+          ...(start.headers ? { headers: start.headers } : {}),
           ...parseOpenAIQueryParams(),
         },
       },

@@ -4,7 +4,10 @@ import {
   type HarnessV1BuiltinTool,
 } from '@ai-sdk/harness';
 import { tool } from '@ai-sdk/provider-utils';
-import type { ExtensionFactory } from '@earendil-works/pi-coding-agent';
+import type {
+  ExtensionFactory,
+  ProviderConfig,
+} from '@earendil-works/pi-coding-agent';
 import { z } from 'zod/v4';
 import type { PiAuthenticationMode } from './pi-auth';
 import { piResumeStateSchema } from './pi-resume-state';
@@ -24,13 +27,11 @@ export type PiHarnessSettings = {
   /** Where Pi sources API keys / gateway credentials from. */
   readonly auth?: PiAuthenticationMode;
   /**
-   * Pi model id (or name). Leaving this unset falls back to the AI Gateway
-   * default when `AI_GATEWAY_API_KEY` / `VERCEL_OIDC_TOKEN` is set, and to
-   * Pi's own resolution otherwise.
-   *
-   * @deprecated Use `model` on `HarnessAgent` instead.
+   * Explicit Pi provider configurations keyed by provider id. Use this to
+   * register custom models and their API protocol without coupling model
+   * metadata to authentication environment variables.
    */
-  readonly model?: string;
+  readonly providers?: Readonly<Record<string, ProviderConfig>>;
   /**
    * Pi's extended-thinking budget level. Maps directly to the SDK's
    * `thinkingLevel` option on `createAgentSession`.
@@ -38,9 +39,9 @@ export type PiHarnessSettings = {
   readonly thinkingLevel?: PiThinkingLevel;
   /**
    * Directory holding Pi's global agent config (auth.json, models.json,
-   * settings.json). When omitted, a per-session temp dir is used. Pass the
-   * user's agent dir (e.g. `~/.pi/agent/`) to reuse their CLI auth and
-   * model settings.
+   * settings.json). When omitted, native subscription auth is discovered from
+   * Pi's default agent directory while model and general settings remain
+   * isolated per session.
    */
   readonly agentDir?: string;
   /**
@@ -153,14 +154,15 @@ export function createPi(
         sessionWorkDir: startOpts.sessionWorkDir,
         settings: {
           ...(settings.auth ? { auth: settings.auth } : {}),
-          ...(settings.model == null ? {} : { model: settings.model }),
           ...(settings.thinkingLevel
             ? { thinkingLevel: settings.thinkingLevel }
             : {}),
           ...(settings.mcpServers ? { mcpServers: settings.mcpServers } : {}),
+          ...(settings.providers ? { providers: settings.providers } : {}),
           ...(settings.extensionFactories
             ? { extensionFactories: settings.extensionFactories }
             : {}),
+          ...(startOpts.headers ? { headers: startOpts.headers } : {}),
         },
         clientApp: PI_CLIENT_APP,
         isResume: lifecycleState != null,

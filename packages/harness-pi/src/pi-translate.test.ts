@@ -397,6 +397,39 @@ describe('translatePiEvent', () => {
     expect(turnEnd.map(p => p.type)).toEqual(['finish-step']);
   });
 
+  it('does not emit finish-step when turn_end reports a terminal error', () => {
+    const state = createPiTranslatorState();
+    emit(
+      [
+        { type: 'turn_start' } as PiSessionEvent,
+        {
+          type: 'message_start',
+          message: { role: 'assistant', content: [] },
+        } as PiSessionEvent,
+        {
+          type: 'message_update',
+          assistantMessageEvent: { type: 'text_delta', delta: 'partial' },
+        } as PiSessionEvent,
+      ],
+      state,
+    );
+
+    const closing = translatePiEvent(
+      {
+        type: 'turn_end',
+        message: {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'partial' }],
+          stopReason: 'error',
+          errorMessage: 'Provider rejection',
+        },
+      } as PiSessionEvent,
+      state,
+    );
+
+    expect(closing.map(part => part.type)).toEqual(['text-end']);
+  });
+
   it('waits for requested tool executions before emitting finish-step', () => {
     const state = createPiTranslatorState({ builtinToolNames: ['bash'] });
     emit(

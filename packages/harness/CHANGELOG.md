@@ -1,5 +1,91 @@
 # @ai-sdk/harness
 
+## 1.0.108
+
+### Patch Changes
+
+- 4d1bf28: feat(harness): support `instructions` on `HarnessAgent` to be a `SystemModelMessage` for parity with `ToolLoopAgent`
+- cdc12a1: feat(harness): add support for using adapter-native subscriptions where available
+- d70a334: feat(workflow-harness): automatically persist validated `HarnessAgent` output in workflow results
+- 81ba84c: fix(harness): preserve completed host tool results across turn suspension and session finalization
+- Updated dependencies [5ec21a6]
+- Updated dependencies [db59d78]
+- Updated dependencies [7469a3b]
+- Updated dependencies [f87bf07]
+- Updated dependencies [bc5cb7a]
+- Updated dependencies [a5f449a]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - ai@7.0.98
+  - @ai-sdk/provider-utils@5.0.40
+
+## 1.0.107
+
+### Patch Changes
+
+- Updated dependencies [ef3bac4]
+- Updated dependencies [9942196]
+  - ai@7.0.97
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/provider-utils@5.0.39
+
+## 1.0.106
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+- Updated dependencies [c595e6e]
+  - @ai-sdk/provider@4.0.12
+  - ai@7.0.96
+  - @ai-sdk/provider-utils@5.0.38
+
+## 1.0.105
+
+### Patch Changes
+
+- Updated dependencies [27f6d7a]
+  - ai@7.0.95
+
+## 1.0.104
+
+### Patch Changes
+
+- c04ded8: chore(harness): remove formerly deprecated `model` and `modelId` config on harness adapter settings
+  - ai@7.0.94
+
+## 1.0.103
+
+### Patch Changes
+
+- Updated dependencies [a4ba394]
+- Updated dependencies [36b3364]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - ai@7.0.94
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+
+## 1.0.102
+
+### Patch Changes
+
+- fe86f8f: feat(harness): support established lifecycle callbacks from `ToolLoopAgent` on `HarnessAgent` too
+- 255cccf: feat(harness): add `writeInstructions` helper and support filesystem based `instructionsMapping` in ACP backed harness adapters
+- eeed977: feat(harness): allow passing arbitrary headers with inference requests via `headers` property in `HarnessAgentSettings`
+- a39c8bf: chore(harness): clarify `writeSkills` helper intent to require materializing skills in HOME directory
+- Updated dependencies [df6c009]
+- Updated dependencies [6ee74a3]
+- Updated dependencies [f13d371]
+- Updated dependencies [d4485fe]
+- Updated dependencies [4f201cc]
+- Updated dependencies [8cdb2a7]
+- Updated dependencies [0f2281e]
+- Updated dependencies [fc8e8ac]
+- Updated dependencies [ee8391e]
+  - ai@7.0.93
+
 ## 1.0.101
 
 ### Patch Changes

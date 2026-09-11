@@ -100,6 +100,7 @@ export type OutputTextContentParam = {
   type: 'output_text';
   text: string;
   annotations?: UrlCitationParam[];
+  logprobs?: LogProb[];
 };
 
 /**

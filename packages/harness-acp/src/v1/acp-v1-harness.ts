@@ -32,6 +32,8 @@ import {
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
   withBridgeToken,
+  writeInstructions,
+  writeSkills,
 } from '@ai-sdk/harness/utils';
 import {
   asSchema,
@@ -93,9 +95,11 @@ import type {
   ACPV1Settings,
 } from './acp-v1-settings';
 import {
-  materializeACPSkills,
+  ACP_SKILL_NAME_PATTERN,
+  DEFAULT_ACP_SKILLS_DIRECTORY,
   resolveACPPrivateSessionDirectory,
   resolveACPSkillsDirectory,
+  validateACPSkills,
 } from './acp-v1-skills';
 
 const HARNESS_ID_REGEXP = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -193,15 +197,21 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       }
       const permissionMode = startOptions.permissionMode ?? 'allow-all';
       const env = { ...process.env };
-      const authenticationEnvironment = resolveACPAuthenticationEnvironment({
-        auth: settings.auth,
-        env,
-      });
+      const authenticationEnvironment =
+        settings.resolveAuthenticationEnvironment == null
+          ? resolveACPAuthenticationEnvironment({
+              auth: settings.auth,
+              env,
+            })
+          : await settings.resolveAuthenticationEnvironment({
+              auth: settings.auth,
+              env,
+            });
       const providerAuthenticationCompatibility =
         resolveACPProviderAuthenticationCompatibility({
           auth: settings.auth,
           providerAuthentication: settings.providerAuthentication,
-          env,
+          env: authenticationEnvironment,
         });
       const implementationIdentity = createImplementationIdentity({
         harnessId: settings.harnessId,
@@ -224,7 +234,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           providerAuthentication: settings.providerAuthentication,
           clientApp,
         },
-        env,
+        env: authenticationEnvironment,
         compatibility: providerAuthenticationCompatibility,
       });
       const sandboxSession = startOptions.sandboxSession;
@@ -269,7 +279,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       }
       const implementationEnvironment = resolveImplementationEnvironment({
         implementation,
-        env,
+        env: { ...env, ...authenticationEnvironment },
         credentialEnv: authenticationEnvironment,
       });
       let sandboxImplementationEnvironment = implementationEnvironment;
@@ -324,6 +334,9 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         const requestTransformations = settings.credentialBrokering({
           env: brokeringEnvironment,
           sandboxEnv: sandboxImplementationEnvironment,
+          ...(startOptions.headers == null
+            ? {}
+            : { headers: startOptions.headers }),
         });
         if (requestTransformations.length > 0) {
           await sandboxSession.addRequestTransformations(
@@ -372,17 +385,18 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       });
       const privateSessionDir = resolveACPPrivateSessionDirectory({
         sandboxHomeDir,
-        sessionWorkDir: workDir,
         harnessId: settings.harnessId,
         sessionId: startOptions.sessionId,
       });
+      const implementationHomeDir =
+        implementation.source.type === 'install-command'
+          ? `${resolvedImplementationDir}/home`
+          : sandboxHomeDir;
+      const skillsDir =
+        settings.skillsDirectory ?? DEFAULT_ACP_SKILLS_DIRECTORY;
       const skillsDirectory = resolveACPSkillsDirectory({
-        implementationHomeDir:
-          implementation.source.type === 'install-command'
-            ? `${resolvedImplementationDir}/home`
-            : sandboxHomeDir,
+        implementationHomeDir,
         skillsDirectory: settings.skillsDirectory,
-        sessionWorkDir: workDir,
       });
       const bridgeStateDir = `${privateSessionDir}/bridge`;
       const report = startOptions.observability?.report;
@@ -440,7 +454,6 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               channel: attachChannel,
               proc: undefined,
               modelMapping: settings.modelMapping,
-              defaultModelId: settings.modelId,
               sessionMeta: settings.session?.meta,
               instructionMapping: settings.instructionMapping,
               outputSchemaMapping: settings.outputSchemaMapping,
@@ -459,7 +472,8 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               }),
               instructionsFingerprint: lifecycleData.instructionsFingerprint,
               sandbox: toolSafeSandboxSession,
-              sessionWorkDir: workDir,
+              homePath: implementationHomeDir,
+              skillsDir,
               skillsDirectory,
               acpSessionId: lifecycleData.acpSessionId,
               bridgePort: coords.port,
@@ -581,6 +595,17 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           ],
         });
       }
+      await writeACPAuthenticationFiles({
+        sandbox: toolSafeSandboxSession,
+        homePath: implementationHomeDir,
+        files:
+          settings.authenticationFiles?.({
+            env: implementationEnvironment,
+            sandboxEnv: forwardedImplementationEnvironment,
+            credentialBrokeringAvailable: sandboxCredentialEnvironment != null,
+          }) ?? [],
+        abortSignal: startOptions.abortSignal,
+      });
       const port = resolveBridgePort({
         sandboxSession,
         override: portOverride,
@@ -620,6 +645,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
             clientCapabilities: settings.clientCapabilities,
             askUserQuestionsRequestMethod:
               settings.askUserQuestions?.requestMethod,
+            hostToolMcpTransport: settings.hostToolMcpTransport,
           }),
           ...sandboxProviderAuthenticationEnvironment,
           BRIDGE_CHANNEL_TOKEN: token,
@@ -733,7 +759,6 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         channel,
         proc,
         modelMapping: settings.modelMapping,
-        defaultModelId: settings.modelId,
         sessionMeta: settings.session?.meta,
         instructionMapping: settings.instructionMapping,
         outputSchemaMapping: settings.outputSchemaMapping,
@@ -752,7 +777,8 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         }),
         instructionsFingerprint: lifecycleData?.instructionsFingerprint,
         sandbox: toolSafeSandboxSession,
-        sessionWorkDir: workDir,
+        homePath: implementationHomeDir,
+        skillsDir,
         skillsDirectory,
         acpSessionId: lifecycleData?.acpSessionId,
         bridgePort: boundPort,
@@ -786,6 +812,50 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       });
     },
   };
+}
+
+async function writeACPAuthenticationFiles({
+  sandbox,
+  homePath,
+  files,
+  abortSignal,
+}: {
+  sandbox: SandboxSession;
+  homePath: string;
+  files: ReadonlyArray<{ readonly path: string; readonly content: string }>;
+  abortSignal?: AbortSignal;
+}): Promise<void> {
+  const targetPaths = files.map(file => {
+    if (
+      file.path.length === 0 ||
+      posix.isAbsolute(file.path) ||
+      file.path.split('/').some(segment => segment === '..')
+    ) {
+      throw new Error(
+        `ACP authentication file path must be relative without traversal: ${JSON.stringify(file.path)}.`,
+      );
+    }
+    return posix.join(homePath, file.path);
+  });
+
+  for (let index = 0; index < files.length; index++) {
+    await sandbox.writeTextFile({
+      path: targetPaths[index],
+      content: files[index].content,
+      abortSignal,
+    });
+  }
+  if (targetPaths.length === 0) return;
+
+  const result = await sandbox.run({
+    command: `chmod 600 -- ${targetPaths.map(shellQuote).join(' ')}`,
+    abortSignal,
+  });
+  if (result.exitCode !== 0) {
+    throw new Error(
+      `Failed to secure ACP authentication files (exit ${result.exitCode})${result.stderr ? `: ${result.stderr}` : ''}`,
+    );
+  }
 }
 
 function resolveProviderEnvironment({
@@ -1047,7 +1117,6 @@ function createSession({
   channel,
   proc,
   modelMapping,
-  defaultModelId,
   sessionMeta,
   instructionMapping,
   outputSchemaMapping,
@@ -1063,7 +1132,8 @@ function createSession({
   initialGuidanceApplied: initialGuidanceAppliedAtStart,
   instructionsFingerprint: instructionsFingerprintAtStart,
   sandbox,
-  sessionWorkDir,
+  homePath,
+  skillsDir,
   skillsDirectory,
   acpSessionId: acpSessionIdAtStart,
   bridgePort,
@@ -1084,7 +1154,6 @@ function createSession({
   channel: ACPChannel;
   proc: Experimental_SandboxProcess | undefined;
   modelMapping: ACPModelMapping;
-  defaultModelId: string | undefined;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
   instructionMapping: ACPInstructionMapping | undefined;
   outputSchemaMapping: ACPOutputSchemaMapping | undefined;
@@ -1100,7 +1169,8 @@ function createSession({
   initialGuidanceApplied: boolean;
   instructionsFingerprint: string | undefined;
   sandbox: SandboxSession;
-  sessionWorkDir: string;
+  homePath: string;
+  skillsDir: string;
   skillsDirectory: string;
   acpSessionId: string | undefined;
   bridgePort: number;
@@ -1571,13 +1641,39 @@ function createSession({
     skills: ReadonlyArray<HarnessV1Skill>;
     abortSignal?: AbortSignal;
   }): Promise<void> => {
-    await materializeACPSkills({
+    validateACPSkills({ skills });
+    await writeSkills({
       sandbox,
-      rootDir: skillsDirectory,
-      sessionWorkDir,
+      homePath,
+      skillsDir,
       skills,
       abortSignal,
+      skillNamePattern: ACP_SKILL_NAME_PATTERN,
+      invalidSkillNameMessage: ({ name }) =>
+        `Invalid ACP skill name ${JSON.stringify(name)}: expected a kebab-case slug.`,
+      invalidSkillFilePathMessage: ({ skillName, filePath }) =>
+        `Invalid ACP skill file path ${JSON.stringify(filePath)} for skill ${JSON.stringify(
+          skillName,
+        )}: expected a relative POSIX path without traversal.`,
     });
+  };
+
+  const synchronizeInstructions = async ({
+    instructions,
+    abortSignal,
+  }: {
+    instructions: string | undefined;
+    abortSignal?: AbortSignal;
+  }): Promise<void> => {
+    if (instructionMapping?.type === 'filesystem') {
+      await writeInstructions({
+        sandbox,
+        homePath,
+        instructionsFile: instructionMapping.path,
+        instructions,
+        abortSignal,
+      });
+    }
   };
 
   return {
@@ -1586,6 +1682,10 @@ function createSession({
     doPromptTurn: async options => {
       await synchronizeSkills({
         skills: options.skills,
+        abortSignal: options.abortSignal,
+      });
+      await synchronizeInstructions({
+        instructions: options.instructions,
         abortSignal: options.abortSignal,
       });
       if (options.responseFormat?.type === 'json') {
@@ -1617,7 +1717,7 @@ function createSession({
         prompt: options.prompt,
         harnessId,
       });
-      const model = options.model ?? defaultModelId;
+      const model = options.model;
       const turnStartConfig = createACPTurnStartConfig({
         prompt,
         tools: options.tools ?? [],
@@ -1650,6 +1750,7 @@ function createSession({
           channel.send({
             type: 'start',
             prompt:
+              instructionMapping?.type !== 'filesystem' &&
               instructionsFingerprint !== nextInstructionsFingerprint &&
               (instructionMapping == null || initialGuidanceApplied)
                 ? prependACPInstructionGuidance({
@@ -1690,6 +1791,10 @@ function createSession({
     doContinueTurn: async options => {
       await synchronizeSkills({
         skills: options.skills,
+        abortSignal: options.abortSignal,
+      });
+      await synchronizeInstructions({
+        instructions: options.instructions,
         abortSignal: options.abortSignal,
       });
       if (options.responseFormat?.type === 'json') {
@@ -1775,11 +1880,6 @@ function createSession({
       if (stopped) {
         throw new Error(
           `${harnessId} ACP session ${sessionId} is stopped; cannot suspend.`,
-        );
-      }
-      if (!turnInFlight) {
-        throw new Error(
-          `${harnessId} ACP session ${sessionId} has no in-flight turn to suspend.`,
         );
       }
       stopped = true;

@@ -1,6 +1,9 @@
 import fs from 'node:fs';
 
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import {
+  InvalidResponseDataError,
+  type LanguageModelV4Prompt,
+} from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createOpenAI } from '../openai-provider';
@@ -182,6 +185,34 @@ describe('doGenerate', () => {
         },
       ]
     `);
+  });
+
+  it('should reject a response without choices', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-empty',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 4,
+          completion_tokens: 0,
+        },
+      },
+    };
+
+    await expect(
+      model.doGenerate({
+        prompt: TEST_PROMPT,
+      }),
+    ).rejects.toSatisfy(
+      error =>
+        InvalidResponseDataError.isInstance(error) &&
+        error.message === 'Response did not contain any choices.',
+    );
   });
 
   it('should extract usage', async () => {
@@ -1039,6 +1070,66 @@ describe('doGenerate', () => {
       expect(warnings).toEqual([]);
     });
 
+    it('should remove string propertyNames from response schemas and warn', async () => {
+      prepareJsonFixtureResponse('openai-text');
+
+      const model = provider.chat('gpt-4o-2024-08-06');
+
+      const { warnings } = await model.doGenerate({
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              variables: {
+                type: 'object',
+                propertyNames: {
+                  type: 'string',
+                  format: 'uuid',
+                },
+                additionalProperties: { type: 'string' },
+              },
+            },
+            required: ['variables'],
+            additionalProperties: false,
+          },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'response',
+            strict: true,
+            schema: {
+              type: 'object',
+              properties: {
+                variables: {
+                  type: 'object',
+                  additionalProperties: { type: 'string' },
+                },
+              },
+              required: ['variables'],
+              additionalProperties: false,
+            },
+          },
+        },
+      });
+
+      expect(warnings).toStrictEqual([
+        {
+          type: 'compatibility',
+          feature: 'JSON Schema propertyNames',
+          details:
+            'OpenAI does not support JSON Schema propertyNames. It was removed before sending the schema, so OpenAI will not enforce property-name constraints.',
+        },
+      ]);
+    });
+
     it('should use json_schema & strict with responseFormat json', async () => {
       prepareJsonFixtureResponse('openai-text');
 
@@ -1571,6 +1662,75 @@ describe('doGenerate', () => {
       expect(result.warnings).toStrictEqual([]);
     });
 
+    it.each(['none', 'minimal'] as const)(
+      'should omit unsupported GPT-6 reasoning effort %s',
+      async reasoningEffort => {
+        prepareJsonFixtureResponse('openai-text');
+
+        const result = await provider.chat('gpt-6-astra').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: { reasoningEffort },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-6-astra',
+          messages: [{ role: 'user', content: 'Hello' }],
+        });
+        expect(result.warnings).toStrictEqual([
+          {
+            type: 'unsupported',
+            feature: 'reasoningEffort',
+            details:
+              'gpt-6-astra only supports the following reasoning efforts: low, medium, high, xhigh, max',
+          },
+        ]);
+      },
+    );
+
+    it('should strip sampling and logprob settings for GPT-6 models', async () => {
+      prepareJsonFixtureResponse('openai-text');
+
+      const result = await provider.chat('gpt-6-astra').doGenerate({
+        prompt: TEST_PROMPT,
+        temperature: 0.5,
+        topP: 0.7,
+        providerOptions: {
+          openai: {
+            reasoningEffort: 'low',
+            logprobs: 5,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'gpt-6-astra',
+        messages: [{ role: 'user', content: 'Hello' }],
+        reasoning_effort: 'low',
+      });
+      expect(result.warnings).toStrictEqual([
+        {
+          type: 'unsupported',
+          feature: 'temperature',
+          details: 'temperature is not supported for reasoning models',
+        },
+        {
+          type: 'unsupported',
+          feature: 'topP',
+          details: 'topP is not supported for reasoning models',
+        },
+        {
+          type: 'other',
+          message: 'logprobs is not supported for reasoning models',
+        },
+        {
+          type: 'other',
+          message: 'topLogprobs is not supported for reasoning models',
+        },
+      ]);
+    });
+
     it('should still clear temperature when top-level reasoning is none on o4-mini', async () => {
       prepareJsonFixtureResponse('openai-text');
 
@@ -1967,6 +2127,32 @@ describe('doGenerate', () => {
         ttl: '30m',
       },
     });
+  });
+
+  it('should omit legacy prompt cache retention for GPT-6 models', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const result = await provider.chat('gpt-6-astra').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          promptCacheRetention: '24h',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-6-astra',
+      messages: [{ role: 'user', content: 'Hello' }],
+    });
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'unsupported',
+        feature: 'promptCacheRetention',
+        details:
+          'promptCacheRetention is not supported by GPT-6 and later models; use promptCacheOptions instead',
+      },
+    ]);
   });
 
   it('should send safetyIdentifier extension value', async () => {

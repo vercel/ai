@@ -222,6 +222,8 @@ for (const call of calls) {
 ### Error Handling
 
 When `generateImage` cannot generate a valid image, it throws a [`AI_NoImageGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-image-generated-error).
+Unclassified empty image responses are retried according to `maxRetries` before this error is thrown.
+Providers can classify terminal empty responses, such as moderation blocks, with `isRetryable: false`; these responses are not retried.
 
 This error occurs when the AI provider fails to generate an image. It can arise due to the following reasons:
 
@@ -230,6 +232,7 @@ This error occurs when the AI provider fails to generate an image. It can arise 
 
 The error preserves the following information to help you log the issue:
 
+- `calls`: Results from the underlying image model calls, including generated images, provider metadata, response metadata, warnings, and usage.
 - `responses`: Metadata about the image model responses, including timestamp, model, and headers.
 - `cause`: The cause of the error. You can use this for more detailed error handling
 
@@ -243,6 +246,12 @@ try {
     console.log('NoImageGeneratedError');
     console.log('Cause:', error.cause);
     console.log('Responses:', error.responses);
+
+    for (const call of error.calls ?? []) {
+      console.log('Provider metadata:', call.providerMetadata);
+      console.log('Warnings:', call.warnings);
+      console.log('Usage:', call.usage);
+    }
   }
 }
 ```
@@ -305,6 +314,8 @@ for (const file of result.files) {
 | Provider                                                                        | Model                                                        | Support sizes (`width x height`) or aspect ratios (`width : height`)                                                                                                |
 | ------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [xAI Grok](/providers/ai-sdk-providers/xai#image-models)                        | `grok-imagine-image`                                         | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto`                                                         |
+| [OpenAI](/providers/ai-sdk-providers/openai#image-models)                       | `gpt-image-2.5-flare`                                        | 1024x1024, 1536x1024, 1024x1536, custom                                                                                                                             |
+| [OpenAI](/providers/ai-sdk-providers/openai#image-models)                       | `gpt-image-2.5-sunburst`                                     | 1024x1024, 1536x1024, 1024x1536, custom                                                                                                                             |
 | [OpenAI](/providers/ai-sdk-providers/openai#image-models)                       | `gpt-image-2`                                                | 1024x1024, 1536x1024, 1024x1536                                                                                                                                     |
 | [OpenAI](/providers/ai-sdk-providers/openai#image-models)                       | `dall-e-3`                                                   | 1024x1024, 1792x1024, 1024x1792                                                                                                                                     |
 | [OpenAI](/providers/ai-sdk-providers/openai#image-models)                       | `dall-e-2`                                                   | 256x256, 512x512, 1024x1024                                                                                                                                         |

@@ -1,5 +1,73 @@
 # @ai-sdk/harness-pi
 
+## 1.0.110
+
+### Patch Changes
+
+- 3df6dc6: fix(harness-pi): initialize cold resumed sessions before compaction
+- 3cd6dd8: fix(harness-pi): surface terminal provider errors before successful step boundaries
+- cdc12a1: feat(harness): add support for using adapter-native subscriptions where available
+- c550630: fix(harness-pi): register explicit custom provider models and prefer authenticated providers during model resolution
+- Updated dependencies [4d1bf28]
+- Updated dependencies [cdc12a1]
+- Updated dependencies [d70a334]
+- Updated dependencies [81ba84c]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/harness@1.0.108
+  - @ai-sdk/provider-utils@5.0.40
+
+## 1.0.109
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.107
+- @ai-sdk/provider-utils@5.0.39
+
+## 1.0.108
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.106
+- @ai-sdk/provider-utils@5.0.38
+
+## 1.0.107
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.105
+
+## 1.0.106
+
+### Patch Changes
+
+- c04ded8: chore(harness): remove formerly deprecated `model` and `modelId` config on harness adapter settings
+- Updated dependencies [c04ded8]
+  - @ai-sdk/harness@1.0.104
+
+## 1.0.105
+
+### Patch Changes
+
+- a514695: fix(harness-pi): let extensions read host-backed session workspaces
+- c359fc0: fix(harness-pi): expose tools registered by inline extensions to models
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider-utils@5.0.37
+  - @ai-sdk/harness@1.0.103
+
+## 1.0.104
+
+### Patch Changes
+
+- eeed977: feat(harness): allow passing arbitrary headers with inference requests via `headers` property in `HarnessAgentSettings`
+- a39c8bf: chore(harness): clarify `writeSkills` helper intent to require materializing skills in HOME directory
+- Updated dependencies [fe86f8f]
+- Updated dependencies [255cccf]
+- Updated dependencies [eeed977]
+- Updated dependencies [a39c8bf]
+  - @ai-sdk/harness@1.0.102
+
 ## 1.0.103
 
 ### Patch Changes
