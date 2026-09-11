@@ -2737,6 +2737,73 @@ describe('use-chat', () => {
     });
   });
 
+  describe('suspended id changes', () => {
+    let requestSignal: AbortSignal | undefined;
+    const pending = new Promise<never>(() => {});
+
+    setupTestComponent(
+      () => {
+        const [id, setId] = React.useState('initial-id');
+        const [shouldSuspend, setShouldSuspend] = React.useState(false);
+        const { sendMessage, id: chatId } = useChat({
+          id,
+          generateId: mockId(),
+          transport: {
+            sendMessages: async ({ abortSignal }) => {
+              requestSignal = abortSignal;
+              return new ReadableStream();
+            },
+            reconnectToStream: async () => null,
+          },
+        });
+
+        if (shouldSuspend) {
+          throw pending;
+        }
+
+        return (
+          <div>
+            <div data-testid="suspended-chat-id">{chatId}</div>
+            <button
+              data-testid="suspended-chat-send"
+              onClick={() => {
+                void sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
+              }}
+            />
+            <button
+              data-testid="suspended-chat-change-id"
+              onClick={() => {
+                React.startTransition(() => {
+                  setId('second-id');
+                  setShouldSuspend(true);
+                });
+              }}
+            />
+          </div>
+        );
+      },
+      {
+        init: TestComponent => (
+          <React.Suspense fallback={<div>Loading</div>}>
+            <TestComponent />
+          </React.Suspense>
+        ),
+      },
+    );
+
+    it('should not abort the active stream before an id change commits', async () => {
+      await userEvent.click(screen.getByTestId('suspended-chat-send'));
+      await waitFor(() => expect(requestSignal).toBeDefined());
+
+      await userEvent.click(screen.getByTestId('suspended-chat-change-id'));
+
+      expect(screen.getByTestId('suspended-chat-id')).toHaveTextContent(
+        'initial-id',
+      );
+      expect(requestSignal?.aborted).toBe(false);
+    });
+  });
+
   describe('undefined id', () => {
     setupTestComponent(
       () => {
