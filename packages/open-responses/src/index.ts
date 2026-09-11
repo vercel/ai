@@ -5,6 +5,7 @@ export type {
   OpenResponsesProviderSettings,
 } from './open-responses-provider';
 export type {
+  OpenResponsesBareExtension as Experimental_OpenResponsesBareExtension,
   OpenResponsesExtension as Experimental_OpenResponsesExtension,
   OpenResponsesExtensionContentPart as Experimental_OpenResponsesExtensionContentPart,
   OpenResponsesExtensionEvent as Experimental_OpenResponsesExtensionEvent,

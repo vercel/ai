@@ -322,6 +322,57 @@ const result = await generateText({
 });
 ```
 
+Some Responses-compatible implementations document non-namespaced extension
+discriminators, such as `web_search`, `web_search_call`, or
+`response.custom_tool_call_input.delta`. These are not portable Open Responses
+types. Register each exact value through the dedicated bare fields to opt in:
+
+```ts
+import type { Experimental_OpenResponsesBareExtension } from '@ai-sdk/open-responses';
+
+const webSearchExtension: Experimental_OpenResponsesBareExtension = {
+  id: 'acme.web_search',
+  allowBareTypes: true,
+  bareToolType: 'web_search',
+  bareItemTypes: ['web_search_call'],
+  bareEventTypes: ['response.web_search_call.completed'],
+  encodeTool: ({ name, args }) => ({
+    name,
+    search_context_size: args.searchContextSize,
+  }),
+  decodeItem: ({ item }) => {
+    if (
+      typeof item.call_id !== 'string' ||
+      typeof item.name !== 'string' ||
+      typeof item.query !== 'string'
+    ) {
+      return undefined;
+    }
+
+    return [
+      {
+        type: 'tool-call',
+        toolCallId: item.call_id,
+        toolName: item.name,
+        input: JSON.stringify({ query: item.query }),
+        providerExecuted: true,
+      },
+    ];
+  },
+  decodeEvent: () => undefined,
+};
+```
+
+Set `allowBareTypes: true` when using `bareToolType`, `bareItemTypes`, or
+`bareEventTypes`. These fields accept only non-namespaced values. They do not
+enable unknown JSON passthrough: a bare discriminator is handled only when it
+exactly matches a registered value. Core Open Responses discriminators and
+duplicate registrations are rejected.
+Use the normal namespaced fields whenever the implementation supports them.
+`Experimental_OpenResponsesExtension` remains the namespaced interface;
+use `Experimental_OpenResponsesBareExtension` only for this compatibility
+mode.
+
 Set `providerExecuted` on each decoded `tool-call` or `tool-input-start` part.
 It can vary by item or event.
 
@@ -331,18 +382,18 @@ An extension codec can define:
   with an `unsupported` warning. A `toolChoice` that selects the omitted tool is
   also omitted.
 - `encodeToolChoice`: Encodes a specific `toolChoice`. The default is
-  `{ type: toolType }`.
+  an object containing the registered `toolType` or `bareToolType`.
 - `decodeItem`: Maps a completed item to AI SDK content parts. `mode` is either
   `'generate'` or `'stream'`.
 - `encodeInputItem`: Encodes tool-call or tool-result history when the original
   wire item is unavailable. Returned items must include `id`, `status`, and a
-  registered namespaced `type`.
+  `type` registered through `itemTypes` or `bareItemTypes`.
 - `decodeEvent`: Maps a streaming event to AI SDK stream parts. Its `state` map
   lasts for one response stream.
 
 Tool, item, and event capabilities are independent. An item-only extension, for
-example, defines `itemTypes` and `decodeItem` without `toolType` or `encodeTool`.
-Capability fields must be provided in pairs.
+example, defines `itemTypes` (or `bareItemTypes`) and `decodeItem` without a
+tool type or `encodeTool`. Capability fields must be provided in pairs.
 
 Each decoded item adds an `open-responses.extension-replay` custom part that
 stores the original JSON in provider metadata. Other decoded parts reference

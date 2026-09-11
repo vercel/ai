@@ -30,14 +30,16 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
+  asOpenResponsesExtensionRecord,
   createOpenResponsesExtensionRegistry,
+  getOpenResponsesExtensionToolType,
   isOpenResponsesExtensionEvent,
   isOpenResponsesExtensionItem,
   isOpenResponsesJSONObject,
-  type OpenResponsesExtension,
   type OpenResponsesExtensionContentPart,
   type OpenResponsesExtensionItem,
   type OpenResponsesExtensionRecord,
+  type OpenResponsesExtensionRegistration,
   type OpenResponsesExtensionRegistry,
 } from '../open-responses-extension';
 import { convertToOpenResponsesInput } from './convert-to-open-responses-input';
@@ -155,8 +157,8 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
     const encodedProviderToolsByName = new Map<
       string,
       {
-        toolType: OpenResponsesExtensionRecord['type'];
-        encodeToolChoice: OpenResponsesExtension['encodeToolChoice'];
+        toolType: OpenResponsesExtensionRecord<string>['type'];
+        encodeToolChoice: OpenResponsesExtensionRegistration['encodeToolChoice'];
         tool: Extract<
           NonNullable<LanguageModelV4CallOptions['tools']>[number],
           { type: 'provider' }
@@ -167,9 +169,10 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
     for (const tool of tools ?? []) {
       if (tool.type === 'provider') {
         const extension = this.extensionRegistry.byProviderToolId.get(tool.id);
-        let encoded: OpenResponsesExtensionRecord | undefined;
+        let encoded: OpenResponsesExtensionRecord<string> | undefined;
 
         if (extension != null) {
+          const toolType = getOpenResponsesExtensionToolType(extension)!;
           try {
             const fields = await extension.encodeTool({
               name: tool.name,
@@ -179,7 +182,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
             if (isOpenResponsesJSONObject(fields)) {
               encoded = {
                 ...fields,
-                type: extension.toolType,
+                type: toolType,
               };
             }
           } catch {
@@ -193,9 +196,9 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
             feature: `provider-defined tool ${tool.id}`,
           });
         } else if (extension != null) {
-          convertedTools.push(encoded);
+          convertedTools.push(asOpenResponsesExtensionRecord(encoded));
           encodedProviderToolsByName.set(tool.name, {
-            toolType: extension.toolType,
+            toolType: getOpenResponsesExtensionToolType(extension)!,
             encodeToolChoice: extension.encodeToolChoice,
             tool,
           });
@@ -244,10 +247,10 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
             feature: `tool choice for provider-defined tool ${tool.id}`,
           });
         } else {
-          convertedToolChoice = {
+          convertedToolChoice = asOpenResponsesExtensionRecord({
             ...(isOpenResponsesJSONObject(fields) ? fields : {}),
             type: toolType,
-          };
+          });
         }
       }
     } else {
@@ -624,8 +627,8 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
                 } catch (error) {
                   controller.enqueue({ type: 'error', error });
                 }
+                return;
               }
-              return;
             }
 
             // Tool call events (single-shot tool-call when complete)
@@ -690,7 +693,8 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
               toolCallsByItemId.delete(chunk.item.id);
             } else if (
               chunk.type === 'response.output_item.done' &&
-              isOpenResponsesExtensionItem(chunk.item)
+              isOpenResponsesExtensionItem(chunk.item) &&
+              extensionRegistry.byItemType.has(chunk.item.type)
             ) {
               try {
                 const decoded = await decodeExtensionItem({
@@ -902,7 +906,7 @@ async function decodeExtensionItem({
   providerOptionsName,
 }: {
   extensionRegistry: OpenResponsesExtensionRegistry;
-  item: OpenResponsesExtensionItem;
+  item: OpenResponsesExtensionItem<string>;
   mode: 'generate' | 'stream';
   providerOptionsName: string;
 }): Promise<OpenResponsesExtensionContentPart[] | undefined> {
@@ -938,8 +942,8 @@ function createExtensionReplayCarrier({
   item,
   providerOptionsName,
 }: {
-  extension: OpenResponsesExtension;
-  item: OpenResponsesExtensionItem;
+  extension: OpenResponsesExtensionRegistration;
+  item: OpenResponsesExtensionItem<string>;
   providerOptionsName: string;
 }): OpenResponsesExtensionContentPart {
   return {
@@ -962,8 +966,8 @@ function addExtensionItemReferenceMetadata({
   part,
   providerOptionsName,
 }: {
-  extension: OpenResponsesExtension;
-  item: OpenResponsesExtensionItem;
+  extension: OpenResponsesExtensionRegistration;
+  item: OpenResponsesExtensionItem<string>;
   part: OpenResponsesExtensionContentPart;
   providerOptionsName: string;
 }): OpenResponsesExtensionContentPart {
