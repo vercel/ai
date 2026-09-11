@@ -1,5 +1,25 @@
 # ai
 
+## 7.0.98
+
+### Patch Changes
+
+- 5ec21a6: fix: reject unsupported batch request types
+- db59d78: feat(ai): add runtime context attribution to embed, embedMany and rerank
+- 7469a3b: feat: support image generation requests in batches
+- f87bf07: fix(ai): reject invalid reranking provider indices
+- bc5cb7a: fix(ai): accept inferred tools in `validateUIMessages`
+- a5f449a: feat(ai): add a stable UI message type and type guard for tool output errors
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [dbd83a3]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+- Updated dependencies [03f4e59]
+  - @ai-sdk/gateway@4.0.79
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
 ## 7.0.97
 
 ### Patch Changes

@@ -1,5 +1,21 @@
 # @ai-sdk/otel
 
+## 1.0.98
+
+### Patch Changes
+
+- db59d78: feat(ai): add runtime context attribution to embed, embedMany and rerank
+- eb70e72: fix(otel): attribute fallback spans to the successful provider
+- 2dd0244: fix(otel): preserve HTTP status codes on API error spans
+- Updated dependencies [5ec21a6]
+- Updated dependencies [db59d78]
+- Updated dependencies [7469a3b]
+- Updated dependencies [f87bf07]
+- Updated dependencies [bc5cb7a]
+- Updated dependencies [a5f449a]
+  - @ai-sdk/provider@4.0.14
+  - ai@7.0.98
+
 ## 1.0.97
 
 ### Patch Changes
