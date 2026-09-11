@@ -46,7 +46,11 @@ import {
 import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
 import { Output, type LanguageModelCallEndEvent, type Telemetry } from '..';
-import { NoOutputGeneratedError, StreamProviderError } from '../error';
+import {
+  NoOutputGeneratedError,
+  StreamProviderError,
+  ToolChoiceViolationError,
+} from '../error';
 import * as logWarningsModule from '../logger/log-warnings';
 import type { Instructions, LanguageModelCallOptions } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
@@ -1784,6 +1788,200 @@ describe('streamText', () => {
       expect(
         await convertAsyncIterableToArray(result.stream),
       ).toMatchSnapshot();
+    });
+
+    describe('tool choice enforcement', () => {
+      it('should surface an error when a required tool choice produces no tool call', async () => {
+        const onError = vi.fn();
+
+        const result = streamText({
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'reasoning-start', id: '1' },
+                {
+                  type: 'reasoning-delta',
+                  id: '1',
+                  delta: 'I will not call the tool.',
+                },
+                { type: 'reasoning-end', id: '1' },
+                { type: 'text-start', id: '2' },
+                { type: 'text-delta', id: '2', delta: 'No tool call.' },
+                { type: 'text-end', id: '2' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+            }),
+          },
+          toolChoice: 'required',
+          prompt: 'test-input',
+          onError,
+        });
+
+        await result.consumeStream();
+
+        expect(onError).toHaveBeenCalledOnce();
+        const error = onError.mock.calls[0][0].error;
+        expect(ToolChoiceViolationError.isInstance(error)).toBe(true);
+        expect(error).toMatchObject({
+          name: 'AI_ToolChoiceViolationError',
+          message:
+            'Model response did not contain a tool call even though tool choice was required.',
+          toolChoice: { type: 'required' },
+          finishReason: 'stop',
+          provider: 'mock-provider',
+          modelId: 'mock-model-id',
+          content: [
+            { type: 'reasoning', text: 'I will not call the tool.' },
+            { type: 'text', text: 'No tool call.' },
+          ],
+        });
+        await expect(result.finishReason).resolves.toBe('error');
+        await expect(result.usage).resolves.toEqual(
+          asLanguageModelUsage(testUsage),
+        );
+      });
+
+      it('should surface an error when a different tool is called instead of the required tool', async () => {
+        const onError = vi.fn();
+
+        const result = streamText({
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'tool2',
+                  input: `{ "value": "value" }`,
+                },
+                {
+                  type: 'finish',
+                  finishReason: {
+                    unified: 'tool-calls',
+                    raw: 'tool_calls',
+                  },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+            }),
+            tool2: tool({
+              inputSchema: z.object({ value: z.string() }),
+            }),
+          },
+          toolChoice: { type: 'tool', toolName: 'tool1' },
+          prompt: 'test-input',
+          onError,
+        });
+
+        await result.consumeStream();
+
+        expect(onError).toHaveBeenCalledOnce();
+        expect(onError.mock.calls[0][0].error).toMatchObject({
+          name: 'AI_ToolChoiceViolationError',
+          message:
+            "Model response did not contain a call to the required tool 'tool1'.",
+          toolChoice: { type: 'tool', toolName: 'tool1' },
+          finishReason: 'tool-calls',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'tool2',
+              input: `{ "value": "value" }`,
+            },
+          ],
+        });
+        await expect(result.finishReason).resolves.toBe('error');
+      });
+
+      it('should enforce the tool choice returned by prepareStep', async () => {
+        const onError = vi.fn();
+
+        const result = streamText({
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'No tool call.' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+            }),
+          },
+          toolChoice: 'auto',
+          prepareStep: async () => ({ toolChoice: 'required' }),
+          prompt: 'test-input',
+          onError,
+        });
+
+        await result.consumeStream();
+
+        expect(onError).toHaveBeenCalledOnce();
+        expect(onError.mock.calls[0][0].error).toMatchObject({
+          name: 'AI_ToolChoiceViolationError',
+          toolChoice: { type: 'required' },
+        });
+      });
+
+      it('should not retry a tool choice violation', async () => {
+        let providerCalls = 0;
+
+        const result = streamText({
+          model: new MockLanguageModelV4({
+            doStream: async () => {
+              providerCalls++;
+              return {
+                stream: convertArrayToReadableStream([
+                  { type: 'text-start', id: '1' },
+                  { type: 'text-delta', id: '1', delta: 'No tool call.' },
+                  { type: 'text-end', id: '1' },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: testUsage,
+                  },
+                ]),
+              };
+            },
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+            }),
+          },
+          toolChoice: 'required',
+          streamRetries: 1,
+          prompt: 'test-input',
+          onError: () => {},
+        });
+
+        await result.consumeStream();
+
+        expect(providerCalls).toBe(1);
+      });
     });
 
     it('should refine tool input before tool execution, stream parts, and callbacks', async () => {

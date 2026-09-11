@@ -1,3 +1,4 @@
+import { InvalidResponseDataError } from '@ai-sdk/provider';
 import {
   createIdGenerator,
   withUserAgentSuffix,
@@ -267,6 +268,8 @@ export async function embedMany({
               };
             });
 
+          validateEmbeddingCount({ embeddings, values });
+
           logWarnings({
             warnings,
             provider: model.provider,
@@ -328,8 +331,8 @@ export async function embedMany({
 
         for (const parallelChunk of parallelChunks) {
           const results = await Promise.all(
-            parallelChunk.map(chunk => {
-              return retry(async () => {
+            parallelChunk.map(async chunk => {
+              const result = await retry(async () => {
                 const embedCallId = generateCallId();
 
                 await notify({
@@ -376,6 +379,13 @@ export async function embedMany({
                   response: modelResponse.response,
                 };
               });
+
+              validateEmbeddingCount({
+                embeddings: result.embeddings,
+                values: chunk,
+              });
+
+              return result;
             }),
           );
 
@@ -437,6 +447,21 @@ export async function embedMany({
       }
     },
   });
+}
+
+function validateEmbeddingCount({
+  embeddings,
+  values,
+}: {
+  embeddings: Array<Embedding>;
+  values: Array<string>;
+}) {
+  if (embeddings.length !== values.length) {
+    throw new InvalidResponseDataError({
+      data: embeddings,
+      message: `Expected ${values.length} embeddings, but received ${embeddings.length}.`,
+    });
+  }
 }
 
 const textEncoder = new TextEncoder();

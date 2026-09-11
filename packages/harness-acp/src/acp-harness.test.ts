@@ -630,46 +630,6 @@ describe('createACP', () => {
     await session.doDestroy();
   });
 
-  it('uses the deprecated ACP modelId as a model fallback', async () => {
-    const harness = createACP({
-      harnessId: 'legacy-model-mapping-acp',
-      ...agentSettings,
-      modelId: 'legacy-model',
-    });
-
-    const session = await harness.doStart({
-      sessionId: 'session-1',
-      sandboxSession: fakeSandbox({
-        runs: [],
-        spawns: [],
-        stop: async () => {},
-      }),
-      sessionWorkDir: '/workspace/user-project',
-    });
-    const control = await session.doPromptTurn({
-      skills: [],
-      tools: [],
-      prompt: 'Hello',
-      emit: () => {},
-    });
-
-    expect(harnessUtilsMocks.channels[0]!.sent[0]).toMatchObject({
-      type: 'start',
-      model: 'legacy-model',
-      modelMapping: {
-        type: 'session-config-option',
-        path: 'model',
-      },
-    });
-    harnessUtilsMocks.channels[0]!.emit({
-      type: 'finish',
-      finishReason: { unified: 'stop', raw: 'end_turn' },
-      totalUsage: unknownUsage(),
-    });
-    await control.done;
-    await session.doDestroy();
-  });
-
   it('requires credential environment and brokering settings together', () => {
     expect(() =>
       createACP({
@@ -869,6 +829,7 @@ describe('createACP', () => {
 
     const session = await harness.doStart({
       sessionId: 'session-1',
+      headers: { 'x-tenant': 'acme' },
       sandboxSession: fakeSandbox({
         runs: [],
         spawns,
@@ -887,6 +848,7 @@ describe('createACP', () => {
         PROVIDER_API_KEY: 'ephemeral-PROVIDER_API_KEY',
         PROVIDER_BASE_URL: 'https://gateway.example/v1',
       },
+      headers: { 'x-tenant': 'acme' },
     });
     expect(addRequestTransformations).toHaveBeenCalledWith([
       {
@@ -2439,6 +2401,90 @@ describe('createACP', () => {
     await session.doDestroy();
   });
 
+  it('materializes instructions into the filesystem and never prepends prompt guidance', async () => {
+    const writes: Array<{ path: string; content: string }> = [];
+    const harness = createACP({
+      harnessId: 'cursor-acp',
+      ...agentSettings,
+      instructionMapping: {
+        type: 'filesystem',
+        path: '.cursor/rules/AGENTS.md',
+      },
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns: [],
+        writes,
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+    const channel = harnessUtilsMocks.channels[0]!;
+
+    const first = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Draft release notes.',
+      instructions: 'Always run tests.',
+      emit: () => {},
+    });
+    expect(channel.sent[0]).toMatchObject({
+      type: 'start',
+      instructions: 'Always run tests.',
+      instructionMapping: {
+        type: 'filesystem',
+        path: '.cursor/rules/AGENTS.md',
+      },
+      prompt: [{ type: 'text', text: 'Draft release notes.' }],
+    });
+    expect(writes).toContainEqual({
+      path: '/home/agent/.cursor/rules/AGENTS.md',
+      content: 'Always run tests.\n',
+    });
+    expect(
+      JSON.stringify(Reflect.get(channel.sent[0]!, 'prompt')),
+    ).not.toContain('Always run tests.');
+    channel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+    await first.done;
+
+    const second = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Revise them.',
+      instructions: 'Answer every question in French.',
+      emit: () => {},
+    });
+    expect(channel.sent[1]).toMatchObject({
+      type: 'start',
+      instructions: 'Answer every question in French.',
+      instructionMapping: {
+        type: 'filesystem',
+        path: '.cursor/rules/AGENTS.md',
+      },
+      prompt: [{ type: 'text', text: 'Revise them.' }],
+    });
+    expect(writes).toContainEqual({
+      path: '/home/agent/.cursor/rules/AGENTS.md',
+      content: 'Answer every question in French.\n',
+    });
+    expect(
+      JSON.stringify(Reflect.get(channel.sent[1]!, 'prompt')),
+    ).not.toContain('Answer every question in French.');
+    channel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+    await second.done;
+    await session.doDestroy();
+  });
+
   it('replaces changed skills before starting the next turn', async () => {
     const runs: string[] = [];
     const writes: Array<{ path: string; content: string }> = [];
@@ -2643,7 +2689,6 @@ describe('createACP', () => {
       auth: 'ai-gateway',
       ...agentSettings,
       forwardEnv: [],
-      modelId: 'gpt-5.1-codex',
       session: {
         meta: {
           profile: 'restored',

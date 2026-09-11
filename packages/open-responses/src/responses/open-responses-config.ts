@@ -9,4 +9,5 @@ export type OpenResponsesConfig = {
   fetch?: FetchFunction;
   generateId: () => string;
   extensionRegistry?: OpenResponsesExtensionRegistry;
+  strictResponseInput?: boolean;
 };

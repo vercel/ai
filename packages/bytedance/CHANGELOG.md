@@ -1,5 +1,36 @@
 # @ai-sdk/bytedance
 
+## 2.0.42
+
+### Patch Changes
+
+- ef3bac4: Forward `webhookUrl` as `callback_url` in `doStart`, taking precedence over raw provider callback URLs. Callers provide a progress-aware receiver; `generateVideo({ webhook })` continues to fall back to polling.
+
+  Treat expired video generation tasks as terminal errors, preserving the provider's diagnostic details.
+
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/provider-utils@5.0.39
+
+## 2.0.41
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/provider-utils@5.0.38
+
+## 2.0.40
+
+### Patch Changes
+
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+
 ## 2.0.39
 
 ### Patch Changes

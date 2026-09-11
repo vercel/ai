@@ -176,6 +176,19 @@ describe('createACP built-in tool inference', () => {
         path: ['developer_instructions'],
       },
     });
+    createACP({
+      harnessId: 'cursor-acp',
+      source: {
+        type: 'install-command',
+        command: 'curl https://example.com/install -fsS | bash',
+      },
+      executable: 'acp-agent',
+      modelMapping,
+      instructionMapping: {
+        type: 'filesystem',
+        path: '.cursor/rules/AGENTS.md',
+      },
+    });
   });
 
   test('accepts asynchronous credential forwarding', () => {

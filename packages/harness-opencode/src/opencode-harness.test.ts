@@ -712,13 +712,14 @@ describe('createOpenCode adapter', () => {
       agent: { general: { model: 'openai/gpt-5.4-mini' } },
     };
     const harness = createOpenCode({
-      model: 'legacy-model',
+      auth: { AI_GATEWAY_API_KEY: 'gateway-key' },
       openCodeConfig,
       reasoningVariant: 'high',
       mcpServers,
     });
     const session = await harness.doStart({
       sessionId: 's1',
+      headers: { 'x-tenant': 'acme' },
       sandboxSession,
       sessionWorkDir: '/workspace/project',
     });
@@ -734,6 +735,7 @@ describe('createOpenCode adapter', () => {
       operation: 'compact',
       openCodeConfig,
       mcpServers,
+      headers: { 'x-tenant': 'acme' },
       resumeSessionId: 'opencode-session',
     });
     channel.emit('finish', { type: 'finish' });
@@ -757,6 +759,7 @@ describe('createOpenCode adapter', () => {
       variant: 'high',
       openCodeConfig,
       mcpServers,
+      headers: { 'x-tenant': 'acme' },
       resumeSessionId: 'opencode-session',
     });
     channel.emit('finish', { type: 'finish' });
@@ -765,6 +768,7 @@ describe('createOpenCode adapter', () => {
     const resumeFrom = await session.doDetach();
     const resumedSession = await harness.doStart({
       sessionId: 's1',
+      headers: { 'x-tenant': 'acme' },
       sandboxSession,
       sessionWorkDir: '/workspace/project',
       resumeFrom,
@@ -786,6 +790,7 @@ describe('createOpenCode adapter', () => {
       variant: 'high',
       openCodeConfig,
       mcpServers,
+      headers: { 'x-tenant': 'acme' },
       resumeSessionId: 'opencode-session',
     });
     resumedChannel.emit('finish', { type: 'finish' });
@@ -928,8 +933,8 @@ describe('createOpenCode adapter', () => {
     });
 
     it('shares the getter across configured harness instances', () => {
-      const first = createOpenCode({ model: 'first-model' });
-      const second = createOpenCode({ model: 'second-model' });
+      const first = createOpenCode({ reasoningVariant: 'low' });
+      const second = createOpenCode({ reasoningVariant: 'high' });
 
       expect(first.getBootstrap).toBe(second.getBootstrap);
     });

@@ -9,6 +9,7 @@ import {
   type HarnessV1BuiltinTool,
   type HarnessV1ContinueTurnState,
   type HarnessV1CredentialForwarding,
+  type HarnessV1MintBridgeTokenCallback,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
   type HarnessV1PortEndpoint,
@@ -37,8 +38,7 @@ import {
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
   withBridgeToken,
-  writeSkills as writeHarnessSkills,
-  type WriteSkillsResult,
+  writeSkills,
 } from '@ai-sdk/harness/utils';
 import {
   type Experimental_SandboxProcess,
@@ -106,13 +106,6 @@ export type CodexHarnessSettings = {
    */
   readonly mcpServers?: Record<string, unknown>;
   /**
-   * OpenAI model id the underlying `codex` CLI should use. Leaving this unset
-   * pins the adapter default (`DEFAULT_CODEX_MODEL`).
-   *
-   * @deprecated Use `model` on `HarnessAgent` instead.
-   */
-  readonly model?: string;
-  /**
    * Reasoning effort for reasoning-capable models. Leaving this unset
    * defers to the CLI's default.
    */
@@ -139,7 +132,7 @@ export type CodexHarnessSettings = {
    * Creates the authentication token used by the sandbox bridge. Defaults to
    * a random 32-byte hexadecimal token.
    */
-  readonly mintBridgeToken?: (sandboxId: string) => string;
+  readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
 
 /*
@@ -207,7 +200,7 @@ export function createCodex(
     lifecycleStateSchema: codexResumeStateSchema,
     getBootstrap: getCodexBootstrap,
     doStart: async startOpts => {
-      const model = settings.model ?? DEFAULT_CODEX_MODEL;
+      const model = DEFAULT_CODEX_MODEL;
       if (startOpts.builtinToolFiltering != null) {
         throw new HarnessCapabilityUnsupportedError({
           message:
@@ -386,6 +379,7 @@ export function createCodex(
             webSearch: settings.webSearch,
             codexConfig: settings.codexConfig,
             mcpServers: settings.mcpServers,
+            headers: startOpts.headers,
             resumeThreadId: resumeThreadIdString,
             isResume: true,
             seedResumeThreadOnFirstPrompt: false,
@@ -548,6 +542,7 @@ export function createCodex(
         webSearch: settings.webSearch,
         codexConfig: settings.codexConfig,
         mcpServers: settings.mcpServers,
+        headers: startOpts.headers,
         resumeThreadId: resumeThreadIdString,
         isResume: respawnStrategy !== undefined,
         seedResumeThreadOnFirstPrompt: respawnStrategy !== undefined,
@@ -631,29 +626,6 @@ async function resolveBridgeEndpoint({
   });
 }
 
-async function writeCodexSkills({
-  sandbox,
-  sandboxHomeDir,
-  skills,
-  abortSignal,
-}: {
-  sandbox: SandboxSession;
-  sandboxHomeDir: string;
-  skills: ReadonlyArray<HarnessV1Skill>;
-  abortSignal?: AbortSignal;
-}): Promise<WriteSkillsResult> {
-  const rootDir = path.posix.join(sandboxHomeDir, '.agents', 'skills');
-  return writeHarnessSkills({
-    sandbox,
-    rootDir,
-    skills,
-    abortSignal,
-    invalidSkillNameMessage: ({ name }) => `Invalid Codex skill name: ${name}`,
-    invalidSkillFilePathMessage: ({ skillName, filePath }) =>
-      `Invalid Codex skill file path for ${skillName}: ${filePath}`,
-  });
-}
-
 function openWebSocket({
   url,
   headers,
@@ -685,6 +657,7 @@ function createSession({
   webSearch,
   codexConfig,
   mcpServers,
+  headers,
   resumeThreadId,
   isResume,
   seedResumeThreadOnFirstPrompt,
@@ -709,6 +682,7 @@ function createSession({
   webSearch: boolean | undefined;
   codexConfig: Record<string, unknown> | undefined;
   mcpServers: Record<string, unknown> | undefined;
+  headers: Readonly<Record<string, string>> | undefined;
   resumeThreadId: string | undefined;
   isResume: boolean;
   seedResumeThreadOnFirstPrompt: boolean;
@@ -768,11 +742,16 @@ function createSession({
     }>;
     abortSignal?: AbortSignal;
   }): Promise<{ restartThread: boolean }> => {
-    const skillsResult = await writeCodexSkills({
+    const skillsResult = await writeSkills({
       sandbox,
-      sandboxHomeDir,
+      homePath: sandboxHomeDir,
+      skillsDir: '.agents/skills',
       skills,
       abortSignal,
+      invalidSkillNameMessage: ({ name }) =>
+        `Invalid Codex skill name: ${name}`,
+      invalidSkillFilePathMessage: ({ skillName, filePath }) =>
+        `Invalid Codex skill file path for ${skillName}: ${filePath}`,
     });
     const nextFingerprint = fingerprintCodexTurnConfiguration({
       instructions,
@@ -1011,6 +990,7 @@ function createSession({
         webSearch,
         ...(codexConfig == null ? {} : { codexConfig }),
         ...(mcpServers == null ? {} : { mcpServers }),
+        ...(headers == null ? {} : { headers }),
         ...(permissionMode ? { permissionMode } : {}),
         ...(pendingResumeThreadId
           ? { resumeThreadId: pendingResumeThreadId }
@@ -1088,6 +1068,7 @@ function createSession({
             webSearch,
             ...(codexConfig == null ? {} : { codexConfig }),
             ...(mcpServers == null ? {} : { mcpServers }),
+            ...(headers == null ? {} : { headers }),
             ...(permissionMode ? { permissionMode } : {}),
             ...(threadId ? { resumeThreadId: threadId } : {}),
             ...(restartThread ? { restartThread: true } : {}),
