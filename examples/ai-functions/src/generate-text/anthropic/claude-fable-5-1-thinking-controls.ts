@@ -1,50 +1,34 @@
-<<<<<<< HEAD:examples/ai-functions/src/generate-text/anthropic/claude-fable-5-1-thinking-controls.ts
 import {
   anthropic,
   type AnthropicLanguageModelOptions,
 } from '@ai-sdk/anthropic';
-import { generateText } from 'ai';
-=======
-import { anthropic } from '@ai-sdk/anthropic';
 import { generateText, type ModelMessage } from 'ai';
 import { print } from '../../lib/print';
->>>>>>> e4292e7dec (feat(anthropic): expand preserved thinking support to cover `prefix_mismatch_behavior: 'error'` (#20624)):examples/ai-functions/src/generate-text/anthropic/claude-fable-5-1-thinking-binding.ts
 import { run } from '../../lib/run';
 
-run(async () => {
-  const originalMessage: ModelMessage = {
-    role: 'user',
-    content:
-      'Analyze whether adding an optional response field is backwards compatible.',
-  };
+const thinking = {
+  type: 'adaptive',
+  display: 'updates',
+  blockBinding: {
+    prefixMismatchBehavior: 'drop_block',
+  },
+} satisfies AnthropicLanguageModelOptions['thinking'];
 
+run(async () => {
   const firstTurn = await generateText({
     model: anthropic('claude-fable-5-1'),
-<<<<<<< HEAD:examples/ai-functions/src/generate-text/anthropic/claude-fable-5-1-thinking-controls.ts
-    prompt: 'Compare two approaches to implementing an LRU cache.',
-=======
-    messages: [originalMessage],
->>>>>>> e4292e7dec (feat(anthropic): expand preserved thinking support to cover `prefix_mismatch_behavior: 'error'` (#20624)):examples/ai-functions/src/generate-text/anthropic/claude-fable-5-1-thinking-binding.ts
-    providerOptions: {
-      anthropic: {
-        thinking: {
-          type: 'adaptive',
-<<<<<<< HEAD:examples/ai-functions/src/generate-text/anthropic/claude-fable-5-1-thinking-controls.ts
-          display: 'updates',
-=======
->>>>>>> e4292e7dec (feat(anthropic): expand preserved thinking support to cover `prefix_mismatch_behavior: 'error'` (#20624)):examples/ai-functions/src/generate-text/anthropic/claude-fable-5-1-thinking-binding.ts
-          blockBinding: {
-            prefixMismatchBehavior: 'drop_block',
-          },
-        },
-      } satisfies AnthropicLanguageModelOptions,
-    },
+    messages: [
+      {
+        role: 'user',
+        content:
+          'Analyze whether adding an optional response field is backwards compatible.',
+      },
+    ],
+    providerOptions: { anthropic: { thinking } },
   });
 
-<<<<<<< HEAD:examples/ai-functions/src/generate-text/anthropic/claude-fable-5-1-thinking-controls.ts
-  console.log('Reasoning:', result.reasoning);
-  console.log('Text:', result.text);
-=======
+  // Rewriting the first user turn breaks the prefix the thinking block is bound
+  // to, so drop_block drops that block and reports the drop back.
   const changedHistory: ModelMessage[] = [
     {
       role: 'user',
@@ -61,16 +45,7 @@ run(async () => {
   const secondTurn = await generateText({
     model: anthropic('claude-fable-5-1'),
     messages: changedHistory,
-    providerOptions: {
-      anthropic: {
-        thinking: {
-          type: 'adaptive',
-          blockBinding: {
-            prefixMismatchBehavior: 'drop_block',
-          },
-        },
-      },
-    },
+    providerOptions: { anthropic: { thinking } },
   });
 
   print('Text:', secondTurn.text);
@@ -78,5 +53,4 @@ run(async () => {
     'Input transformations:',
     secondTurn.providerMetadata?.anthropic?.inputTransformations,
   );
->>>>>>> e4292e7dec (feat(anthropic): expand preserved thinking support to cover `prefix_mismatch_behavior: 'error'` (#20624)):examples/ai-functions/src/generate-text/anthropic/claude-fable-5-1-thinking-binding.ts
 });

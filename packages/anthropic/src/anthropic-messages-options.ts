@@ -117,7 +117,7 @@ export type AnthropicSystemMessageProviderOptions = z.infer<
 >;
 
 const anthropicThinkingBlockBinding = z.object({
-  prefixMismatchBehavior: z.literal('drop_block'),
+  prefixMismatchBehavior: z.enum(['error', 'drop_block']),
 });
 
 export const anthropicLanguageModelOptions = z.object({
@@ -162,15 +162,7 @@ export const anthropicLanguageModelOptions = z.object({
            * Requires the `thinking-binding-controls-2026-08-01` beta,
            * which is added automatically.
            */
-<<<<<<< HEAD:packages/anthropic/src/anthropic-messages-options.ts
           blockBinding: anthropicThinkingBlockBinding.optional(),
-=======
-          blockBinding: z
-            .object({
-              prefixMismatchBehavior: z.enum(['error', 'drop_block']),
-            })
-            .optional(),
->>>>>>> e4292e7dec (feat(anthropic): expand preserved thinking support to cover `prefix_mismatch_behavior: 'error'` (#20624)):packages/anthropic/src/anthropic-language-model-options.ts
         }),
         z.object({
           /** for models before Opus 4.6, except Sonnet 4.6 still supports it */
@@ -186,14 +178,7 @@ export const anthropicLanguageModelOptions = z.object({
        * default thinking mode.
        */
       z.object({
-<<<<<<< HEAD:packages/anthropic/src/anthropic-messages-options.ts
         blockBinding: anthropicThinkingBlockBinding,
-=======
-        type: z.never().optional(),
-        blockBinding: z.object({
-          prefixMismatchBehavior: z.enum(['error', 'drop_block']),
-        }),
->>>>>>> e4292e7dec (feat(anthropic): expand preserved thinking support to cover `prefix_mismatch_behavior: 'error'` (#20624)):packages/anthropic/src/anthropic-language-model-options.ts
       }),
     ])
     .optional(),

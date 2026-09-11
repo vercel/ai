@@ -2434,14 +2434,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 ...(value.message.usage as JSONObject),
               };
 
-<<<<<<< HEAD:packages/anthropic/src/anthropic-messages-language-model.ts
               cacheCreationInputTokens =
                 value.message.usage.cache_creation_input_tokens ?? null;
-=======
+
               if (value.message.input_transformations != null) {
                 inputTransformations = value.message.input_transformations;
               }
->>>>>>> e4292e7dec (feat(anthropic): expand preserved thinking support to cover `prefix_mismatch_behavior: 'error'` (#20624)):packages/anthropic/src/anthropic-language-model.ts
 
               if (value.message.container != null) {
                 container = {
