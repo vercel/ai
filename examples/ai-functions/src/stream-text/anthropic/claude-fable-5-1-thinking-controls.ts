@@ -3,6 +3,7 @@ import {
   type AnthropicLanguageModelOptions,
 } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
+import { print } from '../../lib/print';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
@@ -24,4 +25,9 @@ run(async () => {
   });
 
   await printFullStream({ result });
+
+  print(
+    'Input transformations:',
+    (await result.providerMetadata)?.anthropic?.inputTransformations,
+  );
 });

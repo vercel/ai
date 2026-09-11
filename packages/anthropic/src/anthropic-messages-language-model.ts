@@ -1435,6 +1435,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             response.usage.cache_creation_input_tokens ?? null,
           stopSequence: response.stop_sequence ?? null,
           ...(stopDetails != null ? { stopDetails } : {}),
+          ...(response.input_transformations != null
+            ? { inputTransformations: response.input_transformations }
+            : {}),
 
           iterations: response.usage.iterations
             ? response.usage.iterations.map(
@@ -1572,6 +1575,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     let cacheCreationInputTokens: number | null = null;
     let stopSequence: string | null = null;
     let stopDetails: AnthropicMessageMetadata['stopDetails'] = undefined;
+    let inputTransformations: AnthropicMessageMetadata['inputTransformations'];
     let container: AnthropicMessageMetadata['container'] | null = null;
     let isJsonResponseFromTool = false;
     let isMessageOpen = false;
@@ -2433,6 +2437,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               cacheCreationInputTokens =
                 value.message.usage.cache_creation_input_tokens ?? null;
 
+              if (value.message.input_transformations != null) {
+                inputTransformations = value.message.input_transformations;
+              }
+
               if (value.message.container != null) {
                 container = {
                   expiresAt: value.message.container.expires_at,
@@ -2563,6 +2571,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 );
               }
 
+              if (value.input_transformations != null) {
+                inputTransformations = value.input_transformations;
+              }
+
               rawUsage = {
                 ...rawUsage,
                 ...(value.usage as JSONObject),
@@ -2580,6 +2592,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 cacheCreationInputTokens,
                 stopSequence,
                 ...(stopDetails != null ? { stopDetails } : {}),
+                ...(inputTransformations != null
+                  ? { inputTransformations }
+                  : {}),
                 iterations: usage.iterations
                   ? usage.iterations.map(
                       iter =>

@@ -473,12 +473,13 @@ const result = streamText({
 ##### Thinking Block Binding
 
 Fable 5.1 can recover from a thinking-block prefix mismatch by dropping the
-mismatched block. Set `blockBinding.prefixMismatchBehavior` to `drop_block`.
-You can provide block binding by itself to preserve the model's default
-thinking mode, or combine it with adaptive thinking.
+mismatched block. Set `blockBinding.prefixMismatchBehavior` to `drop_block`, or
+set it to `error` to reject the request. You can provide block binding by itself
+to preserve the model's default thinking mode, or combine it with adaptive
+thinking.
 
 ```ts highlight="7-11"
-const { text } = await generateText({
+const result = await generateText({
   model: anthropic('claude-fable-5-1'),
   prompt: 'Continue from this conversation.',
   providerOptions: {
@@ -491,7 +492,13 @@ const { text } = await generateText({
     } satisfies AnthropicLanguageModelOptions,
   },
 });
+
+console.log(result.providerMetadata?.anthropic?.inputTransformations);
 ```
+
+Dropped blocks are reported in
+`providerMetadata.anthropic.inputTransformations` with their `type`, `path`, and
+`reason`.
 
 #### Budget-Based Thinking
 

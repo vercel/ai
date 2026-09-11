@@ -117,7 +117,7 @@ export type AnthropicSystemMessageProviderOptions = z.infer<
 >;
 
 const anthropicThinkingBlockBinding = z.object({
-  prefixMismatchBehavior: z.literal('drop_block'),
+  prefixMismatchBehavior: z.enum(['error', 'drop_block']),
 });
 
 export const anthropicLanguageModelOptions = z.object({
