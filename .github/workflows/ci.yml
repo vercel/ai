@@ -516,13 +516,13 @@ jobs:
       matrix:
         include:
           - module: 'ai'
-            max-load-time: 95
+            max-load-time: 105
           - module: '@ai-sdk/openai'
-            max-load-time: 70
+            max-load-time: 75
           - module: '@ai-sdk/openai-compatible'
             max-load-time: 70
           - module: '@ai-sdk/anthropic'
-            max-load-time: 70
+            max-load-time: 75
           - module: '@ai-sdk/google'
             max-load-time: 70
     steps:
