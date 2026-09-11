@@ -74,6 +74,12 @@ const openaiProxiedThroughOpenRouter: PiModel = {
   baseUrl: 'https://openrouter.ai/api/v1',
 };
 
+const azureOpenaiModel: PiModel = {
+  ...openaiModel,
+  provider: 'azure-openai-responses',
+  baseUrl: 'https://azure.example.test',
+};
+
 describe('createPiModelResolver', () => {
   it('returns matching model by id', async () => {
     const resolve = createPiModelResolver({
@@ -89,6 +95,16 @@ describe('createPiModelResolver', () => {
       env: {},
     });
     expect(resolve('My Model')).toEqual(sampleModel);
+  });
+
+  it('prefers the only authenticated provider for a flat catalog match', async () => {
+    const modelRegistry = await makeRegistry([azureOpenaiModel, openaiModel]);
+    vi.spyOn(modelRegistry, 'hasConfiguredAuth').mockImplementation(
+      model => model.provider === 'openai',
+    );
+    const resolve = createPiModelResolver({ modelRegistry, env: {} });
+
+    expect(resolve('gpt-4o')).toEqual(openaiModel);
   });
 
   it('looks up the gateway default when no id and AI_GATEWAY_API_KEY is set', async () => {
