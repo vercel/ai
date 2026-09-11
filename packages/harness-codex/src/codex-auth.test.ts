@@ -1,7 +1,8 @@
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, expect, it, vi } from 'vitest';
+import type * as HarnessUtils from '@ai-sdk/harness/utils';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createCodexRequestTransformations,
   resolveCodexAuthenticationMode,
@@ -12,6 +13,23 @@ import {
   readCodexSubscription,
   resolveCodexAuthentication,
 } from './codex-subscription';
+
+const credentialStoreMocks = vi.hoisted(() => ({
+  readLinuxSecretServicePassword: vi.fn(),
+  readMacOSKeychainPassword: vi.fn(),
+  readWindowsCredentialManagerPassword: vi.fn(),
+}));
+
+vi.mock('@ai-sdk/harness/utils', async importOriginal => {
+  const actual = await importOriginal<typeof HarnessUtils>();
+  return { ...actual, ...credentialStoreMocks };
+});
+
+beforeEach(() => {
+  credentialStoreMocks.readLinuxSecretServicePassword.mockReset();
+  credentialStoreMocks.readMacOSKeychainPassword.mockReset();
+  credentialStoreMocks.readWindowsCredentialManagerPassword.mockReset();
+});
 
 function jwt(expiresAt: number): string {
   return `header.${Buffer.from(JSON.stringify({ exp: expiresAt })).toString('base64url')}.signature`;
@@ -341,6 +359,77 @@ describe('resolveCodexAuthentication', () => {
     });
   });
 
+  it('reads the Codex credential from the macOS Keychain', async () => {
+    const codexHome = await mkdtemp(join(tmpdir(), 'codex-auth-'));
+    credentialStoreMocks.readMacOSKeychainPassword.mockResolvedValueOnce(
+      createCodexKeyringCredential(),
+    );
+
+    await expect(
+      readCodexSubscription({
+        env: { CODEX_HOME: codexHome },
+        authCredentialsStoreMode: 'keyring',
+        platform: 'darwin',
+      }),
+    ).resolves.toMatchObject({
+      environment: { CODEX_API_KEY: expect.stringMatching(/^header\./) },
+    });
+    expect(
+      credentialStoreMocks.readMacOSKeychainPassword,
+    ).toHaveBeenCalledExactlyOnceWith({
+      service: 'Codex Auth',
+      account: expect.stringMatching(/^cli\|[0-9a-f]{16}$/),
+    });
+  });
+
+  it('reads the Codex credential from Linux Secret Service', async () => {
+    const codexHome = await mkdtemp(join(tmpdir(), 'codex-auth-'));
+    credentialStoreMocks.readLinuxSecretServicePassword.mockResolvedValueOnce(
+      createCodexKeyringCredential(),
+    );
+
+    await expect(
+      readCodexSubscription({
+        env: { CODEX_HOME: codexHome },
+        authCredentialsStoreMode: 'keyring',
+        platform: 'linux',
+      }),
+    ).resolves.toMatchObject({
+      environment: { CODEX_API_KEY: expect.stringMatching(/^header\./) },
+    });
+    expect(
+      credentialStoreMocks.readLinuxSecretServicePassword,
+    ).toHaveBeenCalledExactlyOnceWith({
+      attributes: {
+        service: 'Codex Auth',
+        username: expect.stringMatching(/^cli\|[0-9a-f]{16}$/),
+        target: 'default',
+      },
+    });
+  });
+
+  it('reads the Codex credential from Windows Credential Manager', async () => {
+    const codexHome = await mkdtemp(join(tmpdir(), 'codex-auth-'));
+    credentialStoreMocks.readWindowsCredentialManagerPassword.mockResolvedValueOnce(
+      createCodexKeyringCredential(),
+    );
+
+    await expect(
+      readCodexSubscription({
+        env: { CODEX_HOME: codexHome },
+        authCredentialsStoreMode: 'keyring',
+        platform: 'win32',
+      }),
+    ).resolves.toMatchObject({
+      environment: { CODEX_API_KEY: expect.stringMatching(/^header\./) },
+    });
+    expect(
+      credentialStoreMocks.readWindowsCredentialManagerPassword,
+    ).toHaveBeenCalledExactlyOnceWith({
+      targetName: expect.stringMatching(/^cli\|[0-9a-f]{16}\.Codex Auth$/),
+    });
+  });
+
   it('does not inspect persistent storage in ephemeral mode', async () => {
     const keyring = {
       read: vi.fn(),
@@ -355,6 +444,16 @@ describe('resolveCodexAuthentication', () => {
     expect(keyring.read).not.toHaveBeenCalled();
   });
 });
+
+function createCodexKeyringCredential(): string {
+  return JSON.stringify({
+    auth_mode: 'chatgpt',
+    tokens: {
+      access_token: jwt(Math.floor(Date.now() / 1000) + 3600),
+      refresh_token: 'refresh-token',
+    },
+  });
+}
 
 describe('createCodexRequestTransformations', () => {
   it('uses the configured OpenAI-compatible route for direct auth', () => {

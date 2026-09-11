@@ -1,4 +1,4 @@
-import { execFile, spawn } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
   chmod,
@@ -10,7 +10,6 @@ import {
 } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
-import { promisify } from 'node:util';
 import type {
   HarnessV1RequestTransformation,
   HarnessV1RequestTransformationSources,
@@ -19,7 +18,9 @@ import {
   getJwtExpiresAt,
   isAccessTokenExpiringSoon,
   isHarnessAuthenticationEnvironment,
-  readMacOSKeychainGenericPassword,
+  readLinuxSecretServicePassword,
+  readMacOSKeychainPassword,
+  readWindowsCredentialManagerPassword,
   refreshOAuthAccessToken,
   shouldResolveNativeSubscription,
 } from '@ai-sdk/harness/utils';
@@ -34,7 +35,6 @@ import {
 const CHATGPT_CODEX_BASE_URL = 'https://chatgpt.com/backend-api/codex';
 const OPENAI_TOKEN_URL = 'https://auth.openai.com/oauth/token';
 const OPENAI_CLIENT_ID = 'app_EMoamEEZ73f0CkXaXp7hrann';
-const execFileAsync = promisify(execFile);
 
 export type CodexResolvedAuthentication = {
   readonly environment: Record<string, string>;
@@ -344,7 +344,7 @@ function createCodexKeyring({
   if (platform === 'darwin') {
     return {
       async read({ service, account }) {
-        return readMacOSKeychainGenericPassword({ service, account });
+        return readMacOSKeychainPassword({ service, account });
       },
       async write({ service, account, value }) {
         const command = `add-generic-password -U -s ${shellQuoteForSecurity(service)} -a ${shellQuoteForSecurity(account)} -X ${Buffer.from(value, 'utf8').toString('hex')}\n`;
@@ -359,20 +359,13 @@ function createCodexKeyring({
   if (platform === 'linux') {
     return {
       async read({ service, account }) {
-        try {
-          const result = await execFileAsync('secret-tool', [
-            'lookup',
-            'service',
+        return readLinuxSecretServicePassword({
+          attributes: {
             service,
-            'username',
-            account,
-            'target',
-            'default',
-          ]);
-          return result.stdout.trim() || undefined;
-        } catch {
-          return undefined;
-        }
+            username: account,
+            target: 'default',
+          },
+        });
       },
       async write({ service, account, value }) {
         await runCommandWithInput({
@@ -449,21 +442,8 @@ public static class CodexCredentialManager {
     public UInt32 Persist; public UInt32 AttributeCount; public IntPtr Attributes;
     public string TargetAlias; public string UserName;
   }
-  [DllImport("advapi32.dll", EntryPoint = "CredReadW", CharSet = CharSet.Unicode, SetLastError = true)]
-  static extern bool CredRead(string target, UInt32 type, UInt32 flags, out IntPtr credential);
   [DllImport("advapi32.dll", EntryPoint = "CredWriteW", CharSet = CharSet.Unicode, SetLastError = true)]
   static extern bool CredWrite(ref Credential credential, UInt32 flags);
-  [DllImport("advapi32.dll", SetLastError = true)] static extern void CredFree(IntPtr credential);
-  public static string Read(string target) {
-    IntPtr pointer;
-    if (!CredRead(target, 1, 0, out pointer)) return null;
-    try {
-      Credential value = Marshal.PtrToStructure<Credential>(pointer);
-      byte[] bytes = new byte[value.CredentialBlobSize];
-      Marshal.Copy(value.CredentialBlob, bytes, 0, bytes.Length);
-      return Encoding.Unicode.GetString(bytes);
-    } finally { CredFree(pointer); }
-  }
   public static void Write(string target, string userName, string value) {
     byte[] bytes = Encoding.Unicode.GetBytes(value);
     IntPtr blob = Marshal.AllocHGlobal(bytes.Length);
@@ -479,27 +459,9 @@ public static class CodexCredentialManager {
 }`;
   return {
     async read({ service, account }) {
-      try {
-        const result = await execFileAsync(
-          'powershell.exe',
-          [
-            '-NoProfile',
-            '-NonInteractive',
-            '-Command',
-            `Add-Type -TypeDefinition $env:AI_SDK_CODEX_CREDENTIAL_SOURCE; [CodexCredentialManager]::Read($env:AI_SDK_CODEX_CREDENTIAL_TARGET)`,
-          ],
-          {
-            env: {
-              ...process.env,
-              AI_SDK_CODEX_CREDENTIAL_SOURCE: source,
-              AI_SDK_CODEX_CREDENTIAL_TARGET: `${account}.${service}`,
-            },
-          },
-        );
-        return result.stdout.trim() || undefined;
-      } catch {
-        return undefined;
-      }
+      return readWindowsCredentialManagerPassword({
+        targetName: `${account}.${service}`,
+      });
     },
     async write({ service, account, value }) {
       const script = `Add-Type -TypeDefinition $env:AI_SDK_CODEX_CREDENTIAL_SOURCE; $value = [Console]::In.ReadToEnd(); [CodexCredentialManager]::Write($env:AI_SDK_CODEX_CREDENTIAL_TARGET, $env:AI_SDK_CODEX_CREDENTIAL_USER, $value)`;

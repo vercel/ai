@@ -14,8 +14,10 @@ export { classifyDiskLog, type DiskLogRecoveryMode } from './classify-disk-log';
 export { getAiGatewayAuthFromEnv } from './ai-gateway-auth';
 export { isHarnessAuthenticationEnvironment } from './authentication-environment';
 export { getJwtExpiresAt, parseJwtPayload } from './native-subscription/jwt';
-export { readMacOSKeychainGenericPassword } from './native-subscription/macos-keychain';
+export { readLinuxSecretServicePassword } from './native-subscription/linux-secret-service';
+export { readMacOSKeychainPassword } from './native-subscription/macos-keychain';
 export { shouldResolveNativeSubscription } from './native-subscription/should-resolve-native';
+export { readWindowsCredentialManagerPassword } from './native-subscription/windows-credential-manager';
 export {
   isAccessTokenExpiringSoon,
   refreshOAuthAccessToken,

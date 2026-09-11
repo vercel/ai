@@ -1,6 +1,6 @@
 import type * as NodeChildProcess from 'node:child_process';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { readMacOSKeychainGenericPassword } from './macos-keychain';
+import { readMacOSKeychainPassword } from './macos-keychain';
 
 const mocks = vi.hoisted(() => ({
   execFileAsync: vi.fn(),
@@ -18,7 +18,7 @@ beforeEach(() => {
   mocks.execFileAsync.mockReset();
 });
 
-describe('readMacOSKeychainGenericPassword', () => {
+describe('readMacOSKeychainPassword', () => {
   it('reads and trims a generic password', async () => {
     mocks.execFileAsync.mockResolvedValue({
       stdout: 'stored-password\n',
@@ -26,7 +26,7 @@ describe('readMacOSKeychainGenericPassword', () => {
     });
 
     await expect(
-      readMacOSKeychainGenericPassword({
+      readMacOSKeychainPassword({
         service: 'service-name',
         account: 'account-name',
       }),
@@ -48,7 +48,7 @@ describe('readMacOSKeychainGenericPassword', () => {
     mocks.execFileAsync.mockResolvedValue({ stdout: '\n', stderr: '' });
 
     await expect(
-      readMacOSKeychainGenericPassword({ service: 'service', account: 'user' }),
+      readMacOSKeychainPassword({ service: 'service', account: 'user' }),
     ).resolves.toBeUndefined();
   });
 
@@ -56,7 +56,7 @@ describe('readMacOSKeychainGenericPassword', () => {
     mocks.execFileAsync.mockRejectedValue(new Error('not found'));
 
     await expect(
-      readMacOSKeychainGenericPassword({ service: 'service', account: 'user' }),
+      readMacOSKeychainPassword({ service: 'service', account: 'user' }),
     ).resolves.toBeUndefined();
   });
 });

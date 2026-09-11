@@ -10,7 +10,7 @@ import {
   createCredentialRequestTransformation,
   isAccessTokenExpiringSoon,
   isHarnessAuthenticationEnvironment,
-  readMacOSKeychainGenericPassword,
+  readMacOSKeychainPassword,
   refreshOAuthAccessToken,
   shouldResolveNativeSubscription,
 } from '@ai-sdk/harness/utils';
@@ -186,7 +186,7 @@ async function readClaudeCredentialStore({
     return undefined;
   }
   const service = 'Claude Code-credentials';
-  const keychainText = await readMacOSKeychainGenericPassword({
+  const keychainText = await readMacOSKeychainPassword({
     service,
     account: process.env.USER ?? '',
   });

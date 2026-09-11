@@ -6,7 +6,7 @@ import {
   getJwtExpiresAt,
   isAccessTokenExpiringSoon,
   isHarnessAuthenticationEnvironment,
-  readMacOSKeychainGenericPassword,
+  readMacOSKeychainPassword,
   shouldResolveNativeSubscription,
 } from '@ai-sdk/harness/utils';
 import { isRecord, safeParseJSON } from '@ai-sdk/provider-utils';
@@ -49,7 +49,7 @@ export async function readCursorSubscription({
   const accessToken =
     fileCredential ??
     (platform === 'darwin' && env.AGENT_CLI_CREDENTIAL_STORE !== 'file'
-      ? await readMacOSKeychainGenericPassword({
+      ? await readMacOSKeychainPassword({
           service: 'cursor-access-token',
           account: 'cursor-user',
         })

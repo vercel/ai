@@ -370,7 +370,9 @@ describe('createClaudeCode adapter', () => {
   });
 
   it('throws HarnessCapabilityUnsupportedError when the network sandbox session exposes no ports', async () => {
-    const harness = createClaudeCode();
+    const harness = createClaudeCode({
+      auth: { ANTHROPIC_API_KEY: 'test-api-key' },
+    });
     const sandboxSession = {
       id: 'test-sandbox',
       defaultWorkingDirectory: '/vercel/sandbox',

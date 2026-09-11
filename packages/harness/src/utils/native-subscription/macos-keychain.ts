@@ -3,7 +3,7 @@ import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 
-export async function readMacOSKeychainGenericPassword({
+export async function readMacOSKeychainPassword({
   service,
   account,
 }: {
