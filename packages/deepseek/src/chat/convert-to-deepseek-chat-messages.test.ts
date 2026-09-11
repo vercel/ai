@@ -827,6 +827,39 @@ describe('convertToDeepSeekChatMessages', () => {
       `);
     });
 
+    // `deepseek-flash` is DeepSeek's unversioned alias for V4.1 Flash; it has
+    // the same reasoning_content contract as the `deepseek-v4-*` ids.
+    it('should preserve reasoning_content from prior turns for the deepseek-flash alias', async () => {
+      const result = await convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'reasoning', text: 'Prior-turn reasoning.' },
+              { type: 'text', text: 'Hi there' },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Again' }],
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-flash',
+      });
+
+      expect(result.messages[1]).toStrictEqual({
+        role: 'assistant',
+        content: 'Hi there',
+        reasoning_content: 'Prior-turn reasoning.',
+        tool_calls: undefined,
+      });
+    });
+
     it('should back-fill empty reasoning_content for deepseek-v4 assistant messages with no reasoning part', async () => {
       const result = await convertToDeepSeekChatMessages({
         prompt: [
