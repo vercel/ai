@@ -2739,19 +2739,30 @@ describe('use-chat', () => {
 
   describe('suspended id changes', () => {
     let requestSignal: AbortSignal | undefined;
+    let responseController:
+      | ReadableStreamDefaultController<UIMessageChunk>
+      | undefined;
     const pending = new Promise<never>(() => {});
 
     setupTestComponent(
       () => {
         const [id, setId] = React.useState('initial-id');
         const [shouldSuspend, setShouldSuspend] = React.useState(false);
-        const { sendMessage, id: chatId } = useChat({
+        const {
+          sendMessage,
+          id: chatId,
+          messages,
+        } = useChat({
           id,
           generateId: mockId(),
           transport: {
             sendMessages: async ({ abortSignal }) => {
               requestSignal = abortSignal;
-              return new ReadableStream();
+              return new ReadableStream<UIMessageChunk>({
+                start(controller) {
+                  responseController = controller;
+                },
+              });
             },
             reconnectToStream: async () => null,
           },
@@ -2764,6 +2775,9 @@ describe('use-chat', () => {
         return (
           <div>
             <div data-testid="suspended-chat-id">{chatId}</div>
+            <div data-testid="suspended-chat-messages">
+              {JSON.stringify(messages)}
+            </div>
             <button
               data-testid="suspended-chat-send"
               onClick={() => {
@@ -2791,16 +2805,38 @@ describe('use-chat', () => {
       },
     );
 
-    it('should not abort the active stream before an id change commits', async () => {
+    it('should keep the active stream connected before an id change commits', async () => {
       await userEvent.click(screen.getByTestId('suspended-chat-send'));
-      await waitFor(() => expect(requestSignal).toBeDefined());
+      await waitFor(() => {
+        expect(requestSignal).toBeDefined();
+        expect(responseController).toBeDefined();
+      });
 
       await userEvent.click(screen.getByTestId('suspended-chat-change-id'));
 
-      expect(screen.getByTestId('suspended-chat-id')).toHaveTextContent(
-        'initial-id',
-      );
-      expect(requestSignal?.aborted).toBe(false);
+      try {
+        expect(screen.getByTestId('suspended-chat-id')).toHaveTextContent(
+          'initial-id',
+        );
+        expect(requestSignal?.aborted).toBe(false);
+
+        await act(async () => {
+          responseController!.enqueue({ type: 'text-start', id: '0' });
+          responseController!.enqueue({
+            type: 'text-delta',
+            id: '0',
+            delta: 'Hello',
+          });
+        });
+
+        await waitFor(() => {
+          expect(
+            screen.getByTestId('suspended-chat-messages'),
+          ).toHaveTextContent('Hello');
+        });
+      } finally {
+        responseController!.close();
+      }
     });
   });
 
