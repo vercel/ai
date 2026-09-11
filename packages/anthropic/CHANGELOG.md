@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.118
+
+### Patch Changes
+
+- c11f450: feat(anthropic): expand preserved thinking support to cover `prefix_mismatch_behavior: 'error'`
+
 ## 3.0.117
 
 ### Patch Changes
