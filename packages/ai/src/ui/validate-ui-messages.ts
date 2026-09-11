@@ -5,7 +5,6 @@ import {
   validateTypes,
   zodSchema,
   type FlexibleSchema,
-  type Tool,
 } from '@ai-sdk/provider-utils';
 import { InvalidArgumentError } from '../error';
 import { jsonValueSchema } from '../types/json-value';
@@ -438,10 +437,14 @@ type ValidateUIMessagesOptions<UI_MESSAGE extends UIMessage> = {
     >;
   };
   tools?: {
-    [NAME in keyof InferUIMessageTools<UI_MESSAGE> & string]?: Tool<
-      InferUIMessageTools<UI_MESSAGE>[NAME]['input'],
-      InferUIMessageTools<UI_MESSAGE>[NAME]['output']
-    >;
+    [NAME in keyof InferUIMessageTools<UI_MESSAGE> & string]?: {
+      inputSchema: FlexibleSchema<
+        InferUIMessageTools<UI_MESSAGE>[NAME]['input']
+      >;
+      outputSchema?: FlexibleSchema<
+        InferUIMessageTools<UI_MESSAGE>[NAME]['output']
+      >;
+    };
   };
 };
 
