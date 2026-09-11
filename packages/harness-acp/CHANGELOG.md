@@ -1,5 +1,19 @@
 # @ai-sdk/harness-acp
 
+## 1.0.46
+
+### Patch Changes
+
+- cdc12a1: feat(harness): add support for using adapter-native subscriptions where available
+- Updated dependencies [4d1bf28]
+- Updated dependencies [cdc12a1]
+- Updated dependencies [d70a334]
+- Updated dependencies [81ba84c]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/harness@1.0.108
+  - @ai-sdk/provider-utils@5.0.40
+
 ## 1.0.45
 
 ### Patch Changes
