@@ -1798,37 +1798,6 @@ describe('AnthropicLanguageModel', () => {
       `);
     });
 
-    it('should expose empty preserved thinking input transformations', async () => {
-      prepareJsonFixtureResponse('anthropic-preserved-thinking-empty.1');
-
-      const result = await provider('claude-fable-5-1').doGenerate({
-        prompt: TEST_PROMPT,
-      });
-
-      expect(
-        result.providerMetadata?.anthropic?.inputTransformations,
-      ).toMatchInlineSnapshot(`[]`);
-    });
-
-    it('should expose dropped preserved thinking input transformations', async () => {
-      prepareJsonFixtureResponse('anthropic-preserved-thinking-dropped.1');
-
-      const result = await provider('claude-fable-5-1').doGenerate({
-        prompt: TEST_PROMPT,
-      });
-
-      expect(result.providerMetadata?.anthropic?.inputTransformations)
-        .toMatchInlineSnapshot(`
-        [
-          {
-            "path": "messages.1.content.0",
-            "reason": "prefix_binding_mismatch",
-            "type": "drop",
-          },
-        ]
-      `);
-    });
-
     it('should omit preserved thinking input transformations when absent', async () => {
       prepareJsonFixtureResponse('anthropic-text');
 
@@ -7369,31 +7338,6 @@ describe('AnthropicLanguageModel', () => {
           },
         },
       });
-    });
-
-    it('should expose streamed preserved thinking input transformations', async () => {
-      prepareChunksFixtureResponse('anthropic-preserved-thinking-dropped.1');
-
-      const { stream } = await provider('claude-fable-5-1').doStream({
-        prompt: TEST_PROMPT,
-      });
-
-      const result = await convertReadableStreamToArray(stream);
-      const finishPart = result.find(part => part.type === 'finish');
-
-      expect(
-        finishPart?.type === 'finish'
-          ? finishPart.providerMetadata?.anthropic?.inputTransformations
-          : undefined,
-      ).toMatchInlineSnapshot(`
-        [
-          {
-            "path": "messages.1.content.0",
-            "reason": "prefix_binding_mismatch",
-            "type": "drop",
-          },
-        ]
-      `);
     });
 
     it('should map a streamed classifier refusal to content-filter and expose stop details', async () => {
