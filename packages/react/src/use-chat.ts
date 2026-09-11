@@ -121,34 +121,35 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
       latestRef.current.sendAutomaticallyWhen?.(arg) ?? false,
   };
 
-  const chatRef = useRef<Chat<UI_MESSAGE>>(
-    'chat' in options ? options.chat : new Chat(chatOptions),
-  );
-  const isChatExternallyManagedRef = useRef('chat' in options);
+  const chatStateRef = useRef({
+    chat: 'chat' in options ? options.chat : new Chat(chatOptions),
+    isExternallyManaged: 'chat' in options,
+  });
 
   const shouldRecreateChat =
-    ('chat' in options && options.chat !== chatRef.current) ||
+    ('chat' in options && options.chat !== chatStateRef.current.chat) ||
     ('id' in options &&
       options.id != null &&
-      chatRef.current.id !== options.id);
+      chatStateRef.current.chat.id !== options.id);
 
   if (shouldRecreateChat) {
-    chatRef.current = 'chat' in options ? options.chat : new Chat(chatOptions);
-    isChatExternallyManagedRef.current = 'chat' in options;
+    chatStateRef.current = {
+      chat: 'chat' in options ? options.chat : new Chat(chatOptions),
+      isExternallyManaged: 'chat' in options,
+    };
   }
 
-  const chat = chatRef.current;
-  const isChatExternallyManaged = isChatExternallyManagedRef.current;
+  const { chat, isExternallyManaged } = chatStateRef.current;
 
   useEffect(() => {
-    if (isChatExternallyManaged) {
+    if (isExternallyManaged) {
       return;
     }
 
     return () => {
       void chat.stop();
     };
-  }, [chat, isChatExternallyManaged]);
+  }, [chat, isExternallyManaged]);
 
   const messagesSnapshotRef = useRef({
     chat,
@@ -227,9 +228,9 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   );
 
   const error = useSyncExternalStore(
-    chatRef.current['~registerErrorCallback'],
-    () => chatRef.current.error,
-    () => chatRef.current.error,
+    chatStateRef.current.chat['~registerErrorCallback'],
+    () => chatStateRef.current.chat.error,
+    () => chatStateRef.current.chat.error,
   );
 
   const setMessages = useCallback(
@@ -237,35 +238,35 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
       messagesParam: UI_MESSAGE[] | ((messages: UI_MESSAGE[]) => UI_MESSAGE[]),
     ) => {
       if (typeof messagesParam === 'function') {
-        messagesParam = messagesParam(chatRef.current.messages);
+        messagesParam = messagesParam(chatStateRef.current.chat.messages);
       }
-      chatRef.current.messages = messagesParam;
+      chatStateRef.current.chat.messages = messagesParam;
     },
-    [chatRef],
+    [chatStateRef],
   );
 
   useEffect(() => {
     if (resume) {
-      chatRef.current.resumeStream();
+      chatStateRef.current.chat.resumeStream();
     }
-  }, [resume, chatRef]);
+  }, [resume, chatStateRef]);
 
   return {
-    id: chatRef.current.id,
+    id: chatStateRef.current.chat.id,
     messages,
     setMessages,
-    sendMessage: chatRef.current.sendMessage,
-    regenerate: chatRef.current.regenerate,
-    clearError: chatRef.current.clearError,
-    stop: chatRef.current.stop,
+    sendMessage: chatStateRef.current.chat.sendMessage,
+    regenerate: chatStateRef.current.chat.regenerate,
+    clearError: chatStateRef.current.chat.clearError,
+    stop: chatStateRef.current.chat.stop,
     error,
-    resumeStream: chatRef.current.resumeStream,
+    resumeStream: chatStateRef.current.chat.resumeStream,
     status,
     /**
      * @deprecated Use `addToolOutput` instead.
      */
-    addToolResult: chatRef.current.addToolOutput,
-    addToolOutput: chatRef.current.addToolOutput,
-    addToolApprovalResponse: chatRef.current.addToolApprovalResponse,
+    addToolResult: chatStateRef.current.chat.addToolOutput,
+    addToolOutput: chatStateRef.current.chat.addToolOutput,
+    addToolApprovalResponse: chatStateRef.current.chat.addToolApprovalResponse,
   };
 }
