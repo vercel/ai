@@ -1186,6 +1186,22 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
+  test('reports whether typed output is configured', () => {
+    const { harness } = mockHarness({ script: () => [] });
+    const textAgent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+    });
+    const outputAgent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+      output: Output.object({ schema: z.object({ answer: z.string() }) }),
+    });
+
+    expect(textAgent.hasOutput).toBe(false);
+    expect(outputAgent.hasOutput).toBe(true);
+  });
+
   test('generates typed output and sends its response format on every turn', async () => {
     const responseFormats: HarnessV1PromptTurnOptions['responseFormat'][] = [];
     const { harness } = mockHarness({
