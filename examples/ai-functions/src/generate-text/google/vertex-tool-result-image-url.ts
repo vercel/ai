@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { run } from '../../lib/run';
 
 const imageUrl =
-  'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRr_-62a40u3lSIyRP5EKOjJeQiZROwTeVCOQ&s';
+  'https://raw.githubusercontent.com/vercel/ai/b3b56246cbbe191fdb73005daa68e8c54d282aa3/examples/ai-functions/data/comic-cat.png';
 
 run(async () => {
   const getCatImage = tool({
