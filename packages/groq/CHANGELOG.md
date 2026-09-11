@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 3.0.66
+
+### Patch Changes
+
+- 4bd2599: fix(deepseek): preserve reasoning streams across empty tool-call deltas
+
 ## 3.0.65
 
 ### Patch Changes
