@@ -1,12 +1,12 @@
 import type { HarnessV1, HarnessV1SandboxProvider } from '../v1';
 import type { HarnessAgentSettings } from './harness-agent-settings';
 import type { HarnessAllTools } from './harness-agent-tool-types';
-<<<<<<< HEAD
-import { tool, type Context } from '@ai-sdk/provider-utils';
+import {
+  tool,
+  type Context,
+  type SystemModelMessage,
+} from '@ai-sdk/provider-utils';
 import type { GenericToolApprovalFunction } from 'ai';
-=======
-import { tool, type SystemModelMessage } from '@ai-sdk/provider-utils';
->>>>>>> origin/main
 import { describe, expectTypeOf, test } from 'vitest';
 import { z } from 'zod/v4';
 
