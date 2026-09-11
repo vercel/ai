@@ -74,7 +74,6 @@ export interface RunHarnessAgentOptions<OUTPUT = unknown> {
   readonly state: HarnessWorkflowState;
   readonly timeSliceSeconds?: number;
   /**
-<<<<<<< HEAD
    * Whether to await the agent's parsed and schema-validated output after the
    * turn finishes and persist it in `finalResult.output`.
    *
@@ -83,18 +82,11 @@ export interface RunHarnessAgentOptions<OUTPUT = unknown> {
    */
   readonly includeOutput?: boolean;
   /**
-   * When the turn finishes, whether to destroy the sandbox. Defaults to `false`:
-   * the session is parked or stopped and a fresh resume state is returned in
-   * `resumeFrom`, so the next user turn reattaches to the same conversation
-   * (multi-turn chat). Set `true` for a one-shot run that should release the
-   * sandbox when the turn completes.
-=======
    * When the run finishes or fails, whether to destroy the sandbox. Defaults to
    * `false`: the session is parked or stopped and a fresh resume state is
    * returned in `resumeFrom`, so the next user turn reattaches to the same
    * conversation (multi-turn chat). Set `true` for a one-shot run that should
    * release the sandbox when the run ends.
->>>>>>> origin/main
    */
   readonly destroyOnFinish?: boolean;
   /**
