@@ -710,6 +710,23 @@ describe('OpenTelemetry', () => {
       `);
     });
 
+    it('updates provider attribution when the response provider differs', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({
+          provider: 'anthropic.messages',
+          modelId: 'fallback-model',
+        }),
+      );
+
+      expect(tracer.spans[2].attributes).toMatchObject({
+        'gen_ai.provider.name': 'anthropic',
+        'gen_ai.response.model': 'fallback-model',
+      });
+    });
+
     it('omits malformed finish reason arrays on the chat span', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
