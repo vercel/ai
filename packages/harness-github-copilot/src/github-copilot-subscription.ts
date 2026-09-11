@@ -7,6 +7,9 @@ import { promisify } from 'node:util';
 import type { ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import {
   isHarnessAuthenticationEnvironment,
+  isLinux,
+  isMacOS,
+  isWindows,
   readLinuxSecretServicePassword,
   readMacOSKeychainPassword,
   readWindowsCredentialManagerPassword,
@@ -147,12 +150,11 @@ export async function findHostGitHubCliExecutable({
   const path = env.PATH ?? env.Path ?? env.path;
   if (path == null) return undefined;
 
-  const separator = platform === 'win32' ? ';' : ':';
-  const names =
-    platform === 'win32'
-      ? getWindowsGitHubCliExecutableNames({ pathExt: env.PATHEXT })
-      : ['gh'];
-  const mode = platform === 'win32' ? constants.F_OK : constants.X_OK;
+  const separator = isWindows(platform) ? ';' : ':';
+  const names = isWindows(platform)
+    ? getWindowsGitHubCliExecutableNames({ pathExt: env.PATHEXT })
+    : ['gh'];
+  const mode = isWindows(platform) ? constants.F_OK : constants.X_OK;
 
   for (const directory of path.split(separator)) {
     const normalizedDirectory = directory.replace(/^"|"$/g, '');
@@ -239,15 +241,15 @@ async function readGitHubCopilotSecureCredential({
   account: string;
   platform: NodeJS.Platform;
 }): Promise<string | undefined> {
-  if (platform === 'darwin') {
+  if (isMacOS(platform)) {
     return readMacOSKeychainPassword({ service, account });
   }
-  if (platform === 'linux') {
+  if (isLinux(platform)) {
     return readLinuxSecretServicePassword({
       attributes: { service, username: account },
     });
   }
-  if (platform === 'win32') {
+  if (isWindows(platform)) {
     return readWindowsCredentialManagerPassword({
       targetName: `${account}.${service}`,
     });

@@ -24,6 +24,7 @@ export {
   type OAuthCredential,
   type RefreshOAuthAccessTokenResult,
 } from './oauth-access-token';
+export { isLinux, isMacOS, isWindows } from './os';
 export {
   applyCredentialForwarding,
   createSandboxCredentialEnvironment,

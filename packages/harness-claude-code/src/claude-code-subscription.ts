@@ -10,6 +10,7 @@ import {
   createCredentialRequestTransformation,
   isAccessTokenExpiringSoon,
   isHarnessAuthenticationEnvironment,
+  isMacOS,
   readMacOSKeychainPassword,
   refreshOAuthAccessToken,
   shouldResolveNativeSubscription,
@@ -181,7 +182,7 @@ async function readClaudeCredentialStore({
     }
   }
 
-  if (platform !== 'darwin') return undefined;
+  if (!isMacOS(platform)) return undefined;
   if (configDirectory !== resolve(join(homeDirectory, '.claude'))) {
     return undefined;
   }

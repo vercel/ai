@@ -18,6 +18,9 @@ import {
   getJwtExpiresAt,
   isAccessTokenExpiringSoon,
   isHarnessAuthenticationEnvironment,
+  isLinux,
+  isMacOS,
+  isWindows,
   readLinuxSecretServicePassword,
   readMacOSKeychainPassword,
   readWindowsCredentialManagerPassword,
@@ -341,7 +344,7 @@ function createCodexKeyring({
 }: {
   platform: NodeJS.Platform;
 }): CodexKeyring | undefined {
-  if (platform === 'darwin') {
+  if (isMacOS(platform)) {
     return {
       async read({ service, account }) {
         return readMacOSKeychainPassword({ service, account });
@@ -356,7 +359,7 @@ function createCodexKeyring({
       },
     };
   }
-  if (platform === 'linux') {
+  if (isLinux(platform)) {
     return {
       async read({ service, account }) {
         return readLinuxSecretServicePassword({
@@ -388,7 +391,7 @@ function createCodexKeyring({
       },
     };
   }
-  if (platform === 'win32') {
+  if (isWindows(platform)) {
     return createWindowsCodexKeyring();
   }
   return undefined;

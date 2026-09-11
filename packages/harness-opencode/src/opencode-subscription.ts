@@ -9,6 +9,7 @@ import {
   createCredentialRequestTransformation,
   isAccessTokenExpiringSoon,
   isHarnessAuthenticationEnvironment,
+  isWindows,
   parseJwtPayload,
   refreshOAuthAccessToken,
 } from '@ai-sdk/harness/utils';
@@ -683,7 +684,7 @@ async function readStore({
   const authPath =
     env.XDG_DATA_HOME != null
       ? join(env.XDG_DATA_HOME, 'opencode', 'auth.json')
-      : platform === 'win32'
+      : isWindows(platform)
         ? join(homeDirectory, '.opencode', 'auth.json')
         : join(homeDirectory, '.local', 'share', 'opencode', 'auth.json');
   const text = await readFile(authPath, 'utf8').catch(() => undefined);

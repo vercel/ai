@@ -6,6 +6,9 @@ import {
   getJwtExpiresAt,
   isAccessTokenExpiringSoon,
   isHarnessAuthenticationEnvironment,
+  isLinux,
+  isMacOS,
+  isWindows,
   readMacOSKeychainPassword,
   shouldResolveNativeSubscription,
 } from '@ai-sdk/harness/utils';
@@ -48,7 +51,7 @@ export async function readCursorSubscription({
     text == null ? undefined : await parseAccessToken(text);
   const accessToken =
     fileCredential ??
-    (platform === 'darwin' && env.AGENT_CLI_CREDENTIAL_STORE !== 'file'
+    (isMacOS(platform) && env.AGENT_CLI_CREDENTIAL_STORE !== 'file'
       ? await readMacOSKeychainPassword({
           service: 'cursor-access-token',
           account: 'cursor-user',
@@ -74,14 +77,14 @@ export function resolveCursorAuthPath({
   homeDirectory: string;
   platform: NodeJS.Platform;
 }): string {
-  if (platform === 'win32') {
+  if (isWindows(platform)) {
     return join(
       env.APPDATA ?? join(homeDirectory, 'AppData', 'Roaming'),
       'Cursor',
       'auth.json',
     );
   }
-  if (platform === 'linux') {
+  if (isLinux(platform)) {
     return join(
       env.XDG_CONFIG_HOME ?? join(homeDirectory, '.config'),
       'cursor',
