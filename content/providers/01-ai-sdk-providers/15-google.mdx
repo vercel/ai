@@ -339,7 +339,8 @@ const result = await generateText({
 });
 ```
 
-You can also use YouTube URLs directly:
+You can also use YouTube URLs directly. Pass `videoMetadata` through
+`providerOptions` to clip a segment of the video or control the frame rate:
 
 ```ts
 import { google } from '@ai-sdk/google';
@@ -353,12 +354,21 @@ const result = await generateText({
       content: [
         {
           type: 'text',
-          text: 'Summarize this video',
+          text: 'Summarize this part of the video',
         },
         {
           type: 'file',
           data: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
           mediaType: 'video/mp4',
+          providerOptions: {
+            google: {
+              videoMetadata: {
+                startOffset: '60s',
+                endOffset: '600s',
+                fps: 1,
+              },
+            },
+          },
         },
       ],
     },

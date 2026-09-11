@@ -20,10 +20,17 @@ export type GoogleContent = {
   parts: Array<GoogleContentPart>;
 };
 
+export type GoogleVideoMetadata = {
+  startOffset?: string;
+  endOffset?: string;
+  fps?: number;
+};
+
 export type GoogleContentPart =
   | { text: string; thought?: boolean; thoughtSignature?: string }
   | {
       inlineData: { mimeType: string; data: string };
+      videoMetadata?: GoogleVideoMetadata;
       thought?: boolean;
       thoughtSignature?: string;
     }
@@ -41,6 +48,7 @@ export type GoogleContentPart =
     }
   | {
       fileData: { mimeType: string; fileUri: string };
+      videoMetadata?: GoogleVideoMetadata;
       thought?: boolean;
       thoughtSignature?: string;
     }
