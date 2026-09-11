@@ -629,6 +629,50 @@ describe('createPiSession', () => {
     expect(sandboxSession.readBinaryFile).not.toHaveBeenCalled();
   });
 
+  it('initializes the restored Pi session before compacting a cold resume', async () => {
+    const { session: fakePiSession, compact, prompt } = createFakePiSession();
+    piMock.session = fakePiSession;
+    const { journal } = createJournal([userMessage('remember this')]);
+    piMock.sessionManagerOpen.mockImplementation(() => journal);
+
+    const session = await createPiSession({
+      sessionId: 'session-cold-resume-compaction',
+      sandboxSession: createSandboxSession({
+        sessionFileContent: 'pi-journal',
+      }),
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+      isResume: true,
+      resumeSessionFileName: 'pi-session.jsonl',
+    });
+
+    try {
+      expect(piMock.createAgentSession).not.toHaveBeenCalled();
+
+      await session.doCompact('preserve the decisions');
+
+      expect(piMock.sessionManagerOpen).toHaveBeenCalledOnce();
+      expect(piMock.createAgentSession).toHaveBeenCalledWith(
+        expect.objectContaining({ sessionManager: journal }),
+      );
+      expect(compact).toHaveBeenCalledWith('preserve the decisions');
+
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'continue',
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      expect(piMock.createAgentSession).toHaveBeenCalledOnce();
+      expect(prompt).toHaveBeenCalledWith('continue');
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('appends instructions without changing the user prompt or reloading MCP extensions', async () => {
     const prompt = vi.fn(async () => {});
     piMock.session = {
@@ -1343,10 +1387,11 @@ function createFakePiSession({
     }
   });
   const abort = vi.fn(async () => {});
+  const compact = vi.fn(async () => {});
   const dispose = vi.fn();
   const session = {
     abort,
-    compact: vi.fn(async () => {}),
+    compact,
     dispose,
     getSessionStats: () => ({
       tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
@@ -1358,7 +1403,7 @@ function createFakePiSession({
       return () => subscribers.delete(subscriber);
     }),
   } as unknown as AgentSession;
-  return { session, prompt, abort, dispose };
+  return { session, prompt, abort, compact, dispose };
 }
 
 async function startDeferredCrossProcessRerun({
