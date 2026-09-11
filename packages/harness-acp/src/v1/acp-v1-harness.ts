@@ -197,15 +197,21 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       }
       const permissionMode = startOptions.permissionMode ?? 'allow-all';
       const env = { ...process.env };
-      const authenticationEnvironment = resolveACPAuthenticationEnvironment({
-        auth: settings.auth,
-        env,
-      });
+      const authenticationEnvironment =
+        settings.resolveAuthenticationEnvironment == null
+          ? resolveACPAuthenticationEnvironment({
+              auth: settings.auth,
+              env,
+            })
+          : await settings.resolveAuthenticationEnvironment({
+              auth: settings.auth,
+              env,
+            });
       const providerAuthenticationCompatibility =
         resolveACPProviderAuthenticationCompatibility({
           auth: settings.auth,
           providerAuthentication: settings.providerAuthentication,
-          env,
+          env: authenticationEnvironment,
         });
       const implementationIdentity = createImplementationIdentity({
         harnessId: settings.harnessId,
@@ -228,7 +234,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           providerAuthentication: settings.providerAuthentication,
           clientApp,
         },
-        env,
+        env: authenticationEnvironment,
         compatibility: providerAuthenticationCompatibility,
       });
       const sandboxSession = startOptions.sandboxSession;
@@ -273,7 +279,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       }
       const implementationEnvironment = resolveImplementationEnvironment({
         implementation,
-        env,
+        env: { ...env, ...authenticationEnvironment },
         credentialEnv: authenticationEnvironment,
       });
       let sandboxImplementationEnvironment = implementationEnvironment;
@@ -589,6 +595,17 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           ],
         });
       }
+      await writeACPAuthenticationFiles({
+        sandbox: toolSafeSandboxSession,
+        homePath: implementationHomeDir,
+        files:
+          settings.authenticationFiles?.({
+            env: implementationEnvironment,
+            sandboxEnv: forwardedImplementationEnvironment,
+            credentialBrokeringAvailable: sandboxCredentialEnvironment != null,
+          }) ?? [],
+        abortSignal: startOptions.abortSignal,
+      });
       const port = resolveBridgePort({
         sandboxSession,
         override: portOverride,
@@ -795,6 +812,50 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       });
     },
   };
+}
+
+async function writeACPAuthenticationFiles({
+  sandbox,
+  homePath,
+  files,
+  abortSignal,
+}: {
+  sandbox: SandboxSession;
+  homePath: string;
+  files: ReadonlyArray<{ readonly path: string; readonly content: string }>;
+  abortSignal?: AbortSignal;
+}): Promise<void> {
+  const targetPaths = files.map(file => {
+    if (
+      file.path.length === 0 ||
+      posix.isAbsolute(file.path) ||
+      file.path.split('/').some(segment => segment === '..')
+    ) {
+      throw new Error(
+        `ACP authentication file path must be relative without traversal: ${JSON.stringify(file.path)}.`,
+      );
+    }
+    return posix.join(homePath, file.path);
+  });
+
+  for (let index = 0; index < files.length; index++) {
+    await sandbox.writeTextFile({
+      path: targetPaths[index],
+      content: files[index].content,
+      abortSignal,
+    });
+  }
+  if (targetPaths.length === 0) return;
+
+  const result = await sandbox.run({
+    command: `chmod 600 -- ${targetPaths.map(shellQuote).join(' ')}`,
+    abortSignal,
+  });
+  if (result.exitCode !== 0) {
+    throw new Error(
+      `Failed to secure ACP authentication files (exit ${result.exitCode})${result.stderr ? `: ${result.stderr}` : ''}`,
+    );
+  }
 }
 
 function resolveProviderEnvironment({

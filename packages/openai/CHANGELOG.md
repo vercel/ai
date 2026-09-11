@@ -1,5 +1,20 @@
 # @ai-sdk/openai
 
+## 4.0.66
+
+### Patch Changes
+
+- 5ec21a6: fix: reject unsupported batch request types
+- 7469a3b: feat: support image generation requests in batches
+- 0de8886: fix(openai): allow providers to disable web search source includes
+- d5e3024: fix(openai): remove propertyNames from JSON Schema
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
 ## 4.0.65
 
 ### Patch Changes

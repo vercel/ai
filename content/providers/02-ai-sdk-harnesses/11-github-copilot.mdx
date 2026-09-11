@@ -144,6 +144,10 @@ authentication. Set one or more of these environment variables:
 - `AI_GATEWAY_API_KEY`
 - `AI_GATEWAY_BASE_URL`
 
+If no applicable credential environment variable is set, the adapter attempts
+to resolve a native subscription from the host system unless AI Gateway
+authentication is selected.
+
 For direct authentication, GitHub Copilot checks the three GitHub token
 variables in the listed order. Fine-grained personal access tokens require the
 **Copilot Requests** permission; classic personal access tokens are unsupported.

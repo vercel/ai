@@ -8,6 +8,7 @@ import {
   type AgentSession,
   type AgentToolResult,
   type ExtensionFactory,
+  type ProviderConfig,
   type Skill,
   type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
@@ -43,6 +44,7 @@ import {
   resolvePiEnv,
   type PiAuthenticationMode,
 } from './pi-auth';
+import { resolvePiSubscriptionAgentDir } from './pi-subscription';
 import { getPiTerminalError, parseNativeEvent } from './pi-events';
 import { createPiModelResolver } from './pi-model-resolver';
 import { createPiPathMapper } from './pi-paths';
@@ -222,6 +224,7 @@ export interface PiSessionSettings {
   readonly headers?: Readonly<Record<string, string>>;
   readonly thinkingLevel?: PiThinkingLevel;
   readonly mcpServers?: Record<string, unknown>;
+  readonly providers?: Readonly<Record<string, ProviderConfig>>;
   readonly extensionFactories?: ReadonlyArray<ExtensionFactory>;
 }
 
@@ -238,9 +241,9 @@ export interface CreatePiSessionInput {
   readonly abortSignal?: AbortSignal;
   /**
    * Directory holding Pi's global agent config (auth.json, models.json,
-   * settings.json). When omitted, a per-session temp dir is used (the
-   * harness cannot reuse existing CLI logins). Pass the user's agent dir
-   * (e.g. `~/.pi/agent/`) to reuse their CLI auth and model settings.
+   * settings.json). Native auth from this directory is considered after
+   * applicable environment credentials. Model and general settings are only
+   * reused when this option is explicit.
    */
   readonly agentDir?: string;
 }
@@ -428,9 +431,14 @@ export async function createPiSession(
    * outside that record. General Pi settings still use agentDir below.
    */
   const agentDir = input.agentDir ?? hostAgentDir;
+  const nativeAgentDir = resolvePiSubscriptionAgentDir({
+    options: input.settings.auth,
+    env: process.env,
+    agentDir: input.agentDir,
+  });
   const modelRuntime = await createPiModelRuntime({
     auth: input.settings.auth,
-    authPath: path.join(agentDir, 'auth.json'),
+    authPath: path.join(nativeAgentDir ?? hostAgentDir, 'auth.json'),
     modelsPath: path.join(agentDir, 'models.json'),
   });
   const modelRegistry = new ModelRegistry(modelRuntime);
@@ -454,6 +462,14 @@ export async function createPiSession(
     clientApp: input.clientApp,
     headers: input.settings.headers,
   });
+  for (const [provider, config] of Object.entries(
+    input.settings.providers ?? {},
+  )) {
+    modelRegistry.registerProvider(provider, {
+      ...modelRegistry.getRegisteredProviderConfig(provider),
+      ...config,
+    });
+  }
   const resolveModel = createPiModelResolver({
     modelRegistry,
     env: resolverEnv,
@@ -1468,13 +1484,21 @@ export async function createPiSession(
       if (stopped) {
         throw new Error('Pi session has been stopped.');
       }
+      if (piSession == null) {
+        await rebuildPiSession([], true);
+        lastToolsSignature = JSON.stringify([]);
+      }
+      const session = piSession;
+      if (session == null) {
+        throw new Error('Pi session failed to initialize.');
+      }
       /*
        * Pi owns the compaction. We just request it; the resulting
        * `compaction_end` event is observed by the session subscription and
        * translated into a `compaction` stream part. The returned
        * `CompactionResult` is intentionally discarded here.
        */
-      await piSession?.compact(customInstructions);
+      await session.compact(customInstructions);
     },
 
     doDestroy: async () => {

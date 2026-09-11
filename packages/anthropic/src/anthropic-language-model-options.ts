@@ -163,7 +163,7 @@ export const anthropicLanguageModelOptions = z.object({
            */
           blockBinding: z
             .object({
-              prefixMismatchBehavior: z.literal('drop_block'),
+              prefixMismatchBehavior: z.enum(['error', 'drop_block']),
             })
             .optional(),
         }),
@@ -179,7 +179,7 @@ export const anthropicLanguageModelOptions = z.object({
       z.object({
         type: z.never().optional(),
         blockBinding: z.object({
-          prefixMismatchBehavior: z.literal('drop_block'),
+          prefixMismatchBehavior: z.enum(['error', 'drop_block']),
         }),
       }),
     ])

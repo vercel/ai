@@ -1,5 +1,20 @@
 # @ai-sdk/gateway
 
+## 4.0.79
+
+### Patch Changes
+
+- 5ec21a6: fix: reject unsupported batch request types
+- 7469a3b: feat: support image generation requests in batches
+- dbd83a3: chore(provider/gateway): update gateway model settings files
+- 03f4e59: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
 ## 4.0.78
 
 ### Patch Changes

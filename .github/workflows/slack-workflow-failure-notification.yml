@@ -17,14 +17,21 @@ permissions:
 jobs:
   notify-on-failure:
     runs-on: ubuntu-latest
-    # Only branch-filter CI; notify other workflows as before.
+    # Only notify for CI pushes to main or release branches; notify other
+    # workflows as before. For pull requests, head_branch is the source branch
+    # and can also be named main or release-v* in a fork.
     if: >-
       ${{
         github.event.workflow_run.conclusion == 'failure' &&
         (
           github.event.workflow_run.name != 'CI' ||
-          github.event.workflow_run.head_branch == 'main' ||
-          startsWith(github.event.workflow_run.head_branch, 'release-v')
+          (
+            github.event.workflow_run.event == 'push' &&
+            (
+              github.event.workflow_run.head_branch == 'main' ||
+              startsWith(github.event.workflow_run.head_branch, 'release-v')
+            )
+          )
         )
       }}
 
