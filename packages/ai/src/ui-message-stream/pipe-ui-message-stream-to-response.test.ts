@@ -3,9 +3,60 @@ import { createMockServerResponse } from '../test/mock-server-response';
 import type { TextStreamPart } from '../generate-text/stream-text-result';
 import { pipeUIMessageStreamToResponse } from './pipe-ui-message-stream-to-response';
 import { toUIMessageStream } from './to-ui-message-stream';
-import { describe, it, expect } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { UIMessageChunk } from './ui-message-chunks';
 
 describe('pipeUIMessageStreamToResponse', () => {
+  describe('keepAliveMs', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('should write a keep-alive comment before the stream produces its first chunk', async () => {
+      const mockResponse = createMockServerResponse();
+
+      pipeUIMessageStreamToResponse({
+        response: mockResponse,
+        // a stream that never produces anything:
+        stream: new ReadableStream<UIMessageChunk>(),
+        keepAliveMs: 25_000,
+      });
+
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(mockResponse.getDecodedChunks()).toEqual([': keep-alive\n\n']);
+
+      await vi.advanceTimersByTimeAsync(25_000);
+
+      expect(mockResponse.getDecodedChunks()).toEqual([
+        ': keep-alive\n\n',
+        ': keep-alive\n\n',
+      ]);
+    });
+
+    it('should not write keep-alive comments when keepAliveMs is not set', async () => {
+      const mockResponse = createMockServerResponse();
+
+      pipeUIMessageStreamToResponse({
+        response: mockResponse,
+        stream: convertArrayToReadableStream([
+          { type: 'text-delta', id: '1', delta: 'test-data' },
+        ]),
+      });
+
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(mockResponse.getDecodedChunks()).toEqual([
+        'data: {"type":"text-delta","id":"1","delta":"test-data"}\n\n',
+        'data: [DONE]\n\n',
+      ]);
+    });
+  });
+
   it('should write to ServerResponse with correct headers and encoded stream', async () => {
     const mockResponse = createMockServerResponse();
 
