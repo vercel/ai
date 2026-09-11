@@ -2539,7 +2539,7 @@ describe('use-chat', () => {
       });
 
       expect(screen.queryByTestId('message-0')).not.toBeInTheDocument();
-      controller.close();
+      await controller.close().catch(() => {});
     });
   });
 
@@ -2710,6 +2710,31 @@ describe('use-chat', () => {
 
       expect(screen.queryByTestId('message-0')).not.toBeInTheDocument();
     });
+
+    it('should abort the previous stream when the id changes', async () => {
+      const controller = new TestResponseController();
+      const abortStream = vi.spyOn(controller, 'error');
+      server.urls['/api/chat'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      await userEvent.click(screen.getByTestId('do-send'));
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('submitted');
+      });
+
+      await userEvent.click(screen.getByTestId('do-change-id'));
+
+      try {
+        await vi.waitUntil(() => abortStream.mock.calls.length > 0, {
+          timeout: 1000,
+        });
+        expect(abortStream).toHaveBeenCalledOnce();
+      } finally {
+        await controller.close().catch(() => {});
+      }
+    });
   });
 
   describe('undefined id', () => {
@@ -2791,14 +2816,17 @@ describe('use-chat', () => {
   });
 
   describe('chat instance changes', () => {
+    let initialChat: Chat<UIMessage>;
+
     setupTestComponent(
       () => {
-        const [chat, setChat] = React.useState<Chat<UIMessage>>(
-          new Chat({
+        const [chat, setChat] = React.useState<Chat<UIMessage>>(() => {
+          initialChat = new Chat({
             id: 'initial-id',
             generateId: mockId(),
-          }),
-        );
+          });
+          return initialChat;
+        });
 
         const {
           messages,
@@ -2888,6 +2916,14 @@ describe('use-chat', () => {
       await userEvent.click(screen.getByTestId('do-change-chat'));
 
       expect(screen.queryByTestId('message-0')).not.toBeInTheDocument();
+    });
+
+    it('should not stop a caller-managed chat when it is replaced', async () => {
+      const stop = vi.spyOn(initialChat, 'stop');
+
+      await userEvent.click(screen.getByTestId('do-change-chat'));
+
+      expect(stop).not.toHaveBeenCalled();
     });
 
     it('should handle streaming correctly when the id changes', async () => {
