@@ -36,6 +36,7 @@ export { mergeCallbacks } from '../src/util/merge-callbacks';
 export { createTelemetryDispatcher } from '../src/telemetry/create-telemetry-dispatcher';
 export { createRestrictedTelemetryDispatcher } from '../src/generate-text/restricted-telemetry-dispatcher';
 export { DefaultStepResult } from '../src/generate-text/step-result';
+export { DefaultGeneratedAudioFile } from '../src/generate-speech/generated-audio-file';
 export { parseToolCall } from '../src/generate-text/parse-tool-call';
 export {
   collectToolApprovals,
