@@ -41,6 +41,8 @@ export interface HarnessWorkflowStreamResult<OUTPUT = unknown> {
  * the engine is decoupled from the concrete agent generics and easy to mock.
  */
 export interface HarnessWorkflowAgent<OUTPUT = unknown> {
+  /** Whether the agent exposes a parsed output for completed turns. */
+  readonly hasOutput?: boolean;
   createSession(options?: {
     sessionId?: string;
     resumeFrom?: HarnessV1ResumeSessionState;
@@ -73,14 +75,6 @@ export interface RunHarnessAgentOptions<OUTPUT = unknown> {
   readonly agent: HarnessWorkflowAgent<OUTPUT>;
   readonly state: HarnessWorkflowState;
   readonly timeSliceSeconds?: number;
-  /**
-   * Whether to await the agent's parsed and schema-validated output after the
-   * turn finishes and persist it in `finalResult.output`.
-   *
-   * Defaults to `false`. Keep this disabled for agents without an output
-   * specification because their output promise rejects.
-   */
-  readonly includeOutput?: boolean;
   /**
    * When the run finishes or fails, whether to destroy the sandbox. Defaults to
    * `false`: the session is parked or stopped and a fresh resume state is
@@ -322,7 +316,8 @@ export async function runHarnessAgent<OUTPUT = unknown>(
     }
 
     let output: OUTPUT | undefined;
-    if (options.includeOutput) {
+    const shouldCaptureOutput = agent.hasOutput === true;
+    if (shouldCaptureOutput) {
       try {
         const outputPromise = result.output;
         if (outputPromise == null) {
@@ -383,7 +378,7 @@ export async function runHarnessAgent<OUTPUT = unknown>(
         sessionId: state.sessionId,
         finishReason: normalizedFinishReason,
         usage: toUsageSummary(usage),
-        ...(options.includeOutput ? { output } : {}),
+        ...(shouldCaptureOutput ? { output } : {}),
       },
     };
   } finally {

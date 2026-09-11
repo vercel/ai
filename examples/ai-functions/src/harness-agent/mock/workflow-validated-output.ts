@@ -147,7 +147,6 @@ run(async () => {
       prompt: 'Return a score.',
       sessionId: 'score-session',
     }),
-    includeOutput: true,
     writable: new WritableStream(),
   });
 

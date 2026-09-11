@@ -40,8 +40,8 @@ export interface HarnessWorkflowFinalResult<OUTPUT = unknown> {
   readonly finishReason: string;
   readonly usage?: HarnessWorkflowUsageSummary;
   /**
-   * The agent's parsed and schema-validated output when the runner was called
-   * with `includeOutput: true`.
+   * The agent's parsed and schema-validated output when the agent has an output
+   * specification.
    */
   readonly output?: OUTPUT;
 }

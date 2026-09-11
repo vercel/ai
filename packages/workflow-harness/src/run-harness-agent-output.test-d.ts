@@ -30,7 +30,6 @@ test('infers structured output from the HarnessAgent', async () => {
       prompt: 'Score this.',
       sessionId: 'session-1',
     }),
-    includeOutput: true,
     writable: null as unknown as WritableStream,
   });
 

@@ -253,7 +253,6 @@ describe('runHarnessAgentStep output', () => {
         prompt: 'Score this.',
         sessionId: 'session-1',
       }),
-      includeOutput: true,
       writable: writable.writable,
     });
 
@@ -286,7 +285,6 @@ describe('runHarnessAgentStep output', () => {
         prompt: 'Score this.',
         sessionId: 'session-1',
       }),
-      includeOutput: true,
       writable: writable.writable,
     });
 
@@ -296,7 +294,7 @@ describe('runHarnessAgentStep output', () => {
     expect(writable.isClosed()).toBe(false);
   });
 
-  test('does not read output when output capture is omitted', async () => {
+  test('does not read output when the agent has no output capability', async () => {
     const session = fakeSession({});
     const readOutput = vi.fn(() => Promise.reject(new Error('not configured')));
     const result = streamResult({ output: readOutput });
@@ -320,7 +318,7 @@ describe('runHarnessAgentStep output', () => {
     expect(readOutput).not.toHaveBeenCalled();
   });
 
-  test('finishes a text-only HarnessAgent turn when output capture is omitted', async () => {
+  test('finishes a text-only HarnessAgent turn without reading output', async () => {
     const agent = new HarnessAgent({
       harness: createOutputHarness('Hello.'),
       sandbox: createSandboxProvider(),
@@ -353,6 +351,7 @@ describe('runHarnessAgentStep output', () => {
     const readOutput = vi.fn(() => Promise.resolve({ score: 3 }));
     const result = streamResult({ output: readOutput });
     const agent: HarnessWorkflowAgent<ScoreOutput> = {
+      hasOutput: false,
       createSession: vi.fn(async () => session),
       stream: vi.fn(async () => result),
       continueStream: vi.fn(async () => result),
@@ -364,7 +363,6 @@ describe('runHarnessAgentStep output', () => {
         prompt: 'Score this.',
         sessionId: 'session-1',
       }),
-      includeOutput: true,
       writable: collectingWritable().writable,
     });
 
@@ -393,6 +391,7 @@ describe('runHarnessAgentStep output', () => {
     const readOutput = vi.fn(() => Promise.resolve({ score: 3 }));
     const result = streamResult({ output: readOutput });
     const agent: HarnessWorkflowAgent<ScoreOutput> = {
+      hasOutput: true,
       createSession: vi.fn(async () => session),
       stream: vi.fn(async () => result),
       continueStream: vi.fn(async () => result),
@@ -404,7 +403,6 @@ describe('runHarnessAgentStep output', () => {
         prompt: 'Score this.',
         sessionId: 'session-1',
       }),
-      includeOutput: true,
       writable: collectingWritable().writable,
     });
 
@@ -419,6 +417,7 @@ describe('runHarnessAgentStep output', () => {
       output: () => Promise.reject(new Error('output validation failed')),
     });
     const agent: HarnessWorkflowAgent<ScoreOutput> = {
+      hasOutput: true,
       createSession: vi.fn(async () => session),
       stream: vi.fn(async () => result),
       continueStream: vi.fn(async () => result),
@@ -431,7 +430,6 @@ describe('runHarnessAgentStep output', () => {
         prompt: 'Score this.',
         sessionId: 'session-1',
       }),
-      includeOutput: true,
       writable: writable.writable,
     });
 
