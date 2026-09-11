@@ -79,9 +79,11 @@ export type GoogleLanguageModelConfig = {
   supportedUrls?: () => LanguageModelV4['supportedUrls'];
 
   /**
-   * Whether remote files in tool results must be downloaded before conversion.
+   * Settings for downloading remote files in tool results before conversion.
    */
-  downloadToolResultFiles?: boolean;
+  downloadToolResultFiles?: {
+    maxBytes: number;
+  };
 };
 
 export class GoogleLanguageModel implements LanguageModelV4 {
@@ -295,7 +297,10 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     const { usesGemini3Features } = getGoogleModelCapabilities(modelId);
 
     const promptWithDownloadedToolResultFiles = config.downloadToolResultFiles
-      ? await downloadToolResultFiles(prompt, abortSignal)
+      ? await downloadToolResultFiles(prompt, {
+          abortSignal,
+          maxBytes: config.downloadToolResultFiles.maxBytes,
+        })
       : prompt;
 
     const { contents, systemInstruction } = convertToGoogleMessages(

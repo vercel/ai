@@ -14,92 +14,111 @@ import {
  */
 export async function downloadToolResultFiles(
   prompt: LanguageModelV4Prompt,
-  abortSignal: AbortSignal | undefined,
+  {
+    abortSignal,
+    maxBytes,
+  }: {
+    abortSignal: AbortSignal | undefined;
+    maxBytes: number;
+  },
 ): Promise<LanguageModelV4Prompt> {
-  return await Promise.all(
-    prompt.map(async message => {
-      if (message.role === 'assistant') {
-        return {
-          ...message,
-          content: await Promise.all(
-            message.content.map(async part => {
-              if (part.type !== 'tool-result') {
-                return part;
-              }
+  const result: LanguageModelV4Prompt = [];
 
-              return {
+  for (const message of prompt) {
+    if (message.role === 'assistant') {
+      const content: typeof message.content = [];
+
+      for (const part of message.content) {
+        content.push(
+          part.type === 'tool-result'
+            ? {
                 ...part,
-                output: await downloadToolResultOutput(
-                  part.output,
+                output: await downloadToolResultOutput(part.output, {
                   abortSignal,
-                ),
-              };
-            }),
-          ),
-        };
+                  maxBytes,
+                }),
+              }
+            : part,
+        );
       }
 
-      if (message.role === 'tool') {
-        return {
-          ...message,
-          content: await Promise.all(
-            message.content.map(async part => {
-              if (part.type !== 'tool-result') {
-                return part;
-              }
+      result.push({ ...message, content });
+      continue;
+    }
 
-              return {
-                ...part,
-                output: await downloadToolResultOutput(
-                  part.output,
-                  abortSignal,
-                ),
-              };
-            }),
-          ),
-        };
+    if (message.role === 'tool') {
+      const content: typeof message.content = [];
+
+      for (const part of message.content) {
+        if (part.type !== 'tool-result') {
+          content.push(part);
+          continue;
+        }
+
+        content.push({
+          ...part,
+          output: await downloadToolResultOutput(part.output, {
+            abortSignal,
+            maxBytes,
+          }),
+        });
       }
 
-      return message;
-    }),
-  );
+      result.push({ ...message, content });
+      continue;
+    }
+
+    result.push(message);
+  }
+
+  return result;
 }
 
 async function downloadToolResultOutput(
   output: LanguageModelV4ToolResultOutput,
-  abortSignal: AbortSignal | undefined,
+  {
+    abortSignal,
+    maxBytes,
+  }: {
+    abortSignal: AbortSignal | undefined;
+    maxBytes: number;
+  },
 ): Promise<LanguageModelV4ToolResultOutput> {
   if (output.type !== 'content') {
     return output;
   }
 
+  const value: typeof output.value = [];
+
+  for (const part of output.value) {
+    if (part.type !== 'file' || part.data.type !== 'url') {
+      value.push(part);
+      continue;
+    }
+
+    const blob = await downloadBlob(part.data.url.toString(), {
+      abortSignal,
+      maxBytes,
+    });
+    const data = new Uint8Array(await blob.arrayBuffer());
+    const detectedMediaType = detectMediaType({
+      data,
+      topLevelType: 'image',
+    });
+
+    value.push({
+      ...part,
+      data: { type: 'data' as const, data },
+      mediaType:
+        detectedMediaType ??
+        (blob.type && !isFullMediaType(part.mediaType)
+          ? blob.type
+          : part.mediaType),
+    });
+  }
+
   return {
     ...output,
-    value: await Promise.all(
-      output.value.map(async part => {
-        if (part.type !== 'file' || part.data.type !== 'url') {
-          return part;
-        }
-
-        const blob = await downloadBlob(part.data.url.toString(), {
-          abortSignal,
-        });
-        const data = new Uint8Array(await blob.arrayBuffer());
-        const detectedMediaType = detectMediaType({
-          data,
-          topLevelType: 'image',
-        });
-
-        return {
-          ...part,
-          data: { type: 'data' as const, data },
-          mediaType:
-            detectedMediaType ??
-            (blob.type && !isFullMediaType(part.mediaType)
-              ? blob.type
-              : part.mediaType),
-        };
-      }),
-    ),
+    value,
   };
 }
