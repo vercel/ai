@@ -586,4 +586,44 @@ console.log(result.text);`,
     websiteUrl: 'https://nitrosend.com',
     npmUrl: 'https://www.npmjs.com/package/@nitrosend/ai-sdk',
   },
+  {
+    slug: 'pushary',
+    name: 'Pushary',
+    description:
+      'Ask an enrolled customer for confirmation, a choice, or text in the Pushary mobile app and return their response to your agent. Questions collect input; protected actions require a separate enforced approval gate.',
+    packageName: '@pushary/ai-sdk',
+    tags: ['human-in-the-loop', 'customer-input'],
+    apiKeyEnvName: 'PUSHARY_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @pushary/ai-sdk ai zod',
+      npm: 'npm install @pushary/ai-sdk ai zod',
+      yarn: 'yarn add @pushary/ai-sdk ai zod',
+      bun: 'bun add @pushary/ai-sdk ai zod',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createPusharyTools } from '@pushary/ai-sdk';
+
+const apiKey = process.env.PUSHARY_API_KEY;
+const externalId = process.env.PUSHARY_EXTERNAL_ID;
+if (!apiKey || !externalId) {
+  throw new Error('Set a Pushary Partner key and an enrolled customer ID.');
+}
+
+const result = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: createPusharyTools({ apiKey, externalId, timeoutMs: 55000 }),
+  toolChoice: { type: 'tool', toolName: 'askHuman' },
+  stopWhen: isStepCount(1),
+  prompt:
+    'Ask the customer to choose Standard or Express shipping using a select question. Do not place an order.',
+});
+
+console.log(result.toolResults);`,
+    docsUrl:
+      'https://pushary.com/human-in-the-loop-vercel-ai-sdk?utm_source=ai-sdk&utm_medium=integration-directory&utm_campaign=pushary-ai-sdk&utm_content=guide',
+    apiKeyUrl:
+      'https://pushary.com/sign-up?from=agent&plan=partner&utm_source=ai-sdk&utm_medium=integration-directory&utm_campaign=pushary-ai-sdk&utm_content=partner-start',
+    websiteUrl: 'https://pushary.com',
+    npmUrl: 'https://www.npmjs.com/package/@pushary/ai-sdk',
+  },
 ];
