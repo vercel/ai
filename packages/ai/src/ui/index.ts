@@ -18,6 +18,7 @@ export {
 export { type ChatTransport } from './chat-transport';
 export { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';
 export { convertToModelMessages } from './convert-to-model-messages';
+export { convertToUIMessages } from './convert-to-ui-messages';
 export { DefaultChatTransport } from './default-chat-transport';
 export {
   DirectChatTransport,
