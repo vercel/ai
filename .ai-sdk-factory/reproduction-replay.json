@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20265,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20265-openai-namespace-roundtrip.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20265-openai-namespace-roundtrip.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_20265_REPRODUCED: replayed namespaced tool call was rejected because its namespace was missing"
+  }
+}
