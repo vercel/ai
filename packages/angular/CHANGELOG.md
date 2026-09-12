@@ -1,5 +1,12 @@
 # @ai-sdk/angular
 
+## 3.0.99
+
+### Patch Changes
+
+- Updated dependencies [615ac89]
+  - ai@7.0.99
+
 ## 3.0.98
 
 ### Patch Changes
