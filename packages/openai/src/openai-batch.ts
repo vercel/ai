@@ -94,16 +94,12 @@ function assertTextBatchRequests(
   requests: BatchV4StartOptions['requests'],
 ): asserts requests is ReadonlyArray<OpenAIBatchRequest> {
   for (const request of requests) {
-    switch (request.type) {
-      case 'text':
-        break;
-      default: {
-        const _exhaustiveCheck: never = request.type;
-        throw new UnsupportedFunctionalityError({
-          functionality: `batch request type: ${_exhaustiveCheck}`,
-          message: `The OpenAI Batch API does not support batch requests with type "${_exhaustiveCheck}".`,
-        });
-      }
+    const requestType = request.type;
+    if (requestType !== 'text') {
+      throw new UnsupportedFunctionalityError({
+        functionality: `batch request type: ${requestType}`,
+        message: `The OpenAI Batch API does not support batch requests with type "${requestType}".`,
+      });
     }
   }
 }

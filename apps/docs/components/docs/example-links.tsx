@@ -13,6 +13,8 @@ export const ExampleLinks = ({
         className="flex flex-row items-center gap-2 text-gray-900 text-sm hover:text-gray-1000"
         href={resolveHref(example.link)}
         key={`${example.link}-${example.title}-${index}`}
+        // Fully prefetch static docs pages so navigation never shows a shell.
+        prefetch
       >
         <span aria-hidden>↗</span>
         {example.title}

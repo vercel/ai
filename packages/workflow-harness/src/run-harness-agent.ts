@@ -25,17 +25,24 @@ export interface HarnessWorkflowChunk {
  * The subset of a harness `stream()` / `continueStream()` result the runner uses.
  * `StreamTextResult` satisfies it structurally.
  */
-export interface HarnessWorkflowStreamResult {
+export interface HarnessWorkflowStreamResult<OUTPUT = unknown> {
   toUIMessageStream(): ReadableStream<HarnessWorkflowChunk>;
   readonly finishReason: PromiseLike<unknown>;
   readonly totalUsage: PromiseLike<unknown>;
+  /**
+   * Parsed and schema-validated final output. Optional because the workflow
+   * runner also accepts structural agents that do not expose output.
+   */
+  readonly output?: PromiseLike<OUTPUT>;
 }
 
 /**
  * The subset of `HarnessAgent` the runner drives. Declared structurally so
  * the engine is decoupled from the concrete agent generics and easy to mock.
  */
-export interface HarnessWorkflowAgent {
+export interface HarnessWorkflowAgent<OUTPUT = unknown> {
+  /** Whether the agent exposes a parsed output for completed turns. */
+  readonly hasOutput?: boolean;
   createSession(options?: {
     sessionId?: string;
     resumeFrom?: HarnessV1ResumeSessionState;
@@ -58,22 +65,22 @@ export interface HarnessWorkflowAgent {
           prompt?: undefined;
           messages: HarnessWorkflowModelMessage[];
         },
-  ): Promise<HarnessWorkflowStreamResult>;
+  ): Promise<HarnessWorkflowStreamResult<OUTPUT>>;
   continueStream(options: {
     session: HarnessAgentSession;
-  }): Promise<HarnessWorkflowStreamResult>;
+  }): Promise<HarnessWorkflowStreamResult<OUTPUT>>;
 }
 
-export interface RunHarnessAgentOptions {
-  readonly agent: HarnessWorkflowAgent;
+export interface RunHarnessAgentOptions<OUTPUT = unknown> {
+  readonly agent: HarnessWorkflowAgent<OUTPUT>;
   readonly state: HarnessWorkflowState;
   readonly timeSliceSeconds?: number;
   /**
-   * When the turn finishes, whether to destroy the sandbox. Defaults to `false`:
-   * the session is parked or stopped and a fresh resume state is returned in
-   * `resumeFrom`, so the next user turn reattaches to the same conversation
-   * (multi-turn chat). Set `true` for a one-shot run that should release the
-   * sandbox when the turn completes.
+   * When the run finishes or fails, whether to destroy the sandbox. Defaults to
+   * `false`: the session is parked or stopped and a fresh resume state is
+   * returned in `resumeFrom`, so the next user turn reattaches to the same
+   * conversation (multi-turn chat). Set `true` for a one-shot run that should
+   * release the sandbox when the run ends.
    */
   readonly destroyOnFinish?: boolean;
   /**
@@ -96,9 +103,9 @@ export interface RunHarnessAgentOptions {
  * the step's return value — the Workflow DevKit persists it as the durable
  * checkpoint between workflow steps.
  */
-export async function runHarnessAgent(
-  options: RunHarnessAgentOptions,
-): Promise<HarnessWorkflowState> {
+export async function runHarnessAgent<OUTPUT = unknown>(
+  options: RunHarnessAgentOptions<OUTPUT>,
+): Promise<HarnessWorkflowState<OUTPUT>> {
   const { agent, state } = options;
   const destroyOnFinish = options.destroyOnFinish ?? false;
 
@@ -115,7 +122,7 @@ export async function runHarnessAgent(
           })
         : await agent.createSession({ sessionId: state.sessionId });
 
-  let result: HarnessWorkflowStreamResult;
+  let result: HarnessWorkflowStreamResult<OUTPUT>;
   try {
     result =
       state.messages != null
@@ -133,15 +140,15 @@ export async function runHarnessAgent(
                   : [state.prompt],
             });
   } catch (err) {
-    await destroyQuietly(session);
+    const failedSessionState = await endFailedSession({
+      session,
+      destroyOnFinish,
+    });
     return {
       sessionId: state.sessionId,
       prompt: state.prompt,
       status: 'failed',
-      ...(state.resumeFrom != null ? { resumeFrom: state.resumeFrom } : {}),
-      ...(state.continueFrom != null
-        ? { continueFrom: state.continueFrom }
-        : {}),
+      ...failedSessionState,
       error: errorMessage(err),
     };
   }
@@ -224,16 +231,22 @@ export async function runHarnessAgent(
      * errors during suspension were already filtered above.
      */
     if (sawError) {
-      if (suspendPromise != null) await suspendPromise.catch(() => {});
-      await destroyQuietly(session);
+      const continueFrom =
+        suspendPromise == null
+          ? undefined
+          : destroyOnFinish
+            ? await suspendPromise.catch(() => undefined)
+            : await suspendPromise;
+      const failedSessionState = await endFailedSession({
+        session,
+        destroyOnFinish,
+        continueFrom,
+      });
       return {
         sessionId: state.sessionId,
         prompt: state.prompt,
         status: 'failed',
-        ...(state.resumeFrom != null ? { resumeFrom: state.resumeFrom } : {}),
-        ...(state.continueFrom != null
-          ? { continueFrom: state.continueFrom }
-          : {}),
+        ...failedSessionState,
         error: 'harness turn emitted an error',
       };
     }
@@ -302,6 +315,32 @@ export async function runHarnessAgent(
       };
     }
 
+    let output: OUTPUT | undefined;
+    const shouldCaptureOutput = agent.hasOutput === true;
+    if (shouldCaptureOutput) {
+      try {
+        const outputPromise = result.output;
+        if (outputPromise == null) {
+          throw new Error(
+            'Harness agent result does not expose structured output.',
+          );
+        }
+        output = await Promise.resolve(outputPromise);
+      } catch (err) {
+        const failedSessionState = await endFailedSession({
+          session,
+          destroyOnFinish,
+        });
+        return {
+          sessionId: state.sessionId,
+          prompt: state.prompt,
+          status: 'failed',
+          ...failedSessionState,
+          error: errorMessage(err),
+        };
+      }
+    }
+
     // The turn finished on its own: write the single terminal `finish` for the
     // UI message, then CLOSE the writable. Closing matters: the workflow output
     // stream (`getWritable()`) is what the run's `readable` is fed from, and the
@@ -339,6 +378,7 @@ export async function runHarnessAgent(
         sessionId: state.sessionId,
         finishReason: normalizedFinishReason,
         usage: toUsageSummary(usage),
+        ...(shouldCaptureOutput ? { output } : {}),
       },
     };
   } finally {
@@ -618,6 +658,29 @@ async function resolveWorkflowWritable(): Promise<
 
 async function destroyQuietly(session: HarnessAgentSession): Promise<void> {
   await session.destroy().catch(() => {});
+}
+
+async function endFailedSession(options: {
+  session: HarnessAgentSession;
+  destroyOnFinish: boolean;
+  continueFrom?: HarnessV1ContinueTurnState;
+}): Promise<{
+  resumeFrom?: HarnessV1ResumeSessionState;
+  continueFrom?: HarnessV1ContinueTurnState;
+}> {
+  if (options.destroyOnFinish) {
+    await destroyQuietly(options.session);
+    return {};
+  }
+
+  if (options.continueFrom != null) {
+    return {
+      continueFrom: options.continueFrom,
+      resumeFrom: toResumeState({ continueFrom: options.continueFrom }),
+    };
+  }
+
+  return { resumeFrom: await options.session.detach() };
 }
 
 function errorMessage(err: unknown): string {

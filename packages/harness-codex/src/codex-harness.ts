@@ -52,12 +52,14 @@ import {
 } from './codex-bootstrap';
 import {
   CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES,
-  createCodexRequestTransformations,
   DEFAULT_OPENAI_BASE_URL,
   resolveCodexAuthenticationMode,
-  resolveCodexEnv,
   type CodexAuthenticationMode,
 } from './codex-auth';
+import {
+  createCodexSubscriptionRequestTransformations,
+  resolveCodexAuthentication,
+} from './codex-subscription';
 import {
   outboundMessageSchema,
   type InboundMessage,
@@ -262,7 +264,12 @@ export function createCodex(
           : undefined;
       const coords = resumeData?.bridge;
       const authenticationMode = resolveCodexAuthenticationMode(settings.auth);
-      const resolvedAuthEnvironment = resolveCodexEnv(settings.auth);
+      const resolvedAuthentication = await resolveCodexAuthentication({
+        auth: settings.auth,
+        authCredentialsStoreMode:
+          settings.codexConfig?.cli_auth_credentials_store,
+      });
+      const resolvedAuthEnvironment = resolvedAuthentication.environment;
       let sandboxAuthEnvironment = resolvedAuthEnvironment;
       let sandboxCredentialEnvironment: Record<string, string> | undefined;
       let credentialsBrokered = false;
@@ -282,11 +289,13 @@ export function createCodex(
           ...resolvedAuthEnvironment,
           ...sandboxCredentialEnvironment,
         };
-        const requestTransformations = createCodexRequestTransformations({
-          env: resolvedAuthEnvironment,
-          sandboxEnv: sandboxAuthEnvironment,
-          auth: authenticationMode,
-        });
+        const requestTransformations =
+          createCodexSubscriptionRequestTransformations({
+            env: resolvedAuthEnvironment,
+            sandboxEnv: sandboxAuthEnvironment,
+            auth: authenticationMode,
+            requestHeaders: resolvedAuthentication.requestHeaders,
+          });
         if (requestTransformations.length > 0) {
           await sandboxSession.addRequestTransformations(
             requestTransformations,

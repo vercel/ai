@@ -166,16 +166,12 @@ function assertTextBatchRequests(
   requests: BatchV4StartOptions['requests'],
 ): asserts requests is ReadonlyArray<AnthropicBatchRequest> {
   for (const request of requests) {
-    switch (request.type) {
-      case 'text':
-        break;
-      default: {
-        const _exhaustiveCheck: never = request.type;
-        throw new UnsupportedFunctionalityError({
-          functionality: `batch request type: ${_exhaustiveCheck}`,
-          message: `The Anthropic Message Batches API does not support batch requests with type "${_exhaustiveCheck}".`,
-        });
-      }
+    const requestType = request.type;
+    if (requestType !== 'text') {
+      throw new UnsupportedFunctionalityError({
+        functionality: `batch request type: ${requestType}`,
+        message: `The Anthropic Message Batches API does not support batch requests with type "${requestType}".`,
+      });
     }
   }
 }
@@ -1099,6 +1095,9 @@ function convertAnthropicMessageMetadata(response: AnthropicResponse) {
     usage: response.usage as JSONObject,
     stopSequence: response.stop_sequence ?? null,
     ...(stopDetails != null ? { stopDetails } : {}),
+    ...(response.input_transformations != null
+      ? { inputTransformations: response.input_transformations }
+      : {}),
     iterations: response.usage.iterations
       ? response.usage.iterations.map(
           iteration =>

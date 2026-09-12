@@ -15,6 +15,7 @@ import {
   type Context,
   type Experimental_SandboxSession as SandboxSession,
   type ModelMessage,
+  type SystemModelMessage,
   type ToolApprovalResponse,
   type ToolResultPart,
   type ToolSet,
@@ -278,6 +279,11 @@ export class HarnessAgent<
   /** Identifier of the harness backing this agent. */
   get harnessId(): string {
     return this.settings.harness.harnessId;
+  }
+
+  /** Whether this agent parses completed turns with its configured output. */
+  get hasOutput(): boolean {
+    return this.settings.output != null;
   }
 
   /**
@@ -989,7 +995,7 @@ export class HarnessAgent<
   private _prepareTurnSettings(options: {
     model?: string;
     skills?: ReadonlyArray<HarnessAgentSkill>;
-    instructions?: string;
+    instructions?: string | SystemModelMessage;
     tools?: TUserTools;
   }): PreparedHarnessAgentTurnSettings<THarness, TUserTools> {
     const userTools = options.tools ?? ({} as TUserTools);
@@ -1011,7 +1017,10 @@ export class HarnessAgent<
     return {
       model: options.model,
       skills: options.skills ?? [],
-      instructions: options.instructions,
+      instructions:
+        typeof options.instructions === 'string'
+          ? options.instructions
+          : options.instructions?.content,
       tools,
       activeTools: toolFiltering.activeUserTools,
       toolSpecs: this._toToolSpecs(toolFiltering.activeUserTools),

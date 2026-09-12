@@ -1,5 +1,28 @@
 # @ai-sdk/google-vertex
 
+## 5.0.81
+
+### Patch Changes
+
+- f88c7dc: fix(vertex): download tool result file URLs
+- Updated dependencies [f88c7dc]
+  - @ai-sdk/google@4.0.69
+
+## 5.0.80
+
+### Patch Changes
+
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [e4292e7]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/anthropic@4.0.53
+  - @ai-sdk/google@4.0.68
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+  - @ai-sdk/openai-compatible@3.0.48
+
 ## 5.0.79
 
 ### Patch Changes
