@@ -12,6 +12,7 @@ import { useMemo, useRef, useState } from 'react';
 const model = openai.experimental_live('gpt-live-1');
 
 export default function LivePage() {
+  const [transport, setTransport] = useState('websocket');
   const [endpoint, setEndpoint] = useState('ws://localhost:4318/live');
   const [mode, setMode] = useState('responses');
   const [instructions, setInstructions] = useState(
@@ -67,7 +68,10 @@ export default function LivePage() {
   const rt = useRealtime({
     model,
     autoContinueTools: true,
-    api: { websocket: endpoint },
+    api:
+      transport === 'websocket'
+        ? { websocket: endpoint }
+        : { session: '/api/realtime-live' },
     sessionConfig,
     maxEvents: 200,
     onError: event => setError(event.message),
@@ -122,8 +126,23 @@ export default function LivePage() {
   return (
     <main className="mx-auto max-w-4xl p-8 space-y-5">
       <h1 className="text-2xl font-semibold">AI SDK Live — useRealtime</h1>
-      <p>Connect through an application-owned WebSocket relay.</p>
+      <p>
+        WebSocket relay by default; optional browser-direct WebRTC with HTTP
+        session setup.
+      </p>
       <div className="flex gap-3 flex-wrap">
+        <label>
+          Transport{' '}
+          <select
+            id="transport"
+            value={transport}
+            disabled={active}
+            onChange={event => setTransport(event.target.value)}
+          >
+            <option value="websocket">WebSocket (relay)</option>
+            <option value="webrtc">WebRTC (direct OpenAI)</option>
+          </select>
+        </label>
         <label>
           Delegation{' '}
           <select
@@ -137,15 +156,17 @@ export default function LivePage() {
           </select>
         </label>
       </div>
-      <label>
-        Relay URL{' '}
-        <input
-          id="endpoint"
-          value={endpoint}
-          disabled={active}
-          onChange={event => setEndpoint(event.target.value)}
-        />
-      </label>
+      {transport === 'websocket' && (
+        <label>
+          Relay URL{' '}
+          <input
+            id="endpoint"
+            value={endpoint}
+            disabled={active}
+            onChange={event => setEndpoint(event.target.value)}
+          />
+        </label>
+      )}
       <label>
         Instructions{' '}
         <textarea
@@ -354,6 +375,10 @@ export default function LivePage() {
           >
             Clear backend overrides
           </button>
+          <p>
+            The WebRTC example policy deliberately denies this update command;
+            WebSocket sessions can use it.
+          </p>
           <input
             id="backend-input"
             value={backendInput}

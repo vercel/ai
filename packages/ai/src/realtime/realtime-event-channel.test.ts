@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { deferred, flushEvents, liveModel } from './__fixtures__/fake-realtime';
+import { deferred, flushEvents, liveModel } from './__fixtures__/fake-webrtc';
 import { RealtimeEventChannel } from './realtime-event-channel';
 
 describe('RealtimeEventChannel', () => {

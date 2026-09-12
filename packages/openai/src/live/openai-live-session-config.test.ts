@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
+import { describe, expect, it, vi } from 'vitest';
 import { createOpenAI } from '../index';
 import {
   openaiRealtimeModelLiveOptionsSchema,
@@ -109,6 +110,7 @@ describe('Live startup and update options', () => {
   );
 
   it.each([
+    { client: { dataChannel: {} } },
     { store: false },
     { input: [] },
     { voice: { id: 'voice' } },
@@ -164,4 +166,132 @@ describe('Live startup and update options', () => {
       }),
     ).toThrow();
   });
+});
+
+describe('Live WebRTC client permissions', () => {
+  it.each([
+    [undefined, undefined],
+    [{ dataChannel: {} }, { data_channel: {} }],
+    [
+      { dataChannel: { allowedClientEvents: [] } },
+      { data_channel: { allowed_client_events: [] } },
+    ],
+    [
+      { dataChannel: { allowedServerEvents: [] } },
+      { data_channel: { allowed_server_events: [] } },
+    ],
+    [
+      {
+        dataChannel: { allowedClientEvents: 'all', allowedServerEvents: 'all' },
+      },
+      {
+        data_channel: {
+          allowed_client_events: 'all',
+          allowed_server_events: 'all',
+        },
+      },
+    ],
+    [
+      { dataChannel: { allowedClientEvents: [], allowedServerEvents: [] } },
+      {
+        data_channel: { allowed_client_events: [], allowed_server_events: [] },
+      },
+    ],
+    [
+      {
+        dataChannel: {
+          allowedClientEvents: [
+            'session.input_audio.mute',
+            'future.client.event',
+          ],
+          allowedServerEvents: [
+            { type: 'session.output_transcript.delta' },
+            {
+              type: 'response.event',
+              responseEvent: 'response.output_text.delta',
+            },
+          ],
+        },
+      },
+      {
+        data_channel: {
+          allowed_client_events: [
+            'session.input_audio.mute',
+            'future.client.event',
+          ],
+          allowed_server_events: [
+            { type: 'session.output_transcript.delta' },
+            {
+              type: 'response.event',
+              response_event: 'response.output_text.delta',
+            },
+          ],
+        },
+      },
+    ],
+  ])('preserves the exact frontend policy %j', async (client, expected) => {
+    const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(
+      Response.json({
+        session: { id: 'session-1' },
+        transport: { type: 'webrtc', sdp: 'answer' },
+      }),
+    );
+    await createOpenAI({ apiKey: 'test-key', fetch })
+      .experimental_live('gpt-live-1')
+      .doCreateWebRTCSession({
+        sdp: 'offer',
+        sessionConfig: {
+          providerOptions: { openai: client === undefined ? {} : { client } },
+        },
+      });
+    const session = JSON.parse(fetch.mock.calls[0][1]?.body as string).session;
+    if (expected === undefined) expect(session).not.toHaveProperty('client');
+    else expect(session.client).toEqual(expected);
+  });
+
+  it.each([
+    ['session.started'],
+    [{ type: 'response.event' }],
+    [{ type: 'session.started', responseEvent: 'response.created' }],
+    [{ type: 'response.event', responseEvent: null }],
+    [{ type: 'response.event', response_event: 'response.created' }],
+  ])(
+    'rejects invalid server selectors before sending a request: %j',
+    async selector => {
+      const fetch = vi.fn<typeof globalThis.fetch>();
+      await expect(
+        createOpenAI({ apiKey: 'test-key', fetch })
+          .experimental_live('gpt-live-1')
+          .doCreateWebRTCSession({
+            sdp: 'offer',
+            sessionConfig: {
+              providerOptions: {
+                openai: {
+                  client: { dataChannel: { allowedServerEvents: [selector] } },
+                },
+              },
+            },
+          }),
+      ).rejects.toThrow();
+      expect(fetch).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([{}, { allowedClientEvents: 'all' }, { allowedClientEvents: [] }])(
+    'rejects permissions on primary WebSocket startup and updates: %j',
+    dataChannel => {
+      const config = {
+        providerOptions: { openai: { client: { dataChannel } } },
+      };
+      expect(() => model.buildSessionConfig(config)).toThrow(
+        UnsupportedFunctionalityError,
+      );
+      expect(() =>
+        model.serializeClientEvent({ type: 'session-start', config }),
+      ).toThrow(UnsupportedFunctionalityError);
+      expect(() =>
+        model.serializeClientEvent({ type: 'session-update', config }),
+      ).toThrow();
+    },
+  );
 });

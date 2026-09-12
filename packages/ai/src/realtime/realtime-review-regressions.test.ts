@@ -6,9 +6,10 @@ import {
 import {
   deferred,
   fakeStream,
+  FakePeerConnection,
   flushEvents,
   liveModel,
-} from './__fixtures__/fake-realtime';
+} from './__fixtures__/fake-webrtc';
 import {
   FakeAudioContext,
   FakeWebSocket,
@@ -30,7 +31,7 @@ describe('realtime ownership, command turnover, and independent lifecycle semant
   const create = (options: Partial<RealtimeSessionOptions> = {}) => {
     const session = new Session({
       model: liveModel(),
-      api: { websocket: 'wss://relay.test' },
+      api: { session: '/session' },
       ...options,
     });
     sessions.push(session);
@@ -42,8 +43,10 @@ describe('realtime ownership, command turnover, and independent lifecycle semant
     getWebSocketConfig: ({ url }: { url: string }) => ({ url }),
   });
   const socket = () => FakeWebSocket.instances.at(-1)!;
+  const peer = () => FakePeerConnection.instances.at(-1)!;
   const emit = async (event: RealtimeServerEvent) => {
-    socket().emit(event);
+    if (FakeWebSocket.instances.length > 0) socket().emit(event);
+    else peer().dc.emit(event);
     await flushEvents();
   };
   const startWebSocket = async (
@@ -491,7 +494,7 @@ describe('realtime ownership, command turnover, and independent lifecycle semant
         capabilities: { ...model.capabilities!, conversation: 'turn-based' },
       },
     });
-    await startWebSocket(session);
+    await session.connect({ capture: false });
     session.sendTextMessage('backend input');
     await emit({
       type: 'text-delta',
@@ -500,7 +503,7 @@ describe('realtime ownership, command turnover, and independent lifecycle semant
       delta: 'Frontend output',
       raw: {},
     });
-    expect(socket().sent).toEqual(
+    expect(peer().dc.sent).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ type: 'backend-input-create' }),
       ]),
@@ -509,5 +512,107 @@ describe('realtime ownership, command turnover, and independent lifecycle semant
       type: 'text',
       text: 'Frontend output',
     });
+  });
+
+  it.each(['before-close', 'during-close'] as const)(
+    'drains a queued terminal RTC Blob %s without inventing a terminal failure',
+    async timing => {
+      const onError = vi.fn();
+      const onEvent = vi.fn();
+      const session = create({ onError, onEvent });
+      await session.connect();
+      const terminal = deferred<string>();
+      const blob = new Blob();
+      vi.spyOn(blob, 'text').mockReturnValue(terminal.promise);
+      const closed = timing === 'during-close' ? session.close() : undefined;
+      peer().dc.onmessage?.({ data: blob });
+      peer().dc.close();
+      expect(session.snapshot.status).toBe('closing');
+      expect(session.snapshot.isCapturing).toBe(false);
+      expect(onError).not.toHaveBeenCalled();
+      terminal.resolve(
+        JSON.stringify({
+          type: 'session-closed',
+          usage: { seconds: 9 },
+          reason: 'requested',
+          raw: {},
+        }),
+      );
+      await flushEvents();
+      await closed;
+      expect(session.snapshot.status).toBe('disconnected');
+      expect(session.snapshot.session).toMatchObject({
+        finalization: 'confirmed',
+        usage: { seconds: 9 },
+      });
+      expect(onError).not.toHaveBeenCalled();
+      expect(
+        onEvent.mock.calls.filter(([event]) => event.type === 'session-closed'),
+      ).toHaveLength(1);
+      expect(browser.track.stop).toHaveBeenCalledOnce();
+      expect(peer().close).toHaveBeenCalledOnce();
+    },
+  );
+
+  it.each(['empty', 'blocked'] as const)(
+    'reports an unexpected RTC close once after %s drain, even when onError throws',
+    async drain => {
+      vi.useFakeTimers();
+      const onError = vi.fn((_error: Error) => {
+        throw new Error('callback error');
+      });
+      const session = create({ onError });
+      await session.connect();
+      const terminal = deferred<string>();
+      if (drain === 'blocked') {
+        const blob = new Blob();
+        vi.spyOn(blob, 'text').mockReturnValue(terminal.promise);
+        peer().dc.onmessage?.({ data: blob });
+      }
+      peer().dc.close();
+      await flushEvents();
+      if (drain === 'blocked') {
+        await vi.advanceTimersByTimeAsync(999);
+        expect(onError).not.toHaveBeenCalled();
+        await vi.advanceTimersByTimeAsync(1);
+      }
+      expect(onError).toHaveBeenCalledExactlyOnceWith(
+        new Error('Realtime data channel closed'),
+      );
+      expect(session.snapshot.status).toBe('error');
+      expect(session.snapshot.session?.finalization).toBe('unconfirmed');
+      expect(peer().close).toHaveBeenCalledOnce();
+      terminal.resolve(
+        JSON.stringify({
+          type: 'session-closed',
+          usage: { seconds: 99 },
+          reason: 'requested',
+          raw: {},
+        }),
+      );
+      await vi.advanceTimersByTimeAsync(20_000);
+      expect(session.snapshot.session?.finalization).toBe('unconfirmed');
+      expect(onError).toHaveBeenCalledOnce();
+    },
+  );
+
+  it('preserves actual failed-ICE cause even if a queued terminal event confirms usage', async () => {
+    const onError = vi.fn();
+    const session = create({ onError });
+    await session.connect();
+    peer().dc.emit({
+      type: 'session-closed',
+      usage: { seconds: 9 },
+      reason: 'requested',
+      raw: {},
+    });
+    peer().iceConnectionState = 'failed';
+    peer().oniceconnectionstatechange?.();
+    await flushEvents();
+    expect(session.snapshot.session?.finalization).toBe('confirmed');
+    expect(session.snapshot.status).toBe('error');
+    expect(onError).toHaveBeenCalledExactlyOnceWith(
+      new Error('Realtime ICE connection failed'),
+    );
   });
 });

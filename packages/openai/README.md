@@ -49,11 +49,12 @@ const { text } = await generateText({
 `Experimental_RealtimeModelV4` specification with continuous conversation semantics.
 This provider supplies transport configuration and event conversion for realtime
 runtimes. The primary low-level path below uses an application-owned server
-WebSocket, audio capture/playback, and delegated work.
+WebSocket, audio capture/playback, and delegated work. WebRTC is optional.
 
 #### React sessions
 
-`experimental_useRealtime` supports Live through a WebSocket relay. Keep the model and
+`experimental_useRealtime` supports Live through a WebSocket relay, or optionally
+through a server endpoint that exchanges a WebRTC SDP offer. Keep the model and
 session configuration stable (module scope or `useMemo`); replacing either object
 replaces the hook's session.
 
@@ -89,7 +90,10 @@ The hook requests microphone access, sends startup configuration, and starts pac
 PCM16 capture only after `session-started`. Browser WebSocket capture/playback supports
 PCM16; use the low-level provider for application-owned G.711 streams.
 
-Existing realtime models continue using `api: { token: ... }`.
+For optional WebRTC, use `api: { session: '/api/live' }`. That endpoint receives
+`{ sdp, sessionConfig }` and returns `{ sessionId, sdp }` from
+`model.doCreateWebRTCSession()`. It handles HTTP setup only; browser media goes
+directly to OpenAI. Existing realtime models continue using `api: { token: ... }`.
 
 Wait for `status === 'connected'` before sending commands. `connect({ stream })`
 accepts a caller-owned media stream; the SDK releases but does not stop those tracks.
@@ -173,14 +177,32 @@ for inspecting individual events, but use `createServerEventParser()` to normali
 granular backend function calls that lack their own response ID. Both public parser
 methods always return arrays, including for a single normalized event.
 
-Keep API keys and the headers from `getServerWebSocketConfig()` on the server.
-Live implements server WebSocket connections; it does not expose `doCreateClientSecret` or
+For WebRTC, exchange an offer on your server and return the answer to the browser:
+
+```ts
+const { sessionId, sdp } = await model.doCreateWebRTCSession({
+  sdp: offerSdp,
+  sessionConfig,
+  abortSignal,
+});
+```
+
+The adapter POSTs JSON `{ session, transport: { type: 'webrtc', sdp } }` and
+validates the returned session ID and SDP answer. WebRTC negotiates audio formats:
+explicit input/output formats are rejected and `audio.format` is omitted.
+Create the browser data channel with `model.getWebRTCConfig().dataChannelLabel`
+(`oai-events`) before creating the SDP offer. Wait for `session-started` on that
+channel before sending commands; send audio through the negotiated media track.
+Do not send `session-start` on the data channel. Keep API keys and the headers
+from `getServerWebSocketConfig()` on the server. Live implements server WebSocket
+and WebRTC connections; it does not expose `doCreateClientSecret` or
 `getWebSocketConfig`. Those methods are optional in the shared specification;
 generic callers must check for them. Existing concrete realtime providers retain
 their token methods.
 
-Live declares `capabilities.connections: ['server-websocket']`,
-`startup: 'session-start'`, and `finalization: 'session-close'`. When these
+Live declares `capabilities.connections: ['server-websocket', 'webrtc']`,
+`startup: 'session-start'`, and `finalization: 'session-close'`. WebRTC SDP exchange
+starts the session, so no startup command is sent over its data channel. When these
 optional capabilities are omitted, legacy defaults are client-secret WebSocket,
 `session-update` startup, and transport-close finalization; continuous conversation
 semantics alone do not determine them.
@@ -210,6 +232,15 @@ camelCase fields. Only the provider converts these to OpenAI wire names:
   `{ type: 'output_text', text }` or `{ type: 'text', text }`.
 - `store`: startup storage setting. `voice: { id }`: an authorized custom voice,
   mutually exclusive with the normalized string `sessionConfig.voice`.
+- `client.dataChannel`: WebRTC-startup-only permissions. `allowedClientEvents`
+  accepts `'all'` or an array of native client event names. `allowedServerEvents`
+  accepts `'all'` or an array of `{ type }` selectors; a `response.event` selector
+  requires `responseEvent` with the nested Responses event name. `responseEvent`
+  is forbidden on other selectors. For example:
+  `{ type: 'response.event', responseEvent: 'response.output_text.delta' }`.
+  Omission retains OpenAI's allow-all default, `'all'` explicitly allows all, and
+  `[]` allows none. Permissions must be set by the application server. They are
+  rejected for WebSocket startup and all session updates.
 
 Use `session-update` only for `providerOptions.openai.delegation.responses`
 changes, typed with `Experimental_OpenAIRealtimeModelLiveUpdateOptions`. The backend

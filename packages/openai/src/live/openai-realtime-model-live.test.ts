@@ -1,10 +1,11 @@
 import {
+  APICallError,
   InvalidArgumentError,
   UnsupportedFunctionalityError,
   type Experimental_RealtimeModelV4 as RealtimeModelV4,
   type Experimental_RealtimeModelV4ClientEvent as RealtimeModelV4ClientEvent,
 } from '@ai-sdk/provider';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   createOpenAI,
   type Experimental_OpenAIRealtimeModelLiveOptions as OpenAIRealtimeModelLiveOptions,
@@ -26,17 +27,20 @@ describe('OpenAIRealtimeModelLive', () => {
     'gpt-live-1',
   );
 
-  it('implements the existing v4 spec and declares continuous server WebSocket support', () => {
+  it('implements the existing v4 spec and declares continuous transports', () => {
     const realtime: RealtimeModelV4 = model;
     expect(realtime.specificationVersion).toBe('v4');
     expect(realtime.provider).toBe('openai.live');
     expect(realtime.modelId).toBe('gpt-live-1');
     expect(realtime.capabilities).toEqual({
       conversation: 'continuous',
-      transports: ['websocket'],
-      connections: ['server-websocket'],
+      transports: ['websocket', 'webrtc'],
+      connections: ['server-websocket', 'webrtc'],
       startup: 'session-start',
       finalization: 'session-close',
+    });
+    expect(realtime.getWebRTCConfig?.()).toEqual({
+      dataChannelLabel: 'oai-events',
     });
     expect(createOpenAI().experimental_realtime('gpt-realtime').provider).toBe(
       'openai.realtime',
@@ -482,5 +486,141 @@ describe('OpenAIRealtimeModelLive', () => {
     expect(model).not.toHaveProperty('doCreateClientSecret');
     expect(model).not.toHaveProperty('getWebSocketConfig');
     expect(createOpenAI()).not.toHaveProperty('live');
+  });
+
+  describe('doCreateWebRTCSession', () => {
+    const success = {
+      session: { id: 'session-1' },
+      transport: { type: 'webrtc', sdp: 'answer-sdp' },
+    };
+
+    it('exchanges JSON SDP, omits audio.format, and forwards headers and abort signal', async () => {
+      const fetch = vi
+        .fn<typeof globalThis.fetch>()
+        .mockResolvedValue(Response.json(success));
+      const controller = new AbortController();
+      const model = createOpenAI({
+        apiKey: 'test-key',
+        baseURL: 'https://example.com/proxy/v1',
+        organization: 'org-test',
+        project: 'proj-test',
+        headers: { 'X-Custom': 'value' },
+        fetch,
+      }).experimental_live('gpt-live-1');
+      await expect(
+        model.doCreateWebRTCSession({
+          sdp: 'offer-sdp',
+          sessionConfig: {
+            instructions: 'Hello',
+            providerOptions: { openai: options },
+          },
+          abortSignal: controller.signal,
+        }),
+      ).resolves.toEqual({ sessionId: 'session-1', sdp: 'answer-sdp' });
+      const [url, init] = fetch.mock.calls[0];
+      expect(url).toBe('https://example.com/proxy/v1/live/sessions');
+      expect(init?.method).toBe('POST');
+      expect(init?.signal).toBe(controller.signal);
+      expect(init?.headers).toMatchObject({
+        'content-type': 'application/json',
+        authorization: 'Bearer test-key',
+        'openai-organization': 'org-test',
+        'openai-project': 'proj-test',
+        'x-custom': 'value',
+      });
+      expect(JSON.parse(init?.body as string)).toEqual({
+        session: {
+          model: 'gpt-live-1',
+          instructions: 'Hello',
+          audio: { output: { voice: 'marin' } },
+          delegation: {
+            type: 'responses',
+            responses: {
+              model: 'gpt-5-mini',
+              tools: [{ type: 'web_search' }],
+              tool_choice: 'auto',
+            },
+          },
+        },
+        transport: { type: 'webrtc', sdp: 'offer-sdp' },
+      });
+    });
+
+    it('accepts omitted session config', async () => {
+      const fetch = vi
+        .fn<typeof globalThis.fetch>()
+        .mockResolvedValue(Response.json(success));
+      await createOpenAI({ apiKey: 'test-key', fetch })
+        .experimental_live('gpt-live-1')
+        .doCreateWebRTCSession({ sdp: 'offer' });
+      expect(
+        JSON.parse(fetch.mock.calls[0][1]?.body as string).session,
+      ).toEqual({ model: 'gpt-live-1', audio: { output: { voice: 'marin' } } });
+    });
+
+    it.each(['inputAudioFormat', 'outputAudioFormat'] as const)(
+      'rejects explicit %s before fetching',
+      async field => {
+        const fetch = vi.fn<typeof globalThis.fetch>();
+        await expect(
+          createOpenAI({ apiKey: 'test-key', fetch })
+            .experimental_live('gpt-live-1')
+            .doCreateWebRTCSession({
+              sdp: 'offer',
+              sessionConfig: { [field]: { type: 'audio/pcm', rate: 24000 } },
+            }),
+        ).rejects.toThrow(UnsupportedFunctionalityError);
+        expect(fetch).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([
+      {},
+      { session: {}, transport: { type: 'webrtc', sdp: 'answer' } },
+      {
+        session: { id: 'session-1' },
+        transport: { type: 'websocket', sdp: 'answer' },
+      },
+      { session: { id: 'session-1' }, transport: { type: 'webrtc', sdp: '' } },
+    ])('rejects malformed successful response %j', async body => {
+      const fetch = vi
+        .fn<typeof globalThis.fetch>()
+        .mockResolvedValue(Response.json(body));
+      await expect(
+        createOpenAI({ apiKey: 'test-key', fetch })
+          .experimental_live('gpt-live-1')
+          .doCreateWebRTCSession({ sdp: 'offer' }),
+      ).rejects.toThrow(APICallError);
+    });
+
+    it('reports HTTP errors through the standard API error handler', async () => {
+      const fetch = vi
+        .fn<typeof globalThis.fetch>()
+        .mockResolvedValue(
+          Response.json(
+            { error: { message: 'Session creation rejected', code: null } },
+            { status: 400 },
+          ),
+        );
+      await expect(
+        createOpenAI({ apiKey: 'test-key', fetch })
+          .experimental_live('gpt-live-1')
+          .doCreateWebRTCSession({ sdp: 'offer' }),
+      ).rejects.toMatchObject({
+        name: 'AI_APICallError',
+        statusCode: 400,
+        message: 'Session creation rejected',
+      });
+    });
+
+    it('preserves abort errors', async () => {
+      const error = new DOMException('Aborted', 'AbortError');
+      const fetch = vi.fn<typeof globalThis.fetch>().mockRejectedValue(error);
+      await expect(
+        createOpenAI({ apiKey: 'test-key', fetch })
+          .experimental_live('gpt-live-1')
+          .doCreateWebRTCSession({ sdp: 'offer' }),
+      ).rejects.toBe(error);
+    });
   });
 });

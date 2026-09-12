@@ -26,10 +26,6 @@ it('exports the exact concrete factory return and supported connection methods',
   }>();
   expectTypeOf<'live'>().not.toMatchTypeOf<keyof typeof openai>();
   expectTypeOf<'getWebSocketConfig'>().not.toMatchTypeOf<keyof typeof model>();
-  expectTypeOf<'getWebRTCConfig'>().not.toMatchTypeOf<keyof typeof model>();
-  expectTypeOf<'doCreateWebRTCSession'>().not.toMatchTypeOf<
-    keyof typeof model
-  >();
   expectTypeOf<'doCreateClientSecret'>().not.toMatchTypeOf<
     keyof typeof model
   >();
@@ -67,4 +63,15 @@ it('requires a startup backend model but permits mutable updates without one', (
   expectTypeOf<{
     tools: [{ type: 'function'; name: string }];
   }>().toMatchTypeOf<UpdateResponses>();
+  expectTypeOf<'client'>().not.toMatchTypeOf<
+    keyof OpenAIRealtimeModelLiveUpdateOptions
+  >();
+  expectTypeOf<{
+    client: {
+      dataChannel: {
+        allowedClientEvents: string[] | 'all';
+        allowedServerEvents: { type: string; responseEvent?: string }[] | 'all';
+      };
+    };
+  }>().toMatchTypeOf<OpenAIRealtimeModelLiveOptions>();
 });

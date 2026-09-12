@@ -102,28 +102,31 @@ describe('AbstractRealtimeSession', () => {
     vi.restoreAllMocks();
   });
 
-  it('rejects incompatible websocket connection capabilities before requesting a token', async () => {
-    const fetch = vi.spyOn(globalThis, 'fetch');
-    const model = createModel({
-      conversation: 'continuous',
-      transports: ['websocket'],
-      connections: ['server-websocket'],
-    });
+  it.each(['websocket', 'webrtc'] as const)(
+    'rejects incompatible %s connection capabilities before requesting a token',
+    async transport => {
+      const fetch = vi.spyOn(globalThis, 'fetch');
+      const model = createModel({
+        conversation: 'continuous',
+        transports: [transport],
+        connections: [transport === 'webrtc' ? 'webrtc' : 'server-websocket'],
+      });
 
-    const onError = vi.fn();
-    await new TestSession({
-      model,
-      api: { token: '/api/token' },
-      onError,
-    }).connect();
-    expect(onError).toHaveBeenCalledWith(
-      new Error('Realtime model does not support client-secret-websocket'),
-    );
-    expect(fetch).not.toHaveBeenCalled();
-    expect(model.doCreateClientSecret).not.toHaveBeenCalled();
-    expect(model.getWebSocketConfig).not.toHaveBeenCalled();
-    expect(sentEvents).toHaveLength(0);
-  });
+      const onError = vi.fn();
+      await new TestSession({
+        model,
+        api: { token: '/api/token' },
+        onError,
+      }).connect();
+      expect(onError).toHaveBeenCalledWith(
+        new Error('Realtime model does not support client-secret-websocket'),
+      );
+      expect(fetch).not.toHaveBeenCalled();
+      expect(model.doCreateClientSecret).not.toHaveBeenCalled();
+      expect(model.getWebSocketConfig).not.toHaveBeenCalled();
+      expect(sentEvents).toHaveLength(0);
+    },
+  );
 
   it.each([undefined, 'turn-based', 'continuous'] as const)(
     'preserves the token connection flow with %s conversation capabilities',
