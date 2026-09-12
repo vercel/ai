@@ -16,9 +16,7 @@ export const nebulTranscriptionModelOptions = z.object({
   /**
    * The format of the transcript output.
    */
-  responseFormat: z
-    .enum(['json', 'text', 'srt', 'verbose_json', 'vtt'])
-    .optional(),
+  responseFormat: z.enum(['json', 'verbose_json']).optional(),
 
   /**
    * The language of the input audio as an ISO-639-1 code
