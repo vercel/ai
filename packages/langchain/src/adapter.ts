@@ -1,10 +1,15 @@
 import {
+  AIMessage,
+  HumanMessage,
   SystemMessage,
+  ToolMessage,
   type BaseMessage,
   type AIMessageChunk,
 } from '@langchain/core/messages';
+import type { StateSnapshot } from '@langchain/langgraph';
 import {
   convertToModelMessages,
+  type DynamicToolUIPart,
   type UIMessage,
   type UIMessageChunk,
   type ModelMessage,
@@ -24,6 +29,21 @@ import {
 } from './utils';
 import type { LangGraphEventState } from './types';
 import type { StreamCallbacks } from './stream-callbacks';
+
+type DefaultUIMessagePart = UIMessage['parts'][number];
+type StateSnapshotLike = Pick<StateSnapshot, 'values'> & {
+  interrupts?: unknown;
+  tasks?: ReadonlyArray<{ readonly interrupts?: unknown }>;
+};
+
+type ActionRequest = {
+  name: string;
+  id?: string;
+  args?: unknown;
+  arguments?: unknown;
+  requestReason?: string;
+  request_reason?: string;
+};
 
 /**
  * Options for converting a LangChain stream to an AI SDK UIMessageStream.
@@ -113,6 +133,475 @@ export function convertModelMessages(
   }
 
   return result;
+}
+
+/**
+ * Converts LangChain BaseMessage objects to AI SDK UIMessage objects.
+ *
+ * ToolMessage objects are attached to the matching assistant tool call part when
+ * possible, matching how AI SDK UIMessages represent completed tool calls.
+ *
+ * @param messages - Array of LangChain BaseMessage objects to convert.
+ * @returns Array of AI SDK UIMessage objects.
+ */
+export function baseMessagesToUIMessages(messages: BaseMessage[]): UIMessage[] {
+  const result: UIMessage[] = [];
+
+  messages.forEach((message, index) => {
+    if (ToolMessage.isInstance(message)) {
+      applyToolMessageToLastMatchingAssistantMessage(result, message);
+      return;
+    }
+
+    if (SystemMessage.isInstance(message)) {
+      result.push({
+        id: getMessageId(message, index),
+        role: 'system',
+        parts: contentToUIParts(message.content, 'system'),
+      });
+      return;
+    }
+
+    if (HumanMessage.isInstance(message)) {
+      result.push({
+        id: getMessageId(message, index),
+        role: 'user',
+        parts: contentToUIParts(message.content, 'user'),
+      });
+      return;
+    }
+
+    if (AIMessage.isInstance(message)) {
+      result.push({
+        id: getMessageId(message, index),
+        role: 'assistant',
+        parts: [
+          ...contentToUIParts(message.content, 'assistant'),
+          ...toolCallsToUIParts(message, index),
+        ],
+      });
+    }
+  });
+
+  return result;
+}
+
+/**
+ * Converts a LangGraph StateSnapshot with a `messages` channel to AI SDK
+ * UIMessage objects.
+ *
+ * @param snapshot - LangGraph state snapshot returned from getState.
+ * @returns Array of AI SDK UIMessage objects.
+ */
+export function stateSnapshotToUIMessages(
+  snapshot: StateSnapshot,
+): UIMessage[] {
+  const snapshotLike = snapshot as StateSnapshotLike;
+  const values = snapshotLike.values;
+
+  if (values == null || typeof values !== 'object') {
+    return [];
+  }
+
+  const messages = (values as { messages?: unknown }).messages;
+
+  if (!Array.isArray(messages)) {
+    return [];
+  }
+
+  const uiMessages = baseMessagesToUIMessages(messages as BaseMessage[]);
+  applySnapshotInterrupts(uiMessages, snapshotLike);
+  return uiMessages;
+}
+
+function getMessageId(message: BaseMessage, index: number): string {
+  return typeof message.id === 'string' && message.id.length > 0
+    ? message.id
+    : `message-${index}`;
+}
+
+function contentToUIParts(
+  content: BaseMessage['content'],
+  role: UIMessage['role'],
+): DefaultUIMessagePart[] {
+  if (typeof content === 'string') {
+    return content.length > 0 ? [{ type: 'text', text: content }] : [];
+  }
+
+  if (!Array.isArray(content)) {
+    return [];
+  }
+
+  const parts: DefaultUIMessagePart[] = [];
+
+  for (const block of content) {
+    if (typeof block !== 'object' || block == null) {
+      continue;
+    }
+
+    const record = block as Record<string, unknown>;
+
+    if (record.type === 'text' && typeof record.text === 'string') {
+      parts.push({ type: 'text', text: record.text });
+      continue;
+    }
+
+    if (role === 'user' && isFileLikeContentBlock(record)) {
+      const mediaType =
+        typeof record.mimeType === 'string'
+          ? record.mimeType
+          : typeof record.mediaType === 'string'
+            ? record.mediaType
+            : record.type === 'image'
+              ? 'image'
+              : 'application/octet-stream';
+
+      const url =
+        typeof record.url === 'string'
+          ? record.url
+          : typeof record.data === 'string'
+            ? `data:${mediaType};base64,${record.data}`
+            : undefined;
+
+      if (url != null) {
+        parts.push({
+          type: 'file',
+          mediaType,
+          url,
+          ...(typeof record.filename === 'string'
+            ? { filename: record.filename }
+            : {}),
+        });
+      }
+    }
+  }
+
+  return parts;
+}
+
+function isFileLikeContentBlock(record: Record<string, unknown>): boolean {
+  return (
+    record.type === 'image' ||
+    record.type === 'file' ||
+    record.url != null ||
+    record.data != null
+  );
+}
+
+function toolCallsToUIParts(
+  message: AIMessage,
+  messageIndex: number,
+): DynamicToolUIPart[] {
+  return getNormalizedToolCalls(message).map((toolCall, toolIndex) => ({
+    type: 'dynamic-tool',
+    toolCallId:
+      typeof toolCall.id === 'string' && toolCall.id.length > 0
+        ? toolCall.id
+        : `tool-call-${messageIndex}-${toolIndex}`,
+    toolName: toolCall.name,
+    state: 'input-available',
+    input: toolCall.args,
+  }));
+}
+
+function getNormalizedToolCalls(message: AIMessage): Array<{
+  id?: string;
+  name: string;
+  args: unknown;
+}> {
+  if (message.tool_calls != null && message.tool_calls.length > 0) {
+    return message.tool_calls;
+  }
+
+  const additionalKwargs = message.additional_kwargs as
+    | {
+        tool_calls?: Array<{
+          id?: string;
+          function?: { name?: string; arguments?: string };
+        }>;
+      }
+    | undefined;
+  const toolCalls = additionalKwargs?.tool_calls;
+
+  if (!Array.isArray(toolCalls)) {
+    return [];
+  }
+
+  return toolCalls.flatMap(toolCall => {
+    const name = toolCall.function?.name;
+    if (typeof name !== 'string') {
+      return [];
+    }
+
+    return [
+      {
+        id: toolCall.id,
+        name,
+        args: parseToolCallArguments(toolCall.function?.arguments),
+      },
+    ];
+  });
+}
+
+function parseToolCallArguments(args: string | undefined): unknown {
+  if (args == null || args.length === 0) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(args);
+  } catch {
+    return args;
+  }
+}
+
+function applyToolMessageToLastMatchingAssistantMessage(
+  messages: UIMessage[],
+  toolMessage: ToolMessage,
+): void {
+  const toolCallId = toolMessage.tool_call_id;
+
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const message = messages[i];
+
+    if (message.role !== 'assistant') {
+      continue;
+    }
+
+    const toolPartIndex = message.parts.findIndex(
+      part => part.type === 'dynamic-tool' && part.toolCallId === toolCallId,
+    );
+
+    if (toolPartIndex === -1) {
+      continue;
+    }
+
+    const toolPart = message.parts[toolPartIndex] as DynamicToolUIPart;
+    message.parts[toolPartIndex] = createCompletedToolUIPart(
+      toolPart,
+      toolMessage,
+    );
+    return;
+  }
+}
+
+function createCompletedToolUIPart(
+  toolPart: DynamicToolUIPart,
+  toolMessage: ToolMessage,
+): DynamicToolUIPart {
+  const input = 'input' in toolPart ? toolPart.input : undefined;
+
+  if ((toolMessage as { status?: string }).status === 'error') {
+    return {
+      type: 'dynamic-tool',
+      toolName: toolPart.toolName,
+      toolCallId: toolPart.toolCallId,
+      state: 'output-error',
+      input,
+      errorText: contentToText(toolMessage.content),
+    };
+  }
+
+  return {
+    type: 'dynamic-tool',
+    toolName: toolPart.toolName,
+    toolCallId: toolPart.toolCallId,
+    state: 'output-available',
+    input,
+    output: contentToToolOutput(toolMessage.content),
+  };
+}
+
+function contentToToolOutput(content: BaseMessage['content']): unknown {
+  if (typeof content === 'string') {
+    return content;
+  }
+
+  if (Array.isArray(content)) {
+    const text = contentToText(content);
+    return text.length > 0 ? text : content;
+  }
+
+  return content;
+}
+
+function contentToText(content: BaseMessage['content']): string {
+  if (typeof content === 'string') {
+    return content;
+  }
+
+  if (!Array.isArray(content)) {
+    return '';
+  }
+
+  return content
+    .map(block =>
+      typeof block === 'object' &&
+      block != null &&
+      'text' in block &&
+      typeof block.text === 'string'
+        ? block.text
+        : '',
+    )
+    .join('');
+}
+
+function applySnapshotInterrupts(
+  messages: UIMessage[],
+  snapshot: StateSnapshotLike,
+): void {
+  getSnapshotActionRequests(snapshot).forEach((actionRequest, index) => {
+    applyActionRequest(messages, actionRequest, index);
+  });
+}
+
+function getSnapshotActionRequests(
+  snapshot: StateSnapshotLike,
+): ActionRequest[] {
+  const interrupts: unknown[] = [];
+
+  if (snapshot.interrupts !== undefined) {
+    interrupts.push(snapshot.interrupts);
+  }
+
+  const values = snapshot.values as Record<string, unknown>;
+  if (values.__interrupt__ !== undefined) {
+    interrupts.push(values.__interrupt__);
+  }
+
+  if (Array.isArray(snapshot.tasks)) {
+    for (const task of snapshot.tasks) {
+      if (
+        task != null &&
+        typeof task === 'object' &&
+        'interrupts' in task &&
+        Array.isArray(task.interrupts)
+      ) {
+        interrupts.push(task.interrupts);
+      }
+    }
+  }
+
+  return interrupts
+    .flatMap(interrupt => (Array.isArray(interrupt) ? interrupt : [interrupt]))
+    .flatMap(getActionRequestsFromInterrupt);
+}
+
+function getActionRequestsFromInterrupt(interrupt: unknown): ActionRequest[] {
+  if (interrupt == null || typeof interrupt !== 'object') {
+    return [];
+  }
+
+  const interruptRecord = interrupt as Record<string, unknown>;
+  const value =
+    interruptRecord.value != null && typeof interruptRecord.value === 'object'
+      ? (interruptRecord.value as Record<string, unknown>)
+      : interruptRecord;
+  const actionRequests = value.actionRequests ?? value.action_requests;
+
+  if (!Array.isArray(actionRequests)) {
+    return [];
+  }
+
+  return actionRequests.filter(isActionRequest);
+}
+
+function isActionRequest(value: unknown): value is ActionRequest {
+  return (
+    value != null &&
+    typeof value === 'object' &&
+    typeof (value as { name?: unknown }).name === 'string'
+  );
+}
+
+function applyActionRequest(
+  messages: UIMessage[],
+  actionRequest: ActionRequest,
+  actionIndex: number,
+): void {
+  const input = actionRequest.args ?? actionRequest.arguments ?? {};
+  const matchingToolPart = findMatchingToolPart(messages, actionRequest, input);
+  const toolCallId =
+    matchingToolPart?.part.toolCallId ??
+    actionRequest.id ??
+    `hitl-${actionRequest.name}-${actionIndex}`;
+  const approvalPart: DynamicToolUIPart = {
+    type: 'dynamic-tool',
+    toolName: matchingToolPart?.part.toolName ?? actionRequest.name,
+    toolCallId,
+    state: 'approval-requested',
+    input,
+    approval: {
+      id: toolCallId,
+      ...getActionRequestReason(actionRequest),
+    },
+  };
+
+  if (matchingToolPart != null) {
+    matchingToolPart.message.parts[matchingToolPart.partIndex] = approvalPart;
+    return;
+  }
+
+  messages.push({
+    id: `message-hitl-${actionIndex}`,
+    role: 'assistant',
+    parts: [approvalPart],
+  });
+}
+
+function findMatchingToolPart(
+  messages: UIMessage[],
+  actionRequest: ActionRequest,
+  input: unknown,
+):
+  | {
+      message: UIMessage;
+      part: DynamicToolUIPart;
+      partIndex: number;
+    }
+  | undefined {
+  for (
+    let messageIndex = messages.length - 1;
+    messageIndex >= 0;
+    messageIndex--
+  ) {
+    const message = messages[messageIndex];
+
+    if (message.role !== 'assistant') {
+      continue;
+    }
+
+    const partIndex = message.parts.findIndex(
+      part =>
+        part.type === 'dynamic-tool' &&
+        ((actionRequest.id != null && part.toolCallId === actionRequest.id) ||
+          (part.toolName === actionRequest.name &&
+            isJsonEqual('input' in part ? part.input : undefined, input))),
+    );
+
+    if (partIndex !== -1) {
+      return {
+        message,
+        part: message.parts[partIndex] as DynamicToolUIPart,
+        partIndex,
+      };
+    }
+  }
+
+  return undefined;
+}
+
+function getActionRequestReason(actionRequest: ActionRequest): {
+  requestReason?: string;
+} {
+  const requestReason =
+    actionRequest.requestReason ?? actionRequest.request_reason;
+
+  return typeof requestReason === 'string' ? { requestReason } : {};
+}
+
+function isJsonEqual(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
 }
 
 /**
