@@ -1,13 +1,8 @@
 import {
   APICallError,
-<<<<<<< HEAD
   type LanguageModelV3FilePart,
   type LanguageModelV3Prompt,
-=======
-  type LanguageModelV4FilePart,
-  type LanguageModelV4Prompt,
-  type SharedV4Warning,
->>>>>>> 7f76d8375a (fix(gateway): forward server-returned warnings in language model doGenerate (#20675))
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
@@ -78,7 +73,7 @@ describe('GatewayLanguageModel', () => {
       id?: string;
       created?: number;
       model?: string;
-      warnings?: Array<SharedV4Warning>;
+      warnings?: Array<SharedV3Warning>;
     } = {}) {
       server.urls['https://api.test.com/language-model'].response = {
         type: 'json-value',
@@ -144,7 +139,7 @@ describe('GatewayLanguageModel', () => {
     });
 
     it('should forward warnings returned by the gateway', async () => {
-      const mockWarnings: Array<SharedV4Warning> = [
+      const mockWarnings: Array<SharedV3Warning> = [
         {
           type: 'compatibility',
           feature: 'maxOutputTokens',
@@ -675,8 +670,6 @@ describe('GatewayLanguageModel', () => {
       `);
     });
 
-<<<<<<< HEAD
-=======
     it('should forward server stream-start warnings exactly once', async () => {
       server.urls['https://api.test.com/language-model'].response = {
         type: 'stream-chunks',
@@ -715,37 +708,6 @@ describe('GatewayLanguageModel', () => {
       ]);
     });
 
-    it('should preserve explicit mid-stream provider error metadata', async () => {
-      const error = {
-        message: 'Upstream provider overloaded',
-        type: 'provider_overloaded',
-        statusCode: 503,
-        isRetryable: true,
-      };
-
-      server.urls['https://api.test.com/language-model'].response = {
-        type: 'stream-chunks',
-        chunks: [
-          `data: ${JSON.stringify({
-            type: 'text-delta',
-            textDelta: 'Partial output',
-          })}\n\n`,
-          `data: ${JSON.stringify({ type: 'error', error })}\n\n`,
-        ],
-      };
-
-      const { stream } = await createTestModel().doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-      });
-
-      expect(await convertReadableStreamToArray(stream)).toEqual([
-        { type: 'text-delta', textDelta: 'Partial output' },
-        { type: 'error', error },
-      ]);
-    });
-
->>>>>>> 7f76d8375a (fix(gateway): forward server-returned warnings in language model doGenerate (#20675))
     it('should pass streaming headers', async () => {
       prepareStreamResponse({
         content: ['Test'],
