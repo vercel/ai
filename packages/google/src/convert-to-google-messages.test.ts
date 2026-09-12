@@ -658,6 +658,49 @@ describe('tool messages', () => {
     });
   });
 
+  it('should strip JSON Schema references from function response content', async () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'get_schema',
+            toolCallId: 'testCallId',
+            output: {
+              type: 'json',
+              value: {
+                inputSchema: {
+                  properties: {
+                    filter: { $ref: '#/$defs/Filter' },
+                  },
+                  $defs: {
+                    Filter: { type: 'object' },
+                  },
+                },
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        id: 'testCallId',
+        name: 'get_schema',
+        response: {
+          name: 'get_schema',
+          content: {
+            inputSchema: {
+              properties: { filter: {} },
+            },
+          },
+        },
+      },
+    });
+  });
+
   it('should convert tool result content with image-data into functionResponse parts', async () => {
     const result = convertToGoogleMessages([
       {
