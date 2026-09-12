@@ -4,7 +4,7 @@ export default defineConfig([
   {
     entry: ['src/index.ts'],
     format: ['esm'],
-    dts: true,
+    dts: false,
     sourcemap: true,
     target: 'es2018',
     platform: 'node',
@@ -12,7 +12,7 @@ export default defineConfig([
   {
     entry: ['src/with-vitest.ts'],
     format: ['esm'],
-    dts: true,
+    dts: false,
     sourcemap: true,
     target: 'es2020',
     platform: 'node',
@@ -28,5 +28,13 @@ export default defineConfig([
       'vitest/dist/node/*',
       'vitest/dist/node/chunks/*',
     ],
+  },
+  {
+    entry: {
+      index: 'src/index.ts',
+      'with-vitest': 'src/with-vitest.ts',
+    },
+    dts: { only: true },
+    format: ['esm'],
   },
 ]);
