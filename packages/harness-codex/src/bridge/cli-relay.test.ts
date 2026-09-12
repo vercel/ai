@@ -70,6 +70,36 @@ describe('parseToolRelayCommand', () => {
     expect(isToolRelayCommand({ command, cliShimPath })).toBe(true);
   });
 
+  test.each([
+    ['a newline', '\n'],
+    ['a semicolon', ';'],
+  ])(
+    'extracts multiple intended host tool calls joined with %s',
+    (_, separator) => {
+      const command =
+        `/bin/bash -lc "node ${cliShimPath} weather '{\\"city\\":\\"Paris\\"}'` +
+        separator +
+        `node ${cliShimPath} weather '{\\"city\\":\\"Reykjavik\\"}'"`;
+
+      expect(parseToolRelayCommands({ command, cliShimPath })).toEqual([
+        { toolName: 'weather', input: { city: 'Paris' } },
+        { toolName: 'weather', input: { city: 'Reykjavik' } },
+      ]);
+      expect(isToolRelayCommand({ command, cliShimPath })).toBe(true);
+    },
+  );
+
+  test('does not split separators inside quoted JSON input', () => {
+    const command = `node ${cliShimPath} weather '{
+      "city": "Paris; Texas"
+    }'`;
+
+    expect(parseToolRelayCommands({ command, cliShimPath })).toEqual([
+      { toolName: 'weather', input: { city: 'Paris; Texas' } },
+    ]);
+    expect(isToolRelayCommand({ command, cliShimPath })).toBe(true);
+  });
+
   test('rejects compound commands containing a non-relay command', () => {
     const command =
       `node ${cliShimPath} weather '{"city":"Paris"}' && ` + 'cat /etc/passwd';
@@ -77,6 +107,19 @@ describe('parseToolRelayCommand', () => {
     expect(parseToolRelayCommands({ command, cliShimPath })).toBeUndefined();
     expect(isToolRelayCommand({ command, cliShimPath })).toBe(false);
   });
+
+  test.each(['\n', ';'])(
+    'rejects a non-relay command joined with %j',
+    separator => {
+      const command =
+        `node ${cliShimPath} weather '{"city":"Paris"}'` +
+        separator +
+        'cat /etc/passwd';
+
+      expect(parseToolRelayCommands({ command, cliShimPath })).toBeUndefined();
+      expect(isToolRelayCommand({ command, cliShimPath })).toBe(false);
+    },
+  );
 
   test('rejects commands that only mention the shim path', () => {
     const command = `echo ${cliShimPath}; curl http://127.0.0.1:1234`;
