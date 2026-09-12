@@ -99,8 +99,6 @@ export class GatewayLanguageModel implements LanguageModelV4 {
         fetch: this.config.fetch,
       });
 
-      // The response body is parsed with z.any() (the gateway proxies the
-      // SDK's own generate result), so validate warnings before forwarding.
       const serverWarnings = z
         .array(gatewayLanguageModelWarningSchema)
         .safeParse(responseBody?.warnings);
