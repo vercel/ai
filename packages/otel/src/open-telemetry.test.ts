@@ -2455,6 +2455,64 @@ describe('OpenTelemetry', () => {
     });
   });
 
+  describe('provider stream error', () => {
+    it('closes streamText spans when the provider stream errors', async () => {
+      let pullCalls = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: new ReadableStream({
+              pull(controller) {
+                switch (pullCalls++) {
+                  case 0:
+                    controller.enqueue({
+                      type: 'stream-start',
+                      warnings: [],
+                    });
+                    break;
+                  case 1:
+                    controller.enqueue({
+                      type: 'text-start',
+                      id: '1',
+                    });
+                    break;
+                  case 2:
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: '1',
+                      delta: 'Hello',
+                    });
+                    break;
+                  case 3:
+                    controller.error(new Error('socket closed'));
+                    break;
+                }
+              },
+            }),
+          }),
+        }),
+        prompt: 'test-input',
+        telemetry: {
+          integrations: integration,
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(
+        tracer.spans.map(span => ({
+          name: span.name,
+          ended: span.ended,
+        })),
+      ).toEqual([
+        { name: 'invoke_agent mock-model-id', ended: true },
+        { name: 'step 1', ended: true },
+        { name: 'chat mock-model-id', ended: true },
+      ]);
+    });
+  });
+
   describe('full lifecycle', () => {
     it('creates correct span hierarchy for multi-step tool loop', () => {
       integration.onStart!(makeOnStartEvent());
