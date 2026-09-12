@@ -1,0 +1,91 @@
+---
+title: New Relic
+description: Monitor and trace your AI SDK application with New Relic
+---
+
+# New Relic
+
+[New Relic](https://newrelic.com/) is an observability platform for application performance monitoring, distributed tracing, logs, and metrics. New Relic [ingests OpenTelemetry (OTLP) data natively](https://docs.newrelic.com/docs/opentelemetry/best-practices/opentelemetry-otlp/), so you can send AI SDK telemetry data to it with a standard OTLP exporter and no additional SDK.
+
+## Setup
+
+You'll need a [New Relic account](https://newrelic.com/signup) and your account's license key. OTLP requests authenticate with an `api-key` header set to the license key.
+
+New Relic's OTLP endpoint is `https://otlp.nr-data.net` for US accounts and `https://otlp.eu01.nr-data.net` for EU accounts. Both accept OTLP over HTTP on ports 443 and 4318, and over gRPC on port 4317.
+
+### Node.js
+
+Install the AI SDK OpenTelemetry adapter and the OpenTelemetry packages:
+
+<InstallPackages packages="@ai-sdk/otel @opentelemetry/sdk-node @opentelemetry/exporter-trace-otlp-http @opentelemetry/resources @opentelemetry/semantic-conventions" />
+
+Create an instrumentation file and load it before the rest of your app:
+
+```typescript filename="instrumentation.ts"
+import { registerTelemetry } from 'ai';
+import { LegacyOpenTelemetry } from '@ai-sdk/otel';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import { resourceFromAttributes } from '@opentelemetry/resources';
+import { NodeSDK } from '@opentelemetry/sdk-node';
+import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
+
+const sdk = new NodeSDK({
+  resource: resourceFromAttributes({
+    [ATTR_SERVICE_NAME]: 'my-ai-app',
+  }),
+  traceExporter: new OTLPTraceExporter({
+    url: 'https://otlp.nr-data.net:4318/v1/traces',
+    headers: {
+      'api-key': process.env.NEW_RELIC_LICENSE_KEY,
+    },
+  }),
+});
+
+sdk.start();
+
+registerTelemetry(new LegacyOpenTelemetry());
+```
+
+EU accounts use `https://otlp.eu01.nr-data.net:4318/v1/traces` as the exporter URL.
+
+### Next.js
+
+OpenTelemetry exporters also read the standard environment variables, so you can configure the endpoint and header in your `.env` file:
+
+```bash filename=".env"
+OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp.nr-data.net
+OTEL_EXPORTER_OTLP_HEADERS="api-key=<your-license-key>"
+```
+
+Install `@ai-sdk/otel` and register the `LegacyOpenTelemetry` in your `instrumentation.ts` file:
+
+```typescript filename="instrumentation.ts"
+import { registerTelemetry } from 'ai';
+import { LegacyOpenTelemetry } from '@ai-sdk/otel';
+
+registerTelemetry(new LegacyOpenTelemetry());
+```
+
+## Enabling Telemetry
+
+With `registerTelemetry` in place, [AI SDK telemetry data](/docs/ai-sdk-core/telemetry) is captured automatically on every AI SDK call:
+
+```typescript
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'What is 2 + 2?',
+  telemetry: {
+    functionId: 'my-function',
+  },
+});
+```
+
+The generated spans appear in New Relic's distributed tracing views for your service.
+
+## Resources
+
+- [New Relic OTLP endpoint reference](https://docs.newrelic.com/docs/opentelemetry/best-practices/opentelemetry-otlp/)
+- [Introduction to New Relic AI monitoring](https://docs.newrelic.com/docs/ai-monitoring/intro-to-ai-monitoring/)
