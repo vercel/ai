@@ -189,7 +189,26 @@ export function pruneMessages({
   }
 
   if (emptyMessages === 'remove') {
-    messages = messages.filter(message => message.content.length > 0);
+    messages = messages.filter(message => {
+      if (message.content.length === 0) {
+        return false;
+      }
+
+      // Treat assistant messages that only contain reasoning parts as empty.
+      // Pruning tool calls can leave a preceding reasoning/thinking block as
+      // the sole content of an assistant message. Such messages are invalid
+      // for providers like Anthropic, which require at least one non-reasoning
+      // content block, so they are removed together with truly empty messages.
+      if (
+        message.role === 'assistant' &&
+        typeof message.content !== 'string' &&
+        message.content.every(part => part.type === 'reasoning')
+      ) {
+        return false;
+      }
+
+      return true;
+    });
   }
 
   return messages;
