@@ -88,6 +88,9 @@
       "path": "../../packages/fireworks"
     },
     {
+      "path": "../../packages/fish-audio"
+    },
+    {
       "path": "../../packages/gateway"
     },
     {
@@ -160,10 +163,16 @@
       "path": "../../packages/mcp"
     },
     {
+      "path": "../../packages/minimax"
+    },
+    {
       "path": "../../packages/mistral"
     },
     {
       "path": "../../packages/moonshotai"
+    },
+    {
+      "path": "../../packages/nebul"
     },
     {
       "path": "../../packages/open-responses"
@@ -215,6 +224,9 @@
     },
     {
       "path": "../../packages/voyage"
+    },
+    {
+      "path": "../../packages/workflow"
     },
     {
       "path": "../../packages/xai"
