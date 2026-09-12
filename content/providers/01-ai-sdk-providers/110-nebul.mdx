@@ -1,0 +1,68 @@
+---
+title: Nebul
+description: Learn how to use Nebul models with the AI SDK.
+---
+
+# Nebul Provider
+
+The [Nebul](https://nebul.io) provider offers access to open-weight language models through Nebul's sovereign GPU inference platform over an OpenAI-compatible API.
+
+API keys can be obtained from your [Nebul console](https://nebul.io).
+
+## Setup
+
+The Nebul provider is available via the `@ai-sdk/nebul` module. You can install it with:
+
+<InstallPackages packages="@ai-sdk/nebul" />
+
+## Provider Instance
+
+You can import the default provider instance `nebul` from `@ai-sdk/nebul`:
+
+```ts
+import { nebul } from '@ai-sdk/nebul';
+```
+
+For custom configuration, you can import `createNebul` and create a provider instance with your settings:
+
+```ts
+import { createNebul } from '@ai-sdk/nebul';
+
+const nebul = createNebul({
+  apiKey: process.env.NEBUL_API_KEY ?? '',
+});
+```
+
+You can use the following optional settings to customize the Nebul provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls.
+  The default prefix is `https://api.inference.nebul.io/v1`.
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header. It defaults to
+  the `NEBUL_API_KEY` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _FetchFunction_
+
+  Custom fetch implementation.
+
+## Language Models
+
+```ts
+import { nebul } from '@ai-sdk/nebul';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: nebul('mistralai/Mistral-7B-Instruct-v0.3'),
+  prompt: 'What is the capital of France?',
+});
+```
+
+Nebul serves an evolving catalog of open-weight models over chat completions, so model ids are typed as `string`. Embedding and image models are not supported.

@@ -31,6 +31,7 @@ When adding new packages under `packages`, please ensure they are added to `/tsc
 | `perplexity`        | `@ai-sdk/perplexity`        | Perplexity                  |
 | `replicate`         | `@ai-sdk/replicate`         | Replicate                   |
 | `togetherai`        | `@ai-sdk/togetherai`        | Together AI                 |
+| `nebul`             | `@ai-sdk/nebul`             | Nebul                       |
 | `xai`               | `@ai-sdk/xai`               | xAI (Grok)                  |
 | `gateway`           | `@ai-sdk/gateway`           | AI Gateway                  |
 | `openai-compatible` | `@ai-sdk/openai-compatible` | OpenAI-compatible providers |
