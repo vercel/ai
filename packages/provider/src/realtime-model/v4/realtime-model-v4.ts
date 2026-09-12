@@ -29,6 +29,37 @@ export type RealtimeModelV4 = {
    */
   readonly modelId: string;
 
+  /** Conversation semantics and supported transports, when declared. */
+  readonly capabilities?: {
+    conversation: 'continuous' | 'turn-based';
+    transports: readonly ('websocket' | 'webrtc')[];
+    /** Omission preserves the legacy client-secret WebSocket connection. */
+    connections?: readonly (
+      | 'client-secret-websocket'
+      | 'server-websocket'
+      | 'webrtc'
+    )[];
+    /** Omission preserves session-update startup. WebRTC setup may start the session. */
+    startup?: 'session-start' | 'session-update';
+    /** Omission preserves transport-close finalization. */
+    finalization?: 'session-close' | 'transport-close';
+  };
+
+  /** Server-only connection settings. Headers can contain long-lived credentials. */
+  getServerWebSocketConfig?():
+    | { url: string; headers: Record<string, string> }
+    | PromiseLike<{ url: string; headers: Record<string, string> }>;
+
+  /** Provider-specific setup for the WebRTC event channel. */
+  getWebRTCConfig?(): { dataChannelLabel: string };
+
+  /** Server-side SDP exchange. Return only the answer and session ID to the client. */
+  doCreateWebRTCSession?(options: {
+    sdp: string;
+    sessionConfig?: RealtimeModelV4SessionConfig;
+    abortSignal?: AbortSignal;
+  }): PromiseLike<{ sessionId: string; sdp: string }>;
+
   /**
    * Server-side: Creates an ephemeral client secret for authenticating
    * browser-side WebSocket connections. The secret is short-lived and
@@ -36,7 +67,7 @@ export type RealtimeModelV4 = {
    *
    * Naming: "do" prefix to prevent accidental direct usage by the user.
    */
-  doCreateClientSecret(
+  doCreateClientSecret?(
     options: RealtimeModelV4ClientSecretOptions,
   ): PromiseLike<RealtimeModelV4ClientSecretResult>;
 
@@ -45,7 +76,7 @@ export type RealtimeModelV4 = {
    * when connecting. Each provider has its own authentication mechanism
    * (e.g. OpenAI uses subprotocol headers, xAI may use query params).
    */
-  getWebSocketConfig(options: { token: string; url: string }): {
+  getWebSocketConfig?(options: { token: string; url: string }): {
     url: string;
     protocols?: string[];
   };
@@ -62,6 +93,11 @@ export type RealtimeModelV4 = {
   parseServerEvent(
     raw: unknown,
   ): RealtimeModelV4ServerEvent | RealtimeModelV4ServerEvent[];
+
+  /** Create once per connection; discard on disconnect to isolate stream correlation. */
+  createServerEventParser?(): (
+    raw: unknown,
+  ) => RealtimeModelV4ServerEvent | RealtimeModelV4ServerEvent[];
 
   /**
    * Browser-side: Serializes a normalized client event into the
