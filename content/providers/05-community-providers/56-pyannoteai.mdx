@@ -1,0 +1,187 @@
+---
+title: 'pyannoteAI'
+description: 'Learn how to use the pyannoteAI provider for the AI SDK.'
+---
+
+# pyannoteAI Provider
+
+[pyannoteAI provider](https://github.com/droppix/pyannoteai-ai-sdk-provider) integrates [pyannoteAI](https://pyannote.ai)'s speaker diarization, speech-to-text orchestration, and speaker identification models with the AI SDK.
+For more information, see the [pyannoteAI Documentation](https://docs.pyannote.ai).
+
+## Installation
+
+<InstallPackages packages="pyannoteai-ai-sdk-provider" />
+
+## Authentication
+
+Set `PYANNOTEAI_API_KEY` in your environment or pass `apiKey` when creating the provider.
+Get your API key from the [pyannoteAI Dashboard](https://dashboard.pyannote.ai).
+
+## Example
+
+```ts
+import { pyannote } from 'pyannoteai-ai-sdk-provider';
+import { transcribe } from 'ai';
+
+const result = await transcribe({
+  model: pyannote.transcription('diarization-precision-2'),
+  audio: await readFile('meeting.wav'),
+});
+
+// pyannoteAI is diarization-first: speaker turns live under
+// providerMetadata.pyannote, not in the generic `segments`/`text` fields.
+console.log(result.providerMetadata.pyannote.diarization);
+```
+
+## Provider Instance
+
+Use `createPyannoteAI` to customize the provider instance:
+
+```ts
+import { createPyannoteAI } from 'pyannoteai-ai-sdk-provider';
+
+const pyannote = createPyannoteAI({
+  apiKey: process.env.PYANNOTEAI_API_KEY,
+  baseURL: 'https://api.pyannote.ai/v1', // optional, for enterprise/on-premise deployments
+});
+```
+
+Options:
+
+- `apiKey`: override `PYANNOTEAI_API_KEY`.
+- `baseURL`: custom API base URL.
+- `headers`: additional request headers.
+- `fetch`: custom fetch implementation.
+
+## Models
+
+The pyannoteAI job-based REST API is exposed as 5 transcription models, matching the 5 products on [pyannote.ai/pricing](https://pyannote.ai/pricing):
+
+| Model ID                  | pyannoteAI product                             |
+| -------------------------- | ------------------------------------------------ |
+| `diarization-precision-2`  | Diarization - Precision-2 [Batch]                 |
+| `diarization-community-1`  | Diarization - Hosted Community-1 [Batch]          |
+| `stt-orchestration`         | STT Orchestration [Batch]                         |
+| `stt-orchestration-byo`     | STT Orchestration - Bring your own STT [Batch]     |
+| `speaker-identification`    | Speaker Identification                            |
+
+```ts
+const model = pyannote.transcription('stt-orchestration');
+```
+
+## Diarization
+
+`diarization-precision-2` and `diarization-community-1` return speaker turns only - there is no transcript to attach, so `result.text` is empty and `result.segments` carry empty `text`. The full speaker turns (with timestamps and, optionally, confidence scores) are on `providerMetadata.pyannote.diarization`:
+
+```ts
+const result = await transcribe({
+  model: pyannote.transcription('diarization-precision-2'),
+  audio: await readFile('meeting.wav'),
+  providerOptions: {
+    pyannote: {
+      numSpeakers: 3, // optional, improves accuracy when known in advance
+      exclusive: true, // also return non-overlapping turns
+    },
+  },
+});
+
+console.log(result.providerMetadata.pyannote.diarization);
+// [{ speaker: 'SPEAKER_00', start: 0, end: 2.5 }, ...]
+```
+
+## STT Orchestration
+
+`stt-orchestration` merges diarization with one of pyannoteAI's own hosted ASR models (`parakeet-tdt-0.6b-v3` or `faster-whisper-large-v3-turbo`) server-side, in a single job:
+
+```ts
+const result = await transcribe({
+  model: pyannote.transcription('stt-orchestration'),
+  audio: await readFile('meeting.wav'),
+  providerOptions: {
+    pyannote: {
+      transcriptionModel: 'faster-whisper-large-v3-turbo', // default: 'parakeet-tdt-0.6b-v3'
+    },
+  },
+});
+
+console.log(result.text); // speaker-attributed transcript, joined
+console.log(result.providerMetadata.pyannote.turnLevelTranscription);
+// [{ start, end, text, speaker }, ...]
+```
+
+## STT Orchestration - Bring your own STT
+
+pyannoteAI has no dedicated endpoint for this: you diarize with `exclusive: true` and merge the result client-side against a transcript you already have from your own ASR provider (OpenAI, Deepgram, ...). The `stt-orchestration-byo` model implements pyannoteAI's own [documented merge algorithm](https://docs.pyannote.ai) for you - just pass your transcript's segments as `externalTranscript`:
+
+```ts
+const result = await transcribe({
+  model: pyannote.transcription('stt-orchestration-byo'),
+  audio: await readFile('meeting.wav'),
+  providerOptions: {
+    pyannote: {
+      externalTranscript: [
+        { start: 0, end: 5.2, text: 'Thanks for calling support.' },
+        { start: 5.2, end: 12.8, text: 'Hi, I need help with diarization.' },
+      ],
+    },
+  },
+});
+
+console.log(result.providerMetadata.pyannote.merged);
+// [{ start, end, text, speaker }, ...]
+```
+
+## Speaker Identification
+
+`speaker-identification` matches audio against known voiceprints. Create a voiceprint from a short reference recording with the `voiceprint()` helper on the provider instance, then pass it in with a label:
+
+```ts
+const voiceprint = await pyannote.voiceprint({
+  audio: await readFile('john-sample.wav'),
+  mediaType: 'audio/wav',
+});
+
+const result = await transcribe({
+  model: pyannote.transcription('speaker-identification'),
+  audio: await readFile('meeting.wav'),
+  providerOptions: {
+    pyannote: {
+      voiceprints: [{ label: 'John Doe', voiceprint }],
+      matching: { threshold: 70 },
+    },
+  },
+});
+
+console.log(result.providerMetadata.pyannote.identification);
+// [{ diarizationSpeaker: 'SPEAKER_00', match: 'John Doe', ... }, ...]
+```
+
+## Provider options
+
+All per-request options are passed under `providerOptions.pyannote`:
+
+| Option                            | Applies to                          | Description                                                                  |
+| ---------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------ |
+| `numSpeakers`                      | diarization, stt-orchestration\*      | Exact number of speakers, when known                                          |
+| `minSpeakers` / `maxSpeakers`       | diarization, stt-orchestration\*      | Bounds on the number of speakers                                               |
+| `exclusive`                        | diarization, stt-orchestration\*      | Also return non-overlapping turns                                             |
+| `confidence`                       | all diarize-based models              | Include frame-level confidence scores                                         |
+| `turnLevelConfidence`               | all diarize-based models              | Include per-turn confidence scores                                            |
+| `transcriptionModel`                | `stt-orchestration`                    | `'parakeet-tdt-0.6b-v3'` (default) or `'faster-whisper-large-v3-turbo'`        |
+| `transcriptionLevel`                | `stt-orchestration`                    | `'turn'` (default) or `'word'`                                                 |
+| `externalTranscript`                | `stt-orchestration-byo` (required)     | Your own STT provider's `{start, end, text}` segments                         |
+| `fillNearestSpeaker`                | `stt-orchestration-byo`                | Assign the nearest speaker instead of `"UNKNOWN"` for non-overlapping spans    |
+| `voiceprints`                       | `speaker-identification` (required)    | `{label, voiceprint}[]` to match against                                      |
+| `matching`                          | `speaker-identification`               | `{exclusive?, threshold?}` matching tuning                                    |
+| `pollIntervalMs` / `pollTimeoutMs`   | all models                             | Job-polling tuning (defaults: 2s / 10min) - `doGenerate` polls internally since pyannoteAI's API is job-based |
+
+\* except `stt-orchestration-byo`, which forces `exclusive: true` internally regardless of this setting.
+
+Check the [pyannoteAI API reference](https://docs.pyannote.ai/api-reference) for more details.
+
+## Additional Resources
+
+- [pyannoteAI Provider Repository](https://github.com/droppix/pyannoteai-ai-sdk-provider)
+- [pyannoteAI Documentation](https://docs.pyannote.ai)
+- [pyannoteAI Pricing](https://pyannote.ai/pricing)
+- [pyannoteAI Dashboard](https://dashboard.pyannote.ai)
