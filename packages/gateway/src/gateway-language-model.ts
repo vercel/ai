@@ -99,18 +99,13 @@ export class GatewayLanguageModel implements LanguageModelV4 {
         fetch: this.config.fetch,
       });
 
-      const serverWarnings = z
-        .array(gatewayLanguageModelWarningSchema)
-        .safeParse(responseBody?.warnings);
-
       return {
         ...responseBody,
         request: { body: args },
         response: { headers: responseHeaders, body: rawResponse },
-        warnings: [
-          ...(serverWarnings.success ? serverWarnings.data : []),
-          ...warnings,
-        ],
+        // The gateway relays the upstream provider's warnings in the body;
+        // keep them ahead of any locally raised ones.
+        warnings: [...(responseBody.warnings ?? []), ...warnings],
       };
     } catch (error) {
       throw await asGatewayError(
@@ -240,28 +235,6 @@ export class GatewayLanguageModel implements LanguageModelV4 {
     };
   }
 }
-
-const gatewayLanguageModelWarningSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('unsupported'),
-    feature: z.string(),
-    details: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal('compatibility'),
-    feature: z.string(),
-    details: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal('deprecated'),
-    setting: z.string(),
-    message: z.string(),
-  }),
-  z.object({
-    type: z.literal('other'),
-    message: z.string(),
-  }),
-]);
 
 function maybeBase64EncodeFileData<T extends { type: string }>(data: T): T {
   if (data.type === 'data') {

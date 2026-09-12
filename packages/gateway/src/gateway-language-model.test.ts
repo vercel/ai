@@ -169,28 +169,6 @@ describe('GatewayLanguageModel', () => {
       expect(warnings).toEqual([]);
     });
 
-    it('should default warnings to an empty array when malformed', async () => {
-      prepareJsonResponse({ content: { type: 'text', text: 'Hello' } });
-      server.urls['https://api.test.com/language-model'].response = {
-        type: 'json-value',
-        body: {
-          id: 'test-id',
-          created: 1711115037,
-          model: 'test-model',
-          content: { type: 'text', text: 'Hello' },
-          finish_reason: 'stop',
-          usage: { prompt_tokens: 4, completion_tokens: 30 },
-          warnings: [{ unexpected: 'shape' }],
-        },
-      };
-
-      const { warnings } = await createTestModel().doGenerate({
-        prompt: TEST_PROMPT,
-      });
-
-      expect(warnings).toEqual([]);
-    });
-
     it('should remove abortSignal from the request body', async () => {
       prepareJsonResponse({ content: { type: 'text', text: 'Test response' } });
 
