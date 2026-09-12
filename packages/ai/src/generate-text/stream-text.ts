@@ -196,6 +196,7 @@ const isOutputChunkType = {
   'tool-call': true,
   'tool-result': false,
   'tool-error': false,
+  'tool-progress': false,
   'tool-execution-end': false,
   'model-call-start': false,
   'model-call-response-metadata': false,
@@ -2833,7 +2834,8 @@ class DefaultStreamTextResult<
                     case 'tool-input-start':
                     case 'tool-input-end':
                     case 'tool-input-delta':
-                    case 'tool-approval-request': {
+                    case 'tool-approval-request':
+                    case 'tool-progress': {
                       enqueueStepPart(controller, chunk);
                       break;
                     }

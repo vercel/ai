@@ -29,18 +29,35 @@ export async function* executeTool<TOOL extends Tool>({
   input: InferToolInput<TOOL>;
   options: ToolExecutionOptions<InferToolContext<TOOL>>;
 }): AsyncGenerator<
+  | { type: 'progress'; progress: unknown }
   | { type: 'preliminary'; output: InferToolOutput<TOOL> }
   | { type: 'final'; output: InferToolOutput<TOOL> }
 > {
   const result = tool.execute(input, options);
 
   if (isAsyncIterable(result)) {
+    const iterator = result[Symbol.asyncIterator]();
+    let next = await iterator.next();
     let lastOutput: InferToolOutput<TOOL> | undefined;
-    for await (const output of result) {
-      lastOutput = output;
-      yield { type: 'preliminary', output };
+
+    while (!next.done) {
+      const value = next.value;
+      if (
+        value &&
+        typeof value === 'object' &&
+        'type' in value &&
+        value.type === 'progress'
+      ) {
+        yield { type: 'progress', progress: value };
+      } else {
+        lastOutput = value as any;
+        yield { type: 'preliminary', output: lastOutput! };
+      }
+      next = await iterator.next();
     }
-    yield { type: 'final', output: lastOutput! };
+
+    const finalOutput = next.value !== undefined ? next.value : lastOutput;
+    yield { type: 'final', output: finalOutput as any };
   } else {
     yield { type: 'final', output: await result };
   }
