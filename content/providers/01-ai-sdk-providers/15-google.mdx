@@ -142,6 +142,17 @@ The following optional provider options are available for Google models:
 
   See [Troubleshooting: Schema Limitations](#schema-limitations) for more details.
 
+- **useResponseJsonSchema** _boolean_
+
+  Optional. Send the response schema as JSON Schema instead of the OpenAPI 3.0
+  subset that Google uses by default. Default is false.
+
+  JSON Schema supports features that the OpenAPI subset does not, e.g. unions
+  (`z.union`), records (`z.record`) and recursive schemas. Requires Gemini 2.5
+  or later.
+
+  See [Troubleshooting: Schema Limitations](#schema-limitations) for more details.
+
 - **safetySettings** _Array\<\{ category: string; threshold: string \}\>_
 
   Optional. Safety settings for the model.
@@ -1036,6 +1047,47 @@ The following Zod features are known to not work with Google:
 
 - `z.union`
 - `z.record`
+
+Alternatively, you can keep structured outputs enabled and send the schema as
+JSON Schema, which Gemini 2.5 and later models support:
+
+```ts highlight="5"
+const { output } = await generateText({
+  model: google('gemini-2.5-flash'),
+  providerOptions: {
+    google: {
+      useResponseJsonSchema: true,
+    } satisfies GoogleLanguageModelOptions,
+  },
+  output: Output.object({
+    schema: z.object({
+      name: z.string(),
+      age: z.number(),
+      contact: z.union([
+        z.object({
+          type: z.literal('email'),
+          value: z.string(),
+        }),
+        z.object({
+          type: z.literal('phone'),
+          value: z.string(),
+        }),
+      ]),
+    }),
+  }),
+  prompt: 'Generate an example person for testing.',
+});
+```
+
+JSON Schema also only supports a subset of the specification, and it is a
+different subset, so switching is a trade-off rather than an upgrade. There is
+no `pattern`, `minLength` or `maxLength` in it, and unsupported keywords are
+ignored instead of rejected, so a `z.string().min(3)` constraint silently stops
+being enforced. In the other direction, the conversion to the OpenAPI subset
+drops `minimum`, `maximum`, `minItems` and `maxItems`, which
+`responseJsonSchema` keeps. See the
+[Gemini structured output documentation](https://ai.google.dev/gemini-api/docs/structured-output)
+for the supported schema features.
 
 ### Model Capabilities
 

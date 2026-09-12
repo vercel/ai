@@ -90,6 +90,22 @@ export const googleLanguageModelOptions = lazySchema(() =>
       structuredOutputs: z.boolean().optional(),
 
       /**
+       * Optional. Send the response schema as JSON Schema
+       * (`generationConfig.responseJsonSchema`) instead of the OpenAPI 3.0
+       * subset (`generationConfig.responseSchema`). Default is false.
+       *
+       * JSON Schema supports features that the OpenAPI subset does not,
+       * e.g. unions (`anyOf`), records (`additionalProperties`) and
+       * recursive schemas (`$ref` / `$defs`). Requires Gemini 2.5 or later.
+       *
+       * It is a different subset rather than a superset: `pattern`,
+       * `minLength` and `maxLength` are ignored on this path.
+       *
+       * https://ai.google.dev/gemini-api/docs/structured-output
+       */
+      useResponseJsonSchema: z.boolean().optional(),
+
+      /**
        * Optional. A list of unique safety settings for blocking unsafe content.
        */
       safetySettings: z
