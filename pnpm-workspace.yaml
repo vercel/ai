@@ -5,6 +5,8 @@ packages:
   - 'examples/*'
   - 'packages/rsc/tests/e2e/next-server'
 
+virtualStoreType: global
+
 overrides:
   shell-quote: 1.10.0
   tinyexec: 1.0.2
