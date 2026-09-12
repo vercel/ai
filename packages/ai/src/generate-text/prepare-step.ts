@@ -33,3 +33,38 @@ export type PrepareStepResult<
       messages?: Array<ModelMessage>;
     }
   | undefined;
+
+export function resolveStepToolChoice<
+  TOOLS extends Record<string, Tool> = Record<string, Tool>,
+>({
+  toolChoice,
+  prepareStepToolChoice,
+  steps,
+  hasOutput,
+}: {
+  toolChoice: ToolChoice<TOOLS> | undefined;
+  prepareStepToolChoice: ToolChoice<TOOLS> | undefined;
+  steps: Array<StepResult<TOOLS>>;
+  hasOutput: boolean;
+}): ToolChoice<TOOLS> | undefined {
+  if (prepareStepToolChoice != null) {
+    return prepareStepToolChoice;
+  }
+
+  if (
+    !hasOutput ||
+    toolChoice == null ||
+    typeof toolChoice === 'string' ||
+    !steps.some(step =>
+      step.content.some(
+        part =>
+          (part.type === 'tool-result' || part.type === 'tool-error') &&
+          part.toolName === toolChoice.toolName,
+      ),
+    )
+  ) {
+    return toolChoice;
+  }
+
+  return 'none';
+}

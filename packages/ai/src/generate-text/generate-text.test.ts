@@ -2902,6 +2902,129 @@ describe('generateText', () => {
           }
         `);
       });
+
+      it('should stop forcing a specific tool after it has returned a result', async () => {
+        const toolChoices: Array<LanguageModelV2CallOptions['toolChoice']> = [];
+        let callCount = 0;
+
+        const result = await generateText({
+          model: new MockLanguageModelV2({
+            doGenerate: async ({ toolChoice }) => {
+              toolChoices.push(toolChoice);
+
+              if (callCount++ === 0) {
+                return {
+                  ...dummyResponseValues,
+                  finishReason: 'tool-calls',
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'resolveDate',
+                      input: `{ "date": "tomorrow" }`,
+                    },
+                  ],
+                };
+              }
+
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'text',
+                    text: `{ "date": "2026-09-04" }`,
+                  },
+                ],
+              };
+            },
+          }),
+          prompt: 'Resolve tomorrow.',
+          tools: {
+            resolveDate: tool({
+              inputSchema: z.object({ date: z.string() }),
+              execute: async () => '2026-09-04',
+            }),
+          },
+          toolChoice: { type: 'tool', toolName: 'resolveDate' },
+          stopWhen: stepCountIs(3),
+          experimental_output: Output.object({
+            schema: z.object({ date: z.string() }),
+          }),
+        });
+
+        expect(toolChoices).toEqual([
+          { type: 'tool', toolName: 'resolveDate' },
+          { type: 'none' },
+        ]);
+        expect(result.experimental_output).toEqual({ date: '2026-09-04' });
+        expect(result.steps).toHaveLength(2);
+      });
+
+      it('should honor a specific tool choice scoped by prepareStep', async () => {
+        const toolChoices: Array<LanguageModelV2CallOptions['toolChoice']> = [];
+        let callCount = 0;
+
+        const result = await generateText({
+          model: new MockLanguageModelV2({
+            doGenerate: async ({ toolChoice }) => {
+              toolChoices.push(toolChoice);
+
+              if (callCount++ === 0) {
+                return {
+                  ...dummyResponseValues,
+                  finishReason: 'tool-calls',
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'resolveDate',
+                      input: `{ "date": "tomorrow" }`,
+                    },
+                  ],
+                };
+              }
+
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'text',
+                    text: `{ "date": "2026-09-04" }`,
+                  },
+                ],
+              };
+            },
+          }),
+          prompt: 'Resolve tomorrow.',
+          tools: {
+            resolveDate: tool({
+              inputSchema: z.object({ date: z.string() }),
+              execute: async () => '2026-09-04',
+            }),
+          },
+          prepareStep: ({ stepNumber }) =>
+            stepNumber === 0
+              ? {
+                  toolChoice: {
+                    type: 'tool',
+                    toolName: 'resolveDate',
+                  },
+                }
+              : { toolChoice: 'none' },
+          stopWhen: stepCountIs(3),
+          experimental_output: Output.object({
+            schema: z.object({ date: z.string() }),
+          }),
+        });
+
+        expect(toolChoices).toEqual([
+          { type: 'tool', toolName: 'resolveDate' },
+          { type: 'none' },
+        ]);
+        expect(result.experimental_output).toEqual({ date: '2026-09-04' });
+      });
     });
 
     it('should not parse output when finish reason is tool-calls', async () => {

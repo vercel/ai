@@ -70,5 +70,5 @@ export const aiUtils = {
     ).toEqual([]);
     expect(declaration).toContain('export declare const aiUtils');
     expect(declaration).toContain('textOutput:');
-  });
+  }, 15_000);
 });

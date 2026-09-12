@@ -46,7 +46,10 @@ import { DefaultGeneratedFile } from './generated-file';
 import { isToolExecutionAllowedFinishReason } from './is-tool-execution-allowed-finish-reason';
 import type { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
-import type { PrepareStepFunction } from './prepare-step';
+import {
+  type PrepareStepFunction,
+  resolveStepToolChoice,
+} from './prepare-step';
 import type { ResponseMessage } from './response-message';
 import { type StepResult, DefaultStepResult } from './step-result';
 import {
@@ -355,7 +358,12 @@ A function that attempts to repair a tool call that failed to parse.
           const { toolChoice: stepToolChoice, tools: stepTools } =
             prepareToolsAndToolChoice({
               tools,
-              toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+              toolChoice: resolveStepToolChoice({
+                toolChoice,
+                prepareStepToolChoice: prepareStepResult?.toolChoice,
+                steps,
+                hasOutput: output != null,
+              }),
               activeTools: stepActiveTools,
             });
 
