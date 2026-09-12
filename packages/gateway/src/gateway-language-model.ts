@@ -103,8 +103,6 @@ export class GatewayLanguageModel implements LanguageModelV4 {
         ...responseBody,
         request: { body: args },
         response: { headers: responseHeaders, body: rawResponse },
-        // The gateway relays the upstream provider's warnings in the body;
-        // keep them ahead of any locally raised ones.
         warnings: [...(responseBody.warnings ?? []), ...warnings],
       };
     } catch (error) {
