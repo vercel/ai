@@ -1,10 +1,74 @@
 import { describe, expect, it } from 'vitest';
+import type { RealtimeServerEvent } from '../types/realtime-model';
 import {
   createInitialRealtimeState,
   RealtimeEventReducer,
 } from './realtime-event-reducer';
 
 describe('RealtimeEventReducer', () => {
+  it.each([
+    { type: 'session-started', sessionId: 'live-1', raw: {} },
+    {
+      type: 'session-closed',
+      usage: { seconds: 10 },
+      reason: 'closed',
+      raw: {},
+    },
+    { type: 'session-usage', usage: { seconds: 5 }, raw: {} },
+    { type: 'audio-chunk', delta: 'audio', raw: {} },
+    {
+      type: 'transcript-fragment',
+      speaker: 'assistant',
+      delta: 'fragment',
+      startMs: 0,
+      endMs: 100,
+      raw: {},
+    },
+    { type: 'delegation-created', delegationId: 'delegation-1', raw: {} },
+    { type: 'command-acknowledged', command: 'session.update', raw: {} },
+    { type: 'backend-event', event: { type: 'response.done' }, raw: {} },
+  ] satisfies RealtimeServerEvent[])(
+    'records $type without affecting an existing turn',
+    async event => {
+      const reducer = new RealtimeEventReducer();
+      const { state } = await reducer.reduceServerEvent(
+        {
+          ...createInitialRealtimeState(),
+          status: 'connected',
+          isPlaying: true,
+        },
+        {
+          type: 'text-delta',
+          responseId: 'response-1',
+          itemId: 'item-1',
+          delta: 'Hel',
+          raw: {},
+        },
+      );
+
+      const result = await reducer.reduceServerEvent(state, event);
+
+      expect(result.effects).toEqual([]);
+      expect(result.state).toEqual({
+        ...state,
+        events: [...state.events, event],
+      });
+      expect(result.state.messages).toBe(state.messages);
+
+      const continued = await reducer.reduceServerEvent(result.state, {
+        type: 'text-delta',
+        responseId: 'response-1',
+        itemId: 'item-1',
+        delta: 'lo',
+        raw: {},
+      });
+      expect(continued.state.messages).toHaveLength(1);
+      expect(continued.state.messages[0].parts).toEqual([
+        { type: 'text', text: 'Hello', state: 'streaming' },
+      ]);
+    },
+  );
+
   it('assembles streamed text into UI messages', async () => {
     const reducer = new RealtimeEventReducer();
     let state = createInitialRealtimeState();
