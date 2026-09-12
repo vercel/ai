@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.69
+
+### Patch Changes
+
+- f88c7dc: fix(vertex): download tool result file URLs
+
 ## 4.0.68
 
 ### Patch Changes

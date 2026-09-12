@@ -1,5 +1,13 @@
 # ai
 
+## 7.0.99
+
+### Patch Changes
+
+- 615ac89: feat(ai): use InvalidArgumentError for utility input validation
+- Updated dependencies [7f76d83]
+  - @ai-sdk/gateway@4.0.80
+
 ## 7.0.98
 
 ### Patch Changes
