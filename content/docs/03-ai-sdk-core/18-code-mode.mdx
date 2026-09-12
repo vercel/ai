@@ -112,6 +112,45 @@ The code mode tool description includes TypeScript signatures generated from
 the input and output schemas of its allowed tools. Descriptions,
 `inputExamples`, and precise schemas help the model write correct code.
 
+### Discovering Tools Through Conversation
+
+By default, changing the tools routed through code mode also changes the
+provider-visible `code_mode` tool description. Set `toolDiscovery` to
+`'conversation'` to keep that tool definition stable and provide the current
+host-tool catalog in a user message instead:
+
+```ts
+const codeMode = codeModeTool({
+  toolDiscovery: 'conversation',
+});
+
+const tools = {
+  code_mode: codeMode,
+  getInventory,
+  getDemand,
+} as const;
+
+const result = await generateText({
+  model: __MODEL__,
+  tools,
+  experimental_toolCallers: {
+    getInventory: ['code_mode'],
+    getDemand: ['code_mode'],
+  },
+  prompt: 'Compare inventory and demand for product sku_123.',
+});
+```
+
+The AI SDK adds a complete code mode capability catalog to the conversation
+before calling the model. The catalog contains TypeScript signatures and call
+examples for the tools routed through code mode. When the effective tools or
+their definitions change in a later step or generation call, the SDK adds a
+new catalog that replaces earlier catalogs.
+
+This mode can improve prompt-cache reuse because the provider-visible tool
+definition stays unchanged. Actual cache behavior depends on the model
+provider.
+
 For the example above, the model can generate a program like:
 
 ```ts
