@@ -6,6 +6,7 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { OpenAIResponsesToolResultOptions } from './openai-responses-additional-tools';
 
 const jsonValueSchema: z.ZodType<JSONValue> = z.lazy(() =>
   z.union([
@@ -157,6 +158,11 @@ const openaiResponsesLocalShellCallSchema = z.object({
 export type OpenAIResponsesInput = Array<OpenAIResponsesInputItem>;
 
 export type OpenAIResponsesInputItem =
+  | {
+      type: 'additional_tools';
+      role: 'developer';
+      tools: NonNullable<OpenAIResponsesToolResultOptions['additionalTools']>;
+    }
   | OpenAIResponsesSystemMessage
   | OpenAIResponsesUserMessage
   | OpenAIResponsesAssistantMessage

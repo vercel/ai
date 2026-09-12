@@ -65,6 +65,7 @@ import {
   type OpenAIResponsesUsage,
 } from './convert-openai-responses-usage';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
+import { omitHistoricalTools } from './openai-responses-additional-tools';
 import {
   expandParallelToolCall,
   isUndeclaredParallelToolCall,
@@ -732,7 +733,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       webSearchToolName,
       args: {
         ...baseArgs,
-        tools: openaiTools,
+        tools: omitHistoricalTools({ input, tools: openaiTools }),
         tool_choice: openaiToolChoice,
       },
       warnings: [...warnings, ...toolWarnings],

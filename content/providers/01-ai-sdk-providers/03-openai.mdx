@@ -1453,6 +1453,63 @@ In client mode, the flow spans two steps:
 
 For more details, see the [OpenAI Tool Search documentation](https://platform.openai.com/docs/guides/tools-tool-search).
 
+#### Additional Tools After a Function Result
+
+When your application loads tools through an ordinary function such as
+`readSkill`, attach `providerOptions.openai.additionalTools` to its successful
+tool-result part. The Responses provider emits the normal `function_call_output`
+followed immediately by an `additional_tools` item with `role: 'developer'`.
+
+```ts
+import type { OpenAIResponsesToolResultOptions } from '@ai-sdk/openai';
+import type { ToolModelMessage } from 'ai';
+
+const message: ToolModelMessage = {
+  role: 'tool',
+  content: [
+    {
+      type: 'tool-result',
+      toolCallId: 'call_read_skill',
+      toolName: 'readSkill',
+      output: { type: 'text', value: 'Use getExampleNumber to get the number.' },
+      providerOptions: {
+        openai: {
+          additionalTools: [
+            {
+              type: 'function',
+              name: 'getExampleNumber',
+              parameters: {
+                type: 'object',
+                properties: {},
+                additionalProperties: false,
+              },
+            },
+          ],
+        } satisfies OpenAIResponsesToolResultOptions,
+      },
+    },
+  ],
+};
+```
+
+Keep the implementations in `tools` and enable the loaded functions through
+`prepareStep.activeTools` on the next step. The provider options do not change
+which tools the SDK may execute in the current step.
+
+Matching definitions are omitted from request-level `tools`. Their name,
+description, parameters, and optional `strict` setting must match the SDK tool
+definition; conflicting definitions throw an error.
+
+For later turns, save all `responseMessages` with the tool-result options and
+replay them in order. If you attach the options in `prepareStep`, also attach them
+to the messages you save. The [generateText example](https://github.com/vercel/ai/blob/main/examples/ai-functions/src/generate-text/openai/additional-tools.ts)
+and [streamText example](https://github.com/vercel/ai/blob/main/examples/ai-functions/src/stream-text/openai/additional-tools.ts)
+demonstrate this with `store: false`.
+
+Only successful ordinary function results and flat function definitions with
+object parameters are supported. For details on the OpenAI transport, see
+[Add tools at a specific point in the input](https://developers.openai.com/api/docs/guides/tools-tool-search#add-tools-at-a-specific-point-in-the-input).
+
 #### Custom Tool
 
 The OpenAI Responses API supports
