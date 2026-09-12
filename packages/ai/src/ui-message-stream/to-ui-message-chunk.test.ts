@@ -532,14 +532,16 @@ describe('toUIMessageChunk', () => {
           dynamic: true,
         },
         {
-          onError: () => 'should not be used for provider-executed errors',
+          // providerExecuted errors are now routed through onError() for
+          // consistent sanitization, same as all other error paths.
+          onError: () => 'sanitized provider error',
           tools,
         },
       ),
     ).toEqual({
       type: 'tool-output-error',
       toolCallId: 'call-2',
-      errorText: '{"code":"provider-error"}',
+      errorText: 'sanitized provider error',
       providerExecuted: true,
       providerMetadata,
       toolMetadata,
@@ -559,7 +561,8 @@ describe('toUIMessageChunk', () => {
     ).toEqual({
       type: 'tool-output-error',
       toolCallId: 'call-string-error',
-      errorText: 'provider string error',
+      // default onError returns 'An error occurred.' for all errors including providerExecuted
+      errorText: 'An error occurred.',
       providerExecuted: true,
       dynamic: true,
     });

@@ -301,11 +301,10 @@ export function toUIMessageChunk<
       return {
         type: 'tool-output-error',
         toolCallId: part.toolCallId,
-        errorText: part.providerExecuted
-          ? typeof part.error === 'string'
-            ? part.error
-            : JSON.stringify(part.error)
-          : onError(part.error),
+        // Always route through onError() for consistent sanitization, even for
+        // providerExecuted tools (e.g. hosted web-search). This lets developers
+        // redact provider error metadata, matching the intent of every other error path.
+        errorText: onError(part.error),
         ...(part.providerExecuted != null
           ? { providerExecuted: part.providerExecuted }
           : {}),
