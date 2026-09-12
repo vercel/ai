@@ -34,6 +34,15 @@ import type {
   ToolCallRepairFunction,
 } from './workflow-agent.js';
 
+vi.mock('workflow', async importOriginal => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
+    sleep: (durationMs: number) =>
+      new Promise<void>(resolve => setTimeout(resolve, durationMs)),
+  };
+});
+
 // Mock the streamTextIterator
 vi.mock('./stream-text-iterator.js', () => ({
   streamTextIterator: vi.fn(),
