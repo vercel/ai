@@ -59,9 +59,12 @@ import {
   CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
   createClaudeCodeRequestTransformations,
   resolveClaudeCodeAuthenticationMode,
-  resolveClaudeCodeEnv,
   type ClaudeCodeAuthenticationMode,
 } from './claude-code-auth';
+import {
+  createClaudeCodeSubscriptionRequestTransformations,
+  resolveClaudeCodeAuthentication,
+} from './claude-code-subscription';
 import {
   outboundMessageSchema,
   type InboundMessage,
@@ -849,7 +852,9 @@ export function createClaudeCode(
       const authenticationMode = resolveClaudeCodeAuthenticationMode(
         settings.auth,
       );
-      const resolvedAuthEnvironment = resolveClaudeCodeEnv(settings.auth);
+      const resolvedAuthEnvironment = await resolveClaudeCodeAuthentication({
+        auth: settings.auth,
+      });
       const claudeEnvironment = {
         ...resolvedAuthEnvironment,
         /*
@@ -888,11 +893,17 @@ export function createClaudeCode(
           ...claudeEnvironment,
           ...sandboxCredentialEnvironment,
         };
-        const requestTransformations = createClaudeCodeRequestTransformations({
+        const transformationSources = {
           env: claudeEnvironment,
           sandboxEnv: sandboxClaudeEnvironment,
           auth: authenticationMode,
-        });
+        };
+        const requestTransformations = [
+          ...createClaudeCodeRequestTransformations(transformationSources),
+          ...createClaudeCodeSubscriptionRequestTransformations(
+            transformationSources,
+          ),
+        ];
         if (requestTransformations.length > 0) {
           await sandboxSession.addRequestTransformations(
             requestTransformations,

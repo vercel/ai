@@ -1,5 +1,23 @@
 # @ai-sdk/workflow-harness
 
+## 1.0.109
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.109
+
+## 1.0.108
+
+### Patch Changes
+
+- 633a385: fix(workflow-harness): preserve resumability when harness runs fail
+- d70a334: feat(workflow-harness): automatically persist validated `HarnessAgent` output in workflow results
+- Updated dependencies [4d1bf28]
+- Updated dependencies [cdc12a1]
+- Updated dependencies [d70a334]
+- Updated dependencies [81ba84c]
+  - @ai-sdk/harness@1.0.108
+
 ## 1.0.107
 
 ### Patch Changes
