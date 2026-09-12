@@ -19,6 +19,7 @@ import {
   generateId,
   type InferToolSetContext,
   isExecutableTool,
+  type ModelMessage,
   safeParseJSON,
   type Context,
   type Experimental_SandboxSession as SandboxSession,
@@ -148,6 +149,14 @@ export function runPrompt<
 } {
   const callId = generateId();
   const toolsContext = {} as InferToolSetContext<TOOLS>;
+  const approvalMessages: ModelMessage[] =
+    input.prompt == null
+      ? []
+      : [
+          typeof input.prompt === 'string'
+            ? { role: 'user', content: input.prompt }
+            : input.prompt,
+        ];
   const result = new HarnessStreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
     tools: input.tools,
     runtimeContext: input.runtimeContext,
@@ -473,12 +482,14 @@ export function runPrompt<
     const enqueueApprovalRequest = (approval: {
       approvalId: string;
       toolCall: ToolCallTextStreamPart;
+      reason?: string;
       isAutomatic?: boolean;
     }): void => {
       const part = {
         type: 'tool-approval-request',
         approvalId: approval.approvalId,
         toolCall: approval.toolCall,
+        ...(approval.reason !== undefined ? { reason: approval.reason } : {}),
         ...(approval.isAutomatic !== undefined
           ? { isAutomatic: approval.isAutomatic }
           : {}),
@@ -1148,8 +1159,12 @@ export function runPrompt<
             await finishForHostInputPause({ completeCurrentStep: true });
             return;
           }
-          const customToolApprovalDecision = resolveCustomToolApproval({
-            toolName: toolCall.toolName,
+          const customToolApprovalDecision = await resolveCustomToolApproval({
+            toolCall: parsedToolCall as TypedToolCall<ToolSet>,
+            tools: activeTools,
+            toolsContext,
+            messages: approvalMessages,
+            runtimeContext: input.runtimeContext,
             toolApproval: input.toolApproval,
           });
           if (customToolApprovalDecision.type === 'deny') {
@@ -1231,6 +1246,7 @@ export function runPrompt<
             enqueueApprovalRequest({
               approvalId: pendingApproval.approvalId,
               toolCall: pendingParsedToolCall,
+              reason: customToolApprovalDecision.reason,
             });
             if (
               expectedStepToolCallCount != null &&

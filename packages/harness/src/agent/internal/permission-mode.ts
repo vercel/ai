@@ -1,4 +1,10 @@
-import type { ToolApprovalStatus } from 'ai';
+import type {
+  Context,
+  InferToolSetContext,
+  ModelMessage,
+  ToolSet,
+} from '@ai-sdk/provider-utils';
+import type { ToolApprovalStatus, TypedToolCall } from 'ai';
 import type { HarnessV1PermissionMode } from '../../v1';
 import type { HarnessAgentToolApprovalConfiguration } from '../harness-agent-settings';
 
@@ -20,14 +26,33 @@ export function permissionModeNeedsBuiltinSupport(input: {
 export type CustomToolApprovalDecision =
   | { readonly type: 'allow'; readonly reason?: string }
   | { readonly type: 'deny'; readonly reason?: string }
-  | { readonly type: 'request' };
+  | { readonly type: 'request'; readonly reason?: string };
 
-export function resolveCustomToolApproval(input: {
-  toolName: string;
-  toolApproval: HarnessAgentToolApprovalConfiguration | undefined;
-}): CustomToolApprovalDecision {
+export async function resolveCustomToolApproval<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context,
+>(input: {
+  toolCall: TypedToolCall<TOOLS>;
+  tools: TOOLS;
+  toolsContext: InferToolSetContext<TOOLS>;
+  messages: ModelMessage[];
+  runtimeContext: RUNTIME_CONTEXT;
+  toolApproval:
+    | HarnessAgentToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>
+    | undefined;
+}): Promise<CustomToolApprovalDecision> {
+  const configuredStatus =
+    typeof input.toolApproval === 'function'
+      ? await input.toolApproval({
+          toolCall: input.toolCall,
+          tools: input.tools,
+          toolsContext: input.toolsContext,
+          messages: input.messages,
+          runtimeContext: input.runtimeContext,
+        })
+      : input.toolApproval?.[input.toolCall.toolName];
   const status = normalizeToolApprovalStatus({
-    status: input.toolApproval?.[input.toolName],
+    status: configuredStatus,
   });
 
   switch (status.type) {
@@ -37,7 +62,7 @@ export function resolveCustomToolApproval(input: {
     case 'denied':
       return { type: 'deny', reason: status.reason };
     case 'user-approval':
-      return { type: 'request' };
+      return { type: 'request', reason: status.reason };
   }
 }
 
