@@ -1,4 +1,5 @@
 import { AISDKError } from '@ai-sdk/provider';
+import type { OAuthTokens } from '../tool/oauth-types';
 
 const name = 'AI_MCPClientOAuthError';
 const marker = `vercel.ai.error.${name}`;
@@ -36,6 +37,14 @@ export class InvalidClientError extends MCPClientOAuthError {
 
 export class InvalidGrantError extends MCPClientOAuthError {
   static errorCode = 'invalid_grant';
+  /**
+   * The token generation that the authorization server rejected, when the
+   * failure came from a refresh attempt that had read the stored tokens.
+   * Credential storage shared by multiple clients can compare this generation
+   * against the one currently persisted and only delete it when it still
+   * matches, so a concurrent successful refresh is not destroyed.
+   */
+  tokens?: OAuthTokens;
 }
 
 export class UnauthorizedClientError extends MCPClientOAuthError {
