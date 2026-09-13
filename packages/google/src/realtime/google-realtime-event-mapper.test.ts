@@ -616,7 +616,47 @@ describe('GoogleRealtimeEventMapper', () => {
       });
     });
 
-    it('falls back to empty object for malformed function-call-output', async () => {
+    // Gemini types `functionResponse.response` as a `google.protobuf.Struct`: an
+    // object, and nothing else. `onToolCall` returns `unknown`, so a string, number,
+    // array or null arrives as valid JSON of the wrong shape and used to go on the
+    // wire unwrapped, where Gemini closed the socket with 1007.
+    it.each([
+      ['a string', '"SEARCH_UNAVAILABLE"', { output: 'SEARCH_UNAVAILABLE' }],
+      ['a number', '42', { output: 42 }],
+      ['an array', '["a","b"]', { output: ['a', 'b'] }],
+      ['null', 'null', { output: null }],
+      ['a boolean', 'false', { output: false }],
+    ])(
+      'wraps %s tool result so the response stays an object',
+      async (_label, output, expected) => {
+        const result = await mapper.serializeClientEvent(
+          {
+            type: 'conversation-item-create',
+            item: {
+              type: 'function-call-output',
+              callId: 'call_1',
+              name: 'getWeather',
+              output,
+            },
+          },
+          'model',
+        );
+
+        expect(result).toEqual({
+          toolResponse: {
+            functionResponses: [
+              { id: 'call_1', name: 'getWeather', response: expected },
+            ],
+          },
+        });
+      },
+    );
+
+    // This case used to assert `response: {}`, under the name "falls back to empty
+    // object". That was the defect written down: the model was told the tool returned
+    // an empty object, with nothing thrown, nothing warned and the socket still up, so
+    // the answer was wrong and there was nothing to notice.
+    it('keeps unparseable function-call-output as text instead of an empty object', async () => {
       const result = await mapper.serializeClientEvent(
         {
           type: 'conversation-item-create',
@@ -636,7 +676,7 @@ describe('GoogleRealtimeEventMapper', () => {
             {
               id: 'call_1',
               name: 'getWeather',
-              response: {},
+              response: { output: '{' },
             },
           ],
         },
