@@ -14,7 +14,7 @@ class MockWebSocket {
   onopen: (() => void) | null = null;
   onmessage: ((event: unknown) => void) | null = null;
   onerror: (() => void) | null = null;
-  onclose: (() => void) | null = null;
+  onclose: ((event: unknown) => void) | null = null;
 
   constructor(
     public url: string,
@@ -111,11 +111,40 @@ describe('BrowserRealtimeTransport', () => {
 
     expect(firstSocket.close).toHaveBeenCalledOnce();
 
-    firstSocket.onclose?.();
+    firstSocket.onclose?.({ code: 1000, reason: '' });
     expect(onClose).not.toHaveBeenCalled();
 
-    secondSocket.onclose?.();
+    secondSocket.onclose?.({ code: 1000, reason: '' });
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('passes the close code and reason to onClose', () => {
+    const onClose = vi.fn();
+    const transport = new BrowserRealtimeTransport({
+      model,
+      onServerEvent: vi.fn(),
+      onError: vi.fn(),
+      onClose,
+    });
+
+    transport.connect({
+      token: 'token',
+      url: 'wss://example.com',
+      onOpen: vi.fn(),
+    });
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+
+    ws.onclose?.({
+      code: 1007,
+      reason: 'Request contains an invalid argument',
+    });
+
+    expect(onClose).toHaveBeenCalledOnce();
+    expect(onClose).toHaveBeenCalledWith({
+      code: 1007,
+      reason: 'Request contains an invalid argument',
+    });
   });
 
   it('preserves send order when serialization is async', async () => {

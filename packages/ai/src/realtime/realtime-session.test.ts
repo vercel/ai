@@ -6,15 +6,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const sentEvents: Array<{ type: string; [key: string]: unknown }> = [];
 const transportInstances: Array<{
   emitServerEvent: (event: unknown) => Promise<void> | void;
+  emitClose: (event: unknown) => void;
 }> = [];
 
 vi.mock('./browser-realtime-transport', () => ({
   BrowserRealtimeTransport: class {
     private readonly options: {
       onServerEvent: (event: unknown) => Promise<void> | void;
+      onClose: (event: unknown) => void;
     };
     constructor(options: {
       onServerEvent: (event: unknown) => Promise<void> | void;
+      onClose: (event: unknown) => void;
     }) {
       this.options = options;
       transportInstances.push(this);
@@ -28,6 +31,9 @@ vi.mock('./browser-realtime-transport', () => ({
     };
     emitServerEvent(event: unknown) {
       return this.options.onServerEvent(event);
+    }
+    emitClose(event: unknown) {
+      return this.options.onClose(event);
     }
   },
 }));
@@ -108,6 +114,33 @@ describe('AbstractRealtimeSession', () => {
     expect(onError.mock.calls[0][0].message).toContain(
       'No handler provided for tool',
     );
+  });
+
+  it('surfaces abnormal close codes through onError', () => {
+    const onError = vi.fn();
+    new TestSession({ model: {} as never, api: { token: 'token' }, onError });
+
+    const transport = transportInstances.at(-1)!;
+    transport.emitClose({
+      code: 1007,
+      reason: 'Request contains an invalid argument',
+    });
+
+    expect(onError).toHaveBeenCalledOnce();
+    expect(onError.mock.calls[0][0].message).toContain('1007');
+    expect(onError.mock.calls[0][0].message).toContain(
+      'Request contains an invalid argument',
+    );
+  });
+
+  it('does not error on a normal close', () => {
+    const onError = vi.fn();
+    new TestSession({ model: {} as never, api: { token: 'token' }, onError });
+
+    const transport = transportInstances.at(-1)!;
+    transport.emitClose({ code: 1000, reason: '' });
+
+    expect(onError).not.toHaveBeenCalled();
   });
 
   it('requests a single response after all tool outputs are submitted', async () => {

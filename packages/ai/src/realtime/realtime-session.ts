@@ -83,7 +83,20 @@ export abstract class AbstractRealtimeSession {
         this.applyState(this.reducer.setStatus(this.state, 'error'));
         this.onError?.(error);
       },
-      onClose: () => {
+      onClose: event => {
+        // A close that reaches the session is always remote (the transport
+        // suppresses it after a local `disconnect()`). Surface abnormal close
+        // codes as errors so protocol kills (e.g. Gemini Live 1007) are not
+        // mistaken for a clean hangup, while still transitioning to
+        // `disconnected`.
+        if (event.code !== 1000 && event.code !== 1005) {
+          const reason = event.reason.trim();
+          this.onError?.(
+            new Error(
+              `Realtime connection closed unexpectedly (code ${event.code}${reason ? `: ${reason}` : ''})`,
+            ),
+          );
+        }
         this.applyState(this.reducer.setStatus(this.state, 'disconnected'));
       },
     });
