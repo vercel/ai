@@ -236,6 +236,153 @@ describe('GatewayLanguageModel', () => {
       const headers = server.calls[0].requestHeaders;
       expect(headers).toMatchObject(o11yHeaders);
     });
+
+    it('should automatically use streaming fallback for Anthropic model when maxOutputTokens exceeds 21,333', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'response-metadata',
+            id: 'resp-stream-1',
+            modelId: 'anthropic/claude-opus-5',
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'text-delta',
+            textDelta: 'Hello from Anthropic large token stream',
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'finish',
+            finishReason: 'stop',
+            usage: {
+              prompt_tokens: 15,
+              completion_tokens: 30000,
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const anthropicModel = new GatewayLanguageModel(
+        'anthropic/claude-opus-5',
+        {
+          provider: 'gateway',
+          baseURL: 'https://api.test.com',
+          headers: () => ({ Authorization: 'Bearer test-token' }),
+          fetch: globalThis.fetch,
+          o11yHeaders: {},
+        },
+      );
+
+      const result = await anthropicModel.doGenerate({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 64000,
+      });
+
+      expect(server.calls).toHaveLength(1);
+      const headers = server.calls[0].requestHeaders;
+      expect(headers['ai-language-model-streaming']).toBe('true');
+      expect(headers['ai-language-model-id']).toBe('anthropic/claude-opus-5');
+
+      expect(result.content).toEqual([
+        { type: 'text', text: 'Hello from Anthropic large token stream' },
+      ]);
+      expect(result.finishReason.unified).toBe('stop');
+      expect(result.usage.outputTokens.total).toBe(30000);
+      expect(result.warnings).toEqual([
+        {
+          type: 'compatibility',
+          feature: 'maxOutputTokens',
+          details: expect.stringContaining('21,333'),
+        },
+      ]);
+    });
+
+    it('should fall back to streaming when non-streaming request is rejected with 21K limit error', async () => {
+      server.urls['https://api.test.com/language-model'].response = [
+        {
+          type: 'error',
+          status: 400,
+          body: JSON.stringify({
+            error: {
+              message:
+                'max output tokens plus reasoning effort tokens must be under 21K for anthropic/claude-opus-5',
+              type: 'invalid_request_error',
+            },
+          }),
+        },
+        {
+          type: 'stream-chunks',
+          chunks: [
+            `data: ${JSON.stringify({
+              type: 'text-delta',
+              textDelta: 'Recovered via streaming fallback',
+            })}\n\n`,
+            `data: ${JSON.stringify({
+              type: 'finish',
+              finishReason: 'stop',
+              usage: {
+                prompt_tokens: 20,
+                completion_tokens: 22000,
+              },
+            })}\n\n`,
+          ],
+        },
+      ];
+
+      const model = new GatewayLanguageModel('anthropic/claude-opus-5', {
+        provider: 'gateway',
+        baseURL: 'https://api.test.com',
+        headers: () => ({ Authorization: 'Bearer test-token' }),
+        fetch: globalThis.fetch,
+        o11yHeaders: {},
+      });
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 12000,
+      });
+
+      expect(server.calls).toHaveLength(2);
+      expect(
+        server.calls[0].requestHeaders['ai-language-model-streaming'],
+      ).toBe('false');
+      expect(
+        server.calls[1].requestHeaders['ai-language-model-streaming'],
+      ).toBe('true');
+
+      expect(result.content).toEqual([
+        { type: 'text', text: 'Recovered via streaming fallback' },
+      ]);
+      expect(result.finishReason.unified).toBe('stop');
+      expect(result.usage.outputTokens.total).toBe(22000);
+      expect(result.warnings).toEqual([
+        {
+          type: 'compatibility',
+          feature: 'maxOutputTokens',
+          details: expect.stringContaining('21,333'),
+        },
+      ]);
+    });
+
+    it('should not fall back to streaming for standard invalid_request_error', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'error',
+        status: 400,
+        body: JSON.stringify({
+          error: {
+            message: 'Invalid prompt parameters',
+            type: 'invalid_request_error',
+          },
+        }),
+      };
+
+      const model = createTestModel();
+
+      await expect(model.doGenerate({ prompt: TEST_PROMPT })).rejects.toThrow(
+        GatewayInvalidRequestError,
+      );
+
+      expect(server.calls).toHaveLength(1);
+    });
     it('should convert API call errors to Gateway errors', async () => {
       server.urls['https://api.test.com/language-model'].response = {
         type: 'error',
