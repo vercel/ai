@@ -1,9 +1,9 @@
 import type { JSONSchema7, JSONSchema7Definition } from '@ai-sdk/provider';
 
 /**
- * Recursively replaces `const` with a single-value `enum` because Google does
- * not support `const` in `responseJsonSchema`. All other schema properties are
- * preserved.
+ * Recursively replaces `const` with a single-value `enum` in the JSON Schema
+ * locations supported by Google because `responseJsonSchema` does not support
+ * `const`. All other schema properties are preserved.
  */
 export function sanitizeResponseJsonSchema(schema: JSONSchema7): JSONSchema7 {
   const {
