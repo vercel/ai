@@ -20,7 +20,6 @@ import {
 } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockImageModelV4 } from '../test/mock-image-model-v4';
-import type { ImageModelUsage } from '../types/usage';
 import type { Warning } from '../types/warning';
 import { generateImage } from './generate-image';
 
@@ -46,12 +45,8 @@ const createMockResponse = (options: {
   modelId?: string;
   providerMetaData?: ImageModelV4ProviderMetadata;
   headers?: Record<string, string>;
-<<<<<<< HEAD
-  usage?: ImageModelUsage;
-=======
   usage?: ImageModelV4Usage;
   isRetryable?: ImageModelV4Result['isRetryable'];
->>>>>>> origin/main
 }) => ({
   images: options.images,
   isRetryable: options.isRetryable,
@@ -583,27 +578,6 @@ describe('generateImage', () => {
   });
 
   describe('error handling', () => {
-<<<<<<< HEAD
-    it('should include completed call diagnostics when no images are returned', async () => {
-      const warnings: Warning[] = [
-        {
-          type: 'other',
-          message: 'The provider returned no image.',
-        },
-      ];
-      const providerMetadata = {
-        testProvider: {
-          images: [],
-          requestId: 'request-1',
-        },
-      };
-      const usage = {
-        inputTokens: 10,
-        outputTokens: 0,
-        totalTokens: 10,
-      };
-
-=======
     it('should retry when no images are returned and a later attempt succeeds', async () => {
       vi.useFakeTimers();
 
@@ -806,8 +780,25 @@ describe('generateImage', () => {
       }
     });
 
-    it('should throw NoImageGeneratedError when no images are returned', async () => {
->>>>>>> origin/main
+    it('should include completed call diagnostics when no images are returned', async () => {
+      const warnings: Warning[] = [
+        {
+          type: 'other',
+          message: 'The provider returned no image.',
+        },
+      ];
+      const providerMetadata = {
+        testProvider: {
+          images: [],
+          requestId: 'request-1',
+        },
+      };
+      const usage = {
+        inputTokens: 10,
+        outputTokens: 0,
+        totalTokens: 10,
+      };
+
       await expect(
         generateImage({
           model: new MockImageModelV4({
@@ -980,6 +971,7 @@ describe('generateImage', () => {
           }),
           prompt,
           n: 2,
+          maxRetries: 0,
         }),
       ).rejects.toMatchObject({
         calls: [

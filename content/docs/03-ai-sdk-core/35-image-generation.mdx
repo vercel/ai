@@ -230,11 +230,7 @@ images.
 
 The error preserves the following information to help you log the issue:
 
-<<<<<<< HEAD
-- `calls`: The completed image model calls, including their images, provider metadata, response metadata, warnings, and usage.
-=======
-- `calls`: Results from the underlying image model calls, including generated images, provider metadata, response metadata, warnings, and usage.
->>>>>>> origin/main
+- `calls`: Results from the completed underlying image model calls, including generated images, provider metadata, response metadata, warnings, and usage.
 - `responses`: Metadata about the image model responses, including timestamp, model, and headers.
 - `cause`: The cause of the error. You can use this for more detailed error handling.
 
@@ -245,22 +241,15 @@ try {
   await generateImage({ model, prompt });
 } catch (error) {
   if (NoImageGeneratedError.isInstance(error)) {
-<<<<<<< HEAD
-    for (const call of error.calls ?? []) {
-      console.log('Model:', call.response.modelId);
-      console.log('Warnings:', call.warnings);
-      console.log('Usage:', call.usage);
-      console.log('Provider metadata:', call.providerMetadata);
-=======
     console.log('NoImageGeneratedError');
     console.log('Cause:', error.cause);
     console.log('Responses:', error.responses);
 
     for (const call of error.calls ?? []) {
+      console.log('Model:', call.response.modelId);
       console.log('Provider metadata:', call.providerMetadata);
       console.log('Warnings:', call.warnings);
       console.log('Usage:', call.usage);
->>>>>>> origin/main
     }
   }
 }
