@@ -1607,7 +1607,6 @@ describe('XaiResponsesLanguageModel', () => {
           ]
         `);
       });
-
     });
 
     describe('citations', () => {
