@@ -1682,7 +1682,9 @@ describe('doGenerate', () => {
               {
                 "description": "",
                 "name": "test-tool",
-                "parameters": {
+                "parametersJsonSchema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
                   "properties": {
                     "value": {
                       "type": "string",
@@ -1717,7 +1719,7 @@ describe('doGenerate', () => {
         }),
     },
   ])(
-    'should inline local JSON Schema references in $name tool requests',
+    'should preserve local JSON Schema references in $name tool requests',
     async ({ createModel }) => {
       prepareJsonFixtureResponse('google-text');
 
@@ -1748,17 +1750,20 @@ describe('doGenerate', () => {
 
       expect(
         (await server.calls[0].requestBodyJson).tools[0].functionDeclarations[0]
-          .parameters,
+          .parametersJsonSchema,
       ).toEqual({
         type: 'object',
         properties: {
           locale: {
-            type: 'string',
-            enum: ['de', 'en'],
+            $ref: '#/$defs/Locale',
             description: 'Locale for formatting',
           },
         },
         required: ['locale'],
+        additionalProperties: false,
+        $defs: {
+          Locale: { type: 'string', enum: ['de', 'en'] },
+        },
       });
     },
   );
@@ -1834,8 +1839,7 @@ describe('doGenerate', () => {
           },
         ],
         "generationConfig": {
-          "responseMimeType": "application/json",
-          "responseSchema": {
+          "responseJsonSchema": {
             "properties": {
               "location": {
                 "type": "string",
@@ -1843,6 +1847,7 @@ describe('doGenerate', () => {
             },
             "type": "object",
           },
+          "responseMimeType": "application/json",
         },
       }
     `);
@@ -1871,7 +1876,8 @@ describe('doGenerate', () => {
     });
 
     expect(
-      (await server.calls[0].requestBodyJson).generationConfig.responseSchema,
+      (await server.calls[0].requestBodyJson).generationConfig
+        .responseJsonSchema,
     ).toEqual({
       type: 'object',
       properties: {
@@ -1886,7 +1892,7 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should inline local JSON Schema references in response schemas', async () => {
+  it('should preserve local JSON Schema references in response schemas', async () => {
     prepareJsonFixtureResponse('google-text');
 
     await model.doGenerate({
@@ -1907,13 +1913,17 @@ describe('doGenerate', () => {
     });
 
     expect(
-      (await server.calls[0].requestBodyJson).generationConfig.responseSchema,
+      (await server.calls[0].requestBodyJson).generationConfig
+        .responseJsonSchema,
     ).toEqual({
       type: 'object',
       properties: {
-        locale: { type: 'string', enum: ['de', 'en'] },
+        locale: { $ref: '#/$defs/Locale' },
       },
       required: ['locale'],
+      $defs: {
+        Locale: { type: 'string', enum: ['de', 'en'] },
+      },
     });
   });
 
@@ -1949,8 +1959,8 @@ describe('doGenerate', () => {
           },
         ],
         "generationConfig": {
-          "responseMimeType": "application/json",
-          "responseSchema": {
+          "responseJsonSchema": {
+            "additionalProperties": false,
             "properties": {
               "property1": {
                 "type": "string",
@@ -1965,6 +1975,7 @@ describe('doGenerate', () => {
             ],
             "type": "object",
           },
+          "responseMimeType": "application/json",
         },
       }
     `);
@@ -2060,7 +2071,8 @@ describe('doGenerate', () => {
               {
                 "description": "",
                 "name": "test-tool",
-                "parameters": {
+                "parametersJsonSchema": {
+                  "additionalProperties": false,
                   "properties": {
                     "property1": {
                       "type": "string",
@@ -2145,8 +2157,7 @@ describe('doGenerate', () => {
           },
         ],
         "generationConfig": {
-          "responseMimeType": "application/json",
-          "responseSchema": {
+          "responseJsonSchema": {
             "properties": {
               "text": {
                 "type": "string",
@@ -2157,6 +2168,7 @@ describe('doGenerate', () => {
             ],
             "type": "object",
           },
+          "responseMimeType": "application/json",
         },
       }
     `);
@@ -7188,7 +7200,9 @@ describe('doStream', () => {
               {
                 "description": "",
                 "name": "test-tool",
-                "parameters": {
+                "parametersJsonSchema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
                   "properties": {
                     "value": {
                       "type": "string",
@@ -7585,7 +7599,9 @@ describe('doStream', () => {
               {
                 "description": "",
                 "name": "test-tool",
-                "parameters": {
+                "parametersJsonSchema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
                   "properties": {
                     "value": {
                       "type": "string",
