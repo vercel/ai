@@ -1,5 +1,65 @@
 # @ai-sdk/azure
 
+## 2.0.134
+
+### Patch Changes
+
+- Updated dependencies [41fda08]
+- Updated dependencies [2c72feb]
+  - @ai-sdk/deepseek@1.0.57
+
+## 2.0.133
+
+### Patch Changes
+
+- Updated dependencies [fd889a3]
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/openai@2.0.127
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+  - @ai-sdk/deepseek@1.0.56
+
+## 2.0.132
+
+### Patch Changes
+
+- 022f24b: Include explicit message item types in Azure AI Foundry Responses requests.
+- Updated dependencies [022f24b]
+- Updated dependencies [a15b75a]
+  - @ai-sdk/openai@2.0.126
+
+## 2.0.131
+
+### Patch Changes
+
+- Updated dependencies [e0d0bd1]
+  - @ai-sdk/openai@2.0.125
+
+## 2.0.130
+
+### Patch Changes
+
+- Updated dependencies [7bebd57]
+  - @ai-sdk/openai@2.0.124
+
+## 2.0.129
+
+### Patch Changes
+
+- e5b75d9: Construct OpenAI v1 URLs for Azure AI Foundry (`*.services.ai.azure.com`) and Cognitive Services (`*.cognitiveservices.azure.com`) hostnames while preserving complete v1 and Foundry project base URLs.
+- Updated dependencies [26165ee]
+  - @ai-sdk/provider-utils@3.0.36
+  - @ai-sdk/deepseek@1.0.55
+  - @ai-sdk/openai@2.0.123
+
+## 2.0.128
+
+### Patch Changes
+
+- Updated dependencies [f70d0a3]
+  - @ai-sdk/openai@2.0.122
+
 ## 2.0.127
 
 ### Patch Changes

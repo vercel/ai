@@ -18,7 +18,8 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesLocalShellCall
   | OpenAIResponsesLocalShellCallOutput
   | OpenAIResponsesReasoning
-  | OpenAIResponsesItemReference;
+  | OpenAIResponsesItemReference
+  | OpenAIResponsesConfigurationUpdate;
 
 export type OpenAIResponsesIncludeValue =
   | 'web_search_call.action.sources'
@@ -35,6 +36,7 @@ export type OpenAIResponsesIncludeOptions =
   | null;
 
 export type OpenAIResponsesSystemMessage = {
+  type?: 'message';
   role: 'system' | 'developer';
   content:
     | string
@@ -46,6 +48,7 @@ export type OpenAIResponsesSystemMessage = {
 };
 
 export type OpenAIResponsesUserMessage = {
+  type?: 'message';
   role: 'user';
   content: Array<
     | {
@@ -83,6 +86,7 @@ export type OpenAIResponsesUserMessage = {
 };
 
 export type OpenAIResponsesAssistantMessage = {
+  type?: 'message';
   role: 'assistant';
   content: Array<{ type: 'output_text'; text: string }>;
   id?: string;
@@ -94,6 +98,7 @@ export type OpenAIResponsesFunctionCall = {
   call_id: string;
   name: string;
   arguments: string;
+  async?: boolean;
   id?: string;
 };
 
@@ -153,6 +158,13 @@ export type OpenAIResponsesItemReference = {
   id: string;
 };
 
+export type OpenAIResponsesConfigurationUpdate = {
+  type: 'configuration_update';
+  reasoning: {
+    effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+  };
+};
+
 /**
  * A filter used to compare a specified attribute key to a given value using a defined comparison operation.
  */
@@ -197,6 +209,7 @@ export type OpenAIResponsesTool =
       name: string;
       description: string | undefined;
       parameters: JSONSchema7;
+      async?: boolean;
       strict: boolean | undefined;
     }
   | {
@@ -360,6 +373,7 @@ export const openaiResponsesChunkSchema = lazyValidator(() =>
             call_id: z.string(),
             name: z.string(),
             arguments: z.string(),
+            async: z.boolean().nullish(),
           }),
           z.object({
             type: z.literal('web_search_call'),
@@ -416,6 +430,7 @@ export const openaiResponsesChunkSchema = lazyValidator(() =>
             call_id: z.string(),
             name: z.string(),
             arguments: z.string(),
+            async: z.boolean().nullish(),
             status: z.literal('completed'),
           }),
           z.object({
@@ -770,6 +785,7 @@ export const openaiResponsesResponseSchema = lazyValidator(() =>
               name: z.string(),
               arguments: z.string(),
               id: z.string(),
+              async: z.boolean().nullish(),
             }),
             z.object({
               type: z.literal('computer_call'),

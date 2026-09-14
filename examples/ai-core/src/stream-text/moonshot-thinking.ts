@@ -4,14 +4,12 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: moonshotai('kimi-k2.6'),
+    model: moonshotai('kimi-k2.7-code'),
     prompt:
       'Solve this problem step by step: If a train travels 120 miles in 2 hours, how far will it travel in 5 hours at the same speed?',
     providerOptions: {
       moonshotai: {
-        thinking: {
-          type: 'enabled',
-        },
+        thinking: { type: 'enabled' },
         reasoningHistory: 'preserved',
       } satisfies MoonshotAIProviderOptions,
     },

@@ -1,5 +1,73 @@
 # @ai-sdk/gateway
 
+## 2.0.151
+
+### Patch Changes
+
+- 0d4a425: fix(gateway): forward server-returned warnings on language model doGenerate
+
+  `generateText(...).warnings` through the gateway provider was always an empty
+  array: `doGenerate` spread the gateway response body and then overwrote the
+  server's `warnings` with a locally constructed empty array. The warnings the
+  gateway relays from the upstream provider (and gateway-originated warnings)
+  are now forwarded, matching the streaming path and every other modality.
+
+## 2.0.150
+
+### Patch Changes
+
+- 73fa129: Backport: chore(provider/gateway): update gateway model settings files
+- 5a19081: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.149
+
+### Patch Changes
+
+- c2089a9: Retry unclassified empty image results, preserve completed-attempt diagnostics, add provider-independent result retryability classification, preserve it through the AI Gateway, and mark Google Vertex RAI-filtered results as terminal.
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+
+## 2.0.148
+
+### Patch Changes
+
+- 79ac7d9: Backport: chore(provider/gateway): update gateway model settings files
+- ca8f9e5: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.147
+
+### Patch Changes
+
+- b436246: feat(gateway): add support for gpt-6-astra
+
+## 2.0.146
+
+### Patch Changes
+
+- cfa33a0: feat(google): add gemini-3.8-flash model
+- 8ee6f7d: Backport: chore(provider/gateway): update gateway model settings files
+- 2287da5: Backport: chore(provider/gateway): update gateway model settings files
+- 526f371: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.145
+
+### Patch Changes
+
+- 78a29c2: feat(anthropic): add fable 5.1 support
+
+## 2.0.144
+
+### Patch Changes
+
+- 810dc70: Backport: chore(provider/gateway): update gateway model settings files
+- 7a926ba: Backport: chore(provider/gateway): update gateway model settings files
+- 25c1956: Backport: chore(provider/gateway): update gateway model settings files
+- 26165ee: Mark transient network errors that occur while reading successful response bodies as retryable, including AI Gateway responses.
+- Updated dependencies [26165ee]
+  - @ai-sdk/provider-utils@3.0.36
+
 ## 2.0.143
 
 ### Patch Changes

@@ -1,5 +1,47 @@
 # @ai-sdk/openai
 
+## 2.0.127
+
+### Patch Changes
+
+- fd889a3: fix(openai): return an AI SDK error for empty chat completion choices
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+
+## 2.0.126
+
+### Patch Changes
+
+- 022f24b: Include explicit message item types in Azure AI Foundry Responses requests.
+- a15b75a: Add async function tool calling support for OpenAI Responses models.
+
+## 2.0.125
+
+### Patch Changes
+
+- e0d0bd1: feat(openai): add GPT-6 reasoning configuration updates
+
+## 2.0.124
+
+### Patch Changes
+
+- 7bebd57: feat(openai): add support for the gpt-6-astra
+
+## 2.0.123
+
+### Patch Changes
+
+- Updated dependencies [26165ee]
+  - @ai-sdk/provider-utils@3.0.36
+
+## 2.0.122
+
+### Patch Changes
+
+- f70d0a3: Normalize non-object replayed Chat Completions tool arguments to empty objects.
+
 ## 2.0.121
 
 ### Patch Changes

@@ -101,6 +101,17 @@ describe('MoonshotAIProvider', () => {
       const model = provider(modelId);
       expect(model).toBeInstanceOf(MoonshotAIChatLanguageModel);
     });
+
+    it.each([
+      'moonshot-v1-auto',
+      'moonshot-v1-8k-vision-preview',
+      'moonshot-v1-32k-vision-preview',
+      'moonshot-v1-128k-vision-preview',
+    ] as const)('should create a model for official model ID %s', modelId => {
+      const provider = createMoonshotAI();
+
+      expect(provider(modelId).modelId).toBe(modelId);
+    });
   });
 
   describe('chatModel', () => {

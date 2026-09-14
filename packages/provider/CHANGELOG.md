@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 2.0.4
+
+### Patch Changes
+
+- c2089a9: Retry unclassified empty image results, preserve completed-attempt diagnostics, add provider-independent result retryability classification, preserve it through the AI Gateway, and mark Google Vertex RAI-filtered results as terminal.
+
 ## 2.0.3
 
 ### Patch Changes

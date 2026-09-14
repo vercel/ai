@@ -90,6 +90,26 @@ describe('openaiResponses schema alignment', () => {
     expectTypeOf<DoneChunkPhase>().toEqualTypeOf<ResponsePhase>();
   });
 
+  it('aligns async mode between function call schemas', () => {
+    type AddedAsync = Extract<
+      Extract<Chunk, { type: 'response.output_item.added' }>['item'],
+      { type: 'function_call' }
+    >['async'];
+
+    type DoneAsync = Extract<
+      Extract<Chunk, { type: 'response.output_item.done' }>['item'],
+      { type: 'function_call' }
+    >['async'];
+
+    type ResponseAsync = Extract<
+      NonNullable<Response['output']>[number],
+      { type: 'function_call' }
+    >['async'];
+
+    expectTypeOf<AddedAsync>().toEqualTypeOf<DoneAsync>();
+    expectTypeOf<DoneAsync>().toEqualTypeOf<ResponseAsync>();
+  });
+
   it('aligns output_text logprobs', () => {
     type ChunkLogprobs = Extract<
       Chunk,

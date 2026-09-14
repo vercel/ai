@@ -87,7 +87,6 @@ async function main() {
     '@ai-sdk/hume',
     '@ai-sdk/langchain',
     '@ai-sdk/llamaindex',
-    '@ai-sdk/lmnt',
     '@ai-sdk/luma',
     '@ai-sdk/revai',
     '@ai-sdk/valibot',

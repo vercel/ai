@@ -1,5 +1,5 @@
 import { anthropicTools } from '@ai-sdk/anthropic/internal';
-import { loadOptionalSetting } from '@ai-sdk/provider-utils';
+import { loadOptionalSetting, loadSetting } from '@ai-sdk/provider-utils';
 import { type Mock, describe, it, expect, vi, beforeEach } from 'vitest';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { BedrockEmbeddingModel } from './bedrock-embedding-model';
@@ -56,7 +56,7 @@ vi.mock('@ai-sdk/provider-utils', async importOriginal => {
     loadOptionalSetting: vi
       .fn()
       .mockImplementation(({ settingValue }) => settingValue),
-    withoutTrailingSlash: vi.fn(url => url),
+    withoutTrailingSlash: vi.fn(url => url?.replace(/\/$/, '')),
     generateId: vi.fn().mockReturnValue('mock-id'),
     createJsonErrorResponseHandler: vi.fn(),
     createJsonResponseHandler: vi.fn(),
@@ -75,6 +75,7 @@ vi.mock('./version', () => ({
 const mockCreateSigV4FetchFunction = vi.mocked(createSigV4FetchFunction);
 const mockCreateApiKeyFetchFunction = vi.mocked(createApiKeyFetchFunction);
 const mockLoadOptionalSetting = vi.mocked(loadOptionalSetting);
+const mockLoadSetting = vi.mocked(loadSetting);
 
 describe('AmazonBedrockProvider', () => {
   beforeEach(() => {
@@ -120,6 +121,104 @@ describe('AmazonBedrockProvider', () => {
         'ai-sdk/amazon-bedrock/0.0.0-test',
       );
       expect(constructorCall[1].baseUrl()).toBe('https://custom.url');
+    });
+
+    it.each([
+      ['cn-north-1', 'amazonaws.com.cn'],
+      ['us-gov-west-1', 'amazonaws.com'],
+      ['us-iso-east-1', 'c2s.ic.gov'],
+      ['us-isob-east-1', 'sc2s.sgov.gov'],
+      ['eu-isoe-west-1', 'cloud.adc-e.uk'],
+      ['us-isof-south-1', 'csp.hci.ic.gov'],
+      ['eusc-de-east-1', 'amazonaws.eu'],
+    ])('resolves the Bedrock Runtime endpoint for %s', (region, dnsSuffix) => {
+      const provider = createAmazonBedrock({ region });
+
+      provider('anthropic.claude-v2');
+
+      const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
+      expect(constructorCall[1].baseUrl()).toBe(
+        `https://bedrock-runtime.${region}.${dnsSuffix}`,
+      );
+    });
+
+    it('uses an explicit base URL without loading a region', () => {
+      mockLoadOptionalSetting.mockImplementation(
+        ({ settingValue, environmentVariableName }) => {
+          if (settingValue != null) {
+            return settingValue;
+          }
+          if (environmentVariableName === 'AWS_ENDPOINT_URL_BEDROCK_RUNTIME') {
+            return 'https://runtime.example.com';
+          }
+          if (environmentVariableName === 'AWS_ENDPOINT_URL') {
+            return 'https://global.example.com';
+          }
+          return undefined;
+        },
+      );
+
+      const provider = createAmazonBedrock({
+        apiKey: 'test-api-key',
+        baseURL: 'https://explicit.example.com/',
+      });
+
+      provider('anthropic.claude-v2');
+
+      const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
+      expect(constructorCall[1].baseUrl()).toBe('https://explicit.example.com');
+      expect(mockLoadSetting).not.toHaveBeenCalled();
+    });
+
+    it('prefers the service-specific endpoint over the global endpoint', () => {
+      mockLoadOptionalSetting.mockImplementation(
+        ({ settingValue, environmentVariableName }) => {
+          if (settingValue != null) {
+            return settingValue;
+          }
+          if (environmentVariableName === 'AWS_ENDPOINT_URL_BEDROCK_RUNTIME') {
+            return 'https://runtime.example.com/';
+          }
+          if (environmentVariableName === 'AWS_ENDPOINT_URL') {
+            return 'https://global.example.com';
+          }
+          return undefined;
+        },
+      );
+
+      const provider = createAmazonBedrock({
+        apiKey: 'test-api-key',
+      });
+
+      provider('anthropic.claude-v2');
+
+      const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
+      expect(constructorCall[1].baseUrl()).toBe('https://runtime.example.com');
+      expect(mockLoadSetting).not.toHaveBeenCalled();
+    });
+
+    it('uses the global endpoint when no service-specific endpoint is set', () => {
+      mockLoadOptionalSetting.mockImplementation(
+        ({ settingValue, environmentVariableName }) => {
+          if (settingValue != null) {
+            return settingValue;
+          }
+          if (environmentVariableName === 'AWS_ENDPOINT_URL') {
+            return 'https://global.example.com/';
+          }
+          return undefined;
+        },
+      );
+
+      const provider = createAmazonBedrock({
+        apiKey: 'test-api-key',
+      });
+
+      provider('anthropic.claude-v2');
+
+      const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
+      expect(constructorCall[1].baseUrl()).toBe('https://global.example.com');
+      expect(mockLoadSetting).not.toHaveBeenCalled();
     });
 
     it('should accept a credentialProvider in options', () => {

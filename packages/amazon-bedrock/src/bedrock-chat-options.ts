@@ -108,6 +108,14 @@ export type BedrockFilePartProviderOptions = z.infer<
 
 export const bedrockProviderOptions = z.object({
   /**
+   * Determines how structured outputs are generated for Anthropic models.
+   *
+   * - `outputFormat`: Use the native `output_config.format` parameter.
+   * - `jsonTool`: Use a special 'json' tool to specify the structured output format.
+   * - `auto`: Use `outputFormat` when supported, otherwise use `jsonTool` (default).
+   */
+  structuredOutputMode: z.enum(['outputFormat', 'jsonTool', 'auto']).optional(),
+  /**
    * Additional inference parameters that the model supports,
    * beyond the base set of inference parameters that Converse
    * supports in the inferenceConfig field

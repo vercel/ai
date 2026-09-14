@@ -8,9 +8,7 @@ run(async () => {
     prompt: 'How many "r"s are in the word "strawberry"?',
     providerOptions: {
       moonshotai: {
-        thinking: {
-          type: 'enabled',
-        },
+        thinking: { type: 'enabled' },
         reasoningHistory: 'preserved',
       } satisfies MoonshotAIProviderOptions,
     },

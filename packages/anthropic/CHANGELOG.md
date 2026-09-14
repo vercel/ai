@@ -1,5 +1,34 @@
 # @ai-sdk/anthropic
 
+## 2.0.102
+
+### Patch Changes
+
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+
+## 2.0.101
+
+### Patch Changes
+
+- 78a29c2: feat(anthropic): add fable 5.1 support
+
+## 2.0.100
+
+### Patch Changes
+
+- cd8f35c: Preserve tool calls when using JSON structured output.
+- Updated dependencies [26165ee]
+  - @ai-sdk/provider-utils@3.0.36
+
+## 2.0.99
+
+### Patch Changes
+
+- 78c7304: fix(anthropic): order client tool calls after provider-executed tool results
+
 ## 2.0.98
 
 ### Patch Changes

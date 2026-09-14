@@ -47,7 +47,10 @@ import {
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
-import type { ResponsesUsageProviderMetadata } from './openai-responses-provider-metadata';
+import type {
+  ResponsesToolCallProviderMetadata,
+  ResponsesUsageProviderMetadata,
+} from './openai-responses-provider-metadata';
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
@@ -132,12 +135,52 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       await convertToOpenAIResponsesInput({
         prompt,
         systemMessageMode: modelCapabilities.systemMessageMode,
+        explicitMessageItemType: this.config.explicitMessageItemType,
         fileIdPrefixes: this.config.fileIdPrefixes,
         store: openaiOptions?.store ?? true,
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
       });
 
     warnings.push(...inputWarnings);
+
+    let resolvedReasoningEffort = openaiOptions?.reasoningEffort;
+
+    if (
+      resolvedReasoningEffort != null &&
+      modelCapabilities.supportedReasoningEfforts != null &&
+      !modelCapabilities.supportedReasoningEfforts.includes(
+        resolvedReasoningEffort,
+      )
+    ) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'reasoningEffort',
+        details: `${this.modelId} only supports the following reasoning efforts: ${modelCapabilities.supportedReasoningEfforts.join(', ')}`,
+      });
+      resolvedReasoningEffort = undefined;
+    }
+
+    const reasoningEffortUpdate = openaiOptions?.reasoningEffortUpdate;
+    const configurationUpdateIsSupported =
+      reasoningEffortUpdate == null ||
+      (modelCapabilities.supportsConfigurationUpdate &&
+        openaiOptions?.reasoningMode !== 'pro' &&
+        openaiOptions?.truncation !== 'auto');
+
+    if (reasoningEffortUpdate != null && !configurationUpdateIsSupported) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'reasoningEffortUpdate',
+        details: !modelCapabilities.supportsConfigurationUpdate
+          ? 'reasoningEffortUpdate is only supported by GPT-6 and later models'
+          : 'reasoningEffortUpdate requires standard reasoning mode without automatic truncation',
+      });
+    } else if (reasoningEffortUpdate != null) {
+      input.unshift({
+        type: 'configuration_update',
+        reasoning: { effort: reasoningEffortUpdate },
+      });
+    }
 
     const strictJsonSchema = openaiOptions?.strictJsonSchema ?? false;
 
@@ -244,13 +287,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
       // model-specific settings:
       ...(modelCapabilities.isReasoningModel &&
-        (openaiOptions?.reasoningEffort != null ||
+        (resolvedReasoningEffort != null ||
           openaiOptions?.reasoningSummary != null ||
           openaiOptions?.reasoningMode != null ||
           openaiOptions?.reasoningContext != null) && {
           reasoning: {
-            ...(openaiOptions?.reasoningEffort != null && {
-              effort: openaiOptions.reasoningEffort,
+            ...(resolvedReasoningEffort != null && {
+              effort: resolvedReasoningEffort,
             }),
             ...(openaiOptions?.reasoningSummary != null && {
               summary: openaiOptions.reasoningSummary,
@@ -264,6 +307,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           },
         }),
     };
+
+    if (
+      modelCapabilities.supportsConfigurationUpdate &&
+      baseArgs.prompt_cache_retention != null
+    ) {
+      baseArgs.prompt_cache_retention = undefined;
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'promptCacheRetention',
+        details:
+          'promptCacheRetention is not supported by GPT-6 and later models; use promptCacheOptions instead',
+      });
+    }
 
     // remove unsupported settings for reasoning models
     // see https://platform.openai.com/docs/guides/reasoning#limitations
@@ -291,6 +347,26 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             type: 'unsupported-setting',
             setting: 'topP',
             details: 'topP is not supported for reasoning models',
+          });
+        }
+
+        if (
+          modelCapabilities.supportedReasoningEfforts != null &&
+          (baseArgs.top_logprobs != null ||
+            baseArgs.include?.includes('message.output_text.logprobs'))
+        ) {
+          baseArgs.top_logprobs = undefined;
+          const filteredInclude = baseArgs.include?.filter(
+            value => value !== 'message.output_text.logprobs',
+          );
+          baseArgs.include =
+            filteredInclude != null && filteredInclude.length > 0
+              ? filteredInclude
+              : undefined;
+          warnings.push({
+            type: 'unsupported-setting',
+            setting: 'logprobs',
+            details: 'logprobs is not supported for reasoning models',
           });
         }
       }
@@ -366,6 +442,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       tools,
       toolChoice,
       strictJsonSchema,
+      supportsAsyncToolCalling: modelCapabilities.supportsAsyncToolCalling,
     });
 
     return {
@@ -594,7 +671,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             providerMetadata: {
               [providerKey]: {
                 itemId: part.id,
-              },
+                ...(part.async != null && { async: part.async }),
+              } satisfies ResponsesToolCallProviderMetadata,
             },
           });
           break;
@@ -795,6 +873,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       | {
           toolName: string;
           toolCallId: string;
+          async?: boolean | null;
           codeInterpreter?: {
             containerId: string;
           };
@@ -858,6 +937,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 ongoingToolCalls[value.output_index] = {
                   toolName: value.item.name,
                   toolCallId: value.item.call_id,
+                  async: value.item.async,
                 };
 
                 controller.enqueue({
@@ -993,6 +1073,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   },
                 });
               } else if (value.item.type === 'function_call') {
+                const ongoingToolCall = ongoingToolCalls[value.output_index];
                 ongoingToolCalls[value.output_index] = undefined;
                 hasFunctionCall = true;
 
@@ -1009,7 +1090,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   providerMetadata: {
                     [providerKey]: {
                       itemId: value.item.id,
-                    },
+                      ...(value.item.async != null
+                        ? { async: value.item.async }
+                        : ongoingToolCall?.async != null
+                          ? { async: ongoingToolCall.async }
+                          : {}),
+                    } satisfies ResponsesToolCallProviderMetadata,
                   },
                 });
               } else if (value.item.type === 'web_search_call') {

@@ -68,6 +68,7 @@ describe('getOpenAILanguageModelCapabilities', () => {
       ['gpt-5.6-luna', true],
       ['gpt-5.6-sol', true],
       ['gpt-5.6-terra', true],
+      ['gpt-6-astra', true],
       ['gpt-5.99', true],
       ['gpt-99', true],
       ['gpt-99-mini', true],
@@ -104,9 +105,10 @@ describe('getOpenAILanguageModelCapabilities', () => {
       ['gpt-5.6-luna', true],
       ['gpt-5.6-sol', true],
       ['gpt-5.6-terra', true],
+      ['gpt-6-astra', false],
       ['gpt-5.99', true],
       ['gpt-5.100', true],
-      ['gpt-99', true],
+      ['gpt-99', false],
       ['gpt-5', false],
       ['gpt-5.0', false],
       ['gpt-5-mini', false],
@@ -121,6 +123,52 @@ describe('getOpenAILanguageModelCapabilities', () => {
         expect(
           getOpenAILanguageModelCapabilities(modelId)
             .supportsNonReasoningParameters,
+        ).toEqual(expectedCapabilities);
+      },
+    );
+  });
+
+  describe('GPT-6 and later reasoning capabilities', () => {
+    it.each([
+      ['gpt-5.6', false],
+      ['gpt-6-astra', true],
+      ['gpt-6.1', true],
+      ['gpt-7', true],
+      ['gpt-99', true],
+      ['custom-model', false],
+    ])(
+      '%s supports async tool calling: %s',
+      (modelId, expectedCapabilities) => {
+        expect(
+          getOpenAILanguageModelCapabilities(modelId).supportsAsyncToolCalling,
+        ).toEqual(expectedCapabilities);
+      },
+    );
+
+    it.each([
+      ['gpt-5.6', false],
+      ['gpt-6-astra', true],
+      ['gpt-6.1', true],
+      ['gpt-99', true],
+    ])(
+      '%s supports configuration updates: %s',
+      (modelId, expectedCapabilities) => {
+        expect(
+          getOpenAILanguageModelCapabilities(modelId)
+            .supportsConfigurationUpdate,
+        ).toEqual(expectedCapabilities);
+      },
+    );
+
+    it.each([
+      ['gpt-5.6', undefined],
+      ['gpt-6-astra', ['low', 'medium', 'high', 'xhigh', 'max']],
+      ['gpt-99', ['low', 'medium', 'high', 'xhigh', 'max']],
+    ])(
+      '%s supports the expected reasoning efforts',
+      (modelId, expectedCapabilities) => {
+        expect(
+          getOpenAILanguageModelCapabilities(modelId).supportedReasoningEfforts,
         ).toEqual(expectedCapabilities);
       },
     );

@@ -48,6 +48,7 @@ type BedrockChatConfig = {
 
 const anthropicProviderOptions = z.object({
   disableParallelToolUse: z.boolean().optional(),
+  structuredOutputMode: z.enum(['outputFormat', 'jsonTool', 'auto']).optional(),
 });
 
 export class BedrockChatLanguageModel implements LanguageModelV2 {
@@ -152,12 +153,46 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     const isThinkingRequested =
       bedrockOptions.reasoningConfig?.type === 'enabled' ||
       bedrockOptions.reasoningConfig?.type === 'adaptive';
+
+    const structuredOutputMode =
+      bedrockOptions.structuredOutputMode ??
+      anthropicOptions?.structuredOutputMode ??
+      'auto';
+
+    if (structuredOutputMode === 'jsonTool') {
+      const additionalModelRequestFields = {
+        ...bedrockOptions.additionalModelRequestFields,
+      };
+      const outputConfig = additionalModelRequestFields.output_config;
+
+      if (
+        outputConfig != null &&
+        typeof outputConfig === 'object' &&
+        !Array.isArray(outputConfig)
+      ) {
+        const outputConfigWithoutFormat = { ...outputConfig };
+        delete outputConfigWithoutFormat.format;
+
+        if (Object.keys(outputConfigWithoutFormat).length > 0) {
+          additionalModelRequestFields.output_config =
+            outputConfigWithoutFormat;
+        } else {
+          delete additionalModelRequestFields.output_config;
+        }
+
+        bedrockOptions.additionalModelRequestFields =
+          additionalModelRequestFields;
+      }
+    }
+
     const useNativeStructuredOutput =
       isAnthropicModel &&
-      supportsNativeStructuredOutput(this.modelId) &&
-      isThinkingRequested &&
       responseFormat?.type === 'json' &&
-      responseFormat.schema != null;
+      responseFormat.schema != null &&
+      (structuredOutputMode === 'outputFormat' ||
+        (structuredOutputMode === 'auto' &&
+          supportsNativeStructuredOutput(this.modelId) &&
+          isThinkingRequested));
 
     const jsonResponseTool: LanguageModelV2FunctionTool | undefined =
       responseFormat?.type === 'json' &&
@@ -395,6 +430,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       reasoningConfig: _,
       additionalModelRequestFields: __,
       serviceTier: ___,
+      structuredOutputMode: ____,
       ...filteredBedrockOptions
     } = providerOptions?.bedrock || {};
 
@@ -475,6 +511,12 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       // text
       if (part.text) {
         content.push({ type: 'text', text: part.text });
+      } else if (part.text == null && part.citationsContent) {
+        for (const generatedContent of part.citationsContent.content ?? []) {
+          if (generatedContent.text != null) {
+            content.push({ type: 'text', text: generatedContent.text });
+          }
+        }
       }
 
       // reasoning
@@ -1005,10 +1047,24 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
   }
 }
 
+// Native structured output can fail to adhere to complex schemas on Sonnet
+// 4.6, while Haiku 4.5 support varies between Bedrock accounts.
+const MODELS_WITHOUT_RELIABLE_NATIVE_STRUCTURED_OUTPUT = [
+  'anthropic.claude-sonnet-4-6',
+  'anthropic.claude-haiku-4-5',
+];
+
 function supportsNativeStructuredOutput(modelId: string): boolean {
+  if (
+    MODELS_WITHOUT_RELIABLE_NATIVE_STRUCTURED_OUTPUT.some(model =>
+      modelId.includes(model),
+    )
+  ) {
+    return false;
+  }
+
   return (
     modelId.includes('anthropic.claude-sonnet-4-5') ||
-    modelId.includes('anthropic.claude-haiku-4-5') ||
     modelId.includes('anthropic.claude-opus-4-5') ||
     modelId.includes('anthropic.claude-opus-4-6')
   );
@@ -1035,6 +1091,16 @@ const BedrockToolUseSchema = z.object({
   input: z.unknown(),
 });
 
+const BedrockCitationsContentSchema = z.object({
+  content: z
+    .array(
+      z.object({
+        text: z.string().nullish(),
+      }),
+    )
+    .nullish(),
+});
+
 const BedrockReasoningTextSchema = z.object({
   signature: z.string().nullish(),
   text: z.string(),
@@ -1057,6 +1123,7 @@ const BedrockResponseSchema = z.object({
       content: z.array(
         z.object({
           text: z.string().nullish(),
+          citationsContent: BedrockCitationsContentSchema.nullish(),
           toolUse: BedrockToolUseSchema.nullish(),
           reasoningContent: z
             .union([
@@ -1102,6 +1169,9 @@ const BedrockStreamSchema = z.object({
       delta: z
         .union([
           z.object({ text: z.string() }),
+          z.object({
+            citation: z.record(z.string(), z.unknown()),
+          }),
           z.object({ toolUse: z.object({ input: z.string() }) }),
           z.object({
             reasoningContent: z.object({ text: z.string() }),

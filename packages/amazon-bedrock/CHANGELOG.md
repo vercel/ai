@@ -1,5 +1,64 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.131
+
+### Patch Changes
+
+- 24bda53: fix(amazon-bedrock): resolve endpoints for non-standard AWS partitions and endpoint overrides
+
+## 3.0.130
+
+### Patch Changes
+
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+  - @ai-sdk/anthropic@2.0.102
+
+## 3.0.129
+
+### Patch Changes
+
+- 1a80de8: fix(amazon-bedrock): return text from non-streaming citation responses
+
+## 3.0.128
+
+### Patch Changes
+
+- Updated dependencies [78a29c2]
+  - @ai-sdk/anthropic@2.0.101
+
+## 3.0.127
+
+### Patch Changes
+
+- 27787e5: Add a structured output mode option and default Claude Sonnet 4.6 and Claude Haiku 4.5 to the JSON tool fallback.
+
+## 3.0.126
+
+### Patch Changes
+
+- 07ef4be: Omit assistant messages when only cache points remain after unsigned reasoning is filtered.
+- 0393692: Accept citation deltas in Amazon Bedrock streaming responses.
+- Updated dependencies [cd8f35c]
+- Updated dependencies [26165ee]
+  - @ai-sdk/anthropic@2.0.100
+  - @ai-sdk/provider-utils@3.0.36
+
+## 3.0.125
+
+### Patch Changes
+
+- Updated dependencies [78c7304]
+  - @ai-sdk/anthropic@2.0.99
+
+## 3.0.124
+
+### Patch Changes
+
+- 7a7a971: Forward the Anthropic option for disabling parallel tool use through Amazon Bedrock without sending conflicting tool choice fields.
+
 ## 3.0.123
 
 ### Patch Changes

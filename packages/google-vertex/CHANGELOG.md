@@ -1,5 +1,62 @@
 # @ai-sdk/google-vertex
 
+## 3.0.174
+
+### Patch Changes
+
+- c2089a9: Retry unclassified empty image results, preserve completed-attempt diagnostics, add provider-independent result retryability classification, preserve it through the AI Gateway, and mark Google Vertex RAI-filtered results as terminal.
+- Updated dependencies [fd889a3]
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/openai-compatible@1.0.54
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+  - @ai-sdk/anthropic@2.0.102
+  - @ai-sdk/google@2.0.97
+
+## 3.0.173
+
+### Patch Changes
+
+- cfa33a0: feat(google): add gemini-3.8-flash model
+- Updated dependencies [cfa33a0]
+  - @ai-sdk/google@2.0.96
+
+## 3.0.172
+
+### Patch Changes
+
+- Updated dependencies [78a29c2]
+  - @ai-sdk/anthropic@2.0.101
+
+## 3.0.171
+
+### Patch Changes
+
+- Updated dependencies [cd8f35c]
+- Updated dependencies [26165ee]
+  - @ai-sdk/anthropic@2.0.100
+  - @ai-sdk/provider-utils@3.0.36
+  - @ai-sdk/google@2.0.95
+  - @ai-sdk/openai-compatible@1.0.53
+
+## 3.0.170
+
+### Patch Changes
+
+- Updated dependencies [c43ba7d]
+- Updated dependencies [78c7304]
+- Updated dependencies [7a292cd]
+  - @ai-sdk/google@2.0.94
+  - @ai-sdk/anthropic@2.0.99
+
+## 3.0.169
+
+### Patch Changes
+
+- Updated dependencies [a3fe2a8]
+  - @ai-sdk/google@2.0.93
+
 ## 3.0.168
 
 ### Patch Changes

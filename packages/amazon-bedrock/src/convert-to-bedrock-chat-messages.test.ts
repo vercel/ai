@@ -851,6 +851,41 @@ describe('assistant messages', () => {
     });
   });
 
+  it('should omit an assistant message when only a cache point remains after filtering unsigned reasoning', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Think hard then answer' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'Let me consider the options',
+          },
+        ],
+        providerOptions: {
+          bedrock: { cachePoint: { type: 'default' } },
+        },
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Hello?' }],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Think hard then answer' }, { text: 'Hello?' }],
+        },
+      ],
+      system: [],
+    });
+  });
+
   it.each([
     {
       description: 'only unsigned reasoning',

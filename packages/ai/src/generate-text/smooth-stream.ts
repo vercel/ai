@@ -8,6 +8,15 @@ const CHUNKING_REGEXPS = {
   line: /\n+/m,
 };
 
+// Browsers heavily throttle timers in hidden documents (e.g. background tabs),
+// which would stall the smoothing delay and, through backpressure, the entire
+// stream. Smoothing has no visual purpose there, so the delay is skipped.
+function isDocumentHidden(): boolean {
+  return (
+    typeof document !== 'undefined' && document.visibilityState === 'hidden'
+  );
+}
+
 /**
  * Detects the first chunk in a buffer.
  *
@@ -20,7 +29,7 @@ export type ChunkDetector = (buffer: string) => string | undefined | null;
 /**
  * Smooths text streaming output.
  *
- * @param delayInMs - The delay in milliseconds between each chunk. Defaults to 10ms. Can be set to `null` to skip the delay.
+ * @param delayInMs - The delay in milliseconds between each chunk. Defaults to 10ms. Can be set to `null` to skip the delay. The delay is skipped while the document is hidden (e.g. browser background tabs), where timer throttling would otherwise stall the stream.
  * @param chunking - Controls how the text is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, or provide a custom RegExp pattern for custom chunking.
  *
  * @returns A transform stream that smooths text streaming output.
@@ -115,7 +124,7 @@ export function smoothStream<TOOLS extends ToolSet>({
           controller.enqueue({ type: 'text-delta', text: match, id });
           buffer = buffer.slice(match.length);
 
-          await delay(delayInMs);
+          await delay(isDocumentHidden() ? null : delayInMs);
         }
       },
     });

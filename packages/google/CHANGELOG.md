@@ -1,5 +1,40 @@
 # @ai-sdk/google
 
+## 2.0.97
+
+### Patch Changes
+
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+
+## 2.0.96
+
+### Patch Changes
+
+- cfa33a0: feat(google): add gemini-3.8-flash model
+
+## 2.0.95
+
+### Patch Changes
+
+- Updated dependencies [26165ee]
+  - @ai-sdk/provider-utils@3.0.36
+
+## 2.0.94
+
+### Patch Changes
+
+- c43ba7d: Surface prompt-level Google safety blocks without candidates as content-filter results with prompt feedback metadata.
+- 7a292cd: Omit unsupported frequency and presence penalties from Gemini 2.5 requests and return warnings instead.
+
+## 2.0.93
+
+### Patch Changes
+
+- a3fe2a8: fix(google): convert enum values to the Gemini schema format
+
 ## 2.0.92
 
 ### Patch Changes

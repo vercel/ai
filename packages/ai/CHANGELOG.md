@@ -1,5 +1,88 @@
 # ai
 
+## 5.0.257
+
+### Patch Changes
+
+- Updated dependencies [0d4a425]
+  - @ai-sdk/gateway@2.0.151
+
+## 5.0.256
+
+### Patch Changes
+
+- Updated dependencies [73fa129]
+- Updated dependencies [5a19081]
+  - @ai-sdk/gateway@2.0.150
+
+## 5.0.255
+
+### Patch Changes
+
+- c2089a9: Retry unclassified empty image results, preserve completed-attempt diagnostics, add provider-independent result retryability classification, preserve it through the AI Gateway, and mark Google Vertex RAI-filtered results as terminal.
+- 7f4e217: fix(ai): decode text data URLs in Node.js
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/gateway@2.0.149
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+
+## 5.0.254
+
+### Patch Changes
+
+- Updated dependencies [79ac7d9]
+- Updated dependencies [ca8f9e5]
+  - @ai-sdk/gateway@2.0.148
+
+## 5.0.253
+
+### Patch Changes
+
+- 5643ec9: fix(ai): allow manual continuations to reuse JSON tool outputs with undefined object properties
+- Updated dependencies [b436246]
+  - @ai-sdk/gateway@2.0.147
+
+## 5.0.252
+
+### Patch Changes
+
+- 2c12cd3: fix(ai): skip `smoothStream` delays while the document is hidden
+- Updated dependencies [cfa33a0]
+- Updated dependencies [8ee6f7d]
+- Updated dependencies [2287da5]
+- Updated dependencies [526f371]
+  - @ai-sdk/gateway@2.0.146
+
+## 5.0.251
+
+### Patch Changes
+
+- Updated dependencies [78a29c2]
+  - @ai-sdk/gateway@2.0.145
+
+## 5.0.250
+
+### Patch Changes
+
+- 4e3f54b: Validate persisted typed tool calls against current input and output schemas.
+  Schema-incompatible empty or error inputs and completed or failed history from
+  unavailable tools remain loadable as dynamic tool parts instead of exposing
+  unvalidated values under current static tool types.
+- 26165ee: Mark transient network errors that occur while reading successful response bodies as retryable, including AI Gateway responses.
+- Updated dependencies [810dc70]
+- Updated dependencies [7a926ba]
+- Updated dependencies [25c1956]
+- Updated dependencies [26165ee]
+  - @ai-sdk/gateway@2.0.144
+  - @ai-sdk/provider-utils@3.0.36
+
+## 5.0.249
+
+### Patch Changes
+
+- 989be6f: add operation-level outcomes to UI message stream end callbacks
+
 ## 5.0.248
 
 ### Patch Changes

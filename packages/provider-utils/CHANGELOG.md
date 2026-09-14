@@ -1,5 +1,19 @@
 # @ai-sdk/provider-utils
 
+## 3.0.37
+
+### Patch Changes
+
+- ab3990f: fix(provider-utils): avoid excessive memory usage when base64 encoding byte arrays
+- Updated dependencies [c2089a9]
+  - @ai-sdk/provider@2.0.4
+
+## 3.0.36
+
+### Patch Changes
+
+- 26165ee: Mark transient network errors that occur while reading successful response bodies as retryable, including AI Gateway responses.
+
 ## 3.0.35
 
 ### Patch Changes
