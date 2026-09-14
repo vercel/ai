@@ -104,6 +104,13 @@ For AI Gateway, pass `gateway.experimental_realtime(...)` as the model and point
       description: 'Called for every normalized realtime server event.',
     },
     {
+      name: 'onClose',
+      type: '(event: CloseEvent) => void',
+      isOptional: true,
+      description:
+        'Called when the realtime WebSocket closes. The event contains the WebSocket close code and reason.',
+    },
+    {
       name: 'onError',
       type: '(error: Error) => void',
       isOptional: true,

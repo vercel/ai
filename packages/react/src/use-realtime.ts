@@ -152,11 +152,13 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
   const callbacksRef = useRef({
     onToolCall: options.onToolCall,
     onEvent: options.onEvent,
+    onClose: options.onClose,
     onError: options.onError,
   });
   callbacksRef.current = {
     onToolCall: options.onToolCall,
     onEvent: options.onEvent,
+    onClose: options.onClose,
     onError: options.onError,
   };
 
@@ -176,6 +178,7 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
         ...options,
         onToolCall: (...args) => callbacksRef.current.onToolCall?.(...args),
         onEvent: (...args) => callbacksRef.current.onEvent?.(...args),
+        onClose: (...args) => callbacksRef.current.onClose?.(...args),
         onError: (...args) => callbacksRef.current.onError?.(...args),
       }),
       key: getRealtimeStoreKey(options),

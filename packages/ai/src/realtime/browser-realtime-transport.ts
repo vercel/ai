@@ -9,7 +9,7 @@ export type BrowserRealtimeTransportOptions = {
   model: RealtimeModel;
   onServerEvent: (event: RealtimeServerEvent) => void | Promise<void>;
   onError: (error: Error) => void;
-  onClose: () => void;
+  onClose: (event: CloseEvent) => void;
 };
 
 export class BrowserRealtimeTransport {
@@ -62,10 +62,10 @@ export class BrowserRealtimeTransport {
       this.onError(new Error('WebSocket connection error'));
     };
 
-    ws.onclose = () => {
+    ws.onclose = event => {
       if (this.ws === ws) {
         this.ws = null;
-        this.onClose();
+        this.onClose(event);
       }
     };
   }

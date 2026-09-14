@@ -28,6 +28,7 @@ export type RealtimeSessionOptions = {
     toolCall: { toolCallId: string; toolName: string; args: unknown };
   }) => Promise<unknown> | unknown | undefined;
   onEvent?: (event: RealtimeServerEvent) => void;
+  onClose?: (event: CloseEvent) => void;
   onError?: (error: Error) => void;
 };
 
@@ -37,6 +38,7 @@ export abstract class AbstractRealtimeSession {
 
   onToolCall: RealtimeSessionOptions['onToolCall'];
   onEvent: ((event: RealtimeServerEvent) => void) | undefined;
+  onClose: ((event: CloseEvent) => void) | undefined;
   onError: ((error: Error) => void) | undefined;
 
   private readonly model: RealtimeModel;
@@ -68,6 +70,7 @@ export abstract class AbstractRealtimeSession {
     this.reducer = new RealtimeEventReducer(this.maxEvents);
     this.onToolCall = options.onToolCall;
     this.onEvent = options.onEvent;
+    this.onClose = options.onClose;
     this.onError = options.onError;
 
     const sampleRate = options.sampleRate ?? 24000;
@@ -83,8 +86,9 @@ export abstract class AbstractRealtimeSession {
         this.applyState(this.reducer.setStatus(this.state, 'error'));
         this.onError?.(error);
       },
-      onClose: () => {
+      onClose: event => {
         this.applyState(this.reducer.setStatus(this.state, 'disconnected'));
+        this.onClose?.(event);
       },
     });
 

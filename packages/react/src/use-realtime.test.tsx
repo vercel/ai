@@ -5,6 +5,7 @@ const { realtimeInstances } = vi.hoisted(() => ({
   realtimeInstances: [] as Array<{
     options: {
       api: { token: string };
+      onClose?: (event: CloseEvent) => void;
       onError?: (error: Error) => void;
     };
     dispose: ReturnType<typeof vi.fn>;
@@ -24,6 +25,7 @@ vi.mock('ai', () => ({
 
     readonly options: {
       api: { token: string };
+      onClose?: (event: CloseEvent) => void;
       onError?: (error: Error) => void;
     };
     dispose = vi.fn();
@@ -31,6 +33,7 @@ vi.mock('ai', () => ({
     constructor(options: {
       api: { token: string };
       maxEvents?: number;
+      onClose?: (event: CloseEvent) => void;
       onError?: (error: Error) => void;
     }) {
       this.options = options;
@@ -60,14 +63,17 @@ const testModel = {} as never;
 
 function TestComponent({
   token,
+  onClose,
   onError,
 }: {
   token: string;
+  onClose?: (event: CloseEvent) => void;
   onError?: (error: Error) => void;
 }) {
   experimental_useRealtime({
     model: testModel,
     api: { token },
+    onClose,
     onError,
   });
 
@@ -81,21 +87,39 @@ describe('experimental_useRealtime', () => {
   });
 
   it('keeps the session when only callbacks change', () => {
+    const firstOnClose = vi.fn();
+    const secondOnClose = vi.fn();
     const firstOnError = vi.fn();
     const secondOnError = vi.fn();
 
     const { rerender } = render(
-      <TestComponent token="/api/realtime/setup" onError={firstOnError} />,
+      <TestComponent
+        token="/api/realtime/setup"
+        onClose={firstOnClose}
+        onError={firstOnError}
+      />,
     );
 
     rerender(
-      <TestComponent token="/api/realtime/setup" onError={secondOnError} />,
+      <TestComponent
+        token="/api/realtime/setup"
+        onClose={secondOnClose}
+        onError={secondOnError}
+      />,
     );
 
     expect(realtimeInstances).toHaveLength(1);
 
+    const closeEvent = {
+      code: 1007,
+      reason: 'Request contains an invalid argument',
+      wasClean: true,
+    } as CloseEvent;
+    realtimeInstances[0].options.onClose?.(closeEvent);
     realtimeInstances[0].options.onError?.(new Error('test'));
 
+    expect(firstOnClose).not.toHaveBeenCalled();
+    expect(secondOnClose).toHaveBeenCalledExactlyOnceWith(closeEvent);
     expect(firstOnError).not.toHaveBeenCalled();
     expect(secondOnError).toHaveBeenCalledOnce();
   });
