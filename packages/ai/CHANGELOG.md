@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.101
+
+### Patch Changes
+
+- 6aa7c54: fix(ai): serialize tool output JSON values
+
 ## 7.0.100
 
 ### Patch Changes
