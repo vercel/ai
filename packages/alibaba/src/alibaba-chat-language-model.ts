@@ -145,10 +145,15 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
         warnings,
       }),
 
+      ...(alibabaOptions?.preserveThinking != null
+        ? { preserve_thinking: alibabaOptions.preserveThinking }
+        : {}),
+
       // Convert messages with cache control support
       messages: convertToAlibabaChatMessages({
         prompt,
         cacheControlValidator,
+        preserveThinking: alibabaOptions?.preserveThinking,
       }),
     };
 

@@ -370,6 +370,82 @@ describe('doGenerate', () => {
       thinking_budget: 2048,
     });
   });
+
+  describe('preserveThinking', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('alibaba-reasoning');
+    });
+
+    it('should send preserve_thinking and replay reasoning as reasoning_content', async () => {
+      await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Think before answering.' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'reasoning', text: 'Hidden reasoning.' },
+              { type: 'text', text: 'Visible answer.' },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Continue.' }],
+          },
+        ],
+        providerOptions: {
+          alibaba: {
+            preserveThinking: true,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.preserve_thinking).toBe(true);
+      expect(body.messages).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Think before answering.' }],
+        },
+        {
+          role: 'assistant',
+          content: 'Visible answer.',
+          reasoning_content: 'Hidden reasoning.',
+          tool_calls: undefined,
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Continue.' }],
+        },
+      ]);
+    });
+
+    it('should omit preserve_thinking when the option is not set', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('preserve_thinking');
+    });
+
+    it('should still map top-level reasoning when only preserveThinking is set', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+        providerOptions: {
+          alibaba: { preserveThinking: true },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        enable_thinking: true,
+        preserve_thinking: true,
+      });
+    });
+  });
 });
 
 describe('doStream', () => {
@@ -470,6 +546,59 @@ describe('doStream', () => {
       expect(
         await convertReadableStreamToArray(result.stream),
       ).toMatchSnapshot();
+    });
+  });
+
+  describe('preserveThinking', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('alibaba-reasoning');
+    });
+
+    it('should send explicit preserve_thinking false and omit historical reasoning', async () => {
+      const result = await model.doStream({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Think before answering.' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'reasoning', text: 'Hidden reasoning.' },
+              { type: 'text', text: 'Visible answer.' },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Continue.' }],
+          },
+        ],
+        providerOptions: {
+          alibaba: {
+            preserveThinking: false,
+          },
+        },
+      });
+
+      await convertReadableStreamToArray(result.stream);
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.preserve_thinking).toBe(false);
+      expect(body.messages).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Think before answering.' }],
+        },
+        {
+          role: 'assistant',
+          content: 'Visible answer.',
+          tool_calls: undefined,
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Continue.' }],
+        },
+      ]);
     });
   });
 });

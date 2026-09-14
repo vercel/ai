@@ -28,9 +28,11 @@ function formatImageUrl({ part }: { part: LanguageModelV4FilePart }): string {
 export function convertToAlibabaChatMessages({
   prompt,
   cacheControlValidator,
+  preserveThinking = false,
 }: {
   prompt: LanguageModelV4Prompt;
   cacheControlValidator?: CacheControlValidator;
+  preserveThinking?: boolean;
 }): AlibabaChatPrompt {
   const messages: AlibabaChatPrompt = [];
 
@@ -118,6 +120,7 @@ export function convertToAlibabaChatMessages({
 
       case 'assistant': {
         let text = '';
+        let reasoningContent = '';
         const toolCalls: Array<{
           id: string;
           type: 'function';
@@ -142,21 +145,37 @@ export function convertToAlibabaChatMessages({
               break;
             }
             case 'reasoning': {
-              // Alibaba ignores historical reasoning in multi-turn conversations.
+              // Historical reasoning is only replayed when the caller opts in
+              // to Alibaba's preserved-thinking mode.
+              if (preserveThinking) {
+                reasoningContent += part.text;
+              }
               break;
             }
           }
         }
 
-        if (text.length === 0 && toolCalls.length === 0) {
+        if (
+          text.length === 0 &&
+          toolCalls.length === 0 &&
+          reasoningContent.length === 0
+        ) {
           break;
         }
 
         messages.push({
           role: 'assistant',
-          content: messageCacheControl
-            ? [{ type: 'text', text, cache_control: messageCacheControl }]
-            : text || null,
+          content:
+            text.length === 0 &&
+            toolCalls.length === 0 &&
+            reasoningContent.length > 0
+              ? null
+              : messageCacheControl
+                ? [{ type: 'text', text, cache_control: messageCacheControl }]
+                : text || null,
+          ...(reasoningContent.length > 0
+            ? { reasoning_content: reasoningContent }
+            : {}),
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
 

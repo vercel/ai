@@ -158,6 +158,261 @@ describe('convertToAlibabaChatMessages', () => {
     ]);
   });
 
+  describe('preserveThinking', () => {
+    it('should omit reasoning when preserveThinking is explicitly false', () => {
+      const result = convertToAlibabaChatMessages({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              { type: 'reasoning', text: 'Hidden reasoning.' },
+              { type: 'text', text: 'Visible answer.' },
+            ],
+          },
+        ],
+        preserveThinking: false,
+      });
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: 'Visible answer.',
+          tool_calls: undefined,
+        },
+      ]);
+    });
+
+    it('should emit reasoning as reasoning_content when preserveThinking is true', () => {
+      const result = convertToAlibabaChatMessages({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              { type: 'reasoning', text: 'Hidden reasoning.' },
+              { type: 'text', text: 'Visible answer.' },
+            ],
+          },
+        ],
+        preserveThinking: true,
+      });
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: 'Visible answer.',
+          reasoning_content: 'Hidden reasoning.',
+          tool_calls: undefined,
+        },
+      ]);
+    });
+
+    it('should concatenate multiple reasoning parts in order', () => {
+      const result = convertToAlibabaChatMessages({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              { type: 'reasoning', text: 'First thought. ' },
+              { type: 'reasoning', text: 'Second thought.' },
+              { type: 'text', text: 'Visible answer.' },
+            ],
+          },
+        ],
+        preserveThinking: true,
+      });
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: 'Visible answer.',
+          reasoning_content: 'First thought. Second thought.',
+          tool_calls: undefined,
+        },
+      ]);
+    });
+
+    it('should emit reasoning_content alongside tool calls', () => {
+      const result = convertToAlibabaChatMessages({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              { type: 'reasoning', text: 'Need to check the weather.' },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'get_weather',
+                input: { location: 'San Francisco' },
+              },
+            ],
+          },
+        ],
+        preserveThinking: true,
+      });
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: null,
+          reasoning_content: 'Need to check the weather.',
+          tool_calls: [
+            {
+              id: 'call-1',
+              type: 'function',
+              function: {
+                name: 'get_weather',
+                arguments: '{"location":"San Francisco"}',
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should retain a reasoning-only assistant message when preserveThinking is true', () => {
+      const result = convertToAlibabaChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Think before answering.' }],
+          },
+          {
+            role: 'assistant',
+            content: [{ type: 'reasoning', text: 'Hidden reasoning.' }],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Continue.' }],
+          },
+        ],
+        preserveThinking: true,
+      });
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Think before answering.' }],
+        },
+        {
+          role: 'assistant',
+          content: null,
+          reasoning_content: 'Hidden reasoning.',
+          tool_calls: undefined,
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Continue.' }],
+        },
+      ]);
+    });
+
+    it('should omit a reasoning-only assistant message when preserveThinking is false', () => {
+      const result = convertToAlibabaChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Think before answering.' }],
+          },
+          {
+            role: 'assistant',
+            content: [{ type: 'reasoning', text: 'Hidden reasoning.' }],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Continue.' }],
+          },
+        ],
+        preserveThinking: false,
+      });
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Think before answering.' }],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Continue.' }],
+        },
+      ]);
+    });
+
+    it('should emit content null for a preserved reasoning-only message with message-level cache control', () => {
+      const validator = new CacheControlValidator();
+
+      const result = convertToAlibabaChatMessages({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [{ type: 'reasoning', text: 'Hidden reasoning.' }],
+            providerOptions: {
+              alibaba: {
+                cacheControl: { type: 'ephemeral' },
+              },
+            },
+          },
+        ],
+        cacheControlValidator: validator,
+        preserveThinking: true,
+      });
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: null,
+          reasoning_content: 'Hidden reasoning.',
+          tool_calls: undefined,
+        },
+      ]);
+    });
+
+    it('should retain the cached content block for a tool-call-only message with message-level cache control', () => {
+      const validator = new CacheControlValidator();
+
+      const result = convertToAlibabaChatMessages({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'get_weather',
+                input: { location: 'San Francisco' },
+              },
+            ],
+            providerOptions: {
+              alibaba: {
+                cacheControl: { type: 'ephemeral' },
+              },
+            },
+          },
+        ],
+        cacheControlValidator: validator,
+        preserveThinking: true,
+      });
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: '', cache_control: { type: 'ephemeral' } },
+          ],
+          tool_calls: [
+            {
+              id: 'call-1',
+              type: 'function',
+              function: {
+                name: 'get_weather',
+                arguments: '{"location":"San Francisco"}',
+              },
+            },
+          ],
+        },
+      ]);
+    });
+  });
+
   it('should convert tool results', () => {
     const result = convertToAlibabaChatMessages({
       prompt: [

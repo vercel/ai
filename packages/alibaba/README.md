@@ -63,6 +63,60 @@ console.log('Reasoning:', reasoningText);
 console.log('Answer:', text);
 ```
 
+## Preserved Thinking Example (Multi-Turn Reasoning)
+
+By default, the AI SDK omits reasoning from previous assistant messages in
+follow-up requests. With the `preserveThinking` provider option, historical
+reasoning is instead sent separately as Alibaba `reasoning_content` and
+`preserve_thinking` is enabled for supported models:
+
+```ts
+import { alibaba } from '@ai-sdk/alibaba';
+import { generateText } from 'ai';
+
+const providerOptions = {
+  alibaba: {
+    enableThinking: true,
+    preserveThinking: true,
+    thinkingBudget: 2048,
+  },
+};
+
+const opening = {
+  role: 'user' as const,
+  content: 'Is Kafka or RocketMQ a better fit for transactional messages?',
+};
+
+const first = await generateText({
+  model: alibaba('qwen3.7-max'),
+  messages: [opening],
+  providerOptions,
+});
+
+const second = await generateText({
+  model: alibaba('qwen3.7-max'),
+  messages: [
+    opening,
+    ...first.responseMessages, // append unchanged to keep the reasoning parts
+    { role: 'user', content: 'Which tradeoff mattered most?' },
+  ],
+  providerOptions,
+});
+```
+
+When continuing the conversation, append `responseMessages` unchanged so the
+reasoning parts survive to be serialized as `reasoning_content`. Keep in mind:
+
+- `preserveThinking` does not enable thinking by itself.
+- It is only supported by selected Alibaba models; model support and defaults
+  vary. See Alibaba's
+  [preserved-thinking documentation](https://docs.qwencloud.com/developer-guides/text-generation/thinking#preserve-thinking-in-multi-turn).
+- Some newer models default the wire option to `true`, but AI SDK history is
+  only serialized when you explicitly set `preserveThinking: true`.
+- Preserved reasoning increases input token usage and billing.
+- Historical reasoning remains separate from visible assistant text; it is never
+  merged into `content`.
+
 ## Embedding Model Example
 
 ```ts
