@@ -347,8 +347,8 @@ export class GoogleRealtimeEventMapper {
  *
  * The field's own docstring says what to do with one: "Use `output` key to specify
  * function output ... If `output` and `error` keys are not specified, then whole
- * `response` is treated as function output." So an object is passed through unchanged,
- * which is the shape that already works, and everything else is wrapped.
+ * `response` is treated as function output." An object is passed through unchanged and
+ * everything else is wrapped.
  */
 function toFunctionResponseStruct(value: unknown): Record<string, unknown> {
   const isStruct =
@@ -362,9 +362,7 @@ async function serializeFunctionCallOutput(
   const parseResult = await safeParseJSON({ text: item.output });
   const response = parseResult.success
     ? toFunctionResponseStruct(parseResult.value)
-    : // Not JSON at all: keep the text. This used to become `{}`, which told the
-      // model the tool had returned an empty object - nothing thrown, nothing
-      // warned, the socket still up, and the answer simply wrong.
+    : // Preserve non-JSON output in the required object wrapper.
       { output: item.output };
 
   return {
