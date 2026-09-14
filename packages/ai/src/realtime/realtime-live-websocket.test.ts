@@ -809,6 +809,27 @@ describe('Live over an application WebSocket relay', () => {
     });
   });
 
+  it('reports an abnormal relay close and preserves unconfirmed finalization', async () => {
+    const onError = vi.fn();
+    const session = create({ onError });
+    await ready(session);
+
+    socket().closeFromServer({
+      code: 1011,
+      reason: 'upstream unavailable',
+      wasClean: true,
+    });
+    await flushEvents();
+
+    expect(onError).toHaveBeenCalledExactlyOnceWith(
+      new Error(
+        'Realtime WebSocket closed unexpectedly (code 1011: upstream unavailable)',
+      ),
+    );
+    expect(session.snapshot.status).toBe('error');
+    expect(session.snapshot.session?.finalization).toBe('unconfirmed');
+  });
+
   it('uses only server-confirmed delegation mode to gate backend submissions', async () => {
     const session = create();
     await ready(session, 'client');

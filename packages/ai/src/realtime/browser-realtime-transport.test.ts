@@ -15,7 +15,7 @@ class MockWebSocket {
   onopen: (() => void) | null = null;
   onmessage: ((event: unknown) => void) | null = null;
   onerror: (() => void) | null = null;
-  onclose: (() => void) | null = null;
+  onclose: ((event: CloseEvent) => void) | null = null;
 
   constructor(
     public url: string,
@@ -27,6 +27,15 @@ class MockWebSocket {
   open() {
     this.readyState = MockWebSocket.OPEN;
     this.onopen?.();
+  }
+
+  closeFromServer({
+    code = 1000,
+    reason = '',
+    wasClean = true,
+  }: Partial<Pick<CloseEvent, 'code' | 'reason' | 'wasClean'>> = {}) {
+    this.readyState = 3;
+    this.onclose?.({ code, reason, wasClean } as CloseEvent);
   }
 }
 
@@ -156,12 +165,44 @@ describe('BrowserRealtimeTransport', () => {
 
     expect(firstSocket.close).toHaveBeenCalledOnce();
 
-    firstSocket.onclose?.();
+    firstSocket.closeFromServer();
     expect(onClose).not.toHaveBeenCalled();
 
-    secondSocket.onclose?.();
+    secondSocket.closeFromServer();
     await flush();
     expect(onClose).toHaveBeenCalledOnce();
+    expect(onClose).toHaveBeenCalledWith(undefined);
+  });
+
+  it('preserves an abnormal server close as an error', async () => {
+    const onClose = vi.fn();
+    const transport = new BrowserRealtimeTransport({
+      model,
+      onServerEvent: vi.fn(),
+      onError: vi.fn(),
+      onClose,
+    });
+
+    transport.connect({
+      token: 'token',
+      url: 'wss://example.com',
+      onOpen: vi.fn(),
+    });
+    const socket = MockWebSocket.instances[0];
+    socket.open();
+    socket.closeFromServer({
+      code: 1011,
+      reason: 'upstream unavailable',
+      wasClean: true,
+    });
+
+    await flush();
+
+    expect(onClose).toHaveBeenCalledExactlyOnceWith(
+      new Error(
+        'Realtime WebSocket closed unexpectedly (code 1011: upstream unavailable)',
+      ),
+    );
   });
 
   it('preserves send order when serialization is async', async () => {
