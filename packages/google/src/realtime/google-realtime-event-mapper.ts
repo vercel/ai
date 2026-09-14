@@ -6,7 +6,6 @@ import type {
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
 } from '@ai-sdk/provider';
 import { isRecord, safeParseJSON } from '@ai-sdk/provider-utils';
-import { convertJSONSchemaToOpenAPISchema } from '../convert-json-schema-to-openapi-schema';
 import { getModelPath } from '../get-model-path';
 import type { GoogleRealtimeModelOptions } from './google-realtime-model-options';
 
@@ -402,7 +401,7 @@ export function buildGoogleSessionConfig(
         functionDeclarations: config.tools.map(tool => ({
           name: tool.name,
           description: tool.description,
-          parameters: convertJSONSchemaToOpenAPISchema(tool.parameters),
+          parametersJsonSchema: tool.parameters,
         })),
       },
     ];
