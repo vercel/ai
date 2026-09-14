@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20695,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20695-realtime-close-diagnostics.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20695-realtime-close-diagnostics.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #20695 REPRODUCED: abnormal WebSocket close code and reason did not reach the realtime session consumer"
+  }
+}
