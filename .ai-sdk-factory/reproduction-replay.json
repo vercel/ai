@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20759,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/google-streaming-prompt-feedback.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/google-streaming-prompt-feedback.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_20759_REPRODUCED: Google streaming loses cross-chunk feedback/metadata or reverses a confirmed prompt block"
+  }
+}
