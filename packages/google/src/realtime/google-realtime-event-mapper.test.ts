@@ -479,7 +479,7 @@ describe('GoogleRealtimeEventMapper', () => {
                 {
                   name: 'getWeather',
                   description: 'Get weather',
-                  parameters: {
+                  parametersJsonSchema: {
                     type: 'object',
                     properties: {
                       city: { type: 'string' },
@@ -738,7 +738,7 @@ describe('buildGoogleSessionConfig', () => {
             {
               "description": "Get weather",
               "name": "getWeather",
-              "parameters": {
+              "parametersJsonSchema": {
                 "properties": {
                   "city": {
                     "type": "string",
@@ -756,7 +756,7 @@ describe('buildGoogleSessionConfig', () => {
     `);
   });
 
-  it('builds config with inlined local JSON Schema references', () => {
+  it('builds config with preserved local JSON Schema references', () => {
     const result = buildGoogleSessionConfig(
       {
         tools: [
@@ -786,12 +786,15 @@ describe('buildGoogleSessionConfig', () => {
           {
             name: 'formatDate',
             description: 'Format a date',
-            parameters: {
+            parametersJsonSchema: {
               type: 'object',
               properties: {
-                locale: { type: 'string', enum: ['de', 'en'] },
+                locale: { $ref: '#/$defs/Locale' },
               },
               required: ['locale'],
+              $defs: {
+                Locale: { type: 'string', enum: ['de', 'en'] },
+              },
             },
           },
         ],
