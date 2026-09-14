@@ -2892,6 +2892,13 @@ credential; an origin check alone is not user authentication. The relay uses its
 server-held OpenAI key upstream. Selecting a Live model does not make the Realtime
 client-secret endpoint compatible with the Live API.
 
+For browser-direct Live WebRTC, an authenticated application endpoint performs the
+SDP exchange with OpenAI using the server's project key. The browser receives the
+session connection answer, not the project key or a Realtime client secret. This
+setup endpoint still needs application authentication. See the
+[`experimental_useRealtime` reference](/docs/reference/ai-sdk-ui/use-realtime)
+for the `api.session` setup contract and the runnable example.
+
 ### Live session options
 
 Configure Live-specific settings through `sessionConfig.providerOptions.openai`,
@@ -2927,6 +2934,13 @@ const sessionConfig = {
   the ordinary `sessionConfig.voice` string.
 - `store`: requests provider-side session storage; availability depends on the
   OpenAI project configuration.
+- `client.dataChannel`: WebRTC startup permission policy with
+  `allowedClientEvents` and `allowedServerEvents`. Set it on the application server,
+  not from trusted-looking browser input. Omission retains the provider default;
+  `[]` allows none and `'all'` allows all. Response event selectors use
+  `{ type: 'response.event', responseEvent: 'response.completed' }` to select
+  nested backend events. Keep readiness, errors, and terminal usage observable for
+  the session features your application enables.
 
 Use `Experimental_OpenAIRealtimeModelLiveUpdateOptions` for sparse backend settings
 updates. Omitted settings remain unchanged; supported explicit nulls are preserved.

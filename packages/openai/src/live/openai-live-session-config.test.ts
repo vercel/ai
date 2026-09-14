@@ -237,7 +237,7 @@ describe('Live WebRTC client permissions', () => {
       }),
     );
     await createOpenAI({ apiKey: 'test-key', fetch })
-      .experimental_live('gpt-live-1')
+      .experimental_realtime('gpt-live-1')
       .doCreateWebRTCSession({
         sdp: 'offer',
         sessionConfig: {
@@ -261,7 +261,7 @@ describe('Live WebRTC client permissions', () => {
       const fetch = vi.fn<typeof globalThis.fetch>();
       await expect(
         createOpenAI({ apiKey: 'test-key', fetch })
-          .experimental_live('gpt-live-1')
+          .experimental_realtime('gpt-live-1')
           .doCreateWebRTCSession({
             sdp: 'offer',
             sessionConfig: {

@@ -506,7 +506,7 @@ describe('OpenAIRealtimeModelLive', () => {
         project: 'proj-test',
         headers: { 'X-Custom': 'value' },
         fetch,
-      }).experimental_live('gpt-live-1');
+      }).experimental_realtime('gpt-live-1');
       await expect(
         model.doCreateWebRTCSession({
           sdp: 'offer-sdp',
@@ -551,7 +551,7 @@ describe('OpenAIRealtimeModelLive', () => {
         .fn<typeof globalThis.fetch>()
         .mockResolvedValue(Response.json(success));
       await createOpenAI({ apiKey: 'test-key', fetch })
-        .experimental_live('gpt-live-1')
+        .experimental_realtime('gpt-live-1')
         .doCreateWebRTCSession({ sdp: 'offer' });
       expect(
         JSON.parse(fetch.mock.calls[0][1]?.body as string).session,
@@ -564,7 +564,7 @@ describe('OpenAIRealtimeModelLive', () => {
         const fetch = vi.fn<typeof globalThis.fetch>();
         await expect(
           createOpenAI({ apiKey: 'test-key', fetch })
-            .experimental_live('gpt-live-1')
+            .experimental_realtime('gpt-live-1')
             .doCreateWebRTCSession({
               sdp: 'offer',
               sessionConfig: { [field]: { type: 'audio/pcm', rate: 24000 } },
@@ -588,7 +588,7 @@ describe('OpenAIRealtimeModelLive', () => {
         .mockResolvedValue(Response.json(body));
       await expect(
         createOpenAI({ apiKey: 'test-key', fetch })
-          .experimental_live('gpt-live-1')
+          .experimental_realtime('gpt-live-1')
           .doCreateWebRTCSession({ sdp: 'offer' }),
       ).rejects.toThrow(APICallError);
     });
@@ -604,7 +604,7 @@ describe('OpenAIRealtimeModelLive', () => {
         );
       await expect(
         createOpenAI({ apiKey: 'test-key', fetch })
-          .experimental_live('gpt-live-1')
+          .experimental_realtime('gpt-live-1')
           .doCreateWebRTCSession({ sdp: 'offer' }),
       ).rejects.toMatchObject({
         name: 'AI_APICallError',
@@ -618,7 +618,7 @@ describe('OpenAIRealtimeModelLive', () => {
       const fetch = vi.fn<typeof globalThis.fetch>().mockRejectedValue(error);
       await expect(
         createOpenAI({ apiKey: 'test-key', fetch })
-          .experimental_live('gpt-live-1')
+          .experimental_realtime('gpt-live-1')
           .doCreateWebRTCSession({ sdp: 'offer' }),
       ).rejects.toBe(error);
     });

@@ -49,3 +49,16 @@ The shared event/capability additions remain experimental. OpenAI-specific deleg
 configuration, command channel selectors and native wire details stay in its provider
 namespace. A unified public factory is not a claim that other providers implement
 OpenAI's backend workflow.
+
+## Optional browser-direct WebRTC
+
+The provider's `doCreateWebRTCSession()` performs the server-authenticated HTTP SDP
+exchange and returns the session ID and SDP answer. The browser runtime owns the
+peer connection, data channel and media tracks. WebRTC setup is already session
+startup, so no second startup command belongs on the data channel. It does not use
+OpenAI Realtime client-secret minting or require a WebRTC media server in the app.
+
+Application authentication protects the HTTP setup endpoint. The server owns
+`client.dataChannel` permission policy and must not accept browser overrides.
+Filtering out lifecycle events can prevent readiness or confirmed finalization;
+the runtime must report that limitation rather than silently widening permissions.

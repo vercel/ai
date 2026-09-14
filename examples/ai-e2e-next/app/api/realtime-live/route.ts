@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Invalid SDP offer' }, { status: 400 });
   }
   const result = await openai
-    .experimental_live('gpt-live-1')
+    .experimental_realtime('gpt-live-1')
     .doCreateWebRTCSession({
       sdp,
       sessionConfig: {
