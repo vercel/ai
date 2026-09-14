@@ -75,6 +75,7 @@ type AmazonBedrockChatConfig = {
 
 const anthropicProviderOptions = z.object({
   disableParallelToolUse: z.boolean().optional(),
+  structuredOutputMode: z.enum(['outputFormat', 'jsonTool', 'auto']).optional(),
 });
 
 function createAmazonBedrockStreamError({
@@ -216,7 +217,12 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       });
     }
 
-    const isAnthropicModel = this.modelId.includes('anthropic');
+    // Application inference profile ARNs do not expose their underlying model.
+    // The Anthropic-only reasoning budget provides the model-family signal.
+    const isAnthropicModel =
+      this.modelId.includes('anthropic') ||
+      (this.modelId.includes(':application-inference-profile/') &&
+        amazonBedrockOptions.reasoningConfig?.budgetTokens != null);
     const openAIModelId = /^(?:[^.]+\.)?(openai\..+)$/.exec(this.modelId)?.[1];
     const isOpenAIModel = openAIModelId != null;
     const isOpenAIGptOssModel =
@@ -237,14 +243,54 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
     const { supportsStructuredOutput: modelSupportsStructuredOutput } =
       getModelCapabilities(this.modelId);
 
+    const structuredOutputMode =
+      amazonBedrockOptions.structuredOutputMode ??
+      anthropicOptions?.structuredOutputMode ??
+      'auto';
+
+    if (structuredOutputMode === 'jsonTool') {
+      const additionalModelRequestFields = {
+        ...amazonBedrockOptions.additionalModelRequestFields,
+      };
+      const outputConfig = additionalModelRequestFields.output_config;
+
+      if (
+        outputConfig != null &&
+        typeof outputConfig === 'object' &&
+        !Array.isArray(outputConfig)
+      ) {
+        const outputConfigWithoutFormat = { ...outputConfig };
+        delete outputConfigWithoutFormat.format;
+
+        if (Object.keys(outputConfigWithoutFormat).length > 0) {
+          additionalModelRequestFields.output_config =
+            outputConfigWithoutFormat;
+        } else {
+          delete additionalModelRequestFields.output_config;
+        }
+
+        amazonBedrockOptions = {
+          ...amazonBedrockOptions,
+          additionalModelRequestFields,
+        };
+      }
+    }
+
+    const modelSupportsNativeStructuredOutput =
+      supportsNativeStructuredOutput(this.modelId) &&
+      (modelSupportsStructuredOutput || isThinkingEnabled);
+
     const useNativeStructuredOutput =
       isAnthropicModel &&
-      supportsNativeStructuredOutput(this.modelId) &&
-      (modelSupportsStructuredOutput || isThinkingEnabled) &&
       responseFormat?.type === 'json' &&
-      responseFormat.schema != null;
+      responseFormat.schema != null &&
+      (structuredOutputMode === 'outputFormat' ||
+        (structuredOutputMode === 'auto' &&
+          modelSupportsNativeStructuredOutput));
 
     const useJsonInstructionForStructuredOutput =
+      !useNativeStructuredOutput &&
+      structuredOutputMode !== 'jsonTool' &&
       isAnthropicModel &&
       !supportsStrictTools(this.modelId) &&
       responseFormat?.type === 'json' &&
@@ -498,6 +544,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       reasoningConfig: _,
       additionalModelRequestFields: __,
       serviceTier: ___,
+      structuredOutputMode: ____,
       ...filteredAmazonBedrockOptions
     } = providerOptions?.amazonBedrock ?? providerOptions?.bedrock ?? {};
 
@@ -585,10 +632,17 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
     // map response content to content array
     for (const part of response.output.message.content) {
       // text
-      if (part.text != null) {
+      const textParts =
+        part.text != null
+          ? [part.text]
+          : (part.citationsContent?.content?.flatMap(content =>
+              content.text == null ? [] : [content.text],
+            ) ?? []);
+
+      for (const text of textParts) {
         content.push({
           type: 'text',
-          text: jsonObjectTextExtractor?.process(part.text) ?? part.text,
+          text: jsonObjectTextExtractor?.process(text) ?? text,
         });
       }
 
@@ -1334,6 +1388,17 @@ const AmazonBedrockResponseSchema = z.object({
       content: z.array(
         z.object({
           text: z.string().nullish(),
+          citationsContent: z
+            .object({
+              content: z
+                .array(
+                  z.object({
+                    text: z.string().nullish(),
+                  }),
+                )
+                .nullish(),
+            })
+            .nullish(),
           toolUse: AmazonBedrockToolUseSchema.nullish(),
           reasoningContent: z
             .union([
@@ -1384,6 +1449,9 @@ const AmazonBedrockStreamSchema = z.object({
       delta: z
         .union([
           z.object({ text: z.string() }),
+          z.object({
+            citation: z.record(z.string(), z.unknown()),
+          }),
           z.object({ toolUse: z.object({ input: z.string() }) }),
           z.object({
             reasoningContent: z.object({ text: z.string() }),

@@ -91,6 +91,8 @@ function convertJSONSchemaDefinition(
     format,
     const: constValue,
     minLength,
+    minItems,
+    maxItems,
     enum: enumValues,
   } = jsonSchema;
 
@@ -194,6 +196,14 @@ function convertJSONSchemaDefinition(
 
   if (minLength !== undefined) {
     result.minLength = minLength;
+  }
+
+  if (minItems !== undefined) {
+    result.minItems = minItems;
+  }
+
+  if (maxItems !== undefined) {
+    result.maxItems = maxItems;
   }
 
   return result;

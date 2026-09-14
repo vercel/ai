@@ -18,14 +18,68 @@ afterEach(() => {
 });
 
 describe('warnCredentialBrokeringUnavailable', () => {
-  it('warns that credential forwarding is less secure', () => {
+  it('does not warn when credential forwarding replaces all credentials', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    warnCredentialBrokeringUnavailable();
+    warnCredentialBrokeringUnavailable({
+      environment: {
+        API_KEY: 'real-secret',
+        SECOND_API_KEY: 'second-real-secret',
+      },
+      forwardedEnvironment: {
+        API_KEY: 'caller-managed-credential',
+        SECOND_API_KEY: 'second-caller-managed-credential',
+      },
+      credentialEnvironmentVariables: ['API_KEY', 'SECOND_API_KEY'],
+    });
 
-    expect(warn).toHaveBeenCalledWith(
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('warns when credential forwarding preserves a credential', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    warnCredentialBrokeringUnavailable({
+      environment: {
+        API_KEY: 'real-secret',
+        SECOND_API_KEY: 'second-real-secret',
+      },
+      forwardedEnvironment: {
+        API_KEY: 'caller-managed-credential',
+        SECOND_API_KEY: 'second-real-secret',
+      },
+      credentialEnvironmentVariables: ['API_KEY', 'SECOND_API_KEY'],
+    });
+
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
       'The sandbox implementation does not support configuring request transformations, so credential brokering does not work. Falling back to less secure credential forwarding.',
     );
+  });
+
+  it('warns when a forwarded credential contains an original credential', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    warnCredentialBrokeringUnavailable({
+      environment: { API_KEY: 'real-secret' },
+      forwardedEnvironment: { API_KEY: 'wrapped-real-secret' },
+      credentialEnvironmentVariables: ['API_KEY'],
+    });
+
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      'The sandbox implementation does not support configuring request transformations, so credential brokering does not work. Falling back to less secure credential forwarding.',
+    );
+  });
+
+  it('does not warn when no original credentials are present', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    warnCredentialBrokeringUnavailable({
+      environment: {},
+      forwardedEnvironment: {},
+      credentialEnvironmentVariables: ['API_KEY'],
+    });
+
+    expect(warn).not.toHaveBeenCalled();
   });
 });
 

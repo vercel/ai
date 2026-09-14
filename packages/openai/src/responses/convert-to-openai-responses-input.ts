@@ -71,12 +71,14 @@ async function convertFunctionToolResultOutput({
   output,
   toolName,
   outputSchemaToolNames,
+  promptCacheBreakpoint,
   providerOptionsName,
   warnings,
 }: {
   output: LanguageModelV4ToolResultOutput;
   toolName: string;
   outputSchemaToolNames: Set<string> | undefined;
+  promptCacheBreakpoint?: OpenAIPromptCacheBreakpoint;
   providerOptionsName: string;
   warnings: Array<SharedV4Warning>;
 }): Promise<OpenAIResponsesFunctionCallOutput['output']> {
@@ -84,18 +86,34 @@ async function convertFunctionToolResultOutput({
   // parses the contents of that string as JSON. Text-like results therefore
   // need JSON.stringify to become valid JSON string literals.
   const hasOutputSchema = outputSchemaToolNames?.has(toolName);
+  const convertScalarOutput = (
+    value: string,
+  ): OpenAIResponsesFunctionCallOutput['output'] =>
+    promptCacheBreakpoint == null
+      ? value
+      : [
+          {
+            type: 'input_text',
+            text: value,
+            prompt_cache_breakpoint: promptCacheBreakpoint,
+          },
+        ];
 
   switch (output.type) {
     case 'text':
     case 'error-text':
-      return hasOutputSchema ? JSON.stringify(output.value) : output.value;
+      return convertScalarOutput(
+        hasOutputSchema ? JSON.stringify(output.value) : output.value,
+      );
     case 'execution-denied': {
       const reason = output.reason ?? 'Tool call execution denied.';
-      return hasOutputSchema ? JSON.stringify(reason) : reason;
+      return convertScalarOutput(
+        hasOutputSchema ? JSON.stringify(reason) : reason,
+      );
     }
     case 'json':
     case 'error-json':
-      return JSON.stringify(output.value);
+      return convertScalarOutput(JSON.stringify(output.value));
     case 'content':
       return output.value
         .map(item => {
@@ -289,6 +307,24 @@ function getPromptCacheBreakpoint(
     | undefined;
 }
 
+function getScalarToolResultPromptCacheBreakpoint({
+  output,
+  toolResultProviderOptions,
+  providerOptionsName,
+}: {
+  output: LanguageModelV4ToolResultOutput;
+  toolResultProviderOptions: SharedV4ProviderOptions | undefined;
+  providerOptionsName: string;
+}): OpenAIPromptCacheBreakpoint | undefined {
+  return output.type === 'content'
+    ? undefined
+    : (getPromptCacheBreakpoint(output.providerOptions, providerOptionsName) ??
+        getPromptCacheBreakpoint(
+          toolResultProviderOptions,
+          providerOptionsName,
+        ));
+}
+
 /**
  * This is soft-deprecated. Use provider references instead. Kept for backward compatibility
  * with the `fileIdPrefixes` option.
@@ -305,6 +341,7 @@ export async function convertToOpenAIResponsesInput({
   toolNameMapping,
   systemMessageMode,
   providerOptionsName,
+  explicitMessageItemType = false,
   fileIdPrefixes,
   passThroughUnsupportedFiles = false,
   store,
@@ -314,6 +351,7 @@ export async function convertToOpenAIResponsesInput({
   hasShellTool = false,
   hasApplyPatchTool = false,
   hasComputerTool = false,
+  toolSearchToolName,
   customProviderToolNames,
   outputSchemaToolNames,
 }: {
@@ -321,6 +359,7 @@ export async function convertToOpenAIResponsesInput({
   toolNameMapping: ToolNameMapping;
   systemMessageMode: 'system' | 'developer' | 'remove';
   providerOptionsName: string;
+  explicitMessageItemType?: boolean;
   /** @deprecated Use provider references instead. */
   fileIdPrefixes?: readonly string[];
   passThroughUnsupportedFiles?: boolean;
@@ -331,6 +370,7 @@ export async function convertToOpenAIResponsesInput({
   hasShellTool?: boolean;
   hasApplyPatchTool?: boolean;
   hasComputerTool?: boolean;
+  toolSearchToolName?: string;
   customProviderToolNames?: Set<string>;
   outputSchemaToolNames?: Set<string>;
 }): Promise<{
@@ -340,6 +380,7 @@ export async function convertToOpenAIResponsesInput({
   let input: OpenAIResponsesInput = [];
   const warnings: Array<SharedV4Warning> = [];
   const processedApprovalIds = new Set<string>();
+  const programmaticToolCallIds = new Set<string>();
   const parallelToolResultGroups =
     hasConversation || hasPreviousResponseId
       ? collectCompleteParallelToolResultGroups({
@@ -360,6 +401,7 @@ export async function convertToOpenAIResponsesInput({
               providerOptionsName,
             );
             input.push({
+              ...(explicitMessageItemType && { type: 'message' as const }),
               role: 'system',
               content:
                 promptCacheBreakpoint == null
@@ -380,6 +422,7 @@ export async function convertToOpenAIResponsesInput({
               providerOptionsName,
             );
             input.push({
+              ...(explicitMessageItemType && { type: 'message' as const }),
               role: 'developer',
               content:
                 promptCacheBreakpoint == null
@@ -413,6 +456,7 @@ export async function convertToOpenAIResponsesInput({
 
       case 'user': {
         input.push({
+          ...(explicitMessageItemType && { type: 'message' as const }),
           role: 'user',
           content: content.map((part, index) => {
             switch (part.type) {
@@ -565,6 +609,7 @@ export async function convertToOpenAIResponsesInput({
               }
 
               input.push({
+                ...(explicitMessageItemType && { type: 'message' as const }),
                 role: 'assistant',
                 content: [{ type: 'output_text', text: part.text }],
                 id,
@@ -639,11 +684,26 @@ export async function convertToOpenAIResponsesInput({
                 ).providerMetadata?.[providerOptionsName]?.namespace) as
                 | string
                 | undefined;
+              const isAsync = (part.providerOptions?.[providerOptionsName]
+                ?.async ??
+                (
+                  part as {
+                    providerMetadata?: {
+                      [providerOptionsName]?: { async?: boolean };
+                    };
+                  }
+                ).providerMetadata?.[providerOptionsName]?.async) as
+                | boolean
+                | undefined;
               const caller = part.providerOptions?.[providerOptionsName]
                 ?.caller as
                 | { type: 'direct' }
                 | { type: 'program'; callerId: string }
                 | undefined;
+
+              if (caller?.type === 'program') {
+                programmaticToolCallIds.add(part.toolCallId);
+              }
 
               if (hasConversation && id != null) {
                 break;
@@ -653,7 +713,7 @@ export async function convertToOpenAIResponsesInput({
                 part.toolName,
               );
 
-              if (resolvedToolName === 'tool_search') {
+              if (part.toolName === toolSearchToolName) {
                 if (store && id != null) {
                   input.push({ type: 'item_reference', id });
                   break;
@@ -866,6 +926,7 @@ export async function convertToOpenAIResponsesInput({
                     typeof part.input === 'string'
                       ? part.input
                       : JSON.stringify(part.input),
+                  ...(isAsync != null && { async: isAsync }),
                   id,
                 });
                 break;
@@ -876,6 +937,7 @@ export async function convertToOpenAIResponsesInput({
                 call_id: part.toolCallId,
                 name: resolvedToolName,
                 arguments: serializeToolCallArguments(part.input),
+                ...(isAsync != null && { async: isAsync }),
                 ...(namespace != null && { namespace }),
                 ...(caller != null && {
                   caller: mapToolCaller(caller),
@@ -908,7 +970,7 @@ export async function convertToOpenAIResponsesInput({
                 part.toolName,
               );
 
-              if (resolvedResultToolName === 'tool_search') {
+              if (part.toolName === toolSearchToolName) {
                 const itemId = (part.providerOptions?.[providerOptionsName]
                   ?.itemId ??
                   (
@@ -1216,15 +1278,31 @@ export async function convertToOpenAIResponsesInput({
               );
 
               const toolOutputs = await Promise.all(
-                parallelToolResultGroup.results.map(async result =>
-                  convertFunctionToolResultOutput({
-                    output: result.output,
-                    toolName: result.toolName,
-                    outputSchemaToolNames,
-                    providerOptionsName,
-                    warnings,
-                  }),
-                ),
+                parallelToolResultGroup.results.map(async result => {
+                  const promptCacheBreakpoint =
+                    getScalarToolResultPromptCacheBreakpoint({
+                      output: result.output,
+                      toolResultProviderOptions: result.providerOptions,
+                      providerOptionsName,
+                    });
+
+                  return {
+                    output: await convertFunctionToolResultOutput({
+                      output: result.output,
+                      toolName: result.toolName,
+                      outputSchemaToolNames,
+                      providerOptionsName,
+                      warnings,
+                    }),
+                    promptCacheBreakpoint,
+                  };
+                }),
+              );
+              const serializedToolOutputs = toolOutputs.map(({ output }) =>
+                typeof output === 'string' ? output : JSON.stringify(output),
+              );
+              const hasPromptCacheBreakpoint = toolOutputs.some(
+                ({ promptCacheBreakpoint }) => promptCacheBreakpoint != null,
               );
 
               input.push({
@@ -1232,13 +1310,16 @@ export async function convertToOpenAIResponsesInput({
                 call_id: parallelToolResultGroup.metadata.toolCallId,
                 // The internal wrapper returns one output containing the child
                 // results in the same order as the original tool_uses array.
-                output: toolOutputs
-                  .map(output =>
-                    typeof output === 'string'
-                      ? output
-                      : JSON.stringify(output),
-                  )
-                  .join('\n'),
+                output: hasPromptCacheBreakpoint
+                  ? serializedToolOutputs.map((text, index) => ({
+                      type: 'input_text',
+                      text: index === 0 ? text : `\n${text}`,
+                      ...(toolOutputs[index].promptCacheBreakpoint != null && {
+                        prompt_cache_breakpoint:
+                          toolOutputs[index].promptCacheBreakpoint,
+                      }),
+                    }))
+                  : serializedToolOutputs.join('\n'),
               });
             }
             continue;
@@ -1261,7 +1342,7 @@ export async function convertToOpenAIResponsesInput({
             part.toolName,
           );
 
-          if (resolvedToolName === 'tool_search' && output.type === 'json') {
+          if (part.toolName === toolSearchToolName && output.type === 'json') {
             const parsedOutput = await validateTypes({
               value: output.value,
               schema: toolSearchOutputSchema,
@@ -1372,18 +1453,38 @@ export async function convertToOpenAIResponsesInput({
           }
 
           if (customProviderToolNames?.has(resolvedToolName)) {
+            const promptCacheBreakpoint =
+              getScalarToolResultPromptCacheBreakpoint({
+                output,
+                toolResultProviderOptions: part.providerOptions,
+                providerOptionsName,
+              });
+            const convertScalarOutput = (
+              value: string,
+            ): OpenAIResponsesCustomToolCallOutput['output'] =>
+              promptCacheBreakpoint == null
+                ? value
+                : [
+                    {
+                      type: 'input_text',
+                      text: value,
+                      prompt_cache_breakpoint: promptCacheBreakpoint,
+                    },
+                  ];
             let outputValue: OpenAIResponsesCustomToolCallOutput['output'];
             switch (output.type) {
               case 'text':
               case 'error-text':
-                outputValue = output.value;
+                outputValue = convertScalarOutput(output.value);
                 break;
               case 'execution-denied':
-                outputValue = output.reason ?? 'Tool call execution denied.';
+                outputValue = convertScalarOutput(
+                  output.reason ?? 'Tool call execution denied.',
+                );
                 break;
               case 'json':
               case 'error-json':
-                outputValue = JSON.stringify(output.value);
+                outputValue = convertScalarOutput(JSON.stringify(output.value));
                 break;
               case 'content':
                 outputValue = output.value
@@ -1478,20 +1579,37 @@ export async function convertToOpenAIResponsesInput({
             continue;
           }
 
+          const resultCaller = part.providerOptions?.[providerOptionsName]
+            ?.caller as
+            | { type: 'direct' }
+            | { type: 'program'; callerId: string }
+            | undefined;
+
+          if (
+            output.type === 'execution-denied' &&
+            (resultCaller?.type === 'program' ||
+              programmaticToolCallIds.has(part.toolCallId))
+          ) {
+            throw new UnsupportedFunctionalityError({
+              functionality:
+                'execution-denied results for programmatic tool calls',
+            });
+          }
+
           const contentValue = await convertFunctionToolResultOutput({
             output,
             toolName: part.toolName,
             outputSchemaToolNames,
+            promptCacheBreakpoint: getScalarToolResultPromptCacheBreakpoint({
+              output,
+              toolResultProviderOptions: part.providerOptions,
+              providerOptionsName,
+            }),
             providerOptionsName,
             warnings,
           });
 
-          const caller = mapToolCaller(
-            part.providerOptions?.[providerOptionsName]?.caller as
-              | { type: 'direct' }
-              | { type: 'program'; callerId: string }
-              | undefined,
-          );
+          const caller = mapToolCaller(resultCaller);
 
           input.push({
             type: 'function_call_output',

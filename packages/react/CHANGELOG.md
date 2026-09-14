@@ -1,5 +1,187 @@
 # @ai-sdk/react
 
+## 4.0.102
+
+### Patch Changes
+
+- Updated dependencies [615ac89]
+  - ai@7.0.99
+
+## 4.0.101
+
+### Patch Changes
+
+- 9d8e5a1: fix(react): abort chats when their `useChat` id changes during a stream
+- Updated dependencies [5ec21a6]
+- Updated dependencies [db59d78]
+- Updated dependencies [7469a3b]
+- Updated dependencies [f87bf07]
+- Updated dependencies [bc5cb7a]
+- Updated dependencies [a5f449a]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - ai@7.0.98
+  - @ai-sdk/provider-utils@5.0.40
+  - @ai-sdk/mcp@2.0.49
+
+## 4.0.100
+
+### Patch Changes
+
+- Updated dependencies [ef3bac4]
+- Updated dependencies [9942196]
+  - ai@7.0.97
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/mcp@2.0.48
+  - @ai-sdk/provider-utils@5.0.39
+
+## 4.0.99
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+- Updated dependencies [c595e6e]
+  - @ai-sdk/provider@4.0.12
+  - ai@7.0.96
+  - @ai-sdk/mcp@2.0.47
+  - @ai-sdk/provider-utils@5.0.38
+
+## 4.0.98
+
+### Patch Changes
+
+- Updated dependencies [27f6d7a]
+  - ai@7.0.95
+
+## 4.0.97
+
+### Patch Changes
+
+- Updated dependencies [a4ba394]
+- Updated dependencies [36b3364]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - ai@7.0.94
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+  - @ai-sdk/mcp@2.0.46
+
+## 4.0.96
+
+### Patch Changes
+
+- Updated dependencies [33ba8fd]
+- Updated dependencies [df6c009]
+- Updated dependencies [6ee74a3]
+- Updated dependencies [f13d371]
+- Updated dependencies [d4485fe]
+- Updated dependencies [4f201cc]
+- Updated dependencies [8cdb2a7]
+- Updated dependencies [3da84fd]
+- Updated dependencies [0f2281e]
+- Updated dependencies [fc8e8ac]
+- Updated dependencies [ee8391e]
+  - @ai-sdk/mcp@2.0.45
+  - ai@7.0.93
+
+## 4.0.95
+
+### Patch Changes
+
+- d1904d3: fix(ai): surface fallback errors for empty HTTP response bodies
+- Updated dependencies [a51cc94]
+- Updated dependencies [809e922]
+- Updated dependencies [d1904d3]
+- Updated dependencies [84e5a79]
+- Updated dependencies [a8e8ad0]
+  - ai@7.0.92
+  - @ai-sdk/mcp@2.0.44
+
+## 4.0.94
+
+### Patch Changes
+
+- Updated dependencies [802af1e]
+  - ai@7.0.91
+
+## 4.0.93
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+  - ai@7.0.90
+  - @ai-sdk/mcp@2.0.43
+
+## 4.0.92
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+  - ai@7.0.89
+  - @ai-sdk/mcp@2.0.42
+
+## 4.0.91
+
+### Patch Changes
+
+- Updated dependencies [8b6b756]
+- Updated dependencies [e07b577]
+  - ai@7.0.88
+
+## 4.0.90
+
+### Patch Changes
+
+- Updated dependencies [850d863]
+  - ai@7.0.87
+
+## 4.0.89
+
+### Patch Changes
+
+- Updated dependencies [11109ae]
+  - ai@7.0.86
+
+## 4.0.88
+
+### Patch Changes
+
+- Updated dependencies [55a9981]
+- Updated dependencies [dd32de2]
+- Updated dependencies [aa45741]
+- Updated dependencies [cc29073]
+  - ai@7.0.85
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/mcp@2.0.41
+  - @ai-sdk/provider-utils@5.0.34
+
+## 4.0.87
+
+### Patch Changes
+
+- Updated dependencies [6669d69]
+- Updated dependencies [a6463ca]
+- Updated dependencies [e604532]
+- Updated dependencies [90192f1]
+  - ai@7.0.84
+  - @ai-sdk/provider-utils@5.0.33
+  - @ai-sdk/mcp@2.0.40
+
+## 4.0.86
+
+### Patch Changes
+
+- Updated dependencies [8dd86a9]
+- Updated dependencies [fda13b3]
+- Updated dependencies [957146c]
+- Updated dependencies [ce6849a]
+  - ai@7.0.83
+
 ## 4.0.85
 
 ### Patch Changes

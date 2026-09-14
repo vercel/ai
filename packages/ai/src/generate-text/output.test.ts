@@ -1,8 +1,10 @@
 import { fail } from 'assert';
-import type { JSONSchema7 } from '@ai-sdk/provider';
+import { TypeValidationError, type JSONSchema7 } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
+import { NoObjectGeneratedError } from '../error/no-object-generated-error';
 import { verifyNoObjectGeneratedError } from '../error/verify-no-object-generated-error';
 import { array, choice, json, object, text } from './output';
 
@@ -272,6 +274,26 @@ describe('Output.array', () => {
       `);
     });
 
+    it('should include minItems and maxItems in the array schema', async () => {
+      const result = await array({
+        element: z.string(),
+        minItems: 0,
+        maxItems: 3,
+      }).responseFormat;
+
+      expect(result).toMatchObject({
+        schema: {
+          properties: {
+            elements: {
+              type: 'array',
+              minItems: 0,
+              maxItems: 3,
+            },
+          },
+        },
+      });
+    });
+
     it('should include name and description when provided', async () => {
       const arrayWithNameAndDesc = array({
         element: z.object({ content: z.string() }),
@@ -365,6 +387,38 @@ describe('Output.array', () => {
     );
   });
 
+  describe('bounds validation', () => {
+    it.each([
+      { name: 'minItems', value: -1 },
+      { name: 'minItems', value: 1.5 },
+      { name: 'maxItems', value: -1 },
+      { name: 'maxItems', value: 1.5 },
+    ] as const)('should reject invalid $name values', ({ name, value }) => {
+      expect(() =>
+        array({
+          element: z.string(),
+          [name]: value,
+        }),
+      ).toThrow(InvalidArgumentError);
+    });
+
+    it('should reject minItems greater than maxItems', () => {
+      expect(() =>
+        array({
+          element: z.string(),
+          minItems: 3,
+          maxItems: 2,
+        }),
+      ).toThrow(
+        new InvalidArgumentError({
+          parameter: 'minItems',
+          value: 3,
+          message: 'minItems must be less than or equal to maxItems',
+        }),
+      );
+    });
+  });
+
   describe('parseCompleteOutput', () => {
     it('should parse the output of the model', async () => {
       const result = await array1.parseCompleteOutput(
@@ -434,6 +488,60 @@ describe('Output.array', () => {
         { content: 'b' },
         { content: 'c' },
       ]);
+    });
+
+    it('should accept output within the configured bounds', async () => {
+      const boundedArray = array({
+        element: z.string(),
+        minItems: 2,
+        maxItems: 3,
+      });
+
+      await expect(
+        boundedArray.parseCompleteOutput(
+          { text: `{ "elements": ["a", "b"] }` },
+          context,
+        ),
+      ).resolves.toStrictEqual(['a', 'b']);
+    });
+
+    it.each([
+      {
+        name: 'below minItems',
+        options: { minItems: 2 },
+        text: `{ "elements": ["a"] }`,
+        cause: 'elements array must contain at least 2 items',
+      },
+      {
+        name: 'above maxItems',
+        options: { maxItems: 2 },
+        text: `{ "elements": ["a", "b", "c"] }`,
+        cause: 'elements array must contain at most 2 items',
+      },
+    ])('should reject output $name', async ({ options, text, cause }) => {
+      const boundedArray = array({
+        element: z.string(),
+        ...options,
+      });
+
+      try {
+        await boundedArray.parseCompleteOutput({ text }, context);
+        fail('must throw error');
+      } catch (error) {
+        verifyNoObjectGeneratedError(error, {
+          message: 'No object generated: response did not match schema.',
+          response: context.response,
+          usage: context.usage,
+          finishReason: context.finishReason,
+        });
+        expect(error).toBeInstanceOf(NoObjectGeneratedError);
+        const validationError = (error as NoObjectGeneratedError).cause;
+        expect(TypeValidationError.isInstance(validationError)).toBe(true);
+        if (!TypeValidationError.isInstance(validationError)) {
+          fail('cause must be a TypeValidationError');
+        }
+        expect(validationError.message).toContain(cause);
+      }
     });
   });
 

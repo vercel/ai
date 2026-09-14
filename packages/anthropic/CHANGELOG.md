@@ -1,5 +1,87 @@
 # @ai-sdk/anthropic
 
+## 4.0.53
+
+### Patch Changes
+
+- 5ec21a6: fix: reject unsupported batch request types
+- 7469a3b: feat: support image generation requests in batches
+- e4292e7: feat(anthropic): expand preserved thinking support to cover `prefix_mismatch_behavior: 'error'`
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
+## 4.0.52
+
+### Patch Changes
+
+- 5a7e647: feat(anthropic): add batch cancellation and listing
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/provider-utils@5.0.39
+
+## 4.0.51
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/provider-utils@5.0.38
+
+## 4.0.50
+
+### Patch Changes
+
+- a4ba394: feat: support per-request models in batch
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+
+## 4.0.49
+
+### Patch Changes
+
+- 65397d7: fix(anthropic): recognize dated Google Vertex Claude 4 model IDs when selecting model capabilities
+
+## 4.0.48
+
+### Patch Changes
+
+- 4d25a08: feat(anthropic): add fable 5.1 support
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
+## 4.0.47
+
+### Patch Changes
+
+- 5190b67: feat(provider): extend the FilesV4 interface with optional `getFileMetadata`, `downloadFile` (streaming), and `deleteFile` operations, plus `abortSignal`/`headers` call options and a `{ type: 'stream' }` upload data variant; upload results now expose `byteSize`, `createdAt`, and `expiresAt` (also surfaced by the core `uploadFile()` helper, which now forwards `abortSignal`/`headers`); add `postMultipartStreamToApi` (streaming multipart uploads with deterministic part ordering and failure-path stream teardown), `deleteFromApi`, and `createBinaryStreamResponseHandler` to provider-utils
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+
+## 4.0.46
+
+### Patch Changes
+
+- aa45741: fix(provider/anthropic): preserve native message batch request counts in provider metadata and support the full language-model option surface in batch requests
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 4.0.45
+
+### Patch Changes
+
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
 ## 4.0.44
 
 ### Patch Changes

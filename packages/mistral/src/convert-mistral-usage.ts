@@ -1,14 +1,37 @@
 import type { LanguageModelV4Usage } from '@ai-sdk/provider';
 import { createNullLanguageModelUsage } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
 
-export type MistralUsage = {
-  prompt_tokens: number;
-  completion_tokens: number;
-  total_tokens: number;
-  num_cached_tokens?: number | null;
-  prompt_tokens_details?: { cached_tokens?: number | null } | null;
-  prompt_token_details?: { cached_tokens?: number | null } | null;
-};
+const mistralPromptTokensDetailsSchema = z
+  .object({
+    messages: z.array(z.json()).nullish(),
+    cached_tokens: z.number().nullish(),
+    audio_tokens: z.number().nullish(),
+  })
+  .catchall(z.json());
+
+const mistralCompletionTokensDetailsSchema = z
+  .object({
+    reasoning_tokens: z.number().nullish(),
+  })
+  .catchall(z.json());
+
+export const mistralUsageSchema = z
+  .object({
+    prompt_tokens: z.number(),
+    completion_tokens: z.number(),
+    total_tokens: z.number(),
+    prompt_audio_seconds: z.number().nullish(),
+    request_count: z.number().nullish(),
+    service_tier: z.string().nullish(),
+    num_cached_tokens: z.number().nullish(),
+    prompt_tokens_details: mistralPromptTokensDetailsSchema.nullish(),
+    prompt_token_details: mistralPromptTokensDetailsSchema.nullish(),
+    completion_tokens_details: mistralCompletionTokensDetailsSchema.nullish(),
+  })
+  .catchall(z.json());
+
+export type MistralUsage = z.infer<typeof mistralUsageSchema>;
 
 export function convertMistralUsage(
   usage: MistralUsage | undefined | null,

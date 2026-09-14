@@ -73,6 +73,49 @@ describe('system messages', () => {
     expect(result.betas.has('mid-conversation-system-2026-04-07')).toBe(true);
   });
 
+  it('should serialize clearAt and effort on individual mid-conversation system messages', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        { role: 'system', content: 'initial' },
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        { role: 'assistant', content: [{ type: 'text', text: 'hello' }] },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            anthropic: {
+              clearAt: 'next_user_message',
+              effort: 'high',
+            },
+          },
+        },
+        {
+          role: 'system',
+          content: 'this instruction persists',
+        },
+        { role: 'user', content: [{ type: 'text', text: 'go' }] },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toContainEqual({
+      role: 'system',
+      content: [],
+      clear_at: 'next_user_message',
+      output_config: { effort: 'high' },
+    });
+    expect(result.prompt.messages).toContainEqual({
+      role: 'system',
+      content: [{ type: 'text', text: 'this instruction persists' }],
+    });
+    expect(
+      result.betas.has('mid-conversation-system-clear-at-2026-08-21'),
+    ).toBe(true);
+    expect(result.betas.has('mid-conversation-effort-2026-08-01')).toBe(true);
+  });
+
   it('should emit tool change blocks on a mid-conversation system message and add the beta', async () => {
     const result = await convertToAnthropicPrompt({
       prompt: [

@@ -1,7 +1,7 @@
-import { randomBytes } from 'node:crypto';
 import { posix } from 'node:path';
 import {
   commonTool,
+  HARNESS_V1_BUILTIN_TOOLS,
   harnessV1DiagnosticFromBridgeFrame,
   HarnessCapabilityUnsupportedError,
   type HarnessV1,
@@ -10,9 +10,11 @@ import {
   type HarnessV1ContinueTurnState,
   type HarnessV1CredentialForwarding,
   type HarnessV1DebugConfig,
+  type HarnessV1MintBridgeTokenCallback,
   type HarnessV1PermissionMode,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
+  type HarnessV1ResponseFormat,
   type HarnessV1PortEndpoint,
   type HarnessV1ResumeSessionState,
   type HarnessV1NetworkSandboxSession,
@@ -24,6 +26,7 @@ import {
   applyCredentialForwarding,
   classifyDiskLog,
   createSandboxCredentialEnvironment,
+  createBridgeToken,
   experimental_createBridgeUserMessageSubmitter,
   createBridgeErrorHandler,
   createBridgeStartupError,
@@ -37,7 +40,8 @@ import {
   shellQuote,
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
-  writeSkills as writeHarnessSkills,
+  withBridgeToken,
+  writeSkills,
 } from '@ai-sdk/harness/utils';
 import {
   safeParseJSON,
@@ -55,9 +59,12 @@ import {
   CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
   createClaudeCodeRequestTransformations,
   resolveClaudeCodeAuthenticationMode,
-  resolveClaudeCodeEnv,
-  type ClaudeCodeAuthOptions,
+  type ClaudeCodeAuthenticationMode,
 } from './claude-code-auth';
+import {
+  createClaudeCodeSubscriptionRequestTransformations,
+  resolveClaudeCodeAuthentication,
+} from './claude-code-subscription';
 import {
   outboundMessageSchema,
   type InboundMessage,
@@ -75,7 +82,7 @@ type ClaudeCodeRespawnStrategy = 'replay' | 'rerun';
 const CLAUDE_CODE_CLIENT_APP = `ai-sdk/harness-claude-code/${VERSION}`;
 
 export type ClaudeCodeHarnessSettings = {
-  readonly auth?: ClaudeCodeAuthOptions;
+  readonly auth?: ClaudeCodeAuthenticationMode;
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can
@@ -87,11 +94,6 @@ export type ClaudeCodeHarnessSettings = {
    * underlying runtime's native MCP server configuration format.
    */
   readonly mcpServers?: Record<string, unknown>;
-  /**
-   * Anthropic model id the underlying `claude` CLI should use. Leaving this
-   * unset defers to the CLI's default.
-   */
-  readonly model?: string;
   /**
    * Hard cap on how many internal turns the CLI can take before yielding
    * back to the caller. Unset means the CLI's default.
@@ -130,7 +132,7 @@ export type ClaudeCodeHarnessSettings = {
    * Creates the authentication token used by the sandbox bridge. Defaults to
    * a random 32-byte hexadecimal token.
    */
-  readonly mintBridgeToken?: (sandboxId: string) => string;
+  readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
 
 /*
@@ -458,39 +460,14 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       discard_changes: z.boolean().optional(),
     }),
   }),
-  AskUserQuestion: tool({
-    description: 'Ask the user multiple-choice questions via a structured UI',
-    inputSchema: z.object({
-      questions: z
-        .array(
-          z.object({
-            question: z.string(),
-            header: z.string(),
-            options: z.array(
-              z.object({
-                label: z.string(),
-                description: z.string(),
-                preview: z.string().optional(),
-              }),
-            ),
-            multiSelect: z.boolean(),
-          }),
-        )
-        .min(1)
-        .max(4),
-      answers: z.record(z.string(), z.string()).optional(),
-      annotations: z
-        .record(
-          z.string(),
-          z.object({
-            preview: z.string().optional(),
-            notes: z.string().optional(),
-          }),
-        )
-        .optional(),
-      metadata: z.object({ source: z.string().optional() }).optional(),
-    }),
-  }),
+  askUserQuestions: {
+    ...HARNESS_V1_BUILTIN_TOOLS.askUserQuestions,
+    nativeName: 'AskUserQuestion',
+    toolUseKind: 'readonly',
+  } as typeof HARNESS_V1_BUILTIN_TOOLS.askUserQuestions & {
+    readonly nativeName: 'AskUserQuestion';
+    readonly toolUseKind: 'readonly';
+  },
   Skill: {
     ...tool({
       description: 'Activate a skill by name',
@@ -800,6 +777,17 @@ const claudeCodeBridgeCoordsSchema = z.object({
 const claudeCodeResumeStateSchema = z.looseObject({
   bridge: claudeCodeBridgeCoordsSchema.optional(),
   sandboxCredentialEnvironment: z.record(z.string(), z.string()).optional(),
+  /**
+   * The exact Claude conversation to rehydrate on resume. Written by the
+   * adapter on `doStop()`/`doDetach()`/`doSuspendTurn()` from the session id
+   * the bridge observed, so a resume names the conversation instead of
+   * relying on the SDK's `continue` flag — "most recent thread in this
+   * workdir" — which silently picks the wrong one once a second thread
+   * exists there. Hosts that captured the id themselves (it is surfaced as
+   * `harnessMetadata['claude-code'].sessionId` on `finish` parts) may also
+   * set it explicitly.
+   */
+  claudeSessionId: z.string().optional(),
 });
 
 type ClaudeCodeBridgeCoords = z.infer<typeof claudeCodeBridgeCoordsSchema>;
@@ -857,13 +845,16 @@ export function createClaudeCode(
         ? (lifecycleState?.data as {
             bridge?: ClaudeCodeBridgeCoords;
             sandboxCredentialEnvironment?: Record<string, string>;
+            claudeSessionId?: string;
           })
         : undefined;
       const coords = resumeData?.bridge;
       const authenticationMode = resolveClaudeCodeAuthenticationMode(
         settings.auth,
       );
-      const resolvedAuthEnvironment = resolveClaudeCodeEnv(settings.auth);
+      const resolvedAuthEnvironment = await resolveClaudeCodeAuthentication({
+        auth: settings.auth,
+      });
       const claudeEnvironment = {
         ...resolvedAuthEnvironment,
         /*
@@ -876,6 +867,13 @@ export function createClaudeCode(
           ? { CLAUDE_AGENT_SDK_CLIENT_APP: CLAUDE_CODE_CLIENT_APP }
           : {}),
         ...settings.env,
+        ...(startOpts.headers != null
+          ? {
+              ANTHROPIC_CUSTOM_HEADERS: Object.entries(startOpts.headers)
+                .map(([name, value]) => `${name}: ${value}`)
+                .join('\n'),
+            }
+          : {}),
       };
       let sandboxClaudeEnvironment = claudeEnvironment;
       let sandboxCredentialEnvironment: Record<string, string> | undefined;
@@ -895,31 +893,50 @@ export function createClaudeCode(
           ...claudeEnvironment,
           ...sandboxCredentialEnvironment,
         };
-        const requestTransformations = createClaudeCodeRequestTransformations({
+        const transformationSources = {
           env: claudeEnvironment,
           sandboxEnv: sandboxClaudeEnvironment,
           auth: authenticationMode,
-        });
+        };
+        const requestTransformations = [
+          ...createClaudeCodeRequestTransformations(transformationSources),
+          ...createClaudeCodeSubscriptionRequestTransformations(
+            transformationSources,
+          ),
+        ];
         if (requestTransformations.length > 0) {
           await sandboxSession.addRequestTransformations(
             requestTransformations,
           );
         }
       } else {
-        warnCredentialBrokeringUnavailable();
         sandboxClaudeEnvironment = await applyCredentialForwarding({
           environment: sandboxClaudeEnvironment,
           credentialEnvironmentVariables:
             CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
           credentialForwarding: settings.credentialForwarding,
         });
+        warnCredentialBrokeringUnavailable({
+          environment: claudeEnvironment,
+          forwardedEnvironment: sandboxClaudeEnvironment,
+          credentialEnvironmentVariables:
+            CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
+        });
       }
       const bootstrapDir = posix.resolve(
         defaultWorkingDirectory,
         BOOTSTRAP_DIR,
       );
+      // The conversation the host wants back, when it is known. Absent on
+      // state written before this field existed; those resumes fall back to
+      // the `continue` flag as before.
+      const resumeSessionId = resumeData?.claudeSessionId;
 
       const workDir = startOpts.sessionWorkDir;
+      const sandboxHomeDir = await resolveSandboxHomeDir({
+        sandbox: toolSafeSandboxSession,
+        abortSignal: startOpts.abortSignal,
+      });
       const sessionDataDir = `${defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
@@ -987,11 +1004,11 @@ export function createClaudeCode(
           return createSession({
             sessionId: startOpts.sessionId,
             channel: attachChannel,
+            ...(resumeSessionId ? { resumeSessionId } : {}),
             // The live bridge was spawned by another process; this one owns no
             // process handle. The session lifecycle method decides whether the
             // sandbox is left running, stopped, or destroyed.
             proc: undefined,
-            model: settings.model,
             maxTurns: settings.maxTurns,
             env: sandboxClaudeEnvironment,
             thinking,
@@ -1006,7 +1023,8 @@ export function createClaudeCode(
             debug: startOpts.observability?.debug,
             permissionMode: startOpts.permissionMode,
             builtinToolFiltering: startOpts.builtinToolFiltering,
-            skills: startOpts.skills ?? [],
+            sandbox: toolSafeSandboxSession,
+            sandboxHomeDir,
             mcpServers: settings.mcpServers,
             supportsUserMessageResponses: () => supportsUserMessageResponses,
           });
@@ -1039,53 +1057,32 @@ export function createClaudeCode(
         }
       }
 
-      const sandboxHomeDir =
-        startOpts.skills && startOpts.skills.length > 0
-          ? await resolveSandboxHomeDir({
-              sandbox: toolSafeSandboxSession,
-              abortSignal: startOpts.abortSignal,
-            })
-          : undefined;
       const port = resolveBridgePort({
         sandboxSession,
         override: settings.port,
       });
       const token =
         settings.mintBridgeToken == null
-          ? randomBytes(32).toString('hex')
+          ? createBridgeToken()
           : settings.mintBridgeToken(sandboxId!);
       const env = {
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
-        ...(sandboxHomeDir ? { HOME: sandboxHomeDir } : {}),
         ...(respawnStrategy === 'replay'
           ? { BRIDGE_REPLAY_FROM_DISK: '1' }
           : {}),
       };
 
       /*
-       * On a fresh start the workdir, skill files, and bridge-state directory
-       * must be created. On any resume they already exist in the
-       * sandbox snapshot, so skip the rewrite. The env is sent fresh on every
-       * spawn — `BRIDGE_CHANNEL_TOKEN` rotates per start.
+       * On a fresh start the workdir and bridge-state directory must be
+       * created. The env is sent fresh on every spawn —
+       * `BRIDGE_CHANNEL_TOKEN` rotates per start.
        */
       if (respawnStrategy === undefined) {
         await toolSafeSandboxSession.run({
           command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
           abortSignal: startOpts.abortSignal,
         });
-
-        if (startOpts.skills && startOpts.skills.length > 0) {
-          if (!sandboxHomeDir) {
-            throw new Error('Unable to resolve sandbox HOME directory.');
-          }
-          await writeClaudeCodeSkills({
-            sandbox: toolSafeSandboxSession,
-            homeDir: sandboxHomeDir,
-            skills: startOpts.skills,
-            abortSignal: startOpts.abortSignal,
-          });
-        }
       }
 
       await markBridgeStarting({
@@ -1162,13 +1159,13 @@ export function createClaudeCode(
         sessionId: startOpts.sessionId,
         channel,
         proc,
-        model: settings.model,
         maxTurns: settings.maxTurns,
         env: sandboxClaudeEnvironment,
         thinking,
         effort: settings.effort,
         isResume: respawnStrategy !== undefined,
         continueOnFirstPrompt: respawnStrategy !== undefined,
+        ...(resumeSessionId ? { resumeSessionId } : {}),
         rerunContinue: respawnStrategy === 'rerun',
         bridgePort: boundPort,
         bridgeToken: token,
@@ -1177,7 +1174,8 @@ export function createClaudeCode(
         debug: startOpts.observability?.debug,
         permissionMode: startOpts.permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
-        skills: startOpts.skills ?? [],
+        sandbox: toolSafeSandboxSession,
+        sandboxHomeDir,
         mcpServers: settings.mcpServers,
         supportsUserMessageResponses: () => supportsUserMessageResponses,
       });
@@ -1257,30 +1255,6 @@ async function resolveBridgeEndpoint({
  * be in place before the bridge is spawned without mutating the session
  * workdir. Each file uses the YAML-frontmatter shape the CLI expects.
  */
-async function writeClaudeCodeSkills({
-  sandbox,
-  homeDir,
-  skills,
-  abortSignal,
-}: {
-  sandbox: SandboxSession;
-  homeDir: string;
-  skills: ReadonlyArray<HarnessV1Skill>;
-  abortSignal?: AbortSignal;
-}): Promise<void> {
-  await writeHarnessSkills({
-    sandbox,
-    rootDir: `${homeDir}/.claude/skills`,
-    skills,
-    abortSignal,
-    invalidSkillNameMessage: ({ name }) =>
-      `Invalid Claude Code skill name: ${name}`,
-    invalidSkillFilePathMessage: ({ skillName, filePath }) =>
-      `Invalid Claude Code skill file path for ${skillName}: ${filePath}`,
-    trailingNewline: true,
-  });
-}
-
 /**
  * Wait for the bridge's `bridge-hello` message to arrive on the freshly
  * opened WebSocket before any other host-side code touches it.
@@ -1313,24 +1287,33 @@ function openWebSocketAndWaitForBridgeHello({
     let openTimer: ReturnType<typeof setTimeout> | undefined;
     let helloTimer: ReturnType<typeof setTimeout> | undefined;
 
-    const cleanup = () => {
+    const cleanup = ({
+      keepTerminationListeners = false,
+    }: {
+      keepTerminationListeners?: boolean;
+    } = {}) => {
       if (openTimer) clearTimeout(openTimer);
       if (helloTimer) clearTimeout(helloTimer);
       ws.off('open', onOpen);
       ws.off('message', onMessage);
-      ws.off('close', onClose);
-      ws.off('error', onError);
+      if (!keepTerminationListeners) {
+        ws.off('close', onClose);
+        ws.off('error', onError);
+      }
     };
     const settle = (err?: unknown) => {
       if (settled) return;
       settled = true;
-      cleanup();
       if (err) {
+        cleanup({ keepTerminationListeners: true });
         try {
           ws.terminate();
-        } catch {}
+        } catch {
+          cleanup();
+        }
         reject(err);
       } else {
+        cleanup();
         resolve(ws);
       }
     };
@@ -1388,6 +1371,7 @@ function openWebSocketAndWaitForBridgeHello({
       settle(
         new Error('claude-code bridge closed before sending bridge-hello'),
       );
+      cleanup();
     };
     const onError = (err: Error) => settle(err);
     openTimer = setTimeout(
@@ -1453,18 +1437,6 @@ function webSocketMessageToString(raw: unknown): string {
   return String(raw);
 }
 
-function withBridgeToken({
-  endpoint,
-  token,
-}: {
-  endpoint: HarnessV1PortEndpoint;
-  token: string;
-}): HarnessV1PortEndpoint {
-  const bridgeUrl = new URL(endpoint.url);
-  bridgeUrl.searchParams.set('agent_bridge_token', token);
-  return { ...endpoint, url: bridgeUrl.toString() };
-}
-
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => {
     const timer = setTimeout(resolve, ms);
@@ -1481,13 +1453,13 @@ function createSession({
   sessionId,
   channel,
   proc,
-  model,
   maxTurns,
   env,
   thinking,
   effort,
   isResume,
   continueOnFirstPrompt,
+  resumeSessionId,
   rerunContinue,
   bridgePort,
   bridgeToken,
@@ -1496,7 +1468,8 @@ function createSession({
   debug,
   permissionMode,
   builtinToolFiltering,
-  skills,
+  sandbox,
+  sandboxHomeDir,
   mcpServers,
   supportsUserMessageResponses,
 }: {
@@ -1504,13 +1477,18 @@ function createSession({
   channel: ClaudeCodeChannel;
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
-  model: string | undefined;
   maxTurns: number | undefined;
   env: Readonly<Record<string, string>> | undefined;
   thinking: ClaudeCodeThinkingConfig;
   effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
   isResume: boolean;
   continueOnFirstPrompt: boolean;
+  /**
+   * Exact conversation to rehydrate whenever a fresh SDK query starts. Takes
+   * precedence over the `continue` flag, which can only mean "most recent in
+   * this workdir".
+   */
+  resumeSessionId?: string;
   rerunContinue: boolean;
   bridgePort: number;
   bridgeToken: string;
@@ -1519,7 +1497,8 @@ function createSession({
   debug: HarnessV1DebugConfig | undefined;
   permissionMode: HarnessV1PermissionMode | undefined;
   builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
-  skills: ReadonlyArray<HarnessV1Skill>;
+  sandbox: SandboxSession;
+  sandboxHomeDir: string;
   mcpServers: Record<string, unknown> | undefined;
   supportsUserMessageResponses: () => boolean;
 }): HarnessV1Session {
@@ -1527,11 +1506,20 @@ function createSession({
   let stopPromise: Promise<void> | undefined;
   /*
    * Force the Claude SDK's `continue: true` on the first prompt only when the
-   * bridge was respawned (rerun/replay): a fresh bridge process treats its
-   * first turn as new, so it must be told to rehydrate the workdir thread. An
-   * `attach`ed bridge is already past its first turn and continues on its own.
+   * bridge was respawned without an exact conversation id (rerun/replay): a
+   * fresh bridge process treats its first turn as new, so it must be told to
+   * rehydrate the workdir thread. Exact ids are sent independently of this
+   * fallback on every fresh query.
    */
   let pendingResumeFlag = continueOnFirstPrompt;
+
+  /*
+   * The Claude conversation this session currently embodies. Seeded from the
+   * resume state and updated from every `finish` part's metadata — each turn
+   * may fork a new id, so the latest observation is the one a later
+   * stop/detach must record for exact resume.
+   */
+  let lastClaudeSessionId = resumeSessionId;
 
   /*
    * Wire the channel into one turn's worth of events and return the control
@@ -1588,6 +1576,9 @@ function createSession({
       'reasoning-start',
       'reasoning-delta',
       'reasoning-end',
+      'tool-input-start',
+      'tool-input-delta',
+      'tool-input-end',
       'tool-call',
       'tool-approval-request',
       'tool-result',
@@ -1603,6 +1594,14 @@ function createSession({
     }
     unsubs.push(
       channel.on('finish', msg => {
+        const metadata = (
+          msg as {
+            harnessMetadata?: { 'claude-code'?: { sessionId?: unknown } };
+          }
+        ).harnessMetadata?.['claude-code']?.sessionId;
+        if (typeof metadata === 'string' && metadata.length > 0) {
+          lastClaudeSessionId = metadata;
+        }
         forward(msg);
         settleSuccess();
       }),
@@ -1659,6 +1658,9 @@ function createSession({
           toolCallId: input.toolCallId,
           output: input.output,
           isError: input.isError,
+          ...(input.toolResult !== undefined
+            ? { toolResult: input.toolResult }
+            : {}),
         });
       },
       submitToolApproval: async input => {
@@ -1680,25 +1682,55 @@ function createSession({
     };
   };
 
+  const prepareTurn = async (turnOpts: {
+    responseFormat?: HarnessV1ResponseFormat;
+    skills: ReadonlyArray<HarnessV1Skill>;
+    emit: (event: HarnessV1StreamPart) => void;
+    abortSignal?: AbortSignal;
+  }): Promise<HarnessV1PromptControl> => {
+    if (
+      turnOpts.responseFormat?.type === 'json' &&
+      turnOpts.responseFormat.schema == null
+    ) {
+      throw new HarnessCapabilityUnsupportedError({
+        message:
+          "Harness 'claude-code' requires a JSON schema for structured output.",
+        harnessId: 'claude-code',
+      });
+    }
+    await writeSkills({
+      sandbox,
+      homePath: sandboxHomeDir,
+      skillsDir: '.claude/skills',
+      skills: turnOpts.skills,
+      abortSignal: turnOpts.abortSignal,
+      invalidSkillNameMessage: ({ name }) =>
+        `Invalid Claude Code skill name: ${name}`,
+      invalidSkillFilePathMessage: ({ skillName, filePath }) =>
+        `Invalid Claude Code skill file path for ${skillName}: ${filePath}`,
+      trailingNewline: true,
+    });
+    return wireTurn({
+      emit: turnOpts.emit,
+      abortSignal: turnOpts.abortSignal,
+    });
+  };
+
   return {
     sessionId,
     isResume,
-    modelId: model,
     doPromptTurn: async promptOpts => {
-      if (
-        promptOpts.responseFormat?.type === 'json' &&
-        promptOpts.responseFormat.schema == null
-      ) {
-        throw new HarnessCapabilityUnsupportedError({
-          message:
-            "Harness 'claude-code' requires a JSON schema for structured output.",
-          harnessId: 'claude-code',
-        });
+      const control = await prepareTurn(promptOpts);
+
+      /*
+       * A signal that was already aborted has settled the turn inside
+       * `wireTurn`. Sending `start` anyway would run a full unattended turn
+       * in the bridge — consuming tokens and possibly acting on the
+       * workspace — after the caller has already observed the abort.
+       */
+      if (promptOpts.abortSignal?.aborted) {
+        return control;
       }
-      const control = wireTurn({
-        emit: promptOpts.emit,
-        abortSignal: promptOpts.abortSignal,
-      });
 
       const startMessage = {
         type: 'start' as const,
@@ -1714,19 +1746,23 @@ function createSession({
         ...(promptOpts.instructions
           ? { instructions: promptOpts.instructions }
           : {}),
-        model,
+        model: promptOpts.model,
         maxTurns,
         ...(env !== undefined ? { env } : {}),
         thinking,
         ...(effort !== undefined ? { effort } : {}),
-        ...(skills.length > 0
-          ? { skills: skills.map(skill => skill.name) }
+        ...(promptOpts.skills.length > 0
+          ? { skills: promptOpts.skills.map(skill => skill.name) }
           : {}),
         ...(mcpServers == null ? {} : { mcpServers }),
         ...(permissionMode ? { permissionMode } : {}),
         ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
         ...(debug ? { debug } : {}),
-        ...(pendingResumeFlag ? { continue: true } : {}),
+        ...(lastClaudeSessionId
+          ? { resumeSessionId: lastClaudeSessionId }
+          : pendingResumeFlag
+            ? { continue: true }
+            : {}),
       };
       pendingResumeFlag = false;
       channel.send(startMessage);
@@ -1734,20 +1770,7 @@ function createSession({
       return control;
     },
     doContinueTurn: async continueOpts => {
-      if (
-        continueOpts.responseFormat?.type === 'json' &&
-        continueOpts.responseFormat.schema == null
-      ) {
-        throw new HarnessCapabilityUnsupportedError({
-          message:
-            "Harness 'claude-code' requires a JSON schema for structured output.",
-          harnessId: 'claude-code',
-        });
-      }
-      const control = wireTurn({
-        emit: continueOpts.emit,
-        abortSignal: continueOpts.abortSignal,
-      });
+      const control = await prepareTurn(continueOpts);
 
       /*
        * attach / replay: the still-running (or disk-replayed) turn streams into
@@ -1762,7 +1785,9 @@ function createSession({
        * recomputed. This is the rare bridge-died fallback; the common slice path
        * is `attach`.
        */
-      if (rerunContinue) {
+      // Same as `doPromptTurn`: an already-aborted signal settled the turn in
+      // `wireTurn`, so don't re-drive the thread nobody is waiting on.
+      if (rerunContinue && !continueOpts.abortSignal?.aborted) {
         pendingResumeFlag = false;
         channel.send({
           type: 'start' as const,
@@ -1785,19 +1810,21 @@ function createSession({
           ...(continueOpts.instructions
             ? { instructions: continueOpts.instructions }
             : {}),
-          model,
+          model: continueOpts.model,
           maxTurns,
           ...(env !== undefined ? { env } : {}),
           thinking,
           ...(effort !== undefined ? { effort } : {}),
-          ...(skills.length > 0
-            ? { skills: skills.map(skill => skill.name) }
+          ...(continueOpts.skills.length > 0
+            ? { skills: continueOpts.skills.map(skill => skill.name) }
             : {}),
           ...(mcpServers == null ? {} : { mcpServers }),
           ...(permissionMode ? { permissionMode } : {}),
           ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
           ...(debug ? { debug } : {}),
-          continue: true,
+          ...(lastClaudeSessionId
+            ? { resumeSessionId: lastClaudeSessionId }
+            : { continue: true }),
         });
       }
 
@@ -1839,6 +1866,9 @@ function createSession({
             lastSeenEventId,
             ...(sandboxId == null ? {} : { sandboxId }),
           },
+          ...(lastClaudeSessionId
+            ? { claudeSessionId: lastClaudeSessionId }
+            : {}),
         },
       };
       return payload;
@@ -1950,7 +1980,13 @@ function createSession({
         type: 'resume-session',
         harnessId: 'claude-code',
         specificationVersion: 'harness-v1',
+        // The bridge's stop reply carries the session id it observed; the
+        // adapter's own record backfills it when the reply predates the
+        // field or the channel was already closed.
         data: {
+          ...(lastClaudeSessionId
+            ? { claudeSessionId: lastClaudeSessionId }
+            : {}),
           ...lifecycleData,
           ...(sandboxCredentialEnvironment == null
             ? {}
@@ -1989,6 +2025,9 @@ function createSession({
             lastSeenEventId,
             ...(sandboxId == null ? {} : { sandboxId }),
           },
+          ...(lastClaudeSessionId
+            ? { claudeSessionId: lastClaudeSessionId }
+            : {}),
         },
       };
       return payload;

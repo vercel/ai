@@ -12,6 +12,19 @@ export {
 } from './bridge-user-message-submitter';
 export { classifyDiskLog, type DiskLogRecoveryMode } from './classify-disk-log';
 export { getAiGatewayAuthFromEnv } from './ai-gateway-auth';
+export { isHarnessAuthenticationEnvironment } from './authentication-environment';
+export { getJwtExpiresAt, parseJwtPayload } from './native-subscription/jwt';
+export { readLinuxSecretServicePassword } from './native-subscription/linux-secret-service';
+export { readMacOSKeychainPassword } from './native-subscription/macos-keychain';
+export { shouldResolveNativeSubscription } from './native-subscription/should-resolve-native';
+export { readWindowsCredentialManagerPassword } from './native-subscription/windows-credential-manager';
+export {
+  isAccessTokenExpiringSoon,
+  refreshOAuthAccessToken,
+  type OAuthCredential,
+  type RefreshOAuthAccessTokenResult,
+} from './oauth-access-token';
+export { isLinux, isMacOS, isWindows } from './os';
 export {
   applyCredentialForwarding,
   createSandboxCredentialEnvironment,
@@ -26,9 +39,15 @@ export {
 export { resolveSandboxHomeDir } from './sandbox-home-dir';
 export { shellQuote } from './shell-quote';
 export {
+  writeInstructions,
+  type WriteInstructionsOptions,
+  type WriteInstructionsResult,
+} from './write-instructions';
+export {
   writeSkills,
   type SkillFilePathMode,
   type WriteSkillsOptions,
+  type WriteSkillsResult,
 } from './write-skills';
 export {
   markBridgeStarting,
@@ -38,6 +57,8 @@ export {
   type WaitForBridgeReadyOptions,
   type WaitForBridgeReadyResult,
 } from './bridge-ready';
+export { createBridgeToken, withBridgeToken } from './bridge-token';
+export { createReadBridgeAsset } from './bridge-asset';
 export {
   createBridgeErrorHandler,
   createBridgeStartupError,

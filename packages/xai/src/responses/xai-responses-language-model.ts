@@ -22,16 +22,20 @@ import {
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   type FetchFunction,
+  type InferSchema,
   type ParseResult,
 } from '@ai-sdk/provider-utils';
 import type { z } from 'zod/v4';
 import { getResponseMetadata } from '../get-response-metadata';
 import { supportsReasoningEffort } from '../supports-reasoning-effort';
+import type { webSearchOutputSchema } from '../tool/web-search';
 import { xaiFailedResponseHandler } from '../xai-error';
 import { convertToXaiResponsesInput } from './convert-to-xai-responses-input';
 import { convertXaiResponsesUsage } from './convert-xai-responses-usage';
 import { mapXaiResponsesFinishReason } from './map-xai-responses-finish-reason';
 import {
+  webSearchWireActionSchema,
+  webSearchWireSourceSchema,
   xaiResponsesChunkSchema,
   xaiResponsesResponseSchema,
   type XaiResponsesIncludeOptions,
@@ -135,6 +139,15 @@ function isRetryableStatusCode(statusCode: number): boolean {
   );
 }
 
+export const xaiResponsesSupportedUrls: Record<string, RegExp[]> = {
+  'image/*': [/^https?:\/\/.*$/],
+  // xAI's Responses API accepts non-image documents (PDF, plain text, CSV, etc.) as
+  // `{ type: 'input_file', file_url }`. Keeping these URLs intact here lets them pass
+  // through to the converter instead of being downloaded to bytes by the SDK.
+  'application/pdf': [/^https?:\/\/.*$/],
+  'text/*': [/^https?:\/\/.*$/],
+};
+
 export class XaiResponsesLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -165,31 +178,30 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     return this.config.provider;
   }
 
-  readonly supportedUrls: Record<string, RegExp[]> = {
-    'image/*': [/^https?:\/\/.*$/],
-    // xAI's Responses API accepts non-image documents (PDF, plain text, CSV, etc.) as
-    // `{ type: 'input_file', file_url }`. Keeping these URLs intact here lets them pass
-    // through to the converter instead of being downloaded to bytes by the SDK.
-    'application/pdf': [/^https?:\/\/.*$/],
-    'text/*': [/^https?:\/\/.*$/],
-  };
+  readonly supportedUrls = xaiResponsesSupportedUrls;
 
-  protected async getArgs({
-    prompt,
-    maxOutputTokens,
-    temperature,
-    topP,
-    topK,
-    frequencyPenalty,
-    presencePenalty,
-    stopSequences,
-    seed,
-    responseFormat,
-    providerOptions,
-    tools,
-    toolChoice,
-    reasoning,
-  }: LanguageModelV4CallOptions) {
+  static async prepareRequest({
+    modelId,
+    options: {
+      prompt,
+      maxOutputTokens,
+      temperature,
+      topP,
+      topK,
+      frequencyPenalty,
+      presencePenalty,
+      stopSequences,
+      seed,
+      responseFormat,
+      providerOptions,
+      tools,
+      toolChoice,
+      reasoning,
+    },
+  }: {
+    modelId: XaiResponsesModelId;
+    options: LanguageModelV4CallOptions;
+  }) {
     const warnings: SharedV4Warning[] = [];
 
     const options =
@@ -272,7 +284,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
 
     let resolvedReasoningEffort = options.reasoningEffort;
     if (resolvedReasoningEffort == null && isCustomReasoning(reasoning)) {
-      if (!supportsReasoningEffort(this.modelId)) {
+      if (!supportsReasoningEffort(modelId)) {
         warnings.push({
           type: 'unsupported',
           feature: 'reasoning',
@@ -288,7 +300,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             low: 'low',
             medium: 'medium',
             high: 'high',
-            xhigh: this.modelId === 'grok-4.6' ? 'xhigh' : 'high',
+            xhigh: modelId === 'grok-4.6' ? 'xhigh' : 'high',
           },
           warnings,
         });
@@ -296,7 +308,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     }
 
     const baseArgs: Record<string, unknown> = {
-      model: this.modelId,
+      model: modelId,
       input,
       logprobs:
         options.logprobs === true || options.topLogprobs != null
@@ -364,6 +376,13 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       fileSearchToolName,
       imageGenerationToolName,
     };
+  }
+
+  private getArgs(options: LanguageModelV4CallOptions) {
+    return XaiResponsesLanguageModel.prepareRequest({
+      modelId: this.modelId,
+      options,
+    });
   }
 
   async doGenerate(
@@ -521,6 +540,15 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
           input: toolInput,
           providerExecuted: true,
         });
+
+        if (part.type === 'web_search_call') {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName,
+            result: mapWebSearchAction(part.action),
+          });
+        }
 
         continue;
       }
@@ -1239,7 +1267,10 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                     type: 'tool-result',
                     toolCallId: part.id,
                     toolName,
-                    result: {},
+                    result:
+                      part.type === 'web_search_call'
+                        ? mapWebSearchAction(part.action)
+                        : {},
                   });
                 }
 
@@ -1355,5 +1386,38 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       request: { body },
       response: { headers: responseHeaders },
     };
+  }
+}
+
+function mapWebSearchAction(
+  action: unknown,
+): InferSchema<typeof webSearchOutputSchema> {
+  const parsed = webSearchWireActionSchema.safeParse(action);
+  if (!parsed.success) return {};
+
+  const a = parsed.data;
+  const sources = a.sources?.flatMap(s => {
+    const source = webSearchWireSourceSchema.safeParse(s);
+    return source.success ? [source.data] : [];
+  });
+  const sourcesExtra = sources != null && sources.length > 0 ? { sources } : {};
+
+  switch (a.type) {
+    case 'search':
+      return {
+        action: {
+          type: 'search',
+          ...(a.query != null && { query: a.query }),
+          ...(a.queries != null && { queries: a.queries }),
+        },
+        ...sourcesExtra,
+      };
+    case 'open_page':
+      return { action: { type: 'openPage', url: a.url }, ...sourcesExtra };
+    case 'find_in_page':
+      return {
+        action: { type: 'findInPage', url: a.url, pattern: a.pattern },
+        ...sourcesExtra,
+      };
   }
 }

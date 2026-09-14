@@ -6,7 +6,7 @@
  *
  * Run with: pnpm test:integration
  */
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { start } from 'workflow/api';
 
 import {
@@ -25,12 +25,18 @@ import {
   agentRepairToolCallE2e,
   agentRuntimeAndToolsContextE2e,
   agentSandboxE2e,
+  agentSignedToolApprovalIssueE2e,
+  agentSignedToolApprovalResumeE2e,
   agentStreamErrorE2e,
   agentTimeoutE2e,
   agentToolApprovalE2e,
   agentToolCallE2e,
   agentToolInputSchemaE2e,
 } from './test/agent-e2e-workflows.js';
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 async function collectStream<T>(stream: ReadableStream<T>): Promise<T[]> {
   const chunks: T[] = [];
@@ -274,6 +280,46 @@ describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
         toolCallsCount: 1,
         toolResultsCount: 0,
         firstToolCallName: 'riskyTool',
+      });
+    });
+
+    it('signs an approval and verifies it in a later workflow run', async () => {
+      vi.stubEnv(
+        'WORKFLOW_TOOL_APPROVAL_SECRET',
+        'workflow-tool-approval-secret-for-tests',
+      );
+      const issueRun = await start(agentSignedToolApprovalIssueE2e, []);
+      const chunksPromise = collectStream<{
+        type: string;
+        approvalId?: string;
+        toolCallId?: string;
+        signature?: string;
+      }>(issueRun.readable);
+
+      await expect(issueRun.returnValue).resolves.toEqual({
+        toolCallsCount: 1,
+      });
+      const chunks = await chunksPromise;
+      const approvalRequest = chunks.find(
+        chunk => chunk.type === 'tool-approval-request',
+      );
+
+      expect(approvalRequest).toMatchObject({
+        approvalId: 'approval-call-1',
+        toolCallId: 'call-1',
+        signature: expect.any(String),
+      });
+      expect(JSON.stringify(chunks)).not.toContain(
+        'workflow-tool-approval-secret-for-tests',
+      );
+
+      const resumeRun = await start(agentSignedToolApprovalResumeE2e, [
+        approvalRequest!.signature!,
+      ]);
+
+      await expect(resumeRun.returnValue).resolves.toEqual({
+        lastStepText: 'approved action done',
+        containsApprovedToolResult: true,
       });
     });
   });

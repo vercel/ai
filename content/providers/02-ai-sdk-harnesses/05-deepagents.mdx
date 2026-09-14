@@ -41,6 +41,7 @@ import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
   harness: deepAgents,
+  model: 'anthropic/claude-sonnet-4-6',
   sandbox: createVercelSandbox({
     runtime: 'node24',
     ports: [4000],
@@ -79,14 +80,13 @@ Vercel Sandbox, and one of the variables listed under
 Use `createDeepAgents()` to configure the runtime:
 
 ```ts
-const harness = createDeepAgents({
-  model: 'claude-sonnet-4',
-});
+const harness = createDeepAgents({ recursionLimit: 100 });
 ```
 
 Settings:
 
-- `auth`: authentication mode: `auto`, `anthropic`, or `ai-gateway`.
+- `auth`: authentication mode (`auto`, `anthropic`, or `ai-gateway`) or an
+  isolated authentication environment.
 - `credentialForwarding`: optional synchronous or asynchronous callback that
   customizes each credential immediately before the harness adapter forwards it
   into a sandbox process. It receives the credential value that would otherwise
@@ -96,9 +96,6 @@ Settings:
   credentials the harness adapter can discover, read, or otherwise access in
   the host process.
 - `mcpServers`: MCP server definitions keyed by server name.
-- `model`: model id passed to the Deep Agents (LangChain) runtime. Through AI
-  Gateway, use the `creator/model` slug (e.g. `anthropic/claude-sonnet-4-6`,
-  `google/gemini-2.5-flash`, `openai/gpt-4.1-mini`).
 - `port`: bridge port override.
 - `recursionLimit`: maximum LangGraph super-steps per turn. When omitted, the
   Deep Agents default applies.
@@ -145,11 +142,25 @@ Supported environment variables:
 To run a non-Anthropic model, select `ai-gateway`:
 
 ```ts
-const harness = createDeepAgents({
+const harness = createDeepAgents({ auth: 'ai-gateway' });
+const agent = new HarnessAgent({
+  harness,
   model: 'google/gemini-2.5-flash',
-  auth: 'ai-gateway',
+  sandbox,
 });
 ```
+
+Pass an authentication environment to use programmatically resolved
+credentials without reading `process.env`:
+
+```ts
+const harness = createDeepAgents({
+  auth: { ANTHROPIC_API_KEY: await resolveAnthropicToken() },
+});
+```
+
+The supplied record replaces the host environment for authentication
+discovery. Only recognized authentication variables are forwarded.
 
 ## Sandbox
 

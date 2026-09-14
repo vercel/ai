@@ -1,18 +1,19 @@
 import {
+  HARNESS_V1_BUILTIN_TOOLS,
   commonTool,
   type HarnessV1,
   type HarnessV1BuiltinTool,
   type HarnessV1CredentialForwarding,
+  type HarnessV1MintBridgeTokenCallback,
   type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
 import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
-import {
-  createACP,
-  type ACPProviderAuthenticationMode,
-} from '@ai-sdk/harness-acp';
+import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
+import { resolveGrokBuildSubscriptionEnvironment } from './grok-build-subscription';
+import { grokBuildAskUserQuestions } from './grok-build-question-tool';
 
 declare const __GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON__: string;
 declare const __GROK_BUILD_IMPLEMENTATION_PNPM_LOCK_YAML__: string;
@@ -26,12 +27,14 @@ const GROK_BUILD_IMPLEMENTATION_PNPM_LOCK =
 const GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE =
   __GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE_YAML__;
 
+export type GrokBuildAuthenticationMode = ACPAuthenticationMode;
+
 export type GrokBuildHarnessSettings = {
   /**
    * Selects direct xAI or AI Gateway authentication. Defaults to automatic
    * environment-based selection.
    */
-  readonly auth?: ACPProviderAuthenticationMode;
+  readonly auth?: GrokBuildAuthenticationMode;
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can
@@ -39,9 +42,17 @@ export type GrokBuildHarnessSettings = {
    */
   readonly credentialForwarding?: HarnessV1CredentialForwarding;
   /**
-   * Grok model id selected through ACP. Unset preserves Grok Build's default.
+   * Reasoning effort for reasoning-capable models. Leaving this unset defers
+   * to Grok Build's default.
    */
-  readonly model?: string;
+  readonly reasoningEffort?:
+    | 'none'
+    | 'minimal'
+    | 'low'
+    | 'medium'
+    | 'high'
+    | 'xhigh'
+    | 'max';
   /**
    * Overrides the sandbox port used by the ACP bridge.
    */
@@ -64,7 +75,7 @@ export type GrokBuildHarnessSettings = {
    * Creates the authentication token used by the sandbox bridge. Defaults to
    * a random 32-byte hexadecimal token.
    */
-  readonly mintBridgeToken?: (sandboxId: string) => string;
+  readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
 
 /*
@@ -73,6 +84,7 @@ export type GrokBuildHarnessSettings = {
  * implementation.
  */
 const GROK_BUILD_BUILTIN_TOOLS = {
+  askUserQuestions: HARNESS_V1_BUILTIN_TOOLS.askUserQuestions,
   bash: commonTool('bash', {
     nativeName: 'run_terminal_command',
     toolUseKind: 'bash',
@@ -243,23 +255,6 @@ const GROK_BUILD_BUILTIN_TOOLS = {
   }),
   enter_plan_mode: tool({ inputSchema: z.looseObject({}) }),
   exit_plan_mode: tool({ inputSchema: z.looseObject({}) }),
-  ask_user_question: tool({
-    inputSchema: z.looseObject({
-      questions: z.array(
-        z.looseObject({
-          question: z.string(),
-          options: z.array(
-            z.looseObject({
-              label: z.string(),
-              description: z.string(),
-              preview: z.string().nullable().optional(),
-            }),
-          ),
-          multi_select: z.boolean().nullable().optional(),
-        }),
-      ),
-    }),
-  }),
   image_gen: tool({
     inputSchema: z.looseObject({
       prompt: z.string(),
@@ -297,15 +292,19 @@ export function createGrokBuild(
 ): HarnessV1<typeof GROK_BUILD_BUILTIN_TOOLS> {
   const clientAppSegments = GROK_BUILD_CLIENT_APP.split('/');
   const clientAppVersion = clientAppSegments.pop()!;
-
   return createACP({
     auth: settings.auth,
+    resolveAuthenticationEnvironment: resolveGrokBuildSubscriptionEnvironment,
+    authentication: { methodId: 'xai.api_key' },
     credentialForwarding: settings.credentialForwarding,
-    modelId: settings.model,
     port: settings.port,
     portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,
     mcpServers: settings.mcpServers,
+    modelMapping: {
+      type: 'session-model',
+      path: 'modelId',
+    },
     isMcpToolCall: toolCall => {
       const metadata = toolCall._meta?.['x.ai/tool'];
       return isRecord(metadata) && metadata.namespace === 'mcp';
@@ -314,6 +313,7 @@ export function createGrokBuild(
     version: 'v1',
     harnessId: 'grok-build',
     builtinTools: GROK_BUILD_BUILTIN_TOOLS,
+    askUserQuestions: grokBuildAskUserQuestions,
     clientApp: {
       name: clientAppSegments.join('/'),
       version: clientAppVersion,
@@ -325,9 +325,20 @@ export function createGrokBuild(
       pnpmWorkspaceYaml: GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE,
     },
     executable: 'grok',
-    args: ['agent', 'stdio'],
+    args: [
+      'agent',
+      ...(settings.reasoningEffort == null
+        ? []
+        : ['--reasoning-effort', settings.reasoningEffort]),
+      'stdio',
+    ],
+    forwardEnv: [
+      'GROK_XAI_API_BASE_URL',
+      'GROK_MODELS_BASE_URL',
+      'GROK_CLI_CHAT_PROXY_BASE_URL',
+    ],
     credentialEnv: ['XAI_API_KEY'],
-    credentialBrokering: ({ env, sandboxEnv }) => {
+    credentialBrokering: ({ env, sandboxEnv, headers }) => {
       if (!env.XAI_API_KEY || !sandboxEnv?.XAI_API_KEY) return [];
       return [
         createCredentialRequestTransformation({
@@ -335,13 +346,19 @@ export function createGrokBuild(
           matchHeaders: {
             Authorization: `Bearer ${sandboxEnv.XAI_API_KEY}`,
           },
-          transformHeaders: { Authorization: `Bearer ${env.XAI_API_KEY}` },
+          transformHeaders: {
+            ...headers,
+            Authorization: `Bearer ${env.XAI_API_KEY}`,
+            ...(env.GROK_CLI_CHAT_PROXY_BASE_URL == null
+              ? {}
+              : { 'X-XAI-Token-Auth': 'xai-grok-cli' }),
+          },
         }),
       ];
     },
     instructionMapping: {
-      type: 'session-meta',
-      path: ['rules'],
+      type: 'filesystem',
+      path: '.grok/AGENTS.md',
     },
     outputSchemaMapping: {
       type: 'session-prompt-meta',

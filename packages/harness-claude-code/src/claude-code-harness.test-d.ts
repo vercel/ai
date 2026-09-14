@@ -2,7 +2,8 @@ import type {
   HarnessAgentAdapter,
   HarnessAgentSettings,
 } from '@ai-sdk/harness/agent';
-import type { InferToolInput } from '@ai-sdk/provider-utils';
+import type { HarnessV1QuestionsToolOutput } from '@ai-sdk/harness';
+import type { InferToolInput, InferToolOutput } from '@ai-sdk/provider-utils';
 import { assertType, describe, expectTypeOf, test } from 'vitest';
 import { claudeCode, createClaudeCode } from './index';
 
@@ -49,6 +50,12 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
         feedback: 'Add a regression test.',
       },
     });
+  });
+
+  test('the question tool retains its output type', () => {
+    expectTypeOf<
+      InferToolOutput<typeof claudeCode.builtinTools.askUserQuestions>
+    >().toEqualTypeOf<HarnessV1QuestionsToolOutput>();
   });
 
   test('canonical and legacy MCP names remain available', () => {
