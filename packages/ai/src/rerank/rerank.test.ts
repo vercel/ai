@@ -1,19 +1,12 @@
-<<<<<<< HEAD
-import type { RerankingModelV3CallOptions } from '@ai-sdk/provider';
-=======
 import {
   InvalidResponseDataError,
-  type RerankingModelV4CallOptions,
+  type RerankingModelV3CallOptions,
 } from '@ai-sdk/provider';
->>>>>>> f87bf07ebe (fix: rerank() returns undefined documents for invalid provider ranking indices (#20423))
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MockRerankingModelV3 } from '../test/mock-reranking-model-v3';
 import { rerank } from './rerank';
 import type { RerankResult } from './rerank-result';
-<<<<<<< HEAD
 import { MockTracer } from '../test/mock-tracer';
-=======
->>>>>>> f87bf07ebe (fix: rerank() returns undefined documents for invalid provider ranking indices (#20423))
 
 describe('rerank', () => {
   describe('error handling', () => {
@@ -21,11 +14,10 @@ describe('rerank', () => {
       'should reject invalid provider ranking index %s',
       async index => {
         let doRerankCalls = 0;
-        const onEnd = vi.fn();
         const ranking = [{ index, relevanceScore: 0.9 }];
 
         const result = rerank({
-          model: new MockRerankingModelV4({
+          model: new MockRerankingModelV3({
             doRerank: async () => {
               doRerankCalls++;
               return { ranking };
@@ -33,7 +25,6 @@ describe('rerank', () => {
           }),
           documents: ['a', 'b', 'c'],
           query: 'q',
-          onEnd,
         });
 
         await expect(result).rejects.toSatisfy(
@@ -45,7 +36,6 @@ describe('rerank', () => {
           data: ranking,
         });
         expect(doRerankCalls).toBe(1);
-        expect(onEnd).not.toHaveBeenCalled();
       },
     );
   });
@@ -541,7 +531,6 @@ describe('rerank', () => {
             "events": [],
             "name": "ai.rerank",
           },
-<<<<<<< HEAD
           {
             "attributes": {
               "ai.model.id": "mock-model-id",
@@ -553,294 +542,6 @@ describe('rerank', () => {
             },
             "events": [],
             "name": "ai.rerank.doRerank",
-=======
-        }),
-        documents: ['test document'],
-        query: 'test query',
-        onStart: async () => {
-          callOrder.push('onStart');
-        },
-      });
-
-      expect(callOrder).toEqual(['onStart', 'doRerank']);
-    });
-
-    it('should not break reranking when callback throws', async () => {
-      const result = await rerank({
-        model: mockModel,
-        documents: [
-          'sunny day at the beach',
-          'rainy day in the city',
-          'cloudy day in the mountains',
-        ],
-        query: 'rainy day',
-        onStart: async () => {
-          throw new Error('callback error');
-        },
-      });
-
-      expect(result.ranking).toHaveLength(3);
-      expect(result.ranking[0].score).toBe(0.9);
-    });
-
-    it('should include providerOptions, headers, documents, and query', async () => {
-      let startEvent!: RerankStartEvent;
-
-      await rerank({
-        model: mockModel,
-        documents: [
-          'sunny day at the beach',
-          'rainy day in the city',
-          'cloudy day in the mountains',
-        ],
-        query: 'rainy day',
-        topN: 2,
-        headers: { 'x-custom': 'header-value' },
-        providerOptions: { myProvider: { key: 'value' } },
-        onStart: async event => {
-          startEvent = event;
-        },
-      });
-
-      expect(startEvent.headers).toEqual({ 'x-custom': 'header-value' });
-      expect(startEvent.providerOptions).toEqual({
-        myProvider: { key: 'value' },
-      });
-      expect(startEvent.documents).toEqual([
-        'sunny day at the beach',
-        'rainy day in the city',
-        'cloudy day in the mountains',
-      ]);
-      expect(startEvent.query).toBe('rainy day');
-      expect(startEvent.topN).toBe(2);
-    });
-  });
-
-  describe('options.onEnd', () => {
-    let logWarningsSpy: ReturnType<typeof vi.spyOn>;
-
-    beforeEach(() => {
-      logWarningsSpy = vi
-        .spyOn(logWarningsModule, 'logWarnings')
-        .mockImplementation(() => {});
-    });
-
-    afterEach(() => {
-      logWarningsSpy.mockRestore();
-    });
-
-    const mockModel = new MockRerankingModelV4({
-      doRerank: async () => ({
-        ranking: [
-          { index: 2, relevanceScore: 0.9 },
-          { index: 0, relevanceScore: 0.8 },
-          { index: 1, relevanceScore: 0.7 },
-        ],
-        providerMetadata: {
-          aProvider: { someResponseKey: 'someResponseValue' },
-        },
-        warnings: [{ type: 'other' as const, message: 'test warning' }],
-        response: {
-          headers: { 'content-type': 'application/json' },
-          body: { id: '123' },
-          modelId: 'mock-response-model-id',
-          id: 'mock-response-id',
-          timestamp: new Date('2025-06-01T00:00:00Z'),
-        },
-      }),
-    });
-
-    it('should send correct event information', async () => {
-      let endEvent!: RerankEndEvent;
-
-      await rerank({
-        model: mockModel,
-        documents: [
-          'sunny day at the beach',
-          'rainy day in the city',
-          'cloudy day in the mountains',
-        ],
-        query: 'rainy day',
-        topN: 3,
-        telemetry: {
-          functionId: 'test-function',
-        },
-        _internal: {
-          generateCallId: () => 'test-call-id',
-        },
-        onEnd: async event => {
-          endEvent = event;
-        },
-      });
-
-      expect(endEvent).toMatchSnapshot();
-    });
-
-    it('should include ranking and documents in event', async () => {
-      let endEvent!: RerankEndEvent;
-
-      await rerank({
-        model: mockModel,
-        documents: [
-          'sunny day at the beach',
-          'rainy day in the city',
-          'cloudy day in the mountains',
-        ],
-        query: 'rainy day',
-        onEnd: async event => {
-          endEvent = event;
-        },
-      });
-
-      expect(endEvent.documents).toEqual([
-        'sunny day at the beach',
-        'rainy day in the city',
-        'cloudy day in the mountains',
-      ]);
-      expect(endEvent.query).toBe('rainy day');
-      expect(endEvent.ranking).toEqual([
-        {
-          originalIndex: 2,
-          score: 0.9,
-          document: 'cloudy day in the mountains',
-        },
-        {
-          originalIndex: 0,
-          score: 0.8,
-          document: 'sunny day at the beach',
-        },
-        {
-          originalIndex: 1,
-          score: 0.7,
-          document: 'rainy day in the city',
-        },
-      ]);
-    });
-
-    it('should isolate the result from ranking mutations in onEnd', async () => {
-      const result = await rerank({
-        model: mockModel,
-        documents: [
-          'sunny day at the beach',
-          'rainy day in the city',
-          'cloudy day in the mountains',
-        ],
-        query: 'rainy day',
-        onEnd: async event => {
-          event.ranking[0].document = 'mutated document';
-          event.ranking.push({
-            originalIndex: 0,
-            score: 0,
-            document: 'appended document',
-          });
-        },
-      });
-
-      expect(result.ranking).toEqual([
-        {
-          originalIndex: 2,
-          score: 0.9,
-          document: 'cloudy day in the mountains',
-        },
-        {
-          originalIndex: 0,
-          score: 0.8,
-          document: 'sunny day at the beach',
-        },
-        {
-          originalIndex: 1,
-          score: 0.7,
-          document: 'rainy day in the city',
-        },
-      ]);
-      expect(result.rerankedDocuments).toEqual([
-        'cloudy day in the mountains',
-        'sunny day at the beach',
-        'rainy day in the city',
-      ]);
-    });
-
-    it('should include model information', async () => {
-      let endEvent!: RerankEndEvent;
-
-      await rerank({
-        model: mockModel,
-        documents: [
-          'sunny day at the beach',
-          'rainy day in the city',
-          'cloudy day in the mountains',
-        ],
-        query: 'rainy day',
-        onEnd: async event => {
-          endEvent = event;
-        },
-      });
-
-      expect(endEvent.provider).toBe('mock-provider');
-      expect(endEvent.modelId).toBe('mock-model-id');
-      expect(endEvent.operationId).toBe('ai.rerank');
-    });
-
-    it('should include warnings and providerMetadata', async () => {
-      let endEvent!: RerankEndEvent;
-
-      await rerank({
-        model: mockModel,
-        documents: [
-          'sunny day at the beach',
-          'rainy day in the city',
-          'cloudy day in the mountains',
-        ],
-        query: 'rainy day',
-        onEnd: async event => {
-          endEvent = event;
-        },
-      });
-
-      expect(endEvent.warnings).toEqual([
-        { type: 'other', message: 'test warning' },
-      ]);
-      expect(endEvent.providerMetadata).toEqual({
-        aProvider: { someResponseKey: 'someResponseValue' },
-      });
-    });
-
-    it('should include response data', async () => {
-      let endEvent!: RerankEndEvent;
-
-      await rerank({
-        model: mockModel,
-        documents: [
-          'sunny day at the beach',
-          'rainy day in the city',
-          'cloudy day in the mountains',
-        ],
-        query: 'rainy day',
-        onEnd: async event => {
-          endEvent = event;
-        },
-      });
-
-      expect(endEvent.response).toEqual({
-        id: 'mock-response-id',
-        timestamp: new Date('2025-06-01T00:00:00Z'),
-        modelId: 'mock-response-model-id',
-        headers: { 'content-type': 'application/json' },
-        body: { id: '123' },
-      });
-    });
-
-    it('should be called after doRerank', async () => {
-      const callOrder: string[] = [];
-
-      await rerank({
-        model: new MockRerankingModelV4({
-          doRerank: async () => {
-            callOrder.push('doRerank');
-            return {
-              ranking: [{ index: 0, relevanceScore: 0.9 }],
-            };
->>>>>>> f87bf07ebe (fix: rerank() returns undefined documents for invalid provider ranking indices (#20423))
           },
         ]
       `);
