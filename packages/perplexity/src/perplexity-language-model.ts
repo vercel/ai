@@ -397,22 +397,30 @@ function getResponseMetadata({
   };
 }
 
-const perplexityCostSchema = z.object({
-  input_tokens_cost: z.number().nullish(),
-  output_tokens_cost: z.number().nullish(),
-  request_cost: z.number().nullish(),
-  total_cost: z.number().nullish(),
-});
+const perplexityCostSchema = z
+  .object({
+    input_tokens_cost: z.number().nullish(),
+    output_tokens_cost: z.number().nullish(),
+    reasoning_tokens_cost: z.number().nullish(),
+    request_cost: z.number().nullish(),
+    citation_tokens_cost: z.number().nullish(),
+    search_queries_cost: z.number().nullish(),
+    total_cost: z.number().nullish(),
+  })
+  .catchall(z.json());
 
-const perplexityUsageSchema = z.object({
-  prompt_tokens: z.number(),
-  completion_tokens: z.number(),
-  total_tokens: z.number().nullish(),
-  citation_tokens: z.number().nullish(),
-  num_search_queries: z.number().nullish(),
-  reasoning_tokens: z.number().nullish(),
-  cost: perplexityCostSchema.nullish(),
-});
+const perplexityUsageSchema = z
+  .object({
+    prompt_tokens: z.number(),
+    completion_tokens: z.number(),
+    total_tokens: z.number().nullish(),
+    search_context_size: z.enum(['low', 'medium', 'high']).nullish(),
+    citation_tokens: z.number().nullish(),
+    num_search_queries: z.number().nullish(),
+    reasoning_tokens: z.number().nullish(),
+    cost: perplexityCostSchema.nullish(),
+  })
+  .catchall(z.json());
 
 export const perplexityImageSchema = z.object({
   image_url: z.string(),

@@ -37,6 +37,7 @@ export function lastAssistantMessageIsCompleteWithApprovalResponses({
       part =>
         part.state === 'output-available' ||
         part.state === 'output-error' ||
+        part.state === 'output-denied' ||
         part.state === 'approval-responded',
     )
   );

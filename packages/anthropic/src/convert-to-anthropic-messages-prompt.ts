@@ -166,8 +166,9 @@ export async function convertToAnthropicMessagesPrompt({
 
     switch (type) {
       case 'system': {
-        const content: AnthropicSystemMessage['content'] = [];
+        const systemMessages: AnthropicSystemMessage[] = [];
         let toolChangeCount = 0;
+        let hasMidConversationOptions = false;
 
         for (const { content: text, providerOptions } of block.messages) {
           const systemMessageOptions = await parseProviderOptions({
@@ -176,10 +177,16 @@ export async function convertToAnthropicMessagesPrompt({
             schema: anthropicSystemMessageProviderOptions,
           });
           const toolChanges = systemMessageOptions?.toolChanges ?? [];
+          const clearAt = systemMessageOptions?.clearAt;
+          const effort = systemMessageOptions?.effort;
+          const content: AnthropicSystemMessage['content'] = [];
 
-          // A system message that only carries tool changes may have empty
-          // text; do not emit an empty text block for it.
-          if (text !== '' || toolChanges.length === 0) {
+          // A system message that only carries message-level options or tool
+          // changes may have empty text; do not emit an empty text block for it.
+          if (
+            text !== '' ||
+            (toolChanges.length === 0 && clearAt == null && effort == null)
+          ) {
             content.push({
               type: 'text' as const,
               text,
@@ -200,14 +207,29 @@ export async function convertToAnthropicMessagesPrompt({
               },
             } satisfies AnthropicToolChangeContent);
           }
+
+          hasMidConversationOptions ||= clearAt != null || effort != null;
+
+          systemMessages.push({
+            role: 'system',
+            content,
+            ...(clearAt != null && { clear_at: clearAt }),
+            ...(effort != null && { output_config: { effort } }),
+          });
         }
 
         // The first block becomes the top-level system prompt. Later system
         // blocks are sent as inline system messages — always when they carry
-        // tool changes (which are only valid mid-conversation), and otherwise
-        // only when a top-level system prompt already exists (preserving the
-        // existing hoisting behavior for plain text).
-        if (i === 0 || (system == null && toolChangeCount === 0)) {
+        // tool changes or per-turn options (which are only valid
+        // mid-conversation), and otherwise only when a top-level system prompt
+        // already exists (preserving the existing hoisting behavior for plain
+        // text).
+        if (
+          i === 0 ||
+          (system == null &&
+            toolChangeCount === 0 &&
+            !hasMidConversationOptions)
+        ) {
           if (toolChangeCount > 0) {
             warnings.push({
               type: 'other',
@@ -217,14 +239,31 @@ export async function convertToAnthropicMessagesPrompt({
                 'The tool changes have been ignored.',
             });
           }
-          system = content.filter(
-            (part): part is AnthropicTextContent => part.type === 'text',
+          if (hasMidConversationOptions) {
+            warnings.push({
+              type: 'other',
+              message:
+                'clearAt and effort on the initial system message are not supported by Anthropic. ' +
+                'Configure these options on a mid-conversation system message instead. ' +
+                'The options have been ignored.',
+            });
+          }
+          system = systemMessages.flatMap(message =>
+            message.content.filter(
+              (part): part is AnthropicTextContent => part.type === 'text',
+            ),
           );
         } else {
-          messages.push({ role: 'system', content });
+          messages.push(...systemMessages);
           betas.add('mid-conversation-system-2026-04-07');
           if (toolChangeCount > 0) {
             betas.add('mid-conversation-tool-changes-2026-07-01');
+          }
+          if (systemMessages.some(message => message.clear_at != null)) {
+            betas.add('mid-conversation-system-clear-at-2026-08-21');
+          }
+          if (systemMessages.some(message => message.output_config != null)) {
+            betas.add('mid-conversation-effort-2026-08-01');
           }
         }
 

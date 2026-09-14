@@ -3133,6 +3133,9 @@ describe('Chat', () => {
                 input: { city: 'Tokyo' },
                 approval: {
                   id: 'approval-1',
+                  descriptor: {
+                    action: 'getWeather',
+                  },
                   signature: 'signed-approval-envelope',
                 },
               },
@@ -3152,6 +3155,9 @@ describe('Chat', () => {
         approval: {
           id: 'approval-1',
           approved: true,
+          descriptor: {
+            action: 'getWeather',
+          },
           reason: 'looks good',
           signature: 'signed-approval-envelope',
         },

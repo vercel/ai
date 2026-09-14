@@ -61,8 +61,13 @@ type BedrockChatConfig = {
   generateId: () => string;
 };
 
+function isJsonResponseToolName(name: string): boolean {
+  return name === 'json' || name === 'json<|channel|>commentary';
+}
+
 const anthropicProviderOptions = z.object({
   disableParallelToolUse: z.boolean().optional(),
+  structuredOutputMode: z.enum(['outputFormat', 'jsonTool', 'auto']).optional(),
 });
 
 export class BedrockChatLanguageModel implements LanguageModelV3 {
@@ -160,7 +165,12 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       });
     }
 
-    const isAnthropicModel = this.modelId.includes('anthropic');
+    // Application inference profile ARNs do not expose their underlying model.
+    // The Anthropic-only reasoning budget provides the model-family signal.
+    const isAnthropicModel =
+      this.modelId.includes('anthropic') ||
+      (this.modelId.includes(':application-inference-profile/') &&
+        bedrockOptions.reasoningConfig?.budgetTokens != null);
     const openAIModelId = /^(?:[^.]+\.)?(openai\..+)$/.exec(this.modelId)?.[1];
     const isOpenAIModel = openAIModelId != null;
     const isOpenAIGptOssModel =
@@ -172,14 +182,52 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     const { supportsStructuredOutput: modelSupportsStructuredOutput } =
       getModelCapabilities(this.modelId);
 
+    const structuredOutputMode =
+      bedrockOptions.structuredOutputMode ??
+      anthropicOptions?.structuredOutputMode ??
+      'auto';
+
+    if (structuredOutputMode === 'jsonTool') {
+      const additionalModelRequestFields = {
+        ...bedrockOptions.additionalModelRequestFields,
+      };
+      const outputConfig = additionalModelRequestFields.output_config;
+
+      if (
+        outputConfig != null &&
+        typeof outputConfig === 'object' &&
+        !Array.isArray(outputConfig)
+      ) {
+        const outputConfigWithoutFormat = { ...outputConfig };
+        delete outputConfigWithoutFormat.format;
+
+        if (Object.keys(outputConfigWithoutFormat).length > 0) {
+          additionalModelRequestFields.output_config =
+            outputConfigWithoutFormat;
+        } else {
+          delete additionalModelRequestFields.output_config;
+        }
+
+        bedrockOptions.additionalModelRequestFields =
+          additionalModelRequestFields;
+      }
+    }
+
+    const modelSupportsNativeStructuredOutput =
+      supportsNativeStructuredOutput(this.modelId) &&
+      (modelSupportsStructuredOutput || isThinkingEnabled);
+
     const useNativeStructuredOutput =
       isAnthropicModel &&
-      supportsNativeStructuredOutput(this.modelId) &&
-      (modelSupportsStructuredOutput || isThinkingEnabled) &&
       responseFormat?.type === 'json' &&
-      responseFormat.schema != null;
+      responseFormat.schema != null &&
+      (structuredOutputMode === 'outputFormat' ||
+        (structuredOutputMode === 'auto' &&
+          modelSupportsNativeStructuredOutput));
 
     const useJsonInstructionForStructuredOutput =
+      !useNativeStructuredOutput &&
+      structuredOutputMode !== 'jsonTool' &&
       isAnthropicModel &&
       !supportsStrictTools(this.modelId) &&
       responseFormat?.type === 'json' &&
@@ -433,6 +481,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       reasoningConfig: _,
       additionalModelRequestFields: __,
       serviceTier: ___,
+      structuredOutputMode: ____,
       ...filteredBedrockOptions
     } = providerOptions?.bedrock || {};
 
@@ -516,10 +565,16 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     // map response content to content array
     for (const part of response.output.message.content) {
       // text
-      if (part.text != null) {
+      const citationText = part.citationsContent?.content
+        ?.map(generatedContent => generatedContent.text)
+        .filter((text): text is string => text != null)
+        .join('');
+      const text = part.text ?? (citationText ? citationText : undefined);
+
+      if (text != null) {
         content.push({
           type: 'text',
-          text: jsonObjectTextExtractor?.process(part.text) ?? part.text,
+          text: jsonObjectTextExtractor?.process(text) ?? text,
         });
       }
 
@@ -567,7 +622,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       // tool calls
       if (part.toolUse) {
         const isJsonResponseTool =
-          usesJsonResponseTool && part.toolUse.name === 'json';
+          usesJsonResponseTool && isJsonResponseToolName(part.toolUse.name);
 
         if (isJsonResponseTool) {
           isJsonResponseFromTool = true;
@@ -1025,7 +1080,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
               const toolUse = contentBlockStart.start.toolUse;
               const blockIndex = contentBlockStart.contentBlockIndex!;
               const isJsonResponseTool =
-                usesJsonResponseTool && toolUse.name === 'json';
+                usesJsonResponseTool && isJsonResponseToolName(toolUse.name);
 
               const normalizedToolCallId = normalizeToolCallId(
                 toolUse.toolUseId!,
@@ -1228,6 +1283,17 @@ const BedrockResponseSchema = z.object({
       content: z.array(
         z.object({
           text: z.string().nullish(),
+          citationsContent: z
+            .object({
+              content: z
+                .array(
+                  z.object({
+                    text: z.string().nullish(),
+                  }),
+                )
+                .nullish(),
+            })
+            .nullish(),
           toolUse: BedrockToolUseSchema.nullish(),
           reasoningContent: z
             .union([
@@ -1278,6 +1344,9 @@ const BedrockStreamSchema = z.object({
       delta: z
         .union([
           z.object({ text: z.string() }),
+          z.object({
+            citation: z.record(z.string(), z.unknown()),
+          }),
           z.object({ toolUse: z.object({ input: z.string() }) }),
           z.object({
             reasoningContent: z.object({ text: z.string() }),

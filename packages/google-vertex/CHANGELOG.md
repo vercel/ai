@@ -1,5 +1,83 @@
 # @ai-sdk/google-vertex
 
+## 4.0.199
+
+### Patch Changes
+
+- Updated dependencies [c11f450]
+  - @ai-sdk/anthropic@3.0.118
+
+## 4.0.198
+
+### Patch Changes
+
+- 1a4dbb1: Retry unclassified empty image results, preserve retry-attempt accounting, add provider-independent result retryability classification, preserve it through the AI Gateway, and mark Google and Google Vertex content-filtered results as terminal.
+- Updated dependencies [f3c1980]
+- Updated dependencies [1336501]
+- Updated dependencies [1a4dbb1]
+  - @ai-sdk/openai-compatible@2.0.75
+  - @ai-sdk/google@3.0.122
+  - @ai-sdk/provider@3.0.16
+  - @ai-sdk/anthropic@3.0.117
+  - @ai-sdk/provider-utils@4.0.51
+
+## 4.0.197
+
+### Patch Changes
+
+- 13507cb: feat(google): add gemini-3.8-flash model
+- Updated dependencies [13507cb]
+  - @ai-sdk/google@3.0.121
+
+## 4.0.196
+
+### Patch Changes
+
+- Updated dependencies [57d88f5]
+  - @ai-sdk/anthropic@3.0.116
+
+## 4.0.195
+
+### Patch Changes
+
+- Updated dependencies [daaa769]
+  - @ai-sdk/google@3.0.120
+
+## 4.0.194
+
+### Patch Changes
+
+- Updated dependencies [1912e88]
+- Updated dependencies [6d44462]
+- Updated dependencies [cc23556]
+  - @ai-sdk/google@3.0.119
+  - @ai-sdk/openai-compatible@2.0.74
+  - @ai-sdk/provider-utils@4.0.50
+  - @ai-sdk/anthropic@3.0.115
+
+## 4.0.193
+
+### Patch Changes
+
+- Updated dependencies [35430d7]
+  - @ai-sdk/google@3.0.118
+
+## 4.0.192
+
+### Patch Changes
+
+- Updated dependencies [b068651]
+  - @ai-sdk/google@3.0.117
+
+## 4.0.191
+
+### Patch Changes
+
+- cfdc8df: feat (provider/google, provider/google-vertex): Gemini 3.5 Transcribe support — unary transcription (`gemini-3.5-transcribe`) via generateContent with language detection, speaker diarization, word timestamps, custom vocabulary, and `mode: 'VERBATIM' | 'SMART'` transcription formatting
+- Updated dependencies [9a1656e]
+- Updated dependencies [cfdc8df]
+  - @ai-sdk/google@3.0.116
+
 ## 4.0.190
 
 ### Patch Changes

@@ -85,6 +85,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         type: z.literal('tool-approval-request'),
         approvalId: z.string(),
         toolCallId: z.string(),
+        approvalDescriptor: z.unknown().optional(),
         signature: z.string().optional(),
       }),
       z.looseObject({
@@ -270,6 +271,7 @@ export type UIMessageChunk<
       type: 'tool-approval-request';
       approvalId: string;
       toolCallId: string;
+      approvalDescriptor?: unknown;
       signature?: string;
     }
   | {

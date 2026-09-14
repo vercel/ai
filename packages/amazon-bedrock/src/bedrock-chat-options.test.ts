@@ -5,6 +5,28 @@ import {
 } from './bedrock-chat-options';
 
 describe('amazonBedrockLanguageModelOptions', () => {
+  describe('structuredOutputMode', () => {
+    it.each(['outputFormat', 'jsonTool', 'auto'] as const)(
+      'accepts %s',
+      structuredOutputMode => {
+        const result = amazonBedrockLanguageModelOptions.safeParse({
+          structuredOutputMode,
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.data?.structuredOutputMode).toBe(structuredOutputMode);
+      },
+    );
+
+    it('rejects invalid values', () => {
+      const result = amazonBedrockLanguageModelOptions.safeParse({
+        structuredOutputMode: 'native',
+      });
+
+      expect(result.success).toBe(false);
+    });
+  });
+
   describe('serviceTier', () => {
     it('accepts valid service tier values', () => {
       const validValues = ['reserved', 'priority', 'default', 'flex'] as const;
@@ -36,9 +58,11 @@ describe('amazonBedrockLanguageModelOptions', () => {
     it('infers AmazonBedrockLanguageModelOptions type correctly', () => {
       const options: AmazonBedrockLanguageModelOptions = {
         serviceTier: 'priority',
+        structuredOutputMode: 'jsonTool',
       };
 
       expect(options.serviceTier).toBe('priority');
+      expect(options.structuredOutputMode).toBe('jsonTool');
     });
   });
 });

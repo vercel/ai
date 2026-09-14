@@ -1,5 +1,37 @@
 # @ai-sdk/xai
 
+## 3.0.132
+
+### Patch Changes
+
+- 4bd2599: fix(deepseek): preserve reasoning streams across empty tool-call deltas
+
+## 3.0.131
+
+### Patch Changes
+
+- Updated dependencies [f3c1980]
+- Updated dependencies [1336501]
+- Updated dependencies [1a4dbb1]
+  - @ai-sdk/openai-compatible@2.0.75
+  - @ai-sdk/provider@3.0.16
+  - @ai-sdk/provider-utils@4.0.51
+
+## 3.0.130
+
+### Patch Changes
+
+- Updated dependencies [6d44462]
+- Updated dependencies [cc23556]
+  - @ai-sdk/openai-compatible@2.0.74
+  - @ai-sdk/provider-utils@4.0.50
+
+## 3.0.129
+
+### Patch Changes
+
+- 0331d34: fix(xai): preserve web_search action (query, sources, open_page) in responses tool results
+
 ## 3.0.128
 
 ### Patch Changes

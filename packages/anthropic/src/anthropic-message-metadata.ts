@@ -54,6 +54,18 @@ export interface AnthropicMessageMetadata {
   stopSequence: string | null;
 
   /**
+   * Input blocks that Anthropic transformed before inference. This is
+   * populated when thinking binding controls drop a mismatched thinking block.
+   * Values are intentionally open-ended so new transformation types and
+   * reasons remain forward compatible.
+   */
+  inputTransformations?: Array<{
+    type: string;
+    path: string;
+    reason: string;
+  }>;
+
+  /**
    * Details about why the request stopped. Present only when the API returns
    * a `refusal` stop reason together with a `stop_details` object (a
    * classifier block or a model refusal).

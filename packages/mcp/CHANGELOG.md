@@ -1,5 +1,32 @@
 # @ai-sdk/mcp
 
+## 1.0.80
+
+### Patch Changes
+
+- Updated dependencies [1a4dbb1]
+  - @ai-sdk/provider@3.0.16
+  - @ai-sdk/provider-utils@4.0.51
+
+## 1.0.79
+
+### Patch Changes
+
+- 3d2db73: fix(mcp): accept trailing slashes on origin-only OAuth issuers
+
+## 1.0.78
+
+### Patch Changes
+
+- 172d3c0: feat(mcp): surface server-provided tool annotations in tool metadata
+
+## 1.0.77
+
+### Patch Changes
+
+- Updated dependencies [cc23556]
+  - @ai-sdk/provider-utils@4.0.50
+
 ## 1.0.76
 
 ### Patch Changes

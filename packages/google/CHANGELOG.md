@@ -1,5 +1,53 @@
 # @ai-sdk/google
 
+## 3.0.122
+
+### Patch Changes
+
+- 1a4dbb1: Retry unclassified empty image results, preserve retry-attempt accounting, add provider-independent result retryability classification, preserve it through the AI Gateway, and mark Google and Google Vertex content-filtered results as terminal.
+- Updated dependencies [1a4dbb1]
+  - @ai-sdk/provider@3.0.16
+  - @ai-sdk/provider-utils@4.0.51
+
+## 3.0.121
+
+### Patch Changes
+
+- 13507cb: feat(google): add gemini-3.8-flash model
+
+## 3.0.120
+
+### Patch Changes
+
+- daaa769: fix(google): support video response formats in Gemini Interactions
+
+## 3.0.119
+
+### Patch Changes
+
+- 1912e88: Preserve complete Google Generative Language usage metadata in raw usage results.
+- Updated dependencies [cc23556]
+  - @ai-sdk/provider-utils@4.0.50
+
+## 3.0.118
+
+### Patch Changes
+
+- 35430d7: Omit unsupported frequency and presence penalties from Gemini 2.5 requests and return warnings instead.
+
+## 3.0.117
+
+### Patch Changes
+
+- b068651: Surface prompt-level Google safety blocks without candidates as content-filter results with prompt feedback metadata.
+
+## 3.0.116
+
+### Patch Changes
+
+- 9a1656e: fix(google): convert enum values to the Gemini schema format
+- cfdc8df: feat (provider/google, provider/google-vertex): Gemini 3.5 Transcribe support — unary transcription (`gemini-3.5-transcribe`) via generateContent with language detection, speaker diarization, word timestamps, custom vocabulary, and `mode: 'VERBATIM' | 'SMART'` transcription formatting
+
 ## 3.0.115
 
 ### Patch Changes

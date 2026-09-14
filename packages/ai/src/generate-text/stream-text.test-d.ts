@@ -1,12 +1,55 @@
 import type { JSONValue } from '@ai-sdk/provider';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
-import { Output, streamText } from '../generate-text';
+import {
+  Output,
+  streamText,
+  type StreamTextEndEvent,
+  type StreamTextOnEndCallback,
+} from '../generate-text';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import type { AsyncIterableStream } from '../util';
 import type { DeepPartial } from '../util/deep-partial';
 
 describe('streamText types', () => {
+  describe('onFinish', () => {
+    it('should infer structured output for reusable callbacks', () => {
+      const output = Output.object({
+        schema: z.object({ value: z.string() }),
+      });
+      const onFinish: StreamTextOnEndCallback<{}, typeof output> = event => {
+        expectTypeOf(event).toEqualTypeOf<
+          StreamTextEndEvent<{}, typeof output>
+        >();
+        expectTypeOf(event.output).toEqualTypeOf<
+          { value: string } | undefined
+        >();
+      };
+
+      streamText({
+        model: new MockLanguageModelV3(),
+        prompt: 'Hello',
+        tools: {},
+        output,
+        onFinish,
+      });
+    });
+
+    it('should infer structured output', () => {
+      streamText({
+        model: new MockLanguageModelV3(),
+        prompt: 'Hello',
+        output: Output.object({
+          schema: z.object({ value: z.string() }),
+        }),
+        onFinish: event => {
+          expectTypeOf(event.output).toEqualTypeOf<
+            { value: string } | undefined
+          >();
+        },
+      });
+    });
+  });
   describe('output', () => {
     it('should infer text output type (default)', async () => {
       const result = streamText({

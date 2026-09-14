@@ -112,6 +112,9 @@ But the question is phrased: "How many 'r's are in the word 'strawberry'?" So an
       "prompt_cache_hit_tokens": 0,
       "prompt_cache_miss_tokens": 18,
       "prompt_tokens": 18,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+      },
       "total_tokens": 363,
     },
   },
@@ -244,6 +247,9 @@ exports[`DeepSeekChatLanguageModel > doGenerate > text > should extract text con
       "prompt_cache_hit_tokens": 0,
       "prompt_cache_miss_tokens": 13,
       "prompt_tokens": 13,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+      },
       "total_tokens": 313,
     },
   },
@@ -396,6 +402,9 @@ exports[`DeepSeekChatLanguageModel > doGenerate > tool call > json response form
       "prompt_cache_hit_tokens": 320,
       "prompt_cache_miss_tokens": 175,
       "prompt_tokens": 495,
+      "prompt_tokens_details": {
+        "cached_tokens": 320,
+      },
       "total_tokens": 639,
     },
   },
@@ -550,6 +559,9 @@ exports[`DeepSeekChatLanguageModel > doGenerate > tool call > should extract too
       "prompt_cache_hit_tokens": 320,
       "prompt_cache_miss_tokens": 19,
       "prompt_tokens": 339,
+      "prompt_tokens_details": {
+        "cached_tokens": 320,
+      },
       "total_tokens": 431,
     },
   },
@@ -1728,6 +1740,9 @@ exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reason
         "prompt_cache_hit_tokens": 0,
         "prompt_cache_miss_tokens": 18,
         "prompt_tokens": 18,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+        },
         "total_tokens": 237,
       },
     },
@@ -3806,6 +3821,9 @@ exports[`DeepSeekChatLanguageModel > doStream > text > should stream text 1`] = 
         "prompt_cache_hit_tokens": 0,
         "prompt_cache_miss_tokens": 13,
         "prompt_tokens": 13,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+        },
         "total_tokens": 413,
       },
     },
@@ -4132,6 +4150,9 @@ exports[`DeepSeekChatLanguageModel > doStream > tool call > should stream tool c
         "prompt_cache_hit_tokens": 320,
         "prompt_cache_miss_tokens": 19,
         "prompt_tokens": 339,
+        "prompt_tokens_details": {
+          "cached_tokens": 320,
+        },
         "total_tokens": 422,
       },
     },

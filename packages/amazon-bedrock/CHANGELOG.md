@@ -1,5 +1,106 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.176
+
+### Patch Changes
+
+- 6626af1: fix(amazon-bedrock): resolve non-standard partition and service-specific endpoints
+- Updated dependencies [c11f450]
+  - @ai-sdk/anthropic@3.0.118
+
+## 4.0.175
+
+### Patch Changes
+
+- Updated dependencies [1336501]
+- Updated dependencies [1a4dbb1]
+  - @ai-sdk/openai@3.0.112
+  - @ai-sdk/provider@3.0.16
+  - @ai-sdk/anthropic@3.0.117
+  - @ai-sdk/provider-utils@4.0.51
+
+## 4.0.174
+
+### Patch Changes
+
+- Updated dependencies [1f75808]
+- Updated dependencies [65150c2]
+  - @ai-sdk/openai@3.0.111
+
+## 4.0.173
+
+### Patch Changes
+
+- Updated dependencies [447ba18]
+- Updated dependencies [46c6820]
+  - @ai-sdk/openai@3.0.110
+
+## 4.0.172
+
+### Patch Changes
+
+- Updated dependencies [7f3b8f0]
+  - @ai-sdk/openai@3.0.109
+
+## 4.0.171
+
+### Patch Changes
+
+- 0465c7e: fix(amazon-bedrock): return generated text from citation content blocks
+- Updated dependencies [019eec8]
+  - @ai-sdk/openai@3.0.108
+
+## 4.0.170
+
+### Patch Changes
+
+- Updated dependencies [8844beb]
+- Updated dependencies [cf1ba03]
+  - @ai-sdk/openai@3.0.107
+
+## 4.0.169
+
+### Patch Changes
+
+- 85c2903: fix(amazon-bedrock): handle channel-qualified JSON response tool names
+- Updated dependencies [57d88f5]
+  - @ai-sdk/anthropic@3.0.116
+
+## 4.0.168
+
+### Patch Changes
+
+- 5877c71: Add a structured output mode option and default Claude Sonnet 4.6 and Claude Haiku 4.5 to the JSON tool fallback while preserving strict tool support.
+
+## 4.0.167
+
+### Patch Changes
+
+- Updated dependencies [85ba0b0]
+  - @ai-sdk/openai@3.0.106
+
+## 4.0.166
+
+### Patch Changes
+
+- ada21b6: Omit assistant messages when only cache points remain after unsigned reasoning is filtered.
+- fb9b783: feat(amazon-bedrock): add model family setting for embeddings to support ARN
+- 6b88988: Accept citation deltas in Amazon Bedrock streaming responses.
+- 06cc1cb: Enable Anthropic reasoning budgets for application inference profile ARNs.
+- Updated dependencies [cc23556]
+  - @ai-sdk/provider-utils@4.0.50
+  - @ai-sdk/anthropic@3.0.115
+  - @ai-sdk/openai@3.0.105
+
+## 4.0.165
+
+### Patch Changes
+
+- da1ce8f: Forward the Anthropic option for disabling parallel tool use through Amazon Bedrock without sending conflicting tool choice fields.
+- Updated dependencies [426c9b3]
+- Updated dependencies [34d045d]
+  - @ai-sdk/openai@3.0.104
+
 ## 4.0.164
 
 ### Patch Changes

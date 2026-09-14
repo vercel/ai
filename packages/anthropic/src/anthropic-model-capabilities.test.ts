@@ -49,6 +49,16 @@ describe('getModelCapabilities', () => {
     });
   });
 
+  it('recognizes Fable 5.1 structured output capabilities', () => {
+    expect(getModelCapabilities('claude-fable-5-1')).toEqual({
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      rejectsSamplingParameters: true,
+      rejectsThinkingDisabledAboveHighEffort: false,
+      isKnownModel: true,
+    });
+  });
+
   it('retains conservative capabilities for unknown non-Claude models', () => {
     expect(getModelCapabilities('third-party-future-model')).toEqual({
       maxOutputTokens: 4096,

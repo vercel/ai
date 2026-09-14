@@ -51,4 +51,36 @@ describe('UIMessagePart', () => {
 
     type _ = AssertAssignable<ToolUIPart<TestTools>, Part>;
   });
+
+  it('allows approval descriptors in request and response states', () => {
+    type RequestedPart = {
+      type: 'tool-weather';
+      state: 'approval-requested';
+      toolCallId: 'call-1';
+      input: { city: 'Tokyo' };
+      approval: {
+        id: 'approval-1';
+        descriptor: {
+          action: 'getWeather';
+        };
+      };
+    };
+    type _Requested = AssertAssignable<ToolUIPart<TestTools>, RequestedPart>;
+
+    type RespondedPart = {
+      type: 'tool-weather';
+      state: 'approval-responded';
+      toolCallId: 'call-1';
+      input: { city: 'Tokyo' };
+      approval: {
+        id: 'approval-1';
+        approved: true;
+        descriptor: {
+          action: 'getWeather';
+        };
+        reason: 'approved by operator';
+      };
+    };
+    type _Responded = AssertAssignable<ToolUIPart<TestTools>, RespondedPart>;
+  });
 });

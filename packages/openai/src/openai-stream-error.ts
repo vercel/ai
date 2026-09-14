@@ -5,8 +5,42 @@ type StreamError = {
   message: string;
   code?: string | number | null;
   type?: string | null;
-  frame: unknown;
 };
+
+export type OpenAIProviderStreamError = {
+  readonly message: string;
+  readonly type?: string;
+  readonly code?: string | number;
+  readonly statusCode: number;
+  readonly isRetryable: boolean;
+  readonly data: unknown;
+};
+
+/**
+ * Flattens an OpenAI stream error frame (`{ type: 'error', error: {...} }` or
+ * `response.failed`) so consumers can read `message` and `code` at the top
+ * level. The raw frame is kept in `data`.
+ */
+export function createOpenAIProviderStreamError(
+  frame: unknown,
+): OpenAIProviderStreamError | undefined {
+  const streamError = parseStreamError(frame);
+
+  if (streamError == null) {
+    return undefined;
+  }
+
+  const statusCode = getStatusCode(streamError);
+
+  return {
+    message: streamError.message,
+    type: streamError.type ?? undefined,
+    code: streamError.code ?? undefined,
+    statusCode,
+    isRetryable: isRetryableStreamError(streamError, statusCode),
+    data: frame,
+  };
+}
 
 export async function throwIfOpenAIStreamErrorBeforeOutput<T>({
   stream,
@@ -103,7 +137,6 @@ function parseStreamError(frame: unknown): StreamError | undefined {
           message: responseError.message,
           code: getStringOrNumber(responseError.code),
           type: 'response.failed',
-          frame,
         }
       : undefined;
   }
@@ -119,7 +152,6 @@ function parseStreamError(frame: unknown): StreamError | undefined {
         message: error.message,
         code: getStringOrNumber(error.code),
         type: typeof error.type === 'string' ? error.type : undefined,
-        frame,
       }
     : undefined;
 }
@@ -178,4 +210,27 @@ function getStringOrNumber(value: unknown): string | number | undefined {
 
 function isHttpErrorStatusCode(value: number): boolean {
   return Number.isInteger(value) && value >= 400 && value <= 599;
+}
+
+function isRetryableStatusCode(statusCode: number): boolean {
+  return (
+    statusCode === 408 ||
+    statusCode === 409 ||
+    statusCode === 429 ||
+    statusCode >= 500
+  );
+}
+
+function isRetryableStreamError(
+  error: StreamError,
+  statusCode: number,
+): boolean {
+  if (
+    error.code === 'insufficient_quota' ||
+    error.type === 'insufficient_quota'
+  ) {
+    return false;
+  }
+
+  return isRetryableStatusCode(statusCode);
 }

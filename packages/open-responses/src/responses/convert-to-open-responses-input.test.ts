@@ -144,6 +144,7 @@ describe('convertToOpenResponsesInput', () => {
           {
             "content": [
               {
+                "detail": "auto",
                 "image_url": "data:image/png;base64,ZmFrZS1kYXRh",
                 "type": "input_image",
               },
@@ -176,6 +177,7 @@ describe('convertToOpenResponsesInput', () => {
           {
             "content": [
               {
+                "detail": "auto",
                 "image_url": "https://example.com/image.png",
                 "type": "input_image",
               },
@@ -185,6 +187,54 @@ describe('convertToOpenResponsesInput', () => {
           },
         ]
       `);
+    });
+
+    it('should preserve image detail provider options', async () => {
+      const result = await convertToOpenResponsesInput({
+        providerOptionsName: 'test-provider',
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: 'ZmFrZS1kYXRh',
+                mediaType: 'image/png',
+                providerOptions: {
+                  'test-provider': { imageDetail: 'low' },
+                },
+              },
+              {
+                type: 'file',
+                data: new URL('https://example.com/image.png'),
+                mediaType: 'image/png',
+                providerOptions: {
+                  'test-provider': { imageDetail: 'high' },
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'message',
+          role: 'user',
+          content: [
+            {
+              type: 'input_image',
+              image_url: 'data:image/png;base64,ZmFrZS1kYXRh',
+              detail: 'low',
+            },
+            {
+              type: 'input_image',
+              image_url: 'https://example.com/image.png',
+              detail: 'high',
+            },
+          ],
+        },
+      ]);
     });
 
     it('should convert PDF file parts with base64 data to input_file', async () => {
@@ -352,6 +402,65 @@ describe('convertToOpenResponsesInput', () => {
           },
         ]
       `);
+    });
+    it('should use an easy input message without generating an ID in strict mode', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello from assistant' }],
+          },
+        ],
+        strictResponseInput: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'message',
+          role: 'assistant',
+          content: 'Hello from assistant',
+        },
+      ]);
+    });
+
+    it('should preserve a genuine item ID as a complete output message in strict mode', async () => {
+      const result = await convertToOpenResponsesInput({
+        providerOptionsName: 'test-provider',
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Hello from assistant',
+                providerOptions: {
+                  'test-provider': {
+                    itemId: 'msg_123',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        strictResponseInput: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          id: 'msg_123',
+          type: 'message',
+          status: 'completed',
+          role: 'assistant',
+          content: [
+            {
+              type: 'output_text',
+              text: 'Hello from assistant',
+              annotations: [],
+              logprobs: [],
+            },
+          ],
+        },
+      ]);
     });
   });
 
@@ -695,6 +804,7 @@ describe('convertToOpenResponsesInput', () => {
             "call_id": "call_image",
             "output": [
               {
+                "detail": "auto",
                 "image_url": "https://example.com/image.png",
                 "type": "input_image",
               },
@@ -703,6 +813,63 @@ describe('convertToOpenResponsesInput', () => {
           },
         ]
       `);
+    });
+
+    it('should preserve image detail provider options in tool output', async () => {
+      const result = await convertToOpenResponsesInput({
+        providerOptionsName: 'test-provider',
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_image',
+                toolName: 'screenshot',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'image-data',
+                      data: 'ZmFrZS1kYXRh',
+                      mediaType: 'image/png',
+                      providerOptions: {
+                        'test-provider': { imageDetail: 'low' },
+                      },
+                    },
+                    {
+                      type: 'image-url',
+                      url: 'https://example.com/image.png',
+                      providerOptions: {
+                        'test-provider': { imageDetail: 'high' },
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_image',
+          output: [
+            {
+              type: 'input_image',
+              image_url: 'data:image/png;base64,ZmFrZS1kYXRh',
+              detail: 'low',
+            },
+            {
+              type: 'input_image',
+              image_url: 'https://example.com/image.png',
+              detail: 'high',
+            },
+          ],
+        },
+      ]);
     });
 
     it('should convert tool message with multiple tool results', async () => {

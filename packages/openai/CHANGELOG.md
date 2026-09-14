@@ -1,5 +1,67 @@
 # @ai-sdk/openai
 
+## 3.0.112
+
+### Patch Changes
+
+- 1336501: fix(openai): return an AI SDK error for empty chat completion choices
+- Updated dependencies [1a4dbb1]
+  - @ai-sdk/provider@3.0.16
+  - @ai-sdk/provider-utils@4.0.51
+
+## 3.0.111
+
+### Patch Changes
+
+- 1f75808: Include explicit message item types in Azure AI Foundry Responses requests.
+- 65150c2: feat(openai): add GPT Image 2.5 Flare and Sunburst model IDs
+
+## 3.0.110
+
+### Patch Changes
+
+- 447ba18: feat(openai): add async tool calling
+- 46c6820: Add `xhigh` and `max` quality support for GPT Image 2.5 Flare and Sunburst in image generation, image editing, and the Responses API image generation tool.
+
+## 3.0.109
+
+### Patch Changes
+
+- 7f3b8f0: feat(openai): add GPT-6 reasoning configuration updates
+
+## 3.0.108
+
+### Patch Changes
+
+- 019eec8: feat(openai): add support for the gpt-6-astra
+
+## 3.0.107
+
+### Patch Changes
+
+- 8844beb: fix(openai): flatten mid-stream Responses error events
+- cf1ba03: fix(openai): preserve complete Responses API raw usage objects
+
+## 3.0.106
+
+### Patch Changes
+
+- 85ba0b0: Preserve explicit prompt cache breakpoints on scalar Responses tool results.
+
+## 3.0.105
+
+### Patch Changes
+
+- Updated dependencies [cc23556]
+  - @ai-sdk/provider-utils@4.0.50
+
+## 3.0.104
+
+### Patch Changes
+
+- 426c9b3: Normalize non-object replayed Chat Completions tool arguments to empty objects.
+- 34d045d: Fix Responses history serialization for regular functions named `tool_search`.
+
 ## 3.0.103
 
 ### Patch Changes

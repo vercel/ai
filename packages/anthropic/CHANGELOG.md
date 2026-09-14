@@ -1,5 +1,32 @@
 # @ai-sdk/anthropic
 
+## 3.0.118
+
+### Patch Changes
+
+- c11f450: feat(anthropic): expand preserved thinking support to cover `prefix_mismatch_behavior: 'error'`
+
+## 3.0.117
+
+### Patch Changes
+
+- Updated dependencies [1a4dbb1]
+  - @ai-sdk/provider@3.0.16
+  - @ai-sdk/provider-utils@4.0.51
+
+## 3.0.116
+
+### Patch Changes
+
+- 57d88f5: feat(anthropic): add fable 5.1 support
+
+## 3.0.115
+
+### Patch Changes
+
+- Updated dependencies [cc23556]
+  - @ai-sdk/provider-utils@4.0.50
+
 ## 3.0.114
 
 ### Patch Changes

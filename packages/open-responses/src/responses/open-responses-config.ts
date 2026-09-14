@@ -7,4 +7,5 @@ export type OpenResponsesConfig = {
   headers: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
   generateId: () => string;
+  strictResponseInput?: boolean;
 };

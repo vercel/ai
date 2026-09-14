@@ -1,5 +1,32 @@
 # @ai-sdk/open-responses
 
+## 1.0.42
+
+### Patch Changes
+
+- Updated dependencies [1a4dbb1]
+  - @ai-sdk/provider@3.0.16
+  - @ai-sdk/provider-utils@4.0.51
+
+## 1.0.41
+
+### Patch Changes
+
+- 216b285: fix(open-responses): include image detail in input image parts
+
+## 1.0.40
+
+### Patch Changes
+
+- 2922989: feat(open-responses): add strict assistant history serialization without synthetic item IDs
+
+## 1.0.39
+
+### Patch Changes
+
+- Updated dependencies [cc23556]
+  - @ai-sdk/provider-utils@4.0.50
+
 ## 1.0.38
 
 ### Patch Changes

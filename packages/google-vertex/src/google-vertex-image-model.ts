@@ -174,11 +174,24 @@ export class GoogleVertexImageModel implements ImageModelV3 {
       fetch: this.config.fetch,
     });
 
+    const imagePredictions =
+      response.predictions?.filter(
+        (
+          prediction,
+        ): prediction is {
+          bytesBase64Encoded: string;
+          mimeType: string;
+          prompt?: string | null;
+        } => 'bytesBase64Encoded' in prediction,
+      ) ?? [];
+
     return {
-      images:
-        response.predictions?.map(
-          ({ bytesBase64Encoded }) => bytesBase64Encoded,
-        ) ?? [],
+      images: imagePredictions.map(
+        ({ bytesBase64Encoded }) => bytesBase64Encoded,
+      ),
+      ...(response.predictions?.some(
+        prediction => 'raiFilteredReason' in prediction,
+      ) && { isRetryable: false }),
       warnings,
       response: {
         timestamp: currentDate,
@@ -188,7 +201,7 @@ export class GoogleVertexImageModel implements ImageModelV3 {
       providerMetadata: {
         vertex: {
           images:
-            response.predictions?.map(prediction => {
+            imagePredictions.map(prediction => {
               const {
                 // normalize revised prompt property
                 prompt: revisedPrompt,
@@ -317,6 +330,9 @@ export class GoogleVertexImageModel implements ImageModelV3 {
 
     return {
       images,
+      ...(result.finishReason.unified === 'content-filter'
+        ? { isRetryable: false }
+        : {}),
       warnings,
       providerMetadata: {
         vertex: {
@@ -350,11 +366,14 @@ function isGeminiModel(modelId: string): boolean {
 const vertexImageResponseSchema = z.object({
   predictions: z
     .array(
-      z.object({
-        bytesBase64Encoded: z.string(),
-        mimeType: z.string(),
-        prompt: z.string().nullish(),
-      }),
+      z.union([
+        z.object({
+          bytesBase64Encoded: z.string(),
+          mimeType: z.string(),
+          prompt: z.string().nullish(),
+        }),
+        z.object({ raiFilteredReason: z.string() }),
+      ]),
     )
     .nullish(),
 });

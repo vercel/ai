@@ -480,6 +480,13 @@ export default function Chat() {
 }
 ```
 
+Approval request chunks can also include an `approvalDescriptor` with opaque
+application-specific metadata. UI message processing exposes it as
+`part.approval.descriptor` in the `approval-requested` state and preserves it in
+the `approval-responded` state after `addToolApprovalResponse` is called. This
+lets clients render or persist server-computed approval metadata without using
+it to determine whether the tool was approved.
+
 ### Auto-Submit After Approval
 
 <Note>

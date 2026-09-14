@@ -1,5 +1,115 @@
 # ai
 
+## 6.0.282
+
+### Patch Changes
+
+- Updated dependencies [e4ff9e7]
+  - @ai-sdk/gateway@3.0.193
+
+## 6.0.281
+
+### Patch Changes
+
+- Updated dependencies [1b7ff26]
+- Updated dependencies [4d228f2]
+  - @ai-sdk/gateway@3.0.192
+
+## 6.0.280
+
+### Patch Changes
+
+- 04783ca: fix(ai): call `atob` without a receiver for Cloudflare Workers compatibility
+- 1a4dbb1: Retry unclassified empty image results, preserve retry-attempt accounting, add provider-independent result retryability classification, preserve it through the AI Gateway, and mark Google and Google Vertex content-filtered results as terminal.
+- Updated dependencies [1a4dbb1]
+- Updated dependencies [b273f40]
+  - @ai-sdk/gateway@3.0.191
+  - @ai-sdk/provider@3.0.16
+  - @ai-sdk/provider-utils@4.0.51
+
+## 6.0.279
+
+### Patch Changes
+
+- 6517262: fix(ai): decode text data URLs in Node.js
+
+## 6.0.278
+
+### Patch Changes
+
+- Updated dependencies [fc032e8]
+- Updated dependencies [761dae9]
+  - @ai-sdk/gateway@3.0.190
+
+## 6.0.277
+
+### Patch Changes
+
+- Updated dependencies [8839d87]
+  - @ai-sdk/gateway@3.0.189
+
+## 6.0.276
+
+### Patch Changes
+
+- 760ac87: fix(ai): preserve provider metadata from empty smooth stream deltas
+- 5e43974: fix(ai): skip `smoothStream` delays while the document is hidden
+- Updated dependencies [13507cb]
+- Updated dependencies [7782fec]
+- Updated dependencies [978e084]
+- Updated dependencies [d0c255c]
+  - @ai-sdk/gateway@3.0.188
+
+## 6.0.275
+
+### Patch Changes
+
+- Updated dependencies [57d88f5]
+  - @ai-sdk/gateway@3.0.187
+
+## 6.0.274
+
+### Patch Changes
+
+- 0b790f3: fix(ai): preserve approval descriptors in UI message streams
+
+## 6.0.273
+
+### Patch Changes
+
+- 6e632b8: Expose parsed structured output in `streamText` end callbacks.
+- Updated dependencies [5ab6f63]
+  - @ai-sdk/gateway@3.0.186
+
+## 6.0.272
+
+### Patch Changes
+
+- e822a1d: Reject `generateText` responses that do not satisfy a required or specifically selected tool choice, and expose the normalized response content on `ToolChoiceViolationError` for opt-in recovery.
+- 8c51a25: fix(ai): allow tool approval secrets in ToolLoopAgent settings and prepareCall
+- Updated dependencies [cc23556]
+- Updated dependencies [823cc03]
+- Updated dependencies [3f96cf8]
+  - @ai-sdk/provider-utils@4.0.50
+  - @ai-sdk/gateway@3.0.185
+
+## 6.0.271
+
+### Patch Changes
+
+- 9310140: Validate persisted typed tool calls against current input and output schemas.
+  Schema-incompatible empty or error inputs and terminal history from unavailable
+  tools remain loadable as dynamic tool parts instead of exposing unvalidated
+  values under current static tool types.
+- b503790: add operation-level outcomes to UI message stream end callbacks
+
+## 6.0.270
+
+### Patch Changes
+
+- 8bc01a1: Allow chats to continue automatically after tool approval denials reach the `output-denied` state.
+- fa01949: Handle stitchable stream cancellation before an inner stream is registered.
+
 ## 6.0.269
 
 ### Patch Changes

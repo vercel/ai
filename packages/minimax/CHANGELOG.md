@@ -1,5 +1,44 @@
 # @ai-sdk/minimax
 
+## 2.0.16
+
+### Patch Changes
+
+- Updated dependencies [c11f450]
+  - @ai-sdk/anthropic@3.0.118
+
+## 2.0.15
+
+### Patch Changes
+
+- Updated dependencies [1a4dbb1]
+  - @ai-sdk/provider@3.0.16
+  - @ai-sdk/anthropic@3.0.117
+  - @ai-sdk/provider-utils@4.0.51
+
+## 2.0.14
+
+### Patch Changes
+
+- Updated dependencies [57d88f5]
+  - @ai-sdk/anthropic@3.0.116
+
+## 2.0.13
+
+### Patch Changes
+
+- 2c90e90: fix(provider/minimax): send a default `16:9` ratio for MiniMax-H3 text-to-video
+
+## 2.0.12
+
+### Patch Changes
+
+- 658d7d9: Add model-aware MiniMax 480P and 768P video resolutions, duration limits, and reference-input validation.
+- 658d7d9: Map MiniMax 480P and 768P frame sizes onto their named video resolution tiers, so a typed top-level `resolution` can reach them.
+- Updated dependencies [cc23556]
+  - @ai-sdk/provider-utils@4.0.50
+  - @ai-sdk/anthropic@3.0.115
+
 ## 2.0.11
 
 ### Patch Changes

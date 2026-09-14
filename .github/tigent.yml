@@ -25,7 +25,7 @@ prompt: |
   provider/openai, provider/anthropic, provider/google, provider/google-vertex, provider/azure, provider/amazon-bedrock, provider/xai, provider/mistral, provider/cohere, provider/groq, provider/deepseek, provider/fireworks, provider/togetherai, provider/perplexity, provider/replicate, provider/huggingface, provider/cerebras, provider/deepinfra, provider/baseten, provider/fal, provider/luma, provider/black-forest-labs, provider/gateway, provider/vercel.
   provider/openai-compatible — providers using the openai-compatible base.
   provider/community — community-maintained providers.
-  audio/speech providers: provider/elevenlabs, provider/lmnt, provider/hume, provider/deepgram, provider/assemblyai, provider/gladia, provider/revai.
+  audio/speech providers: provider/elevenlabs, provider/hume, provider/deepgram, provider/assemblyai, provider/gladia, provider/revai.
 
   type labels:
   bug — confirmed defects, regressions, crashes, incorrect behavior.

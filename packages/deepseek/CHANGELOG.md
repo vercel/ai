@@ -1,5 +1,33 @@
 # @ai-sdk/deepseek
 
+## 2.0.64
+
+### Patch Changes
+
+- 1b70db6: fix(provider/deepseek): treat the `deepseek-flash` alias as a V4 model so prior-turn `reasoning_content` is preserved in multi-turn requests
+- 4bd2599: fix(deepseek): preserve reasoning streams across empty tool-call deltas
+
+## 2.0.63
+
+### Patch Changes
+
+- Updated dependencies [1a4dbb1]
+  - @ai-sdk/provider@3.0.16
+  - @ai-sdk/provider-utils@4.0.51
+
+## 2.0.62
+
+### Patch Changes
+
+- Updated dependencies [cc23556]
+  - @ai-sdk/provider-utils@4.0.50
+
+## 2.0.61
+
+### Patch Changes
+
+- 32e32c4: fix(provider/deepseek): preserve complete raw chat usage objects
+
 ## 2.0.60
 
 ### Patch Changes
