@@ -250,7 +250,7 @@ and backend completion do not prove that the corresponding audio was heard.
       name: 'messages',
       type: 'UIMessage[]',
       description:
-        'Messages assembled from realtime text, transcript, and tool events.',
+        'Messages assembled from turn-based response text, transcript, and tool events. Continuous Live transcript fragments are exposed separately through session.transcripts.',
     },
     {
       name: 'events',
