@@ -1,8 +1,178 @@
 import { NoSuchProviderReferenceError } from '@ai-sdk/provider';
+import { imageGeneration } from '../tool/image-generation';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { describe, it, expect } from 'vitest';
 
 describe('prepareResponsesTools', () => {
+  it('should remove string propertyNames from function tools and warn', async () => {
+    const result = await prepareResponsesTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'get_weather',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              values: {
+                type: 'object',
+                propertyNames: { type: 'string', format: 'uuid' },
+              },
+            },
+          },
+        },
+      ],
+      toolChoice: undefined,
+    });
+
+    expect(result).toEqual({
+      tools: [
+        {
+          type: 'function',
+          name: 'get_weather',
+          description: undefined,
+          parameters: {
+            type: 'object',
+            properties: {
+              values: {
+                type: 'object',
+              },
+            },
+          },
+        },
+      ],
+      toolChoice: undefined,
+      toolWarnings: [
+        {
+          type: 'compatibility',
+          feature: 'JSON Schema propertyNames',
+          details:
+            'OpenAI does not support JSON Schema propertyNames. It was removed before sending the schema, so OpenAI will not enforce property-name constraints.',
+        },
+      ],
+    });
+  });
+
+  describe('async tools', () => {
+    it('should pass through async mode for function tools', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get the weather',
+            inputSchema: {
+              type: 'object',
+              properties: { city: { type: 'string' } },
+              required: ['city'],
+              additionalProperties: false,
+            },
+            providerOptions: {
+              openai: { async: true },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'function',
+          name: 'get_weather',
+          description: 'Get the weather',
+          parameters: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+            required: ['city'],
+            additionalProperties: false,
+          },
+          async: true,
+        },
+      ]);
+    });
+
+    it('should pass through async mode for custom tools', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.custom',
+            name: 'write_sql',
+            args: {
+              description: 'Write a SQL query',
+              async: true,
+              format: { type: 'text' },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'custom',
+          name: 'write_sql',
+          description: 'Write a SQL query',
+          async: true,
+          format: { type: 'text' },
+        },
+      ]);
+    });
+
+    it('should omit async mode and warn for unsupported models', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            inputSchema: { type: 'object', properties: {} },
+            providerOptions: {
+              openai: { async: true },
+            },
+          },
+          {
+            type: 'provider',
+            id: 'openai.custom',
+            name: 'write_sql',
+            args: {
+              async: true,
+            },
+          },
+        ],
+        toolChoice: undefined,
+        supportsAsyncToolCalling: false,
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'function',
+          name: 'get_weather',
+          description: undefined,
+          parameters: { type: 'object', properties: {} },
+        },
+        {
+          type: 'custom',
+          name: 'write_sql',
+          description: undefined,
+          format: undefined,
+        },
+      ]);
+      expect(result.toolWarnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'async tool calling for "get_weather"',
+          details:
+            'Async tool calling is only supported by GPT-6 and later models.',
+        },
+        {
+          type: 'unsupported',
+          feature: 'async tool calling for "write_sql"',
+          details:
+            'Async tool calling is only supported by GPT-6 and later models.',
+        },
+      ]);
+    });
+  });
+
   describe('function tools strict mode', () => {
     it('should pass through strict mode when strict is true', async () => {
       const result = await prepareResponsesTools({
@@ -427,6 +597,34 @@ describe('prepareResponsesTools', () => {
   });
 
   describe('image generation', () => {
+    describe.each(['gpt-image-2.5-flare', 'gpt-image-2.5-sunburst'])(
+      '%s quality',
+      model => {
+        it.each(['xhigh', 'max'] as const)(
+          'should pass %s quality',
+          async quality => {
+            const tool = imageGeneration({ model, quality });
+            const result = await prepareResponsesTools({
+              tools: [
+                {
+                  type: 'provider',
+                  id: 'openai.image_generation',
+                  name: 'image_generation',
+                  args: tool.args,
+                },
+              ],
+              toolChoice: undefined,
+            });
+
+            expect(result.toolWarnings).toEqual([]);
+            expect(result.tools).toMatchObject([
+              { type: 'image_generation', model, quality },
+            ]);
+          },
+        );
+      },
+    );
+
     it('should prepare image_generation tool with all options', async () => {
       const result = await prepareResponsesTools({
         tools: [

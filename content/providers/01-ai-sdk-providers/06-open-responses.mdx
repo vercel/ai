@@ -61,6 +61,13 @@ You can use the following optional settings to customize the Open Responses prov
   Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
   Defaults to the global `fetch` function.
 
+- **strictResponseInput** _boolean_
+
+  Serializes assistant history using strict OpenAI Responses input schemas.
+  Assistant messages without an item ID are sent as easy input messages, while
+  messages with a genuine provider item ID are sent as complete output items.
+  Defaults to `false`.
+
 ### Endpoint Examples
 
 For a local LM Studio server that does not require authentication:

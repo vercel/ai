@@ -1,5 +1,80 @@
 # @ai-sdk/openai
 
+## 4.0.66
+
+### Patch Changes
+
+- 5ec21a6: fix: reject unsupported batch request types
+- 7469a3b: feat: support image generation requests in batches
+- 0de8886: fix(openai): allow providers to disable web search source includes
+- d5e3024: fix(openai): remove propertyNames from JSON Schema
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
+## 4.0.65
+
+### Patch Changes
+
+- 9942196: feat(openai): add batch cancellation and listing
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/provider-utils@5.0.39
+
+## 4.0.64
+
+### Patch Changes
+
+- ccb8952: fix(openai): return an AI SDK error for empty chat completion choices
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/provider-utils@5.0.38
+
+## 4.0.63
+
+### Patch Changes
+
+- 85db433: Include explicit message item types in Azure AI Foundry Responses requests.
+- 5fb2a64: feat(openai): add GPT Image 2.5 Flare and Sunburst model IDs
+- e105b2b: fix(openai): reject denied programmatic tool calls
+- 45f2b6a: fix(openai): report apply patch responses with a tool-calls finish reason
+
+## 4.0.62
+
+### Patch Changes
+
+- 8487955: Add `xhigh` and `max` quality support for GPT Image 2.5 Flare and Sunburst in image generation, image editing, and the Responses API image generation tool.
+
+## 4.0.61
+
+### Patch Changes
+
+- a4ba394: feat: support per-request models in batch
+- 4a09793: feat(openai): add async tool calling
+- 685ed8c: chore: fix failing CI
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+
+## 4.0.60
+
+### Patch Changes
+
+- 17e489e: feat(openai): add GPT-6 reasoning configuration updates
+
+## 4.0.59
+
+### Patch Changes
+
+- 4af00d1: feat(openai): add support for the gpt-6-astra
+- abb9ebf: feat(openai): support `gpt-4o-transcribe-diarize`, including chunking and diarized speaker metadata
+
 ## 4.0.58
 
 ### Patch Changes

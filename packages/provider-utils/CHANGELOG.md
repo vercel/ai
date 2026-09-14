@@ -1,5 +1,39 @@
 # @ai-sdk/provider-utils
 
+## 5.0.40
+
+### Patch Changes
+
+- 813bb36: fix(provider-utils): avoid detecting plain text prefixes as BMP or GIF images
+- c43e4b7: fix(mcp): prevent SSRF in OAuth metadata discovery
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+  - @ai-sdk/provider@4.0.14
+
+## 5.0.39
+
+### Patch Changes
+
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+
+## 5.0.38
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+
+## 5.0.37
+
+### Patch Changes
+
+- 9e1d1b2: chore(provider-utils): fix test that can timeout
+- a495511: fix(provider-utils): avoid excessive memory usage when base64 encoding byte arrays
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+  - @ai-sdk/provider@4.0.11
+
 ## 5.0.36
 
 ### Patch Changes

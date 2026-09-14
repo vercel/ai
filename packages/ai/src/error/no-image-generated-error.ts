@@ -13,6 +13,11 @@ export class NoImageGeneratedError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
 
   /**
+   * The results of the underlying image model calls.
+   */
+  readonly calls: Array<GenerateImageCall> | undefined;
+
+  /**
    * The response metadata for each call.
    */
   readonly responses: Array<ImageModelResponseMetadata> | undefined;
@@ -25,16 +30,19 @@ export class NoImageGeneratedError extends AISDKError {
   constructor({
     message = 'No image generated.',
     cause,
+    calls,
     responses,
     calls,
   }: {
     message?: string;
     cause?: Error;
+    calls?: Array<GenerateImageCall>;
     responses?: Array<ImageModelResponseMetadata>;
     calls?: Array<GenerateImageCall>;
   }) {
     super({ name, message, cause });
 
+    this.calls = calls;
     this.responses = responses;
     this.calls = calls;
   }

@@ -135,6 +135,13 @@ You can use the following optional settings to customize the provider instance:
   Optional. Base URL for the Google Vertex API calls e.g. to use proxy servers. By default, it is constructed using the location and project:
   `https://${location}-aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/google`
 
+- **toolResultDownloads** _object_
+
+  Settings for downloading remote files in tool results before sending them to Vertex as inline data.
+  - **maxBytes** _number_
+
+    Maximum size in bytes for each downloaded file. Defaults to 7 MiB.
+
 <a id="google-vertex-edge-runtime"></a>
 #### Edge Runtime
 
@@ -2154,6 +2161,12 @@ The following models are available through the MaaS provider. You can also pass 
 | `qwen/qwen3-next-80b-a3b-instruct-maas`        | Qwen     |
 | `qwen/qwen3-next-80b-a3b-thinking-maas`        | Qwen     |
 | `moonshotai/kimi-k2-thinking-maas`             | Moonshot |
+
+<Note>
+  Llama 4 MaaS models default to their 8,192-token output limit when
+  `maxOutputTokens` is not specified. An explicit `maxOutputTokens` value takes
+  precedence.
+</Note>
 
 <Note>
   Model availability depends on your Google Cloud project and region. Check the

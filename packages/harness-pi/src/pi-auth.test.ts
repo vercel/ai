@@ -10,6 +10,7 @@ import {
   resolvePiEnv,
   type PiAuthenticationMode,
 } from './pi-auth';
+import { resolvePiSubscriptionAgentDir } from './pi-subscription';
 
 const authPaths: string[] = [];
 
@@ -50,15 +51,18 @@ async function makeRegistries() {
 async function registerProviders({
   options,
   resolvedEnv,
+  headers,
 }: {
   options: PiAuthenticationMode | undefined;
   resolvedEnv: Record<string, string>;
+  headers?: Readonly<Record<string, string>>;
 }) {
   const registries = await makeRegistries();
   await registerPiProviders({
     options,
     resolvedEnv,
     registries,
+    headers,
   });
   return registries;
 }
@@ -205,6 +209,62 @@ describe('resolvePiEnv', () => {
   });
 });
 
+describe('resolvePiSubscriptionAgentDir', () => {
+  it('keeps Pi native storage available alongside environment credentials', () => {
+    expect(
+      resolvePiSubscriptionAgentDir({
+        options: 'openai',
+        env: {},
+        homeDirectory: '/home/me',
+      }),
+    ).toBe('/home/me/.pi/agent');
+    expect(
+      resolvePiSubscriptionAgentDir({
+        options: 'openai',
+        env: { OPENAI_API_KEY: 'environment-key' },
+        homeDirectory: '/home/me',
+      }),
+    ).toBe('/home/me/.pi/agent');
+  });
+
+  it('never uses native storage for explicit or resolved Gateway auth', () => {
+    expect(
+      resolvePiSubscriptionAgentDir({
+        options: 'ai-gateway',
+        env: {},
+        homeDirectory: '/home/me',
+      }),
+    ).toBeUndefined();
+    expect(
+      resolvePiSubscriptionAgentDir({
+        options: undefined,
+        env: { AI_GATEWAY_API_KEY: 'gateway-key' },
+        homeDirectory: '/home/me',
+      }),
+    ).toBeUndefined();
+  });
+
+  it('never uses native storage for supplied auth', () => {
+    expect(
+      resolvePiSubscriptionAgentDir({
+        options: {},
+        env: {},
+        homeDirectory: '/home/me',
+      }),
+    ).toBeUndefined();
+  });
+
+  it('honors PI_CODING_AGENT_DIR', () => {
+    expect(
+      resolvePiSubscriptionAgentDir({
+        options: undefined,
+        env: { PI_CODING_AGENT_DIR: '/custom/pi' },
+        homeDirectory: '/home/me',
+      }),
+    ).toBe('/custom/pi');
+  });
+});
+
 describe('createPiModelRuntime', () => {
   it('does not use ambient credentials for an empty authentication environment override', async () => {
     clearAmbientProviderCredentials();
@@ -315,7 +375,14 @@ describe('registerPiProviders', () => {
       AI_GATEWAY_BASE_URL: 'https://gw.example',
     } satisfies PiAuthenticationMode;
     const resolvedEnv = resolvePiEnv({ options, env: {} });
-    const registries = await registerProviders({ options, resolvedEnv });
+    const registries = await registerProviders({
+      options,
+      resolvedEnv,
+      headers: {
+        'x-tenant': 'acme',
+        'User-Agent': 'caller-agent',
+      },
+    });
 
     expect(registries.setRuntimeApiKey).toHaveBeenCalledWith(
       'vercel-ai-gateway',
@@ -328,6 +395,7 @@ describe('registerPiProviders', () => {
         baseUrl: 'https://gw.example',
         authHeader: true,
         headers: {
+          'x-tenant': 'acme',
           'User-Agent': 'ai-sdk/harness-pi/0.0.0-test',
           'x-client-app': 'ai-sdk/harness-pi/0.0.0-test',
         },
@@ -420,6 +488,7 @@ describe('registerPiProviders', () => {
     const registries = await registerProviders({
       options: 'openai',
       resolvedEnv,
+      headers: { 'x-tenant': 'acme' },
     });
     const providers = registries.registerProvider.mock.calls.map(c => c[0]);
 
@@ -432,6 +501,7 @@ describe('registerPiProviders', () => {
       apiKey: 'sk-oai',
       baseUrl: 'https://api.openai.com/v1',
       authHeader: true,
+      headers: { 'x-tenant': 'acme' },
     });
   });
 
@@ -456,6 +526,7 @@ describe('registerPiProviders', () => {
     const registries = await registerProviders({
       options: 'anthropic',
       resolvedEnv,
+      headers: { 'x-tenant': 'acme' },
     });
     const providers = registries.registerProvider.mock.calls.map(c => c[0]);
 
@@ -463,7 +534,10 @@ describe('registerPiProviders', () => {
     expect(registries.registerProvider).toHaveBeenCalledWith('anthropic', {
       apiKey: 'sk-ant',
       baseUrl: 'https://api.anthropic.com',
-      headers: { authorization: 'Bearer tok' },
+      headers: {
+        'x-tenant': 'acme',
+        authorization: 'Bearer tok',
+      },
     });
   });
 

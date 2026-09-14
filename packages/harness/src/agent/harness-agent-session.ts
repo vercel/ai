@@ -34,6 +34,7 @@ import type {
 import { validateLifecycleStateData } from './internal/lifecycle-state-validation';
 import { runPrompt } from './internal/run-prompt';
 import { getRestrictedSandboxSession } from '../utils/get-restricted-sandbox-session';
+import type { HarnessAgentLifecycleCallbacks } from './internal/turn-telemetry';
 
 type HarnessAgentTurnResult<
   TOOLS extends ToolSet,
@@ -111,6 +112,7 @@ export class HarnessAgentSession {
   private turnState: HarnessAgentTurnState;
   private turnSequence = 0;
   private activeTurnSequence = 0;
+  private activePromptDone: Promise<void> | undefined;
   private activePromptControl: ActivePromptControl | undefined;
   private suspendedTurnState:
     | Promise<HarnessAgentContinueTurnState>
@@ -207,6 +209,7 @@ export class HarnessAgentSession {
     responseFormat: HarnessV1ResponseFormat | undefined;
     output: OUTPUT | undefined;
     telemetry: TelemetryOptions | undefined;
+    callbacks: HarnessAgentLifecycleCallbacks<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
     stopConditions: ReadonlyArray<StopCondition<TOOLS, RUNTIME_CONTEXT>>;
   }): HarnessAgentTurnResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
     const session = this.requireReusableSession();
@@ -246,6 +249,7 @@ export class HarnessAgentSession {
         responseFormat: options.responseFormat,
         output: options.output,
         telemetry: options.telemetry,
+        callbacks: options.callbacks,
         stopConditions: options.stopConditions,
         toolApproval: this.toolApproval,
         pendingToolApprovals: this.getPendingToolApprovals(),
@@ -278,6 +282,7 @@ export class HarnessAgentSession {
         onStopConditionMet: () =>
           this.captureStopConditionBoundary({ session, turnId }),
       });
+      this.activePromptDone = turn.done;
       return {
         ...turn,
         ready: this.waitForPromptControl({ turnId }),
@@ -305,6 +310,7 @@ export class HarnessAgentSession {
     responseFormat: HarnessV1ResponseFormat | undefined;
     output: OUTPUT | undefined;
     telemetry: TelemetryOptions | undefined;
+    callbacks: HarnessAgentLifecycleCallbacks<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
     stopConditions: ReadonlyArray<StopCondition<TOOLS, RUNTIME_CONTEXT>>;
     toolApprovalContinuations?: readonly ToolApprovalResponse[] | undefined;
     toolResultContinuations?: readonly ToolResultPart[] | undefined;
@@ -341,6 +347,7 @@ export class HarnessAgentSession {
         responseFormat: options.responseFormat,
         output: options.output,
         telemetry: options.telemetry,
+        callbacks: options.callbacks,
         stopConditions: options.stopConditions,
         toolApproval: this.toolApproval,
         pendingToolApprovals: this.getPendingToolApprovals(),
@@ -375,6 +382,7 @@ export class HarnessAgentSession {
         onStopConditionMet: () =>
           this.captureStopConditionBoundary({ session, turnId }),
       });
+      this.activePromptDone = turn.done;
       return {
         ...turn,
         ready: this.waitForPromptControl({ turnId }),
@@ -458,7 +466,7 @@ export class HarnessAgentSession {
     try {
       if (this.turnState !== 'idle') {
         return this.toResumeStateWithContinuation({
-          continueFrom: await this.suspendCurrentTurn({ session }),
+          continueFrom: await this.finalizeCurrentTurnSuspension({ session }),
         });
       }
       const raw = await session.doDetach();
@@ -490,7 +498,7 @@ export class HarnessAgentSession {
     try {
       if (this.turnState !== 'idle') {
         return this.toResumeStateWithContinuation({
-          continueFrom: await this.suspendCurrentTurn({ session }),
+          continueFrom: await this.finalizeCurrentTurnSuspension({ session }),
         });
       }
       const raw = await session.doStop();
@@ -551,7 +559,7 @@ export class HarnessAgentSession {
     }
     const session = this.underlyingSession;
     try {
-      return await this.suspendCurrentTurn({ session });
+      return await this.finalizeCurrentTurnSuspension({ session });
     } finally {
       this.endLocalHandle({ sessionState: 'detached' });
     }
@@ -604,6 +612,17 @@ export class HarnessAgentSession {
     const state = await this.suspendedTurnState;
     this.turnState = 'suspended';
     return state;
+  }
+
+  private async finalizeCurrentTurnSuspension(options: {
+    session: HarnessAgentAdapterSession;
+  }): Promise<HarnessAgentContinueTurnState> {
+    const state = await this.suspendCurrentTurn(options);
+    // Freeze ingress first, then include all dispatched host work in the cursor.
+    // Keep this wait outside suspendCurrentTurn because stop-condition handling
+    // invokes that helper from inside the active prompt.
+    await this.activePromptDone;
+    return this.addPendingToolState(state);
   }
 
   private async captureStopConditionBoundary(options: {

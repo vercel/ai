@@ -10,9 +10,13 @@ type FirstClassModelId<T> = T extends string
   : never;
 
 expectTypeOf<FirstClassModelId<ModelId>>().toEqualTypeOf<
-  'deepseek-v4-flash' | 'deepseek-v4-pro' | 'deepseek-v4-flash-vision-exp'
+  | 'deepseek-flash'
+  | 'deepseek-v4-flash'
+  | 'deepseek-v4-pro'
+  | 'deepseek-v4-flash-vision-exp'
 >();
 
+deepSeek('deepseek-flash');
 deepSeek('deepseek-v4-flash');
 deepSeek('deepseek-v4-pro');
 deepSeek('deepseek-v4-flash-vision-exp');

@@ -37,6 +37,7 @@ export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   skillsChanged: z.boolean().optional(),
   // Max LangGraph super-steps per turn (streamEvents recursionLimit).
   recursionLimit: z.number().optional(),
+  headers: z.record(z.string(), z.string()).optional(),
 });
 
 export type StartMessage = z.infer<typeof startMessageSchema>;
