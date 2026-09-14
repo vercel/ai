@@ -9,10 +9,10 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "3.0.112",
-    "@ai-sdk/react": "3.0.285",
+    "@ai-sdk/react": "3.0.286",
     "@upstash/ratelimit": "^0.4.3",
     "@vercel/kv": "^0.2.2",
-    "ai": "6.0.282",
+    "ai": "6.0.283",
     "next": "^15.5.21",
     "react": "^18",
     "react-dom": "^18",
