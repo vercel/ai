@@ -180,6 +180,15 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
         .nullish(),
 
       /**
+       * Whether to automatically include web search action sources in the
+       * response. Disable this for OpenAI-compatible providers that do not
+       * support the `web_search_call.action.sources` include value.
+       *
+       * Defaults to `true`.
+       */
+      includeWebSearchSources: z.boolean().optional(),
+
+      /**
        * Instructions for the model.
        * They can be used to change the system or developer message when continuing a conversation using the `previousResponseId` option.
        * Defaults to `undefined`.
@@ -263,6 +272,18 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
        * Supported values vary by model.
        */
       reasoningEffort: z.string().nullish(),
+
+      /**
+       * Updates the reasoning effort for GPT-6 and later models starting with this response
+       * without changing the request-level reasoning effort. This preserves the
+       * request prefix for prompt caching.
+       *
+       * Only supported by GPT-6 and later models in standard, single-agent mode. Cannot be
+       * combined with automatic compaction or automatic truncation.
+       */
+      reasoningEffortUpdate: z
+        .enum(['low', 'medium', 'high', 'xhigh', 'max'])
+        .optional(),
 
       /**
        * Controls how much model work GPT-5.6 performs before returning a final answer.

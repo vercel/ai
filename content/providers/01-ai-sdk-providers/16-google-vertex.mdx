@@ -135,6 +135,13 @@ You can use the following optional settings to customize the provider instance:
   Optional. Base URL for the Google Vertex API calls e.g. to use proxy servers. By default, it is constructed using the location and project:
   `https://${location}-aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/google`
 
+- **toolResultDownloads** _object_
+
+  Settings for downloading remote files in tool results before sending them to Vertex as inline data.
+  - **maxBytes** _number_
+
+    Maximum size in bytes for each downloaded file. Defaults to 7 MiB.
+
 <a id="google-vertex-edge-runtime"></a>
 #### Edge Runtime
 
