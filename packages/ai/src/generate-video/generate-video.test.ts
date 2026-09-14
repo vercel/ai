@@ -1638,6 +1638,199 @@ describe('experimental_generateVideo', () => {
       expect(result.videos.length).toBe(1);
     });
 
+    describe('webhook receiver rejection', () => {
+      let unhandledRejections: unknown[];
+      const onUnhandledRejection = (reason: unknown) => {
+        unhandledRejections.push(reason);
+      };
+
+      beforeEach(() => {
+        unhandledRejections = [];
+        process.on('unhandledRejection', onUnhandledRejection);
+      });
+
+      afterEach(async () => {
+        try {
+          await new Promise(resolve => setTimeout(resolve, 0));
+          expect(unhandledRejections).toStrictEqual([]);
+        } finally {
+          process.off('unhandledRejection', onUnhandledRejection);
+        }
+      });
+
+      it.each([
+        { timing: 'during start', startFails: false },
+        { timing: 'at factory handoff', startFails: false },
+        { timing: 'during start', startFails: true },
+        { timing: 'at factory handoff', startFails: true },
+      ])(
+        'should observe rejection $timing while preserving start precedence (startFails: $startFails)',
+        async ({ timing, startFails }) => {
+          const webhookError = new Error('webhook delivery failed');
+          const startError = new Error('start failed');
+          let rejectWebhook!: (reason: unknown) => void;
+          const received = new Promise<VideoModelV4OperationWebhook>(
+            (_, reject) => {
+              rejectWebhook = reject;
+            },
+          );
+          let signalStarted!: () => void;
+          const started = new Promise<void>(resolve => {
+            signalStarted = resolve;
+          });
+          let releaseStart!: () => void;
+          const startGate = new Promise<void>(resolve => {
+            releaseStart = resolve;
+          });
+          const doStatus = vi.fn(async () => {
+            throw new Error('doStatus should not be called');
+          });
+          const settled = vi.fn();
+          const result = experimental_generateVideo({
+            model: new MockVideoModelV4({
+              doGenerate: undefined,
+              handleWebhookOption: async ({ webhook }) => {
+                const { url, received } = await webhook();
+                return { webhookUrl: url, received };
+              },
+              doStart: async () => {
+                signalStarted();
+                await startGate;
+                if (startFails) {
+                  throw startError;
+                }
+                return {
+                  operation: 'op-webhook',
+                  warnings: [],
+                  response: {
+                    timestamp: testDate,
+                    modelId: 'test-model-id',
+                    headers: {},
+                  },
+                };
+              },
+              doStatus,
+            }),
+            prompt,
+            maxRetries: 0,
+            webhook: async () => {
+              if (timing === 'at factory handoff') {
+                rejectWebhook(webhookError);
+              }
+              return { url: 'https://example.com/webhook', received };
+            },
+          });
+          void result.then(settled, settled);
+
+          try {
+            await started;
+            if (timing === 'during start') {
+              rejectWebhook(webhookError);
+            }
+            await new Promise(resolve => setTimeout(resolve, 0));
+            expect(settled).not.toHaveBeenCalled();
+          } finally {
+            releaseStart();
+          }
+
+          await expect(result).rejects.toBe(
+            startFails ? startError : webhookError,
+          );
+          expect(doStatus).not.toHaveBeenCalled();
+        },
+      );
+
+      it('should observe late webhook rejection after start fails', async () => {
+        const startError = new Error('start failed');
+        let rejectWebhook!: (reason: unknown) => void;
+        const received = new Promise<VideoModelV4OperationWebhook>(
+          (_, reject) => {
+            rejectWebhook = reject;
+          },
+        );
+        const doStatus = vi.fn(async () => {
+          throw new Error('doStatus should not be called');
+        });
+        const result = experimental_generateVideo({
+          model: new MockVideoModelV4({
+            doGenerate: undefined,
+            handleWebhookOption: async ({ webhook }) => {
+              const { url, received } = await webhook();
+              return { webhookUrl: url, received };
+            },
+            doStart: async () => {
+              throw startError;
+            },
+            doStatus,
+          }),
+          prompt,
+          maxRetries: 0,
+          webhook: async () => ({
+            url: 'https://example.com/webhook',
+            received,
+          }),
+        });
+
+        await expect(result).rejects.toBe(startError);
+        rejectWebhook(new Error('late webhook delivery failure'));
+        await new Promise(resolve => setTimeout(resolve, 0));
+        await expect(result).rejects.toBe(startError);
+        expect(doStatus).not.toHaveBeenCalled();
+      });
+    });
+
+    it('should assimilate a then-only webhook receiver once before start completes', async () => {
+      const notification = Promise.resolve<VideoModelV4OperationWebhook>({
+        headers: {},
+        body: {},
+      });
+      const received: PromiseLike<VideoModelV4OperationWebhook> = {
+        // oxlint-disable-next-line unicorn/no-thenable -- Test a PromiseLike receiver.
+        then: notification.then.bind(notification),
+      };
+      const then = vi.spyOn(received, 'then');
+      const doStatus = vi.fn(async () => ({
+        status: 'completed' as const,
+        ...createMockResponse({
+          videos: [{ type: 'base64', data: mp4Base64, mediaType: 'video/mp4' }],
+        }),
+      }));
+
+      const result = await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: undefined,
+          handleWebhookOption: async ({ webhook }) => {
+            const { url, received } = await webhook();
+            return { webhookUrl: url, received };
+          },
+          doStart: async () => {
+            await new Promise(resolve => setTimeout(resolve, 0));
+            expect(then).toHaveBeenCalledTimes(1);
+            return {
+              operation: 'op-webhook',
+              warnings: [],
+              response: {
+                timestamp: testDate,
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            };
+          },
+          doStatus,
+        }),
+        prompt,
+        maxRetries: 0,
+        webhook: async () => ({
+          url: 'https://example.com/webhook',
+          received,
+        }),
+      });
+
+      expect(then).toHaveBeenCalledTimes(1);
+      expect(doStatus).toHaveBeenCalledTimes(1);
+      expect(result.video.base64).toBe(mp4Base64);
+    });
+
     it('should use a custom delay for the webhook timeout', async () => {
       const delay = vi.fn(() => new Promise<void>(() => {}));
 

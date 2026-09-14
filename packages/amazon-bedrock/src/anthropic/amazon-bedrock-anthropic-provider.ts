@@ -7,7 +7,6 @@ import {
   loadOptionalSetting,
   loadSetting,
   resolve,
-  withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
   type Resolvable,
@@ -25,6 +24,7 @@ import {
   supportsNativeStructuredOutput,
   supportsStrictTools,
 } from '../amazon-bedrock-anthropic-model-support';
+import { resolveAmazonBedrockBaseURL } from '../resolve-amazon-bedrock-base-url';
 import { createAmazonBedrockAnthropicFetch } from './amazon-bedrock-anthropic-fetch';
 import type { AmazonBedrockAnthropicModelId } from './amazon-bedrock-anthropic-options';
 import { VERSION } from '../version';
@@ -254,17 +254,53 @@ export function createAmazonBedrockAnthropic(
     ? baseFetchFunction
     : createAmazonBedrockAnthropicFetch(baseFetchFunction);
 
-  const getBaseURL = (): string =>
-    withoutTrailingSlash(
-      options.baseURL ??
-        `https://bedrock-${isMantle ? 'mantle' : 'runtime'}.${loadSetting({
+  const getBaseURL = (): string => {
+    if (isMantle) {
+      const resolvedBaseURL = options.baseURL ?? loadOptionalSetting({
+        settingValue: undefined,
+        environmentVariableName: 'AWS_ENDPOINT_URL',
+      });
+      if (resolvedBaseURL != null) {
+        return withoutTrailingSlash(resolvedBaseURL) ?? resolvedBaseURL;
+      }
+      const region = loadSetting({
+        settingValue: options.region,
+        settingName: 'region',
+        environmentVariableName: 'AWS_REGION',
+        description: 'AWS region',
+      });
+      return `https://bedrock-mantle.${region}.api.aws/anthropic`;
+    }
+
+    return resolveAmazonBedrockBaseURL({
+      baseURL: options.baseURL,
+      getRegion: () =>
+        loadSetting({
           settingValue: options.region,
           settingName: 'region',
           environmentVariableName: 'AWS_REGION',
           description: 'AWS region',
+        }),
+      service: 'bedrock-runtime',
+      serviceEndpointUrlEnvironmentVariableName:
+        'AWS_ENDPOINT_URL_BEDROCK_RUNTIME',
+    });
+  };
+          settingValue: options.region,
+          settingName: 'region',
+          environmentVariableName: 'AWS_REGION',
+          description: 'AWS region',
+<<<<<<< HEAD
         })}.${isMantle ? 'api.aws/anthropic' : 'amazonaws.com'}`,
     ) ??
     `https://bedrock-${isMantle ? 'mantle' : 'runtime'}.us-east-1.${isMantle ? 'api.aws/anthropic' : 'amazonaws.com'}`;
+=======
+        }),
+      service: 'bedrock-runtime',
+      serviceEndpointUrlEnvironmentVariableName:
+        'AWS_ENDPOINT_URL_BEDROCK_RUNTIME',
+    });
+>>>>>>> upstream/main
 
   const getHeaders = async () => {
     const baseHeaders = (await resolve(options.headers)) ?? {};

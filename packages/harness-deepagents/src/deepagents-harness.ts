@@ -8,6 +8,7 @@ import {
   type HarnessV1BuiltinToolFiltering,
   type HarnessV1ContinueTurnState,
   type HarnessV1CredentialForwarding,
+  type HarnessV1MintBridgeTokenCallback,
   type HarnessV1NetworkSandboxSession,
   type HarnessV1PermissionMode,
   type HarnessV1Prompt,
@@ -94,13 +95,6 @@ export type DeepAgentsHarnessSettings = {
    */
   readonly credentialForwarding?: HarnessV1CredentialForwarding;
   /**
-   * Model id for the DeepAgents runtime, e.g. `claude-sonnet-4` (converted to
-   * `provider:model`).
-   *
-   * @deprecated Use `model` on `HarnessAgent` instead.
-   */
-  readonly model?: string;
-  /**
    * Controls Anthropic extended thinking for the Deep Agents model. Unset
    * preserves the Deep Agents runtime default.
    */
@@ -123,7 +117,7 @@ export type DeepAgentsHarnessSettings = {
    * Creates the authentication token used by the sandbox bridge. Defaults to
    * a random 32-byte hexadecimal token.
    */
-  readonly mintBridgeToken?: (sandboxId: string) => string;
+  readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
   /**
    * Maximum LangGraph super-steps per turn before it errors.
    * When omitted, the Deep Agents default applies.
@@ -351,7 +345,6 @@ export function createDeepAgents(
             sessionId: startOpts.sessionId,
             channel: attachChannel,
             proc: undefined,
-            model: settings.model,
             thinking: settings.thinking,
             effort: settings.effort,
             bridgePort: coords.port,
@@ -475,7 +468,6 @@ export function createDeepAgents(
         sessionId: startOpts.sessionId,
         channel,
         proc,
-        model: settings.model,
         thinking: settings.thinking,
         effort: settings.effort,
         bridgePort: boundPort,
@@ -586,7 +578,6 @@ function createSession({
   sessionId,
   channel,
   proc,
-  model,
   thinking,
   effort,
   bridgePort,
@@ -607,7 +598,6 @@ function createSession({
   channel: DeepAgentsChannel;
   // Undefined on attach — the live bridge was spawned by another process.
   proc: Experimental_SandboxProcess | undefined;
-  model: string | undefined;
   thinking: DeepAgentsThinkingConfig | undefined;
   effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
   bridgePort: number;
@@ -794,9 +784,7 @@ function createSession({
         ...(promptOpts.responseFormat == null
           ? {}
           : { responseFormat: promptOpts.responseFormat }),
-        ...((promptOpts.model ?? model)
-          ? { model: promptOpts.model ?? model }
-          : {}),
+        ...(promptOpts.model ? { model: promptOpts.model } : {}),
         ...(thinking ? { thinking } : {}),
         ...(effort ? { effort } : {}),
         ...(skillsPaths?.length ? { skillsPaths } : {}),
