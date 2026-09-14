@@ -2123,6 +2123,68 @@ describe('generateText', () => {
       expect(result.responseMessages).toMatchSnapshot();
     });
 
+    it('should JSON serialize object tool outputs', async () => {
+      class ObjectIdLike {
+        toJSON() {
+          return '507f1f77bcf86cd799439011';
+        }
+      }
+
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'lookupRecord',
+                input: '{}',
+              },
+            ],
+          }),
+        }),
+        tools: {
+          lookupRecord: tool({
+            inputSchema: z.object({}),
+            execute: async () => ({ id: new ObjectIdLike() }),
+          }),
+        },
+        prompt: 'look up the record',
+      });
+
+      expect(result.responseMessages).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'lookupRecord',
+              input: {},
+              providerExecuted: undefined,
+              providerOptions: undefined,
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'lookupRecord',
+              output: {
+                type: 'json',
+                value: { id: '507f1f77bcf86cd799439011' },
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should contain reasoning', async () => {
       const result = await generateText({
         model: modelWithReasoning,
