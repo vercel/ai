@@ -2851,23 +2851,88 @@ The following optional provider options are available for OpenAI completion mode
 
 <Note type="warning">Realtime is an experimental feature.</Note>
 
-You can create models that call the [OpenAI Realtime API](https://platform.openai.com/docs/guides/realtime)
-using the `.experimental_realtime()` factory method.
+Use `.experimental_realtime()` for both [OpenAI Realtime](https://platform.openai.com/docs/guides/realtime)
+and [OpenAI Live](https://developers.openai.com/api/docs/guides/live) models.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
 
 const model = openai.experimental_realtime('gpt-realtime');
+const liveModel = openai.experimental_realtime('gpt-live-1');
+
+// Select the API explicitly for an early-access or otherwise unknown model ID.
+const earlyAccessModel = openai.experimental_realtime('not-yet-released', {
+  api: 'live',
+});
 ```
 
-Realtime sessions run in the browser and require a short-lived token created on
-your server with `openai.experimental_realtime.getToken()`:
+The OpenAI-only `api` option accepts `'live'` or `'realtime'` and takes precedence
+over model-ID selection. Without it, the known `gpt-live-1` ID uses Live and other
+IDs retain the Realtime default. The provider does not switch APIs after a failed
+request. Both model implementations use the existing experimental realtime interface.
+
+For a token-based **Realtime API** session, create a short-lived token on your
+server with `openai.experimental_realtime.getToken()`:
 
 ```ts
 const token = await openai.experimental_realtime.getToken({
   model: 'gpt-realtime',
 });
 ```
+
+Live does not use Realtime client-secret minting. Calling `getToken` for a known
+Live model or with `api: 'live'` rejects before a mint request. Live's WebSocket
+connection authenticates on a trusted server; keep the provider API key out of
+browser code. The API selector chooses a protocol, not a different authentication
+capability for the same model.
+
+Browser authentication to an application-owned relay is separate from OpenAI
+authentication. Protect that relay with your application's session or short-lived
+credential; an origin check alone is not user authentication. The relay uses its
+server-held OpenAI key upstream. Selecting a Live model does not make the Realtime
+client-secret endpoint compatible with the Live API.
+
+### Live session options
+
+Configure Live-specific settings through `sessionConfig.providerOptions.openai`,
+typed with `Experimental_OpenAIRealtimeModelLiveOptions`. For example:
+
+```ts
+import type { Experimental_OpenAIRealtimeModelLiveOptions as OpenAIRealtimeModelLiveOptions } from '@ai-sdk/openai';
+
+const sessionConfig = {
+  instructions: 'Be concise. Delegate questions that need research or tools.',
+  providerOptions: {
+    openai: {
+      delegation: {
+        type: 'responses',
+        responses: {
+          model: 'gpt-5.6-luna',
+          tools: [{ type: 'web_search' }],
+          toolChoice: 'auto',
+        },
+      },
+    } satisfies OpenAIRealtimeModelLiveOptions,
+  },
+};
+```
+
+- `delegation`: use `{ type: 'client' }` for application-owned work, or configure a
+  Responses backend with a required `model`. Omission or null selects client mode.
+- `delegation.responses`: supports `instructions`, function/web-search `tools`,
+  `toolChoice`, `parallelToolCalls`, `maxOutputTokens`, `serviceTier`, `reasoning`
+  and `text.verbosity`. Only the provider converts camelCase options to wire names.
+- `input`: prior text messages with developer, user or assistant roles.
+- `voice`: an authorized custom voice reference `{ id }`, mutually exclusive with
+  the ordinary `sessionConfig.voice` string.
+- `store`: requests provider-side session storage; availability depends on the
+  OpenAI project configuration.
+
+Use `Experimental_OpenAIRealtimeModelLiveUpdateOptions` for sparse backend settings
+updates. Omitted settings remain unchanged; supported explicit nulls are preserved.
+The voice model, voice, history, initial instructions and delegation mode cannot
+be replaced by a backend update. Continuous captions, delegated activity and voice
+duration are distinct; a completed backend response does not mean speech was heard.
 
 See [Realtime](/docs/ai-sdk-core/realtime) for the complete setup and tool
 calling pattern.

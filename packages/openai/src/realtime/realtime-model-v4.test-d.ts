@@ -41,7 +41,7 @@ it('keeps the existing OpenAI realtime factory assignable', () => {
 });
 
 it('accepts Live as a realtime model while retaining its continuous capabilities', () => {
-  const model = openai.experimental_live('gpt-live');
+  const model = openai.experimental_realtime('gpt-live', { api: 'live' });
 
   expectTypeOf(model).toMatchTypeOf<RealtimeModelV4>();
   expectTypeOf(model.capabilities.conversation).toEqualTypeOf<'continuous'>();

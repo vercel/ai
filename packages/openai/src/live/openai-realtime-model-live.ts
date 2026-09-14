@@ -10,12 +10,9 @@ import {
 } from './openai-live-event-mapper';
 import type { OpenAIRealtimeModelLiveId } from './openai-realtime-model-live-options';
 import { buildOpenAILiveSessionConfig } from './openai-live-session-config';
+import type { OpenAIRealtimeModelConfig } from '../realtime/openai-realtime-model';
 
-export type OpenAIRealtimeModelLiveConfig = {
-  provider: string;
-  baseURL: string;
-  headers: () => Record<string, string | undefined>;
-};
+export type OpenAIRealtimeModelLiveConfig = OpenAIRealtimeModelConfig;
 
 export class OpenAIRealtimeModelLive implements RealtimeModelV4 {
   readonly specificationVersion = 'v4' as const;

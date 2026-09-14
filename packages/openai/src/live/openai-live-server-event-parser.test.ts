@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createOpenAI } from '../index';
 
-const model = createOpenAI({ apiKey: 'test-key' }).experimental_live(
+const model = createOpenAI({ apiKey: 'test-key' }).experimental_realtime(
   'gpt-live-1',
 );
 

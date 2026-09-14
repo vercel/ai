@@ -22,7 +22,7 @@ const options = {
 } satisfies OpenAIRealtimeModelLiveOptions;
 
 describe('OpenAIRealtimeModelLive', () => {
-  const model = createOpenAI({ apiKey: 'test-key' }).experimental_live(
+  const model = createOpenAI({ apiKey: 'test-key' }).experimental_realtime(
     'gpt-live-1',
   );
 
@@ -60,7 +60,7 @@ describe('OpenAIRealtimeModelLive', () => {
       organization: 'org-test',
       project: 'proj-test',
       headers: { 'X-Custom': 'value' },
-    }).experimental_live('gpt-live-1');
+    }).experimental_realtime('gpt-live-1');
     expect(custom.provider).toBe('custom.live');
     expect(custom.getServerWebSocketConfig()).toEqual({
       url: 'wss://example.com/proxy/v1/live/sessions',
@@ -76,7 +76,7 @@ describe('OpenAIRealtimeModelLive', () => {
   it('maps an HTTP development base URL to ws', () => {
     expect(
       createOpenAI({ apiKey: 'test-key', baseURL: 'http://localhost:3000/v1' })
-        .experimental_live('gpt-live-1')
+        .experimental_realtime('gpt-live-1')
         .getServerWebSocketConfig().url,
     ).toBe('ws://localhost:3000/v1/live/sessions');
   });

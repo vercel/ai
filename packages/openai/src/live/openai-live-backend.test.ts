@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { openai } from '../index';
 
-const model = openai.experimental_live('gpt-live-1');
+const model = openai.experimental_realtime('gpt-live-1');
 
 describe('Live delegated backend events through the public provider', () => {
   it('exposes Responses delegation metadata while preserving opaque IDs', () => {

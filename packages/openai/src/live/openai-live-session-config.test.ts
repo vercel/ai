@@ -5,7 +5,7 @@ import {
   openaiRealtimeModelLiveUpdateOptionsSchema,
 } from './openai-realtime-model-live-options';
 
-const model = createOpenAI().experimental_live('gpt-live-1');
+const model = createOpenAI().experimental_realtime('gpt-live-1');
 
 describe('Live startup and update options', () => {
   it('requires the backend model only at startup and supplies the update discriminator', () => {

@@ -5,8 +5,6 @@ import type {
   ImageModelV4,
   LanguageModelV4,
   ProviderV4,
-  Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
-  Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
   SpeechModelV4,
   SkillsV4,
   TranscriptionModelV4,
@@ -33,9 +31,10 @@ import type { OpenAIImageModelId } from './image/openai-image-model-options';
 import { openaiTools } from './openai-tools';
 import { OpenAIBatch } from './openai-batch';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
-import { OpenAIRealtimeModel } from './realtime/openai-realtime-model';
-import { OpenAIRealtimeModelLive } from './live/openai-realtime-model-live';
-import type { OpenAIRealtimeModelLiveId } from './live/openai-realtime-model-live-options';
+import {
+  createOpenAIRealtimeFactory,
+  type OpenAIRealtimeFactory,
+} from './realtime/openai-realtime-factory';
 import type { OpenAIResponsesModelId } from './responses/openai-responses-language-model-options';
 import { OpenAISpeechModel } from './speech/openai-speech-model';
 import type { OpenAISpeechModelId } from './speech/openai-speech-model-options';
@@ -127,12 +126,7 @@ export interface OpenAIProvider extends ProviderV4 {
    * Creates an experimental realtime model for bidirectional audio/text
    * communication over WebSocket.
    */
-  experimental_realtime: RealtimeFactoryV4;
-
-  /** Creates an experimental continuous Live model with server WebSocket support. */
-  experimental_live(
-    modelId: OpenAIRealtimeModelLiveId,
-  ): OpenAIRealtimeModelLive;
+  experimental_realtime: OpenAIRealtimeFactory;
 
   /**
    * Returns a FilesV4 interface for uploading files to OpenAI.
@@ -344,33 +338,6 @@ export function createOpenAI(
       },
     });
 
-  const createRealtimeModel = (modelId: string) =>
-    new OpenAIRealtimeModel(modelId, {
-      provider: `${providerName}.realtime`,
-      baseURL,
-      headers: getHeaders,
-      fetch: options.fetch,
-    });
-
-  const experimentalRealtimeFactory = Object.assign(
-    (modelId: string) => createRealtimeModel(modelId),
-    {
-      getToken: async (tokenOptions: RealtimeFactoryV4GetTokenOptions) => {
-        const model = createRealtimeModel(tokenOptions.model);
-        const secret = await model.doCreateClientSecret({
-          sessionConfig: tokenOptions.sessionConfig,
-          expiresAfterSeconds: tokenOptions.expiresAfterSeconds,
-        });
-
-        return {
-          token: secret.token,
-          url: secret.url,
-          expiresAt: secret.expiresAt,
-        };
-      },
-    },
-  ) as RealtimeFactoryV4;
-
   const provider = function (modelId: OpenAIResponsesModelId) {
     return createLanguageModel(modelId);
   };
@@ -400,13 +367,12 @@ export function createOpenAI(
   provider.skills = createSkills;
   provider.experimental_batch = createBatch;
 
-  provider.experimental_realtime = experimentalRealtimeFactory;
-  provider.experimental_live = (modelId: OpenAIRealtimeModelLiveId) =>
-    new OpenAIRealtimeModelLive(modelId, {
-      provider: `${providerName}.live`,
-      baseURL,
-      headers: getHeaders,
-    });
+  provider.experimental_realtime = createOpenAIRealtimeFactory({
+    provider: providerName,
+    baseURL,
+    headers: getHeaders,
+    fetch: options.fetch,
+  });
 
   provider.tools = openaiTools;
 

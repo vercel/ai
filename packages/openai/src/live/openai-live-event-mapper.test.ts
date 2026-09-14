@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createOpenAI } from '../index';
 
-const model = createOpenAI().experimental_live('gpt-live-1');
+const model = createOpenAI().experimental_realtime('gpt-live-1');
 
 describe('OpenAI Live server events', () => {
   it.each([

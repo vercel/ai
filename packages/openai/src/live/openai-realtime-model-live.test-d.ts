@@ -13,7 +13,7 @@ import {
 } from '../index';
 
 it('exports the exact concrete factory return and supported connection methods', () => {
-  const model = openai.experimental_live('gpt-live-1');
+  const model = openai.experimental_realtime('gpt-live-1');
   expectTypeOf(model).toEqualTypeOf<OpenAIRealtimeModelLive>();
   expectTypeOf(model).toMatchTypeOf<RealtimeModelV4>();
   expectTypeOf(model.modelId).toEqualTypeOf<OpenAIRealtimeModelLiveId>();
