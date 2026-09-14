@@ -103,6 +103,13 @@ Let's take a look at what is happening in this code:
 
 This API route creates a POST request endpoint at `/api/chat`.
 
+<Note>
+  If a deployed Expo API Route buffers the response despite the streaming
+  headers above, test the same handler without the deployment adapter to isolate
+  the cause. As a workaround, host the chat endpoint in a separate Vercel
+  Function and set `EXPO_PUBLIC_API_BASE_URL` to that function's base URL.
+</Note>
+
 ## Choosing a Provider
 
 The AI SDK supports dozens of model providers through [first-party](/providers/ai-sdk-providers), [OpenAI-compatible](/providers/openai-compatible-providers), and [ community ](/providers/community-providers) packages.
