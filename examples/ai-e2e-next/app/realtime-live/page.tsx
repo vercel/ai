@@ -9,7 +9,7 @@ import { experimental_useRealtime as useRealtime } from '@ai-sdk/react';
 import { useMemo, useRef, useState } from 'react';
 
 // Keep the model stable: changing model/config identity replaces the session.
-const model = openai.experimental_live('gpt-live-1');
+const model = openai.experimental_realtime('gpt-live-1');
 
 export default function LivePage() {
   const [endpoint, setEndpoint] = useState('ws://localhost:4318/live');

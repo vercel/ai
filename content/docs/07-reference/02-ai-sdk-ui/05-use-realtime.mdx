@@ -41,12 +41,12 @@ or `useMemo`. Replacing either object replaces the hook's session.
 
 ## Continuous conversations
 
-For OpenAI Live, use `openai.experimental_live()` and an application-owned WebSocket
+For OpenAI Live, use `openai.experimental_realtime('gpt-live-1')` and an application-owned WebSocket
 relay. The relay supplies server credentials and forwards the provider's native
 text frames; it must authenticate clients before accepting connections.
 
 ```tsx
-const model = openai.experimental_live('gpt-live-1');
+const model = openai.experimental_realtime('gpt-live-1');
 const sessionConfig = { instructions: 'Be a concise, friendly assistant.' };
 
 function LiveConversation() {
@@ -403,8 +403,11 @@ return a promise. Existing token setups and the no-argument `connect` call remai
 supported. New session state uses `session`, not a provider-branded state object.
 Generic realtime-model consumers must check optional connection methods before calling
 them. Model interfaces and event unions are experimental; exhaustive external switches
-may need to handle the added events. OpenAI's factory is `experimental_live`, and
-its model startup/update types are exported with `Experimental_` prefixes.
+may need to handle the added events. OpenAI uses `experimental_realtime` for both
+Realtime and Live models, with a provider-specific `{ api: 'live' }` override for
+unknown or early-access Live model IDs. This factory option selects the provider API;
+the hook's `api.websocket` option selects the application's transport endpoint.
+Model startup/update types are exported with `Experimental_` prefixes.
 
 See [Realtime](/docs/ai-sdk-core/realtime#tool-calling) for a complete example
 with server-backed app-specific tool endpoints.
