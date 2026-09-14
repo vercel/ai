@@ -5,11 +5,23 @@ import type {
   RealtimeServerEvent,
 } from '../types/realtime-model';
 
+export type RealtimeTransportCloseEvent = {
+  /**
+   * The WebSocket close code (e.g. 1000 for a normal closure, 1007 for a
+   * protocol error).
+   */
+  code: number;
+  /**
+   * The close reason provided by the peer, if any.
+   */
+  reason: string;
+};
+
 export type BrowserRealtimeTransportOptions = {
   model: RealtimeModel;
   onServerEvent: (event: RealtimeServerEvent) => void | Promise<void>;
   onError: (error: Error) => void;
-  onClose: () => void;
+  onClose: (event: RealtimeTransportCloseEvent) => void;
 };
 
 export class BrowserRealtimeTransport {
@@ -62,10 +74,13 @@ export class BrowserRealtimeTransport {
       this.onError(new Error('WebSocket connection error'));
     };
 
-    ws.onclose = () => {
+    ws.onclose = closeEvent => {
       if (this.ws === ws) {
         this.ws = null;
-        this.onClose();
+        this.onClose({
+          code: closeEvent.code,
+          reason: closeEvent.reason,
+        });
       }
     };
   }
