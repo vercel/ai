@@ -8,15 +8,19 @@ export class FakeWebSocket {
   readyState = 0;
   bufferedAmount = 0;
   onopen: (() => void) | null = null;
-  onclose: (() => void) | null = null;
+  onclose: ((event: CloseEvent) => void) | null = null;
   onerror: (() => void) | null = null;
   onmessage: ((event: { data: unknown }) => void) | null = null;
   sent: Array<{ type: string; [key: string]: unknown }> = [];
   constructor(public url: string, public protocols?: string[]) { FakeWebSocket.instances.push(this); }
   send = vi.fn((data: string) => { this.sent.push(JSON.parse(data)); });
-  close = vi.fn(() => { this.readyState = 3; this.onclose?.(); });
+  close = vi.fn(() => { this.closeFromServer(); });
   open() { this.readyState = 1; this.onopen?.(); }
   emit(event: RealtimeServerEvent) { this.onmessage?.({ data: JSON.stringify(event) }); }
+  closeFromServer({ code = 1000, reason = '', wasClean = true }: Partial<Pick<CloseEvent, 'code' | 'reason' | 'wasClean'>> = {}) {
+    this.readyState = 3;
+    this.onclose?.({ code, reason, wasClean } as CloseEvent);
+  }
 }
 
 class FakeAudioNode {

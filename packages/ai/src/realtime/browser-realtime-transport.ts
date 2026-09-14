@@ -10,8 +10,17 @@ export type BrowserRealtimeTransportOptions = {
   onServerEvent: (event: RealtimeServerEvent) => void | Promise<void>;
   onError: (error: Error) => void;
   onFatalError?: (error: Error, drain?: Promise<void>) => void;
-  onClose: () => void;
+  onClose: (error?: Error) => void;
 };
+
+function getCloseError(event: CloseEvent): Error | undefined {
+  if (event.code === 1000 && event.wasClean) return undefined;
+  return new Error(
+    `Realtime WebSocket closed unexpectedly (code ${event.code}${
+      event.reason === '' ? '' : `: ${event.reason}`
+    })`,
+  );
+}
 
 export class BrowserRealtimeTransport {
   private readonly model: RealtimeModel;
@@ -64,6 +73,7 @@ export class BrowserRealtimeTransport {
     // the `onOpen` (session-update) callback against a disconnected session.
     this.ws = ws;
     let starting = false;
+    let connectionError: Error | undefined;
     const codec = new RealtimeEventChannel({
       model: this.model,
       send: data => {
@@ -106,19 +116,23 @@ export class BrowserRealtimeTransport {
     };
 
     ws.onerror = () => {
-      if (this.ws === ws) this.fail(new Error('WebSocket connection error'));
+      if (this.ws === ws) {
+        connectionError = new Error('WebSocket connection error');
+        this.failing = true;
+      }
     };
 
-    ws.onclose = () => {
+    ws.onclose = event => {
       if (this.ws === ws) {
         this.ws = null;
+        const closeError = getCloseError(event) ?? connectionError;
         const complete = () => {
           if (this.epoch !== epoch) return;
           clearTimeout(this.drainTimer);
           this.epoch++;
           codec.dispose();
           try {
-            this.onClose();
+            this.onClose(closeError);
           } catch (error) {
             this.reportCallbackError(error);
           }

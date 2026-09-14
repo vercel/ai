@@ -202,13 +202,10 @@ export abstract class AbstractRealtimeSession {
         },
         onClose: (error?: Error) => {
           if (!current()) return;
-          if (
-            error != null &&
-            (!attempt.ready ||
-              (model.capabilities?.finalization === 'session-close' &&
-                this.state.session?.finalization !== 'confirmed'))
-          )
-            this.fail(error);
+          const finalizationConfirmed =
+            model.capabilities?.finalization === 'session-close' &&
+            this.state.session?.finalization === 'confirmed';
+          if (error != null && !finalizationConfirmed) this.fail(error);
           else if (!attempt.ready)
             this.fail(
               new Error('Realtime connection closed before becoming ready'),
