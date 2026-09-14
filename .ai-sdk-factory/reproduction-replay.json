@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 20748,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/harness-opencode-native-compaction.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/harness-opencode-native-compaction.ts",
+    "packages/harness-opencode/src/bridge/reproduction-20748.test.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_20748_REPRODUCED: native compaction summary leaked or normalized completion was missing"
+  }
+}
