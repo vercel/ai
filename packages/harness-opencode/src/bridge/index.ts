@@ -209,6 +209,7 @@ async function ensureRuntime({
 
   runtime.server?.close();
   runtime.relay?.close();
+  runtime.server = undefined;
   runtime.client = undefined;
   runtime.relay = undefined;
   runtime.toolNames = new Set(start.tools?.map(tool => tool.name));

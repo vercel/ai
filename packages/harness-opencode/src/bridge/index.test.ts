@@ -197,6 +197,7 @@ describe('OpenCode bridge turn settlement', () => {
       expect(request).toMatchObject({ sessionID: 'session-1' });
     }
 
+    const secondServer = await createOpencodeServerMock.mock.results[1].value;
     createOpencodeServerMock.mockRejectedValueOnce(new Error('startup failed'));
     const failedTurn = turn();
     await bridgeMock.onStart!(start('Prompt C'), failedTurn);
@@ -204,10 +205,12 @@ describe('OpenCode bridge turn settlement', () => {
       expect.objectContaining({ error: new Error('startup failed') }),
     );
     expect(client.session.promptAsync).toHaveBeenCalledTimes(3);
+    expect(secondServer.close).toHaveBeenCalledOnce();
 
     const retryTurn = turn();
     await bridgeMock.onStart!(start('Prompt C'), retryTurn);
     expect(retryTurn.emitError).not.toHaveBeenCalled();
+    expect(secondServer.close).toHaveBeenCalledOnce();
     expect(createOpencodeServerMock).toHaveBeenCalledTimes(4);
     expect(client.session.create).toHaveBeenCalledOnce();
     expect(client.session.promptAsync).toHaveBeenCalledTimes(4);
