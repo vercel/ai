@@ -1,5 +1,13 @@
 # ai
 
+## 7.0.100
+
+### Patch Changes
+
+- 6431635: feat(ai): expose typed AI SDK errors for UI transport and completion failures
+- Updated dependencies [23a0fff]
+  - @ai-sdk/gateway@4.0.81
+
 ## 7.0.99
 
 ### Patch Changes
