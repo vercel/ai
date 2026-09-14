@@ -492,7 +492,7 @@ export class LegacyOpenTelemetry implements Telemetry {
       model: { provider: event.provider, modelId: event.modelId },
       headers: event.headers,
       settings,
-      context: undefined,
+      context: event.runtimeContext,
     });
 
     const value = event.value;
@@ -1018,7 +1018,7 @@ export class LegacyOpenTelemetry implements Telemetry {
       model: { provider: event.provider, modelId: event.modelId },
       headers: event.headers,
       settings,
-      context: undefined,
+      context: event.runtimeContext,
     });
 
     const attributes = selectAttributes(telemetry, {

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import {
   commonTool,
   type HarnessV1,
@@ -6,10 +7,17 @@ import {
   type HarnessV1PortEndpoint,
   type HarnessV1RequestTransformation,
 } from '@ai-sdk/harness';
-import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
+import {
+  createCredentialRequestTransformation,
+  isSandboxCredentialPlaceholder,
+} from '@ai-sdk/harness/utils';
 import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import {
+  normalizeGitHubHost,
+  resolveGitHubCopilotSubscriptionEnvironment,
+} from './github-copilot-subscription';
 import { VERSION } from './version';
 
 declare const __GITHUB_COPILOT_IMPLEMENTATION_PACKAGE_JSON__: string;
@@ -26,6 +34,13 @@ const GITHUB_COPILOT_IMPLEMENTATION_PNPM_LOCK =
   __GITHUB_COPILOT_IMPLEMENTATION_PNPM_LOCK_YAML__;
 const GITHUB_COPILOT_IMPLEMENTATION_PNPM_WORKSPACE =
   __GITHUB_COPILOT_IMPLEMENTATION_PNPM_WORKSPACE_YAML__;
+const GITHUB_COPILOT_TOKEN_ENVIRONMENT_VARIABLES = new Set([
+  'COPILOT_GITHUB_TOKEN',
+  'GH_TOKEN',
+  'GITHUB_TOKEN',
+]);
+const GITHUB_OAUTH_TOKEN_BODY_LENGTH = 36;
+const GITHUB_OAUTH_SANDBOX_CREDENTIAL_MARKER = 'aisdkhc';
 
 export type GitHubCopilotAuthenticationMode = ACPAuthenticationMode;
 
@@ -260,6 +275,8 @@ export function createGitHubCopilot(
         : [`--reasoning-effort=${settings.reasoningEffort}`]),
     ],
     auth: settings.auth,
+    resolveAuthenticationEnvironment:
+      resolveGitHubCopilotSubscriptionEnvironment,
     /*
      * The Copilot CLI drops every MCP server that a client passes in ACP
      * `session/new` unless it is declared with the `http` or `sse` transport,
@@ -421,7 +438,9 @@ export function createGitHubCopilot(
 
       return transformations;
     },
-    credentialForwarding: settings.credentialForwarding,
+    credentialForwarding: createGitHubCopilotCredentialForwarding({
+      credentialForwarding: settings.credentialForwarding,
+    }),
     providerAuthentication: {
       gateway: {
         env: {
@@ -462,6 +481,43 @@ export function createGitHubCopilot(
   });
 }
 
-function normalizeGitHubHost(host: string): string {
-  return new URL(host.includes('://') ? host : `https://${host}`).hostname;
+function createGitHubCopilotCredentialForwarding({
+  credentialForwarding,
+}: {
+  credentialForwarding: HarnessV1CredentialForwarding | undefined;
+}): HarnessV1CredentialForwarding {
+  return ({ credential, environmentVariableName }) => {
+    const sandboxCredential =
+      GITHUB_COPILOT_TOKEN_ENVIRONMENT_VARIABLES.has(environmentVariableName) &&
+      isSandboxCredentialPlaceholder(credential)
+        ? createGitHubOAuthSandboxCredentialPlaceholder({ credential })
+        : credential;
+    return credentialForwarding == null
+      ? sandboxCredential
+      : credentialForwarding({
+          credential: sandboxCredential,
+          environmentVariableName,
+        });
+  };
+}
+
+function createGitHubOAuthSandboxCredentialPlaceholder({
+  credential,
+}: {
+  credential: string;
+}): string {
+  /*
+   * Copilot CLI validates environment credentials as GitHub token formats
+   * before making the request that credential brokering can transform. GitHub
+   * OAuth tokens use `gho_` followed by a 36-character alphanumeric body.
+   */
+  const tokenBody = createHash('sha256')
+    .update(credential)
+    .digest('hex')
+    .slice(
+      0,
+      GITHUB_OAUTH_TOKEN_BODY_LENGTH -
+        GITHUB_OAUTH_SANDBOX_CREDENTIAL_MARKER.length,
+    );
+  return `gho_${GITHUB_OAUTH_SANDBOX_CREDENTIAL_MARKER}${tokenBody}`;
 }

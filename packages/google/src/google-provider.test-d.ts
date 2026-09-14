@@ -5,10 +5,11 @@ import type {
 import { expectTypeOf, it } from 'vitest';
 import { google } from './google-provider';
 import type { GoogleModelId } from './google-language-model-options';
+import type { GoogleImageModelId } from './google-image-settings';
 
 it('types batch support on the provider', () => {
   expectTypeOf(google.experimental_batch()).toEqualTypeOf<
-    BatchV4<{ text: GoogleModelId }>
+    BatchV4<{ text: GoogleModelId; image: GoogleImageModelId }>
   >();
   expectTypeOf(google('gemini-3.6-flash')).toEqualTypeOf<LanguageModelV4>();
   expectTypeOf(

@@ -122,14 +122,68 @@ describe('xAI batch', () => {
 
     await expect(
       batch.doStartBatch({
-        requests: [{ id: 'image-1', type: 'image' } as never],
+        requests: [
+          {
+            id: 'audio-1',
+            // @ts-expect-error intentionally testing an unknown future type
+            type: 'audio',
+          },
+        ],
       }),
     ).rejects.toMatchObject({
       name: 'AI_UnsupportedFunctionalityError',
-      functionality: 'batch request type: image',
+      functionality: 'batch request type: audio',
     });
 
     expect(server.calls).toHaveLength(0);
+  });
+
+  it('uploads image generation requests to the image batch endpoint', async () => {
+    server.urls[urls.files].response = {
+      type: 'json-value',
+      body: { id: 'file_123', filename: 'batch.jsonl' },
+    };
+    server.urls[urls.batches].response = {
+      type: 'json-value',
+      body: batchResponse(),
+    };
+    const batch = createXai({ apiKey: 'test-api-key' }).experimental_batch();
+
+    await batch.doStartBatch({
+      requests: [
+        {
+          id: 'image-1',
+          type: 'image',
+          modelId: 'grok-imagine-image',
+          options: {
+            prompt: 'A red panda',
+            n: 2,
+            size: undefined,
+            aspectRatio: '16:9',
+            seed: undefined,
+            files: undefined,
+            mask: undefined,
+            providerOptions: { xai: { quality: 'high' } },
+          },
+        },
+      ],
+    });
+
+    const multipart = await server.calls[0].requestBodyMultipart;
+    const file = multipart?.file as File;
+    expect(JSON.parse((await file.text()).trim())).toEqual({
+      custom_id: 'image-1',
+      method: 'POST',
+      url: '/v1/images/generations',
+      body: {
+        model: 'grok-imagine-image',
+        prompt: 'A red panda',
+        n: 2,
+        response_format: 'b64_json',
+        aspect_ratio: '16:9',
+        quality: 'high',
+      },
+    });
   });
 
   it('uploads prepared JSONL requests and creates a file-backed batch', async () => {
@@ -590,6 +644,109 @@ describe('xAI batch', () => {
       urls.batch,
       urls.resultsPage1,
       urls.resultsPage2,
+    ]);
+  });
+
+  it('converts image generation results', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse(),
+    };
+    server.urls[urls.results].response = {
+      type: 'json-value',
+      body: {
+        results: [
+          {
+            batch_request_id: 'image-1',
+            batch_result: {
+              response: {
+                image_generation: {
+                  data: [
+                    {
+                      b64_json: 'aGVsbG8=',
+                      revised_prompt: 'A vivid red panda',
+                    },
+                  ],
+                  usage: { cost_in_usd_ticks: 42 },
+                },
+              },
+              error: { code: 0, message: '' },
+            },
+          },
+        ],
+        pagination_token: null,
+      },
+    };
+    const batch = createXai({ apiKey: 'test-api-key' }).experimental_batch();
+
+    const results = await convertReadableStreamToArray(
+      await batch.doGetBatchResults({ batchId: 'batch_123' }),
+    );
+
+    expect(results).toMatchObject([
+      {
+        type: 'image',
+        id: 'image-1',
+        status: 'succeeded',
+        result: {
+          images: ['aGVsbG8='],
+          providerMetadata: {
+            xai: {
+              images: [{ revisedPrompt: 'A vivid red panda' }],
+              costInUsdTicks: 42,
+            },
+          },
+        },
+      },
+    ]);
+  });
+
+  it('returns moderated image generation results as failed items', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse(),
+    };
+    server.urls[urls.results].response = {
+      type: 'json-value',
+      body: {
+        results: [
+          {
+            batch_request_id: 'image-1',
+            batch_result: {
+              response: {
+                image_generation: {
+                  data: [
+                    {
+                      url: null,
+                      b64_json: null,
+                      respect_moderation: false,
+                    },
+                  ],
+                },
+              },
+              error: { code: 0, message: '' },
+            },
+          },
+        ],
+        pagination_token: null,
+      },
+    };
+    const batch = createXai({ apiKey: 'test-api-key' }).experimental_batch();
+
+    const results = await convertReadableStreamToArray(
+      await batch.doGetBatchResults({ batchId: 'batch_123' }),
+    );
+
+    expect(results).toEqual([
+      {
+        type: 'image',
+        id: 'image-1',
+        status: 'failed',
+        error: {
+          message:
+            'Image generation was blocked due to a content policy violation.',
+        },
+      },
     ]);
   });
 

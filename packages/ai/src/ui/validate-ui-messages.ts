@@ -438,10 +438,19 @@ type ValidateUIMessagesOptions<UI_MESSAGE extends UIMessage> = {
     >;
   };
   tools?: {
-    [NAME in keyof InferUIMessageTools<UI_MESSAGE> & string]?: Tool<
-      InferUIMessageTools<UI_MESSAGE>[NAME]['input'],
-      InferUIMessageTools<UI_MESSAGE>[NAME]['output']
-    >;
+    [NAME in keyof InferUIMessageTools<UI_MESSAGE> & string]?:
+      | Tool<
+          InferUIMessageTools<UI_MESSAGE>[NAME]['input'],
+          InferUIMessageTools<UI_MESSAGE>[NAME]['output']
+        >
+      | {
+          inputSchema: FlexibleSchema<
+            InferUIMessageTools<UI_MESSAGE>[NAME]['input']
+          >;
+          outputSchema?: FlexibleSchema<
+            InferUIMessageTools<UI_MESSAGE>[NAME]['output']
+          >;
+        };
   };
 };
 

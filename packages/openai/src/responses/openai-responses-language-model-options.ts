@@ -180,6 +180,15 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
         .nullish(),
 
       /**
+       * Whether to automatically include web search action sources in the
+       * response. Disable this for OpenAI-compatible providers that do not
+       * support the `web_search_call.action.sources` include value.
+       *
+       * Defaults to `true`.
+       */
+      includeWebSearchSources: z.boolean().optional(),
+
+      /**
        * Instructions for the model.
        * They can be used to change the system or developer message when continuing a conversation using the `previousResponseId` option.
        * Defaults to `undefined`.

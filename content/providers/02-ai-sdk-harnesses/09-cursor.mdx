@@ -113,6 +113,10 @@ Cursor has two independent authentication layers:
 2. Cursor's account settings determine how Cursor authenticates to the model
    provider. The harness cannot read or change this setting.
 
+If no applicable credential environment variable is set, the adapter attempts
+to resolve a native subscription from the host system unless AI Gateway
+authentication is selected.
+
 For direct routing, configure the model provider in Cursor. For AI Gateway,
 configure Cursor's OpenAI API key with an AI Gateway API key and set
 **Override OpenAI Base URL** to

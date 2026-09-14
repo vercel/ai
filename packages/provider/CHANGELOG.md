@@ -1,5 +1,12 @@
 # @ai-sdk/provider
 
+## 4.0.14
+
+### Patch Changes
+
+- 5ec21a6: fix: reject unsupported batch request types
+- 7469a3b: feat: support image generation requests in batches
+
 ## 4.0.13
 
 ### Patch Changes

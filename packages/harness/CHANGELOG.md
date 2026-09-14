@@ -1,5 +1,32 @@
 # @ai-sdk/harness
 
+## 1.0.109
+
+### Patch Changes
+
+- Updated dependencies [615ac89]
+  - ai@7.0.99
+
+## 1.0.108
+
+### Patch Changes
+
+- 4d1bf28: feat(harness): support `instructions` on `HarnessAgent` to be a `SystemModelMessage` for parity with `ToolLoopAgent`
+- cdc12a1: feat(harness): add support for using adapter-native subscriptions where available
+- d70a334: feat(workflow-harness): automatically persist validated `HarnessAgent` output in workflow results
+- 81ba84c: fix(harness): preserve completed host tool results across turn suspension and session finalization
+- Updated dependencies [5ec21a6]
+- Updated dependencies [db59d78]
+- Updated dependencies [7469a3b]
+- Updated dependencies [f87bf07]
+- Updated dependencies [bc5cb7a]
+- Updated dependencies [a5f449a]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - ai@7.0.98
+  - @ai-sdk/provider-utils@5.0.40
+
 ## 1.0.107
 
 ### Patch Changes

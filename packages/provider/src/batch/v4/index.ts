@@ -12,7 +12,9 @@ export type {
   BatchV4StartOptions as Experimental_BatchV4StartOptions,
   BatchV4StartResult as Experimental_BatchV4StartResult,
   BatchV4Status as Experimental_BatchV4Status,
+  ImageBatchV4ItemResult as Experimental_ImageBatchV4ItemResult,
   TextBatchV4ItemResult as Experimental_TextBatchV4ItemResult,
 } from './batch-v4';
 export type { BatchV4RequestBase as Experimental_BatchV4RequestBase } from './batch-v4-request';
 export type { TextBatchV4Request as Experimental_TextBatchV4Request } from './text-batch-v4-request';
+export type { ImageBatchV4Request as Experimental_ImageBatchV4Request } from './image-batch-v4-request';

@@ -1556,6 +1556,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           usage: response.usage as JSONObject,
           stopSequence: response.stop_sequence ?? null,
           ...(stopDetails != null ? { stopDetails } : {}),
+          ...(response.input_transformations != null
+            ? { inputTransformations: response.input_transformations }
+            : {}),
 
           iterations: response.usage.iterations
             ? response.usage.iterations.map(
@@ -1693,6 +1696,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     let rawUsage: JSONObject | undefined = undefined;
     let stopSequence: string | null = null;
     let stopDetails: AnthropicMessageMetadata['stopDetails'] = undefined;
+    let inputTransformations: AnthropicMessageMetadata['inputTransformations'];
     let container: AnthropicMessageMetadata['container'] | null = null;
     let isJsonResponseFromTool = false;
     let isMessageOpen = false;
@@ -2561,6 +2565,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 ...(value.message.usage as JSONObject),
               };
 
+              if (value.message.input_transformations != null) {
+                inputTransformations = value.message.input_transformations;
+              }
+
               if (value.message.container != null) {
                 container = {
                   expiresAt: value.message.container.expires_at,
@@ -2689,6 +2697,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 );
               }
 
+              if (value.input_transformations != null) {
+                inputTransformations = value.input_transformations;
+              }
+
               rawUsage = {
                 ...rawUsage,
                 ...(value.usage as JSONObject),
@@ -2705,6 +2717,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 usage: (rawUsage as JSONObject) ?? null,
                 stopSequence,
                 ...(stopDetails != null ? { stopDetails } : {}),
+                ...(inputTransformations != null
+                  ? { inputTransformations }
+                  : {}),
                 iterations: usage.iterations
                   ? usage.iterations.map(
                       iter =>

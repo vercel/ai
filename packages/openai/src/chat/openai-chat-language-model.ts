@@ -48,6 +48,7 @@ import {
   type OpenAIChatModelId,
 } from './openai-chat-language-model-options';
 import { prepareChatTools } from './openai-chat-prepare-tools';
+import { normalizeOpenAIJsonSchema } from '../normalize-openai-json-schema';
 
 type OpenAIChatConfig = {
   provider: string;
@@ -159,6 +160,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     warnings.push(...messageWarnings);
 
     const strictJsonSchema = openaiOptions.strictJsonSchema ?? true;
+    const normalizedResponseFormatSchema =
+      responseFormat?.type === 'json' && responseFormat.schema != null
+        ? normalizeOpenAIJsonSchema(responseFormat.schema)
+        : undefined;
+
+    if (normalizedResponseFormatSchema != null) {
+      warnings.push(...normalizedResponseFormatSchema.warnings);
+    }
 
     const baseArgs = {
       // model id:
@@ -190,11 +199,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       presence_penalty: presencePenalty,
       response_format:
         responseFormat?.type === 'json'
-          ? responseFormat.schema != null
+          ? normalizedResponseFormatSchema != null
             ? {
                 type: 'json_schema',
                 json_schema: {
-                  schema: responseFormat.schema,
+                  schema: normalizedResponseFormatSchema.schema,
                   strict: strictJsonSchema,
                   name: responseFormat.name ?? 'response',
                   description: responseFormat.description,

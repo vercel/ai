@@ -2539,7 +2539,7 @@ describe('use-chat', () => {
       });
 
       expect(screen.queryByTestId('message-0')).not.toBeInTheDocument();
-      controller.close();
+      await controller.close().catch(() => {});
     });
   });
 
@@ -2710,6 +2710,134 @@ describe('use-chat', () => {
 
       expect(screen.queryByTestId('message-0')).not.toBeInTheDocument();
     });
+
+    it('should abort the previous stream when the id changes', async () => {
+      const controller = new TestResponseController();
+      const abortStream = vi.spyOn(controller, 'error');
+      server.urls['/api/chat'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      await userEvent.click(screen.getByTestId('do-send'));
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('submitted');
+      });
+
+      await userEvent.click(screen.getByTestId('do-change-id'));
+
+      try {
+        await vi.waitUntil(() => abortStream.mock.calls.length > 0, {
+          timeout: 1000,
+        });
+        expect(abortStream).toHaveBeenCalledOnce();
+      } finally {
+        await controller.close().catch(() => {});
+      }
+    });
+  });
+
+  describe('suspended id changes', () => {
+    let requestSignal: AbortSignal | undefined;
+    let responseController:
+      | ReadableStreamDefaultController<UIMessageChunk>
+      | undefined;
+    const pending = new Promise<never>(() => {});
+
+    setupTestComponent(
+      () => {
+        const [id, setId] = React.useState('initial-id');
+        const [shouldSuspend, setShouldSuspend] = React.useState(false);
+        const {
+          sendMessage,
+          id: chatId,
+          messages,
+        } = useChat({
+          id,
+          generateId: mockId(),
+          transport: {
+            sendMessages: async ({ abortSignal }) => {
+              requestSignal = abortSignal;
+              return new ReadableStream<UIMessageChunk>({
+                start(controller) {
+                  responseController = controller;
+                },
+              });
+            },
+            reconnectToStream: async () => null,
+          },
+        });
+
+        if (shouldSuspend) {
+          throw pending;
+        }
+
+        return (
+          <div>
+            <div data-testid="suspended-chat-id">{chatId}</div>
+            <div data-testid="suspended-chat-messages">
+              {JSON.stringify(messages)}
+            </div>
+            <button
+              data-testid="suspended-chat-send"
+              onClick={() => {
+                void sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
+              }}
+            />
+            <button
+              data-testid="suspended-chat-change-id"
+              onClick={() => {
+                React.startTransition(() => {
+                  setId('second-id');
+                  setShouldSuspend(true);
+                });
+              }}
+            />
+          </div>
+        );
+      },
+      {
+        init: TestComponent => (
+          <React.Suspense fallback={<div>Loading</div>}>
+            <TestComponent />
+          </React.Suspense>
+        ),
+      },
+    );
+
+    it('should keep the active stream connected before an id change commits', async () => {
+      await userEvent.click(screen.getByTestId('suspended-chat-send'));
+      await waitFor(() => {
+        expect(requestSignal).toBeDefined();
+        expect(responseController).toBeDefined();
+      });
+
+      await userEvent.click(screen.getByTestId('suspended-chat-change-id'));
+
+      try {
+        expect(screen.getByTestId('suspended-chat-id')).toHaveTextContent(
+          'initial-id',
+        );
+        expect(requestSignal?.aborted).toBe(false);
+
+        await act(async () => {
+          responseController!.enqueue({ type: 'text-start', id: '0' });
+          responseController!.enqueue({
+            type: 'text-delta',
+            id: '0',
+            delta: 'Hello',
+          });
+        });
+
+        await waitFor(() => {
+          expect(
+            screen.getByTestId('suspended-chat-messages'),
+          ).toHaveTextContent('Hello');
+        });
+      } finally {
+        responseController!.close();
+      }
+    });
   });
 
   describe('undefined id', () => {
@@ -2791,14 +2919,17 @@ describe('use-chat', () => {
   });
 
   describe('chat instance changes', () => {
+    let initialChat: Chat<UIMessage>;
+
     setupTestComponent(
       () => {
-        const [chat, setChat] = React.useState<Chat<UIMessage>>(
-          new Chat({
+        const [chat, setChat] = React.useState<Chat<UIMessage>>(() => {
+          initialChat = new Chat({
             id: 'initial-id',
             generateId: mockId(),
-          }),
-        );
+          });
+          return initialChat;
+        });
 
         const {
           messages,
@@ -2888,6 +3019,14 @@ describe('use-chat', () => {
       await userEvent.click(screen.getByTestId('do-change-chat'));
 
       expect(screen.queryByTestId('message-0')).not.toBeInTheDocument();
+    });
+
+    it('should not stop a caller-managed chat when it is replaced', async () => {
+      const stop = vi.spyOn(initialChat, 'stop');
+
+      await userEvent.click(screen.getByTestId('do-change-chat'));
+
+      expect(stop).not.toHaveBeenCalled();
     });
 
     it('should handle streaming correctly when the id changes', async () => {
