@@ -57,6 +57,7 @@ type OpenCodeClient = ReturnType<typeof createOpencodeClient>;
 type OpenCodeServer = Awaited<ReturnType<typeof createOpencodeServer>>;
 
 type RuntimeState = {
+  config?: string;
   server?: OpenCodeServer;
   client?: OpenCodeClient;
   sessionId?: string;
@@ -203,10 +204,16 @@ async function ensureRuntime({
   turn: BridgeTurn;
   emit: Emit;
 }): Promise<void> {
-  if (runtime.client) return;
+  const config = JSON.stringify(start.openCodeConfig);
+  if (runtime.client && runtime.config === config) return;
+
+  runtime.server?.close();
+  runtime.relay?.close();
+  runtime.client = undefined;
+  runtime.relay = undefined;
+  runtime.toolNames = new Set(start.tools?.map(tool => tool.name));
 
   if (start.tools && start.tools.length > 0) {
-    runtime.toolNames = new Set(start.tools.map(tool => tool.name));
     runtime.relay = await startToolRelay({
       tools: start.tools,
       emit,
@@ -225,12 +232,12 @@ async function ensureRuntime({
     }) as never,
   });
   runtime.server = server;
-  runtime.client = createOpencodeClient({
+  const client = createOpencodeClient({
     baseUrl: server.url,
     directory: workdir,
     headers: serverAuthHeaders,
   });
-  const mcpStatus = await runtime.client.mcp.status();
+  const mcpStatus = await client.mcp.status();
   const mcpServers = asOpenCodeObject(mcpStatus.data) ?? {};
   runtime.mcpToolPrefixes = new Set(
     Object.entries(mcpServers)
@@ -241,6 +248,8 @@ async function ensureRuntime({
       )
       .map(([serverName]) => `${sanitizeMcpToolName(serverName)}_`),
   );
+  runtime.client = client;
+  runtime.config = config;
 }
 
 function buildOpenCodeConfig({

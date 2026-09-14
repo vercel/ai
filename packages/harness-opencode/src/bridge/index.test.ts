@@ -3,6 +3,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const bridgeMock = vi.hoisted(() => ({
   start: undefined as unknown,
   turn: undefined as unknown,
+  onStart: undefined as
+    | ((start: unknown, turn: unknown) => Promise<void>)
+    | undefined,
 }));
 
 const sdkMock = vi.hoisted(() => ({
@@ -28,6 +31,7 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
     const bridge = options as {
       onStart(start: unknown, turn: unknown): Promise<void>;
     };
+    bridgeMock.onStart = bridge.onStart;
     await bridge.onStart(bridgeMock.start, bridgeMock.turn);
     return { close: vi.fn() };
   }),
@@ -94,7 +98,126 @@ describe('OpenCode bridge turn settlement', () => {
     relayMock.authorizeToolCall.mockReset();
     permissionReplyMock.mockReset();
     createOpencodeServerMock.mockClear();
+    relayMock.close.mockClear();
     vi.unstubAllEnvs();
+  });
+
+  it('refreshes native config across warm turns without replacing the session', async () => {
+    const client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+        get: vi.fn(async () => ({ data: {} })),
+        messages: vi.fn(async () => ({ data: [] })),
+        promptAsync: vi.fn(async (_request: unknown) => ({ data: {} })),
+      },
+      event: {
+        subscribe: vi.fn(async () => ({
+          stream: {
+            async *[Symbol.asyncIterator]() {
+              yield {
+                type: 'session.status',
+                properties: {
+                  sessionID: 'session-1',
+                  status: { type: 'busy' },
+                },
+              };
+              yield {
+                type: 'session.next.step.ended',
+                properties: {
+                  sessionID: 'session-1',
+                  finish: 'stop',
+                  tokens: {
+                    input: 1,
+                    output: 1,
+                    reasoning: 0,
+                    cache: { read: 0, write: 0 },
+                  },
+                },
+              };
+              yield {
+                type: 'session.status',
+                properties: {
+                  sessionID: 'session-1',
+                  status: { type: 'idle' },
+                },
+              };
+            },
+          },
+        })),
+      },
+      v2: {
+        session: { context: vi.fn(async () => ({ data: [] })) },
+      },
+    };
+    const turn = () => ({
+      emit: vi.fn(),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: createUserMessages(),
+      abortSignal: new AbortController().signal,
+      firstTurn: false,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    });
+    const start = (prompt: string | undefined) => ({
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'Continue.',
+      tools: [{ name: 'lookup' }],
+      openCodeConfig:
+        prompt === undefined ? undefined : { agent: { build: { prompt } } },
+    });
+    sdkMock.client = client;
+    bridgeMock.start = start('Prompt A');
+    bridgeMock.turn = turn();
+    setBridgeArgv();
+    await import('./index');
+    const firstServer = await createOpencodeServerMock.mock.results[0].value;
+
+    await bridgeMock.onStart!(start('Prompt A'), turn());
+    expect(createOpencodeServerMock).toHaveBeenCalledTimes(1);
+    expect(firstServer.close).not.toHaveBeenCalled();
+
+    await bridgeMock.onStart!(start('Prompt B'), turn());
+    expect(createOpencodeServerMock).toHaveBeenCalledTimes(2);
+    expect(firstServer.close).toHaveBeenCalledOnce();
+    expect(relayMock.close).toHaveBeenCalledOnce();
+    expect(createOpencodeServerMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        config: expect.objectContaining({
+          agent: { build: { prompt: 'Prompt B' } },
+        }),
+      }),
+    );
+    expect(client.session.create).toHaveBeenCalledOnce();
+    expect(client.session.promptAsync).toHaveBeenCalledTimes(3);
+    for (const [request] of client.session.promptAsync.mock.calls) {
+      expect(request).toMatchObject({ sessionID: 'session-1' });
+    }
+
+    createOpencodeServerMock.mockRejectedValueOnce(new Error('startup failed'));
+    const failedTurn = turn();
+    await bridgeMock.onStart!(start('Prompt C'), failedTurn);
+    expect(failedTurn.emitError).toHaveBeenCalledWith(
+      expect.objectContaining({ error: new Error('startup failed') }),
+    );
+    expect(client.session.promptAsync).toHaveBeenCalledTimes(3);
+
+    const retryTurn = turn();
+    await bridgeMock.onStart!(start('Prompt C'), retryTurn);
+    expect(retryTurn.emitError).not.toHaveBeenCalled();
+    expect(createOpencodeServerMock).toHaveBeenCalledTimes(4);
+    expect(client.session.create).toHaveBeenCalledOnce();
+    expect(client.session.promptAsync).toHaveBeenCalledTimes(4);
+
+    await bridgeMock.onStart!(start(undefined), turn());
+    expect(createOpencodeServerMock).toHaveBeenCalledTimes(5);
+    expect(createOpencodeServerMock.mock.calls[4][0].config).not.toHaveProperty(
+      'agent',
+    );
+    expect(client.session.create).toHaveBeenCalledOnce();
   });
 
   it('enables the interactive question tool', async () => {
