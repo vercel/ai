@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   ChevronRight,
-  ChevronDown,
   Wrench,
   MessageSquare,
   AlertCircle,
@@ -91,6 +90,10 @@ export function StepCard({
             }`}
           >
             <div className="flex items-center gap-3">
+              <ChevronRight
+                aria-hidden="true"
+                className={`size-4 shrink-0 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+              />
               <span className="text-xs text-muted-foreground font-mono w-4">
                 {step.step_number}
               </span>
@@ -195,11 +198,6 @@ export function StepCard({
                   </TooltipContent>
                 </Tooltip>
               )}
-              <ChevronDown
-                className={`size-4 text-muted-foreground transition-transform ${
-                  isExpanded ? 'rotate-180' : ''
-                }`}
-              />
             </div>
           </button>
         </CollapsibleTrigger>
@@ -416,6 +414,7 @@ function NestedRunCard({
     <div className="rounded-md border border-agent/30 overflow-hidden">
       <button
         className="w-full flex items-center gap-2 px-3 py-2 bg-agent/10 hover:bg-agent/15 transition-colors"
+        aria-expanded={expanded}
         onClick={() => setExpanded(!expanded)}
       >
         <ChevronRight
