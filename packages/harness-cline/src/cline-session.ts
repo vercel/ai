@@ -93,10 +93,10 @@ export interface ClineSessionSettings {
   readonly isAuthenticationEnvironmentOverride: boolean;
   readonly mcpServers?: Record<string, unknown>;
   readonly providerId?: string;
-  readonly modelId?: string;
   readonly apiKey?: string;
   readonly baseUrl?: string;
   readonly headers?: Record<string, string>;
+  readonly agentHeaders?: Readonly<Record<string, string>>;
   readonly reasoningEffort?: ClineReasoningEffort;
   readonly maxIterations?: number;
 }
@@ -203,10 +203,16 @@ function createClineAgentModel({
   const headers = isAiGateway
     ? {
         ...settings.headers,
+        ...settings.agentHeaders,
         'User-Agent': clientApp,
         'x-client-app': clientApp,
       }
-    : settings.headers;
+    : settings.headers != null || settings.agentHeaders != null
+      ? {
+          ...settings.headers,
+          ...settings.agentHeaders,
+        }
+      : undefined;
   const gateway = Llms.createGateway({
     providerConfigs: [
       {
@@ -297,7 +303,7 @@ export async function createClineSession(
   const mcpRuntime = await createClineMcpRuntime({
     mcpServers: input.settings.mcpServers,
   });
-  let activeModelId = input.settings.modelId;
+  let activeModelId: string | undefined;
   let agentModel = createClineAgentModel({
     settings: input.settings,
     clientApp: input.clientApp,

@@ -1628,9 +1628,9 @@ describe('runPrompt host tool generator results', () => {
       { toolCallId: 'c1', output: { city: 'SF', temperature: 72 } },
     ]);
     expect(telemetryEvents).toEqual([
-      'tool-start',
       'wrapper-start',
       'wrapper-end',
+      'tool-start',
       'tool-end',
     ]);
     expect(parts).toContainEqual(
@@ -2068,10 +2068,10 @@ describe('runPrompt host tool generator results', () => {
     await done;
 
     expect(events).toEqual([
-      'tool-start',
       'wrapper-start',
       'execute',
       'wrapper-end',
+      'tool-start',
     ]);
     expect(new Set(callIds).size).toBe(1);
   });

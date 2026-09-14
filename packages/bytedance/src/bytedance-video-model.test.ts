@@ -1,3 +1,4 @@
+import type { Experimental_VideoModelV4 as VideoModelV4 } from '@ai-sdk/provider';
 import { DownloadError, type FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
@@ -100,6 +101,55 @@ describe('ByteDanceVideoModel', () => {
       });
 
       expect(model.modelId).toBe('custom-model-id');
+    });
+  });
+
+  describe('webhooks', () => {
+    it('should leave the generic webhook hook undefined', () => {
+      const model: VideoModelV4 = createBasicModel();
+      expect(model.handleWebhookOption).toBeUndefined();
+    });
+
+    it.each([
+      {
+        name: 'explicit URL',
+        webhookUrl: 'https://example.com/webhook',
+        rawUrl: undefined,
+        expected: 'https://example.com/webhook',
+      },
+      {
+        name: 'no callback',
+        webhookUrl: undefined,
+        rawUrl: undefined,
+        expected: undefined,
+      },
+      {
+        name: 'raw passthrough',
+        webhookUrl: undefined,
+        rawUrl: 'https://example.com/raw',
+        expected: 'https://example.com/raw',
+      },
+      {
+        name: 'explicit URL overrides raw',
+        webhookUrl: 'https://example.com/webhook',
+        rawUrl: 'https://example.com/raw',
+        expected: 'https://example.com/webhook',
+      },
+    ])('should submit $name', async ({ webhookUrl, rawUrl, expected }) => {
+      await createBasicModel().doStart({
+        ...defaultOptions,
+        webhookUrl,
+        providerOptions: {
+          bytedance: rawUrl != null ? { callback_url: rawUrl } : {},
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      if (expected == null) {
+        expect(body).not.toHaveProperty('callback_url');
+      } else {
+        expect(body).toHaveProperty('callback_url', expected);
+      }
     });
   });
 
@@ -1488,6 +1538,38 @@ describe('ByteDanceVideoModel', () => {
         'Video generation canceled',
       );
     });
+
+    it.each([
+      {
+        name: 'structured message',
+        error: { code: 'TaskExpired', message: 'The task has expired.' },
+        expected: 'The task has expired.',
+      },
+      {
+        name: 'missing-error fallback',
+        error: undefined,
+        expected: '{"id":"test-task-id-123","status":"expired"}',
+      },
+    ])(
+      'should return an expired error with $name',
+      async ({ error, expected }) => {
+        server.urls[
+          'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/test-task-id-123'
+        ].response = {
+          type: 'json-value',
+          body: { id: 'test-task-id-123', status: 'expired', error },
+        };
+
+        const result = await createBasicModel().doStatus({
+          operation: { taskId: 'test-task-id-123' },
+        });
+
+        expect(result.status).toBe('error');
+        expect(result.status === 'error' ? result.error : undefined).toBe(
+          `Video generation expired. Task ID: test-task-id-123. ${expected}`,
+        );
+      },
+    );
 
     it('should throw error when no video URL in response', async () => {
       server.urls[

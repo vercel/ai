@@ -46,6 +46,8 @@ export interface ProviderExecutedToolResult {
   toolName: string;
   result: unknown;
   isError?: boolean;
+  dynamic?: boolean;
+  providerMetadata?: SharedV4ProviderMetadata;
 }
 
 /**
@@ -115,6 +117,10 @@ export type DoStreamStepRawContentPart =
   | {
       type: 'tool-call';
       toolCallIndex: number;
+    }
+  | {
+      type: 'provider-tool-result';
+      toolCallId: string;
     };
 
 /**
@@ -407,6 +413,12 @@ export async function doStreamStep(
               toolName: part.toolName,
               result: part.output,
               isError: false,
+              dynamic: part.dynamic,
+              providerMetadata: part.providerMetadata,
+            });
+            content.push({
+              type: 'provider-tool-result',
+              toolCallId: part.toolCallId,
             });
           }
           break;
@@ -420,6 +432,12 @@ export async function doStreamStep(
               toolName: errorPart.toolName,
               result: errorPart.error,
               isError: true,
+              dynamic: errorPart.dynamic,
+              providerMetadata: errorPart.providerMetadata,
+            });
+            content.push({
+              type: 'provider-tool-result',
+              toolCallId: errorPart.toolCallId,
             });
           }
           break;

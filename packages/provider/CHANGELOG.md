@@ -1,5 +1,31 @@
 # @ai-sdk/provider
 
+## 4.0.14
+
+### Patch Changes
+
+- 5ec21a6: fix: reject unsupported batch request types
+- 7469a3b: feat: support image generation requests in batches
+
+## 4.0.13
+
+### Patch Changes
+
+- 9942196: feat: add batch cancel and list APIs
+
+## 4.0.12
+
+### Patch Changes
+
+- 912fb01: feat: add batch cancel and list APIs
+
+## 4.0.11
+
+### Patch Changes
+
+- a4ba394: feat: support per-request models in batch
+- 45099da: Retry unclassified empty image results, preserve retry-attempt accounting, add provider-independent result retryability classification, and mark Google and Google Vertex prompt blocks as terminal.
+
 ## 4.0.10
 
 ### Patch Changes

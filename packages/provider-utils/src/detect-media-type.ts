@@ -3,7 +3,11 @@ import { convertBase64ToUint8Array } from './uint8-utils';
 const imageMediaTypeSignatures = [
   {
     mediaType: 'image/gif' as const,
-    bytesPrefix: [0x47, 0x49, 0x46], // GIF
+    bytesPrefix: [0x47, 0x49, 0x46, 0x38, 0x37, 0x61], // GIF87a
+  },
+  {
+    mediaType: 'image/gif' as const,
+    bytesPrefix: [0x47, 0x49, 0x46, 0x38, 0x39, 0x61], // GIF89a
   },
   {
     mediaType: 'image/png' as const,
@@ -32,7 +36,7 @@ const imageMediaTypeSignatures = [
   },
   {
     mediaType: 'image/bmp' as const,
-    bytesPrefix: [0x42, 0x4d],
+    bytesPrefix: [0x42, 0x4d, null, null, null, null, 0x00, 0x00, 0x00, 0x00],
   },
   {
     mediaType: 'image/tiff' as const,

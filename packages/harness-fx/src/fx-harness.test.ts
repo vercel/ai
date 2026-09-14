@@ -31,6 +31,7 @@ describe('createFx', () => {
       args: settings.args,
       credentialEnv: settings.credentialEnv,
       providerAuthentication: settings.providerAuthentication,
+      instructionMapping: settings.instructionMapping,
       permissionModeMapping: settings.permissionModeMapping,
       builtinTools: Object.fromEntries(
         Object.entries(
@@ -188,9 +189,17 @@ describe('createFx', () => {
         "credentialEnv": [
           "VERCEL_OIDC_TOKEN",
           "AI_GATEWAY_API_KEY",
+          "AI_SDK_FX_CHATGPT_ACCESS_TOKEN",
+          "AI_SDK_FX_CHATGPT_ACCOUNT_ID",
+          "AI_SDK_FX_GROK_ACCESS_TOKEN",
+          "AI_SDK_FX_GROK_ACCOUNT_ID",
         ],
         "executable": "fx",
         "harnessId": "fx",
+        "instructionMapping": {
+          "path": ".fx/AGENTS.md",
+          "type": "filesystem",
+        },
         "permissionModeMapping": {
           "allow-all": {
             "modeId": "code",
@@ -237,7 +246,6 @@ describe('createFx', () => {
     createFx({
       auth: 'direct',
       credentialForwarding,
-      model: 'openai/gpt-5.4',
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
@@ -250,7 +258,6 @@ describe('createFx', () => {
     expect({
       auth: settings.auth,
       credentialForwarding: settings.credentialForwarding,
-      modelId: settings.modelId,
       port: settings.port,
       portEndpoint: settings.portEndpoint,
       startupTimeoutMs: settings.startupTimeoutMs,
@@ -259,7 +266,6 @@ describe('createFx', () => {
     }).toEqual({
       auth: 'direct',
       credentialForwarding,
-      modelId: 'openai/gpt-5.4',
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
@@ -330,6 +336,7 @@ describe('createFx', () => {
           VERCEL_OIDC_TOKEN: 'sandbox-oidc-secret',
           AI_GATEWAY_API_KEY: 'sandbox-gateway-secret',
         },
+        headers: { 'x-tenant': 'acme' },
       }),
     ).toEqual([
       {
@@ -344,6 +351,7 @@ describe('createFx', () => {
         },
         transform: {
           headers: {
+            'x-tenant': 'acme',
             Authorization: 'Bearer oidc-secret',
             'x-client-app': 'ai-sdk/harness-fx/0.0.0-test',
           },
@@ -412,6 +420,70 @@ describe('createFx', () => {
     );
   });
 
+  it('brokers native subscription access tokens to their provider route', () => {
+    createFx();
+    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+    const accessToken = createChatGptAccessToken({ accountId: 'account-1' });
+    const sandboxAccessToken = createChatGptAccessToken({
+      accountId: 'account-1',
+      signature: 'sandbox-access',
+    });
+
+    expect(
+      settings.credentialBrokering?.({
+        env: {
+          AI_SDK_FX_CHATGPT_ACCESS_TOKEN: accessToken,
+          AI_SDK_FX_CHATGPT_ACCOUNT_ID: 'account-1',
+        },
+        sandboxEnv: {
+          AI_SDK_FX_CHATGPT_ACCESS_TOKEN: 'sandbox-access',
+          AI_SDK_FX_CHATGPT_ACCOUNT_ID: 'sandbox-account',
+        },
+      }),
+    ).toEqual([
+      {
+        match: {
+          host: 'chatgpt.com',
+          path: { startsWith: '/backend-api/codex' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: `Bearer ${sandboxAccessToken}` },
+            },
+          ],
+        },
+        transform: {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'x-client-app': `ai-sdk/harness-fx/${VERSION}`,
+          },
+        },
+      },
+    ]);
+  });
+
+  it('materializes native subscription records through the ACP home hook', () => {
+    createFx();
+    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+    const accessToken = createChatGptAccessToken({ accountId: 'account-1' });
+
+    const files = settings.authenticationFiles?.({
+      env: {
+        AI_SDK_FX_CHATGPT_ACCESS_TOKEN: accessToken,
+        AI_SDK_FX_CHATGPT_ACCOUNT_ID: 'account-1',
+      },
+      sandboxEnv: {
+        AI_SDK_FX_CHATGPT_ACCESS_TOKEN: 'sandbox-access',
+        AI_SDK_FX_CHATGPT_ACCOUNT_ID: 'sandbox-account',
+      },
+      credentialBrokeringAvailable: true,
+    });
+
+    expect(files?.map(file => file.path)).toEqual(['.fx/chatgpt-auth.json']);
+    expect(files?.[0].content).not.toContain(accessToken);
+    expect(files?.[0].content).toContain('sandbox-access');
+  });
+
   it('brokers the Gateway key selected from a supplied authentication environment', () => {
     createFx({
       auth: {
@@ -460,3 +532,21 @@ describe('createFx', () => {
     expect(VERSION).toBe('0.0.0-test');
   });
 });
+
+function createChatGptAccessToken({
+  accountId,
+  signature = 'signature',
+}: {
+  accountId: string;
+  signature?: string;
+}): string {
+  const header = Buffer.from(
+    JSON.stringify({ alg: 'none', typ: 'JWT' }),
+  ).toString('base64url');
+  const payload = Buffer.from(
+    JSON.stringify({
+      'https://api.openai.com/auth': { chatgpt_account_id: accountId },
+    }),
+  ).toString('base64url');
+  return `${header}.${payload}.${signature}`;
+}

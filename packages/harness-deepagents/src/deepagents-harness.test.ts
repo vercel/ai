@@ -221,8 +221,8 @@ describe('createDeepAgents', () => {
   });
 
   it('shares the getter across configured harness instances', () => {
-    const first = createDeepAgents({ model: 'first-model' });
-    const second = createDeepAgents({ model: 'second-model' });
+    const first = createDeepAgents({ effort: 'low' });
+    const second = createDeepAgents({ effort: 'high' });
 
     expect(first.getBootstrap).toBe(second.getBootstrap);
   });
@@ -235,7 +235,7 @@ describe('createDeepAgents', () => {
   it('passes the harness client app to the bridge environment', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const spawns: string[] = [];
-    const harness = createDeepAgents({ model: 'legacy-model' });
+    const harness = createDeepAgents();
     const session = await harness.doStart({
       sessionId: 'test-session',
       sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
@@ -286,6 +286,56 @@ describe('createDeepAgents', () => {
     expect(spawns.at(0)).toContain('--resume true');
 
     await session.doDestroy();
+  });
+
+  it('passes headers to the bridge for Gateway and direct auth', async () => {
+    sentMessages.length = 0;
+    const gatewaySession = await createDeepAgents({
+      auth: { AI_GATEWAY_API_KEY: 'gateway-key' },
+    }).doStart({
+      sessionId: 'gateway',
+      headers: { 'x-tenant': 'acme' },
+      sessionWorkDir: '/vercel/sandbox/deepagents-gateway',
+      sandboxSession: fakeSandboxSession(),
+    } as unknown as Parameters<
+      ReturnType<typeof createDeepAgents>['doStart']
+    >[0]);
+
+    await gatewaySession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    expect(sentMessages.at(-1)).toMatchObject({
+      type: 'start',
+      headers: { 'x-tenant': 'acme' },
+    });
+    await gatewaySession.doDestroy();
+
+    sentMessages.length = 0;
+    const directSession = await createDeepAgents({
+      auth: { ANTHROPIC_API_KEY: 'anthropic-key' },
+    }).doStart({
+      sessionId: 'direct',
+      headers: { 'x-tenant': 'acme' },
+      sessionWorkDir: '/vercel/sandbox/deepagents-direct',
+      sandboxSession: fakeSandboxSession(),
+    } as unknown as Parameters<
+      ReturnType<typeof createDeepAgents>['doStart']
+    >[0]);
+
+    await directSession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    expect(sentMessages.at(-1)).toMatchObject({
+      type: 'start',
+      headers: { 'x-tenant': 'acme' },
+    });
+    await directSession.doDestroy();
   });
 
   it('brokers credentials when the sandbox supports additive request transformations', async () => {

@@ -82,8 +82,15 @@ const { ranking } = await rerank({
       description: 'Provider-specific options for the reranking request.',
     },
     {
+      name: 'runtimeContext',
+      type: 'RUNTIME_CONTEXT',
+      isOptional: true,
+      description:
+        'User-defined runtime context passed to lifecycle callbacks. Defaults to an empty object. Telemetry integrations only receive top-level properties explicitly included with telemetry.includeRuntimeContext.',
+    },
+    {
       name: 'telemetry',
-      type: 'TelemetryOptions',
+      type: 'TelemetryOptions<RUNTIME_CONTEXT>',
       isOptional: true,
       description: 'Telemetry configuration.',
       properties: [
@@ -119,6 +126,13 @@ const { ranking } = await rerank({
                 'Identifier for this function. Used to group telemetry data by function.',
             },
             {
+              name: 'includeRuntimeContext',
+              type: '{ [KEY in keyof RUNTIME_CONTEXT]?: boolean }',
+              isOptional: true,
+              description:
+                'Top-level runtime context properties to include in telemetry. Only properties set to true are included. All properties are excluded by default. User callbacks still receive the full context.',
+            },
+            {
               name: 'integrations',
               isOptional: true,
               type: 'Telemetry | Telemetry[]',
@@ -131,17 +145,17 @@ const { ranking } = await rerank({
     },
     {
       name: 'onStart',
-      type: '(event: RerankStartEvent) => void | Promise<void>',
+      type: '(event: RerankStartEvent<RUNTIME_CONTEXT>) => void | Promise<void>',
       isOptional: true,
       description:
-        'Called when the rerank operation begins, before the reranking model is called.',
+        'Called when the rerank operation begins, before the reranking model is called. The event includes the full, unfiltered runtimeContext.',
     },
     {
       name: 'onEnd',
-      type: '(event: RerankEndEvent) => void | Promise<void>',
+      type: '(event: RerankEndEvent<RUNTIME_CONTEXT>) => void | Promise<void>',
       isOptional: true,
       description:
-        'Called when the rerank operation completes, after the reranking model returns.',
+        'Called when the rerank operation completes, after the reranking model returns. The event includes the full, unfiltered runtimeContext.',
     },
   ]}
 />

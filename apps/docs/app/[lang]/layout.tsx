@@ -1,17 +1,19 @@
 import '../global.css';
+import '@/lib/geistdocs/site-url-warning';
 import { Analytics } from '@vercel/analytics/next';
 import { Footer } from '@vercel/geistdocs/footer';
 import { GeistdocsProvider } from '@vercel/geistdocs/layout';
 import { Navbar } from '@vercel/geistdocs/navbar';
 import type { Metadata, Viewport } from 'next';
-import type { ReactNode } from 'react';
 import { config } from '@/lib/geistdocs/config';
 import { mono, sans } from '@/lib/geistdocs/fonts';
+import { getRootLang } from '@/lib/geistdocs/root-params';
+import { isSiteUrlConfigured, siteUrl } from '@/lib/geistdocs/site-url';
 
 export const generateStaticParams = () => [{ lang: 'en' }];
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://ai-sdk.dev'),
+  metadataBase: isSiteUrlConfigured ? siteUrl : undefined,
   title: {
     default: 'AI SDK',
     template: '%s | AI SDK',
@@ -37,14 +39,8 @@ export const viewport: Viewport = {
   ],
 };
 
-const RootLayout = async ({
-  children,
-  params,
-}: {
-  children: ReactNode;
-  params: Promise<{ lang: string }>;
-}) => {
-  const { lang } = await params;
+const RootLayout = async ({ children }: LayoutProps<'/[lang]'>) => {
+  const lang = await getRootLang();
 
   return (
     <html

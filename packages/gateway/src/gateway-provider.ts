@@ -31,7 +31,8 @@ import {
   type GatewayGenerationInfoParams,
   type GatewayGenerationInfo,
 } from './gateway-generation-info';
-import { GatewayBatchLanguageModel } from './gateway-language-model-batch';
+import { GatewayBatch } from './gateway-batch';
+import { GatewayLanguageModel } from './gateway-language-model';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
 import { GatewayVideoModel } from './gateway-video-model';
@@ -54,7 +55,7 @@ import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import type {
   EmbeddingModelV4,
-  Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
+  Experimental_BatchV4 as BatchV4,
   ImageModelV4,
   RerankingModelV4,
   SpeechModelV4,
@@ -63,21 +64,25 @@ import type {
   Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
   Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
   ProviderV4,
+  LanguageModelV4,
 } from '@ai-sdk/provider';
 import { VERSION } from './version';
 
 export interface GatewayProvider extends ProviderV4 {
-  (modelId: GatewayModelId): BatchLanguageModelV4;
+  (modelId: GatewayModelId): LanguageModelV4;
 
   /**
    * Creates a model for text generation.
    */
-  chat(modelId: GatewayModelId): BatchLanguageModelV4;
+  chat(modelId: GatewayModelId): LanguageModelV4;
 
   /**
    * Creates a model for text generation.
    */
-  languageModel(modelId: GatewayModelId): BatchLanguageModelV4;
+  languageModel(modelId: GatewayModelId): LanguageModelV4;
+
+  /** Returns a BatchV4 interface for processing batches with AI Gateway. */
+  experimental_batch(): BatchV4<{ text: GatewayModelId }>;
 
   /**
    * Returns available providers and models for use with the remote provider.
@@ -417,7 +422,7 @@ export function createGateway(
   };
 
   const createLanguageModel = (modelId: GatewayModelId) => {
-    return new GatewayBatchLanguageModel(modelId, {
+    return new GatewayLanguageModel(modelId, {
       provider: 'gateway',
       baseURL,
       headers: getHeaders,
@@ -425,6 +430,15 @@ export function createGateway(
       o11yHeaders: createO11yHeaders(),
     });
   };
+
+  const createBatch = () =>
+    new GatewayBatch({
+      provider: 'gateway',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      o11yHeaders: createO11yHeaders(),
+    });
 
   const getAvailableModels = async () => {
     const now = options._internal?.currentDate?.().getTime() ?? Date.now();
@@ -522,6 +536,7 @@ export function createGateway(
     });
   };
   provider.languageModel = createLanguageModel;
+  provider.experimental_batch = createBatch;
   const createEmbeddingModel = (modelId: GatewayEmbeddingModelId) => {
     return new GatewayEmbeddingModel(modelId, {
       provider: 'gateway',
