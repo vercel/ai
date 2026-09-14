@@ -87,14 +87,15 @@ describe('BrowserRealtimeTransport', () => {
       });
       const socket = MockWebSocket.instances[0];
       socket.open();
-      expect(() => socket.onerror?.()).not.toThrow();
+      expect(() => socket.onmessage?.({ data: '{' })).not.toThrow();
+      await vi.advanceTimersByTimeAsync(0);
       await vi.advanceTimersByTimeAsync(1_001);
       pending.resolve();
       await vi.advanceTimersByTimeAsync(1_001);
       expect(socket.close).toHaveBeenCalledOnce();
       expect(onClose).toHaveBeenCalledOnce();
       expect(onError.mock.calls.map(([error]) => error.message)).toEqual([
-        'WebSocket connection error',
+        'Invalid JSON in realtime server message',
         'close callback failed',
       ]);
       transport.dispose();
@@ -202,6 +203,37 @@ describe('BrowserRealtimeTransport', () => {
       new Error(
         'Realtime WebSocket closed unexpectedly (code 1011: upstream unavailable)',
       ),
+    );
+  });
+
+  it('preserves close details when an error precedes an unclean close', async () => {
+    const onClose = vi.fn();
+    const onFatalError = vi.fn();
+    const transport = new BrowserRealtimeTransport({
+      model,
+      onServerEvent: vi.fn(),
+      onError: vi.fn(),
+      onFatalError,
+      onClose,
+    });
+
+    transport.connect({
+      token: 'token',
+      url: 'wss://example.com',
+      onOpen: vi.fn(),
+    });
+    const socket = MockWebSocket.instances[0];
+    socket.open();
+    socket.onerror?.();
+
+    expect(socket.close).not.toHaveBeenCalled();
+    expect(onFatalError).not.toHaveBeenCalled();
+
+    socket.closeFromServer({ code: 1006, wasClean: false });
+    await flush();
+
+    expect(onClose).toHaveBeenCalledExactlyOnceWith(
+      new Error('Realtime WebSocket closed unexpectedly (code 1006)'),
     );
   });
 

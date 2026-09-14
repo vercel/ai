@@ -73,6 +73,7 @@ export class BrowserRealtimeTransport {
     // the `onOpen` (session-update) callback against a disconnected session.
     this.ws = ws;
     let starting = false;
+    let connectionError: Error | undefined;
     const codec = new RealtimeEventChannel({
       model: this.model,
       send: data => {
@@ -115,13 +116,16 @@ export class BrowserRealtimeTransport {
     };
 
     ws.onerror = () => {
-      if (this.ws === ws) this.fail(new Error('WebSocket connection error'));
+      if (this.ws === ws) {
+        connectionError = new Error('WebSocket connection error');
+        this.failing = true;
+      }
     };
 
     ws.onclose = event => {
       if (this.ws === ws) {
         this.ws = null;
-        const closeError = getCloseError(event);
+        const closeError = getCloseError(event) ?? connectionError;
         const complete = () => {
           if (this.epoch !== epoch) return;
           clearTimeout(this.drainTimer);
