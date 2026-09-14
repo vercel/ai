@@ -275,6 +275,7 @@ export function createAmazonBedrockAnthropic(
           model: _model,
           stream: _stream,
           tool_choice,
+          thinking,
           tools,
           ...rest
         } = args;
@@ -286,6 +287,19 @@ export function createAmazonBedrockAnthropic(
                 ...(tool_choice.name != null ? { name: tool_choice.name } : {}),
               }
             : undefined;
+
+        // Bedrock names the thinking block binding field mismatch_behavior, while the
+        // Anthropic Messages API names it prefix_mismatch_behavior
+        const transformedThinking =
+          thinking?.block_binding != null
+            ? {
+                ...thinking,
+                block_binding: {
+                  mismatch_behavior:
+                    thinking.block_binding.prefix_mismatch_behavior,
+                },
+              }
+            : thinking;
 
         const requiredBetas = new Set<string>(betas);
         const transformedTools = tools?.map(
@@ -337,6 +351,7 @@ export function createAmazonBedrockAnthropic(
 
         return {
           ...rest,
+          ...(thinking != null ? { thinking: transformedThinking } : {}),
           ...(transformedTools != null ? { tools: transformedTools } : {}),
           ...(transformedToolChoice != null
             ? { tool_choice: transformedToolChoice }
