@@ -33,7 +33,11 @@ describe('prepareTools', () => {
           type: 'function',
           name: 'testFunction',
           description: 'A test function',
-          inputSchema: { type: 'object', properties: {} },
+          inputSchema: {
+            type: 'object',
+            properties: {},
+            additionalProperties: false,
+          },
         },
       ],
     });
@@ -48,6 +52,7 @@ describe('prepareTools', () => {
               "description": "A test function",
               "name": "testFunction",
               "parameters": {
+                "additionalProperties": false,
                 "properties": {},
                 "type": "object",
               },
