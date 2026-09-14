@@ -337,6 +337,7 @@ describe('XaiChatLanguageModel', () => {
                 "name": "test-tool",
                 "parameters": {
                   "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
                   "properties": {
                     "value": {
                       "type": "string",
