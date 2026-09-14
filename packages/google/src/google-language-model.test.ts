@@ -5931,6 +5931,129 @@ describe('doStream', () => {
     });
   });
 
+  describe('issue #20759: retain prompt feedback across stream chunks', () => {
+    type Adapter = 'public' | 'vertex-internal';
+
+    const usage = {
+      promptTokenCount: 10,
+      candidatesTokenCount: 0,
+      totalTokenCount: 10,
+    };
+
+    const candidate = {
+      content: { role: 'model' as const, parts: [{ text: 'Fixture text.' }] },
+      finishReason: 'STOP',
+    };
+
+    async function run(
+      adapter: Adapter,
+      chunks: Array<Record<string, unknown>>,
+    ) {
+      const fetch = async () =>
+        new Response(
+          chunks.map(chunk => `data: ${JSON.stringify(chunk)}\n\n`).join(''),
+          { headers: { 'Content-Type': 'text/event-stream' } },
+        );
+
+      const issueModel =
+        adapter === 'public'
+          ? createGoogle({ apiKey: 'fixture', fetch })('gemini-3.7-flash')
+          : new GoogleLanguageModel('gemini-3.7-flash', {
+              provider: 'google.vertex',
+              baseURL: 'https://fixture.invalid',
+              generateId: () => 'fixture-id',
+              fetch,
+            });
+
+      const result = await issueModel.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(result.stream);
+
+      expect(parts.filter(part => part.type === 'error')).toEqual([]);
+
+      const finish = parts.find(part => part.type === 'finish');
+      expect(finish?.type).toBe('finish');
+      if (finish?.type !== 'finish') {
+        throw new Error('Expected a finish stream part');
+      }
+
+      const metadata =
+        finish.providerMetadata?.[
+          adapter === 'public' ? 'google' : 'googleVertex'
+        ];
+
+      return { parts, finish, metadata };
+    }
+
+    it.each(['public', 'vertex-internal'] as const)(
+      '%s does not classify default block reasons as prompt blocks',
+      async adapter => {
+        for (const blockReason of [
+          '',
+          'BLOCK_REASON_UNSPECIFIED',
+          'BLOCKED_REASON_UNSPECIFIED',
+        ]) {
+          const { finish } = await run(adapter, [
+            {
+              candidates: [],
+              promptFeedback: { blockReason },
+              usageMetadata: usage,
+            },
+          ]);
+
+          expect.soft(finish.finishReason.unified, blockReason).toBe('other');
+          expect.soft(finish.finishReason.raw, blockReason).toBeUndefined();
+        }
+      },
+    );
+
+    it.each(['public', 'vertex-internal'] as const)(
+      '%s retains feedback and trailing usage from separate chunks',
+      async adapter => {
+        const feedback = {
+          blockReason: 'BLOCK_REASON_UNSPECIFIED',
+          safetyRatings: [],
+        };
+        const finalUsage = {
+          ...usage,
+          candidatesTokenCount: 3,
+          totalTokenCount: 13,
+        };
+
+        const { finish, metadata } = await run(adapter, [
+          { promptFeedback: feedback },
+          { candidates: [candidate] },
+          { usageMetadata: finalUsage },
+        ]);
+
+        expect(finish.finishReason.unified).toBe('stop');
+        expect(metadata?.promptFeedback).toEqual(feedback);
+        expect(metadata?.usageMetadata).toEqual(finalUsage);
+        expect(finish.usage.outputTokens.total).toBe(3);
+      },
+    );
+
+    it.each(['public', 'vertex-internal'] as const)(
+      '%s keeps an explicit prompt block terminal',
+      async adapter => {
+        const { parts, finish, metadata } = await run(adapter, [
+          { promptFeedback: { blockReason: 'SAFETY' } },
+          { candidates: [candidate] },
+          {
+            promptFeedback: { blockReason: 'BLOCK_REASON_UNSPECIFIED' },
+            usageMetadata: usage,
+          },
+        ]);
+
+        expect(finish.finishReason).toEqual({
+          unified: 'content-filter',
+          raw: 'SAFETY',
+        });
+        expect(metadata?.promptFeedback).toEqual({ blockReason: 'SAFETY' });
+        expect(parts.filter(part => part.type === 'text-delta')).toEqual([]);
+      },
+    );
+  });
+
   it('should expose finishMessage in provider metadata on finish', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'stream-chunks',
