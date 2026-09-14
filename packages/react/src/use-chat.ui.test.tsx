@@ -2238,6 +2238,53 @@ describe('use-chat', () => {
         document.dispatchEvent(new Event('visibilitychange'));
       }
     });
+
+    it('should not reconnect when tab becomes visible while actively streaming', async () => {
+      await waitFor(() => {
+        expect(
+          server.calls.filter(call => call.requestMethod === 'GET'),
+        ).toHaveLength(1);
+      });
+
+      await userEvent.click(screen.getByTestId('do-send'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('submitted');
+      });
+
+      await submitController.write(
+        formatChunk({ type: 'text-start', id: '0' }),
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('streaming');
+      });
+
+      const originalVisibilityState = document.visibilityState;
+      try {
+        Object.defineProperty(document, 'visibilityState', {
+          configurable: true,
+          get: () => 'hidden',
+        });
+        document.dispatchEvent(new Event('visibilitychange'));
+
+        Object.defineProperty(document, 'visibilityState', {
+          configurable: true,
+          get: () => 'visible',
+        });
+        document.dispatchEvent(new Event('visibilitychange'));
+
+        expect(
+          server.calls.filter(call => call.requestMethod === 'GET'),
+        ).toHaveLength(1);
+      } finally {
+        Object.defineProperty(document, 'visibilityState', {
+          configurable: true,
+          get: () => originalVisibilityState,
+        });
+        document.dispatchEvent(new Event('visibilitychange'));
+      }
+    });
   });
 
   describe('resume with no active stream should not flash submitted status', () => {

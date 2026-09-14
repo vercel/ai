@@ -241,7 +241,11 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     }
 
     const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (
+        document.visibilityState === 'visible' &&
+        chat.status !== 'streaming' &&
+        chat.status !== 'submitted'
+      ) {
         chat.resumeStream();
       }
     };
