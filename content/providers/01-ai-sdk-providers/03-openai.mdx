@@ -39,7 +39,8 @@ You can use the following optional settings to customize the OpenAI provider ins
 - **baseURL** _string_
 
   Use a different URL prefix for API calls, e.g. to use proxy servers.
-  The default prefix is `https://api.openai.com/v1`.
+  It defaults to the `OPENAI_BASE_URL` environment variable, and then to
+  `https://api.openai.com/v1`.
   The default OpenAI model factory (`openai('model-id')`) uses the Responses
   API. If your custom base URL only supports the Chat Completions API, create
   chat models with `openai.chat('model-id')` instead, or use the
