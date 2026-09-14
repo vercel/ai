@@ -27,4 +27,15 @@ Adapter-managed settings take precedence when the same key is present in
 `openCodeConfig`. Agent-local `permission` and deprecated `tools` settings are
 ignored so they cannot bypass harness permissions or built-in tool filtering.
 
+## Compaction events
+
+Native automatic and manual compaction emit a `compaction` stream part on
+completion. Internal summary text is available on that part, rather than
+streamed as assistant answer text. Summary model usage is preserved.
+
+With `includeRawChunks` enabled, `opencode.compaction` raw events expose
+`messageId` and `status` (`started` or `failed`). Successful completion uses
+the normalized `compaction` part, whose `harnessMetadata.opencode.messageId`
+identifies the same operation.
+
 See the AI SDK documentation for usage.
