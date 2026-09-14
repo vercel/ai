@@ -2062,7 +2062,6 @@ describe('XaiResponsesLanguageModel', () => {
           ]
         `);
       });
-
     });
 
     describe('citations', () => {
