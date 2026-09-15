@@ -122,6 +122,12 @@ const haiku45AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   haiku45AnthropicModelId,
 )}/converse`;
 
+const applicationProfileArn =
+  'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/custom-profile';
+const applicationProfileGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  applicationProfileArn,
+)}/converse`;
+
 const nativeStructuredOutputAnthropicModelId =
   'anthropic.claude-sonnet-4-5-20250929-v1:0';
 const nativeStructuredOutputAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
@@ -161,6 +167,7 @@ const server = createTestServer({
   [customOpenaiSubstringGenerateUrl]: {},
   [newerAnthropicGenerateUrl]: {},
   [haiku45AnthropicGenerateUrl]: {},
+  [applicationProfileGenerateUrl]: {},
   [nativeStructuredOutputAnthropicGenerateUrl]: {},
   [opusAnthropicGenerateUrl]: {},
   [opus5AnthropicGenerateUrl]: {},
@@ -289,6 +296,17 @@ const haiku45AnthropicModel = new AmazonBedrockChatLanguageModel(
     fetch: fakeFetchWithAuth,
     generateId: () => 'test-id',
   },
+);
+
+const applicationProfileModel = new AmazonBedrockChatLanguageModel(
+  applicationProfileArn,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+    modelFamily: 'anthropic',
+  } as ConstructorParameters<typeof AmazonBedrockChatLanguageModel>[1],
 );
 
 const nativeStructuredOutputAnthropicModel = new AmazonBedrockChatLanguageModel(
@@ -6390,6 +6408,64 @@ describe('doGenerate', () => {
         },
       }
     `);
+  });
+
+  it('should use native output_config.format for an application inference profile when explicitly requested', async () => {
+    server.urls[applicationProfileGenerateUrl].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(
+          'src/__fixtures__/amazon-bedrock-application-inference-profile-native-structured-output.json',
+          'utf8',
+        ),
+      ),
+    };
+
+    await applicationProfileModel.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Categorize two items' }],
+        },
+      ],
+      providerOptions: {
+        amazonBedrock: {
+          structuredOutputMode: 'outputFormat',
+        },
+      },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            assignments: { type: 'array', items: { type: 'object' } },
+            entities: { type: 'array', items: { type: 'object' } },
+            relations: { type: 'array', items: { type: 'object' } },
+          },
+          required: ['assignments', 'entities', 'relations'],
+          additionalProperties: false,
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeUndefined();
+    expect(
+      requestBody.additionalModelRequestFields?.output_config?.format,
+    ).toEqual({
+      type: 'json_schema',
+      schema: {
+        type: 'object',
+        properties: {
+          assignments: { type: 'array', items: { type: 'object' } },
+          entities: { type: 'array', items: { type: 'object' } },
+          relations: { type: 'array', items: { type: 'object' } },
+        },
+        required: ['assignments', 'entities', 'relations'],
+        additionalProperties: false,
+      },
+    });
   });
 
   it('should sanitize unsupported JSON schema keywords for native structured output', async () => {
