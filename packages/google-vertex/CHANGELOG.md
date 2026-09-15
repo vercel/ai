@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 5.0.84
+
+### Patch Changes
+
+- c83bc67: feat: add Claude Fable 5.1 model IDs to Bedrock and Vertex providers
+- Updated dependencies [4a994ad]
+  - @ai-sdk/google@4.0.72
+
 ## 5.0.83
 
 ### Patch Changes
