@@ -40,9 +40,13 @@ export class RealtimeEventChannel {
 
   /** Stop accepting messages, but deliver already received terminal events. */
   async finish(): Promise<void> {
-    this.finishing = true;
+    this.stopWriting();
     await this.incoming;
     this.dispose();
+  }
+
+  stopWriting(): void {
+    this.finishing = true;
   }
 
   send(event: RealtimeClientEvent, shouldSend?: () => boolean): Promise<void> {
@@ -56,20 +60,25 @@ export class RealtimeEventChannel {
       if (!this.active || this.finishing)
         throw new Error('Realtime connection is closed');
       if (shouldSend?.() === false) return;
+      if (!this.active || this.finishing)
+        throw new Error('Realtime connection is closed');
       const data = await this.options.model.serializeClientEvent(event);
       if (!this.active || this.finishing)
         throw new Error('Realtime connection is closed');
       if (shouldSend?.() === false) return;
+      if (!this.active || this.finishing)
+        throw new Error('Realtime connection is closed');
       if (data != null) this.options.send(data);
     });
     this.outgoing = operation
       .catch(error => {
         if (!this.finishing) {
-          if (event.type === 'input-audio-append')
-            this.fatal(
-              error instanceof Error ? error : new Error(String(error)),
-            );
-          else if (event.type !== 'session-close') this.report(error);
+          // Capture owners escalate automatic audio failures; manual sends stay recoverable.
+          if (
+            event.type !== 'input-audio-append' &&
+            event.type !== 'session-close'
+          )
+            this.report(error);
         }
       })
       .finally(() => {
@@ -119,7 +128,9 @@ export class RealtimeEventChannel {
         const health = this.options.model.getHealthCheckResponse?.(
           parsed.value,
         );
+        if (!this.active) return;
         if (health != null && !this.finishing) this.options.send(health);
+        if (!this.active) return;
         const result = this.parse(parsed.value);
         for (const event of Array.isArray(result) ? result : [result]) {
           if (!this.active) return;

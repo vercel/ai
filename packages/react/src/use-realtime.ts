@@ -153,10 +153,6 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
       sampleRate,
       maxEvents,
       maxPlaybackBufferSeconds,
-      onToolCall: (...args) =>
-        ownerRef.current?.store === store
-          ? ownerRef.current.onToolCall?.(...args)
-          : undefined,
       onEvent: (...args) =>
         ownerRef.current?.store === store
           ? ownerRef.current.onEvent?.(...args)
@@ -185,6 +181,13 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
   // Publish before child layout effects; insertion cleanup only revokes refs.
   useInsertionEffect(() => {
     ownerRef.current = { store: rt, onToolCall, onEvent, onError };
+    rt.onToolCall =
+      onToolCall == null
+        ? undefined
+        : (...args) =>
+            ownerRef.current?.store === rt
+              ? ownerRef.current.onToolCall?.(...args)
+              : undefined;
     return () => {
       ownerRef.current = null;
     };

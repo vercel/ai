@@ -44,6 +44,8 @@ or `useMemo`. Replacing either object replaces the hook's session.
 For OpenAI Live, use `openai.experimental_realtime('gpt-live-1')` and an application-owned WebSocket
 relay. The relay supplies server credentials and forwards the provider's native
 text frames; it must authenticate clients before accepting connections.
+Use `wss:` in production, keep provider credentials server-side, and apply your
+application's authentication to the relay connection.
 
 ```tsx
 import {
@@ -80,8 +82,10 @@ function LiveConversation() {
 }
 ```
 
-WebSocket capture/playback supports PCM16. Applications with their own audio pipeline
-can use the low-level provider for other supported codecs. OpenAI-specific settings
+The current continuous browser runtime supports a JSON/PCM16 WebSocket relay media
+profile. Continuous conversation semantics alone do not guarantee support for every
+codec or transport. Applications with their own audio pipeline can use the low-level
+provider for other supported codecs. OpenAI-specific settings
 live under `providerOptions.openai` and use camelCase fields; the provider converts
 them to wire names.
 
@@ -114,8 +118,17 @@ successful send confirms local submission, not provider acceptance or audible de
 For browser-direct Live audio, replace `api.websocket` with
 `api: { session: '/api/realtime-live' }`. The hook posts JSON `{ sdp, sessionConfig }`
 to that application endpoint and expects JSON `{ sdp, sessionId }` back. On the
-server, authenticate the application user, validate the offer and allowed settings,
-then exchange SDP using the server-held provider key:
+server, authenticate the application user and validate the offer and allowed settings.
+
+Use a same-origin broker authenticated with your application's session cookie.
+The built-in setup request uses the browser's default same-origin credentials;
+`api.session` does not accept custom authorization headers, a custom fetch, or
+cross-origin credential options. A bearer-token-only or cross-origin cookie broker
+therefore needs an application-owned same-origin endpoint in front of it. The
+answer must contain nonempty `sdp` and `sessionId` strings (after trimming for
+validation), and the JSON response body is limited to 1 MiB.
+
+Exchange SDP using the server-held provider key:
 
 ```ts
 const answer = await openai
@@ -163,8 +176,11 @@ followed by `resumePlayback()`.
 One live audio track is selected per attachment, preferring an enabled, unmuted
 track. `isCapturing` follows that sender track, including mute and ended events;
 it never switches tracks automatically. Caller-owned tracks are detached without
-being stopped or disabled. Client delegation remains application-handled on either
-transport, and Live session updates remain unsupported.
+being stopped or disabled. Capture controls serialize sender changes; a stop is
+reported only after detachment succeeds or the peer closes. If detachment fails,
+the peer is closed to stop transmission while leaving borrowed tracks untouched.
+Client delegation remains application-handled on either transport, and Live session
+updates remain unsupported.
 
 ## Lifecycle and failure handling
 
@@ -194,6 +210,14 @@ overflow stop submissions and capture, drain the accepted event prefix, and clea
 up. Events are never arbitrarily dropped while continuing with unreliable state.
 No commands or side-effecting tools are transparently replayed on a replacement
 connection.
+
+Continuous Live WebSocket sessions have a 128 KiB outgoing wire-frame limit and a
+128 KiB combined buffered-send budget, including the next frame and JSON/base64
+encoding overhead. Oversized control messages are rejected, not silently split into
+multiple commands. Keep Live context submissions within this budget; the example
+relay's 128 KiB `maxPayload` aligns with the frame limit. These byte caps do not apply
+to legacy turn-based sessions, which retain their pre-Live unlimited byte policy,
+or to the optional WebRTC transport.
 
 The continuous WebSocket PCM playback budget bounds local latency and memory. On overflow, stale queued audio
 is discarded, playback pauses, and `onError` reports an audible gap. The connection

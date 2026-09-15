@@ -30,6 +30,7 @@ export class BrowserRealtimeLiveWebSocket {
       onEvent: (event: RealtimeServerEvent) => Promise<void>;
       onError: (error: Error) => void;
       onFatalError: (error: Error, drain?: Promise<void>) => void;
+      onClosing?: () => void;
       onClose: (error?: Error) => void;
       onCapturing: (value: boolean) => void;
       onPlaying: (value: boolean) => void;
@@ -59,6 +60,11 @@ export class BrowserRealtimeLiveWebSocket {
       onServerEvent: options.onEvent,
       onError: options.onError,
       onFatalError: options.onFatalError,
+      onClosing: () => {
+        const generation = this.generation;
+        options.onClosing?.();
+        if (generation === this.generation) this.stopCapture();
+      },
       onClose: options.onClose,
     });
     this.audio = new BrowserRealtimeAudio({
@@ -149,13 +155,17 @@ export class BrowserRealtimeLiveWebSocket {
   private sendAudio(audio: string): void {
     if (!this.ready || !this.transport.isOpen) return;
     if (this.pendingAudio >= 8) {
-      this.options.onFatalError(new Error('Realtime audio send queue is full'));
+      this.transport.fail(new Error('Realtime audio send queue is full'));
       return;
     }
     const generation = this.generation;
     let sent: Promise<void>;
     try {
-      sent = this.transport.sendEvent({ type: 'input-audio-append', audio });
+      sent = this.transport.sendEvent(
+        { type: 'input-audio-append', audio },
+        undefined,
+        true,
+      );
     } catch (error) {
       if (!this.ready || !this.transport.isOpen) return;
       throw error;
