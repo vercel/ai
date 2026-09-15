@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20774,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20774-mcp-oauth-stored-authorization-server.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20774-mcp-oauth-stored-authorization-server.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_20774_REPRODUCED: callback rejected its stored authorization-server pin before token exchange"
+  }
+}
