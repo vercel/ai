@@ -123,7 +123,7 @@ export async function prepareTools({
           },
         });
       } else {
-        toolWarnings.push({ type: 'unsupported', feature: 'tool ${tool.id}' });
+        toolWarnings.push({ type: 'unsupported', feature: `tool ${tool.id}` });
       }
     }
   } else {
