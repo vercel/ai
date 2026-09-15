@@ -281,6 +281,17 @@ export async function POST(request: Request) {
 }
 ```
 
+If you use Next.js, wrap your config with `withWorkflow()` so the Workflow SDK
+transforms `'use workflow'` and `'use step'` modules. Other frameworks have
+their own Workflow SDK setup.
+
+```js filename='next.config.js'
+const { withWorkflow } = require('workflow/next');
+
+const nextConfig = {};
+
+module.exports = withWorkflow(nextConfig, {});
+```
 The `sessionId` gives the sandbox a stable identity across workflow runs. Keep
 `agent.ts`, `time-slice-step.ts`, `workflow.ts`, and the route in separate
 modules so the workflow bundle does not include Node-heavy agent, sandbox, or
