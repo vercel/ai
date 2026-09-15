@@ -98,7 +98,7 @@ export class HarnessAgentSession {
     | SandboxSession
     | undefined;
   private readonly toolApproval:
-    | HarnessAgentToolApprovalConfiguration
+    | HarnessAgentToolApprovalConfiguration<any, any>
     | undefined;
   private readonly pendingToolApprovals = new Map<
     string,
@@ -133,7 +133,7 @@ export class HarnessAgentSession {
     sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
     ownsSandboxLifecycle?: boolean;
     sessionWorkDir: string;
-    toolApproval: HarnessAgentToolApprovalConfiguration | undefined;
+    toolApproval: HarnessAgentToolApprovalConfiguration<any, any> | undefined;
     pendingToolApprovals?: readonly HarnessAgentPendingToolApproval[];
     pendingToolResults?: readonly HarnessAgentPendingToolResult[];
     turnSettings?: HarnessV1TurnSettings;

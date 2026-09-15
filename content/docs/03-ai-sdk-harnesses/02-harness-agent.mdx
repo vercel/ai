@@ -558,7 +558,9 @@ console.log(preparation.identity);
   cannot call.
 - `skills`: instruction bundles surfaced by the adapter.
 - `permissionMode`: built-in tool permission mode.
-- `toolApproval`: approval status map for host-executed tools.
+- `toolApproval`: static approval status map or generic approval callback for
+  host-executed tools. Callbacks receive parsed custom-tool calls, not
+  adapter-native built-in calls.
 - `sandboxConfig`: sandbox working-directory and lifecycle hook configuration.
 - `telemetry`, `debug`, and `onLog`: observability and diagnostics.
 

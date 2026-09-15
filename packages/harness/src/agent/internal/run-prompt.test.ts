@@ -1397,6 +1397,266 @@ describe('runPrompt host tool generator results', () => {
     expect(stopBoundaryCalls).toBe(0);
   });
 
+  test('applies a generic approval callback to parsed custom tool calls', async () => {
+    const submitted: SubmittedResult[] = [];
+    const executedPaths: string[] = [];
+    const runtimeContext = { root: 'public/' };
+    const files = tool({
+      description: 'Read a file',
+      inputSchema: z.object({ path: z.string() }),
+      execute: async ({ path }: { path: string }) => {
+        executedPaths.push(path);
+        return { path };
+      },
+    });
+    const tools = { files };
+    const toolApproval = vi.fn(
+      async ({
+        toolCall,
+        tools: callbackTools,
+        toolsContext,
+        messages,
+        runtimeContext: callbackRuntimeContext,
+      }) => {
+        expect(callbackTools).toBe(tools);
+        expect(toolsContext).toEqual({});
+        expect(messages).toEqual([{ role: 'user', content: 'read files' }]);
+        expect(callbackRuntimeContext).toBe(runtimeContext);
+        return toolCall.input.path.startsWith(callbackRuntimeContext.root)
+          ? undefined
+          : {
+              type: 'denied' as const,
+              reason: 'outside permitted root',
+            };
+      },
+    );
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession(
+        [
+          {
+            type: 'tool-call',
+            toolCallId: 'allowed',
+            toolName: 'files',
+            input: JSON.stringify({ path: 'public/readme.md' }),
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'denied',
+            toolName: 'files',
+            input: JSON.stringify({ path: 'private/secret.txt' }),
+          },
+          ...finishEvents,
+        ],
+        input => submitted.push(input),
+      ),
+      prompt: 'read files',
+      instructions: undefined,
+      tools,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext,
+      abortSignal: undefined,
+      toolApproval,
+    });
+
+    const parts: TextStreamPart<typeof tools>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(toolApproval).toHaveBeenCalledTimes(2);
+    expect(executedPaths).toEqual(['public/readme.md']);
+    expect(submitted).toEqual(
+      expect.arrayContaining([
+        {
+          toolCallId: 'allowed',
+          output: { path: 'public/readme.md' },
+        },
+        {
+          toolCallId: 'denied',
+          output: {
+            type: 'execution-denied',
+            reason: 'outside permitted root',
+          },
+        },
+      ]),
+    );
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-approval-response',
+        approved: false,
+        reason: 'outside permitted root',
+      }),
+    );
+  });
+
+  test('surfaces a generic callback reason on user approval requests', async () => {
+    const pending: unknown[] = [];
+    const weather = tool({
+      inputSchema: z.object({ city: z.string() }),
+      execute: async () => ({ temperature: 72 }),
+    });
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'SF' }),
+        },
+      ]),
+      prompt: 'check weather',
+      instructions: undefined,
+      tools: { weather },
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      toolApproval: () => ({
+        type: 'user-approval',
+        reason: 'confirm external request',
+      }),
+      onPendingToolApproval: approval => pending.push(approval),
+    });
+
+    const parts: TextStreamPart<{ weather: typeof weather }>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(pending).toHaveLength(1);
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-approval-request',
+        reason: 'confirm external request',
+      }),
+    );
+  });
+
+  test('emits an automatic approval with the callback approved reason', async () => {
+    const submitted: SubmittedResult[] = [];
+    const execute = vi.fn(async ({ city }: { city: string }) => ({
+      city,
+      temperature: 72,
+    }));
+    const weather = tool({
+      inputSchema: z.object({ city: z.string() }),
+      execute,
+    });
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession(
+        [
+          {
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'weather',
+            input: JSON.stringify({ city: 'SF' }),
+          },
+          ...finishEvents,
+        ],
+        input => submitted.push(input),
+      ),
+      prompt: 'check weather',
+      instructions: undefined,
+      tools: { weather },
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      toolApproval: () => ({
+        type: 'approved',
+        reason: 'city is in the permitted region',
+      }),
+    });
+
+    const parts: TextStreamPart<{ weather: typeof weather }>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    const approvalRequest = parts.find(
+      part => part.type === 'tool-approval-request',
+    );
+    expect(approvalRequest).toMatchObject({
+      type: 'tool-approval-request',
+      isAutomatic: true,
+    });
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-approval-response',
+        approvalId: approvalRequest?.approvalId,
+        approved: true,
+        reason: 'city is in the permitted region',
+        providerExecuted: false,
+      }),
+    );
+    expect(execute).toHaveBeenCalledOnce();
+    expect(submitted).toEqual([
+      {
+        toolCallId: 'c1',
+        output: { city: 'SF', temperature: 72 },
+      },
+    ]);
+    expect((await result.steps)[0]!.content.map(part => part.type)).toEqual([
+      'tool-call',
+      'tool-approval-request',
+      'tool-approval-response',
+    ]);
+  });
+
+  test('fails the turn when a generic approval callback rejects', async () => {
+    const submitted: SubmittedResult[] = [];
+    const execute = vi.fn(async () => ({ ok: true }));
+    const writeFile = tool({
+      inputSchema: z.object({ path: z.string() }),
+      execute,
+    });
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession(
+        [
+          {
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'writeFile',
+            input: JSON.stringify({ path: 'private/file.txt' }),
+          },
+        ],
+        input => submitted.push(input),
+      ),
+      prompt: 'write file',
+      instructions: undefined,
+      tools: { writeFile },
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      toolApproval: async () => {
+        throw new Error('policy unavailable');
+      },
+    });
+
+    const parts: TextStreamPart<{ writeFile: typeof writeFile }>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(submitted).toEqual([]);
+    expect(parts.at(-1)).toMatchObject({
+      type: 'error',
+      error: expect.objectContaining({ message: 'policy unavailable' }),
+    });
+    await expect(result.finishReason).rejects.toThrow('policy unavailable');
+  });
+
   test('surfaces every approval request from a counted tool-call step', async () => {
     const pending: unknown[] = [];
     const weather = tool({
@@ -1531,6 +1791,7 @@ describe('runPrompt host tool generator results', () => {
     const submitted: SubmittedResult[] = [];
     const settled: string[] = [];
     const telemetryEvents: string[] = [];
+    const toolApproval = vi.fn(() => 'user-approval' as const);
     const integration = {
       onToolExecutionStart() {
         telemetryEvents.push('tool-start');
@@ -1598,6 +1859,7 @@ describe('runPrompt host tool generator results', () => {
       sessionWorkDir: WORK_DIR,
       runtimeContext: {} as never,
       abortSignal: undefined,
+      toolApproval,
       pendingToolApprovals: [
         {
           approvalId: 'approval-1',
@@ -1624,6 +1886,7 @@ describe('runPrompt host tool generator results', () => {
     await done;
 
     expect(settled).toEqual(['approval-1']);
+    expect(toolApproval).not.toHaveBeenCalled();
     expect(submitted).toEqual([
       { toolCallId: 'c1', output: { city: 'SF', temperature: 72 } },
     ]);
