@@ -1,3 +1,4 @@
+import { parseJsonEventStream } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
@@ -5,6 +6,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TextStreamPart } from '../generate-text/stream-text-result';
 import { createUIMessageStreamResponse } from './create-ui-message-stream-response';
+import { type UIMessageChunk, uiMessageChunkSchema } from './ui-message-chunks';
 import { toUIMessageStream } from './to-ui-message-stream';
 
 describe('createUIMessageStreamResponse', () => {
@@ -275,6 +277,205 @@ describe('createUIMessageStreamResponse', () => {
       ",
       ]
     `);
+  });
+
+  describe('keepAliveMs', () => {
+    /**
+     * A stream that stays silent until the test pushes into it - this is what an
+     * idle stream (e.g. a resumed stream at the live edge) looks like.
+     */
+    function createGatedStream() {
+      let controller!: ReadableStreamDefaultController<UIMessageChunk>;
+      const stream = new ReadableStream<UIMessageChunk>({
+        start(controllerArg) {
+          controller = controllerArg;
+        },
+      });
+      return {
+        stream,
+        push: (chunk: UIMessageChunk) => controller.enqueue(chunk),
+        close: () => controller.close(),
+      };
+    }
+
+    it('should send a keep-alive comment before the stream produces its first chunk', async () => {
+      const source = createGatedStream();
+
+      const response = createUIMessageStreamResponse({
+        stream: source.stream,
+        keepAliveMs: 25_000,
+      });
+
+      const reader = response
+        .body!.pipeThrough(new TextDecoderStream())
+        .getReader();
+
+      // the source has not produced anything yet, but the response body
+      // already has bytes, so the response head is flushed:
+      expect(await reader.read()).toEqual({
+        done: false,
+        value: ': keep-alive\n\n',
+      });
+    });
+
+    it('should send a keep-alive comment for each idle interval', async () => {
+      const source = createGatedStream();
+
+      const response = createUIMessageStreamResponse({
+        stream: source.stream,
+        keepAliveMs: 25_000,
+      });
+
+      const reader = response
+        .body!.pipeThrough(new TextDecoderStream())
+        .getReader();
+
+      await reader.read(); // initial keep-alive comment
+
+      const read = reader.read();
+      await vi.advanceTimersByTimeAsync(25_000);
+
+      expect(await read).toEqual({ done: false, value: ': keep-alive\n\n' });
+    });
+
+    it('should send the stream chunks in between keep-alive comments', async () => {
+      const source = createGatedStream();
+
+      const response = createUIMessageStreamResponse({
+        stream: source.stream,
+        keepAliveMs: 25_000,
+      });
+
+      const reader = response
+        .body!.pipeThrough(new TextDecoderStream())
+        .getReader();
+
+      await reader.read(); // initial keep-alive comment
+
+      source.push({ type: 'text-delta', id: '1', delta: 'test-data' });
+      source.close();
+
+      expect(await reader.read()).toEqual({
+        done: false,
+        value: 'data: {"type":"text-delta","id":"1","delta":"test-data"}\n\n',
+      });
+      expect(await reader.read()).toEqual({
+        done: false,
+        value: 'data: [DONE]\n\n',
+      });
+      expect(await reader.read()).toEqual({ done: true, value: undefined });
+    });
+
+    it('should not send keep-alive comments when keepAliveMs is not set', async () => {
+      const response = createUIMessageStreamResponse({
+        stream: convertArrayToReadableStream([
+          { type: 'text-delta', id: '1', delta: 'test-data' },
+        ]),
+      });
+
+      expect(
+        await convertReadableStreamToArray(
+          response.body!.pipeThrough(new TextDecoderStream()),
+        ),
+      ).toEqual([
+        'data: {"type":"text-delta","id":"1","delta":"test-data"}\n\n',
+        'data: [DONE]\n\n',
+      ]);
+    });
+
+    it('should not send keep-alive comments to consumeSseStream', async () => {
+      const consumedData: string[] = [];
+      const source = createGatedStream();
+
+      const response = createUIMessageStreamResponse({
+        stream: source.stream,
+        keepAliveMs: 25_000,
+        consumeSseStream: async ({ stream }) => {
+          consumedData.push(...(await convertReadableStreamToArray(stream)));
+        },
+      });
+
+      const reader = response
+        .body!.pipeThrough(new TextDecoderStream())
+        .getReader();
+
+      await reader.read(); // initial keep-alive comment
+
+      const keepAlive = reader.read();
+      await vi.advanceTimersByTimeAsync(25_000);
+      await keepAlive;
+
+      source.push({ type: 'text-delta', id: '1', delta: 'test-data' });
+      source.close();
+
+      while (!(await reader.read()).done) {
+        // drain the response body
+      }
+
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(consumedData).toEqual([
+        'data: {"type":"text-delta","id":"1","delta":"test-data"}\n\n',
+        'data: [DONE]\n\n',
+      ]);
+    });
+
+    it('should send keep-alive comments that SSE clients ignore', async () => {
+      const source = createGatedStream();
+
+      const response = createUIMessageStreamResponse({
+        stream: source.stream,
+        keepAliveMs: 25_000,
+      });
+
+      // parse the response the same way the UI transports do:
+      const chunks = parseJsonEventStream({
+        stream: response.body!,
+        schema: uiMessageChunkSchema,
+      });
+
+      const reader = chunks.getReader();
+
+      const read = reader.read();
+      await vi.advanceTimersByTimeAsync(25_000); // one idle interval
+      source.push({ type: 'text-delta', id: '1', delta: 'test-data' });
+      source.close();
+
+      // the keep-alive comments are not visible to the client:
+      expect(await read).toEqual({
+        done: false,
+        value: {
+          success: true,
+          value: { type: 'text-delta', id: '1', delta: 'test-data' },
+          rawValue: { type: 'text-delta', id: '1', delta: 'test-data' },
+        },
+      });
+      expect(await reader.read()).toEqual({ done: true, value: undefined });
+    });
+
+    it('should cancel the stream when the client disconnects', async () => {
+      let cancelReason: unknown;
+      const stream = new ReadableStream<UIMessageChunk>({
+        cancel(reason) {
+          cancelReason = reason;
+        },
+      });
+
+      const response = createUIMessageStreamResponse({
+        stream,
+        keepAliveMs: 25_000,
+      });
+
+      const reader = response.body!.getReader();
+      await reader.read(); // initial keep-alive comment
+      reader.read(); // pending read on the idle stream
+      await vi.advanceTimersByTimeAsync(0);
+
+      await reader.cancel('client disconnected');
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(cancelReason).toBe('client disconnected');
+    });
   });
 
   it('should handle consumeSseStream errors gracefully', async () => {
