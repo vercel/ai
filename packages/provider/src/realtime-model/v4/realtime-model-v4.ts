@@ -32,10 +32,14 @@ export type RealtimeModelV4 = {
   /** Conversation semantics and supported transports, when declared. */
   readonly capabilities?: {
     conversation: 'continuous' | 'turn-based';
-    transports: readonly 'websocket'[];
+    transports: readonly ('websocket' | 'webrtc')[];
     /** Omission preserves the legacy client-secret WebSocket connection. */
-    connections?: readonly ('client-secret-websocket' | 'server-websocket')[];
-    /** Omission preserves session-update startup. */
+    connections?: readonly (
+      | 'client-secret-websocket'
+      | 'server-websocket'
+      | 'webrtc'
+    )[];
+    /** Omission preserves session-update startup. WebRTC setup may start the session. */
     startup?: 'session-start' | 'session-update';
     /** Omission preserves transport-close finalization. */
     finalization?: 'session-close' | 'transport-close';
@@ -45,6 +49,16 @@ export type RealtimeModelV4 = {
   getServerWebSocketConfig?():
     | { url: string; headers: Record<string, string> }
     | PromiseLike<{ url: string; headers: Record<string, string> }>;
+
+  /** Provider-specific setup for the WebRTC event channel. */
+  getWebRTCConfig?(): { dataChannelLabel: string };
+
+  /** Server-side SDP exchange. Return only the answer and session ID to the client. */
+  doCreateWebRTCSession?(options: {
+    sdp: string;
+    sessionConfig?: RealtimeModelV4SessionConfig;
+    abortSignal?: AbortSignal;
+  }): PromiseLike<{ sessionId: string; sdp: string }>;
 
   /**
    * Server-side: Creates an ephemeral client secret for authenticating

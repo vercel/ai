@@ -11,6 +11,9 @@ import { useMemo, useRef, useState } from 'react';
 const model = openai.experimental_realtime('gpt-live-1');
 
 export default function LivePage() {
+  const [transport, setTransport] = useState<'websocket' | 'webrtc'>(
+    'websocket',
+  );
   const [endpoint, setEndpoint] = useState('ws://localhost:4318/live');
   const [instructions, setInstructions] = useState(
     'Be a concise, friendly English-speaking assistant. Accept corrections naturally. Delegate questions that need tools or current information.',
@@ -35,7 +38,10 @@ export default function LivePage() {
   );
   const rt = useRealtime({
     model,
-    api: { websocket: endpoint },
+    api:
+      transport === 'webrtc'
+        ? { session: '/api/realtime-live' }
+        : { websocket: endpoint },
     sessionConfig,
     maxEvents: 200,
     onError: event => setError(event.message),
@@ -95,19 +101,35 @@ export default function LivePage() {
     <main className="mx-auto max-w-4xl p-8 space-y-5">
       <h1 className="text-2xl font-semibold">AI SDK Live — useRealtime</h1>
       <p>
-        Connect through an application-owned WebSocket relay. Your application
-        handles client delegation and supplies context or results; the SDK does
-        not execute an agent or tool loop for Live.
+        Connect through an application-owned WebSocket relay or optional WebRTC.
+        Your application handles client delegation and supplies context or
+        results; the SDK does not execute an agent or tool loop for Live.
       </p>
       <label>
-        Relay URL{' '}
-        <input
-          id="endpoint"
-          value={endpoint}
+        Transport{' '}
+        <select
+          id="transport"
+          value={transport}
           disabled={active}
-          onChange={event => setEndpoint(event.target.value)}
-        />
+          onChange={event =>
+            setTransport(event.target.value as typeof transport)
+          }
+        >
+          <option value="websocket">WebSocket relay</option>
+          <option value="webrtc">WebRTC</option>
+        </select>
       </label>
+      {transport === 'websocket' && (
+        <label>
+          Relay URL{' '}
+          <input
+            id="endpoint"
+            value={endpoint}
+            disabled={active}
+            onChange={event => setEndpoint(event.target.value)}
+          />
+        </label>
+      )}
       <label>
         Instructions{' '}
         <textarea
@@ -219,6 +241,8 @@ export default function LivePage() {
         Stop local capture releases the SDK-owned microphone. Provider mute only
         changes remote audio processing after acknowledgment; it does not stop
         the microphone. Resume local capture may ask for microphone permission.
+        WebRTC sends one audio track and negotiates its format through SDP; the
+        server selects data-channel permissions.
       </p>
       {error && (
         <p id="error" role="alert">

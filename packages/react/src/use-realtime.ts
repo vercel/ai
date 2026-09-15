@@ -121,6 +121,7 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
     api,
     startupTimeoutMs,
     closeTimeoutMs,
+    rtcDisconnectTimeoutMs,
     sessionConfig,
     sampleRate,
     maxEvents,
@@ -129,7 +130,7 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
     onEvent,
     onError,
   } = options;
-  const { token, websocket } = api;
+  const { token, websocket, session: sessionEndpoint } = api;
   const protocols = JSON.stringify(api.protocols ?? []);
 
   // Candidates allocate no transports or media; only a committed owner can act.
@@ -139,12 +140,15 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
       api:
         token != null
           ? { token }
-          : {
-              websocket: websocket as string,
-              protocols: secureJsonParse(protocols) as string[],
-            },
+          : sessionEndpoint != null
+            ? { session: sessionEndpoint }
+            : {
+                websocket: websocket as string,
+                protocols: secureJsonParse(protocols) as string[],
+              },
       startupTimeoutMs,
       closeTimeoutMs,
+      rtcDisconnectTimeoutMs,
       sessionConfig,
       sampleRate,
       maxEvents,
@@ -162,10 +166,12 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
   }, [
     model,
     token,
+    sessionEndpoint,
     websocket,
     protocols,
     startupTimeoutMs,
     closeTimeoutMs,
+    rtcDisconnectTimeoutMs,
     sessionConfig,
     sampleRate,
     maxEvents,

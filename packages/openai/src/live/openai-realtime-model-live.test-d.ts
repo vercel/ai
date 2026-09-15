@@ -25,21 +25,40 @@ it('exports the exact concrete factory return and supported connection methods',
   }>();
   expectTypeOf<'live'>().not.toMatchTypeOf<keyof typeof openai>();
   expectTypeOf<'getWebSocketConfig'>().not.toMatchTypeOf<keyof typeof model>();
-  expectTypeOf<'getWebRTCConfig'>().not.toMatchTypeOf<keyof typeof model>();
-  expectTypeOf<'doCreateWebRTCSession'>().not.toMatchTypeOf<
-    keyof typeof model
+  expectTypeOf(model.getWebRTCConfig()).toEqualTypeOf<{
+    dataChannelLabel: string;
+  }>();
+  expectTypeOf(model.doCreateWebRTCSession).parameter(0).toMatchTypeOf<{
+    sdp: string;
+    abortSignal?: AbortSignal;
+  }>();
+  expectTypeOf(model.doCreateWebRTCSession).returns.toEqualTypeOf<
+    Promise<{ sessionId: string; sdp: string }>
   >();
   expectTypeOf<'doCreateClientSecret'>().not.toMatchTypeOf<
     keyof typeof model
   >();
 });
 
-it('supports only client delegation and keeps RTC permissions out of startup options', () => {
+it('supports only client delegation with optional native RTC permissions', () => {
   expectTypeOf<OpenAIRealtimeModelLiveOptions['delegation']>().toEqualTypeOf<
     { type: 'client' } | null | undefined
   >();
   expectTypeOf<{}>().toMatchTypeOf<OpenAIRealtimeModelLiveOptions>();
-  expectTypeOf<'client' | 'tools'>().not.toMatchTypeOf<
+  expectTypeOf<'tools'>().not.toMatchTypeOf<
     keyof OpenAIRealtimeModelLiveOptions
   >();
+  expectTypeOf<{
+    client: {
+      dataChannel: {
+        allowedClientEvents: string[];
+        allowedServerEvents: Array<{ type: string; responseEvent?: string }>;
+      };
+    };
+  }>().toMatchTypeOf<OpenAIRealtimeModelLiveOptions>();
+  expectTypeOf<{
+    client: {
+      dataChannel: { allowedClientEvents: 'all'; allowedServerEvents: 'all' };
+    };
+  }>().toMatchTypeOf<OpenAIRealtimeModelLiveOptions>();
 });
