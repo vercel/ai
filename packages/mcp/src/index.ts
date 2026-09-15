@@ -44,6 +44,7 @@ export { auth, UnauthorizedError } from './tool/oauth';
 export type {
   OAuthAuthorizationServerInformation,
   OAuthClientProvider,
+  OAuthCredentialsInvalidationContext,
 } from './tool/oauth';
 export type {
   OAuthClientInformation,
