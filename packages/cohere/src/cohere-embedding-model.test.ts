@@ -154,8 +154,6 @@ describe('doEmbed', () => {
   });
 
   it('should pass the embedding_types setting', async () => {
-    prepareJsonResponse();
-
     await provider.embeddingModel('embed-english-v3.0').doEmbed({
       values: testValues,
       providerOptions: {
@@ -174,8 +172,6 @@ describe('doEmbed', () => {
   });
 
   it('embedding_type default to float when no value is specified', async () => {
-    prepareJsonResponse();
-
     await provider.embeddingModel('embed-english-v3.0').doEmbed({
       values: testValues,
     });
@@ -189,8 +185,6 @@ describe('doEmbed', () => {
   });
 
   it('embedding_type should accept multiple array values', async () => {
-    prepareJsonResponse();
-
     await provider.embeddingModel('embed-english-v3.0').doEmbed({
       values: testValues,
       providerOptions: {
