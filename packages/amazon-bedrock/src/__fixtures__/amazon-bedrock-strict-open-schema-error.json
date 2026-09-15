@@ -1,0 +1,3 @@
+{
+  "message": "The model returned the following errors: tools.0.custom: For 'object' type, 'additionalProperties' must be explicitly set to false"
+}

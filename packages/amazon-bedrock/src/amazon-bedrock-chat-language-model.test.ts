@@ -1,7 +1,9 @@
 import type * as AnthropicInternal from '@ai-sdk/anthropic/internal';
-import type {
-  LanguageModelV4Prompt,
-  SharedV4ProviderOptions,
+import {
+  APICallError,
+  type LanguageModelV4FunctionTool,
+  type LanguageModelV4Prompt,
+  type SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import { safeValidateTypes } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
@@ -142,6 +144,13 @@ const sonnet5AnthropicModelId = 'us.anthropic.claude-sonnet-5';
 const sonnet5AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   sonnet5AnthropicModelId,
 )}/converse`;
+
+const strictOpenSchemaErrorFixture = JSON.parse(
+  fs.readFileSync(
+    'src/__fixtures__/amazon-bedrock-strict-open-schema-error.json',
+    'utf8',
+  ),
+);
 
 const server = createTestServer({
   [generateUrl]: {},
@@ -288,6 +297,51 @@ const haiku45AnthropicModel = new AmazonBedrockChatLanguageModel(
     headers: {},
     fetch: fakeFetchWithAuth,
     generateId: () => 'test-id',
+  },
+);
+
+const strictSchemaValidationModel = new AmazonBedrockChatLanguageModel(
+  haiku45AnthropicModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    generateId: () => 'test-id',
+    fetch: async (_input, init) => {
+      const body = JSON.parse(String(init?.body));
+      const toolSpec = body.toolConfig.tools[0].toolSpec;
+
+      if (
+        toolSpec.strict === true &&
+        toolSpec.inputSchema.json.additionalProperties !== false
+      ) {
+        return new Response(JSON.stringify(strictOpenSchemaErrorFixture), {
+          status: 400,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+
+      return new Response(
+        JSON.stringify({
+          output: {
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  toolUse: {
+                    toolUseId: 'tool-id',
+                    name: 'getWeather',
+                    input: { city: 'Tokyo' },
+                  },
+                },
+              ],
+            },
+          },
+          usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+          stopReason: 'tool_use',
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      );
+    },
   },
 );
 
@@ -7628,6 +7682,45 @@ describe('doGenerate', () => {
         },
       ]
     `);
+  });
+
+  it('should prevent a Bedrock 400 for strict tools with open JSON schemas', async () => {
+    const openSchemaTool: LanguageModelV4FunctionTool = {
+      type: 'function',
+      name: 'getWeather',
+      description: 'Get the weather for a city',
+      strict: true,
+      inputSchema: {
+        type: 'object',
+        properties: { city: { type: 'string' } },
+        required: ['city'],
+      },
+    };
+
+    try {
+      const result = await strictSchemaValidationModel.doGenerate({
+        prompt: TEST_PROMPT,
+        toolChoice: { type: 'tool', toolName: 'getWeather' },
+        tools: [openSchemaTool],
+      });
+
+      expect(result.content).toContainEqual({
+        type: 'tool-call',
+        toolCallId: 'tool-id',
+        toolName: 'getWeather',
+        input: '{"city":"Tokyo"}',
+      });
+    } catch (error) {
+      if (APICallError.isInstance(error)) {
+        throw new Error(
+          'Bedrock strict open-schema request reached the service and failed with HTTP 400',
+        );
+      }
+
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).message).toContain('strict');
+      expect((error as Error).message).toContain('additionalProperties');
+    }
   });
 
   describe('legacy Anthropic model capabilities', () => {
