@@ -17,6 +17,7 @@ type GoogleRealtimeFunctionCall = {
 
 type GoogleRealtimeServerContent = {
   generationComplete?: boolean;
+  interactionStatus?: string;
   interrupted?: boolean;
   modelTurn?: {
     parts?: Array<{
@@ -27,6 +28,7 @@ type GoogleRealtimeServerContent = {
   outputTranscription?: { text?: string };
   inputTranscription?: { text?: string };
   turnComplete?: boolean;
+  waitingForInput?: boolean;
 };
 
 type GoogleRealtimeWireEvent = {
@@ -232,6 +234,30 @@ export class GoogleRealtimeEventMapper {
       });
     }
 
+    // `interactionStatus` (IN_PROGRESS | IDLE) is the definitive
+    // session-activity signal for background-reasoning models: `turnComplete`
+    // no longer implies the model is idle, since asynchronous tool calls and
+    // audio may still follow. Surface it as a custom event so clients can
+    // coordinate state on it.
+    if (serverContent.interactionStatus != null) {
+      events.push({
+        type: 'custom',
+        rawType: 'interactionStatus',
+        raw,
+      });
+    }
+
+    // `waitingForInput` is the always-on Proactive Audio turn-taking signal:
+    // the model has yielded the floor and is not generating because it
+    // expects the user to continue.
+    if (serverContent.waitingForInput) {
+      events.push({
+        type: 'custom',
+        rawType: 'waitingForInput',
+        raw,
+      });
+    }
+
     if (serverContent.turnComplete) {
       if (this.hasAudio) {
         events.push({
@@ -389,6 +415,11 @@ export function buildGoogleSessionConfig(
     model: getModelPath(modelId),
   };
 
+  const { google, ...restProviderOptions } = config?.providerOptions ?? {};
+  const googleOptions = isRecord(google)
+    ? (google as GoogleRealtimeModelOptions)
+    : undefined;
+
   const generationConfig: Record<string, unknown> = {};
 
   if (config?.outputModalities != null) {
@@ -424,6 +455,9 @@ export function buildGoogleSessionConfig(
           name: tool.name,
           description: tool.description,
           parametersJsonSchema: tool.parameters,
+          ...(googleOptions?.defaultToolBehavior != null
+            ? { behavior: googleOptions.defaultToolBehavior }
+            : {}),
         })),
       },
     ];
@@ -441,12 +475,7 @@ export function buildGoogleSessionConfig(
     return setup;
   }
 
-  const { google, ...providerOptions } = config.providerOptions;
-  Object.assign(setup, providerOptions);
-
-  const googleOptions = isRecord(google)
-    ? (google as GoogleRealtimeModelOptions)
-    : undefined;
+  Object.assign(setup, restProviderOptions);
 
   if (googleOptions?.translationConfig != null) {
     const target = isRecord(setup.generationConfig)
@@ -455,6 +484,16 @@ export function buildGoogleSessionConfig(
     setup.generationConfig = {
       ...target,
       translationConfig: googleOptions.translationConfig,
+    };
+  }
+
+  if (googleOptions?.thinkingConfig != null) {
+    const target = isRecord(setup.generationConfig)
+      ? setup.generationConfig
+      : generationConfig;
+    setup.generationConfig = {
+      ...target,
+      thinkingConfig: googleOptions.thinkingConfig,
     };
   }
 

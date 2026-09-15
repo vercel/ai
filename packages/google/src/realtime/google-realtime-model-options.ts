@@ -20,4 +20,43 @@ export type GoogleRealtimeModelOptions = {
      */
     echoTargetLanguage?: boolean;
   };
+
+  /**
+   * Gemini Live thinking configuration.
+   *
+   * Supported by Live models with background reasoning (e.g.
+   * `gemini-3.8-live-extended-thinking`), which can process multi-step
+   * reasoning and function calls while streaming audio responses. Not
+   * supported by latency-optimized models (e.g. `gemini-3.8-live`).
+   */
+  thinkingConfig?: {
+    /**
+     * Thinking effort level. `gemini-3.8-live-extended-thinking` requires
+     * exactly one of `thinkingLevel` or `thinkingBudget`; the setup is
+     * rejected with neither or both.
+     */
+    thinkingLevel?: 'LOW' | 'MEDIUM' | 'HIGH';
+
+    /**
+     * Token budget for background thinking. Mutually exclusive with
+     * `thinkingLevel`.
+     */
+    thinkingBudget?: number;
+
+    /**
+     * Whether thought summaries should be included in the response.
+     */
+    includeThoughts?: boolean;
+  };
+
+  /**
+   * Default `behavior` stamped onto every function declaration in the
+   * session setup.
+   *
+   * Gemini 3.8 Live models default to `NON_BLOCKING` (asynchronous) function
+   * calling. Set to `BLOCKING` for backwards-compatible synchronous calls on
+   * models that still support it (e.g. `gemini-3.8-live`); reasoning models
+   * (e.g. `gemini-3.8-live-extended-thinking`) hard-error on `BLOCKING`.
+   */
+  defaultToolBehavior?: 'BLOCKING' | 'NON_BLOCKING';
 };
