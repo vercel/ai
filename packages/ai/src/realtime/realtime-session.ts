@@ -69,6 +69,7 @@ export abstract class AbstractRealtimeSession {
   private pcm?: BrowserRealtimeLiveWebSocket;
   private suppliedStream?: MediaStream;
   private captureGeneration = 0;
+  private captureRequested = false;
   private currentResponseItemId: string | null = null;
   private readonly toolCallsInResponse = new Set<string>();
   private readonly submittedToolOutputs = new Set<string>();
@@ -148,7 +149,17 @@ export abstract class AbstractRealtimeSession {
       if (!current()) return;
       this.validateConnection();
       const { model, api, sessionConfig } = this.options;
-      this.suppliedStream = connectOptions?.stream;
+      if (connectOptions?.capture === false) this.stopAudioCapture();
+      if (!current()) return;
+      if (
+        connectOptions?.stream != null &&
+        connectOptions.stream !== this.suppliedStream
+      ) {
+        if (this.captureRequested && !this.sessionLifecycle && !this.continuous)
+          this.startAudioCapture(connectOptions.stream);
+        else this.suppliedStream = connectOptions.stream;
+      }
+      if (!current()) return;
       this.reducer = new RealtimeEventReducer(this.maxEvents);
       this.currentResponseItemId = null;
       this.toolCallsInResponse.clear();
@@ -158,8 +169,13 @@ export abstract class AbstractRealtimeSession {
         this.applyState({ ...this.state, session: createSessionState() });
       if (!current()) return;
       this.commands = new RealtimeCommandTracker(event => {
-        if (!current()) throw new Error('Realtime connection is closed');
-        return this.sendTransport(event, current);
+        const writable = () =>
+          current() &&
+          !attempt.transportClosing &&
+          attempt.cause == null &&
+          (!attempt.closing || event.type === 'session-close');
+        if (!writable()) throw new Error('Realtime connection is closed');
+        return this.sendTransport(event, writable);
       });
       attempt.timer('startup', this.options.startupTimeoutMs ?? 30_000, () => {
         if (current())
@@ -184,11 +200,16 @@ export abstract class AbstractRealtimeSession {
         },
         onClosing: () => {
           if (!current()) return;
-          attempt.closing = true;
+          attempt.beginClose();
           attempt.transportClosing = true;
           attempt.clearTimer('startup');
           attempt.clearTimer('close');
-          this.applyState({ ...this.state, status: 'closing' });
+          this.stopAudioCapture();
+          if (!current()) return;
+          this.applyState({
+            ...this.state,
+            status: attempt.cause == null ? 'closing' : 'error',
+          });
         },
         onClose: (error?: Error) => {
           if (!current()) return;
@@ -196,7 +217,7 @@ export abstract class AbstractRealtimeSession {
             model.capabilities?.finalization === 'session-close' &&
             this.state.session?.finalization === 'confirmed';
           if (error != null && !finalizationConfirmed) this.fail(error);
-          else if (!attempt.ready)
+          else if (!attempt.ready && !finalizationConfirmed)
             this.fail(
               new Error('Realtime connection closed before becoming ready'),
             );
@@ -226,22 +247,7 @@ export abstract class AbstractRealtimeSession {
           capture: connectOptions?.capture,
         });
       } else {
-        this.audio = new BrowserRealtimeAudio({
-          captureSampleRate:
-            sessionConfig?.inputAudioFormat?.rate ??
-            this.options.sampleRate ??
-            24000,
-          playbackSampleRate:
-            sessionConfig?.outputAudioFormat?.rate ??
-            this.options.sampleRate ??
-            24000,
-          onAudio: audio => {
-            if (current()) this.sendAutomaticAudio(audio);
-          },
-          onError: callbacks.onError,
-          onCapturingChange: callbacks.onCapturing,
-          onPlayingChange: callbacks.onPlaying,
-        });
+        this.ensureAudio();
         let config: RealtimeSessionConfig = sessionConfig ?? {};
         let token: string | undefined;
         let url = api.websocket;
@@ -252,6 +258,7 @@ export abstract class AbstractRealtimeSession {
             body: JSON.stringify({ sessionConfig }),
             signal: attempt.abort.signal,
           });
+          if (!current()) return;
           if (!response.ok)
             throw new Error(
               `Failed to fetch realtime setup: ${response.status}`,
@@ -259,7 +266,7 @@ export abstract class AbstractRealtimeSession {
           const payload: unknown = await response.json().catch(() => {
             throw new Error('Invalid realtime setup response');
           });
-          if (!current()) return;
+          if (!current() || attempt.closing) return;
           const setup = validateRealtimeSetup(payload);
           token = setup.token;
           url = setup.url;
@@ -271,7 +278,7 @@ export abstract class AbstractRealtimeSession {
         if (url == null) throw new Error('Realtime WebSocket URL is missing');
         if (api.token != null && token == null)
           throw new Error('Realtime client-secret connection requires a token');
-        this.audio.ensurePlaybackContext();
+        this.ensureAudio().ensurePlaybackContext();
         if (!current()) return;
         this.transport = new BrowserRealtimeTransport({
           ...callbacks,
@@ -283,13 +290,15 @@ export abstract class AbstractRealtimeSession {
             : { mode: 'relay' as const, protocols: api.protocols }),
           url,
           onOpen: () => {
-            if (!current()) return;
+            const writable = () =>
+              current() && !attempt.closing && attempt.cause == null;
+            if (!writable()) return;
             return this.sendTransport(
               {
                 type: model.capabilities?.startup ?? 'session-update',
                 config,
               },
-              current,
+              writable,
             );
           },
         });
@@ -347,6 +356,7 @@ export abstract class AbstractRealtimeSession {
   disconnect(): void {
     const attempt = this.attempt;
     this.captureGeneration++;
+    this.captureRequested = false;
     this.suppliedStream = undefined;
     const transport = this.transport;
     const audio = this.audio;
@@ -392,9 +402,11 @@ export abstract class AbstractRealtimeSession {
     if (options?.eventId != null) this.commands?.validateId(options.eventId);
     const promise = attempt.beginClose();
     this.applyState({ ...this.state, status: 'closing' });
-    if (this.attempt !== attempt || !attempt.active) return promise;
+    if (this.attempt !== attempt || !attempt.active || attempt.transportClosing)
+      return promise;
     this.stopAudioCapture();
-    if (this.attempt !== attempt || !attempt.active) return promise;
+    if (this.attempt !== attempt || !attempt.active || attempt.transportClosing)
+      return promise;
     attempt.timer('close', this.options.closeTimeoutMs ?? 15_000, () =>
       this.finishAttempt(attempt),
     );
@@ -412,9 +424,12 @@ export abstract class AbstractRealtimeSession {
   private sendTransport(
     event: RealtimeClientEvent,
     guard?: () => boolean,
+    automaticAudio = false,
   ): Promise<void> {
     const transport = this.pcm ?? this.transport;
     if (transport == null) throw new Error('Realtime connection is not open');
+    if (transport === this.transport)
+      return this.transport.sendEvent(event, guard, automaticAudio);
     return transport.sendEvent(event, guard);
   }
 
@@ -422,6 +437,7 @@ export abstract class AbstractRealtimeSession {
     if (
       this.state.status === 'error' ||
       this.state.status === 'closing' ||
+      this.attempt?.closing ||
       !this.attempt?.active
     )
       throw new Error('Realtime session is not accepting submissions');
@@ -440,8 +456,17 @@ export abstract class AbstractRealtimeSession {
       return this.close({ eventId: event.eventId });
     if (event.type === 'session-start' && this.sessionLifecycle)
       throw new Error('Realtime session has already started');
-    if (!this.sessionLifecycle && this.state.session == null)
-      return this.sendTransport(event);
+    if (!this.sessionLifecycle && this.state.session == null) {
+      const attempt = this.attempt;
+      return this.sendTransport(
+        event,
+        () =>
+          this.attempt === attempt &&
+          attempt.active &&
+          !attempt.closing &&
+          attempt.cause == null,
+      );
+    }
     return this.commands?.send(event) ?? this.sendTransport(event);
   }
 
@@ -460,7 +485,11 @@ export abstract class AbstractRealtimeSession {
   }
 
   sendAudio(audio: string): void {
-    this.sendEvent({ type: 'input-audio-append', audio });
+    const attempt = this.attempt;
+    void this.sendEvent({ type: 'input-audio-append', audio }).catch(error => {
+      if (attempt?.active && this.attempt === attempt)
+        void this.reportError(error, attempt);
+    });
   }
   commitAudio(): void {
     this.sendEvent({ type: 'input-audio-commit' });
@@ -479,13 +508,23 @@ export abstract class AbstractRealtimeSession {
   }
 
   private sendAutomaticAudio(audio: string): void {
-    if (this.state.status === 'connecting') return;
+    if (
+      this.state.status !== 'connected' ||
+      !this.attempt?.active ||
+      this.attempt.closing
+    )
+      return;
     const attempt = this.attempt;
     const failed = (error: unknown) => {
-      if (attempt?.active && this.attempt === attempt) this.fail(error);
+      if (attempt?.active && this.attempt === attempt && !attempt.closing)
+        this.fail(error);
     };
     try {
-      void this.sendEvent({ type: 'input-audio-append', audio }).catch(failed);
+      void this.sendTransport(
+        { type: 'input-audio-append', audio },
+        () => this.attempt === attempt && attempt.active && !attempt.closing,
+        true,
+      ).catch(failed);
     } catch (error) {
       failed(error);
     }
@@ -498,6 +537,8 @@ export abstract class AbstractRealtimeSession {
           'addToolOutput for continuous sessions; client delegation is application-owned',
       });
     const attempt = this.attempt;
+    if (!attempt?.active || attempt.closing || attempt.cause != null)
+      throw new Error('Realtime session is not accepting submissions');
     const { state, output } = this.reducer.addToolOutput(
       this.state,
       callId,
@@ -516,6 +557,7 @@ export abstract class AbstractRealtimeSession {
   private maybeRequestToolResponse(): void {
     if (
       this.state.status !== 'connected' ||
+      this.attempt?.closing ||
       !this.responseToolCallsClosed ||
       this.toolCallsInResponse.size === 0 ||
       [...this.toolCallsInResponse].some(
@@ -530,7 +572,21 @@ export abstract class AbstractRealtimeSession {
   }
 
   startAudioCapture(stream: MediaStream): void {
+    const legacy = !this.sessionLifecycle && !this.continuous;
+    if (!legacy && this.state.status !== 'connected')
+      throw new Error('Realtime session is not accepting capture');
+    if (
+      this.attempt?.active &&
+      (this.attempt.closing || this.attempt.cause != null)
+    )
+      throw new Error('Realtime session is not accepting capture');
     this.suppliedStream = stream;
+    if (legacy) {
+      this.captureGeneration++;
+      this.captureRequested = true;
+      this.ensureAudio().startCapture(stream);
+      return;
+    }
     const attempt = this.attempt;
     void this.resumeAudioCapture().catch(error => {
       if (attempt?.active) void this.reportError(error, attempt);
@@ -539,10 +595,13 @@ export abstract class AbstractRealtimeSession {
 
   async resumeAudioCapture(): Promise<void> {
     const accepting = () =>
-      this.state.status === 'connected' ||
-      (!this.sessionLifecycle && this.state.status === 'connecting');
+      !this.attempt?.closing &&
+      this.attempt?.cause == null &&
+      (this.state.status === 'connected' ||
+        (!this.sessionLifecycle && this.state.status === 'connecting'));
     if (!accepting())
       throw new Error('Realtime session is not accepting capture');
+    this.captureRequested = true;
     if (this.pcm != null) return this.pcm.resumeCapture(this.suppliedStream);
     const audio = this.audio;
     if (audio == null)
@@ -554,6 +613,8 @@ export abstract class AbstractRealtimeSession {
       supplied ?? (await navigator.mediaDevices.getUserMedia({ audio: true }));
     if (
       !attempt?.active ||
+      this.attempt !== attempt ||
+      this.audio !== audio ||
       !accepting() ||
       captureGeneration !== this.captureGeneration
     ) {
@@ -561,13 +622,20 @@ export abstract class AbstractRealtimeSession {
       return;
     }
     audio.startCapture(stream, {
-      ownsStream: supplied == null || this.options.api.token != null,
+      ownsStream:
+        supplied == null ||
+        !this.sessionLifecycle ||
+        this.options.api.token != null,
     });
   }
 
   stopAudioCapture(): void {
     this.captureGeneration++;
-    if (this.audio != null && this.options.api.token != null)
+    this.captureRequested = false;
+    if (
+      this.audio != null &&
+      (!this.sessionLifecycle || this.options.api.token != null)
+    )
       this.suppliedStream = undefined;
     const pcm = this.pcm;
     const audio = this.audio;
@@ -582,6 +650,33 @@ export abstract class AbstractRealtimeSession {
   }
   dispose(): void {
     this.disconnect();
+  }
+
+  private ensureAudio(): BrowserRealtimeAudio {
+    if (this.audio != null) return this.audio;
+    const { sessionConfig, sampleRate } = this.options;
+    const audio = new BrowserRealtimeAudio({
+      captureSampleRate:
+        sessionConfig?.inputAudioFormat?.rate ?? sampleRate ?? 24000,
+      playbackSampleRate:
+        sessionConfig?.outputAudioFormat?.rate ?? sampleRate ?? 24000,
+      onAudio: value => {
+        if (this.audio === audio) this.sendAutomaticAudio(value);
+      },
+      onError: error => {
+        if (this.audio !== audio) return;
+        void this.reportError(error, this.attempt);
+      },
+      onCapturingChange: isCapturing => {
+        if (this.audio === audio)
+          this.applyState({ ...this.state, isCapturing });
+      },
+      onPlayingChange: isPlaying => {
+        if (this.audio === audio) this.applyState({ ...this.state, isPlaying });
+      },
+    });
+    this.audio = audio;
+    return audio;
   }
 
   private applyState(nextState: RealtimeState): void {
@@ -729,7 +824,7 @@ export abstract class AbstractRealtimeSession {
           const itemId = this.currentResponseItemId;
           this.audio?.stopPlayback();
           if (this.attempt !== attempt || !attempt.active) return;
-          if (itemId != null)
+          if (itemId != null && !attempt.closing && attempt.cause == null)
             this.sendEvent({
               type: 'conversation-item-truncate',
               itemId,
@@ -751,7 +846,7 @@ export abstract class AbstractRealtimeSession {
 
   private async reportError(
     error: unknown,
-    attempt: RealtimeAttempt,
+    attempt?: RealtimeAttempt,
   ): Promise<void> {
     if (this.attempt !== attempt) return;
     try {
