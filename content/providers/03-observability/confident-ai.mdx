@@ -7,16 +7,16 @@ description: Trace and Evaluate your LLM applications using Confident AI
 
 [Confident AI](https://confident-ai.com/) is an LLM observability and evaluation platform for teams to build reliable AI applications in both development and production.
 
-The `deepeval-ts` package integrates with the AI SDK to provide tracing, online evaluations, and session analytics.
+The `deepeval` package integrates with the AI SDK to provide tracing, online evaluations, and session analytics.
 
 ## Setup
 
-To enable tracing, install `deepeval-ts`, configure your API key, and register the Confident AI integration globally.
+To enable tracing, install `deepeval`, configure your API key, and register the Confident AI integration globally.
 
-### 1. Install deepeval-ts
+### 1. Install deepeval
 
 ```bash
-npm install deepeval-ts @ai-sdk/otel
+npm install deepeval @ai-sdk/otel
 ```
 
 ### 2. Set Environment Variables
@@ -34,7 +34,7 @@ Register the `LegacyOpenTelemetry` globally at application startup so the AI SDK
 ```typescript
 import { registerTelemetry } from 'ai';
 import { LegacyOpenTelemetry } from '@ai-sdk/otel';
-import { configureAiSdkTracing } from 'deepeval-ts';
+import { configureAiSdkTracing } from 'deepeval';
 
 configureAiSdkTracing();
 registerTelemetry(new LegacyOpenTelemetry());
@@ -52,7 +52,7 @@ Here are some of the examples on how to trace various AI SDK functions using Con
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { LegacyOpenTelemetry } from '@ai-sdk/otel';
-import { configureAiSdkTracing } from 'deepeval-ts';
+import { configureAiSdkTracing } from 'deepeval';
 
 const tracer = configureAiSdkTracing();
 
@@ -71,7 +71,7 @@ const { text } = await generateText({
 import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { LegacyOpenTelemetry } from '@ai-sdk/otel';
-import { configureAiSdkTracing } from 'deepeval-ts';
+import { configureAiSdkTracing } from 'deepeval';
 
 const tracer = configureAiSdkTracing();
 
@@ -95,7 +95,7 @@ import { generateText, tool, isStepCount } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { LegacyOpenTelemetry } from '@ai-sdk/otel';
-import { configureAiSdkTracing } from 'deepeval-ts';
+import { configureAiSdkTracing } from 'deepeval';
 
 const tracer = configureAiSdkTracing();
 
@@ -128,7 +128,7 @@ import { generateObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { LegacyOpenTelemetry } from '@ai-sdk/otel';
-import { configureAiSdkTracing } from 'deepeval-ts';
+import { configureAiSdkTracing } from 'deepeval';
 
 const tracer = configureAiSdkTracing();
 
@@ -171,7 +171,7 @@ You can pass attributes like `name`, `threadId`, `userId` and `environment` to m
 import { registerTelemetry, generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { LegacyOpenTelemetry } from '@ai-sdk/otel';
-import { configureAiSdkTracing } from 'deepeval-ts';
+import { configureAiSdkTracing } from 'deepeval';
 
 const tracer = configureAiSdkTracing({
   name: 'AI SDK Confident AI Tracing',
@@ -196,7 +196,7 @@ If you use Confident AI Prompt Management, you can associate traces with a speci
 import { registerTelemetry, generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { LegacyOpenTelemetry } from '@ai-sdk/otel';
-import { configureAiSdkTracing, Prompt } from 'deepeval-ts';
+import { configureAiSdkTracing, Prompt } from 'deepeval';
 
 const prompt = new Prompt({ alias: 'my-prompt-alias' });
 await prompt.pull();
@@ -236,7 +236,7 @@ Here's an example of how to attach metric collections to your traces:
 import { registerTelemetry, generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { LegacyOpenTelemetry } from '@ai-sdk/otel';
-import { configureAiSdkTracing } from 'deepeval-ts';
+import { configureAiSdkTracing } from 'deepeval';
 
 const tracer = configureAiSdkTracing({
   metricCollection: 'my-trace-metrics',
@@ -253,7 +253,7 @@ const { text } = await generateText({
 
 All incoming traces will now be evaluated automatically. Evaluation results are visible in the Confident AI Observatory alongside your traces.
 
-You can find a more comprehensive guide on AI SDK tracing with `deepeval-ts` in the [Confident AI docs here](https://www.confident-ai.com/docs/integrations/third-party/vercel-ai-sdk).
+You can find a more comprehensive guide on AI SDK tracing with `deepeval` in the [Confident AI docs here](https://www.confident-ai.com/docs/integrations/third-party/vercel-ai-sdk).
 
 ## Learn More
 
