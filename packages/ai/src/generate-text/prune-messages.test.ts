@@ -408,15 +408,6 @@ describe('pruneMessages', () => {
             {
               "content": [
                 {
-                  "text": "I need to get the weather in Tokyo and Busan.",
-                  "type": "reasoning",
-                },
-              ],
-              "role": "assistant",
-            },
-            {
-              "content": [
-                {
                   "text": "I have got the weather in Tokyo and Busan.",
                   "type": "reasoning",
                 },
@@ -909,6 +900,131 @@ describe('pruneMessages', () => {
           ]
         `);
       });
+    });
+  });
+
+  describe('orphaned reasoning parts (issue #13430)', () => {
+    const reasoningToolCallFixture: ModelMessage[] = [
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Are there any errors?' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'Let me check for errors...',
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'checkSandboxErrors',
+            input: '{}',
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'checkSandboxErrors',
+            output: { type: 'text', value: 'no errors' },
+          },
+        ],
+      },
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Everything looks good.' }],
+      },
+    ];
+
+    it('should remove assistant messages left with only reasoning parts after pruning tool calls', () => {
+      const result = pruneMessages({
+        messages: reasoningToolCallFixture,
+        toolCalls: 'all',
+      });
+
+      // The assistant message that only had a reasoning part and a (pruned)
+      // tool call must be dropped, otherwise providers like Anthropic reject
+      // the conversation because the message has no non-reasoning content.
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Are there any errors?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "text": "Everything looks good.",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+
+      const hasReasoningOnlyAssistantMessage = result.some(
+        message =>
+          message.role === 'assistant' &&
+          typeof message.content !== 'string' &&
+          message.content.length > 0 &&
+          message.content.every(part => part.type === 'reasoning'),
+      );
+      expect(hasReasoningOnlyAssistantMessage).toBe(false);
+    });
+
+    it('should keep reasoning-only assistant messages when emptyMessages is "keep"', () => {
+      const result = pruneMessages({
+        messages: reasoningToolCallFixture,
+        toolCalls: 'all',
+        emptyMessages: 'keep',
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Are there any errors?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "text": "Let me check for errors...",
+                "type": "reasoning",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [],
+            "role": "tool",
+          },
+          {
+            "content": [
+              {
+                "text": "Everything looks good.",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
     });
   });
 });
