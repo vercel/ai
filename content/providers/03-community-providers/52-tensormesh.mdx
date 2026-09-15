@@ -1,0 +1,142 @@
+---
+title: Tensormesh
+description: Tensormesh provider for the AI SDK.
+---
+
+# Tensormesh Provider
+
+[Tensormesh](https://tensormesh.ai) provides serverless and on-demand inference for open models through OpenAI-compatible APIs. The
+[`@tensormesh/ai-sdk-provider`](https://www.npmjs.com/package/@tensormesh/ai-sdk-provider) package integrates Tensormesh with the AI SDK.
+
+## Setup
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add ai @tensormesh/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install ai @tensormesh/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add ai @tensormesh/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add ai @tensormesh/ai-sdk-provider" dark />
+  </Tab>
+</Tabs>
+
+Set your Tensormesh inference API key:
+
+```bash
+export TENSORMESH_INFERENCE_API_KEY=your_api_key
+```
+
+## Provider Instance
+
+```ts
+import { tensormesh } from '@tensormesh/ai-sdk-provider';
+```
+
+For custom settings, use `createTensormesh`:
+
+```ts
+import { createTensormesh } from '@tensormesh/ai-sdk-provider';
+
+const tm = createTensormesh({
+  apiKey: process.env.TENSORMESH_INFERENCE_API_KEY,
+});
+```
+
+## Serverless Usage
+
+```ts
+import { generateText } from 'ai';
+import { tensormesh } from '@tensormesh/ai-sdk-provider';
+
+const { text } = await generateText({
+  model: tensormesh('mistralai/Devstral-2-123B-Instruct-2512'),
+  prompt: 'Explain Tensormesh in one sentence.',
+});
+```
+
+## Streaming
+
+```ts
+import { streamText } from 'ai';
+import { tensormesh } from '@tensormesh/ai-sdk-provider';
+
+const result = streamText({
+  model: tensormesh('mistralai/Devstral-2-123B-Instruct-2512'),
+  prompt: 'Count from 1 to 5.',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+## On-Demand Usage
+
+```ts
+import { generateText } from 'ai';
+import { createTensormesh } from '@tensormesh/ai-sdk-provider';
+
+const tm = createTensormesh({
+  baseURL: 'https://YOUR_ON_DEMAND_BASE_URL/v1',
+  userId: process.env.TENSORMESH_USER_ID,
+});
+
+const { text } = await generateText({
+  model: tm('your-served-model-name'),
+  prompt: 'Explain on-demand inference in one sentence.',
+});
+```
+
+## Completion Models
+
+```ts
+import { generateText } from 'ai';
+import { tensormesh } from '@tensormesh/ai-sdk-provider';
+
+const { text } = await generateText({
+  model: tensormesh.completionModel('openai/gpt-oss-20b'),
+  prompt: 'Complete this sentence: Tensormesh is',
+});
+```
+
+## Raw Inference Helpers
+
+```ts
+const models = await tensormesh.models.list();
+
+const response = await tensormesh.responses.create({
+  model: 'openai/gpt-oss-20b',
+  input: 'Say hello.',
+});
+
+const tokens = await tensormesh.tokenize.create({
+  model: 'openai/gpt-oss-20b',
+  prompt: 'Hello!',
+});
+
+const text = await tensormesh.detokenize.create({
+  model: 'openai/gpt-oss-20b',
+  tokens: tokens.tokens,
+});
+
+const health = await tensormesh.health.get();
+const version = await tensormesh.version.get();
+```
+
+## Model Capabilities
+
+- Text generation, streaming, structured outputs, and tool calling are validated on the current eight serverless models.
+- Tool calling is validated through both `/v1/chat/completions` and `/v1/responses`.
+- GPT OSS models should use `tool_choice: "auto"` for tool-calling requests.
+- On-demand deployments use the served gateway model name exposed by your deployment.
+
+## Additional Resources
+
+- [Tensormesh provider on npm](https://www.npmjs.com/package/@tensormesh/ai-sdk-provider)
+- [Tensormesh provider repository](https://github.com/Tensormesh-Production/tensormesh-ai-sdk-provider)
+- [Tensormesh](https://tensormesh.ai)
