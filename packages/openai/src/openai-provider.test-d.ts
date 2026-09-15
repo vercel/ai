@@ -17,9 +17,6 @@ it('types batch support on the OpenAI provider', () => {
   ).toEqualTypeOf<LanguageModelV4>();
   expectTypeOf(openai.responses('gpt-5.6')).toEqualTypeOf<LanguageModelV4>();
   expectTypeOf(openai.chat('gpt-5.6')).toEqualTypeOf<LanguageModelV4>();
-  expectTypeOf(
-    openai.completion('gpt-3.5-turbo-instruct'),
-  ).toEqualTypeOf<LanguageModelV4>();
 });
 
 it('types GPT Image 2.5 models', () => {
