@@ -1,13 +1,13 @@
 /**
  * WorkflowAgent compatibility test suite — ported from AI SDK's ToolLoopAgent tests.
  *
- * These tests are a 1:1 port of tool-loop-agent.test.ts (stream tests only).
- * They use the SAME API names as ToolLoopAgent to serve as a compatibility spec.
- * Tests that fail are expected — they indicate features WorkflowAgent must implement.
+ * These passing tests adapt ToolLoopAgent's stream tests to WorkflowAgent and
+ * cover shared option names, callbacks, and tool behavior. See
+ * workflow-agent-contract.test.ts for matched core-generate/Workflow-stream
+ * fixtures and contributing/workflow-agent-compatibility.md for intended parity.
  *
  * DIVERGENCES from ToolLoopAgent (necessary for workflow runtime):
- * - WorkflowAgent.stream() requires `messages` (ModelMessage[]) + `writable` (WritableStream)
- *   instead of ToolLoopAgent's `prompt` string
+ * - WorkflowAgent.stream() accepts `prompt` or `messages` and an optional writable.
  * - WorkflowAgent returns WorkflowAgentStreamResult (not StreamTextResult with consumeStream())
  */
 import {
@@ -28,7 +28,7 @@ import { WorkflowAgent } from './workflow-agent.js';
 
 /**
  * Creates a mock WritableStream for WorkflowAgent.stream().
- * DIVERGENCE: WorkflowAgent requires a writable stream; ToolLoopAgent does not.
+ * WorkflowAgent writes chunks to an optional writable instead of returning a reader.
  */
 function createMockWritable() {
   const chunks: Experimental_LanguageModelStreamPart<ToolSet>[] = [];
