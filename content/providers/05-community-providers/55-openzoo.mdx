@@ -1,0 +1,83 @@
+---
+title: OpenZoo
+description: Learn how to use the OpenZoo provider for the AI SDK.
+---
+
+# OpenZoo Provider
+
+The [OpenZoo](https://openzoo.fun) provider gives access to pay-per-call,
+OpenAI-compatible inference with no account. A small local proxy
+(`npx openzoo`) pays for each request over x402 from a local burner wallet,
+and the provider talks to that proxy at `http://localhost:8402/v1`.
+
+## Setup
+
+The OpenZoo provider is available via the
+[`openzoo-ai-provider`](https://www.npmjs.com/package/openzoo-ai-provider)
+module. You can install it with:
+
+<InstallPackages packages="openzoo-ai-provider" />
+
+Then start the local proxy:
+
+```bash
+npx openzoo
+```
+
+`npx openzoo address` prints the proxy's wallet — fund it with USDC on Solana
+or Base; `npx openzoo balance` shows what is left.
+
+### Credentials
+
+No signup exists. The local proxy ignores the API key, so the provider sends
+the literal `sk-openzoo` unless `OPENZOO_API_KEY` is set. The model list is
+free to query at `http://localhost:8402/v1/models`.
+
+## Provider Instance
+
+Create a provider instance pointed at the local proxy with `createOpenZoo`:
+
+```ts
+import { createOpenZoo } from 'openzoo-ai-provider';
+
+const openzoo = createOpenZoo({
+  baseURL: 'http://localhost:8402/v1',
+});
+```
+
+The default instance exported as `openzoo` targets the hosted endpoint
+`https://api.openzoo.fun/v1`, which answers HTTP 402 unless the caller pays
+x402 or presents an OpenZoo subscription key (`ozk_live_…` in
+`OPENZOO_API_KEY`). Without a subscription key, use the local proxy as above.
+
+## Language Models
+
+You can create language models using a provider instance. The first argument is
+the model id. `auto` lets the proxy pick a model per request; bare ids such as
+`claude-sonnet-5` or `gpt-4o-mini` select one model:
+
+```ts
+const model = openzoo('auto');
+```
+
+### Example
+
+You can use OpenZoo language models to generate text with the `generateText`
+function:
+
+```ts
+import { createOpenZoo } from 'openzoo-ai-provider';
+import { generateText } from 'ai';
+
+const openzoo = createOpenZoo({ baseURL: 'http://localhost:8402/v1' });
+
+const { text } = await generateText({
+  model: openzoo('auto'),
+  prompt: 'Say this is a test',
+});
+
+console.log(text);
+```
+
+OpenZoo language models can also be used with `streamText` (SSE streaming is
+supported).
