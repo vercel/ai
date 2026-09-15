@@ -176,8 +176,8 @@ The error preserves the following information to help you log the issue:
 
 ```ts
 import {
+  AISDKError,
   experimental_transcribe as transcribe,
-  NoTranscriptGeneratedError,
 } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { readFile } from 'fs/promises';
@@ -188,10 +188,12 @@ try {
     audio: await readFile('audio.mp3'),
   });
 } catch (error) {
-  if (NoTranscriptGeneratedError.isInstance(error)) {
+  if (
+    AISDKError.isInstance(error) &&
+    error.name === 'AI_NoTranscriptGeneratedError'
+  ) {
     console.log('NoTranscriptGeneratedError');
     console.log('Cause:', error.cause);
-    console.log('Responses:', error.responses);
   }
 }
 ```
