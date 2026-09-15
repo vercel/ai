@@ -1,5 +1,12 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.113
+
+### Patch Changes
+
+- 92c3974: fix(harness-opencode): preserve host tool enum constraints and default metadata
+  - @ai-sdk/harness@1.0.111
+
 ## 1.0.112
 
 ### Patch Changes
