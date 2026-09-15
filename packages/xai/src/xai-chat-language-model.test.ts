@@ -337,6 +337,7 @@ describe('XaiChatLanguageModel', () => {
                 "name": "test-tool",
                 "parameters": {
                   "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
                   "properties": {
                     "value": {
                       "type": "string",
@@ -1817,6 +1818,45 @@ describe('XaiChatLanguageModel', () => {
           " said",
         ]
       `);
+    });
+
+    it('should keep reasoning active when deltas include empty tool calls', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+            `"choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"Think ","tool_calls":[]},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+            `"choices":[{"index":0,"delta":{"content":"","reasoning_content":"more...","tool_calls":[]},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+            `"choices":[{"index":0,"delta":{"content":"Hello","reasoning_content":"","tool_calls":[]},"finish_reason":"stop"}]}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await reasoningModel.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      expect(
+        events.filter(({ type }) => type.startsWith('reasoning-')),
+      ).toStrictEqual([
+        { type: 'reasoning-start', id: 'reasoning-chatcmpl-test' },
+        {
+          type: 'reasoning-delta',
+          id: 'reasoning-chatcmpl-test',
+          delta: 'Think ',
+        },
+        {
+          type: 'reasoning-delta',
+          id: 'reasoning-chatcmpl-test',
+          delta: 'more...',
+        },
+        { type: 'reasoning-end', id: 'reasoning-chatcmpl-test' },
+      ]);
     });
 
     it('should deduplicate repetitive reasoning deltas', async () => {

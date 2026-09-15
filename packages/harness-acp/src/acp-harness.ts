@@ -1,11 +1,13 @@
 import {
   HARNESS_V1_BUILTIN_TOOLS,
   type HarnessV1,
+  type HarnessV1CredentialForwarding,
+  type HarnessV1MintBridgeTokenCallback,
   type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import type { ACPClientApp } from './acp-auth';
+import type { ACPAuthenticationMode, ACPClientApp } from './acp-auth';
 import type { ACPToolCall } from './acp-tool-call';
 import {
   createACPV1,
@@ -46,19 +48,21 @@ export type ACPHarnessSettings<
   readonly clientApp?: ACPClientApp;
   readonly version?: ACPV1Settings['version'];
   readonly harnessId: ACPV1Settings['harnessId'];
-  readonly auth?: ACPV1Settings['auth'];
+  readonly auth?: ACPAuthenticationMode;
+  readonly resolveAuthenticationEnvironment?: ACPV1Settings['resolveAuthenticationEnvironment'];
   readonly source: ACPV1Settings['source'];
   readonly executable: ACPV1Settings['executable'];
   readonly args?: ACPV1Settings['args'];
   readonly forwardEnv?: ACPV1Settings['forwardEnv'];
   readonly credentialEnv?: ACPV1Settings['credentialEnv'];
   readonly credentialBrokering?: ACPV1Settings['credentialBrokering'];
+  readonly authenticationFiles?: ACPV1Settings['authenticationFiles'];
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can
    * discover, read, or otherwise access in the host process.
    */
-  readonly credentialForwarding?: ACPV1Settings['credentialForwarding'];
+  readonly credentialForwarding?: HarnessV1CredentialForwarding;
   readonly env?: ACPV1Settings['env'];
   readonly authentication?: ACPV1Settings['authentication'];
   readonly clientCapabilities?: ACPV1Settings['clientCapabilities'];
@@ -67,17 +71,21 @@ export type ACPHarnessSettings<
    * Maps the HarnessAgent model identifier to an ACP session operation.
    */
   readonly modelMapping: ACPV1Settings['modelMapping'];
-  /**
-   * @deprecated Use `model` on `HarnessAgent` instead.
-   */
-  readonly modelId?: ACPV1Settings['modelId'];
   readonly skillsDirectory?: ACPV1Settings['skillsDirectory'];
   readonly instructionMapping?: ACPV1Settings['instructionMapping'];
   readonly outputSchemaMapping?: ACPV1Settings['outputSchemaMapping'];
+  /**
+   * Transport used for the harness-owned MCP server that exposes host tools to
+   * the ACP implementation. Defaults to `stdio`. Set this to `http` for
+   * implementations that only accept HTTP or SSE MCP servers from the client,
+   * which requires the implementation to advertise
+   * `agentCapabilities.mcpCapabilities.http`.
+   */
+  readonly hostToolMcpTransport?: ACPV1Settings['hostToolMcpTransport'];
   readonly askUserQuestions?: TAskUserQuestions;
   readonly permissionModeMapping?: ACPV1Settings['permissionModeMapping'];
   readonly session?: ACPV1Settings['session'];
-  readonly mintBridgeToken?: ACPV1Settings['mintBridgeToken'];
+  readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
 
 const ACP_BUILTIN_TOOLS = {} as const satisfies ToolSet;

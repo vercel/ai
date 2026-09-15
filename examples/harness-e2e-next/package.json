@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "ultracite check"
   },
   "dependencies": {
     "@agentclientprotocol/claude-agent-acp": "0.61.0",
@@ -19,6 +19,7 @@
     "@ai-sdk/harness-cursor": "workspace:*",
     "@ai-sdk/harness-deepagents": "workspace:*",
     "@ai-sdk/harness-fx": "workspace:*",
+    "@ai-sdk/harness-github-copilot": "workspace:*",
     "@ai-sdk/harness-grok-build": "workspace:*",
     "@ai-sdk/harness-opencode": "workspace:*",
     "@ai-sdk/harness-pi": "workspace:*",
@@ -33,7 +34,7 @@
     "@xai-official/grok": "1.0.5",
     "ai": "workspace:*",
     "clsx": "^2.1.1",
-    "next": "^15.5.21",
+    "next": "^16.3.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "streamdown": "^1.6.11",

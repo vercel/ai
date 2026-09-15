@@ -105,15 +105,16 @@ selection operations. Use `session-config-option` with the ACP configuration
 option ID as `path`, or `session-model` with the JSON-RPC request property as
 `path` for implementations such as Grok Build that use the legacy
 `session/set_model` method. No model operation is sent when `HarnessAgent` has
-no model and the deprecated `modelId` fallback is also unset.
+no model configured.
 
 Use `instructionMapping` when the ACP implementation exposes a native system
 or developer prompt. A `session-meta` mapping writes `HarnessAgent`
 instructions below the ACP session request's `_meta` field. A
 `launch-env-json` mapping merges them into a JSON environment variable before
-the implementation starts. Without a mapping, the adapter preserves its
-backward-compatible behavior and prepends instructions to the first user
-prompt.
+the implementation starts. A `filesystem` mapping writes instructions to a
+markdown file at a relative path under the implementation's effective `$HOME`.
+Without a mapping, the adapter preserves its backward-compatible behavior and
+prepends instructions to the first user prompt.
 
 Skills are written to `.agents/skills` below the ACP implementation's effective
 `$HOME` and discovered natively by the implementation. Set `skillsDirectory`

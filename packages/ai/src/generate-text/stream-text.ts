@@ -22,7 +22,7 @@ import {
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { ServerResponse } from 'node:http';
-import { NoOutputGeneratedError } from '../error';
+import { NoOutputGeneratedError, ToolChoiceViolationError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { cloneModelMessages } from '../prompt/clone-model-message';
@@ -196,6 +196,7 @@ const isOutputChunkType = {
   'tool-call': true,
   'tool-result': false,
   'tool-error': false,
+  'tool-output-denied': false,
   'tool-execution-end': false,
   'model-call-start': false,
   'model-call-response-metadata': false,
@@ -2573,6 +2574,8 @@ class DefaultStreamTextResult<
                   callbacks: onChunk,
                 });
                 const error = wrapGatewayError(value.error);
+                const isToolChoiceViolation =
+                  ToolChoiceViolationError.isInstance(error);
                 let onErrorResult: unknown;
                 try {
                   onErrorResult = await onError({ error });
@@ -2584,8 +2587,10 @@ class DefaultStreamTextResult<
                   'retry' in onErrorResult &&
                   onErrorResult.retry === true;
                 const automaticRetry =
+                  !isToolChoiceViolation &&
                   automaticStreamRetryCount < streamRetries;
                 const callbackRetry =
+                  !isToolChoiceViolation &&
                   !automaticRetry &&
                   callbackRequestedRetry &&
                   callbackStreamRetryCount < 1;
@@ -2829,7 +2834,8 @@ class DefaultStreamTextResult<
                     case 'tool-input-start':
                     case 'tool-input-end':
                     case 'tool-input-delta':
-                    case 'tool-approval-request': {
+                    case 'tool-approval-request':
+                    case 'tool-output-denied': {
                       enqueueStepPart(controller, chunk);
                       break;
                     }
