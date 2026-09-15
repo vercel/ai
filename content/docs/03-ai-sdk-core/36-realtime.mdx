@@ -7,10 +7,14 @@ description: Learn how to build realtime voice conversations with the AI SDK.
 
 <Note type="warning">Realtime is an experimental feature.</Note>
 
-The AI SDK provides realtime models for bidirectional audio and text
-conversations over WebSockets. Realtime sessions run in the browser and connect
+This guide covers legacy token-based, turn-based realtime conversations over
+WebSockets. These sessions run in the browser and connect
 directly to the provider using a short-lived token that you create on your
 server. You can also route the connection through [AI Gateway](/providers/ai-sdk-providers/ai-gateway#realtime).
+
+For OpenAI Live's continuous JSON/PCM16 WSS relay runtime and application-handled
+client delegation, see
+[`experimental_useRealtime`](/docs/reference/ai-sdk-ui/use-realtime#continuous-conversations).
 
 The typical flow is:
 
@@ -94,18 +98,21 @@ Then use the matching Gateway realtime model in the browser:
 import { experimental_useRealtime } from '@ai-sdk/react';
 import { gateway } from 'ai';
 
+const model = gateway.experimental_realtime('openai/gpt-realtime-2');
+const sessionConfig = {
+  instructions: 'You are a helpful assistant. Be concise.',
+  inputAudioTranscription: {},
+  voice: 'alloy',
+  turnDetection: { type: 'server-vad' as const },
+};
+
 export default function RealtimePage() {
   const realtime = experimental_useRealtime({
-    model: gateway.experimental_realtime('openai/gpt-realtime-2'),
+    model,
     api: {
       token: '/api/realtime/setup',
     },
-    sessionConfig: {
-      instructions: 'You are a helpful assistant. Be concise.',
-      inputAudioTranscription: {},
-      voice: 'alloy',
-      turnDetection: { type: 'server-vad' },
-    },
+    sessionConfig,
   });
 
   // ...
@@ -134,18 +141,21 @@ microphone audio, play model audio, send text messages, and render messages.
 import { openai } from '@ai-sdk/openai';
 import { experimental_useRealtime } from '@ai-sdk/react';
 
+const model = openai.experimental_realtime('gpt-realtime');
+const sessionConfig = {
+  instructions: 'You are a helpful assistant. Be concise.',
+  inputAudioTranscription: {},
+  voice: 'alloy',
+  turnDetection: { type: 'server-vad' as const },
+};
+
 export default function RealtimePage() {
   const realtime = experimental_useRealtime({
-    model: openai.experimental_realtime('gpt-realtime'),
+    model,
     api: {
       token: '/api/realtime/setup',
     },
-    sessionConfig: {
-      instructions: 'You are a helpful assistant. Be concise.',
-      inputAudioTranscription: {},
-      voice: 'alloy',
-      turnDetection: { type: 'server-vad' },
-    },
+    sessionConfig,
   });
 
   return (
@@ -165,6 +175,10 @@ export default function RealtimePage() {
   );
 }
 ```
+
+Keep model and session configuration objects stable across renders. Use module
+scope as above, or `useMemo` when configuration depends on props. Replacing either
+object replaces the hook's session.
 
 ## Tool Calling
 
@@ -204,13 +218,15 @@ export async function POST(request: Request) {
 
 ### Client Tool Handler
 
-```tsx filename='app/realtime/page.tsx' highlight="10-24"
+```tsx filename='app/realtime/page.tsx' highlight="12-26"
 import { openai } from '@ai-sdk/openai';
 import { experimental_useRealtime } from '@ai-sdk/react';
 
+const model = openai.experimental_realtime('gpt-realtime');
+
 export default function RealtimePage() {
   const realtime = experimental_useRealtime({
-    model: openai.experimental_realtime('gpt-realtime'),
+    model,
     api: {
       token: '/api/realtime/setup',
     },

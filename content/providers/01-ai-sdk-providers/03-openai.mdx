@@ -2871,8 +2871,10 @@ over model-ID selection. Without it, the known `gpt-live-1` ID uses Live and oth
 IDs retain the Realtime default. The provider does not switch APIs after a failed
 request. Both model implementations use the existing experimental realtime interface.
 
-Live currently supports **server WebSocket integration with client delegation**.
-Your application owns the agent and tool execution. Obtain server-only connection
+Live supports **browser WSS sessions through an application-owned relay with client
+delegation**, using `experimental_useRealtime` for the browser runtime. Your
+application owns the agent and tool execution; Live delegations do not invoke
+`onToolCall`. For a low-level server adapter, obtain server-only connection
 settings with `liveModel.getServerWebSocketConfig()` and serialize commands with
 `liveModel.serializeClientEvent()`. Create one parser per connection with
 `liveModel.createServerEventParser()` and pass incoming JSON to the returned
@@ -2937,9 +2939,14 @@ For graceful shutdown, install a `session-closed` listener before sending `sessi
 that event confirms final voice usage. `session-usage` contains cumulative seconds,
 so replace earlier snapshots rather than adding them.
 
-The existing [Realtime guide](/docs/ai-sdk-core/realtime) covers token-based Realtime
-sessions, not a Live hook integration. Live runtime and UI integration are not
-included in this provider release.
+For the browser integration, see the
+[`experimental_useRealtime` reference](/docs/reference/ai-sdk-ui/use-realtime#continuous-conversations).
+It covers the JSON/PCM16 WebSocket relay runtime, microphone and playback ownership,
+`session.delegations`, `sendEvent` for application context, and `close()` for bounded
+finalization. Use `wss:` for production relays. Continuous conversation semantics
+do not imply browser support for every provider codec or transport.
+The [Realtime guide](/docs/ai-sdk-core/realtime) covers legacy token-based,
+turn-based sessions.
 
 ## Embedding Models
 
