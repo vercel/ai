@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import { z } from '../util/zod';
 import type { RealtimeSetupResponse } from './realtime-types';
 
 const setupSchema = z.object({

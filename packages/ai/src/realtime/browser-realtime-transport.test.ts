@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BrowserRealtimeTransport } from './browser-realtime-transport';
-import { deferred } from './__fixtures__/fake-realtime';
+import { deferred, flushEvents, liveModel } from './__fixtures__/fake-realtime';
 
 class MockWebSocket {
   static CONNECTING = 0;
@@ -100,6 +100,95 @@ describe('BrowserRealtimeTransport', () => {
     expect(MockWebSocket.instances[0].protocols).toEqual(['app']);
     transport.dispose();
   });
+
+  it.each(['dispose', 'client-secret', 'relay'] as const)(
+    'does not allocate an old socket when provider configuration synchronously selects %s',
+    async action => {
+      const onOpen = vi.fn();
+      const onReplacementOpen = vi.fn();
+      const onServerEvent = vi.fn();
+      const onError = vi.fn();
+      const onClose = vi.fn();
+      const getWebSocketConfig = vi.fn(
+        ({ token, url }: { token: string; url?: string }) => {
+          if (token === 'old-token') {
+            if (action === 'dispose') transport.dispose();
+            else
+              transport.connect({
+                ...(action === 'client-secret'
+                  ? { mode: 'client-secret', token: 'new-token' }
+                  : { mode: 'relay', protocols: ['app-protocol'] }),
+                url: 'wss://replacement.test',
+                onOpen: () => {
+                  onReplacementOpen();
+                  return transport.sendEvent({
+                    type: 'session-update',
+                    config: {},
+                  });
+                },
+              });
+          }
+          return {
+            url: url ?? 'wss://provider.test',
+            protocols: [`provider-${token}`],
+          };
+        },
+      );
+      const transport = new BrowserRealtimeTransport({
+        model: { ...liveModel(), getWebSocketConfig },
+        onServerEvent,
+        onError,
+        onClose,
+      });
+
+      expect(() =>
+        transport.connect({
+          mode: 'client-secret',
+          token: 'old-token',
+          url: 'wss://retired.test',
+          onOpen,
+        }),
+      ).not.toThrow();
+
+      expect(onOpen).not.toHaveBeenCalled();
+      expect(getWebSocketConfig).toHaveBeenCalledTimes(
+        action === 'client-secret' ? 2 : 1,
+      );
+      expect(MockWebSocket.instances).toHaveLength(
+        action === 'dispose' ? 0 : 1,
+      );
+      if (action === 'dispose') {
+        expect(transport.isOpen).toBe(false);
+      } else {
+        const socket = MockWebSocket.instances[0];
+        expect(socket.url).toBe('wss://replacement.test');
+        expect(socket.protocols).toEqual([
+          action === 'client-secret' ? 'provider-new-token' : 'app-protocol',
+        ]);
+        socket.open();
+        await flushEvents();
+        expect(transport.isOpen).toBe(true);
+        expect(onReplacementOpen).toHaveBeenCalledOnce();
+        expect(socket.send).toHaveBeenCalledExactlyOnceWith(
+          JSON.stringify({ type: 'session-update', config: {} }),
+        );
+        const event = {
+          type: 'session-created',
+          sessionId: 'replacement',
+          raw: {},
+        };
+        socket.onmessage?.({ data: JSON.stringify(event) });
+        await flushEvents();
+        expect(onServerEvent).toHaveBeenCalledExactlyOnceWith(event);
+        expect(socket.close).not.toHaveBeenCalled();
+        transport.dispose();
+        expect(socket.close).toHaveBeenCalledOnce();
+      }
+      expect(onError).not.toHaveBeenCalled();
+      expect(onClose).not.toHaveBeenCalled();
+      expect(onOpen).not.toHaveBeenCalled();
+    },
+  );
 
   it.each(['reject', 'timeout'] as const)(
     'settles a %s drain once despite throwing error and close callbacks',
