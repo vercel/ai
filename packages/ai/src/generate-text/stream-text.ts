@@ -1878,6 +1878,16 @@ class DefaultStreamTextResult<
           if (isAbortError(error) && abortSignal?.aborted) {
             await abort();
           } else {
+            // Mid-stream transport errors (e.g. a socket failure while reading
+            // the provider response body) never surface as stream parts, so
+            // neither the user `onError` handler nor the telemetry dispatcher
+            // would otherwise observe them. Notify telemetry so integrations
+            // (e.g. OpenTelemetry) can record the error and end open spans,
+            // mirroring the setup-error path below.
+            await notify({
+              event: { callId, error },
+              callbacks: telemetryDispatcher.onError,
+            });
             controller.error(error);
           }
         }

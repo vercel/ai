@@ -25090,6 +25090,89 @@ describe('streamText', () => {
     });
   });
 
+  describe('provider stream error', () => {
+    let result: StreamTextResult<ToolSet, any, never>;
+    let telemetryCalls: Array<{ name: string; event?: unknown }> = [];
+    const streamError = new Error('socket closed');
+
+    beforeEach(() => {
+      telemetryCalls = [];
+
+      let pullCalls = 0;
+      const telemetryIntegration: Telemetry = {
+        onAbort: event => {
+          telemetryCalls.push({ name: 'onAbort', event });
+        },
+        onEnd: event => {
+          telemetryCalls.push({ name: 'onEnd', event });
+        },
+        onError: event => {
+          telemetryCalls.push({ name: 'onError', event });
+        },
+      };
+
+      result = streamText({
+        telemetry: {
+          integrations: telemetryIntegration,
+        },
+        _internal: {
+          generateCallId: () => 'test-telemetry-call-id',
+        },
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: new ReadableStream({
+              pull(controller) {
+                switch (pullCalls++) {
+                  case 0:
+                    controller.enqueue({
+                      type: 'stream-start',
+                      warnings: [],
+                    });
+                    break;
+                  case 1:
+                    controller.enqueue({
+                      type: 'text-start',
+                      id: '1',
+                    });
+                    break;
+                  case 2:
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: '1',
+                      delta: 'Hello',
+                    });
+                    break;
+                  case 3:
+                    controller.error(streamError);
+                    break;
+                }
+              },
+            }),
+          }),
+        }),
+        prompt: 'test-input',
+      });
+    });
+
+    it('should call telemetry onError with callId and error when the provider stream errors', async () => {
+      await result.consumeStream();
+      expect(telemetryCalls.map(({ name }) => name)).toEqual(['onError']);
+      expect(telemetryCalls[0].event).toMatchObject({
+        callId: 'test-telemetry-call-id',
+        error: streamError,
+      });
+    });
+
+    it('should not call telemetry onAbort or onEnd when the provider stream errors', async () => {
+      await result.consumeStream();
+      expect(
+        telemetryCalls
+          .map(({ name }) => name)
+          .filter(name => name === 'onAbort' || name === 'onEnd'),
+      ).toEqual([]);
+    });
+  });
+
   describe('context', () => {
     it('should send context to tool execution', async () => {
       let recordedContext: unknown | undefined;
