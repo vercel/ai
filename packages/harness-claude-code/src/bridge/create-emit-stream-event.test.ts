@@ -523,6 +523,82 @@ describe('createEmitStreamEvent', () => {
     },
   );
 
+  it('merges non-null usage fields across successive message deltas', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => (name === 'Bash' ? 'bash' : name),
+    });
+
+    emitStreamEvent({
+      type: 'assistant',
+      message: {
+        usage: {
+          input_tokens: 1,
+          cache_creation_input_tokens: 2,
+          cache_read_input_tokens: 3,
+          output_tokens: 4,
+        },
+        content: [
+          {
+            type: 'tool_use',
+            id: 'tool-1',
+            name: 'Bash',
+            input: { command: 'pwd' },
+          },
+        ],
+      },
+    });
+    for (const usage of [
+      {
+        input_tokens: 10,
+        output_tokens: 30,
+      },
+      {
+        cache_creation_input_tokens: 20,
+        output_tokens: 50,
+      },
+      {
+        input_tokens: null,
+        cache_creation_input_tokens: null,
+        cache_read_input_tokens: null,
+        output_tokens: 60,
+      },
+    ]) {
+      emitStreamEvent({
+        type: 'stream_event',
+        event: { type: 'message_delta', usage },
+      });
+    }
+    emitStreamEvent({
+      type: 'user',
+      message: {
+        content: [
+          {
+            type: 'tool_result',
+            tool_use_id: 'tool-1',
+            content: '/tmp',
+          },
+        ],
+      },
+    });
+
+    expect(emitted.find(event => event.type === 'finish-step')?.usage).toEqual({
+      inputTokens: {
+        total: 33,
+        noCache: 10,
+        cacheRead: 3,
+        cacheWrite: 20,
+      },
+      outputTokens: { total: 60, text: 60 },
+    });
+  });
+
   it('keeps subagent messages out of the main Agent-tool step', () => {
     const messages = JSON.parse(
       readFileSync(

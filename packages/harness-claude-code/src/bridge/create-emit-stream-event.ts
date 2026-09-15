@@ -427,7 +427,10 @@ function handleStreamEvent({
   if (event.type === 'message_delta') {
     const usage = toUsageRecord(event.usage);
     if (usage) {
-      state.pendingStepDeltaUsage = usage;
+      state.pendingStepDeltaUsage = mergeNonNullUsage(
+        state.pendingStepDeltaUsage,
+        usage,
+      );
       updatePendingStepUsage(state);
     }
     return;
@@ -527,6 +530,19 @@ function toUsageRecord(usage: unknown): Record<string, unknown> | undefined {
   return usage != null && typeof usage === 'object'
     ? (usage as Record<string, unknown>)
     : undefined;
+}
+
+function mergeNonNullUsage(
+  current: Record<string, unknown> | undefined,
+  update: Record<string, unknown>,
+): Record<string, unknown> {
+  const merged = { ...current };
+  for (const [key, value] of Object.entries(update)) {
+    if (value != null) {
+      merged[key] = value;
+    }
+  }
+  return merged;
 }
 
 function updatePendingStepUsage(state: ClaudeStreamEventState): void {
