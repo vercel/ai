@@ -3,6 +3,7 @@ import {
   type Experimental_VideoModelV4,
   type LanguageModelV4,
   type ProviderV4,
+  type SpeechModelV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
@@ -13,6 +14,8 @@ import {
 } from '@ai-sdk/provider-utils';
 import { AnthropicLanguageModel } from '@ai-sdk/anthropic/internal';
 import type { MiniMaxChatModelId } from './minimax-chat-options';
+import { MiniMaxSpeechModel } from './minimax-speech-model';
+import type { MiniMaxSpeechModelId } from './minimax-speech-settings';
 import { MiniMaxVideoModel } from './minimax-video-model';
 import type { MiniMaxVideoModelId } from './minimax-video-settings';
 import { VERSION } from './version';
@@ -33,6 +36,12 @@ export interface MiniMaxProviderSettings {
    * The default prefix is `https://api.minimax.io`.
    */
   videoBaseURL?: string;
+  /**
+   * Use a different URL prefix for speech generation API calls.
+   * The default prefix is `https://api.minimax.io`. Use
+   * `https://api.minimaxi.com` for the China endpoint.
+   */
+  speechBaseURL?: string;
   /**
    * Custom headers to include in the requests.
    */
@@ -61,6 +70,16 @@ export interface MiniMaxProvider extends ProviderV4 {
   chat(modelId: MiniMaxChatModelId): LanguageModelV4;
 
   /**
+   * Creates a MiniMax model for speech generation.
+   */
+  speech(modelId: MiniMaxSpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates a MiniMax model for speech generation.
+   */
+  speechModel(modelId: MiniMaxSpeechModelId): SpeechModelV4;
+
+  /**
    * Creates a MiniMax video model for video generation.
    */
   video(modelId: MiniMaxVideoModelId): Experimental_VideoModelV4;
@@ -77,7 +96,7 @@ export interface MiniMaxProvider extends ProviderV4 {
 }
 
 const defaultBaseURL = 'https://api.minimax.io/anthropic/v1';
-const defaultVideoBaseURL = 'https://api.minimax.io';
+const defaultNativeBaseURL = 'https://api.minimax.io';
 
 export function createMiniMax(
   options: MiniMaxProviderSettings = {},
@@ -86,8 +105,12 @@ export function createMiniMax(
     withoutTrailingSlash(options.baseURL ?? defaultBaseURL) ?? defaultBaseURL;
 
   const videoBaseURL =
-    withoutTrailingSlash(options.videoBaseURL ?? defaultVideoBaseURL) ??
-    defaultVideoBaseURL;
+    withoutTrailingSlash(options.videoBaseURL ?? defaultNativeBaseURL) ??
+    defaultNativeBaseURL;
+
+  const speechBaseURL =
+    withoutTrailingSlash(options.speechBaseURL ?? defaultNativeBaseURL) ??
+    defaultNativeBaseURL;
 
   const getHeaders = () =>
     withUserAgentSuffix(
@@ -113,7 +136,7 @@ export function createMiniMax(
       supportedUrls: () => ({}),
     });
 
-  const getVideoHeaders = () =>
+  const getBearerTokenHeaders = () =>
     withUserAgentSuffix(
       {
         Authorization: `Bearer ${loadApiKey({
@@ -126,11 +149,19 @@ export function createMiniMax(
       `ai-sdk/minimax/${VERSION}`,
     );
 
+  const createSpeechModel = (modelId: MiniMaxSpeechModelId) =>
+    new MiniMaxSpeechModel(modelId, {
+      provider: 'minimax.speech',
+      baseURL: speechBaseURL,
+      headers: getBearerTokenHeaders,
+      fetch: options.fetch,
+    });
+
   const createVideoModel = (modelId: MiniMaxVideoModelId) =>
     new MiniMaxVideoModel(modelId, {
       provider: 'minimax.video',
       baseURL: videoBaseURL,
-      headers: getVideoHeaders,
+      headers: getBearerTokenHeaders,
       fetch: options.fetch,
     });
 
@@ -139,6 +170,8 @@ export function createMiniMax(
   provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
+  provider.speech = createSpeechModel;
+  provider.speechModel = createSpeechModel;
   provider.video = createVideoModel;
   provider.videoModel = createVideoModel;
 
