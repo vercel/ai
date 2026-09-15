@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20586,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/stream-text-otel-stream-error.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/stream-text-otel-stream-error.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #20586 REPRODUCED: provider stream error left OpenTelemetry spans open and unexported"
+  }
+}
