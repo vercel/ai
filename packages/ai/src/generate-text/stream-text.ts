@@ -2721,6 +2721,7 @@ class DefaultStreamTextResult<
 
           let stepUsage: LanguageModelUsage = createNullLanguageModelUsage();
           let stepProviderMetadata: ProviderMetadata | undefined;
+          let stepWarnings: SharedV4Warning[] | undefined;
           let stepFirstChunk = true;
           const createModelCallPerformance = (): Omit<
             StepResultPerformance,
@@ -2946,6 +2947,7 @@ class DefaultStreamTextResult<
                       stepRawFinishReason = chunk.rawFinishReason;
                       stepProviderMetadata = chunk.providerMetadata;
                       modelCallPerformance = chunk.performance;
+                      stepWarnings = chunk.warnings;
 
                       break;
                     }
@@ -3007,6 +3009,9 @@ class DefaultStreamTextResult<
                       ...stepResponse,
                       headers: response?.headers,
                     },
+                    ...(stepWarnings != null && stepWarnings.length > 0
+                      ? { warnings: stepWarnings }
+                      : {}),
                   };
 
                   enqueueStepPart(controller, finishStepPart);
