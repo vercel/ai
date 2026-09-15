@@ -2851,17 +2851,36 @@ The following optional provider options are available for OpenAI completion mode
 
 <Note type="warning">Realtime is an experimental feature.</Note>
 
-You can create models that call the [OpenAI Realtime API](https://platform.openai.com/docs/guides/realtime)
-using the `.experimental_realtime()` factory method.
+Use `.experimental_realtime()` for both [OpenAI Realtime](https://platform.openai.com/docs/guides/realtime)
+and [OpenAI Live](https://developers.openai.com/api/docs/guides/live) models.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
 
 const model = openai.experimental_realtime('gpt-realtime');
+const liveModel = openai.experimental_realtime('gpt-live-1');
+
+// Select the API explicitly for an early-access or otherwise unknown model ID.
+const earlyAccessModel = openai.experimental_realtime('not-yet-released', {
+  api: 'live',
+});
 ```
 
-Realtime sessions run in the browser and require a short-lived token created on
-your server with `openai.experimental_realtime.getToken()`:
+The OpenAI-only `api` option accepts `'live'` or `'realtime'` and takes precedence
+over model-ID selection. Without it, the known `gpt-live-1` ID uses Live and other
+IDs retain the Realtime default. The provider does not switch APIs after a failed
+request. Both model implementations use the existing experimental realtime interface.
+
+Live currently supports **server WebSocket integration with client delegation**.
+Your application owns the agent and tool execution. Obtain server-only connection
+settings with `liveModel.getServerWebSocketConfig()` and serialize commands with
+`liveModel.serializeClientEvent()`. Create one parser per connection with
+`liveModel.createServerEventParser()` and pass incoming JSON to the returned
+function. It returns arrays of normalized events and retains each original event
+in `raw`.
+
+For a token-based **Realtime API** session, create a short-lived token on your
+server with `openai.experimental_realtime.getToken()`:
 
 ```ts
 const token = await openai.experimental_realtime.getToken({
@@ -2869,8 +2888,58 @@ const token = await openai.experimental_realtime.getToken({
 });
 ```
 
-See [Realtime](/docs/ai-sdk-core/realtime) for the complete setup and tool
-calling pattern.
+Live does not use Realtime client-secret minting. Calling `getToken` for a known
+Live model or with `api: 'live'` rejects before a mint request. Live's WebSocket
+connection authenticates on a trusted server; keep the provider API key out of
+browser code. The API selector chooses a protocol, not a different authentication
+capability for the same model.
+
+Browser authentication to an application-owned relay is separate from OpenAI
+authentication. Protect that relay with your application's session or short-lived
+credential; an origin check alone is not user authentication. The relay uses its
+server-held OpenAI key upstream. Selecting a Live model does not make the Realtime
+client-secret endpoint compatible with the Live API.
+
+### Live session options
+
+Configure Live-specific settings through `sessionConfig.providerOptions.openai`,
+typed with `Experimental_OpenAIRealtimeModelLiveOptions`. For example:
+
+```ts
+import type { Experimental_OpenAIRealtimeModelLiveOptions as OpenAIRealtimeModelLiveOptions } from '@ai-sdk/openai';
+
+const sessionConfig = {
+  instructions: 'Be concise. Delegate questions that need research or tools.',
+  providerOptions: {
+    openai: {
+      delegation: { type: 'client' },
+    } satisfies OpenAIRealtimeModelLiveOptions,
+  },
+};
+```
+
+- `delegation`: use `{ type: 'client' }` for application-owned work. Omission or
+  `null` also selects client mode. Other delegation modes are unsupported.
+- `input`: prior text messages with developer, user or assistant roles.
+- `voice`: an authorized custom voice reference `{ id }`, mutually exclusive with
+  the ordinary `sessionConfig.voice` string.
+- `store`: requests provider-side session storage; availability depends on the
+  OpenAI project configuration.
+
+Send the initial configuration with `session-start`. Live startup settings are
+immutable: `session-update` is rejected. Use `input-audio-mute` and
+`input-audio-unmute` for microphone control. Return application context through
+`context-append`, using the opaque `delegationId` from `delegation-created`, or
+`null` for context without a delegation. Its `providerOptions.openai.channel`
+accepts `instructions`, `thinking` (the default), or `commentary`.
+
+For graceful shutdown, install a `session-closed` listener before sending `session-close`;
+that event confirms final voice usage. `session-usage` contains cumulative seconds,
+so replace earlier snapshots rather than adding them.
+
+The existing [Realtime guide](/docs/ai-sdk-core/realtime) covers token-based Realtime
+sessions, not a Live hook integration. Live runtime and UI integration are not
+included in this provider release.
 
 ## Embedding Models
 

@@ -43,4 +43,24 @@ const { text } = await generateText({
 
 ## Documentation
 
-Please check out the **[OpenAI provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/openai)** for more information.
+### Experimental realtime models
+
+Use the same factory for OpenAI Realtime and Live models:
+
+```ts
+openai.experimental_realtime('gpt-realtime');
+openai.experimental_realtime('gpt-live-1');
+openai.experimental_realtime('not-yet-released', { api: 'live' });
+```
+
+Live currently supports server WebSocket integration with client delegation:
+your application owns the agent and tools. Start with the
+[OpenAI provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/openai#realtime-models)
+for connection settings, startup options, and event mapping.
+
+The existing [Realtime guide](https://ai-sdk.dev/docs/ai-sdk-core/realtime) and
+[`experimental_useRealtime` reference](https://ai-sdk.dev/docs/reference/ai-sdk-ui/use-realtime)
+cover token-based Realtime sessions; they are not a Live hook integration.
+
+Runtime and provider authors can consult the repository's
+[realtime integration notes](../../architecture/realtime-provider-integration.md).
