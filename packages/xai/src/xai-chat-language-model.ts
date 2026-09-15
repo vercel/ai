@@ -112,18 +112,6 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
-    if (frequencyPenalty != null) {
-      warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });
-    }
-
-    if (presencePenalty != null) {
-      warnings.push({ type: 'unsupported', feature: 'presencePenalty' });
-    }
-
-    if (stopSequences != null) {
-      warnings.push({ type: 'unsupported', feature: 'stopSequences' });
-    }
-
     // convert ai sdk messages to xai format
     const { messages, warnings: messageWarnings } =
       await convertToXaiChatMessages(prompt);
@@ -178,6 +166,9 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
       max_completion_tokens: maxOutputTokens,
       temperature,
       top_p: topP,
+      frequency_penalty: frequencyPenalty,
+      presence_penalty: presencePenalty,
+      stop: stopSequences,
       seed,
       reasoning_effort: reasoningEffort,
 
@@ -338,6 +329,20 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
       }
     }
 
+    let providerMetadata: Record<string, Record<string, any>> | undefined;
+    if (choice.logprobs?.content != null || response.service_tier != null) {
+      providerMetadata = {
+        xai: {
+          ...(choice.logprobs?.content != null && {
+            logprobs: choice.logprobs.content,
+          }),
+          ...(response.service_tier != null && {
+            serviceTier: response.service_tier,
+          }),
+        },
+      };
+    }
+
     return {
       content,
       finishReason: {
@@ -350,11 +355,7 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
             inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
             outputTokens: { total: 0, text: 0, reasoning: 0 },
           },
-      ...(response.service_tier != null && {
-        providerMetadata: {
-          xai: { serviceTier: response.service_tier },
-        },
-      }),
+      ...(providerMetadata != null && { providerMetadata }),
       request: { body },
       response: {
         ...getResponseMetadata(response),
@@ -442,6 +443,8 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
     > = {};
     const lastReasoningDeltas: Record<string, string> = {};
     let activeReasoningBlockId: string | undefined = undefined;
+    let providerMetadata: Record<string, Record<string, any>> | undefined =
+      undefined;
 
     const self = this;
 
@@ -507,6 +510,16 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
                 unified: mapXaiFinishReason(choice.finish_reason),
                 raw: choice.finish_reason,
               };
+            }
+
+            if (choice?.logprobs?.content != null) {
+              if (providerMetadata == null) {
+                providerMetadata = { xai: { logprobs: [] } };
+              }
+              if (providerMetadata.xai.logprobs == null) {
+                providerMetadata.xai.logprobs = [];
+              }
+              providerMetadata.xai.logprobs.push(...choice.logprobs.content);
             }
 
             // exit if no delta to process
@@ -658,9 +671,17 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
                 },
                 outputTokens: { total: 0, text: 0, reasoning: 0 },
               },
-              ...(serviceTier != null && {
-                providerMetadata: { xai: { serviceTier } },
-              }),
+              ...(providerMetadata != null || serviceTier != null
+                ? {
+                    providerMetadata: {
+                      ...providerMetadata,
+                      xai: {
+                        ...providerMetadata?.xai,
+                        ...(serviceTier != null ? { serviceTier } : {}),
+                      },
+                    },
+                  }
+                : {}),
             });
           },
         }),
@@ -716,7 +737,7 @@ export const xaiChatResponseSchema = z.object({
             .array(
               z.object({
                 id: z.string(),
-                type: z.literal('function'),
+                type: z.string(),
                 function: z.object({
                   name: z.string(),
                   arguments: z.string(),
@@ -727,6 +748,28 @@ export const xaiChatResponseSchema = z.object({
         }),
         index: z.number(),
         finish_reason: z.string().nullish(),
+        logprobs: z
+          .object({
+            content: z
+              .array(
+                z.object({
+                  token: z.string(),
+                  logprob: z.number(),
+                  bytes: z.array(z.number()).nullish(),
+                  top_logprobs: z
+                    .array(
+                      z.object({
+                        token: z.string(),
+                        logprob: z.number(),
+                        bytes: z.array(z.number()).nullish(),
+                      }),
+                    )
+                    .nullish(),
+                }),
+              )
+              .nullish(),
+          })
+          .nullish(),
       }),
     )
     .nullish(),
@@ -754,7 +797,7 @@ const xaiChatChunkSchema = z.object({
           .array(
             z.object({
               id: z.string(),
-              type: z.literal('function'),
+              type: z.string(),
               function: z.object({
                 name: z.string(),
                 arguments: z.string(),
@@ -765,6 +808,28 @@ const xaiChatChunkSchema = z.object({
       }),
       finish_reason: z.string().nullish(),
       index: z.number(),
+      logprobs: z
+        .object({
+          content: z
+            .array(
+              z.object({
+                token: z.string(),
+                logprob: z.number(),
+                bytes: z.array(z.number()).nullish(),
+                top_logprobs: z
+                  .array(
+                    z.object({
+                      token: z.string(),
+                      logprob: z.number(),
+                      bytes: z.array(z.number()).nullish(),
+                    }),
+                  )
+                  .nullish(),
+              }),
+            )
+            .nullish(),
+        })
+        .nullish(),
     }),
   ),
   usage: xaiUsageSchema.nullish(),
