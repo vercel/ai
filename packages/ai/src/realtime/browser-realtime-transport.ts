@@ -45,24 +45,35 @@ export class BrowserRealtimeTransport {
   }
 
   connect({
+    mode,
     token,
     url,
     onOpen,
     protocols,
-  }: {
-    token?: string;
+  }: (
+    | { mode: 'client-secret'; token: string; protocols?: never }
+    | { mode: 'relay'; token?: never; protocols?: string[] }
+  ) & {
     url: string;
-    /** Omit token to connect directly to an application-owned relay. */
-    protocols?: string[];
     onOpen: () => void | Promise<void>;
   }): void {
     this.disconnect();
 
     const epoch = this.epoch;
+    if (
+      mode !== 'relay' &&
+      (mode !== 'client-secret' ||
+        typeof token !== 'string' ||
+        token.trim() === '')
+    )
+      throw new Error(
+        'Realtime client-secret connection requires a nonempty token',
+      );
     const wsConfig =
-      token == null
+      mode === 'relay'
         ? { url, protocols }
         : this.model.getWebSocketConfig?.({ token, url });
+    if (this.epoch !== epoch) return;
     if (wsConfig == null)
       throw new Error('Model does not support client-secret WebSockets');
     const ws = new WebSocket(wsConfig.url, wsConfig.protocols);

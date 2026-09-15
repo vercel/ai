@@ -9,7 +9,6 @@ import {
   type Experimental_OpenAIRealtimeModelLiveConfig as OpenAIRealtimeModelLiveConfig,
   type Experimental_OpenAIRealtimeModelLiveId as OpenAIRealtimeModelLiveId,
   type Experimental_OpenAIRealtimeModelLiveOptions as OpenAIRealtimeModelLiveOptions,
-  type Experimental_OpenAIRealtimeModelLiveUpdateOptions as OpenAIRealtimeModelLiveUpdateOptions,
 } from '../index';
 
 it('exports the exact concrete factory return and supported connection methods', () => {
@@ -26,52 +25,40 @@ it('exports the exact concrete factory return and supported connection methods',
   }>();
   expectTypeOf<'live'>().not.toMatchTypeOf<keyof typeof openai>();
   expectTypeOf<'getWebSocketConfig'>().not.toMatchTypeOf<keyof typeof model>();
+  expectTypeOf(model.getWebRTCConfig()).toEqualTypeOf<{
+    dataChannelLabel: string;
+  }>();
+  expectTypeOf(model.doCreateWebRTCSession).parameter(0).toMatchTypeOf<{
+    sdp: string;
+    abortSignal?: AbortSignal;
+  }>();
+  expectTypeOf(model.doCreateWebRTCSession).returns.toEqualTypeOf<
+    Promise<{ sessionId: string; sdp: string }>
+  >();
   expectTypeOf<'doCreateClientSecret'>().not.toMatchTypeOf<
     keyof typeof model
   >();
 });
 
-it('requires a startup backend model but permits mutable updates without one', () => {
-  type StartupResponses = Extract<
-    OpenAIRealtimeModelLiveOptions['delegation'],
-    { type: 'responses' }
-  >['responses'];
-  type UpdateResponses =
-    OpenAIRealtimeModelLiveUpdateOptions['delegation']['responses'];
-  expectTypeOf<StartupResponses>().toMatchTypeOf<{ model: string }>();
-  expectTypeOf<{}>().not.toMatchTypeOf<StartupResponses>();
-  expectTypeOf<{}>().toMatchTypeOf<UpdateResponses>();
-  expectTypeOf<{ model: null }>().not.toMatchTypeOf<UpdateResponses>();
-  expectTypeOf<{
-    model: string;
-    instructions: null;
-    maxOutputTokens: null;
-    parallelToolCalls: null;
-    serviceTier: null;
-    reasoning: { effort: null; summary: null };
-    text: { verbosity: null };
-    tools: [
-      {
-        type: 'function';
-        name: string;
-        parameters: null;
-        description: null;
-        strict: null;
-      },
-    ];
-  }>().toMatchTypeOf<StartupResponses>();
-  expectTypeOf<{
-    tools: [{ type: 'function'; name: string }];
-  }>().toMatchTypeOf<UpdateResponses>();
-  expectTypeOf<'client'>().not.toMatchTypeOf<
-    keyof OpenAIRealtimeModelLiveUpdateOptions
+it('supports only client delegation with optional native RTC permissions', () => {
+  expectTypeOf<OpenAIRealtimeModelLiveOptions['delegation']>().toEqualTypeOf<
+    { type: 'client' } | null | undefined
+  >();
+  expectTypeOf<{}>().toMatchTypeOf<OpenAIRealtimeModelLiveOptions>();
+  expectTypeOf<'tools'>().not.toMatchTypeOf<
+    keyof OpenAIRealtimeModelLiveOptions
   >();
   expectTypeOf<{
     client: {
       dataChannel: {
-        allowedClientEvents: string[] | 'all';
-        allowedServerEvents: { type: string; responseEvent?: string }[] | 'all';
+        allowedClientEvents: string[];
+        allowedServerEvents: Array<{ type: string; responseEvent?: string }>;
       };
+    };
+  }>().toMatchTypeOf<OpenAIRealtimeModelLiveOptions>();
+  expectTypeOf<{
+    client: {
+      dataChannel: { allowedClientEvents: 'all'; allowedServerEvents: 'all' };
     };
   }>().toMatchTypeOf<OpenAIRealtimeModelLiveOptions>();
 });

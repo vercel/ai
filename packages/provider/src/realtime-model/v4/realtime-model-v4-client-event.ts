@@ -40,30 +40,6 @@ export type RealtimeModelV4ClientEvent =
       providerOptions?: SharedV4ProviderOptions;
     }
 
-  // ── Delegated backend (requires a provider-managed backend) ──────────
-  | {
-      type: 'backend-tool-result';
-      callId: string;
-      output: string;
-      eventId?: string;
-    }
-  | {
-      type: 'backend-response-create';
-      eventId?: string;
-    }
-  | {
-      type: 'backend-input-create';
-      content: Array<
-        | { type: 'text'; text: string }
-        | {
-            type: 'image';
-            url: string;
-            providerOptions?: SharedV4ProviderOptions;
-          }
-      >;
-      eventId?: string;
-    }
-
   // ── Input audio buffer ─────────────────────────────────────────────
   | {
       type: 'input-audio-append';

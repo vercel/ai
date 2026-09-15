@@ -8,7 +8,7 @@ import {
   fakeStream,
   flushEvents,
   liveModel,
-} from './__fixtures__/fake-webrtc';
+} from './__fixtures__/fake-realtime';
 import {
   FakeAudioContext,
   FakeWebSocket,
@@ -36,7 +36,6 @@ describe('Live over an application WebSocket relay', () => {
     const session = new Session({
       model: liveModel(),
       api: { websocket: 'wss://app.example/live', protocols: ['app-protocol'] },
-      autoContinueTools: true,
       ...options,
     });
     sessions.push(session);
@@ -48,7 +47,7 @@ describe('Live over an application WebSocket relay', () => {
   };
   const ready = async (
     session: Session,
-    delegationMode: 'client' | 'provider' = 'provider',
+    delegationMode: 'client' | 'provider' = 'client',
   ) => {
     await session.connect();
     socket().open();
@@ -59,20 +58,6 @@ describe('Live over an application WebSocket relay', () => {
       delegationMode,
       raw: {},
     });
-  };
-  const call: RealtimeServerEvent = {
-    type: 'backend-tool-call',
-    responseId: 'r1',
-    callId: 'call-1',
-    name: 'lookup',
-    arguments: '{}',
-    raw: {},
-  };
-  const done: RealtimeServerEvent = {
-    type: 'backend-response-done',
-    responseId: 'r1',
-    status: 'completed',
-    raw: {},
   };
   beforeEach(() => {
     browser = installLiveWebSocket();
@@ -132,180 +117,6 @@ describe('Live over an application WebSocket relay', () => {
     expect(config.outputAudioFormat.rate).toBe(24000);
   });
 
-  it.each(['before-done', 'after-continuation'] as const)(
-    'allows corrected output after a correlated rejection %s without rerunning the tool',
-    async order => {
-      const onToolCall = vi.fn(() => 'invalid-output');
-      const onEvent = vi.fn();
-      const onError = vi.fn();
-      const session = create({ onToolCall, onEvent, onError });
-      await ready(session);
-      await emit(call);
-      const first = socket().sent.find(
-        event => event.type === 'backend-tool-result',
-      )!;
-      expect(first.eventId).toEqual(expect.any(String));
-      if (order === 'after-continuation') await emit(done);
-      const rejection: RealtimeServerEvent = {
-        type: 'error',
-        message: 'Invalid tool result',
-        clientEventId: String(first.eventId),
-        raw: { error: 'provider rejection' },
-      };
-      await emit(rejection);
-      expect(onError).toHaveBeenCalledWith(new Error('Invalid tool result'));
-      expect(onEvent).toHaveBeenCalledWith(rejection);
-      await emit(call);
-      expect(onToolCall).toHaveBeenCalledOnce();
-      await session.sendEvent({
-        type: 'backend-tool-result',
-        callId: 'call-1',
-        output: 'corrected-output',
-      });
-      if (order === 'before-done') await emit(done);
-      await flushEvents();
-      const results = socket().sent.filter(
-        event => event.type === 'backend-tool-result',
-      );
-      expect(results.map(event => event.output)).toEqual([
-        'invalid-output',
-        'corrected-output',
-      ]);
-      expect(results[1].eventId).not.toBe(first.eventId);
-      await emit(rejection);
-      session.addToolOutput('call-1', 'duplicate');
-      await flushEvents();
-      expect(
-        socket().sent.filter(event => event.type === 'backend-tool-result'),
-      ).toHaveLength(2);
-      expect(
-        socket().sent.filter(event => event.type === 'backend-response-create'),
-      ).toHaveLength(order === 'before-done' ? 1 : 2);
-      expect(onToolCall).toHaveBeenCalledOnce();
-    },
-  );
-
-  it('cancels a continuation still serializing when its tool output is rejected', async () => {
-    const continuation = deferred<unknown>();
-    let firstContinuation = true;
-    const model = liveModel();
-    model.serializeClientEvent = async event => {
-      if (event.type === 'backend-response-create' && firstContinuation) {
-        firstContinuation = false;
-        return continuation.promise;
-      }
-      return event;
-    };
-    const onToolCall = vi.fn(() => 'invalid-output');
-    const session = create({ model, onToolCall });
-    await ready(session);
-    await emit(call);
-    await emit(done);
-    const result = socket().sent.find(
-      event => event.type === 'backend-tool-result',
-    )!;
-    await emit({
-      type: 'error',
-      message: 'Invalid result',
-      clientEventId: String(result.eventId),
-      raw: {},
-    });
-    const corrected = session.sendEvent({
-      type: 'backend-tool-result',
-      callId: 'call-1',
-      output: 'corrected-output',
-    });
-    continuation.resolve({ type: 'backend-response-create' });
-    await corrected;
-    await flushEvents();
-    expect(
-      socket().sent.filter(event => event.type === 'backend-response-create'),
-    ).toHaveLength(1);
-    expect(
-      socket()
-        .sent.slice(-2)
-        .map(event => event.type),
-    ).toEqual(['backend-tool-result', 'backend-response-create']);
-    expect(onToolCall).toHaveBeenCalledOnce();
-  });
-
-  it('requires a fresh command ID for different calls and corrected retries', async () => {
-    const session = create();
-    await ready(session);
-    await emit(call);
-    await emit({ ...call, callId: 'call-2' });
-    await session.sendEvent({
-      type: 'backend-tool-result',
-      callId: 'call-1',
-      output: 'first',
-      eventId: 'shared-id',
-    });
-    expect(() =>
-      session.sendEvent({
-        type: 'backend-tool-result',
-        callId: 'call-2',
-        output: 'second',
-        eventId: 'shared-id',
-      }),
-    ).toThrow('fresh eventId');
-    expect(() =>
-      session.sendEvent({ type: 'input-audio-mute', eventId: 'shared-id' }),
-    ).toThrow('fresh eventId');
-    await emit({
-      type: 'error',
-      message: 'Invalid result',
-      clientEventId: 'shared-id',
-      raw: {},
-    });
-    expect(() =>
-      session.sendEvent({
-        type: 'backend-tool-result',
-        callId: 'call-1',
-        output: 'corrected',
-        eventId: 'shared-id',
-      }),
-    ).toThrow('fresh eventId');
-    await session.sendEvent({
-      type: 'backend-tool-result',
-      callId: 'call-1',
-      output: 'corrected',
-      eventId: 'new-id',
-    });
-    expect(socket().sent.at(-1)).toMatchObject({
-      output: 'corrected',
-      eventId: 'new-id',
-    });
-  });
-
-  it('ignores errors from an old socket after reconnect even when call IDs repeat', async () => {
-    const onError = vi.fn();
-    const session = create({ onToolCall: () => 'result', onError });
-    await ready(session);
-    await emit(call);
-    const old = socket();
-    const first = old.sent.find(event => event.type === 'backend-tool-result')!;
-    session.disconnect();
-    browser.getUserMedia.mockResolvedValue(fakeStream().stream);
-    await ready(session);
-    await emit(call);
-    await emit(done);
-    old.emit({
-      type: 'error',
-      message: 'stale rejection',
-      clientEventId: String(first.eventId),
-      raw: {},
-    });
-    await flushEvents();
-    session.addToolOutput('call-1', 'duplicate');
-    expect(onError).not.toHaveBeenCalled();
-    expect(
-      socket().sent.filter(event => event.type === 'backend-tool-result'),
-    ).toHaveLength(1);
-    expect(
-      socket().sent.filter(event => event.type === 'backend-response-create'),
-    ).toHaveLength(1);
-  });
-
   it('permits more than 4096 acknowledged commands while retaining recent duplicate protection', async () => {
     const session = create();
     await ready(session);
@@ -323,8 +134,6 @@ describe('Live over an application WebSocket relay', () => {
         raw: {},
       });
     }
-    await emit(call);
-    session.addToolOutput('call-1', 'result');
     expect(() =>
       session.sendEvent({
         type: 'context-append',
@@ -336,15 +145,14 @@ describe('Live over an application WebSocket relay', () => {
     session.disconnect();
     browser.getUserMedia.mockResolvedValue(fakeStream().stream);
     await ready(session);
-    await emit(call);
     await session.sendEvent({
-      type: 'backend-tool-result',
-      callId: 'call-1',
-      output: 'result',
+      type: 'context-append',
+      delegationId: null,
+      content: 'context',
       eventId: 'id-0',
     });
     expect(socket().sent.at(-1)).toMatchObject({
-      type: 'backend-tool-result',
+      type: 'context-append',
       eventId: 'id-0',
     });
   });
@@ -442,94 +250,6 @@ describe('Live over an application WebSocket relay', () => {
     },
   );
 
-  it('tracks public tool-result commands, preserves event IDs, and deduplicates both APIs', async () => {
-    const output = deferred<unknown>();
-    const model = liveModel();
-    model.serializeClientEvent = event =>
-      event.type === 'backend-tool-result'
-        ? output.promise
-        : Promise.resolve(event);
-    const session = create({ model });
-    await ready(session);
-    await emit(call);
-    const result = {
-      type: 'backend-tool-result' as const,
-      callId: 'call-1',
-      output: 'manual',
-      eventId: 'result-1',
-    };
-    const sent = session.sendEvent(result);
-    expect(session.sendEvent({ ...result, eventId: 'duplicate' })).toBe(sent);
-    session.addToolOutput('call-1', 'duplicate');
-    expect(() =>
-      session.sendEvent({ type: 'backend-response-create' }),
-    ).toThrow('pending realtime tool results');
-    output.resolve(result);
-    await sent;
-    await session.sendEvent(result);
-    await emit(done);
-    expect(
-      socket().sent.filter(event => event.type === 'backend-tool-result'),
-    ).toEqual([result]);
-    expect(
-      socket().sent.filter(event => event.type === 'backend-response-create'),
-    ).toHaveLength(1);
-    await expect(
-      session.sendEvent({
-        type: 'backend-response-create',
-        eventId: 'explicit-next-response',
-      }),
-    ).resolves.toBeUndefined();
-  });
-
-  it('does not apply a stale public tool-result completion to a reconnected session', async () => {
-    const output = deferred<unknown>();
-    const model = liveModel();
-    let delay = true;
-    model.serializeClientEvent = event =>
-      event.type === 'backend-tool-result' && delay
-        ? output.promise
-        : Promise.resolve(event);
-    const session = create({ model });
-    await ready(session);
-    await emit(call);
-    await emit(done);
-    const result = {
-      type: 'backend-tool-result' as const,
-      callId: 'call-1',
-      output: 'stale',
-    };
-    const sent = session.sendEvent(result);
-    const rejected = expect(sent).rejects.toThrow('closed');
-    await flushEvents();
-    session.disconnect();
-    browser.getUserMedia.mockResolvedValue(fakeStream().stream);
-    await ready(session);
-    await emit(call);
-    await emit(done);
-    output.resolve(result);
-    await rejected;
-    await flushEvents();
-    expect(
-      socket().sent.filter(event => event.type === 'backend-response-create'),
-    ).toHaveLength(0);
-    expect(() =>
-      session.sendEvent({ type: 'backend-response-create' }),
-    ).toThrow('pending realtime tool results');
-    delay = false;
-    await session.sendEvent({
-      ...result,
-      output: 'current',
-      eventId: 'current-output',
-    });
-    await flushEvents();
-    expect(
-      socket()
-        .sent.slice(-2)
-        .map(event => event.type),
-    ).toEqual(['backend-tool-result', 'backend-response-create']);
-  });
-
   it('opens an explicit relay without provider browser authentication and sends session-start first', async () => {
     const model = liveModel();
     model.getWebSocketConfig = vi.fn(() => {
@@ -543,7 +263,7 @@ describe('Live over an application WebSocket relay', () => {
     expect(socket().sent).toEqual([]);
     expect(FakeAudioContext.instances[0].resume).toHaveBeenCalledOnce();
     expect(browser.getUserMedia).not.toHaveBeenCalled();
-    expect(() => session.sendTextMessage('early')).toThrow('not accepting');
+    expect(() => session.sendTextMessage('early')).toThrow('application-owned');
     socket().open();
     await flushEvents();
     expect(socket().sent).toEqual([
@@ -559,7 +279,7 @@ describe('Live over an application WebSocket relay', () => {
     await emit({
       type: 'session-started',
       sessionId: 'live-1',
-      delegationMode: 'provider',
+      delegationMode: 'client',
       raw: {},
     });
     expect(session.snapshot.status).toBe('connected');
@@ -571,7 +291,7 @@ describe('Live over an application WebSocket relay', () => {
     await emit({
       type: 'session-started',
       sessionId: 'live-1',
-      delegationMode: 'provider',
+      delegationMode: 'client',
       raw: {},
     });
     expect(browser.getUserMedia).toHaveBeenCalledOnce();
@@ -597,7 +317,7 @@ describe('Live over an application WebSocket relay', () => {
     },
   );
 
-  it('encodes microphone frames as PCM16 and plays continuous audio without speech/backend cutoffs', async () => {
+  it('encodes microphone frames as PCM16 and plays continuous audio without speech cutoffs', async () => {
     const session = create();
     await ready(session);
     const capture = FakeAudioContext.instances[1];
@@ -621,7 +341,6 @@ describe('Live over an application WebSocket relay', () => {
     const playback = FakeAudioContext.instances[0];
     expect(playback.sources).toHaveLength(1);
     await emit({ type: 'speech-started', raw: {} });
-    await emit(done);
     expect(playback.sources[0].stop).not.toHaveBeenCalled();
     session.disconnect();
     expect(capture.close).toHaveBeenCalledOnce();
@@ -830,12 +549,13 @@ describe('Live over an application WebSocket relay', () => {
     expect(session.snapshot.session?.finalization).toBe('unconfirmed');
   });
 
-  it('uses only server-confirmed delegation mode to gate backend submissions', async () => {
+  it('keeps continuous text application-owned and allows context append', async () => {
     const session = create();
     await ready(session, 'client');
     expect(session.snapshot.session?.delegationMode).toBe('client');
-    expect(() => session.sendTextMessage('backend')).toThrow(
-      'provider delegation mode',
+    expect(() => session.sendTextMessage('hello')).toThrow('application-owned');
+    expect(() => session.addToolOutput('call', 'result')).toThrow(
+      'application-owned',
     );
     await session.sendEvent({
       type: 'context-append',
@@ -843,40 +563,6 @@ describe('Live over an application WebSocket relay', () => {
       content: 'app-owned context',
     });
     expect(socket().sent.at(-1)?.type).toBe('context-append');
-  });
-
-  it('does not mark failed tool sends as submitted or send phantom continuations', async () => {
-    const model = liveModel();
-    let fail = true;
-    model.serializeClientEvent = async event => {
-      if (event.type === 'backend-tool-result' && fail)
-        throw new Error('serializer rejected output');
-      return event;
-    };
-    const onError = vi.fn();
-    const session = create({ model, onError });
-    await ready(session);
-    await emit(call);
-    await emit(done);
-    session.addToolOutput('call-1', 'result');
-    await flushEvents();
-    expect(onError).toHaveBeenCalledWith(
-      new Error('serializer rejected output'),
-    );
-    expect(
-      socket().sent.filter(e => e.type === 'backend-response-create'),
-    ).toHaveLength(0);
-    expect(() => session.sendTextMessage('new request')).toThrow(
-      'pending realtime tool results',
-    );
-    fail = false;
-    session.addToolOutput('call-1', 'result');
-    await flushEvents();
-    expect(
-      socket()
-        .sent.slice(-2)
-        .map(e => e.type),
-    ).toEqual(['backend-tool-result', 'backend-response-create']);
   });
 
   it('surfaces malformed incoming JSON and bounds outbound media backpressure', async () => {

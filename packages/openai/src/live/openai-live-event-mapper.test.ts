@@ -198,7 +198,7 @@ describe('OpenAI Live server events', () => {
   );
 
   it.each(['opaque-delegation', null, undefined])(
-    'preserves delegated Responses envelopes with ID %s',
+    'preserves response.event as custom with opaque ID %s',
     delegationId => {
       const event = {
         type: 'response.completed',
@@ -213,9 +213,8 @@ describe('OpenAI Live server events', () => {
       const parsed = model.parseServerEvent(raw);
       expect(parsed).toEqual([
         {
-          type: 'backend-event',
-          delegationId,
-          event,
+          type: 'custom',
+          rawType: 'response.event',
           raw,
         },
       ]);
@@ -274,8 +273,6 @@ describe('OpenAI Live server events', () => {
     { type: 'session.updated' },
     { type: 'session.input_audio.muted', client_event_id: 123 },
     { type: 'session.instructions.appended', client_event_id: 'append-1' },
-    { type: 'response.event' },
-    { type: 'response.event', event: null },
     { type: 'error', error: { message: 'bad', code: 42 } },
   ])(
     'reports invalid known events without signaling readiness or finalization: %j',
@@ -290,4 +287,81 @@ describe('OpenAI Live server events', () => {
       expect(parsed[0].raw).toBe(raw);
     },
   );
+
+  it.each([
+    [undefined, 'client'],
+    [null, 'client'],
+    [{ type: 'client' }, 'client'],
+    [{ type: 'responses' }, 'provider'],
+  ])(
+    'preserves confirmed delegation mode %j as %s',
+    (delegation, delegationMode) => {
+      const raw = {
+        type: 'session.started',
+        session: { id: 'session-1', delegation },
+      };
+      for (const parse of [
+        model.createServerEventParser(),
+        (raw: unknown) => model.parseServerEvent(raw),
+      ]) {
+        expect(parse(raw)).toEqual([
+          {
+            type: 'session-started',
+            sessionId: 'session-1',
+            delegationMode,
+            raw,
+          },
+        ]);
+      }
+    },
+  );
+
+  it('preserves delegation metadata without inventing response identity', () => {
+    for (const responseId of [undefined, 'opaque-response']) {
+      const raw = {
+        type: 'session.delegation.created',
+        delegation: {
+          id: 'opaque-delegation',
+          target: 'responses',
+          response_id: responseId,
+        },
+      };
+      expect(model.parseServerEvent(raw)).toEqual([
+        {
+          type: 'delegation-created',
+          delegationId: 'opaque-delegation',
+          target: 'provider',
+          offsetMs: undefined,
+          ...(responseId !== undefined ? { responseId } : {}),
+          raw,
+        },
+      ]);
+    }
+  });
+
+  it('returns fresh pure parsers and preserves unknown envelopes without normalization', () => {
+    const first = model.createServerEventParser();
+    const second = model.createServerEventParser();
+    expect(first).not.toBe(second);
+    for (const raw of [
+      {
+        type: 'response.event',
+        event: { type: 'response.created', response: { id: 'response-1' } },
+      },
+      { type: 'response.event', event: null },
+      { type: 'response.event' },
+    ]) {
+      for (const parse of [
+        first,
+        second,
+        (raw: unknown) => model.parseServerEvent(raw),
+      ]) {
+        const parsed = parse(raw);
+        expect(parsed).toEqual([
+          { type: 'custom', rawType: 'response.event', raw },
+        ]);
+        expect(parsed[0].raw).toBe(raw);
+      }
+    }
+  });
 });

@@ -7,6 +7,13 @@ import type {
 } from '../types/realtime-model';
 import { RealtimeEventChannel } from './realtime-event-channel';
 
+function selectAudioTrack(stream: MediaStream): MediaStreamTrack | undefined {
+  const live = stream
+    .getAudioTracks()
+    .filter(track => track.readyState === 'live');
+  return live.find(track => track.enabled && !track.muted) ?? live[0];
+}
+
 export class BrowserRealtimeWebRTC {
   private pc?: RTCPeerConnection;
   private dc?: RTCDataChannel;
@@ -52,12 +59,14 @@ export class BrowserRealtimeWebRTC {
     timeoutMs: number;
     capture?: boolean;
   }): Promise<void> {
+    const generation = this.generation + 1;
     this.dispose();
+    const current = () => generation === this.generation;
+    if (!current()) return;
     const config = this.options.model.getWebRTCConfig?.();
+    if (!current()) return;
     if (config == null)
       throw new Error('This model does not support WebRTC configuration');
-    const generation = this.generation;
-    const current = () => generation === this.generation;
     const abort = new AbortController();
     this.abort = abort;
     const timeout = setTimeout(
@@ -87,10 +96,8 @@ export class BrowserRealtimeWebRTC {
       }
       this.stream = media;
       this.ownsStream = stream == null;
-      if (
-        media != null &&
-        !media.getAudioTracks().some(track => track.readyState === 'live')
-      ) {
+      const track = media == null ? undefined : selectAudioTrack(media);
+      if (media != null && track == null) {
         throw new Error('Realtime requires a live audio track');
       }
       const pc = new RTCPeerConnection();
@@ -142,11 +149,13 @@ export class BrowserRealtimeWebRTC {
       };
       const dc = pc.createDataChannel(config.dataChannelLabel);
       this.dc = dc;
-      this.codec = new RealtimeEventChannel({
+      const codec = new RealtimeEventChannel({
         model: this.options.model,
         onEvent: this.options.onEvent,
         onError: this.options.onError,
-        onFatalError: error => this.fail(error),
+        onFatalError: error => {
+          if (current()) this.fail(error);
+        },
         send: data => {
           if (!current() || dc.readyState !== 'open')
             throw new Error('Realtime data channel is not open');
@@ -155,6 +164,11 @@ export class BrowserRealtimeWebRTC {
           dc.send(typeof data === 'string' ? data : JSON.stringify(data));
         },
       });
+      if (!current()) {
+        codec.dispose();
+        return;
+      }
+      this.codec = codec;
       dc.onmessage = event => {
         if (current()) this.codec?.receive(event.data);
       };
@@ -178,36 +192,12 @@ export class BrowserRealtimeWebRTC {
           if (pc.iceGatheringState === 'complete') resolve();
         };
       });
-      if (media == null)
-        this.sender = pc.addTransceiver('audio', {
-          direction: 'sendrecv',
-        }).sender;
-      for (const track of media
-        ?.getAudioTracks()
-        .filter(track => track.readyState === 'live')
-        .slice(0, 1) ?? []) {
-        this.sender = pc.addTrack(track, media as MediaStream);
-        const updateCapture = () => {
-          if (current())
-            this.options.onCapturing(
-              track.readyState === 'live' && track.enabled && !track.muted,
-            );
-        };
-        for (const event of ['ended', 'mute', 'unmute']) {
-          track.addEventListener(event, updateCapture);
-          this.trackCleanups.push(() =>
-            track.removeEventListener(event, updateCapture),
-          );
-        }
-      }
-      this.options.onCapturing(
-        media
-          ?.getAudioTracks()
-          .some(
-            track =>
-              track.enabled && !track.muted && track.readyState === 'live',
-          ) ?? false,
-      );
+      this.sender =
+        media != null && track != null
+          ? pc.addTrack(track, media)
+          : pc.addTransceiver('audio', { direction: 'sendrecv' }).sender;
+      this.observeCapture();
+      if (!current() || abort.signal.aborted) return;
       const offer = await pc.createOffer();
       if (!current() || abort.signal.aborted) return;
       await pc.setLocalDescription(offer);
@@ -381,14 +371,14 @@ export class BrowserRealtimeWebRTC {
     if (this.ownsStream)
       this.stream?.getTracks().forEach(track => track.stop());
     this.stream = undefined;
+    const sender = this.sender;
     this.options.onCapturing(false);
-    await this.sender?.replaceTrack(null);
+    await sender?.replaceTrack(null);
   }
 
   async startCapture(supplied?: MediaStream): Promise<void> {
-    const stopped = this.stopCapture();
-    const generation = this.captureGeneration;
-    await stopped;
+    const generation = this.captureGeneration + 1;
+    await this.stopCapture();
     if (
       generation !== this.captureGeneration ||
       this.pc == null ||
@@ -405,9 +395,7 @@ export class BrowserRealtimeWebRTC {
       if (supplied == null) media.getTracks().forEach(track => track.stop());
       return;
     }
-    const track = media
-      .getAudioTracks()
-      .find(track => track.readyState === 'live');
+    const track = selectAudioTrack(media);
     if (track == null) {
       if (supplied == null) media.getTracks().forEach(track => track.stop());
       throw new Error('Realtime requires a live audio track');
@@ -424,13 +412,27 @@ export class BrowserRealtimeWebRTC {
     }
     this.stream = media;
     this.ownsStream = supplied == null;
-    const update = () =>
-      this.options.onCapturing(
-        track.readyState === 'live' && track.enabled && !track.muted,
-      );
-    for (const event of ['ended', 'mute', 'unmute']) {
-      track.addEventListener(event, update);
-      this.trackCleanups.push(() => track.removeEventListener(event, update));
+    this.observeCapture();
+  }
+
+  private observeCapture(): void {
+    const generation = this.captureGeneration;
+    const sender = this.sender;
+    const track = sender?.track;
+    const update = () => {
+      if (generation === this.captureGeneration && this.sender === sender)
+        this.options.onCapturing(
+          sender?.track != null &&
+            sender.track.readyState === 'live' &&
+            sender.track.enabled &&
+            !sender.track.muted,
+        );
+    };
+    if (track != null) {
+      for (const event of ['ended', 'mute', 'unmute']) {
+        track.addEventListener(event, update);
+        this.trackCleanups.push(() => track.removeEventListener(event, update));
+      }
     }
     update();
   }

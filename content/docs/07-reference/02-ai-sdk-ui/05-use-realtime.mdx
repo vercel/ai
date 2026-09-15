@@ -13,9 +13,9 @@ Creates a browser-side realtime session for bidirectional audio and text
 conversations with a realtime provider model.
 
 The hook supports token-based provider WebSockets, application-owned WebSocket
-relays, and optional direct browser WebRTC with server-side HTTP setup. It provides
-controls for capture, playback, text input, and tool output. Turn-based conversation
-messages use `UIMessage[]`; continuous transcript fragments remain in `session`.
+relays, and optional WebRTC where the model declares support. It provides controls for capture and playback, plus turn-based text input
+and tool output. Turn-based conversation messages use `UIMessage[]`; continuous
+transcript fragments remain in `session`.
 
 ```tsx
 import { openai } from '@ai-sdk/openai';
@@ -46,8 +46,21 @@ relay. The relay supplies server credentials and forwards the provider's native
 text frames; it must authenticate clients before accepting connections.
 
 ```tsx
+import {
+  openai,
+  type Experimental_OpenAIRealtimeModelLiveOptions,
+} from '@ai-sdk/openai';
+import { experimental_useRealtime } from '@ai-sdk/react';
+
 const model = openai.experimental_realtime('gpt-live-1');
-const sessionConfig = { instructions: 'Be a concise, friendly assistant.' };
+const sessionConfig = {
+  instructions: 'Be a concise, friendly assistant.',
+  providerOptions: {
+    openai: {
+      delegation: { type: 'client' },
+    } satisfies Experimental_OpenAIRealtimeModelLiveOptions,
+  },
+};
 
 function LiveConversation() {
   const realtime = experimental_useRealtime({
@@ -68,13 +81,90 @@ function LiveConversation() {
 ```
 
 WebSocket capture/playback supports PCM16. Applications with their own audio pipeline
-can use the low-level provider for other supported codecs. OpenAI-specific settings,
-including Responses delegation and WebRTC permissions, live under `providerOptions.openai`.
+can use the low-level provider for other supported codecs. OpenAI-specific settings
+live under `providerOptions.openai` and use camelCase fields; the provider converts
+them to wire names.
 
-For optional WebRTC, pass `api: { session: '/api/live/session' }`. The endpoint receives
-`{ sdp, sessionConfig }` and returns `{ sessionId, sdp }` from the provider's
-`doCreateWebRTCSession()` method. Audio travels directly between the browser and
-OpenAI; the endpoint is an HTTP setup broker, not a WebRTC media server.
+### Application-handled client delegation
+
+Live reports client delegation metadata through `session.delegations` and normalized
+events. The application owns any text conversation, agent context, tool execution,
+and result validation. The SDK does not run a generic agent executor for Live, and
+Live delegations do not invoke `onToolCall`.
+
+Use `sendEvent` to append context or a result. Set `delegationId` to a known client
+delegation from the current session, or `null` for session-wide context:
+
+```tsx
+await realtime.sendEvent({
+  type: 'context-append',
+  delegationId: null,
+  content: 'The application has confirmed that the appointment is at 3 PM.',
+  providerOptions: { openai: { channel: 'commentary' } },
+});
+```
+
+The example uses application-provided content, not task arguments inferred from
+delegation metadata. OpenAI's context channels are `commentary`, `thinking`, and
+`instructions`; reserve `instructions` for trusted application instructions. A
+successful send confirms local submission, not provider acceptance or audible delivery.
+
+### Optional WebRTC
+
+For browser-direct Live audio, replace `api.websocket` with
+`api: { session: '/api/realtime-live' }`. The hook posts JSON `{ sdp, sessionConfig }`
+to that application endpoint and expects JSON `{ sdp, sessionId }` back. On the
+server, authenticate the application user, validate the offer and allowed settings,
+then exchange SDP using the server-held provider key:
+
+```ts
+const answer = await openai
+  .experimental_realtime('gpt-live-1')
+  .doCreateWebRTCSession({
+    sdp,
+    sessionConfig: {
+      providerOptions: {
+        openai: {
+          delegation: { type: 'client' },
+          client: {
+            dataChannel: {
+              allowedClientEvents: ['session.close', 'session.thinking.append'],
+              allowedServerEvents: [
+                { type: 'session.started' },
+                { type: 'session.closed' },
+                { type: 'session.usage.updated' },
+                { type: 'session.delegation.created' },
+                { type: 'session.input_transcript.delta' },
+                { type: 'session.output_transcript.delta' },
+                { type: 'session.thinking.appended' },
+                { type: 'error' },
+              ],
+            },
+          },
+        },
+      },
+    },
+  });
+// Return Response.json(answer) from the application endpoint.
+```
+
+Permissions are server-owned; override browser-supplied delegation and data-channel
+policy. Allow the lifecycle, caption, delegation, command acknowledgment, and error
+events needed by your UI. The runnable `/realtime-live` example in
+`examples/ai-e2e-next` adds protocol mute and all three context channels.
+
+WebRTC negotiates audio through SDP, so omit fixed audio formats and the PCM-only
+`maxPlaybackBufferSeconds`. Audio travels as media rather than JSON audio commands.
+`connect({ capture: false })` starts without microphone capture and keeps a reusable
+audio sender; `resumeAudioCapture()` can attach a microphone later. Microphone access
+requires browser permission and a secure context. Autoplay may require a user gesture
+followed by `resumePlayback()`.
+
+One live audio track is selected per attachment, preferring an enabled, unmuted
+track. `isCapturing` follows that sender track, including mute and ended events;
+it never switches tracks automatically. Caller-owned tracks are detached without
+being stopped or disabled. Client delegation remains application-handled on either
+transport, and Live session updates remain unsupported.
 
 ## Lifecycle and failure handling
 
@@ -88,17 +178,27 @@ uses the shorter accepted-event drain rather than waiting for an acknowledgment
 to an unsent command. Read `session.finalization`: a fulfilled close promise does
 not by itself confirm usage. `disconnect()` and unmount release resources immediately.
 
+Hook controls keep stable identities across renders and provider events. A retained
+control targets the current **committed** session, including after a model or endpoint
+change. Uncommitted renders cannot replace the active session or its callbacks.
+Callback-only updates take effect at commit without reconnecting.
+
+After unmount, `connect`, `close`, `resumeAudioCapture`, and `resumePlayback` reject
+with a mounted-hook error. Other controls throw that error synchronously, including
+`sendEvent`, which preserves synchronous validation and returns a promise for an
+accepted submission. Retained controls cannot reopen an unmounted session.
+
 Command rejection and playback failures are recoverable and do not mark a healthy
 protocol connection as failed. Irrecoverable transport failures and protocol queue
 overflow stop submissions and capture, drain the accepted event prefix, and clean
 up. Events are never arbitrarily dropped while continuing with unreliable state.
-Temporary WebRTC disconnections have a bounded recovery interval; no commands or
-side-effecting tools are transparently replayed on a replacement connection.
+No commands or side-effecting tools are transparently replayed on a replacement
+connection.
 
-The playback budget bounds local latency and memory. On overflow, stale queued audio
+The continuous WebSocket PCM playback budget bounds local latency and memory. On overflow, stale queued audio
 is discarded, playback pauses, and `onError` reports an audible gap. The connection
 stays alive; `resumePlayback()` resumes from fresh audio at the live edge. Captions
-and backend completion do not prove that the corresponding audio was heard.
+and completion of delegated work do not prove that the corresponding audio was heard.
 
 ## Import
 
@@ -122,7 +222,7 @@ and backend completion do not prove that the corresponding audio was heard.
       name: 'api',
       type: '{ token: string } | { websocket: string; protocols?: string[] } | { session: string }',
       description:
-        'Choose one supported connection mechanism: token setup, a WebSocket relay, or an HTTP WebRTC SDP endpoint. Conversation semantics and connection capabilities are independent.',
+        'Choose one supported connection mechanism: token setup, a WebSocket relay, or a WebRTC SDP endpoint. Conversation semantics and connection capabilities are independent.',
       properties: [
         {
           type: 'Object',
@@ -133,6 +233,13 @@ and backend completion do not prove that the corresponding audio was heard.
               isOptional: true,
               description:
                 'The setup endpoint that returns an Experimental_RealtimeSetupResponse.',
+            },
+            {
+              name: 'session',
+              type: 'string',
+              isOptional: true,
+              description:
+                'Application WebRTC setup endpoint. Accepts JSON { sdp, sessionConfig } and returns JSON { sdp, sessionId }.',
             },
             {
               name: 'websocket',
@@ -147,13 +254,6 @@ and backend completion do not prove that the corresponding audio was heard.
               isOptional: true,
               description:
                 'Optional relay subprotocols, supported only with websocket.',
-            },
-            {
-              name: 'session',
-              type: 'string',
-              isOptional: true,
-              description:
-                'HTTP SDP endpoint returning { sessionId, sdp }. The server owns the provider key and permission policy.',
             },
           ],
         },
@@ -181,13 +281,6 @@ and backend completion do not prove that the corresponding audio was heard.
         'Maximum number of provider events to keep in the events array. Defaults to 500.',
     },
     {
-      name: 'autoContinueTools',
-      type: 'boolean',
-      isOptional: true,
-      description:
-        'Opt into automatic continuation after every pending provider-managed backend tool result is submitted. Defaults to false for these sessions; existing turn-based tool continuation is unchanged.',
-    },
-    {
       name: 'startupTimeoutMs',
       type: 'number',
       isOptional: true,
@@ -206,21 +299,21 @@ and backend completion do not prove that the corresponding audio was heard.
       type: 'number',
       isOptional: true,
       description:
-        'Grace interval for a recoverable WebRTC disconnected state. Defaults to 5000.',
+        'WebRTC peer disconnect recovery grace period. Defaults to 5000. Failed ICE terminates immediately.',
     },
     {
       name: 'maxPlaybackBufferSeconds',
       type: 'number',
       isOptional: true,
       description:
-        'Local PCM playback budget before reporting a recoverable gap and pausing playback. Defaults to 2.',
+        'Continuous WebSocket PCM playback budget before reporting a recoverable gap and pausing playback. Defaults to 2. Unsupported with WebRTC.',
     },
     {
       name: 'onToolCall',
       type: '(options: { toolCall: { toolCallId: string; toolName: string; args: unknown } }) => unknown | Promise<unknown> | undefined',
       isOptional: true,
       description:
-        'Called when the provider requests a tool call. Return a value to automatically submit it as tool output, or return undefined and call addToolOutput manually later.',
+        'Turn-based tools only. Return a value to automatically submit it as tool output, or return undefined and call addToolOutput manually later. Live client delegations are application-handled through session metadata and events.',
     },
     {
       name: 'onEvent',
@@ -261,7 +354,8 @@ and backend completion do not prove that the corresponding audio was heard.
     {
       name: 'isCapturing',
       type: 'boolean',
-      description: 'Whether microphone audio capture is active.',
+      description:
+        'Capture state observed through SDK controls and events on the selected audio track. External changes to borrowed tracks may require an explicit refresh; see Capture ownership.',
     },
     {
       name: 'isPlaying',
@@ -272,7 +366,7 @@ and backend completion do not prove that the corresponding audio was heard.
       name: 'session',
       type: 'Experimental_RealtimeSessionState | undefined',
       description:
-        'Session lifecycle metadata where supported: sessionId, transcript fragments, delegations, cumulative voice usage, separate backendUsage snapshots, input mute, terminationReason, and pending/confirmed/unconfirmed finalization. Transcript fragments may overlap or arrive late; they are not complete turns.',
+        'Session lifecycle metadata where supported: sessionId, transcript fragments, client delegation metadata, cumulative voice usage, input mute, terminationReason, and pending/confirmed/unconfirmed finalization. Transcript fragments may overlap or arrive late; they are not complete turns.',
     },
     {
       name: 'connect',
@@ -296,45 +390,45 @@ and backend completion do not prove that the corresponding audio was heard.
       name: 'addToolOutput',
       type: '(callId: string, result: unknown) => void',
       description:
-        'Submits the result for a tool call back to the realtime provider.',
+        'Turn-based only: submits a tool result back to the realtime provider. Continuous Live sessions reject this control; append application-handled client delegation results with sendEvent instead.',
     },
     {
       name: 'sendEvent',
       type: '(event: Experimental_RealtimeClientEvent) => Promise<void>',
       description:
-        'Sends a normalized command in order. Resolves on local serialization/submission, not provider acceptance. Validation can throw synchronously; asynchronous send failures reject and are reported through onError. Backend results preserve bookkeeping but only auto-continue when opted in.',
+        'Sends a normalized command in order. Resolves on local serialization/submission, not provider acceptance. Validation can throw synchronously; asynchronous send failures reject and are reported through onError. Live context/results use context-append with a known client delegation ID or null.',
     },
     {
       name: 'sendTextMessage',
       type: '(text: string) => void',
       description:
-        'Sends user text and requests a response. With a provider-managed backend, targets that backend rather than creating a voice turn; requires pending tool results to be supplied first.',
+        'Turn-based only: sends user text and requests a response. Continuous Live sessions reject this control. The application owns its text conversation and supplies Live context through sendEvent.',
     },
     {
       name: 'sendAudio',
       type: '(base64Audio: string) => void',
       description:
-        'Sends a base64-encoded audio chunk to the provider input audio buffer.',
+        'Sends a base64-encoded audio chunk to the provider input audio buffer over WebSocket. WebRTC uses media tracks and rejects JSON audio commands.',
     },
     {
       name: 'commitAudio',
       type: '() => void',
-      description: 'Commits the provider input audio buffer.',
+      description: 'Turn-based only: commits the provider input audio buffer.',
     },
     {
       name: 'clearAudioBuffer',
       type: '() => void',
-      description: 'Clears the provider input audio buffer.',
+      description: 'Turn-based only: clears the provider input audio buffer.',
     },
     {
       name: 'requestResponse',
       type: '(options?: { modalities?: string[] }) => void',
-      description: 'Requests a new model response.',
+      description: 'Turn-based only: requests a new model response.',
     },
     {
       name: 'cancelResponse',
       type: '() => void',
-      description: 'Cancels the active model response.',
+      description: 'Turn-based only: cancels the active model response.',
     },
     {
       name: 'startAudioCapture',
@@ -345,7 +439,8 @@ and backend completion do not prove that the corresponding audio was heard.
     {
       name: 'stopAudioCapture',
       type: '() => void',
-      description: 'Stops microphone audio capture.',
+      description:
+        'Stops local capture and releases SDK-owned microphone tracks. Caller-owned Live tracks are only detached. Does not change the provider input-mute state.',
     },
     {
       name: 'resumeAudioCapture',
@@ -369,61 +464,67 @@ and backend completion do not prove that the corresponding audio was heard.
 
 ## Tool Calling
 
-Realtime tool execution is client-driven. Use `onToolCall` to handle tool calls
-and return the tool output:
+For turn-based models such as `gpt-realtime`, tool execution is client-driven.
+Use `onToolCall` to handle tool calls and return the tool output. Keep the model
+stable across callback updates:
 
 ```tsx
-const realtime = experimental_useRealtime({
-  model: openai.experimental_realtime('gpt-realtime'),
-  api: {
-    token: '/api/realtime/setup',
-  },
-  onToolCall: async ({ toolCall }) => {
-    if (toolCall.toolName === 'getWeather') {
-      const response = await fetch('/api/weather', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(toolCall.args),
-      });
+const model = openai.experimental_realtime('gpt-realtime');
 
-      return response.json();
-    }
-  },
-});
+function WeatherConversation() {
+  const realtime = experimental_useRealtime({
+    model,
+    api: { token: '/api/realtime/setup' },
+    onToolCall: async ({ toolCall }) => {
+      if (toolCall.toolName === 'getWeather') {
+        const response = await fetch('/api/weather', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(toolCall.args),
+        });
+
+        return response.json();
+      }
+    },
+  });
+  return <button onClick={realtime.connect}>Connect</button>;
+}
 ```
 
 For tools that require user interaction, return `undefined` from `onToolCall`
 and call `addToolOutput` later.
 
-For provider-managed delegated work, automatic continuation is **opt-in** through
-`autoContinueTools: true`. Otherwise submit all required results, append any extra
-context, then send `backend-response-create` explicitly. Existing turn-based
-providers retain their automatic continuation behavior. A successful local send
-is not an acknowledgment that the provider accepted a result; correlated rejections
-permit a corrected result with a fresh command ID without rerunning its tool handler.
+Turn-based providers retain their automatic continuation behavior. Live uses the
+application-handled client delegation flow described above, rather than these tool
+callbacks or turn controls.
 
 Outstanding commands are bounded independently from the retained recent-ID history.
 Completed work does not impose a lifetime command quota. Use fresh IDs and keep
 durable operation deduplication in the application; bounded history is not a promise
 of session-long exactly-once execution.
 
-## Permissions and capture ownership
-
-WebRTC data-channel permissions are provider-specific startup policy. OpenAI exposes
-them through `providerOptions.openai.client.dataChannel`; the application server must
-construct or constrain the policy rather than trusting browser-supplied allowlists.
-Omitting a policy preserves the provider default; `[]` and `all` remain distinct.
-The SDK does not broaden an allowlist to regain readiness or finalization events.
-If those events are filtered out, readiness/finalization can time out truthfully.
+## Capture ownership
 
 SDK-acquired tracks are stopped on local capture stop or cleanup. Caller-owned Live
 tracks are detached without stopping or disabling them. `stopAudioCapture()` controls
 local hardware capture; provider `input-audio-mute` controls remote audio processing
-and is tracked through its acknowledgment. These are separate operations.
+and is tracked through its acknowledgment. These are separate operations: protocol
+mute does not release the microphone, and resuming local capture does not unmute
+provider input. Use `resumeAudioCapture()` to reuse a caller-supplied stream or
+acquire a fresh SDK-owned microphone without reconnecting. The application remains
+responsible for stopping its own tracks when finished with them.
+
+`isCapturing` reflects SDK capture controls and events on the selected audio track;
+it does not continuously observe caller-owned media. Assigning `track.enabled`
+does not emit an event, and calling `track.stop()` does not emit an `ended` event.
+After changing borrowed tracks externally, call `startAudioCapture(stream)` or
+`resumeAudioCapture()` to refresh capture state and reattach as needed. If a track
+was stopped, provide a stream with a live audio track; stopped tracks cannot be
+restarted. The SDK does not poll external track state.
 
 ## Experimental compatibility
 
-This update adds explicit relay/SDP options and changes experimental `sendEvent` to
+This update adds explicit relay options and changes experimental `sendEvent` to
 return a promise. Existing token setups and the no-argument `connect` call remain
 supported. New session state uses `session`, not a provider-branded state object.
 Generic realtime-model consumers must check optional connection methods before calling
@@ -432,7 +533,7 @@ may need to handle the added events. OpenAI uses `experimental_realtime` for bot
 Realtime and Live models, with a provider-specific `{ api: 'live' }` override for
 unknown or early-access Live model IDs. This factory option selects the provider API;
 the hook's `api.websocket` option selects the application's transport endpoint.
-Model startup/update types are exported with `Experimental_` prefixes.
+OpenAI Live startup options are exported as `Experimental_OpenAIRealtimeModelLiveOptions`.
 
 See [Realtime](/docs/ai-sdk-core/realtime#tool-calling) for a complete example
 with server-backed app-specific tool endpoints.

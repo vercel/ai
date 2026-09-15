@@ -26,6 +26,7 @@ export async function POST(request: Request) {
             ...(sessionConfig?.providerOptions?.openai as
               | OpenAIRealtimeModelLiveOptions
               | undefined),
+            delegation: { type: 'client' },
             client: {
               dataChannel: {
                 allowedClientEvents: [
@@ -35,8 +36,6 @@ export async function POST(request: Request) {
                   'session.instructions.append',
                   'session.thinking.append',
                   'session.commentary.append',
-                  'response.item.create',
-                  'response.create',
                 ],
                 allowedServerEvents: [
                   { type: 'session.started' },
@@ -51,28 +50,6 @@ export async function POST(request: Request) {
                   { type: 'session.thinking.appended' },
                   { type: 'session.commentary.appended' },
                   { type: 'error' },
-                  { type: 'response.event', responseEvent: 'response.created' },
-                  {
-                    type: 'response.event',
-                    responseEvent: 'response.completed',
-                  },
-                  { type: 'response.event', responseEvent: 'response.failed' },
-                  {
-                    type: 'response.event',
-                    responseEvent: 'response.cancelled',
-                  },
-                  {
-                    type: 'response.event',
-                    responseEvent: 'response.incomplete',
-                  },
-                  {
-                    type: 'response.event',
-                    responseEvent: 'response.output_item.done',
-                  },
-                  {
-                    type: 'response.event',
-                    responseEvent: 'response.output_text.delta',
-                  },
                 ],
               },
             },

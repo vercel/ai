@@ -27,6 +27,7 @@ export class BrowserRealtimeAudio {
   private captureStream: MediaStream | null = null;
   private ownsCaptureStream = true;
   private captureCleanup: Array<() => void> = [];
+  private captureGeneration = 0;
 
   private playbackContext: AudioContext | null = null;
   private playbackQueue: Float32Array[] = [];
@@ -65,8 +66,11 @@ export class BrowserRealtimeAudio {
 
   async resumePlayback(): Promise<void> {
     this.ensurePlaybackContext();
+    const context = this.playbackContext;
     if (this.playbackPaused) this.stopPlayback();
-    await this.playbackContext?.resume();
+    if (this.playbackContext !== context) return;
+    await context?.resume();
+    if (this.playbackContext !== context) return;
     this.playbackPaused = false;
     this.setPlaying(
       this.playbackContext?.state === 'running' && this.activeSources.size > 0,
@@ -74,7 +78,13 @@ export class BrowserRealtimeAudio {
   }
 
   startCapture(stream: MediaStream, options?: { ownsStream?: boolean }): void {
+    const generation = this.captureGeneration + 1;
     this.stopCapture();
+    if (generation !== this.captureGeneration) {
+      if (options?.ownsStream ?? true)
+        stream.getTracks().forEach(track => track.stop());
+      return;
+    }
     this.captureStream = stream;
     this.ownsCaptureStream = options?.ownsStream ?? true;
     const ctx = new AudioContext({ sampleRate: this.captureSampleRate });
@@ -129,6 +139,7 @@ export class BrowserRealtimeAudio {
   }
 
   stopCapture(): void {
+    this.captureGeneration++;
     if (this.captureProcessor != null)
       this.captureProcessor.onaudioprocess = null;
     for (const cleanup of this.captureCleanup) cleanup();
@@ -240,6 +251,7 @@ export class BrowserRealtimeAudio {
 
       this.activeSources.add(source);
       this.setPlaying(ctx.state === 'running');
+      if (this.playbackContext !== ctx) return;
 
       source.onended = () => {
         source.disconnect();

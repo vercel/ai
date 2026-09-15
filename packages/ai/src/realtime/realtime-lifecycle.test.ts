@@ -6,10 +6,9 @@ import {
 import {
   deferred,
   fakeStream,
-  FakePeerConnection,
   flushEvents,
   liveModel,
-} from './__fixtures__/fake-webrtc';
+} from './__fixtures__/fake-realtime';
 import {
   FakeAudioContext,
   FakeWebSocket,
@@ -26,37 +25,20 @@ class Session extends AbstractRealtimeSession {
 }
 
 describe('realtime lifecycle recovery and bounded resources', () => {
-  it('honors stop capture while RTC initially acquires a microphone and negotiates a reusable sender', async () => {
-    const media = deferred<MediaStream>();
-    browser.getUserMedia.mockReturnValueOnce(media.promise);
-    const session = create();
-    const connecting = session.connect();
-    session.stopAudioCapture();
-    media.resolve(browser.stream);
-    await connecting;
-    expect(browser.track.stop).toHaveBeenCalledOnce();
-    expect(session.snapshot.isCapturing).toBe(false);
-    expect(session.snapshot.status).toBe('connected');
-    expect(peer().addTrack).not.toHaveBeenCalled();
-    expect(peer().addTransceiver).toHaveBeenCalledOnce();
-  });
-
   let browser: ReturnType<typeof installLiveWebSocket>;
   let sessions: Session[];
   const create = (options: Partial<RealtimeSessionOptions> = {}) => {
     const session = new Session({
       model: liveModel(),
-      api: { session: '/session' },
+      api: { websocket: 'wss://relay.test' },
       ...options,
     });
     sessions.push(session);
     return session;
   };
   const socket = () => FakeWebSocket.instances.at(-1)!;
-  const peer = () => FakePeerConnection.instances.at(-1)!;
   const emit = async (event: RealtimeServerEvent) => {
-    if (FakeWebSocket.instances.length > 0) socket().emit(event);
-    else peer().dc.emit(event);
+    socket().emit(event);
     await flushEvents();
   };
   const readyWebSocket = async (session: Session, capture = true) => {
@@ -65,7 +47,7 @@ describe('realtime lifecycle recovery and bounded resources', () => {
     await emit({
       type: 'session-started',
       sessionId: 's',
-      delegationMode: 'provider',
+      delegationMode: 'client',
       raw: {},
     });
   };
@@ -88,63 +70,9 @@ describe('realtime lifecycle recovery and bounded resources', () => {
     expect(session.snapshot.status).toBe('error');
     expect(browser.fetch).not.toHaveBeenCalled();
     expect(browser.getUserMedia).not.toHaveBeenCalled();
-    expect(FakePeerConnection.instances).toHaveLength(0);
     expect(FakeWebSocket.instances).toHaveLength(0);
     expect(FakeAudioContext.instances).toHaveLength(0);
   });
-
-  it('keeps a transiently disconnected RTC peer alive, cancels grace on recovery, and expires once', async () => {
-    vi.useFakeTimers();
-    const onError = vi.fn();
-    const session = create({ onError });
-    await session.connect();
-    peer().connectionState = 'disconnected';
-    peer().onconnectionstatechange?.();
-    await vi.advanceTimersByTimeAsync(4_999);
-    expect(session.snapshot.status).toBe('connected');
-    expect(browser.track.stop).not.toHaveBeenCalled();
-    peer().connectionState = 'connected';
-    peer().onconnectionstatechange?.();
-    await vi.advanceTimersByTimeAsync(10_000);
-    expect(onError).not.toHaveBeenCalled();
-    peer().connectionState = 'disconnected';
-    peer().onconnectionstatechange?.();
-    await vi.advanceTimersByTimeAsync(5_001);
-    expect(onError).toHaveBeenCalledOnce();
-    expect(session.snapshot.status).toBe('error');
-    expect(browser.track.stop).toHaveBeenCalledOnce();
-    expect(peer().close).toHaveBeenCalledOnce();
-  });
-
-  it.each(['ice', 'data-channel'] as const)(
-    'reports actionable pre-open %s failure exactly once and resolves legacy connect()',
-    async kind => {
-      FakePeerConnection.autoOpen = false;
-      FakePeerConnection.autoStart = false;
-      const onError = vi.fn((_error: Error) => {
-        throw new Error('callback failure');
-      });
-      const session = create({ onError });
-      const connecting = session.connect();
-      await flushEvents();
-      if (kind === 'ice') {
-        peer().iceConnectionState = 'failed';
-        peer().oniceconnectionstatechange?.();
-      } else peer().dc.close();
-      await connecting;
-      expect(onError).toHaveBeenCalledOnce();
-      expect(onError.mock.calls[0][0]).toEqual(
-        new Error(
-          kind === 'ice'
-            ? 'Realtime ICE connection failed'
-            : 'Realtime data channel closed',
-        ),
-      );
-      expect(session.snapshot.status).toBe('error');
-      expect(browser.track.stop).toHaveBeenCalledOnce();
-      expect(peer().close).toHaveBeenCalledOnce();
-    },
-  );
 
   it('preserves legacy ownership of supplied capture and closes both token socket and microphone on congestion', async () => {
     const model = { ...liveModel(), capabilities: undefined };
@@ -315,107 +243,34 @@ describe('realtime lifecycle recovery and bounded resources', () => {
     expect(socket().close).not.toHaveBeenCalled();
   });
 
-  it.each(['webrtc', 'websocket'] as const)(
-    'supports capture-free %s setup, borrowed reattachment, and close-time detach',
-    async transport => {
-      const session = create({
-        api:
-          transport === 'webrtc'
-            ? { session: '/session' }
-            : { websocket: 'wss://relay.test' },
-      });
-      if (transport === 'webrtc') await session.connect({ capture: false });
-      else await readyWebSocket(session, false);
-      expect(browser.getUserMedia).not.toHaveBeenCalled();
-      expect(session.snapshot.isCapturing).toBe(false);
-      if (transport === 'webrtc')
-        expect(peer().addTransceiver).toHaveBeenCalledExactlyOnceWith('audio', {
-          direction: 'sendrecv',
-        });
-      session.startAudioCapture(browser.stream);
-      await flushEvents();
-      expect(session.snapshot.isCapturing).toBe(true);
-      session.stopAudioCapture();
-      await flushEvents();
-      expect(browser.track.stop).not.toHaveBeenCalled();
-      expect(session.snapshot.isCapturing).toBe(false);
-      await session.resumeAudioCapture();
-      expect(session.snapshot.isCapturing).toBe(true);
-      const closed = session.close();
-      await flushEvents();
-      expect(session.snapshot.isCapturing).toBe(false);
-      if (transport === 'webrtc')
-        expect(peer().sender.replaceTrack).toHaveBeenLastCalledWith(null);
-      expect(browser.track.stop).not.toHaveBeenCalled();
-      await emit({
-        type: 'session-closed',
-        usage: { seconds: 1 },
-        reason: 'requested',
-        raw: {},
-      });
-      await closed;
-    },
-  );
-
-  it.each(['addToolOutput', 'sendEvent'] as const)(
-    'defaults managed continuation off for %s and permits exactly one manual continuation',
-    async method => {
-      const onToolCall = vi.fn();
-      const session = create({ onToolCall });
-      await session.connect();
-      await emit({
-        type: 'backend-tool-call',
-        callId: 'c',
-        responseId: 'r',
-        name: 'test',
-        arguments: '{}',
-        raw: {},
-      });
-      await emit({
-        type: 'backend-response-done',
-        responseId: 'r',
-        status: 'completed',
-        raw: {},
-      });
-      expect(() =>
-        session.sendEvent({ type: 'backend-response-create' }),
-      ).toThrow('pending');
-      if (method === 'addToolOutput') session.addToolOutput('c', 'ok');
-      else
-        await session.sendEvent({
-          type: 'backend-tool-result',
-          callId: 'c',
-          output: 'ok',
-        });
-      await flushEvents();
-      expect(
-        peer().dc.sent.filter(
-          event => event.type === 'backend-response-create',
-        ),
-      ).toHaveLength(0);
-      await session.sendEvent({ type: 'backend-response-create' });
-      await emit({
-        type: 'backend-response-done',
-        responseId: 'r',
-        status: 'completed',
-        raw: {},
-      });
-      await emit({
-        type: 'backend-tool-call',
-        callId: 'c',
-        responseId: 'r',
-        name: 'test',
-        arguments: '{}',
-        raw: {},
-      });
-      expect(onToolCall).toHaveBeenCalledOnce();
-      expect(
-        peer().dc.sent.filter(
-          event => event.type === 'backend-response-create',
-        ),
-      ).toHaveLength(1);
-    },
-  );
+  it('supports capture-free websocket setup, borrowed reattachment, and close-time detach', async () => {
+    const session = create({
+      api: { websocket: 'wss://relay.test' },
+    });
+    await readyWebSocket(session, false);
+    expect(browser.getUserMedia).not.toHaveBeenCalled();
+    expect(session.snapshot.isCapturing).toBe(false);
+    session.startAudioCapture(browser.stream);
+    await flushEvents();
+    expect(session.snapshot.isCapturing).toBe(true);
+    session.stopAudioCapture();
+    await flushEvents();
+    expect(browser.track.stop).not.toHaveBeenCalled();
+    expect(session.snapshot.isCapturing).toBe(false);
+    await session.resumeAudioCapture();
+    expect(session.snapshot.isCapturing).toBe(true);
+    const closed = session.close();
+    await flushEvents();
+    expect(session.snapshot.isCapturing).toBe(false);
+    expect(browser.track.stop).not.toHaveBeenCalled();
+    await emit({
+      type: 'session-closed',
+      usage: { seconds: 1 },
+      reason: 'requested',
+      raw: {},
+    });
+    await closed;
+  });
 
   it('does not let stop capture race a late microphone acquisition', async () => {
     const media = deferred<MediaStream>();
@@ -433,7 +288,7 @@ describe('realtime lifecycle recovery and bounded resources', () => {
 
   it('never evicts pending commands to admit another command and preserves acknowledgement association', async () => {
     const session = create();
-    await session.connect();
+    await readyWebSocket(session);
     for (let i = 0; i < 512; i++)
       await session.sendEvent({
         type: 'input-audio-mute',
@@ -470,8 +325,8 @@ describe('realtime lifecycle recovery and bounded resources', () => {
         capabilities: { ...model.capabilities!, conversation: 'turn-based' },
       },
     });
-    await session.connect({ capture: false });
-    expect(session.snapshot.session?.sessionId).toBe('session-1');
+    await readyWebSocket(session, false);
+    expect(session.snapshot.session?.sessionId).toBe('s');
     expect(session.snapshot.status).toBe('connected');
     const closed = session.close();
     await emit({

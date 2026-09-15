@@ -4,11 +4,7 @@ import {
   type Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
 } from '@ai-sdk/provider';
 import { z } from 'zod/v4';
-import {
-  openaiRealtimeModelLiveOptionsSchema,
-  openaiRealtimeModelLiveUpdateOptionsSchema,
-  type OpenAIRealtimeModelLiveUpdateOptions,
-} from './openai-realtime-model-live-options';
+import { openaiRealtimeModelLiveOptionsSchema } from './openai-realtime-model-live-options';
 
 const audioFormatSchema = z.union([
   z.strictObject({
@@ -42,6 +38,16 @@ export function buildOpenAILiveSessionConfig(
     }
   }
 
+  if (
+    z
+      .object({ delegation: z.object({ type: z.literal('responses') }) })
+      .safeParse(config.providerOptions?.openai).success
+  ) {
+    throw new UnsupportedFunctionalityError({
+      functionality:
+        'OpenAI Live Responses delegation; only client delegation is supported',
+    });
+  }
   const options = openaiRealtimeModelLiveOptionsSchema.parse(
     config.providerOptions?.openai ?? {},
   );
@@ -102,17 +108,7 @@ export function buildOpenAILiveSessionConfig(
       output: { voice: options.voice ?? config.voice ?? 'marin' },
     },
     ...(options.delegation !== undefined
-      ? {
-          delegation:
-            options.delegation?.type === 'responses'
-              ? {
-                  type: 'responses',
-                  responses: convertResponsesOptions(
-                    options.delegation.responses,
-                  ),
-                }
-              : options.delegation,
-        }
+      ? { delegation: options.delegation }
       : {}),
     ...(options.client !== undefined
       ? {
@@ -145,45 +141,5 @@ export function buildOpenAILiveSessionConfig(
       : {}),
     ...(options.input !== undefined ? { input: options.input } : {}),
     ...(options.store !== undefined ? { store: options.store } : {}),
-  };
-}
-
-export function buildOpenAILiveSessionUpdate(
-  config: RealtimeModelV4SessionConfig,
-): Record<string, unknown> {
-  if (Object.keys(config).some(key => key !== 'providerOptions')) {
-    throw new UnsupportedFunctionalityError({
-      functionality:
-        'OpenAI Live session updates outside delegation.responses; use context-append or create a new session',
-    });
-  }
-  const options = openaiRealtimeModelLiveUpdateOptionsSchema.parse(
-    config.providerOptions?.openai,
-  );
-  return {
-    delegation: {
-      type: 'responses',
-      responses: convertResponsesOptions(options.delegation.responses),
-    },
-  };
-}
-
-function convertResponsesOptions({
-  toolChoice,
-  parallelToolCalls,
-  maxOutputTokens,
-  serviceTier,
-  ...options
-}: OpenAIRealtimeModelLiveUpdateOptions['delegation']['responses']) {
-  return {
-    ...options,
-    ...(toolChoice !== undefined ? { tool_choice: toolChoice } : {}),
-    ...(parallelToolCalls !== undefined
-      ? { parallel_tool_calls: parallelToolCalls }
-      : {}),
-    ...(maxOutputTokens !== undefined
-      ? { max_output_tokens: maxOutputTokens }
-      : {}),
-    ...(serviceTier !== undefined ? { service_tier: serviceTier } : {}),
   };
 }

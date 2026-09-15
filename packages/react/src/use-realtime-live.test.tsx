@@ -1,5 +1,5 @@
 import { act, cleanup, renderHook } from '@testing-library/react';
-import { StrictMode } from 'react';
+import { startTransition, StrictMode, Suspense } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   deferred,
@@ -14,6 +14,77 @@ vi.mock('ai', async () => import('../../ai/src/realtime'));
 const { experimental_useRealtime } = await import('./use-realtime');
 
 describe('useRealtime with continuous models', () => {
+  it.each(['endpoint', 'callbacks'] as const)(
+    'keeps the committed RTC owner during a suspended %s update',
+    async change => {
+      const model = liveModel();
+      const firstError = vi.fn();
+      const secondError = vi.fn();
+      const firstEvent = vi.fn(event => {
+        if (event.type === 'session-usage')
+          throw new Error('committed callback');
+      });
+      const secondEvent = vi.fn();
+      const suspended = vi.fn();
+      const pending = new Promise<never>(() => {});
+      const { result, rerender } = renderHook(
+        ({ next }) => {
+          const rt = experimental_useRealtime({
+            model,
+            api: {
+              session: next && change === 'endpoint' ? '/second' : '/first',
+            },
+            onEvent: next ? secondEvent : firstEvent,
+            onError: next ? secondError : firstError,
+          });
+          if (next) {
+            suspended();
+            throw pending;
+          }
+          return rt;
+        },
+        {
+          initialProps: { next: false },
+          wrapper: ({ children }) => (
+            <Suspense fallback={null}>{children}</Suspense>
+          ),
+        },
+      );
+      const retained = result.current;
+      await act(async () => {
+        await retained.connect({ capture: false });
+      });
+      const pc = FakePeerConnection.instances[0];
+      await act(async () => {
+        startTransition(() => rerender({ next: true }));
+      });
+      expect(suspended).toHaveBeenCalled();
+      await act(async () => {
+        pc.dc.emit({ type: 'session-usage', usage: { seconds: 3 }, raw: {} });
+        await flushEvents();
+        await retained.sendEvent({
+          type: 'context-append',
+          delegationId: null,
+          content: 'committed context',
+        });
+      });
+      expect(firstError).toHaveBeenCalledWith(new Error('committed callback'));
+      expect(secondEvent).not.toHaveBeenCalled();
+      expect(secondError).not.toHaveBeenCalled();
+      rerender({ next: false });
+      expect(result.current.session?.usage).toEqual({ seconds: 3 });
+      expect(result.current.connect).toBe(retained.connect);
+      expect(result.current.sendEvent).toBe(retained.sendEvent);
+      expect(pc.dc.sent).toContainEqual({
+        type: 'context-append',
+        delegationId: null,
+        content: 'committed context',
+      });
+      expect(FakePeerConnection.instances).toEqual([pc]);
+      expect(pc.close).not.toHaveBeenCalled();
+    },
+  );
+
   it('keeps capture controls and session state coherent through StrictMode and callback replacement', async () => {
     const model = liveModel();
     const first = vi.fn();
@@ -23,9 +94,7 @@ describe('useRealtime with continuous models', () => {
         experimental_useRealtime({
           model,
           api: { session: '/session' },
-          maxPlaybackBufferSeconds: 1,
           rtcDisconnectTimeoutMs: 500,
-          autoContinueTools: false,
           onError,
         }),
       { initialProps: { onError: first }, wrapper: StrictMode },
@@ -129,6 +198,7 @@ describe('useRealtime with continuous models', () => {
         }),
       { initialProps: { endpoint: '/api/first' }, wrapper: StrictMode },
     );
+    const retained = result.current;
     await act(async () => {
       await result.current.connect();
       await flushEvents();
@@ -140,13 +210,24 @@ describe('useRealtime with continuous models', () => {
     const next = fakeStream();
     browser.getUserMedia.mockResolvedValue(next.stream);
     await act(async () => {
-      await result.current.connect();
+      await retained.connect();
       await flushEvents();
     });
     expect(result.current.status).toBe('connected');
+    expect(result.current.connect).toBe(retained.connect);
+    expect(result.current.sendEvent).toBe(retained.sendEvent);
+    expect(browser.fetch).toHaveBeenLastCalledWith(
+      '/api/second',
+      expect.any(Object),
+    );
     unmount();
     expect(next.track.stop).toHaveBeenCalledOnce();
     expect(FakePeerConnection.instances[1].close).toHaveBeenCalledOnce();
+    await expect(retained.connect()).rejects.toThrow('mounted hook');
+    await expect(retained.resumeAudioCapture()).rejects.toThrow('mounted hook');
+    expect(() => retained.sendEvent({ type: 'input-audio-mute' })).toThrow(
+      'mounted hook',
+    );
   });
 
   it('publishes confirmed clean RTC closure after draining delayed usage in StrictMode', async () => {

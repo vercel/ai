@@ -6,10 +6,9 @@ import {
 import {
   deferred,
   fakeStream,
-  FakePeerConnection,
   flushEvents,
   liveModel,
-} from './__fixtures__/fake-webrtc';
+} from './__fixtures__/fake-realtime';
 import {
   FakeAudioContext,
   FakeWebSocket,
@@ -31,7 +30,7 @@ describe('realtime ownership, command turnover, and independent lifecycle semant
   const create = (options: Partial<RealtimeSessionOptions> = {}) => {
     const session = new Session({
       model: liveModel(),
-      api: { session: '/session' },
+      api: { websocket: 'wss://relay.test' },
       ...options,
     });
     sessions.push(session);
@@ -43,15 +42,13 @@ describe('realtime ownership, command turnover, and independent lifecycle semant
     getWebSocketConfig: ({ url }: { url: string }) => ({ url }),
   });
   const socket = () => FakeWebSocket.instances.at(-1)!;
-  const peer = () => FakePeerConnection.instances.at(-1)!;
   const emit = async (event: RealtimeServerEvent) => {
-    if (FakeWebSocket.instances.length > 0) socket().emit(event);
-    else peer().dc.emit(event);
+    socket().emit(event);
     await flushEvents();
   };
   const startWebSocket = async (
     session: Session,
-    delegationMode: 'client' | 'provider' = 'provider',
+    delegationMode: 'client' | 'provider' = 'client',
   ) => {
     await session.connect({ capture: false });
     socket().open();
@@ -120,12 +117,13 @@ describe('realtime ownership, command turnover, and independent lifecycle semant
     await emit({
       type: 'session-started',
       sessionId: 'replacement',
-      delegationMode: 'provider',
+      delegationMode: 'client',
       raw: {},
     });
     await session.sendEvent({
-      type: 'backend-input-create',
-      content: [{ type: 'text', text: 'connected' }],
+      type: 'context-append',
+      content: 'connected',
+      delegationId: null,
       eventId: 'first',
     });
     await vi.advanceTimersByTimeAsync(16_000);
@@ -141,18 +139,19 @@ describe('realtime ownership, command turnover, and independent lifecycle semant
     );
     await flushEvents();
     await session.sendEvent({
-      type: 'backend-input-create',
-      content: [{ type: 'text', text: 'still connected' }],
+      type: 'context-append',
+      content: 'still connected',
+      delegationId: null,
       eventId: 'second',
     });
     expect(replacement.sent).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          type: 'backend-input-create',
+          type: 'context-append',
           eventId: 'first',
         }),
         expect.objectContaining({
-          type: 'backend-input-create',
+          type: 'context-append',
           eventId: 'second',
         }),
       ]),
@@ -250,122 +249,6 @@ describe('realtime ownership, command turnover, and independent lifecycle semant
     session.disconnect();
     expect(next.track.stop).toHaveBeenCalledOnce();
     expect(browser.track.stop).toHaveBeenCalledOnce();
-  });
-
-  it('turns over more than 4096 successful tool-result commands without provider acknowledgements and retains late rejection correction', async () => {
-    const onToolCall = vi.fn(() => 'result');
-    const onError = vi.fn();
-    const session = create({
-      api: { websocket: 'wss://relay.test' },
-      autoContinueTools: true,
-      onToolCall,
-      onError,
-    });
-    await startWebSocket(session);
-    for (let index = 0; index < 4100; index++) {
-      await emit({
-        type: 'backend-tool-call',
-        callId: `call-${index}`,
-        responseId: `response-${index}`,
-        name: 'lookup',
-        arguments: '{}',
-        raw: {},
-      });
-      await emit({
-        type: 'backend-response-done',
-        responseId: `response-${index}`,
-        status: 'completed',
-        raw: {},
-      });
-    }
-    const outputs = socket().sent.filter(
-      event => event.type === 'backend-tool-result',
-    );
-    expect(outputs).toHaveLength(4100);
-    expect(onToolCall).toHaveBeenCalledTimes(4100);
-    expect(onError).not.toHaveBeenCalled();
-    const eventId = String(outputs.at(-1)?.eventId);
-    await emit({
-      type: 'error',
-      clientEventId: eventId,
-      message: 'invalid result',
-      raw: {},
-    });
-    expect(() =>
-      session.sendEvent({
-        type: 'backend-tool-result',
-        callId: 'call-4099',
-        output: 'corrected',
-        eventId,
-      }),
-    ).toThrow('fresh eventId');
-    await session.sendEvent({
-      type: 'backend-tool-result',
-      callId: 'call-4099',
-      output: 'corrected',
-      eventId: 'corrected',
-    });
-    await flushEvents();
-    await emit({
-      type: 'backend-tool-call',
-      callId: 'call-4099',
-      responseId: 'response-4099',
-      name: 'lookup',
-      arguments: '{}',
-      raw: {},
-    });
-    expect(onToolCall).toHaveBeenCalledTimes(4100);
-    expect(
-      socket().sent.filter(event => event.type === 'backend-response-create'),
-    ).toHaveLength(4101);
-    await session.sendEvent({
-      type: 'session-update',
-      config: { instructions: 'still connected' },
-    });
-    for (let index = 0; index < 512; index++)
-      await session.sendEvent({
-        type: 'input-audio-mute',
-        eventId: `mute-${index}`,
-      });
-    expect(() =>
-      session.sendEvent({ type: 'input-audio-unmute', eventId: 'too-many' }),
-    ).toThrow('pending');
-    expect(session.snapshot.status).toBe('connected');
-    expect(onError).toHaveBeenCalledOnce();
-  });
-
-  it('bounds actually unresolved tool-result sends rather than evicting their correlation', async () => {
-    const serialized = deferred<unknown>();
-    const model = liveModel();
-    const session = create({ model, api: { websocket: 'wss://relay.test' } });
-    await startWebSocket(session);
-    model.serializeClientEvent = event =>
-      event.type === 'backend-tool-result' ? serialized.promise : event;
-    const sending: Promise<void>[] = [];
-    for (let index = 0; index < 512; index++) {
-      await emit({
-        type: 'backend-tool-call',
-        callId: `call-${index}`,
-        responseId: 'response',
-        name: 'lookup',
-        arguments: '{}',
-        raw: {},
-      });
-      sending.push(
-        session.sendEvent({
-          type: 'backend-tool-result',
-          callId: `call-${index}`,
-          output: 'result',
-        }),
-      );
-    }
-    expect(() =>
-      session.sendEvent({ type: 'input-audio-mute', eventId: 'over-limit' }),
-    ).toThrow('pending');
-    serialized.resolve({ type: 'tool-result' });
-    await Promise.all(sending);
-    await session.sendEvent({ type: 'input-audio-mute', eventId: 'admitted' });
-    expect(session.snapshot.status).toBe('connected');
   });
 
   it.each(['session-start', 'session-update'] as const)(
@@ -470,9 +353,6 @@ describe('realtime ownership, command turnover, and independent lifecycle semant
       expect(
         socket().sent.filter(event => event.type === 'response-create'),
       ).toHaveLength(2);
-      expect(
-        socket().sent.filter(event => event.type.startsWith('backend-')),
-      ).toHaveLength(0);
       const closed = session.close();
       await emit({
         type: 'session-closed',
@@ -485,134 +365,4 @@ describe('realtime ownership, command turnover, and independent lifecycle semant
       expect(onError).not.toHaveBeenCalled();
     },
   );
-
-  it('lets generic provider delegation opt a turn-based session into backend commands without suppressing frontend events', async () => {
-    const model = liveModel();
-    const session = create({
-      model: {
-        ...model,
-        capabilities: { ...model.capabilities!, conversation: 'turn-based' },
-      },
-    });
-    await session.connect({ capture: false });
-    session.sendTextMessage('backend input');
-    await emit({
-      type: 'text-delta',
-      responseId: 'r',
-      itemId: 'text',
-      delta: 'Frontend output',
-      raw: {},
-    });
-    expect(peer().dc.sent).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ type: 'backend-input-create' }),
-      ]),
-    );
-    expect(session.snapshot.messages[0].parts[0]).toMatchObject({
-      type: 'text',
-      text: 'Frontend output',
-    });
-  });
-
-  it.each(['before-close', 'during-close'] as const)(
-    'drains a queued terminal RTC Blob %s without inventing a terminal failure',
-    async timing => {
-      const onError = vi.fn();
-      const onEvent = vi.fn();
-      const session = create({ onError, onEvent });
-      await session.connect();
-      const terminal = deferred<string>();
-      const blob = new Blob();
-      vi.spyOn(blob, 'text').mockReturnValue(terminal.promise);
-      const closed = timing === 'during-close' ? session.close() : undefined;
-      peer().dc.onmessage?.({ data: blob });
-      peer().dc.close();
-      expect(session.snapshot.status).toBe('closing');
-      expect(session.snapshot.isCapturing).toBe(false);
-      expect(onError).not.toHaveBeenCalled();
-      terminal.resolve(
-        JSON.stringify({
-          type: 'session-closed',
-          usage: { seconds: 9 },
-          reason: 'requested',
-          raw: {},
-        }),
-      );
-      await flushEvents();
-      await closed;
-      expect(session.snapshot.status).toBe('disconnected');
-      expect(session.snapshot.session).toMatchObject({
-        finalization: 'confirmed',
-        usage: { seconds: 9 },
-      });
-      expect(onError).not.toHaveBeenCalled();
-      expect(
-        onEvent.mock.calls.filter(([event]) => event.type === 'session-closed'),
-      ).toHaveLength(1);
-      expect(browser.track.stop).toHaveBeenCalledOnce();
-      expect(peer().close).toHaveBeenCalledOnce();
-    },
-  );
-
-  it.each(['empty', 'blocked'] as const)(
-    'reports an unexpected RTC close once after %s drain, even when onError throws',
-    async drain => {
-      vi.useFakeTimers();
-      const onError = vi.fn((_error: Error) => {
-        throw new Error('callback error');
-      });
-      const session = create({ onError });
-      await session.connect();
-      const terminal = deferred<string>();
-      if (drain === 'blocked') {
-        const blob = new Blob();
-        vi.spyOn(blob, 'text').mockReturnValue(terminal.promise);
-        peer().dc.onmessage?.({ data: blob });
-      }
-      peer().dc.close();
-      await flushEvents();
-      if (drain === 'blocked') {
-        await vi.advanceTimersByTimeAsync(999);
-        expect(onError).not.toHaveBeenCalled();
-        await vi.advanceTimersByTimeAsync(1);
-      }
-      expect(onError).toHaveBeenCalledExactlyOnceWith(
-        new Error('Realtime data channel closed'),
-      );
-      expect(session.snapshot.status).toBe('error');
-      expect(session.snapshot.session?.finalization).toBe('unconfirmed');
-      expect(peer().close).toHaveBeenCalledOnce();
-      terminal.resolve(
-        JSON.stringify({
-          type: 'session-closed',
-          usage: { seconds: 99 },
-          reason: 'requested',
-          raw: {},
-        }),
-      );
-      await vi.advanceTimersByTimeAsync(20_000);
-      expect(session.snapshot.session?.finalization).toBe('unconfirmed');
-      expect(onError).toHaveBeenCalledOnce();
-    },
-  );
-
-  it('preserves actual failed-ICE cause even if a queued terminal event confirms usage', async () => {
-    const onError = vi.fn();
-    const session = create({ onError });
-    await session.connect();
-    peer().dc.emit({
-      type: 'session-closed',
-      usage: { seconds: 9 },
-      reason: 'requested',
-      raw: {},
-    });
-    peer().iceConnectionState = 'failed';
-    peer().oniceconnectionstatechange?.();
-    await flushEvents();
-    expect(session.snapshot.session?.finalization).toBe('confirmed');
-    expect(session.snapshot.status).toBe('error');
-    expect(onError).toHaveBeenCalledExactlyOnceWith(
-      new Error('Realtime ICE connection failed'),
-    );
-  });
 });

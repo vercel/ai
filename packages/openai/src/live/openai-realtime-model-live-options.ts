@@ -2,46 +2,6 @@ import { z } from 'zod/v4';
 
 export type OpenAIRealtimeModelLiveId = 'gpt-live-1' | (string & {});
 
-// Live supports a subset of Responses settings, not a standalone Responses body.
-const openaiLiveResponsesUpdateOptionsSchema = z.strictObject({
-  model: z.string().min(1).optional(),
-  instructions: z.string().nullish(),
-  tools: z
-    .array(
-      z.discriminatedUnion('type', [
-        z.strictObject({ type: z.literal('web_search') }),
-        z.strictObject({
-          type: z.literal('function'),
-          name: z.string().min(1),
-          description: z.string().nullish(),
-          parameters: z.record(z.string(), z.json()).nullish(),
-          strict: z.boolean().nullish(),
-        }),
-      ]),
-    )
-    .optional(),
-  toolChoice: z
-    .union([
-      z.enum(['auto', 'none', 'required']),
-      z.strictObject({ type: z.literal('function'), name: z.string().min(1) }),
-    ])
-    .optional(),
-  reasoning: z
-    .strictObject({
-      effort: z
-        .enum(['none', 'minimal', 'low', 'medium', 'high', 'xhigh'])
-        .nullish(),
-      summary: z.enum(['concise', 'detailed', 'auto']).nullish(),
-    })
-    .nullish(),
-  text: z
-    .strictObject({ verbosity: z.enum(['low', 'medium', 'high']).nullish() })
-    .nullish(),
-  parallelToolCalls: z.boolean().nullish(),
-  maxOutputTokens: z.number().int().min(16).nullish(),
-  serviceTier: z.enum(['auto', 'default', 'flex', 'priority']).nullish(),
-});
-
 const serverEventSelectorSchema = z
   .strictObject({
     type: z.string(),
@@ -68,15 +28,7 @@ export const openaiRealtimeModelLiveOptionsSchema = z.strictObject({
     })
     .optional(),
   delegation: z
-    .discriminatedUnion('type', [
-      z.strictObject({ type: z.literal('client') }),
-      z.strictObject({
-        type: z.literal('responses'),
-        responses: openaiLiveResponsesUpdateOptionsSchema.extend({
-          model: z.string().min(1),
-        }),
-      }),
-    ])
+    .strictObject({ type: z.literal('client') })
     .nullable()
     .optional(),
   input: z
@@ -110,16 +62,4 @@ export const openaiRealtimeModelLiveOptionsSchema = z.strictObject({
 /** Experimental Live options under sessionConfig.providerOptions.openai. */
 export type OpenAIRealtimeModelLiveOptions = z.infer<
   typeof openaiRealtimeModelLiveOptionsSchema
->;
-
-export const openaiRealtimeModelLiveUpdateOptionsSchema = z.strictObject({
-  delegation: z.strictObject({
-    type: z.literal('responses').optional(),
-    responses: openaiLiveResponsesUpdateOptionsSchema,
-  }),
-});
-
-/** Mutable Live options under sessionConfig.providerOptions.openai. */
-export type OpenAIRealtimeModelLiveUpdateOptions = z.infer<
-  typeof openaiRealtimeModelLiveUpdateOptionsSchema
 >;

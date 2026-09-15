@@ -20,6 +20,13 @@ The typical flow is:
 1. The model streams audio, text, and tool calls back to the browser.
 1. Tool calls are handled by your application with `onToolCall`.
 
+For continuous **OpenAI Live** conversations, use an application-owned WebSocket
+relay or optional WebRTC via `api.session`. Live uses client delegation: your
+application handles delegated work and submits context rather than using the
+turn-based tool loop below. See the
+[`experimental_useRealtime` reference](/docs/reference/ai-sdk-ui/use-realtime)
+for SDP setup, server-owned permissions, capture ownership, and graceful close.
+
 ## Setup Endpoint
 
 Create a setup endpoint that returns a short-lived token for the realtime

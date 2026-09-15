@@ -8,9 +8,8 @@ export class FakeTrack extends EventTarget {
   stop = vi.fn(() => { this.readyState = 'ended'; });
 }
 
-export function fakeStream() {
-  const track = new FakeTrack();
-  return { track, stream: { getTracks: () => [track], getAudioTracks: () => [track] } as unknown as MediaStream };
+export function fakeStream(tracks = [new FakeTrack()]) {
+  return { track: tracks[0], stream: { getTracks: () => tracks, getAudioTracks: () => tracks } as unknown as MediaStream };
 }
 
 export class FakeDataChannel {
@@ -43,8 +42,11 @@ export class FakePeerConnection {
   onicegatheringstatechange: (() => void) | null = null;
   constructor() { FakePeerConnection.instances.push(this); }
   createDataChannel = vi.fn(() => this.dc);
-  sender = { replaceTrack: vi.fn(async (_track: unknown) => {}) };
-  addTrack: Mock = vi.fn(() => this.sender);
+  sender = {
+    track: null as MediaStreamTrack | null,
+    replaceTrack: vi.fn(async (track: MediaStreamTrack | null) => { this.sender.track = track; }),
+  };
+  addTrack: Mock = vi.fn((track: MediaStreamTrack) => { this.sender.track = track; return this.sender; });
   addTransceiver = vi.fn(() => ({ sender: this.sender }));
   createOffer = vi.fn(async () => {
     if (this.dc.onmessage == null || this.ontrack == null || this.onicegatheringstatechange == null || this.dc.onopen == null) throw new Error('Listeners were installed too late');
@@ -53,7 +55,7 @@ export class FakePeerConnection {
   setLocalDescription = vi.fn(async (offer: { sdp: string }) => { this.localDescription = offer; });
   setRemoteDescription = vi.fn(async () => {
     if (FakePeerConnection.autoOpen) this.dc.open();
-    if (FakePeerConnection.autoStart) this.dc.emit({ type: 'session-started', sessionId: 'session-1', delegationMode: 'provider', raw: {} });
+    if (FakePeerConnection.autoStart) this.dc.emit({ type: 'session-started', sessionId: 'session-1', delegationMode: 'client', raw: {} });
   });
   close = vi.fn(() => { this.connectionState = 'closed'; this.onconnectionstatechange?.(); });
 }
@@ -107,7 +109,7 @@ export function installWebRTC(): {
   return { ...media, getUserMedia, audio, fetch };
 }
 
-export function liveModel(): RealtimeModel {
+export function liveModel(): RealtimeModel & { capabilities: NonNullable<RealtimeModel['capabilities']> } {
   return {
     specificationVersion: 'v4', provider: 'test', modelId: 'live',
     capabilities: { conversation: 'continuous', transports: ['webrtc', 'websocket'], connections: ['webrtc', 'server-websocket'], startup: 'session-start', finalization: 'session-close' },

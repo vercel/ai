@@ -134,7 +134,7 @@ describe('AbstractRealtimeSession', () => {
     },
   );
 
-  it.each([undefined, 'turn-based', 'continuous'] as const)(
+  it.each([undefined, 'turn-based'] as const)(
     'preserves the token connection flow with %s conversation capabilities',
     async conversation => {
       const fetch = vi
@@ -166,6 +166,7 @@ describe('AbstractRealtimeSession', () => {
         signal: expect.any(AbortSignal),
       });
       expect(transportInstances[0].connect).toHaveBeenCalledExactlyOnceWith({
+        mode: 'client-secret',
         token: 'secret',
         url: 'wss://example.com/realtime',
         onOpen: expect.any(Function),
