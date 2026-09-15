@@ -1,0 +1,108 @@
+---
+title: 'SpeechifyAI'
+description: 'Learn how to use the SpeechifyAI provider for the AI SDK.'
+---
+
+# SpeechifyAI Provider
+
+The [SpeechifyAI provider](https://github.com/Speechify-AI/vercel-sdk) integrates [SpeechifyAI](https://speechify.ai) text-to-speech models with the AI SDK, including word-level speech marks (timing metadata) with every generation.
+For more information, see the [SpeechifyAI Documentation](https://docs.speechify.ai).
+
+## Installation
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @speechify/vercel" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @speechify/vercel" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @speechify/vercel" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @speechify/vercel" dark />
+  </Tab>
+</Tabs>
+
+## Authentication
+
+Set `SPEECHIFY_API_KEY` in your environment or pass `apiKey` when creating the provider.
+Get your API key from the [SpeechifyAI Platform](https://platform.speechify.ai).
+
+## Example
+
+```ts
+import { speechify } from '@speechify/vercel';
+import { generateSpeech } from 'ai';
+
+const { audio } = await generateSpeech({
+  model: speechify.speech(),
+  text: 'Hello from SpeechifyAI!',
+});
+```
+
+## Provider Instance
+
+Use `createSpeechify` to customize the provider instance:
+
+```ts
+import { createSpeechify } from '@speechify/vercel';
+
+const speechify = createSpeechify({
+  apiKey: process.env.SPEECHIFY_API_KEY,
+});
+```
+
+Options:
+
+- `apiKey`: override `SPEECHIFY_API_KEY`.
+- `baseURL`: custom API base URL.
+- `headers`: additional request headers.
+- `fetch`: custom fetch implementation.
+
+## Speech Models
+
+| Model                | Description                                                                                          |
+| -------------------- | ---------------------------------------------------------------------------------------------------- |
+| `simba-3.2`          | Latest-generation streaming-native model, lower latency and richer expressivity (default). English.  |
+| `simba-english`      | English-optimized TTS                                                                                |
+| `simba-multilingual` | Multilingual TTS for non-English or mixed input                                                      |
+| `simba-3.0`          | Earlier Simba 3 model                                                                                |
+
+The `voice` option takes a SpeechifyAI voice ID, including cloned voices; it defaults to `geffen_32`. The `outputFormat` option accepts simple names (`mp3`, `wav`, `ogg`, `aac`, `pcm`) or codec strings with sample rate and bitrate such as `pcm_16000` and `ulaw_8000` for telephony; it defaults to `mp3`.
+
+The standard `speed` option is implemented via [SSML](https://docs.speechify.ai/docs/ssml) prosody. Text that is already SSML (starting with `<speak`) is passed through unchanged, so you can control rate, pitch, and emotion directly in your markup.
+
+## Speech Marks
+
+SpeechifyAI returns word- and sentence-level timing data with every generation via provider metadata:
+
+```ts
+const result = await generateSpeech({
+  model: speechify.speech(),
+  text: 'Timed speech.',
+});
+
+const { speechMarks, billableCharactersCount } =
+  result.providerMetadata.speechify;
+```
+
+## Provider Options
+
+Per-request options are passed via `providerOptions`:
+
+```ts
+await generateSpeech({
+  model: speechify.speech(),
+  text: 'Hello!',
+  providerOptions: {
+    speechify: {
+      ssml: true,
+      outputFormat: 'mp3_24000_128',
+      loudnessNormalization: true,
+      textNormalization: true,
+    },
+  },
+});
+```
