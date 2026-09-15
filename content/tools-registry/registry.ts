@@ -586,4 +586,40 @@ console.log(result.text);`,
     websiteUrl: 'https://nitrosend.com',
     npmUrl: 'https://www.npmjs.com/package/@nitrosend/ai-sdk',
   },
+  {
+    slug: 'antibrow',
+    name: 'AntiBrow',
+    description:
+      'Browser tools that drive a persistent AntiBrow profile. Cookies, storage, an engine-level fingerprint and one proxy per profile survive between runs, so pages behind a login open already signed in instead of starting over in a fresh Chromium. Navigate, read page text, click and fill from a local browser, with the profile as the unit of identity.',
+    packageName: 'ai-sdk-tool-antibrow',
+    tags: ['browser', 'browser-automation', 'web', 'extraction'],
+    apiKeyEnvName: 'ANTI_DETECT_BROWSER_KEY',
+    installCommand: {
+      pnpm: 'pnpm add ai-sdk-tool-antibrow',
+      npm: 'npm install ai-sdk-tool-antibrow',
+      yarn: 'yarn add ai-sdk-tool-antibrow',
+      bun: 'bun add ai-sdk-tool-antibrow',
+    },
+    codeExample: `import { gateway, generateText, stepCountIs } from 'ai';
+import { antibrowTools } from 'ai-sdk-tool-antibrow';
+
+const browser = antibrowTools({ profile: 'research-01' });
+
+try {
+  const { text } = await generateText({
+    model: gateway('openai/gpt-5-mini'),
+    prompt: 'Open https://example.com and tell me the heading.',
+    tools: browser.tools,
+    stopWhen: stepCountIs(5),
+  });
+
+  console.log(text);
+} finally {
+  await browser.close();
+}`,
+    docsUrl: 'https://antibrow.com/docs/ai-sdk',
+    apiKeyUrl: 'https://antibrow.com/dashboard',
+    websiteUrl: 'https://antibrow.com',
+    npmUrl: 'https://www.npmjs.com/package/ai-sdk-tool-antibrow',
+  },
 ];
