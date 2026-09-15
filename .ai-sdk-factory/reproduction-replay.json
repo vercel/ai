@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20797,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/is-abort-error-without-dom-exception.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/is-abort-error-without-dom-exception.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_20797_REPRODUCED: isAbortError threw instead of returning false when DOMException was not a constructor"
+  }
+}
