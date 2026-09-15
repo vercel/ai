@@ -76,7 +76,7 @@
     "@types/json-schema": "7.0.15",
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "esbuild": "^0.28.1",
+    "esbuild": "^0.28.2",
     "tsup": "^8.5.1",
     "tsx": "4.23.12",
     "typescript": "5.8.3",
