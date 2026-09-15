@@ -449,6 +449,80 @@ describe('createEmitStreamEvent', () => {
     `);
   });
 
+  it.each(['before', 'after'] as const)(
+    'uses message delta usage when it arrives $order the assistant message',
+    order => {
+      const state = createClaudeStreamEventState();
+      const emitted: Record<string, unknown>[] = [];
+      const emitStreamEvent = createEmitStreamEvent({
+        state,
+        emit: event => emitted.push(event),
+        emitWarning: () => {},
+        emitTerminalError: () => {},
+        onCompactionBoundary: () => {},
+        toCommonName: name => (name === 'Bash' ? 'bash' : name),
+      });
+      const assistantMessage: ClaudeMessage = {
+        type: 'assistant',
+        message: {
+          usage: {
+            input_tokens: 10,
+            cache_creation_input_tokens: 20,
+            cache_read_input_tokens: 30,
+            output_tokens: 0,
+          },
+          content: [
+            {
+              type: 'tool_use',
+              id: 'tool-1',
+              name: 'Bash',
+              input: { command: 'pwd' },
+            },
+          ],
+        },
+      };
+      const messageDelta: ClaudeMessage = {
+        type: 'stream_event',
+        event: {
+          type: 'message_delta',
+          usage: {
+            output_tokens: 40,
+          },
+        },
+      };
+
+      for (const message of order === 'before'
+        ? [messageDelta, assistantMessage]
+        : [assistantMessage, messageDelta]) {
+        emitStreamEvent(message);
+      }
+      emitStreamEvent({
+        type: 'user',
+        message: {
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'tool-1',
+              content: '/tmp',
+            },
+          ],
+        },
+      });
+
+      expect(
+        emitted.find(event => event.type === 'finish-step')?.usage,
+      ).toEqual({
+        inputTokens: {
+          total: 60,
+          noCache: 10,
+          cacheRead: 30,
+          cacheWrite: 20,
+        },
+        outputTokens: { total: 40, text: 40 },
+      });
+    },
+  );
+
   it('keeps subagent messages out of the main Agent-tool step', () => {
     const messages = JSON.parse(
       readFileSync(
