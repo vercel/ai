@@ -40,6 +40,12 @@ remain caller-owned and only be detached on stop. **Mute provider input** change
 remote processing after acknowledgment and does not release the microphone; local
 capture and protocol mute are independent. Playback can also be resumed independently.
 
+For borrowed streams, `isCapturing` reflects SDK controls and selected-track events.
+An owner assigning `track.enabled` or calling `track.stop()` emits no corresponding
+change event (`stop()` does not emit `ended`). Call `startAudioCapture(stream)` or
+`resumeAudioCapture()` after external changes to refresh or reattach capture;
+replace stopped tracks with live ones. External track state is not polled.
+
 The browser WS runtime currently supports PCM16 only. The low-level provider also
 supports G.711 for applications supplying their own encoded streams. Read authoritative
 voice seconds from `session.usage` and check `session.finalization`. Only a terminal

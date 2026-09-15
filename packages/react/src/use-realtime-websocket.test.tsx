@@ -176,7 +176,10 @@ describe('useRealtime WebSocket relay configuration', () => {
     const { result, rerender, unmount } = renderHook(
       ({ endpoint }) =>
         experimental_useRealtime({ model, api: { websocket: endpoint } }),
-      { initialProps: { endpoint: 'wss://app.example/A' } },
+      {
+        initialProps: { endpoint: 'wss://app.example/A' },
+        wrapper: StrictMode,
+      },
     );
     const retained = result.current;
     await act(async () => {
@@ -397,6 +400,87 @@ describe('useRealtime WebSocket relay configuration', () => {
     expect(FakeWebSocket.instances).toHaveLength(1);
     expect(socket.close).not.toHaveBeenCalled();
   });
+
+  it.each([false, true])(
+    'lets child layout effects connect on mount and endpoint replacement (StrictMode: %s)',
+    async strict => {
+      const model = liveModel();
+      const failed = vi.fn();
+      const warnings = vi.spyOn(console, 'error');
+      const starts: Promise<void>[] = [];
+      const controls: Experimental_UseRealtimeReturn['connect'][] = [];
+      function Child({
+        connect,
+        endpoint,
+      }: {
+        connect: Experimental_UseRealtimeReturn['connect'];
+        endpoint: string;
+      }) {
+        useLayoutEffect(() => {
+          controls.push(connect);
+          starts.push(connect({ capture: false }).catch(failed));
+        }, [connect, endpoint]);
+        return null;
+      }
+      function Conversation({ endpoint }: { endpoint: string }) {
+        const rt = experimental_useRealtime({
+          model,
+          api: { websocket: endpoint },
+          onError: failed,
+        });
+        return (
+          <>
+            <Child connect={rt.connect} endpoint={endpoint} />
+            <p>{rt.status}</p>
+          </>
+        );
+      }
+      const view = (endpoint: string) =>
+        strict ? (
+          <StrictMode>
+            <Conversation endpoint={endpoint} />
+          </StrictMode>
+        ) : (
+          <Conversation endpoint={endpoint} />
+        );
+      const { rerender, unmount } = render(view('wss://app.example/A'));
+      await act(async () => {
+        await Promise.all(starts);
+      });
+      expect(failed).not.toHaveBeenCalled();
+      const initialCount = strict ? 2 : 1;
+      expect(FakeWebSocket.instances).toHaveLength(initialCount);
+      if (strict)
+        expect(FakeWebSocket.instances[0].close).toHaveBeenCalledOnce();
+      const first = FakeWebSocket.instances[initialCount - 1];
+      expect(first.url).toBe('wss://app.example/A');
+      await act(async () => {
+        await openSession(first);
+      });
+      expect(screen.getByText('connected')).toBeTruthy();
+
+      rerender(view('wss://app.example/B'));
+      await act(async () => {
+        await Promise.all(starts);
+      });
+      expect(failed).not.toHaveBeenCalled();
+      expect(FakeWebSocket.instances).toHaveLength(initialCount + 1);
+      expect(first.close).toHaveBeenCalledOnce();
+      const second = FakeWebSocket.instances[initialCount];
+      expect(second.url).toBe('wss://app.example/B');
+      await act(async () => {
+        await openSession(second);
+      });
+      expect(screen.getByText('connected')).toBeTruthy();
+      expect(controls.every(connect => connect === controls[0])).toBe(true);
+
+      unmount();
+      expect(second.close).toHaveBeenCalledOnce();
+      await expect(controls[0]()).rejects.toThrow('mounted hook');
+      expect(FakeWebSocket.instances).toHaveLength(initialCount + 1);
+      expect(warnings).not.toHaveBeenCalled();
+    },
+  );
 
   it('reuses the committed store through StrictMode effect cleanup and setup', async () => {
     const model = liveModel();

@@ -55,7 +55,11 @@ export default function LivePage() {
     rt.status === 'closing';
   const ready = rt.status === 'connected';
   const clientDelegations =
-    rt.session?.delegations.filter(item => item.target === 'client') ?? [];
+    rt.session?.delegations.filter(
+      item =>
+        item.target === 'client' ||
+        (item.target == null && rt.session?.delegationMode === 'client'),
+    ) ?? [];
   const selectedDelegation = clientDelegations.find(
     item => item.delegationId === delegationId,
   );

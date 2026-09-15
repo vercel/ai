@@ -10,6 +10,7 @@ import {
 import {
   useCallback,
   useEffect,
+  useInsertionEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -175,15 +176,17 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
     maxPlaybackBufferSeconds,
   ]);
 
-  useIsomorphicLayoutEffect(() => {
+  // Publish before child layout effects; insertion cleanup only revokes refs.
+  useInsertionEffect(() => {
     ownerRef.current = { store: rt, onToolCall, onEvent, onError };
+    return () => {
+      ownerRef.current = null;
+    };
   });
 
+  // StrictMode replays layout effects, but keeps the insertion-phase owner.
   useIsomorphicLayoutEffect(() => {
-    return () => {
-      if (ownerRef.current?.store === rt) ownerRef.current = null;
-      rt.dispose();
-    };
+    return () => rt.dispose();
   }, [rt]);
 
   const actions = useMemo(() => {

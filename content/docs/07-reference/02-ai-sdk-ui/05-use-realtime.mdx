@@ -283,7 +283,8 @@ and completion of delegated work do not prove that the corresponding audio was h
     {
       name: 'isCapturing',
       type: 'boolean',
-      description: 'Whether microphone audio capture is active.',
+      description:
+        'Capture state observed through SDK controls and events on the selected audio track. External changes to borrowed tracks may require an explicit refresh; see Capture ownership.',
     },
     {
       name: 'isPlaying',
@@ -367,7 +368,8 @@ and completion of delegated work do not prove that the corresponding audio was h
     {
       name: 'stopAudioCapture',
       type: '() => void',
-      description: 'Stops local capture and releases SDK-owned microphone tracks. Caller-owned Live tracks are only detached. Does not change the provider input-mute state.',
+      description:
+        'Stops local capture and releases SDK-owned microphone tracks. Caller-owned Live tracks are only detached. Does not change the provider input-mute state.',
     },
     {
       name: 'resumeAudioCapture',
@@ -440,6 +442,14 @@ mute does not release the microphone, and resuming local capture does not unmute
 provider input. Use `resumeAudioCapture()` to reuse a caller-supplied stream or
 acquire a fresh SDK-owned microphone without reconnecting. The application remains
 responsible for stopping its own tracks when finished with them.
+
+`isCapturing` reflects SDK capture controls and events on the selected audio track;
+it does not continuously observe caller-owned media. Assigning `track.enabled`
+does not emit an event, and calling `track.stop()` does not emit an `ended` event.
+After changing borrowed tracks externally, call `startAudioCapture(stream)` or
+`resumeAudioCapture()` to refresh capture state and reattach as needed. If a track
+was stopped, provide a stream with a live audio track; stopped tracks cannot be
+restarted. The SDK does not poll external track state.
 
 ## Experimental compatibility
 
