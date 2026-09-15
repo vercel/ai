@@ -471,6 +471,9 @@ describe('prepareTools', () => {
       'us.anthropic.claude-opus-5',
       'anthropic.claude-sonnet-5',
       'eu.anthropic.claude-fable-5',
+      'anthropic.claude-fable-5-1',
+      'us.anthropic.claude-fable-5-1',
+      'global.anthropic.claude-fable-5-1',
     ])('should warn when strict is omitted for %s', async modelId => {
       const result = await prepareTools({
         tools: [
