@@ -102,45 +102,35 @@ export function createSafeLookup(lookup: Lookup): SafeLookup {
 }
 
 let safeNodeFetchPromise: Promise<FetchFunction> | undefined;
-const initialGlobalFetch = globalThis.fetch;
-const initialGlobalFetchIsNodeDefault = isNodeDefaultFetch(initialGlobalFetch);
 
 export function isNodeRuntime(): boolean {
   const runtimeProcess = globalThis.process as
     | {
         release?: { name?: string };
-        versions?: { bun?: string };
+        title?: string;
+        versions?: { bun?: string; deno?: string };
       }
     | undefined;
 
+  // Node-compatible process objects do not imply support for Node DNS/socket
+  // hooks. Workers identifies itself as workerd, including without navigator.
   return (
     runtimeProcess?.release?.name === 'node' &&
-    runtimeProcess.versions?.bun == null
+    runtimeProcess.versions?.bun == null &&
+    runtimeProcess.versions?.deno == null &&
+    runtimeProcess.title !== 'workerd' &&
+    (globalThis as { EdgeRuntime?: unknown }).EdgeRuntime == null
   );
 }
 
 export async function getDefaultDownloadFetch(): Promise<FetchFunction> {
-  if (
-    !isNodeRuntime() ||
-    !initialGlobalFetchIsNodeDefault ||
-    globalThis.fetch !== initialGlobalFetch
-  ) {
+  if (!isNodeRuntime()) {
     return globalThis.fetch;
   }
 
+  // Global fetch wrappers cannot be relied on to preserve the dispatcher
+  // that pins connections to validated DNS results.
   return (safeNodeFetchPromise ??= Promise.resolve().then(createSafeNodeFetch));
-}
-
-function isNodeDefaultFetch(fetch: unknown): boolean {
-  if (typeof fetch !== 'function') {
-    return false;
-  }
-
-  const source = Function.prototype.toString.call(fetch);
-  return (
-    source.includes('internal/deps/undici') ||
-    source.includes('lazy loading of undici')
-  );
 }
 
 function createSafeNodeFetch(): FetchFunction {
