@@ -1,0 +1,132 @@
+---
+title: OpenAI OAuth
+description: OpenAI OAuth Provider for the AI SDK
+---
+
+# OpenAI OAuth
+
+[OpenAI OAuth](https://github.com/EvanZhouDev/openai-oauth) allows you to use your ChatGPT account to access OpenAI-compatible models without an API key.
+
+It requires no configuration and works with most major features in the Vercel AI SDK like Tools, Streaming, Custom System Instructions, and more.
+
+Learn more in the [OpenAI OAuth repository](https://github.com/EvanZhouDev/openai-oauth).
+
+## Setup
+
+Make sure that you are authenticated with Codex CLI on your device before using this provider. You can do so with this command:
+
+```bash
+npx @openai/codex login
+```
+
+The OpenAI OAuth provider is available in the `openai-oauth-provider` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add openai-oauth-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install openai-oauth-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add openai-oauth-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add openai-oauth-provider" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+To create an OpenAI OAuth provider instance, use the `createOpenAIOAuth` function:
+
+```typescript
+import { createOpenAIOAuth } from 'openai-oauth-provider';
+
+const openai = createOpenAIOAuth();
+```
+
+If you need to customize discovery or request behavior, you can pass configuration options:
+
+```typescript
+import { createOpenAIOAuth } from 'openai-oauth-provider';
+
+const openai = createOpenAIOAuth({
+  authFilePath: '/path/to/auth.json',
+  codexVersion: '0.111.0',
+});
+```
+
+## Language Models
+
+OpenAI OAuth exposes language models through the provider instance:
+
+```typescript
+const model = openai('gpt-5.4');
+```
+
+Model availability depends on the ChatGPT/Codex account you are authenticated with, as well as the current used Codex version.
+
+If you wish to check your available models, you can run `npx openai-oauth@latest`, which will give you a list of all the models you have access to.
+
+## Examples
+
+Here are examples of using OpenAI OAuth with the AI SDK:
+
+### `generateText`
+
+```typescript
+import { generateText } from 'ai';
+import { createOpenAIOAuth } from 'openai-oauth-provider';
+
+const openai = createOpenAIOAuth();
+
+const { text } = await generateText({
+  model: openai('gpt-5.4'),
+  prompt: 'What makes dogs good companions?',
+});
+
+console.log(text);
+```
+
+### `streamText`
+
+```typescript
+import { streamText } from 'ai';
+import { createOpenAIOAuth } from 'openai-oauth-provider';
+
+const openai = createOpenAIOAuth();
+
+const result = streamText({
+  model: openai('gpt-5.4'),
+  prompt: 'Write a short story about a dog who learns to code.',
+});
+
+for await (const chunk of result.textStream) {
+  console.log(chunk);
+}
+```
+
+## Configuration
+
+OpenAI OAuth supports several configuration options:
+
+- `authFilePath`: Override the local `auth.json` path
+- `baseURL`: Override the upstream Codex base URL
+- `clientId`: Override the OAuth client id used for token refresh
+- `tokenUrl`: Override the OAuth token URL used for token refresh
+- `codexVersion`: Override the Codex API version used for model discovery
+- `ensureFresh`: Control whether tokens are refreshed automatically
+- `name`: Override the provider name reported to the AI SDK
+
+Learn more in the [OpenAI OAuth Repository](https://github.com/EvanZhouDev/openai-oauth).
+
+## Note
+
+This is an unofficial community-maintained project not affiliated with OpenAI. This provider is solely intended for use in local or trusted environments where the local auth file is available. Your local Codex/ChatGPT authentication cache should be treated as password-equivalent credentials. You are solely responsible for complying with OpenAI's Terms, policies, and any applicable agreements; misuse may result in rate limits, suspension, or termination.
+
+## Additional Resources
+
+- [OpenAI OAuth Repository](https://github.com/EvanZhouDev/openai-oauth)
+- [OpenAI OAuth npm Package](https://www.npmjs.com/package/openai-oauth-provider)
+- [Codex CLI](https://www.npmjs.com/package/@openai/codex)
