@@ -1,5 +1,15 @@
 # @ai-sdk/harness-cline
 
+## 1.0.39
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/harness@1.0.112
+  - @ai-sdk/provider-utils@5.0.41
+
 ## 1.0.38
 
 ### Patch Changes
