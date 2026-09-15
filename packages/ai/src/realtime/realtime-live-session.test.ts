@@ -540,6 +540,7 @@ describe('client-delegated WebRTC sessions', () => {
       channel().onmessage?.({ data: blob });
       channel().close();
       expect(session.snapshot.status).toBe('closing');
+      await flushEvents();
       expect(session.snapshot.isCapturing).toBe(false);
       expect(onError).not.toHaveBeenCalled();
       terminal.resolve(
@@ -605,6 +606,67 @@ describe('client-delegated WebRTC sessions', () => {
       await vi.advanceTimersByTimeAsync(20_000);
       expect(session.snapshot.session?.finalization).toBe('unconfirmed');
       expect(onError).toHaveBeenCalledOnce();
+    },
+  );
+
+  // Closing subscribers must join the attempt before accepted terminal events drain.
+  it.each([
+    ['data-channel', 'status'],
+    ['data-channel', 'isCapturing'],
+    ['ice', 'status'],
+    ['ice', 'isCapturing'],
+  ] as const)(
+    'joins application close from a %s %s subscriber while retaining queued terminal usage',
+    async (cause, key) => {
+      const session = create();
+      await session.connect({ stream: browser.stream });
+      const pc = FakePeerConnection.instances[0];
+      const terminal = deferred<string>();
+      const blob = new Blob();
+      vi.spyOn(blob, 'text').mockReturnValue(terminal.promise);
+      pc.dc.onmessage?.({ data: blob });
+      let first: Promise<void> | undefined;
+      let second: Promise<void> | undefined;
+      let settled = false;
+      session.onPublish = changed => {
+        if (changed !== key || first != null) return;
+        session.onPublish = undefined;
+        first = session.close();
+        second = session.close();
+        void first.then(() => {
+          settled = true;
+        });
+      };
+      if (cause === 'data-channel') pc.dc.close();
+      else {
+        pc.iceConnectionState = 'failed';
+        pc.oniceconnectionstatechange?.();
+      }
+      await flushEvents();
+      const settledBeforeTerminal = settled;
+      terminal.resolve(
+        JSON.stringify({
+          type: 'session-closed',
+          usage: { seconds: 12 },
+          reason: 'requested',
+          raw: {},
+        }),
+      );
+      await flushEvents();
+      await first;
+      expect(first).toBeDefined();
+      expect(first).toBe(second);
+      expect(settledBeforeTerminal).toBe(false);
+      expect(session.snapshot.session).toMatchObject({
+        finalization: 'confirmed',
+        usage: { seconds: 12 },
+      });
+      expect(session.snapshot.status).toBe(
+        cause === 'ice' ? 'error' : 'disconnected',
+      );
+      expect(pc.close).toHaveBeenCalledOnce();
+      expect(browser.track.stop).not.toHaveBeenCalled();
+      expect(pc.dc.sent).toEqual([]);
     },
   );
 
@@ -696,6 +758,34 @@ describe('client-delegated WebRTC sessions', () => {
     });
     await closed;
     expect(session.snapshot.session?.finalization).toBe('confirmed');
+  });
+
+  it('keeps turn-based RTC capture on the sender without opting into legacy PCM capture', async () => {
+    FakePeerConnection.autoStart = false;
+    const model = liveModel();
+    const session = create({
+      model: {
+        ...model,
+        capabilities: {
+          conversation: 'turn-based',
+          transports: ['webrtc'],
+          connections: ['webrtc'],
+        },
+      },
+    });
+    await session.connect({ capture: false });
+    await emit({ type: 'session-created', sessionId: 'turn-based', raw: {} });
+    session.startAudioCapture(browser.stream);
+    await flushEvents();
+    const pc = FakePeerConnection.instances[0];
+    expect(pc.sender.track).toBe(browser.track);
+    expect(session.snapshot.isCapturing).toBe(true);
+    session.stopAudioCapture();
+    await flushEvents();
+    expect(pc.sender.track).toBeNull();
+    expect(session.snapshot.isCapturing).toBe(false);
+    expect(browser.track.stop).not.toHaveBeenCalled();
+    expect(browser.getUserMedia).not.toHaveBeenCalled();
   });
 
   it('isolates failed close draining and stale media callbacks from an onError reconnect', async () => {

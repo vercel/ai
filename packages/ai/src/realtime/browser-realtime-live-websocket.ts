@@ -30,6 +30,7 @@ export class BrowserRealtimeLiveWebSocket {
       onEvent: (event: RealtimeServerEvent) => Promise<void>;
       onError: (error: Error) => void;
       onFatalError: (error: Error, drain?: Promise<void>) => void;
+      onClosing?: () => void;
       onClose: (error?: Error) => void;
       onCapturing: (value: boolean) => void;
       onPlaying: (value: boolean) => void;
@@ -59,6 +60,11 @@ export class BrowserRealtimeLiveWebSocket {
       onServerEvent: options.onEvent,
       onError: options.onError,
       onFatalError: options.onFatalError,
+      onClosing: () => {
+        const generation = this.generation;
+        options.onClosing?.();
+        if (generation === this.generation) this.stopCapture();
+      },
       onClose: options.onClose,
     });
     this.audio = new BrowserRealtimeAudio({
@@ -121,7 +127,10 @@ export class BrowserRealtimeLiveWebSocket {
   startCapture(): void {
     this.ready = true;
     if (!this.captureEnabled || this.capturingStarted) return;
-    void this.resumeCapture().catch(error => this.options.onError(error));
+    const generation = this.generation;
+    void this.resumeCapture().catch(error => {
+      if (generation === this.generation) this.options.onError(error);
+    });
   }
 
   async resumeCapture(suppliedStream?: MediaStream): Promise<void> {
@@ -149,13 +158,17 @@ export class BrowserRealtimeLiveWebSocket {
   private sendAudio(audio: string): void {
     if (!this.ready || !this.transport.isOpen) return;
     if (this.pendingAudio >= 8) {
-      this.options.onFatalError(new Error('Realtime audio send queue is full'));
+      this.transport.fail(new Error('Realtime audio send queue is full'));
       return;
     }
     const generation = this.generation;
     let sent: Promise<void>;
     try {
-      sent = this.transport.sendEvent({ type: 'input-audio-append', audio });
+      sent = this.transport.sendEvent(
+        { type: 'input-audio-append', audio },
+        undefined,
+        true,
+      );
     } catch (error) {
       if (!this.ready || !this.transport.isOpen) return;
       throw error;
@@ -222,6 +235,15 @@ export class BrowserRealtimeLiveWebSocket {
 
   finish(): Promise<void> {
     return this.transport.finish();
+  }
+
+  retire(): void {
+    this.generation++;
+    this.captureGeneration++;
+    this.ready = false;
+    this.captureEnabled = false;
+    this.transport.retire();
+    this.audio.retire();
   }
 
   dispose(): void {

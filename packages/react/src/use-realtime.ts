@@ -11,7 +11,6 @@ import {
   useCallback,
   useEffect,
   useInsertionEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useSyncExternalStore,
@@ -21,10 +20,14 @@ type UseRealtimeOptions = RealtimeSessionOptions;
 
 type RealtimeStateKey = keyof RealtimeState;
 
-const useIsomorphicLayoutEffect =
-  typeof window === 'undefined' ? useEffect : useLayoutEffect;
-
 class RealtimeStore extends AbstractRealtimeSession {
+  // Initially usable by child layout effects, before the first passive setup.
+  isEffectActive = true;
+
+  retire(): void {
+    this.retireCurrentAttempt();
+  }
+
   protected state: RealtimeState = {
     status: 'disconnected',
     messages: [],
@@ -153,16 +156,12 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
       sampleRate,
       maxEvents,
       maxPlaybackBufferSeconds,
-      onToolCall: (...args) =>
-        ownerRef.current?.store === store
-          ? ownerRef.current.onToolCall?.(...args)
-          : undefined,
       onEvent: (...args) =>
-        ownerRef.current?.store === store
+        ownerRef.current?.store === store && store.isEffectActive
           ? ownerRef.current.onEvent?.(...args)
           : undefined,
       onError: (...args) =>
-        ownerRef.current?.store === store
+        ownerRef.current?.store === store && store.isEffectActive
           ? ownerRef.current.onError?.(...args)
           : undefined,
     });
@@ -182,22 +181,40 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
     maxPlaybackBufferSeconds,
   ]);
 
-  // Publish before child layout effects; insertion cleanup only revokes refs.
+  // Only actual owner replacement/unmount retires work; hiding keeps it live.
+  useInsertionEffect(() => {
+    return () => {
+      if (ownerRef.current?.store === rt) ownerRef.current = null;
+      rt.retire();
+    };
+  }, [rt]);
+
+  // Publish callbacks before child layout effects without retiring on rerenders.
   useInsertionEffect(() => {
     ownerRef.current = { store: rt, onToolCall, onEvent, onError };
-    return () => {
-      ownerRef.current = null;
-    };
+    rt.onToolCall =
+      onToolCall == null
+        ? undefined
+        : (...args) =>
+            ownerRef.current?.store === rt && rt.isEffectActive
+              ? ownerRef.current.onToolCall?.(...args)
+              : undefined;
   });
 
-  // StrictMode replays layout effects, but keeps the insertion-phase owner.
-  useIsomorphicLayoutEffect(() => {
-    return () => rt.dispose();
+  // Suspense hides clean up layout effects without releasing the committed owner.
+  // Passive cleanup releases this store on replacement/unmount and StrictMode replay.
+  useEffect(() => {
+    rt.isEffectActive = true;
+    return () => {
+      // React 18 skips insertion cleanup when deleting an already-hidden subtree.
+      rt.isEffectActive = false;
+      rt.dispose();
+    };
   }, [rt]);
 
   const actions = useMemo(() => {
     const current = () => {
-      if (ownerRef.current == null)
+      if (ownerRef.current == null || !ownerRef.current.store.isEffectActive)
         throw new Error('Realtime controls require a mounted hook');
       return ownerRef.current.store;
     };
@@ -206,6 +223,9 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
         stream?: MediaStream;
         capture?: boolean;
       }) => {
+        // StrictMode replays child layout setup before this hook's passive setup.
+        if (ownerRef.current?.store.isEffectActive === false)
+          await Promise.resolve();
         const store = current();
         return options == null ? store.connect() : store.connect(options);
       },

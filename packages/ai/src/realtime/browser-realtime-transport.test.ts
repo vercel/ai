@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BrowserRealtimeTransport } from './browser-realtime-transport';
+import {
+  REALTIME_MAX_BUFFERED_BYTES,
+  REALTIME_MAX_FRAME_BYTES,
+} from './encode-realtime-frame';
 import { deferred, flushEvents, liveModel } from './__fixtures__/fake-realtime';
 
 class MockWebSocket {
@@ -8,6 +12,7 @@ class MockWebSocket {
   static instances: MockWebSocket[] = [];
 
   readyState = MockWebSocket.CONNECTING;
+  bufferedAmount = 0;
   close = vi.fn(() => {
     this.readyState = 3;
   });
@@ -58,6 +63,347 @@ describe('BrowserRealtimeTransport', () => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
+
+  it.each([
+    '',
+    '/relative',
+    'https://host.test',
+    'wss://',
+    'wss://[invalid',
+    'wss://host.test/#fragment',
+    'wss://host.test/#',
+  ])('validates the final provider URL %s before allocating a socket', url => {
+    const transport = new BrowserRealtimeTransport({
+      model: { ...liveModel(), getWebSocketConfig: () => ({ url }) },
+      onServerEvent: vi.fn(),
+      onError: vi.fn(),
+      onClose: vi.fn(),
+    });
+    expect(() =>
+      transport.connect({
+        mode: 'client-secret',
+        token: 'token',
+        url: 'wss://valid.test',
+        onOpen: vi.fn(),
+      }),
+    ).toThrow('Invalid realtime WebSocket URL');
+    expect(MockWebSocket.instances).toHaveLength(0);
+    transport.dispose();
+  });
+
+  it.each([
+    'ws://remote.test/path?key=ephemeral',
+    'wss://remote.test/path?access_token=ephemeral',
+  ])(
+    'preserves native authentication queries and recognized URL syntax: %s',
+    url => {
+      const transport = new BrowserRealtimeTransport({
+        model,
+        onServerEvent: vi.fn(),
+        onError: vi.fn(),
+        onClose: vi.fn(),
+      });
+      transport.connect({
+        mode: 'client-secret',
+        token: 'token',
+        url,
+        onOpen: vi.fn(),
+      });
+      expect(MockWebSocket.instances[0].url).toBe(url);
+      transport.dispose();
+    },
+  );
+
+  it.each([
+    {
+      name: 'exact UTF-8 frame',
+      data: 'é'.repeat(REALTIME_MAX_FRAME_BYTES / 2),
+      buffered: 0,
+      accepted: true,
+    },
+    {
+      name: 'multibyte overflow',
+      data: 'é'.repeat(REALTIME_MAX_FRAME_BYTES / 2) + 'a',
+      buffered: 0,
+      accepted: false,
+    },
+    {
+      name: 'exact backlog',
+      data: 'é',
+      buffered: REALTIME_MAX_BUFFERED_BYTES - 2,
+      accepted: true,
+    },
+    {
+      name: 'crossing backlog',
+      data: 'é',
+      buffered: REALTIME_MAX_BUFFERED_BYTES - 1,
+      accepted: false,
+    },
+    {
+      name: 'oversized binary on empty backlog',
+      data: new ArrayBuffer(REALTIME_MAX_FRAME_BYTES + 1),
+      buffered: 0,
+      accepted: false,
+    },
+    {
+      name: 'sliced binary',
+      data: new Uint8Array(
+        new ArrayBuffer(REALTIME_MAX_FRAME_BYTES + 1),
+        20,
+        4,
+      ),
+      buffered: REALTIME_MAX_BUFFERED_BYTES - 4,
+      accepted: true,
+    },
+    {
+      name: 'sliced DataView',
+      data: new DataView(new ArrayBuffer(REALTIME_MAX_FRAME_BYTES + 1), 10, 3),
+      buffered: REALTIME_MAX_BUFFERED_BYTES - 2,
+      accepted: false,
+    },
+    {
+      name: 'exact Blob',
+      data: new Blob([new Uint8Array(REALTIME_MAX_FRAME_BYTES)]),
+      buffered: 0,
+      accepted: true,
+    },
+    {
+      name: 'oversized Blob',
+      data: new Blob([new Uint8Array(REALTIME_MAX_FRAME_BYTES + 1)]),
+      buffered: 0,
+      accepted: false,
+    },
+  ])(
+    'enforces actual wire bytes for $name',
+    async ({ data, buffered, accepted }) => {
+      const onError = vi.fn();
+      const onFatalError = vi.fn();
+      const transport = new BrowserRealtimeTransport({
+        model: { ...liveModel(), serializeClientEvent: () => data },
+        onServerEvent: vi.fn(),
+        onError,
+        onFatalError,
+        onClose: vi.fn(),
+      });
+      transport.connect({
+        mode: 'relay',
+        url: 'wss://relay.test',
+        onOpen: vi.fn(),
+      });
+      const ws = MockWebSocket.instances[0];
+      ws.open();
+      await flushEvents();
+      ws.bufferedAmount = buffered;
+      const sent = transport.sendEvent({ type: 'response-create' });
+      if (accepted) {
+        await sent;
+        expect(ws.send).toHaveBeenCalledExactlyOnceWith(data);
+        expect(onError).not.toHaveBeenCalled();
+      } else {
+        await expect(sent).rejects.toThrow(/limit/);
+        expect(ws.send).not.toHaveBeenCalled();
+        expect(onError).toHaveBeenCalledOnce();
+      }
+      expect(transport.isOpen).toBe(true);
+      expect(onFatalError).not.toHaveBeenCalled();
+      transport.dispose();
+    },
+  );
+
+  it('stringifies once and handles ignored oversized operation promises without poisoning the queue', async () => {
+    const toJSON = vi.fn(() => ({
+      text: 'é'.repeat(REALTIME_MAX_FRAME_BYTES),
+    }));
+    const serialize = vi
+      .fn()
+      .mockReturnValueOnce({ toJSON })
+      .mockReturnValueOnce({ ok: true })
+      .mockReturnValue(null);
+    const onError = vi.fn();
+    const transport = new BrowserRealtimeTransport({
+      model: { ...liveModel(), serializeClientEvent: serialize },
+      onServerEvent: vi.fn(),
+      onError,
+      onClose: vi.fn(),
+    });
+    transport.connect({
+      mode: 'relay',
+      url: 'wss://relay.test',
+      onOpen: vi.fn(),
+    });
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    await flushEvents();
+    void transport.sendEvent({ type: 'response-create' });
+    await transport.sendEvent({ type: 'response-create' });
+    expect(toJSON).toHaveBeenCalledOnce();
+    expect(onError).toHaveBeenCalledOnce();
+    expect(ws.send).toHaveBeenCalledExactlyOnceWith('{"ok":true}');
+    ws.bufferedAmount = REALTIME_MAX_BUFFERED_BYTES + 1;
+    await transport.sendEvent({ type: 'response-create' });
+    expect(ws.send).toHaveBeenCalledOnce();
+    expect(onError).toHaveBeenCalledOnce();
+    transport.dispose();
+  });
+
+  it('fences JSON toJSON reentry before sending bytes to either connection', async () => {
+    const onError = vi.fn();
+    const transport = new BrowserRealtimeTransport({
+      model: {
+        ...liveModel(),
+        serializeClientEvent: () => ({
+          toJSON() {
+            transport.connect({
+              mode: 'relay',
+              url: 'wss://new.test',
+              onOpen: vi.fn(),
+            });
+            MockWebSocket.instances[1].open();
+            return { old: true };
+          },
+        }),
+      },
+      onServerEvent: vi.fn(),
+      onError,
+      onClose: vi.fn(),
+    });
+    transport.connect({
+      mode: 'relay',
+      url: 'wss://old.test',
+      onOpen: vi.fn(),
+    });
+    MockWebSocket.instances[0].open();
+    await expect(
+      transport.sendEvent({ type: 'response-create' }),
+    ).rejects.toThrow('closed');
+    expect(MockWebSocket.instances).toHaveLength(2);
+    expect(
+      MockWebSocket.instances.every(ws => ws.send.mock.calls.length === 0),
+    ).toBe(true);
+    expect(transport.isOpen).toBe(true);
+    expect(onError).not.toHaveBeenCalled();
+    transport.dispose();
+  });
+
+  it('does not overwrite the replacement codec when parser construction reconnects', async () => {
+    const createParser = vi.fn(() => {
+      if (createParser.mock.calls.length === 1)
+        transport.connect({
+          mode: 'relay',
+          url: 'wss://new.test',
+          onOpen: vi.fn(),
+        });
+      return liveModel().parseServerEvent;
+    });
+    const onEvent = vi.fn();
+    const transport = new BrowserRealtimeTransport({
+      model: { ...liveModel(), createServerEventParser: createParser },
+      onServerEvent: onEvent,
+      onError: vi.fn(),
+      onClose: vi.fn(),
+    });
+    transport.connect({
+      mode: 'relay',
+      url: 'wss://old.test',
+      onOpen: vi.fn(),
+    });
+    expect(MockWebSocket.instances).toHaveLength(2);
+    expect(MockWebSocket.instances[0].close).toHaveBeenCalledOnce();
+    const replacement = MockWebSocket.instances[1];
+    replacement.open();
+    await transport.sendEvent({ type: 'response-create' });
+    replacement.onmessage?.({
+      data: '{"type":"session-created","sessionId":"new","raw":{}}',
+    });
+    await flushEvents();
+    expect(onEvent).toHaveBeenCalledOnce();
+    expect(replacement.send).toHaveBeenCalledExactlyOnceWith(
+      '{"type":"response-create"}',
+    );
+    transport.dispose();
+  });
+
+  it('marks writes closed before onClosing and drains the accepted prefix exactly once', async () => {
+    const delayed = deferred<string>();
+    const blob = new Blob();
+    vi.spyOn(blob, 'text').mockReturnValue(delayed.promise);
+    const order: string[] = [];
+    const onClosing = vi.fn(() => {
+      order.push('closing');
+      expect(transport.isOpen).toBe(false);
+      expect(() => transport.sendEvent({ type: 'response-create' })).toThrow(
+        'closed',
+      );
+    });
+    const transport = new BrowserRealtimeTransport({
+      model,
+      onClosing,
+      onServerEvent: () => {
+        order.push('event');
+      },
+      onError: vi.fn(),
+      onClose: () => {
+        order.push('close');
+      },
+    });
+    transport.connect({
+      mode: 'relay',
+      url: 'wss://relay.test',
+      onOpen: vi.fn(),
+    });
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.onmessage?.({ data: blob });
+    ws.closeFromServer();
+    ws.closeFromServer();
+    expect(order).toEqual(['closing']);
+    delayed.resolve('{"type":"session-created"}');
+    await flushEvents();
+    expect(order).toEqual(['closing', 'event', 'close']);
+    expect(onClosing).toHaveBeenCalledOnce();
+    transport.dispose();
+  });
+
+  it.each(['remote', 'fatal'] as const)(
+    'does not let %s onClosing reconnect be torn down by the old drain',
+    async kind => {
+      vi.useFakeTimers();
+      const onClose = vi.fn();
+      const onFatalError = vi.fn();
+      const onClosing = vi.fn(() => {
+        transport.connect({
+          mode: 'relay',
+          url: 'wss://new.test',
+          onOpen: vi.fn(),
+        });
+        MockWebSocket.instances[1].open();
+      });
+      const transport = new BrowserRealtimeTransport({
+        model,
+        onClosing,
+        onServerEvent: vi.fn(),
+        onError: vi.fn(),
+        onFatalError,
+        onClose,
+      });
+      transport.connect({
+        mode: 'relay',
+        url: 'wss://old.test',
+        onOpen: vi.fn(),
+      });
+      const old = MockWebSocket.instances[0];
+      old.open();
+      if (kind === 'remote') old.closeFromServer();
+      else old.onmessage?.({ data: '{' });
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(transport.isOpen).toBe(true);
+      expect(MockWebSocket.instances[1].close).not.toHaveBeenCalled();
+      expect(onClose).not.toHaveBeenCalled();
+      expect(onFatalError).not.toHaveBeenCalled();
+      expect(onClosing).toHaveBeenCalledOnce();
+      transport.dispose();
+    },
+  );
 
   it.each([undefined, null, '', ' ', 123])(
     'rejects invalid client-secret token %s instead of selecting relay',
@@ -129,7 +475,10 @@ describe('BrowserRealtimeTransport', () => {
               });
           }
           return {
-            url: url ?? 'wss://provider.test',
+            url:
+              token === 'old-token'
+                ? 'invalid-retired-url'
+                : (url ?? 'wss://provider.test'),
             protocols: [`provider-${token}`],
           };
         },

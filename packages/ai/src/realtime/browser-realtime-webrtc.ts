@@ -7,6 +7,35 @@ import type {
 } from '../types/realtime-model';
 import { RealtimeEventChannel } from './realtime-event-channel';
 
+const MAX_SESSION_ANSWER_BYTES = 1024 * 1024;
+
+async function readSessionAnswer(response: Response): Promise<string> {
+  const reader = response.body?.getReader();
+  if (reader == null) throw new Error('Invalid realtime session answer');
+  const decoder = new TextDecoder();
+  let bytes = 0;
+  let text = '';
+  try {
+    if (
+      Number(response.headers.get('content-length')) > MAX_SESSION_ANSWER_BYTES
+    )
+      throw new Error('Realtime session answer exceeds the 1 MiB limit');
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) return text + decoder.decode();
+      bytes += value.byteLength;
+      if (bytes > MAX_SESSION_ANSWER_BYTES)
+        throw new Error('Realtime session answer exceeds the 1 MiB limit');
+      text += decoder.decode(value, { stream: true });
+    }
+  } catch (error) {
+    void reader.cancel(error).catch(() => {});
+    throw error;
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 function selectAudioTrack(stream: MediaStream): MediaStreamTrack | undefined {
   const live = stream
     .getAudioTracks()
@@ -25,9 +54,11 @@ export class BrowserRealtimeWebRTC {
   private generation = 0;
   private finishTimer?: ReturnType<typeof setTimeout>;
   private finishing?: 'close' | 'failure';
+  private closingNotified = false;
   private disconnectTimer?: ReturnType<typeof setTimeout>;
   private captureGeneration = 0;
   private sender?: RTCRtpSender;
+  private senderOperations = Promise.resolve();
   private rejectStartup?: (error: Error) => void;
   private trackCleanups: Array<() => void> = [];
 
@@ -157,11 +188,15 @@ export class BrowserRealtimeWebRTC {
           if (current()) this.fail(error);
         },
         send: data => {
-          if (!current() || dc.readyState !== 'open')
+          if (!current() || this.finishing || dc.readyState !== 'open')
             throw new Error('Realtime data channel is not open');
           if (dc.bufferedAmount > 1024 * 1024)
             throw new Error('Realtime data channel buffer is full');
-          dc.send(typeof data === 'string' ? data : JSON.stringify(data));
+          const encoded =
+            typeof data === 'string' ? data : JSON.stringify(data);
+          if (!current() || this.finishing || dc.readyState !== 'open')
+            throw new Error('Realtime data channel is not open');
+          dc.send(encoded);
         },
       });
       if (!current()) {
@@ -216,7 +251,9 @@ export class BrowserRealtimeWebRTC {
         throw new Error(
           `Failed to create realtime session: ${response.status}`,
         );
-      const parsed = await safeParseJSON({ text: await response.text() });
+      const parsed = await safeParseJSON({
+        text: await readSessionAnswer(response),
+      });
       if (!current() || abort.signal.aborted) return;
       if (
         !parsed.success ||
@@ -224,8 +261,10 @@ export class BrowserRealtimeWebRTC {
         parsed.value == null ||
         !('sdp' in parsed.value) ||
         typeof parsed.value.sdp !== 'string' ||
+        parsed.value.sdp.trim().length === 0 ||
         !('sessionId' in parsed.value) ||
-        typeof parsed.value.sessionId !== 'string'
+        typeof parsed.value.sessionId !== 'string' ||
+        parsed.value.sessionId.trim().length === 0
       ) {
         throw new Error('Invalid realtime session answer');
       }
@@ -247,7 +286,7 @@ export class BrowserRealtimeWebRTC {
     event: RealtimeClientEvent,
     shouldSend?: () => boolean,
   ): Promise<void> {
-    if (this.dc?.readyState !== 'open')
+    if (this.finishing || this.dc?.readyState !== 'open')
       throw new Error('Realtime data channel is not open');
     return this.codec?.send(event, shouldSend) ?? Promise.resolve();
   }
@@ -275,13 +314,16 @@ export class BrowserRealtimeWebRTC {
       this.abort?.abort(error);
       return;
     }
-    void this.stopCaptureForShutdown(this.generation);
+    const generation = this.generation;
     const drain = this.finish();
+    this.notifyClosing();
+    if (generation !== this.generation) return;
+    void this.stopCaptureForShutdown(generation);
+    if (generation !== this.generation) return;
     if (this.options.onFatalError != null) {
       this.options.onFatalError(error, drain);
       return;
     }
-    const generation = this.generation;
     const complete = () => {
       if (generation !== this.generation) return;
       this.dispose();
@@ -321,8 +363,19 @@ export class BrowserRealtimeWebRTC {
     };
     this.finishTimer = setTimeout(complete, 1_000);
     void this.awaitDrain(this.finish(), complete);
+    this.notifyClosing();
+    if (generation !== this.generation) return;
     void this.stopCaptureForShutdown(generation);
-    this.options.onClosing?.();
+  }
+
+  private notifyClosing(): void {
+    if (this.closingNotified) return;
+    this.closingNotified = true;
+    try {
+      this.options.onClosing?.();
+    } catch (error) {
+      this.reportCallbackError(error);
+    }
   }
 
   private async stopCaptureForShutdown(generation: number): Promise<void> {
@@ -365,15 +418,20 @@ export class BrowserRealtimeWebRTC {
   }
 
   async stopCapture(): Promise<void> {
-    this.captureGeneration++;
+    const generation = ++this.captureGeneration;
     for (const cleanup of this.trackCleanups) cleanup();
     this.trackCleanups = [];
     if (this.ownsStream)
       this.stream?.getTracks().forEach(track => track.stop());
     this.stream = undefined;
+    const pc = this.pc;
     const sender = this.sender;
-    this.options.onCapturing(false);
-    await sender?.replaceTrack(null);
+    await this.queueSenderOperation(async () => {
+      if (pc !== this.pc || sender !== this.sender) return;
+      if (pc != null && sender != null) await this.detachSender(pc, sender);
+      if (generation === this.captureGeneration && pc === this.pc)
+        this.options.onCapturing(false);
+    });
   }
 
   async startCapture(supplied?: MediaStream): Promise<void> {
@@ -400,19 +458,61 @@ export class BrowserRealtimeWebRTC {
       if (supplied == null) media.getTracks().forEach(track => track.stop());
       throw new Error('Realtime requires a live audio track');
     }
+    const pc = this.pc;
+    const sender = this.sender;
+    await this.queueSenderOperation(async () => {
+      const current = () =>
+        generation === this.captureGeneration &&
+        pc === this.pc &&
+        sender === this.sender &&
+        pc.connectionState !== 'closed' &&
+        !this.finishing;
+      let attached = false;
+      try {
+        if (!current() || sender == null) return;
+        await sender.replaceTrack(track);
+        if (!current()) {
+          if (pc === this.pc) await this.detachSender(pc, sender);
+          return;
+        }
+        this.stream = media;
+        this.ownsStream = supplied == null;
+        attached = true;
+        this.observeCapture();
+      } finally {
+        if (!attached && supplied == null)
+          media.getTracks().forEach(track => track.stop());
+      }
+    });
+  }
+
+  private queueSenderOperation(operation: () => Promise<void>): Promise<void> {
+    const pending = this.senderOperations.then(operation);
+    this.senderOperations = pending.catch(() => {});
+    return pending;
+  }
+
+  private async detachSender(
+    pc: RTCPeerConnection,
+    sender: RTCRtpSender,
+  ): Promise<void> {
+    if (pc.connectionState === 'closed') return;
     try {
-      await this.sender?.replaceTrack(track);
+      await sender.replaceTrack(null);
     } catch (error) {
-      if (supplied == null) media.getTracks().forEach(track => track.stop());
-      throw error;
+      if (pc !== this.pc) return;
+      // A rejected detach can still transmit borrowed audio. Close the peer first.
+      this.closePeer(pc);
+      this.fail(error instanceof Error ? error : new Error(String(error)));
     }
-    if (generation !== this.captureGeneration) {
-      if (supplied == null) media.getTracks().forEach(track => track.stop());
-      return;
-    }
-    this.stream = media;
-    this.ownsStream = supplied == null;
-    this.observeCapture();
+  }
+
+  private closePeer(pc: RTCPeerConnection): void {
+    pc.ontrack = null;
+    pc.onconnectionstatechange = null;
+    pc.oniceconnectionstatechange = null;
+    pc.onicegatheringstatechange = null;
+    if (pc.connectionState !== 'closed') pc.close();
   }
 
   private observeCapture(): void {
@@ -443,6 +543,8 @@ export class BrowserRealtimeWebRTC {
     clearTimeout(this.finishTimer);
     clearTimeout(this.disconnectTimer);
     this.finishing = undefined;
+    this.closingNotified = false;
+    this.senderOperations = Promise.resolve();
     this.abort?.abort(new Error('Realtime connection cancelled'));
     this.abort = undefined;
     this.codec?.dispose();
@@ -456,11 +558,7 @@ export class BrowserRealtimeWebRTC {
       this.dc = undefined;
     }
     if (this.pc != null) {
-      this.pc.ontrack = null;
-      this.pc.onconnectionstatechange = null;
-      this.pc.oniceconnectionstatechange = null;
-      this.pc.onicegatheringstatechange = null;
-      this.pc.close();
+      this.closePeer(this.pc);
       this.pc = undefined;
     }
     for (const cleanup of this.trackCleanups) cleanup();
