@@ -1058,7 +1058,7 @@ const webSearchTool = anthropic.tools.webSearch_20260318({
 });
 
 const result = await generateText({
-  model: anthropic('claude-opus-4-20250514'),
+  model: anthropic('claude-opus-5'),
   prompt: 'What are the latest developments in AI?',
   tools: {
     web_search: webSearchTool,
@@ -1117,7 +1117,7 @@ const webSearchTool = anthropic.tools.webSearch_20260318({
 });
 
 const result = await generateText({
-  model: anthropic('claude-opus-4-20250514'),
+  model: anthropic('claude-opus-5'),
   prompt: 'Find local news about technology',
   tools: {
     web_search: webSearchTool,
@@ -1143,7 +1143,7 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: anthropic('claude-sonnet-4-0'),
+  model: anthropic('claude-opus-5'),
   prompt:
     'What is this page about? https://en.wikipedia.org/wiki/Maglemosian_culture',
   tools: {
