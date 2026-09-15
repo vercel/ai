@@ -327,6 +327,7 @@ describe('WorkflowAgent', () => {
 
       expect(receivedSignal).toBeDefined();
       expect(receivedSignal?.aborted).toBe(true);
+      expect(receivedSignal?.reason).toHaveProperty('name', 'TimeoutError');
       expect(cooperativelyCancelled).toBe(true);
     });
 

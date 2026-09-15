@@ -3199,7 +3199,14 @@ function createWorkflowTimeoutSignal(
   }
 
   const controller = new AbortController();
-  void sleep(timeout).then(() => controller.abort());
+  void sleep(timeout).then(() =>
+    controller.abort(
+      new DOMException(
+        `WorkflowAgent timeout of ${timeout}ms exceeded`,
+        'TimeoutError',
+      ),
+    ),
+  );
   return controller.signal;
 }
 
