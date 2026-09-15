@@ -103,6 +103,36 @@ details {
   font-size: 0.85rem;
 }
 
+.tool-approval {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tool-approval-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tool-approval-actions button {
+  padding: 0.4rem 0.75rem;
+  border: 0;
+  border-radius: 4px;
+  background-color: #007bff;
+  color: white;
+  cursor: pointer;
+}
+
+.tool-approval-actions button.secondary {
+  background-color: #6c757d;
+}
+
+.tool-approval-reason {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
 .file-part,
 .source-part,
 .data-part {
