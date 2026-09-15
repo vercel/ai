@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20427,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20427-openai-apply-patch-finish-reason.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20427-openai-apply-patch-finish-reason.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_20427_REPRODUCED: apply_patch steps finished with \"stop\" instead of \"tool-calls\" in generateText and streamText"
+  }
+}
