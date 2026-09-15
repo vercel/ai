@@ -73,6 +73,79 @@ describe('realtime ownership, command turnover, and independent lifecycle semant
     vi.unstubAllGlobals();
   });
 
+  it.each([
+    { from: 'subscriber', completion: 'terminal' },
+    { from: 'onError', completion: 'terminal' },
+    { from: 'subscriber', completion: 'timeout' },
+    { from: 'onError', completion: 'timeout' },
+  ])(
+    'joins failure draining when $from calls close, completing via $completion',
+    async ({ from, completion }) => {
+      vi.useFakeTimers();
+      const onError = vi.fn();
+      const session = create({ onError });
+      await startWebSocket(session);
+      await emit({ type: 'session-usage', usage: { seconds: 5 }, raw: {} });
+      const text = deferred<string>();
+      const blob = new Blob();
+      vi.spyOn(blob, 'text').mockReturnValue(text.promise);
+      let closed: Promise<void> | undefined;
+      const settled = vi.fn();
+      const close = () => {
+        if (closed != null) return;
+        session.onUpdate = undefined;
+        closed = session.close();
+        void closed.then(settled);
+      };
+      if (from === 'subscriber') {
+        session.onUpdate = () => {
+          if (session.snapshot.status === 'error') close();
+        };
+      } else onError.mockImplementation(close);
+      socket().emit({
+        type: 'audio-delta',
+        responseId: 'r',
+        itemId: 'a',
+        delta: 'AAA=',
+        raw: {},
+      });
+      socket().onmessage?.({ data: blob });
+      await flushEvents();
+      expect(closed).toBeDefined();
+      expect(settled).not.toHaveBeenCalled();
+      expect(session.close()).toBe(closed);
+      expect(session.snapshot.status).toBe('error');
+      await vi.advanceTimersByTimeAsync(999);
+      expect(settled).not.toHaveBeenCalled();
+      if (completion === 'timeout') await vi.advanceTimersByTimeAsync(1);
+      text.resolve(
+        JSON.stringify({
+          type: 'session-closed',
+          usage: { seconds: 7.125 },
+          reason: 'requested',
+          raw: {},
+        }),
+      );
+      await closed;
+      await flushEvents();
+      expect(session.snapshot.status).toBe('error');
+      expect(session.snapshot.session).toMatchObject({
+        finalization: completion === 'terminal' ? 'confirmed' : 'unconfirmed',
+        usage: { seconds: completion === 'terminal' ? 7.125 : 5 },
+      });
+      expect(settled).toHaveBeenCalledOnce();
+      expect(onError).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({
+          message: expect.stringContaining('Turn-based audio-delta'),
+        }),
+      );
+      expect(socket().close).toHaveBeenCalledOnce();
+      expect(socket().sent.some(event => event.type === 'session-close')).toBe(
+        false,
+      );
+    },
+  );
+
   describe.each(['legacy', 'continuous'] as const)(
     '%s manual audio rejection ownership',
     profile => {
