@@ -2101,6 +2101,194 @@ describe('use-chat', () => {
     });
   });
 
+  describe('resume stream when returning to a visible tab', () => {
+    let submitController!: TestResponseController;
+
+    setupTestComponent(
+      () => {
+        const { messages, sendMessage, status } = useChat({
+          id: '123',
+          generateId: mockId(),
+          resume: true,
+        });
+
+        return (
+          <div>
+            {messages.map((m, idx) => (
+              <div data-testid={`message-${idx}`} key={m.id}>
+                {m.role === 'user' ? 'User: ' : 'AI: '}
+                {m.parts
+                  .map(part => (part.type === 'text' ? part.text : ''))
+                  .join('')}
+              </div>
+            ))}
+
+            <div data-testid="status">{status}</div>
+            <button
+              type="button"
+              data-testid="do-send"
+              onClick={() =>
+                sendMessage({ parts: [{ type: 'text', text: 'hello' }] })
+              }
+            />
+          </div>
+        );
+      },
+      {
+        init: TestComponent => {
+          submitController = new TestResponseController();
+          server.urls['/api/chat/123/stream'].response = {
+            type: 'empty',
+            status: 204,
+          };
+          server.urls['/api/chat'].response = {
+            type: 'controlled-stream',
+            controller: submitController,
+          };
+
+          return <TestComponent />;
+        },
+      },
+    );
+
+    it('should automatically reconnect when tab becomes visible after a dropped stream', async () => {
+      await waitFor(() => {
+        expect(
+          server.calls.filter(call => call.requestMethod === 'GET'),
+        ).toHaveLength(1);
+      });
+
+      await userEvent.click(screen.getByTestId('do-send'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('submitted');
+      });
+
+      await submitController.write(
+        formatChunk({ type: 'text-start', id: '0' }),
+      );
+      await submitController.write(
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('streaming');
+        expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
+      });
+
+      await submitController.error(new TypeError('network connection lost'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('error');
+      });
+
+      const resumeController = new TestResponseController();
+      server.urls['/api/chat/123/stream'].response = {
+        type: 'controlled-stream',
+        controller: resumeController,
+      };
+
+      const originalVisibilityState = document.visibilityState;
+
+      try {
+        Object.defineProperty(document, 'visibilityState', {
+          configurable: true,
+          get: () => 'hidden',
+        });
+        document.dispatchEvent(new Event('visibilitychange'));
+
+        Object.defineProperty(document, 'visibilityState', {
+          configurable: true,
+          get: () => 'visible',
+        });
+        document.dispatchEvent(new Event('visibilitychange'));
+
+        await waitFor(() => {
+          expect(
+            server.calls.filter(call => call.requestMethod === 'GET'),
+          ).toHaveLength(2);
+        });
+
+        await resumeController.write(
+          formatChunk({ type: 'text-start', id: '0' }),
+        );
+        await resumeController.write(
+          formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        );
+        await resumeController.write(
+          formatChunk({ type: 'text-delta', id: '0', delta: ', world.' }),
+        );
+        await resumeController.write(
+          formatChunk({ type: 'text-end', id: '0' }),
+        );
+        await resumeController.close();
+
+        await waitFor(() => {
+          expect(screen.getByTestId('message-1')).toHaveTextContent(
+            'AI: Hello',
+          );
+          expect(screen.getByTestId('message-2')).toHaveTextContent(
+            'AI: Hello, world.',
+          );
+          expect(screen.getByTestId('status')).toHaveTextContent('ready');
+        });
+      } finally {
+        Object.defineProperty(document, 'visibilityState', {
+          configurable: true,
+          get: () => originalVisibilityState,
+        });
+        document.dispatchEvent(new Event('visibilitychange'));
+      }
+    });
+
+    it('should not reconnect when tab becomes visible while actively streaming', async () => {
+      await waitFor(() => {
+        expect(
+          server.calls.filter(call => call.requestMethod === 'GET'),
+        ).toHaveLength(1);
+      });
+
+      await userEvent.click(screen.getByTestId('do-send'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('submitted');
+      });
+
+      await submitController.write(
+        formatChunk({ type: 'text-start', id: '0' }),
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('streaming');
+      });
+
+      const originalVisibilityState = document.visibilityState;
+      try {
+        Object.defineProperty(document, 'visibilityState', {
+          configurable: true,
+          get: () => 'hidden',
+        });
+        document.dispatchEvent(new Event('visibilitychange'));
+
+        Object.defineProperty(document, 'visibilityState', {
+          configurable: true,
+          get: () => 'visible',
+        });
+        document.dispatchEvent(new Event('visibilitychange'));
+
+        expect(
+          server.calls.filter(call => call.requestMethod === 'GET'),
+        ).toHaveLength(1);
+      } finally {
+        Object.defineProperty(document, 'visibilityState', {
+          configurable: true,
+          get: () => originalVisibilityState,
+        });
+        document.dispatchEvent(new Event('visibilitychange'));
+      }
+    });
+  });
+
   describe('resume with no active stream should not flash submitted status', () => {
     setupTestComponent(
       () => {
