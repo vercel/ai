@@ -1,171 +1,45 @@
 import type {
-  JSONObject,
-  LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
-  LanguageModelV4Source,
   SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import { isAbortError } from '@ai-sdk/provider-utils';
 import {
   experimental_streamLanguageModelCall as streamModelCall,
   gateway,
-  type Experimental_LanguageModelStreamPart,
-  type FinishReason,
   type LanguageModel,
-  type LanguageModelUsage,
   type ModelMessage,
-  type StopCondition,
-  type ToolCallRepairFunction,
-  type ToolChoice,
   type ToolSet,
 } from 'ai';
 import { prepareRetries } from 'ai/internal';
-import type { ProviderOptions } from './workflow-agent.js';
 import {
   resolveSerializableTools,
   type SerializableToolDef,
 } from './serializable-schema.js';
 
-export type ModelCallStreamPart<TTools extends ToolSet = ToolSet> =
-  | Experimental_LanguageModelStreamPart<TTools>
-  | {
-      type: 'tool-approval-request';
-      approvalId: string;
-      toolCallId: string;
-      signature?: string;
-    }
-  | { type: 'reset-step' };
+import type {
+  ModelCallFinish as StreamFinish,
+  ModelCallOptions as DoStreamStepOptions,
+  ModelCallRawContentPart as DoStreamStepRawContentPart,
+  ModelCallResult as DoStreamStepResult,
+  ModelCallStreamPart,
+  ParsedToolCall,
+  ProviderExecutedToolResult,
+  ToolInputLifecycleEvent,
+} from './model-call.js';
 
-export type ModelStopCondition = StopCondition<NoInfer<ToolSet>, any>;
-
-/**
- * Provider-executed tool result captured from the stream.
- */
-export interface ProviderExecutedToolResult {
-  toolCallId: string;
-  toolName: string;
-  result: unknown;
-  isError?: boolean;
-  dynamic?: boolean;
-  providerMetadata?: SharedV4ProviderMetadata;
-}
-
-/**
- * Options for the doStreamStep function.
- */
-export interface DoStreamStepOptions {
-  maxOutputTokens?: number;
-  temperature?: number;
-  topP?: number;
-  topK?: number;
-  presencePenalty?: number;
-  frequencyPenalty?: number;
-  stopSequences?: string[];
-  seed?: number;
-  maxRetries?: number;
-  abortSignal?: AbortSignal;
-  timeoutAt?: number;
-  headers?: Record<string, string | undefined>;
-  reasoning?: LanguageModelV4CallOptions['reasoning'];
-  providerOptions?: ProviderOptions;
-  toolChoice?: ToolChoice<ToolSet>;
-  includeRawChunks?: boolean;
-  repairToolCall?: ToolCallRepairFunction<ToolSet>;
-  responseFormat?: LanguageModelV4CallOptions['responseFormat'];
-}
-
-/**
- * Parsed tool call from the stream (parsed by streamModelCall's transform).
- */
-export interface ParsedToolCall {
-  type: 'tool-call';
-  toolCallId: string;
-  toolName: string;
-  input: unknown;
-  providerExecuted?: boolean;
-  providerMetadata?: SharedV4ProviderMetadata;
-  title?: string;
-  toolMetadata?: JSONObject;
-  dynamic?: boolean;
-  invalid?: boolean;
-  error?: unknown;
-}
-
-/**
- * Finish metadata from the stream.
- */
-export interface StreamFinish {
-  finishReason: FinishReason;
-  rawFinishReason: string | undefined;
-  usage: LanguageModelUsage;
-  providerMetadata?: Record<string, unknown>;
-}
-
-export type DoStreamStepRawContentPart =
-  | {
-      type: 'text';
-      text: string;
-      providerMetadata?: SharedV4ProviderMetadata;
-    }
-  | {
-      type: 'file';
-      data: string;
-      mediaType: string;
-      providerMetadata?: SharedV4ProviderMetadata;
-    }
-  | LanguageModelV4Source
-  | {
-      type: 'tool-call';
-      toolCallIndex: number;
-    }
-  | {
-      type: 'provider-tool-result';
-      toolCallId: string;
-    };
-
-/**
- * Compact callback replay data. The start event establishes the tool name for
- * a call, so delta events do not repeat it and available events reuse the
- * parsed input already present in `toolCalls`.
- */
-export type ToolInputLifecycleEvent =
-  | ['start', toolCallId: string, toolName: string]
-  | ['delta', toolCallId: string, inputTextDelta: string]
-  | ['available', toolCallId: string];
-
-/**
- * Minimal aggregates needed to reconstruct a `StepResult` outside the step
- * boundary. By returning only these fields (instead of a fully-populated
- * StepResult plus the raw `chunks[]` array), the durable event log doesn't
- * carry StepResult's redundant derived fields — duplicate tool-call lists,
- * `text`, `files`, `sources`, `reasoningText`, or the tool-result arrays
- * populated after execution. It also avoids the per-chunk `chunks[]` snapshot
- * the iterator never reads. The caller reconstructs the full StepResult via
- * `buildStepResult`.
- */
-export interface DoStreamStepRawResult {
-  content: DoStreamStepRawContentPart[];
-  reasoning: Array<{ text: string }>;
-  responseMetadata?: { id?: string; timestamp?: Date; modelId?: string };
-  warnings?: unknown[];
-}
-
-export type DoStreamStepResult =
-  | { aborted: true }
-  | {
-      aborted?: false;
-      toolCalls: ParsedToolCall[];
-      finish: StreamFinish | undefined;
-      raw: DoStreamStepRawResult;
-      providerExecutedToolResults: Map<string, ProviderExecutedToolResult>;
-      /**
-       * Optional for compatibility with model-step results persisted before
-       * tool input lifecycle callback replay was added.
-       */
-      toolInputLifecycleEvents?: ToolInputLifecycleEvent[];
-      /** Present when the model stream emitted an error part. */
-      terminalError?: unknown;
-    };
+// Preserve existing imports while the durable step keeps its name and payload.
+export type {
+  ModelCallFinish as StreamFinish,
+  ModelCallOptions as DoStreamStepOptions,
+  ModelCallRawContentPart as DoStreamStepRawContentPart,
+  ModelCallRawResult as DoStreamStepRawResult,
+  ModelCallResult as DoStreamStepResult,
+  ModelCallStreamPart,
+  ModelStopCondition,
+  ParsedToolCall,
+  ProviderExecutedToolResult,
+  ToolInputLifecycleEvent,
+} from './model-call.js';
 
 export async function doStreamStep(
   conversationPrompt: LanguageModelV4Prompt,

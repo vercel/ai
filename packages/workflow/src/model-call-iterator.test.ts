@@ -1,5 +1,5 @@
 /**
- * Tests for streamTextIterator
+ * Tests for modelCallIterator
  *
  * These tests verify that providerMetadata from tool calls is correctly
  * mapped to providerOptions in the conversation prompt, which is critical
@@ -26,7 +26,7 @@ import type {
   DoStreamStepRawResult,
   ParsedToolCall,
 } from './do-stream-step.js';
-import type { StreamTextIteratorYieldValue } from './stream-text-iterator.js';
+import type { ModelCallIteratorYieldValue } from './model-call-iterator.js';
 
 // Mock doStreamStep
 vi.mock('./do-stream-step.js', () => ({
@@ -34,7 +34,7 @@ vi.mock('./do-stream-step.js', () => ({
 }));
 
 // Import after mocking
-const { streamTextIterator } = await import('./stream-text-iterator.js');
+const { modelCallIterator } = await import('./model-call-iterator.js');
 const { doStreamStep } = await import('./do-stream-step.js');
 
 /**
@@ -113,7 +113,7 @@ function createMockDoStreamStepResult({
   };
 }
 
-describe('streamTextIterator', () => {
+describe('modelCallIterator', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -140,7 +140,7 @@ describe('streamTextIterator', () => {
       });
     });
 
-    const iterator = streamTextIterator({
+    const iterator = modelCallIterator({
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'search' }] }],
       tools: {
         search: {
@@ -190,7 +190,7 @@ describe('streamTextIterator', () => {
       }),
     );
 
-    const iterator = streamTextIterator({
+    const iterator = modelCallIterator({
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'search' }] }],
       tools: {
         search: tool({
@@ -231,7 +231,7 @@ describe('streamTextIterator', () => {
       }),
     );
 
-    const iterator = streamTextIterator({
+    const iterator = modelCallIterator({
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'search' }] }],
       tools: {
         search: tool({
@@ -254,7 +254,7 @@ describe('streamTextIterator', () => {
       .toolInputLifecycleEvents;
     vi.mocked(doStreamStep).mockResolvedValue(persistedResult);
 
-    const iterator = streamTextIterator({
+    const iterator = modelCallIterator({
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
       tools: {},
       model: vi.fn() as any,
@@ -267,7 +267,7 @@ describe('streamTextIterator', () => {
     it('merges defined prepareStep overrides', async () => {
       vi.mocked(doStreamStep).mockResolvedValue(createMockDoStreamStepResult());
 
-      const iterator = streamTextIterator({
+      const iterator = modelCallIterator({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
         tools: {},
         model: vi.fn() as any,
@@ -295,7 +295,7 @@ describe('streamTextIterator', () => {
       vi.mocked(doStreamStep).mockResolvedValue(createMockDoStreamStepResult());
       const timeoutAt = Date.now() + 5000;
 
-      const iterator = streamTextIterator({
+      const iterator = modelCallIterator({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
         tools: {},
         model: vi.fn() as any,
@@ -316,7 +316,7 @@ describe('streamTextIterator', () => {
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
 
-      const iterator = streamTextIterator({
+      const iterator = modelCallIterator({
         prompt,
         tools: {},
         model: vi.fn() as any,
@@ -335,7 +335,7 @@ describe('streamTextIterator', () => {
     it('passes no tools to the model when prepareStep returns an empty list', async () => {
       vi.mocked(doStreamStep).mockResolvedValue(createMockDoStreamStepResult());
 
-      const iterator = streamTextIterator({
+      const iterator = modelCallIterator({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
         tools: {
           hidden: tool({
@@ -369,7 +369,7 @@ describe('streamTextIterator', () => {
       );
       const onLanguageModelCallEnd = vi.fn();
 
-      const iterator = streamTextIterator({
+      const iterator = modelCallIterator({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
         tools: {},
         model: vi.fn() as any,
@@ -402,7 +402,7 @@ describe('streamTextIterator', () => {
       ];
       const prepareStep = vi.fn(() => ({}));
 
-      const iterator = streamTextIterator({
+      const iterator = modelCallIterator({
         prompt: [
           {
             role: 'user',
@@ -458,7 +458,7 @@ describe('streamTextIterator', () => {
           return createMockDoStreamStepResult();
         });
 
-      const iterator = streamTextIterator({
+      const iterator = modelCallIterator({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
         tools: {
           testTool: {
@@ -562,7 +562,7 @@ describe('streamTextIterator', () => {
           return createMockDoStreamStepResult();
         });
 
-      const iterator = streamTextIterator({
+      const iterator = modelCallIterator({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
         tools: {},
         model: vi.fn() as any,
@@ -649,14 +649,14 @@ describe('streamTextIterator', () => {
         }),
       );
 
-      const iterator = streamTextIterator({
+      const iterator = modelCallIterator({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
         tools: {},
         model: vi.fn() as any,
       });
 
       const result = await iterator.next();
-      const yielded = result.value as StreamTextIteratorYieldValue;
+      const yielded = result.value as ModelCallIteratorYieldValue;
 
       expect(yielded.step?.files).toHaveLength(1);
       expect(yielded.step?.files[0]?.base64).toBe('ZmlsZS1jb250ZW50');
@@ -689,14 +689,14 @@ describe('streamTextIterator', () => {
         }),
       );
 
-      const iterator = streamTextIterator({
+      const iterator = modelCallIterator({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
         tools: {},
         model: vi.fn() as any,
       });
 
       const result = await iterator.next();
-      const yielded = result.value as StreamTextIteratorYieldValue;
+      const yielded = result.value as ModelCallIteratorYieldValue;
 
       expect(yielded.step?.content).toContainEqual(source);
       expect(yielded.step?.sources).toEqual([source]);
@@ -739,7 +739,7 @@ describe('streamTextIterator', () => {
           return createMockDoStreamStepResult();
         });
 
-      const iterator = streamTextIterator({
+      const iterator = modelCallIterator({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
         tools: {
           testTool: {
@@ -814,7 +814,7 @@ describe('streamTextIterator', () => {
           return createMockDoStreamStepResult();
         });
 
-      const iterator = streamTextIterator({
+      const iterator = modelCallIterator({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
         tools: {
           testTool: {
@@ -826,7 +826,7 @@ describe('streamTextIterator', () => {
       });
 
       const firstResult = await iterator.next();
-      const yielded = firstResult.value as StreamTextIteratorYieldValue;
+      const yielded = firstResult.value as ModelCallIteratorYieldValue;
       const expectedAssistantMessage: LanguageModelV4Prompt[number] = {
         role: 'assistant',
         content: [
@@ -909,7 +909,7 @@ describe('streamTextIterator', () => {
           },
         );
 
-      const iterator = streamTextIterator({
+      const iterator = modelCallIterator({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
         tools: {
           testTool: {
@@ -924,7 +924,7 @@ describe('streamTextIterator', () => {
       // First iteration - get tool calls
       const firstResult = await iterator.next();
       expect(firstResult.done).toBe(false);
-      const firstValue = firstResult.value as StreamTextIteratorYieldValue;
+      const firstValue = firstResult.value as ModelCallIteratorYieldValue;
       expect(firstValue.toolCalls).toHaveLength(1);
 
       // Provide tool results and continue
@@ -990,7 +990,7 @@ describe('streamTextIterator', () => {
           },
         );
 
-      const iterator = streamTextIterator({
+      const iterator = modelCallIterator({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
         tools: {
           testTool: {
@@ -1069,7 +1069,7 @@ describe('streamTextIterator', () => {
           },
         );
 
-      const iterator = streamTextIterator({
+      const iterator = modelCallIterator({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
         tools: {
           weatherTool: {
@@ -1087,7 +1087,7 @@ describe('streamTextIterator', () => {
 
       const firstResult = await iterator.next();
       expect(firstResult.done).toBe(false);
-      const firstValue = firstResult.value as StreamTextIteratorYieldValue;
+      const firstValue = firstResult.value as ModelCallIteratorYieldValue;
       expect(firstValue.toolCalls).toHaveLength(2);
 
       const toolResults: LanguageModelV4ToolResultPart[] = [
@@ -1172,7 +1172,7 @@ describe('streamTextIterator', () => {
           },
         );
 
-      const iterator = streamTextIterator({
+      const iterator = modelCallIterator({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
         tools: {
           toolWithMeta: {
@@ -1261,7 +1261,7 @@ describe('streamTextIterator', () => {
           },
         );
 
-      const iterator = streamTextIterator({
+      const iterator = modelCallIterator({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
         tools: {
           testTool: {
@@ -1333,7 +1333,7 @@ describe('streamTextIterator', () => {
           },
         );
 
-      const iterator = streamTextIterator({
+      const iterator = modelCallIterator({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
         tools: {
           testTool: {
@@ -1411,7 +1411,7 @@ describe('streamTextIterator', () => {
           },
         );
 
-      const iterator = streamTextIterator({
+      const iterator = modelCallIterator({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
         tools: {
           testTool: {
@@ -1462,7 +1462,7 @@ describe('streamTextIterator', () => {
         createMockDoStreamStepResult({ finishReason: 'stop' }),
       );
 
-      const iterator = streamTextIterator({
+      const iterator = modelCallIterator({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
         tools: {} as ToolSet,
         writable: createMockWritable(),
@@ -1472,7 +1472,7 @@ describe('streamTextIterator', () => {
       });
 
       const result = await iterator.next();
-      const yielded = result.value as StreamTextIteratorYieldValue;
+      const yielded = result.value as ModelCallIteratorYieldValue;
 
       // Contexts are no longer serialized across the step boundary; the
       // iterator applies them when it reconstructs the StepResult outside.
