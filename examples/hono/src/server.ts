@@ -33,9 +33,12 @@ app.post('/', async c => {
     model: openai('gpt-4o'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
-  return createUIMessageStreamResponse({
+  const response = createUIMessageStreamResponse({
     stream: toUIMessageStream({ stream: result.stream }),
   });
+  // Prevent nginx reverse proxies (e.g. Cloud Run) from buffering the SSE stream.
+  response.headers.set('X-Accel-Buffering', 'no');
+  return response;
 });
 
 app.post('/text', async c => {
@@ -44,9 +47,11 @@ app.post('/text', async c => {
     model: openai('gpt-4o'),
     prompt: 'Write a short poem about coding.',
   });
-  return createTextStreamResponse({
+  const response = createTextStreamResponse({
     stream: toTextStream({ stream: result.stream }),
   });
+  response.headers.set('X-Accel-Buffering', 'no');
+  return response;
 });
 
 app.post('/stream-data', async c => {
@@ -82,7 +87,9 @@ app.post('/stream-data', async c => {
       );
     },
   });
-  return createUIMessageStreamResponse({ stream });
+  const response = createUIMessageStreamResponse({ stream });
+  response.headers.set('X-Accel-Buffering', 'no');
+  return response;
 });
 
 // useChat example using Agent
@@ -91,13 +98,17 @@ app.post('/chat', async c => {
 
   const { messages } = await c.req.json();
 
-  return createAgentUIStreamResponse({
+  const response = createAgentUIStreamResponse({
     agent: openaiWebSearchAgent,
     uiMessages: messages,
   });
+  response.headers.set('X-Accel-Buffering', 'no');
+  return response;
 });
 
 app.get('/health', c => c.text('Hono AI SDK example server is running!'));
 
-console.log('Server starting on http://localhost:8080');
-serve({ fetch: app.fetch, port: 8080 });
+// Cloud Run injects PORT; fall back to 8080 for local development.
+const port = parseInt(process.env.PORT ?? '8080', 10);
+console.log(`Server starting on http://localhost:${port}`);
+serve({ fetch: app.fetch, port });
