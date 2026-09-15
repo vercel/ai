@@ -6594,6 +6594,32 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
+    it.each(['created', 'in_progress', 'completed'] as const)(
+      'should ignore truncated response.%s lifecycle events',
+      async responseType => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data:{"type":"response.${responseType}","response":{"instructions":"truncated\n\n`,
+            'data:{"type":"response.output_text.delta","item_id":"msg_1","delta":"Hello"}\n\n',
+          ],
+        };
+
+        const { stream } = await createModel('gpt-5.4').doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const events = await convertReadableStreamToArray(stream);
+
+        expect(events).toContainEqual({
+          type: 'text-delta',
+          id: 'msg_1',
+          delta: 'Hello',
+        });
+        expect(events.some(event => event.type === 'error')).toBe(false);
+      },
+    );
+
     it('should preserve async mode on streamed function calls', async () => {
       const functionCall = {
         id: 'fc_async',
