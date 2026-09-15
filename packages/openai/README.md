@@ -53,14 +53,16 @@ openai.experimental_realtime('gpt-live-1');
 openai.experimental_realtime('not-yet-released', { api: 'live' });
 ```
 
-Live currently supports server WebSocket integration with client delegation:
-your application owns the agent and tools. Start with the
+Live supports browser WSS sessions through an application-owned relay and
+`experimental_useRealtime`, with client delegation: your application owns the
+agent and tools. Start with the
 [OpenAI provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/openai#realtime-models)
 for connection settings, startup options, and event mapping.
 
-The existing [Realtime guide](https://ai-sdk.dev/docs/ai-sdk-core/realtime) and
-[`experimental_useRealtime` reference](https://ai-sdk.dev/docs/reference/ai-sdk-ui/use-realtime)
-cover token-based Realtime sessions; they are not a Live hook integration.
+The [`experimental_useRealtime` reference](https://ai-sdk.dev/docs/reference/ai-sdk-ui/use-realtime#continuous-conversations)
+covers the JSON/PCM16 relay runtime, capture/playback controls, and application-handled
+client delegation. The [Realtime guide](https://ai-sdk.dev/docs/ai-sdk-core/realtime)
+covers legacy token-based, turn-based sessions.
 
 Runtime and provider authors can consult the repository's
 [realtime integration notes](../../architecture/realtime-provider-integration.md).

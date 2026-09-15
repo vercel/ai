@@ -16,6 +16,7 @@ import {
   flushEvents,
   liveModel,
 } from '../../ai/src/realtime/__fixtures__/fake-realtime';
+import type { RealtimeSessionOptions } from '../../ai/src/realtime/realtime-session';
 import type { Experimental_UseRealtimeReturn } from './use-realtime';
 
 vi.mock('ai', async () => import('../../ai/src/realtime'));
@@ -479,6 +480,141 @@ describe('useRealtime WebSocket relay configuration', () => {
       await expect(controls[0]()).rejects.toThrow('mounted hook');
       expect(FakeWebSocket.instances).toHaveLength(initialCount + 1);
       expect(warnings).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([false, true])(
+    'publishes optional tool-handler presence only at commit (initially present: %s)',
+    async initiallyPresent => {
+      const model: ReturnType<typeof liveModel> = {
+        ...liveModel(),
+        capabilities: {
+          conversation: 'turn-based',
+          transports: ['websocket'],
+          connections: ['server-websocket'],
+        },
+      };
+      const handler = vi.fn(() => undefined);
+      const onError = vi.fn();
+      const connect = vi.spyOn(
+        Experimental_AbstractRealtimeSession.prototype,
+        'connect',
+      );
+      const pending = new Promise<never>(() => {});
+      const suspended = vi.fn();
+      const { result, rerender } = renderHook(
+        ({
+          onToolCall,
+          suspend,
+        }: {
+          onToolCall: RealtimeSessionOptions['onToolCall'];
+          suspend: boolean;
+        }) => {
+          const rt = experimental_useRealtime({
+            model,
+            api: { websocket: 'wss://app.example/turns' },
+            onToolCall,
+            onError,
+          });
+          if (suspend) {
+            suspended();
+            throw pending;
+          }
+          return rt;
+        },
+        {
+          initialProps: {
+            onToolCall: initiallyPresent ? handler : undefined,
+            suspend: false,
+          },
+          wrapper: ({ children }) => (
+            <Suspense fallback={null}>{children}</Suspense>
+          ),
+        },
+      );
+      await act(async () => {
+        await result.current.connect();
+        FakeWebSocket.instances[0].open();
+        FakeWebSocket.instances[0].emit({ type: 'session-updated', raw: {} });
+        await flushEvents();
+      });
+      const store = connect.mock.contexts[0] as InstanceType<
+        typeof Experimental_AbstractRealtimeSession
+      >;
+      expect(store.onToolCall).toEqual(
+        initiallyPresent ? expect.any(Function) : undefined,
+      );
+      const nextHandler = initiallyPresent ? undefined : handler;
+      await act(async () => {
+        startTransition(() =>
+          rerender({ onToolCall: nextHandler, suspend: true }),
+        );
+      });
+      expect(suspended).toHaveBeenCalled();
+      expect(store.onToolCall).toEqual(
+        initiallyPresent ? expect.any(Function) : undefined,
+      );
+      const socket = FakeWebSocket.instances[0];
+      const callTool = async (callId: string) => {
+        socket.emit({
+          type: 'function-call-arguments-done',
+          name: 'getWeather',
+          callId,
+          itemId: callId,
+          responseId: callId,
+          arguments: '{}',
+          raw: {},
+        });
+        await flushEvents();
+      };
+      await act(async () => {
+        await callTool('before');
+      });
+      expect(handler).toHaveBeenCalledTimes(initiallyPresent ? 1 : 0);
+      expect(onError).toHaveBeenCalledTimes(initiallyPresent ? 0 : 1);
+      if (!initiallyPresent)
+        expect(onError).toHaveBeenCalledWith(
+          new Error('No handler provided for tool "getWeather"'),
+        );
+      handler.mockClear();
+      onError.mockClear();
+      rerender({ onToolCall: nextHandler, suspend: false });
+      expect(store.onToolCall).toEqual(
+        initiallyPresent ? undefined : expect.any(Function),
+      );
+      await act(async () => {
+        await callTool('after');
+      });
+      expect(handler).toHaveBeenCalledTimes(initiallyPresent ? 0 : 1);
+      expect(onError).toHaveBeenCalledTimes(initiallyPresent ? 1 : 0);
+      if (initiallyPresent)
+        expect(onError).toHaveBeenCalledWith(
+          new Error('No handler provided for tool "getWeather"'),
+        );
+      expect(socket.sent).not.toContainEqual(
+        expect.objectContaining({
+          type: 'conversation-item-create',
+          item: expect.objectContaining({ type: 'function-call-output' }),
+        }),
+      );
+      const manualCallId = initiallyPresent ? 'before' : 'after';
+      await act(async () => {
+        result.current.addToolOutput(manualCallId, 'Manual result');
+        await flushEvents();
+      });
+      expect(socket.sent).toContainEqual(
+        expect.objectContaining({
+          type: 'conversation-item-create',
+          item: expect.objectContaining({
+            type: 'function-call-output',
+            callId: manualCallId,
+            output: '"Manual result"',
+          }),
+        }),
+      );
+      expect(result.current.status).toBe('connected');
+      expect(FakeWebSocket.instances).toEqual([socket]);
+      expect(socket.close).not.toHaveBeenCalled();
     },
   );
 

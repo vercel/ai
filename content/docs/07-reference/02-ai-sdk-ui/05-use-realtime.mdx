@@ -44,6 +44,8 @@ or `useMemo`. Replacing either object replaces the hook's session.
 For OpenAI Live, use `openai.experimental_realtime('gpt-live-1')` and an application-owned WebSocket
 relay. The relay supplies server credentials and forwards the provider's native
 text frames; it must authenticate clients before accepting connections.
+Use `wss:` in production, keep provider credentials server-side, and apply your
+application's authentication to the relay connection.
 
 ```tsx
 import {
@@ -80,8 +82,10 @@ function LiveConversation() {
 }
 ```
 
-WebSocket capture/playback supports PCM16. Applications with their own audio pipeline
-can use the low-level provider for other supported codecs. OpenAI-specific settings
+The current continuous browser runtime supports a JSON/PCM16 WebSocket relay media
+profile. Continuous conversation semantics alone do not guarantee support for every
+codec or transport. Applications with their own audio pipeline can use the low-level
+provider for other supported codecs. OpenAI-specific settings
 live under `providerOptions.openai` and use camelCase fields; the provider converts
 them to wire names.
 
@@ -137,6 +141,13 @@ overflow stop submissions and capture, drain the accepted event prefix, and clea
 up. Events are never arbitrarily dropped while continuing with unreliable state.
 No commands or side-effecting tools are transparently replayed on a replacement
 connection.
+
+Continuous Live WebSocket sessions have a 128 KiB outgoing wire-frame limit and a
+128 KiB combined buffered-send budget, including the next frame and JSON/base64
+encoding overhead. Oversized control messages are rejected, not silently split into
+multiple commands. Keep Live context submissions within this budget; the example
+relay's 128 KiB `maxPayload` aligns with the frame limit. These byte caps do not apply
+to legacy turn-based sessions, which retain their pre-Live unlimited byte policy.
 
 The playback budget bounds local latency and memory. On overflow, stale queued audio
 is discarded, playback pauses, and `onError` reports an audible gap. The connection
