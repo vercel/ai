@@ -12,12 +12,7 @@ import {
 
 const options = {
   delegation: {
-    type: 'responses',
-    responses: {
-      model: 'gpt-5-mini',
-      tools: [{ type: 'web_search' }],
-      toolChoice: 'auto',
-    },
+    type: 'client',
   },
 } satisfies OpenAIRealtimeModelLiveOptions;
 
@@ -103,12 +98,7 @@ describe('OpenAIRealtimeModelLive', () => {
           output: { voice: 'marin' },
         },
         delegation: {
-          type: 'responses',
-          responses: {
-            model: 'gpt-5-mini',
-            tools: [{ type: 'web_search' }],
-            tool_choice: 'auto',
-          },
+          type: 'client',
         },
       },
     });
@@ -155,78 +145,6 @@ describe('OpenAIRealtimeModelLive', () => {
     ).toMatchObject({ delegation: null, store: false });
   });
 
-  it('passes custom tools, named tool choice, reasoning, and verbosity to startup and updates', () => {
-    const responses = {
-      model: 'backend',
-      tools: [
-        {
-          type: 'function',
-          name: 'lookup',
-          description: 'Look up an order.',
-          parameters: {
-            type: 'object',
-            properties: { orderId: { type: 'string' } },
-            required: ['orderId'],
-            additionalProperties: false,
-          },
-          strict: true,
-        },
-        { type: 'web_search' },
-      ],
-      toolChoice: { type: 'function', name: 'lookup' },
-      reasoning: { effort: 'low', summary: 'auto' },
-      text: { verbosity: 'low' },
-    } satisfies NonNullable<
-      Extract<
-        OpenAIRealtimeModelLiveOptions['delegation'],
-        { type: 'responses' }
-      >['responses']
-    >;
-    const config = {
-      providerOptions: {
-        openai: { delegation: { type: 'responses', responses } },
-      },
-    };
-    const { toolChoice, ...unchangedResponses } = responses;
-    const wireResponses = { ...unchangedResponses, tool_choice: toolChoice };
-    expect(model.buildSessionConfig(config)).toMatchObject({
-      delegation: { type: 'responses', responses: wireResponses },
-    });
-    expect(
-      model.serializeClientEvent({ type: 'session-update', config }),
-    ).toEqual({
-      type: 'session.update',
-      session: { delegation: { type: 'responses', responses: wireResponses } },
-    });
-  });
-
-  it.each([
-    { tools: [{ type: 'function', name: '', parameters: {} }] },
-    { tools: [{ type: 'function', name: 'lookup', parameters: [] }] },
-    {
-      tools: [
-        { type: 'function', name: 'lookup', parameters: {}, strict: 'yes' },
-      ],
-    },
-    { toolChoice: { type: 'function', function: { name: 'lookup' } } },
-    { reasoning: { effort: 'maximum' } },
-    { text: { verbosity: 'verbose' } },
-    { text: { format: { type: 'json_object' } } },
-  ])('rejects unsupported backend settings %j', responses => {
-    expect(() =>
-      model.buildSessionConfig({
-        providerOptions: {
-          openai: {
-            delegation: {
-              type: 'responses',
-              responses: { model: 'backend', ...responses },
-            },
-          },
-        },
-      }),
-    ).toThrow();
-  });
-
   it.each([
     { type: 'audio/pcm', rate: 16000 },
     { type: 'audio/pcm', rate: 24000 },
@@ -264,21 +182,6 @@ describe('OpenAIRealtimeModelLive', () => {
     { inputAudioFormat: { type: 'audio/mp3' } },
     {
       providerOptions: {
-        openai: { delegation: { type: 'responses', responses: {} } },
-      },
-    },
-    {
-      providerOptions: {
-        openai: {
-          delegation: {
-            type: 'responses',
-            responses: { model: 'backend', tools: [{ type: 'unknown' }] },
-          },
-        },
-      },
-    },
-    {
-      providerOptions: {
         openai: {
           input: [
             {
@@ -305,62 +208,6 @@ describe('OpenAIRealtimeModelLive', () => {
     );
   });
 
-  it('sends only mutable Responses settings in a session update', () => {
-    expect(
-      model.serializeClientEvent({
-        type: 'session-update',
-        eventId: 'update-1',
-        config: {
-          providerOptions: {
-            openai: {
-              delegation: {
-                type: 'responses',
-                responses: {
-                  instructions: 'Updated backend instructions',
-                  tools: [],
-                  toolChoice: 'none',
-                },
-              },
-            },
-          },
-        },
-      }),
-    ).toEqual({
-      type: 'session.update',
-      event_id: 'update-1',
-      session: {
-        delegation: {
-          type: 'responses',
-          responses: {
-            instructions: 'Updated backend instructions',
-            tools: [],
-            tool_choice: 'none',
-          },
-        },
-      },
-    });
-    expect(() =>
-      model.serializeClientEvent({
-        type: 'session-update',
-        config: { instructions: 'immutable' },
-      }),
-    ).toThrow(UnsupportedFunctionalityError);
-    expect(() =>
-      model.serializeClientEvent({
-        type: 'session-update',
-        config: {
-          providerOptions: { openai: { delegation: { type: 'client' } } },
-        },
-      }),
-    ).toThrow();
-    expect(() =>
-      model.serializeClientEvent({
-        type: 'session-update',
-        config: { providerOptions: { openai: { delegation: null } } },
-      }),
-    ).toThrow();
-  });
-
   it.each([
     [
       { type: 'session-close', eventId: 'close-1' },
@@ -375,60 +222,6 @@ describe('OpenAIRealtimeModelLive', () => {
       { type: 'session.input_audio.mute', event_id: 'mute-1' },
     ],
     [{ type: 'input-audio-unmute' }, { type: 'session.input_audio.unmute' }],
-    [
-      {
-        type: 'backend-tool-result',
-        callId: 'call-1',
-        output: '{"ok":true}',
-        eventId: 'result-1',
-      },
-      {
-        type: 'response.item.create',
-        event_id: 'result-1',
-        item: {
-          type: 'function_call_output',
-          call_id: 'call-1',
-          output: '{"ok":true}',
-        },
-      },
-    ],
-    [
-      { type: 'backend-response-create', eventId: 'continue-1' },
-      { type: 'response.create', event_id: 'continue-1' },
-    ],
-    [{ type: 'backend-response-create' }, { type: 'response.create' }],
-    [
-      {
-        type: 'backend-input-create',
-        eventId: 'input-1',
-        content: [
-          { type: 'text', text: 'Read this order.' },
-          {
-            type: 'image',
-            url: 'https://example.com/order.png',
-            providerOptions: { openai: { imageDetail: 'high' } },
-          },
-          { type: 'image', url: 'data:image/png;base64,AAAA' },
-        ],
-      },
-      {
-        type: 'response.item.create',
-        event_id: 'input-1',
-        item: {
-          type: 'message',
-          role: 'user',
-          content: [
-            { type: 'input_text', text: 'Read this order.' },
-            {
-              type: 'input_image',
-              image_url: 'https://example.com/order.png',
-              detail: 'high',
-            },
-            { type: 'input_image', image_url: 'data:image/png;base64,AAAA' },
-          ],
-        },
-      },
-    ],
   ] satisfies [RealtimeModelV4ClientEvent, unknown][])(
     'serializes %j',
     (event, expected) => {

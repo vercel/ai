@@ -29,24 +29,13 @@ it('keeps mute and unmute individually extractable', () => {
   >().toEqualTypeOf<{ type: 'input-audio-unmute'; eventId?: string }>();
 });
 
-it('keeps provider-specific context and image options outside the shared fields', () => {
+it('keeps provider-specific context options outside the shared fields', () => {
   type Context = Extract<
     RealtimeModelV4ClientEvent,
     { type: 'context-append' }
   >;
-  type Image = Extract<
-    Extract<
-      RealtimeModelV4ClientEvent,
-      { type: 'backend-input-create' }
-    >['content'][number],
-    { type: 'image' }
-  >;
   expectTypeOf<'channel'>().not.toMatchTypeOf<keyof Context>();
-  expectTypeOf<'detail'>().not.toMatchTypeOf<keyof Image>();
   expectTypeOf<Context['providerOptions']>().toEqualTypeOf<
-    SharedV4ProviderOptions | undefined
-  >();
-  expectTypeOf<Image['providerOptions']>().toEqualTypeOf<
     SharedV4ProviderOptions | undefined
   >();
   expectTypeOf<
@@ -61,4 +50,19 @@ it('keeps provider-specific context and image options outside the shared fields'
       { type: 'delegation-created' }
     >['target']
   >().toEqualTypeOf<'client' | 'provider' | undefined>();
+});
+
+it('excludes managed commands and events while retaining legacy response control', () => {
+  expectTypeOf<
+    Extract<RealtimeModelV4ClientEvent['type'], `backend-${string}`>
+  >().toEqualTypeOf<never>();
+  expectTypeOf<
+    Extract<RealtimeModelV4ServerEvent['type'], `backend-${string}`>
+  >().toEqualTypeOf<never>();
+  expectTypeOf<'response-create' | 'response-cancel'>().toMatchTypeOf<
+    RealtimeModelV4ClientEvent['type']
+  >();
+  expectTypeOf<
+    'function-call-arguments-delta' | 'function-call-arguments-done'
+  >().toMatchTypeOf<RealtimeModelV4ServerEvent['type']>();
 });
