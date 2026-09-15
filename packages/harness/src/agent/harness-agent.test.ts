@@ -16,7 +16,7 @@ import {
   tool,
   type Experimental_SandboxSession as SandboxSession,
 } from '@ai-sdk/provider-utils';
-import { isStepCount, NoSuchToolError, Output } from 'ai';
+import { isStepCount, NoSuchToolError, Output, type TextStreamPart } from 'ai';
 import { describe, expect, expectTypeOf, test, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { HarnessAgent } from './harness-agent';
@@ -965,6 +965,117 @@ describe('HarnessAgent', () => {
       },
     ]);
     await session.destroy();
+  });
+
+  test('resumes a callback-requested host tool approval exactly once after a checkpoint', async () => {
+    const { harness, toolResults, doContinueTurn, doSuspendTurn } = mockHarness(
+      {
+        script: () => [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'writeFile',
+            input: JSON.stringify({ path: 'public/readme.md' }),
+          },
+        ],
+        continueScript: () => [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'writeFile',
+            result: { path: 'public/readme.md' },
+          },
+          ...finishEvents(),
+        ],
+      },
+    );
+    const execute = vi.fn(async ({ path }: { path: string }) => ({ path }));
+    const writeFile = tool({
+      inputSchema: z.object({ path: z.string() }),
+      execute,
+    });
+    const initialToolApproval = vi.fn(() => 'user-approval' as const);
+    const initialAgent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+      tools: { writeFile },
+      toolApproval: initialToolApproval,
+    });
+    const initialSession = await initialAgent.createSession();
+    const initialResult = await initialAgent.stream({
+      session: initialSession,
+      prompt: 'Write the file.',
+    });
+    let approvalRequest:
+      | Extract<TextStreamPart<any>, { type: 'tool-approval-request' }>
+      | undefined;
+    for await (const part of initialResult.fullStream) {
+      if (part.type === 'tool-approval-request') {
+        approvalRequest = part;
+      }
+    }
+
+    const continueFrom = structuredClone(await initialSession.suspendTurn());
+    const approval = continueFrom.pendingToolApprovals?.[0];
+    expect(approval).toMatchObject({
+      toolCallId: 'call-1',
+      toolName: 'writeFile',
+      kind: 'custom',
+    });
+    expect(approvalRequest).toMatchObject({
+      type: 'tool-approval-request',
+      approvalId: approval?.approvalId,
+    });
+
+    const resumedToolApproval = vi.fn(() => 'user-approval' as const);
+    const resumedAgent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+      tools: { writeFile },
+      toolApproval: resumedToolApproval,
+    });
+    const resumedSession = await resumedAgent.createSession({
+      sessionId: initialSession.sessionId,
+      continueFrom,
+    });
+    const resumedResult = await resumedAgent.continueStream({
+      session: resumedSession,
+      toolApprovalContinuations: [
+        {
+          type: 'tool-approval-response',
+          approvalId: approval!.approvalId,
+          approved: true,
+          reason: 'approved by user',
+        },
+      ],
+    });
+    let approvalResponse:
+      | Extract<TextStreamPart<any>, { type: 'tool-approval-response' }>
+      | undefined;
+    for await (const part of resumedResult.fullStream) {
+      if (part.type === 'tool-approval-response') {
+        approvalResponse = part;
+      }
+    }
+
+    expect(initialToolApproval).toHaveBeenCalledOnce();
+    expect(resumedToolApproval).not.toHaveBeenCalled();
+    expect(execute).toHaveBeenCalledOnce();
+    expect(toolResults).toEqual([
+      {
+        toolCallId: 'call-1',
+        output: { path: 'public/readme.md' },
+      },
+    ]);
+    expect(approvalResponse).toMatchObject({
+      type: 'tool-approval-response',
+      approvalId: approval!.approvalId,
+      approved: true,
+      reason: 'approved by user',
+    });
+    expect(doSuspendTurn).toHaveBeenCalledOnce();
+    expect(doContinueTurn).toHaveBeenCalledOnce();
+    await resumedSession.destroy();
   });
 
   test('experimental_steer() rejects after the active turn is suspended', async () => {

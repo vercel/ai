@@ -247,6 +247,9 @@ const agent = new HarnessAgent({
 
 `toolApproval` accepts the same status values as AI SDK tool approval status
 objects: `not-applicable`, `approved`, `user-approval`, and `denied`.
+`approved` and `denied` emit automatic `tool-approval-request` and
+`tool-approval-response` parts. Object-form reasons are included on the
+automatic response; an approved tool then continues to host execution.
 
 For input-dependent policies, pass AI SDK's generic approval callback:
 

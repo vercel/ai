@@ -23,10 +23,10 @@ export function permissionModeNeedsBuiltinSupport(input: {
   return input.permissionMode !== 'allow-all';
 }
 
-export type CustomToolApprovalDecision =
-  | { readonly type: 'allow'; readonly reason?: string }
-  | { readonly type: 'deny'; readonly reason?: string }
-  | { readonly type: 'request'; readonly reason?: string };
+export type CustomToolApprovalDecision = Exclude<
+  ToolApprovalStatus,
+  string | undefined
+>;
 
 export async function resolveCustomToolApproval<
   TOOLS extends ToolSet,
@@ -55,15 +55,7 @@ export async function resolveCustomToolApproval<
     status: configuredStatus,
   });
 
-  switch (status.type) {
-    case 'not-applicable':
-    case 'approved':
-      return { type: 'allow', reason: status.reason };
-    case 'denied':
-      return { type: 'deny', reason: status.reason };
-    case 'user-approval':
-      return { type: 'request', reason: status.reason };
-  }
+  return status;
 }
 
 function normalizeToolApprovalStatus(input: {

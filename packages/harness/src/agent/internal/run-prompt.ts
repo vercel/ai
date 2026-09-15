@@ -1167,7 +1167,7 @@ export function runPrompt<
             runtimeContext: input.runtimeContext,
             toolApproval: input.toolApproval,
           });
-          if (customToolApprovalDecision.type === 'deny') {
+          if (customToolApprovalDecision.type === 'denied') {
             const approvalId = generateId();
             enqueueApprovalRequest({
               approvalId,
@@ -1198,9 +1198,24 @@ export function runPrompt<
             }
             continue;
           }
+          if (customToolApprovalDecision.type === 'approved') {
+            const approvalId = generateId();
+            enqueueApprovalRequest({
+              approvalId,
+              toolCall: parsedToolCall,
+              isAutomatic: true,
+            });
+            enqueueAutomaticApprovalResponse({
+              approvalId,
+              toolCall: parsedToolCall,
+              approved: true,
+              reason: customToolApprovalDecision.reason,
+              providerExecuted: false,
+            });
+          }
           const pendingApproval =
             pendingApprovalsByToolCallId.get(toolCall.toolCallId) ??
-            (customToolApprovalDecision.type === 'request'
+            (customToolApprovalDecision.type === 'user-approval'
               ? ({
                   approvalId: generateId(),
                   toolCallId: toolCall.toolCallId,
