@@ -10,8 +10,17 @@ export type BrowserRealtimeTransportOptions = {
   onServerEvent: (event: RealtimeServerEvent) => void | Promise<void>;
   onError: (error: Error) => void;
   onFatalError?: (error: Error, drain?: Promise<void>) => void;
-  onClose: () => void;
+  onClose: (error?: Error) => void;
 };
+
+function getCloseError(event: CloseEvent): Error | undefined {
+  if (event.code === 1000 && event.wasClean) return undefined;
+  return new Error(
+    `Realtime WebSocket closed unexpectedly (code ${event.code}${
+      event.reason === '' ? '' : `: ${event.reason}`
+    })`,
+  );
+}
 
 export class BrowserRealtimeTransport {
   private readonly model: RealtimeModel;
@@ -36,22 +45,32 @@ export class BrowserRealtimeTransport {
   }
 
   connect({
+    mode,
     token,
     url,
     onOpen,
     protocols,
-  }: {
-    token?: string;
+  }: (
+    | { mode: 'client-secret'; token: string; protocols?: never }
+    | { mode: 'relay'; token?: never; protocols?: string[] }
+  ) & {
     url: string;
-    /** Omit token to connect directly to an application-owned relay. */
-    protocols?: string[];
     onOpen: () => void | Promise<void>;
   }): void {
     this.disconnect();
 
     const epoch = this.epoch;
+    if (
+      mode !== 'relay' &&
+      (mode !== 'client-secret' ||
+        typeof token !== 'string' ||
+        token.trim() === '')
+    )
+      throw new Error(
+        'Realtime client-secret connection requires a nonempty token',
+      );
     const wsConfig =
-      token == null
+      mode === 'relay'
         ? { url, protocols }
         : this.model.getWebSocketConfig?.({ token, url });
     if (wsConfig == null)
@@ -64,6 +83,7 @@ export class BrowserRealtimeTransport {
     // the `onOpen` (session-update) callback against a disconnected session.
     this.ws = ws;
     let starting = false;
+    let connectionError: Error | undefined;
     const codec = new RealtimeEventChannel({
       model: this.model,
       send: data => {
@@ -106,19 +126,23 @@ export class BrowserRealtimeTransport {
     };
 
     ws.onerror = () => {
-      if (this.ws === ws) this.fail(new Error('WebSocket connection error'));
+      if (this.ws === ws) {
+        connectionError = new Error('WebSocket connection error');
+        this.failing = true;
+      }
     };
 
-    ws.onclose = () => {
+    ws.onclose = event => {
       if (this.ws === ws) {
         this.ws = null;
+        const closeError = getCloseError(event) ?? connectionError;
         const complete = () => {
           if (this.epoch !== epoch) return;
           clearTimeout(this.drainTimer);
           this.epoch++;
           codec.dispose();
           try {
-            this.onClose();
+            this.onClose(closeError);
           } catch (error) {
             this.reportCallbackError(error);
           }

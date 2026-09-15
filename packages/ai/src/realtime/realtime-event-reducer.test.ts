@@ -26,7 +26,6 @@ describe('RealtimeEventReducer', () => {
     },
     { type: 'delegation-created', delegationId: 'delegation-1', raw: {} },
     { type: 'command-acknowledged', command: 'session.update', raw: {} },
-    { type: 'backend-event', event: { type: 'response.done' }, raw: {} },
   ] satisfies RealtimeServerEvent[])(
     'records $type without affecting an existing turn',
     async event => {

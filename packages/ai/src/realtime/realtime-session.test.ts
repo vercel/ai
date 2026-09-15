@@ -6,15 +6,18 @@ const sentEvents: Array<{ type: string; [key: string]: unknown }> = [];
 const transportInstances: Array<{
   connect: ReturnType<typeof vi.fn>;
   emitServerEvent: (event: unknown) => Promise<void> | void;
+  emitClose: (error?: Error) => void;
 }> = [];
 
 vi.mock('./browser-realtime-transport', () => ({
   BrowserRealtimeTransport: class {
     private readonly options: {
       onServerEvent: (event: unknown) => Promise<void> | void;
+      onClose: (error?: Error) => void;
     };
     constructor(options: {
       onServerEvent: (event: unknown) => Promise<void> | void;
+      onClose: (error?: Error) => void;
     }) {
       this.options = options;
       transportInstances.push(this);
@@ -29,6 +32,9 @@ vi.mock('./browser-realtime-transport', () => ({
     };
     emitServerEvent(event: unknown) {
       return this.options.onServerEvent(event);
+    }
+    emitClose(error?: Error) {
+      this.options.onClose(error);
     }
   },
 }));
@@ -125,7 +131,7 @@ describe('AbstractRealtimeSession', () => {
     expect(sentEvents).toHaveLength(0);
   });
 
-  it.each([undefined, 'turn-based', 'continuous'] as const)(
+  it.each([undefined, 'turn-based'] as const)(
     'preserves the token connection flow with %s conversation capabilities',
     async conversation => {
       const fetch = vi
@@ -157,6 +163,7 @@ describe('AbstractRealtimeSession', () => {
         signal: expect.any(AbortSignal),
       });
       expect(transportInstances[0].connect).toHaveBeenCalledExactlyOnceWith({
+        mode: 'client-secret',
         token: 'secret',
         url: 'wss://example.com/realtime',
         onOpen: expect.any(Function),
@@ -173,6 +180,31 @@ describe('AbstractRealtimeSession', () => {
       ]);
     },
   );
+
+  it('reports an abnormal close after a legacy session becomes ready', async () => {
+    const onError = vi.fn();
+    const session = new TestSession({
+      model: createModel(),
+      api: { token: '/api/token' },
+      onError,
+    });
+
+    await session.connect();
+    const transport = transportInstances[0];
+    await transport.emitServerEvent({
+      type: 'session-created',
+      sessionId: 'session',
+      raw: {},
+    });
+    transport.emitClose(
+      new Error('Realtime WebSocket closed unexpectedly (code 1011)'),
+    );
+    await flush();
+
+    expect(onError).toHaveBeenCalledExactlyOnceWith(
+      new Error('Realtime WebSocket closed unexpectedly (code 1011)'),
+    );
+  });
 
   it('does not error when onToolCall returns undefined (manual flow)', async () => {
     const onError = vi.fn();

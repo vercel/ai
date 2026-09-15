@@ -14,18 +14,28 @@ type RealtimeStateKey = keyof RealtimeState;
 type RealtimeStoreKey = {
   model: RealtimeSessionOptions['model'];
   token: RealtimeSessionOptions['api']['token'];
+  websocket: RealtimeSessionOptions['api']['websocket'];
+  protocols: RealtimeSessionOptions['api']['protocols'];
   sessionConfig: RealtimeSessionOptions['sessionConfig'];
   sampleRate: RealtimeSessionOptions['sampleRate'];
   maxEvents: RealtimeSessionOptions['maxEvents'];
+  startupTimeoutMs: RealtimeSessionOptions['startupTimeoutMs'];
+  closeTimeoutMs: RealtimeSessionOptions['closeTimeoutMs'];
+  maxPlaybackBufferSeconds: RealtimeSessionOptions['maxPlaybackBufferSeconds'];
 };
 
 function getRealtimeStoreKey(options: UseRealtimeOptions): RealtimeStoreKey {
   return {
     model: options.model,
     token: options.api.token,
+    websocket: options.api.websocket,
+    protocols: options.api.protocols?.slice(),
     sessionConfig: options.sessionConfig,
     sampleRate: options.sampleRate,
     maxEvents: options.maxEvents,
+    startupTimeoutMs: options.startupTimeoutMs,
+    closeTimeoutMs: options.closeTimeoutMs,
+    maxPlaybackBufferSeconds: options.maxPlaybackBufferSeconds,
   };
 }
 
@@ -36,9 +46,18 @@ function shouldCreateRealtimeStore(
   return (
     currentKey.model !== nextOptions.model ||
     currentKey.token !== nextOptions.api.token ||
+    currentKey.websocket !== nextOptions.api.websocket ||
+    currentKey.protocols?.length !== nextOptions.api.protocols?.length ||
+    (currentKey.protocols?.some(
+      (protocol, index) => protocol !== nextOptions.api.protocols?.[index],
+    ) ??
+      false) ||
     currentKey.sessionConfig !== nextOptions.sessionConfig ||
     currentKey.sampleRate !== nextOptions.sampleRate ||
-    currentKey.maxEvents !== nextOptions.maxEvents
+    currentKey.maxEvents !== nextOptions.maxEvents ||
+    currentKey.startupTimeoutMs !== nextOptions.startupTimeoutMs ||
+    currentKey.closeTimeoutMs !== nextOptions.closeTimeoutMs ||
+    currentKey.maxPlaybackBufferSeconds !== nextOptions.maxPlaybackBufferSeconds
   );
 }
 
