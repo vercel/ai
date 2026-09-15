@@ -2,10 +2,16 @@ import type { FinishReason } from '../types/language-model';
 import type { UIMessage } from '../ui/ui-messages';
 import type { UIMessageStreamOutcome } from './ui-message-stream-outcome';
 
+/**
+ * Called when a UI message stream ends, including after abort or a mid-stream
+ * error. The event includes the messages collected so far and how the stream
+ * terminated.
+ */
 export type UIMessageStreamOnEndCallback<UI_MESSAGE extends UIMessage> =
   (event: {
     /**
-     * The updated list of UI messages.
+     * The updated list of UI messages, including any partial response
+     * collected before abort or error.
      */
     messages: UI_MESSAGE[];
 
