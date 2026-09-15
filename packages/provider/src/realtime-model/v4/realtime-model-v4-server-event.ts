@@ -6,8 +6,90 @@
  * event data for debugging and provider-specific access.
  */
 export type RealtimeModelV4ServerEvent =
+  | {
+      type: 'session-started';
+      sessionId: string;
+      delegationMode?: 'client' | 'provider';
+      raw: unknown;
+    }
+  | {
+      type: 'session-closed';
+      sessionId?: string;
+      usage: { seconds: number };
+      reason: string;
+      raw: unknown;
+    }
+  | {
+      type: 'session-usage';
+      /** Cumulative duration snapshot, not an increment. */
+      usage: { seconds: number };
+      contextWindowUsageRatio?: number;
+      raw: unknown;
+    }
+  | {
+      type: 'audio-chunk';
+      delta: string;
+      raw: unknown;
+    }
+  | {
+      type: 'transcript-fragment';
+      speaker: 'user' | 'assistant';
+      delta: string;
+      startMs: number;
+      endMs: number;
+      raw: unknown;
+    }
+  | {
+      type: 'delegation-created';
+      delegationId: string;
+      target?: 'client' | 'provider';
+      offsetMs?: number;
+      responseId?: string;
+      raw: unknown;
+    }
+  | {
+      type: 'command-acknowledged';
+      /** Provider-native command name that was acknowledged. */
+      command: string;
+      clientEventId?: string;
+      raw: unknown;
+    }
+  | {
+      type: 'backend-event';
+      event: unknown;
+      delegationId?: string | null;
+      raw: unknown;
+    }
+  | {
+      type: 'backend-response-created';
+      responseId: string;
+      delegationId?: string | null;
+      raw: unknown;
+    }
+  | {
+      type: 'backend-tool-call';
+      responseId: string;
+      delegationId?: string | null;
+      callId: string;
+      name: string;
+      arguments: string;
+      raw: unknown;
+    }
+  | {
+      type: 'backend-response-done';
+      responseId: string;
+      delegationId?: string | null;
+      status: string;
+      usage?: {
+        inputTokens: number;
+        outputTokens: number;
+        totalTokens: number;
+        cachedInputTokens?: number;
+        raw: unknown;
+      };
+      raw: unknown;
+    }
   // ── Session lifecycle ──────────────────────────────────────────────
-
   | {
       type: 'session-created';
       sessionId?: string;
@@ -184,6 +266,7 @@ export type RealtimeModelV4ServerEvent =
       type: 'error';
       message: string;
       code?: string;
+      clientEventId?: string;
       raw: unknown;
     }
 

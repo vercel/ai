@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BrowserRealtimeTransport } from './browser-realtime-transport';
+import { deferred } from './__fixtures__/fake-webrtc';
 
 class MockWebSocket {
   static CONNECTING = 0;
@@ -44,8 +45,52 @@ describe('BrowserRealtimeTransport', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
+
+  it.each(['reject', 'timeout'] as const)(
+    'settles a %s drain once despite throwing error and close callbacks',
+    async outcome => {
+      vi.useFakeTimers();
+      const pending = deferred<void>();
+      const onError = vi.fn((_error: Error) => {
+        throw new Error('error callback failed');
+      });
+      const onClose = vi.fn(() => {
+        throw new Error('close callback failed');
+      });
+      const transport = new BrowserRealtimeTransport({
+        model,
+        onServerEvent: vi.fn(),
+        onError,
+        onClose,
+      });
+      const finish = vi.spyOn(transport, 'finish');
+      if (outcome === 'reject')
+        finish.mockRejectedValue(new Error('drain failed'));
+      else finish.mockReturnValue(pending.promise);
+      transport.connect({
+        token: 'token',
+        url: 'wss://example.com',
+        onOpen: vi.fn(),
+      });
+      const socket = MockWebSocket.instances[0];
+      socket.open();
+      expect(() => socket.onerror?.()).not.toThrow();
+      await vi.advanceTimersByTimeAsync(1_001);
+      pending.resolve();
+      await vi.advanceTimersByTimeAsync(1_001);
+      expect(socket.close).toHaveBeenCalledOnce();
+      expect(onClose).toHaveBeenCalledOnce();
+      expect(onError.mock.calls.map(([error]) => error.message)).toEqual([
+        'WebSocket connection error',
+        'close callback failed',
+      ]);
+      transport.dispose();
+    },
+  );
 
   it('closes a socket that is still connecting on disconnect', () => {
     const transport = new BrowserRealtimeTransport({
@@ -86,7 +131,7 @@ describe('BrowserRealtimeTransport', () => {
     expect(onOpen).toHaveBeenCalledOnce();
   });
 
-  it('closes an existing socket before reconnecting', () => {
+  it('closes an existing socket before reconnecting', async () => {
     const onClose = vi.fn();
     const transport = new BrowserRealtimeTransport({
       model,
@@ -115,6 +160,7 @@ describe('BrowserRealtimeTransport', () => {
     expect(onClose).not.toHaveBeenCalled();
 
     secondSocket.onclose?.();
+    await flush();
     expect(onClose).toHaveBeenCalledOnce();
   });
 
