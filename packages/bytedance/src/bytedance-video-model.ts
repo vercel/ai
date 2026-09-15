@@ -250,10 +250,18 @@ export class ByteDanceVideoModel implements VideoModelV4 {
     );
 
     if (startImage != null) {
+      // The BytePlus API requires `role: 'first_frame'` whenever the image is
+      // provided as an explicit first-frame (via frameImages) OR when the
+      // First-and-Last Frame Video mode is active (a last-frame image is also
+      // present). Without the role field the API returns:
+      //   "role must be specified for image contents"
+      // See: https://docs.byteplus.com/en/docs/ModelArk/1366799
+      const isFirstFrame =
+        getFirstFrameImage(options) != null || lastFrameImageUrl != null;
       content.push({
         type: 'image_url',
         image_url: { url: convertImageModelFileToDataUri(startImage) },
-        ...(lastFrameImageUrl != null ? { role: 'first_frame' } : {}),
+        ...(isFirstFrame ? { role: 'first_frame' } : {}),
       });
     }
 
