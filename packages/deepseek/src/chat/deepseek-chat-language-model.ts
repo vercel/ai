@@ -44,6 +44,7 @@ import {
 } from './deepseek-chat-language-model-options';
 import { prepareTools } from './deepseek-prepare-tools';
 import { getResponseMetadata } from './get-response-metadata';
+import { isDeepSeekV4Model } from './is-deepseek-v4-model';
 import { mapDeepSeekFinishReason } from './map-deepseek-finish-reason';
 
 export type DeepSeekChatConfig = {
@@ -322,7 +323,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
       thinking?.type !== 'disabled' &&
       (thinking != null ||
         this.modelId === 'deepseek-reasoner' ||
-        this.modelId.includes('deepseek-v4'));
+        isDeepSeekV4Model(this.modelId));
 
     if (isThinkingEnabled && temperature != null) {
       allWarnings.push({

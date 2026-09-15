@@ -1,5 +1,19 @@
 # @ai-sdk/anthropic
 
+## 4.0.53
+
+### Patch Changes
+
+- 5ec21a6: fix: reject unsupported batch request types
+- 7469a3b: feat: support image generation requests in batches
+- e4292e7: feat(anthropic): expand preserved thinking support to cover `prefix_mismatch_behavior: 'error'`
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
 ## 4.0.52
 
 ### Patch Changes

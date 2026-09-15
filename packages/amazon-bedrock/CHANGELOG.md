@@ -1,5 +1,23 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.82
+
+### Patch Changes
+
+- 5191b61: fix: support Bedrock endpoints for non-standard AWS regions and service-specific overrides
+- 0de8886: fix(openai): allow providers to disable web search source includes
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [0de8886]
+- Updated dependencies [e4292e7]
+- Updated dependencies [d5e3024]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/anthropic@4.0.53
+  - @ai-sdk/openai@4.0.66
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
 ## 5.0.81
 
 ### Patch Changes

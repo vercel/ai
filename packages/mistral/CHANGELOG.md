@@ -1,5 +1,17 @@
 # @ai-sdk/mistral
 
+## 4.0.43
+
+### Patch Changes
+
+- f87010e: fix(mistral): update model IDs and reasoning config
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
 ## 4.0.42
 
 ### Patch Changes

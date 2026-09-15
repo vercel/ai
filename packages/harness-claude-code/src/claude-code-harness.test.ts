@@ -370,7 +370,9 @@ describe('createClaudeCode adapter', () => {
   });
 
   it('throws HarnessCapabilityUnsupportedError when the network sandbox session exposes no ports', async () => {
-    const harness = createClaudeCode();
+    const harness = createClaudeCode({
+      auth: { ANTHROPIC_API_KEY: 'test-api-key' },
+    });
     const sandboxSession = {
       id: 'test-sandbox',
       defaultWorkingDirectory: '/vercel/sandbox',
@@ -601,6 +603,64 @@ describe('createClaudeCode adapter', () => {
       env: { ANTHROPIC_API_KEY: 'ephemeral-ANTHROPIC_API_KEY' },
     });
     expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('anthropic-secret');
+
+    await session.doDestroy();
+  });
+
+  it('brokers an explicit Claude OAuth token at the host boundary', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const addRequestTransformations = vi.fn(async () => {});
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      spawnEnvs,
+      writes: [],
+      runs: [],
+    });
+    Object.assign(sandboxSession, { addRequestTransformations });
+    const harness = createClaudeCode({
+      auth: { CLAUDE_CODE_OAUTH_TOKEN: 'host-oauth-token' },
+      credentialForwarding: ({ environmentVariableName }) =>
+        `ephemeral-${environmentVariableName}`,
+    });
+
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+
+    await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+
+    expect(addRequestTransformations).toHaveBeenCalledWith([
+      {
+        match: {
+          host: 'api.anthropic.com',
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: {
+                exact: 'Bearer ephemeral-CLAUDE_CODE_OAUTH_TOKEN',
+              },
+            },
+          ],
+        },
+        transform: {
+          headers: { Authorization: 'Bearer host-oauth-token' },
+        },
+      },
+    ]);
+    expect(sentMessages.at(-1)).toMatchObject({
+      type: 'start',
+      env: {
+        CLAUDE_CODE_OAUTH_TOKEN: 'ephemeral-CLAUDE_CODE_OAUTH_TOKEN',
+      },
+    });
+    expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('host-oauth-token');
 
     await session.doDestroy();
   });

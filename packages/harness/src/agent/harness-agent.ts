@@ -281,6 +281,11 @@ export class HarnessAgent<
     return this.settings.harness.harnessId;
   }
 
+  /** Whether this agent parses completed turns with its configured output. */
+  get hasOutput(): boolean {
+    return this.settings.output != null;
+  }
+
   /**
    * Start a fresh session, or resume from state previously returned by
    * `session.detach()` or `session.stop()`. The returned

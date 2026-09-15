@@ -1,5 +1,11 @@
-import { describe, it } from 'vitest';
-import type { DynamicToolUIPart, ToolUIPart } from './ui-messages';
+import { describe, expectTypeOf, it } from 'vitest';
+import {
+  isToolOutputErrorUIPart,
+  type DynamicToolUIPart,
+  type ToolOutputErrorUIPart,
+  type ToolUIPart,
+  type UIMessagePart,
+} from './ui-messages';
 
 type TestTools = {
   weather: {
@@ -84,5 +90,52 @@ describe('UIMessagePart', () => {
       };
     };
     type _Responded = AssertAssignable<ToolUIPart<TestTools>, RespondedPart>;
+  });
+});
+
+describe('ToolOutputErrorUIPart', () => {
+  it('represents static and dynamic tool output errors', () => {
+    type StaticPart = {
+      type: 'tool-weather';
+      state: 'output-error';
+      toolCallId: 'call-1';
+      input: { city: 'Tokyo' };
+      errorText: 'Weather service unavailable';
+    };
+    type _Static = AssertAssignable<
+      ToolOutputErrorUIPart<TestTools>,
+      StaticPart
+    >;
+
+    type DynamicPart = {
+      type: 'dynamic-tool';
+      toolName: 'weather';
+      state: 'output-error';
+      toolCallId: 'call-2';
+      input: { city: 'Tokyo' };
+      errorText: 'Weather service unavailable';
+    };
+    type _Dynamic = AssertAssignable<
+      ToolOutputErrorUIPart<TestTools>,
+      DynamicPart
+    >;
+  });
+
+  it('narrows tool output errors while preserving static tool input types', () => {
+    const part = null as unknown as UIMessagePart<
+      Record<string, never>,
+      TestTools
+    >;
+
+    if (isToolOutputErrorUIPart(part)) {
+      expectTypeOf(part).toEqualTypeOf<ToolOutputErrorUIPart<TestTools>>();
+      expectTypeOf(part.errorText).toEqualTypeOf<string>();
+
+      if (part.type === 'tool-weather') {
+        expectTypeOf(part.input).toEqualTypeOf<
+          TestTools['weather']['input'] | undefined
+        >();
+      }
+    }
   });
 });
