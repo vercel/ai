@@ -9,6 +9,7 @@ import {
   type Tool,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import type { ToolOrder } from '../generate-text/tool-order';
 import { isNonEmptyObject } from '../util/is-non-empty-object';
 
@@ -48,6 +49,17 @@ export async function prepareTools<TOOLS extends ToolSet>({
         const providerOptions = tool.providerOptions;
         const inputExamples = tool.inputExamples;
         const strict = tool.strict;
+
+        if (tool.inputSchema == null) {
+          throw new InvalidArgumentError({
+            parameter: 'tools',
+            value: tool,
+            message:
+              `tool "${name}" is missing an input schema. ` +
+              `Define the tool with an \`inputSchema\` property ` +
+              `(it was called \`parameters\` in AI SDK 4).`,
+          });
+        }
 
         languageModelTools.push({
           type: 'function' as const,
