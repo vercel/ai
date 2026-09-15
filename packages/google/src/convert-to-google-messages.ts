@@ -17,6 +17,7 @@ import type {
   GoogleContentPart,
   GoogleFunctionResponsePart,
   GooglePrompt,
+  GoogleVideoMetadata,
 } from './google-prompt';
 
 /**
@@ -281,6 +282,10 @@ export function convertToGoogleMessages(
             }
 
             case 'file': {
+              const videoMetadata = readProviderOpts(part)?.videoMetadata as
+                | GoogleVideoMetadata
+                | undefined;
+
               switch (part.data.type) {
                 case 'url': {
                   parts.push({
@@ -288,6 +293,7 @@ export function convertToGoogleMessages(
                       mimeType: resolveFullMediaType({ part }),
                       fileUri: part.data.url.toString(),
                     },
+                    ...(videoMetadata != null ? { videoMetadata } : {}),
                   });
                   break;
                 }
@@ -306,6 +312,7 @@ export function convertToGoogleMessages(
                         provider: 'google',
                       }),
                     },
+                    ...(videoMetadata != null ? { videoMetadata } : {}),
                   });
                   break;
                 }
@@ -319,6 +326,7 @@ export function convertToGoogleMessages(
                         new TextEncoder().encode(part.data.text),
                       ),
                     },
+                    ...(videoMetadata != null ? { videoMetadata } : {}),
                   });
                   break;
                 }
@@ -328,6 +336,7 @@ export function convertToGoogleMessages(
                       mimeType: resolveFullMediaType({ part }),
                       data: convertToBase64(part.data.data),
                     },
+                    ...(videoMetadata != null ? { videoMetadata } : {}),
                   });
                   break;
                 }
