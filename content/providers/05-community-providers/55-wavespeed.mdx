@@ -1,0 +1,95 @@
+---
+title: WaveSpeed
+description: Learn how to use the WaveSpeed provider for the AI SDK.
+---
+
+# WaveSpeed Provider
+
+[@wavespeed/ai-sdk-provider](https://github.com/WaveSpeedAI/ai-sdk-provider) is a community provider that gives you access to the image and video generation models on the live [WaveSpeed](https://wavespeed.ai) catalog — Seedream, Seedance, FLUX, Wan, and hundreds more — through the standard AI SDK interfaces.
+
+API keys can be obtained from the [WaveSpeed dashboard](https://wavespeed.ai).
+
+## Setup
+
+The WaveSpeed provider is available via the `@wavespeed/ai-sdk-provider` module. You can install it with:
+
+<InstallPackages packages="@wavespeed/ai-sdk-provider" />
+
+## Provider Instance
+
+You can import the default provider instance `wavespeed` from `@wavespeed/ai-sdk-provider`:
+
+```ts
+import { wavespeed } from '@wavespeed/ai-sdk-provider';
+```
+
+For custom configuration, use `createWaveSpeed`:
+
+```ts
+import { createWaveSpeed } from '@wavespeed/ai-sdk-provider';
+
+const wavespeed = createWaveSpeed({
+  apiKey: process.env.WAVESPEED_API_KEY,
+});
+```
+
+You can use the following optional settings to customize the provider instance:
+
+- **apiKey** _string_
+
+  API key sent as a `Bearer` token. Defaults to the `WAVESPEED_API_KEY` environment variable.
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls. Defaults to `https://api.wavespeed.ai`.
+
+- **pollIntervalMillis** _number_
+
+  Interval between status polls. Defaults to `1000`.
+
+- **pollTimeoutMillis** _number_
+
+  Maximum time to wait for a prediction. Defaults to `600000` (10 minutes).
+
+## Image Models
+
+You can create WaveSpeed image models using `.image()`:
+
+```ts
+import { wavespeed } from '@wavespeed/ai-sdk-provider';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: wavespeed.image('bytedance/seedream-v5.0-pro'),
+  prompt: 'A serene mountain lake at sunrise, photorealistic',
+  size: '2048x2048',
+});
+```
+
+Model-specific inputs can be passed through `providerOptions.wavespeed`:
+
+```ts
+const { image } = await generateImage({
+  model: wavespeed.image('bytedance/seedream-v5.0-pro'),
+  prompt: 'A serene mountain lake at sunrise',
+  providerOptions: {
+    wavespeed: { enable_sync_mode: false },
+  },
+});
+```
+
+Any model on the [wavespeed.ai catalog](https://wavespeed.ai/models) can be used as the model id.
+
+## Video Models
+
+You can create WaveSpeed video models using `.video()`:
+
+```ts
+import { wavespeed } from '@wavespeed/ai-sdk-provider';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: wavespeed.video('bytedance/seedance-2.5/text-to-video'),
+  prompt: 'A hummingbird hovering over a flower, slow motion',
+});
+```
