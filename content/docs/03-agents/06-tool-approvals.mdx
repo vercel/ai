@@ -334,5 +334,5 @@ Every serverless instance that might handle a request needs the same secret, sin
 
 - Use `toolApproval` with `ToolLoopAgent`, `generateText`, and `streamText`.
 - Author approval rules as code with [Policy-Based Tool Approvals](/docs/agents/policy-tool-approvals) (`@ai-sdk/policy-opa`).
-- Use `needsApproval` only with [`WorkflowAgent`](/docs/agents/workflow-agent), where approvals suspend and resume durable workflow execution.
+- `needsApproval` is deprecated for `generateText`, `streamText`, and `ToolLoopAgent` in favor of `toolApproval` — though it is still honored as a fallback when no `toolApproval` rule applies to a tool. Use `needsApproval` for [`WorkflowAgent`](/docs/agents/workflow-agent), where it remains the primary approval mechanism and approvals suspend and resume durable workflow execution.
 - Subagent tools cannot use `toolApproval`; see [Subagents](/docs/agents/subagents#no-tool-approvals-in-subagents).
