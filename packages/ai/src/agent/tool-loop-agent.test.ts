@@ -3542,6 +3542,330 @@ describe('ToolLoopAgent', () => {
     });
   });
 
+  describe('onAbort', () => {
+    describe('generate', () => {
+      // generateText has no onAbort, so the setting must not reach it.
+      // This guards the `prepareCall` strip; the stream-only call signature
+      // is pinned by the `@ts-expect-error` case in tool-loop-agent.test-d.ts.
+      it('should not forward onAbort to the generateText call', async () => {
+        let capturedCallArgs: Record<string, unknown> | undefined;
+
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              content: [{ type: 'text', text: 'Hello, world!' }],
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: {
+                inputTokens: {
+                  total: 3,
+                  noCache: 3,
+                  cacheRead: undefined,
+                  cacheWrite: undefined,
+                },
+                outputTokens: { total: 10, text: 10, reasoning: undefined },
+              },
+              warnings: [],
+            }),
+          }),
+          onAbort: async () => {},
+          prepareCall: callArgs => {
+            capturedCallArgs = callArgs as Record<string, unknown>;
+            return callArgs;
+          },
+        });
+
+        await agent.generate({ prompt: 'Hello, world!' });
+
+        expect(capturedCallArgs).toBeDefined();
+        expect('onAbort' in capturedCallArgs!).toBe(false);
+      });
+    });
+
+    describe('stream', () => {
+      function createAbortingModel() {
+        const abortController = new AbortController();
+        let pullCalls = 0;
+
+        const model = new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: new ReadableStream({
+              pull(controller) {
+                switch (pullCalls++) {
+                  case 0:
+                    controller.enqueue({ type: 'stream-start', warnings: [] });
+                    break;
+                  case 1:
+                    controller.enqueue({ type: 'text-start', id: '1' });
+                    break;
+                  case 2:
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: '1',
+                      delta: 'Hello',
+                    });
+                    break;
+                  case 3:
+                    abortController.abort();
+                    controller.error(
+                      new DOMException(
+                        'The user aborted a request.',
+                        'AbortError',
+                      ),
+                    );
+                    break;
+                }
+              },
+            }),
+          }),
+        });
+
+        return { model, abortSignal: abortController.signal };
+      }
+
+      it('should call onAbort from constructor', async () => {
+        const onAbortCalls: string[] = [];
+        const { model, abortSignal } = createAbortingModel();
+
+        const agent = new ToolLoopAgent({
+          model,
+          onAbort: async () => {
+            onAbortCalls.push('constructor');
+          },
+        });
+
+        const result = await agent.stream({
+          prompt: 'Hello, world!',
+          abortSignal,
+        });
+        await result.consumeStream();
+
+        expect(onAbortCalls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+          ]
+        `);
+      });
+
+      it('should call onAbort from stream method', async () => {
+        const onAbortCalls: string[] = [];
+        const { model, abortSignal } = createAbortingModel();
+
+        const agent = new ToolLoopAgent({ model });
+
+        const result = await agent.stream({
+          prompt: 'Hello, world!',
+          abortSignal,
+          onAbort: async () => {
+            onAbortCalls.push('method');
+          },
+        });
+        await result.consumeStream();
+
+        expect(onAbortCalls).toMatchInlineSnapshot(`
+          [
+            "method",
+          ]
+        `);
+      });
+
+      it('should call onAbort from constructor and stream method', async () => {
+        const onAbortCalls: string[] = [];
+        const { model, abortSignal } = createAbortingModel();
+
+        const agent = new ToolLoopAgent({
+          model,
+          onAbort: async () => {
+            onAbortCalls.push('constructor');
+          },
+        });
+
+        const result = await agent.stream({
+          prompt: 'Hello, world!',
+          abortSignal,
+          onAbort: async () => {
+            onAbortCalls.push('method');
+          },
+        });
+        await result.consumeStream();
+
+        expect(onAbortCalls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+            "method",
+          ]
+        `);
+      });
+
+      it('should receive the steps completed before the abort', async () => {
+        const abortController = new AbortController();
+        let doStreamCalls = 0;
+        let receivedSteps: number | undefined;
+
+        const agent = new ToolLoopAgent({
+          // first step completes with a tool call, the second step is aborted
+          model: new MockLanguageModelV4({
+            doStream: async () => {
+              if (doStreamCalls++ === 0) {
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'stream-start', warnings: [] },
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'call-1',
+                      toolName: 'echo',
+                      input: `{ "value": "hi" }`,
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: {
+                        unified: 'tool-calls',
+                        raw: 'tool_calls',
+                      },
+                      usage: {
+                        inputTokens: {
+                          total: 3,
+                          noCache: 3,
+                          cacheRead: undefined,
+                          cacheWrite: undefined,
+                        },
+                        outputTokens: {
+                          total: 10,
+                          text: 10,
+                          reasoning: undefined,
+                        },
+                      },
+                    },
+                  ]),
+                };
+              }
+
+              return {
+                stream: new ReadableStream({
+                  pull(controller) {
+                    abortController.abort();
+                    controller.error(
+                      new DOMException(
+                        'The user aborted a request.',
+                        'AbortError',
+                      ),
+                    );
+                  },
+                }),
+              };
+            },
+          }),
+          tools: {
+            echo: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }) => value,
+            }),
+          },
+          onAbort: async ({ steps }) => {
+            receivedSteps = steps.length;
+          },
+        });
+
+        const result = await agent.stream({
+          prompt: 'Hello, world!',
+          abortSignal: abortController.signal,
+        });
+        await result.consumeStream();
+
+        expect(receivedSteps).toBe(1);
+      });
+
+      it('should not break the stream when onAbort throws', async () => {
+        const { model, abortSignal } = createAbortingModel();
+
+        const agent = new ToolLoopAgent({
+          model,
+          onAbort: async () => {
+            throw new Error('onAbort error');
+          },
+        });
+
+        const result = await agent.stream({
+          prompt: 'Hello, world!',
+          abortSignal,
+        });
+
+        await expect(result.consumeStream()).resolves.toBeUndefined();
+      });
+
+      // whether onEnd also fires depends on how far the stream got, which is
+      // streamText behavior; this pins the no-completed-step case only
+      it('should not call onEnd when aborted before any step completes', async () => {
+        const calls: string[] = [];
+        const { model, abortSignal } = createAbortingModel();
+
+        const agent = new ToolLoopAgent({
+          model,
+          onAbort: async () => {
+            calls.push('onAbort');
+          },
+          onEnd: async () => {
+            calls.push('onEnd');
+          },
+        });
+
+        const result = await agent.stream({
+          prompt: 'Hello, world!',
+          abortSignal,
+        });
+        await result.consumeStream();
+
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "onAbort",
+          ]
+        `);
+      });
+
+      it('should not call onAbort when the stream finishes normally', async () => {
+        const onAbortCalls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello, world!' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: {
+                    inputTokens: {
+                      total: 3,
+                      noCache: 3,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: { total: 10, text: 10, reasoning: undefined },
+                  },
+                },
+              ]),
+            }),
+          }),
+          onAbort: async () => {
+            onAbortCalls.push('constructor');
+          },
+        });
+
+        const result = await agent.stream({
+          prompt: 'Hello, world!',
+          onAbort: async () => {
+            onAbortCalls.push('method');
+          },
+        });
+        await result.consumeStream();
+
+        expect(onAbortCalls).toMatchInlineSnapshot(`[]`);
+      });
+    });
+  });
+
   describe('telemetry integrations', () => {
     afterEach(() => {
       globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = undefined;
