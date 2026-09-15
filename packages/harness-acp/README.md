@@ -34,6 +34,10 @@ const codexACP = createACP({
     packageVersion: '1.1.4',
   },
   executable: 'codex-acp',
+  modelMapping: {
+    type: 'session-config-option',
+    path: 'model',
+  },
   credentialEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
   credentialBrokering: ({ env, sandboxEnv }) => {
     const environmentVariableName = env.CODEX_API_KEY
@@ -96,13 +100,21 @@ ACP supports only `permissionMode: 'allow-all'` because its
 restrictive modes enable Codex's internal sandbox. A bridge-backed ACP harness
 requires a sandbox with at least one exposed port.
 
+`modelMapping` is required because ACP implementations expose different model
+selection operations. Use `session-config-option` with the ACP configuration
+option ID as `path`, or `session-model` with the JSON-RPC request property as
+`path` for implementations such as Grok Build that use the legacy
+`session/set_model` method. No model operation is sent when `HarnessAgent` has
+no model configured.
+
 Use `instructionMapping` when the ACP implementation exposes a native system
 or developer prompt. A `session-meta` mapping writes `HarnessAgent`
 instructions below the ACP session request's `_meta` field. A
 `launch-env-json` mapping merges them into a JSON environment variable before
-the implementation starts. Without a mapping, the adapter preserves its
-backward-compatible behavior and prepends instructions to the first user
-prompt.
+the implementation starts. A `filesystem` mapping writes instructions to a
+markdown file at a relative path under the implementation's effective `$HOME`.
+Without a mapping, the adapter preserves its backward-compatible behavior and
+prepends instructions to the first user prompt.
 
 Skills are written to `.agents/skills` below the ACP implementation's effective
 `$HOME` and discovered natively by the implementation. Set `skillsDirectory`

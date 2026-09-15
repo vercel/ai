@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/workflow",
-  "version": "2.0.13",
+  "version": "2.0.32",
   "type": "module",
   "description": "WorkflowAgent for building AI agents with AI SDK",
   "license": "Apache-2.0",
@@ -35,6 +35,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js",
+      "default": "./dist/client.js"
     },
     "./video": {
       "types": "./dist/video.d.ts",

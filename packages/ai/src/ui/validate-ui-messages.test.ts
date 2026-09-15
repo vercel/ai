@@ -713,6 +713,62 @@ describe('validateUIMessages', () => {
   });
 
   describe('dynamic tool parts', () => {
+    it('should preserve titles on static and dynamic tool parts in every state', async () => {
+      const stateDetails = {
+        'input-streaming': { input: { value: 'test' } },
+        'input-available': { input: { value: 'test' } },
+        'approval-requested': {
+          input: { value: 'test' },
+          approval: { id: 'approval-requested' },
+        },
+        'approval-responded': {
+          input: { value: 'test' },
+          approval: { id: 'approval-responded', approved: true },
+        },
+        'output-available': {
+          input: { value: 'test' },
+          output: { result: 'success' },
+        },
+        'output-error': {
+          input: { value: 'test' },
+          errorText: 'Tool execution failed',
+        },
+        'output-denied': {
+          input: { value: 'test' },
+          approval: { id: 'output-denied', approved: false },
+        },
+      };
+      const parts = Object.entries(stateDetails).flatMap(([state, details]) => [
+        {
+          type: 'tool-foo',
+          toolCallId: `static-${state}`,
+          title: 'Example tool',
+          state,
+          ...details,
+        },
+        {
+          type: 'dynamic-tool',
+          toolName: 'foo',
+          toolCallId: `dynamic-${state}`,
+          title: 'Example tool',
+          state,
+          ...details,
+        },
+      ]);
+
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts,
+          },
+        ],
+      });
+
+      expect(messages[0].parts).toEqual(parts);
+    });
+
     it('should validate an assistant message with a dynamic tool part in input-streaming state', async () => {
       const messages = await validateUIMessages({
         messages: [
@@ -1940,6 +1996,52 @@ describe('validateUIMessages', () => {
                 approved: true,
                 requestReason: 'requires security review',
                 reason: 'approved by operator',
+              },
+            },
+          ],
+        },
+      ];
+
+      const result = await validateUIMessages<TestMessage>({
+        messages: inputMessages,
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expect(result).toEqual(inputMessages);
+    });
+
+    it('should preserve approval descriptors', async () => {
+      const descriptor = {
+        action: 'deleteAccount',
+        permissions: ['account:delete'],
+        risk: 'high',
+      };
+      const inputMessages: TestMessage[] = [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-foo',
+              toolCallId: '1',
+              state: 'approval-requested',
+              input: { foo: 'bar' },
+              approval: {
+                id: 'approval-1',
+                descriptor,
+              },
+            },
+            {
+              type: 'tool-foo',
+              toolCallId: '2',
+              state: 'approval-responded',
+              input: { foo: 'baz' },
+              approval: {
+                id: 'approval-2',
+                approved: true,
+                descriptor,
               },
             },
           ],

@@ -25,7 +25,6 @@ test('preserves Cursor built-in tool types', () => {
     | 'listMcpResources'
     | 'readMcpResource'
     | 'applyAgentDiff'
-    | 'askQuestion'
     | 'fetch'
     | 'switchMode'
     | 'generateImage'

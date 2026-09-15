@@ -5,7 +5,6 @@ import { createGoogle } from '@ai-sdk/google';
 import { createGroq } from '@ai-sdk/groq';
 import { createHuggingFace } from '@ai-sdk/huggingface';
 import { createMoonshotAI } from '@ai-sdk/moonshotai';
-import { createOpenResponses } from '@ai-sdk/open-responses';
 import { createOpenAI } from '@ai-sdk/openai';
 import type { LanguageModelV4 } from '@ai-sdk/provider';
 import { convertAsyncIterableToArray } from '@ai-sdk/provider-utils/test';
@@ -51,7 +50,6 @@ describe('stream provider error integration', () => {
     'https://api.test.com/huggingface/responses': {},
     'https://api.test.com/language-model': {},
     'https://api.test.com/moonshot/v1/chat/completions': {},
-    'https://api.test.com/open-responses': {},
     'https://api.test.com/openai/v1/responses': {},
     'https://api.test.com/xai/v1/responses': {},
   });
@@ -177,38 +175,6 @@ describe('stream provider error integration', () => {
         message: details.message,
         type,
         statusCode: 424,
-        isRetryable: true,
-        data,
-      },
-    });
-  });
-
-  it('normalizes an actual Open Responses error event without merging type and code', async () => {
-    const data = {
-      type: 'error',
-      sequence_number: 1,
-      error: {
-        code: '429',
-        message: 'Rate limit reached',
-      },
-    };
-
-    server.urls['https://api.test.com/open-responses'].response = {
-      type: 'stream-chunks',
-      chunks: [`data: ${JSON.stringify(data)}\n\n`, 'data: [DONE]\n\n'],
-    };
-
-    await expectNormalizedProviderError({
-      model: createOpenResponses({
-        name: 'test-open-responses',
-        url: 'https://api.test.com/open-responses',
-        apiKey: 'test-api-key',
-      })('test-model'),
-      expected: {
-        message: data.error.message,
-        type: data.type,
-        code: data.error.code,
-        statusCode: 429,
         isRetryable: true,
         data,
       },

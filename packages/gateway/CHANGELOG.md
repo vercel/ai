@@ -1,5 +1,130 @@
 # @ai-sdk/gateway
 
+## 4.0.81
+
+### Patch Changes
+
+- 23a0fff: chore(provider/gateway): update gateway model settings files
+
+## 4.0.80
+
+### Patch Changes
+
+- 7f76d83: fix(gateway): forward server-returned warnings on language model doGenerate
+
+  `generateText(...).warnings` through the gateway provider was always an empty
+  array: `doGenerate` spread the gateway response body and then overwrote the
+  server's `warnings` with a locally constructed empty array. The warnings the
+  gateway relays from the upstream provider (and gateway-originated warnings)
+  are now forwarded, matching the streaming path and every other modality.
+
+## 4.0.79
+
+### Patch Changes
+
+- 5ec21a6: fix: reject unsupported batch request types
+- 7469a3b: feat: support image generation requests in batches
+- dbd83a3: chore(provider/gateway): update gateway model settings files
+- 03f4e59: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
+## 4.0.78
+
+### Patch Changes
+
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/provider-utils@5.0.39
+
+## 4.0.77
+
+### Patch Changes
+
+- aa4cc14: Preserve image-result retryability returned by the AI Gateway.
+- f102e41: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/provider-utils@5.0.38
+
+## 4.0.76
+
+### Patch Changes
+
+- a4ba394: feat: support per-request models in batch
+- e9bf5e3: chore(provider/gateway): update gateway model settings files
+- 56c004c: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+
+## 4.0.75
+
+### Patch Changes
+
+- 3cfc1fc: feat(gateway): add support for gpt-6-astra
+
+## 4.0.74
+
+### Patch Changes
+
+- a7e324b: chore(provider/gateway): update gateway model settings files
+
+## 4.0.73
+
+### Patch Changes
+
+- 5484f27: chore(provider/gateway): update gateway model settings files
+- 36eb7ee: chore(provider/gateway): update gateway model settings files
+- 622fa7f: feat(google): add gemini-3.8-flash model
+
+## 4.0.72
+
+### Patch Changes
+
+- 4d25a08: feat(anthropic): add fable 5.1 support
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
+## 4.0.71
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+
+## 4.0.70
+
+### Patch Changes
+
+- 1329d5a: chore(provider/gateway): update gateway model settings files
+
+## 4.0.69
+
+### Patch Changes
+
+- d2507af: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 4.0.68
+
+### Patch Changes
+
+- 805bbfc: chore(provider/gateway): update gateway model settings files
+- 90192f1: Mark transient network errors that occur while reading successful response bodies as retryable.
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
 ## 4.0.67
 
 ### Patch Changes

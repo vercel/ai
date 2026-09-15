@@ -479,7 +479,7 @@ describe('GoogleRealtimeEventMapper', () => {
                 {
                   name: 'getWeather',
                   description: 'Get weather',
-                  parameters: {
+                  parametersJsonSchema: {
                     type: 'object',
                     properties: {
                       city: { type: 'string' },
@@ -616,7 +616,39 @@ describe('GoogleRealtimeEventMapper', () => {
       });
     });
 
-    it('falls back to empty object for malformed function-call-output', async () => {
+    it.each([
+      ['a string', '"SEARCH_UNAVAILABLE"', { output: 'SEARCH_UNAVAILABLE' }],
+      ['a number', '42', { output: 42 }],
+      ['an array', '["a","b"]', { output: ['a', 'b'] }],
+      ['null', 'null', { output: null }],
+      ['a boolean', 'false', { output: false }],
+    ])(
+      'wraps %s tool result so the response stays an object',
+      async (_label, output, expected) => {
+        const result = await mapper.serializeClientEvent(
+          {
+            type: 'conversation-item-create',
+            item: {
+              type: 'function-call-output',
+              callId: 'call_1',
+              name: 'getWeather',
+              output,
+            },
+          },
+          'model',
+        );
+
+        expect(result).toEqual({
+          toolResponse: {
+            functionResponses: [
+              { id: 'call_1', name: 'getWeather', response: expected },
+            ],
+          },
+        });
+      },
+    );
+
+    it('keeps unparseable function-call-output as text instead of an empty object', async () => {
       const result = await mapper.serializeClientEvent(
         {
           type: 'conversation-item-create',
@@ -636,7 +668,7 @@ describe('GoogleRealtimeEventMapper', () => {
             {
               id: 'call_1',
               name: 'getWeather',
-              response: {},
+              response: { output: '{' },
             },
           ],
         },
@@ -738,7 +770,7 @@ describe('buildGoogleSessionConfig', () => {
             {
               "description": "Get weather",
               "name": "getWeather",
-              "parameters": {
+              "parametersJsonSchema": {
                 "properties": {
                   "city": {
                     "type": "string",
@@ -756,7 +788,7 @@ describe('buildGoogleSessionConfig', () => {
     `);
   });
 
-  it('builds config with inlined local JSON Schema references', () => {
+  it('builds config with preserved local JSON Schema references', () => {
     const result = buildGoogleSessionConfig(
       {
         tools: [
@@ -786,12 +818,15 @@ describe('buildGoogleSessionConfig', () => {
           {
             name: 'formatDate',
             description: 'Format a date',
-            parameters: {
+            parametersJsonSchema: {
               type: 'object',
               properties: {
-                locale: { type: 'string', enum: ['de', 'en'] },
+                locale: { $ref: '#/$defs/Locale' },
               },
               required: ['locale'],
+              $defs: {
+                Locale: { type: 'string', enum: ['de', 'en'] },
+              },
             },
           },
         ],

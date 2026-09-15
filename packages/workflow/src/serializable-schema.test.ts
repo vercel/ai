@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { tool } from 'ai';
+import { dynamicTool, tool } from 'ai';
 import { jsonSchema } from '@ai-sdk/provider-utils';
 import {
   serializeToolSet,
@@ -129,6 +129,38 @@ describe('resolveSerializableTools', () => {
     );
   });
 
+  it('round-trips current function and dynamic tool fields', () => {
+    const original = {
+      search: tool({
+        title: 'Search title',
+        metadata: { source: 'docs' },
+        description: 'Search documentation',
+        strict: true,
+        inputSchema: jsonSchema({
+          type: 'object',
+          properties: { query: { type: 'string' } },
+          required: ['query'],
+        }),
+      }),
+      dynamicSearch: dynamicTool({
+        inputSchema: jsonSchema({
+          type: 'object',
+          properties: { query: { type: 'string' } },
+          required: ['query'],
+        }),
+      }),
+    };
+
+    const resolved = resolveSerializableTools(serializeToolSet(original));
+
+    expect(resolved.search).toMatchObject({
+      title: 'Search title',
+      metadata: { source: 'docs' },
+      strict: true,
+    });
+    expect(resolved.dynamicSearch.type).toBe('dynamic');
+  });
+
   it('reconstructs function tools with Ajv validation', () => {
     const serialized = {
       getWeather: {
@@ -174,6 +206,38 @@ describe('resolveSerializableTools', () => {
     expect((webSearch as any).args).toEqual({
       maxUses: 5,
       allowedDomains: ['vercel.com'],
+    });
+  });
+
+  it('round-trips provider tool display metadata and deferred result support', () => {
+    const original = {
+      program: tool({
+        type: 'provider',
+        title: 'Program',
+        metadata: { source: 'provider' },
+        id: 'test.program',
+        args: {},
+        isProviderExecuted: true,
+        supportsDeferredResults: true,
+        inputSchema: jsonSchema({
+          type: 'object',
+          properties: { code: { type: 'string' } },
+          required: ['code'],
+        }),
+        outputSchema: jsonSchema({
+          type: 'object',
+          properties: { status: { type: 'string' } },
+          required: ['status'],
+        }),
+      }),
+    };
+
+    const resolved = resolveSerializableTools(serializeToolSet(original));
+
+    expect(resolved.program).toMatchObject({
+      title: 'Program',
+      metadata: { source: 'provider' },
+      supportsDeferredResults: true,
     });
   });
 });

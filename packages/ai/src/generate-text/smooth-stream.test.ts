@@ -2,7 +2,7 @@ import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { smoothStream } from './smooth-stream';
 import type { TextStreamPart } from './stream-text-result';
 import type { ToolSet } from '@ai-sdk/provider-utils';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('smoothStream', () => {
   let events: any[] = [];
@@ -694,6 +694,60 @@ describe('smoothStream', () => {
           },
         ]
       `);
+    });
+
+    it.each([
+      ['global', /\S+\s+/gm],
+      ['sticky', /\S+\s+/my],
+    ])(
+      'should preserve chunk boundaries for %s regexps',
+      async (_, chunking) => {
+        chunking.lastIndex = 2;
+
+        const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+          { type: 'text-start', id: '1' },
+          {
+            text: 'alpha beta gamma delta ',
+            type: 'text-delta',
+            id: '1',
+          },
+          { type: 'text-end', id: '1' },
+        ]).pipeThrough(
+          smoothStream({
+            chunking,
+            delayInMs: null,
+            _internal: { delay },
+          })({ tools: {} }),
+        );
+
+        await consumeStream(stream);
+
+        expect(
+          events
+            .filter(event => event.type === 'text-delta')
+            .map(event => event.text),
+        ).toEqual(['alpha ', 'beta ', 'gamma ', 'delta ']);
+        expect(chunking.lastIndex).toBe(2);
+      },
+    );
+
+    it('throws when a regexp produces an empty match', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { text: 'hello', type: 'text-delta', id: '1' },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          chunking: /\S*/,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await expect(
+        consumeStream(stream),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(
+        `[Error: Chunking RegExp must not match an empty string.]`,
+      );
     });
   });
 
@@ -1510,6 +1564,55 @@ describe('smoothStream', () => {
   });
 
   describe('providerMetadata preservation', () => {
+    it('should preserve metadata from an empty delta when the buffer is empty', async () => {
+      const providerMetadata = {
+        anthropic: { signature: 'sig_abc123' },
+      };
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'reasoning-start', id: 'r1' },
+        {
+          text: 'Let me think. ',
+          type: 'reasoning-delta',
+          id: 'r1',
+        },
+        {
+          text: '',
+          type: 'reasoning-delta',
+          id: 'r1',
+          providerMetadata,
+        },
+        { type: 'reasoning-end', id: 'r1' },
+        { type: 'text-start', id: 't1' },
+        { text: 'Hello world', type: 'text-delta', id: 't1' },
+        { type: 'text-end', id: 't1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: null,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events.filter(event => typeof event !== 'string')).toEqual([
+        { type: 'reasoning-start', id: 'r1' },
+        { text: 'Let ', type: 'reasoning-delta', id: 'r1' },
+        { text: 'me ', type: 'reasoning-delta', id: 'r1' },
+        { text: 'think. ', type: 'reasoning-delta', id: 'r1' },
+        {
+          text: '',
+          type: 'reasoning-delta',
+          id: 'r1',
+          providerMetadata,
+        },
+        { type: 'reasoning-end', id: 'r1' },
+        { type: 'text-start', id: 't1' },
+        { text: 'Hello ', type: 'text-delta', id: 't1' },
+        { text: 'world', type: 'text-delta', id: 't1' },
+        { type: 'text-end', id: 't1' },
+      ]);
+    });
+
     it('should preserve providerMetadata on reasoning-delta chunks (signature for Anthropic thinking)', async () => {
       const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
         { type: 'reasoning-start', id: '1' },
@@ -2096,6 +2199,76 @@ describe('smoothStream', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('document visibility', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('should skip delays while the document is hidden', async () => {
+      vi.stubGlobal('document', { visibilityState: 'hidden' });
+
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        {
+          text: 'Hello, World! This is an example text.',
+          type: 'text-delta',
+          id: '1',
+        },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events.filter(event => typeof event === 'string')).toEqual([
+        'delay null',
+        'delay null',
+        'delay null',
+        'delay null',
+        'delay null',
+        'delay null',
+      ]);
+      expect(events.at(-1)).toEqual({ type: 'text-end', id: '1' });
+    });
+
+    it('should resume without delays when the document becomes hidden', async () => {
+      const fakeDocument = {
+        visibilityState: 'visible' as DocumentVisibilityState,
+      };
+      vi.stubGlobal('document', fakeDocument);
+
+      const visibilityAwareDelay = (delayInMs: number | null) => {
+        events.push(`delay ${delayInMs}`);
+        fakeDocument.visibilityState = 'hidden';
+        return Promise.resolve();
+      };
+
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { type: 'text-delta', id: '1', text: 'one two three ' },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay: visibilityAwareDelay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events.filter(event => typeof event === 'string')).toEqual([
+        'delay 10',
+        'delay null',
+        'delay null',
+      ]);
+      expect(events.at(-1)).toEqual({ type: 'text-end', id: '1' });
     });
   });
 });

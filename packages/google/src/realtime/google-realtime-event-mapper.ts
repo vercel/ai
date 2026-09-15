@@ -6,7 +6,6 @@ import type {
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
 } from '@ai-sdk/provider';
 import { isRecord, safeParseJSON } from '@ai-sdk/provider-utils';
-import { convertJSONSchemaToOpenAPISchema } from '../convert-json-schema-to-openapi-schema';
 import { getModelPath } from '../get-model-path';
 import type { GoogleRealtimeModelOptions } from './google-realtime-model-options';
 
@@ -337,11 +336,33 @@ export class GoogleRealtimeEventMapper {
   }
 }
 
+/**
+ * The value Gemini accepts for `functionResponse.response`.
+ *
+ * The field is typed `google.protobuf.Struct`, which is an object and nothing else, so
+ * a string, number, array or `null` on the wire is a protocol violation and the socket
+ * closes with 1007. `onToolCall` returns `unknown` and `addToolOutput` takes `unknown`,
+ * so those shapes reach here as perfectly valid JSON.
+ *
+ * The field's own docstring says what to do with one: "Use `output` key to specify
+ * function output ... If `output` and `error` keys are not specified, then whole
+ * `response` is treated as function output." An object is passed through unchanged and
+ * everything else is wrapped.
+ */
+function toFunctionResponseStruct(value: unknown): Record<string, unknown> {
+  const isStruct =
+    typeof value === 'object' && value !== null && !Array.isArray(value);
+  return isStruct ? (value as Record<string, unknown>) : { output: value };
+}
+
 async function serializeFunctionCallOutput(
   item: RealtimeModelV4FunctionCallOutput,
 ): Promise<unknown> {
   const parseResult = await safeParseJSON({ text: item.output });
-  const response = parseResult.success ? parseResult.value : {};
+  const response = parseResult.success
+    ? toFunctionResponseStruct(parseResult.value)
+    : // Preserve non-JSON output in the required object wrapper.
+      { output: item.output };
 
   return {
     toolResponse: {
@@ -402,7 +423,7 @@ export function buildGoogleSessionConfig(
         functionDeclarations: config.tools.map(tool => ({
           name: tool.name,
           description: tool.description,
-          parameters: convertJSONSchemaToOpenAPISchema(tool.parameters),
+          parametersJsonSchema: tool.parameters,
         })),
       },
     ];
