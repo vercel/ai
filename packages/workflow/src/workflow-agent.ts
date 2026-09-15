@@ -59,7 +59,13 @@ import type {
   ProviderExecutedToolResult,
 } from './do-stream-step.js';
 import { resolveToolContext } from './resolve-tool-context.js';
-import { streamTextIterator } from './stream-text-iterator.js';
+import { modelCallIterator } from './model-call-iterator.js';
+import {
+  resolveWorkflowStreamResult,
+  type WorkflowExecutionData,
+  type WorkflowExecutionResult,
+  type WorkflowExecutionOutcome,
+} from './workflow-execution-result.js';
 
 // Re-export for consumers
 export type { CompatibleLanguageModel } from './types.js';
@@ -1571,6 +1577,21 @@ export class WorkflowAgent<
       TPartialOutput
     >,
   ): Promise<WorkflowAgentStreamResult<TTools, TOutput>> {
+    return resolveWorkflowStreamResult(await this.execute(options));
+  }
+
+  private async prepareInvocation<
+    TTools extends TBaseTools = TBaseTools,
+    TOutput = DefaultWorkflowAgentOutput<OUTPUT>,
+    TPartialOutput = DefaultWorkflowAgentOutput<PARTIAL_OUTPUT>,
+  >(
+    options: WorkflowAgentStreamOptions<
+      TTools,
+      TRuntimeContext,
+      TOutput,
+      TPartialOutput
+    >,
+  ) {
     const { onFinish, onEnd = onFinish } = options;
 
     // Call prepareCall to transform parameters before the agent loop
@@ -1719,6 +1740,63 @@ export class WorkflowAgent<
         | undefined,
       options.onToolExecutionEnd,
     );
+
+    return {
+      onEnd,
+      effectiveModel,
+      effectiveInstructions,
+      effectiveGenerationSettings,
+      effectiveRuntimeContext,
+      effectiveToolsContext,
+      effectiveToolChoiceFromPrepare,
+      effectiveStopWhenFromPrepare,
+      effectiveActiveToolsFromPrepare,
+      effectiveToolApprovalSecret,
+      effectiveTelemetry,
+      telemetryDispatcher,
+      prompt,
+      download,
+      sandbox,
+      effectiveAbortSignal,
+      timeoutAt,
+      mergedOnToolExecutionStart,
+      mergedOnToolExecutionEnd,
+    };
+  }
+
+  private async execute<
+    TTools extends TBaseTools = TBaseTools,
+    TOutput = DefaultWorkflowAgentOutput<OUTPUT>,
+    TPartialOutput = DefaultWorkflowAgentOutput<PARTIAL_OUTPUT>,
+  >(
+    options: WorkflowAgentStreamOptions<
+      TTools,
+      TRuntimeContext,
+      TOutput,
+      TPartialOutput
+    >,
+  ): Promise<WorkflowExecutionResult<TTools, TOutput>> {
+    const {
+      onEnd,
+      effectiveModel,
+      effectiveInstructions,
+      effectiveGenerationSettings,
+      effectiveRuntimeContext,
+      effectiveToolsContext,
+      effectiveToolChoiceFromPrepare,
+      effectiveStopWhenFromPrepare,
+      effectiveActiveToolsFromPrepare,
+      effectiveToolApprovalSecret,
+      effectiveTelemetry,
+      telemetryDispatcher,
+      prompt,
+      download,
+      sandbox,
+      effectiveAbortSignal,
+      timeoutAt,
+      mergedOnToolExecutionStart,
+      mergedOnToolExecutionEnd,
+    } = await this.prepareInvocation(options);
 
     // Process tool approval responses before starting the agent loop.
     // This mirrors how stream-text.ts handles tool-approval-response parts:
@@ -2287,17 +2365,20 @@ export class WorkflowAgent<
         await options.onAbort({ steps });
       }
       return {
-        messages: prompt.messages,
-        steps,
-        toolCalls: [],
-        toolResults: [],
-        finishReason: 'other',
-        totalUsage: aggregateUsage(steps),
-        output: undefined as TOutput,
+        outcome: { status: 'aborted' },
+        data: {
+          messages: prompt.messages,
+          steps,
+          toolCalls: [],
+          toolResults: [],
+          finishReason: 'other',
+          totalUsage: aggregateUsage(steps),
+          output: undefined as TOutput,
+        },
       };
     }
 
-    const iterator = streamTextIterator({
+    const iterator = modelCallIterator({
       model: effectiveModel,
       tools: effectiveTools as ToolSet,
       writable: options.writable,
@@ -2552,31 +2633,16 @@ export class WorkflowAgent<
             const totalUsage = aggregateUsage(steps);
             const finishReason = lastStep?.finishReason ?? 'other';
 
-            if (mergedOnEnd && !wasAborted) {
-              await mergedOnEnd({
-                steps,
-                messages,
-                text: lastStep?.text ?? '',
-                finishReason,
-                usage: totalUsage,
-                totalUsage,
-                runtimeContext,
-                toolsContext:
-                  toolsContext as unknown as InferToolSetContext<TTools>,
-                output: undefined as TOutput,
-              });
-            }
-            if (!wasAborted && steps.length > 0) {
-              const telemetrySteps = steps.map(normalizeStepForTelemetry);
-              const lastTelemetryStep =
-                telemetrySteps[telemetrySteps.length - 1];
-              await telemetryDispatcher.onEnd?.({
-                ...lastTelemetryStep,
-                steps: telemetrySteps,
-                usage: totalUsage,
-                totalUsage,
-              });
-            }
+            const data: WorkflowExecutionData<TTools, TOutput> = {
+              messages,
+              steps,
+              toolCalls: allToolCalls,
+              toolResults: allToolResults,
+              finishReason,
+              totalUsage,
+              output: undefined as TOutput,
+            };
+            await notifyEnd(data, wasAborted);
 
             // Emit tool-approval-request chunks for tools that need approval
             // so useChat can show the approval UI
@@ -2631,24 +2697,8 @@ export class WorkflowAgent<
               }
             }
 
-            // Close the stream before returning for paused tools
-            if (options.writable) {
-              const sendFinish = options.sendFinish ?? true;
-              const preventClose = options.preventClose ?? false;
-              if (sendFinish || !preventClose) {
-                await closeStream(options.writable, preventClose, sendFinish);
-              }
-            }
-
-            return {
-              messages,
-              steps,
-              toolCalls: allToolCalls,
-              toolResults: allToolResults,
-              finishReason,
-              totalUsage,
-              output: undefined as TOutput,
-            };
+            await closeOutput();
+            return { data, outcome: { status: 'completed' } };
           }
 
           // Execute client tools (all have execute functions at this point)
@@ -2866,34 +2916,59 @@ export class WorkflowAgent<
     const totalUsage = aggregateUsage(steps);
     const finishReason = lastStep?.finishReason ?? 'other';
 
-    // Call onEnd callback if provided (always call, even on errors, but not on abort)
-    if (mergedOnEnd && !wasAborted) {
-      await mergedOnEnd({
-        steps,
-        messages: messages as ModelMessage[],
-        text: lastStep?.text ?? '',
-        finishReason,
-        usage: totalUsage,
-        totalUsage,
-        runtimeContext,
-        toolsContext: toolsContext as unknown as InferToolSetContext<TTools>,
-        output: experimentalOutput,
-      });
-    }
-    if (!wasAborted && steps.length > 0) {
-      const telemetrySteps = steps.map(normalizeStepForTelemetry);
-      const lastTelemetryStep = telemetrySteps[telemetrySteps.length - 1];
-      await telemetryDispatcher.onEnd?.({
-        ...lastTelemetryStep,
-        steps: telemetrySteps,
-        usage: totalUsage,
-        totalUsage,
-      });
+    const data: WorkflowExecutionData<TTools, TOutput> = {
+      messages,
+      steps,
+      toolCalls: lastStepToolCalls,
+      toolResults: lastStepToolResults,
+      finishReason,
+      totalUsage,
+      output: experimentalOutput,
+    };
+    await notifyEnd(data, wasAborted);
+    await closeOutput();
+
+    const outcome: WorkflowExecutionOutcome = hasEncounteredError
+      ? wasAborted
+        ? { status: 'aborted', rejection: { value: encounteredError } }
+        : { status: 'failed', source: 'execution', error: encounteredError }
+      : hasTerminalError
+        ? { status: 'failed', source: 'model-stream', error: terminalError }
+        : wasAborted
+          ? { status: 'aborted' }
+          : { status: 'completed' };
+    return { data, outcome };
+
+    async function notifyEnd(
+      data: WorkflowExecutionData<TTools, TOutput>,
+      aborted: boolean,
+    ) {
+      if (aborted) return;
+      if (mergedOnEnd) {
+        await mergedOnEnd({
+          steps: data.steps,
+          messages: data.messages,
+          text: data.steps.at(-1)?.text ?? '',
+          finishReason: data.finishReason,
+          usage: data.totalUsage,
+          totalUsage: data.totalUsage,
+          runtimeContext,
+          toolsContext: toolsContext as unknown as InferToolSetContext<TTools>,
+          output: data.output,
+        });
+      }
+      if (data.steps.length > 0) {
+        const telemetrySteps = data.steps.map(normalizeStepForTelemetry);
+        await telemetryDispatcher.onEnd?.({
+          ...telemetrySteps[telemetrySteps.length - 1],
+          steps: telemetrySteps,
+          usage: data.totalUsage,
+          totalUsage: data.totalUsage,
+        });
+      }
     }
 
-    // Re-throw any error that occurred
-    if (hasEncounteredError) {
-      // Close the stream before throwing
+    async function closeOutput() {
       if (options.writable) {
         const sendFinish = options.sendFinish ?? true;
         const preventClose = options.preventClose ?? false;
@@ -2901,28 +2976,7 @@ export class WorkflowAgent<
           await closeStream(options.writable, preventClose, sendFinish);
         }
       }
-      throw encounteredError;
     }
-
-    // Close the writable stream
-    if (options.writable) {
-      const sendFinish = options.sendFinish ?? true;
-      const preventClose = options.preventClose ?? false;
-      if (sendFinish || !preventClose) {
-        await closeStream(options.writable, preventClose, sendFinish);
-      }
-    }
-
-    return {
-      messages: messages as ModelMessage[],
-      steps,
-      toolCalls: lastStepToolCalls,
-      toolResults: lastStepToolResults,
-      finishReason,
-      totalUsage,
-      output: experimentalOutput,
-      ...(hasTerminalError ? { error: terminalError } : {}),
-    };
   }
 }
 

@@ -94,6 +94,22 @@ payload before fixing its shape; Phase 5 supplies comprehensive runtime coverage
 Approval secrets must continue to be resolved inside signing/verification steps.
 Only the environment-variable reference crosses into their persisted arguments.
 
+### Shared execution layout
+
+Phase 2 separates `prepareInvocation`, shared `execute`, and stream outcome
+interpretation. `model-call-iterator.ts` orchestrates model turns using the compact
+types in `model-call.ts`; `build-model-step-result.ts` reconstructs derived fields
+after the durable boundary. `doStreamStep` retains its original module, name, and
+persisted payload shape. The non-streaming adapter is added in Phase 3.
+
+`workflow-execution-result.test.ts` checks stream interpretation of outcomes.
+`model-call-payload.integration.test.ts` verifies a representative payload across
+a real suspension and another step boundary, including generated-file data,
+dates, provider-result maps, and absent versus undefined failure values. A stream
+marker checks that the completed producer step does not run again on resumption.
+This does not claim exactly-once external effects under crashes or retries, or
+automatic serialization of a complete public result object.
+
 ## Test coverage map
 
 Paths below are relative to `packages/workflow/src` unless noted. Reuse these
@@ -108,7 +124,7 @@ suites as the loop is extracted rather than duplicating their scenarios.
 | Model stream errors, including false/undefined error values and one error callback                                                               | `workflow-agent-stream-error.test.ts`                                                                                        |
 | Structured response format and parsed output                                                                                                     | `workflow-agent-response-format.test.ts`                                                                                     |
 | File/source retention in steps, callbacks, and history                                                                                           | `workflow-agent-file-source-retention.test.ts`                                                                               |
-| Prompt/content ordering, callback replay, prepared settings and persisted-result compatibility                                                   | `stream-text-iterator.test.ts`                                                                                               |
+| Prompt/content ordering, callback replay, prepared settings and persisted-result compatibility                                                   | `model-call-iterator.test.ts`                                                                                                |
 | SDK retries, disabled Workflow retries, elapsed deadlines and aborts                                                                             | `do-stream-step.test.ts`                                                                                                     |
 | Raw-to-UI conversion, resume cursors, reset-step handling and approval signatures                                                                | `to-ui-message-chunk.test.ts`                                                                                                |
 | Transport reconnect/replay, duplicate tails and interleaved text/reasoning                                                                       | `workflow-chat-transport.test.ts`, `workflow-chat-transport.stream-repair.test.ts`                                           |
