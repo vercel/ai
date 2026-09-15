@@ -345,7 +345,11 @@ describe('prepareTools', () => {
             type: 'function',
             name: 'testFunction',
             description: 'A test function',
-            inputSchema: { type: 'object', properties: {} },
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              additionalProperties: false,
+            },
             strict: true,
           },
         ],
@@ -359,7 +363,11 @@ describe('prepareTools', () => {
             description: 'A test function',
             strict: true,
             inputSchema: {
-              json: { type: 'object', properties: {} },
+              json: {
+                type: 'object',
+                properties: {},
+                additionalProperties: false,
+              },
             },
           },
         },
@@ -376,7 +384,11 @@ describe('prepareTools', () => {
             type: 'function',
             name: 'testFunction',
             description: 'A test function',
-            inputSchema: { type: 'object', properties: {} },
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              additionalProperties: false,
+            },
             strict: true,
           },
         ],
@@ -384,6 +396,112 @@ describe('prepareTools', () => {
       });
 
       expect((result.toolConfig.tools![0] as any).toolSpec.strict).toBe(true);
+      expect(result.toolWarnings).toEqual([]);
+    });
+
+    it('should omit strict mode when the top-level object schema is open', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: true,
+          },
+        ],
+        modelId: ANTHROPIC_MODEL,
+      });
+
+      expect((result.toolConfig.tools![0] as any).toolSpec).not.toHaveProperty(
+        'strict',
+      );
+      expect(result.toolWarnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'strict',
+          details:
+            "Tool 'testFunction' has strict: true, but Amazon Bedrock requires every object in a strict tool schema to set additionalProperties: false. The strict property will be ignored.",
+        },
+      ]);
+    });
+
+    it('should omit strict mode when a nested object schema is open', async () => {
+      const inputSchema = {
+        type: 'object' as const,
+        properties: {
+          location: {
+            type: 'object' as const,
+            properties: {
+              city: { type: 'string' as const },
+            },
+            required: ['city'],
+          },
+        },
+        required: ['location'],
+        additionalProperties: false,
+      };
+
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'getWeather',
+            inputSchema,
+            strict: true,
+          },
+        ],
+        modelId: ANTHROPIC_MODEL,
+      });
+
+      expect((result.toolConfig.tools![0] as any).toolSpec).toEqual({
+        name: 'getWeather',
+        inputSchema: { json: inputSchema },
+      });
+      expect(result.toolWarnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'strict',
+          details:
+            "Tool 'getWeather' has strict: true, but Amazon Bedrock requires every object in a strict tool schema to set additionalProperties: false. The strict property will be ignored.",
+        },
+      ]);
+    });
+
+    it('should pass through strict mode when all nested object schemas are closed', async () => {
+      const inputSchema = {
+        type: 'object' as const,
+        properties: {
+          location: {
+            type: 'object' as const,
+            properties: {
+              city: { type: 'string' as const },
+            },
+            required: ['city'],
+            additionalProperties: false,
+          },
+        },
+        required: ['location'],
+        additionalProperties: false,
+      };
+
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'getWeather',
+            inputSchema,
+            strict: true,
+          },
+        ],
+        modelId: ANTHROPIC_MODEL,
+      });
+
+      expect((result.toolConfig.tools![0] as any).toolSpec).toEqual({
+        name: 'getWeather',
+        strict: true,
+        inputSchema: { json: inputSchema },
+      });
       expect(result.toolWarnings).toEqual([]);
     });
 
@@ -439,7 +557,11 @@ describe('prepareTools', () => {
             type: 'function',
             name: 'strictTool',
             description: 'A strict tool',
-            inputSchema: { type: 'object', properties: {} },
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              additionalProperties: false,
+            },
             strict: true,
           },
           {
