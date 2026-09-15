@@ -1,5 +1,6 @@
 import {
   APICallError,
+  JSONParseError,
   type JSONValue,
   type LanguageModelV4,
   type LanguageModelV4Prompt,
@@ -1587,6 +1588,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
+              if (isTruncatedResponseLifecycleEvent(chunk.error)) {
+                return;
+              }
+
               const error = isOpenAIChatCompletionChunk(chunk.rawValue)
                 ? createOpenAIResponsesChatCompletionsMismatchError({
                     value: chunk.rawValue,
@@ -2951,6 +2956,15 @@ function isResponseCreatedChunk(
   chunk: OpenAIResponsesChunk,
 ): chunk is OpenAIResponsesChunk & { type: 'response.created' } {
   return chunk.type === 'response.created';
+}
+
+function isTruncatedResponseLifecycleEvent(error: unknown): boolean {
+  return (
+    JSONParseError.isInstance(error) &&
+    /^\s*\{\s*"type"\s*:\s*"response\.(created|in_progress|completed)"/.test(
+      error.text,
+    )
+  );
 }
 
 function isResponseFunctionCallArgumentsDeltaChunk(
