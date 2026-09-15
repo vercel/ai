@@ -4,7 +4,6 @@ import {
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import { validateTypes } from '@ai-sdk/provider-utils';
-import { removeAdditionalPropertiesFalse } from '../remove-additional-properties';
 import { fileSearchArgsSchema } from '../tool/file-search';
 import { mcpServerArgsSchema } from '../tool/mcp-server';
 import { webSearchArgsSchema } from '../tool/web-search';
@@ -144,7 +143,7 @@ export async function prepareResponsesTools({
         type: 'function',
         name: tool.name,
         description: tool.description,
-        parameters: removeAdditionalPropertiesFalse(tool.inputSchema),
+        parameters: tool.inputSchema,
         ...(tool.strict != null ? { strict: tool.strict } : {}),
       });
     }

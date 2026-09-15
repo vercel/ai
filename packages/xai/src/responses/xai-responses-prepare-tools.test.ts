@@ -428,6 +428,7 @@ describe('prepareResponsesTools', () => {
                 location: { type: 'string' },
               },
               required: ['location'],
+              additionalProperties: false,
             },
           },
         ],
@@ -439,6 +440,7 @@ describe('prepareResponsesTools', () => {
             "description": "get weather information",
             "name": "weather",
             "parameters": {
+              "additionalProperties": false,
               "properties": {
                 "location": {
                   "type": "string",
