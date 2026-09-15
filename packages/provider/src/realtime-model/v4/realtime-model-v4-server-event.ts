@@ -54,41 +54,6 @@ export type RealtimeModelV4ServerEvent =
       clientEventId?: string;
       raw: unknown;
     }
-  | {
-      type: 'backend-event';
-      event: unknown;
-      delegationId?: string | null;
-      raw: unknown;
-    }
-  | {
-      type: 'backend-response-created';
-      responseId: string;
-      delegationId?: string | null;
-      raw: unknown;
-    }
-  | {
-      type: 'backend-tool-call';
-      responseId: string;
-      delegationId?: string | null;
-      callId: string;
-      name: string;
-      arguments: string;
-      raw: unknown;
-    }
-  | {
-      type: 'backend-response-done';
-      responseId: string;
-      delegationId?: string | null;
-      status: string;
-      usage?: {
-        inputTokens: number;
-        outputTokens: number;
-        totalTokens: number;
-        cachedInputTokens?: number;
-        raw: unknown;
-      };
-      raw: unknown;
-    }
   // ── Session lifecycle ──────────────────────────────────────────────
   | {
       type: 'session-created';

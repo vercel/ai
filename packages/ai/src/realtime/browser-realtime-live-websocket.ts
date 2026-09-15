@@ -8,7 +8,7 @@ import type {
 import { BrowserRealtimeAudio } from './browser-realtime-audio';
 import { BrowserRealtimeTransport } from './browser-realtime-transport';
 
-/** Browser media for an application-owned raw protocol WebSocket relay. */
+/** Continuous PCM16 audio-chunk media for an application-owned WebSocket relay. */
 export class BrowserRealtimeLiveWebSocket {
   private readonly transport: BrowserRealtimeTransport;
   private readonly audio: BrowserRealtimeAudio;
@@ -30,7 +30,7 @@ export class BrowserRealtimeLiveWebSocket {
       onEvent: (event: RealtimeServerEvent) => Promise<void>;
       onError: (error: Error) => void;
       onFatalError: (error: Error, drain?: Promise<void>) => void;
-      onClose: () => void;
+      onClose: (error?: Error) => void;
       onCapturing: (value: boolean) => void;
       onPlaying: (value: boolean) => void;
     },
@@ -78,7 +78,9 @@ export class BrowserRealtimeLiveWebSocket {
     stream?: MediaStream;
     capture?: boolean;
   }): void {
+    const generation = this.generation + 1;
     this.dispose();
+    if (generation !== this.generation) return;
     for (const format of [
       this.config.inputAudioFormat,
       this.config.outputAudioFormat,
@@ -100,11 +102,11 @@ export class BrowserRealtimeLiveWebSocket {
     this.captureEnabled = options.capture !== false;
     // Create/resume playback while connect is still in the caller's user gesture.
     this.audio.ensurePlaybackContext();
-    const generation = this.generation;
     void this.audio.resumePlayback().catch(error => {
       if (generation === this.generation) this.options.onError(error);
     });
     this.transport.connect({
+      mode: 'relay',
       url: options.url,
       protocols: options.protocols,
       onOpen: () => {
@@ -123,12 +125,13 @@ export class BrowserRealtimeLiveWebSocket {
   }
 
   async resumeCapture(suppliedStream?: MediaStream): Promise<void> {
+    const generation = this.captureGeneration + 1;
     this.stopCapture();
+    if (generation !== this.captureGeneration) return;
     this.ready = true;
     this.capturingStarted = true;
     this.captureEnabled = true;
     if (suppliedStream != null) this.stream = suppliedStream;
-    const generation = this.captureGeneration;
     const supplied = this.stream;
     const stream =
       supplied ?? (await navigator.mediaDevices.getUserMedia({ audio: true }));
@@ -222,8 +225,8 @@ export class BrowserRealtimeLiveWebSocket {
   }
 
   dispose(): void {
-    this.stopCapture();
     this.generation++;
+    this.stopCapture();
     this.ready = false;
     this.capturingStarted = false;
     this.pendingAudio = 0;

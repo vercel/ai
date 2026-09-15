@@ -80,7 +80,7 @@ export type RealtimeModelV4 = {
     raw: unknown,
   ): RealtimeModelV4ServerEvent | RealtimeModelV4ServerEvent[];
 
-  /** Create once per connection; discard on disconnect to isolate stream correlation. */
+  /** Create a raw-event parser per connection and discard it on disconnect. */
   createServerEventParser?(): (
     raw: unknown,
   ) => RealtimeModelV4ServerEvent | RealtimeModelV4ServerEvent[];

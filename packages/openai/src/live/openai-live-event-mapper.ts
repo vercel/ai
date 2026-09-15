@@ -4,10 +4,7 @@ import {
   type Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
 } from '@ai-sdk/provider';
 import { z } from 'zod/v4';
-import {
-  buildOpenAILiveSessionConfig,
-  buildOpenAILiveSessionUpdate,
-} from './openai-live-session-config';
+import { buildOpenAILiveSessionConfig } from './openai-live-session-config';
 
 const sessionSchema = z.object({ id: z.string().min(1) });
 const startedSessionSchema = sessionSchema.extend({
@@ -90,11 +87,6 @@ const serverEventSchema = z.discriminatedUnion('type', [
     ...appendAcknowledgmentFields,
   }),
   z.object({
-    type: z.literal('response.event'),
-    event: z.object({ type: z.string() }).passthrough(),
-    delegation_id: z.string().nullable().optional(),
-  }),
-  z.object({
     type: z.literal('error'),
     error: z.object({
       message: z.string(),
@@ -107,181 +99,20 @@ const knownTypes = new Set<string>(
   serverEventSchema.options.map(schema => schema.shape.type.value),
 );
 const envelopeSchema = z.object({ type: z.string() });
-const backendUsageSchema = z.object({
-  input_tokens: z.number().nonnegative(),
-  output_tokens: z.number().nonnegative(),
-  total_tokens: z.number().nonnegative(),
-  input_tokens_details: z
-    .object({ cached_tokens: z.number().nonnegative().nullish() })
-    .nullish(),
-});
-const backendEventSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('response.created'),
-    response: z.object({ id: z.string().min(1) }),
-  }),
-  z.object({
-    type: z.literal('response.output_item.done'),
-    response_id: z.string().min(1).nullish(),
-    item: z.object({
-      type: z.literal('function_call'),
-      call_id: z.string().min(1),
-      name: z.string().min(1),
-      arguments: z.string(),
-    }),
-  }),
-  z.object({
-    type: z.enum([
-      'response.completed',
-      'response.failed',
-      'response.incomplete',
-      'response.cancelled',
-    ]),
-    response: z.object({
-      id: z.string().min(1),
-      status: z.string().min(1),
-      usage: z.unknown(),
-    }),
-  }),
-]);
-
-type BackendCorrelation = {
-  responses: Map<string, Set<string>>;
-  count: number;
-  overflowed: boolean;
-  closed: boolean;
-};
-
-function resetBackendCorrelation(correlation: BackendCorrelation) {
-  correlation.responses.clear();
-  correlation.count = 0;
-  correlation.overflowed = false;
-  correlation.closed = false;
-}
 
 export function createOpenAILiveServerEventParser(): (
   raw: unknown,
 ) => RealtimeModelV4ServerEvent[] {
-  const correlation: BackendCorrelation = {
-    responses: new Map(),
-    count: 0,
-    overflowed: false,
-    closed: false,
-  };
-  return raw => {
-    const events = parseServerEvent(raw, correlation);
-    return Array.isArray(events) ? events : [events];
-  };
-}
-
-function normalizeBackendEvent(
-  event: unknown,
-  delegationId: string | null | undefined,
-  raw: unknown,
-  correlation?: BackendCorrelation,
-): RealtimeModelV4ServerEvent[] {
-  const parsed = backendEventSchema.safeParse(event);
-  if (!parsed.success) return [];
-  const data = parsed.data;
-  switch (data.type) {
-    case 'response.created': {
-      const errors: RealtimeModelV4ServerEvent[] = [];
-      if (correlation != null && !correlation.closed && delegationId != null) {
-        const responses = correlation.responses.get(delegationId);
-        if (!responses?.has(data.response.id)) {
-          if (correlation.count >= 512) {
-            // Preserve pending entries, but fail closed for inference after lost state.
-            correlation.overflowed = true;
-            errors.push({
-              type: 'error',
-              code: 'backend_correlation_limit',
-              message:
-                'OpenAI Live exceeded 512 active backend response associations. Start a new session to restore inferred correlation.',
-              raw,
-            });
-          } else {
-            const active = responses ?? new Set<string>();
-            active.add(data.response.id);
-            correlation.responses.set(delegationId, active);
-            correlation.count++;
-          }
-        }
-      }
-      return [
-        {
-          type: 'backend-response-created',
-          responseId: data.response.id,
-          delegationId,
-          raw,
-        },
-        ...errors,
-      ];
-    }
-    case 'response.output_item.done': {
-      const responses =
-        delegationId != null && !correlation?.overflowed
-          ? correlation?.responses.get(delegationId)
-          : undefined;
-      const responseId =
-        data.response_id ??
-        (responses?.size === 1 ? responses.values().next().value : undefined);
-      if (responseId == null) return [];
-      return [
-        {
-          type: 'backend-tool-call',
-          responseId,
-          delegationId,
-          callId: data.item.call_id,
-          name: data.item.name,
-          arguments: data.item.arguments,
-          raw,
-        },
-      ];
-    }
-    default: {
-      if (correlation != null) {
-        for (const [id, responses] of correlation.responses) {
-          if (responses.delete(data.response.id)) correlation.count--;
-          if (responses.size === 0) correlation.responses.delete(id);
-        }
-      }
-      const usage = backendUsageSchema.safeParse(data.response.usage);
-      return [
-        {
-          type: 'backend-response-done',
-          responseId: data.response.id,
-          delegationId,
-          status: data.response.status,
-          ...(usage.success
-            ? {
-                usage: {
-                  inputTokens: usage.data.input_tokens,
-                  outputTokens: usage.data.output_tokens,
-                  totalTokens: usage.data.total_tokens,
-                  cachedInputTokens:
-                    usage.data.input_tokens_details?.cached_tokens ?? undefined,
-                  raw: data.response.usage,
-                },
-              }
-            : {}),
-          raw,
-        },
-      ];
-    }
-  }
+  return raw => parseOpenAILiveServerEvent(raw);
 }
 
 export function parseOpenAILiveServerEvent(
   raw: unknown,
 ): RealtimeModelV4ServerEvent[] {
-  const events = parseServerEvent(raw);
-  return Array.isArray(events) ? events : [events];
+  return [parseServerEvent(raw)];
 }
 
-function parseServerEvent(
-  raw: unknown,
-  correlation?: BackendCorrelation,
-): RealtimeModelV4ServerEvent | RealtimeModelV4ServerEvent[] {
+function parseServerEvent(raw: unknown): RealtimeModelV4ServerEvent {
   const envelope = envelopeSchema.safeParse(raw);
   if (envelope.success && !knownTypes.has(envelope.data.type)) {
     return { type: 'custom', rawType: envelope.data.type, raw };
@@ -306,7 +137,6 @@ function parseServerEvent(
   }
   switch (event.type) {
     case 'session.started':
-      if (correlation != null) resetBackendCorrelation(correlation);
       return {
         type: 'session-started',
         sessionId: event.session.id,
@@ -317,10 +147,6 @@ function parseServerEvent(
         raw,
       };
     case 'session.closed':
-      if (correlation != null) {
-        resetBackendCorrelation(correlation);
-        correlation.closed = true;
-      }
       return {
         type: 'session-closed',
         sessionId: event.session?.id,
@@ -364,21 +190,6 @@ function parseServerEvent(
           : {}),
         raw,
       };
-    case 'response.event':
-      return [
-        {
-          type: 'backend-event',
-          event: event.event,
-          delegationId: event.delegation_id,
-          raw,
-        },
-        ...normalizeBackendEvent(
-          event.event,
-          event.delegation_id,
-          raw,
-          correlation,
-        ),
-      ];
     case 'error':
       return {
         type: 'error',
@@ -430,11 +241,10 @@ export function serializeOpenAILiveClientEvent(
         ...eventId,
       };
     case 'session-update':
-      return {
-        type: 'session.update',
-        session: buildOpenAILiveSessionUpdate(event.config),
-        ...eventId,
-      };
+      throw new UnsupportedFunctionalityError({
+        functionality:
+          'OpenAI Live session-update; startup settings are immutable; use context-append or input-audio-mute/input-audio-unmute',
+      });
     case 'session-close':
       return { type: 'session.close', ...eventId };
     case 'input-audio-append':
@@ -447,43 +257,6 @@ export function serializeOpenAILiveClientEvent(
       return { type: 'session.input_audio.mute', ...eventId };
     case 'input-audio-unmute':
       return { type: 'session.input_audio.unmute', ...eventId };
-    case 'backend-tool-result':
-      return {
-        type: 'response.item.create',
-        item: {
-          type: 'function_call_output',
-          call_id: event.callId,
-          output: event.output,
-        },
-        ...eventId,
-      };
-    case 'backend-response-create':
-      return { type: 'response.create', ...eventId };
-    case 'backend-input-create':
-      return {
-        type: 'response.item.create',
-        item: {
-          type: 'message',
-          role: 'user',
-          content: event.content.map(part => {
-            if (part.type === 'text')
-              return { type: 'input_text', text: part.text };
-            const options = z
-              .strictObject({
-                imageDetail: z.enum(['auto', 'low', 'high']).optional(),
-              })
-              .parse(part.providerOptions?.openai ?? {});
-            return {
-              type: 'input_image',
-              image_url: part.url,
-              ...(options.imageDetail !== undefined
-                ? { detail: options.imageDetail }
-                : {}),
-            };
-          }),
-        },
-        ...eventId,
-      };
     case 'context-append': {
       const context = z
         .object({

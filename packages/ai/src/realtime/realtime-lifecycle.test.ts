@@ -47,7 +47,7 @@ describe('realtime lifecycle recovery and bounded resources', () => {
     await emit({
       type: 'session-started',
       sessionId: 's',
-      delegationMode: 'provider',
+      delegationMode: 'client',
       raw: {},
     });
   };
@@ -271,62 +271,6 @@ describe('realtime lifecycle recovery and bounded resources', () => {
     });
     await closed;
   });
-
-  it.each(['addToolOutput', 'sendEvent'] as const)(
-    'defaults managed continuation off for %s and permits exactly one manual continuation',
-    async method => {
-      const onToolCall = vi.fn();
-      const session = create({ onToolCall });
-      await readyWebSocket(session);
-      await emit({
-        type: 'backend-tool-call',
-        callId: 'c',
-        responseId: 'r',
-        name: 'test',
-        arguments: '{}',
-        raw: {},
-      });
-      await emit({
-        type: 'backend-response-done',
-        responseId: 'r',
-        status: 'completed',
-        raw: {},
-      });
-      expect(() =>
-        session.sendEvent({ type: 'backend-response-create' }),
-      ).toThrow('pending');
-      if (method === 'addToolOutput') session.addToolOutput('c', 'ok');
-      else
-        await session.sendEvent({
-          type: 'backend-tool-result',
-          callId: 'c',
-          output: 'ok',
-        });
-      await flushEvents();
-      expect(
-        socket().sent.filter(event => event.type === 'backend-response-create'),
-      ).toHaveLength(0);
-      await session.sendEvent({ type: 'backend-response-create' });
-      await emit({
-        type: 'backend-response-done',
-        responseId: 'r',
-        status: 'completed',
-        raw: {},
-      });
-      await emit({
-        type: 'backend-tool-call',
-        callId: 'c',
-        responseId: 'r',
-        name: 'test',
-        arguments: '{}',
-        raw: {},
-      });
-      expect(onToolCall).toHaveBeenCalledOnce();
-      expect(
-        socket().sent.filter(event => event.type === 'backend-response-create'),
-      ).toHaveLength(1);
-    },
-  );
 
   it('does not let stop capture race a late microphone acquisition', async () => {
     const media = deferred<MediaStream>();

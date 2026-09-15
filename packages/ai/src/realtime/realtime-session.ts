@@ -9,7 +9,8 @@ import { BrowserRealtimeAudio } from './browser-realtime-audio';
 import { BrowserRealtimeTransport } from './browser-realtime-transport';
 import { BrowserRealtimeLiveWebSocket } from './browser-realtime-live-websocket';
 import { RealtimeAttempt } from './realtime-attempt';
-import { RealtimeCommandCoordinator } from './realtime-command-coordinator';
+import { RealtimeCommandTracker } from './realtime-command-tracker';
+import { validateRealtimeSetup } from './validate-realtime-setup';
 import {
   createSessionState,
   reduceSessionState,
@@ -38,13 +39,11 @@ export type RealtimeSessionOptions = {
   sessionConfig?: Partial<RealtimeSessionConfig>;
   sampleRate?: number;
   maxEvents?: number;
-  /** Backend tool continuation is opt-in. Frontend turns retain automatic continuation. */
-  autoContinueTools?: boolean;
   /** Maximum time to establish transport and receive readiness. Default: 30s. */
   startupTimeoutMs?: number;
   /** Maximum wait for final usage after close(). Default: 15s. */
   closeTimeoutMs?: number;
-  /** Local playback pauses at this budget until resumePlayback(). Default: 2s. */
+  /** Continuous PCM only: pause at this budget until resumePlayback(). Default: 2s. */
   maxPlaybackBufferSeconds?: number;
   onToolCall?: (args: {
     toolCall: { toolCallId: string; toolName: string; args: unknown };
@@ -59,11 +58,12 @@ export abstract class AbstractRealtimeSession {
   onToolCall: RealtimeSessionOptions['onToolCall'];
   onEvent: RealtimeSessionOptions['onEvent'];
   onError: RealtimeSessionOptions['onError'];
-  private readonly reducer: RealtimeEventReducer;
+  private reducer: RealtimeEventReducer;
   private readonly sessionLifecycle: boolean;
   private readonly continuous: boolean;
   private attempt?: RealtimeAttempt;
-  private commands?: RealtimeCommandCoordinator;
+  private commands?: RealtimeCommandTracker;
+  private publication = 0;
   private transport?: BrowserRealtimeTransport;
   private audio?: BrowserRealtimeAudio;
   private pcm?: BrowserRealtimeLiveWebSocket;
@@ -108,6 +108,10 @@ export abstract class AbstractRealtimeSession {
 
   private validateConnection(): void {
     const { model, api } = this.options;
+    if (!this.continuous && this.options.maxPlaybackBufferSeconds != null)
+      throw new Error(
+        'maxPlaybackBufferSeconds is supported only for continuous PCM sessions',
+      );
     const connection =
       api.token != null ? 'client-secret-websocket' : 'server-websocket';
     if (
@@ -118,6 +122,10 @@ export abstract class AbstractRealtimeSession {
         !model.capabilities.transports.includes('websocket'))
     )
       throw new Error(`Realtime model does not support ${connection}`);
+    if (this.continuous && api.websocket == null)
+      throw new Error(
+        'Continuous PCM sessions require an application WebSocket relay',
+      );
     if (api.token != null && model.getWebSocketConfig == null)
       throw new Error(
         'Realtime model does not support client-secret WebSocket configuration',
@@ -134,44 +142,42 @@ export abstract class AbstractRealtimeSession {
       throw new Error('Realtime session is already active');
     const attempt = new RealtimeAttempt();
     this.attempt = attempt;
-    this.applyState({ ...this.state, status: 'connecting' });
     const current = () => this.attempt === attempt && attempt.active;
     try {
+      this.applyState({ ...this.state, status: 'connecting' });
+      if (!current()) return;
       this.validateConnection();
       const { model, api, sessionConfig } = this.options;
       this.suppliedStream = connectOptions?.stream;
+      this.reducer = new RealtimeEventReducer(this.maxEvents);
+      this.currentResponseItemId = null;
       this.toolCallsInResponse.clear();
       this.submittedToolOutputs.clear();
       this.responseToolCallsClosed = false;
       if (this.sessionLifecycle)
         this.applyState({ ...this.state, session: createSessionState() });
-      this.commands = new RealtimeCommandCoordinator({
-        send: (event, guard) => this.sendTransport(event, guard),
-        active: () =>
-          current() &&
-          this.state.status === 'connected' &&
-          this.state.session?.delegationMode === 'provider',
-        autoContinue: this.options.autoContinueTools ?? false,
-        onError: error => {
-          void this.reportError(error);
-        },
+      if (!current()) return;
+      this.commands = new RealtimeCommandTracker(event => {
+        if (!current()) throw new Error('Realtime connection is closed');
+        return this.sendTransport(event, current);
       });
-      attempt.timer('startup', this.options.startupTimeoutMs ?? 30_000, () =>
-        this.fail(new Error('Realtime session startup timed out')),
-      );
+      attempt.timer('startup', this.options.startupTimeoutMs ?? 30_000, () => {
+        if (current())
+          this.fail(new Error('Realtime session startup timed out'));
+      });
       const callbacks = {
         model,
         onEvent: async (event: RealtimeServerEvent) => {
           if (!current()) return;
           try {
-            await this.handleServerEvent(event);
+            await this.handleServerEvent(event, attempt);
           } catch (error) {
             if (current())
               this.fail(error, (this.pcm ?? this.transport)?.finish());
           }
         },
         onError: (error: Error) => {
-          if (current()) void this.reportError(error);
+          if (current()) void this.reportError(error, attempt);
         },
         onFatalError: (error: Error, drain?: Promise<void>) => {
           if (current()) this.fail(error, drain);
@@ -186,13 +192,10 @@ export abstract class AbstractRealtimeSession {
         },
         onClose: (error?: Error) => {
           if (!current()) return;
-          if (
-            error != null &&
-            (!attempt.ready ||
-              (model.capabilities?.finalization === 'session-close' &&
-                this.state.session?.finalization !== 'confirmed'))
-          )
-            this.fail(error);
+          const finalizationConfirmed =
+            model.capabilities?.finalization === 'session-close' &&
+            this.state.session?.finalization === 'confirmed';
+          if (error != null && !finalizationConfirmed) this.fail(error);
           else if (!attempt.ready)
             this.fail(
               new Error('Realtime connection closed before becoming ready'),
@@ -232,8 +235,9 @@ export abstract class AbstractRealtimeSession {
             sessionConfig?.outputAudioFormat?.rate ??
             this.options.sampleRate ??
             24000,
-          maxPlaybackSeconds: this.options.maxPlaybackBufferSeconds ?? 2,
-          onAudio: audio => this.sendAutomaticAudio(audio),
+          onAudio: audio => {
+            if (current()) this.sendAutomaticAudio(audio);
+          },
           onError: callbacks.onError,
           onCapturingChange: callbacks.onCapturing,
           onPlayingChange: callbacks.onPlaying,
@@ -252,27 +256,42 @@ export abstract class AbstractRealtimeSession {
             throw new Error(
               `Failed to fetch realtime setup: ${response.status}`,
             );
-          const setup = await response.json();
+          const payload: unknown = await response.json().catch(() => {
+            throw new Error('Invalid realtime setup response');
+          });
           if (!current()) return;
+          const setup = validateRealtimeSetup(payload);
           token = setup.token;
           url = setup.url;
-          config = { ...sessionConfig, tools: setup.tools };
+          config = {
+            ...sessionConfig,
+            ...(setup.tools == null ? {} : { tools: setup.tools }),
+          };
         }
         if (url == null) throw new Error('Realtime WebSocket URL is missing');
+        if (api.token != null && token == null)
+          throw new Error('Realtime client-secret connection requires a token');
         this.audio.ensurePlaybackContext();
+        if (!current()) return;
         this.transport = new BrowserRealtimeTransport({
           ...callbacks,
           onServerEvent: callbacks.onEvent,
         });
         this.transport.connect({
-          token,
+          ...(token != null
+            ? { mode: 'client-secret' as const, token }
+            : { mode: 'relay' as const, protocols: api.protocols }),
           url,
-          protocols: api.protocols,
-          onOpen: () =>
-            this.sendTransport({
-              type: model.capabilities?.startup ?? 'session-update',
-              config,
-            }),
+          onOpen: () => {
+            if (!current()) return;
+            return this.sendTransport(
+              {
+                type: model.capabilities?.startup ?? 'session-update',
+                config,
+              },
+              current,
+            );
+          },
         });
       }
     } catch (error) {
@@ -285,10 +304,12 @@ export abstract class AbstractRealtimeSession {
     if (attempt == null || !attempt.active || attempt.cause != null) return;
     attempt.cause = error instanceof Error ? error : new Error(String(error));
     this.applyState({ ...this.state, status: 'error' });
+    if (this.attempt !== attempt || !attempt.active) return;
     this.stopAudioCapture();
+    if (this.attempt !== attempt || !attempt.active) return;
     if (drain == null) this.disconnect();
     else void this.drainAttempt(attempt, drain);
-    void this.reportError(attempt.cause);
+    void this.reportError(attempt.cause, attempt);
   }
 
   private async drainAttempt(
@@ -310,7 +331,7 @@ export abstract class AbstractRealtimeSession {
     try {
       this.disconnect();
     } catch (error) {
-      void this.reportError(error);
+      void this.reportError(error, attempt);
     }
   }
 
@@ -320,24 +341,29 @@ export abstract class AbstractRealtimeSession {
     attempt.clearTimer('close');
     const transport = this.pcm ?? this.transport;
     void this.drainAttempt(attempt, transport?.finish());
-    void this.reportError(error);
+    void this.reportError(error, attempt);
   }
 
   disconnect(): void {
+    const attempt = this.attempt;
     this.captureGeneration++;
     this.suppliedStream = undefined;
-    this.attempt?.retire();
-    this.transport?.dispose();
-    this.audio?.dispose();
-    this.pcm?.dispose();
+    const transport = this.transport;
+    const audio = this.audio;
+    const pcm = this.pcm;
     this.transport = undefined;
     this.audio = undefined;
     this.pcm = undefined;
     this.commands = undefined;
+    attempt?.retire();
+    transport?.dispose();
+    audio?.dispose();
+    pcm?.dispose();
+    if (this.attempt !== attempt) return;
     const session = this.state.session;
     this.applyState({
       ...this.state,
-      status: this.attempt?.cause != null ? 'error' : 'disconnected',
+      status: attempt?.cause != null ? 'error' : 'disconnected',
       isCapturing: false,
       isPlaying: false,
       ...(session != null
@@ -366,7 +392,9 @@ export abstract class AbstractRealtimeSession {
     if (options?.eventId != null) this.commands?.validateId(options.eventId);
     const promise = attempt.beginClose();
     this.applyState({ ...this.state, status: 'closing' });
+    if (this.attempt !== attempt || !attempt.active) return promise;
     this.stopAudioCapture();
+    if (this.attempt !== attempt || !attempt.active) return promise;
     attempt.timer('close', this.options.closeTimeoutMs ?? 15_000, () =>
       this.finishAttempt(attempt),
     );
@@ -412,46 +440,17 @@ export abstract class AbstractRealtimeSession {
       return this.close({ eventId: event.eventId });
     if (event.type === 'session-start' && this.sessionLifecycle)
       throw new Error('Realtime session has already started');
-    if (
-      (event.type === 'backend-input-create' ||
-        event.type === 'backend-response-create' ||
-        event.type === 'backend-tool-result') &&
-      this.state.session?.delegationMode !== 'provider'
-    )
-      throw new Error(
-        'Backend commands require a session confirmed in provider delegation mode',
-      );
     if (!this.sessionLifecycle && this.state.session == null)
       return this.sendTransport(event);
     return this.commands?.send(event) ?? this.sendTransport(event);
   }
 
   sendTextMessage(text: string): void {
-    if (
-      (this.continuous && this.state.session != null) ||
-      this.state.session?.delegationMode === 'provider'
-    ) {
-      if (this.commands?.hasPendingTools())
-        throw new Error(
-          'Submit pending realtime tool results before sending a backend message',
-        );
-      const attempt = this.attempt;
-      void this.sendEvent({
-        type: 'backend-input-create',
-        content: [{ type: 'text', text }],
-      })
-        .then(() => {
-          if (attempt?.active && this.state.status === 'connected') {
-            try {
-              return this.sendEvent({ type: 'backend-response-create' });
-            } catch (error) {
-              void this.reportError(error);
-            }
-          }
-        })
-        .catch(() => {});
-      return;
-    }
+    if (this.continuous)
+      throw new UnsupportedFunctionalityError({
+        functionality:
+          'sendTextMessage for continuous sessions; client-delegation text is application-owned, use context-append for context',
+      });
     this.sendEvent({
       type: 'conversation-item-create',
       item: { type: 'text-message', role: 'user', text },
@@ -493,26 +492,19 @@ export abstract class AbstractRealtimeSession {
   }
 
   addToolOutput(callId: string, result: unknown): void {
-    if (
-      this.commands?.hasToolCall(callId) ||
-      (this.continuous && this.state.session != null)
-    ) {
-      this.sendEvent({
-        type: 'backend-tool-result',
-        callId,
-        output:
-          typeof result === 'string'
-            ? result
-            : (JSON.stringify(result) ?? 'null'),
+    if (this.continuous)
+      throw new UnsupportedFunctionalityError({
+        functionality:
+          'addToolOutput for continuous sessions; client delegation is application-owned',
       });
-      return;
-    }
+    const attempt = this.attempt;
     const { state, output } = this.reducer.addToolOutput(
       this.state,
       callId,
       result,
     );
     this.applyState(state);
+    if (this.attempt !== attempt || !attempt?.active) return;
     this.sendEvent({
       type: 'conversation-item-create',
       item: { type: 'function-call-output', ...output },
@@ -541,7 +533,7 @@ export abstract class AbstractRealtimeSession {
     this.suppliedStream = stream;
     const attempt = this.attempt;
     void this.resumeAudioCapture().catch(error => {
-      if (attempt?.active) void this.reportError(error);
+      if (attempt?.active) void this.reportError(error, attempt);
     });
   }
 
@@ -577,8 +569,10 @@ export abstract class AbstractRealtimeSession {
     this.captureGeneration++;
     if (this.audio != null && this.options.api.token != null)
       this.suppliedStream = undefined;
-    this.pcm?.stopCapture();
-    this.audio?.stopCapture();
+    const pcm = this.pcm;
+    const audio = this.audio;
+    pcm?.stopCapture();
+    audio?.stopCapture();
   }
   stopPlayback(): void {
     (this.pcm ?? this.audio)?.stopPlayback();
@@ -591,10 +585,12 @@ export abstract class AbstractRealtimeSession {
   }
 
   private applyState(nextState: RealtimeState): void {
+    const publication = ++this.publication;
     const previous = this.state;
     this.state = nextState;
     const update = <K extends keyof RealtimeState>(key: K) => {
-      if (previous[key] !== nextState[key]) this.setState(key, nextState[key]);
+      if (publication === this.publication && previous[key] !== nextState[key])
+        this.setState(key, nextState[key]);
     };
     update('status');
     update('messages');
@@ -608,15 +604,22 @@ export abstract class AbstractRealtimeSession {
     callId: string,
     name: string,
     args: unknown,
+    attempt: RealtimeAttempt,
   ): Promise<void> {
-    const attempt = this.attempt;
-    if (!attempt?.active || attempt.closing || attempt.cause != null) return;
+    if (
+      this.continuous ||
+      this.attempt !== attempt ||
+      !attempt.active ||
+      attempt.closing ||
+      attempt.cause != null
+    )
+      return;
     try {
       if (this.onToolCall == null) {
-        if (!this.continuous)
-          void this.reportError(
-            new Error(`No handler provided for tool "${name}"`),
-          );
+        void this.reportError(
+          new Error(`No handler provided for tool "${name}"`),
+          attempt,
+        );
         return;
       }
       const result = await this.onToolCall({
@@ -624,22 +627,35 @@ export abstract class AbstractRealtimeSession {
       });
       if (
         result !== undefined &&
+        this.attempt === attempt &&
         attempt?.active &&
         this.state.status === 'connected'
       )
         this.addToolOutput(callId, result);
     } catch (error) {
-      if (attempt?.active) void this.reportError(error);
+      if (attempt.active) void this.reportError(error, attempt);
     }
   }
 
-  private async handleServerEvent(event: RealtimeServerEvent): Promise<void> {
-    const attempt = this.attempt;
-    if (!attempt?.active) return;
-    const command = await this.commands?.receive(event);
-    if (!attempt.active) return;
+  private async handleServerEvent(
+    event: RealtimeServerEvent,
+    attempt: RealtimeAttempt,
+  ): Promise<void> {
+    const current = () => this.attempt === attempt && attempt.active;
+    if (!current()) return;
+    if (event.type === 'session-started' && event.delegationMode === 'provider')
+      throw new UnsupportedFunctionalityError({
+        functionality:
+          'Provider delegation mode; this realtime runtime supports client delegation only',
+      });
+    if (this.continuous && event.type === 'audio-delta')
+      throw new UnsupportedFunctionalityError({
+        functionality:
+          'Turn-based audio-delta in a continuous PCM session; use audio-chunk',
+      });
+    const command = this.commands?.receive(event);
     const result = await this.reducer.reduceServerEvent(this.state, event);
-    if (!attempt.active) return;
+    if (!current()) return;
     const session =
       this.state.session ??
       (event.type === 'session-started' ? createSessionState() : undefined);
@@ -657,14 +673,24 @@ export abstract class AbstractRealtimeSession {
             ),
           }),
     });
-    for (const effect of result.effects) this.handleReducerEffect(effect);
+    if (!current()) return;
+    for (const effect of result.effects) {
+      this.handleReducerEffect(effect, attempt);
+      if (!current()) return;
+    }
     if (event.type === 'audio-chunk')
       (this.pcm ?? this.audio)?.playAudio(event.delta);
+    if (!current()) return;
     if (event.type === 'response-done' && this.toolCallsInResponse.size > 0) {
       this.responseToolCallsClosed = true;
       this.maybeRequestToolResponse();
     }
-    if (event.type === 'session-closed' && session != null) this.disconnect();
+    if (!current()) return;
+    if (event.type === 'session-closed' && session != null) {
+      this.disconnect();
+      this.notifyEvent(event, attempt, true);
+      return;
+    }
     if (
       (event.type === 'session-started' ||
         event.type === 'session-created' ||
@@ -681,45 +707,53 @@ export abstract class AbstractRealtimeSession {
         attempt.ready = true;
         attempt.clearTimer('startup');
         this.applyState({ ...this.state, status: 'connected' });
+        if (!current() || attempt.closing) return;
         this.pcm?.startCapture();
       }
     }
-    this.notifyEvent(event);
-    const tool = command?.tool;
-    if (tool != null && attempt.active && this.state.status === 'connected')
-      void this.executeTool(tool.callId, tool.name, tool.args);
+    if (current()) this.notifyEvent(event, attempt);
   }
 
-  private handleReducerEffect(effect: RealtimeReducerEffect): void {
+  private handleReducerEffect(
+    effect: RealtimeReducerEffect,
+    attempt: RealtimeAttempt,
+  ): void {
     switch (effect.type) {
       case 'play-audio':
         this.currentResponseItemId = effect.itemId;
         this.audio?.playAudio(effect.delta);
         break;
       case 'speech-started':
-        if (this.state.isPlaying) {
+        if (!this.continuous && this.state.isPlaying) {
           const playedMs = this.audio?.getPlaybackOffsetMs() ?? 0;
+          const itemId = this.currentResponseItemId;
           this.audio?.stopPlayback();
-          if (this.currentResponseItemId != null)
+          if (this.attempt !== attempt || !attempt.active) return;
+          if (itemId != null)
             this.sendEvent({
               type: 'conversation-item-truncate',
-              itemId: this.currentResponseItemId,
+              itemId,
               contentIndex: 0,
               audioEndMs: Math.round(playedMs),
             });
         }
         break;
       case 'tool-call':
+        if (this.continuous) break;
         this.toolCallsInResponse.add(effect.callId);
-        void this.executeTool(effect.callId, effect.name, effect.args);
+        void this.executeTool(effect.callId, effect.name, effect.args, attempt);
         break;
       case 'error':
-        void this.reportError(effect.error);
+        void this.reportError(effect.error, attempt);
         break;
     }
   }
 
-  private async reportError(error: unknown): Promise<void> {
+  private async reportError(
+    error: unknown,
+    attempt: RealtimeAttempt,
+  ): Promise<void> {
+    if (this.attempt !== attempt) return;
     try {
       await this.onError?.(
         error instanceof Error ? error : new Error(String(error)),
@@ -729,13 +763,19 @@ export abstract class AbstractRealtimeSession {
     }
   }
 
-  private notifyEvent(event: RealtimeServerEvent): void {
+  private notifyEvent(
+    event: RealtimeServerEvent,
+    attempt: RealtimeAttempt,
+    terminal = false,
+  ): void {
+    if (this.attempt !== attempt || (!attempt.active && !terminal)) return;
+    const report = (error: unknown) => {
+      if (attempt.active || terminal) void this.reportError(error, attempt);
+    };
     try {
-      void Promise.resolve(this.onEvent?.(event)).catch(error =>
-        this.reportError(error),
-      );
+      void Promise.resolve(this.onEvent?.(event)).catch(report);
     } catch (error) {
-      void this.reportError(error);
+      report(error);
     }
   }
 }

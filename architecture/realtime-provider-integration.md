@@ -1,7 +1,8 @@
 # Experimental realtime provider integration
 
 This document is for runtime and provider authors. Application developers should
-start with `experimental_useRealtime` and the provider documentation.
+start with the OpenAI provider documentation. This stage provides client-delegated
+Live over server WebSockets; runtime and UI integration follow separately.
 
 ## Shared interface, provider-specific protocol
 
@@ -22,30 +23,34 @@ token-based providers retain their client-secret setup; selecting Live through
 | ----------- | ----------------------------------------------------------------------------------- |
 | Provider    | Endpoint/auth configuration, option validation, wire commands and event mapping     |
 | Runtime     | Socket ownership, readiness, ordered delivery, bounded buffering, media and cleanup |
-| React       | State subscriptions and application controls                                        |
 | Application | Authorization, tool execution policy, durable state and external side effects       |
 
 For a server-owned WebSocket, `getServerWebSocketConfig()` supplies connection
 settings; its credential-bearing headers remain server-side. The runtime sends
 provider-serialized startup and commands and feeds incoming JSON into a fresh
 `createServerEventParser()` for each connection. Discard that parser on disconnect.
-The stateless `parseServerEvent()` remains useful for isolated events, but cannot
-infer correlation requiring earlier events. The OpenAI implementation returns arrays
-from both entry points, including for a single normalized event.
+Both parser entry points use pure mapping and return arrays, including for a single
+normalized event. Unknown provider messages, including `response.event`, remain
+`custom` events with the original payload in `raw`.
+
+Live accepts omitted, null, or `{ type: 'client' }` delegation at startup. The
+application owns its agent and tools and sends context back with `context-append`.
+Startup settings are immutable; `session-update` rejects. Native server mode metadata
+maps to `client` or `provider`; a client-delegation runtime must reject a confirmed
+`provider` mode before treating the session as ready.
 
 ## Semantics that must survive adaptation
 
 - Preserve raw events, opaque IDs, transcript text and overlapping timestamps.
   Display rows are not authoritative voice turns.
-- Correlate delegated backend items through response identity; do not interpret
-  empty terminal output snapshots as proof that no function results are pending.
-- Keep voice duration and backend token/tool usage separate. Replace cumulative
-  duration snapshots rather than summing them; deduplicate backend completions.
+- Preserve delegation IDs and optional target, offset, and response metadata without
+  inferring relationships or inventing IDs.
+- Replace cumulative voice duration snapshots rather than summing them.
 - Install the terminal listener before sending a close command. Only the provider's
   terminal event confirms final usage; transport loss leaves the last snapshot
   unconfirmed. Do not replay side-effecting work automatically on reconnection.
 
 The shared event/capability additions remain experimental. OpenAI-specific delegation
 configuration, command channel selectors and native wire details stay in its provider
-namespace. A unified public factory is not a claim that other providers implement
-OpenAI's backend workflow.
+namespace. Connection and lifecycle capabilities remain model-wide so consumers can
+select the supported transport and startup/finalization commands.

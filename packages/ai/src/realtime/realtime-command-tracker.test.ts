@@ -1,11 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { RealtimeClientEvent } from '../types/realtime-model';
 import { deferred } from './__fixtures__/fake-realtime';
-import { RealtimeCommandCoordinator } from './realtime-command-coordinator';
+import { RealtimeCommandTracker } from './realtime-command-tracker';
 
 const noAckCommands = [
-  { type: 'backend-input-create', content: [{ type: 'text', text: 'hello' }] },
-  { type: 'backend-response-create' },
   { type: 'input-audio-append', audio: 'AAAA' },
   { type: 'session-start', config: {} },
   { type: 'session-close' },
@@ -19,12 +17,7 @@ const acknowledgedCommands = [
 ] satisfies RealtimeClientEvent[];
 
 function coordinator(send = vi.fn(async (_event: RealtimeClientEvent) => {})) {
-  return new RealtimeCommandCoordinator({
-    send,
-    active: () => true,
-    autoContinue: false,
-    onError: vi.fn(),
-  });
+  return new RealtimeCommandTracker(send);
 }
 
 describe('normalized realtime command completion', () => {
@@ -124,8 +117,8 @@ describe('normalized realtime command completion', () => {
     const commands = coordinator(vi.fn(() => pending.promise));
     const sends = Array.from({ length: 512 }, (_, index) =>
       commands.send({
-        type: 'backend-input-create',
-        content: [],
+        type: 'input-audio-append',
+        audio: 'AAAA',
         eventId: `pending-${index}`,
       }),
     );
@@ -152,11 +145,11 @@ describe('normalized realtime command completion', () => {
       throw new Error('synchronous send failure');
     });
     expect(() =>
-      commands.send({ type: 'backend-response-create', eventId: 'failed' }),
+      commands.send({ type: 'session-close', eventId: 'failed' }),
     ).toThrow('synchronous send failure');
     expect(() =>
-      commands.send({ type: 'backend-response-create', eventId: 'failed' }),
+      commands.send({ type: 'session-close', eventId: 'failed' }),
     ).toThrow('fresh eventId');
-    await commands.send({ type: 'backend-response-create', eventId: 'retry' });
+    await commands.send({ type: 'session-close', eventId: 'retry' });
   });
 });
