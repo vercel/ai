@@ -181,3 +181,98 @@ console.log('Job ID:', metadata?.jobId);
 console.log('Seed:', metadata?.seed);
 console.log('Elapsed:', metadata?.elapsed);
 ```
+
+## Video Models
+
+Create a video model with `prodia.video()` and call `experimental_generateVideo`.
+
+| Model                                   | Input                                |
+| --------------------------------------- | ------------------------------------ |
+| `inference.minimax.h3.fast.txt2vid.v1`  | Text                                 |
+| `inference.minimax.h3.fast.img2vid.v1`  | First image, optionally a last image |
+| `inference.minimax.h3.fast.ref2vid.v1`  | Image, video, and audio references   |
+| `inference.wan2-2.lightning.txt2vid.v0` | Text                                 |
+| `inference.wan2-2.lightning.img2vid.v0` | Image                                |
+
+### H3 Fast Text-to-Video
+
+```ts
+import { prodia } from '@ai-sdk/prodia';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: prodia.video('inference.minimax.h3.fast.txt2vid.v1'),
+  prompt: 'A red fox walks through a snowy forest, snow crunching underfoot',
+  duration: 4,
+  aspectRatio: '16:9',
+  seed: 0,
+});
+```
+
+H3 fast produces MP4 video with synchronized stereo audio at 24 fps and a 768px
+short edge. `duration` accepts whole seconds from 4 to 15 and defaults to 6.
+The model rounds duration up to its frame grid: a 4-second request produces
+approximately 4.46 seconds.
+
+Text-to-video and reference-to-video support `aspectRatio`: `16:9`, `4:3`, `1:1`,
+`3:4`, `9:16`, or `21:9`. Image-to-video follows the first image's aspect ratio.
+`seed` accepts integers from 0 to 2147483647.
+
+`providerOptions.prodia.resolution` accepts `768P` for H3 fast. Omit it to use
+that default. The standard `resolution` option cannot change H3's output size.
+Other frame rates and disabling audio are unsupported and produce warnings.
+See the [Prodia text-to-video reference](https://docs.prodia.com/llms/job-types/inference-minimax-h3-fast-txt2vid-v1.md).
+
+### H3 Fast Image-to-Video
+
+Pass an image in `prompt.image` to animate it, or use `frameImages` to specify
+both endpoints:
+
+```ts
+const { video } = await generateVideo({
+  model: prodia.video('inference.minimax.h3.fast.img2vid.v1'),
+  prompt: 'The camera moves slowly through the scene',
+  frameImages: [
+    {
+      frameType: 'first_frame',
+      image: new URL('https://example.com/first.png'),
+    },
+    { frameType: 'last_frame', image: new URL('https://example.com/last.png') },
+  ],
+  duration: 4,
+});
+```
+
+A first frame is required. The provider uploads the images and sets Prodia's
+`first_frame` and `last_frame` filenames. URLs and binary image data are supported.
+See the [Prodia image-to-video reference](https://docs.prodia.com/llms/job-types/inference-minimax-h3-fast-img2vid-v1.md).
+
+### H3 Fast Reference-to-Video
+
+Use `inputReferences` for subject, motion, and audio conditioning. For video and
+audio references, provide an explicit media type:
+
+```ts
+const { video } = await generateVideo({
+  model: prodia.video('inference.minimax.h3.fast.ref2vid.v1'),
+  prompt: 'The subject walks through a sunlit park, birds chirping',
+  inputReferences: [
+    {
+      data: new URL('https://example.com/subject.png'),
+      mediaType: 'image/png',
+    },
+    { data: new URL('https://example.com/motion.mp4'), mediaType: 'video/mp4' },
+    { data: new URL('https://example.com/voice.wav'), mediaType: 'audio/wav' },
+  ],
+  duration: 4,
+});
+```
+
+References retain their input order and content types. H3 accepts up to 9 images,
+3 videos, and 3 audio files, with at most 12 files total. Include at least one
+image or video; audio alone is not supported. Omit `aspectRatio` to derive it from
+the first visual reference. Reference and frame inputs cannot be combined.
+See the [Prodia reference-to-video reference](https://docs.prodia.com/llms/job-types/inference-minimax-h3-fast-ref2vid-v1.md).
+
+Video responses include job information in `providerMetadata.prodia.videos`,
+including the job ID, seed, elapsed time, and price when returned by Prodia.
