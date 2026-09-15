@@ -162,7 +162,8 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { fetch as expoFetch } from 'expo/fetch';
 import { useState } from 'react';
-import { View, TextInput, ScrollView, Text, SafeAreaView } from 'react-native';
+import { View, TextInput, ScrollView, Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function App() {
   const [input, setInput] = useState('');
@@ -177,7 +178,7 @@ export default function App() {
   if (error) return <Text>{error.message}</Text>;
 
   return (
-    <SafeAreaView style={{ height: '100%' }}>
+    <SafeAreaView style={{ height: '100%' }} edges={['top']}>
       <View
         style={{
           height: '95%',
@@ -377,7 +378,8 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { fetch as expoFetch } from 'expo/fetch';
 import { useState } from 'react';
-import { View, TextInput, ScrollView, Text, SafeAreaView } from 'react-native';
+import { View, TextInput, ScrollView, Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function App() {
   const [input, setInput] = useState('');
@@ -392,7 +394,7 @@ export default function App() {
   if (error) return <Text>{error.message}</Text>;
 
   return (
-    <SafeAreaView style={{ height: '100%' }}>
+    <SafeAreaView style={{ height: '100%' }} edges={['top']}>
       <View
         style={{
           height: '95%',
@@ -598,7 +600,8 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { fetch as expoFetch } from 'expo/fetch';
 import { useState } from 'react';
-import { View, TextInput, ScrollView, Text, SafeAreaView } from 'react-native';
+import { View, TextInput, ScrollView, Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function App() {
   const [input, setInput] = useState('');
@@ -613,7 +616,7 @@ export default function App() {
   if (error) return <Text>{error.message}</Text>;
 
   return (
-    <SafeAreaView style={{ height: '100%' }}>
+    <SafeAreaView style={{ height: '100%' }} edges={['top']}>
       <View
         style={{
           height: '95%',
