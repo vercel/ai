@@ -1,0 +1,104 @@
+---
+title: ai&
+description: Use the ai& OpenAI compatible API with the AI SDK.
+---
+
+# ai& Provider
+
+[ai&](https://aiand.com) provides inference for open-weight models, served from data centers in Japan through an OpenAI-compatible API. You can use it with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+The ai& provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API. You can install it with:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+## Provider Instance
+
+To use ai&, you can create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const aiand = createOpenAICompatible({
+  name: 'aiand',
+  baseURL: 'https://api.aiand.com/v1',
+  apiKey: process.env.AIAND_API_KEY,
+  includeUsage: true,
+});
+```
+
+<Note>
+  You can create an API key in the [ai& console](https://console.aiand.com).
+  Make sure to set the `AIAND_API_KEY` environment variable with your API key.
+</Note>
+
+## Language Models
+
+You can create ai& models using a provider instance. The first argument is the model ID from the [public model catalog](https://api.aiand.com/v1/models), e.g. `openai/gpt-oss-120b`.
+
+```ts
+const model = aiand('openai/gpt-oss-120b');
+```
+
+### Example
+
+You can use ai& language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const aiand = createOpenAICompatible({
+  name: 'aiand',
+  baseURL: 'https://api.aiand.com/v1',
+  apiKey: process.env.AIAND_API_KEY,
+});
+
+const { text } = await generateText({
+  model: aiand('openai/gpt-oss-120b'),
+  prompt: 'Tell me a haiku about Tokyo.',
+});
+
+console.log(text);
+```
+
+ai& language models can also generate text in a streaming fashion with the `streamText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const aiand = createOpenAICompatible({
+  name: 'aiand',
+  baseURL: 'https://api.aiand.com/v1',
+  apiKey: process.env.AIAND_API_KEY,
+});
+
+const result = streamText({
+  model: aiand('openai/gpt-oss-120b'),
+  prompt: 'Write a short story about a robot learning to paint.',
+});
+
+for await (const message of result.textStream) {
+  console.log(message);
+}
+```
+
+ai& language models support tool calling with both `generateText` and `streamText`.
+
+## Reasoning Models
+
+Reasoning models accept a reasoning effort level via `providerOptions`. The supported levels per model are published in the `reasoning_efforts` field of the [model catalog](https://api.aiand.com/v1/models).
+
+```ts
+const { text } = await generateText({
+  model: aiand('zai-org/glm-5.3'),
+  prompt: 'Solve this step by step: What is 15 * 23?',
+  providerOptions: {
+    aiand: {
+      reasoningEffort: 'high',
+    },
+  },
+});
+```
