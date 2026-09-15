@@ -1186,6 +1186,50 @@ Gemini Live Translation accepts audio input and produces translated audio
 output. Text input, tools, and custom instructions are not supported by this
 model.
 
+### Gemini 3.8 Live
+
+`gemini-3.8-live` and `gemini-3.8-live-extended-thinking` are audio-only
+realtime models: request `outputModalities: ['audio']`, and add
+`outputAudioTranscription: {}` if you want the assistant's transcript as
+`audio-transcript-delta` events. Server-side voice activity detection and
+proactive audio are always on.
+
+`gemini-3.8-live-extended-thinking` reasons in the background while streaming
+audio. Google requires exactly one of `thinkingLevel` (`low`, `medium`, `high`)
+or `thinkingBudget` for it; the provider sends `thinkingLevel: 'low'` when you
+set neither. Override it through `providerOptions.google.thinkingConfig`:
+
+```ts
+import {
+  google,
+  type Experimental_GoogleRealtimeModelOptions as GoogleRealtimeModelOptions,
+} from '@ai-sdk/google';
+
+const token = await google.experimental_realtime.getToken({
+  model: 'gemini-3.8-live-extended-thinking',
+  sessionConfig: {
+    outputModalities: ['audio'],
+    outputAudioTranscription: {},
+    providerOptions: {
+      google: {
+        thinkingConfig: { thinkingLevel: 'high' },
+      } satisfies GoogleRealtimeModelOptions,
+    },
+  },
+});
+```
+
+Tools declared in the session config run asynchronously (`NON_BLOCKING`) by
+default on these models, so the model keeps talking while a tool call is in
+flight. Set `providerOptions.google.defaultToolBehavior: 'BLOCKING'` on
+`gemini-3.8-live` to make it wait for the result instead.
+
+On the extended thinking model, `turnComplete` (the `response-done` event) does
+not mean the model is idle. Watch the `interactionStatus` custom event: its
+`raw.interactionStatus` is `IN_PROGRESS`, `IDLE`, or `WAITING_FOR_INPUT`. A
+`waitingForInput` custom event is emitted when the model has stopped and needs
+user input to continue.
+
 ## Translation Models
 
 <Note type="warning">Speech translation is an experimental feature.</Note>
