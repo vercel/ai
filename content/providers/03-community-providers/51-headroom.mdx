@@ -1,0 +1,215 @@
+---
+title: Headroom
+description: Compress LLM context to save tokens and fit more into every request.
+---
+
+# Headroom
+
+[Headroom](https://github.com/chopratejas/headroom) compresses the context your AI application sends to the model. Tool outputs, search results, database queries, file contents, and conversation history are typically 70-95% boilerplate. Headroom compresses it away before it reaches the LLM.
+
+- **Save tokens**: 70-90% fewer input tokens on tool outputs and structured data
+- **Same accuracy**: Statistical compression preserves errors, anomalies, and key information
+- **Any provider**: Works with OpenAI, Anthropic, Google, and 100+ providers — compression happens before the model sees it
+- **Middleware or function**: Use as AI SDK middleware for automatic compression, or call `compress()` directly
+
+## Setup
+
+The Headroom provider is available in the `headroom-ai` package. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add headroom-ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install headroom-ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add headroom-ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add headroom-ai" dark />
+  </Tab>
+</Tabs>
+
+Headroom requires a running compression server. Start it with:
+
+```bash
+pip install "headroom-ai[proxy]"
+headroom proxy --port 8787
+```
+
+Or set `HEADROOM_BASE_URL` to your [Headroom Cloud](https://github.com/chopratejas/headroom) endpoint.
+
+## Usage
+
+### Compress messages before calling the model
+
+The simplest approach — call `compress()` before `generateText` or `streamText`:
+
+```ts
+import { compress } from 'headroom-ai';
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+// After your agent calls tools, the conversation has large tool results
+const messages = [
+  { role: 'user', content: 'Analyze the server logs' },
+  {
+    role: 'assistant',
+    content: [
+      { type: 'tool-call', toolCallId: 'tc_1', toolName: 'get_logs', input: { limit: 100 } },
+    ],
+  },
+  {
+    role: 'tool',
+    content: [
+      {
+        type: 'tool-result',
+        toolCallId: 'tc_1',
+        toolName: 'get_logs',
+        output: { type: 'json', value: logEntries }, // 100 log entries
+      },
+    ],
+  },
+  { role: 'user', content: 'What is the critical issue?' },
+];
+
+const compressed = await compress(messages, { model: 'gpt-4o' });
+// 5,000 tokens → 850 tokens (83% saved)
+
+const { text } = await generateText({
+  model: openai('gpt-4o'),
+  messages: compressed.messages,
+});
+```
+
+`compress()` auto-detects the message format (AI SDK, OpenAI, or Anthropic) and returns compressed messages in the same format. Tool calls and their arguments are preserved — only the large tool result content is compressed.
+
+### Use as middleware
+
+Wrap any model with `headroomMiddleware` for automatic compression on every call:
+
+```ts
+import { headroomMiddleware } from 'headroom-ai/vercel-ai';
+import { wrapLanguageModel, generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const model = wrapLanguageModel({
+  model: openai('gpt-4o'),
+  middleware: headroomMiddleware(),
+});
+
+// All calls through this model are automatically compressed
+const { text } = await generateText({
+  model,
+  messages: conversationWithToolOutputs,
+});
+```
+
+The middleware compresses messages in the `transformParams` hook before they reach the LLM. Your application code does not change.
+
+### Streaming
+
+Both approaches work with `streamText`:
+
+```ts
+import { headroomMiddleware } from 'headroom-ai/vercel-ai';
+import { wrapLanguageModel, streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const model = wrapLanguageModel({
+  model: openai('gpt-4o'),
+  middleware: headroomMiddleware(),
+});
+
+const result = streamText({
+  model,
+  messages: longConversation,
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+### Works with any provider
+
+Headroom compresses the context before it reaches the model, so it works with any AI SDK provider:
+
+```ts
+import { compress } from 'headroom-ai';
+import { generateText } from 'ai';
+import { anthropic } from '@ai-sdk/anthropic';
+
+// Same pattern — compress tool results, then call any provider
+const messages = [
+  { role: 'user', content: 'Search for API design best practices' },
+  {
+    role: 'assistant',
+    content: [
+      { type: 'tool-call', toolCallId: 'tc_1', toolName: 'search', input: { query: 'API design' } },
+    ],
+  },
+  {
+    role: 'tool',
+    content: [
+      {
+        type: 'tool-result',
+        toolCallId: 'tc_1',
+        toolName: 'search',
+        output: { type: 'json', value: searchResults }, // 80 search results
+      },
+    ],
+  },
+  { role: 'user', content: 'What are the top 3 results?' },
+];
+
+const compressed = await compress(messages, { model: 'claude-sonnet-4-5' });
+// 2,800 tokens → 670 tokens (76% saved)
+
+const { text } = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  messages: compressed.messages,
+  maxTokens: 1024,
+});
+```
+
+## What Gets Compressed
+
+Headroom uses content-aware compression — different algorithms for different content types:
+
+| Content Type | Algorithm | Typical Savings |
+|---|---|---|
+| JSON arrays (tool outputs, search results) | Statistical selection — keeps anomalies, errors, boundaries | 80-95% |
+| Code (Python, JS, Go, Rust, Java, C++) | AST-aware — removes comments, whitespace, inlines simple functions | 30-60% |
+| Text (documents, articles) | ML-based token compression (ModernBERT) | 40-60% |
+| Logs | Pattern deduplication — keeps first, last, and anomalies | 70-90% |
+
+Compression is lossless in practice — errors, anomalies, and statistically significant items are always preserved.
+
+## Configuration
+
+```ts
+const compressed = await compress(messages, {
+  model: 'gpt-4o',                     // Model name (for token counting)
+  baseUrl: 'http://localhost:8787',     // Headroom proxy URL
+  apiKey: 'hr_...',                     // Headroom Cloud API key
+  timeout: 30000,                       // Request timeout (ms)
+  fallback: true,                       // Return uncompressed if proxy is down
+  retries: 1,                           // Retry on transient failures
+});
+```
+
+Environment variables:
+- `HEADROOM_BASE_URL` — Proxy or Cloud URL (default: `http://localhost:8787`)
+- `HEADROOM_API_KEY` — Cloud API key
+
+## Graceful Fallback
+
+By default, if the compression server is unreachable, `compress()` returns the original messages unchanged. Your application never breaks due to compression being unavailable.
+
+## References
+
+- [Headroom GitHub](https://github.com/chopratejas/headroom)
+- [TypeScript SDK Documentation](https://github.com/chopratejas/headroom/blob/main/docs/typescript-sdk.md)
+- [Python SDK Documentation](https://github.com/chopratejas/headroom/blob/main/docs/sdk.md)
