@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20768,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20768-tool-approval-denied-ui-stream.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20768-tool-approval-denied-ui-stream.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_20768_REPRODUCED: same-stream automatic denial omitted tool-output-denied and left the UI tool part in approval-responded"
+  }
+}
