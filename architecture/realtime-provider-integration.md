@@ -3,7 +3,8 @@
 This document is for runtime and provider authors. Application developers should
 start with the OpenAI provider documentation and `experimental_useRealtime` reference.
 Client-delegated Live uses the browser JSON/PCM16 WSS runtime through an
-application-owned relay; provider credentials stay on the server.
+application-owned relay; provider credentials stay on the server. Optional
+browser-direct WebRTC is available through `api.session`.
 
 ## Shared interface, provider-specific protocol
 
@@ -33,6 +34,19 @@ provider-serialized startup and commands and feeds incoming JSON into a fresh
 Both parser entry points use pure mapping and return arrays, including for a single
 normalized event. Unknown provider messages, including `response.event`, remain
 `custom` events with the original payload in `raw`.
+
+For WebRTC, the browser posts `{ sdp, sessionConfig }` to `api.session`. An
+authenticated application endpoint calls `doCreateWebRTCSession()` with server-owned
+delegation and data-channel permissions, returning only `{ sdp, sessionId }`.
+The provider supplies the channel label through `getWebRTCConfig()`; audio is
+negotiated through SDP rather than JSON PCM frames. Each attachment selects one
+live sender track, preferring enabled/unmuted media, and observes that track without
+automatic switching. SDK-owned tracks stop on cleanup; borrowed tracks only detach.
+
+Both browser transports use the same attempt-scoped callbacks, client ACK tracker,
+mode validation, and terminal-event drain. React actions and callbacks target the
+committed owner. Peer disconnects have a bounded recovery grace period; failed ICE
+is fatal, while autoplay failures can be retried through `resumePlayback()`.
 
 Live accepts omitted, null, or `{ type: 'client' }` delegation at startup. The
 application owns its agent and tools and sends context back with `context-append`.

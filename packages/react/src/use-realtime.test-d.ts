@@ -1,9 +1,28 @@
 import type { MouseEventHandler } from 'react';
 import { expectTypeOf } from 'vitest';
 import type { Experimental_RealtimeSessionState } from 'ai';
-import type { Experimental_UseRealtimeReturn } from './use-realtime';
+import type {
+  Experimental_UseRealtimeOptions,
+  Experimental_UseRealtimeReturn,
+} from './use-realtime';
 
 declare const realtime: Experimental_UseRealtimeReturn;
+
+expectTypeOf<{ session: string }>().toExtend<
+  Experimental_UseRealtimeOptions['api']
+>();
+expectTypeOf<{ session: string; token: string }>().not.toExtend<
+  Experimental_UseRealtimeOptions['api']
+>();
+expectTypeOf<{ session: string; websocket: string }>().not.toExtend<
+  Experimental_UseRealtimeOptions['api']
+>();
+expectTypeOf<{ session: string; protocols: string[] }>().not.toExtend<
+  Experimental_UseRealtimeOptions['api']
+>();
+expectTypeOf<
+  Experimental_UseRealtimeOptions['rtcDisconnectTimeoutMs']
+>().toEqualTypeOf<number | undefined>();
 
 expectTypeOf(realtime.session).toEqualTypeOf<
   Experimental_RealtimeSessionState | undefined

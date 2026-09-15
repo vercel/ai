@@ -2,10 +2,95 @@ import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
 import { describe, expect, it, vi } from 'vitest';
 import { createOpenAI } from '../index';
 import { openaiRealtimeModelLiveOptionsSchema } from './openai-realtime-model-live-options';
+import { buildOpenAILiveSessionConfig } from './openai-live-session-config';
 
 const model = createOpenAI().experimental_realtime('gpt-live-1');
 
 describe('Live client delegation startup options', () => {
+  it('converts native RTC permissions without enabling a managed response backend', () => {
+    const client = {
+      dataChannel: {
+        allowedClientEvents: ['session.close', 'session.thinking.append'],
+        allowedServerEvents: [
+          { type: 'session.started' },
+          { type: 'session.closed' },
+          { type: 'response.event', responseEvent: 'response.completed' },
+        ],
+      },
+    };
+    const config = {
+      providerOptions: { openai: { delegation: { type: 'client' }, client } },
+    };
+    expect(
+      buildOpenAILiveSessionConfig(config, 'gpt-live-1', 'webrtc'),
+    ).toEqual({
+      model: 'gpt-live-1',
+      audio: { output: { voice: 'marin' } },
+      delegation: { type: 'client' },
+      client: {
+        data_channel: {
+          allowed_client_events: ['session.close', 'session.thinking.append'],
+          allowed_server_events: [
+            { type: 'session.started' },
+            { type: 'session.closed' },
+            { type: 'response.event', response_event: 'response.completed' },
+          ],
+        },
+      },
+    });
+    expect(() => model.buildSessionConfig(config)).toThrow(
+      UnsupportedFunctionalityError,
+    );
+  });
+
+  it.each([
+    [{}, {}],
+    [
+      { allowedClientEvents: 'all', allowedServerEvents: 'all' },
+      { allowed_client_events: 'all', allowed_server_events: 'all' },
+    ],
+    [
+      { allowedClientEvents: [], allowedServerEvents: [] },
+      { allowed_client_events: [], allowed_server_events: [] },
+    ],
+  ])(
+    'preserves omitted, all, and empty RTC permissions: %j',
+    (dataChannel, expected) => {
+      expect(
+        buildOpenAILiveSessionConfig(
+          { providerOptions: { openai: { client: { dataChannel } } } },
+          'gpt-live-1',
+          'webrtc',
+        ),
+      ).toMatchObject({ client: { data_channel: expected } });
+    },
+  );
+
+  it.each([
+    { allowedServerEvents: ['session.started'] },
+    { allowedServerEvents: [{ type: 'response.event' }] },
+    {
+      allowedServerEvents: [
+        { type: 'session.started', responseEvent: 'response.created' },
+      ],
+    },
+    {
+      allowedServerEvents: [
+        { type: 'response.event', response_event: 'response.created' },
+      ],
+    },
+    { allowedClientEvents: true },
+    { extra: [] },
+  ])('rejects malformed RTC selectors %j', dataChannel => {
+    expect(() =>
+      buildOpenAILiveSessionConfig(
+        { providerOptions: { openai: { client: { dataChannel } } } },
+        'gpt-live-1',
+        'webrtc',
+      ),
+    ).toThrow();
+  });
+
   it.each([{}, { delegation: null }, { delegation: { type: 'client' } }])(
     'accepts client startup options %j',
     options => {

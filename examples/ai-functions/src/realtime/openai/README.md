@@ -13,6 +13,20 @@ defaults to `ws://localhost:4318/live`. For another frontend origin, set
 and authenticated upgrades for a deployed application; the local origin check is
 not user authentication.
 
+For optional browser-direct WebRTC, select **WebRTC** on the page. Set the provider
+key on the Next.js server; `/api/realtime-live` exchanges SDP and returns only the
+answer and session ID. That example endpoint requires application authentication
+before deployment and overrides delegation and data-channel permissions on the
+server. It allows client lifecycle, captions, delegation, mute, context ACKs, and
+errors. WebRTC does not require the WebSocket relay.
+
+WebRTC negotiates audio formats through SDP and sends one live audio track,
+preferring an enabled, unmuted track. Capture state follows that sender track;
+mute or ended events do not silently select another track. Browser microphone
+permission and a secure context are required. Use **Resume playback** after a
+blocked autoplay attempt. Live client delegation and manual context controls work
+the same on both transports.
+
 The hook owns paced PCM16 capture/playback and uses the OpenAI provider to serialize
 and parse events. The relay supplies server credentials and forwards ordered text
 frames, with bounded buffering. It has a ten-minute safety deadline; use the page's

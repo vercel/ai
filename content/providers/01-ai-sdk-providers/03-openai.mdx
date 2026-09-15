@@ -2872,9 +2872,9 @@ IDs retain the Realtime default. The provider does not switch APIs after a faile
 request. Both model implementations use the existing experimental realtime interface.
 
 Live supports **browser WSS sessions through an application-owned relay with client
-delegation**, using `experimental_useRealtime` for the browser runtime. Your
-application owns the agent and tool execution; Live delegations do not invoke
-`onToolCall`. For a low-level server adapter, obtain server-only connection
+delegation**, using `experimental_useRealtime` for the browser runtime, and optional
+browser-direct WebRTC. Your application owns the agent and tool execution; Live
+delegations do not invoke `onToolCall`. For a low-level server adapter, obtain server-only connection
 settings with `liveModel.getServerWebSocketConfig()` and serialize commands with
 `liveModel.serializeClientEvent()`. Create one parser per connection with
 `liveModel.createServerEventParser()` and pass incoming JSON to the returned
@@ -2902,6 +2902,14 @@ credential; an origin check alone is not user authentication. The relay uses its
 server-held OpenAI key upstream. Selecting a Live model does not make the Realtime
 client-secret endpoint compatible with the Live API.
 
+For browser-direct Live WebRTC, an authenticated application endpoint performs the
+SDP exchange through `liveModel.doCreateWebRTCSession({ sdp, sessionConfig, abortSignal })`
+using the server's project key. The browser receives the
+session connection answer, not the project key or a Realtime client secret. This
+setup endpoint still needs application authentication. See the
+[`experimental_useRealtime` reference](/docs/reference/ai-sdk-ui/use-realtime)
+for the `api.session` setup contract and the runnable example.
+
 ### Live session options
 
 Configure Live-specific settings through `sessionConfig.providerOptions.openai`,
@@ -2927,10 +2935,20 @@ const sessionConfig = {
   the ordinary `sessionConfig.voice` string.
 - `store`: requests provider-side session storage; availability depends on the
   OpenAI project configuration.
+- `client.dataChannel`: WebRTC startup permission policy with
+  `allowedClientEvents` and `allowedServerEvents`. Set it on the application server,
+  not from trusted-looking browser input. Omission retains the provider default;
+  `[]` allows none and `'all'` allows all. Response event selectors use
+  `{ type: 'response.event', responseEvent: 'response.completed' }` to select
+  native nested events, which remain raw `custom` events rather than managed SDK
+  responses. Keep readiness, errors, and terminal usage observable for
+  the session features your application enables.
 
-Send the initial configuration with `session-start`. Live startup settings are
+Send the initial WebSocket configuration with `session-start`; WebRTC starts the
+session during SDP setup and negotiates audio formats through SDP. Live startup settings are
 immutable: `session-update` is rejected. Use `input-audio-mute` and
-`input-audio-unmute` for microphone control. Return application context through
+`input-audio-unmute` for remote input processing; these commands do not release the
+local microphone. Return application context through
 `context-append`, using the opaque `delegationId` from `delegation-created`, or
 `null` for context without a delegation. Its `providerOptions.openai.channel`
 accepts `instructions`, `thinking` (the default), or `commentary`.
@@ -2941,12 +2959,12 @@ so replace earlier snapshots rather than adding them.
 
 For the browser integration, see the
 [`experimental_useRealtime` reference](/docs/reference/ai-sdk-ui/use-realtime#continuous-conversations).
-It covers the JSON/PCM16 WebSocket relay runtime, microphone and playback ownership,
-`session.delegations`, `sendEvent` for application context, and `close()` for bounded
-finalization. Use `wss:` for production relays. Continuous conversation semantics
-do not imply browser support for every provider codec or transport.
-The [Realtime guide](/docs/ai-sdk-core/realtime) covers legacy token-based,
-turn-based sessions.
+It covers the JSON/PCM16 WebSocket relay runtime, optional WebRTC setup and permission
+policy, microphone and playback ownership, `session.delegations`, `sendEvent` for
+application context, and `close()` for bounded finalization. Use `wss:` for production
+relays. Continuous conversation semantics do not imply browser support for every
+provider codec or transport. The [Realtime guide](/docs/ai-sdk-core/realtime) covers
+legacy token-based, turn-based sessions.
 
 ## Embedding Models
 
