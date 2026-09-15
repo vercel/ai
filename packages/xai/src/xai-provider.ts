@@ -45,6 +45,9 @@ export interface XaiProvider extends ProviderV4 {
 
   /**
    * Creates an Xai chat model for text generation.
+   *
+   * @deprecated xAI has deprecated the Chat Completions API. Use
+   * `xai.responses(modelId)` instead.
    */
   chat: (modelId: XaiChatModelId) => LanguageModelV4;
 
