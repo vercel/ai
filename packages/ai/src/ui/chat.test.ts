@@ -2777,6 +2777,428 @@ describe('Chat', () => {
     });
   });
 
+<<<<<<< HEAD
+=======
+  describe('addToolOutput options forwarding', () => {
+    it('should forward options to makeRequest when auto-sending', async () => {
+      server.urls['http://localhost:3000/api/chat'].response = [
+        {
+          type: 'stream-chunks',
+          chunks: [
+            formatChunk({ type: 'start' }),
+            formatChunk({ type: 'start-step' }),
+            formatChunk({
+              type: 'tool-input-available',
+              dynamic: true,
+              toolCallId: 'tool-call-0',
+              toolName: 'test-tool',
+              input: { testArg: 'test-value' },
+            }),
+            formatChunk({ type: 'finish-step' }),
+            formatChunk({ type: 'finish' }),
+          ],
+        },
+        {
+          type: 'stream-chunks',
+          chunks: [
+            formatChunk({ type: 'start' }),
+            formatChunk({ type: 'start-step' }),
+            formatChunk({ type: 'finish-step' }),
+            formatChunk({ type: 'finish' }),
+          ],
+        },
+      ];
+
+      let callCount = 0;
+      const onFinishPromise = createResolvablePromise<void>();
+
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+        onFinish: () => {
+          callCount++;
+          if (callCount === 2) {
+            onFinishPromise.resolve();
+          }
+        },
+      });
+
+      await chat.sendMessage({
+        text: 'Hello, world!',
+      });
+
+      await chat.addToolOutput({
+        state: 'output-available',
+        tool: 'test-tool',
+        toolCallId: 'tool-call-0',
+        output: 'test-output',
+        options: {
+          headers: { 'x-custom': 'test-value' },
+          body: { extra: 'data' },
+        },
+      });
+
+      await onFinishPromise.promise;
+
+      expect(server.calls.length).toBe(2);
+      expect(server.calls[1].requestHeaders['x-custom']).toBe('test-value');
+      expect(await server.calls[1].requestBodyJson).toMatchObject({
+        extra: 'data',
+      });
+    });
+  });
+
+  describe('addToolApprovalResponse options forwarding', () => {
+    it('should forward options to makeRequest when auto-sending', async () => {
+      server.urls['http://localhost:3000/api/chat'].response = [
+        {
+          type: 'stream-chunks',
+          chunks: [
+            formatChunk({ type: 'start' }),
+            formatChunk({ type: 'start-step' }),
+            formatChunk({
+              type: 'tool-output-available',
+              toolCallId: 'call-1',
+              output: { temperature: 72, weather: 'sunny' },
+            }),
+            formatChunk({ type: 'text-start', id: 'txt-1' }),
+            formatChunk({
+              type: 'text-delta',
+              id: 'txt-1',
+              delta: 'The weather in Tokyo is sunny.',
+            }),
+            formatChunk({ type: 'text-end', id: 'txt-1' }),
+            formatChunk({ type: 'finish-step' }),
+            formatChunk({
+              type: 'finish',
+              finishReason: 'stop',
+            }),
+          ],
+        },
+      ];
+
+      const onFinishPromise = createResolvablePromise<void>();
+
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId({ prefix: 'newid' }),
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        messages: [
+          {
+            id: 'id-0',
+            role: 'user',
+            parts: [{ text: 'What is the weather in Tokyo?', type: 'text' }],
+          },
+          {
+            id: 'id-1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-weather',
+                toolCallId: 'call-1',
+                state: 'approval-requested',
+                input: { city: 'Tokyo' },
+                approval: { id: 'approval-1' },
+              },
+            ],
+          },
+        ],
+        sendAutomaticallyWhen:
+          lastAssistantMessageIsCompleteWithApprovalResponses,
+        onFinish: () => {
+          onFinishPromise.resolve();
+        },
+      });
+
+      await chat.addToolApprovalResponse({
+        id: 'approval-1',
+        approved: true,
+        options: {
+          headers: { 'x-custom': 'test-value' },
+          body: { extra: 'data' },
+        },
+      });
+
+      await onFinishPromise.promise;
+
+      expect(server.calls.length).toBe(1);
+      expect(server.calls[0].requestHeaders['x-custom']).toBe('test-value');
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        extra: 'data',
+      });
+    });
+  });
+
+  describe('addToolApprovalResponse', () => {
+    it('should preserve signed approval metadata when recording the response', async () => {
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId({ prefix: 'newid' }),
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        messages: [
+          {
+            id: 'id-0',
+            role: 'user',
+            parts: [{ text: 'What is the weather in Tokyo?', type: 'text' }],
+          },
+          {
+            id: 'id-1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-weather',
+                toolCallId: 'call-1',
+                state: 'approval-requested',
+                input: { city: 'Tokyo' },
+                approval: {
+                  id: 'approval-1',
+                  signature: 'signed-approval-envelope',
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      await chat.addToolApprovalResponse({
+        id: 'approval-1',
+        approved: true,
+        reason: 'looks good',
+      });
+
+      expect(chat.messages[1].parts[1]).toMatchObject({
+        state: 'approval-responded',
+        approval: {
+          id: 'approval-1',
+          approved: true,
+          reason: 'looks good',
+          signature: 'signed-approval-envelope',
+        },
+      });
+    });
+
+    describe('approved', () => {
+      let chat: TestChat;
+
+      beforeEach(async () => {
+        chat = new TestChat({
+          id: '123',
+          generateId: mockId({ prefix: 'newid' }),
+          transport: new DefaultChatTransport({
+            api: 'http://localhost:3000/api/chat',
+          }),
+          messages: [
+            {
+              id: 'id-0',
+              role: 'user',
+              parts: [{ text: 'What is the weather in Tokyo?', type: 'text' }],
+            },
+            {
+              id: 'id-1',
+              role: 'assistant',
+              parts: [
+                { type: 'step-start' },
+                {
+                  type: 'tool-weather',
+                  toolCallId: 'call-1',
+                  state: 'approval-requested',
+                  input: { city: 'Tokyo' },
+                  approval: { id: 'approval-1' },
+                },
+              ],
+            },
+          ],
+        });
+
+        await chat.addToolApprovalResponse({
+          id: 'approval-1',
+          approved: true,
+        });
+      });
+
+      it('should update tool invocation to show the approval response', () => {
+        expect(chat.messages).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "What is the weather in Tokyo?",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": true,
+                    "id": "approval-1",
+                    "reason": undefined,
+                  },
+                  "input": {
+                    "city": "Tokyo",
+                  },
+                  "state": "approval-responded",
+                  "toolCallId": "call-1",
+                  "type": "tool-weather",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+    });
+
+    describe('approved with automatic sending', () => {
+      let chat: TestChat;
+      const onFinishPromise = createResolvablePromise<void>();
+
+      beforeEach(async () => {
+        server.urls['http://localhost:3000/api/chat'].response = [
+          {
+            type: 'stream-chunks',
+            chunks: [
+              formatChunk({ type: 'start' }),
+              formatChunk({ type: 'start-step' }),
+              formatChunk({
+                type: 'tool-output-available',
+                toolCallId: 'call-1',
+                output: { temperature: 72, weather: 'sunny' },
+              }),
+              formatChunk({ type: 'text-start', id: 'txt-1' }),
+              formatChunk({
+                type: 'text-delta',
+                id: 'txt-1',
+                delta: 'The weather in Tokyo is sunny.',
+              }),
+              formatChunk({ type: 'text-end', id: 'txt-1' }),
+              formatChunk({ type: 'finish-step' }),
+              formatChunk({
+                type: 'finish',
+                finishReason: 'stop',
+              }),
+            ],
+          },
+        ];
+
+        chat = new TestChat({
+          id: '123',
+          generateId: mockId({ prefix: 'newid' }),
+          transport: new DefaultChatTransport({
+            api: 'http://localhost:3000/api/chat',
+          }),
+          messages: [
+            {
+              id: 'id-0',
+              role: 'user',
+              parts: [{ text: 'What is the weather in Tokyo?', type: 'text' }],
+            },
+            {
+              id: 'id-1',
+              role: 'assistant',
+              parts: [
+                { type: 'step-start' },
+                {
+                  type: 'tool-weather',
+                  toolCallId: 'call-1',
+                  state: 'approval-requested',
+                  input: { city: 'Tokyo' },
+                  approval: { id: 'approval-1' },
+                },
+              ],
+            },
+          ],
+          sendAutomaticallyWhen:
+            lastAssistantMessageIsCompleteWithApprovalResponses,
+          onFinish: () => {
+            onFinishPromise.resolve();
+          },
+        });
+
+        await chat.addToolApprovalResponse({
+          id: 'approval-1',
+          approved: true,
+        });
+
+        await onFinishPromise.promise;
+      });
+
+      it('should update tool invocation to show the approval response', () => {
+        expect(chat.messages).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "What is the weather in Tokyo?",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": true,
+                    "id": "approval-1",
+                    "reason": undefined,
+                  },
+                  "errorText": undefined,
+                  "input": {
+                    "city": "Tokyo",
+                  },
+                  "output": {
+                    "temperature": 72,
+                    "weather": "sunny",
+                  },
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "toolCallId": "call-1",
+                  "type": "tool-weather",
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "The weather in Tokyo is sunny.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+    });
+  });
+
+>>>>>>> 89df298781 ([v6.0] fix: preserve signed tool approval metadata across approval responses (#16796))
   describe('addToolResult', () => {
     it('should send message when a tool result is submitted', async () => {
       server.urls['http://localhost:3000/api/chat'].response = [
