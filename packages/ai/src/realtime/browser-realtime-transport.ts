@@ -73,6 +73,7 @@ export class BrowserRealtimeTransport {
       mode === 'relay'
         ? { url, protocols }
         : this.model.getWebSocketConfig?.({ token, url });
+    if (this.epoch !== epoch) return;
     if (wsConfig == null)
       throw new Error('Model does not support client-secret WebSockets');
     const ws = new WebSocket(wsConfig.url, wsConfig.protocols);
