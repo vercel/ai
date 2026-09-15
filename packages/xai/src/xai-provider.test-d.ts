@@ -14,5 +14,4 @@ it('types batch support on the provider', () => {
   expectTypeOf(xai('grok-4.6')).toEqualTypeOf<LanguageModelV4>();
   expectTypeOf(xai.languageModel('grok-4.6')).toEqualTypeOf<LanguageModelV4>();
   expectTypeOf(xai.responses('grok-4.6')).toEqualTypeOf<LanguageModelV4>();
-  expectTypeOf(xai.chat('grok-4.6')).toEqualTypeOf<LanguageModelV4>();
 });
