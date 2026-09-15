@@ -10,6 +10,7 @@ import type { ChatData, MyUIMessage } from './chat-schema';
 
 // Treat chat IDs as opaque tokens before using them in file paths.
 const chatIdRegex = /^[A-Za-z0-9_-]+$/;
+const chatWriteQueues = new Map<string, Promise<void>>();
 
 export async function createChat(): Promise<string> {
   const id = generateId();
@@ -28,21 +29,23 @@ export async function saveChat({
   messages?: MyUIMessage[];
   canceledAt?: number | null;
 }): Promise<void> {
-  const chat = await readChat(id);
+  await queueChatWrite(id, async () => {
+    const chat = await readChat(id);
 
-  if (messages !== undefined) {
-    chat.messages = messages;
-  }
+    if (messages !== undefined) {
+      chat.messages = messages;
+    }
 
-  if (activeStreamId !== undefined) {
-    chat.activeStreamId = activeStreamId;
-  }
+    if (activeStreamId !== undefined) {
+      chat.activeStreamId = activeStreamId;
+    }
 
-  if (canceledAt !== undefined) {
-    chat.canceledAt = canceledAt;
-  }
+    if (canceledAt !== undefined) {
+      chat.canceledAt = canceledAt;
+    }
 
-  await writeChat(chat);
+    await writeChat(chat);
+  });
 }
 
 export async function appendMessageToChat({
@@ -52,9 +55,38 @@ export async function appendMessageToChat({
   id: string;
   message: MyUIMessage;
 }): Promise<void> {
-  const chat = await readChat(id);
-  chat.messages.push(message);
-  await writeChat(chat);
+  await queueChatWrite(id, async () => {
+    const chat = await readChat(id);
+    chat.messages.push(message);
+    await writeChat(chat);
+  });
+}
+
+/**
+ * Serializes read-modify-write operations for one chat. A chat request starts
+ * several asynchronous writes (message persistence, stream setup, and stream
+ * completion), which otherwise can each overwrite fields read by another one.
+ */
+function queueChatWrite<T>(
+  id: string,
+  operation: () => Promise<T>,
+): Promise<T> {
+  const previous = chatWriteQueues.get(id) ?? Promise.resolve();
+  const result = previous.then(operation, operation);
+  const queue = result.then(
+    () => undefined,
+    () => undefined,
+  );
+
+  chatWriteQueues.set(id, queue);
+
+  void queue.finally(() => {
+    if (chatWriteQueues.get(id) === queue) {
+      chatWriteQueues.delete(id);
+    }
+  });
+
+  return result;
 }
 
 async function writeChat(chat: ChatData) {
