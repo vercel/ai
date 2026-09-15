@@ -1,3 +1,7 @@
+function isSafeAzureId(value: string): boolean {
+  return /^[A-Za-z0-9_-]+$/.test(value);
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const containerId = searchParams.get('container_id');
@@ -6,6 +10,10 @@ export async function GET(req: Request) {
 
   if (!containerId || !fileId) {
     return new Response('Missing container_id or file_id', { status: 400 });
+  }
+
+  if (!isSafeAzureId(containerId) || !isSafeAzureId(fileId)) {
+    return new Response('Invalid container_id or file_id', { status: 400 });
   }
 
   const resourceName = process.env.AZURE_RESOURCE_NAME;
@@ -19,8 +27,10 @@ export async function GET(req: Request) {
   }
 
   try {
+    const safeContainerId = encodeURIComponent(containerId);
+    const safeFileId = encodeURIComponent(fileId);
     const response = await fetch(
-      `https://${resourceName}.openai.azure.com/openai/v1/containers/${containerId}/files/${fileId}/content`,
+      `https://${resourceName}.openai.azure.com/openai/v1/containers/${safeContainerId}/files/${safeFileId}/content`,
       {
         headers: {
           Authorization: `Bearer ${apiKey}`,
