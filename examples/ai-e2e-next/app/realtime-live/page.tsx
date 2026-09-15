@@ -3,7 +3,6 @@
 import {
   openai,
   type Experimental_OpenAIRealtimeModelLiveOptions as OpenAIRealtimeModelLiveOptions,
-  type Experimental_OpenAIRealtimeModelLiveUpdateOptions as OpenAIRealtimeModelLiveUpdateOptions,
 } from '@ai-sdk/openai';
 import { experimental_useRealtime as useRealtime } from '@ai-sdk/react';
 import { useMemo, useRef, useState } from 'react';
@@ -13,7 +12,6 @@ const model = openai.experimental_realtime('gpt-live-1');
 
 export default function LivePage() {
   const [endpoint, setEndpoint] = useState('ws://localhost:4318/live');
-  const [mode, setMode] = useState('responses');
   const [instructions, setInstructions] = useState(
     'Be a concise, friendly English-speaking assistant. Accept corrections naturally. Delegate questions that need tools or current information.',
   );
@@ -22,9 +20,6 @@ export default function LivePage() {
     'commentary' | 'thinking' | 'instructions'
   >('commentary');
   const [delegationId, setDelegationId] = useState('');
-  const [backendInput, setBackendInput] = useState(
-    'What is the current UTC time? Use get_time.',
-  );
   const [error, setError] = useState('');
   const evidence = useRef<unknown[]>([]);
   const sessionConfig = useMemo(
@@ -32,41 +27,14 @@ export default function LivePage() {
       instructions,
       providerOptions: {
         openai: {
-          delegation:
-            mode === 'responses'
-              ? {
-                  type: 'responses',
-                  responses: {
-                    model: 'gpt-5.6-luna',
-                    instructions:
-                      'Use get_time for the current UTC time. Use web search for current facts. Return concise results for speech.',
-                    tools: [
-                      { type: 'web_search' },
-                      {
-                        type: 'function',
-                        name: 'get_time',
-                        description: 'Read the current UTC time.',
-                        parameters: {
-                          type: 'object',
-                          properties: {},
-                          required: [],
-                          additionalProperties: false,
-                        },
-                        strict: true,
-                      },
-                    ],
-                    toolChoice: 'auto',
-                  },
-                }
-              : { type: 'client' },
+          delegation: { type: 'client' },
         } satisfies OpenAIRealtimeModelLiveOptions,
       },
     }),
-    [instructions, mode],
+    [instructions],
   );
   const rt = useRealtime({
     model,
-    autoContinueTools: true,
     api: { websocket: endpoint },
     sessionConfig,
     maxEvents: 200,
@@ -80,17 +48,17 @@ export default function LivePage() {
       );
       if (evidence.current.length > 4000) evidence.current.shift();
     },
-    onToolCall: ({ toolCall }) => {
-      if (toolCall.toolName === 'get_time')
-        return { utc: new Date().toISOString() };
-      return undefined;
-    },
   });
   const active =
     rt.status === 'connecting' ||
     rt.status === 'connected' ||
     rt.status === 'closing';
   const ready = rt.status === 'connected';
+  const clientDelegations =
+    rt.session?.delegations.filter(item => item.target === 'client') ?? [];
+  const selectedDelegation = clientDelegations.find(
+    item => item.delegationId === delegationId,
+  );
   const run = (action: () => void | Promise<unknown>) => {
     setError('');
     try {
@@ -122,21 +90,11 @@ export default function LivePage() {
   return (
     <main className="mx-auto max-w-4xl p-8 space-y-5">
       <h1 className="text-2xl font-semibold">AI SDK Live — useRealtime</h1>
-      <p>Connect through an application-owned WebSocket relay.</p>
-      <div className="flex gap-3 flex-wrap">
-        <label>
-          Delegation{' '}
-          <select
-            id="mode"
-            value={mode}
-            disabled={active}
-            onChange={event => setMode(event.target.value)}
-          >
-            <option value="responses">Responses + tools</option>
-            <option value="client">Client (manual context)</option>
-          </select>
-        </label>
-      </div>
+      <p>
+        Connect through an application-owned WebSocket relay. Your application
+        handles client delegation and supplies context or results; the SDK does
+        not execute an agent or tool loop for Live.
+      </p>
       <label>
         Relay URL{' '}
         <input
@@ -193,7 +151,9 @@ export default function LivePage() {
             )
           }
         >
-          {rt.session?.isInputMuted ? 'Unmute input' : 'Mute input'}
+          {rt.session?.isInputMuted
+            ? 'Unmute provider input'
+            : 'Mute provider input'}
         </button>
         <button
           id="resume"
@@ -251,6 +211,11 @@ export default function LivePage() {
       <p id="playback">
         Capturing: {String(rt.isCapturing)} · Playing: {String(rt.isPlaying)}
       </p>
+      <p>
+        Stop local capture releases the SDK-owned microphone. Provider mute only
+        changes remote audio processing after acknowledgment; it does not stop
+        the microphone. Resume local capture may ask for microphone permission.
+      </p>
       {error && (
         <p id="error" role="alert">
           {error}
@@ -275,7 +240,13 @@ export default function LivePage() {
       </section>
       <section>
         <h2>Context / client delegation result</h2>
+        <p>
+          Select a client delegation reported by this session, or append
+          session-wide context. The application owns any text conversation,
+          agent execution, and result validation.
+        </p>
         <select
+          aria-label="Context channel"
           value={channel}
           onChange={event => setChannel(event.target.value as typeof channel)}
         >
@@ -284,17 +255,16 @@ export default function LivePage() {
           <option value="instructions">Instructions (trusted behavior)</option>
         </select>
         <select
-          value={delegationId}
+          aria-label="Client delegation"
+          value={selectedDelegation?.delegationId ?? ''}
           onChange={event => setDelegationId(event.target.value)}
         >
           <option value="">Session-wide</option>
-          {rt.session?.delegations
-            .filter(item => item.target === 'client')
-            .map(item => (
-              <option key={item.delegationId} value={item.delegationId}>
-                {item.delegationId}
-              </option>
-            ))}
+          {clientDelegations.map(item => (
+            <option key={item.delegationId} value={item.delegationId}>
+              {item.delegationId}
+            </option>
+          ))}
         </select>
         <textarea
           id="context"
@@ -309,7 +279,7 @@ export default function LivePage() {
                 type: 'context-append',
                 providerOptions: { openai: { channel } },
                 content: context,
-                delegationId: delegationId || null,
+                delegationId: selectedDelegation?.delegationId ?? null,
               }),
             )
           }
@@ -317,67 +287,17 @@ export default function LivePage() {
           Append context
         </button>
         <p>
-          Acceptance does not confirm that a result was spoken. Client mode
-          leaves task execution to your application.
+          A successful send only confirms local submission. Provider acceptance
+          does not confirm that a result was spoken or heard. Only use the
+          instructions channel for trusted application instructions.
         </p>
-      </section>
-      {mode === 'responses' && (
-        <section>
-          <h2>Backend text input</h2>
-          <button
-            id="update-backend"
-            disabled={!ready}
-            onClick={() =>
-              run(() =>
-                rt.sendEvent({
-                  type: 'session-update',
-                  eventId: crypto.randomUUID(),
-                  config: {
-                    providerOptions: {
-                      openai: {
-                        delegation: {
-                          responses: {
-                            instructions: null,
-                            maxOutputTokens: null,
-                            parallelToolCalls: null,
-                            reasoning: null,
-                            serviceTier: null,
-                            text: null,
-                          },
-                        },
-                      } satisfies OpenAIRealtimeModelLiveUpdateOptions,
-                    },
-                  },
-                }),
-              )
-            }
-          >
-            Clear backend overrides
-          </button>
-          <input
-            id="backend-input"
-            value={backendInput}
-            onChange={event => setBackendInput(event.target.value)}
-          />
-          <button
-            id="backend-send"
-            disabled={!ready}
-            onClick={() => run(() => rt.sendTextMessage(backendInput))}
-          >
-            Send to backend
-          </button>
-          <pre id="backend-usage">
-            {JSON.stringify(
-              rt.session?.backendUsage?.map(event => ({
-                responseId: event.responseId,
-                usage: event.usage,
-              })),
-              null,
-              2,
-            )}
+        <details>
+          <summary>Client delegation metadata</summary>
+          <pre id="delegations">
+            {JSON.stringify(clientDelegations, null, 2)}
           </pre>
-        </section>
-      )}
+        </details>
+      </section>
       <details>
         <summary>Recent events</summary>
         <pre id="events">

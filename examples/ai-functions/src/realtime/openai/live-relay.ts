@@ -1,6 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { createServer } from 'node:http';
 import { WebSocket, WebSocketServer } from 'ws';
+import { relayLiveConnection } from './live-relay-connection';
 
 // Local example: authenticate and authorize upgrades before exposing a relay.
 const port = Number(process.env.PORT ?? 4318);
@@ -18,63 +19,16 @@ server.on('upgrade', (request, socket, head) => {
     return;
   }
   clients.handleUpgrade(request, socket, head, client => {
-    const { url, headers } = model.getServerWebSocketConfig();
-    const upstream = new WebSocket(url, { headers, handshakeTimeout: 10_000 });
-    const queued: Buffer[] = [];
-    let queuedBytes = 0;
-    const timeout = setTimeout(() => stop(), 10 * 60 * 1000);
-    const stop = () => {
-      clearTimeout(timeout);
-      queued.length = 0;
-      queuedBytes = 0;
-      if (upstream.readyState !== WebSocket.CLOSED) upstream.terminate();
-      if (client.readyState === WebSocket.OPEN) client.close();
-    };
-    const forward = (target: WebSocket, data: Buffer) => {
-      if (target.bufferedAmount + data.byteLength > 1024 * 1024) {
-        stop();
-        return;
-      }
-      target.send(data, { binary: false });
-    };
-    client.on('message', (data, binary) => {
-      if (binary) return stop();
-      const bytes = Buffer.isBuffer(data)
-        ? data
-        : Array.isArray(data)
-          ? Buffer.concat(data)
-          : Buffer.from(data);
-      if (upstream.readyState === WebSocket.OPEN) forward(upstream, bytes);
-      else if (upstream.readyState === WebSocket.CONNECTING) {
-        queuedBytes += bytes.byteLength;
-        if (queuedBytes > 1024 * 1024) return stop();
-        queued.push(bytes);
-      }
-    });
-    upstream.on('open', () => {
-      for (const data of queued) {
-        if (upstream.readyState !== WebSocket.OPEN) break;
-        forward(upstream, data);
-      }
-      queued.length = 0;
-      queuedBytes = 0;
-    });
-    upstream.on('message', (data, binary) => {
-      if (binary) return stop();
-      if (client.readyState !== WebSocket.OPEN) return;
-      forward(
+    try {
+      const { url, headers } = model.getServerWebSocketConfig();
+      relayLiveConnection(
         client,
-        Buffer.isBuffer(data)
-          ? data
-          : Array.isArray(data)
-            ? Buffer.concat(data)
-            : Buffer.from(data),
+        new WebSocket(url, { headers, handshakeTimeout: 10_000 }),
       );
-    });
-    client.on('error', stop);
-    client.on('close', stop);
-    upstream.on('error', stop);
-    upstream.on('close', stop);
+    } catch {
+      client.on('error', () => client.terminate());
+      client.close(1011, 'Relay setup failed');
+    }
   });
 });
 

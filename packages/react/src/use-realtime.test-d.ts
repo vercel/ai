@@ -10,6 +10,9 @@ expectTypeOf(realtime.session).toEqualTypeOf<
 >();
 expectTypeOf(realtime.connect).toExtend<MouseEventHandler<HTMLButtonElement>>();
 expectTypeOf(realtime.resumeAudioCapture).toEqualTypeOf<() => Promise<void>>();
+expectTypeOf(realtime.sendEvent).returns.toEqualTypeOf<Promise<void>>();
+expectTypeOf(realtime.close).returns.toEqualTypeOf<Promise<void>>();
+expectTypeOf(realtime.disconnect).toEqualTypeOf<() => void>();
 realtime.connect();
 realtime.connect({ capture: false });
 realtime.sendEvent({
