@@ -1,0 +1,118 @@
+---
+title: Scavio
+description: Real-time search and page-extraction tools for the AI SDK.
+---
+
+# Scavio
+
+[Scavio](https://scavio.dev) is a search API built for AI agents. The [`@scavio/ai-sdk`](https://www.npmjs.com/package/@scavio/ai-sdk) package provides 13 AI SDK tools: real-time search across seven platforms, plus `scavioExtract`, which reads any URL.
+
+- **Extract** any web page as Markdown, plain text or raw HTML (`scavioExtract`)
+- **Google** web search (`scavioSearch`)
+- **YouTube** search, video detail, channel, comments and transcript (`scavioYoutubeSearch`, `scavioYoutubeVideo`, `scavioYoutubeChannel`, `scavioYoutubeComments`, `scavioYoutubeTranscript`)
+- **Reddit** post search (`scavioRedditSearch`)
+- **Amazon** product search and seller offers (`scavioAmazonSearch`, `scavioAmazonOffers`)
+- **Walmart** product search (`scavioWalmartSearch`)
+- **TikTok** video search (`scavioTiktokSearch`)
+- **Instagram** user search (`scavioInstagramSearch`)
+
+This package exposes a curated subset of the Scavio API, chosen for agent use. The
+full surface is 195 endpoints across 31 platforms, adding X, LinkedIn, TikTok Shop,
+eBay, Target, Home Depot, Zillow, Redfin, Booking, Airbnb, Tripadvisor, Yelp,
+Indeed, Glassdoor, the App Store, Google Play, SEC EDGAR, Companies House, G2,
+Capterra, Google Ads, Meta Ad Library, Threads, Kuaishou and the Google verticals
+(Maps, Shopping, News, Flights, Hotels, Trends, AI Mode). To reach all of them from
+an agent, use the [Scavio MCP server](https://scavio.dev/docs/mcp-server) at
+`mcp.scavio.dev`, or call the
+[`scavio` JavaScript SDK](https://scavio.dev/docs/js-sdk-quickstart) directly.
+
+Credits are not uniform: most calls cost 1, YouTube search costs 2 and transcript
+costs 8, and Instagram costs 2 to 10 depending on the endpoint. `scavioExtract` is
+priced by the `mode` you ask for, not per call: 1 credit on `normal` and
+`advanced`, 2 on `ultra`. A page that fails to fetch is not billed.
+
+Learn more in the [Scavio documentation](https://scavio.dev/docs/vercel).
+
+## Setup
+
+The Scavio tools are available in the `@scavio/ai-sdk` module. You can install it with:
+
+<InstallPackages packages="@scavio/ai-sdk" />
+
+`ai` and `zod` are peer dependencies.
+
+Set your Scavio API key:
+
+```bash
+export SCAVIO_API_KEY=sk_live_your_api_key
+```
+
+You can get your API key from the [Scavio dashboard](https://dashboard.scavio.dev/sign-up).
+
+## Examples
+
+### `generateText` with a single tool
+
+```ts
+import { generateText, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { scavioSearch } from '@scavio/ai-sdk';
+
+const { text } = await generateText({
+  model: openai('gpt-5.5'),
+  tools: { scavio_search: scavioSearch({ maxResults: 5 }) },
+  stopWhen: stepCountIs(3),
+  prompt: 'What did Vercel announce at their most recent Ship conference?',
+});
+
+console.log(text);
+```
+
+### Search, then read the page
+
+`scavioExtract` turns any URL into clean Markdown, so the model can search first and read the result it picks:
+
+```ts
+import { generateText, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { scavioSearch, scavioExtract } from '@scavio/ai-sdk';
+
+const { text } = await generateText({
+  model: openai('gpt-5.5'),
+  tools: {
+    scavio_search: scavioSearch({ maxResults: 5 }),
+    scavio_extract: scavioExtract(),
+  },
+  stopWhen: stepCountIs(5),
+  prompt: 'Find the AI SDK changelog and summarize the last release.',
+});
+
+console.log(text);
+```
+
+### `generateText` with all tools
+
+Use `scavioTools()` to pass every Scavio tool at once and let the model pick the right source:
+
+```ts
+import { generateText, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { scavioTools } from '@scavio/ai-sdk';
+
+const { text } = await generateText({
+  model: openai('gpt-5.5'),
+  tools: scavioTools(),
+  stopWhen: stepCountIs(5),
+  prompt: 'Compare prices for a mechanical keyboard on Amazon and Walmart.',
+});
+
+console.log(text);
+```
+
+Each tool factory accepts an optional config object with `apiKey` (falls back to the `SCAVIO_API_KEY` environment variable) and `maxResults` (defaults to 10). `maxResults` trims long result lists before they reach the model; `scavioExtract` returns page content rather than a list, so it ignores that option.
+
+## Additional Resources
+
+- [Scavio Documentation](https://scavio.dev/docs/vercel)
+- [GitHub Repository](https://github.com/scavio-ai/scavio-ai)
+- [Scavio Dashboard](https://dashboard.scavio.dev/sign-up)
