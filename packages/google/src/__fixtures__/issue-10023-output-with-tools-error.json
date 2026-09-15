@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": 400,
+    "message": "Function calling with a response mime type: 'application/json' is unsupported",
+    "status": "INVALID_ARGUMENT"
+  }
+}
