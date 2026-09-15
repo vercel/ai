@@ -288,8 +288,10 @@ export function createAmazonBedrockAnthropic(
               }
             : undefined;
 
-        // Bedrock names the thinking block binding field mismatch_behavior, while the
-        // Anthropic Messages API names it prefix_mismatch_behavior
+        // Bedrock names the thinking block binding field `mismatch_behavior`, while the
+        // Anthropic Messages API names it `prefix_mismatch_behavior`
+        // Some AWS regions (us-east-1) will automatically alias the field to `mismatch_behavior`,
+        // but others (eu-central-1) fail.
         const transformedThinking =
           thinking?.block_binding != null
             ? {
