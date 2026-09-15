@@ -1199,6 +1199,10 @@ async function authInternal(
 ): Promise<AuthResult> {
   let resourceMetadata: OAuthProtectedResourceMetadata | undefined;
   let authorizationServerUrl: string | URL | undefined;
+  let clientInformation: OAuthClientInformation | undefined;
+  let callbackAuthorizationServerInformation:
+    | OAuthAuthorizationServerInformation
+    | undefined;
 
   /** Reject Protected Resource Metadata URLs outside the configured MCP server origin. */
   assertResourceMetadataUrlSameOrigin(serverUrl, resourceMetadataUrl);
@@ -1218,9 +1222,27 @@ async function authInternal(
     }
   } catch {}
 
-  /** Fall back to legacy MCP behavior where the MCP server is the Authorization Server */
+  /**
+   * A callback may not have the original PRM URL from the authentication
+   * challenge. Use the authorization server pinned before redirecting when
+   * rediscovery does not select one.
+   */
+  if (authorizationCode !== undefined) {
+    clientInformation = await Promise.resolve(provider.clientInformation());
+    if (clientInformation) {
+      callbackAuthorizationServerInformation =
+        await getStoredAuthorizationServerInformation({
+          provider,
+          clientInformation,
+        });
+    }
+  }
+
+  /** Reuse the callback pin, then fall back to the legacy MCP-as-AS behavior. */
   if (!authorizationServerUrl) {
-    authorizationServerUrl = serverUrl;
+    authorizationServerUrl =
+      callbackAuthorizationServerInformation?.authorizationServerUrl ??
+      serverUrl;
   }
 
   /** Validate and select the resource value sent to the AS */
@@ -1253,7 +1275,28 @@ async function authInternal(
   });
 
   /** Load or register client credentials with the AS pin attached. */
+<<<<<<< HEAD
   let clientInformation = await Promise.resolve(provider.clientInformation());
+=======
+  if (authorizationCode === undefined) {
+    clientInformation = await Promise.resolve(provider.clientInformation());
+  }
+  if (clientInformation?.issuer != null) {
+    const storedAuthorizationServerInformation =
+      callbackAuthorizationServerInformation ??
+      (await getStoredAuthorizationServerInformation({
+        provider,
+        clientInformation,
+      }));
+    if (storedAuthorizationServerInformation) {
+      assertAuthorizationServerInformationMatches({
+        storedAuthorizationServerInformation,
+        currentAuthorizationServerInformation,
+      });
+    }
+  }
+
+>>>>>>> df91a09557 (fix: MCP OAuth callbacks reject stored external authorization servers when protected resource metadata rediscovery fails (#20798))
   if (!clientInformation) {
     if (authorizationCode !== undefined) {
       throw new Error(
@@ -1295,10 +1338,11 @@ async function authInternal(
     }
 
     const storedAuthorizationServerInformation =
-      await getStoredAuthorizationServerInformation({
+      callbackAuthorizationServerInformation ??
+      (await getStoredAuthorizationServerInformation({
         provider,
         clientInformation,
-      });
+      }));
     if (!storedAuthorizationServerInformation) {
       throw new MCPClientOAuthError({
         message:

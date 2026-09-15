@@ -2137,6 +2137,123 @@ describe('auth function', () => {
     expect(body.get('code')).toBe('auth-code-123');
   });
 
+<<<<<<< HEAD
+=======
+  it('uses the stored authorization server when protected resource metadata rediscovery fails during code exchange', async () => {
+    const authorizationServerUrl = 'https://login.example.com/tenant/v2.0';
+    const tokenEndpoint = 'https://login.example.com/tenant/oauth2/v2.0/token';
+
+    mockFetch.mockImplementation((url, init) => {
+      const urlString = url.toString();
+
+      if (urlString.includes('/.well-known/oauth-protected-resource')) {
+        return Promise.resolve({
+          ok: false,
+          status: 401,
+        });
+      }
+
+      if (
+        urlString ===
+        `${authorizationServerUrl}/.well-known/openid-configuration`
+      ) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            issuer: authorizationServerUrl,
+            authorization_endpoint:
+              'https://login.example.com/tenant/oauth2/v2.0/authorize',
+            token_endpoint: tokenEndpoint,
+            jwks_uri: 'https://login.example.com/tenant/discovery/v2.0/keys',
+            response_types_supported: ['code'],
+            subject_types_supported: ['pairwise'],
+            id_token_signing_alg_values_supported: ['RS256'],
+            code_challenge_methods_supported: ['S256'],
+          }),
+        });
+      }
+
+      if (urlString === tokenEndpoint && init?.method === 'POST') {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            access_token: 'access123',
+            token_type: 'Bearer',
+          }),
+        });
+      }
+
+      return Promise.resolve({ ok: false, status: 404 });
+    });
+
+    const provider: OAuthClientProvider = {
+      ...mockProvider,
+      clientInformation: vi.fn().mockResolvedValue({
+        client_id: 'test-client',
+      }),
+      authorizationServerInformation: vi.fn().mockResolvedValue({
+        issuer: authorizationServerUrl,
+        authorizationServerUrl,
+        tokenEndpoint,
+      }),
+      codeVerifier: vi.fn().mockResolvedValue('test-verifier'),
+      saveTokens: vi.fn(),
+    };
+
+    await expect(
+      auth(provider, {
+        serverUrl: 'https://mcp.example.com/mcp',
+        authorizationCode: 'auth-code-123',
+      }),
+    ).resolves.toBe('AUTHORIZED');
+
+    const tokenCall = mockFetch.mock.calls.find(
+      call => call[0].toString() === tokenEndpoint,
+    );
+    expect(tokenCall).toBeDefined();
+    expect((tokenCall![1].body as URLSearchParams).get('code')).toBe(
+      'auth-code-123',
+    );
+    expect(provider.saveTokens).toHaveBeenCalledWith({
+      access_token: 'access123',
+      token_type: 'Bearer',
+      issuer: authorizationServerUrl,
+      authorization_server: authorizationServerUrl,
+      token_endpoint: tokenEndpoint,
+    });
+  });
+
+  it('accepts a matching authorization response issuer', async () => {
+    setupAuthorizationCodeFlow();
+
+    await expect(
+      auth(mockProvider, {
+        serverUrl: 'https://api.example.com/mcp-server',
+        authorizationCode: 'auth-code-123',
+        callbackIssuer: 'https://auth.example.com',
+      }),
+    ).resolves.toBe('AUTHORIZED');
+  });
+
+  it('rejects a mismatched authorization response issuer before code exchange', async () => {
+    setupAuthorizationCodeFlow();
+
+    await expect(
+      auth(mockProvider, {
+        serverUrl: 'https://api.example.com/mcp-server',
+        authorizationCode: 'auth-code-123',
+        callbackIssuer: 'https://evil.example',
+      }),
+    ).rejects.toThrow(/does not match expected issuer/);
+
+    expect(
+      mockFetch.mock.calls.some(call => call[0].toString().includes('/token')),
+    ).toBe(false);
+  });
+
+>>>>>>> df91a09557 (fix: MCP OAuth callbacks reject stored external authorization servers when protected resource metadata rediscovery fails (#20798))
   it('includes resource in token refresh', async () => {
     // Mock successful metadata discovery and token refresh - need protected resource metadata
     mockFetch.mockImplementation(url => {
