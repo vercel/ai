@@ -9720,4 +9720,114 @@ describe('processUIMessageStream', () => {
       ]);
     });
   });
+
+  // Regression for #14027: resuming from a hydrated assistant message that
+  // already contains an unfinished tool part must seed partialToolCalls so
+  // tool-input-delta can continue without a preceding tool-input-start.
+  describe('resume with existing input-streaming tool parts (#14027)', () => {
+    it('should continue tool-input-delta for a static tool part after resume', async () => {
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: {
+          role: 'assistant',
+          id: 'msg-123',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'tool-create_document',
+              toolCallId: 'tool-call-14027',
+              state: 'input-streaming',
+              // Hydrated lastMessage only has typed `input`, not rawInput.
+              input: undefined,
+              title: 'Create document',
+            } as any,
+          ],
+        },
+      });
+
+      const stream = createUIMessageStream([
+        { type: 'start' },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'tool-call-14027',
+          inputTextDelta: '{ "title": "Draft" }',
+        },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-14027',
+          toolName: 'create_document',
+          input: { title: 'Draft' },
+        },
+        { type: 'finish' },
+      ]);
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      const toolPart = state!.message.parts.find(
+        (p: any) => p.toolCallId === 'tool-call-14027',
+      ) as any;
+      expect(toolPart).toBeDefined();
+      expect(toolPart.state).toBe('input-available');
+      expect(toolPart.input).toEqual({ title: 'Draft' });
+    });
+
+    it('should continue tool-input-delta for a dynamic tool part after resume', async () => {
+      state = createStreamingUIMessageState({
+        messageId: 'msg-456',
+        lastMessage: {
+          role: 'assistant',
+          id: 'msg-456',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'dynamic-tool',
+              toolName: 'unknown_tool',
+              toolCallId: 'dyn-call-14027',
+              state: 'input-streaming',
+              // Hydrated lastMessage only has typed `input`, not rawInput.
+              input: { key: 'partial' },
+            } as any,
+          ],
+        },
+      });
+
+      const stream = createUIMessageStream([
+        { type: 'start' },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'dyn-call-14027',
+          toolName: 'unknown_tool',
+          input: { key: 'value' },
+          dynamic: true,
+        },
+        { type: 'finish' },
+      ]);
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      const toolPart = state!.message.parts.find(
+        (p: any) => p.toolCallId === 'dyn-call-14027',
+      ) as any;
+      expect(toolPart).toBeDefined();
+      expect(toolPart.state).toBe('input-available');
+      expect(toolPart.input).toEqual({ key: 'value' });
+      expect(toolPart.type).toBe('dynamic-tool');
+    });
+  });
 });

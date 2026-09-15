@@ -196,6 +196,39 @@ describe('createAsyncIterableStream()', () => {
     expect(collected).toEqual(['chunk1', 'chunk2']);
   });
 
+  // Regression for #18370: a rejected reader.read() used to leave the
+  // transformed stream locked, so getReader() would throw "ReadableStream is locked".
+  it('should release the stream lock when the source stream errors (#18370)', async () => {
+    let controller!: ReadableStreamDefaultController<string>;
+    const stream = createAsyncIterableStream(
+      new ReadableStream<string>({
+        start(ctrl) {
+          controller = ctrl;
+        },
+      }),
+    );
+
+    const iterator = stream[Symbol.asyncIterator]();
+    const pendingRead = iterator.next();
+    const sourceError = new Error('source failed');
+    controller.error(sourceError);
+
+    const observedError = await pendingRead.catch(error => error);
+    expect(observedError).toBe(sourceError);
+    expect(stream.locked).toBe(false);
+
+    // Subsequent reads on the same iterator must complete as done, not rethrow.
+    await expect(iterator.next()).resolves.toEqual({
+      done: true,
+      value: undefined,
+    });
+
+    // And a fresh reader must be acquirable now that the lock was released.
+    const reader = stream.getReader();
+    await expect(reader.read()).rejects.toThrow('source failed');
+    reader.releaseLock();
+  });
+
   it('should stop async iterable when stream is cancelled', async () => {
     await expectUndefinedUnhandledRejections(async () => {
       let iterationCompleted = false;
