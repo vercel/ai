@@ -67,7 +67,7 @@ class AngularChatState<
   replaceMessage = (index: number, message: UI_MESSAGE) => {
     this.#messages.update(msgs => {
       const copy = [...msgs];
-      copy[index] = message;
+      copy[index] = structuredClone(message);
       return copy;
     });
   };
