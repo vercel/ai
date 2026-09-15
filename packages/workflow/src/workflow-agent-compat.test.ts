@@ -22,11 +22,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { WorkflowAgent } from './workflow-agent.js';
 
-vi.mock('workflow', () => ({
-  sleep: (durationMs: number) =>
-    new Promise<void>(resolve => setTimeout(resolve, durationMs)),
-}));
-
 // ============================================================================
 // Test helpers
 // ============================================================================
