@@ -263,7 +263,7 @@ export function createBedrockAnthropic(
         }`,
 
       transformRequestBody: (args, betas) => {
-        const { model, stream, tool_choice, tools, ...rest } = args;
+        const { model, stream, tool_choice, thinking, tools, ...rest } = args;
 
         const transformedToolChoice =
           tool_choice != null
@@ -272,6 +272,21 @@ export function createBedrockAnthropic(
                 ...(tool_choice.name != null ? { name: tool_choice.name } : {}),
               }
             : undefined;
+
+        // Bedrock names the thinking block binding field `mismatch_behavior`, while the
+        // Anthropic Messages API names it `prefix_mismatch_behavior`
+        // Some AWS regions (us-east-1) will automatically alias the field to `mismatch_behavior`,
+        // but others (eu-central-1) fail.
+        const transformedThinking =
+          thinking?.block_binding != null
+            ? {
+                ...thinking,
+                block_binding: {
+                  mismatch_behavior:
+                    thinking.block_binding.prefix_mismatch_behavior,
+                },
+              }
+            : thinking;
 
         const requiredBetas = new Set<string>(betas);
         const transformedTools = tools?.map((tool: Record<string, unknown>) => {
@@ -312,6 +327,7 @@ export function createBedrockAnthropic(
 
         return {
           ...rest,
+          ...(thinking != null ? { thinking: transformedThinking } : {}),
           ...(transformedTools != null ? { tools: transformedTools } : {}),
           ...(transformedToolChoice != null
             ? { tool_choice: transformedToolChoice }
