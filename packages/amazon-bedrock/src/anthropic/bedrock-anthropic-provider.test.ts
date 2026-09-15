@@ -622,6 +622,67 @@ describe('bedrock-anthropic-provider', () => {
     expect(transformedBody?.anthropic_beta).toBeUndefined();
   });
 
+  it('should rename thinking block_binding prefix_mismatch_behavior to mismatch_behavior', () => {
+    const provider = createBedrockAnthropic({
+      region: 'us-east-1',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+    });
+    provider('test-model-id');
+
+    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
+      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
+    const config = constructorCall[1];
+
+    const transformedBody = config.transformRequestBody?.(
+      {
+        model: 'test-model-id',
+        messages: [{ role: 'user', content: 'Hello' }],
+        max_tokens: 1024,
+        thinking: {
+          type: 'adaptive',
+          display: 'summarized',
+          block_binding: { prefix_mismatch_behavior: 'drop_block' },
+        },
+      },
+      new Set(['thinking-binding-controls-2026-08-01']),
+    );
+
+    expect(transformedBody?.thinking).toEqual({
+      type: 'adaptive',
+      display: 'summarized',
+      block_binding: { mismatch_behavior: 'drop_block' },
+    });
+  });
+
+  it('should leave thinking unchanged when it has no block_binding', () => {
+    const provider = createBedrockAnthropic({
+      region: 'us-east-1',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+    });
+    provider('test-model-id');
+
+    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
+      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
+    const config = constructorCall[1];
+
+    const transformedBody = config.transformRequestBody?.(
+      {
+        model: 'test-model-id',
+        messages: [{ role: 'user', content: 'Hello' }],
+        max_tokens: 1024,
+        thinking: { type: 'enabled', budget_tokens: 2000 },
+      },
+      new Set(),
+    );
+
+    expect(transformedBody?.thinking).toEqual({
+      type: 'enabled',
+      budget_tokens: 2000,
+    });
+  });
+
   it('should translate eager_input_streaming on tools into the fine-grained-tool-streaming beta', () => {
     const provider = createBedrockAnthropic({
       region: 'us-east-1',
