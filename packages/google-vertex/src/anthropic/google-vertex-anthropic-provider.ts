@@ -6,6 +6,7 @@ import {
 import {
   loadOptionalSetting,
   withoutTrailingSlash,
+  convertUint8ArrayToBase64,
   type FetchFunction,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
@@ -28,6 +29,12 @@ type GoogleVertexAnthropicTools = Pick<
   | 'toolSearchRegex_20251119'
   | 'toolSearchBm25_20251119'
 >;
+
+function encodeLabels(labels: Record<string, string>): string {
+  return convertUint8ArrayToBase64(
+    new TextEncoder().encode(JSON.stringify(labels)),
+  );
+}
 
 /**
  * Tools supported by Google Vertex Anthropic.
@@ -221,6 +228,22 @@ export function createGoogleVertexAnthropic(
           ...rest,
           anthropic_version: 'vertex-2023-10-16',
         };
+      },
+      prepareRequestHeaders: ({ headers, providerOptions }) => {
+        const vertexOptions = providerOptions?.vertex as
+          | { labels?: Record<string, string> }
+          | undefined;
+        const googleVertexOptions = providerOptions?.googleVertex as
+          | { labels?: Record<string, string> }
+          | undefined;
+        const labels = googleVertexOptions?.labels ?? vertexOptions?.labels;
+
+        return labels
+          ? {
+              ...headers,
+              'X-Vertex-AI-Labels': encodeLabels(labels),
+            }
+          : headers;
       },
       // Google Vertex Anthropic doesn't support URL sources, force download and base64 conversion
       supportedUrls: () => ({}),
