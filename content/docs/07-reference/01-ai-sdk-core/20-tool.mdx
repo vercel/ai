@@ -83,7 +83,7 @@ export const weatherTool = tool({
               name: 'inputSchema',
               type: 'Zod Schema | JSON Schema',
               description:
-                'The schema of the input that the tool expects. The language model will use this to generate the input. It is also used to validate the output of the language model. Use descriptions to make the input understandable for the language model. You can either pass in a Zod schema or a JSON schema (using the `jsonSchema` function).',
+                'The schema of the input that the tool expects. The language model will use this to generate the input. It is also used to validate the output of the language model. Use descriptions to make the input understandable for the language model. You can pass in a Zod schema, a Valibot schema (using the `valibotSchema` function) or a JSON schema (using the `jsonSchema` function).',
             },
             {
               name: 'inputExamples',
