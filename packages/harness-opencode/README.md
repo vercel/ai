@@ -27,4 +27,9 @@ Adapter-managed settings take precedence when the same key is present in
 `openCodeConfig`. Agent-local `permission` and deprecated `tools` settings are
 ignored so they cannot bypass harness permissions or built-in tool filtering.
 
+When a resumed session supplies a different `openCodeConfig`, the bridge
+restarts its OpenCode server with the new configuration and retains the
+existing session and conversation history. Unchanged configuration reuses
+the running server.
+
 See the AI SDK documentation for usage.
