@@ -973,7 +973,7 @@ describe('buildGoogleSessionConfig', () => {
         providerOptions: {
           google: {
             thinkingConfig: {
-              thinkingLevel: 'HIGH',
+              thinkingLevel: 'high',
               includeThoughts: true,
             },
           } satisfies GoogleRealtimeModelOptions,
@@ -987,10 +987,78 @@ describe('buildGoogleSessionConfig', () => {
       generationConfig: {
         responseModalities: ['AUDIO'],
         thinkingConfig: {
-          thinkingLevel: 'HIGH',
+          thinkingLevel: 'high',
           includeThoughts: true,
         },
       },
+    });
+  });
+
+  it('defaults thinkingLevel to low on background-reasoning Live models', () => {
+    for (const modelId of [
+      'gemini-3.8-live-extended-thinking',
+      'models/gemini-3.8-live-extended-thinking',
+    ]) {
+      expect(buildGoogleSessionConfig(undefined, modelId)).toEqual({
+        model: 'models/gemini-3.8-live-extended-thinking',
+        generationConfig: {
+          responseModalities: ['AUDIO'],
+          thinkingConfig: { thinkingLevel: 'low' },
+        },
+      });
+    }
+
+    expect(
+      buildGoogleSessionConfig(
+        { outputModalities: ['audio'], instructions: 'Be brief.' },
+        'gemini-3.8-live-extended-thinking',
+      ).generationConfig,
+    ).toEqual({
+      responseModalities: ['AUDIO'],
+      thinkingConfig: { thinkingLevel: 'low' },
+    });
+  });
+
+  it('does not default thinkingConfig on Live models without background reasoning', () => {
+    for (const modelId of [
+      'gemini-3.8-live',
+      'gemini-3.1-flash-live-preview',
+      'gemini-3.5-live-translate-preview',
+    ]) {
+      expect(
+        buildGoogleSessionConfig({ outputModalities: ['audio'] }, modelId)
+          .generationConfig,
+      ).toEqual({ responseModalities: ['AUDIO'] });
+    }
+  });
+
+  it('does not add a default thinkingLevel when thinkingBudget is set', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          google: {
+            thinkingConfig: { thinkingBudget: 256 },
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.8-live-extended-thinking',
+    );
+
+    expect(result.generationConfig).toEqual({
+      responseModalities: ['AUDIO'],
+      thinkingConfig: { thinkingBudget: 256 },
+    });
+  });
+
+  it('keeps the default thinkingLevel under a raw generationConfig provider option', () => {
+    const result = buildGoogleSessionConfig(
+      { providerOptions: { generationConfig: { temperature: 0.2 } } },
+      'gemini-3.8-live-extended-thinking',
+    );
+
+    expect(result.generationConfig).toEqual({
+      temperature: 0.2,
+      thinkingConfig: { thinkingLevel: 'low' },
     });
   });
 

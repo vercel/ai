@@ -234,7 +234,7 @@ export class GoogleRealtimeEventMapper {
       });
     }
 
-    // `interactionStatus` (IN_PROGRESS | IDLE) is the definitive
+    // `interactionStatus` (IN_PROGRESS | IDLE | WAITING_FOR_INPUT) is the definitive
     // session-activity signal for background-reasoning models: `turnComplete`
     // no longer implies the model is idle, since asynchronous tool calls and
     // audio may still follow. Surface it as a custom event so clients can
@@ -404,6 +404,16 @@ async function serializeFunctionCallOutput(
 }
 
 /**
+ * Live models that reason in the background (e.g. `gemini-3.8-live-extended-thinking`).
+ * Google requires exactly one of `thinkingLevel` / `thinkingBudget` in their setup and
+ * rejects `thinkingConfig` on every other Live model.
+ */
+function isThinkingLiveModel(modelId: string): boolean {
+  const modelName = modelId.split('/').at(-1)?.toLowerCase() ?? '';
+  return /^gemini-\d+\.\d+-live\b.*thinking/.test(modelName);
+}
+
+/**
  * Builds a Google-specific session configuration from a normalized config.
  * Used to construct the `bidiGenerateContentSetup` payload for auth token creation.
  */
@@ -471,7 +481,24 @@ export function buildGoogleSessionConfig(
     setup.outputAudioTranscription = {};
   }
 
+  // Default to the lowest-latency thinking level so a session on a
+  // background-reasoning model works without provider options. Merged last so
+  // it survives a raw `providerOptions.generationConfig`.
+  const thinkingConfig =
+    googleOptions?.thinkingConfig ??
+    (isThinkingLiveModel(modelId)
+      ? { thinkingLevel: 'low' as const }
+      : undefined);
+  const applyThinkingConfig = () => {
+    if (thinkingConfig == null) return;
+    const target = isRecord(setup.generationConfig)
+      ? setup.generationConfig
+      : generationConfig;
+    setup.generationConfig = { ...target, thinkingConfig };
+  };
+
   if (config?.providerOptions == null) {
+    applyThinkingConfig();
     return setup;
   }
 
@@ -487,15 +514,6 @@ export function buildGoogleSessionConfig(
     };
   }
 
-  if (googleOptions?.thinkingConfig != null) {
-    const target = isRecord(setup.generationConfig)
-      ? setup.generationConfig
-      : generationConfig;
-    setup.generationConfig = {
-      ...target,
-      thinkingConfig: googleOptions.thinkingConfig,
-    };
-  }
-
+  applyThinkingConfig();
   return setup;
 }

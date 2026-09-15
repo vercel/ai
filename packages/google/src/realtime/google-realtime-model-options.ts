@@ -31,15 +31,15 @@ export type GoogleRealtimeModelOptions = {
    */
   thinkingConfig?: {
     /**
-     * Thinking effort level. `gemini-3.8-live-extended-thinking` requires
-     * exactly one of `thinkingLevel` or `thinkingBudget`; the setup is
-     * rejected with neither or both.
+     * Thinking effort level. Background-reasoning Live models require exactly
+     * one of `thinkingLevel` or `thinkingBudget`; when neither is set, the
+     * provider sends `thinkingLevel: 'low'` on those models.
      */
-    thinkingLevel?: 'LOW' | 'MEDIUM' | 'HIGH';
+    thinkingLevel?: 'low' | 'medium' | 'high';
 
     /**
      * Token budget for background thinking. Mutually exclusive with
-     * `thinkingLevel`.
+     * `thinkingLevel`; setting it suppresses the default level.
      */
     thinkingBudget?: number;
 
@@ -54,9 +54,9 @@ export type GoogleRealtimeModelOptions = {
    * session setup.
    *
    * Gemini 3.8 Live models default to `NON_BLOCKING` (asynchronous) function
-   * calling. Set to `BLOCKING` for backwards-compatible synchronous calls on
-   * models that still support it (e.g. `gemini-3.8-live`); reasoning models
-   * (e.g. `gemini-3.8-live-extended-thinking`) hard-error on `BLOCKING`.
+   * calling. Set to `BLOCKING` for synchronous calls on models that support it
+   * (e.g. `gemini-3.8-live`); background-reasoning models accept only
+   * `NON_BLOCKING`.
    */
   defaultToolBehavior?: 'BLOCKING' | 'NON_BLOCKING';
 };

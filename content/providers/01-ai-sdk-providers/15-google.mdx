@@ -1195,8 +1195,9 @@ realtime models: request `outputModalities: ['audio']`, and add
 proactive audio are always on.
 
 `gemini-3.8-live-extended-thinking` reasons in the background while streaming
-audio and requires exactly one of `thinkingLevel` or `thinkingBudget` in
-`providerOptions.google.thinkingConfig`:
+audio. Google requires exactly one of `thinkingLevel` (`low`, `medium`, `high`)
+or `thinkingBudget` for it; the provider sends `thinkingLevel: 'low'` when you
+set neither. Override it through `providerOptions.google.thinkingConfig`:
 
 ```ts
 import {
@@ -1211,7 +1212,7 @@ const token = await google.experimental_realtime.getToken({
     outputAudioTranscription: {},
     providerOptions: {
       google: {
-        thinkingConfig: { thinkingLevel: 'LOW' },
+        thinkingConfig: { thinkingLevel: 'high' },
       } satisfies GoogleRealtimeModelOptions,
     },
   },
