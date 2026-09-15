@@ -352,6 +352,7 @@ export abstract class AbstractRealtimeSession {
     const attempt = this.attempt;
     if (attempt == null || !attempt.active || attempt.cause != null) return;
     attempt.cause = error instanceof Error ? error : new Error(String(error));
+    if (drain != null) attempt.beginClose();
     this.applyState({ ...this.state, status: 'error' });
     if (this.attempt !== attempt || !attempt.active) return;
     this.stopAudioCapture();
