@@ -96,6 +96,39 @@ const { images } = await generateImage({
 });
 ```
 
+### Checking Image Editing Support
+
+Image model instances can advertise whether they support reference image files
+and masks. Check these capabilities before routing an image editing request:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+
+const model = openai.image('gpt-image-1');
+const needsMask = true;
+
+if ((await model.supportsFileInputs) !== true) {
+  throw new Error(
+    'The selected model does not advertise image editing support.',
+  );
+}
+
+if (needsMask && (await model.supportsMaskInputs) !== true) {
+  throw new Error('The selected model does not advertise mask support.');
+}
+```
+
+`supportsFileInputs` and `supportsMaskInputs` can be `true`, `false`, or
+`undefined` (unknown), and providers may expose them asynchronously. Treat only
+`true` as confirmed support when selecting a model for an edit. File and mask
+support are separate because some models accept reference images but do not
+accept masks.
+
+The AI SDK does not automatically reject editing inputs based on these
+capabilities. Applications can decide whether to reject the request, ask the
+user to choose another model, or use a fallback when support is false or
+unknown.
+
 ### Providing a Seed
 
 You can provide a seed to the `generateImage` function to control the output of the image generation process.

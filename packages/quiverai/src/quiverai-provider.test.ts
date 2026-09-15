@@ -104,6 +104,7 @@ describe('createQuiverAI', () => {
   });
 
   it('throws when the QuiverAI API key is missing', async () => {
+    vi.stubEnv('QUIVERAI_API_KEY', undefined);
     const provider = createQuiverAI();
 
     const result = provider.image('arrow-1').doGenerate(generateOptions);

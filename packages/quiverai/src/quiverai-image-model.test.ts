@@ -1,6 +1,37 @@
 import { APICallError } from '@ai-sdk/provider';
 import { describe, expect, it } from 'vitest';
-import { quiveraiFailedResponseHandler } from './quiverai-image-model';
+import {
+  QuiverAIImageModel,
+  quiveraiFailedResponseHandler,
+} from './quiverai-image-model';
+
+describe('QuiverAIImageModel', () => {
+  describe('capabilities', () => {
+    it.each([
+      {
+        modelId: 'arrow-1',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'custom-image-model',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+    ] as const)(
+      'advertises file=$supportsFileInputs and mask=$supportsMaskInputs for $modelId',
+      ({ modelId, supportsFileInputs, supportsMaskInputs }) => {
+        const model = new QuiverAIImageModel(modelId, {
+          provider: 'quiverai.image',
+          baseURL: 'https://api.example.com',
+        });
+
+        expect(model.supportsFileInputs).toBe(supportsFileInputs);
+        expect(model.supportsMaskInputs).toBe(supportsMaskInputs);
+      },
+    );
+  });
+});
 
 describe('quiveraiFailedResponseHandler', () => {
   it('maps QuiverAI error envelopes into API call errors', async () => {

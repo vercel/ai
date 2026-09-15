@@ -29,6 +29,26 @@ export class TogetherAIImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
 
+  get supportsFileInputs(): boolean | undefined {
+    if (
+      this.modelId.includes('/FLUX.1-kontext-') ||
+      this.modelId === 'black-forest-labs/FLUX.1-canny' ||
+      this.modelId === 'black-forest-labs/FLUX.1-depth' ||
+      this.modelId === 'black-forest-labs/FLUX.1-redux'
+    ) {
+      return true;
+    }
+
+    return this.modelId.startsWith('black-forest-labs/') ||
+      this.modelId.startsWith('stabilityai/')
+      ? false
+      : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs == null ? undefined : false;
+  }
+
   get provider(): string {
     return this.config.provider;
   }

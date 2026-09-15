@@ -32,6 +32,12 @@ interface GoogleImageModelConfig {
   };
 }
 
+const googleImageModelsWithFileInputSupport = new Set<string>([
+  'gemini-2.5-flash-image',
+  'gemini-3-pro-image-preview',
+  'gemini-3.1-flash-image-preview',
+]);
+
 export class GoogleImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -54,6 +60,16 @@ export class GoogleImageModel implements ImageModelV4 {
       return this.settings.maxImagesPerCall;
     }
     return 10;
+  }
+
+  get supportsFileInputs(): boolean | undefined {
+    return googleImageModelsWithFileInputSupport.has(this.modelId)
+      ? true
+      : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs === true ? false : undefined;
   }
 
   get provider(): string {

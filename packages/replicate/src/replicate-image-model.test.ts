@@ -12,6 +12,37 @@ const prompt = 'The Loch Ness monster getting a manicure';
 const provider = createReplicate({ apiToken: 'test-api-token' });
 const model = provider.image('black-forest-labs/flux-schnell');
 
+describe('capabilities', () => {
+  it.each([
+    {
+      modelId: 'black-forest-labs/flux-fill-pro',
+      supportsFileInputs: true,
+      supportsMaskInputs: true,
+    },
+    {
+      modelId: 'black-forest-labs/flux-2-pro',
+      supportsFileInputs: true,
+      supportsMaskInputs: false,
+    },
+    {
+      modelId: 'custom/image-model',
+      supportsFileInputs: undefined,
+      supportsMaskInputs: undefined,
+    },
+  ] as const)(
+    'advertises file=$supportsFileInputs and mask=$supportsMaskInputs for $modelId',
+    ({ modelId, supportsFileInputs, supportsMaskInputs }) => {
+      const capabilityModel = new ReplicateImageModel(modelId, {
+        provider: 'replicate.image',
+        baseURL: 'https://api.example.com',
+      });
+
+      expect(capabilityModel.supportsFileInputs).toBe(supportsFileInputs);
+      expect(capabilityModel.supportsMaskInputs).toBe(supportsMaskInputs);
+    },
+  );
+});
+
 describe('doGenerate', () => {
   const testDate = new Date(2024, 0, 1);
   const server = createTestServer({
