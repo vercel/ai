@@ -71,7 +71,10 @@ import { prepareRetries } from '../util/prepare-retries';
 import type { ContentPart } from './content-part';
 import { filterActiveTools } from './filter-active-tools';
 import type { Output } from './output';
-import type { PrepareStepFunction } from './prepare-step';
+import {
+  type PrepareStepFunction,
+  resolveStepToolChoice,
+} from './prepare-step';
 import type { ResponseMessage } from './response-message';
 import {
   type SingleRequestTextStreamPart,
@@ -1140,7 +1143,12 @@ class DefaultStreamTextResult<
           const { toolChoice: stepToolChoice, tools: stepTools } =
             prepareToolsAndToolChoice({
               tools,
-              toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+              toolChoice: resolveStepToolChoice({
+                toolChoice,
+                prepareStepToolChoice: prepareStepResult?.toolChoice,
+                steps: recordedSteps,
+                hasOutput: output != null,
+              }),
               activeTools: stepActiveTools,
             });
 
