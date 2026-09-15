@@ -3,8 +3,10 @@ import { prepareTools } from './anthropic-prepare-tools';
 import { CacheControlValidator } from './get-cache-control';
 import { webFetch_20260209OutputSchema } from './tool/web-fetch-20260209';
 import { webFetch_20250910OutputSchema } from './tool/web-fetch-20250910';
+import { webFetch_20260318OutputSchema } from './tool/web-fetch-20260318';
 import { webSearch_20260209OutputSchema } from './tool/web-search_20260209';
 import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
+import { webSearch_20260318OutputSchema } from './tool/web-search_20260318';
 import { anthropicChunkSchema, anthropicResponseSchema } from './anthropic-api';
 
 describe('prepareTools', () => {
@@ -747,6 +749,51 @@ describe('prepareTools', () => {
       `);
     });
 
+    it('should correctly prepare web_search_20260318 without a beta header', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'anthropic.web_search_20260318',
+            name: 'web_search',
+            args: {
+              maxUses: 10,
+              allowedDomains: ['google.com'],
+              userLocation: { type: 'approximate', city: 'New York' },
+              responseInclusion: 'excluded',
+            },
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+        supportsStrictTools: true,
+      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {},
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "allowed_domains": [
+                "google.com",
+              ],
+              "blocked_domains": undefined,
+              "cache_control": undefined,
+              "max_uses": 10,
+              "name": "web_search",
+              "response_inclusion": "excluded",
+              "type": "web_search_20260318",
+              "user_location": {
+                "city": "New York",
+                "type": "approximate",
+              },
+            },
+          ],
+        }
+      `);
+    });
+
     it('should correctly prepare web_fetch_20250910', async () => {
       const result = await prepareTools({
         tools: [
@@ -835,6 +882,55 @@ describe('prepareTools', () => {
               "max_uses": 10,
               "name": "web_fetch",
               "type": "web_fetch_20260209",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should correctly prepare web_fetch_20260318 without a beta header', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'anthropic.web_fetch_20260318',
+            name: 'web_fetch',
+            args: {
+              maxUses: 10,
+              allowedDomains: ['google.com'],
+              citations: { enabled: true },
+              maxContentTokens: 1000,
+              useCache: false,
+              responseInclusion: 'excluded',
+            },
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+        supportsStrictTools: true,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {},
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "allowed_domains": [
+                "google.com",
+              ],
+              "blocked_domains": undefined,
+              "cache_control": undefined,
+              "citations": {
+                "enabled": true,
+              },
+              "max_content_tokens": 1000,
+              "max_uses": 10,
+              "name": "web_fetch",
+              "response_inclusion": "excluded",
+              "type": "web_fetch_20260318",
+              "use_cache": false,
             },
           ],
         }
@@ -1605,6 +1701,29 @@ describe('webFetch_20260209OutputSchema', () => {
   });
 });
 
+describe('webFetch_20260318OutputSchema', () => {
+  it('should not fail validation when title is null', async () => {
+    const response = {
+      type: 'web_fetch_result',
+      url: 'https://test.com',
+      retrievedAt: '2026-09-15T20:00:00Z',
+      content: {
+        type: 'document',
+        title: null,
+        source: {
+          type: 'text',
+          mediaType: 'text/plain',
+          data: '',
+        },
+      },
+    };
+
+    const result = await webFetch_20260318OutputSchema().validate!(response);
+
+    expect(result.success).toBe(true);
+  });
+});
+
 describe('webSearch_20250305OutputSchema', () => {
   it('should not fail validation when title is null', async () => {
     const problematicResponse = [
@@ -1660,6 +1779,24 @@ describe('webSearch_20260209OutputSchema', () => {
     const schema = webSearch_20260209OutputSchema();
 
     const result = await schema.validate!(problematicResponse);
+
+    expect(result.success).toBe(true);
+  });
+});
+
+describe('webSearch_20260318OutputSchema', () => {
+  it('should not fail validation when title is null', async () => {
+    const response = [
+      {
+        url: 'https://test.com',
+        title: null,
+        pageAge: 'September 15, 2026',
+        encryptedContent: 'encrypted-content',
+        type: 'web_search_result',
+      },
+    ];
+
+    const result = await webSearch_20260318OutputSchema().validate!(response);
 
     expect(result.success).toBe(true);
   });

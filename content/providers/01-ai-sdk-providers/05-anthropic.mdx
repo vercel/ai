@@ -1052,8 +1052,9 @@ You can enable web search using the provider-defined web search tool:
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
-const webSearchTool = anthropic.tools.webSearch_20250305({
+const webSearchTool = anthropic.tools.webSearch_20260318({
   maxUses: 5,
+  responseInclusion: 'excluded',
 });
 
 const result = await generateText({
@@ -1071,6 +1072,10 @@ const result = await generateText({
 </Note>
 
 #### Configuration Options
+
+Use `webSearch_20260318` for dynamic filtering and response inclusion control.
+The older `webSearch_20260209` and `webSearch_20250305` versions remain
+available for applications that need their earlier behavior.
 
 The web search tool supports several configuration options:
 
@@ -1090,11 +1095,17 @@ The web search tool supports several configuration options:
 
   Optional user location information to provide geographically relevant search results.
 
+- **responseInclusion** _'full' | 'excluded'_
+
+  Available with `webSearch_20260318`. Controls whether search result blocks
+  consumed by a completed code execution call in the same turn are included in
+  the API response. The default is `'full'`. Use `'excluded'` to omit those
+  nested call/result pairs and reduce output token usage.
+
 ```ts
-const webSearchTool = anthropic.tools.webSearch_20250305({
+const webSearchTool = anthropic.tools.webSearch_20260318({
   maxUses: 3,
   allowedDomains: ['techcrunch.com', 'wired.com'],
-  blockedDomains: ['example-spam-site.com'],
   userLocation: {
     type: 'approximate',
     country: 'US',
@@ -1102,6 +1113,7 @@ const webSearchTool = anthropic.tools.webSearch_20250305({
     city: 'San Francisco',
     timezone: 'America/Los_Angeles',
   },
+  responseInclusion: 'excluded',
 });
 
 const result = await generateText({
@@ -1112,6 +1124,13 @@ const result = await generateText({
   },
 });
 ```
+
+<Note>
+  `responseInclusion: 'excluded'` only omits results consumed by code execution
+  calls that complete in the same turn. Results from direct calls and from code
+  execution calls that pause before completing are always returned in full so
+  they can be sent back on the next turn.
+</Note>
 
 ### Web Fetch Tool
 
@@ -1128,7 +1147,10 @@ const result = await generateText({
   prompt:
     'What is this page about? https://en.wikipedia.org/wiki/Maglemosian_culture',
   tools: {
-    web_fetch: anthropic.tools.webFetch_20250910({ maxUses: 1 }),
+    web_fetch: anthropic.tools.webFetch_20260318({
+      maxUses: 1,
+      responseInclusion: 'excluded',
+    }),
   },
 });
 ```
@@ -1472,6 +1494,19 @@ The web fetch tool supports several configuration options:
 - **maxContentTokens** _number_
 
   The maxContentTokens parameter limits the amount of content that will be included in the context.
+
+- **useCache** _boolean_
+
+  Available with `webFetch_20260318`. Set to `false` to bypass cached content
+  and fetch fresh content. The default is `true`; disabling the cache can
+  increase latency.
+
+- **responseInclusion** _'full' | 'excluded'_
+
+  Available with `webFetch_20260318`. Controls whether fetch result blocks
+  consumed by a completed code execution call in the same turn are included in
+  the API response. The default is `'full'`. Direct results and results from
+  code execution calls that pause before completing are always returned in full.
 
 #### Error Handling
 
