@@ -2137,8 +2137,6 @@ describe('auth function', () => {
     expect(body.get('code')).toBe('auth-code-123');
   });
 
-<<<<<<< HEAD
-=======
   it('uses the stored authorization server when protected resource metadata rediscovery fails during code exchange', async () => {
     const authorizationServerUrl = 'https://login.example.com/tenant/v2.0';
     const tokenEndpoint = 'https://login.example.com/tenant/oauth2/v2.0/token';
@@ -2194,7 +2192,6 @@ describe('auth function', () => {
         client_id: 'test-client',
       }),
       authorizationServerInformation: vi.fn().mockResolvedValue({
-        issuer: authorizationServerUrl,
         authorizationServerUrl,
         tokenEndpoint,
       }),
@@ -2219,41 +2216,11 @@ describe('auth function', () => {
     expect(provider.saveTokens).toHaveBeenCalledWith({
       access_token: 'access123',
       token_type: 'Bearer',
-      issuer: authorizationServerUrl,
       authorization_server: authorizationServerUrl,
       token_endpoint: tokenEndpoint,
     });
   });
 
-  it('accepts a matching authorization response issuer', async () => {
-    setupAuthorizationCodeFlow();
-
-    await expect(
-      auth(mockProvider, {
-        serverUrl: 'https://api.example.com/mcp-server',
-        authorizationCode: 'auth-code-123',
-        callbackIssuer: 'https://auth.example.com',
-      }),
-    ).resolves.toBe('AUTHORIZED');
-  });
-
-  it('rejects a mismatched authorization response issuer before code exchange', async () => {
-    setupAuthorizationCodeFlow();
-
-    await expect(
-      auth(mockProvider, {
-        serverUrl: 'https://api.example.com/mcp-server',
-        authorizationCode: 'auth-code-123',
-        callbackIssuer: 'https://evil.example',
-      }),
-    ).rejects.toThrow(/does not match expected issuer/);
-
-    expect(
-      mockFetch.mock.calls.some(call => call[0].toString().includes('/token')),
-    ).toBe(false);
-  });
-
->>>>>>> df91a09557 (fix: MCP OAuth callbacks reject stored external authorization servers when protected resource metadata rediscovery fails (#20798))
   it('includes resource in token refresh', async () => {
     // Mock successful metadata discovery and token refresh - need protected resource metadata
     mockFetch.mockImplementation(url => {

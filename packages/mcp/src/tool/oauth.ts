@@ -1275,28 +1275,9 @@ async function authInternal(
   });
 
   /** Load or register client credentials with the AS pin attached. */
-<<<<<<< HEAD
-  let clientInformation = await Promise.resolve(provider.clientInformation());
-=======
   if (authorizationCode === undefined) {
     clientInformation = await Promise.resolve(provider.clientInformation());
   }
-  if (clientInformation?.issuer != null) {
-    const storedAuthorizationServerInformation =
-      callbackAuthorizationServerInformation ??
-      (await getStoredAuthorizationServerInformation({
-        provider,
-        clientInformation,
-      }));
-    if (storedAuthorizationServerInformation) {
-      assertAuthorizationServerInformationMatches({
-        storedAuthorizationServerInformation,
-        currentAuthorizationServerInformation,
-      });
-    }
-  }
-
->>>>>>> df91a09557 (fix: MCP OAuth callbacks reject stored external authorization servers when protected resource metadata rediscovery fails (#20798))
   if (!clientInformation) {
     if (authorizationCode !== undefined) {
       throw new Error(
