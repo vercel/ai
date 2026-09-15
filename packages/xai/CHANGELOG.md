@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.133
+
+### Patch Changes
+
+- 8825c65: fix(xai): preserve `additionalProperties: false` in tool schemas
+
 ## 3.0.132
 
 ### Patch Changes
