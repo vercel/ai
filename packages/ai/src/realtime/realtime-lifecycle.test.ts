@@ -74,7 +74,7 @@ describe('realtime lifecycle recovery and bounded resources', () => {
     expect(FakeAudioContext.instances).toHaveLength(0);
   });
 
-  it('preserves legacy ownership of supplied capture and closes both token socket and microphone on congestion', async () => {
+  it('preserves legacy ownership of supplied capture and closes both token socket and microphone on native send failure', async () => {
     const model = { ...liveModel(), capabilities: undefined };
     model.getWebSocketConfig = ({ url }) => ({ url });
     browser.fetch.mockResolvedValue(
@@ -87,7 +87,9 @@ describe('realtime lifecycle recovery and bounded resources', () => {
     await emit({ type: 'session-created', sessionId: 'legacy', raw: {} });
     session.startAudioCapture(browser.stream);
     await flushEvents();
-    socket().bufferedAmount = 128 * 1024 + 1;
+    socket().send.mockImplementationOnce(() => {
+      throw new Error('Native WebSocket send failed');
+    });
     FakeAudioContext.instances[1].processors[0].onaudioprocess?.({
       inputBuffer: { getChannelData: () => new Float32Array(1024) },
     });
@@ -143,6 +145,80 @@ describe('realtime lifecycle recovery and bounded resources', () => {
     });
     expect(session.snapshot.status).toBe('error');
   });
+
+  it.each(['terminal', 'timeout'] as const)(
+    'drains Live pending-audio overflow to %s without sending further microphone frames',
+    async completion => {
+      vi.useFakeTimers();
+      const onError = vi.fn();
+      const model = liveModel();
+      const session = create({ model, onError });
+      await readyWebSocket(session);
+      await emit({ type: 'session-usage', usage: { seconds: 5 }, raw: {} });
+      const text = deferred<string>();
+      const blob = new Blob();
+      vi.spyOn(blob, 'text').mockReturnValue(text.promise);
+      socket().onmessage?.({ data: blob });
+      const pending = deferred<void>();
+      const serialize = vi.fn(
+        async (event: Parameters<typeof model.serializeClientEvent>[0]) => {
+          await pending.promise;
+          return event;
+        },
+      );
+      model.serializeClientEvent = serialize;
+      const capture = FakeAudioContext.instances[1];
+      const process = capture.processors[0].onaudioprocess;
+      const samples = {
+        inputBuffer: { getChannelData: () => new Float32Array(1024) },
+      };
+      for (let i = 0; i < 8; i++) process?.(samples);
+      await flushEvents();
+      expect(serialize).toHaveBeenCalledOnce();
+      expect(onError).not.toHaveBeenCalled();
+      const sentCount = socket().sent.length;
+      process?.(samples);
+      expect(session.snapshot.status).toBe('error');
+      expect(session.snapshot.isCapturing).toBe(false);
+      expect(session.snapshot.session?.finalization).toBe('pending');
+      expect(socket().close).toHaveBeenCalledOnce();
+      expect(capture.close).toHaveBeenCalledOnce();
+      expect(browser.track.stop).toHaveBeenCalledOnce();
+      expect(onError).toHaveBeenCalledExactlyOnceWith(
+        new Error('Realtime audio send queue is full'),
+      );
+      const closed = session.close();
+      const settled = vi.fn();
+      void closed.then(settled);
+      process?.(samples);
+      pending.resolve();
+      await vi.advanceTimersByTimeAsync(999);
+      expect(settled).not.toHaveBeenCalled();
+      expect(socket().sent).toHaveLength(sentCount);
+      expect(serialize).toHaveBeenCalledOnce();
+      if (completion === 'timeout') await vi.advanceTimersByTimeAsync(1);
+      text.resolve(
+        JSON.stringify({
+          type: 'session-closed',
+          usage: { seconds: 9.125 },
+          reason: 'requested',
+          raw: {},
+        }),
+      );
+      await closed;
+      await flushEvents();
+      expect(session.snapshot.status).toBe('error');
+      expect(session.snapshot.session).toMatchObject({
+        finalization: completion === 'terminal' ? 'confirmed' : 'unconfirmed',
+        usage: { seconds: completion === 'terminal' ? 9.125 : 5 },
+      });
+      expect(settled).toHaveBeenCalledOnce();
+      expect(onError).toHaveBeenCalledOnce();
+      expect(socket().sent).toHaveLength(sentCount);
+      expect(socket().close).toHaveBeenCalledOnce();
+      expect(browser.track.stop).toHaveBeenCalledOnce();
+    },
+  );
 
   it.each(['serialize', 'send'] as const)(
     'settles close promptly after asynchronous %s failure and lets queued terminal usage win',
@@ -339,7 +415,7 @@ describe('realtime lifecycle recovery and bounded resources', () => {
     expect(session.snapshot.session?.finalization).toBe('confirmed');
   });
 
-  it('stops SDK-owned legacy capture on congestion and ignores a stale serialization rejection after reconnect', async () => {
+  it('stops SDK-owned legacy capture on native send failure and ignores a stale serialization rejection after reconnect', async () => {
     const model = { ...liveModel(), capabilities: undefined };
     model.getWebSocketConfig = ({ url }) => ({ url });
     browser.fetch.mockImplementation(async () =>
@@ -370,7 +446,9 @@ describe('realtime lifecycle recovery and bounded resources', () => {
     expect(onError).not.toHaveBeenCalled();
     await session.resumeAudioCapture();
     model.serializeClientEvent = event => event;
-    socket().bufferedAmount = 128 * 1024 + 1;
+    socket().send.mockImplementationOnce(() => {
+      throw new Error('Native WebSocket send failed');
+    });
     FakeAudioContext.instances[3].processors[0].onaudioprocess?.({
       inputBuffer: { getChannelData: () => new Float32Array(1024) },
     });
