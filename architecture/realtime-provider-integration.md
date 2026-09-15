@@ -1,8 +1,9 @@
 # Experimental realtime provider integration
 
 This document is for runtime and provider authors. Application developers should
-start with the OpenAI provider documentation. This stage provides client-delegated
-Live over server WebSockets; runtime and UI integration follow separately.
+start with the OpenAI provider documentation and `experimental_useRealtime` reference.
+Client-delegated Live uses the browser JSON/PCM16 WSS runtime through an
+application-owned relay; provider credentials stay on the server.
 
 ## Shared interface, provider-specific protocol
 
