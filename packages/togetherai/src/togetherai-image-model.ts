@@ -56,6 +56,7 @@ export class TogetherAIImageModel implements ImageModelV4 {
     prompt,
     n,
     size,
+    aspectRatio,
     seed,
     providerOptions,
     headers,
@@ -75,7 +76,7 @@ export class TogetherAIImageModel implements ImageModelV4 {
       );
     }
 
-    if (size != null) {
+    if (aspectRatio != null) {
       warnings.push({
         type: 'unsupported',
         feature: 'aspectRatio',
