@@ -135,12 +135,12 @@ export class BrowserRealtimeTransport {
 
     ws.onopen = () => {
       // Ignore a late open for a socket that has since been replaced/closed.
-      if (this.ws !== ws) return;
+      if (this.epoch !== epoch || this.ws !== ws) return;
       starting = true;
       try {
         void Promise.resolve(onOpen())
           .catch(error => {
-            if (this.ws === ws)
+            if (this.epoch === epoch && this.ws === ws)
               this.fail(
                 error instanceof Error ? error : new Error(String(error)),
               );
@@ -155,18 +155,19 @@ export class BrowserRealtimeTransport {
     };
 
     ws.onmessage = messageEvent => {
-      if (this.ws === ws) this.codec?.receive(messageEvent.data);
+      if (this.epoch === epoch && this.ws === ws)
+        this.codec?.receive(messageEvent.data);
     };
 
     ws.onerror = () => {
-      if (this.ws === ws) {
+      if (this.epoch === epoch && this.ws === ws) {
         connectionError = new Error('WebSocket connection error');
         this.failing = true;
       }
     };
 
     ws.onclose = event => {
-      if (this.ws === ws) {
+      if (this.epoch === epoch && this.ws === ws) {
         this.ws = null;
         const closeError = getCloseError(event) ?? connectionError;
         codec.stopWriting();
@@ -187,6 +188,13 @@ export class BrowserRealtimeTransport {
         void this.awaitDrain(codec.finish(), complete);
       }
     };
+  }
+
+  /** Fence callbacks and queued codec work without closing the retained socket. */
+  retire(): void {
+    this.epoch++;
+    this.closing = true;
+    this.codec?.dispose();
   }
 
   disconnect(): void {

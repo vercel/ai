@@ -68,6 +68,7 @@ export abstract class AbstractRealtimeSession {
   private attempt?: RealtimeAttempt;
   private commands?: RealtimeCommandTracker;
   private publication = 0;
+  private retired = false;
   private transport?: BrowserRealtimeTransport;
   private audio?: BrowserRealtimeAudio;
   private pcm?: BrowserRealtimeLiveWebSocket;
@@ -161,6 +162,11 @@ export abstract class AbstractRealtimeSession {
   }): Promise<void> {
     if (this.attempt?.active)
       throw new Error('Realtime session is already active');
+    if (this.retired) {
+      const previous = this.attempt;
+      this.disconnect();
+      if (this.attempt !== previous || this.retired) return;
+    }
     const attempt = new RealtimeAttempt();
     this.attempt = attempt;
     const current = () => this.attempt === attempt && attempt.active;
@@ -394,6 +400,20 @@ export abstract class AbstractRealtimeSession {
     void this.reportError(error, attempt);
   }
 
+  /** Non-notifying commit-phase fence; dispose() performs deferred cleanup. */
+  protected retireCurrentAttempt(): void {
+    this.retired = true;
+    this.publication++;
+    this.captureGeneration++;
+    if (this.attempt != null) {
+      this.attempt.active = false;
+      this.attempt.silenced = true;
+    }
+    this.transport?.retire();
+    this.pcm?.retire();
+    this.audio?.retire();
+  }
+
   disconnect(): void {
     const attempt = this.attempt;
     this.captureGeneration++;
@@ -408,6 +428,7 @@ export abstract class AbstractRealtimeSession {
     this.pcm = undefined;
     this.rtc = undefined;
     this.commands = undefined;
+    this.retired = false;
     attempt?.retire();
     transport?.dispose();
     audio?.dispose();
@@ -438,7 +459,8 @@ export abstract class AbstractRealtimeSession {
     if (
       this.state.status !== 'connected' ||
       this.options.model.capabilities?.finalization !== 'session-close' ||
-      attempt == null
+      attempt == null ||
+      !attempt.active
     ) {
       this.disconnect();
       return Promise.resolve();
@@ -617,6 +639,8 @@ export abstract class AbstractRealtimeSession {
   }
 
   startAudioCapture(stream: MediaStream): void {
+    if (this.retired)
+      throw new Error('Realtime session is not accepting capture');
     const legacy =
       !this.sessionLifecycle &&
       !this.continuous &&
@@ -643,6 +667,7 @@ export abstract class AbstractRealtimeSession {
 
   async resumeAudioCapture(): Promise<void> {
     const accepting = () =>
+      !this.retired &&
       !this.attempt?.closing &&
       this.attempt?.cause == null &&
       (this.state.status === 'connected' ||
@@ -736,6 +761,7 @@ export abstract class AbstractRealtimeSession {
   }
 
   private applyState(nextState: RealtimeState): void {
+    if (this.retired) return;
     const publication = ++this.publication;
     const previous = this.state;
     this.state = nextState;
@@ -904,7 +930,7 @@ export abstract class AbstractRealtimeSession {
     error: unknown,
     attempt?: RealtimeAttempt,
   ): Promise<void> {
-    if (this.attempt !== attempt) return;
+    if (this.retired || attempt?.silenced || this.attempt !== attempt) return;
     try {
       await this.onError?.(
         error instanceof Error ? error : new Error(String(error)),
@@ -919,7 +945,13 @@ export abstract class AbstractRealtimeSession {
     attempt: RealtimeAttempt,
     terminal = false,
   ): void {
-    if (this.attempt !== attempt || (!attempt.active && !terminal)) return;
+    if (
+      this.retired ||
+      attempt.silenced ||
+      this.attempt !== attempt ||
+      (!attempt.active && !terminal)
+    )
+      return;
     const report = (error: unknown) => {
       if (attempt.active || terminal) void this.reportError(error, attempt);
     };

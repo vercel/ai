@@ -5,6 +5,7 @@ export class RealtimeAttempt {
   private settleClose?: () => void;
   closePromise?: Promise<void>;
   active = true;
+  silenced = false;
   ready = false;
   closing = false;
   transportClosing = false;
@@ -34,7 +35,8 @@ export class RealtimeAttempt {
   }
 
   retire(): void {
-    if (!this.active) return;
+    // Commit-phase fencing can deactivate an attempt before cleanup runs.
+    if (this.abort.signal.aborted) return;
     this.active = false;
     this.abort.abort();
     for (const timer of this.timers.values()) clearTimeout(timer);

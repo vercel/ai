@@ -8,6 +8,7 @@ const { realtimeInstances } = vi.hoisted(() => ({
       onError?: (error: Error) => void;
     };
     dispose: ReturnType<typeof vi.fn>;
+    retireCurrentAttempt: ReturnType<typeof vi.fn>;
   }>,
 }));
 
@@ -27,6 +28,7 @@ vi.mock('ai', () => ({
       onError?: (error: Error) => void;
     };
     dispose = vi.fn();
+    retireCurrentAttempt = vi.fn();
 
     constructor(options: {
       api: { token: string };
@@ -96,6 +98,8 @@ describe('experimental_useRealtime', () => {
     );
 
     expect(realtimeInstances).toHaveLength(1);
+    expect(realtimeInstances[0].retireCurrentAttempt).not.toHaveBeenCalled();
+    expect(realtimeInstances[0].dispose).not.toHaveBeenCalled();
 
     realtimeInstances[0].options.onError?.(new Error('test'));
 
@@ -104,7 +108,7 @@ describe('experimental_useRealtime', () => {
   });
 
   it('replaces the session when the token endpoint changes', () => {
-    const { rerender } = render(
+    const { rerender, unmount } = render(
       <TestComponent token="/api/realtime/setup-a" />,
     );
     const firstInstance = realtimeInstances[0];
@@ -116,5 +120,11 @@ describe('experimental_useRealtime', () => {
       '/api/realtime/setup-b',
     );
     expect(firstInstance.dispose).toHaveBeenCalledOnce();
+    expect(firstInstance.retireCurrentAttempt).toHaveBeenCalledOnce();
+    expect(realtimeInstances[1].retireCurrentAttempt).not.toHaveBeenCalled();
+    expect(realtimeInstances[1].dispose).not.toHaveBeenCalled();
+    unmount();
+    expect(realtimeInstances[1].retireCurrentAttempt).toHaveBeenCalledOnce();
+    expect(realtimeInstances[1].dispose).toHaveBeenCalledOnce();
   });
 });
