@@ -58,12 +58,12 @@ Options:
 The pyannoteAI job-based REST API is exposed as 5 transcription models, matching the 5 products on [pyannote.ai/pricing](https://pyannote.ai/pricing):
 
 | Model ID                  | pyannoteAI product                             |
-| -------------------------- | ------------------------------------------------ |
-| `diarization-precision-2`  | Diarization - Precision-2 [Batch]                 |
-| `diarization-community-1`  | Diarization - Hosted Community-1 [Batch]          |
-| `stt-orchestration`         | STT Orchestration [Batch]                         |
-| `stt-orchestration-byo`     | STT Orchestration - Bring your own STT [Batch]     |
-| `speaker-identification`    | Speaker Identification                            |
+| ------------------------- | ---------------------------------------------- |
+| `diarization-precision-2` | Diarization - Precision-2 [Batch]              |
+| `diarization-community-1` | Diarization - Hosted Community-1 [Batch]       |
+| `stt-orchestration`       | STT Orchestration [Batch]                      |
+| `stt-orchestration-byo`   | STT Orchestration - Bring your own STT [Batch] |
+| `speaker-identification`  | Speaker Identification                         |
 
 ```ts
 const model = pyannote.transcription('stt-orchestration');
@@ -160,20 +160,20 @@ console.log(result.providerMetadata.pyannote.identification);
 
 All per-request options are passed under `providerOptions.pyannote`:
 
-| Option                            | Applies to                          | Description                                                                  |
-| ---------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------ |
-| `numSpeakers`                      | diarization, stt-orchestration\*      | Exact number of speakers, when known                                          |
-| `minSpeakers` / `maxSpeakers`       | diarization, stt-orchestration\*      | Bounds on the number of speakers                                               |
-| `exclusive`                        | diarization, stt-orchestration\*      | Also return non-overlapping turns                                             |
-| `confidence`                       | all diarize-based models              | Include frame-level confidence scores                                         |
-| `turnLevelConfidence`               | all diarize-based models              | Include per-turn confidence scores                                            |
-| `transcriptionModel`                | `stt-orchestration`                    | `'parakeet-tdt-0.6b-v3'` (default) or `'faster-whisper-large-v3-turbo'`        |
-| `transcriptionLevel`                | `stt-orchestration`                    | `'turn'` (default) or `'word'`                                                 |
-| `externalTranscript`                | `stt-orchestration-byo` (required)     | Your own STT provider's `{start, end, text}` segments                         |
-| `fillNearestSpeaker`                | `stt-orchestration-byo`                | Assign the nearest speaker instead of `"UNKNOWN"` for non-overlapping spans    |
-| `voiceprints`                       | `speaker-identification` (required)    | `{label, voiceprint}[]` to match against                                      |
-| `matching`                          | `speaker-identification`               | `{exclusive?, threshold?}` matching tuning                                    |
-| `pollIntervalMs` / `pollTimeoutMs`   | all models                             | Job-polling tuning (defaults: 2s / 10min) - `doGenerate` polls internally since pyannoteAI's API is job-based |
+| Option                             | Applies to                          | Description                                                                                                   |
+| ---------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `numSpeakers`                      | diarization, stt-orchestration\*    | Exact number of speakers, when known                                                                          |
+| `minSpeakers` / `maxSpeakers`      | diarization, stt-orchestration\*    | Bounds on the number of speakers                                                                              |
+| `exclusive`                        | diarization, stt-orchestration\*    | Also return non-overlapping turns                                                                             |
+| `confidence`                       | all diarize-based models            | Include frame-level confidence scores                                                                         |
+| `turnLevelConfidence`              | all diarize-based models            | Include per-turn confidence scores                                                                            |
+| `transcriptionModel`               | `stt-orchestration`                 | `'parakeet-tdt-0.6b-v3'` (default) or `'faster-whisper-large-v3-turbo'`                                       |
+| `transcriptionLevel`               | `stt-orchestration`                 | `'turn'` (default) or `'word'`                                                                                |
+| `externalTranscript`               | `stt-orchestration-byo` (required)  | Your own STT provider's `{start, end, text}` segments                                                         |
+| `fillNearestSpeaker`               | `stt-orchestration-byo`             | Assign the nearest speaker instead of `"UNKNOWN"` for non-overlapping spans                                   |
+| `voiceprints`                      | `speaker-identification` (required) | `{label, voiceprint}[]` to match against                                                                      |
+| `matching`                         | `speaker-identification`            | `{exclusive?, threshold?}` matching tuning                                                                    |
+| `pollIntervalMs` / `pollTimeoutMs` | all models                          | Job-polling tuning (defaults: 2s / 10min) - `doGenerate` polls internally since pyannoteAI's API is job-based |
 
 \* except `stt-orchestration-byo`, which forces `exclusive: true` internally regardless of this setting.
 
