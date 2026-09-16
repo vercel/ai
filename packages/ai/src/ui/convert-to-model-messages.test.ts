@@ -1,10 +1,5 @@
 import { tool, type ModelMessage } from '@ai-sdk/provider-utils';
-<<<<<<< HEAD
-import { describe, expect, it } from 'vitest';
-=======
-import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
->>>>>>> 25a0447c29 (feat: deprecate rawInput in output-error UI message parts (#20319))
 import z from 'zod/v4';
 import { convertToModelMessages } from './convert-to-model-messages';
 import type { UIMessage } from './ui-messages';
@@ -742,73 +737,11 @@ describe('convertToModelMessages', () => {
     });
 
     describe('tool output error', () => {
-<<<<<<< HEAD
       it('should handle assistant message with tool output error that has raw input', () => {
-        const result = convertToModelMessages([
-=======
-      it('should preserve result provider metadata on a failed tool call when call metadata is unavailable', async () => {
-        const result = await convertToModelMessages([
-          {
-            role: 'assistant',
-            parts: [
-              {
-                type: 'tool-createWidget',
-                state: 'output-error',
-                toolCallId: 'call1',
-                input: undefined,
-                rawInput: {},
-                errorText: 'Invalid input',
-                resultProviderMetadata: {
-                  openai: {
-                    namespace: 'widget_tools',
-                  },
-                },
-              },
-            ],
-          },
-        ]);
-
-        expect(result).toEqual([
-          {
-            role: 'assistant',
-            content: [
-              {
-                type: 'tool-call',
-                toolCallId: 'call1',
-                toolName: 'createWidget',
-                input: {},
-                providerExecuted: undefined,
-                providerOptions: {
-                  openai: {
-                    namespace: 'widget_tools',
-                  },
-                },
-              },
-            ],
-          },
-          {
-            role: 'tool',
-            content: [
-              {
-                type: 'tool-result',
-                toolCallId: 'call1',
-                toolName: 'createWidget',
-                output: {
-                  type: 'error-text',
-                  value: 'Invalid input',
-                },
-              },
-            ],
-          },
-        ]);
-      });
-
-      it('should handle assistant message with tool output error that has raw input', async () => {
         const warningLogger = vi.fn();
         globalThis.AI_SDK_LOG_WARNINGS = warningLogger;
 
-        const result = await convertToModelMessages([
->>>>>>> 25a0447c29 (feat: deprecate rawInput in output-error UI message parts (#20319))
+        const result = convertToModelMessages([
           {
             role: 'assistant',
             parts: [
@@ -864,20 +797,18 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
-        expect(warningLogger).toHaveBeenCalledWith({
-          warnings: [
-            {
-              type: 'deprecated',
-              setting: 'rawInput in output-error UI message parts',
-              message:
-                'Use the "input" field instead. The "rawInput" field will be removed in the next major version.',
-            },
-          ],
-        });
+        expect(warningLogger).toHaveBeenCalledWith([
+          {
+            type: 'deprecated',
+            setting: 'rawInput in output-error UI message parts',
+            message:
+              'Use the "input" field instead. The "rawInput" field will be removed in the next major version.',
+          },
+        ]);
       });
 
-      it('should preserve the deprecated rawInput fallback when input is null', async () => {
-        const result = await convertToModelMessages([
+      it('should preserve the deprecated rawInput fallback when input is null', () => {
+        const result = convertToModelMessages([
           {
             role: 'assistant',
             parts: [

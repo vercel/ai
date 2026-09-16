@@ -31,10 +31,7 @@ import {
   getToolName,
   isToolUIPart,
 } from './ui-messages';
-<<<<<<< HEAD
-=======
 import { warnIfUIMessageHasDeprecatedRawInput } from './warn-if-ui-message-has-deprecated-raw-input';
->>>>>>> 25a0447c29 (feat: deprecate rawInput in output-error UI message parts (#20319))
 
 export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   message: UI_MESSAGE;

@@ -382,7 +382,6 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
       schema: uiMessagesSchema,
     });
 
-<<<<<<< HEAD
     for (const message of validatedMessages) {
       for (const part of message.parts) {
         if (part.type !== 'dynamic-tool' && !part.type.startsWith('tool-')) {
@@ -399,9 +398,8 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
         }
       }
     }
-=======
+
     warnIfUIMessageHasDeprecatedRawInput(validatedMessages);
->>>>>>> 25a0447c29 (feat: deprecate rawInput in output-error UI message parts (#20319))
 
     if (metadataSchema) {
       for (const message of validatedMessages) {

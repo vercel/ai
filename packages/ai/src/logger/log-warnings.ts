@@ -5,11 +5,18 @@ import type {
   TranscriptionModelV2CallWarning,
 } from '@ai-sdk/provider';
 
+export type DeprecatedWarning = {
+  type: 'deprecated';
+  setting: string;
+  message: string;
+};
+
 export type Warning =
   | LanguageModelV2CallWarning
   | ImageModelV2CallWarning
   | SpeechModelV2CallWarning
-  | TranscriptionModelV2CallWarning;
+  | TranscriptionModelV2CallWarning
+  | DeprecatedWarning;
 
 export type LogWarningsFunction = (warnings: Warning[]) => void;
 
@@ -40,6 +47,10 @@ function formatWarning(warning: Warning): string {
 
     case 'other': {
       return `${prefix} ${warning.message}`;
+    }
+
+    case 'deprecated': {
+      return `${prefix} Deprecated: "${warning.setting}". ${warning.message}`;
     }
 
     default: {
@@ -103,7 +114,7 @@ export const logWarnings: LogWarningsFunction = warnings => {
   for (const warning of warnings) {
     emitWarning({
       message: formatWarning(warning),
-      type: 'Warning',
+      type: warning.type === 'deprecated' ? 'DeprecationWarning' : 'Warning',
     });
   }
 };

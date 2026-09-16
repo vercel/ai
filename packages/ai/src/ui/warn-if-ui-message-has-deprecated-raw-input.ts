@@ -29,8 +29,6 @@ export function warnIfUIMessageHasDeprecatedRawInput(
   );
 
   if (hasDeprecatedRawInput) {
-    logWarnings({
-      warnings: [rawInputDeprecationWarning],
-    });
+    logWarnings([rawInputDeprecationWarning]);
   }
 }

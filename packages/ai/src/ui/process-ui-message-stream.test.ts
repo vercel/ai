@@ -7,18 +7,8 @@ import {
   createStreamingUIMessageState,
   processUIMessageStream,
 } from './process-ui-message-stream';
-<<<<<<< HEAD
 import type { InferUIMessageData, UIMessage } from './ui-messages';
-import { beforeEach, describe, it, expect, vi } from 'vitest';
-=======
-import {
-  isToolUIPart,
-  type InferUIMessageData,
-  type UIMessage,
-} from './ui-messages';
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
-import { UIMessageStreamError } from '../error/ui-message-stream-error';
->>>>>>> 25a0447c29 (feat: deprecate rawInput in output-error UI message parts (#20319))
 
 function createUIMessageStream(parts: UIMessageChunk[]) {
   return convertArrayToReadableStream(parts);
@@ -5805,16 +5795,14 @@ describe('processUIMessageStream', () => {
 
     it('should warn when creating a static output-error part with rawInput', () => {
       expect(warningLogger).toHaveBeenCalledOnce();
-      expect(warningLogger).toHaveBeenCalledWith({
-        warnings: [
-          {
-            type: 'deprecated',
-            setting: 'rawInput in output-error UI message parts',
-            message:
-              'Use the "input" field instead. The "rawInput" field will be removed in the next major version.',
-          },
-        ],
-      });
+      expect(warningLogger).toHaveBeenCalledWith([
+        {
+          type: 'deprecated',
+          setting: 'rawInput in output-error UI message parts',
+          message:
+            'Use the "input" field instead. The "rawInput" field will be removed in the next major version.',
+        },
+      ]);
     });
 
     it('should call the update function with the correct arguments', async () => {
