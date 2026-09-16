@@ -36,6 +36,17 @@ import {
 } from '@ai-sdk/provider-utils';
 export type AuthResult = 'AUTHORIZED' | 'REDIRECT';
 
+export interface OAuthCredentialsInvalidationContext {
+  /**
+   * The exact token generation that the server rejected, when the invalidation
+   * is tied to a specific attempt. Credential storage that is shared by
+   * multiple clients can compare this generation against the one currently
+   * persisted and only delete it when it still matches, so that a concurrent
+   * successful refresh is not destroyed.
+   */
+  tokens?: OAuthTokens;
+}
+
 export interface OAuthAuthorizationServerInformation {
   issuer?: string;
   authorizationServerUrl: string;
@@ -81,9 +92,16 @@ export interface OAuthClientProvider {
    * If implemented, provides a way for the client to invalidate (e.g. delete) the specified
    * credentials, in the case where the server has indicated that they are no longer valid.
    * This avoids requiring the user to intervene manually.
+   *
+   * When the invalidation is tied to a specific token attempt, `context.tokens` carries the
+   * exact generation that was rejected. Implementations whose storage is shared across
+   * clients (for example, multiple replicas) should compare that generation against what
+   * is currently persisted and only delete it when it still matches; deleting
+   * unconditionally can remove a newer credential that a concurrent refresh already saved.
    */
   invalidateCredentials?(
     scope: 'all' | 'client' | 'tokens' | 'verifier',
+    context?: OAuthCredentialsInvalidationContext,
   ): void | Promise<void>;
   get redirectUrl(): string | URL;
   get clientMetadata(): OAuthClientMetadata;
@@ -1262,7 +1280,9 @@ export async function auth(
       await provider.invalidateCredentials?.('all');
       return await authInternal(provider, options);
     } else if (error instanceof InvalidGrantError) {
-      await provider.invalidateCredentials?.('tokens');
+      await provider.invalidateCredentials?.('tokens', {
+        tokens: error.tokens,
+      });
       return await authInternal(provider, options);
     }
 
@@ -1538,7 +1558,7 @@ async function authInternal(
         currentAuthorizationServerInformation,
       });
     } else {
-      await provider.invalidateCredentials?.('tokens');
+      await provider.invalidateCredentials?.('tokens', { tokens });
     }
 
     try {
@@ -1562,6 +1582,12 @@ async function authInternal(
         return 'AUTHORIZED';
       }
     } catch (error) {
+      // Carry the exact generation this attempt used, so invalidation can
+      // compare-and-delete instead of wiping a newer credential that a
+      // concurrent refresh may have persisted in shared storage.
+      if (error instanceof InvalidGrantError) {
+        error.tokens = tokens;
+      }
       if (
         // If this is a ServerError, or an unknown type, log it out and try to continue. Otherwise, escalate so we can fix things and retry.
         !(error instanceof MCPClientOAuthError) ||
