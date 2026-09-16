@@ -8,7 +8,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 
-const DIRECT_TOOL_CALL = 'AI_SDK_DIRECT_TOOL_CALL';
+export const DIRECT_TOOL_CALL = 'AI_SDK_DIRECT_TOOL_CALL';
 
 type ToolCallerName<TOOLS extends ToolSet> = {
   [NAME in keyof TOOLS]: TOOLS[NAME] extends Experimental_ToolCallerTool

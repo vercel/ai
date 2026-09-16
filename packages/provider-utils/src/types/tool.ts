@@ -60,8 +60,9 @@ type BaseTool<
 > = {
   /**
    * Defer exposing this tool until it is discovered by `toolSearch`.
-   * Requires routing exclusively through local callers that announce tools
-   * in conversation messages (code mode with `toolDiscovery: 'conversation'`).
+   * Supports direct calls and local callers that announce tools in conversation
+   * messages (code mode with `toolDiscovery: 'conversation'`). Discovered tools
+   * become available on the next model step.
    */
   deferLoading?: boolean;
 

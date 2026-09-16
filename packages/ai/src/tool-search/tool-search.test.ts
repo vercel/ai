@@ -29,6 +29,157 @@ describe.each([
   'agent.generate',
   'agent.stream',
 ] as const)('%s tool search', mode => {
+  it.each([false, true])(
+    'adds discovered definitions on the next step without injecting messages (early call: %s)',
+    async callEarly => {
+      const executeWeather = vi.fn(
+        ({ city }: { city: string }) => `${city}: sunny`,
+      );
+      const calls: LanguageModelV4CallOptions[] = [];
+      const searchCall = {
+        type: 'tool-call' as const,
+        toolCallId: 'search',
+        toolName: 'search',
+        input: JSON.stringify({ query: 'weather' }),
+      };
+      const weatherCall = {
+        type: 'tool-call' as const,
+        toolCallId: 'weather',
+        toolName: 'getWeather',
+        input: JSON.stringify({ city: 'Bangalore' }),
+      };
+      const firstCalls = [
+        searchCall,
+        ...(callEarly ? [{ ...weatherCall, toolCallId: 'too-early' }] : []),
+      ];
+      const model = new MockLanguageModelV4({
+        doGenerate: async options => {
+          const step = calls.length;
+          calls.push(options);
+          if (step === 1) {
+            expect(executeWeather).not.toHaveBeenCalled();
+          }
+          return {
+            content:
+              step === 0
+                ? firstCalls
+                : step === 1
+                  ? [weatherCall]
+                  : [{ type: 'text', text: 'sunny' }],
+            usage,
+            warnings: [],
+            finishReason: {
+              unified: step < 2 ? 'tool-calls' : 'stop',
+              raw: undefined,
+            },
+          };
+        },
+        doStream: async options => {
+          const step = calls.length;
+          calls.push(options);
+          if (step === 1) {
+            expect(executeWeather).not.toHaveBeenCalled();
+          }
+          return {
+            stream: convertArrayToReadableStream([
+              ...(step === 0
+                ? firstCalls
+                : step === 1
+                  ? [weatherCall]
+                  : [
+                      { type: 'text-start' as const, id: 'text' },
+                      {
+                        type: 'text-delta' as const,
+                        id: 'text',
+                        delta: 'sunny',
+                      },
+                      { type: 'text-end' as const, id: 'text' },
+                    ]),
+              {
+                type: 'finish' as const,
+                usage,
+                finishReason: {
+                  unified:
+                    step < 2 ? ('tool-calls' as const) : ('stop' as const),
+                  raw: undefined,
+                },
+              },
+            ]),
+          };
+        },
+      });
+      const settings = {
+        model,
+        tools: {
+          search: toolSearch(),
+          getWeather: tool({
+            deferLoading: true,
+            description: 'Weather forecast',
+            inputSchema: z.object({ city: z.string() }),
+            execute: executeWeather,
+          }),
+          unrelated: tool({
+            deferLoading: true,
+            description: 'Send email',
+            inputSchema: z.object({}),
+          }),
+        },
+        prompt: 'Find the weather.',
+        stopWhen: isStepCount(3),
+      };
+      const result =
+        mode === 'generateText'
+          ? await generateText(settings)
+          : mode === 'streamText'
+            ? streamText(settings)
+            : mode === 'agent.generate'
+              ? await new ToolLoopAgent(settings).generate({
+                  prompt: settings.prompt,
+                })
+              : await new ToolLoopAgent(settings).stream({
+                  prompt: settings.prompt,
+                });
+
+      expect(await result.text).toBe('sunny');
+      expect(executeWeather).toHaveBeenCalledOnce();
+      expect(executeWeather.mock.calls[0][0]).toEqual({ city: 'Bangalore' });
+      expect(calls.map(call => call.tools?.map(tool => tool.name))).toEqual([
+        ['search'],
+        ['search', 'getWeather'],
+        ['search', 'getWeather'],
+      ]);
+      expect(calls[1].tools?.[1]).toMatchObject({
+        type: 'function',
+        name: 'getWeather',
+        inputSchema: {
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+        },
+      });
+      expect(calls[1].tools?.[0]).toEqual(calls[0].tools?.[0]);
+      for (const call of calls) {
+        expect(call.prompt.filter(message => message.role === 'user')).toEqual([
+          { role: 'user', content: [{ type: 'text', text: settings.prompt }] },
+        ]);
+        expect(JSON.stringify(call)).not.toContain('unrelated');
+      }
+      const steps = await result.steps;
+      expect(steps[0].toolResults[0].output).toEqual({
+        tools: [{ name: 'getWeather', description: 'Weather forecast' }],
+      });
+      expect(steps[1].toolResults[0].output).toBe('Bangalore: sunny');
+      if (callEarly) {
+        expect(steps[0].content).toContainEqual(
+          expect.objectContaining({
+            type: 'tool-error',
+            toolCallId: 'too-early',
+          }),
+        );
+      }
+    },
+  );
+
   it('discovers a nested tool, announces it on the next step, and executes it with a stable model definition', async () => {
     const bindings: string[][] = [];
     const executeWeather = vi.fn(() => 'sunny');

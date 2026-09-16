@@ -175,64 +175,14 @@ return { id: user.id, plan: user.plan };
 
 ### Searching Deferred Tools
 
-Use `toolSearch()` to register tools up front while keeping their names,
-descriptions, and schemas out of the initial model context. Mark searchable tools
-with `deferLoading: true` and route them, along with the search tool, through code
-mode:
+Use `toolSearch()` with `deferLoading: true` to expose tools only when the model
+needs them. With `toolDiscovery: 'conversation'`, discovered definitions arrive
+in user messages, preserving the tool-definition cache by keeping the
+provider-visible code mode tool unchanged. Actual prompt-cache reuse depends on
+the provider.
 
-```ts
-import { experimental_codeModeTool as codeModeTool } from '@ai-sdk/code-mode';
-import { generateText, isStepCount, tool, toolSearch } from 'ai';
-import { z } from 'zod/v4';
-
-const result = await generateText({
-  model: __MODEL__,
-  tools: {
-    code_mode: codeModeTool({ toolDiscovery: 'conversation' }),
-    tool_search: toolSearch(),
-    getForecast: tool({
-      deferLoading: true,
-      description: 'Get the weather forecast for a city.',
-      inputSchema: z.object({ city: z.string() }),
-      execute: async ({ city }) => ({ city, forecast: 'Rain tomorrow.' }),
-    }),
-  },
-  experimental_toolCallers: {
-    tool_search: ['code_mode'],
-    getForecast: ['code_mode'],
-  },
-  stopWhen: isStepCount(5),
-  prompt: 'Will it rain in Bangalore tomorrow?',
-});
-```
-
-The model initially sees the code mode tool and a capability message describing
-only `tools.tool_search`. It can run:
-
-```ts
-return await tools.tool_search({ query: 'weather forecast' });
-```
-
-Search returns at most five name/description matches. Before the next model step,
-the SDK binds matching tools to code mode and appends a user message with the
-updated catalog. The model can then run:
-
-```ts
-return await tools.getForecast({ city: 'Bangalore' });
-```
-
-Newly discovered tools are available only on the next model step. They cannot be
-called in the same code mode execution as the search that discovers them. No extra
-user interaction or `prepareStep` callback is required.
-
-The factory `toolSearch()` takes no arguments; the model supplies the search
-query. Discovery is scoped to one generation and respects `activeTools` and
-caller routing. This also works with `streamText` and `ToolLoopAgent`. Both the
-search tool and deferred tools require conversation discovery; directly exposing
-them or using description discovery throws an invalid-argument error.
-
-See the [`toolSearch` reference](/docs/reference/ai-sdk-core/tool-search) for
-matching and lifecycle details.
+See [Tool Search](/docs/ai-sdk-core/tool-search) for direct-calling and code mode
+examples.
 
 ## Writing Code Mode Programs
 
