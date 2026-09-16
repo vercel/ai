@@ -165,11 +165,11 @@ describe('GoogleBatch', () => {
 
     await expect(
       batch.doStartBatch({
-        requests: [{ id: 'image-1', type: 'image' } as never],
+        requests: [{ id: 'audio-1', type: 'audio' } as never],
       }),
     ).rejects.toMatchObject({
       name: 'AI_UnsupportedFunctionalityError',
-      functionality: 'batch request type: image',
+      functionality: 'batch request type: audio',
     });
 
     expect(server.calls).toHaveLength(0);
@@ -345,6 +345,62 @@ describe('GoogleBatch', () => {
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
     expect(mockFetch.mock.calls[0][1]?.signal).toBe(abortController.signal);
+  });
+
+  it('starts an inline image generation batch', async () => {
+    server.urls[urls.create].response = {
+      type: 'json-value',
+      body: operation({}, { done: false }),
+    };
+    const batch = createGoogle({
+      apiKey: 'test-api-key',
+      generateId: () => 'test-id',
+    }).experimental_batch();
+
+    await batch.doStartBatch({
+      requests: [
+        {
+          id: 'image-1',
+          type: 'image',
+          modelId: 'gemini-2.5-flash',
+          options: {
+            prompt: 'A red panda',
+            n: 1,
+            size: undefined,
+            aspectRatio: '16:9',
+            seed: 42,
+            files: undefined,
+            mask: undefined,
+            providerOptions: {},
+          },
+        },
+      ],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toEqual({
+      batch: {
+        displayName: 'ai-sdk-batch-test-id',
+        inputConfig: {
+          requests: {
+            requests: [
+              {
+                metadata: { key: 'image-1' },
+                request: {
+                  contents: [
+                    { role: 'user', parts: [{ text: 'A red panda' }] },
+                  ],
+                  generationConfig: {
+                    seed: 42,
+                    responseModalities: ['IMAGE'],
+                    imageConfig: { aspectRatio: '16:9' },
+                  },
+                },
+              },
+            ],
+          },
+        },
+      },
+    });
   });
 
   it('cancels a batch', async () => {
@@ -858,6 +914,55 @@ describe('GoogleBatch', () => {
     ]);
   });
 
+  it('converts generated image results', async () => {
+    prepareOutput([
+      {
+        key: 'image-1',
+        response: {
+          candidates: [
+            {
+              content: {
+                role: 'model',
+                parts: [
+                  {
+                    inlineData: {
+                      mimeType: 'image/png',
+                      data: 'aGVsbG8=',
+                    },
+                  },
+                ],
+              },
+              finishReason: 'STOP',
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 2,
+            candidatesTokenCount: 3,
+            totalTokenCount: 5,
+          },
+        },
+      },
+    ]);
+    const batch = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
+
+    const results = await convertReadableStreamToArray(
+      await batch.doGetBatchResults({ batchId: 'batches/batch-123' }),
+    );
+
+    expect(results).toMatchObject([
+      {
+        type: 'image',
+        id: 'image-1',
+        status: 'succeeded',
+        result: {
+          images: ['aGVsbG8='],
+          usage: { inputTokens: 2, outputTokens: 3, totalTokens: 5 },
+          providerMetadata: { google: { images: [{}] } },
+        },
+      },
+    ]);
+  });
+
   it('reads inline results without downloading an output file', async () => {
     server.urls[urls.batch].response = {
       type: 'json-value',
@@ -1294,13 +1399,9 @@ describe('GoogleBatch', () => {
       expect(results).toHaveLength(3);
       expect(results).toMatchObject([
         {
+          type: 'image',
           id: 'image-request',
-          status: 'failed',
-          error: {
-            message:
-              'Google returned a "file" content block, but that content is not supported in AI SDK text batches.',
-            code: 'unsupported_content',
-          },
+          status: 'succeeded',
         },
         {
           id: 'text-request',

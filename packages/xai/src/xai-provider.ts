@@ -19,8 +19,6 @@ import {
   type FetchFunction,
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
-import { XaiChatLanguageModel } from './xai-chat-language-model';
-import type { XaiChatModelId } from './xai-chat-language-model-options';
 import { XaiImageModel } from './xai-image-model';
 import type { XaiImageModelId } from './xai-image-settings';
 import { XaiBatch } from './xai-batch';
@@ -44,11 +42,6 @@ export interface XaiProvider extends ProviderV4 {
   languageModel(modelId: XaiResponsesModelId): LanguageModelV4;
 
   /**
-   * Creates an Xai chat model for text generation.
-   */
-  chat: (modelId: XaiChatModelId) => LanguageModelV4;
-
-  /**
    * Creates an Xai responses model for text generation.
    */
   responses: (modelId: XaiResponsesModelId) => LanguageModelV4;
@@ -56,7 +49,10 @@ export interface XaiProvider extends ProviderV4 {
   /**
    * Returns a BatchV4 interface for processing batches with xAI.
    */
-  experimental_batch(): BatchV4<{ text: XaiResponsesModelId }>;
+  experimental_batch(): BatchV4<{
+    text: XaiResponsesModelId;
+    image: XaiImageModelId;
+  }>;
 
   /**
    * Creates an Xai image model for image generation.
@@ -162,16 +158,6 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
       `ai-sdk/xai/${VERSION}`,
     );
 
-  const createChatLanguageModel = (modelId: XaiChatModelId) => {
-    return new XaiChatLanguageModel(modelId, {
-      provider: 'xai.chat',
-      baseURL,
-      headers: getHeaders,
-      generateId,
-      fetch: options.fetch,
-    });
-  };
-
   const createResponsesLanguageModel = (modelId: XaiResponsesModelId) => {
     return new XaiResponsesLanguageModel(modelId, {
       provider: 'xai.responses',
@@ -272,7 +258,6 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
 
   provider.specificationVersion = 'v4' as const;
   provider.languageModel = createResponsesLanguageModel;
-  provider.chat = createChatLanguageModel;
   provider.responses = createResponsesLanguageModel;
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });

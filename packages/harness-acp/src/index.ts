@@ -21,6 +21,8 @@ export type {
 } from './acp-tool-call';
 export type {
   ACPAskUserQuestionsSettings,
+  ACPAuthenticationFile,
+  ACPAuthenticationFiles,
   ACPCredentialBrokering,
   ACPAuthentication,
   ACPHostToolMCPTransport,

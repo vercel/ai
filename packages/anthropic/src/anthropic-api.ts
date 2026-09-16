@@ -508,17 +508,22 @@ export type AnthropicTool =
       type: 'memory_20250818';
     }
   | {
-      type: 'web_fetch_20250910' | 'web_fetch_20260209';
+      type: 'web_fetch_20250910' | 'web_fetch_20260209' | 'web_fetch_20260318';
       name: string;
       max_uses?: number;
       allowed_domains?: string[];
       blocked_domains?: string[];
       citations?: { enabled: boolean };
       max_content_tokens?: number;
+      use_cache?: boolean;
+      response_inclusion?: 'full' | 'excluded';
       cache_control: AnthropicCacheControl | undefined;
     }
   | {
-      type: 'web_search_20250305' | 'web_search_20260209';
+      type:
+        | 'web_search_20250305'
+        | 'web_search_20260209'
+        | 'web_search_20260318';
       name: string;
       max_uses?: number;
       allowed_domains?: string[];
@@ -530,6 +535,7 @@ export type AnthropicTool =
         country?: string;
         timezone?: string;
       };
+      response_inclusion?: 'full' | 'excluded';
       cache_control: AnthropicCacheControl | undefined;
     }
   | {
@@ -726,6 +732,12 @@ const anthropicMcpToolResultContentSchema = z.union([
     ]),
   ),
 ]);
+
+const anthropicInputTransformationSchema = z.object({
+  type: z.string(),
+  path: z.string(),
+  reason: z.string(),
+});
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
@@ -989,6 +1001,9 @@ export const anthropicResponseSchema = lazySchema(() =>
       stop_reason: z.string().nullish(),
       stop_sequence: z.string().nullish(),
       stop_details: anthropicStopDetailsSchema.nullish(),
+      input_transformations: z
+        .array(anthropicInputTransformationSchema)
+        .nullish(),
       usage: z.looseObject({
         input_tokens: z.number(),
         output_tokens: z.number(),
@@ -1088,6 +1103,9 @@ export const anthropicChunkSchema = lazySchema(() =>
             )
             .nullish(),
           stop_reason: z.string().nullish(),
+          input_transformations: z
+            .array(anthropicInputTransformationSchema)
+            .nullish(),
           container: z
             .object({
               expires_at: z.string(),
@@ -1441,6 +1459,9 @@ export const anthropicChunkSchema = lazySchema(() =>
             )
             .nullish(),
         }),
+        input_transformations: z
+          .array(anthropicInputTransformationSchema)
+          .nullish(),
         context_management: z
           .object({
             applied_edits: z.array(

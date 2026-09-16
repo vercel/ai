@@ -1,5 +1,26 @@
 # @ai-sdk/mcp
 
+## 2.0.50
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/provider-utils@5.0.41
+
+## 2.0.49
+
+### Patch Changes
+
+- c43e4b7: fix(mcp): prevent SSRF in OAuth metadata discovery
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
 ## 2.0.48
 
 ### Patch Changes

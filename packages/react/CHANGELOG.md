@@ -1,5 +1,73 @@
 # @ai-sdk/react
 
+## 4.0.105
+
+### Patch Changes
+
+- 5c0054d: Add optional browser-direct WebRTC for experimental client-delegated Live conversations alongside the existing WebSocket path. Exchange SDP through an application endpoint with `api.session`, configure server-owned data-channel permissions, and preserve committed React session ownership. Capture follows the selected sender track, borrowed tracks remain caller-owned, and disconnect recovery and finalization stay bounded. Applications continue to handle client delegation and submit context; Live session updates and Responses delegation remain unsupported.
+
+  Serialize microphone sender changes and close the peer if detachment fails, without stopping borrowed tracks. Validate nonempty SDP setup answers with a bounded response body, and document the same-origin broker authentication contract.
+
+- a050aed: Preserve missing-tool-handler diagnostics in `experimental_useRealtime` by leaving an omitted `onToolCall` undefined. Publish handler presence only at commit without reconnecting or exposing handlers from abandoned renders. A defined handler returning undefined continues to support manual tool output.
+- a050aed: Publish realtime session ownership and callbacks only when React commits. Keep control identities stable across renders, route retained controls to the current committed session, and revoke them on unmount. Preserve connected sessions when concurrent renders are abandoned, support StrictMode effect replay and React 18 server rendering, and expose continuous session metadata alongside turn-based messages.
+- a050aed: Add WebSocket relay support to `experimental_useRealtime`, with shared session state, capture controls, bounded playback, graceful close, and application-handled client delegation for Live.
+- 4b306c2: Add the client-delegation-first realtime WebSocket runtime with session lifecycle, exact final duration, bounded event queues and command acknowledgement tracking, transcripts, context append, and reversible capture. Continuous sessions support PCM16 audio-chunk playback over an application relay with a recoverable live-edge buffer policy. Legacy turn-based WebSockets retain queued playback and frontend tool handling.
+
+  Remove the deferred managed Responses coordinator, autoContinueTools option, backend usage state, and Live tool-result aliases. Continuous text and delegation handling belong to the application; sendTextMessage and addToolOutput reject continuous sessions. Server-confirmed provider delegation and turn-based audio-delta on the continuous profile fail explicitly. maxPlaybackBufferSeconds is supported only for continuous PCM sessions.
+
+  Fence callbacks, startup publications, tool results, and teardown by connection attempt. Validate token setup before opening a client-secret socket, require explicit relay transport mode, and include WebSocket URL, protocol values, and runtime timeouts/buffer settings in React session configuration keys.
+
+  Retain immediate local capture for explicit legacy preconnect streams, including owned-track cleanup and capture continuity through asynchronous setup. Signal transport closing before draining accepted terminal events, share reentrant close settlement, and cancel stale readiness and deadlines. Enforce 128 KiB frame and combined buffered-send budgets only for Live continuous sessions, using actual encoded wire bytes; oversized manual operations remain recoverable while startup and automatic audio failures close the session. Legacy startup, text, tool output, and audio retain their pre-Live behavior without these byte caps. Live pending-audio overflow drains accepted terminal usage within the existing one-second drain window. Validate final provider-transformed WebSocket URL syntax without removing native authentication query parameters.
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+- Updated dependencies [8b92ba9]
+- Updated dependencies [4b306c2]
+- Updated dependencies [4b306c2]
+  - @ai-sdk/provider@4.0.15
+  - ai@7.0.102
+  - @ai-sdk/mcp@2.0.50
+  - @ai-sdk/provider-utils@5.0.41
+
+## 4.0.104
+
+### Patch Changes
+
+- Updated dependencies [6aa7c54]
+  - ai@7.0.101
+
+## 4.0.103
+
+### Patch Changes
+
+- Updated dependencies [6431635]
+  - ai@7.0.100
+
+## 4.0.102
+
+### Patch Changes
+
+- Updated dependencies [615ac89]
+  - ai@7.0.99
+
+## 4.0.101
+
+### Patch Changes
+
+- 9d8e5a1: fix(react): abort chats when their `useChat` id changes during a stream
+- Updated dependencies [5ec21a6]
+- Updated dependencies [db59d78]
+- Updated dependencies [7469a3b]
+- Updated dependencies [f87bf07]
+- Updated dependencies [bc5cb7a]
+- Updated dependencies [a5f449a]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - ai@7.0.98
+  - @ai-sdk/provider-utils@5.0.40
+  - @ai-sdk/mcp@2.0.49
+
 ## 4.0.100
 
 ### Patch Changes

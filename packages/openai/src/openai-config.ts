@@ -25,6 +25,13 @@ export type OpenAIConfig = {
    */
   explicitMessageItemType?: boolean;
   /**
+   * Whether the provider supports the
+   * `web_search_call.action.sources` Responses API include value.
+   *
+   * Defaults to `true`.
+   */
+  supportsWebSearchSourcesInclude?: boolean;
+  /**
    * This is soft-deprecated. Use provider references (e.g. `{ openai: 'file-abc123' }`)
    * in file part data instead. File ID prefixes used to identify file IDs
    * in Responses API. When undefined, all string file data is treated as

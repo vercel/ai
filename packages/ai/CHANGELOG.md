@@ -1,5 +1,77 @@
 # ai
 
+## 7.0.102
+
+### Patch Changes
+
+- 5c0054d: Add optional browser-direct WebRTC for experimental client-delegated Live conversations alongside the existing WebSocket path. Exchange SDP through an application endpoint with `api.session`, configure server-owned data-channel permissions, and preserve committed React session ownership. Capture follows the selected sender track, borrowed tracks remain caller-owned, and disconnect recovery and finalization stay bounded. Applications continue to handle client delegation and submit context; Live session updates and Responses delegation remain unsupported.
+
+  Serialize microphone sender changes and close the peer if detachment fails, without stopping borrowed tracks. Validate nonempty SDP setup answers with a bounded response body, and document the same-origin broker authentication contract.
+
+- 39535af: Add experimental OpenAI Live provider support through the unified `openai.experimental_realtime` factory for server WebSocket sessions with client delegation. Applications own their agents and tools, receive continuous audio/transcript events and delegation metadata, and return context through validated channels. Support immutable startup options, microphone mute controls, graceful session close, and cumulative voice usage. Responses delegation and Live session updates reject before sending.
+
+  Route known Live model IDs to Live, allow an OpenAI-specific `api` override for early-access models, and preserve legacy Realtime defaults for unknown IDs. Token minting follows the same selection rules and rejects Live before requesting unsupported credentials. Extend the realtime v4 specification with optional server WebSocket configuration, per-connection raw-event parsers, and model-wide startup/finalization capabilities. This provider layer supplies connection settings and protocol mapping for server adapters; browser lifecycle and UI integration belong to the core runtime and framework hooks.
+
+  Preserve Realtime client event IDs for session updates and audio appends, and correlate server errors with the originating client event.
+
+- 8b92ba9: fix(ai): settle automatically denied tool calls in UI streams
+- 4b306c2: Report abnormal realtime WebSocket close codes and reasons through the session error path.
+- 4b306c2: Add the client-delegation-first realtime WebSocket runtime with session lifecycle, exact final duration, bounded event queues and command acknowledgement tracking, transcripts, context append, and reversible capture. Continuous sessions support PCM16 audio-chunk playback over an application relay with a recoverable live-edge buffer policy. Legacy turn-based WebSockets retain queued playback and frontend tool handling.
+
+  Remove the deferred managed Responses coordinator, autoContinueTools option, backend usage state, and Live tool-result aliases. Continuous text and delegation handling belong to the application; sendTextMessage and addToolOutput reject continuous sessions. Server-confirmed provider delegation and turn-based audio-delta on the continuous profile fail explicitly. maxPlaybackBufferSeconds is supported only for continuous PCM sessions.
+
+  Fence callbacks, startup publications, tool results, and teardown by connection attempt. Validate token setup before opening a client-secret socket, require explicit relay transport mode, and include WebSocket URL, protocol values, and runtime timeouts/buffer settings in React session configuration keys.
+
+  Retain immediate local capture for explicit legacy preconnect streams, including owned-track cleanup and capture continuity through asynchronous setup. Signal transport closing before draining accepted terminal events, share reentrant close settlement, and cancel stale readiness and deadlines. Enforce 128 KiB frame and combined buffered-send budgets only for Live continuous sessions, using actual encoded wire bytes; oversized manual operations remain recoverable while startup and automatic audio failures close the session. Legacy startup, text, tool output, and audio retain their pre-Live behavior without these byte caps. Live pending-audio overflow drains accepted terminal usage within the existing one-second drain window. Validate final provider-transformed WebSocket URL syntax without removing native authentication query parameters.
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/gateway@4.0.82
+  - @ai-sdk/provider-utils@5.0.41
+
+## 7.0.101
+
+### Patch Changes
+
+- 6aa7c54: fix(ai): serialize tool output JSON values
+
+## 7.0.100
+
+### Patch Changes
+
+- 6431635: feat(ai): expose typed AI SDK errors for UI transport and completion failures
+- Updated dependencies [23a0fff]
+  - @ai-sdk/gateway@4.0.81
+
+## 7.0.99
+
+### Patch Changes
+
+- 615ac89: feat(ai): use InvalidArgumentError for utility input validation
+- Updated dependencies [7f76d83]
+  - @ai-sdk/gateway@4.0.80
+
+## 7.0.98
+
+### Patch Changes
+
+- 5ec21a6: fix: reject unsupported batch request types
+- db59d78: feat(ai): add runtime context attribution to embed, embedMany and rerank
+- 7469a3b: feat: support image generation requests in batches
+- f87bf07: fix(ai): reject invalid reranking provider indices
+- bc5cb7a: fix(ai): accept inferred tools in `validateUIMessages`
+- a5f449a: feat(ai): add a stable UI message type and type guard for tool output errors
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [dbd83a3]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+- Updated dependencies [03f4e59]
+  - @ai-sdk/gateway@4.0.79
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
 ## 7.0.97
 
 ### Patch Changes

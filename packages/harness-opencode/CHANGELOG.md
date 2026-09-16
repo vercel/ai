@@ -1,5 +1,45 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.114
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.112
+- @ai-sdk/provider-utils@5.0.41
+
+## 1.0.113
+
+### Patch Changes
+
+- 92c3974: fix(harness-opencode): preserve host tool enum constraints and default metadata
+  - @ai-sdk/harness@1.0.111
+
+## 1.0.112
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.110
+
+## 1.0.111
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.109
+
+## 1.0.110
+
+### Patch Changes
+
+- cdc12a1: feat(harness): add support for using adapter-native subscriptions where available
+- Updated dependencies [4d1bf28]
+- Updated dependencies [cdc12a1]
+- Updated dependencies [d70a334]
+- Updated dependencies [81ba84c]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/harness@1.0.108
+  - @ai-sdk/provider-utils@5.0.40
+
 ## 1.0.109
 
 ### Patch Changes

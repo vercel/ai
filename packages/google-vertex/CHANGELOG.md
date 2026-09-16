@@ -1,5 +1,56 @@
 # @ai-sdk/google-vertex
 
+## 5.0.84
+
+### Patch Changes
+
+- c83bc67: feat: add Claude Fable 5.1 model IDs to Bedrock and Vertex providers
+- Updated dependencies [4a994ad]
+  - @ai-sdk/google@4.0.72
+
+## 5.0.83
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/anthropic@4.0.54
+  - @ai-sdk/google@4.0.71
+  - @ai-sdk/openai-compatible@3.0.49
+  - @ai-sdk/provider-utils@5.0.41
+
+## 5.0.82
+
+### Patch Changes
+
+- Updated dependencies [2a32459]
+- Updated dependencies [d93e295]
+  - @ai-sdk/google@4.0.70
+
+## 5.0.81
+
+### Patch Changes
+
+- f88c7dc: fix(vertex): download tool result file URLs
+- Updated dependencies [f88c7dc]
+  - @ai-sdk/google@4.0.69
+
+## 5.0.80
+
+### Patch Changes
+
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [e4292e7]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/anthropic@4.0.53
+  - @ai-sdk/google@4.0.68
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+  - @ai-sdk/openai-compatible@3.0.48
+
 ## 5.0.79
 
 ### Patch Changes

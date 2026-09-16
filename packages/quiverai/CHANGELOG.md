@@ -1,5 +1,25 @@
 # @ai-sdk/quiverai
 
+## 2.0.41
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/provider-utils@5.0.41
+
+## 2.0.40
+
+### Patch Changes
+
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
 ## 2.0.39
 
 ### Patch Changes

@@ -1,5 +1,35 @@
 # @ai-sdk/xai
 
+## 5.0.0
+
+### Major Changes
+
+- 1f20dba: feat(xai)!: remove Chat Completions API
+
+## 4.0.59
+
+### Patch Changes
+
+- 6e405ae: fix(xai): preserve `additionalProperties: false` in tool schemas
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/provider-utils@5.0.41
+
+## 4.0.58
+
+### Patch Changes
+
+- 5ec21a6: fix: reject unsupported batch request types
+- 7469a3b: feat: support image generation requests in batches
+- 0096850: fix(deepseek): preserve reasoning streams across empty tool-call deltas
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
 ## 4.0.57
 
 ### Patch Changes

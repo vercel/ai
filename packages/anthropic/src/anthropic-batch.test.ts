@@ -292,6 +292,72 @@ describe('Anthropic batch', () => {
     expect(server.calls).toHaveLength(0);
   });
 
+  it('starts a batch with thinking binding controls', async () => {
+    server.urls[urls.batches].response = {
+      type: 'json-value',
+      body: batchResponse({ processing_status: 'in_progress' }),
+    };
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+
+    await model.doStartBatch({
+      requests: [
+        {
+          id: 'preserved-thinking',
+          ...request('Continue the conversation.', {
+            maxOutputTokens: 4096,
+            providerOptions: {
+              anthropic: {
+                thinking: {
+                  type: 'adaptive',
+                  blockBinding: {
+                    prefixMismatchBehavior: 'error',
+                  },
+                },
+              } satisfies AnthropicLanguageModelOptions,
+            },
+          }),
+          modelId: 'claude-fable-5-1',
+        },
+      ],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "requests": [
+          {
+            "custom_id": "preserved-thinking",
+            "params": {
+              "max_tokens": 4096,
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "text": "Continue the conversation.",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "claude-fable-5-1",
+              "thinking": {
+                "block_binding": {
+                  "prefix_mismatch_behavior": "error",
+                },
+                "type": "adaptive",
+              },
+            },
+          },
+        ],
+      }
+    `);
+    expect(
+      server.calls[0].requestHeaders['anthropic-beta'],
+    ).toMatchInlineSnapshot(`"thinking-binding-controls-2026-08-01"`);
+  });
+
   it('rejects structured-output modes that require start-call context', async () => {
     const model = createAnthropic({
       apiKey: 'test-api-key',
@@ -1325,7 +1391,7 @@ describe('Anthropic batch', () => {
       },
     ]);
     const result = results[0];
-    if (result?.status !== 'succeeded') {
+    if (result?.type !== 'text' || result.status !== 'succeeded') {
       throw new Error('Expected a succeeded batch result.');
     }
     expect(result.result.content[1]).not.toHaveProperty('result.0.title');

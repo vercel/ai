@@ -5,7 +5,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export type MistralTranscriptionModelId = 'voxtral-mini-latest' | (string & {});
+export type MistralTranscriptionModelId =
+  | 'voxtral-mini-2602'
+  | 'voxtral-mini-latest'
+  | (string & {});
 
 // https://docs.mistral.ai/api/endpoint/audio/transcriptions
 export const mistralTranscriptionModelOptions = lazySchema(() =>

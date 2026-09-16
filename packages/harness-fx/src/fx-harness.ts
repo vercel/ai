@@ -14,6 +14,12 @@ import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
+import {
+  createFxSubscriptionAuthenticationFiles,
+  FX_SUBSCRIPTION_ENVIRONMENT_VARIABLES,
+  getFxSubscriptionRequestCredentials,
+  resolveFxSubscriptionEnvironment,
+} from './fx-subscription';
 
 const FX_CLIENT_APP = `ai-sdk/harness-fx/${VERSION}`;
 const DEFAULT_AI_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh';
@@ -39,10 +45,9 @@ function sanitizeFxMcpToolNameSegment(value: string): string {
 
 export type FxHarnessSettings = {
   /**
-   * Selects direct or AI Gateway authentication. Both routes use AI Gateway
-   * because fx does not connect to model providers directly. Pass an
-   * authentication environment to supply credentials programmatically, or
-   * omit it for automatic host-environment selection.
+   * Selects direct native-subscription or AI Gateway authentication. Pass an
+   * authentication environment to supply credentials programmatically, or omit
+   * it for automatic host-environment selection.
    */
   readonly auth?: FxAuthenticationMode;
   /**
@@ -562,6 +567,8 @@ export function createFx(
 
   return createACP({
     auth: settings.auth,
+    resolveAuthenticationEnvironment: resolveFxSubscriptionEnvironment,
+    authenticationFiles: createFxSubscriptionAuthenticationFiles,
     credentialForwarding: settings.credentialForwarding,
     port: settings.port,
     portEndpoint: settings.portEndpoint,
@@ -591,8 +598,35 @@ export function createFx(
       type: 'filesystem',
       path: '.fx/AGENTS.md',
     },
-    credentialEnv: ['VERCEL_OIDC_TOKEN', 'AI_GATEWAY_API_KEY'],
+    credentialEnv: [
+      'VERCEL_OIDC_TOKEN',
+      'AI_GATEWAY_API_KEY',
+      ...FX_SUBSCRIPTION_ENVIRONMENT_VARIABLES,
+    ],
     credentialBrokering: ({ env, sandboxEnv, headers }) => {
+      const subscriptionTransformations = getFxSubscriptionRequestCredentials({
+        env,
+        sandboxEnv: sandboxEnv ?? {},
+      }).map(({ provider, accessToken, sandboxAccessToken }) =>
+        createCredentialRequestTransformation({
+          matchUrl:
+            provider === 'chatgpt'
+              ? 'https://chatgpt.com/backend-api/codex'
+              : 'https://api.x.ai/v1',
+          matchHeaders: {
+            Authorization: `Bearer ${sandboxAccessToken}`,
+          },
+          transformHeaders: {
+            ...headers,
+            Authorization: `Bearer ${accessToken}`,
+            'x-client-app': FX_CLIENT_APP,
+          },
+        }),
+      );
+      if (subscriptionTransformations.length > 0) {
+        return subscriptionTransformations;
+      }
+
       const environmentVariableName = suppliedAuthenticationEnvironment
         ? env.AI_GATEWAY_API_KEY
           ? 'AI_GATEWAY_API_KEY'

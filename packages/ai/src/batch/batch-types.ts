@@ -4,6 +4,7 @@ import type {
   Experimental_BatchV4ModelIds as BatchV4ModelIds,
   Experimental_BatchV4StartResult as BatchV4StartResult,
   Experimental_BatchV4Status as BatchV4Status,
+  ImageModelV4ProviderMetadata,
   ProviderV4,
 } from '@ai-sdk/provider';
 import type {
@@ -17,7 +18,11 @@ import type { LanguageModelCallOptions } from '../prompt/language-model-call-opt
 import type { Prompt } from '../prompt/prompt';
 import type { FinishReason, ToolChoice } from '../types/language-model';
 import type { ProviderMetadata } from '../types/provider-metadata';
-import type { LanguageModelUsage } from '../types/usage';
+import type { ImageModelUsage, LanguageModelUsage } from '../types/usage';
+import type { GenerateImagePrompt } from '../generate-image/generate-image';
+import type { GeneratedFile } from '../generate-text/generated-file';
+import type { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
+import type { Warning } from '../types/warning';
 
 /**
  * Provider or lower-level batch interface used for batch processing.
@@ -74,12 +79,29 @@ export type TextBatchRequest<
   };
 
 /**
+ * One image generation request within a batch.
+ */
+export type ImageBatchRequest<ModelId extends string = string> = {
+  id: string;
+  type: 'image';
+  model: ModelId;
+  prompt: GenerateImagePrompt;
+  n?: number;
+  size?: `${number}x${number}`;
+  aspectRatio?: `${number}:${number}`;
+  seed?: number;
+  providerOptions?: ProviderOptions;
+};
+
+/**
  * One request within a batch, discriminated by modality.
  */
 export type BatchRequest<
   ModelIds extends BatchV4ModelIds = BatchV4ModelIds,
   TOOLS extends ToolSet = ToolSet,
-> = TextBatchRequest<ModelIds['text'], TOOLS>;
+> =
+  | TextBatchRequest<ModelIds['text'] & string, TOOLS>
+  | ImageBatchRequest<ModelIds['image'] & string>;
 
 type BatchCallOptions = {
   abortSignal?: AbortSignal;
@@ -203,7 +225,9 @@ export type TextBatchGenerationResult<TOOLS extends ToolSet = ToolSet> = {
 /**
  * A complete terminal result for one request in a text batch.
  */
-export type TextBatchItemResult<TOOLS extends ToolSet = ToolSet> =
+export type TextBatchItemResult<TOOLS extends ToolSet = ToolSet> = {
+  readonly type: 'text';
+} & (
   | (TextBatchGenerationResult<TOOLS> & {
       readonly id: string;
       readonly status: 'succeeded';
@@ -219,10 +243,45 @@ export type TextBatchItemResult<TOOLS extends ToolSet = ToolSet> =
       readonly status: 'cancelled' | 'expired';
       readonly error?: BatchError;
       readonly providerMetadata?: ProviderMetadata;
-    };
+    }
+);
+
+/**
+ * A normalized result for a successful image batch item.
+ */
+export type ImageBatchGenerationResult = {
+  readonly images: Array<GeneratedFile>;
+  readonly warnings: Array<Warning>;
+  readonly response: ImageModelResponseMetadata;
+  readonly providerMetadata?: ImageModelV4ProviderMetadata;
+  readonly usage?: ImageModelUsage;
+};
+
+/**
+ * A complete terminal result for one request in an image batch.
+ */
+export type ImageBatchItemResult = { readonly type: 'image' } & (
+  | (ImageBatchGenerationResult & {
+      readonly id: string;
+      readonly status: 'succeeded';
+    })
+  | {
+      readonly id: string;
+      readonly status: 'failed';
+      readonly error: BatchError;
+      readonly providerMetadata?: ProviderMetadata;
+    }
+  | {
+      readonly id: string;
+      readonly status: 'cancelled' | 'expired';
+      readonly error?: BatchError;
+      readonly providerMetadata?: ProviderMetadata;
+    }
+);
 
 /**
  * A complete terminal result for one request in a batch.
  */
 export type BatchItemResult<TOOLS extends ToolSet = ToolSet> =
-  TextBatchItemResult<TOOLS>;
+  | TextBatchItemResult<TOOLS>
+  | ImageBatchItemResult;

@@ -1,5 +1,26 @@
 # @ai-sdk/alibaba
 
+## 2.0.46
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/provider-utils@5.0.41
+
+## 2.0.45
+
+### Patch Changes
+
+- 0096850: fix(deepseek): preserve reasoning streams across empty tool-call deltas
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
 ## 2.0.44
 
 ### Patch Changes

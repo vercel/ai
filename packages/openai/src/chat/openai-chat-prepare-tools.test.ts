@@ -59,6 +59,55 @@ describe('prepareChatTools', () => {
   `);
   });
 
+  it('should remove string propertyNames from function tools and warn', () => {
+    const result = prepareChatTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'testFunction',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              values: {
+                type: 'object',
+                propertyNames: { type: 'string', pattern: '^[A-Z_]+$' },
+              },
+            },
+          },
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      tools: [
+        {
+          type: 'function',
+          function: {
+            name: 'testFunction',
+            description: undefined,
+            parameters: {
+              type: 'object',
+              properties: {
+                values: {
+                  type: 'object',
+                },
+              },
+            },
+          },
+        },
+      ],
+      toolChoice: undefined,
+      toolWarnings: [
+        {
+          type: 'compatibility',
+          feature: 'JSON Schema propertyNames',
+          details:
+            'OpenAI does not support JSON Schema propertyNames. It was removed before sending the schema, so OpenAI will not enforce property-name constraints.',
+        },
+      ],
+    });
+  });
+
   it('should add warnings for unsupported tools', () => {
     const result = prepareChatTools({
       tools: [
