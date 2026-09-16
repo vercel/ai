@@ -246,6 +246,24 @@ describe('logWarnings', () => {
       );
     });
 
+    it('should format unscoped deprecation warnings', () => {
+      logWarnings({
+        warnings: [
+          {
+            type: 'deprecated',
+            setting: 'rawInput in output-error UI message parts',
+            message:
+              'Use the "input" field instead. The "rawInput" field will be removed in the next major version.',
+          },
+        ],
+      });
+
+      expect(mockConsoleWarn).toHaveBeenCalledWith(
+        'AI SDK Warning: Deprecated: "rawInput in output-error UI message parts". ' +
+          'Use the "input" field instead. The "rawInput" field will be removed in the next major version.',
+      );
+    });
+
     it('should include warning even with "unknown provider" and "unknown model"', () => {
       logWarnings({
         warnings: [{ type: 'other', message: 'messx' } as SharedV3Warning],
