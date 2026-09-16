@@ -248,6 +248,10 @@ function isStrictToolSchemaCompatible(schema: JSONSchema7Definition): boolean {
     return true;
   }
 
+  const schemaWithDefs = schema as typeof schema & {
+    $defs?: Record<string, JSONSchema7Definition>;
+  };
+
   if (
     (schema.type === 'object' ||
       (Array.isArray(schema.type) && schema.type.includes('object'))) &&
@@ -260,6 +264,7 @@ function isStrictToolSchemaCompatible(schema: JSONSchema7Definition): boolean {
     schema.properties,
     schema.patternProperties,
     schema.definitions,
+    schemaWithDefs.$defs,
   ];
 
   for (const schemaMap of schemaMaps) {

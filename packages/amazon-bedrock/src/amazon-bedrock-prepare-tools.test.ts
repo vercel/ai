@@ -495,6 +495,46 @@ describe('prepareTools', () => {
       ]);
     });
 
+    it('should omit strict mode when a referenced object schema in $defs is open', async () => {
+      const inputSchema = {
+        $ref: '#/$defs/location',
+        $defs: {
+          location: {
+            type: 'object' as const,
+            properties: {
+              city: { type: 'string' as const },
+            },
+            required: ['city'],
+          },
+        },
+      };
+
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'getWeather',
+            inputSchema,
+            strict: true,
+          },
+        ],
+        modelId: ANTHROPIC_MODEL,
+      });
+
+      expect((result.toolConfig.tools![0] as any).toolSpec).toEqual({
+        name: 'getWeather',
+        inputSchema: { json: inputSchema },
+      });
+      expect(result.toolWarnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'strict',
+          details:
+            "Tool 'getWeather' has strict: true, but Amazon Bedrock requires every object in a strict tool schema to set additionalProperties: false. The strict property will be ignored.",
+        },
+      ]);
+    });
+
     it('should pass through strict mode when all nested object schemas are closed', async () => {
       const inputSchema = {
         type: 'object' as const,
