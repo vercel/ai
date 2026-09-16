@@ -502,6 +502,8 @@ Returns `Promise<WorkflowAgentGenerateResult>` with the core [`GenerateTextResul
 - `responseMessages` includes generated messages, even when `prepareStep` replaces the input history.
 - `output` defaults to text, or follows the constructor/per-call output specification. Reading it throws `NoOutputGeneratedError` when output is unavailable, such as a final `tool-calls` response.
 
+Inside a workflow, `timeout` bounds model calls, including retries and dispatch after suspension. It does not cancel a hook that a tool is waiting on. Use the Workflow runtime’s `run.cancel()` to stop a suspended run. See [deadlines, cancellation, and replay](/docs/agents/workflow-agent#deadlines-cancellation-and-replay).
+
 Generation failures reject. The end callback runs before complete-output parsing; a parsing failure can therefore reject after `onEnd` has run. Existing Workflow callback shapes and preparation precedence apply; they are not all identical to core's callback APIs.
 
 <Note>
@@ -584,7 +586,7 @@ const result = await agent.stream({
       name: 'timeout',
       type: 'number',
       isOptional: true,
-      description: 'Timeout in milliseconds. Creates an AbortSignal that aborts the operation after the given time.',
+      description: 'Model-call deadline in milliseconds. Inside a workflow, the absolute deadline is checked at dispatch and retry and remains in effect across suspension. It does not cancel a tool waiting on a Workflow hook; use run.cancel() to stop the suspended run.',
     },
     {
       name: 'sendFinish',
