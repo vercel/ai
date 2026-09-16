@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 20780,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/amazon-bedrock-application-profile-structured-output.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/amazon-bedrock-application-profile-structured-output.ts",
+    "examples/ai-functions/package.json",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #20780 REPRODUCED: application inference profile omitted native structured output and used synthetic json tool. outputFormat: output_config.format=false, tools=[\"json\"]; auto: output_config.format=false, tools=[\"json\"]"
+  }
+}
