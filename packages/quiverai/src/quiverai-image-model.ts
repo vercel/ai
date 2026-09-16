@@ -7,6 +7,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertBase64ToUint8Array,
   convertUint8ArrayToBase64,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
@@ -22,6 +23,10 @@ import {
   quiveraiImageModelOptionsSchema,
   type QuiverAIImageModelOptions,
 } from './quiverai-image-model-options';
+import {
+  validateQuiverAIImageUrl,
+  validateQuiverAIReferenceBase64,
+} from './prepare-quiverai-image-reference';
 import type {
   QuiverAIImageModelId,
   QuiverAIOperation,
@@ -94,6 +99,7 @@ export class QuiverAIImageModel implements ImageModelV4 {
       n,
       prompt,
       files,
+      mask,
       operation,
       options: quiveraiOptions ?? {},
     });
@@ -147,9 +153,14 @@ export class QuiverAIImageModel implements ImageModelV4 {
 }
 
 function getOperationPath(operation: QuiverAIOperation) {
-  return operation === 'generate'
-    ? '/svgs/generations'
-    : '/svgs/vectorizations';
+  switch (operation) {
+    case 'generate':
+      return '/svgs/generations';
+    case 'vectorize':
+      return '/svgs/vectorizations';
+    case 'edit':
+      return '/svgs/edits';
+  }
 }
 
 function getGenerateReferenceLimit(modelId: string) {
@@ -175,6 +186,7 @@ function buildRequestBody({
   n,
   prompt,
   files,
+  mask,
   operation,
   options,
 }: {
@@ -182,6 +194,7 @@ function buildRequestBody({
   n: number;
   prompt: string | undefined;
   files: ImageModelV4File[] | undefined;
+  mask: ImageModelV4File | undefined;
   operation: QuiverAIOperation;
   options: QuiverAIImageModelOptions;
 }) {
@@ -207,6 +220,8 @@ function buildRequestBody({
   };
 
   if (operation === 'generate') {
+    rejectEditOnlyOptions(operation, options);
+
     if (prompt == null || prompt.trim().length === 0) {
       throw new InvalidArgumentError({
         argument: 'prompt',
@@ -234,6 +249,19 @@ function buildRequestBody({
       references,
     };
   }
+
+  if (operation === 'edit') {
+    return buildEditRequestBody({
+      modelId,
+      n,
+      prompt,
+      files,
+      mask,
+      options,
+    });
+  }
+
+  rejectEditOnlyOptions(operation, options);
 
   if (files == null || files.length === 0) {
     throw new InvalidArgumentError({
@@ -265,6 +293,215 @@ function buildRequestBody({
     auto_crop: options.autoCrop,
     target_size: options.targetSize,
   };
+}
+
+const editModelIds = new Set(['arrow-2', 'arrow-2-telos']);
+const MAX_EDIT_SVG_BYTES = 200_000;
+
+function buildEditRequestBody({
+  modelId,
+  n,
+  prompt,
+  files,
+  mask,
+  options,
+}: {
+  modelId: string;
+  n: number;
+  prompt: string | undefined;
+  files: ImageModelV4File[] | undefined;
+  mask: ImageModelV4File | undefined;
+  options: QuiverAIImageModelOptions;
+}) {
+  if (!editModelIds.has(modelId)) {
+    throw new InvalidArgumentError({
+      argument: 'modelId',
+      message:
+        'QuiverAI SVG editing is supported by the "arrow-2" and "arrow-2-telos" models.',
+    });
+  }
+
+  if (prompt == null || prompt.trim().length === 0) {
+    throw new InvalidArgumentError({
+      argument: 'prompt',
+      message:
+        'QuiverAI SVG editing requires a non-empty instruction in generateImage prompt.text.',
+    });
+  }
+
+  if (prompt.length > 4000) {
+    throw new InvalidArgumentError({
+      argument: 'prompt',
+      message:
+        'QuiverAI SVG editing instructions must contain at most 4000 characters.',
+    });
+  }
+
+  if (files == null || files.length === 0) {
+    throw new InvalidArgumentError({
+      argument: 'files',
+      message:
+        'QuiverAI SVG editing requires one source SVG in generateImage prompt.images.',
+    });
+  }
+
+  if (files.length !== 1) {
+    throw new InvalidArgumentError({
+      argument: 'files',
+      message: 'QuiverAI SVG editing accepts exactly one source SVG.',
+    });
+  }
+
+  if (n !== 1) {
+    throw new InvalidArgumentError({
+      argument: 'n',
+      message: 'QuiverAI SVG editing returns exactly one SVG per request.',
+    });
+  }
+
+  if (mask != null) {
+    throw new InvalidArgumentError({
+      argument: 'mask',
+      message: 'QuiverAI SVG editing does not support masks.',
+    });
+  }
+
+  const unsupportedOptions = [
+    ['instructions', options.instructions],
+    ['attributes', options.attributes],
+    ['topP', options.topP],
+    ['presencePenalty', options.presencePenalty],
+    ['autoCrop', options.autoCrop],
+    ['targetSize', options.targetSize],
+  ].flatMap(([name, value]) => (value == null ? [] : [name]));
+
+  if (unsupportedOptions.length > 0) {
+    throw new InvalidArgumentError({
+      argument: 'providerOptions',
+      message: `QuiverAI SVG editing does not support these provider options: ${unsupportedOptions.join(
+        ', ',
+      )}.`,
+    });
+  }
+
+  const referenceImages = options.referenceImages?.map((reference, index) => {
+    if ('url' in reference) {
+      return {
+        url: validateQuiverAIImageUrl(reference.url),
+      };
+    }
+
+    validateQuiverAIReferenceBase64(
+      reference.base64,
+      `providerOptions.quiverai.referenceImages[${index}]`,
+    );
+    return { base64: reference.base64 };
+  });
+  const settings = {
+    max_output_tokens: options.maxOutputTokens,
+    orchestrator_max_output_tokens: options.orchestratorMaxOutputTokens,
+    shallow_max_output_tokens: options.shallowMaxOutputTokens,
+    temperature: options.temperature,
+  };
+  const hasSettings = Object.values(settings).some(value => value != null);
+
+  return {
+    model: modelId,
+    prompt,
+    ...toQuiverAIEditSource(files[0]),
+    reference_images: referenceImages,
+    max_review_steps: options.maxReviewSteps,
+    reasoning_effort: options.reasoningEffort,
+    ...(hasSettings && { settings }),
+    stream: false as const,
+  };
+}
+
+function rejectEditOnlyOptions(
+  operation: Exclude<QuiverAIOperation, 'edit'>,
+  options: QuiverAIImageModelOptions,
+) {
+  const editOnlyOptions = [
+    ['referenceImages', options.referenceImages],
+    ['maxReviewSteps', options.maxReviewSteps],
+    ['orchestratorMaxOutputTokens', options.orchestratorMaxOutputTokens],
+    ['shallowMaxOutputTokens', options.shallowMaxOutputTokens],
+  ].flatMap(([name, value]) => (value == null ? [] : [name]));
+
+  if (editOnlyOptions.length > 0) {
+    throw new InvalidArgumentError({
+      argument: 'providerOptions',
+      message: `QuiverAI ${operation} does not support these edit-only provider options: ${editOnlyOptions.join(
+        ', ',
+      )}.`,
+    });
+  }
+}
+
+function toQuiverAIEditSource(file: ImageModelV4File) {
+  if (file.type === 'url') {
+    return {
+      svg_source: {
+        url: validateQuiverAIImageUrl(file.url),
+      },
+    };
+  }
+
+  let data: Uint8Array;
+  try {
+    data =
+      typeof file.data === 'string'
+        ? convertBase64ToUint8Array(file.data)
+        : file.data;
+  } catch (cause) {
+    throw new InvalidArgumentError({
+      argument: 'files',
+      message: 'QuiverAI SVG source data must be valid base64 or binary data.',
+      cause,
+    });
+  }
+
+  if (data.length === 0 || data.length > MAX_EDIT_SVG_BYTES) {
+    throw new InvalidArgumentError({
+      argument: 'files',
+      message: `QuiverAI SVG source data must contain 1-${MAX_EDIT_SVG_BYTES} bytes.`,
+    });
+  }
+
+  let svg: string;
+  try {
+    svg = new TextDecoder('utf-8', { fatal: true }).decode(data);
+  } catch (cause) {
+    throw new InvalidArgumentError({
+      argument: 'files',
+      message: 'QuiverAI SVG source data must be valid UTF-8.',
+      cause,
+    });
+  }
+
+  if (svg.length > MAX_EDIT_SVG_BYTES || !isSvgMarkup(svg)) {
+    throw new InvalidArgumentError({
+      argument: 'files',
+      message: 'QuiverAI SVG source data must contain a complete SVG document.',
+    });
+  }
+
+  return {
+    svg_source: {
+      base64: convertUint8ArrayToBase64(data),
+    },
+  };
+}
+
+function isSvgMarkup(svg: string) {
+  const normalized = svg.replace(/^\uFEFF/, '').trim();
+  return (
+    /^(?:<\?xml[\s\S]*?\?>\s*)?(?:<!--[\s\S]*?-->\s*)?(?:<!DOCTYPE[\s\S]*?>\s*)?<svg[\s>]/i.test(
+      normalized,
+    ) &&
+    (/<\/svg>\s*$/i.test(normalized) ||
+      /<svg(?:\s[^>]*)?\/>\s*$/is.test(normalized))
+  );
 }
 
 function collectWarnings({
