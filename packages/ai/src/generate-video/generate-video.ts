@@ -111,7 +111,7 @@ export type GenerateVideoWebhookFactory = () => PromiseLike<{
  *
  * @returns A result object that contains the generated videos.
  */
-const defaultDownload = createDownload();
+const defaultDownload = /* @__PURE__ */ createDownload();
 
 export async function experimental_generateVideo({
   model: modelArg,

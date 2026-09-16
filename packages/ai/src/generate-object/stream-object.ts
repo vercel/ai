@@ -66,7 +66,10 @@ import type {
 } from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 
-const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
+const originalGenerateId = /* @__PURE__ */ createIdGenerator({
+  prefix: 'aiobj',
+  size: 24,
+});
 
 async function markPromiseAsHandled<T>(promise: Promise<T>): Promise<void> {
   try {

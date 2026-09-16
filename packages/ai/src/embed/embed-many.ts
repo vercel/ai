@@ -20,7 +20,7 @@ import type { EmbedEndEvent, EmbedStartEvent } from './embed-events';
 import type { EmbedManyResult } from './embed-many-result';
 import { VERSION } from '../version';
 
-const originalGenerateCallId = createIdGenerator({
+const originalGenerateCallId = /* @__PURE__ */ createIdGenerator({
   prefix: 'call',
   size: 24,
 });

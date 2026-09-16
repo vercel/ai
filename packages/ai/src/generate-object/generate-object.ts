@@ -42,7 +42,10 @@ import type {
 } from './structured-output-events';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 
-const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
+const originalGenerateId = /* @__PURE__ */ createIdGenerator({
+  prefix: 'aiobj',
+  size: 24,
+});
 
 /**
  * Generate a structured, typed object for a given prompt and schema using a language model.

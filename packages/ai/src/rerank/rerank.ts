@@ -20,7 +20,7 @@ import { notify } from '../util/notify';
 import type { RerankEndEvent, RerankStartEvent } from './rerank-events';
 import type { RerankResult } from './rerank-result';
 
-const originalGenerateCallId = createIdGenerator({
+const originalGenerateCallId = /* @__PURE__ */ createIdGenerator({
   prefix: 'call',
   size: 24,
 });

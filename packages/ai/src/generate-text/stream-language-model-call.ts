@@ -73,12 +73,12 @@ import type { ToolInputRefinement } from './tool-input-refinement';
 import type { ToolOrder } from './tool-order';
 import type { TypedToolResult } from './tool-result';
 
-const originalGenerateId = createIdGenerator({
+const originalGenerateId = /* @__PURE__ */ createIdGenerator({
   prefix: 'aitxt',
   size: 24,
 });
 
-const originalGenerateCallId = createIdGenerator({
+const originalGenerateCallId = /* @__PURE__ */ createIdGenerator({
   prefix: 'call',
   size: 24,
 });

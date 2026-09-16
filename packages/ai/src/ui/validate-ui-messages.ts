@@ -48,7 +48,7 @@ function asDynamicToolPart(toolPart: ToolUIPart): DynamicToolUIPart {
   } as DynamicToolUIPart;
 }
 
-const uiMessagesSchema = lazySchema(() =>
+const uiMessagesSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z
       .array(
