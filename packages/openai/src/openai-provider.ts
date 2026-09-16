@@ -12,7 +12,6 @@ import type {
   Experimental_SpeechTranslationModelV4 as SpeechTranslationModelV4,
 } from '@ai-sdk/provider';
 import {
-  Experimental_EvaluationLanguageModel as EvaluationLanguageModel,
   loadApiKey,
   loadOptionalSetting,
   validateBaseURL,
@@ -21,6 +20,7 @@ import {
   type FetchFunction,
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
+import { Experimental_EvaluationLanguageModel as EvaluationLanguageModel } from '@ai-sdk/provider-utils/experimental-evaluation';
 import { OpenAIChatLanguageModel } from './chat/openai-chat-language-model';
 import type { OpenAIChatModelId } from './chat/openai-chat-language-model-options';
 import { OpenAICompletionLanguageModel } from './completion/openai-completion-language-model';
