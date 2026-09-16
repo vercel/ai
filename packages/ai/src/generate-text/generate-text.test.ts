@@ -345,7 +345,62 @@ describe('experimental_toolCallers', () => {
         },
       ],
     });
+    expect(result.experimental_continuationMessages).toEqual([
+      {
+        role: 'user',
+        content: 'Available caller tools: getInventory.',
+      },
+      ...result.responseMessages,
+    ]);
     expect(result.toolResults[0]?.output).toEqual(['getInventory']);
+  });
+
+  it('announces a local caller message with array content', async () => {
+    let modelPrompt!: LanguageModelV4CallOptions['prompt'];
+
+    const localCaller = experimental_toolCaller(
+      tool({
+        inputSchema: z.object({}),
+        execute: async () => undefined,
+      }),
+      {
+        type: 'local',
+        bind: () =>
+          tool({
+            inputSchema: z.object({}),
+            execute: async () => undefined,
+          }),
+        prepareModelMessage: () => ({
+          role: 'user',
+          content: [{ type: 'text', text: 'Current code mode catalog.' }],
+        }),
+      },
+    );
+
+    await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async options => {
+          modelPrompt = options.prompt;
+          return { ...dummyResponseValues, content: [] };
+        },
+      }),
+      tools: {
+        code_mode: localCaller,
+        nested: tool({
+          inputSchema: z.object({}),
+          execute: async () => undefined,
+        }),
+      },
+      experimental_toolCallers: {
+        nested: ['code_mode'],
+      },
+      prompt: 'Prompt.',
+    });
+
+    expect(modelPrompt).toContainEqual({
+      role: 'user',
+      content: [{ type: 'text', text: 'Current code mode catalog.' }],
+    });
   });
 
   it('does not repeat a caller message already present in model messages', async () => {

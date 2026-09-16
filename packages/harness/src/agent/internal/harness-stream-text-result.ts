@@ -669,6 +669,9 @@ export class HarnessStreamTextResult<
   get responseMessages() {
     return this._responseMessages.promise;
   }
+  get experimental_continuationMessages() {
+    return this._responseMessages.promise;
+  }
   get providerMetadata() {
     return this._providerMetadata.promise;
   }

@@ -147,6 +147,17 @@ examples for the tools routed through code mode. When the effective tools or
 their definitions change in a later step or generation call, the SDK adds a
 new catalog that replaces earlier catalogs.
 
+To continue the conversation across separate generation calls, append the
+continuation messages to your input history:
+
+```ts
+messages.push(...result.experimental_continuationMessages);
+```
+
+The continuation contains any catalog messages added by the SDK as well as the
+assistant and tool response messages. Pass `messages` plus the next user message
+to the next generation call.
+
 This mode can improve prompt-cache reuse because the provider-visible tool
 definition stays unchanged. Actual cache behavior depends on the model
 provider.
