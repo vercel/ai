@@ -7,8 +7,10 @@ import type { AnthropicTool, AnthropicToolChoice } from './anthropic-api';
 import { CacheControlValidator } from './get-cache-control';
 import { advisor_20260301ArgsSchema } from './tool/advisor_20260301';
 import { textEditor_20250728ArgsSchema } from './tool/text-editor_20250728';
+import { webSearch_20260318ArgsSchema } from './tool/web-search_20260318';
 import { webSearch_20260209ArgsSchema } from './tool/web-search_20260209';
 import { webSearch_20250305ArgsSchema } from './tool/web-search_20250305';
+import { webFetch_20260318ArgsSchema } from './tool/web-fetch-20260318';
 import { webFetch_20260209ArgsSchema } from './tool/web-fetch-20260209';
 import { webFetch_20250910ArgsSchema } from './tool/web-fetch-20250910';
 import { validateTypes } from '@ai-sdk/provider-utils';
@@ -297,6 +299,25 @@ export async function prepareTools({
             });
             break;
           }
+          case 'anthropic.web_fetch_20260318': {
+            const args = await validateTypes({
+              value: tool.args,
+              schema: webFetch_20260318ArgsSchema,
+            });
+            anthropicTools.push({
+              type: 'web_fetch_20260318',
+              name: 'web_fetch',
+              max_uses: args.maxUses,
+              allowed_domains: args.allowedDomains,
+              blocked_domains: args.blockedDomains,
+              citations: args.citations,
+              max_content_tokens: args.maxContentTokens,
+              use_cache: args.useCache,
+              response_inclusion: args.responseInclusion,
+              cache_control: undefined,
+            });
+            break;
+          }
           case 'anthropic.web_search_20250305': {
             const args = await validateTypes({
               value: tool.args,
@@ -326,6 +347,23 @@ export async function prepareTools({
               allowed_domains: args.allowedDomains,
               blocked_domains: args.blockedDomains,
               user_location: args.userLocation,
+              cache_control: undefined,
+            });
+            break;
+          }
+          case 'anthropic.web_search_20260318': {
+            const args = await validateTypes({
+              value: tool.args,
+              schema: webSearch_20260318ArgsSchema,
+            });
+            anthropicTools.push({
+              type: 'web_search_20260318',
+              name: 'web_search',
+              max_uses: args.maxUses,
+              allowed_domains: args.allowedDomains,
+              blocked_domains: args.blockedDomains,
+              user_location: args.userLocation,
+              response_inclusion: args.responseInclusion,
               cache_control: undefined,
             });
             break;

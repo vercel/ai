@@ -1,5 +1,23 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.84
+
+### Patch Changes
+
+- c83bc67: feat: add Claude Fable 5.1 model IDs to Bedrock and Vertex providers
+
+## 5.0.83
+
+### Patch Changes
+
+- 9a46ac6: fix(amazon-bedrock): rename thinking block binding field for Bedrock
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/openai@4.0.67
+  - @ai-sdk/anthropic@4.0.54
+  - @ai-sdk/provider-utils@5.0.41
+
 ## 5.0.82
 
 ### Patch Changes

@@ -6,6 +6,7 @@ import {
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { argv, env as procEnv } from 'node:process';
+import { isDeepStrictEqual } from 'node:util';
 import type { StartMessage } from '../opencode-bridge-protocol';
 
 import {
@@ -61,6 +62,7 @@ type RuntimeState = {
   client?: OpenCodeClient;
   sessionId?: string;
   relay?: ToolRelay;
+  openCodeConfig?: Record<string, unknown>;
   toolNames: Set<string>;
   mcpToolPrefixes: Set<string>;
 };
@@ -203,44 +205,68 @@ async function ensureRuntime({
   turn: BridgeTurn;
   emit: Emit;
 }): Promise<void> {
-  if (runtime.client) return;
-
-  if (start.tools && start.tools.length > 0) {
-    runtime.toolNames = new Set(start.tools.map(tool => tool.name));
-    runtime.relay = await startToolRelay({
-      tools: start.tools,
-      emit,
-      requestToolResult: turn.requestToolResult,
-    });
+  if (
+    runtime.client &&
+    isDeepStrictEqual(runtime.openCodeConfig, start.openCodeConfig)
+  ) {
+    return;
   }
 
-  const serverAuthHeaders = configureOpenCodeServerAuth({ env: procEnv });
-  const server = await createOpencodeServer({
-    hostname: '127.0.0.1',
-    port: 0,
-    timeout: 30_000,
-    config: buildOpenCodeConfig({
-      start,
-      relayPort: runtime.relay?.port,
-    }) as never,
-  });
-  runtime.server = server;
-  runtime.client = createOpencodeClient({
-    baseUrl: server.url,
-    directory: workdir,
-    headers: serverAuthHeaders,
-  });
-  const mcpStatus = await runtime.client.mcp.status();
-  const mcpServers = asOpenCodeObject(mcpStatus.data) ?? {};
-  runtime.mcpToolPrefixes = new Set(
-    Object.entries(mcpServers)
-      .filter(
-        ([serverName, status]) =>
-          serverName !== 'harness-tools' &&
-          asOpenCodeObject(status)?.status === 'connected',
-      )
-      .map(([serverName]) => `${sanitizeMcpToolName(serverName)}_`),
-  );
+  closeRuntime();
+
+  try {
+    if (start.tools && start.tools.length > 0) {
+      runtime.toolNames = new Set(start.tools.map(tool => tool.name));
+      runtime.relay = await startToolRelay({
+        tools: start.tools,
+        emit,
+        requestToolResult: turn.requestToolResult,
+      });
+    }
+
+    const serverAuthHeaders = configureOpenCodeServerAuth({ env: procEnv });
+    const server = await createOpencodeServer({
+      hostname: '127.0.0.1',
+      port: 0,
+      timeout: 30_000,
+      config: buildOpenCodeConfig({
+        start,
+        relayPort: runtime.relay?.port,
+      }) as never,
+    });
+    runtime.server = server;
+    runtime.client = createOpencodeClient({
+      baseUrl: server.url,
+      directory: workdir,
+      headers: serverAuthHeaders,
+    });
+    const mcpStatus = await runtime.client.mcp.status();
+    const mcpServers = asOpenCodeObject(mcpStatus.data) ?? {};
+    runtime.mcpToolPrefixes = new Set(
+      Object.entries(mcpServers)
+        .filter(
+          ([serverName, status]) =>
+            serverName !== 'harness-tools' &&
+            asOpenCodeObject(status)?.status === 'connected',
+        )
+        .map(([serverName]) => `${sanitizeMcpToolName(serverName)}_`),
+    );
+    runtime.openCodeConfig = structuredClone(start.openCodeConfig);
+  } catch (error) {
+    closeRuntime();
+    throw error;
+  }
+}
+
+function closeRuntime(): void {
+  runtime.relay?.close();
+  runtime.server?.close();
+  runtime.server = undefined;
+  runtime.client = undefined;
+  runtime.relay = undefined;
+  runtime.openCodeConfig = undefined;
+  runtime.toolNames = new Set();
+  runtime.mcpToolPrefixes = new Set();
 }
 
 function buildOpenCodeConfig({

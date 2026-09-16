@@ -146,6 +146,7 @@ import type {
 import { toResponseMessages } from './to-response-messages';
 import type { ToolApprovalConfiguration } from './tool-approval-configuration';
 import {
+  appendToolCallerMessages,
   prepareToolsForToolCallers,
   resolveToolCallerConfiguration,
   type Experimental_ToolCallers,
@@ -196,6 +197,7 @@ const isOutputChunkType = {
   'tool-call': true,
   'tool-result': false,
   'tool-error': false,
+  'tool-output-denied': false,
   'tool-execution-end': false,
   'model-call-start': false,
   'model-call-response-metadata': false,
@@ -2329,6 +2331,7 @@ class DefaultStreamTextResult<
           const {
             executionTools: stepExecutionTools,
             modelTools: stepModelTools,
+            toolCallerMessages,
           } = prepareToolsForToolCallers({
             tools: stepActiveTools,
             toolCallers: resolvedToolCallers,
@@ -2354,7 +2357,10 @@ class DefaultStreamTextResult<
             toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
           });
 
-          const stepMessages = prepareStepResult?.messages ?? stepInputMessages;
+          const stepMessages = appendToolCallerMessages({
+            messages: prepareStepResult?.messages ?? stepInputMessages,
+            toolCallerMessages,
+          });
           currentStepMessages = stepMessages;
           const stepInstructions =
             prepareStepResult?.instructions ??
@@ -2833,7 +2839,8 @@ class DefaultStreamTextResult<
                     case 'tool-input-start':
                     case 'tool-input-end':
                     case 'tool-input-delta':
-                    case 'tool-approval-request': {
+                    case 'tool-approval-request':
+                    case 'tool-output-denied': {
                       enqueueStepPart(controller, chunk);
                       break;
                     }

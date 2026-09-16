@@ -17,6 +17,7 @@ type GoogleRealtimeFunctionCall = {
 
 type GoogleRealtimeServerContent = {
   generationComplete?: boolean;
+  interactionStatus?: string;
   interrupted?: boolean;
   modelTurn?: {
     parts?: Array<{
@@ -27,6 +28,7 @@ type GoogleRealtimeServerContent = {
   outputTranscription?: { text?: string };
   inputTranscription?: { text?: string };
   turnComplete?: boolean;
+  waitingForInput?: boolean;
 };
 
 type GoogleRealtimeWireEvent = {
@@ -232,6 +234,30 @@ export class GoogleRealtimeEventMapper {
       });
     }
 
+    // `interactionStatus` (IN_PROGRESS | IDLE | WAITING_FOR_INPUT) is the definitive
+    // session-activity signal for background-reasoning models: `turnComplete`
+    // no longer implies the model is idle, since asynchronous tool calls and
+    // audio may still follow. Surface it as a custom event so clients can
+    // coordinate state on it.
+    if (serverContent.interactionStatus != null) {
+      events.push({
+        type: 'custom',
+        rawType: 'interactionStatus',
+        raw,
+      });
+    }
+
+    // `waitingForInput` is the always-on Proactive Audio turn-taking signal:
+    // the model has yielded the floor and is not generating because it
+    // expects the user to continue.
+    if (serverContent.waitingForInput) {
+      events.push({
+        type: 'custom',
+        rawType: 'waitingForInput',
+        raw,
+      });
+    }
+
     if (serverContent.turnComplete) {
       if (this.hasAudio) {
         events.push({
@@ -336,11 +362,33 @@ export class GoogleRealtimeEventMapper {
   }
 }
 
+/**
+ * The value Gemini accepts for `functionResponse.response`.
+ *
+ * The field is typed `google.protobuf.Struct`, which is an object and nothing else, so
+ * a string, number, array or `null` on the wire is a protocol violation and the socket
+ * closes with 1007. `onToolCall` returns `unknown` and `addToolOutput` takes `unknown`,
+ * so those shapes reach here as perfectly valid JSON.
+ *
+ * The field's own docstring says what to do with one: "Use `output` key to specify
+ * function output ... If `output` and `error` keys are not specified, then whole
+ * `response` is treated as function output." An object is passed through unchanged and
+ * everything else is wrapped.
+ */
+function toFunctionResponseStruct(value: unknown): Record<string, unknown> {
+  const isStruct =
+    typeof value === 'object' && value !== null && !Array.isArray(value);
+  return isStruct ? (value as Record<string, unknown>) : { output: value };
+}
+
 async function serializeFunctionCallOutput(
   item: RealtimeModelV4FunctionCallOutput,
 ): Promise<unknown> {
   const parseResult = await safeParseJSON({ text: item.output });
-  const response = parseResult.success ? parseResult.value : {};
+  const response = parseResult.success
+    ? toFunctionResponseStruct(parseResult.value)
+    : // Preserve non-JSON output in the required object wrapper.
+      { output: item.output };
 
   return {
     toolResponse: {
@@ -356,6 +404,16 @@ async function serializeFunctionCallOutput(
 }
 
 /**
+ * Live models that reason in the background (e.g. `gemini-3.8-live-extended-thinking`).
+ * Google requires exactly one of `thinkingLevel` / `thinkingBudget` in their setup and
+ * rejects `thinkingConfig` on every other Live model.
+ */
+function isThinkingLiveModel(modelId: string): boolean {
+  const modelName = modelId.split('/').at(-1)?.toLowerCase() ?? '';
+  return /^gemini-\d+\.\d+-live\b.*thinking/.test(modelName);
+}
+
+/**
  * Builds a Google-specific session configuration from a normalized config.
  * Used to construct the `bidiGenerateContentSetup` payload for auth token creation.
  */
@@ -366,6 +424,11 @@ export function buildGoogleSessionConfig(
   const setup: Record<string, unknown> = {
     model: getModelPath(modelId),
   };
+
+  const { google, ...restProviderOptions } = config?.providerOptions ?? {};
+  const googleOptions = isRecord(google)
+    ? (google as GoogleRealtimeModelOptions)
+    : undefined;
 
   const generationConfig: Record<string, unknown> = {};
 
@@ -402,6 +465,9 @@ export function buildGoogleSessionConfig(
           name: tool.name,
           description: tool.description,
           parametersJsonSchema: tool.parameters,
+          ...(googleOptions?.defaultToolBehavior != null
+            ? { behavior: googleOptions.defaultToolBehavior }
+            : {}),
         })),
       },
     ];
@@ -415,16 +481,28 @@ export function buildGoogleSessionConfig(
     setup.outputAudioTranscription = {};
   }
 
+  // Default to the lowest-latency thinking level so a session on a
+  // background-reasoning model works without provider options. Merged last so
+  // it survives a raw `providerOptions.generationConfig`.
+  const thinkingConfig =
+    googleOptions?.thinkingConfig ??
+    (isThinkingLiveModel(modelId)
+      ? { thinkingLevel: 'low' as const }
+      : undefined);
+  const applyThinkingConfig = () => {
+    if (thinkingConfig == null) return;
+    const target = isRecord(setup.generationConfig)
+      ? setup.generationConfig
+      : generationConfig;
+    setup.generationConfig = { ...target, thinkingConfig };
+  };
+
   if (config?.providerOptions == null) {
+    applyThinkingConfig();
     return setup;
   }
 
-  const { google, ...providerOptions } = config.providerOptions;
-  Object.assign(setup, providerOptions);
-
-  const googleOptions = isRecord(google)
-    ? (google as GoogleRealtimeModelOptions)
-    : undefined;
+  Object.assign(setup, restProviderOptions);
 
   if (googleOptions?.translationConfig != null) {
     const target = isRecord(setup.generationConfig)
@@ -436,5 +514,6 @@ export function buildGoogleSessionConfig(
     };
   }
 
+  applyThinkingConfig();
   return setup;
 }
