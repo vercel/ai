@@ -612,7 +612,7 @@ describe('AmazonBedrockProvider', () => {
 
       provider(modelId, { modelFamily: 'anthropic' });
 
-      const constructorCall = AmazonBedrockChatLanguageModelMock.mock.calls[0];
+      const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
       expect(constructorCall[1].modelFamily).toBe('anthropic');
     });
 

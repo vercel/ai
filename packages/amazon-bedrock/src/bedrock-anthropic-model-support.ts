@@ -1,4 +1,4 @@
-import type { AmazonBedrockChatModelSettings } from './amazon-bedrock-chat-language-model-options';
+import type { AmazonBedrockChatModelSettings } from './bedrock-chat-options';
 
 export function isAnthropicModel({
   modelId,

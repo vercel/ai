@@ -9,23 +9,15 @@ import {
   anthropicTools,
   prepareTools as prepareAnthropicTools,
 } from '@ai-sdk/anthropic/internal';
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-prepare-tools.ts
-import { supportsStrictTools } from './bedrock-anthropic-model-support';
+import {
+  isAnthropicModel as detectAnthropicModel,
+  supportsStrictTools,
+} from './bedrock-anthropic-model-support';
 import type {
   BedrockTool,
   BedrockToolConfiguration,
 } from './bedrock-api-types';
-=======
-import {
-  isAnthropicModel as detectAnthropicModel,
-  supportsStrictTools,
-} from './amazon-bedrock-anthropic-model-support';
-import type {
-  AmazonBedrockTool,
-  AmazonBedrockToolConfiguration,
-} from './amazon-bedrock-api-types';
-import type { AmazonBedrockChatModelSettings } from './amazon-bedrock-chat-language-model-options';
->>>>>>> d82eac280e (fix: use native structured output for Anthropic chat models behind application inference profiles (#20792)):packages/amazon-bedrock/src/amazon-bedrock-prepare-tools.ts
+import type { AmazonBedrockChatModelSettings } from './bedrock-chat-options';
 
 export async function prepareTools({
   tools,

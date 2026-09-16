@@ -436,7 +436,7 @@ describe('application inference profile structured output', () => {
       const applicationProfileArn =
         'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/custom-profile';
       let requestBody: any;
-      const applicationProfileModel = new AmazonBedrockChatLanguageModel(
+      const applicationProfileModel = new BedrockChatLanguageModel(
         applicationProfileArn,
         {
           baseUrl: () => baseUrl,
@@ -482,7 +482,7 @@ describe('application inference profile structured output', () => {
           },
         },
         providerOptions: {
-          amazonBedrock: {
+          bedrock: {
             structuredOutputMode,
           },
         },
