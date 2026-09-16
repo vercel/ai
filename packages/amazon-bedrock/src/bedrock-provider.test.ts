@@ -524,7 +524,33 @@ describe('AmazonBedrockProvider', () => {
 
       const constructorCall = BedrockEmbeddingModelMock.mock.calls[0];
       expect(constructorCall[0]).toBe(modelId);
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-provider.test.ts
       expect(model).toBeInstanceOf(BedrockEmbeddingModel);
+=======
+      expect(model).toBeInstanceOf(AmazonBedrockEmbeddingModel);
+    });
+
+    it('should pass chat model settings to the model', () => {
+      const provider = createAmazonBedrock();
+      const modelId =
+        'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/qibm5eutlkcy';
+
+      provider(modelId, { modelFamily: 'anthropic' });
+
+      const constructorCall = AmazonBedrockChatLanguageModelMock.mock.calls[0];
+      expect(constructorCall[1].modelFamily).toBe('anthropic');
+    });
+
+    it('should pass embedding model settings to the model', () => {
+      const provider = createAmazonBedrock();
+      const modelId =
+        'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/qibm5eutlkcy';
+
+      provider.embedding(modelId, { modelFamily: 'cohere' });
+
+      const constructorCall = AmazonBedrockEmbeddingModelMock.mock.calls[0];
+      expect(constructorCall[1].modelFamily).toBe('cohere');
+>>>>>>> d82eac280e (fix: use native structured output for Anthropic chat models behind application inference profiles (#20792)):packages/amazon-bedrock/src/amazon-bedrock-provider.test.ts
     });
 
     it('should create an image model', () => {

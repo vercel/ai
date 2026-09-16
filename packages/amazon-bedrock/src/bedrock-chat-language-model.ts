@@ -29,6 +29,7 @@ import {
   BEDROCK_STOP_REASONS,
 } from './bedrock-api-types';
 import {
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
   type BedrockChatModelId,
   bedrockProviderOptions,
 } from './bedrock-chat-options';
@@ -41,12 +42,40 @@ import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-
 import { prepareTools } from './bedrock-prepare-tools';
 import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
 import { mapBedrockFinishReason } from './map-bedrock-finish-reason';
+=======
+  amazonBedrockLanguageModelChatOptions,
+  type AmazonBedrockLanguageModelChatOptions,
+  type AmazonBedrockChatModelId,
+  type AmazonBedrockChatModelSettings,
+} from './amazon-bedrock-chat-language-model-options';
+import {
+  isAnthropicModel as detectAnthropicModel,
+  supportsNativeStructuredOutput,
+  supportsStrictTools,
+} from './amazon-bedrock-anthropic-model-support';
+import { AmazonBedrockErrorSchema } from './amazon-bedrock-error';
+import { createAmazonBedrockEventStreamResponseHandler } from './amazon-bedrock-event-stream-response-handler';
+import {
+  getAmazonBedrockStreamErrorMetadata,
+  type AmazonBedrockStreamErrorType,
+} from './amazon-bedrock-stream-error';
+import { prepareTools } from './amazon-bedrock-prepare-tools';
+import {
+  convertAmazonBedrockUsage,
+  type AmazonBedrockUsage,
+} from './convert-amazon-bedrock-usage';
+import { convertToAmazonBedrockChatMessages } from './convert-to-amazon-bedrock-chat-messages';
+import { mapAmazonBedrockFinishReason } from './map-amazon-bedrock-finish-reason';
+import { isMistralModel, normalizeToolCallId } from './normalize-tool-call-id';
+import type { AmazonBedrockReasoningMetadata } from './amazon-bedrock-reasoning-metadata';
+>>>>>>> d82eac280e (fix: use native structured output for Anthropic chat models behind application inference profiles (#20792)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
 
 type BedrockChatConfig = {
   baseUrl: () => string;
   headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   generateId: () => string;
+  modelFamily?: AmazonBedrockChatModelSettings['modelFamily'];
 };
 
 const anthropicProviderOptions = z.object({
@@ -148,7 +177,15 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       });
     }
 
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
     const isAnthropicModel = this.modelId.includes('anthropic');
+=======
+    const isAnthropicModel = detectAnthropicModel({
+      modelId: this.modelId,
+      modelFamily: this.config.modelFamily,
+      reasoningBudgetTokens: amazonBedrockOptions.reasoningConfig?.budgetTokens,
+    });
+>>>>>>> d82eac280e (fix: use native structured output for Anthropic chat models behind application inference profiles (#20792)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
     const openAIModelId = /^(?:[^.]+\.)?(openai\..+)$/.exec(this.modelId)?.[1];
     const isOpenAIModel = openAIModelId != null;
     const isOpenAIGptOssModel =
@@ -188,6 +225,15 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       }
     }
 
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
+=======
+    const modelSupportsNativeStructuredOutput =
+      supportsNativeStructuredOutput(this.modelId) &&
+      (modelSupportsStructuredOutput ||
+        isThinkingEnabled ||
+        this.config.modelFamily === 'anthropic');
+
+>>>>>>> d82eac280e (fix: use native structured output for Anthropic chat models behind application inference profiles (#20792)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
     const useNativeStructuredOutput =
       isAnthropicModel &&
       responseFormat?.type === 'json' &&
@@ -215,6 +261,9 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
         toolChoice:
           jsonResponseTool != null ? { type: 'required' } : toolChoice,
         modelId: this.modelId,
+        modelFamily: this.config.modelFamily,
+        reasoningBudgetTokens:
+          amazonBedrockOptions.reasoningConfig?.budgetTokens,
         disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
       });
 

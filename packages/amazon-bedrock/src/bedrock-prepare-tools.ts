@@ -9,20 +9,36 @@ import {
   anthropicTools,
   prepareTools as prepareAnthropicTools,
 } from '@ai-sdk/anthropic/internal';
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-prepare-tools.ts
 import type {
   BedrockTool,
   BedrockToolConfiguration,
 } from './bedrock-api-types';
+=======
+import {
+  isAnthropicModel as detectAnthropicModel,
+  supportsStrictTools,
+} from './amazon-bedrock-anthropic-model-support';
+import type {
+  AmazonBedrockTool,
+  AmazonBedrockToolConfiguration,
+} from './amazon-bedrock-api-types';
+import type { AmazonBedrockChatModelSettings } from './amazon-bedrock-chat-language-model-options';
+>>>>>>> d82eac280e (fix: use native structured output for Anthropic chat models behind application inference profiles (#20792)):packages/amazon-bedrock/src/amazon-bedrock-prepare-tools.ts
 
 export async function prepareTools({
   tools,
   toolChoice,
   modelId,
+  modelFamily,
+  reasoningBudgetTokens,
   disableParallelToolUse,
 }: {
   tools: LanguageModelV2CallOptions['tools'];
   toolChoice?: LanguageModelV2CallOptions['toolChoice'];
   modelId: string;
+  modelFamily?: AmazonBedrockChatModelSettings['modelFamily'];
+  reasoningBudgetTokens?: number;
   disableParallelToolUse?: boolean;
 }): Promise<{
   toolConfig: BedrockToolConfiguration;
@@ -68,10 +84,19 @@ export async function prepareTools({
     };
   }
 
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-prepare-tools.ts
   const isAnthropicModel = modelId.includes('anthropic.');
   const providerDefinedTools = supportedTools.filter(
     t => t.type === 'provider-defined',
   );
+=======
+  const isAnthropicModel = detectAnthropicModel({
+    modelId,
+    modelFamily,
+    reasoningBudgetTokens,
+  });
+  const ProviderTools = supportedTools.filter(t => t.type === 'provider');
+>>>>>>> d82eac280e (fix: use native structured output for Anthropic chat models behind application inference profiles (#20792)):packages/amazon-bedrock/src/amazon-bedrock-prepare-tools.ts
   const functionTools = supportedTools.filter(t => t.type === 'function');
 
   let additionalTools: Record<string, unknown> | undefined = undefined;

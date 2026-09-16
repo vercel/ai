@@ -260,6 +260,42 @@ For parity with the Anthropic provider,
 `providerOptions.anthropic.structuredOutputMode` is also honored for Anthropic
 models on Bedrock. When both are provided, the `bedrock` value takes precedence.
 
+For an Anthropic application inference profile, prefer the Bedrock Anthropic
+provider. It uses Bedrock's native InvokeModel API, which accepts application
+inference profile ARNs, and identifies the model as Anthropic automatically:
+
+```ts
+import { amazonBedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
+
+const profileArn =
+  'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/qibm5eutlkcy';
+
+const model = amazonBedrockAnthropic(profileArn);
+```
+
+Use `modelFamily: 'anthropic'` only when you need to use the generic
+`@ai-sdk/amazon-bedrock` provider, which uses Bedrock's Converse API (for
+example, when IAM permits Converse but not InvokeModel). Application inference
+profile ARNs do not identify their underlying model, so declaring the family
+allows Anthropic-specific features, including native structured output:
+
+```ts
+import {
+  amazonBedrock,
+  type AmazonBedrockChatModelSettings,
+} from '@ai-sdk/amazon-bedrock';
+
+const profileArn =
+  'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/qibm5eutlkcy';
+
+const model = amazonBedrock(profileArn, {
+  modelFamily: 'anthropic',
+} satisfies AmazonBedrockChatModelSettings);
+```
+
+For an underlying model that does not reliably support native structured
+output, set `structuredOutputMode` to `"jsonTool"`.
+
 ### File Inputs
 
 <Note type="warning">
