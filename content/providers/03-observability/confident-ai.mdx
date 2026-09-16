@@ -39,16 +39,38 @@ CONFIDENT_API_KEY="YOUR-PROJECT-API-KEY"
   `CONFIDENT_OTEL_ENDPOINT="https://eu.otel.confident-ai.com/v1/traces"`
 </Note>
 
-### 3. Initialize Tracing
+### 3. Register the Telemetry Integration
 
-Call `init()` once when your app starts, before any AI SDK call. You don't have to create a tracer or pass any `telemetry` options to your calls:
+The `createVercelAITracer()` function returns a tracer that maps AI SDK spans onto
+Confident AI's span types. Pass it to `OpenTelemetry` and register that once at
+application startup, before any AI SDK call. `init()` sets up the exporter that
+ships the spans to your project:
+
+```ts filename="instrumentation.ts"
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
+import { init } from 'confident-trace';
+import { createVercelAITracer } from 'confident-trace/vercel-ai';
+
+export function register() {
+  init();
+  registerTelemetry(new OpenTelemetry({ tracer: createVercelAITracer() }));
+}
+```
+
+In Next.js, put this in `instrumentation.ts` at your project root — Next.js calls
+`register()` for you. For Node.js applications without Next.js, run the same two
+lines at the top level of your entry file:
 
 ```ts filename="index.ts"
-import { generateText } from 'ai';
+import { generateText, registerTelemetry } from 'ai';
 import { openai } from '@ai-sdk/openai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { init } from 'confident-trace';
+import { createVercelAITracer } from 'confident-trace/vercel-ai';
 
 const runtime = init();
+registerTelemetry(new OpenTelemetry({ tracer: createVercelAITracer() }));
 
 try {
   const { text } = await generateText({
@@ -61,24 +83,7 @@ try {
 }
 ```
 
-Then launch your entry-point file with the `confident-trace/register` preload so the SDK can hook the `ai` package as Node loads it. `init()` handles export, the preload handles instrumentation — you need both:
-
-```bash
-node --import tsx --import confident-trace/register index.ts
-```
-
-To make this your normal startup command, add it to your `package.json` scripts:
-
-```json filename="package.json"
-{
-  "scripts": {
-    "start": "node --import confident-trace/register dist/index.js",
-    "dev": "node --import tsx --import confident-trace/register index.ts"
-  }
-}
-```
-
-Your AI SDK calls stay exactly as they are. Every span carries the `Vercel AI SDK` integration label, nests under whatever span is active and captures:
+Your AI SDK calls stay exactly as they are. Every span carries the `Vercel AI SDK` integration label, nests under whatever span is active when the call is made, and captures:
 
 - **Agent and step spans** — one span for the overall `generateText` or `streamText` call, plus one span per step in a multi-step run.
 - **Model calls** — [LLM spans](https://www.confident-ai.com/docs/llm-tracing/features/span-types#llm-spans) with the model name, [token usage](https://www.confident-ai.com/docs/llm-tracing/features/token-usage-cost), finish reason, and normalized input/output messages, including the tool calls the model requested.
@@ -166,7 +171,7 @@ async function chat(prompt: string, threadId: string) {
 
 ## Troubleshooting
 
-- **No traces at all:** confirm your start command includes `--import confident-trace/register` and that `init()` runs before the first AI SDK call. `runtime.getInstrumentationStatus()` reports whether the `ai` hook attached — `not observed` means the package had not been loaded yet.
+- **No traces at all:** confirm `registerTelemetry()` runs before the first AI SDK call. In Next.js, that means `instrumentation.ts` at the project root, not inside a route. Registering no telemetry integration disables AI SDK telemetry entirely.
 - **Traces stop partway through a run:** the process exited before the export queue drained. Call `runtime.shutdown()` at exit, or `runtime.flush()` at the end of a serverless handler.
 - **Streamed calls arrive incomplete:** finish consuming or abort the stream before flushing or shutting down.
 - **Traces are missing content:** check AI SDK's `recordInputs` and `recordOutputs`, and `captureContent` on `init()`.
