@@ -8,6 +8,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createTypeSafeAi } from './typesafe-ai-provider';
 import { EvaluationTypeSafeAiModel } from './typesafe-ai-evaluation-model';
+import { VERSION } from './version';
 
 const nativeRequest = JSON.parse(
   readFileSync('src/__fixtures__/evaluation-request.json', 'utf8'),
@@ -101,7 +102,7 @@ it('passes custom fetch, headers, base URL, and future model IDs', async () => {
   expect(new Headers(init?.headers).get('custom')).toBe('provider');
   expect(new Headers(init?.headers).get('shared')).toBe('call');
   expect(new Headers(init?.headers).get('user-agent')).toContain(
-    'ai-sdk/typesafe-ai/2.0.0',
+    `ai-sdk/typesafe-ai/${VERSION}`,
   );
   expect(JSON.parse(init?.body as string).model).toBe('jev-future');
   expect(result.response?.headers?.['x-request-id']).toBe('test-id');

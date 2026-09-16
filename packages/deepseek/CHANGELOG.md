@@ -1,5 +1,17 @@
 # @ai-sdk/deepseek
 
+## 3.0.46
+
+### Patch Changes
+
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
 ## 3.0.45
 
 ### Patch Changes
