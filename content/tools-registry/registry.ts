@@ -586,4 +586,43 @@ console.log(result.text);`,
     websiteUrl: 'https://nitrosend.com',
     npmUrl: 'https://www.npmjs.com/package/@nitrosend/ai-sdk',
   },
+  {
+    slug: 'fatstack',
+    name: 'Fatstack',
+    description:
+      'Discover pay-per-call API and MCP tools from the Fatstack marketplace and use them as an AI SDK ToolSet. Discovery is free; calls settle in real USDC on Base via x402, with required daily spend guards.',
+    packageName: '@fatstack/ai-sdk-tools',
+    tags: ['payments', 'x402', 'mcp', 'marketplace', 'tool-discovery'],
+    installCommand: {
+      pnpm: 'pnpm add @fatstack/ai-sdk-tools ai viem',
+      npm: 'npm install @fatstack/ai-sdk-tools ai viem',
+      yarn: 'yarn add @fatstack/ai-sdk-tools ai viem',
+      bun: 'bun add @fatstack/ai-sdk-tools ai viem',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { fatstackTools } from '@fatstack/ai-sdk-tools';
+import { privateKeyToAccount } from 'viem/accounts';
+
+// Discovery is free and happens once; only calling a tool costs anything.
+//
+// The public catalogue is on Base mainnet, so calls spend real USDC. The
+// required guards bound spending and cannot be raised by the model.
+const tools = await fatstackTools({
+  wallet: privateKeyToAccount(process.env.AGENT_PRIVATE_KEY as \`0x\${string}\`),
+  networks: ['base'],
+  guards: { maxPerDay: 0.5, maxPerCall: 0.01 },
+});
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Convert 20 degrees Celsius to Fahrenheit.',
+  tools,
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://www.fatstack.net/docs/ai-sdk',
+    websiteUrl: 'https://www.fatstack.net',
+    npmUrl: 'https://www.npmjs.com/package/@fatstack/ai-sdk-tools',
+  },
 ];
