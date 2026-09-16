@@ -1,15 +1,19 @@
 import { gateway } from '@ai-sdk/gateway';
-import type {
-  EmbeddingModelV4,
-  Experimental_SpeechTranslationModelV4,
-  Experimental_VideoModelV4,
-  ImageModelV4,
-  LanguageModelV4,
-  ProviderV4,
-  RerankingModelV4,
-  SpeechModelV4,
-  TranscriptionModelV4,
+import {
+  NoSuchModelError,
+  type Experimental_EvaluationModelV4 as EvaluationModelV4,
+  type EmbeddingModelV4,
+  type Experimental_SpeechTranslationModelV4,
+  type Experimental_VideoModelV4,
+  type ImageModelV4,
+  type LanguageModelV4,
+  type ProviderV4,
+  type RerankingModelV4,
+  type SpeechModelV4,
+  type TranscriptionModelV4,
 } from '@ai-sdk/provider';
+import type { EvaluationModel } from '../evaluate/evaluation-result';
+import type { EvaluationProvider } from '../evaluate/evaluation-provider';
 import { UnsupportedModelVersionError } from '../error';
 import type { EmbeddingModel } from '../types/embedding-model';
 import type { LanguageModel } from '../types/language-model';
@@ -211,6 +215,47 @@ export function resolveRerankingModel(model: RerankingModel): RerankingModelV4 {
   }
 
   return asRerankingModelV4(model);
+}
+
+export function resolveEvaluationModel(
+  model: EvaluationModel,
+): EvaluationModelV4 {
+  if (typeof model === 'string') {
+    // Use the original provider so experimental methods and their receiver survive.
+    // Evaluation does not default to Gateway.
+    const provider = globalThis.AI_SDK_DEFAULT_PROVIDER as
+      | EvaluationProvider
+      | undefined;
+
+    if (typeof provider?.evaluationModel !== 'function') {
+      throw new NoSuchModelError({
+        modelId: model,
+        modelType: 'evaluationModel',
+        message:
+          'The default provider does not support evaluation models. ' +
+          'Pass an evaluation model instance or configure AI_SDK_DEFAULT_PROVIDER with an evaluationModel method.',
+      });
+    }
+
+    const resolvedModel = provider.evaluationModel(model);
+    if (resolvedModel == null) {
+      throw new NoSuchModelError({
+        modelId: model,
+        modelType: 'evaluationModel',
+      });
+    }
+    model = resolvedModel;
+  }
+
+  if (model.specificationVersion !== 'v4') {
+    throw new UnsupportedModelVersionError({
+      version: model.specificationVersion,
+      provider: model.provider,
+      modelId: model.modelId,
+    });
+  }
+
+  return model;
 }
 
 function getGlobalProvider(): ProviderV4 {

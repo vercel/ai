@@ -298,3 +298,20 @@ The `createProviderRegistry` function returns a `Provider` instance. It has the 
     },
   ]}
 />
+
+## Experimental evaluation models
+
+The inferred return type also exposes `evaluationModel('providerId:modelId')`,
+returning `Experimental_EvaluationModelV4`. The provider must expose an
+`evaluationModel` factory. Custom separators and model ID
+inference work as they do for video models. Language and image middleware do not
+wrap evaluation models. `ProviderRegistryProvider` remains a stable interface;
+use the inferred return type or `Experimental_EvaluationProviderRegistry` to
+retain experimental evaluation access.
+
+Unavailable evaluation capabilities or models throw `NoSuchModelError` with
+`modelType: 'evaluationModel'`; unknown registry providers throw
+`NoSuchProviderError`. These capabilities are structural extensions and are not
+added to the stable `ProviderV4` contract. Evaluation does not assume Gateway
+support. See [Evaluation](/docs/ai-sdk-core/evaluation#model-aliases-and-registries)
+for runnable usage patterns.

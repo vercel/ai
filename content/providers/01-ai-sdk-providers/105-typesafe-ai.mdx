@@ -77,8 +77,10 @@ console.log(result.usage);
 ```
 
 Use `jev-latest` or another TypeSafe model ID. The response includes the actual
-model ID, such as the resolved version behind the alias. String model resolution
-and registry integration are not supported yet; pass a model instance.
+model ID, such as the resolved version behind the alias. Use model instances,
+custom aliases, or registered providers. With `typeSafeAi` explicitly configured
+as `globalThis.AI_SDK_DEFAULT_PROVIDER`, you can pass `model: 'jev-latest'`
+directly. See [model aliases and registries](/docs/ai-sdk-core/evaluation#model-aliases-and-registries).
 
 | Question  | Native TypeSafe primitive | Limits and semantics                                                 |
 | --------- | ------------------------- | -------------------------------------------------------------------- |
