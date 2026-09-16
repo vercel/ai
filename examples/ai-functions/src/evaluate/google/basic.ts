@@ -22,6 +22,10 @@ run(async () => {
           other: null,
         },
       },
+      requestsRefund: {
+        type: 'boolean',
+        instructions: 'Is the customer requesting money back?',
+      },
       severity: {
         type: 'score',
         instructions: 'How severe is the issue?',
@@ -31,6 +35,11 @@ run(async () => {
   });
 
   console.log('Answers:', result.answers);
+  // Boolean probabilities are prompted estimates; choose a threshold for your task.
+  console.log(
+    'Requests refund:',
+    result.answers.requestsRefund.probability >= 0.5,
+  );
   console.log('Usage:', result.usage);
   console.log('Model:', result.response.modelId);
 });

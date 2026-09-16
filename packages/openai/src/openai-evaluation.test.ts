@@ -50,7 +50,7 @@ it('evaluates through the configured Responses API with strict structured output
     providerOptions: { openai: { reasoningEffort: 'none' } },
   });
   expect(model.provider).toBe('openai.evaluation');
-  expect(model.supportedQuestionTypes).toEqual(['choice', 'score']);
+  expect(model.supportedQuestionTypes).toEqual(['choice', 'score', 'boolean']);
   expect(result.answers).toEqual({
     department: { type: 'choice', choice: 'billing' },
     severity: { type: 'score', score: 1.25 },
@@ -91,17 +91,29 @@ it('evaluates through the configured Responses API with strict structured output
   });
 });
 
-it('rejects Boolean without a request', async () => {
-  const { model, fetch } = setup();
-  await expect(
-    model.doEvaluate({
-      state: 'test',
-      questions: { flag: { type: 'boolean', instructions: 'Yes?' } },
-    }),
-  ).rejects.toMatchObject({
-    name: 'AI_EvaluationUnsupportedQuestionTypeError',
+it('evaluates Boolean alongside Choice and Score in one Responses request', async () => {
+  const body = structuredClone(fixture);
+  body.output[0].content[0].text = '{"q0":"c1","q1":1.25,"q2":0.02}';
+  const { model, fetch } = setup(body);
+  const result = await model.doEvaluate({
+    ...options,
+    questions: {
+      ...options.questions,
+      flag: { type: 'boolean', instructions: 'Is a refund requested?' },
+    },
   });
-  expect(fetch).not.toHaveBeenCalled();
+  expect(result.answers).toEqual({
+    department: { type: 'choice', choice: 'billing' },
+    severity: { type: 'score', score: 1.25 },
+    flag: { type: 'boolean', probability: 0.02 },
+  });
+  expect(fetch).toHaveBeenCalledTimes(1);
+  expect(
+    JSON.parse(fetch.mock.calls[0][1].body).text.format.schema,
+  ).toMatchObject({
+    properties: { q2: { type: 'number' } },
+    required: ['q0', 'q1', 'q2'],
+  });
 });
 
 it('rejects truncated output even when its text is valid JSON', async () => {

@@ -52,7 +52,7 @@ it('uses Gemini structured output and forwards thinking options and cancellation
     },
   });
   expect(model.provider).toBe('google.evaluation');
-  expect(model.supportedQuestionTypes).toEqual(['choice', 'score']);
+  expect(model.supportedQuestionTypes).toEqual(['choice', 'score', 'boolean']);
   expect(result.answers).toEqual({
     department: { type: 'choice', choice: 'billing' },
     severity: { type: 'score', score: 1.25 },
@@ -148,17 +148,31 @@ it('validates score bounds locally', async () => {
     InvalidResponseDataError,
   );
 });
-it('rejects Boolean without a request', async () => {
-  const { model, fetch } = setup();
-  await expect(
-    model.doEvaluate({
-      state: 'test',
-      questions: { flag: { type: 'boolean', instructions: 'Yes?' } },
-    }),
-  ).rejects.toMatchObject({
-    name: 'AI_EvaluationUnsupportedQuestionTypeError',
+it('evaluates Boolean alongside Choice and Score in one Gemini request', async () => {
+  const body = structuredClone(fixture);
+  body.candidates[0].content.parts = [
+    { text: '{"q0":"c1","q1":1.25,"q2":0.02}' },
+  ];
+  const { model, fetch } = setup(body);
+  const result = await model.doEvaluate({
+    ...options,
+    questions: {
+      ...options.questions,
+      flag: { type: 'boolean', instructions: 'Is a refund requested?' },
+    },
   });
-  expect(fetch).not.toHaveBeenCalled();
+  expect(result.answers).toEqual({
+    department: { type: 'choice', choice: 'billing' },
+    severity: { type: 'score', score: 1.25 },
+    flag: { type: 'boolean', probability: 0.02 },
+  });
+  expect(fetch).toHaveBeenCalledTimes(1);
+  expect(
+    JSON.parse(fetch.mock.calls[0][1].body).generationConfig.responseJsonSchema,
+  ).toMatchObject({
+    properties: { q2: { type: 'number' } },
+    required: ['q0', 'q1', 'q2'],
+  });
 });
 it('rejects an aborted evaluation without a request', async () => {
   const { model, fetch } = setup();

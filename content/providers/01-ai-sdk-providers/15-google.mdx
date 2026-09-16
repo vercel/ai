@@ -2308,7 +2308,7 @@ const result = await generateSpeech({
 ## Evaluation Models
 
 Create an experimental evaluation model with `google.evaluationModel(modelId)`.
-It uses Gemini structured output for Choice and Score questions. Choose a model
+It uses Gemini structured output for Choice, Score, and Boolean questions. Choose a model
 that supports structured output, such as `gemini-3.5-flash-lite`.
 
 ```ts
@@ -2319,6 +2319,10 @@ const { answers } = await experimental_evaluate({
   model: google.evaluationModel('gemini-3.5-flash-lite'),
   state: 'I was charged twice.',
   questions: {
+    requestsRefund: {
+      type: 'boolean',
+      instructions: 'Is the customer requesting money back?',
+    },
     department: {
       type: 'choice',
       instructions: 'Which team should handle this?',
@@ -2341,6 +2345,7 @@ within the ordered rubric. The adapter validates complete answers after parsing
 and rejects safety-blocked, truncated, or invalid output. It preserves usage
 (including reasoning tokens), warnings, response data, and provider metadata.
 
-No probability distributions are synthesized, and Boolean questions are rejected
-before a request because the adapter cannot supply their required probability of
-true. See [Evaluation](/docs/ai-sdk-core/evaluation).
+Choice and Score answers do not include probability distributions. Boolean
+answers contain prompted estimates of P(true), validated to be finite and in
+`[0, 1]`. These estimates are not guaranteed to be calibrated. Apply thresholds
+in application code, for example `answers.requestsRefund.probability >= 0.5`. See [Evaluation](/docs/ai-sdk-core/evaluation).

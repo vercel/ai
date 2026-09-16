@@ -56,10 +56,12 @@ Use a provider's `evaluationModel` factory:
 | Google      | `google.evaluationModel('gemini-3.5-flash-lite')`        |
 
 TypeSafe AI supplies native Choice, Score, and Boolean evaluations. OpenAI,
-Anthropic, and Google adapt structured language-model output for Choice and Score.
-Their answers do not include probability distributions, and Boolean questions are
-unsupported. Select a model that supports the provider's structured-output API;
-judge quality against your own labeled examples before choosing a model for a task.
+Anthropic, and Google adapt structured language-model output for all three types.
+Boolean answers contain prompted estimates of P(true), validated to be finite
+and in `[0, 1]`. These estimates are not guaranteed to be calibrated. Choice and
+Score answers do not include probability distributions. Select a model that
+supports the provider's structured-output API; judge quality against your own
+labeled examples before choosing a model for a task.
 
 The language-model adapters evaluate all questions in one prompt. They do not
 provide TypeSafe's native independent-question execution semantics. The example
@@ -98,8 +100,9 @@ are preserved, never silently normalized.
 
 Choice and Score distributions are optional. Boolean probability is required:
 `0.98` means a strong yes and `0.02` means a strong no. It is not confidence in
-either outcome. The SDK does not promise calibration across providers or
-synthesize missing probabilities. Provider-specific confidence statistics belong
+either outcome. The SDK does not promise calibration across providers. Structured
+language-model adapters prompt the model to estimate P(true); native evaluation providers return
+their API probabilities. Provider-specific confidence statistics belong
 in `providerMetadata`.
 
 Choose thresholds in application code:

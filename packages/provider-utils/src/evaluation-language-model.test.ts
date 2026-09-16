@@ -1,6 +1,5 @@
 import {
   APICallError,
-  Experimental_EvaluationUnsupportedQuestionTypeError as EvaluationUnsupportedQuestionTypeError,
   InvalidArgumentError,
   InvalidResponseDataError,
   type Experimental_EvaluationModelV4CallOptions as EvaluationModelV4CallOptions,
@@ -138,32 +137,129 @@ it('forwards cancellation, headers, and provider options unchanged', async () =>
     providerOptions,
   });
 });
-it('rejects Boolean before calling the language model', async () => {
-  const { model, doGenerate } = setup();
-  await expect(
-    model.doEvaluate({
-      ...options,
-      questions: {
-        ...questions,
-        flag: { type: 'boolean', instructions: 'Yes?' },
-      },
-    }),
-  ).rejects.toMatchObject({
-    questionId: 'flag',
-    questionType: 'boolean',
-    provider: 'test.evaluation',
-    modelId: 'test-model',
-  });
-  expect(doGenerate).not.toHaveBeenCalled();
-  try {
-    await model.doEvaluate({
-      state: 'test',
-      questions: { flag: { type: 'boolean', instructions: 'Yes?' } },
+it.each([0, 0.02, 0.5, 0.98, 1])(
+  'preserves Boolean P(true) %s without thresholding in a mixed evaluation',
+  async probability => {
+    const { model, doGenerate } = setup({
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({ q2: probability, q1: 1.25, q0: 'c1' }),
+        },
+      ],
     });
-  } catch (error) {
-    expect(EvaluationUnsupportedQuestionTypeError.isInstance(error)).toBe(true);
-  }
+    const flag = {
+      type: 'boolean',
+      instructions: { task: ['Is a refund requested?'] },
+      criteria: {
+        true: { meaning: 'A refund is requested' },
+        false: ['No refund requested'],
+      },
+    } as const;
+    const result = await model.doEvaluate({
+      ...options,
+      questions: { ...questions, flag },
+    });
+    expect(model.supportedQuestionTypes).toEqual([
+      'choice',
+      'score',
+      'boolean',
+    ]);
+    expect(result.answers).toEqual({
+      category: { type: 'choice', choice: 'Needs review' },
+      severity: { type: 'score', score: 1.25 },
+      flag: { type: 'boolean', probability },
+    });
+    expect(doGenerate).toHaveBeenCalledTimes(1);
+    const call = doGenerate.mock.calls[0][0];
+    expect(call.responseFormat).toMatchObject({
+      schema: {
+        properties: {
+          q2: {
+            type: 'number',
+            description: expect.stringContaining('probability'),
+          },
+        },
+        required: ['q0', 'q1', 'q2'],
+      },
+    });
+    expect(
+      call.responseFormat?.type === 'json' &&
+        call.responseFormat.schema?.properties?.q2,
+    ).not.toHaveProperty('minimum');
+    expect(
+      call.responseFormat?.type === 'json' &&
+        call.responseFormat.schema?.properties?.q2,
+    ).not.toHaveProperty('maximum');
+    const message = call.prompt[1];
+    if (message.role !== 'user' || message.content[0].type !== 'text')
+      throw new Error('Expected text');
+    expect(JSON.parse(message.content[0].text).questions.q2).toEqual({
+      id: 'flag',
+      ...flag,
+    });
+    expect(call.prompt[0]).toMatchObject({
+      content: expect.stringContaining('not confidence in whichever outcome'),
+    });
+  },
+);
+it('supports Boolean questions without criteria', async () => {
+  const { model } = setup({ content: [{ type: 'text', text: '{"q0":0.25}' }] });
+  expect(
+    (
+      await model.doEvaluate({
+        state: 'test',
+        questions: { flag: { type: 'boolean', instructions: 'Yes?' } },
+      })
+    ).answers,
+  ).toEqual({ flag: { type: 'boolean', probability: 0.25 } });
 });
+it.each([
+  '-0.01',
+  '1.01',
+  '1e999',
+  '-1e999',
+  'null',
+  'true',
+  'false',
+  '"0.5"',
+  '{}',
+  '[]',
+])(
+  'rejects invalid Boolean probability %s without returning partial answers',
+  async value => {
+    const { model } = setup({
+      content: [{ type: 'text', text: `{"q0":"c1","q1":1.25,"q2":${value}}` }],
+    });
+    await expect(
+      model.doEvaluate({
+        ...options,
+        questions: {
+          ...questions,
+          flag: { type: 'boolean', instructions: 'Yes?' },
+        },
+      }),
+    ).rejects.toBeInstanceOf(InvalidResponseDataError);
+  },
+);
+it.each([
+  '{"q0":"c1","q1":1.25}',
+  '{"q0":"c1","q1":1.25,"q2":0.5,"extra":0.5}',
+])(
+  'rejects missing or extra answers for mixed Boolean evaluations: %s',
+  async text => {
+    const { model } = setup({ content: [{ type: 'text', text }] });
+    await expect(
+      model.doEvaluate({
+        ...options,
+        questions: {
+          ...questions,
+          flag: { type: 'boolean', instructions: 'Yes?' },
+        },
+      }),
+    ).rejects.toBeInstanceOf(InvalidResponseDataError);
+  },
+);
 it.each(['length', 'content-filter', 'tool-calls', 'error', 'other'] as const)(
   'rejects %s even with valid JSON',
   async unified => {

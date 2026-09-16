@@ -63,7 +63,7 @@ export interface GoogleProvider extends ProviderV4 {
 
   chat(modelId: GoogleModelId): LanguageModelV4;
 
-  /** Creates an experimental Choice/Score evaluation model using Gemini. */
+  /** Creates an experimental Choice/Score/Boolean evaluation model using Gemini. */
   evaluationModel(modelId: GoogleModelId): EvaluationModelV4;
 
   experimental_batch(): BatchV4<{
