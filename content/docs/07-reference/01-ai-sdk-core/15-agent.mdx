@@ -110,6 +110,28 @@ export type AgentCallParameters<CALL_OPTIONS, TOOLS extends ToolSet = {}> = ([
     onFinish?: GenerateTextOnEndCallback<TOOLS>;
   };
 
+export type AgentStreamParameters<
+  CALL_OPTIONS,
+  TOOLS extends ToolSet = {},
+> = AgentCallParameters<CALL_OPTIONS, TOOLS> & {
+  /**
+   * Callback that is called for each chunk of the stream.
+   */
+  onChunk?: StreamTextOnChunkCallback<TOOLS>;
+  /**
+   * Callback that is invoked when an error occurs during streaming.
+   */
+  onError?: StreamTextOnErrorCallback;
+  /**
+   * Callback that is called when the stream is aborted.
+   */
+  onAbort?: StreamTextOnAbortCallback<TOOLS>;
+  /**
+   * Optional stream transformations.
+   */
+  experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
+};
+
 /**
  * An Agent receives a prompt (text or messages) and generates or streams an output
  * that consists of steps, tool calls, data parts, etc.
@@ -190,6 +212,13 @@ Both `generate()` and `stream()` accept an `AgentCallParameters<CALL_OPTIONS, TO
 - `onStepFinish` (optional): Deprecated alias for `onStepEnd`.
 - `onEnd` (optional): A callback invoked when all steps are finished and the response is complete.
 - `onFinish` (optional): Deprecated alias for `onEnd`.
+
+In addition, `stream()` accepts:
+
+- `onChunk` (optional): A callback invoked for each stream chunk.
+- `onError` (optional): A callback invoked when an error occurs during streaming.
+- `onAbort` (optional): A callback invoked when the stream is aborted.
+- `experimental_transform` (optional): One or more stream transformations.
 
 ## Example: Custom Agent Implementation
 
