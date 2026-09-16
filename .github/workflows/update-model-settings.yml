@@ -70,8 +70,6 @@ jobs:
           cd packages/gateway
           pnpm generate-model-settings
 
-      # The generator emits a fixed shape, so short unions land formatted
-      # differently than the repo formatter wants and the opened PR fails check.
       - name: Format generated model settings
         run: pnpm exec oxfmt packages/gateway/src/gateway-*-model-settings.ts
 

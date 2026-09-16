@@ -21,8 +21,6 @@ import type { GatewayConfig } from './gateway-config';
 export class GatewayEvaluationModel implements EvaluationModelV4 {
   readonly specificationVersion = 'v4';
 
-  // The gateway routes to whichever provider backs the model, so the client cannot
-  // know the real set, unsupported types are rejected upstream.
   readonly supportedQuestionTypes = ['choice', 'score', 'boolean'] as const;
 
   constructor(
