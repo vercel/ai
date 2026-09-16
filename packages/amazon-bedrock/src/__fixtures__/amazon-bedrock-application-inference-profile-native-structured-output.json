@@ -1,0 +1,26 @@
+{
+  "metrics": {
+    "latencyMs": 1129
+  },
+  "output": {
+    "message": {
+      "content": [
+        {
+          "text": "{\"assignments\": [{\"category\": \"a\", \"id\": \"see you Tuesday\"}, {\"category\": \"b\", \"id\": \"can everyone hear me\"}], \"entities\": [], \"relations\": []}"
+        }
+      ],
+      "role": "assistant"
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "cacheReadInputTokenCount": 0,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokenCount": 0,
+    "cacheWriteInputTokens": 0,
+    "inputTokens": 477,
+    "outputTokens": 47,
+    "serverToolUsage": {},
+    "totalTokens": 524
+  }
+}
