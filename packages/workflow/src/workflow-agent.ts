@@ -2677,7 +2677,14 @@ export class WorkflowAgent<
           // stop the loop and return them.
           // This matches AI SDK behavior: tools without execute or needing
           // approval pause the agent loop.
-          if (pausedToolCalls.length > 0) {
+          const providerApprovalRequests =
+            step?.content
+              .filter(part => part.type === 'tool-approval-request')
+              .filter(part => part.toolCall.providerExecuted) ?? [];
+          if (
+            pausedToolCalls.length > 0 ||
+            providerApprovalRequests.length > 0
+          ) {
             // Execute any executable tools that were also called in this step
             const executableResults = await Promise.all(
               executableToolCalls.map(
@@ -2695,15 +2702,23 @@ export class WorkflowAgent<
 
             // Collect provider tool results
             const providerResultEntries = await Promise.all(
-              providerToolCallsForResults.map(async toolCall => ({
-                toolCall,
-                result: await resolveProviderToolResult(
+              providerToolCallsForResults
+                .filter(
+                  call =>
+                    !providerApprovalRequests.some(
+                      request =>
+                        request.toolCall.toolCallId === call.toolCallId,
+                    ),
+                )
+                .map(async toolCall => ({
                   toolCall,
-                  capturedProviderToolResults,
-                  effectiveTools as ToolSet,
-                  download,
-                ),
-              })),
+                  result: await resolveProviderToolResult(
+                    toolCall,
+                    capturedProviderToolResults,
+                    effectiveTools as ToolSet,
+                    download,
+                  ),
+                })),
             );
             await Promise.all(
               providerResultEntries.flatMap(({ toolCall, result }) =>
@@ -2752,6 +2767,44 @@ export class WorkflowAgent<
 
             addToolResultsToStep(step, executedResults, mode);
 
+            // Approval data belongs to the execution, whether or not it has a
+            // writable. Only the environment-variable reference enters the
+            // durable signing step; the resolved secret stays inside it.
+            const approvalToolCalls = pausedToolCalls.filter(
+              tc => approvalNeeded[nonProviderToolCalls.indexOf(tc)],
+            );
+            const approvalRequests = await Promise.all(
+              approvalToolCalls.map(async tc => {
+                const approvalId = `approval-${tc.toolCallId}`;
+                const signature =
+                  effectiveToolApprovalSecret == null
+                    ? undefined
+                    : await signWorkflowToolApproval({
+                        secret: effectiveToolApprovalSecret,
+                        approvalId,
+                        toolCallId: tc.toolCallId,
+                        toolName: tc.toolName,
+                        input: tc.input,
+                      });
+                return {
+                  type: 'tool-approval-request' as const,
+                  approvalId,
+                  toolCall: {
+                    ...tc,
+                    type: 'tool-call' as const,
+                  } as StepResult<ToolSet>['toolCalls'][number],
+                  ...(signature != null ? { signature } : {}),
+                };
+              }),
+            );
+            step?.content.push(...approvalRequests);
+            const approvalMessages = approvalRequests.map(
+              ({ toolCall, ...request }) => ({
+                ...request,
+                toolCallId: toolCall.toolCallId,
+              }),
+            );
+
             const responseMessages = addToolResultsToConversation({
               messages: iterMessages,
               toolResults: resolvedResults,
@@ -2762,15 +2815,37 @@ export class WorkflowAgent<
               ),
               providerExecutedToolResultPositions,
             });
-            step?.response.messages.push(
-              ...(mode === 'generate'
+            const publicResponseMessages = addApprovalRequestsToMessages(
+              mode === 'generate'
                 ? toModelResponseMessages(responseMessages)
-                : (responseMessages as unknown as NonNullable<
-                    typeof step
-                  >['response']['messages'])),
+                : (responseMessages as unknown as ModelMessage[]),
+              [
+                ...approvalMessages,
+                ...providerApprovalRequests.map(({ toolCall, ...request }) => ({
+                  ...request,
+                  toolCallId: toolCall.toolCallId,
+                })),
+              ],
+            );
+            step?.response.messages.push(
+              ...(publicResponseMessages as NonNullable<
+                typeof step
+              >['response']['messages']),
             );
 
-            const messages = iterMessages as unknown as ModelMessage[];
+            // Approval requests are public conversation data, not provider
+            // prompt parts. The next invocation consumes them before conversion.
+            const messages = (
+              publicResponseMessages === responseMessages
+                ? iterMessages
+                : [
+                    ...iterMessages.slice(
+                      0,
+                      iterMessages.length - responseMessages.length,
+                    ),
+                    ...publicResponseMessages,
+                  ]
+            ) as ModelMessage[];
             const lastStep = steps[steps.length - 1];
             const totalUsage = aggregateExecutionUsage(steps, mode);
             const finishReason = lastStep?.finishReason ?? 'other';
@@ -2812,38 +2887,8 @@ export class WorkflowAgent<
                 );
               }
 
-              const approvalToolCalls = pausedToolCalls.filter((_, i) => {
-                const tcIndex = nonProviderToolCalls.indexOf(
-                  pausedToolCalls[i],
-                );
-                return approvalNeeded[tcIndex];
-              });
-              if (approvalToolCalls.length > 0) {
-                // The signing step receives only a non-secret environment
-                // variable reference. It resolves the secret inside the step,
-                // and only the resulting signature is persisted in the stream.
-                const approvalRequests = await Promise.all(
-                  approvalToolCalls.map(async tc => {
-                    const approvalId = `approval-${tc.toolCallId}`;
-                    const signature =
-                      effectiveToolApprovalSecret == null
-                        ? undefined
-                        : await signWorkflowToolApproval({
-                            secret: effectiveToolApprovalSecret,
-                            approvalId,
-                            toolCallId: tc.toolCallId,
-                            toolName: tc.toolName,
-                            input: tc.input,
-                          });
-
-                    return {
-                      approvalId,
-                      toolCallId: tc.toolCallId,
-                      ...(signature != null ? { signature } : {}),
-                    };
-                  }),
-                );
-                await writeApprovalRequests(options.writable, approvalRequests);
+              if (approvalMessages.length > 0) {
+                await writeApprovalRequests(options.writable, approvalMessages);
               }
             }
 
@@ -3608,4 +3653,34 @@ function aggregateExecutionUsage(
         (usage, step) => addLanguageModelUsage(usage, step.usage),
         createNullLanguageModelUsage(),
       );
+}
+
+function addApprovalRequestsToMessages(
+  messages: ModelMessage[],
+  requests: Array<{
+    type: 'tool-approval-request';
+    approvalId: string;
+    toolCallId: string;
+    signature?: string;
+  }>,
+): ModelMessage[] {
+  if (requests.length === 0) return messages;
+  const result = [...messages];
+  for (let index = result.length - 1; index >= 0; index--) {
+    const message = result[index];
+    if (message.role === 'assistant') {
+      result[index] = {
+        ...message,
+        content: [
+          ...(typeof message.content === 'string'
+            ? [{ type: 'text' as const, text: message.content }]
+            : message.content),
+          ...requests,
+        ],
+      };
+      return result;
+    }
+  }
+  result.unshift({ role: 'assistant', content: requests });
+  return result;
 }

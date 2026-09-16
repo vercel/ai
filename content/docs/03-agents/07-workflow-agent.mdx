@@ -806,7 +806,32 @@ Generation uses the provider's `doGenerate()` method and the same durable tool l
 
 The generated result uses core's final-step text and all-step content, tool results, warnings, and usage semantics. `responseMessages` contains generated messages only. `output` defaults to text and supports constructor or per-call output specifications. End callbacks run before complete-output parsing.
 
-Use result getters inside the workflow, then return selected serializable fields through `run.returnValue`. Returning the whole result class is not supported. For now, use `stream()` for approval round trips; transport-independent generation approvals are separate follow-up work. See the [generate reference](/docs/reference/ai-sdk-workflow/workflow-agent#generate) for options and remaining differences.
+Use result getters inside the workflow, then return selected serializable fields through `run.returnValue`. Returning the whole result class is not supported. See the [generate reference](/docs/reference/ai-sdk-workflow/workflow-agent#generate) for options and remaining differences.
+
+#### Approval round trips without streaming
+
+Both `generate()` and `stream()` return approval requests even when no writable is provided. For generation, keep `result.responseMessages`, display the requested tool and input to the user, then append their decision to the next call:
+
+```ts
+const pending = await agent.generate({ messages });
+// Persist these messages and collect the user's decision outside the workflow.
+const continuation = [...messages, ...pending.responseMessages];
+
+// In a later workflow invocation, using the same tool definitions:
+const resumed = await agent.generate({
+  messages: [
+    ...continuation,
+    {
+      role: 'tool',
+      content: [{ type: 'tool-approval-response', approvalId, approved }],
+    },
+  ],
+});
+```
+
+Use the `approvalId` from the returned `tool-approval-request` and the user's `approved` decision. Preserve the request signature and original tool-call input when storing the conversation. Configure `experimental_toolApprovalSecret` with the same environment-variable reference for both invocations. Secrets are resolved inside durable signing and verification steps.
+
+Local tools execute only after approval validation; denied tools produce an execution-denied result. Provider-executed approvals are forwarded to the provider. Tools that wait on Workflow hooks can also suspend and resume during generation.
 
 ### Replace `experimental_context` with `runtimeContext` and `toolsContext`
 
