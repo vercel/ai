@@ -23,25 +23,26 @@ export type GoogleVertexVideoModelOptions = {
   [key: string]: unknown; // For passthrough
 };
 
-export const googleVertexVideoModelOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z.looseObject({
-      pollIntervalMs: z.number().positive().nullish(),
-      pollTimeoutMs: z.number().positive().nullish(),
-      personGeneration: z
-        .enum(['dont_allow', 'allow_adult', 'allow_all'])
-        .nullish(),
-      negativePrompt: z.string().nullish(),
-      generateAudio: z.boolean().nullish(),
-      gcsOutputDirectory: z.string().nullish(),
-      referenceImages: z
-        .array(
-          z.object({
-            bytesBase64Encoded: z.string().nullish(),
-            gcsUri: z.string().nullish(),
-          }),
-        )
-        .nullish(),
-    }),
-  ),
+export const googleVertexVideoModelOptionsSchema = /* @__PURE__ */ lazySchema(
+  () =>
+    zodSchema(
+      z.looseObject({
+        pollIntervalMs: z.number().positive().nullish(),
+        pollTimeoutMs: z.number().positive().nullish(),
+        personGeneration: z
+          .enum(['dont_allow', 'allow_adult', 'allow_all'])
+          .nullish(),
+        negativePrompt: z.string().nullish(),
+        generateAudio: z.boolean().nullish(),
+        gcsOutputDirectory: z.string().nullish(),
+        referenceImages: z
+          .array(
+            z.object({
+              bytesBase64Encoded: z.string().nullish(),
+              gcsUri: z.string().nullish(),
+            }),
+          )
+          .nullish(),
+      }),
+    ),
 );

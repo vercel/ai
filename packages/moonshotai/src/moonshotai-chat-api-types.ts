@@ -168,7 +168,7 @@ export const moonshotAIChatResponseSchema = z.object({
   usage: tokenUsageSchema,
 });
 
-export const moonshotAIChatChunkSchema = lazySchema(() =>
+export const moonshotAIChatChunkSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.union([
       z.object({

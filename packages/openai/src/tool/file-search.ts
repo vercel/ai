@@ -22,7 +22,7 @@ const compoundFilterSchema: z.ZodType<any> = z.object({
   ),
 });
 
-export const fileSearchArgsSchema = lazySchema(() =>
+export const fileSearchArgsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       vectorStoreIds: z.array(z.string()),
@@ -40,7 +40,7 @@ export const fileSearchArgsSchema = lazySchema(() =>
   ),
 );
 
-export const fileSearchOutputSchema = lazySchema(() =>
+export const fileSearchOutputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       queries: z.array(z.string()),
@@ -59,7 +59,7 @@ export const fileSearchOutputSchema = lazySchema(() =>
   ),
 );
 
-export const fileSearch = createProviderExecutedToolFactory<
+export const fileSearch = /* @__PURE__ */ createProviderExecutedToolFactory<
   {},
   {
     /**

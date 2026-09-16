@@ -855,8 +855,9 @@ const minimaxVideoErrorSchema = z.object({
   request_id: z.string().nullish(),
 });
 
-const minimaxVideoFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: minimaxVideoErrorSchema,
-  errorToMessage: data =>
-    data.error?.message ?? 'MiniMax video generation error',
-});
+const minimaxVideoFailedResponseHandler =
+  /* @__PURE__ */ createJsonErrorResponseHandler({
+    errorSchema: minimaxVideoErrorSchema,
+    errorToMessage: data =>
+      data.error?.message ?? 'MiniMax video generation error',
+  });

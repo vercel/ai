@@ -29,7 +29,7 @@ export type GoogleSearchToolArgs = z.infer<
   typeof googleSearchToolArgsBaseSchema
 >;
 
-export const googleSearch = createProviderExecutedToolFactory<
+export const googleSearch = /* @__PURE__ */ createProviderExecutedToolFactory<
   {},
   {},
   GoogleSearchToolArgs

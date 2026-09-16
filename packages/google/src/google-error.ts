@@ -6,7 +6,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-const googleErrorDataSchema = lazySchema(() =>
+const googleErrorDataSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       error: z.object({
@@ -21,7 +21,8 @@ const googleErrorDataSchema = lazySchema(() =>
 
 export type GoogleErrorData = InferSchema<typeof googleErrorDataSchema>;
 
-export const googleFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: googleErrorDataSchema,
-  errorToMessage: data => data.error.message,
-});
+export const googleFailedResponseHandler =
+  /* @__PURE__ */ createJsonErrorResponseHandler({
+    errorSchema: googleErrorDataSchema,
+    errorToMessage: data => data.error.message,
+  });

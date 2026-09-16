@@ -83,9 +83,10 @@ export const blackForestLabsVideoProviderOptions = z.object({
   version: z.literal('latest').optional(),
 });
 
-export const blackForestLabsVideoModelOptionsSchema = lazySchema(() =>
-  zodSchema(blackForestLabsVideoProviderOptions),
-);
+export const blackForestLabsVideoModelOptionsSchema =
+  /* @__PURE__ */ lazySchema(() =>
+    zodSchema(blackForestLabsVideoProviderOptions),
+  );
 
 export type BlackForestLabsVideoModelOptions = InferSchema<
   typeof blackForestLabsVideoModelOptionsSchema

@@ -1,7 +1,7 @@
 import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const xaiFilesResponseSchema = lazySchema(() =>
+export const xaiFilesResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       id: z.string(),
@@ -16,7 +16,7 @@ export const xaiFilesResponseSchema = lazySchema(() =>
   ),
 );
 
-export const xaiFileDeleteResponseSchema = lazySchema(() =>
+export const xaiFileDeleteResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       id: z.string(),

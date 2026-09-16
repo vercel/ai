@@ -25,7 +25,7 @@ export type ReplicateVideoModelOptions = {
   [key: string]: unknown; // For passthrough
 };
 
-export const replicateVideoModelOptionsSchema = lazySchema(() =>
+export const replicateVideoModelOptionsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z
       .object({

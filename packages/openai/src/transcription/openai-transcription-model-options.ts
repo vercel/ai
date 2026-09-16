@@ -16,7 +16,7 @@ export type OpenAITranscriptionModelId =
   | (string & {});
 
 // https://platform.openai.com/docs/api-reference/audio/createTranscription
-export const openAITranscriptionModelOptions = lazySchema(() =>
+export const openAITranscriptionModelOptions = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       /**

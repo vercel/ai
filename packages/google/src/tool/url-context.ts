@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const urlContext = createProviderExecutedToolFactory<
+export const urlContext = /* @__PURE__ */ createProviderExecutedToolFactory<
   {
     // Url context does not have any input schema, it will directly use the url from the prompt
   },

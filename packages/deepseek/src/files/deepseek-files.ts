@@ -29,11 +29,12 @@ interface DeepSeekFilesConfig {
   fetch?: FetchFunction;
 }
 
-const deepSeekFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: deepSeekErrorSchema,
-  errorToMessage: (error: InferSchema<typeof deepSeekErrorSchema>) =>
-    error.error.message,
-});
+const deepSeekFailedResponseHandler =
+  /* @__PURE__ */ createJsonErrorResponseHandler({
+    errorSchema: deepSeekErrorSchema,
+    errorToMessage: (error: InferSchema<typeof deepSeekErrorSchema>) =>
+      error.error.message,
+  });
 
 const MAX_FILE_SIZE_BYTES = 64 * 1024 * 1024;
 const MAX_FILENAME_LENGTH = 512;

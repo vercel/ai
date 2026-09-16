@@ -124,13 +124,13 @@ const googleBatchOperationZodSchema = () =>
     response: googleBatchOutputSchema.nullish(),
   });
 
-const googleBatchOperationSchema = lazySchema(() =>
+const googleBatchOperationSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(googleBatchOperationZodSchema()),
 );
 
 type GoogleBatchOperation = InferSchema<typeof googleBatchOperationSchema>;
 
-const googleBatchListResponseSchema = lazySchema(() =>
+const googleBatchListResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       operations: z.array(googleBatchOperationZodSchema()).nullish(),
@@ -139,11 +139,11 @@ const googleBatchListResponseSchema = lazySchema(() =>
   ),
 );
 
-const googleBatchCancelResponseSchema = lazySchema(() =>
+const googleBatchCancelResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(z.object({})),
 );
 
-const googleFileUploadResponseSchema = lazySchema(() =>
+const googleFileUploadResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       file: z.object({
@@ -154,7 +154,7 @@ const googleFileUploadResponseSchema = lazySchema(() =>
   ),
 );
 
-const googleBatchResultLineSchema = lazySchema(() =>
+const googleBatchResultLineSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       key: z.string(),
@@ -166,7 +166,7 @@ const googleBatchResultLineSchema = lazySchema(() =>
 
 type GoogleBatchResultLine = InferSchema<typeof googleBatchResultLineSchema>;
 
-const googleBatchResponsePreviewSchema = lazySchema(() =>
+const googleBatchResponsePreviewSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       candidates: z.array(z.unknown()).nullish(),

@@ -156,7 +156,7 @@ export type PerplexitySearchOutput =
   | PerplexitySearchResponse
   | PerplexitySearchError;
 
-const perplexitySearchInputSchema = lazySchema(() =>
+const perplexitySearchInputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       query: z
@@ -245,7 +245,7 @@ const perplexitySearchInputSchema = lazySchema(() =>
   ),
 );
 
-const perplexitySearchOutputSchema = lazySchema(() =>
+const perplexitySearchOutputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.union([
       // Success response
@@ -277,15 +277,16 @@ const perplexitySearchOutputSchema = lazySchema(() =>
   ),
 );
 
-export const perplexitySearchToolFactory = createProviderExecutedToolFactory<
-  PerplexitySearchInput,
-  PerplexitySearchOutput,
-  PerplexitySearchConfig
->({
-  id: 'gateway.perplexity_search',
-  inputSchema: perplexitySearchInputSchema,
-  outputSchema: perplexitySearchOutputSchema,
-});
+export const perplexitySearchToolFactory =
+  /* @__PURE__ */ createProviderExecutedToolFactory<
+    PerplexitySearchInput,
+    PerplexitySearchOutput,
+    PerplexitySearchConfig
+  >({
+    id: 'gateway.perplexity_search',
+    inputSchema: perplexitySearchInputSchema,
+    outputSchema: perplexitySearchOutputSchema,
+  });
 
 export const perplexitySearch = (
   config: PerplexitySearchConfig = {},

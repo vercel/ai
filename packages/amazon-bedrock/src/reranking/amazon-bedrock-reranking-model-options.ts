@@ -19,18 +19,19 @@ export type AmazonBedrockRerankingModelOptions = {
   additionalModelRequestFields?: Record<string, unknown>;
 };
 
-export const amazonBedrockRerankingModelOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z.object({
-      /**
-       * If the total number of results was greater than could fit in a response, a token is returned in the nextToken field. You can enter that token in this field to return the next batch of results.
-       */
-      nextToken: z.string().optional(),
+export const amazonBedrockRerankingModelOptionsSchema =
+  /* @__PURE__ */ lazySchema(() =>
+    zodSchema(
+      z.object({
+        /**
+         * If the total number of results was greater than could fit in a response, a token is returned in the nextToken field. You can enter that token in this field to return the next batch of results.
+         */
+        nextToken: z.string().optional(),
 
-      /**
-       * Additional model request fields to pass to the model.
-       */
-      additionalModelRequestFields: z.record(z.string(), z.any()).optional(),
-    }),
-  ),
-);
+        /**
+         * Additional model request fields to pass to the model.
+         */
+        additionalModelRequestFields: z.record(z.string(), z.any()).optional(),
+      }),
+    ),
+  );

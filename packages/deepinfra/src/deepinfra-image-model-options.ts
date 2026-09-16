@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const deepInfraImageModelOptionsSchema = lazySchema(() =>
+export const deepInfraImageModelOptionsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.looseObject({
       negative_prompt: z.string().nullish(),

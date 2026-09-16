@@ -3,7 +3,7 @@ import { z } from 'zod/v4';
 
 // minimal version of the schema, focused on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-export const openaiImageResponseSchema = lazySchema(() =>
+export const openaiImageResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       created: z.number().nullish(),

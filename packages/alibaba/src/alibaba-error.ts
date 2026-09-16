@@ -11,7 +11,8 @@ const alibabaErrorDataSchema = z.object({
 
 export type AlibabaErrorData = z.infer<typeof alibabaErrorDataSchema>;
 
-export const alibabaFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: alibabaErrorDataSchema,
-  errorToMessage: data => data.error.message,
-});
+export const alibabaFailedResponseHandler =
+  /* @__PURE__ */ createJsonErrorResponseHandler({
+    errorSchema: alibabaErrorDataSchema,
+    errorToMessage: data => data.error.message,
+  });

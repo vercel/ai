@@ -25,7 +25,7 @@ const stylePresets = [
   'craft-clay',
 ] as const;
 
-export const prodiaImageModelOptionsSchema = lazySchema(() =>
+export const prodiaImageModelOptionsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       /**

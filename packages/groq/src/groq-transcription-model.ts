@@ -217,7 +217,7 @@ type GroqTranscriptionResponse = Partial<
   text: string;
 };
 
-const binaryResponseHandler = createBinaryResponseHandler();
+const binaryResponseHandler = /* @__PURE__ */ createBinaryResponseHandler();
 const textDecoder = new TextDecoder();
 
 const groqTextTranscriptionResponseHandler: ResponseHandler<

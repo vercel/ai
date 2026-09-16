@@ -10,7 +10,7 @@ import { z } from 'zod/v4';
  *
  * @see https://docs.lumalabs.ai/docs/image-generation
  */
-export const lumaImageModelOptionsSchema = lazySchema(() =>
+export const lumaImageModelOptionsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.looseObject({
       /**

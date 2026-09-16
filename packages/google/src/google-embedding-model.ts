@@ -183,19 +183,21 @@ export class GoogleEmbeddingModel implements EmbeddingModelV4 {
 
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const googleGenerativeAITextEmbeddingResponseSchema = lazySchema(() =>
-  zodSchema(
-    z.object({
-      embeddings: z.array(z.object({ values: z.array(z.number()) })),
-    }),
-  ),
-);
+const googleGenerativeAITextEmbeddingResponseSchema =
+  /* @__PURE__ */ lazySchema(() =>
+    zodSchema(
+      z.object({
+        embeddings: z.array(z.object({ values: z.array(z.number()) })),
+      }),
+    ),
+  );
 
 // Schema for single embedding response
-const googleGenerativeAISingleEmbeddingResponseSchema = lazySchema(() =>
-  zodSchema(
-    z.object({
-      embedding: z.object({ values: z.array(z.number()) }),
-    }),
-  ),
-);
+const googleGenerativeAISingleEmbeddingResponseSchema =
+  /* @__PURE__ */ lazySchema(() =>
+    zodSchema(
+      z.object({
+        embedding: z.object({ values: z.array(z.number()) }),
+      }),
+    ),
+  );

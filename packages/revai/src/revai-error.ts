@@ -10,7 +10,8 @@ export const revaiErrorDataSchema = z.object({
 
 export type RevaiErrorData = z.infer<typeof revaiErrorDataSchema>;
 
-export const revaiFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: revaiErrorDataSchema,
-  errorToMessage: data => data.error.message,
-});
+export const revaiFailedResponseHandler =
+  /* @__PURE__ */ createJsonErrorResponseHandler({
+    errorSchema: revaiErrorDataSchema,
+    errorToMessage: data => data.error.message,
+  });

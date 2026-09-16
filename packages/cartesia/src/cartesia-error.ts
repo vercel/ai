@@ -11,7 +11,8 @@ export const cartesiaErrorDataSchema = z.object({
 
 export type CartesiaErrorData = z.infer<typeof cartesiaErrorDataSchema>;
 
-export const cartesiaFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: cartesiaErrorDataSchema,
-  errorToMessage: data => `${data.title}: ${data.message}`,
-});
+export const cartesiaFailedResponseHandler =
+  /* @__PURE__ */ createJsonErrorResponseHandler({
+    errorSchema: cartesiaErrorDataSchema,
+    errorToMessage: data => `${data.title}: ${data.message}`,
+  });

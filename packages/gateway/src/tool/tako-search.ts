@@ -351,7 +351,7 @@ const takoWebSourceInputSchema = z.object({
     ),
 });
 
-const takoSearchInputSchema = lazySchema(() =>
+const takoSearchInputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       query: z
@@ -544,7 +544,7 @@ const takoWebResultSchema = z
   })
   .passthrough();
 
-const takoSearchOutputSchema = lazySchema(() =>
+const takoSearchOutputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.union([
       z
@@ -581,15 +581,16 @@ const takoSearchOutputSchema = lazySchema(() =>
   ),
 );
 
-export const takoSearchToolFactory = createProviderExecutedToolFactory<
-  TakoSearchInput,
-  TakoSearchOutput,
-  TakoSearchConfig
->({
-  id: 'gateway.tako_search',
-  inputSchema: takoSearchInputSchema,
-  outputSchema: takoSearchOutputSchema,
-});
+export const takoSearchToolFactory =
+  /* @__PURE__ */ createProviderExecutedToolFactory<
+    TakoSearchInput,
+    TakoSearchOutput,
+    TakoSearchConfig
+  >({
+    id: 'gateway.tako_search',
+    inputSchema: takoSearchInputSchema,
+    outputSchema: takoSearchOutputSchema,
+  });
 
 export const takoSearch = (
   config: TakoSearchConfig = {},

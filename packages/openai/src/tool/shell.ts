@@ -6,7 +6,7 @@ import {
 import type { SharedV4ProviderReference } from '@ai-sdk/provider';
 import { z } from 'zod/v4';
 
-export const shellInputSchema = lazySchema(() =>
+export const shellInputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       action: z.object({
@@ -18,7 +18,7 @@ export const shellInputSchema = lazySchema(() =>
   ),
 );
 
-export const shellOutputSchema = lazySchema(() =>
+export const shellOutputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       output: z.array(
@@ -57,7 +57,7 @@ const shellSkillsSchema = z
   )
   .optional();
 
-export const shellArgsSchema = lazySchema(() =>
+export const shellArgsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       environment: z
@@ -157,52 +157,53 @@ type ShellArgs = {
       };
 };
 
-export const shell = createProviderDefinedToolFactoryWithOutputSchema<
-  {
-    /**
-     * Shell tool action containing commands to execute.
-     */
-    action: {
+export const shell =
+  /* @__PURE__ */ createProviderDefinedToolFactoryWithOutputSchema<
+    {
       /**
-       * A list of shell commands to execute.
+       * Shell tool action containing commands to execute.
        */
-      commands: string[];
+      action: {
+        /**
+         * A list of shell commands to execute.
+         */
+        commands: string[];
 
-      /**
-       * Optional timeout in milliseconds for the commands.
-       */
-      timeoutMs?: number;
+        /**
+         * Optional timeout in milliseconds for the commands.
+         */
+        timeoutMs?: number;
 
+        /**
+         * Optional maximum number of characters to return from each command.
+         */
+        maxOutputLength?: number;
+      };
+    },
+    {
       /**
-       * Optional maximum number of characters to return from each command.
+       * An array of shell call output contents.
        */
-      maxOutputLength?: number;
-    };
-  },
-  {
-    /**
-     * An array of shell call output contents.
-     */
-    output: Array<{
-      /**
-       * Standard output from the command.
-       */
-      stdout: string;
+      output: Array<{
+        /**
+         * Standard output from the command.
+         */
+        stdout: string;
 
-      /**
-       * Standard error from the command.
-       */
-      stderr: string;
+        /**
+         * Standard error from the command.
+         */
+        stderr: string;
 
-      /**
-       * The outcome of the shell execution - either timeout or exit with code.
-       */
-      outcome: { type: 'timeout' } | { type: 'exit'; exitCode: number };
-    }>;
-  },
-  ShellArgs
->({
-  id: 'openai.shell',
-  inputSchema: shellInputSchema,
-  outputSchema: shellOutputSchema,
-});
+        /**
+         * The outcome of the shell execution - either timeout or exit with code.
+         */
+        outcome: { type: 'timeout' } | { type: 'exit'; exitCode: number };
+      }>;
+    },
+    ShellArgs
+  >({
+    id: 'openai.shell',
+    inputSchema: shellInputSchema,
+    outputSchema: shellOutputSchema,
+  });

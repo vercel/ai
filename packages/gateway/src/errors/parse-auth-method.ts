@@ -17,6 +17,6 @@ export async function parseAuthMethod(
   return result.success ? result.value : undefined;
 }
 
-const gatewayAuthMethodSchema = lazySchema(() =>
+const gatewayAuthMethodSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(z.union([z.literal('api-key'), z.literal('oidc')])),
 );

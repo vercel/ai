@@ -128,7 +128,7 @@ export class GatewaySpendReport {
   }
 }
 
-const gatewaySpendReportResponseSchema = lazySchema(() =>
+const gatewaySpendReportResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       results: z.array(

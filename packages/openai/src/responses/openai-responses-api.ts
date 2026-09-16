@@ -857,7 +857,7 @@ function isModeledOpenAIResponsesChunk(value: Record<string, unknown>) {
   return openaiResponsesModeledOutputItemTypes.has(value.item.type);
 }
 
-export const openaiResponsesChunkSchema = lazySchema(() =>
+export const openaiResponsesChunkSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.union([
       z.object({
@@ -1452,7 +1452,7 @@ export type OpenAIResponsesWebSearchAction = NonNullable<
   })['action']
 >;
 
-export const openaiResponsesResponseSchema = lazySchema(() =>
+export const openaiResponsesResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       id: z.string().optional(),

@@ -11,7 +11,7 @@ export type OpenAIEmbeddingModelId =
   | 'text-embedding-ada-002'
   | (string & {});
 
-export const openaiEmbeddingModelOptions = lazySchema(() =>
+export const openaiEmbeddingModelOptions = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       /**

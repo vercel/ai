@@ -9,22 +9,23 @@ import { z } from 'zod/v4';
  * Output schema for tool search results - returns tool references
  * that are automatically expanded into full tool definitions by the API.
  */
-export const toolSearchRegex_20251119OutputSchema = lazySchema(() =>
-  zodSchema(
-    z.array(
-      z.object({
-        type: z.literal('tool_reference'),
-        toolName: z.string(),
-      }),
+export const toolSearchRegex_20251119OutputSchema = /* @__PURE__ */ lazySchema(
+  () =>
+    zodSchema(
+      z.array(
+        z.object({
+          type: z.literal('tool_reference'),
+          toolName: z.string(),
+        }),
+      ),
     ),
-  ),
 );
 
 /**
  * Input schema for regex-based tool search.
  * Claude constructs regex patterns using Python's re.search() syntax.
  */
-const toolSearchRegex_20251119InputSchema = lazySchema(() =>
+const toolSearchRegex_20251119InputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       /**
@@ -46,7 +47,7 @@ const toolSearchRegex_20251119InputSchema = lazySchema(() =>
   ),
 );
 
-const factory = createProviderExecutedToolFactory<
+const factory = /* @__PURE__ */ createProviderExecutedToolFactory<
   {
     /**
      * A regex pattern to search for tools.

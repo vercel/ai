@@ -9,7 +9,7 @@ import { z } from 'zod/v4';
  * Schema for file search tool arguments.
  * @see https://docs.x.ai/docs/guides/using-collections/api
  */
-export const fileSearchArgsSchema = lazySchema(() =>
+export const fileSearchArgsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       vectorStoreIds: z.array(z.string()),
@@ -18,7 +18,7 @@ export const fileSearchArgsSchema = lazySchema(() =>
   ),
 );
 
-const fileSearchOutputSchema = lazySchema(() =>
+const fileSearchOutputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       queries: z.array(z.string()),
@@ -36,7 +36,7 @@ const fileSearchOutputSchema = lazySchema(() =>
   ),
 );
 
-const fileSearchToolFactory = createProviderExecutedToolFactory<
+const fileSearchToolFactory = /* @__PURE__ */ createProviderExecutedToolFactory<
   {},
   {
     /**

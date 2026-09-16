@@ -11,7 +11,7 @@ export type GroqTranscriptionModelId =
   | (string & {});
 
 // https://console.groq.com/docs/speech-to-text
-export const groqTranscriptionModelOptions = lazySchema(() =>
+export const groqTranscriptionModelOptions = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       language: z.string().nullish(),

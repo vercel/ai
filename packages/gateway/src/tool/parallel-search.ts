@@ -164,7 +164,7 @@ export interface ParallelSearchInput {
 
 export type ParallelSearchOutput = ParallelSearchResponse | ParallelSearchError;
 
-const parallelSearchInputSchema = lazySchema(() =>
+const parallelSearchInputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       objective: z
@@ -249,7 +249,7 @@ const parallelSearchInputSchema = lazySchema(() =>
   ),
 );
 
-const parallelSearchOutputSchema = lazySchema(() =>
+const parallelSearchOutputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.union([
       // Success response
@@ -282,15 +282,16 @@ const parallelSearchOutputSchema = lazySchema(() =>
   ),
 );
 
-export const parallelSearchToolFactory = createProviderExecutedToolFactory<
-  ParallelSearchInput,
-  ParallelSearchOutput,
-  ParallelSearchConfig
->({
-  id: 'gateway.parallel_search',
-  inputSchema: parallelSearchInputSchema,
-  outputSchema: parallelSearchOutputSchema,
-});
+export const parallelSearchToolFactory =
+  /* @__PURE__ */ createProviderExecutedToolFactory<
+    ParallelSearchInput,
+    ParallelSearchOutput,
+    ParallelSearchConfig
+  >({
+    id: 'gateway.parallel_search',
+    inputSchema: parallelSearchInputSchema,
+    outputSchema: parallelSearchOutputSchema,
+  });
 
 export const parallelSearch = (
   config: ParallelSearchConfig = {},

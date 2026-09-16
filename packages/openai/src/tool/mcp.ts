@@ -17,7 +17,7 @@ const jsonValueSchema: z.ZodType<JSONValue> = z.lazy(() =>
   ]),
 );
 
-export const mcpArgsSchema = lazySchema(() =>
+export const mcpArgsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z
       .object({
@@ -57,9 +57,11 @@ export const mcpArgsSchema = lazySchema(() =>
   ),
 );
 
-const mcpInputSchema = lazySchema(() => zodSchema(z.object({})));
+const mcpInputSchema = /* @__PURE__ */ lazySchema(() =>
+  zodSchema(z.object({})),
+);
 
-export const mcpOutputSchema = lazySchema(() =>
+export const mcpOutputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       type: z.literal('call'),
@@ -105,7 +107,7 @@ type McpArgs = {
   serverUrl?: string;
 };
 
-export const mcpToolFactory = createProviderExecutedToolFactory<
+export const mcpToolFactory = /* @__PURE__ */ createProviderExecutedToolFactory<
   {},
   {
     type: 'call';

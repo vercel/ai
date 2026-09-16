@@ -11,7 +11,8 @@ const mistralErrorDataSchema = z.object({
 
 export type MistralErrorData = z.infer<typeof mistralErrorDataSchema>;
 
-export const mistralFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: mistralErrorDataSchema,
-  errorToMessage: data => data.message,
-});
+export const mistralFailedResponseHandler =
+  /* @__PURE__ */ createJsonErrorResponseHandler({
+    errorSchema: mistralErrorDataSchema,
+    errorToMessage: data => data.message,
+  });

@@ -60,7 +60,7 @@ const computerActionSchema = z.discriminatedUnion('type', [
   }),
 ]);
 
-export const computerInputSchema = lazySchema(() =>
+export const computerInputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       actions: z.array(computerActionSchema),
@@ -70,7 +70,7 @@ export const computerInputSchema = lazySchema(() =>
   ),
 );
 
-export const computerOutputSchema = lazySchema(() =>
+export const computerOutputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       output: z.union([
@@ -95,52 +95,53 @@ export const computerOutputSchema = lazySchema(() =>
 export type OpenAIComputerAction = z.infer<typeof computerActionSchema>;
 export type OpenAIComputerSafetyCheck = z.infer<typeof safetyCheckSchema>;
 
-const computerToolFactory = createProviderDefinedToolFactoryWithOutputSchema<
-  {
-    /**
-     * Ordered UI actions to execute.
-     */
-    actions: OpenAIComputerAction[];
+const computerToolFactory =
+  /* @__PURE__ */ createProviderDefinedToolFactoryWithOutputSchema<
+    {
+      /**
+       * Ordered UI actions to execute.
+       */
+      actions: OpenAIComputerAction[];
 
-    /**
-     * Safety checks that must be acknowledged before continuing.
-     */
-    pendingSafetyChecks: OpenAIComputerSafetyCheck[];
+      /**
+       * Safety checks that must be acknowledged before continuing.
+       */
+      pendingSafetyChecks: OpenAIComputerSafetyCheck[];
 
-    /**
-     * Status of the computer call.
-     */
-    status: 'in_progress' | 'completed' | 'incomplete';
-  },
-  {
-    /**
-     * The screenshot captured after executing all actions.
-     */
-    output:
-      | {
-          type: 'computer_screenshot';
-          imageUrl: string;
-          fileId?: string;
-          detail?: 'auto' | 'low' | 'high' | 'original';
-        }
-      | {
-          type: 'computer_screenshot';
-          fileId: string;
-          imageUrl?: string;
-          detail?: 'auto' | 'low' | 'high' | 'original';
-        };
+      /**
+       * Status of the computer call.
+       */
+      status: 'in_progress' | 'completed' | 'incomplete';
+    },
+    {
+      /**
+       * The screenshot captured after executing all actions.
+       */
+      output:
+        | {
+            type: 'computer_screenshot';
+            imageUrl: string;
+            fileId?: string;
+            detail?: 'auto' | 'low' | 'high' | 'original';
+          }
+        | {
+            type: 'computer_screenshot';
+            fileId: string;
+            imageUrl?: string;
+            detail?: 'auto' | 'low' | 'high' | 'original';
+          };
 
-    /**
-     * Safety checks that the application has reviewed and acknowledged.
-     */
-    acknowledgedSafetyChecks?: OpenAIComputerSafetyCheck[];
-  },
-  {}
->({
-  id: 'openai.computer',
-  inputSchema: computerInputSchema,
-  outputSchema: computerOutputSchema,
-});
+      /**
+       * Safety checks that the application has reviewed and acknowledged.
+       */
+      acknowledgedSafetyChecks?: OpenAIComputerSafetyCheck[];
+    },
+    {}
+  >({
+    id: 'openai.computer',
+    inputSchema: computerInputSchema,
+    outputSchema: computerOutputSchema,
+  });
 
 export const computer = (
   options: Parameters<typeof computerToolFactory>[0] = {},

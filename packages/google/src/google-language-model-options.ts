@@ -56,7 +56,7 @@ export type GoogleModelId =
   | 'gemma-3-27b-it'
   | (string & {});
 
-export const googleLanguageModelOptions = lazySchema(() =>
+export const googleLanguageModelOptions = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       responseModalities: z.array(z.enum(['TEXT', 'IMAGE'])).optional(),

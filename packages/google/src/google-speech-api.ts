@@ -6,7 +6,7 @@ import { z } from 'zod/v4';
  * `responseModalities: ['AUDIO']`. The generated audio is returned as base64
  * encoded raw PCM in the first inline-data part.
  */
-export const googleSpeechResponseSchema = lazySchema(() =>
+export const googleSpeechResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       candidates: z

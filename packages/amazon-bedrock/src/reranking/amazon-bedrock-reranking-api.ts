@@ -29,16 +29,17 @@ export type AmazonBedrockRerankingInput = {
   }[];
 };
 
-export const amazonBedrockRerankingResponseSchema = lazySchema(() =>
-  zodSchema(
-    z.object({
-      results: z.array(
-        z.object({
-          index: z.number(),
-          relevanceScore: z.number(),
-        }),
-      ),
-      nextToken: z.string().optional(),
-    }),
-  ),
+export const amazonBedrockRerankingResponseSchema = /* @__PURE__ */ lazySchema(
+  () =>
+    zodSchema(
+      z.object({
+        results: z.array(
+          z.object({
+            index: z.number(),
+            relevanceScore: z.number(),
+          }),
+        ),
+        nextToken: z.string().optional(),
+      }),
+    ),
 );

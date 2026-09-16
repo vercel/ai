@@ -7,7 +7,7 @@ import type {
   OpenResponsesExtensionRecord,
 } from '../open-responses-extension';
 
-export const openResponsesErrorSchema = lazySchema(() =>
+export const openResponsesErrorSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       error: z.object({

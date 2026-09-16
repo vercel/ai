@@ -11,7 +11,8 @@ export const deepgramErrorDataSchema = z.object({
 
 export type DeepgramErrorData = z.infer<typeof deepgramErrorDataSchema>;
 
-export const deepgramFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: deepgramErrorDataSchema,
-  errorToMessage: data => data.err_msg,
-});
+export const deepgramFailedResponseHandler =
+  /* @__PURE__ */ createJsonErrorResponseHandler({
+    errorSchema: deepgramErrorDataSchema,
+    errorToMessage: data => data.err_msg,
+  });

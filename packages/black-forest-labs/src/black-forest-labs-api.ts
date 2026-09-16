@@ -28,11 +28,12 @@ function bflErrorToMessage(error: unknown): string | undefined {
   return message;
 }
 
-export const bflFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: bflErrorSchema,
-  errorToMessage: error =>
-    bflErrorToMessage(error) ?? 'Unknown Black Forest Labs error',
-});
+export const bflFailedResponseHandler =
+  /* @__PURE__ */ createJsonErrorResponseHandler({
+    errorSchema: bflErrorSchema,
+    errorToMessage: error =>
+      bflErrorToMessage(error) ?? 'Unknown Black Forest Labs error',
+  });
 
 /**
  * Black Forest Labs returns response-supplied URLs (polling and delivery) on

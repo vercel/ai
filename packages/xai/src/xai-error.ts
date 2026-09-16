@@ -28,12 +28,13 @@ export const xaiErrorDataSchema = z.union([
 
 export type XaiErrorData = z.infer<typeof xaiErrorDataSchema>;
 
-export const xaiFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: xaiErrorDataSchema,
-  errorToMessage: data => {
-    if (typeof data.error === 'string') {
-      return 'code' in data ? `${data.code}: ${data.error}` : data.error;
-    }
-    return data.error.message;
-  },
-});
+export const xaiFailedResponseHandler =
+  /* @__PURE__ */ createJsonErrorResponseHandler({
+    errorSchema: xaiErrorDataSchema,
+    errorToMessage: data => {
+      if (typeof data.error === 'string') {
+        return 'code' in data ? `${data.code}: ${data.error}` : data.error;
+      }
+      return data.error.message;
+    },
+  });

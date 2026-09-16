@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const prodiaVideoModelOptionsSchema = lazySchema(() =>
+export const prodiaVideoModelOptionsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       /**

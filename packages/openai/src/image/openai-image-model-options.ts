@@ -86,7 +86,7 @@ const baseImageModelOptionsObject = z.object({
   user: z.string().optional(),
 });
 
-export const openaiImageModelOptions = lazySchema(() =>
+export const openaiImageModelOptions = /* @__PURE__ */ lazySchema(() =>
   zodSchema(baseImageModelOptionsObject),
 );
 
@@ -94,30 +94,31 @@ export type OpenAIImageModelOptions = InferSchema<
   typeof openaiImageModelOptions
 >;
 
-export const openaiImageModelGenerationOptions = lazySchema(() =>
-  zodSchema(
-    baseImageModelOptionsObject.extend({
-      /**
-       * Style of the generated image. `vivid` produces hyper-real and
-       * dramatic images; `natural` produces more subdued, less hyper-real
-       * looking images.
-       */
-      style: z.enum(['vivid', 'natural']).optional(),
+export const openaiImageModelGenerationOptions = /* @__PURE__ */ lazySchema(
+  () =>
+    zodSchema(
+      baseImageModelOptionsObject.extend({
+        /**
+         * Style of the generated image. `vivid` produces hyper-real and
+         * dramatic images; `natural` produces more subdued, less hyper-real
+         * looking images.
+         */
+        style: z.enum(['vivid', 'natural']).optional(),
 
-      /**
-       * Content moderation level for the generated image(s). `low` applies
-       * less restrictive filtering.
-       */
-      moderation: z.enum(['auto', 'low']).optional(),
-    }),
-  ),
+        /**
+         * Content moderation level for the generated image(s). `low` applies
+         * less restrictive filtering.
+         */
+        moderation: z.enum(['auto', 'low']).optional(),
+      }),
+    ),
 );
 
 export type OpenAIImageModelGenerationOptions = InferSchema<
   typeof openaiImageModelGenerationOptions
 >;
 
-export const openaiImageModelEditOptions = lazySchema(() =>
+export const openaiImageModelEditOptions = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     baseImageModelOptionsObject.extend({
       /**

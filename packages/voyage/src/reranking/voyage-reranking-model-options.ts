@@ -20,7 +20,7 @@ export type VoyageRerankingModelOptions = {
 };
 
 export const voyageRerankingModelOptionsSchema: FlexibleSchema<VoyageRerankingModelOptions> =
-  lazySchema(() =>
+  /* @__PURE__ */ lazySchema(() =>
     zodSchema(
       z.object({
         returnDocuments: z.boolean().optional(),

@@ -9,8 +9,8 @@ export type OpenAISpeechTranslationModelId =
   | 'gpt-realtime-translate'
   | (string & {});
 
-export const openAISpeechTranslationModelOptions = lazySchema(() =>
-  zodSchema(z.object({})),
+export const openAISpeechTranslationModelOptions = /* @__PURE__ */ lazySchema(
+  () => zodSchema(z.object({})),
 );
 
 export type OpenAISpeechTranslationModelOptions = InferSchema<

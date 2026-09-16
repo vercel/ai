@@ -6,7 +6,7 @@ const name = 'GatewayForbiddenError';
 const marker = `vercel.ai.gateway.error.${name}`;
 const symbol = Symbol.for(marker);
 
-export const forbiddenParamSchema = lazySchema(() =>
+export const forbiddenParamSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       ruleId: z.string(),

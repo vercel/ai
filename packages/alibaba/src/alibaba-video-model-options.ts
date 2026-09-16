@@ -62,7 +62,7 @@ export type AlibabaVideoModelOptions = {
   [key: string]: unknown;
 };
 
-export const alibabaVideoModelOptionsSchema = lazySchema(() =>
+export const alibabaVideoModelOptionsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.looseObject({
       negativePrompt: z.string().nullish(),

@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const advisor_20260301ArgsSchema = lazySchema(() =>
+export const advisor_20260301ArgsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       model: z.string(),
@@ -21,7 +21,7 @@ export const advisor_20260301ArgsSchema = lazySchema(() =>
   ),
 );
 
-export const advisor_20260301OutputSchema = lazySchema(() =>
+export const advisor_20260301OutputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.discriminatedUnion('type', [
       z.object({
@@ -42,11 +42,11 @@ export const advisor_20260301OutputSchema = lazySchema(() =>
   ),
 );
 
-const advisor_20260301InputSchema = lazySchema(() =>
+const advisor_20260301InputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(z.object({}).strict()),
 );
 
-const factory = createProviderExecutedToolFactory<
+const factory = /* @__PURE__ */ createProviderExecutedToolFactory<
   // Input is always empty: the executor emits server_tool_use with empty input
   // and the server constructs the advisor's view from the full transcript.
   {},

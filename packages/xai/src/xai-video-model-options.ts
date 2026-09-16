@@ -125,6 +125,6 @@ const runtimeSchema = z.looseObject({
 
 export type XaiParsedVideoModelOptions = z.infer<typeof runtimeSchema>;
 
-export const xaiVideoModelOptionsSchema = lazySchema(() =>
+export const xaiVideoModelOptionsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(runtimeSchema),
 );

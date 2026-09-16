@@ -10,7 +10,8 @@ export const assemblyaiErrorDataSchema = z.object({
 
 export type AssemblyAIErrorData = z.infer<typeof assemblyaiErrorDataSchema>;
 
-export const assemblyaiFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: assemblyaiErrorDataSchema,
-  errorToMessage: data => data.error.message,
-});
+export const assemblyaiFailedResponseHandler =
+  /* @__PURE__ */ createJsonErrorResponseHandler({
+    errorSchema: assemblyaiErrorDataSchema,
+    errorToMessage: data => data.error.message,
+  });

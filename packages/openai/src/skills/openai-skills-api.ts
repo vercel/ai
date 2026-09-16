@@ -1,7 +1,7 @@
 import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const openaiSkillResponseSchema = lazySchema(() =>
+export const openaiSkillResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       id: z.string(),
@@ -19,7 +19,7 @@ export type OpenAISkillResponse = ReturnType<
   typeof openaiSkillResponseSchema
 >['_type'];
 
-export const openaiSkillVersionResponseSchema = lazySchema(() =>
+export const openaiSkillVersionResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       id: z.string(),

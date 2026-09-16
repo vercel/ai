@@ -36,7 +36,7 @@ const fileSearchArgsBaseSchema = z.looseObject({
 
 export type GoogleFileSearchToolArgs = z.infer<typeof fileSearchArgsBaseSchema>;
 
-export const fileSearch = createProviderExecutedToolFactory<
+export const fileSearch = /* @__PURE__ */ createProviderExecutedToolFactory<
   {},
   {},
   GoogleFileSearchToolArgs

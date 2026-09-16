@@ -173,7 +173,7 @@ export interface ExaSearchInput {
 
 export type ExaSearchOutput = ExaSearchResponse | ExaSearchError;
 
-const exaSearchInputSchema = lazySchema(() =>
+const exaSearchInputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       query: z
@@ -284,7 +284,7 @@ const exaSearchInputSchema = lazySchema(() =>
   ),
 );
 
-const exaSearchOutputSchema = lazySchema(() =>
+const exaSearchOutputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.union([
       z.object({
@@ -337,15 +337,16 @@ const exaSearchOutputSchema = lazySchema(() =>
   ),
 );
 
-export const exaSearchToolFactory = createProviderExecutedToolFactory<
-  ExaSearchInput,
-  ExaSearchOutput,
-  ExaSearchConfig
->({
-  id: 'gateway.exa_search',
-  inputSchema: exaSearchInputSchema,
-  outputSchema: exaSearchOutputSchema,
-});
+export const exaSearchToolFactory =
+  /* @__PURE__ */ createProviderExecutedToolFactory<
+    ExaSearchInput,
+    ExaSearchOutput,
+    ExaSearchConfig
+  >({
+    id: 'gateway.exa_search',
+    inputSchema: exaSearchInputSchema,
+    outputSchema: exaSearchOutputSchema,
+  });
 
 export const exaSearch = (
   config: ExaSearchConfig = {},

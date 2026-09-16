@@ -21,14 +21,15 @@ import {
 import type { AlibabaConfig } from './alibaba-config';
 
 // TODO: Add Alibaba multimodal embedding support in a follow-up change.
-const alibabaEmbeddingFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: z.object({
-    code: z.string().nullish(),
-    message: z.string(),
-    request_id: z.string().nullish(),
-  }),
-  errorToMessage: data => data.message,
-});
+const alibabaEmbeddingFailedResponseHandler =
+  /* @__PURE__ */ createJsonErrorResponseHandler({
+    errorSchema: z.object({
+      code: z.string().nullish(),
+      message: z.string(),
+      request_id: z.string().nullish(),
+    }),
+    errorToMessage: data => data.message,
+  });
 
 export class AlibabaEmbeddingModel implements EmbeddingModelV4 {
   readonly specificationVersion = 'v4';

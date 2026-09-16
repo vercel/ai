@@ -5,27 +5,28 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const codeExecution_20250522OutputSchema = lazySchema(() =>
-  zodSchema(
-    z.object({
-      type: z.literal('code_execution_result'),
-      stdout: z.string(),
-      stderr: z.string(),
-      return_code: z.number(),
-      content: z
-        .array(
-          z.object({
-            type: z.literal('code_execution_output'),
-            file_id: z.string(),
-          }),
-        )
-        .optional()
-        .default([]),
-    }),
-  ),
+export const codeExecution_20250522OutputSchema = /* @__PURE__ */ lazySchema(
+  () =>
+    zodSchema(
+      z.object({
+        type: z.literal('code_execution_result'),
+        stdout: z.string(),
+        stderr: z.string(),
+        return_code: z.number(),
+        content: z
+          .array(
+            z.object({
+              type: z.literal('code_execution_output'),
+              file_id: z.string(),
+            }),
+          )
+          .optional()
+          .default([]),
+      }),
+    ),
 );
 
-const codeExecution_20250522InputSchema = lazySchema(() =>
+const codeExecution_20250522InputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       code: z.string(),
@@ -33,7 +34,7 @@ const codeExecution_20250522InputSchema = lazySchema(() =>
   ),
 );
 
-const factory = createProviderExecutedToolFactory<
+const factory = /* @__PURE__ */ createProviderExecutedToolFactory<
   {
     /**
      * The Python code to execute.

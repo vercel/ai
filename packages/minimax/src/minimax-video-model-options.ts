@@ -59,6 +59,6 @@ export type MiniMaxVideoModelOptions = z.infer<
   typeof minimaxVideoProviderOptions
 >;
 
-export const minimaxVideoModelOptionsSchema = lazySchema(() =>
+export const minimaxVideoModelOptionsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(minimaxVideoProviderOptions),
 );

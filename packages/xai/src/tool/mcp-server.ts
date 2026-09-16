@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const mcpServerArgsSchema = lazySchema(() =>
+export const mcpServerArgsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       serverUrl: z.string().describe('The URL of the MCP server'),
@@ -31,7 +31,7 @@ export const mcpServerArgsSchema = lazySchema(() =>
 );
 
 // MCP tool output varies based on which tool is called
-const mcpServerOutputSchema = lazySchema(() =>
+const mcpServerOutputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       name: z.string(),
@@ -41,7 +41,7 @@ const mcpServerOutputSchema = lazySchema(() =>
   ),
 );
 
-const mcpServerToolFactory = createProviderExecutedToolFactory<
+const mcpServerToolFactory = /* @__PURE__ */ createProviderExecutedToolFactory<
   {},
   {
     name: string;

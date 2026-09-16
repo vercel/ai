@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const customArgsSchema = lazySchema(() =>
+export const customArgsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       description: z.string().optional(),
@@ -26,40 +26,43 @@ export const customArgsSchema = lazySchema(() =>
   ),
 );
 
-const customInputSchema = lazySchema(() => zodSchema(z.string()));
+const customInputSchema = /* @__PURE__ */ lazySchema(() =>
+  zodSchema(z.string()),
+);
 
-export const customToolFactory = createProviderDefinedToolFactory<
-  string,
-  {
-    /**
-     * An optional description of what the tool does.
-     */
-    description?: string;
+export const customToolFactory =
+  /* @__PURE__ */ createProviderDefinedToolFactory<
+    string,
+    {
+      /**
+       * An optional description of what the tool does.
+       */
+      description?: string;
 
-    /**
-     * Whether the model can continue generating after calling this tool
-     * without waiting for its result.
-     */
-    async?: boolean;
+      /**
+       * Whether the model can continue generating after calling this tool
+       * without waiting for its result.
+       */
+      async?: boolean;
 
-    /**
-     * The output format specification for the tool.
-     * Omit for unconstrained text output.
-     */
-    format?:
-      | {
-          type: 'grammar';
-          syntax: 'regex' | 'lark';
-          definition: string;
-        }
-      | {
-          type: 'text';
-        };
-  }
->({
-  id: 'openai.custom',
-  inputSchema: customInputSchema,
-});
+      /**
+       * The output format specification for the tool.
+       * Omit for unconstrained text output.
+       */
+      format?:
+        | {
+            type: 'grammar';
+            syntax: 'regex' | 'lark';
+            definition: string;
+          }
+        | {
+            type: 'text';
+          };
+    }
+  >({
+    id: 'openai.custom',
+    inputSchema: customInputSchema,
+  });
 
 export const customTool = (args: Parameters<typeof customToolFactory>[0]) =>
   customToolFactory(args);

@@ -22,7 +22,7 @@ export type TogetherAIRerankingModelOptions = {
 };
 
 export const togetheraiRerankingModelOptionsSchema: FlexibleSchema<TogetherAIRerankingModelOptions> =
-  lazySchema(() =>
+  /* @__PURE__ */ lazySchema(() =>
     zodSchema(
       z.object({
         rankFields: z.array(z.string()).optional(),

@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const webFetch_20260318ArgsSchema = lazySchema(() =>
+export const webFetch_20260318ArgsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       maxUses: z.number().optional(),
@@ -19,7 +19,7 @@ export const webFetch_20260318ArgsSchema = lazySchema(() =>
   ),
 );
 
-export const webFetch_20260318OutputSchema = lazySchema(() =>
+export const webFetch_20260318OutputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       type: z.literal('web_fetch_result'),
@@ -46,7 +46,7 @@ export const webFetch_20260318OutputSchema = lazySchema(() =>
   ),
 );
 
-const webFetch_20260318InputSchema = lazySchema(() =>
+const webFetch_20260318InputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       url: z.string(),
@@ -54,7 +54,7 @@ const webFetch_20260318InputSchema = lazySchema(() =>
   ),
 );
 
-const factory = createProviderExecutedToolFactory<
+const factory = /* @__PURE__ */ createProviderExecutedToolFactory<
   {
     /**
      * The URL to fetch.

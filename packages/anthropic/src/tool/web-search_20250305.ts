@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const webSearch_20250305ArgsSchema = lazySchema(() =>
+export const webSearch_20250305ArgsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       maxUses: z.number().optional(),
@@ -24,7 +24,7 @@ export const webSearch_20250305ArgsSchema = lazySchema(() =>
   ),
 );
 
-export const webSearch_20250305OutputSchema = lazySchema(() =>
+export const webSearch_20250305OutputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.array(
       z.object({
@@ -38,7 +38,7 @@ export const webSearch_20250305OutputSchema = lazySchema(() =>
   ),
 );
 
-const webSearch_20250305InputSchema = lazySchema(() =>
+const webSearch_20250305InputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       query: z.string(),
@@ -46,7 +46,7 @@ const webSearch_20250305InputSchema = lazySchema(() =>
   ),
 );
 
-const factory = createProviderExecutedToolFactory<
+const factory = /* @__PURE__ */ createProviderExecutedToolFactory<
   {
     /**
      * The search query to execute.

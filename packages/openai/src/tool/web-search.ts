@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const webSearchArgsSchema = lazySchema(() =>
+export const webSearchArgsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       externalWebAccess: z.boolean().optional(),
@@ -29,9 +29,11 @@ export const webSearchArgsSchema = lazySchema(() =>
   ),
 );
 
-const webSearchInputSchema = lazySchema(() => zodSchema(z.object({})));
+const webSearchInputSchema = /* @__PURE__ */ lazySchema(() =>
+  zodSchema(z.object({})),
+);
 
-export const webSearchOutputSchema = lazySchema(() =>
+export const webSearchOutputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       action: z
@@ -64,136 +66,137 @@ export const webSearchOutputSchema = lazySchema(() =>
   ),
 );
 
-export const webSearchToolFactory = createProviderExecutedToolFactory<
-  {
-    // Web search doesn't take input parameters - it's controlled by the prompt
-  },
-  {
-    /**
-     * An object describing the specific action taken in this web search call.
-     * Includes details on how the model used the web (search, open_page, find_in_page).
-     */
-    action?:
-      | {
-          /**
-           * Action type "search" - Performs a web search query.
-           */
-          type: 'search';
-
-          /**
-           * The search query.
-           *
-           * @deprecated Use `queries` instead.
-           */
-          query?: string;
-
-          /**
-           * The search queries the model used.
-           */
-          queries?: string[];
-        }
-      | {
-          /**
-           * Action type "openPage" - Opens a specific URL from search results.
-           */
-          type: 'openPage';
-
-          /**
-           * The URL opened by the model.
-           */
-          url?: string | null;
-        }
-      | {
-          /**
-           * Action type "findInPage": Searches for a pattern within a loaded page.
-           */
-          type: 'findInPage';
-
-          /**
-           * The URL of the page searched for the pattern.
-           */
-          url?: string | null;
-
-          /**
-           * The pattern or text to search for within the page.
-           */
-          pattern?: string | null;
-        };
-
-    /**
-     * Optional sources cited by the model for the web search call.
-     */
-    sources?: Array<
-      { type: 'url'; url: string } | { type: 'api'; name: string }
-    >;
-  },
-  {
-    /**
-     * Whether to use external web access for fetching live content.
-     * - true: Fetch live web content (default)
-     * - false: Use cached/indexed results
-     */
-    externalWebAccess?: boolean;
-
-    /**
-     * Filters for the search.
-     */
-    filters?: {
+export const webSearchToolFactory =
+  /* @__PURE__ */ createProviderExecutedToolFactory<
+    {
+      // Web search doesn't take input parameters - it's controlled by the prompt
+    },
+    {
       /**
-       * Allowed domains for the search.
-       * If not provided, all domains are allowed.
-       * Subdomains of the provided domains are allowed as well.
-       * Omit the HTTP or HTTPS prefix. Maximum 100 domains.
+       * An object describing the specific action taken in this web search call.
+       * Includes details on how the model used the web (search, open_page, find_in_page).
        */
-      allowedDomains?: string[];
+      action?:
+        | {
+            /**
+             * Action type "search" - Performs a web search query.
+             */
+            type: 'search';
+
+            /**
+             * The search query.
+             *
+             * @deprecated Use `queries` instead.
+             */
+            query?: string;
+
+            /**
+             * The search queries the model used.
+             */
+            queries?: string[];
+          }
+        | {
+            /**
+             * Action type "openPage" - Opens a specific URL from search results.
+             */
+            type: 'openPage';
+
+            /**
+             * The URL opened by the model.
+             */
+            url?: string | null;
+          }
+        | {
+            /**
+             * Action type "findInPage": Searches for a pattern within a loaded page.
+             */
+            type: 'findInPage';
+
+            /**
+             * The URL of the page searched for the pattern.
+             */
+            url?: string | null;
+
+            /**
+             * The pattern or text to search for within the page.
+             */
+            pattern?: string | null;
+          };
 
       /**
-       * Blocked domains for the search.
-       * Subdomains of the provided domains are blocked as well.
-       * Omit the HTTP or HTTPS prefix. Maximum 100 domains.
+       * Optional sources cited by the model for the web search call.
        */
-      blockedDomains?: string[];
-    };
+      sources?: Array<
+        { type: 'url'; url: string } | { type: 'api'; name: string }
+      >;
+    },
+    {
+      /**
+       * Whether to use external web access for fetching live content.
+       * - true: Fetch live web content (default)
+       * - false: Use cached/indexed results
+       */
+      externalWebAccess?: boolean;
 
-    /**
-     * Search context size to use for the web search.
-     * - high: Most comprehensive context, highest cost, slower response
-     * - medium: Balanced context, cost, and latency (default)
-     * - low: Least context, lowest cost, fastest response
-     */
-    searchContextSize?: 'low' | 'medium' | 'high';
+      /**
+       * Filters for the search.
+       */
+      filters?: {
+        /**
+         * Allowed domains for the search.
+         * If not provided, all domains are allowed.
+         * Subdomains of the provided domains are allowed as well.
+         * Omit the HTTP or HTTPS prefix. Maximum 100 domains.
+         */
+        allowedDomains?: string[];
 
-    /**
-     * User location information to provide geographically relevant search results.
-     */
-    userLocation?: {
+        /**
+         * Blocked domains for the search.
+         * Subdomains of the provided domains are blocked as well.
+         * Omit the HTTP or HTTPS prefix. Maximum 100 domains.
+         */
+        blockedDomains?: string[];
+      };
+
       /**
-       * Type of location (always 'approximate')
+       * Search context size to use for the web search.
+       * - high: Most comprehensive context, highest cost, slower response
+       * - medium: Balanced context, cost, and latency (default)
+       * - low: Least context, lowest cost, fastest response
        */
-      type: 'approximate';
+      searchContextSize?: 'low' | 'medium' | 'high';
+
       /**
-       * Two-letter ISO country code (e.g., 'US', 'GB')
+       * User location information to provide geographically relevant search results.
        */
-      country?: string;
-      /**
-       * City name (free text, e.g., 'Minneapolis')
-       */
-      city?: string;
-      /**
-       * Region name (free text, e.g., 'Minnesota')
-       */
-      region?: string;
-      /**
-       * IANA timezone (e.g., 'America/Chicago')
-       */
-      timezone?: string;
-    };
-  }
->({
-  id: 'openai.web_search',
-  inputSchema: webSearchInputSchema,
-  outputSchema: webSearchOutputSchema,
-});
+      userLocation?: {
+        /**
+         * Type of location (always 'approximate')
+         */
+        type: 'approximate';
+        /**
+         * Two-letter ISO country code (e.g., 'US', 'GB')
+         */
+        country?: string;
+        /**
+         * City name (free text, e.g., 'Minneapolis')
+         */
+        city?: string;
+        /**
+         * Region name (free text, e.g., 'Minnesota')
+         */
+        region?: string;
+        /**
+         * IANA timezone (e.g., 'America/Chicago')
+         */
+        timezone?: string;
+      };
+    }
+  >({
+    id: 'openai.web_search',
+    inputSchema: webSearchInputSchema,
+    outputSchema: webSearchOutputSchema,
+  });
 
 export const webSearch = (
   args: Parameters<typeof webSearchToolFactory>[0] = {}, // default
