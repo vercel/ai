@@ -3,6 +3,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const bridgeMock = vi.hoisted(() => ({
   start: undefined as unknown,
   turn: undefined as unknown,
+  onStart: undefined as
+    | ((start: unknown, turn: unknown) => Promise<void>)
+    | undefined,
 }));
 
 const sdkMock = vi.hoisted(() => ({
@@ -28,6 +31,7 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
     const bridge = options as {
       onStart(start: unknown, turn: unknown): Promise<void>;
     };
+    bridgeMock.onStart = bridge.onStart;
     await bridge.onStart(bridgeMock.start, bridgeMock.turn);
     return { close: vi.fn() };
   }),
@@ -91,7 +95,9 @@ describe('OpenCode bridge turn settlement', () => {
     process.argv.length = 0;
     for (const arg of originalArgv) process.argv.push(arg);
     vi.resetModules();
+    bridgeMock.onStart = undefined;
     relayMock.authorizeToolCall.mockReset();
+    relayMock.close.mockReset();
     permissionReplyMock.mockReset();
     createOpencodeServerMock.mockClear();
     vi.unstubAllEnvs();
@@ -352,6 +358,146 @@ describe('OpenCode bridge turn settlement', () => {
       expect.objectContaining({ message: 'OpenCode turn failed' }),
     );
     expect(emitted.at(-1)).toMatchObject({ type: 'finish' });
+  });
+
+  it('refreshes changed native config while preserving the warm session', async () => {
+    const client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+        get: vi.fn(async () => ({ data: {} })),
+        messages: vi.fn(async () => ({ data: [] })),
+        promptAsync: vi.fn(async (_request: unknown) => ({ data: {} })),
+      },
+      event: {
+        subscribe: vi.fn(async () => ({
+          stream: {
+            async *[Symbol.asyncIterator]() {
+              yield {
+                type: 'session.status',
+                properties: {
+                  sessionID: 'session-1',
+                  status: { type: 'busy' },
+                },
+              };
+              yield {
+                type: 'session.next.step.ended',
+                properties: {
+                  sessionID: 'session-1',
+                  finish: 'stop',
+                  tokens: {
+                    input: 1,
+                    output: 1,
+                    reasoning: 0,
+                    cache: { read: 0, write: 0 },
+                  },
+                },
+              };
+              yield {
+                type: 'session.status',
+                properties: {
+                  sessionID: 'session-1',
+                  status: { type: 'idle' },
+                },
+              };
+            },
+          },
+        })),
+      },
+      v2: {
+        session: { context: vi.fn(async () => ({ data: [] })) },
+      },
+    };
+    const turn = () => ({
+      emit: vi.fn(),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: createUserMessages(),
+      abortSignal: new AbortController().signal,
+      firstTurn: false,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    });
+    const start = (prompt: string | undefined) => ({
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'Continue.',
+      tools: [{ name: 'lookup' }],
+      openCodeConfig:
+        prompt === undefined ? undefined : { agent: { build: { prompt } } },
+    });
+
+    sdkMock.client = client;
+    bridgeMock.start = start('Prompt A');
+    bridgeMock.turn = turn();
+    setBridgeArgv();
+
+    await import('./index');
+
+    const firstServer = (await createOpencodeServerMock.mock.results[0]
+      ?.value) as { close: ReturnType<typeof vi.fn> };
+
+    await bridgeMock.onStart!(start('Prompt A'), turn());
+
+    expect(createOpencodeServerMock).toHaveBeenCalledTimes(1);
+    expect(firstServer.close).not.toHaveBeenCalled();
+    expect(relayMock.close).not.toHaveBeenCalled();
+
+    await bridgeMock.onStart!(start('Prompt B'), turn());
+
+    expect(createOpencodeServerMock).toHaveBeenCalledTimes(2);
+    expect(createOpencodeServerMock.mock.calls[1]?.[0]).toMatchObject({
+      config: {
+        agent: { build: { prompt: 'Prompt B' } },
+      },
+    });
+    expect(firstServer.close).toHaveBeenCalledTimes(1);
+    expect(relayMock.close).toHaveBeenCalledTimes(1);
+    expect(client.session.create).toHaveBeenCalledTimes(1);
+    expect(
+      client.session.promptAsync.mock.calls.map(
+        ([request]) => (request as { sessionID?: string }).sessionID,
+      ),
+    ).toEqual(['session-1', 'session-1', 'session-1']);
+
+    const secondServer = (await createOpencodeServerMock.mock.results[1]
+      ?.value) as { close: ReturnType<typeof vi.fn> };
+    createOpencodeServerMock.mockRejectedValueOnce(new Error('startup failed'));
+    const failedTurn = turn();
+
+    await bridgeMock.onStart!(start('Prompt C'), failedTurn);
+
+    expect(createOpencodeServerMock).toHaveBeenCalledTimes(3);
+    expect(secondServer.close).toHaveBeenCalledTimes(1);
+    expect(failedTurn.emitError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        error: expect.objectContaining({ message: 'startup failed' }),
+      }),
+    );
+    expect(client.session.promptAsync).toHaveBeenCalledTimes(3);
+
+    const retryTurn = turn();
+    await bridgeMock.onStart!(start('Prompt C'), retryTurn);
+
+    expect(retryTurn.emitError).not.toHaveBeenCalled();
+    expect(createOpencodeServerMock).toHaveBeenCalledTimes(4);
+    expect(client.session.promptAsync).toHaveBeenCalledTimes(4);
+    expect(secondServer.close).toHaveBeenCalledTimes(1);
+
+    await bridgeMock.onStart!(start(undefined), turn());
+
+    expect(createOpencodeServerMock).toHaveBeenCalledTimes(5);
+    expect(createOpencodeServerMock.mock.calls[4]?.[0]).toMatchObject({
+      config: expect.not.objectContaining({ agent: expect.anything() }),
+    });
+    expect(client.session.create).toHaveBeenCalledTimes(1);
+    expect(
+      client.session.promptAsync.mock.calls.every(
+        ([request]) =>
+          (request as { sessionID?: string }).sessionID === 'session-1',
+      ),
+    ).toBe(true);
   });
 
   it('settles a host-aborted turn once the next event arrives', async () => {
