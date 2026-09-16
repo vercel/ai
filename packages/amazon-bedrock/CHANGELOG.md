@@ -1,5 +1,13 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.177
+
+### Patch Changes
+
+- b252045: fix(amazon-bedrock): enable Anthropic features for application inference profile chat models
+- Updated dependencies [90757ce]
+  - @ai-sdk/openai@3.0.113
+
 ## 4.0.176
 
 ### Patch Changes
