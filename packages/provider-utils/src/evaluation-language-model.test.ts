@@ -116,6 +116,7 @@ it('uses a portable flat schema with required fields and internal option codes',
   });
   expect(call).not.toHaveProperty('temperature');
   expect(call).not.toHaveProperty('tools');
+  expect(call.reasoning).toBe('none');
 });
 it('preserves usage, response, warnings, and provider metadata', async () => {
   const { model, result } = setup();
@@ -132,6 +133,7 @@ it('forwards cancellation, headers, and provider options unchanged', async () =>
   const providerOptions = { test: { reasoning: 'low' } };
   await model.doEvaluate({ ...options, abortSignal, headers, providerOptions });
   expect(doGenerate.mock.calls[0][0]).toMatchObject({
+    reasoning: 'none',
     abortSignal,
     headers,
     providerOptions,

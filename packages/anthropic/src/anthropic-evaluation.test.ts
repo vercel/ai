@@ -71,6 +71,7 @@ it('uses native Messages output with portable constraints and configured setting
   const body = JSON.parse(request.body);
   expect(body).toMatchObject({
     model: 'claude-haiku-4-5-20251001',
+    thinking: { type: 'disabled' },
     output_config: {
       format: {
         type: 'json_schema',
@@ -92,6 +93,19 @@ it('uses native Messages output with portable constraints and configured setting
   expect(body.output_config.format.schema.properties.q1).not.toHaveProperty(
     'maximum',
   );
+});
+it('allows provider options to enable thinking for evaluations', async () => {
+  const { model, fetch } = setup();
+  await model.doEvaluate({
+    ...options,
+    providerOptions: {
+      anthropic: { thinking: { type: 'enabled', budgetTokens: 1024 } },
+    },
+  });
+  expect(JSON.parse(fetch.mock.calls[0][1].body).thinking).toEqual({
+    type: 'enabled',
+    budget_tokens: 1024,
+  });
 });
 it('selects native structured output automatically for supported models', async () => {
   const { model, fetch } = setup();

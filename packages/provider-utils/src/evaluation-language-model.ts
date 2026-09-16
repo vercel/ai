@@ -131,6 +131,7 @@ export class EvaluationLanguageModel implements EvaluationModelV4 {
       ]),
     );
     const result = await this.model.doGenerate({
+      reasoning: 'none',
       prompt: [
         {
           role: 'system',
