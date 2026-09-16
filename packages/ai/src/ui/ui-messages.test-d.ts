@@ -52,9 +52,6 @@ describe('UIMessagePart', () => {
     type _ = AssertAssignable<ToolUIPart<TestTools>, Part>;
   });
 
-<<<<<<< HEAD
-  it('allows approval descriptors in request and response states', () => {
-=======
   it('keeps deprecated rawInput assignable on static output-error tool parts', () => {
     type Part = {
       type: 'tool-weather';
@@ -68,8 +65,7 @@ describe('UIMessagePart', () => {
     type _ = AssertAssignable<ToolUIPart<TestTools>, Part>;
   });
 
-  it('keeps approval request and response reasons distinct', () => {
->>>>>>> 25a0447c29 (feat: deprecate rawInput in output-error UI message parts (#20319))
+  it('allows approval descriptors in request and response states', () => {
     type RequestedPart = {
       type: 'tool-weather';
       state: 'approval-requested';

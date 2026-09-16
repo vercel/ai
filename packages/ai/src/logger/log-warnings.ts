@@ -1,5 +1,13 @@
 import type { Warning } from '../types';
 
+type LogWarning =
+  | Warning
+  | {
+      type: 'deprecated';
+      setting: string;
+      message: string;
+    };
+
 /**
  * A function for logging warnings.
  *
@@ -16,17 +24,17 @@ export type LogWarningsFunction = (options: {
   /**
    * The warnings returned by the model provider.
    */
-  warnings: Warning[];
+  warnings: LogWarning[];
 
   /**
-   * The provider id used for the call.
+   * The provider id used for the call, if scoped to a specific provider.
    */
-  provider: string;
+  provider?: string;
 
   /**
-   * The model id used for the call.
+   * The model id used for the call, if scoped to a specific provider.
    */
-  model: string;
+  model?: string;
 }) => void;
 
 /**
@@ -34,8 +42,8 @@ export type LogWarningsFunction = (options: {
  *
  * @param options - The options for formatting the warning.
  * @param options.warning - The warning to format.
- * @param options.provider - The provider id used for the call.
- * @param options.model - The model id used for the call.
+ * @param options.provider - The provider id used for the call, if scoped to a specific provider.
+ * @param options.model - The model id used for the call, if scoped to a specific provider.
  * @returns A formatted warning message string.
  */
 function formatWarning({
@@ -43,11 +51,13 @@ function formatWarning({
   provider,
   model,
 }: {
-  warning: Warning;
-  provider: string;
-  model: string;
+  warning: LogWarning;
+  provider?: string;
+  model?: string;
 }): string {
-  const prefix = `AI SDK Warning (${provider} / ${model}):`;
+  const scope =
+    provider != null && model != null ? ` (${provider} / ${model})` : '';
+  const prefix = `AI SDK Warning${scope}:`;
 
   switch (warning.type) {
     case 'unsupported': {
@@ -64,6 +74,10 @@ function formatWarning({
         message += ` ${warning.details}`;
       }
       return message;
+    }
+
+    case 'deprecated': {
+      return `${prefix} Deprecated: "${warning.setting}". ${warning.message}`;
     }
 
     case 'other': {
@@ -92,8 +106,8 @@ let hasLoggedBefore = false;
  *
  * @param options - The options containing warnings and context.
  * @param options.warnings - The warnings to log.
- * @param options.provider - The provider id used for the call.
- * @param options.model - The model id used for the call.
+ * @param options.provider - The provider id used for the call, if scoped to a specific provider.
+ * @param options.model - The model id used for the call, if scoped to a specific provider.
  */
 export const logWarnings: LogWarningsFunction = options => {
   // if the warnings array is empty, do nothing

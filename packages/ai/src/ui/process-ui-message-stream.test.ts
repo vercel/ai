@@ -7,17 +7,8 @@ import {
   type StreamingUIMessageState,
   type UIMessageStreamWriteOptions,
 } from './process-ui-message-stream';
-<<<<<<< HEAD
 import type { InferUIMessageData, UIMessage } from './ui-messages';
-import { beforeEach, describe, it, expect, vi } from 'vitest';
-=======
-import {
-  isToolUIPart,
-  type InferUIMessageData,
-  type UIMessage,
-} from './ui-messages';
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
->>>>>>> 25a0447c29 (feat: deprecate rawInput in output-error UI message parts (#20319))
 import { UIMessageStreamError } from '../error/ui-message-stream-error';
 
 function createUIMessageStream(parts: UIMessageChunk[]) {

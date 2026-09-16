@@ -42,7 +42,11 @@ const persistedMessages: UIMessage[] = [
   },
 ];
 
-const migratedMessages = migrateDeprecatedRawInput(persistedMessages);
-const modelMessages = await convertToModelMessages(migratedMessages);
+async function main() {
+  const migratedMessages = migrateDeprecatedRawInput(persistedMessages);
+  const modelMessages = await convertToModelMessages(migratedMessages);
 
-console.log(JSON.stringify(modelMessages, null, 2));
+  console.log(JSON.stringify(modelMessages, null, 2));
+}
+
+main().catch(console.error);
