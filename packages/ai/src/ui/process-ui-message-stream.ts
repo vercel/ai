@@ -31,6 +31,7 @@ import {
   getToolName,
   isToolUIPart,
 } from './ui-messages';
+import { warnIfUIMessageHasDeprecatedRawInput } from './warn-if-ui-message-has-deprecated-raw-input';
 
 export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   message: UI_MESSAGE;
@@ -586,6 +587,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerExecuted: chunk.providerExecuted,
                   providerMetadata: chunk.providerMetadata,
                 });
+
+                warnIfUIMessageHasDeprecatedRawInput([state.message]);
               }
 
               write();

@@ -21,6 +21,7 @@ import type {
   InferUIMessageTools,
   UIMessage,
 } from './ui-messages';
+import { warnIfUIMessageHasDeprecatedRawInput } from './warn-if-ui-message-has-deprecated-raw-input';
 
 type ValidatedToolPart = {
   type: `tool-${string}`;
@@ -397,6 +398,8 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
         }
       }
     }
+
+    warnIfUIMessageHasDeprecatedRawInput(validatedMessages);
 
     if (metadataSchema) {
       for (const message of validatedMessages) {

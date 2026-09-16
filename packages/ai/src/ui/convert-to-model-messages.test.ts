@@ -1,10 +1,18 @@
 import { tool, type ModelMessage } from '@ai-sdk/provider-utils';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import z from 'zod/v4';
 import { convertToModelMessages } from './convert-to-model-messages';
 import type { UIMessage } from './ui-messages';
 
 describe('convertToModelMessages', () => {
+  beforeEach(() => {
+    globalThis.AI_SDK_LOG_WARNINGS = false;
+  });
+
+  afterEach(() => {
+    delete globalThis.AI_SDK_LOG_WARNINGS;
+  });
+
   describe('system message', () => {
     it('should convert a simple system message', () => {
       const result = convertToModelMessages([
@@ -730,6 +738,9 @@ describe('convertToModelMessages', () => {
 
     describe('tool output error', () => {
       it('should handle assistant message with tool output error that has raw input', () => {
+        const warningLogger = vi.fn();
+        globalThis.AI_SDK_LOG_WARNINGS = warningLogger;
+
         const result = convertToModelMessages([
           {
             role: 'assistant',
@@ -786,6 +797,42 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
+        expect(warningLogger).toHaveBeenCalledWith([
+          {
+            type: 'deprecated',
+            setting: 'rawInput in output-error UI message parts',
+            message:
+              'Use the "input" field instead. The "rawInput" field will be removed in the next major version.',
+          },
+        ]);
+      });
+
+      it('should preserve the deprecated rawInput fallback when input is null', () => {
+        const result = convertToModelMessages([
+          {
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-calculator',
+                state: 'output-error',
+                toolCallId: 'call1',
+                errorText: 'Error: Invalid input',
+                input: null,
+                rawInput: 'legacy input',
+              },
+            ],
+          },
+        ]);
+
+        expect(result[0]).toMatchObject({
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              input: 'legacy input',
+            },
+          ],
+        });
       });
 
       it('should handle assistant message with tool output error that has no raw input', () => {
