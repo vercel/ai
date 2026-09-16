@@ -86,3 +86,8 @@ export type {
 } from './speech-translation/google-speech-translation-model-options';
 
 export { VERSION } from './version';
+
+export type {
+  GoogleEvaluationModelId as Experimental_GoogleEvaluationModelId,
+  GoogleEvaluationModelSettings as Experimental_GoogleEvaluationModelSettings,
+} from './google-evaluation-settings';

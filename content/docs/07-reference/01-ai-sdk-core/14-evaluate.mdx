@@ -65,3 +65,13 @@ Resolution errors use the existing `NoSuchModelError` and `NoSuchProviderError`
 classes with `modelType: 'evaluationModel'`. Model instances and resolved models
 must implement v4; other versions throw `UnsupportedModelVersionError`.
 See [model resolution examples](/docs/ai-sdk-core/evaluation#model-aliases-and-registries).
+
+## Embedding evaluation models
+
+Provider factories also support Choice-only embedding backends:
+`google.evaluationModel('gemini-embedding-2')`,
+`openai.evaluationModel('text-embedding-3-large')`, and
+`cohere.evaluationModel('embed-v4.0')`. These return the most similar criterion
+without probabilities. Boolean/Score questions fail before I/O. See
+[embedding evaluation](/docs/ai-sdk-core/evaluation#embedding-backed-evaluation)
+for encoding, caching, usage, and capability limits.

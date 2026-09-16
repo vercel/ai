@@ -2308,7 +2308,7 @@ const result = await generateSpeech({
 ## Evaluation Models
 
 Create an experimental evaluation model with `google.evaluationModel(modelId)`.
-It uses Gemini structured output for Choice, Score, and Boolean questions. Choose a model
+For language models, it uses Gemini structured output for Choice, Score, and Boolean questions. Choose a model
 that supports structured output, such as `gemini-3.5-flash-lite`.
 
 ```ts
@@ -2355,3 +2355,51 @@ Evaluation models can also be accessed through `customProvider` aliases or
 require an explicitly configured default provider with an `evaluationModel`
 method; they do not automatically use Gateway. See
 [model aliases and registries](/docs/ai-sdk-core/evaluation#model-aliases-and-registries).
+
+### Embedding-backed evaluation
+
+Use `google.evaluationModel('gemini-embedding-2')` for experimental Choice evaluation
+using embeddings. The provider selects the embedding backend automatically.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { experimental_evaluate } from 'ai';
+
+const model = google.evaluationModel('gemini-embedding-2');
+const result = await experimental_evaluate({
+  model,
+  state: 'I was charged twice. Please refund the duplicate.',
+  questions: {
+    department: {
+      type: 'choice',
+      instructions: 'Which team should handle this request?',
+      criteria: {
+        billing: 'Charges, invoices, payments, and refunds',
+        technical: 'Software bugs, crashes, and outages',
+        account: 'Login, passwords, and account access',
+      },
+    },
+  },
+});
+
+result.answers.department.choice; // 'billing' | 'technical' | 'account'
+```
+
+The adapter selects the criterion with the highest cosine similarity and returns
+no probability distribution. It supports **Choice only**. Boolean and Score
+questions, including mixed requests, fail before network access. Instructions
+are encoded as semantic context; the adapter does not execute arbitrary rules,
+negations, or reasoning instructions. Validate classification quality on your
+own examples. See [embedding evaluation](/docs/ai-sdk-core/evaluation#embedding-backed-evaluation)
+for encoding, caching, usage, and capability details.
+
+The built-in embedding ID is `gemini-embedding-2`. Its inputs use Google's
+`task: classification | query: ` prefix; do not pass the older `taskType` option.
+Embedding options such as `outputDimensionality` go in `providerOptions.google`.
+The factory's model-ID type includes both language and embedding model literals
+for autocomplete. Other IDs retain the language backend by default. For a custom
+embedding ID using the same encoding, select the backend explicitly:
+
+```ts
+google.evaluationModel('custom-embedding-id', { modelType: 'embedding' });
+```

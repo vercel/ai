@@ -1,5 +1,8 @@
+import { Experimental_EvaluationEmbeddingModel as EvaluationEmbeddingModel } from '@ai-sdk/provider-utils/experimental-evaluation';
+import type { CohereEvaluationModelId } from './cohere-evaluation-settings';
 import {
   NoSuchModelError,
+  type Experimental_EvaluationModelV4 as EvaluationModelV4,
   type EmbeddingModelV4,
   type LanguageModelV4,
   type RerankingModelV4,
@@ -22,6 +25,9 @@ import { VERSION } from './version';
 
 export interface CohereProvider extends ProviderV4 {
   (modelId: CohereChatModelId): LanguageModelV4;
+
+  /** Creates an experimental Choice evaluation model using embeddings. */
+  evaluationModel(modelId: CohereEvaluationModelId): EvaluationModelV4;
 
   /**
    * Creates a model for text generation.
@@ -148,6 +154,14 @@ export function createCohere(
 
   provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
+  provider.evaluationModel = (modelId: CohereEvaluationModelId) =>
+    new EvaluationEmbeddingModel({
+      model: createEmbeddingModel(modelId),
+      provider: 'cohere.evaluation',
+      providerOptions: {
+        cohere: { inputType: 'classification', truncate: 'NONE' },
+      },
+    });
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
