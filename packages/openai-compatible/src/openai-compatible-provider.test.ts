@@ -1,4 +1,5 @@
 import { createOpenAICompatible } from './openai-compatible-provider';
+import { OpenAICompatibleBatchChatLanguageModel } from './chat/openai-compatible-chat-batch-language-model';
 import { OpenAICompatibleChatLanguageModel } from './chat/openai-compatible-chat-language-model';
 import { OpenAICompatibleCompletionLanguageModel } from './completion/openai-compatible-completion-language-model';
 import { OpenAICompatibleEmbeddingModel } from './embedding/openai-compatible-embedding-model';
@@ -13,6 +14,9 @@ vi.mock('./version', () => ({
 const OpenAICompatibleChatLanguageModelMock = vi.mocked(
   OpenAICompatibleChatLanguageModel,
 );
+const OpenAICompatibleBatchChatLanguageModelMock = vi.mocked(
+  OpenAICompatibleBatchChatLanguageModel,
+);
 const OpenAICompatibleCompletionLanguageModelMock = vi.mocked(
   OpenAICompatibleCompletionLanguageModel,
 );
@@ -24,6 +28,10 @@ const OpenAICompatibleImageModelMock = vi.mocked(OpenAICompatibleImageModel);
 
 vi.mock('./chat/openai-compatible-chat-language-model', () => ({
   OpenAICompatibleChatLanguageModel: vi.fn(),
+}));
+
+vi.mock('./chat/openai-compatible-chat-batch-language-model', () => ({
+  OpenAICompatibleBatchChatLanguageModel: vi.fn(),
 }));
 
 vi.mock('./image/openai-compatible-image-model', () => ({
@@ -122,6 +130,23 @@ describe('OpenAICompatibleProvider', () => {
       expect(config.url({ modelId: 'model-id', path: '/v1/chat' })).toBe(
         'https://api.example.com/v1/chat?Custom-Param=value',
       );
+    });
+
+    it('should create a batch chat model only when batch support is enabled', () => {
+      const provider = createOpenAICompatible({
+        ...defaultOptions,
+        supportsBatch: true,
+      });
+
+      provider.chatModel('chat-model');
+
+      expect(OpenAICompatibleBatchChatLanguageModelMock).toHaveBeenCalledWith(
+        'chat-model',
+        expect.objectContaining({
+          provider: 'test-provider.chat',
+        }),
+      );
+      expect(OpenAICompatibleChatLanguageModelMock).not.toHaveBeenCalled();
     });
 
     it('should create completion model with correct configuration', () => {
