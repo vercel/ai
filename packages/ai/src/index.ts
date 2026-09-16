@@ -54,6 +54,7 @@ export * from './registry';
 export * from './rerank';
 export * from './telemetry';
 export * from './text-stream';
+export { toolSearch } from './tool-search/tool-search';
 export * from './transcribe';
 export * from './translate';
 export * from './types';
