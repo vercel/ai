@@ -127,7 +127,10 @@ export class BrowserRealtimeLiveWebSocket {
   startCapture(): void {
     this.ready = true;
     if (!this.captureEnabled || this.capturingStarted) return;
-    void this.resumeCapture().catch(error => this.options.onError(error));
+    const generation = this.generation;
+    void this.resumeCapture().catch(error => {
+      if (generation === this.generation) this.options.onError(error);
+    });
   }
 
   async resumeCapture(suppliedStream?: MediaStream): Promise<void> {
@@ -232,6 +235,15 @@ export class BrowserRealtimeLiveWebSocket {
 
   finish(): Promise<void> {
     return this.transport.finish();
+  }
+
+  retire(): void {
+    this.generation++;
+    this.captureGeneration++;
+    this.ready = false;
+    this.captureEnabled = false;
+    this.transport.retire();
+    this.audio.retire();
   }
 
   dispose(): void {

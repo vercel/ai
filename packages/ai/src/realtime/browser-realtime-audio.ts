@@ -28,6 +28,7 @@ export class BrowserRealtimeAudio {
   private ownsCaptureStream = true;
   private captureCleanup: Array<() => void> = [];
   private captureGeneration = 0;
+  private retired = false;
 
   private playbackContext: AudioContext | null = null;
   private playbackQueue: Float32Array[] = [];
@@ -50,6 +51,7 @@ export class BrowserRealtimeAudio {
   }
 
   ensurePlaybackContext(): void {
+    if (this.retired) return;
     if (this.playbackContext == null) {
       this.playbackContext = new AudioContext({
         sampleRate: this.playbackSampleRate,
@@ -65,12 +67,13 @@ export class BrowserRealtimeAudio {
   }
 
   async resumePlayback(): Promise<void> {
+    if (this.retired) return;
     this.ensurePlaybackContext();
     const context = this.playbackContext;
     if (this.playbackPaused) this.stopPlayback();
-    if (this.playbackContext !== context) return;
+    if (this.retired || this.playbackContext !== context) return;
     await context?.resume();
-    if (this.playbackContext !== context) return;
+    if (this.retired || this.playbackContext !== context) return;
     this.playbackPaused = false;
     this.setPlaying(
       this.playbackContext?.state === 'running' && this.activeSources.size > 0,
@@ -78,6 +81,7 @@ export class BrowserRealtimeAudio {
   }
 
   startCapture(stream: MediaStream, options?: { ownsStream?: boolean }): void {
+    if (this.retired) return;
     const generation = this.captureGeneration + 1;
     this.stopCapture();
     if (generation !== this.captureGeneration) {
@@ -90,7 +94,7 @@ export class BrowserRealtimeAudio {
     const ctx = new AudioContext({ sampleRate: this.captureSampleRate });
     this.captureContext = ctx;
     void ctx.resume().catch(error => {
-      if (this.captureContext === ctx) this.onError?.(error);
+      if (!this.retired && this.captureContext === ctx) this.onError?.(error);
     });
 
     const source = ctx.createMediaStreamSource(stream);
@@ -100,7 +104,7 @@ export class BrowserRealtimeAudio {
     this.captureProcessor = processor;
 
     processor.onaudioprocess = event => {
-      if (this.captureContext !== ctx) return;
+      if (this.retired || this.captureContext !== ctx) return;
       const inputData = event.inputBuffer.getChannelData(0);
       const samples = resampleAudio(
         new Float32Array(inputData),
@@ -110,6 +114,7 @@ export class BrowserRealtimeAudio {
       try {
         this.onAudio(encodeRealtimeAudio(samples));
       } catch (error) {
+        if (this.retired) return;
         this.onError?.(
           error instanceof Error ? error : new Error(String(error)),
         );
@@ -118,7 +123,8 @@ export class BrowserRealtimeAudio {
 
     source.connect(processor);
     processor.connect(ctx.destination);
-    const updateCapturing = () =>
+    const updateCapturing = () => {
+      if (this.retired || this.captureStream !== stream) return;
       this.onCapturingChange(
         stream
           .getAudioTracks()
@@ -127,6 +133,7 @@ export class BrowserRealtimeAudio {
               track.enabled && !track.muted && track.readyState === 'live',
           ),
       );
+    };
     for (const track of stream.getAudioTracks()) {
       for (const event of ['ended', 'mute', 'unmute']) {
         track.addEventListener(event, updateCapturing);
@@ -154,11 +161,11 @@ export class BrowserRealtimeAudio {
     this.captureSource = null;
     this.captureContext = null;
     this.captureStream = null;
-    this.onCapturingChange(false);
+    if (!this.retired) this.onCapturingChange(false);
   }
 
   playAudio(base64Audio: string): void {
-    if (this.playbackPaused) return;
+    if (this.retired || this.playbackPaused) return;
     this.ensurePlaybackContext();
     const samples = decodeRealtimeAudio(base64Audio);
     if (
@@ -171,6 +178,7 @@ export class BrowserRealtimeAudio {
     ) {
       this.playbackPaused = true;
       this.stopPlayback();
+      if (this.retired) return;
       this.onError?.(
         new Error(
           'Realtime audio playback buffer is full; playback paused, call resumePlayback() to resume at the live edge',
@@ -208,6 +216,12 @@ export class BrowserRealtimeAudio {
     return (ctx.currentTime - this.playbackStartTime) * 1000;
   }
 
+  /** Defer browser cleanup while silencing capture and playback continuations. */
+  retire(): void {
+    this.retired = true;
+    this.captureGeneration++;
+  }
+
   dispose(): void {
     this.stopCapture();
     this.stopPlayback();
@@ -216,9 +230,12 @@ export class BrowserRealtimeAudio {
     this.playbackContext = null;
     this.playbackTime = 0;
     this.playbackPaused = false;
+    this.isPlaying = false;
+    this.retired = false;
   }
 
   private setPlaying(isPlaying: boolean): void {
+    if (this.retired) return;
     if (isPlaying && !this.isPlaying) {
       this.playbackStartTime = this.playbackContext?.currentTime ?? 0;
     }
@@ -230,7 +247,7 @@ export class BrowserRealtimeAudio {
 
   private schedulePlayback(): void {
     const ctx = this.playbackContext;
-    if (ctx == null || this.playbackQueue.length === 0) return;
+    if (this.retired || ctx == null || this.playbackQueue.length === 0) return;
 
     while (this.playbackQueue.length > 0) {
       const samples = this.playbackQueue.shift()!;
@@ -251,9 +268,10 @@ export class BrowserRealtimeAudio {
 
       this.activeSources.add(source);
       this.setPlaying(ctx.state === 'running');
-      if (this.playbackContext !== ctx) return;
+      if (this.retired || this.playbackContext !== ctx) return;
 
       source.onended = () => {
+        if (this.retired || this.playbackContext !== ctx) return;
         source.disconnect();
         this.activeSources.delete(source);
         if (this.playbackQueue.length === 0 && this.activeSources.size === 0) {

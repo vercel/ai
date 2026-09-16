@@ -192,12 +192,17 @@ to wait for provider readiness. Operational startup errors are reported through
 confirms final usage or the close deadline expires. A failed close-command send
 uses the shorter accepted-event drain rather than waiting for an acknowledgment
 to an unsent command. Read `session.finalization`: a fulfilled close promise does
-not by itself confirm usage. `disconnect()` and unmount release resources immediately.
+not by itself confirm usage. `disconnect()` releases resources immediately; unmount
+releases them in passive-effect cleanup.
 
 Hook controls keep stable identities across renders and provider events. A retained
 control targets the current **committed** session, including after a model or endpoint
 change. Uncommitted renders cannot replace the active session or its callbacks.
 Callback-only updates take effect at commit without reconnecting.
+An urgent Suspense fallback can hide an already-committed conversation without
+unmounting it. Its connection, microphone, playback, and session state remain active
+through hide/reveal, and retained controls still target that committed session.
+Call `disconnect()` explicitly if the application should stop capture while hidden.
 
 After unmount, `connect`, `close`, `resumeAudioCapture`, and `resumePlayback` reject
 with a mounted-hook error. Other controls throw that error synchronously, including
