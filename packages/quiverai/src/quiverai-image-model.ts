@@ -45,6 +45,9 @@ interface QuiverAIImageModelConfig {
 export class QuiverAIImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 16;
+  readonly maxImagesPerPrompt: ImageModelV4['maxImagesPerPrompt'] = ({
+    providerOptions,
+  }) => (providerOptions.quiverai?.operation === 'edit' ? 1 : undefined);
 
   get provider(): string {
     return this.config.provider;
@@ -494,14 +497,271 @@ function toQuiverAIEditSource(file: ImageModelV4File) {
 }
 
 function isSvgMarkup(svg: string) {
-  const normalized = svg.replace(/^\uFEFF/, '').trim();
+  const document = svg.replace(/^\uFEFF/, '');
+  const elements: string[] = [];
+  let position = 0;
+  let rootSeen = false;
+  let rootClosed = false;
+  let doctypeSeen = false;
+
+  while (position < document.length) {
+    if (document[position] !== '<') {
+      const nextTag = document.indexOf('<', position);
+      const end = nextTag === -1 ? document.length : nextTag;
+      const text = document.slice(position, end);
+
+      if (
+        (elements.length === 0 && text.trim().length > 0) ||
+        text.includes(']]>') ||
+        !hasValidXmlReferences(text)
+      ) {
+        return false;
+      }
+
+      position = end;
+      continue;
+    }
+
+    if (document.startsWith('<!--', position)) {
+      const commentEnd = document.indexOf('-->', position + 4);
+      if (
+        commentEnd === -1 ||
+        document.slice(position + 4, commentEnd).includes('--')
+      ) {
+        return false;
+      }
+      position = commentEnd + 3;
+      continue;
+    }
+
+    if (document.startsWith('<?', position)) {
+      const instructionEnd = document.indexOf('?>', position + 2);
+      if (instructionEnd === -1) {
+        return false;
+      }
+      position = instructionEnd + 2;
+      continue;
+    }
+
+    if (document.startsWith('<![CDATA[', position)) {
+      if (elements.length === 0) {
+        return false;
+      }
+      const cdataEnd = document.indexOf(']]>', position + 9);
+      if (cdataEnd === -1) {
+        return false;
+      }
+      position = cdataEnd + 3;
+      continue;
+    }
+
+    if (document.slice(position, position + 9).toUpperCase() === '<!DOCTYPE') {
+      if (
+        rootSeen ||
+        doctypeSeen ||
+        elements.length > 0 ||
+        !/[\t\n\r ]/.test(document[position + 9] ?? '')
+      ) {
+        return false;
+      }
+      const doctypeName = readXmlName(
+        document,
+        skipXmlWhitespace(document, position + 9),
+      );
+      if (doctypeName?.name.toLowerCase() !== 'svg') {
+        return false;
+      }
+      const doctypeEnd = findDoctypeEnd(document, doctypeName.end);
+      if (doctypeEnd === -1) {
+        return false;
+      }
+      doctypeSeen = true;
+      position = doctypeEnd;
+      continue;
+    }
+
+    if (document.startsWith('<!', position)) {
+      return false;
+    }
+
+    if (document.startsWith('</', position)) {
+      const closingTag = readXmlName(document, position + 2);
+      if (closingTag == null) {
+        return false;
+      }
+      let tagEnd = skipXmlWhitespace(document, closingTag.end);
+      if (document[tagEnd] !== '>') {
+        return false;
+      }
+      const expectedTag = elements.pop();
+      if (expectedTag !== closingTag.name) {
+        return false;
+      }
+      tagEnd += 1;
+      if (elements.length === 0) {
+        rootClosed = true;
+      }
+      position = tagEnd;
+      continue;
+    }
+
+    if (rootClosed) {
+      return false;
+    }
+
+    const openingTag = readXmlName(document, position + 1);
+    if (openingTag == null) {
+      return false;
+    }
+    if (!rootSeen) {
+      if (openingTag.name.toLowerCase() !== 'svg') {
+        return false;
+      }
+      rootSeen = true;
+    }
+
+    const attributes = new Set<string>();
+    let tagPosition = openingTag.end;
+    while (tagPosition < document.length) {
+      const beforeWhitespace = tagPosition;
+      tagPosition = skipXmlWhitespace(document, tagPosition);
+
+      if (document.startsWith('/>', tagPosition)) {
+        tagPosition += 2;
+        if (elements.length === 0) {
+          rootClosed = true;
+        }
+        position = tagPosition;
+        break;
+      }
+
+      if (document[tagPosition] === '>') {
+        elements.push(openingTag.name);
+        position = tagPosition + 1;
+        break;
+      }
+
+      if (tagPosition === beforeWhitespace) {
+        return false;
+      }
+
+      const attribute = readXmlName(document, tagPosition);
+      if (attribute == null || attributes.has(attribute.name)) {
+        return false;
+      }
+      attributes.add(attribute.name);
+
+      tagPosition = skipXmlWhitespace(document, attribute.end);
+      if (document[tagPosition] !== '=') {
+        return false;
+      }
+      tagPosition = skipXmlWhitespace(document, tagPosition + 1);
+
+      const quote = document[tagPosition];
+      if (quote !== '"' && quote !== "'") {
+        return false;
+      }
+      const valueEnd = document.indexOf(quote, tagPosition + 1);
+      if (
+        valueEnd === -1 ||
+        document.slice(tagPosition + 1, valueEnd).includes('<') ||
+        !hasValidXmlReferences(document.slice(tagPosition + 1, valueEnd))
+      ) {
+        return false;
+      }
+      tagPosition = valueEnd + 1;
+    }
+
+    if (tagPosition >= document.length && position !== document.length) {
+      return false;
+    }
+  }
+
+  return rootSeen && rootClosed && elements.length === 0;
+}
+
+function isXmlNameStart(character: string | undefined) {
+  return character != null && /[A-Z_a-z:\u0080-\uFFFF]/.test(character);
+}
+
+function isXmlNameCharacter(character: string | undefined) {
   return (
-    /^(?:<\?xml[\s\S]*?\?>\s*)?(?:<!--[\s\S]*?-->\s*)?(?:<!DOCTYPE[\s\S]*?>\s*)?<svg[\s>]/i.test(
-      normalized,
-    ) &&
-    (/<\/svg>\s*$/i.test(normalized) ||
-      /<svg(?:\s[^>]*)?\/>\s*$/is.test(normalized))
+    character != null && /[-.0-9A-Z_a-z:\u00B7\u0080-\uFFFF]/.test(character)
   );
+}
+
+function readXmlName(value: string, position: number) {
+  if (!isXmlNameStart(value[position])) {
+    return undefined;
+  }
+
+  const start = position;
+  position += 1;
+  while (isXmlNameCharacter(value[position])) {
+    position += 1;
+  }
+
+  return {
+    name: value.slice(start, position),
+    end: position,
+  };
+}
+
+function skipXmlWhitespace(value: string, position: number) {
+  while (/[\t\n\r ]/.test(value[position] ?? '')) {
+    position += 1;
+  }
+  return position;
+}
+
+function hasValidXmlReferences(value: string) {
+  let position = value.indexOf('&');
+  while (position !== -1) {
+    const end = value.indexOf(';', position + 1);
+    if (end === -1) {
+      return false;
+    }
+    const reference = value.slice(position + 1, end);
+    if (
+      !/^#\d+$/.test(reference) &&
+      !/^#x[\dA-Fa-f]+$/.test(reference) &&
+      !/^[A-Z_a-z:\u0080-\uFFFF][-.0-9A-Z_a-z:\u00B7\u0080-\uFFFF]*$/.test(
+        reference,
+      )
+    ) {
+      return false;
+    }
+    position = value.indexOf('&', end + 1);
+  }
+  return true;
+}
+
+function findDoctypeEnd(value: string, position: number) {
+  let subsetDepth = 0;
+  let quote: '"' | "'" | undefined;
+
+  while (position < value.length) {
+    const character = value[position];
+    if (quote != null) {
+      if (character === quote) {
+        quote = undefined;
+      }
+    } else if (character === '"' || character === "'") {
+      quote = character;
+    } else if (character === '[') {
+      subsetDepth += 1;
+    } else if (character === ']') {
+      if (subsetDepth === 0) {
+        return -1;
+      }
+      subsetDepth -= 1;
+    } else if (character === '>' && subsetDepth === 0) {
+      return position + 1;
+    }
+    position += 1;
+  }
+
+  return -1;
 }
 
 function collectWarnings({

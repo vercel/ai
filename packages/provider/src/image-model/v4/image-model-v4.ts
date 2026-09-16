@@ -5,6 +5,11 @@ type GetMaxImagesPerCallFunction = (options: {
   modelId: string;
 }) => PromiseLike<number | undefined> | number | undefined;
 
+type GetMaxImagesPerPromptFunction = (options: {
+  modelId: string;
+  providerOptions: ImageModelV4CallOptions['providerOptions'];
+}) => PromiseLike<number | undefined> | number | undefined;
+
 /**
  * Image generation model specification version 4.
  */
@@ -35,6 +40,17 @@ export type ImageModelV4 = {
    * optionally as a promise.
    */
   readonly maxImagesPerCall: number | undefined | GetMaxImagesPerCallFunction;
+
+  /**
+   * Optional limit on the total number of images that may be requested for one
+   * prompt, regardless of how the AI SDK splits the request into API calls.
+   *
+   * This can be a function when the limit depends on provider options.
+   */
+  readonly maxImagesPerPrompt?:
+    | number
+    | undefined
+    | GetMaxImagesPerPromptFunction;
 
   /**
    * Generates an array of images.

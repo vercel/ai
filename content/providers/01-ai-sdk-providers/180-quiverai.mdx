@@ -151,7 +151,7 @@ Supported options:
 
   Maximum number of output tokens. Arrow 2 and Arrow 2 Telos accept 1-65536. The provider retains its legacy validation bound of 131072 for other model IDs; the API may enforce a lower model-specific limit.
 
-- **referenceImages** _Array&lt;{ url: string } | { base64: string }&gt;_
+- **referenceImages** `Array<{ url: string } | { base64: string }>`
 
   Up to four optional reference images for SVG editing. URL references must use HTTP or HTTPS. Base64 references must decode to PNG, JPEG, WebP, GIF, or SVG data. Use `prepareQuiverAIImageReference` to convert binary, data URL, or URL inputs into this JSON-safe provider option shape.
 
@@ -271,7 +271,7 @@ SVG editing has these validation constraints:
 - `prompt.text` is required, must not be blank, and must contain at most 4000 characters.
 - Binary source SVGs must be complete UTF-8 SVG documents no larger than 200000 bytes.
 - At most four reference images are accepted. Inline references can contain up to 12582912 decoded bytes.
-- Editing returns exactly one SVG per request, so `n` must be `1`.
+- Editing returns exactly one SVG per prompt, so `n` must be `1`; overriding `maxImagesPerCall` cannot enable edit batching.
 - Masks and generation/vectorization-only provider options are rejected for edits.
 - Edit-only provider options are rejected for generation and vectorization.
 

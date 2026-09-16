@@ -339,6 +339,29 @@ describe('createQuiverAI', () => {
     });
   });
 
+  it('accepts a structurally valid SVG followed by an XML comment', async () => {
+    const sourceSvg =
+      '<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg"><g><path d="M0 0"/></g></svg><!-- exported by editor -->';
+    const provider = createQuiverAI({ apiKey: 'test-api-key' });
+
+    await provider.image('arrow-2').doGenerate({
+      ...generateOptions,
+      prompt: 'Make the path blue.',
+      files: [
+        {
+          type: 'file',
+          mediaType: 'image/svg+xml',
+          data: encoder.encode(sourceSvg),
+        },
+      ],
+      providerOptions: { quiverai: { operation: 'edit' } },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      svg_source: { base64: convertToBase64(sourceSvg) },
+    });
+  });
+
   it.each([
     { name: 'missing', files: undefined },
     { name: 'empty', files: [] },
@@ -432,6 +455,14 @@ describe('createQuiverAI', () => {
         type: 'file' as const,
         mediaType: 'image/svg+xml',
         data: encoder.encode('<svg>'),
+      },
+    },
+    {
+      name: 'structurally malformed SVG source data',
+      file: {
+        type: 'file' as const,
+        mediaType: 'image/svg+xml',
+        data: encoder.encode('<svg><g></svg>'),
       },
     },
     {
