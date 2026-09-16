@@ -102,6 +102,40 @@ describe('GatewayVideoModel', () => {
       };
     }
 
+    it('preserves a zero seed and Prodia video options', async () => {
+      prepareJsonResponse();
+      await createTestModel().doGenerate({
+        prompt: 'A red fox in a snowy forest',
+        n: 1,
+        seed: 0,
+        duration: 4,
+        aspectRatio: '16:9',
+        resolution: undefined,
+        fps: undefined,
+        generateAudio: true,
+        image: undefined,
+        frameImages: undefined,
+        inputReferences: [
+          {
+            type: 'file',
+            mediaType: 'audio/wav',
+            data: new Uint8Array([1, 2, 3]),
+          },
+        ],
+        providerOptions: { prodia: { resolution: '768P' } },
+      });
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        seed: 0,
+        duration: 4,
+        aspectRatio: '16:9',
+        generateAudio: true,
+        inputReferences: [
+          { type: 'file', mediaType: 'audio/wav', data: 'AQID' },
+        ],
+        providerOptions: { prodia: { resolution: '768P' } },
+      });
+    });
+
     it('should send correct request headers', async () => {
       prepareJsonResponse();
 
