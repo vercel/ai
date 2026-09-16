@@ -49,3 +49,8 @@ fail the whole evaluation. Tests cover these cases, arbitrary IDs and labels,
 cancellation, metadata forwarding, and Boolean rejection before network I/O.
 Schema size limits remain provider/model errors instead of guessed shared caps.
 No probabilities or distributions are synthesized from generated text.
+
+The shared adapter is exported from
+`@ai-sdk/provider-utils/experimental-evaluation`. Its separate entry point keeps
+computed Workflow serialization hooks at module scope for the Workflow compiler
+while allowing ordinary provider-utils imports to exclude evaluation code.
