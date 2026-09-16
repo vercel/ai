@@ -1,5 +1,34 @@
 # @ai-sdk/workflow
 
+## 2.0.33
+
+### Patch Changes
+
+- 0916fe8: fix(workflow): add a browser-safe client entry point for WorkflowChatTransport
+- 8f9808e: fix(workflow): make agent timeouts compatible with workflow functions
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+- Updated dependencies [8b92ba9]
+- Updated dependencies [4b306c2]
+- Updated dependencies [4b306c2]
+  - @ai-sdk/provider@4.0.15
+  - ai@7.0.102
+  - @ai-sdk/provider-utils@5.0.41
+
+## 2.0.32
+
+### Patch Changes
+
+- Updated dependencies [6aa7c54]
+  - ai@7.0.101
+
+## 2.0.31
+
+### Patch Changes
+
+- Updated dependencies [6431635]
+  - ai@7.0.100
+
 ## 2.0.30
 
 ### Patch Changes

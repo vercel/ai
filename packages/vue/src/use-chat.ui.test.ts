@@ -118,7 +118,9 @@ describe('useChat', () => {
       await userEvent.click(screen.getByTestId('do-send'));
 
       await screen.findByTestId('error');
-      expect(screen.getByTestId('error').textContent).toBe('Error: Not found');
+      expect(screen.getByTestId('error').textContent).toBe(
+        'AI_APICallError: Not found',
+      );
       expect(screen.getByTestId('status').textContent).toBe('error');
     });
   });

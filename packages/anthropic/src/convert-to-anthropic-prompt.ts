@@ -1007,7 +1007,8 @@ export async function convertToAnthropicPrompt({
                   }
 
                   // to distinguish between code execution 20250522, 20250825,
-                  // and encrypted results (from web_fetch_20260209/web_search_20260209 injection),
+                  // and encrypted results from implicitly provisioned code
+                  // execution for dynamic web tools,
                   // we check the type property in output.value
                   if (output.value.type === 'code_execution_result') {
                     // code execution 20250522
@@ -1140,9 +1141,9 @@ export async function convertToAnthropicPrompt({
                     break;
                   }
 
-                  // ideally we'd switch schema based on the tool version (e.g.
-                  // web_fetch_20260209 vs web_fetch_20250910), but since both
-                  // versions share an identical output schema, we use one here.
+                  // ideally we'd switch schema based on the tool version, but
+                  // all supported versions share an identical output schema,
+                  // so we use one here.
                   const webFetchOutput = await validateTypes({
                     value: output.value,
                     schema: webFetch_20250910OutputSchema,
@@ -1205,9 +1206,9 @@ export async function convertToAnthropicPrompt({
                     break;
                   }
 
-                  // ideally we'd switch schema based on the tool version (e.g.
-                  // web_search_20260209 vs web_search_20250305), but since both
-                  // versions share an identical output schema, we use one here.
+                  // ideally we'd switch schema based on the tool version, but
+                  // all supported versions share an identical output schema,
+                  // so we use one here.
                   const webSearchOutput = await validateTypes({
                     value: output.value,
                     schema: webSearch_20250305OutputSchema,
