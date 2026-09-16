@@ -24,64 +24,67 @@ type RealtimeStateKey = keyof RealtimeState;
 const useIsomorphicLayoutEffect =
   typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
-class RealtimeStore extends AbstractRealtimeSession {
-  protected state: RealtimeState = {
-    status: 'disconnected',
-    messages: [],
-    events: [],
-    isCapturing: false,
-    isPlaying: false,
-  };
-
-  private callbacks: { [K in RealtimeStateKey]-?: Set<() => void> } = {
-    status: new Set(),
-    messages: new Set(),
-    events: new Set(),
-    isCapturing: new Set(),
-    isPlaying: new Set(),
-    session: new Set(),
-  };
-
-  get status(): RealtimeStatus {
-    return this.state.status;
-  }
-
-  get messages(): UIMessage[] {
-    return this.state.messages;
-  }
-
-  get events(): RealtimeServerEvent[] {
-    return this.state.events;
-  }
-
-  get isCapturing(): boolean {
-    return this.state.isCapturing;
-  }
-
-  get isPlaying(): boolean {
-    return this.state.isPlaying;
-  }
-
-  get session(): RealtimeState['session'] {
-    return this.state.session;
-  }
-
-  subscribe(key: RealtimeStateKey, onChange: () => void): () => void {
-    this.callbacks[key].add(onChange);
-
-    return () => {
-      this.callbacks[key].delete(onChange);
+const RealtimeStore = /* @__PURE__ */ (() =>
+  class RealtimeStore extends AbstractRealtimeSession {
+    protected state: RealtimeState = {
+      status: 'disconnected',
+      messages: [],
+      events: [],
+      isCapturing: false,
+      isPlaying: false,
     };
-  }
 
-  protected setState<K extends RealtimeStateKey>(
-    key: K,
-    value: RealtimeState[K],
-  ): void {
-    this.state = { ...this.state, [key]: value };
-    this.callbacks[key].forEach(callback => callback());
-  }
-}
+    private callbacks: { [K in RealtimeStateKey]-?: Set<() => void> } = {
+      status: new Set(),
+      messages: new Set(),
+      events: new Set(),
+      isCapturing: new Set(),
+      isPlaying: new Set(),
+      session: new Set(),
+    };
+
+    get status(): RealtimeStatus {
+      return this.state.status;
+    }
+
+    get messages(): UIMessage[] {
+      return this.state.messages;
+    }
+
+    get events(): RealtimeServerEvent[] {
+      return this.state.events;
+    }
+
+    get isCapturing(): boolean {
+      return this.state.isCapturing;
+    }
+
+    get isPlaying(): boolean {
+      return this.state.isPlaying;
+    }
+
+    get session(): RealtimeState['session'] {
+      return this.state.session;
+    }
+
+    subscribe(key: RealtimeStateKey, onChange: () => void): () => void {
+      this.callbacks[key].add(onChange);
+
+      return () => {
+        this.callbacks[key].delete(onChange);
+      };
+    }
+
+    protected setState<K extends RealtimeStateKey>(
+      key: K,
+      value: RealtimeState[K],
+    ): void {
+      this.state = { ...this.state, [key]: value };
+      this.callbacks[key].forEach(callback => callback());
+    }
+  })();
+
+type RealtimeStore = InstanceType<typeof RealtimeStore>;
 
 type UseRealtimeReturn = {
   status: RealtimeStatus;
@@ -91,13 +94,13 @@ type UseRealtimeReturn = {
   isPlaying: boolean;
   session?: RealtimeState['session'];
 
-  connect: RealtimeStore['connect'];
-  close: RealtimeStore['close'];
+  connect: AbstractRealtimeSession['connect'];
+  close: AbstractRealtimeSession['close'];
   resumePlayback: () => Promise<void>;
   resumeAudioCapture: () => Promise<void>;
   disconnect: () => void;
   addToolOutput: (callId: string, result: unknown) => void;
-  sendEvent: RealtimeStore['sendEvent'];
+  sendEvent: AbstractRealtimeSession['sendEvent'];
   sendTextMessage: (text: string) => void;
   sendAudio: (base64Audio: string) => void;
   commitAudio: () => void;
