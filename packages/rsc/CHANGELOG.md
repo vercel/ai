@@ -1,5 +1,12 @@
 # @ai-sdk/rsc
 
+## 1.0.261
+
+### Patch Changes
+
+- Updated dependencies [bf32c45]
+  - ai@5.0.259
+
 ## 1.0.260
 
 ### Patch Changes

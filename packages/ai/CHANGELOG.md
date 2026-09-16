@@ -1,5 +1,13 @@
 # ai
 
+## 5.0.259
+
+### Patch Changes
+
+- bf32c45: fix(ai): reject embedding model responses that contain no embeddings
+- Updated dependencies [5728a51]
+  - @ai-sdk/gateway@2.0.153
+
 ## 5.0.258
 
 ### Patch Changes
