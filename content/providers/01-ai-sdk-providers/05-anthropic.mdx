@@ -1893,3 +1893,39 @@ and the `mediaType` should be set to `'application/pdf'`.
   of available models. The table above lists popular models. You can also pass
   any available provider model ID as a string if needed.
 </Note>
+
+## Evaluation Models
+
+Create an experimental evaluation model with `anthropic.evaluationModel(modelId)`.
+It uses the Messages API's structured-output support for Choice and Score
+questions. `claude-haiku-4-5-20251001` is one supported model.
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { experimental_evaluate } from 'ai';
+
+const { answers } = await experimental_evaluate({
+  model: anthropic.evaluationModel('claude-haiku-4-5-20251001'),
+  state: 'I was charged twice.',
+  questions: {
+    department: {
+      type: 'choice',
+      instructions: 'Which team should handle this?',
+      criteria: { billing: 'Charges and refunds', support: 'Other requests' },
+    },
+  },
+});
+```
+
+Choice labels are preserved exactly, and Scores are finite fractional positions
+on the ordered rubric. Anthropic does not support numeric bounds in its native
+output schema, so the adapter describes them in the prompt and validates them
+after parsing. Invalid answers, refusals, and truncation fail the entire call.
+
+The adapter returns no probability distributions and rejects Boolean before a
+request because it cannot supply the required probability of true. It respects
+`createAnthropic` configuration and forwards `providerOptions.anthropic`, including
+`structuredOutputMode`. Supported models use native structured output by default;
+`jsonTool` uses the existing Messages JSON-tool fallback. Usage, warnings,
+response information, and provider metadata are preserved.
+See [Evaluation](/docs/ai-sdk-core/evaluation).
