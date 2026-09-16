@@ -99,7 +99,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       type: 'StopCondition | StopCondition[]',
       isOptional: true,
       description:
-        'Default stop condition for the agent loop. When omitted, WorkflowAgent has no maximum step count and continues until natural completion. Use `isStepCount()` to bound execution. Per-stream values override this default.',
+        'Default stop condition for the agent loop. When omitted, generate defaults to 20 steps, while stream has no maximum step count. Use `isStepCount()` to bound execution. Per-call values override this default.',
     },
     {
       name: 'activeTools',
@@ -477,6 +477,41 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
 />
 
 ## Methods
+
+### `generate()`
+
+Runs the durable agent loop using the model's non-streaming `doGenerate()` method. Model calls and tool execution use the same orchestration as `stream()`.
+
+```ts
+const result = await agent.generate({ prompt: 'Summarize the findings.' });
+console.log(result.text);
+console.log(result.usage);
+```
+
+Accepts `WorkflowAgentGenerateOptions`, sharing prompt/messages, instructions, generation settings, tools and runtime context, preparation, stopping, output, and lifecycle options with `stream()`. It does not accept `writable`, `includeRawChunks`, `experimental_transform`, `sendFinish`, or `preventClose`. Without a configured stop condition, generation stops after at most 20 steps. `stream()` retains its existing unbounded default.
+
+The `include` option accepts `requestBody`, `responseBody`, and `requestMessages` booleans, all defaulting to `false`. Enable them only when the additional request/response data is needed. Response IDs, timestamps, model IDs, headers, and provider metadata are retained when supplied by the model.
+
+#### Returns
+
+Returns `Promise<WorkflowAgentGenerateResult>` with the core [`GenerateTextResult`](/docs/reference/ai-sdk-core/generate-text#returns) semantics:
+
+- `text`, `finishReason`, `rawFinishReason`, and `finalStep` describe the final step.
+- `content`, `files`, `sources`, `warnings`, tool calls, and tool results cover all steps.
+- `usage` and `totalUsage` sum all steps while retaining token details and unknown counts.
+- `responseMessages` includes generated messages, even when `prepareStep` replaces the input history.
+- `output` defaults to text, or follows the constructor/per-call output specification. Reading it throws `NoOutputGeneratedError` when output is unavailable, such as a final `tool-calls` response.
+
+Generation failures reject. The end callback runs before complete-output parsing; a parsing failure can therefore reject after `onEnd` has run. Existing Workflow callback shapes and preparation precedence apply; they are not all identical to core's callback APIs.
+
+<Note>
+  Use the result API inside workflow code and return selected serializable
+  fields (for example, `text` and `usage`) through `run.returnValue`. Returning
+  the whole result class is not supported. Transport-independent approval
+  request creation is separate follow-up work; use `stream()` for approval round
+  trips until that support is available. Performance data currently measures the
+  model response; complete tool/step timing is not yet reported.
+</Note>
 
 ### `stream()`
 

@@ -1,7 +1,14 @@
+import type { LanguageModelV4Content } from '@ai-sdk/provider';
+import {
+  convertLanguageModelContent,
+  DefaultStepResult,
+  calculateTokensPerSecond,
+} from 'ai/internal';
 import type { Context } from '@ai-sdk/provider-utils';
 import {
   DefaultGeneratedFile,
   type LanguageModelUsage,
+  type ModelMessage,
   type StepResult,
   type ToolSet,
 } from 'ai';
@@ -18,11 +25,73 @@ export function buildModelStepResult(
   finish: ModelCallFinish | undefined,
   providerExecutedToolResults: Map<string, ProviderExecutedToolResult>,
   opts: {
+    tools?: ToolSet;
+    requestMessages?: ModelMessage[];
     stepNumber: number;
     runtimeContext: Context;
     toolsContext: Record<string, Context | undefined>;
   },
 ): StepResult<ToolSet, any> {
+  if (raw.generation != null && finish != null) {
+    const providerContent: LanguageModelV4Content[] = raw.content.map(part => {
+      switch (part.type) {
+        case 'tool-call': {
+          const call = toolCalls[part.toolCallIndex];
+          return { ...call, input: '', type: 'tool-call' };
+        }
+        case 'provider-tool-result':
+          return {
+            ...providerExecutedToolResults.get(part.toolCallId)!,
+            type: 'tool-result',
+          } as Extract<LanguageModelV4Content, { type: 'tool-result' }>;
+        case 'file':
+          return { ...part, data: { type: 'data', data: part.data } };
+        default:
+          return part;
+      }
+    });
+    const content = convertLanguageModelContent({
+      content: providerContent,
+      toolCalls: toolCalls as StepResult<ToolSet>['toolCalls'],
+      toolOutputs: [],
+      toolApprovalRequests: [],
+      toolApprovalResponses: [],
+      tools: opts.tools,
+    });
+    const duration = raw.generation.responseTimeMs;
+    const rate = (tokens: number | undefined) =>
+      calculateTokensPerSecond({ tokens, durationMs: duration });
+    return new DefaultStepResult({
+      callId: 'workflow-agent',
+      stepNumber: opts.stepNumber,
+      provider: raw.generation.provider,
+      modelId: raw.generation.modelId,
+      runtimeContext: opts.runtimeContext,
+      toolsContext: opts.toolsContext,
+      content,
+      finishReason: finish.finishReason,
+      rawFinishReason: finish.rawFinishReason,
+      usage: finish.usage,
+      warnings: raw.warnings as StepResult<ToolSet>['warnings'],
+      request: { ...raw.generation.request, messages: opts.requestMessages },
+      response: {
+        ...raw.responseMetadata,
+        messages: [],
+      } as StepResult<ToolSet>['response'],
+      providerMetadata:
+        finish.providerMetadata as StepResult<ToolSet>['providerMetadata'],
+      performance: {
+        responseTimeMs: duration,
+        stepTimeMs: duration,
+        toolExecutionMs: {},
+        effectiveOutputTokensPerSecond: rate(finish.usage.outputTokens),
+        effectiveTotalTokensPerSecond: rate(finish.usage.totalTokens),
+        outputTokensPerSecond: undefined,
+        inputTokensPerSecond: undefined,
+        timeToFirstOutputMs: undefined,
+      },
+    });
+  }
   const {
     content: rawContent,
     reasoning: reasoningParts,

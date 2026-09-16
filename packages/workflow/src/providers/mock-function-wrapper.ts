@@ -38,6 +38,38 @@ class SerializableMockLanguageModel extends MockLanguageModelV4 {
     super({
       provider: 'workflow-test',
       modelId: 'workflow-test-model',
+      doGenerate: async options => {
+        const index = Math.min(
+          options.prompt.filter(message => message.role === 'assistant').length,
+          responses.length - 1,
+        );
+        const response = responses[index];
+        if (response.type === 'error') throw response.error;
+        return {
+          content:
+            response.type === 'text'
+              ? [{ type: 'text', text: response.text }]
+              : [
+                  {
+                    type: 'tool-call',
+                    toolCallId: `call-${index + 1}`,
+                    toolName: response.toolName,
+                    input: response.input,
+                  },
+                ],
+          finishReason: {
+            unified: response.type === 'text' ? 'stop' : 'tool-calls',
+            raw: undefined,
+          },
+          usage,
+          warnings: [],
+          response: {
+            id: 'generate-response',
+            modelId: 'mock-generate',
+            timestamp: new Date(),
+          },
+        };
+      },
       doStream: async (options: MockStreamOptions) => {
         const responseIndex = Math.min(
           options.prompt.filter(message => message.role === 'assistant').length,
