@@ -507,11 +507,11 @@ Generation failures reject. The end callback runs before complete-output parsing
 <Note>
   Use the result API inside workflow code and return selected serializable
   fields (for example, `text` and `usage`) through `run.returnValue`. Returning
-  the whole result class is not supported. Transport-independent approval
-  request creation is separate follow-up work; use `stream()` for approval round
-  trips until that support is available. Performance data currently measures the
-  model response; complete tool/step timing is not yet reported.
+  the whole result class is not supported. Performance data currently measures
+  the model response; complete tool/step timing is not yet reported.
 </Note>
+
+Approval requests appear in `content` and `responseMessages` without requiring a writable. To continue, append `responseMessages` to the original history and add a tool message containing the user's `tool-approval-response`. Preserve the request signature and tool-call input; use the same `experimental_toolApprovalSecret` environment-variable reference on continuation. Local approvals are validated before execution, and provider-executed approval responses are forwarded to the provider. See [approval round trips](/docs/agents/workflow-agent#approval-round-trips-without-streaming).
 
 ### `stream()`
 
