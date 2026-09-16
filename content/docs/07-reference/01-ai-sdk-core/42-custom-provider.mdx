@@ -207,13 +207,15 @@ The `customProvider` function returns a `Provider` instance. It has the followin
 Pass `evaluationModels: Record<string, Experimental_EvaluationModel>` to define
 aliases for evaluation model instances or string IDs. The returned provider adds
 `evaluationModel(alias): Experimental_EvaluationModelV4`. String aliases resolve
-through an explicitly configured default provider with an `evaluationModel`
-method. Unknown aliases use the fallback provider's evaluation factory when
-available; model failures and unsupported questions do not trigger substitution.
+through Gateway by default, or an explicitly configured default provider with
+an `evaluationModel` method. Unknown aliases use the fallback provider's evaluation
+factory when available; model failures and unsupported questions do not trigger
+substitution.
 
 Unavailable evaluation capabilities or models throw `NoSuchModelError` with
 `modelType: 'evaluationModel'`; unknown registry providers throw
 `NoSuchProviderError`. These capabilities are structural extensions and are not
-added to the stable `ProviderV4` contract. Evaluation does not assume Gateway
-support. See [Evaluation](/docs/ai-sdk-core/evaluation#model-aliases-and-registries)
+added to the stable `ProviderV4` contract. Direct evaluation string IDs default
+to Gateway when no default provider is configured.
+See [Evaluation](/docs/ai-sdk-core/evaluation#model-aliases-and-registries)
 for runnable usage patterns.

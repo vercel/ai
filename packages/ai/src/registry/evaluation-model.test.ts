@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   NoSuchModelError,
   Experimental_EvaluationUnsupportedQuestionTypeError as EvaluationUnsupportedQuestionTypeError,
@@ -38,7 +39,10 @@ class EvaluationTestProvider {
   }
 }
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+});
 
 describe('custom evaluation models', () => {
   it('resolves an alias before consulting the fallback', () => {
@@ -176,22 +180,68 @@ describe('evaluation registry', () => {
 });
 
 describe('evaluation model resolution', () => {
+  const server = createTestServer({
+    'https://ai-gateway.vercel.sh/v4/ai/evaluation-model': {
+      response: {
+        type: 'json-value',
+        body: {
+          answers: { correct: { type: 'boolean', probability: 0.98 } },
+          usage: { inputTokens: 10, outputTokens: 2 },
+          warnings: [],
+        },
+      },
+    },
+  });
+
   it('returns model instances unchanged', () => {
     expect(resolveEvaluationModel(model)).toBe(model);
   });
 
-  it.each([undefined, new MockProviderV4()])(
-    'requires an evaluation-capable default provider',
-    provider => {
-      vi.stubGlobal('AI_SDK_DEFAULT_PROVIDER', provider);
-      const fetch = vi.fn();
-      vi.stubGlobal('fetch', fetch);
-      expect(() => resolveEvaluationModel('typesafe/jev-latest')).toThrow(
-        'The default provider does not support evaluation models.',
-      );
-      expect(fetch).not.toHaveBeenCalled();
+  it.each(['string', 'alias'])(
+    'evaluates through Gateway using a model %s when no default provider is configured',
+    async resolution => {
+      vi.stubGlobal('AI_SDK_DEFAULT_PROVIDER', undefined);
+      vi.stubEnv('AI_GATEWAY_API_KEY', 'test-api-key');
+      const modelId = 'typesafe-ai/jev-latest';
+      const state = 'The capital of France is Paris.';
+      const questions = {
+        correct: { type: 'boolean', instructions: 'Is this correct?' },
+      } as const;
+
+      const result = await evaluate({
+        model:
+          resolution === 'string'
+            ? modelId
+            : customProvider({
+                evaluationModels: { check: modelId },
+              }).evaluationModel('check'),
+        state,
+        questions,
+      });
+
+      expect(result.answers.correct.probability).toBe(0.98);
+      expect(result.usage.totalTokens).toBe(12);
+      expect(server.calls).toHaveLength(1);
+      expect(server.calls[0].requestHeaders).toMatchObject({
+        authorization: 'Bearer test-api-key',
+        'ai-model-id': modelId,
+        'ai-evaluation-model-specification-version': '4',
+      });
+      expect(await server.calls[0].requestBodyJson).toEqual({
+        state,
+        questions,
+        providerOptions: {},
+      });
     },
   );
+
+  it('requires an explicitly configured default provider to support evaluation', () => {
+    vi.stubGlobal('AI_SDK_DEFAULT_PROVIDER', new MockProviderV4());
+    expect(() => resolveEvaluationModel('typesafe-ai/jev-latest')).toThrow(
+      'The default provider does not support evaluation models.',
+    );
+    expect(server.calls).toHaveLength(0);
+  });
 
   it('validates versions returned by model instances, aliases, registries, and defaults', () => {
     const invalid = {
