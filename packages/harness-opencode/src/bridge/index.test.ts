@@ -103,6 +103,97 @@ describe('OpenCode bridge turn settlement', () => {
     vi.unstubAllEnvs();
   });
 
+  it('preserves native manual compaction as one normalized completion event', async () => {
+    const emitted: Array<Record<string, unknown>> = [];
+    const emitError = vi.fn();
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'compact',
+      model: 'openai/test-model',
+      resumeSessionId: 'session-1',
+    };
+    bridgeMock.turn = {
+      emit: (event: Record<string, unknown>) => emitted.push(event),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: createUserMessages(),
+      abortSignal: new AbortController().signal,
+      firstTurn: false,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError,
+    };
+    sdkMock.client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        get: vi.fn(async () => ({ data: {} })),
+        summarize: vi.fn(async () => ({ data: {} })),
+      },
+      v2: {
+        session: { switchModel: vi.fn(async () => ({ data: {} })) },
+      },
+      event: {
+        subscribe: vi.fn(async () => ({
+          stream: {
+            async *[Symbol.asyncIterator]() {
+              yield {
+                type: 'message.part.updated',
+                properties: {
+                  part: {
+                    sessionID: 'session-1',
+                    type: 'compaction',
+                    auto: false,
+                  },
+                },
+              };
+              yield {
+                type: 'message.updated',
+                properties: {
+                  info: {
+                    sessionID: 'session-1',
+                    id: 'summary-1',
+                    role: 'assistant',
+                    summary: true,
+                  },
+                },
+              };
+              yield {
+                type: 'message.part.updated',
+                properties: {
+                  part: {
+                    sessionID: 'session-1',
+                    messageID: 'summary-1',
+                    id: 'summary-text',
+                    type: 'text',
+                    text: 'Preserved context.',
+                  },
+                },
+              };
+              yield {
+                type: 'session.compacted',
+                properties: { sessionID: 'session-1' },
+              };
+            },
+          },
+        })),
+      },
+    };
+    setBridgeArgv();
+    await import('./index');
+
+    expect(emitError).not.toHaveBeenCalled();
+    expect(emitted.filter(event => event.type === 'compaction')).toEqual([
+      {
+        type: 'compaction',
+        trigger: 'manual',
+        summary: 'Preserved context.',
+        harnessMetadata: { opencode: { messageId: 'summary-1' } },
+      },
+    ]);
+    expect(emitted.some(event => event.type === 'text-delta')).toBe(false);
+    expect(emitted.at(-1)).toMatchObject({ type: 'finish' });
+  });
+
   it('enables the interactive question tool', async () => {
     const userMessages = createUserMessages();
     bridgeMock.start = {
