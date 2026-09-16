@@ -63,6 +63,7 @@ import type { ActiveTools } from './active-tools';
 import { calculateTokensPerSecond } from './calculate-tokens-per-second';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { convertLanguageModelContent } from './convert-language-model-content';
+import { createToolSearchState } from '../tool-search/prepare-tool-search';
 import { executeToolCall } from './execute-tool-call';
 import {
   filterActiveTools,
@@ -575,6 +576,10 @@ export async function generateText<
     tools,
     toolCallers: experimental_toolCallers,
   });
+  const prepareToolSearch = createToolSearchState({
+    tools,
+    toolCallers: resolvedToolCallers,
+  });
   const stopConditions = asArray(stopWhen);
   const resolvedOnStart = onStart ?? experimental_onStart;
   const resolvedOnStepStart = onStepStart ?? experimental_onStepStart;
@@ -920,7 +925,10 @@ export async function generateText<
                 modelTools: stepModelTools,
                 toolCallerMessages,
               } = prepareToolsForToolCallers({
-                tools: stepActiveTools,
+                tools: prepareToolSearch(stepActiveTools, {
+                  toolsContext,
+                  experimental_sandbox: stepSandbox,
+                }),
                 toolCallers: resolvedToolCallers,
               });
               const stepToolOrder = prepareStepResult?.toolOrder ?? toolOrder;
