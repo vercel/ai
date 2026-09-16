@@ -833,6 +833,30 @@ Use the `approvalId` from the returned `tool-approval-request` and the user's `a
 
 Local tools execute only after approval validation; denied tools produce an execution-denied result. Provider-executed approvals are forwarded to the provider. Tools that wait on Workflow hooks can also suspend and resume during generation.
 
+#### Deadlines, cancellation, and replay
+
+Inside a workflow, `timeout` sets an absolute deadline for model calls. Each model step checks it before dispatch, before SDK retry attempts, and after the provider returns. The same deadline remains in effect after a tool suspends and resumes. SDK `maxRetries` governs model retries; the durable model step does not add another retry layer. Expiration before dispatch rejects with `TimeoutError`; expiration during SDK retry backoff rejects with `AbortError`. Neither starts a new retry.
+
+A model deadline does not cancel a tool waiting on a Workflow hook. The run can remain suspended after that deadline. Once the hook resumes, any subsequent model call fails before dispatch if the deadline has expired. To stop the suspended run, use the Workflow runtime's `run.cancel()` API. Cancellation does not undo external side effects that already happened.
+
+Workflow reuses completed durable model and tool steps on replay. Put external side effects inside step functions and use the external service's idempotency mechanism where necessary: completed-step replay does not guarantee exactly-once effects for an interrupted attempt.
+
+Generated files and result getters are available inside workflow code. Return the data the caller needs, for example:
+
+```ts
+return {
+  text: result.text,
+  files: result.files.map(file => ({
+    data: file.uint8Array,
+    mediaType: file.mediaType,
+  })),
+  usage: result.usage,
+  responseMessages: result.responseMessages,
+};
+```
+
+The generated result class itself is not a supported `run.returnValue` shape. Request and response bodies are omitted unless explicitly enabled with `include`; available response headers, timestamps, IDs and provider metadata are retained. Workflow uses its existing callback shapes and preparation rules, and reports model response timing rather than complete tool/step timing. It does not implement ToolLoopAgent's `callOptionsSchema` abstraction or core's live streaming readers and HTTP response helpers.
+
 ### Replace `experimental_context` with `runtimeContext` and `toolsContext`
 
 `WorkflowAgent` no longer accepts `experimental_context`. Split the value into shared agent state (`runtimeContext`) and per-tool state (`toolsContext`); each tool's `execute` then receives only its own validated entry as `context`. See [runtimeContext and toolsContext](#runtimecontext-and-toolscontext) for the full shape.

@@ -53,3 +53,26 @@ it('infers text, structured outputs, per-call overrides, tools and runtime conte
   // @ts-expect-error prompt and messages are mutually exclusive
   agent.generate({ prompt: 'test', messages: [] });
 });
+
+it('validates generate tools context and per-call overrides', async () => {
+  const agent = new WorkflowAgent({
+    model: 'mock/model',
+    tools: {
+      lookup: tool({
+        inputSchema: z.object({ query: z.string() }),
+        contextSchema: z.object({ apiKey: z.string() }),
+        execute: async (_input, { context }) => {
+          expectTypeOf(context.apiKey).toEqualTypeOf<string>();
+          return 42;
+        },
+      }),
+    },
+    toolsContext: { lookup: { apiKey: 'initial' } },
+  });
+  await agent.generate({
+    prompt: 'test',
+    toolsContext: { lookup: { apiKey: 'override' } },
+  });
+  // @ts-expect-error tool context values must match their schema
+  agent.generate({ prompt: 'test', toolsContext: { lookup: { apiKey: 123 } } });
+});

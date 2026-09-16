@@ -178,3 +178,18 @@ Removed tools reject continuation rather than execute an unavailable tool.
 real runtime, persisted environment-variable references instead of secrets, and
 hook suspension/resumption retaining completed model/tool step records. Replay
 retention is not an exactly-once guarantee for external side effects.
+
+## Phase 5 boundary coverage
+
+`workflow-agent-boundaries.integration.test.ts` exercises generation deadlines,
+SDK retries within a single durable attempt, provider aborts, expiration across
+hook suspension, cancellation of a suspended run, and selected rich result fields
+across replay. Dispatch traces distinguish SDK attempts from Workflow attempts;
+persisted deadline inputs and dispatch traces prove that expired adapters do not
+initiate another model call. The existing Phase 2–4 suites continue to cover payload compatibility,
+repair references, signed approval continuation and completed-tool replay.
+
+The supported serialization contract is the result API inside workflow code and
+selected data returned through `run.returnValue`. Whole result class instances,
+exactly-once external effects, hook cancellation through a model timeout, complete
+tool/step timing, and ToolLoopAgent's call-options schema are not promised.
