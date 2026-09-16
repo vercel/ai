@@ -615,9 +615,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       raw: undefined,
     };
     let usage: GoogleGenerativeAIUsageMetadata | undefined = undefined;
-    let providerMetadata: SharedV3ProviderMetadata | undefined = undefined;
+    let promptFeedback: PromptFeedbackSchema | null = null;
     let lastGroundingMetadata: GroundingMetadataSchema | null = null;
     let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
+    let lastSafetyRatings: SafetyRatingSchema[] | null = null;
+    let lastFinishMessage: string | null = null;
+    let confirmedPromptBlockReason: string | undefined;
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
@@ -714,39 +717,47 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
               usage = usageMetadata;
             }
 
-            const candidate = value.candidates?.[0];
+            if (
+              value.promptFeedback != null &&
+              confirmedPromptBlockReason == null
+            ) {
+              promptFeedback = value.promptFeedback;
 
-            // sometimes the API returns an empty candidates array
-            if (candidate == null) {
-              const promptBlockReason = value.promptFeedback?.blockReason;
-              if (promptBlockReason != null) {
+              if (
+                isConfirmedPromptBlockReason(value.promptFeedback.blockReason)
+              ) {
+                confirmedPromptBlockReason = value.promptFeedback.blockReason;
                 finishReason = {
                   unified: 'content-filter',
-                  raw: promptBlockReason,
-                };
-                providerMetadata = {
-                  [providerOptionsName]: {
-                    promptFeedback: value.promptFeedback ?? null,
-                    groundingMetadata: lastGroundingMetadata,
-                    urlContextMetadata: lastUrlContextMetadata,
-                    safetyRatings: null,
-                    usageMetadata: usageMetadata ?? null,
-                    finishMessage: null,
-                    serviceTier: usage?.serviceTier ?? null,
-                  } satisfies GoogleGenerativeAIProviderMetadata,
+                  raw: confirmedPromptBlockReason,
                 };
               }
+            }
+
+            const candidate = value.candidates?.[0];
+
+            if (candidate != null) {
+              if (candidate.groundingMetadata != null) {
+                lastGroundingMetadata = candidate.groundingMetadata;
+              }
+              if (candidate.urlContextMetadata != null) {
+                lastUrlContextMetadata = candidate.urlContextMetadata;
+              }
+              if (candidate.safetyRatings != null) {
+                lastSafetyRatings = candidate.safetyRatings;
+              }
+              if (candidate.finishMessage != null) {
+                lastFinishMessage = candidate.finishMessage;
+              }
+            }
+
+            // A confirmed prompt block is terminal for generated content, but
+            // later chunks can still contribute usage and provider metadata.
+            if (confirmedPromptBlockReason != null || candidate == null) {
               return;
             }
 
             const content = candidate.content;
-
-            if (candidate.groundingMetadata != null) {
-              lastGroundingMetadata = candidate.groundingMetadata;
-            }
-            if (candidate.urlContextMetadata != null) {
-              lastUrlContextMetadata = candidate.urlContextMetadata;
-            }
 
             const sources = extractSources({
               groundingMetadata: candidate.groundingMetadata,
@@ -1125,33 +1136,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
               }
             }
 
-            const promptBlockReason = value.promptFeedback?.blockReason;
-            const isPromptBlocked =
-              candidate.finishReason == null && promptBlockReason != null;
-            const rawFinishReason =
-              candidate.finishReason ?? promptBlockReason ?? undefined;
-
-            if (rawFinishReason != null) {
+            if (candidate.finishReason != null) {
               finishReason = {
-                unified: isPromptBlocked
-                  ? 'content-filter'
-                  : mapGoogleGenerativeAIFinishReason({
-                      finishReason: rawFinishReason,
-                      hasToolCalls,
-                    }),
-                raw: rawFinishReason,
-              };
-
-              providerMetadata = {
-                [providerOptionsName]: {
-                  promptFeedback: value.promptFeedback ?? null,
-                  groundingMetadata: lastGroundingMetadata,
-                  urlContextMetadata: lastUrlContextMetadata,
-                  safetyRatings: candidate.safetyRatings ?? null,
-                  usageMetadata: usageMetadata ?? null,
-                  finishMessage: candidate.finishMessage ?? null,
-                  serviceTier: usage?.serviceTier ?? null,
-                } satisfies GoogleGenerativeAIProviderMetadata,
+                unified: mapGoogleGenerativeAIFinishReason({
+                  finishReason: candidate.finishReason,
+                  hasToolCalls,
+                }),
+                raw: candidate.finishReason,
               };
             }
           },
@@ -1174,7 +1165,17 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
               type: 'finish',
               finishReason,
               usage: convertGoogleGenerativeAIUsage(usage),
-              providerMetadata,
+              providerMetadata: {
+                [providerOptionsName]: {
+                  promptFeedback,
+                  groundingMetadata: lastGroundingMetadata,
+                  urlContextMetadata: lastUrlContextMetadata,
+                  safetyRatings: lastSafetyRatings,
+                  usageMetadata: usage ?? null,
+                  finishMessage: lastFinishMessage,
+                  serviceTier: usage?.serviceTier ?? null,
+                } satisfies GoogleGenerativeAIProviderMetadata,
+              },
             });
           },
         }),
@@ -1609,3 +1610,14 @@ const chunkSchema = lazySchema(() =>
 );
 
 type ChunkSchema = InferSchema<typeof chunkSchema>;
+
+function isConfirmedPromptBlockReason(
+  blockReason: string | null | undefined,
+): blockReason is string {
+  return (
+    blockReason != null &&
+    blockReason !== '' &&
+    blockReason !== 'BLOCK_REASON_UNSPECIFIED' &&
+    blockReason !== 'BLOCKED_REASON_UNSPECIFIED'
+  );
+}
