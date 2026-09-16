@@ -28,7 +28,11 @@ import {
   isToolOrDynamicToolUIPart,
   isToolUIPart,
 } from './ui-messages';
+<<<<<<< HEAD
 
+=======
+import { warnIfUIMessageHasDeprecatedRawInput } from './warn-if-ui-message-has-deprecated-raw-input';
+>>>>>>> 25a0447c29 (feat: deprecate rawInput in output-error UI message parts (#20319))
 /**
 Converts an array of UI messages from useChat into an array of ModelMessages that can be used
 with the AI functions (e.g. `streamText`, `generateText`).
@@ -51,6 +55,8 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
   },
 ): ModelMessage[] {
   const modelMessages: ModelMessage[] = [];
+
+  warnIfUIMessageHasDeprecatedRawInput(messages);
 
   if (options?.ignoreIncompleteToolCalls) {
     messages = messages.map(message => ({
