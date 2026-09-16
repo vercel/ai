@@ -1,5 +1,18 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.85
+
+### Patch Changes
+
+- 132bdae: feat(anthropic): add 20260318 web search and web fetch tools with response inclusion controls
+- Updated dependencies [132bdae]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/anthropic@4.0.55
+  - @ai-sdk/provider@4.0.16
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/openai@4.0.68
+
 ## 5.0.84
 
 ### Patch Changes
