@@ -50,6 +50,7 @@ import {
   validateApprovedToolApprovals,
   verifyToolApprovalSignature,
 } from 'ai/internal';
+import { getWorkflowMetadata } from 'workflow';
 import { addToolResultsToConversation } from './add-tool-results-to-conversation.js';
 import { createLanguageModelToolResultOutput } from './create-language-model-tool-result-output.js';
 import type {
@@ -1697,9 +1698,12 @@ export class WorkflowAgent<
     } as Prompt);
     const download = effectiveDownloadFromPrepare;
     const sandbox = options.experimental_sandbox ?? this.experimentalSandbox;
+    // Model steps enforce the absolute deadline below. Avoid creating a native
+    // timeout signal in the workflow VM, where timer APIs are unavailable.
+    const abortSignalTimeout = isInWorkflow() ? undefined : options.timeout;
     const effectiveAbortSignal = mergeAbortSignals(
       options.abortSignal ?? effectiveGenerationSettings.abortSignal,
-      options.timeout,
+      abortSignalTimeout,
     );
     const timeoutAt =
       options.timeout == null ? undefined : Date.now() + options.timeout;
@@ -3187,6 +3191,15 @@ async function writeApprovalToolResults(
     await writer.write({ type: 'start-step' });
   } finally {
     writer.releaseLock();
+  }
+}
+
+function isInWorkflow(): boolean {
+  try {
+    getWorkflowMetadata();
+    return true;
+  } catch {
+    return false;
   }
 }
 

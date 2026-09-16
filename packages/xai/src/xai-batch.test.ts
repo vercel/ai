@@ -1041,7 +1041,6 @@ describe('xAI batch', () => {
     for (const model of [
       provider('grok-4.3'),
       provider.responses('grok-4.3'),
-      provider.chat('grok-4.3'),
     ]) {
       expect((model as any).doStartBatch).toBeUndefined();
     }

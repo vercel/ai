@@ -508,17 +508,22 @@ export type AnthropicTool =
       type: 'memory_20250818';
     }
   | {
-      type: 'web_fetch_20250910' | 'web_fetch_20260209';
+      type: 'web_fetch_20250910' | 'web_fetch_20260209' | 'web_fetch_20260318';
       name: string;
       max_uses?: number;
       allowed_domains?: string[];
       blocked_domains?: string[];
       citations?: { enabled: boolean };
       max_content_tokens?: number;
+      use_cache?: boolean;
+      response_inclusion?: 'full' | 'excluded';
       cache_control: AnthropicCacheControl | undefined;
     }
   | {
-      type: 'web_search_20250305' | 'web_search_20260209';
+      type:
+        | 'web_search_20250305'
+        | 'web_search_20260209'
+        | 'web_search_20260318';
       name: string;
       max_uses?: number;
       allowed_domains?: string[];
@@ -530,6 +535,7 @@ export type AnthropicTool =
         country?: string;
         timezone?: string;
       };
+      response_inclusion?: 'full' | 'excluded';
       cache_control: AnthropicCacheControl | undefined;
     }
   | {
