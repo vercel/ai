@@ -3439,6 +3439,6 @@ output, or invalid answers fail the entire call. See [Evaluation](/docs/ai-sdk-c
 
 Evaluation models can also be accessed through `customProvider` aliases or
 `createProviderRegistry().evaluationModel('provider:model')`. Direct string IDs
-require an explicitly configured default provider with an `evaluationModel`
-method; they do not automatically use Gateway. See
+use Gateway by default, or an explicitly configured default provider with an
+`evaluationModel` method. See
 [model aliases and registries](/docs/ai-sdk-core/evaluation#model-aliases-and-registries).

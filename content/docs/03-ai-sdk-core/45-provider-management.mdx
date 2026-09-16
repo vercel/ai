@@ -473,8 +473,8 @@ This simplifies provider usage and makes it easier to switch between providers w
 
 Custom providers accept `evaluationModels` aliases, and registries expose
 `evaluationModel('provider:model')`. These methods return model instances for
-`experimental_evaluate`. An explicitly configured default provider with an
-`evaluationModel` method also enables direct string IDs; evaluation does not
-implicitly use Gateway. Registry middleware for language and image models does
-not apply to evaluation. See [Evaluation](/docs/ai-sdk-core/evaluation#model-aliases-and-registries)
+`experimental_evaluate`. Direct string IDs use Gateway by default, or an
+explicitly configured default provider with an `evaluationModel` method. Registry
+middleware for language and image models does not apply to evaluation.
+See [Evaluation](/docs/ai-sdk-core/evaluation#model-aliases-and-registries)
 for aliases, default-provider configuration, and capability differences.
