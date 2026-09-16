@@ -59,6 +59,13 @@ type BaseTool<
   CONTEXT extends Context | unknown | never = any,
 > = {
   /**
+   * Defer exposing this tool until it is discovered by `toolSearch`.
+   * Requires routing exclusively through local callers that announce tools
+   * in conversation messages (code mode with `toolDiscovery: 'conversation'`).
+   */
+  deferLoading?: boolean;
+
+  /**
    * An optional title of the tool.
    *
    * @deprecated Use `providerMetadata` for source-specific tool display metadata.

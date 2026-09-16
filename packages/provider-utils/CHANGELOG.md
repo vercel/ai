@@ -1,5 +1,16 @@
 # @ai-sdk/provider-utils
 
+## 5.0.42
+
+### Patch Changes
+
+- 91c2128: feat(ai): add mid conversation tool discovery/updates for code-mode
+- 2cd80b3: Keep default Node.js downloads protected by DNS validation and connection pinning when frameworks or instrumentation wrap global fetch before or after the SDK loads.
+- 2fa5e0e: fix(provider-utils): avoid crashing when DOMException is not a global constructor
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+  - @ai-sdk/provider@4.0.16
+
 ## 5.0.41
 
 ### Patch Changes

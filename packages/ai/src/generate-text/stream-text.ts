@@ -89,6 +89,7 @@ import {
   executeToolsFromStream,
   type ExecuteToolsStreamPart,
 } from './execute-tools-from-stream';
+import { createToolSearchState } from '../tool-search/prepare-tool-search';
 import { executeToolCall } from './execute-tool-call';
 import {
   filterActiveTools,
@@ -1382,6 +1383,10 @@ class DefaultStreamTextResult<
       tools,
       toolCallers: experimental_toolCallers,
     });
+    const prepareToolSearch = createToolSearchState({
+      tools,
+      toolCallers: resolvedToolCallers,
+    });
 
     const telemetryDispatcher = createRestrictedTelemetryDispatcher<
       TOOLS,
@@ -2333,7 +2338,10 @@ class DefaultStreamTextResult<
             modelTools: stepModelTools,
             toolCallerMessages,
           } = prepareToolsForToolCallers({
-            tools: stepActiveTools,
+            tools: prepareToolSearch(stepActiveTools, {
+              toolsContext,
+              experimental_sandbox: stepSandbox,
+            }),
             toolCallers: resolvedToolCallers,
           });
           const stepToolOrder = prepareStepResult?.toolOrder ?? toolOrder;
