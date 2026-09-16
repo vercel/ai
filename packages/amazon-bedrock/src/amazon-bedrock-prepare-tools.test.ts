@@ -174,6 +174,33 @@ describe('prepareTools', () => {
       ]);
     });
 
+    it.each([
+      'anthropic.web_search_20260318' as const,
+      'anthropic.web_fetch_20260318' as const,
+    ])('should warn and filter out unsupported %s tool', async toolId => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'provider',
+            id: toolId,
+            name: toolId.includes('search') ? 'web_search' : 'web_fetch',
+            args: {},
+          },
+        ],
+        modelId: ANTHROPIC_MODEL,
+      });
+
+      const toolType = toolId.slice('anthropic.'.length);
+      expect(result.toolConfig).toEqual({});
+      expect(result.toolWarnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: `${toolType} tool`,
+          details: `The ${toolType} tool is not supported on Amazon Bedrock.`,
+        },
+      ]);
+    });
+
     it('should return empty toolConfig when all tools are filtered out', async () => {
       const result = await prepareTools({
         tools: [
@@ -192,6 +219,31 @@ describe('prepareTools', () => {
   });
 
   describe('tool choice', () => {
+    it('should use Anthropic tool choice fields for a declared Anthropic application inference profile', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'Test',
+            inputSchema: {},
+          },
+        ],
+        modelId:
+          'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/custom-profile',
+        modelFamily: 'anthropic',
+        disableParallelToolUse: true,
+      });
+
+      expect(result.additionalTools).toEqual({
+        tool_choice: {
+          type: 'auto',
+          disable_parallel_tool_use: true,
+        },
+      });
+      expect(result.toolConfig.toolChoice).toBeUndefined();
+    });
+
     it('should handle tool choice "auto"', async () => {
       const result = await prepareTools({
         tools: [
@@ -471,6 +523,9 @@ describe('prepareTools', () => {
       'us.anthropic.claude-opus-5',
       'anthropic.claude-sonnet-5',
       'eu.anthropic.claude-fable-5',
+      'anthropic.claude-fable-5-1',
+      'us.anthropic.claude-fable-5-1',
+      'global.anthropic.claude-fable-5-1',
     ])('should warn when strict is omitted for %s', async modelId => {
       const result = await prepareTools({
         tools: [

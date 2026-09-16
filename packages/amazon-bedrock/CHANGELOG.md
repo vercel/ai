@@ -1,5 +1,81 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.85
+
+### Patch Changes
+
+- 132bdae: feat(anthropic): add 20260318 web search and web fetch tools with response inclusion controls
+- d82eac2: fix(amazon-bedrock): enable Anthropic features for application inference profile chat models
+- Updated dependencies [132bdae]
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/anthropic@4.0.55
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+  - @ai-sdk/openai@4.0.68
+
+## 5.0.84
+
+### Patch Changes
+
+- c83bc67: feat: add Claude Fable 5.1 model IDs to Bedrock and Vertex providers
+
+## 5.0.83
+
+### Patch Changes
+
+- 9a46ac6: fix(amazon-bedrock): rename thinking block binding field for Bedrock
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/openai@4.0.67
+  - @ai-sdk/anthropic@4.0.54
+  - @ai-sdk/provider-utils@5.0.41
+
+## 5.0.82
+
+### Patch Changes
+
+- 5191b61: fix: support Bedrock endpoints for non-standard AWS regions and service-specific overrides
+- 0de8886: fix(openai): allow providers to disable web search source includes
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [0de8886]
+- Updated dependencies [e4292e7]
+- Updated dependencies [d5e3024]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/anthropic@4.0.53
+  - @ai-sdk/openai@4.0.66
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
+## 5.0.81
+
+### Patch Changes
+
+- Updated dependencies [9942196]
+- Updated dependencies [9942196]
+- Updated dependencies [5a7e647]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/openai@4.0.65
+  - @ai-sdk/anthropic@4.0.52
+  - @ai-sdk/provider-utils@5.0.39
+
+## 5.0.80
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+- Updated dependencies [ccb8952]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/openai@4.0.64
+  - @ai-sdk/anthropic@4.0.51
+  - @ai-sdk/provider-utils@5.0.38
+
 ## 5.0.79
 
 ### Patch Changes

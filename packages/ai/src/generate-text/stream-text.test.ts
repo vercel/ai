@@ -23320,6 +23320,77 @@ describe('streamText', () => {
       );
     });
 
+    it('announces local caller tools in a message while preserving the caller definition', async () => {
+      let modelTools: LanguageModelV4CallOptions['tools'];
+      let modelPrompt!: LanguageModelV4CallOptions['prompt'];
+
+      const localCaller = experimental_toolCaller(
+        tool({
+          description: 'Stable caller description.',
+          inputSchema: z.object({}),
+          execute: async () => undefined,
+        }),
+        {
+          type: 'local',
+          bind: () =>
+            tool({
+              description: 'Bound caller description.',
+              inputSchema: z.object({}),
+              execute: async () => undefined,
+            }),
+          prepareModelMessage: tools =>
+            `Available caller tools: ${Object.keys(tools).join(', ')}.`,
+        },
+      );
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async options => {
+            modelTools = options.tools;
+            modelPrompt = options.prompt;
+            return {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        tools: {
+          code_mode: localCaller,
+          getInventory: tool({
+            inputSchema: z.object({ sku: z.string() }),
+            execute: async ({ sku }) => ({ sku, availableUnits: 42 }),
+          }),
+        },
+        experimental_toolCallers: {
+          getInventory: ['code_mode'],
+        },
+        prompt: 'Check inventory.',
+      });
+
+      await result.consumeStream();
+
+      expect(modelTools).toMatchObject([
+        {
+          name: 'code_mode',
+          description: 'Stable caller description.',
+        },
+      ]);
+      expect(modelPrompt).toContainEqual({
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Available caller tools: getInventory.',
+          },
+        ],
+      });
+    });
+
     it('adds provider caller options while preserving direct access', async () => {
       let modelTools: LanguageModelV4CallOptions['tools'];
 
@@ -28511,6 +28582,95 @@ describe('streamText', () => {
   });
 
   describe('tool execution approval', () => {
+    it('should settle automatically denied tool calls in the UI message stream', async () => {
+      const execute = vi.fn();
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start', warnings: [] },
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              input: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: { unified: 'tool-calls', raw: undefined },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute,
+          }),
+        },
+        toolApproval: {
+          tool1: {
+            type: 'denied',
+            reason: 'blocked by policy',
+          },
+        },
+        prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
+        },
+      });
+
+      const [chunkStream, messageStream] = result.toUIMessageStream().tee();
+      const [chunks, messages] = await Promise.all([
+        convertReadableStreamToArray(chunkStream),
+        convertReadableStreamToArray(
+          readUIMessageStream({ stream: messageStream }),
+        ),
+      ]);
+
+      expect(
+        chunks.filter(chunk =>
+          [
+            'tool-approval-request',
+            'tool-approval-response',
+            'tool-output-denied',
+          ].includes(chunk.type),
+        ),
+      ).toEqual([
+        {
+          type: 'tool-approval-request',
+          approvalId: 'id-1',
+          toolCallId: 'call-1',
+          isAutomatic: true,
+        },
+        {
+          type: 'tool-approval-response',
+          approvalId: 'id-1',
+          approved: false,
+          reason: 'blocked by policy',
+        },
+        {
+          type: 'tool-output-denied',
+          toolCallId: 'call-1',
+        },
+      ]);
+      expect(
+        messages.at(-1)?.parts.find(part => part.type === 'tool-tool1'),
+      ).toMatchObject({
+        type: 'tool-tool1',
+        toolCallId: 'call-1',
+        state: 'output-denied',
+        input: { value: 'value' },
+        approval: {
+          id: 'id-1',
+          approved: false,
+          reason: 'blocked by policy',
+          isAutomatic: true,
+        },
+      });
+      expect(execute).not.toHaveBeenCalled();
+    });
+
     it('should surface the reason for streamed user approval requests', async () => {
       const result = streamText({
         model: createTestModel({
@@ -29141,6 +29301,10 @@ describe('streamText', () => {
                 "approved": false,
                 "reason": "blocked by policy",
                 "type": "tool-approval-response",
+              },
+              {
+                "toolCallId": "call-1",
+                "type": "tool-output-denied",
               },
               {
                 "type": "finish-step",

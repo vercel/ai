@@ -1,5 +1,69 @@
 # @ai-sdk/openai
 
+## 4.0.68
+
+### Patch Changes
+
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
+## 4.0.67
+
+### Patch Changes
+
+- 5c0054d: Add optional browser-direct WebRTC for experimental client-delegated Live conversations alongside the existing WebSocket path. Exchange SDP through an application endpoint with `api.session`, configure server-owned data-channel permissions, and preserve committed React session ownership. Capture follows the selected sender track, borrowed tracks remain caller-owned, and disconnect recovery and finalization stay bounded. Applications continue to handle client delegation and submit context; Live session updates and Responses delegation remain unsupported.
+
+  Serialize microphone sender changes and close the peer if detachment fails, without stopping borrowed tracks. Validate nonempty SDP setup answers with a bounded response body, and document the same-origin broker authentication contract.
+
+- 39535af: Add experimental OpenAI Live provider support through the unified `openai.experimental_realtime` factory for server WebSocket sessions with client delegation. Applications own their agents and tools, receive continuous audio/transcript events and delegation metadata, and return context through validated channels. Support immutable startup options, microphone mute controls, graceful session close, and cumulative voice usage. Responses delegation and Live session updates reject before sending.
+
+  Route known Live model IDs to Live, allow an OpenAI-specific `api` override for early-access models, and preserve legacy Realtime defaults for unknown IDs. Token minting follows the same selection rules and rejects Live before requesting unsupported credentials. Extend the realtime v4 specification with optional server WebSocket configuration, per-connection raw-event parsers, and model-wide startup/finalization capabilities. This provider layer supplies connection settings and protocol mapping for server adapters; browser lifecycle and UI integration belong to the core runtime and framework hooks.
+
+  Preserve Realtime client event IDs for session updates and audio appends, and correlate server errors with the originating client event.
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/provider-utils@5.0.41
+
+## 4.0.66
+
+### Patch Changes
+
+- 5ec21a6: fix: reject unsupported batch request types
+- 7469a3b: feat: support image generation requests in batches
+- 0de8886: fix(openai): allow providers to disable web search source includes
+- d5e3024: fix(openai): remove propertyNames from JSON Schema
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
+## 4.0.65
+
+### Patch Changes
+
+- 9942196: feat(openai): add batch cancellation and listing
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/provider-utils@5.0.39
+
+## 4.0.64
+
+### Patch Changes
+
+- ccb8952: fix(openai): return an AI SDK error for empty chat completion choices
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/provider-utils@5.0.38
+
 ## 4.0.63
 
 ### Patch Changes

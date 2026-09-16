@@ -1798,6 +1798,18 @@ describe('AnthropicLanguageModel', () => {
       `);
     });
 
+    it('should omit preserved thinking input transformations when absent', async () => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      const result = await provider('claude-fable-5-1').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(
+        result.providerMetadata?.anthropic?.inputTransformations,
+      ).toBeUndefined();
+    });
+
     describe('refusal stop reason', () => {
       it('should map a classifier refusal to content-filter and expose stop details', async () => {
         prepareJsonFixtureResponse('anthropic-refusal');
@@ -3406,6 +3418,75 @@ describe('AnthropicLanguageModel', () => {
         expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
           'code-execution-web-tools-2026-02-09',
         );
+      });
+
+      it('should use web_search_20260318 with response inclusion and map custom tool names', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            type: 'message',
+            id: 'msg_test',
+            content: [
+              {
+                type: 'server_tool_use',
+                id: 'srvtoolu_code',
+                name: 'code_execution',
+                input: { code: 'search("AI SDK")' },
+                caller: { type: 'direct' },
+              },
+              {
+                type: 'server_tool_use',
+                id: 'srvtoolu_search',
+                name: 'web_search',
+                input: { query: 'AI SDK' },
+                caller: {
+                  type: 'code_execution_20260120',
+                  tool_id: 'srvtoolu_code',
+                },
+              },
+            ],
+            stop_reason: 'end_turn',
+            usage: { input_tokens: 10, output_tokens: 20 },
+          },
+        };
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.web_search_20260318',
+              name: 'research',
+              args: {
+                maxUses: 3,
+                responseInclusion: 'excluded',
+              },
+            },
+          ],
+        });
+
+        expect((await server.calls[0].requestBodyJson).tools).toEqual([
+          {
+            type: 'web_search_20260318',
+            name: 'web_search',
+            max_uses: 3,
+            response_inclusion: 'excluded',
+          },
+        ]);
+        expect(
+          server.calls[0].requestHeaders['anthropic-beta'],
+        ).toBeUndefined();
+        expect(result.content).toEqual([
+          expect.objectContaining({
+            type: 'tool-call',
+            toolName: 'code_execution',
+            dynamic: true,
+          }),
+          expect.objectContaining({
+            type: 'tool-call',
+            toolName: 'research',
+          }),
+        ]);
       });
 
       it('should pass web search configuration with blocked domains', async () => {
@@ -11363,6 +11444,20 @@ describe('getModelCapabilities', () => {
     `);
   });
 
+  it('should return correct capabilities for claude-fable-5-1', () => {
+    expect(getModelCapabilities('claude-fable-5-1')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabledAboveHighEffort": false,
+        "supportsAdaptiveThinking": true,
+        "supportsStructuredOutput": true,
+        "supportsXhighEffort": true,
+      }
+    `);
+  });
+
   it('should return correct capabilities for claude-opus-4-7', () => {
     expect(getModelCapabilities('claude-opus-4-7')).toMatchInlineSnapshot(`
       {
@@ -11888,6 +11983,52 @@ describe('claude-opus-4-7 specific behavior', () => {
         prefix_mismatch_behavior: 'drop_block',
       },
     });
+    expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+      'thinking-binding-controls-2026-08-01',
+    );
+  });
+
+  it('should serialize strict thinking binding controls with adaptive thinking', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    await provider('claude-fable-5-1').doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      maxOutputTokens: 4096,
+      providerOptions: {
+        anthropic: {
+          thinking: {
+            type: 'adaptive',
+            blockBinding: {
+              prefixMismatchBehavior: 'error',
+            },
+          },
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "max_tokens": 4096,
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "model": "claude-fable-5-1",
+        "thinking": {
+          "block_binding": {
+            "prefix_mismatch_behavior": "error",
+          },
+          "type": "adaptive",
+        },
+      }
+    `);
     expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
       'thinking-binding-controls-2026-08-01',
     );

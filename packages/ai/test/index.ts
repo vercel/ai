@@ -8,6 +8,7 @@ export {
 } from '@ai-sdk/provider-utils/test';
 export { MockEmbeddingModelV3 } from '../src/test/mock-embedding-model-v3';
 export { MockEmbeddingModelV4 } from '../src/test/mock-embedding-model-v4';
+export { EvaluationMockModelV4 as Experimental_EvaluationMockModelV4 } from '../src/test/evaluation-mock-model-v4';
 export { MockImageModelV3 } from '../src/test/mock-image-model-v3';
 export { MockImageModelV4 } from '../src/test/mock-image-model-v4';
 export { MockLanguageModelV3 } from '../src/test/mock-language-model-v3';

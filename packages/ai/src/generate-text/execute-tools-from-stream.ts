@@ -25,6 +25,7 @@ import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
+import type { StaticToolOutputDenied } from './tool-output-denied';
 
 export type ToolExecutionEndStreamPart = {
   type: 'tool-execution-end';
@@ -34,6 +35,7 @@ export type ToolExecutionEndStreamPart = {
 
 export type ExecuteToolsStreamPart<TOOLS extends ToolSet = ToolSet> =
   | LanguageModelStreamPart<TOOLS>
+  | StaticToolOutputDenied<TOOLS>
   | ToolExecutionEndStreamPart
   | StreamRetryAttemptBoundaryPart;
 
@@ -180,6 +182,11 @@ export function executeToolsFromStream<
                   reason: toolApprovalStatus.reason,
                   providerExecuted: chunk.providerExecuted,
                 });
+                controller.enqueue({
+                  type: 'tool-output-denied',
+                  toolCallId: chunk.toolCallId,
+                  toolName: chunk.toolName,
+                } as StaticToolOutputDenied<TOOLS>);
 
                 return; // don't execute tool
               }

@@ -1,5 +1,76 @@
 # @ai-sdk/harness-fx
 
+## 1.0.26
+
+### Patch Changes
+
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/harness@1.0.113
+  - @ai-sdk/harness-acp@1.0.51
+
+## 1.0.25
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.112
+- @ai-sdk/provider-utils@5.0.41
+- @ai-sdk/harness-acp@1.0.50
+
+## 1.0.24
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.111
+- @ai-sdk/harness-acp@1.0.49
+
+## 1.0.23
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.110
+- @ai-sdk/harness-acp@1.0.48
+
+## 1.0.22
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.109
+- @ai-sdk/harness-acp@1.0.47
+
+## 1.0.21
+
+### Patch Changes
+
+- cdc12a1: feat(harness): add support for using adapter-native subscriptions where available
+- Updated dependencies [4d1bf28]
+- Updated dependencies [cdc12a1]
+- Updated dependencies [d70a334]
+- Updated dependencies [81ba84c]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/harness@1.0.108
+  - @ai-sdk/harness-acp@1.0.46
+  - @ai-sdk/provider-utils@5.0.40
+
+## 1.0.20
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.107
+- @ai-sdk/provider-utils@5.0.39
+- @ai-sdk/harness-acp@1.0.45
+
+## 1.0.19
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.106
+- @ai-sdk/provider-utils@5.0.38
+- @ai-sdk/harness-acp@1.0.44
+
 ## 1.0.18
 
 ### Patch Changes

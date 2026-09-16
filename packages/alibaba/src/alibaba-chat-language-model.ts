@@ -379,7 +379,7 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
             }
 
             // Handle tool call streaming
-            if (delta.tool_calls != null) {
+            if (delta.tool_calls != null && delta.tool_calls.length > 0) {
               // End any active reasoning or text before tool calls
               if (activeReasoningId != null) {
                 controller.enqueue({

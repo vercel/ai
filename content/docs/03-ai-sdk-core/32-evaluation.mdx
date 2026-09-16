@@ -1,0 +1,134 @@
+---
+title: Evaluation
+description: Evaluate Choice, Score, and Boolean questions against shared state.
+---
+
+# Evaluation
+
+`experimental_evaluate` evaluates named questions against one shared state using
+an evaluation model. State can be a string, JSON object, or JSON array. An array
+is one state, not a batch of unrelated inputs.
+
+This API and the evaluation model specification are experimental and may change
+in patch releases. Pass a model instance implementing
+`Experimental_EvaluationModelV4`; string model IDs and registry integration are
+not supported yet.
+
+```ts
+import { experimental_evaluate, type Experimental_EvaluationModel } from 'ai';
+
+async function triage(model: Experimental_EvaluationModel, message: string) {
+  return experimental_evaluate({
+    model,
+    state: { message },
+    questions: {
+      department: {
+        type: 'choice',
+        instructions: 'Which team should handle this?',
+        criteria: {
+          billing: 'Payments and refunds',
+          support: 'Other requests',
+        },
+      },
+      severity: {
+        type: 'score',
+        instructions: 'How severe is the issue?',
+        criteria: ['Cosmetic', 'Workaround exists', 'Blocking; no workaround'],
+      },
+      requestsRefund: {
+        type: 'boolean',
+        instructions: 'Is the customer requesting money back?',
+      },
+    },
+  });
+}
+```
+
+## Provider models
+
+Use a provider's `evaluationModel` factory:
+
+| Provider    | Example model                                            |
+| ----------- | -------------------------------------------------------- |
+| TypeSafe AI | `typeSafeAi.evaluationModel('jev-latest')`               |
+| OpenAI      | `openai.evaluationModel('gpt-5.6-luna')`                 |
+| Anthropic   | `anthropic.evaluationModel('claude-haiku-4-5-20251001')` |
+| Google      | `google.evaluationModel('gemini-3.5-flash-lite')`        |
+
+TypeSafe AI supplies native Choice, Score, and Boolean evaluations. OpenAI,
+Anthropic, and Google adapt structured language-model output for all three types.
+Boolean answers contain prompted estimates of P(true), validated to be finite
+and in `[0, 1]`. These estimates are not guaranteed to be calibrated. Choice and
+Score answers do not include probability distributions. Select a model that
+supports the provider's structured-output API; judge quality against your own
+labeled examples before choosing a model for a task.
+
+The language-model adapters evaluate all questions in one prompt. They do not
+provide TypeSafe's native independent-question execution semantics. The example
+model IDs demonstrate API compatibility; they are not benchmark-selected defaults.
+
+## Question types
+
+| Type      | Criteria                                  | Answer                                                                   |
+| --------- | ----------------------------------------- | ------------------------------------------------------------------------ |
+| `choice`  | A nonempty map of options to descriptions | `choice`, inferred as a union of option keys; optional `probabilities`   |
+| `score`   | At least two ordered level descriptions   | Fractional `score` in `[0, levels.length - 1]`; optional `probabilities` |
+| `boolean` | Optional `true` and `false` descriptions  | Required `probability`, the model-estimated probability of true          |
+
+Instructions and descriptions can be strings, JSON objects, or JSON arrays.
+Descriptions can also be `null`. Core treats structured descriptions as content;
+it does not interpret their keys. Functions, class instances, cycles, undefined
+values, and nonfinite numbers are not JSON-compatible.
+
+Answers retain question IDs and have the same `type` as their question. When a
+Choice distribution is supplied, it includes every option and the selected
+choice has maximal probability. Score distributions use string keys for
+zero-based level indices, and the score equals the probability-weighted mean.
+Without a distribution, a score is the model's estimated position on the rubric.
+
+Distributions must sum to one, and weighted scores must agree with their
+distributions. The default absolute tolerance is `0.000001`. Providers that round
+their output can declare `rounding.probabilityDecimals` and
+`rounding.scoreDecimals` (integers from 0 to 15). Validation then also allows half
+a unit in the last decimal place per rounded probability or score, accumulated
+over the sum or weighted mean. For example, probabilities rounded to two decimal
+places can sum to `0.99` even when their unrounded values sum to one. The result
+includes this `rounding` information. Invalid output is rejected; native values
+are preserved, never silently normalized.
+
+## Probabilities and confidence
+
+Choice and Score distributions are optional. Boolean probability is required:
+`0.98` means a strong yes and `0.02` means a strong no. It is not confidence in
+either outcome. The SDK does not promise calibration across providers. Structured
+language-model adapters prompt the model to estimate P(true); native evaluation providers return
+their API probabilities. Provider-specific confidence statistics belong
+in `providerMetadata`.
+
+Choose thresholds in application code:
+
+```ts
+if (result.answers.requestsRefund.probability >= 0.8) {
+  // Route to the refunds queue.
+}
+```
+
+## Errors and cancellation
+
+The model's `supportedQuestionTypes` are checked before calling the provider.
+Any unsupported question fails the entire call with
+`Experimental_EvaluationUnsupportedQuestionTypeError`. Successful calls return
+an answer for every question; there is no partial success or automatic model
+substitution.
+
+Invalid inputs throw `InvalidArgumentError`. Missing answers, mismatched answer
+types, invalid options, scores, or probabilities throw `InvalidResponseDataError`.
+Transient provider failures use the normal retry policy (`maxRetries: 2` by
+default). Use `abortSignal` to cancel evaluation, `headers` for request headers,
+and `providerOptions` for provider-specific settings.
+
+The result includes `usage`, `warnings`, `providerMetadata`, and `response`.
+Unknown token counts stay `undefined`; `totalTokens` is available only when both
+input and output counts are known.
+
+For tests, use `Experimental_EvaluationMockModelV4` from `ai/test`.

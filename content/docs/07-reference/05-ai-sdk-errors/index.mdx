@@ -1,43 +1,138 @@
 ---
 title: AI SDK Errors
-description: Troubleshooting information for common AI SDK errors.
+description: Reference for AI SDK error classes and typed error handling.
 collapsed: true
 ---
 
 # AI SDK Errors
 
-- [AI_APICallError](/docs/reference/ai-sdk-errors/ai-api-call-error)
-- [AI_DownloadError](/docs/reference/ai-sdk-errors/ai-download-error)
-- [AI_EmptyResponseBodyError](/docs/reference/ai-sdk-errors/ai-empty-response-body-error)
-- [AI_InvalidArgumentError](/docs/reference/ai-sdk-errors/ai-invalid-argument-error)
-- [AI_InvalidDataContentError](/docs/reference/ai-sdk-errors/ai-invalid-data-content-error)
-- [AI_InvalidMessageRoleError](/docs/reference/ai-sdk-errors/ai-invalid-message-role-error)
-- [AI_InvalidPromptError](/docs/reference/ai-sdk-errors/ai-invalid-prompt-error)
-- [AI_InvalidResponseDataError](/docs/reference/ai-sdk-errors/ai-invalid-response-data-error)
-- [AI_InvalidToolApprovalError](/docs/reference/ai-sdk-errors/ai-invalid-tool-approval-error)
-- [AI_InvalidToolInputError](/docs/reference/ai-sdk-errors/ai-invalid-tool-input-error)
-- [AI_JSONParseError](/docs/reference/ai-sdk-errors/ai-json-parse-error)
-- [AI_LoadAPIKeyError](/docs/reference/ai-sdk-errors/ai-load-api-key-error)
-- [AI_LoadSettingError](/docs/reference/ai-sdk-errors/ai-load-setting-error)
-- [AI_MessageConversionError](/docs/reference/ai-sdk-errors/ai-message-conversion-error)
-- [AI_NoSpeechGeneratedError](/docs/reference/ai-sdk-errors/ai-no-speech-generated-error)
-- [AI_NoContentGeneratedError](/docs/reference/ai-sdk-errors/ai-no-content-generated-error)
-- [AI_NoImageGeneratedError](/docs/reference/ai-sdk-errors/ai-no-image-generated-error)
-- [AI_NoTranscriptGeneratedError](/docs/reference/ai-sdk-errors/ai-no-transcript-generated-error)
-- [AI_NoTranslationGeneratedError](/docs/reference/ai-sdk-errors/ai-no-translation-generated-error)
-- [AI_NoVideoGeneratedError](/docs/reference/ai-sdk-errors/ai-no-video-generated-error)
-- [AI_NoObjectGeneratedError](/docs/reference/ai-sdk-errors/ai-no-object-generated-error)
-- [AI_NoOutputGeneratedError](/docs/reference/ai-sdk-errors/ai-no-output-generated-error)
-- [AI_NoSuchModelError](/docs/reference/ai-sdk-errors/ai-no-such-model-error)
-- [AI_NoSuchProviderError](/docs/reference/ai-sdk-errors/ai-no-such-provider-error)
-- [AI_NoSuchProviderReferenceError](/docs/reference/ai-sdk-errors/ai-no-such-provider-reference-error)
-- [AI_NoSuchToolError](/docs/reference/ai-sdk-errors/ai-no-such-tool-error)
-- [AI_RetryError](/docs/reference/ai-sdk-errors/ai-retry-error)
-- [AI_StreamProviderError](/docs/reference/ai-sdk-errors/ai-stream-provider-error)
-- [AI_ToolCallNotFoundForApprovalError](/docs/reference/ai-sdk-errors/ai-tool-call-not-found-for-approval-error)
-- [AI_ToolCallRepairError](/docs/reference/ai-sdk-errors/ai-tool-call-repair-error)
-- [AI_ToolChoiceViolationError](/docs/reference/ai-sdk-errors/ai-tool-choice-violation-error)
-- [AI_TooManyEmbeddingValuesForCallError](/docs/reference/ai-sdk-errors/ai-too-many-embedding-values-for-call-error)
-- [AI_TypeValidationError](/docs/reference/ai-sdk-errors/ai-type-validation-error)
-- [AI_UIMessageStreamError](/docs/reference/ai-sdk-errors/ai-ui-message-stream-error)
-- [AI_UnsupportedFunctionalityError](/docs/reference/ai-sdk-errors/ai-unsupported-functionality-error)
+The AI SDK exposes typed errors so applications can handle expected failure
+modes without matching error message strings.
+
+## Importing Errors
+
+The application package is named `ai`, not `@ai-sdk/ai`. It re-exports common
+provider-level errors from `@ai-sdk/provider` together with the higher-level
+errors raised by AI SDK Core:
+
+```typescript
+import { APICallError, NoObjectGeneratedError } from 'ai';
+```
+
+Provider implementations that depend directly on `@ai-sdk/provider` can import
+its provider-level errors from that package instead:
+
+```typescript
+import { APICallError, InvalidResponseDataError } from '@ai-sdk/provider';
+```
+
+## Migrating to Typed Error Handling
+
+Replace message matching or an unconditionally generic `catch` block with the
+most specific static `isInstance` guard available. Check `AISDKError` last when
+you need a fallback for any AI SDK error:
+
+```typescript
+import { AISDKError, APICallError, generateText } from 'ai';
+
+try {
+  await generateText({
+    model,
+    prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  });
+} catch (error) {
+  if (APICallError.isInstance(error)) {
+    console.error('Provider request failed:', error.statusCode);
+    return;
+  }
+
+  if (AISDKError.isInstance(error)) {
+    console.error('AI SDK error:', error.name);
+    return;
+  }
+
+  throw error;
+}
+```
+
+Prefer `ErrorClass.isInstance(error)` over `error instanceof ErrorClass` when
+the class provides it. The static guard also works when multiple AI SDK package
+versions are loaded.
+
+## Common Failure Modes
+
+| Failure mode                                                                           | Error to check                                                                                                                                                                                                                                                                              |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A provider request fails because of a network error or non-success response            | [`APICallError`](/docs/reference/ai-sdk-errors/ai-api-call-error)                                                                                                                                                                                                                           |
+| Automatic retries are exhausted                                                        | [`RetryError`](/docs/reference/ai-sdk-errors/ai-retry-error)                                                                                                                                                                                                                                |
+| A provider reports an error after a response stream has started                        | [`StreamProviderError`](/docs/reference/ai-sdk-errors/ai-stream-provider-error)                                                                                                                                                                                                             |
+| A structured output cannot be parsed or validated                                      | [`NoObjectGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-object-generated-error); inspect its `cause` for [`JSONParseError`](/docs/reference/ai-sdk-errors/ai-json-parse-error) or [`TypeValidationError`](/docs/reference/ai-sdk-errors/ai-type-validation-error)                    |
+| A generation call returns no usable output                                             | [`NoOutputGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-output-generated-error) or the modality-specific `No*GeneratedError`                                                                                                                                                         |
+| A model calls a missing tool or supplies invalid tool input                            | [`NoSuchToolError`](/docs/reference/ai-sdk-errors/ai-no-such-tool-error) or [`InvalidToolInputError`](/docs/reference/ai-sdk-errors/ai-invalid-tool-input-error)                                                                                                                            |
+| Tool-call repair fails                                                                 | [`ToolCallRepairError`](/docs/reference/ai-sdk-errors/ai-tool-call-repair-error)                                                                                                                                                                                                            |
+| A response violates an enforced `toolChoice`                                           | [`ToolChoiceViolationError`](/docs/reference/ai-sdk-errors/ai-tool-choice-violation-error)                                                                                                                                                                                                  |
+| Message history contains unresolved tool calls or invalid approvals                    | [`MissingToolResultsError`](/docs/troubleshooting/missing-tool-results-error), [`InvalidToolApprovalError`](/docs/reference/ai-sdk-errors/ai-invalid-tool-approval-error), or [`InvalidToolApprovalSignatureError`](/docs/reference/ai-sdk-errors/ai-invalid-tool-approval-signature-error) |
+| A provider or model cannot be resolved                                                 | [`NoSuchProviderError`](/docs/reference/ai-sdk-errors/ai-no-such-provider-error), [`NoSuchModelError`](/docs/reference/ai-sdk-errors/ai-no-such-model-error), or [`NoSuchProviderReferenceError`](/docs/reference/ai-sdk-errors/ai-no-such-provider-reference-error)                        |
+| A provider response is empty, malformed, or invalid                                    | [`EmptyResponseBodyError`](/docs/reference/ai-sdk-errors/ai-empty-response-body-error), [`JSONParseError`](/docs/reference/ai-sdk-errors/ai-json-parse-error), or [`InvalidResponseDataError`](/docs/reference/ai-sdk-errors/ai-invalid-response-data-error)                                |
+| The requested model or provider does not support a capability or specification version | [`UnsupportedFunctionalityError`](/docs/reference/ai-sdk-errors/ai-unsupported-functionality-error) or [`UnsupportedModelVersionError`](/docs/troubleshooting/unsupported-model-version)                                                                                                    |
+| UI messages cannot be converted or a UI message stream is invalid                      | [`MessageConversionError`](/docs/reference/ai-sdk-errors/ai-message-conversion-error) or [`UIMessageStreamError`](/docs/reference/ai-sdk-errors/ai-ui-message-stream-error)                                                                                                                 |
+
+## Error Reference
+
+### Base Error
+
+- `AISDKError`: Base class and broad type guard for AI SDK errors.
+
+### Provider Requests and Responses
+
+- [`APICallError`](/docs/reference/ai-sdk-errors/ai-api-call-error)
+- [`DownloadError`](/docs/reference/ai-sdk-errors/ai-download-error)
+- [`EmptyResponseBodyError`](/docs/reference/ai-sdk-errors/ai-empty-response-body-error)
+- [`InvalidPromptError`](/docs/reference/ai-sdk-errors/ai-invalid-prompt-error)
+- [`InvalidResponseDataError`](/docs/reference/ai-sdk-errors/ai-invalid-response-data-error)
+- [`JSONParseError`](/docs/reference/ai-sdk-errors/ai-json-parse-error)
+- [`LoadAPIKeyError`](/docs/reference/ai-sdk-errors/ai-load-api-key-error)
+- [`LoadSettingError`](/docs/reference/ai-sdk-errors/ai-load-setting-error)
+- [`NoContentGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-content-generated-error)
+- [`NoSuchModelError`](/docs/reference/ai-sdk-errors/ai-no-such-model-error)
+- [`NoSuchProviderReferenceError`](/docs/reference/ai-sdk-errors/ai-no-such-provider-reference-error)
+- [`RetryError`](/docs/reference/ai-sdk-errors/ai-retry-error)
+- [`StreamProviderError`](/docs/reference/ai-sdk-errors/ai-stream-provider-error)
+- [`TooManyEmbeddingValuesForCallError`](/docs/reference/ai-sdk-errors/ai-too-many-embedding-values-for-call-error)
+- [`TypeValidationError`](/docs/reference/ai-sdk-errors/ai-type-validation-error)
+- [`UnsupportedFunctionalityError`](/docs/reference/ai-sdk-errors/ai-unsupported-functionality-error)
+
+### Inputs and Message Streams
+
+- [`InvalidArgumentError`](/docs/reference/ai-sdk-errors/ai-invalid-argument-error)
+- [`InvalidDataContentError`](/docs/reference/ai-sdk-errors/ai-invalid-data-content-error)
+- [`InvalidMessageRoleError`](/docs/reference/ai-sdk-errors/ai-invalid-message-role-error)
+- `InvalidStreamPartError`
+- [`MessageConversionError`](/docs/reference/ai-sdk-errors/ai-message-conversion-error)
+- [`UIMessageStreamError`](/docs/reference/ai-sdk-errors/ai-ui-message-stream-error)
+
+### Generated Output
+
+- [`NoImageGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-image-generated-error)
+- [`NoObjectGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-object-generated-error)
+- [`NoOutputGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-output-generated-error)
+- [`NoSpeechGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-speech-generated-error)
+- [`NoTranscriptGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-transcript-generated-error)
+- [`NoTranslationGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-translation-generated-error)
+- [`NoVideoGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-video-generated-error)
+
+### Providers and Model Compatibility
+
+- [`NoSuchProviderError`](/docs/reference/ai-sdk-errors/ai-no-such-provider-error)
+- [`UnsupportedModelVersionError`](/docs/troubleshooting/unsupported-model-version)
+
+### Tools and Approvals
+
+- [`InvalidToolApprovalError`](/docs/reference/ai-sdk-errors/ai-invalid-tool-approval-error)
+- [`InvalidToolApprovalSignatureError`](/docs/reference/ai-sdk-errors/ai-invalid-tool-approval-signature-error)
+- [`InvalidToolInputError`](/docs/reference/ai-sdk-errors/ai-invalid-tool-input-error)
+- [`MissingToolResultsError`](/docs/troubleshooting/missing-tool-results-error)
+- [`NoSuchToolError`](/docs/reference/ai-sdk-errors/ai-no-such-tool-error)
+- [`ToolCallNotFoundForApprovalError`](/docs/reference/ai-sdk-errors/ai-tool-call-not-found-for-approval-error)
+- [`ToolCallRepairError`](/docs/reference/ai-sdk-errors/ai-tool-call-repair-error)
+- [`ToolChoiceViolationError`](/docs/reference/ai-sdk-errors/ai-tool-choice-violation-error)

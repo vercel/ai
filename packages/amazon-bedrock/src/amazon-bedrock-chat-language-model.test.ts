@@ -414,6 +414,83 @@ describe('application inference profile reasoning', () => {
   });
 });
 
+describe('application inference profile structured output', () => {
+  it.each(['outputFormat', 'auto'] as const)(
+    'uses native structured output in %s mode when the Anthropic family is declared',
+    async structuredOutputMode => {
+      const applicationProfileArn =
+        'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/custom-profile';
+      let requestBody: any;
+      const applicationProfileModel = new AmazonBedrockChatLanguageModel(
+        applicationProfileArn,
+        {
+          baseUrl: () => baseUrl,
+          headers: {},
+          generateId: () => 'test-id',
+          modelFamily: 'anthropic',
+          fetch: async (_input, init) => {
+            requestBody = JSON.parse(String(init?.body));
+            return new Response(
+              JSON.stringify({
+                output: {
+                  message: {
+                    role: 'assistant',
+                    content: [{ text: '{"name":"Test"}' }],
+                  },
+                },
+                stopReason: 'end_turn',
+                usage: {
+                  inputTokens: 1,
+                  outputTokens: 1,
+                  totalTokens: 2,
+                },
+              }),
+              {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+              },
+            );
+          },
+        },
+      );
+
+      await applicationProfileModel.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+            },
+            required: ['name'],
+          },
+        },
+        providerOptions: {
+          amazonBedrock: {
+            structuredOutputMode,
+          },
+        },
+      });
+
+      expect(requestBody.toolConfig).toBeUndefined();
+      expect(
+        requestBody.additionalModelRequestFields?.output_config?.format,
+      ).toEqual({
+        type: 'json_schema',
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      });
+    },
+  );
+});
+
 let mockOptions: {
   success: boolean;
   errorValue?: any;

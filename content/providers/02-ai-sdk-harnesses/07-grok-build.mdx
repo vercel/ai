@@ -135,6 +135,10 @@ Supported environment variables:
 - `AI_GATEWAY_BASE_URL`
 - `XAI_API_KEY`
 
+If no applicable credential environment variable is set, the adapter attempts
+to resolve a native subscription from the host system unless AI Gateway
+authentication is selected.
+
 With direct authentication, the adapter uses `XAI_API_KEY`. With AI Gateway,
 it supplies the Gateway credential as `XAI_API_KEY`, maps the Gateway
 base URL ending in `/v1` to `GROK_XAI_API_BASE_URL` and

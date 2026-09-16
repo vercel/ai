@@ -1,6 +1,7 @@
 export * from './batch/index';
 export * from './embedding-model/index';
 export * from './errors/index';
+export * from './evaluation-model/v4/index';
 export * from './files/index';
 export * from './image-model/index';
 export * from './image-model-middleware/index';

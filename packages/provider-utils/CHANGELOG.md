@@ -1,5 +1,48 @@
 # @ai-sdk/provider-utils
 
+## 5.0.42
+
+### Patch Changes
+
+- 91c2128: feat(ai): add mid conversation tool discovery/updates for code-mode
+- 2cd80b3: Keep default Node.js downloads protected by DNS validation and connection pinning when frameworks or instrumentation wrap global fetch before or after the SDK loads.
+- 2fa5e0e: fix(provider-utils): avoid crashing when DOMException is not a global constructor
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+  - @ai-sdk/provider@4.0.16
+
+## 5.0.41
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+
+## 5.0.40
+
+### Patch Changes
+
+- 813bb36: fix(provider-utils): avoid detecting plain text prefixes as BMP or GIF images
+- c43e4b7: fix(mcp): prevent SSRF in OAuth metadata discovery
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+  - @ai-sdk/provider@4.0.14
+
+## 5.0.39
+
+### Patch Changes
+
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+
+## 5.0.38
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+
 ## 5.0.37
 
 ### Patch Changes

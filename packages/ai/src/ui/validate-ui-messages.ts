@@ -20,6 +20,7 @@ import type {
   ToolUIPart,
   UIMessage,
 } from './ui-messages';
+import { warnIfUIMessageHasDeprecatedRawInput } from './warn-if-ui-message-has-deprecated-raw-input';
 
 const toolMetadataSchema: ZodType<JSONObject> = z.record(
   z.string(),
@@ -438,10 +439,19 @@ type ValidateUIMessagesOptions<UI_MESSAGE extends UIMessage> = {
     >;
   };
   tools?: {
-    [NAME in keyof InferUIMessageTools<UI_MESSAGE> & string]?: Tool<
-      InferUIMessageTools<UI_MESSAGE>[NAME]['input'],
-      InferUIMessageTools<UI_MESSAGE>[NAME]['output']
-    >;
+    [NAME in keyof InferUIMessageTools<UI_MESSAGE> & string]?:
+      | Tool<
+          InferUIMessageTools<UI_MESSAGE>[NAME]['input'],
+          InferUIMessageTools<UI_MESSAGE>[NAME]['output']
+        >
+      | {
+          inputSchema: FlexibleSchema<
+            InferUIMessageTools<UI_MESSAGE>[NAME]['input']
+          >;
+          outputSchema?: FlexibleSchema<
+            InferUIMessageTools<UI_MESSAGE>[NAME]['output']
+          >;
+        };
   };
 };
 
@@ -474,6 +484,8 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
       value: messages,
       schema: uiMessagesSchema,
     });
+
+    warnIfUIMessageHasDeprecatedRawInput(validatedMessages);
 
     if (metadataSchema) {
       for (const [msgIdx, message] of validatedMessages.entries()) {

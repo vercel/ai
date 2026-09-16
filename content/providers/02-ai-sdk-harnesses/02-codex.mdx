@@ -143,6 +143,10 @@ Supported environment variables:
 - `OPENAI_ORGANIZATION`
 - `OPENAI_PROJECT`
 
+If no applicable credential environment variable is set, the adapter attempts
+to resolve a native subscription from the host system unless AI Gateway
+authentication is selected.
+
 Select a specific authentication mode when you do not want automatic detection:
 
 ```ts

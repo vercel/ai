@@ -10,8 +10,19 @@ import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it, vi } from 'vitest';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { MockProviderV4 } from '../test/mock-provider-v4';
-import { getBatchResults, getBatchStatus, startBatch } from './batch';
+import {
+  cancelBatch,
+  getBatchResults,
+  getBatchStatus,
+  listBatches,
+  startBatch,
+} from './batch';
 import type { BatchReference } from './batch-types';
+
+type MockBatchModelIds = {
+  text: string;
+  image: string;
+};
 
 vi.mock('../version', () => ({ VERSION: '0.0.0-test' }));
 
@@ -43,11 +54,15 @@ function createMockBatchApi({
   }),
   doGetBatchStatus = async () => ({ status: 'pending' as const }),
   doGetBatchResults = async () => convertArrayToReadableStream([]),
+  doCancelBatch,
+  doListBatches,
 }: {
-  doStartBatch?: BatchV4['doStartBatch'];
-  doGetBatchStatus?: BatchV4['doGetBatchStatus'];
-  doGetBatchResults?: BatchV4['doGetBatchResults'];
-} = {}): BatchV4 {
+  doStartBatch?: BatchV4<MockBatchModelIds>['doStartBatch'];
+  doGetBatchStatus?: BatchV4<MockBatchModelIds>['doGetBatchStatus'];
+  doGetBatchResults?: BatchV4<MockBatchModelIds>['doGetBatchResults'];
+  doCancelBatch?: BatchV4<MockBatchModelIds>['doCancelBatch'];
+  doListBatches?: BatchV4<MockBatchModelIds>['doListBatches'];
+} = {}): BatchV4<MockBatchModelIds> {
   return {
     specificationVersion: 'v4',
     provider: 'mock-provider',
@@ -55,10 +70,176 @@ function createMockBatchApi({
     doStartBatch: doStartBatch,
     doGetBatchStatus: doGetBatchStatus,
     doGetBatchResults: doGetBatchResults,
+    doCancelBatch,
+    doListBatches,
   };
 }
 
+describe('cancelBatch', () => {
+  it('requests cancellation and returns provider metadata', async () => {
+    const calls: BatchV4OperationOptions[] = [];
+    const batchApi = createMockBatchApi({
+      doCancelBatch: async options => {
+        calls.push(options);
+        return { providerMetadata: { mock: { cancellation: 'requested' } } };
+      },
+    });
+
+    await expect(
+      cancelBatch({ provider: batchApi, batch: batchReference }),
+    ).resolves.toEqual({
+      providerMetadata: { mock: { cancellation: 'requested' } },
+    });
+    expect(calls).toEqual([
+      {
+        batchId: 'batch-123',
+        providerOptions: undefined,
+        abortSignal: undefined,
+        headers: { 'user-agent': 'ai/0.0.0-test' },
+      },
+    ]);
+  });
+
+  it('throws when cancellation is unsupported', async () => {
+    await expect(
+      cancelBatch({ provider: createMockBatchApi(), batch: batchReference }),
+    ).rejects.toMatchObject({ functionality: 'batch cancellation' });
+  });
+});
+
+describe('listBatches', () => {
+  it('preserves the batch API as the method receiver', async () => {
+    const batchApi = createMockBatchApi();
+    batchApi.doListBatches = async function () {
+      expect(this).toBe(batchApi);
+      return { batches: [] };
+    };
+
+    await expect(
+      listBatches({ provider: batchApi, maxRetries: 0 }),
+    ).resolves.toEqual({ batches: [] });
+  });
+
+  it('returns normalized batch references and the next cursor', async () => {
+    const batchApi = createMockBatchApi({
+      doListBatches: async options => {
+        expect(options).toEqual({
+          providerOptions: undefined,
+          abortSignal: undefined,
+          headers: { 'user-agent': 'ai/0.0.0-test' },
+          limit: 20,
+          cursor: 'cursor-1',
+        });
+        return {
+          batches: [
+            {
+              batchId: 'batch-456',
+              status: 'completed',
+              rawStatus: 'done',
+            },
+          ],
+          nextCursor: 'cursor-2',
+          providerMetadata: { mock: { page: 1 } },
+        };
+      },
+    });
+
+    await expect(
+      listBatches({
+        provider: batchApi,
+        limit: 20,
+        cursor: 'cursor-1',
+        maxRetries: 0,
+      }),
+    ).resolves.toEqual({
+      batches: [
+        {
+          version: 2,
+          id: 'batch-456',
+          provider: 'mock-provider',
+          status: 'completed',
+          rawStatus: 'done',
+        },
+      ],
+      nextCursor: 'cursor-2',
+      providerMetadata: { mock: { page: 1 } },
+    });
+  });
+
+  it('throws when listing is unsupported', async () => {
+    await expect(
+      listBatches({ provider: createMockBatchApi() }),
+    ).rejects.toMatchObject({ functionality: 'batch listing' });
+  });
+});
+
 describe('startBatch', () => {
+  it('rejects unsupported request types before starting a batch', async () => {
+    const doStartBatch = vi.fn(createMockBatchApi().doStartBatch);
+    const batchApi = createMockBatchApi({ doStartBatch });
+
+    await expect(
+      startBatch({
+        provider: batchApi,
+        requests: [
+          {
+            id: 'request-1',
+            // @ts-expect-error intentionally testing an unknown future type
+            type: 'audio',
+            model: 'audio-model',
+            prompt: 'Hello',
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_InvalidArgumentError',
+      parameter: 'requests',
+    });
+
+    expect(doStartBatch).not.toHaveBeenCalled();
+  });
+
+  it('normalizes image requests before starting a batch', async () => {
+    const doStartBatch = vi.fn(createMockBatchApi().doStartBatch);
+    const batchApi = createMockBatchApi({ doStartBatch });
+
+    await startBatch({
+      provider: batchApi,
+      requests: [
+        {
+          id: 'request-1',
+          type: 'image',
+          model: 'image-model',
+          prompt: 'A red panda',
+          n: 2,
+          aspectRatio: '16:9',
+        },
+      ],
+    });
+
+    expect(doStartBatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requests: [
+          {
+            id: 'request-1',
+            type: 'image',
+            modelId: 'image-model',
+            options: {
+              prompt: 'A red panda',
+              n: 2,
+              size: undefined,
+              aspectRatio: '16:9',
+              seed: undefined,
+              files: undefined,
+              mask: undefined,
+              providerOptions: {},
+            },
+          },
+        ],
+      }),
+    );
+  });
+
   it('uses the global default provider when provider is omitted', async () => {
     const calls: Array<Parameters<BatchV4['doStartBatch']>[0]> = [];
     const batchApi = createMockBatchApi({
@@ -539,9 +720,10 @@ describe('getBatchResults', () => {
       items.push(item);
     }
 
-    expect(items.every(item => !('type' in item))).toBe(true);
+    expect(items.every(item => item.type === 'text')).toBe(true);
     expect(items).toMatchObject([
       {
+        type: 'text',
         content: [{ text: 'Paris', type: 'text' }],
         id: 'request-1',
         status: 'succeeded',
@@ -561,6 +743,7 @@ describe('getBatchResults', () => {
         providerMetadata: { mock: { result: true } },
       },
       {
+        type: 'text',
         id: 'request-2',
         status: 'failed',
         error: { message: 'request failed', code: 'bad_request' },
@@ -615,11 +798,13 @@ describe('getBatchResults', () => {
 
     expect(items).toEqual([
       {
+        type: 'text',
         content: [
           {
             dynamic: true,
             input: { city: 'Paris' },
             providerExecuted: true,
+            providerMetadata: undefined,
             toolCallId: 'call-1',
             toolName: 'weather',
             type: 'tool-call',
@@ -657,6 +842,64 @@ describe('getBatchResults', () => {
         },
       },
     ]);
+  });
+
+  it('normalizes successful image results', async () => {
+    const batchApi = createMockBatchApi({
+      doGetBatchResults: async () =>
+        convertArrayToReadableStream([
+          {
+            type: 'image',
+            id: 'image-1',
+            status: 'succeeded',
+            result: {
+              images: ['aGVsbG8='],
+              warnings: [],
+              response: {
+                timestamp: new Date('2026-09-09T12:00:00.000Z'),
+                modelId: 'image-model',
+                headers: { 'x-request-id': 'request-1' },
+              },
+              providerMetadata: {
+                mock: { images: [{ revisedPrompt: 'A vivid red panda' }] },
+              },
+              usage: { inputTokens: 2, outputTokens: 3, totalTokens: 5 },
+            },
+          },
+        ]),
+    });
+
+    const items = [];
+    for await (const item of getBatchResults({
+      provider: batchApi,
+      batch: batchReference,
+      maxRetries: 0,
+    })) {
+      items.push(item);
+    }
+
+    expect(items[0]).toMatchObject({
+      type: 'image',
+      id: 'image-1',
+      status: 'succeeded',
+      warnings: [],
+      response: {
+        timestamp: new Date('2026-09-09T12:00:00.000Z'),
+        modelId: 'image-model',
+      },
+      providerMetadata: {
+        mock: { images: [{ revisedPrompt: 'A vivid red panda' }] },
+      },
+      usage: { inputTokens: 2, outputTokens: 3, totalTokens: 5 },
+    });
+    const item = items[0];
+    if (item?.type !== 'image' || item.status !== 'succeeded') {
+      throw new Error('Expected a successful image result.');
+    }
+    expect(item.images[0].base64).toBe('aGVsbG8=');
+    expect(item.images[0].providerMetadata).toEqual({
+      mock: { revisedPrompt: 'A vivid red panda' },
+    });
   });
 
   it('normalizes client tool calls with their definitions without executing them', async () => {

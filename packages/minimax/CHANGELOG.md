@@ -1,5 +1,62 @@
 # @ai-sdk/minimax
 
+## 3.0.32
+
+### Patch Changes
+
+- Updated dependencies [132bdae]
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/anthropic@4.0.55
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
+## 3.0.31
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/anthropic@4.0.54
+  - @ai-sdk/provider-utils@5.0.41
+
+## 3.0.30
+
+### Patch Changes
+
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [e4292e7]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/anthropic@4.0.53
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
+## 3.0.29
+
+### Patch Changes
+
+- ef3bac4: Forward `webhookUrl` as `callback_url` in `doStart` for application-owned receivers. Document challenge verification and terminal-status handling requirements. `generateVideo({ webhook })` continues to fall back to SDK polling without invoking the webhook factory.
+- Updated dependencies [9942196]
+- Updated dependencies [5a7e647]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/anthropic@4.0.52
+  - @ai-sdk/provider-utils@5.0.39
+
+## 3.0.28
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/anthropic@4.0.51
+  - @ai-sdk/provider-utils@5.0.38
+
 ## 3.0.27
 
 ### Patch Changes

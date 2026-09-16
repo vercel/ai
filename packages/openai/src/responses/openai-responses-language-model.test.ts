@@ -223,12 +223,16 @@ const nonReasoningModelIds = openaiResponsesModelIds.filter(
     ),
 );
 
-function createModel(modelId: string) {
+function createModel(
+  modelId: string,
+  config: { supportsWebSearchSourcesInclude?: boolean } = {},
+) {
   return new OpenAIResponsesLanguageModel(modelId, {
     provider: 'openai',
     url: ({ path }) => `https://api.openai.com/v1${path}`,
     headers: () => ({ Authorization: `Bearer APIKEY` }),
     generateId: mockId(),
+    ...config,
   });
 }
 
@@ -2219,6 +2223,64 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should remove string propertyNames from response schemas and warn', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                variables: {
+                  type: 'object',
+                  propertyNames: { type: 'string', pattern: '^[A-Z_]+$' },
+                  additionalProperties: { type: 'string' },
+                },
+              },
+              required: ['variables'],
+              additionalProperties: false,
+            },
+          },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-4o',
+          text: {
+            format: {
+              type: 'json_schema',
+              strict: true,
+              name: 'response',
+              schema: {
+                type: 'object',
+                properties: {
+                  variables: {
+                    type: 'object',
+                    additionalProperties: { type: 'string' },
+                  },
+                },
+                required: ['variables'],
+                additionalProperties: false,
+              },
+            },
+          },
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+        });
+
+        expect(warnings).toStrictEqual([
+          {
+            type: 'compatibility',
+            feature: 'JSON Schema propertyNames',
+            details:
+              'OpenAI does not support JSON Schema propertyNames. It was removed before sending the schema, so OpenAI will not enforce property-name constraints.',
+          },
+        ]);
+      });
+
       it('should send responseFormat json_schema format with strictJsonSchema false', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           responseFormat: {
@@ -4042,6 +4104,53 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should include web search tool call and result in content', async () => {
         expect(result.content).toMatchSnapshot();
       });
+    });
+
+    it('should not include web search sources when disabled by provider options', async () => {
+      prepareJsonFixtureResponse('openai-web-search-tool.1');
+
+      await createModel('gpt-5-nano').doGenerate({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.web_search',
+            name: 'webSearch',
+            args: {},
+          },
+        ],
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          openai: {
+            includeWebSearchSources: false,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'include',
+      );
+    });
+
+    it('should not include unsupported web search sources', async () => {
+      prepareJsonFixtureResponse('openai-web-search-tool.1');
+
+      await createModel('gpt-5-nano', {
+        supportsWebSearchSourcesInclude: false,
+      }).doGenerate({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.web_search',
+            name: 'webSearch',
+            args: {},
+          },
+        ],
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'include',
+      );
     });
 
     describe('shell tool', () => {
