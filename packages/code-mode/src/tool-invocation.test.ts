@@ -369,9 +369,6 @@ describe('AI SDK tool bridge', () => {
       JSON.stringify(prompts[2]).match(/Code mode capability update/g),
     ).toHaveLength(2);
     expect(JSON.stringify(prompts[2])).toContain(
-      'Apply only these changes to the previous code mode capability catalog.',
-    );
-    expect(JSON.stringify(prompts[2])).toContain(
       'lookup: (input: { id: string; region: string; })',
     );
     expect(prompts[2]!.slice(0, prompts[1]!.length)).toEqual(prompts[1]);

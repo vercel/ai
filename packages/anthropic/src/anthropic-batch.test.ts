@@ -13,12 +13,14 @@ vi.mock('./version', () => ({
 const urls = {
   batches: 'https://api.anthropic.com/v1/messages/batches',
   batch: 'https://api.anthropic.com/v1/messages/batches/msgbatch_123',
+  cancel: 'https://api.anthropic.com/v1/messages/batches/msgbatch_123/cancel',
   results: 'https://api.anthropic.com/v1/messages/batches/msgbatch_123/results',
 } as const;
 
 const server = createTestServer({
   [urls.batches]: {},
   [urls.batch]: {},
+  [urls.cancel]: {},
   [urls.results]: {},
 });
 
@@ -93,6 +95,23 @@ function messageResultBody(text: string) {
 }
 
 describe('Anthropic batch', () => {
+  it('rejects unsupported request types before making an API request', async () => {
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+
+    await expect(
+      model.doStartBatch({
+        requests: [{ id: 'image-1', type: 'image' } as never],
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_UnsupportedFunctionalityError',
+      functionality: 'batch request type: image',
+    });
+
+    expect(server.calls).toHaveLength(0);
+  });
+
   it('starts a batch from prepared requests and combines batch and inferred betas', async () => {
     server.urls[urls.batches].response = {
       type: 'json-value',
@@ -582,6 +601,125 @@ describe('Anthropic batch', () => {
         },
       },
     });
+  });
+
+  it('cancels a batch', async () => {
+    server.urls[urls.cancel].response = {
+      type: 'json-value',
+      body: batchResponse({ processing_status: 'canceling' }),
+    };
+    const mockFetch = vi.fn().mockImplementation(globalThis.fetch);
+    const abortController = new AbortController();
+    const batch = createAnthropic({
+      apiKey: 'test-api-key',
+      headers: { 'Provider-Header': 'provider' },
+      fetch: mockFetch,
+    }).experimental_batch();
+
+    await expect(
+      batch.doCancelBatch!({
+        batchId: 'msgbatch_123',
+        headers: { 'Operation-Header': 'operation' },
+        abortSignal: abortController.signal,
+      }),
+    ).resolves.toEqual({});
+
+    expect(server.calls[0].requestMethod).toBe('POST');
+    await expect(server.calls[0].requestBodyJson).resolves.toEqual({});
+    expect(server.calls[0].requestHeaders).toMatchObject({
+      'x-api-key': 'test-api-key',
+      'provider-header': 'provider',
+      'operation-header': 'operation',
+    });
+    expect(mockFetch.mock.calls[0][1].signal).toBe(abortController.signal);
+  });
+
+  it('lists and normalizes a page of batches', async () => {
+    server.urls[urls.batches].response = {
+      type: 'json-value',
+      body: {
+        data: [
+          batchResponse({
+            id: 'msgbatch_123',
+            processing_status: 'in_progress',
+            request_counts: {
+              processing: 2,
+              succeeded: 1,
+              errored: 0,
+              canceled: 0,
+              expired: 0,
+            },
+          }),
+          batchResponse({ id: 'msgbatch_122' }),
+        ],
+        first_id: 'msgbatch_123',
+        last_id: 'msgbatch_122',
+        has_more: true,
+      },
+    };
+    const mockFetch = vi.fn().mockImplementation(globalThis.fetch);
+    const abortController = new AbortController();
+    const batch = createAnthropic({
+      apiKey: 'test-api-key',
+      headers: { 'Provider-Header': 'provider' },
+      fetch: mockFetch,
+    }).experimental_batch();
+
+    await expect(
+      batch.doListBatches!({
+        limit: 2,
+        cursor: 'msgbatch_122',
+        headers: { 'Operation-Header': 'operation' },
+        abortSignal: abortController.signal,
+      }),
+    ).resolves.toMatchObject({
+      batches: [
+        {
+          batchId: 'msgbatch_123',
+          status: 'pending',
+          rawStatus: 'in_progress',
+          requestCounts: {
+            total: 3,
+            pending: 2,
+            completed: 1,
+            failed: 0,
+          },
+        },
+        {
+          batchId: 'msgbatch_122',
+          status: 'completed',
+          rawStatus: 'ended',
+        },
+      ],
+      nextCursor: 'msgbatch_122',
+    });
+
+    expect(server.calls[0].requestHeaders).toMatchObject({
+      'x-api-key': 'test-api-key',
+      'provider-header': 'provider',
+      'operation-header': 'operation',
+    });
+    expect(
+      Object.fromEntries(new URL(server.calls[0].requestUrl).searchParams),
+    ).toEqual({ limit: '2', after_id: 'msgbatch_122' });
+    expect(mockFetch.mock.calls[0][1].signal).toBe(abortController.signal);
+  });
+
+  it('omits the next cursor when there are no more batches', async () => {
+    server.urls[urls.batches].response = {
+      type: 'json-value',
+      body: {
+        data: [],
+        first_id: null,
+        last_id: null,
+        has_more: false,
+      },
+    };
+    const batch = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+
+    await expect(batch.doListBatches!({})).resolves.toEqual({ batches: [] });
   });
 
   it('rejects result retrieval after Anthropic archives the result file', async () => {
@@ -1187,7 +1325,7 @@ describe('Anthropic batch', () => {
       },
     ]);
     const result = results[0];
-    if (result?.status !== 'succeeded') {
+    if (result?.type !== 'text' || result.status !== 'succeeded') {
       throw new Error('Expected a succeeded batch result.');
     }
     expect(result.result.content[1]).not.toHaveProperty('result.0.title');
@@ -1501,6 +1639,8 @@ describe('Anthropic batch', () => {
     expect(batch.doStartBatch).toBeTypeOf('function');
     expect(batch.doGetBatchStatus).toBeTypeOf('function');
     expect(batch.doGetBatchResults).toBeTypeOf('function');
+    expect(batch.doCancelBatch).toBeTypeOf('function');
+    expect(batch.doListBatches).toBeTypeOf('function');
 
     for (const model of [
       provider('claude-3-haiku-20240307'),

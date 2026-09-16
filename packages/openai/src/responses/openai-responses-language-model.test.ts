@@ -223,12 +223,16 @@ const nonReasoningModelIds = openaiResponsesModelIds.filter(
     ),
 );
 
-function createModel(modelId: string) {
+function createModel(
+  modelId: string,
+  config: { supportsWebSearchSourcesInclude?: boolean } = {},
+) {
   return new OpenAIResponsesLanguageModel(modelId, {
     provider: 'openai',
     url: ({ path }) => `https://api.openai.com/v1${path}`,
     headers: () => ({ Authorization: `Bearer APIKEY` }),
     generateId: mockId(),
+    ...config,
   });
 }
 
@@ -4042,6 +4046,53 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should include web search tool call and result in content', async () => {
         expect(result.content).toMatchSnapshot();
       });
+    });
+
+    it('should not include web search sources when disabled by provider options', async () => {
+      prepareJsonFixtureResponse('openai-web-search-tool.1');
+
+      await createModel('gpt-5-nano').doGenerate({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.web_search',
+            name: 'webSearch',
+            args: {},
+          },
+        ],
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          openai: {
+            includeWebSearchSources: false,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'include',
+      );
+    });
+
+    it('should not include unsupported web search sources', async () => {
+      prepareJsonFixtureResponse('openai-web-search-tool.1');
+
+      await createModel('gpt-5-nano', {
+        supportsWebSearchSourcesInclude: false,
+      }).doGenerate({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.web_search',
+            name: 'webSearch',
+            args: {},
+          },
+        ],
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'include',
+      );
     });
 
     describe('shell tool', () => {

@@ -144,11 +144,11 @@ const result = await generateText({
 The AI SDK adds a complete code mode capability catalog to the conversation
 before calling the model. The catalog contains TypeScript signatures and call
 examples for the tools routed through code mode. When the effective tools or
-their definitions change later, the SDK adds only the added, updated, and
-removed tools. It adds no message when the catalog is unchanged.
+their definitions change in a later step or generation call, the SDK adds a
+new catalog that replaces earlier catalogs.
 
-For discovery to remain incremental across separate generation calls, append
-the continuation messages to your input history:
+To continue the conversation across separate generation calls, append the
+continuation messages to your input history:
 
 ```ts
 messages.push(...result.experimental_continuationMessages);
@@ -156,8 +156,7 @@ messages.push(...result.experimental_continuationMessages);
 
 The continuation contains any catalog messages added by the SDK as well as the
 assistant and tool response messages. Pass `messages` plus the next user message
-to the next generation call. If the previous catalog is not present, the SDK
-safely starts with a complete catalog.
+to the next generation call.
 
 This mode can improve prompt-cache reuse because the provider-visible tool
 definition stays unchanged. Actual cache behavior depends on the model

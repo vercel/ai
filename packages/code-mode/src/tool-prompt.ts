@@ -31,7 +31,7 @@ export function buildCodeModeToolDescription(
     sections.push(
       '',
       'Tools:',
-      'The host-tool API is provided in "Code mode capability update" user messages. Start with the full catalog, then apply later changes in order.',
+      'The current host-tool API is provided in "Code mode capability update" user messages. Follow the latest catalog and ignore earlier catalogs.',
     );
     return sections.join('\n');
   }
@@ -46,17 +46,24 @@ export function buildCodeModeToolDescription(
   return sections.join('\n');
 }
 
-export function renderCodeModeToolEntry(
-  toolEntry: [string, CodeModeToolSet[string]],
+export function buildCodeModeToolCatalogMessage(
+  tools: CodeModeToolSet,
 ): string {
-  return renderCodeModeToolCatalog({
-    [toolEntry[0]]: toolEntry[1],
-  });
-}
-
-export function renderCodeModeToolCatalog(tools: CodeModeToolSet): string {
   const { typeBlock, exampleBlock } = renderToolCatalog(tools);
-  return [typeBlock, exampleBlock].filter(Boolean).join('\n');
+  const sections = [
+    'Code mode capability update.',
+    '',
+    'This catalog replaces all previous code mode capability catalogs. Only the tools listed below are currently available through `tools`.',
+    '',
+    'Tools:',
+    typeBlock,
+  ];
+
+  if (exampleBlock.length > 0) {
+    sections.push(exampleBlock);
+  }
+
+  return sections.join('\n');
 }
 
 function renderToolCatalog(tools: CodeModeToolSet): {
