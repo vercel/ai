@@ -170,6 +170,24 @@ describe('GatewayTranscriptionModel', () => {
       });
     });
 
+    it.each(['speech', 'openai'])(
+      'passes the Azure %s API override unchanged',
+      async api => {
+        prepareJsonResponse();
+        const providerOptions = {
+          azure: { api, timestamps: 'word', diarization: { enabled: true } },
+        };
+        await createTestModel().doGenerate({
+          audio: 'base64-audio',
+          mediaType: 'audio/wav',
+          providerOptions,
+        });
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          providerOptions,
+        });
+      },
+    );
+
     it('should extract transcript fields and metadata from response', async () => {
       server.urls['https://api.test.com/transcription-model'].response = {
         type: 'json-value',
