@@ -12,7 +12,7 @@ not a semantic quality or calibration benchmark.
 
 The portable schema is a single root object, with required properties and
 `additionalProperties: false`. Each Choice is a string enum of internal codes;
-each Score is a number whose bounds are described in text. All three native
+each Score and Boolean is a number whose bounds are described in text. All three native
 APIs returned the requested code and fractional score with this schema.
 
 ## Provider constraints
@@ -46,6 +46,9 @@ are sent. Rubrics and state remain prompt data, including structured description
 Require complete output, an exact answer set, known Choice codes, and finite
 Scores within the rubric. Refusals, truncation, malformed JSON, and invalid values
 fail the whole evaluation. Tests cover these cases, arbitrary IDs and labels,
-cancellation, metadata forwarding, and Boolean rejection before network I/O.
+cancellation, metadata forwarding, and Boolean probabilities at the endpoints and within `[0, 1]`.
 Schema size limits remain provider/model errors instead of guessed shared caps.
-No probabilities or distributions are synthesized from generated text.
+Boolean questions prompt the model to estimate P(true), with bounds described in
+the prompt and validated locally. These are prompted estimates without a
+calibration guarantee; callers choose their own thresholds. Choice and Score
+distributions are not generated.

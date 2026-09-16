@@ -51,7 +51,7 @@ it('uses native Messages output with portable constraints and configured setting
     providerOptions: { anthropic: { structuredOutputMode: 'outputFormat' } },
   });
   expect(model.provider).toBe('anthropic.evaluation');
-  expect(model.supportedQuestionTypes).toEqual(['choice', 'score']);
+  expect(model.supportedQuestionTypes).toEqual(['choice', 'score', 'boolean']);
   expect(result.answers).toEqual({
     department: { type: 'choice', choice: 'billing' },
     severity: { type: 'score', score: 1.25 },
@@ -148,15 +148,43 @@ it('validates score bounds locally', async () => {
     InvalidResponseDataError,
   );
 });
-it('rejects Boolean without a request', async () => {
-  const { model, fetch } = setup();
-  await expect(
-    model.doEvaluate({
-      state: 'test',
-      questions: { flag: { type: 'boolean', instructions: 'Yes?' } },
-    }),
-  ).rejects.toMatchObject({
-    name: 'AI_EvaluationUnsupportedQuestionTypeError',
-  });
-  expect(fetch).not.toHaveBeenCalled();
-});
+it.each(['outputFormat', 'jsonTool'] as const)(
+  'evaluates Boolean alongside Choice and Score using %s',
+  async structuredOutputMode => {
+    const values = { q0: 'c1', q1: 1.25, q2: 0.02 };
+    const { model, fetch } = setup({
+      ...fixture,
+      stop_reason:
+        structuredOutputMode === 'jsonTool' ? 'tool_use' : 'end_turn',
+      content:
+        structuredOutputMode === 'jsonTool'
+          ? [{ type: 'tool_use', id: 'tool-test', name: 'json', input: values }]
+          : [{ type: 'text', text: JSON.stringify(values) }],
+    });
+    const result = await model.doEvaluate({
+      ...options,
+      questions: {
+        ...options.questions,
+        flag: { type: 'boolean', instructions: 'Is a refund requested?' },
+      },
+      providerOptions: { anthropic: { structuredOutputMode } },
+    });
+    expect(result.answers).toEqual({
+      department: { type: 'choice', choice: 'billing' },
+      severity: { type: 'score', score: 1.25 },
+      flag: { type: 'boolean', probability: 0.02 },
+    });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    const body = JSON.parse(fetch.mock.calls[0][1].body);
+    const schema =
+      structuredOutputMode === 'jsonTool'
+        ? body.tools[0].input_schema
+        : body.output_config.format.schema;
+    expect(schema).toMatchObject({
+      properties: { q2: { type: 'number' } },
+      required: ['q0', 'q1', 'q2'],
+    });
+    expect(schema.properties.q2).not.toHaveProperty('minimum');
+    expect(schema.properties.q2).not.toHaveProperty('maximum');
+  },
+);

@@ -54,7 +54,7 @@ export interface AnthropicProvider extends ProviderV4 {
 
   messages(modelId: AnthropicModelId): LanguageModelV4;
 
-  /** Creates an experimental Choice/Score evaluation model using Messages. */
+  /** Creates an experimental Choice/Score/Boolean evaluation model using Messages. */
   evaluationModel(modelId: AnthropicModelId): EvaluationModelV4;
 
   experimental_batch(): BatchV4<{ text: AnthropicModelId }>;

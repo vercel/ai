@@ -3401,8 +3401,8 @@ const result = await generateSpeech({
 ## Evaluation Models
 
 Create an experimental evaluation model with `openai.evaluationModel(modelId)`.
-It uses the Responses API with structured output to answer Choice and Score
-questions. Choose a model that supports structured output, such as `gpt-5.6-luna`.
+It uses the Responses API with structured output to answer Choice, Score, and
+Boolean questions. Choose a model that supports structured output, such as `gpt-5.6-luna`.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
@@ -3412,6 +3412,10 @@ const { answers } = await experimental_evaluate({
   model: openai.evaluationModel('gpt-5.6-luna'),
   state: 'I was charged twice.',
   questions: {
+    requestsRefund: {
+      type: 'boolean',
+      instructions: 'Is the customer requesting money back?',
+    },
     department: {
       type: 'choice',
       instructions: 'Which team should handle this?',
@@ -3423,8 +3427,10 @@ const { answers } = await experimental_evaluate({
 
 Scores are finite fractional positions on the ordered rubric. Choice labels are
 returned exactly as supplied. These are model judgments: no probability
-distributions are returned, and Boolean questions are rejected before a request
-because the adapter cannot provide their required probability of true.
+distributions are returned for Choice or Score. Boolean answers contain a prompted
+estimate of P(true), validated to be finite and in `[0, 1]`. These estimates are
+not guaranteed to be calibrated. Apply thresholds in application code, for example
+`answers.requestsRefund.probability >= 0.5`.
 
 The factory respects `createOpenAI` settings, including custom fetch and base URL.
 Pass Responses options through `providerOptions.openai`. Usage, warnings,

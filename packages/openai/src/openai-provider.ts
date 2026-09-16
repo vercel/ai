@@ -50,7 +50,7 @@ import { VERSION } from './version';
 export interface OpenAIProvider extends ProviderV4 {
   (modelId: OpenAIResponsesModelId): LanguageModelV4;
 
-  /** Creates an experimental Choice/Score evaluation model using the Responses API. */
+  /** Creates an experimental Choice/Score/Boolean evaluation model using the Responses API. */
   evaluationModel(modelId: OpenAIResponsesModelId): EvaluationModelV4;
 
   /**

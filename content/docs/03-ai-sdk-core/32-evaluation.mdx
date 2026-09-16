@@ -52,10 +52,13 @@ Use a provider's `evaluationModel` factory, for example
 `anthropic.evaluationModel('claude-haiku-4-5-20251001')`.
 
 TypeSafe AI supplies native Choice, Score, and Boolean evaluations. OpenAI and
-Anthropic adapt structured language-model output for Choice and Score. Their
-answers do not include
-probability distributions, and Boolean questions are unsupported. Select a model
-that supports the provider's structured-output API; judge quality against your
+Anthropic adapt structured language-model output for Choice, Score, and Boolean.
+Their questions share one generation; they do not provide TypeSafe's native
+independent-question execution semantics. Boolean answers contain prompted
+estimates of P(true), validated to be finite and in `[0, 1]`. These estimates are
+not guaranteed to be calibrated. Choice and Score answers do not include
+probability distributions. Select a model that supports the provider's
+structured-output API; judge quality against your
 own labeled examples before choosing a model for a task.
 
 The language-model adapters evaluate all questions in one prompt. They do not
@@ -95,8 +98,9 @@ are preserved, never silently normalized.
 
 Choice and Score distributions are optional. Boolean probability is required:
 `0.98` means a strong yes and `0.02` means a strong no. It is not confidence in
-either outcome. The SDK does not promise calibration across providers or
-synthesize missing probabilities. Provider-specific confidence statistics belong
+either outcome. The SDK does not promise calibration across providers. Structured
+language-model adapters prompt the model to estimate P(true); native evaluation providers return
+their API probabilities. Provider-specific confidence statistics belong
 in `providerMetadata`.
 
 Choose thresholds in application code:
