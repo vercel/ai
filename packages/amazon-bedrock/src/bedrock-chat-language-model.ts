@@ -29,10 +29,11 @@ import {
   BEDROCK_STOP_REASONS,
 } from './bedrock-api-types';
 import {
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
+  type AmazonBedrockChatModelSettings,
   type BedrockChatModelId,
   bedrockProviderOptions,
 } from './bedrock-chat-options';
+import { isAnthropicModel as detectAnthropicModel } from './bedrock-anthropic-model-support';
 import {
   bedrockFailedResponseHandler,
   BedrockErrorSchema,
@@ -42,33 +43,6 @@ import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-
 import { prepareTools } from './bedrock-prepare-tools';
 import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
 import { mapBedrockFinishReason } from './map-bedrock-finish-reason';
-=======
-  amazonBedrockLanguageModelChatOptions,
-  type AmazonBedrockLanguageModelChatOptions,
-  type AmazonBedrockChatModelId,
-  type AmazonBedrockChatModelSettings,
-} from './amazon-bedrock-chat-language-model-options';
-import {
-  isAnthropicModel as detectAnthropicModel,
-  supportsNativeStructuredOutput,
-  supportsStrictTools,
-} from './amazon-bedrock-anthropic-model-support';
-import { AmazonBedrockErrorSchema } from './amazon-bedrock-error';
-import { createAmazonBedrockEventStreamResponseHandler } from './amazon-bedrock-event-stream-response-handler';
-import {
-  getAmazonBedrockStreamErrorMetadata,
-  type AmazonBedrockStreamErrorType,
-} from './amazon-bedrock-stream-error';
-import { prepareTools } from './amazon-bedrock-prepare-tools';
-import {
-  convertAmazonBedrockUsage,
-  type AmazonBedrockUsage,
-} from './convert-amazon-bedrock-usage';
-import { convertToAmazonBedrockChatMessages } from './convert-to-amazon-bedrock-chat-messages';
-import { mapAmazonBedrockFinishReason } from './map-amazon-bedrock-finish-reason';
-import { isMistralModel, normalizeToolCallId } from './normalize-tool-call-id';
-import type { AmazonBedrockReasoningMetadata } from './amazon-bedrock-reasoning-metadata';
->>>>>>> d82eac280e (fix: use native structured output for Anthropic chat models behind application inference profiles (#20792)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
 
 type BedrockChatConfig = {
   baseUrl: () => string;
@@ -177,15 +151,11 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       });
     }
 
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
-    const isAnthropicModel = this.modelId.includes('anthropic');
-=======
     const isAnthropicModel = detectAnthropicModel({
       modelId: this.modelId,
       modelFamily: this.config.modelFamily,
-      reasoningBudgetTokens: amazonBedrockOptions.reasoningConfig?.budgetTokens,
+      reasoningBudgetTokens: bedrockOptions.reasoningConfig?.budgetTokens,
     });
->>>>>>> d82eac280e (fix: use native structured output for Anthropic chat models behind application inference profiles (#20792)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
     const openAIModelId = /^(?:[^.]+\.)?(openai\..+)$/.exec(this.modelId)?.[1];
     const isOpenAIModel = openAIModelId != null;
     const isOpenAIGptOssModel =
@@ -225,23 +195,17 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       }
     }
 
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
-=======
     const modelSupportsNativeStructuredOutput =
-      supportsNativeStructuredOutput(this.modelId) &&
-      (modelSupportsStructuredOutput ||
-        isThinkingEnabled ||
-        this.config.modelFamily === 'anthropic');
+      this.config.modelFamily === 'anthropic' ||
+      (supportsNativeStructuredOutput(this.modelId) && isThinkingRequested);
 
->>>>>>> d82eac280e (fix: use native structured output for Anthropic chat models behind application inference profiles (#20792)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
     const useNativeStructuredOutput =
       isAnthropicModel &&
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
       (structuredOutputMode === 'outputFormat' ||
         (structuredOutputMode === 'auto' &&
-          supportsNativeStructuredOutput(this.modelId) &&
-          isThinkingRequested));
+          modelSupportsNativeStructuredOutput));
 
     const jsonResponseTool: LanguageModelV2FunctionTool | undefined =
       responseFormat?.type === 'json' &&
@@ -262,8 +226,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
           jsonResponseTool != null ? { type: 'required' } : toolChoice,
         modelId: this.modelId,
         modelFamily: this.config.modelFamily,
-        reasoningBudgetTokens:
-          amazonBedrockOptions.reasoningConfig?.budgetTokens,
+        reasoningBudgetTokens: bedrockOptions.reasoningConfig?.budgetTokens,
         disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
       });
 

@@ -281,14 +281,14 @@ allows Anthropic-specific features, including native structured output:
 
 ```ts
 import {
-  amazonBedrock,
+  bedrock,
   type AmazonBedrockChatModelSettings,
 } from '@ai-sdk/amazon-bedrock';
 
 const profileArn =
   'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/qibm5eutlkcy';
 
-const model = amazonBedrock(profileArn, {
+const model = bedrock(profileArn, {
   modelFamily: 'anthropic',
 } satisfies AmazonBedrockChatModelSettings);
 ```

@@ -14,7 +14,10 @@ import {
 import { VERSION } from './version';
 import { anthropicTools } from '@ai-sdk/anthropic/internal';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
-import type { BedrockChatModelId } from './bedrock-chat-options';
+import type {
+  AmazonBedrockChatModelSettings,
+  BedrockChatModelId,
+} from './bedrock-chat-options';
 import { BedrockEmbeddingModel } from './bedrock-embedding-model';
 import type { BedrockEmbeddingModelId } from './bedrock-embedding-options';
 import { BedrockImageModel } from './bedrock-image-model';
@@ -107,9 +110,15 @@ and `sessionToken` settings.
 }
 
 export interface AmazonBedrockProvider extends ProviderV2 {
-  (modelId: BedrockChatModelId): LanguageModelV2;
+  (
+    modelId: BedrockChatModelId,
+    settings?: AmazonBedrockChatModelSettings,
+  ): LanguageModelV2;
 
-  languageModel(modelId: BedrockChatModelId): LanguageModelV2;
+  languageModel(
+    modelId: BedrockChatModelId,
+    settings?: AmazonBedrockChatModelSettings,
+  ): LanguageModelV2;
 
   embedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV2<string>;
 
@@ -249,22 +258,29 @@ export function createAmazonBedrock(
     return withUserAgentSuffix(baseHeaders, `ai-sdk/amazon-bedrock/${VERSION}`);
   };
 
-  const createChatModel = (modelId: BedrockChatModelId) =>
+  const createChatModel = (
+    modelId: BedrockChatModelId,
+    settings: AmazonBedrockChatModelSettings = {},
+  ) =>
     new BedrockChatLanguageModel(modelId, {
       baseUrl: getBaseUrl,
       headers: getHeaders,
       fetch: fetchFunction,
       generateId,
+      modelFamily: settings.modelFamily,
     });
 
-  const provider = function (modelId: BedrockChatModelId) {
+  const provider = function (
+    modelId: BedrockChatModelId,
+    settings?: AmazonBedrockChatModelSettings,
+  ) {
     if (new.target) {
       throw new Error(
         'The Amazon Bedrock model function cannot be called with the new keyword.',
       );
     }
 
-    return createChatModel(modelId);
+    return createChatModel(modelId, settings);
   };
 
   const createEmbeddingModel = (modelId: BedrockEmbeddingModelId) =>

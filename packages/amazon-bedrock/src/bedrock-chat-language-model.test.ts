@@ -282,7 +282,6 @@ const sonnet46Model = new BedrockChatLanguageModel(sonnet46ModelId, {
   generateId: () => 'test-id',
 });
 
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.test.ts
 const haiku45Model = new BedrockChatLanguageModel(haiku45ModelId, {
   baseUrl: () => baseUrl,
   headers: {},
@@ -300,7 +299,6 @@ const unsupportedStructuredOutputModel = new BedrockChatLanguageModel(
   },
 );
 
-=======
 describe('application inference profile structured output', () => {
   it.each(['outputFormat', 'auto'] as const)(
     'uses native structured output in %s mode when the Anthropic family is declared',
@@ -308,7 +306,7 @@ describe('application inference profile structured output', () => {
       const applicationProfileArn =
         'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/custom-profile';
       let requestBody: any;
-      const applicationProfileModel = new AmazonBedrockChatLanguageModel(
+      const applicationProfileModel = new BedrockChatLanguageModel(
         applicationProfileArn,
         {
           baseUrl: () => baseUrl,
@@ -354,7 +352,7 @@ describe('application inference profile structured output', () => {
           },
         },
         providerOptions: {
-          amazonBedrock: {
+          bedrock: {
             structuredOutputMode,
           },
         },
@@ -378,7 +376,6 @@ describe('application inference profile structured output', () => {
   );
 });
 
->>>>>>> d82eac280e (fix: use native structured output for Anthropic chat models behind application inference profiles (#20792)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.test.ts
 let mockOptions: {
   success: boolean;
   errorValue?: any;
