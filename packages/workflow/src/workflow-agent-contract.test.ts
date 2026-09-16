@@ -142,7 +142,8 @@ describe('WorkflowAgent stream and core generate contracts', () => {
     expect(generated.finishReason).toBe('tool-calls');
     expect(streamed.steps).toHaveLength(22);
     expect(streamed.steps.at(-1)?.text).toBe('Done.');
-  });
+    // This comparison runs 42 model steps under the full monorepo CI load.
+  }, 30_000);
 
   it('applies stream settings after prepareCall and constructor defaults', async () => {
     const model = createAgentModel([textResponse('Done.')]);
