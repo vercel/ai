@@ -1,5 +1,18 @@
 # @ai-sdk/openai-compatible
 
+## 3.0.50
+
+### Patch Changes
+
+- 11b4c2d: fix(openai-compatible): extract streaming response metadata after placeholder chunks
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
 ## 3.0.49
 
 ### Patch Changes

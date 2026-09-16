@@ -1,5 +1,24 @@
 # ai
 
+## 7.0.103
+
+### Patch Changes
+
+- 91c2128: feat(ai): add mid conversation tool discovery/updates for code-mode
+- 25a0447: feat(ai): deprecate rawInput in output-error UI message parts
+- 2cd80b3: Keep default Node.js downloads protected by DNS validation and connection pinning when frameworks or instrumentation wrap global fetch before or after the SDK loads.
+- 123d71f: Add `experimental_evaluate` and the isolated experimental v4 evaluation model specification for Choice, Score, and Boolean questions against shared state. Includes typed answers, optional Choice/Score distributions, required Boolean probabilities, validation, retries, cancellation, and `Experimental_EvaluationUnsupportedQuestionTypeError` for unsupported questions.
+- Updated dependencies [91c2128]
+- Updated dependencies [0c9ab5a]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+- Updated dependencies [2cce7da]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/gateway@4.0.83
+  - @ai-sdk/provider@4.0.16
+
 ## 7.0.102
 
 ### Patch Changes
