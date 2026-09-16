@@ -1,3 +1,4 @@
+export { EvaluationLanguageModel as Experimental_EvaluationLanguageModel } from './evaluation-language-model';
 export { asArray } from './as-array';
 export type { Arrayable } from './as-array';
 export * from './combine-headers';

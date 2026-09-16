@@ -3397,3 +3397,36 @@ const result = await generateSpeech({
 | `tts-1`           | <Check />    |
 | `tts-1-hd`        | <Check />    |
 | `gpt-4o-mini-tts` | <Check />    |
+
+## Evaluation Models
+
+Create an experimental evaluation model with `openai.evaluationModel(modelId)`.
+It uses the Responses API with structured output to answer Choice and Score
+questions. Choose a model that supports structured output, such as `gpt-5.6-luna`.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { experimental_evaluate } from 'ai';
+
+const { answers } = await experimental_evaluate({
+  model: openai.evaluationModel('gpt-5.6-luna'),
+  state: 'I was charged twice.',
+  questions: {
+    department: {
+      type: 'choice',
+      instructions: 'Which team should handle this?',
+      criteria: { billing: 'Charges and refunds', support: 'Other requests' },
+    },
+  },
+});
+```
+
+Scores are finite fractional positions on the ordered rubric. Choice labels are
+returned exactly as supplied. These are model judgments: no probability
+distributions are returned, and Boolean questions are rejected before a request
+because the adapter cannot provide their required probability of true.
+
+The factory respects `createOpenAI` settings, including custom fetch and base URL.
+Pass Responses options through `providerOptions.openai`. Usage, warnings,
+response information, and provider metadata are preserved. Refusals, truncated
+output, or invalid answers fail the entire call. See [Evaluation](/docs/ai-sdk-core/evaluation).

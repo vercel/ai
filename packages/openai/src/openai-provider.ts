@@ -1,5 +1,6 @@
 import type {
   Experimental_BatchV4 as BatchV4,
+  Experimental_EvaluationModelV4 as EvaluationModelV4,
   EmbeddingModelV4,
   FilesV4,
   ImageModelV4,
@@ -11,6 +12,7 @@ import type {
   Experimental_SpeechTranslationModelV4 as SpeechTranslationModelV4,
 } from '@ai-sdk/provider';
 import {
+  Experimental_EvaluationLanguageModel as EvaluationLanguageModel,
   loadApiKey,
   loadOptionalSetting,
   validateBaseURL,
@@ -47,6 +49,9 @@ import { VERSION } from './version';
 
 export interface OpenAIProvider extends ProviderV4 {
   (modelId: OpenAIResponsesModelId): LanguageModelV4;
+
+  /** Creates an experimental Choice/Score evaluation model using the Responses API. */
+  evaluationModel(modelId: OpenAIResponsesModelId): EvaluationModelV4;
 
   /**
    * Creates an OpenAI model for text generation.
@@ -347,6 +352,11 @@ export function createOpenAI(
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;
   provider.responses = createResponsesModel;
+  provider.evaluationModel = (modelId: OpenAIResponsesModelId) =>
+    new EvaluationLanguageModel({
+      model: createResponsesModel(modelId),
+      provider: `${providerName}.evaluation`,
+    });
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;

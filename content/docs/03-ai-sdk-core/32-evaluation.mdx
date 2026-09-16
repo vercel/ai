@@ -44,6 +44,18 @@ async function triage(model: Experimental_EvaluationModel, message: string) {
 }
 ```
 
+## Provider models
+
+Use a provider's `evaluationModel` factory, for example
+`typeSafeAi.evaluationModel('jev-latest')` or
+`openai.evaluationModel('gpt-5.6-luna')`.
+
+TypeSafe AI supplies native Choice, Score, and Boolean evaluations. OpenAI adapts
+structured language-model output for Choice and Score. Its answers do not include
+probability distributions, and Boolean questions are unsupported. Select a model
+that supports the provider's structured-output API; judge quality against your
+own labeled examples before choosing a model for a task.
+
 ## Question types
 
 | Type      | Criteria                                  | Answer                                                                   |
