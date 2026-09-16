@@ -35,10 +35,19 @@ import {
   type BedrockStopReason,
 } from './bedrock-api-types';
 import {
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
   amazonBedrockLanguageModelOptions,
   type BedrockChatModelId,
 } from './bedrock-chat-options';
+=======
+  amazonBedrockLanguageModelChatOptions,
+  type AmazonBedrockLanguageModelChatOptions,
+  type AmazonBedrockChatModelId,
+  type AmazonBedrockChatModelSettings,
+} from './amazon-bedrock-chat-language-model-options';
+>>>>>>> d82eac280e (fix: use native structured output for Anthropic chat models behind application inference profiles (#20792)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
 import {
+  isAnthropicModel as detectAnthropicModel,
   supportsNativeStructuredOutput,
   supportsStrictTools,
 } from './bedrock-anthropic-model-support';
@@ -59,6 +68,7 @@ type BedrockChatConfig = {
   headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   generateId: () => string;
+  modelFamily?: AmazonBedrockChatModelSettings['modelFamily'];
 };
 
 function isJsonResponseToolName(name: string): boolean {
@@ -165,12 +175,20 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       });
     }
 
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
     // Application inference profile ARNs do not expose their underlying model.
     // The Anthropic-only reasoning budget provides the model-family signal.
     const isAnthropicModel =
       this.modelId.includes('anthropic') ||
       (this.modelId.includes(':application-inference-profile/') &&
         bedrockOptions.reasoningConfig?.budgetTokens != null);
+=======
+    const isAnthropicModel = detectAnthropicModel({
+      modelId: this.modelId,
+      modelFamily: this.config.modelFamily,
+      reasoningBudgetTokens: amazonBedrockOptions.reasoningConfig?.budgetTokens,
+    });
+>>>>>>> d82eac280e (fix: use native structured output for Anthropic chat models behind application inference profiles (#20792)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
     const openAIModelId = /^(?:[^.]+\.)?(openai\..+)$/.exec(this.modelId)?.[1];
     const isOpenAIModel = openAIModelId != null;
     const isOpenAIGptOssModel =
@@ -215,7 +233,9 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
 
     const modelSupportsNativeStructuredOutput =
       supportsNativeStructuredOutput(this.modelId) &&
-      (modelSupportsStructuredOutput || isThinkingEnabled);
+      (modelSupportsStructuredOutput ||
+        isThinkingEnabled ||
+        this.config.modelFamily === 'anthropic');
 
     const useNativeStructuredOutput =
       isAnthropicModel &&
@@ -254,6 +274,9 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
         toolChoice:
           jsonResponseTool != null ? { type: 'required' } : toolChoice,
         modelId: this.modelId,
+        modelFamily: this.config.modelFamily,
+        reasoningBudgetTokens:
+          amazonBedrockOptions.reasoningConfig?.budgetTokens,
         disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
       });
 

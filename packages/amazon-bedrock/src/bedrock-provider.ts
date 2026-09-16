@@ -13,9 +13,18 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-provider.ts
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import type { BedrockChatModelId } from './bedrock-chat-options';
 import { BedrockEmbeddingModel } from './bedrock-embedding-model';
+=======
+import { AmazonBedrockChatLanguageModel } from './amazon-bedrock-chat-language-model';
+import type {
+  AmazonBedrockChatModelId,
+  AmazonBedrockChatModelSettings,
+} from './amazon-bedrock-chat-language-model-options';
+import { AmazonBedrockEmbeddingModel } from './amazon-bedrock-embedding-model';
+>>>>>>> d82eac280e (fix: use native structured output for Anthropic chat models behind application inference profiles (#20792)):packages/amazon-bedrock/src/amazon-bedrock-provider.ts
 import type {
   BedrockEmbeddingModelId,
   AmazonBedrockEmbeddingModelSettings,
@@ -114,10 +123,23 @@ export interface AmazonBedrockProviderSettings {
   generateId?: () => string;
 }
 
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-provider.ts
 export interface AmazonBedrockProvider extends ProviderV3 {
   (modelId: BedrockChatModelId): LanguageModelV3;
 
   languageModel(modelId: BedrockChatModelId): LanguageModelV3;
+=======
+export interface AmazonBedrockProvider extends ProviderV4 {
+  (
+    modelId: AmazonBedrockChatModelId,
+    settings?: AmazonBedrockChatModelSettings,
+  ): LanguageModelV4;
+
+  languageModel(
+    modelId: AmazonBedrockChatModelId,
+    settings?: AmazonBedrockChatModelSettings,
+  ): LanguageModelV4;
+>>>>>>> d82eac280e (fix: use native structured output for Anthropic chat models behind application inference profiles (#20792)):packages/amazon-bedrock/src/amazon-bedrock-provider.ts
 
   /**
    * Creates a model for text embeddings.
@@ -315,22 +337,39 @@ export function createAmazonBedrock(
         'AWS_ENDPOINT_URL_BEDROCK_AGENT_RUNTIME',
     });
 
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-provider.ts
   const createChatModel = (modelId: BedrockChatModelId) =>
     new BedrockChatLanguageModel(modelId, {
       baseUrl: getBedrockRuntimeBaseUrl,
+=======
+  const createChatModel = (
+    modelId: AmazonBedrockChatModelId,
+    settings: AmazonBedrockChatModelSettings = {},
+  ) =>
+    new AmazonBedrockChatLanguageModel(modelId, {
+      baseUrl: getAmazonBedrockRuntimeBaseUrl,
+>>>>>>> d82eac280e (fix: use native structured output for Anthropic chat models behind application inference profiles (#20792)):packages/amazon-bedrock/src/amazon-bedrock-provider.ts
       headers: getHeaders,
       fetch: fetchFunction,
       generateId,
+      modelFamily: settings.modelFamily,
     });
 
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-provider.ts
   const provider = function (modelId: BedrockChatModelId) {
+=======
+  const provider = function (
+    modelId: AmazonBedrockChatModelId,
+    settings?: AmazonBedrockChatModelSettings,
+  ) {
+>>>>>>> d82eac280e (fix: use native structured output for Anthropic chat models behind application inference profiles (#20792)):packages/amazon-bedrock/src/amazon-bedrock-provider.ts
     if (new.target) {
       throw new Error(
         'The Amazon Bedrock model function cannot be called with the new keyword.',
       );
     }
 
-    return createChatModel(modelId);
+    return createChatModel(modelId, settings);
   };
 
   const createEmbeddingModel = (
