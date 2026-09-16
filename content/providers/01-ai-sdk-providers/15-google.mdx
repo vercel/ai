@@ -2349,3 +2349,9 @@ Choice and Score answers do not include probability distributions. Boolean
 answers contain prompted estimates of P(true), validated to be finite and in
 `[0, 1]`. These estimates are not guaranteed to be calibrated. Apply thresholds
 in application code, for example `answers.requestsRefund.probability >= 0.5`. See [Evaluation](/docs/ai-sdk-core/evaluation).
+
+Evaluation models can also be accessed through `customProvider` aliases or
+`createProviderRegistry().evaluationModel('provider:model')`. Direct string IDs
+require an explicitly configured default provider with an `evaluationModel`
+method; they do not automatically use Gateway. See
+[model aliases and registries](/docs/ai-sdk-core/evaluation#model-aliases-and-registries).
