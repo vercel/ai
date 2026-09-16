@@ -117,13 +117,17 @@
         "aisdk/provider-realtime-model-file-must-export-model-class",
         "aisdk/provider-speech-translation-model-file-must-export-model-class",
         "aisdk/provider-video-model-file-must-export-model-class",
-        "aisdk/provider-evaluation-model-file-must-export-model-class",
+        {
+          "use": "aisdk/provider-evaluation-model-file-must-export-model-class",
+          "excludeFiles": ["packages/gateway/src/gateway-evaluation-model.ts"]
+        },
         {
           "use": "aisdk/provider-model-file-must-have-matching-model-options-file",
           "excludeFiles": [
             "${providerId}-realtime-model.ts",
             "${providerId}-video-model.ts",
             "packages/gateway/src/gateway-embedding-model.ts",
+            "packages/gateway/src/gateway-evaluation-model.ts",
             "packages/gateway/src/gateway-image-model.ts",
             "packages/gateway/src/gateway-language-model.ts",
             "packages/gateway/src/gateway-realtime-model.ts",

@@ -37,6 +37,7 @@ import { convertAlibabaUsage } from './convert-alibaba-usage';
 import { convertToAlibabaChatMessages } from './convert-to-alibaba-chat-messages';
 import { CacheControlValidator } from './get-cache-control';
 import { mapAlibabaFinishReason } from './map-alibaba-finish-reason';
+import { supportsPreservedThinking } from './supports-preserved-thinking';
 
 /**
  * Alibaba language model implementation.
@@ -115,6 +116,13 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });
     }
 
+    // Preserved thinking defaults to on for models that support it; an
+    // explicit option always passes through. Unsupported models without an
+    // explicit option omit the wire field entirely.
+    const preserveThinking =
+      alibabaOptions?.preserveThinking ??
+      (supportsPreservedThinking(this.modelId) ? true : undefined);
+
     // Build base request arguments
     const baseArgs = {
       model: this.modelId,
@@ -145,10 +153,15 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
         warnings,
       }),
 
+      ...(preserveThinking != null
+        ? { preserve_thinking: preserveThinking }
+        : {}),
+
       // Convert messages with cache control support
       messages: convertToAlibabaChatMessages({
         prompt,
         cacheControlValidator,
+        preserveThinking: preserveThinking ?? false,
       }),
     };
 

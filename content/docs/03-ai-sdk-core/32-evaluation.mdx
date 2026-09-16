@@ -11,8 +11,8 @@ is one state, not a batch of unrelated inputs.
 
 This API and the evaluation model specification are experimental and may change
 in patch releases. Pass an evaluation model instance, resolve a model through a
-provider registry, or use a string ID with an evaluation-capable default provider.
-Evaluation does not fall back to Vercel AI Gateway.
+provider registry, or use a string ID. Strings resolve through Vercel AI Gateway
+unless you configure an evaluation-capable default provider.
 
 ```ts
 import { experimental_evaluate, type Experimental_EvaluationModel } from 'ai';
@@ -125,8 +125,26 @@ evaluation models.
 
 ### Default-provider strings
 
-To use strings directly, configure the default provider once at application
-startup:
+String IDs use Vercel AI Gateway by default. Configure Gateway authentication
+with `AI_GATEWAY_API_KEY` or Vercel OIDC, then pass a Gateway model ID:
+
+```ts
+import { experimental_evaluate } from 'ai';
+
+const result = await experimental_evaluate({
+  model: 'typesafe-ai/jev-latest',
+  state: 'I was charged twice. Please refund the extra charge.',
+  questions: {
+    refund: {
+      type: 'boolean',
+      instructions: 'Is the customer asking for a refund?',
+    },
+  },
+});
+```
+
+To resolve strings through your own provider or aliases, configure the default
+provider once at application startup:
 
 ```ts
 // Using the registry above, expose an alias through a custom provider:
@@ -152,9 +170,10 @@ also resolve through this global default. Prefer model instances in aliases to
 avoid resolution cycles. Global configuration affects other AI SDK functions
 too; avoid changing it per request in a shared process.
 
-Strings require an explicitly configured provider with an `evaluationModel`
-method. There is no assumed Gateway evaluation support. Missing providers throw
-`NoSuchProviderError`; missing models or evaluation capabilities throw
+An explicitly configured default provider must expose an `evaluationModel`
+method; Gateway is used only when no default provider is configured. Missing
+registry providers throw `NoSuchProviderError`; missing models or evaluation
+capabilities throw
 `NoSuchModelError` with `modelType: 'evaluationModel'`. Unsupported model versions
 throw `UnsupportedModelVersionError`, including models returned by registries.
 The stable `ProviderV4` and `ProviderRegistryProvider` interfaces are unchanged;

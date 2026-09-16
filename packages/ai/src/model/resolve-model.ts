@@ -222,10 +222,8 @@ export function resolveEvaluationModel(
 ): EvaluationModelV4 {
   if (typeof model === 'string') {
     // Use the original provider so experimental methods and their receiver survive.
-    // Evaluation does not default to Gateway.
-    const provider = globalThis.AI_SDK_DEFAULT_PROVIDER as
-      | EvaluationProvider
-      | undefined;
+    const provider = (globalThis.AI_SDK_DEFAULT_PROVIDER ??
+      gateway) as EvaluationProvider;
 
     if (typeof provider?.evaluationModel !== 'function') {
       throw new NoSuchModelError({
