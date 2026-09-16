@@ -292,6 +292,7 @@ export class OpenAICompatibleCompletionLanguageModel implements LanguageModelV4 
         }
       | undefined = undefined;
     let isFirstChunk = true;
+    let metadataExtracted = false;
 
     return {
       stream: response.pipeThrough(
@@ -324,13 +325,19 @@ export class OpenAICompatibleCompletionLanguageModel implements LanguageModelV4 
               return;
             }
 
+            if (!metadataExtracted) {
+              const metadata = getResponseMetadata(value);
+              if (Object.values(metadata).some(Boolean)) {
+                metadataExtracted = true;
+                controller.enqueue({
+                  type: 'response-metadata',
+                  ...metadata,
+                });
+              }
+            }
+
             if (isFirstChunk) {
               isFirstChunk = false;
-
-              controller.enqueue({
-                type: 'response-metadata',
-                ...getResponseMetadata(value),
-              });
 
               controller.enqueue({
                 type: 'text-start',

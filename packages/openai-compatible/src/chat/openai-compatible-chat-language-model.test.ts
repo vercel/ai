@@ -4064,6 +4064,34 @@ describe('doStream', () => {
       `);
     });
   });
+
+  // BUG: @ai-sdk/openai-compatible captures response metadata from the first chunk only.
+  // When the first chunk is a placeholder with model:"", the modelId is lost.
+  // This was fixed in @ai-sdk/openai (PR #10019) but not ported to openai-compatible.
+  describe('placeholder first chunk (fixture)', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('placeholder-first-chunk');
+    });
+
+    it('should extract modelId from the first chunk that contains metadata', async () => {
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+      const responseMetadata = events.find(
+        event => event.type === 'response-metadata',
+      );
+
+      expect(responseMetadata).toStrictEqual({
+        type: 'response-metadata',
+        id: 'chatcmpl-123',
+        modelId: 'actual-model-name',
+        timestamp: new Date(1700000000 * 1000),
+      });
+    });
+  });
 });
 
 describe('metadata extraction', () => {
