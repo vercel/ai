@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20759,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/google-streaming-prompt-feedback-20759.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/google-streaming-prompt-feedback-20759.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_20759_PRIMARY_BUG: Google streaming prompt feedback is not retained as terminal stream state"
+  }
+}
