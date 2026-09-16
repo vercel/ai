@@ -1,5 +1,16 @@
 # @ai-sdk/provider-utils
 
+## 5.0.43
+
+### Patch Changes
+
+- 215b25e: Default language-model evaluation adapters to `reasoning: 'none'`, using each provider's existing reasoning mapping. Explicit reasoning settings in `providerOptions` continue to override the default.
+- d4d96bf: Add experimental Choice, Score, and Boolean evaluations through `openai.evaluationModel()` and a shared structured language-model evaluation adapter in `@ai-sdk/provider-utils/experimental-evaluation`. Preserve exact labels and metadata, validate score bounds, and return prompted Boolean P(true) estimates validated to be in [0, 1]. Boolean estimates are not guaranteed to be calibrated; application code chooses thresholds.
+- 3456e2c: feat(ai): support tool search with direct tool calling
+- c4e76de: feat(ai): add native tool search tool
+- Updated dependencies [a7dd893]
+  - @ai-sdk/provider@4.0.17
+
 ## 5.0.42
 
 ### Patch Changes
