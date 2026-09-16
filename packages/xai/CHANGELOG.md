@@ -1,5 +1,21 @@
 # @ai-sdk/xai
 
+## 5.0.0
+
+### Major Changes
+
+- 1f20dba: feat(xai)!: remove Chat Completions API
+
+## 4.0.59
+
+### Patch Changes
+
+- 6e405ae: fix(xai): preserve `additionalProperties: false` in tool schemas
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/provider-utils@5.0.41
+
 ## 4.0.58
 
 ### Patch Changes
