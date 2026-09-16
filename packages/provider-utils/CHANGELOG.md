@@ -1,5 +1,13 @@
 # @ai-sdk/provider-utils
 
+## 5.0.42
+
+### Patch Changes
+
+- 2fa5e0e: fix(provider-utils): avoid crashing when DOMException is not a global constructor
+- Updated dependencies [d06bb2a]
+  - @ai-sdk/provider@4.0.16
+
 ## 5.0.41
 
 ### Patch Changes

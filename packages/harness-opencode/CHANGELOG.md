@@ -1,5 +1,15 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.115
+
+### Patch Changes
+
+- 0185c4d: fix(harness-opencode): refresh warm runtimes when native configuration changes
+- b3c82fd: fix(harness-opencode): preserve native compaction events without leaking internal summary text
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/harness@1.0.113
+
 ## 1.0.114
 
 ### Patch Changes

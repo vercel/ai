@@ -1,5 +1,14 @@
 # @ai-sdk/harness-github-copilot
 
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/harness@1.0.113
+  - @ai-sdk/harness-acp@1.0.51
+
 ## 1.0.7
 
 ### Patch Changes

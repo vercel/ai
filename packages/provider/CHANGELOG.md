@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 4.0.16
+
+### Patch Changes
+
+- d06bb2a: Allow readonly arrays and objects containing them to be used as JSON values.
+
 ## 4.0.15
 
 ### Patch Changes
