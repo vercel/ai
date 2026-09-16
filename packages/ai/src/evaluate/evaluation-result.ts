@@ -30,6 +30,7 @@ export type EvaluationResult<
     totalTokens: number | undefined;
   };
   readonly warnings: EvaluationModelV4Result['warnings'];
+  readonly rounding: EvaluationModelV4Result['rounding'];
   readonly providerMetadata: EvaluationModelV4Result['providerMetadata'];
   readonly response: NonNullable<EvaluationModelV4Result['response']> & {
     timestamp: Date;

@@ -76,7 +76,11 @@ export async function evaluate<
   });
 
   abortSignal?.throwIfAborted();
-  validateEvaluationAnswers({ questions, answers: result.answers });
+  validateEvaluationAnswers({
+    questions,
+    answers: result.answers,
+    rounding: result.rounding,
+  });
   logWarnings({
     warnings: result.warnings,
     provider: model.provider,
@@ -97,6 +101,7 @@ export async function evaluate<
           : undefined,
     },
     warnings: result.warnings,
+    rounding: result.rounding,
     providerMetadata: result.providerMetadata,
     response: {
       ...result.response,

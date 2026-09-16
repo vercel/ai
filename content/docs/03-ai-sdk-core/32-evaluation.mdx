@@ -64,8 +64,14 @@ zero-based level indices, and the score equals the probability-weighted mean.
 Without a distribution, a score is the model's estimated position on the rubric.
 
 Distributions must sum to one, and weighted scores must agree with their
-distributions, within an absolute tolerance of `0.000001`. Invalid output is
-rejected, never silently normalized.
+distributions. The default absolute tolerance is `0.000001`. Providers that round
+their output can declare `rounding.probabilityDecimals` and
+`rounding.scoreDecimals` (integers from 0 to 15). Validation then also allows half
+a unit in the last decimal place per rounded probability or score, accumulated
+over the sum or weighted mean. For example, probabilities rounded to two decimal
+places can sum to `0.99` even when their unrounded values sum to one. The result
+includes this `rounding` information. Invalid output is rejected; native values
+are preserved, never silently normalized.
 
 ## Probabilities and confidence
 

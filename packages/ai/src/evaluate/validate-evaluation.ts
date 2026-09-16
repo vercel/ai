@@ -1,6 +1,7 @@
 import {
   InvalidResponseDataError,
   type Experimental_EvaluationModelV4CallOptions as EvaluationModelV4CallOptions,
+  type Experimental_EvaluationModelV4Result as EvaluationModelV4Result,
 } from '@ai-sdk/provider';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 
@@ -148,6 +149,7 @@ function validateDistribution(
   keys: string[],
   answers: unknown,
   id: string,
+  roundingError: number,
 ): asserts value is Record<string, number> {
   if (
     !isRecord(value) ||
@@ -163,10 +165,10 @@ function validateDistribution(
     (total, probability) => total + (probability as number),
     0,
   );
-  if (Math.abs(sum - 1) > tolerance) {
+  if (Math.abs(sum - 1) > tolerance + keys.length * roundingError) {
     invalidAnswer(
       answers,
-      `Question "${id}" probabilities must sum to 1 within ${tolerance}.`,
+      `Question "${id}" probabilities must sum to 1 within the declared rounding precision.`,
     );
   }
 }
@@ -174,10 +176,24 @@ function validateDistribution(
 export function validateEvaluationAnswers({
   questions,
   answers,
+  rounding,
 }: {
   questions: EvaluationModelV4CallOptions['questions'];
   answers: unknown;
+  rounding?: EvaluationModelV4Result['rounding'];
 }) {
+  function roundingError(decimals: number | undefined): number {
+    if (decimals === undefined) return 0;
+    if (!Number.isInteger(decimals) || decimals < 0 || decimals > 15) {
+      invalidAnswer(
+        answers,
+        'Evaluation rounding decimals must be integers between 0 and 15.',
+      );
+    }
+    return 0.5 * 10 ** -decimals;
+  }
+  const probabilityError = roundingError(rounding?.probabilityDecimals);
+  const scoreError = roundingError(rounding?.scoreDecimals);
   if (!isRecord(answers) || !hasExactKeys(answers, Object.keys(questions))) {
     invalidAnswer(
       answers,
@@ -211,6 +227,7 @@ export function validateEvaluationAnswers({
             Object.keys(question.criteria),
             answers,
             id,
+            probabilityError,
           );
           const selected = answer.probabilities[answer.choice];
           if (
@@ -240,16 +257,29 @@ export function validateEvaluationAnswers({
         }
         if (answer.probabilities !== undefined) {
           const keys = question.criteria.map((_, index) => String(index));
-          validateDistribution(answer.probabilities, keys, answers, id);
+          validateDistribution(
+            answer.probabilities,
+            keys,
+            answers,
+            id,
+            probabilityError,
+          );
           const mean = Object.entries(answer.probabilities).reduce(
             (total, [index, probability]) =>
               total + Number(index) * probability,
             0,
           );
-          if (Math.abs(mean - answer.score) > tolerance) {
+          const meanRoundingError = keys.reduce(
+            (total, index) => total + Number(index) * probabilityError,
+            0,
+          );
+          if (
+            Math.abs(mean - answer.score) >
+            tolerance + meanRoundingError + scoreError
+          ) {
             invalidAnswer(
               answers,
-              `Question "${id}" score must equal the probability-weighted mean within ${tolerance}.`,
+              `Question "${id}" score must equal the probability-weighted mean within the declared rounding precision.`,
             );
           }
         }

@@ -31,6 +31,15 @@ export type EvaluationModelV4Answer =
 export type EvaluationModelV4Result = {
   /** Exactly one answer per question, under the original question IDs. */
   answers: Record<string, EvaluationModelV4Answer>;
+  /**
+   * Decimal places used when the provider rounds its output. Omit for full
+   * precision. Core allows half a unit in the last place per rounded value
+   * when checking distribution sums and weighted scores, preserving the values.
+   */
+  rounding?: {
+    probabilityDecimals?: number;
+    scoreDecimals?: number;
+  };
   usage?: {
     inputTokens?: number;
     outputTokens?: number;

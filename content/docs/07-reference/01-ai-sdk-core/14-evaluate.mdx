@@ -31,6 +31,7 @@ Returns `Promise<Experimental_EvaluationResult<QUESTIONS>>`:
 - `answers`: One typed answer per question ID, with literal Choice option inference.
 - `usage`: `inputTokens`, `outputTokens`, and `totalTokens`, each possibly undefined.
 - `warnings`: Provider warnings, also passed to the SDK warning logger.
+- `rounding`: Optional provider-declared decimal precision for probabilities and scores.
 - `providerMetadata`: Optional provider-specific metadata.
 - `response`: Timestamp, model ID, and optional response ID, headers, and body.
 

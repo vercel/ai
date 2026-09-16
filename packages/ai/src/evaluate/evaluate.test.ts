@@ -227,6 +227,82 @@ describe('input validation', () => {
 });
 
 describe('response validation', () => {
+  it('accepts native rounded scores without rewriting probabilities or scores', async () => {
+    const roundedAnswers = {
+      ...answers,
+      severity: {
+        type: 'score' as const,
+        score: 0.97,
+        probabilities: { 0: 0.13, 1: 0.76, 2: 0.11 },
+      },
+    };
+    const rounding = { probabilityDecimals: 2, scoreDecimals: 2 };
+    const result = await evaluate({
+      ...setup({ answers: roundedAnswers, rounding, warnings: [] }),
+      state: 'text',
+      questions,
+    });
+    expect(result.answers).toEqual(roundedAnswers);
+    expect(result.rounding).toEqual(rounding);
+    await expect(
+      evaluate({
+        ...setup({ answers: roundedAnswers, warnings: [] }),
+        state: 'text',
+        questions,
+      }),
+    ).rejects.toBeInstanceOf(InvalidResponseDataError);
+  });
+
+  it('accepts a rounded distribution sum but rejects errors beyond declared precision', async () => {
+    const roundedAnswers = {
+      ...answers,
+      severity: {
+        type: 'score' as const,
+        score: 1,
+        probabilities: { 0: 0.33, 1: 0.33, 2: 0.33 },
+      },
+    };
+    const rounding = { probabilityDecimals: 2, scoreDecimals: 2 };
+    await expect(
+      evaluate({
+        ...setup({ answers: roundedAnswers, rounding, warnings: [] }),
+        state: 'text',
+        questions,
+      }),
+    ).resolves.toBeDefined();
+    await expect(
+      evaluate({
+        ...setup({
+          answers: {
+            ...roundedAnswers,
+            severity: { ...roundedAnswers.severity, score: 1.5 },
+          },
+          rounding,
+          warnings: [],
+        }),
+        state: 'text',
+        questions,
+      }),
+    ).rejects.toBeInstanceOf(InvalidResponseDataError);
+  });
+
+  it.each([-1, 16, NaN, 1.5])(
+    'rejects invalid rounding precision %s',
+    async probabilityDecimals => {
+      await expect(
+        evaluate({
+          ...setup({
+            answers,
+            warnings: [],
+            rounding: { probabilityDecimals },
+          }),
+          state: 'text',
+          questions,
+        }),
+      ).rejects.toBeInstanceOf(InvalidResponseDataError);
+    },
+  );
+
   it.each([
     null,
     [],
