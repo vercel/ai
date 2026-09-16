@@ -4,6 +4,13 @@
 
 ### Patch Changes
 
+- Updated dependencies [bf32c45]
+  - ai@5.0.259
+
+## 0.0.1
+
+### Patch Changes
+
 - ai@5.0.258
 
 ## 0.0.1
