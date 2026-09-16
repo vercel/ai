@@ -1,0 +1,1 @@
+# @ai-sdk/typesafe-ai

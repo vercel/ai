@@ -63,6 +63,7 @@
         "VERCEL_OIDC_TOKEN",
         "VERCEL_REGION",
         "VERCEL_URL",
+        "TYPESAFE_AI_API_KEY",
         "XAI_API_KEY",
         "ZAI_API_KEY"
       ],
