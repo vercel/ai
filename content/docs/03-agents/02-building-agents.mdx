@@ -519,8 +519,9 @@ The available lifecycle callbacks are:
 - **`onToolExecutionEnd`**: Called right after a tool's `execute` function completes or errors. Receives the tool call, `toolExecutionMs`, and a `toolOutput` discriminated union (`type: 'tool-result'` with `output`, or `type: 'tool-error'` with `error`).
 - **`onStepEnd`**: Called after each step finishes. Receives step results including usage, performance, finish reason, and tool calls.
 - **`onEnd`**: Called when all steps are finished and the response is complete. Receives all step results, total usage, and `runtimeContext`.
+- **`onAbort`**: Called when the stream is aborted. Receives the steps that finished before the abort. `stream()` only.
 
-For the full event data reference, see [Lifecycle Callbacks](/docs/ai-sdk-core/lifecycle-callbacks). `ToolLoopAgent` uses the same generation lifecycle event types for `onStart`, `onStepStart`, `onToolExecutionStart`, `onToolExecutionEnd`, `onStepEnd`, and `onEnd`.
+For the full event data reference, see [Lifecycle Callbacks](/docs/ai-sdk-core/lifecycle-callbacks). `ToolLoopAgent` uses the same generation lifecycle event types for `onStart`, `onStepStart`, `onToolExecutionStart`, `onToolExecutionEnd`, `onStepEnd`, and `onEnd`, and the same streaming event type for `onAbort`.
 
 #### Constructor vs. Method Callbacks
 
