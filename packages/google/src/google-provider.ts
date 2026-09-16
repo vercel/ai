@@ -14,7 +14,6 @@ import type {
   TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
-  Experimental_EvaluationLanguageModel as EvaluationLanguageModel,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
@@ -22,6 +21,7 @@ import {
   type FetchFunction,
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
+import { Experimental_EvaluationLanguageModel as EvaluationLanguageModel } from '@ai-sdk/provider-utils/experimental-evaluation';
 import { VERSION } from './version';
 import { GoogleEmbeddingModel } from './google-embedding-model';
 import type { GoogleEmbeddingModelId } from './google-embedding-model-options';
