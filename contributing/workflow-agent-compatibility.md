@@ -143,3 +143,22 @@ Run the Workflow Node and edge suites for this phase, including existing
 transport/transform tests, plus `pnpm type-check:full` and formatting/lint checks.
 Real-runtime tests use the separate `test:integration` command; ordinary Node or
 edge suites do not count as validation of Workflow serialization or replay.
+
+## Phase 3 implementation
+
+`generate()` now selects `doGenerateStep` in the shared iterator. The durable
+adapter returns compact ordered content and failure data; core's content converter,
+step class, usage aggregation, and generation result class reconstruct the public
+result in workflow context. Model failures, including `undefined`, are rethrown
+outside the step so Workflow cannot normalize them before the agent sees them.
+
+`workflow-agent-generate.test.ts` compares multi-step and provider results with
+ToolLoopAgent, and covers defaults, output parsing order, history replacement,
+context, metadata, errors and type inference. `do-generate-step.test.ts` exercises
+retry/deadline, repair and required tool-choice behavior. Real-runtime tests cover
+generation with durable tools, repair step references and undefined failures.
+
+The matrix above records the original baseline and overall target. Approval
+request creation without a writable remains Phase 4 work. Broader cancellation,
+suspension/replay and result serialization guarantees remain Phase 5 work. Generate
+currently reports model response timing; complete tool/step timing is not measured.

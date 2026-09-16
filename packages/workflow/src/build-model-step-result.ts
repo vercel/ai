@@ -1,7 +1,14 @@
+import type { LanguageModelV4Content } from '@ai-sdk/provider';
+import {
+  convertLanguageModelContent,
+  DefaultStepResult,
+  calculateTokensPerSecond,
+} from 'ai/internal';
 import type { Context } from '@ai-sdk/provider-utils';
 import {
   DefaultGeneratedFile,
   type LanguageModelUsage,
+  type ModelMessage,
   type StepResult,
   type ToolSet,
 } from 'ai';
@@ -12,17 +19,89 @@ import type {
   ProviderExecutedToolResult,
 } from './model-call.js';
 
-export function buildModelStepResult(
+export async function buildModelStepResult(
   raw: ModelCallRawResult,
   toolCalls: ParsedToolCall[],
   finish: ModelCallFinish | undefined,
   providerExecutedToolResults: Map<string, ProviderExecutedToolResult>,
   opts: {
+    tools?: ToolSet;
+    requestMessages?: ModelMessage[];
     stepNumber: number;
     runtimeContext: Context;
     toolsContext: Record<string, Context | undefined>;
   },
-): StepResult<ToolSet, any> {
+): Promise<StepResult<ToolSet, any>> {
+  if (raw.generation != null && finish != null) {
+    const providerContent: LanguageModelV4Content[] = [];
+    for (const part of raw.content) {
+      switch (part.type) {
+        case 'reasoning':
+          if (!('reasoningIndex' in part)) providerContent.push(part);
+          break;
+        case 'tool-call': {
+          const call = toolCalls[part.toolCallIndex];
+          providerContent.push({ ...call, input: '', type: 'tool-call' });
+          break;
+        }
+        case 'provider-tool-result':
+          providerContent.push({
+            ...providerExecutedToolResults.get(part.toolCallId)!,
+            type: 'tool-result',
+          } as Extract<LanguageModelV4Content, { type: 'tool-result' }>);
+          break;
+        case 'file':
+          providerContent.push({
+            ...part,
+            data: { type: 'data', data: part.data },
+          });
+          break;
+        default:
+          providerContent.push(part);
+      }
+    }
+    const content = await convertLanguageModelContent({
+      content: providerContent,
+      toolCalls: toolCalls as StepResult<ToolSet>['toolCalls'],
+      toolOutputs: [],
+      toolApprovalRequests: [],
+      toolApprovalResponses: [],
+      tools: opts.tools,
+    });
+    const duration = raw.generation.responseTimeMs;
+    const rate = (tokens: number | undefined) =>
+      calculateTokensPerSecond({ tokens, durationMs: duration });
+    return new DefaultStepResult({
+      callId: 'workflow-agent',
+      stepNumber: opts.stepNumber,
+      provider: raw.generation.provider,
+      modelId: raw.generation.modelId,
+      runtimeContext: opts.runtimeContext,
+      toolsContext: opts.toolsContext,
+      content,
+      finishReason: finish.finishReason,
+      rawFinishReason: finish.rawFinishReason,
+      usage: finish.usage,
+      warnings: raw.warnings as StepResult<ToolSet>['warnings'],
+      request: { ...raw.generation.request, messages: opts.requestMessages },
+      response: {
+        ...raw.responseMetadata,
+        messages: [],
+      } as StepResult<ToolSet>['response'],
+      providerMetadata:
+        finish.providerMetadata as StepResult<ToolSet>['providerMetadata'],
+      performance: {
+        responseTimeMs: duration,
+        stepTimeMs: duration,
+        toolExecutionMs: {},
+        effectiveOutputTokensPerSecond: rate(finish.usage.outputTokens),
+        effectiveTotalTokensPerSecond: rate(finish.usage.totalTokens),
+        outputTokensPerSecond: undefined,
+        inputTokensPerSecond: undefined,
+        timeToFirstOutputMs: undefined,
+      },
+    });
+  }
   const {
     content: rawContent,
     reasoning: reasoningParts,
@@ -77,19 +156,20 @@ export function buildModelStepResult(
             : {}),
         });
         break;
-      case 'reasoning': {
-        const reasoningPart = reasoningParts[part.reasoningIndex];
-        if (reasoningPart != null) {
-          content.push({
-            type: 'reasoning',
-            text: reasoningPart.text,
-            ...(reasoningPart.providerMetadata != null
-              ? { providerMetadata: reasoningPart.providerMetadata }
-              : {}),
-          });
+      case 'reasoning':
+        if ('reasoningIndex' in part) {
+          const reasoningPart = reasoningParts[part.reasoningIndex];
+          if (reasoningPart != null) {
+            content.push({
+              type: 'reasoning',
+              text: reasoningPart.text,
+              ...(reasoningPart.providerMetadata != null
+                ? { providerMetadata: reasoningPart.providerMetadata }
+                : {}),
+            });
+          }
         }
         break;
-      }
       case 'file': {
         const file = new DefaultGeneratedFile({
           data: part.data,
@@ -110,6 +190,18 @@ export function buildModelStepResult(
         sources.push(part);
         content.push(part);
         break;
+      case 'tool-approval-request': {
+        const toolCall = validToolCalls.find(
+          call => call.toolCallId === part.toolCallId,
+        );
+        if (toolCall != null)
+          content.push({
+            type: 'tool-approval-request',
+            approvalId: part.approvalId,
+            toolCall: toolCall as StepResult<ToolSet>['toolCalls'][number],
+          });
+        break;
+      }
       case 'tool-call': {
         const toolCall = validToolCallsByIndex.get(part.toolCallIndex);
         if (toolCall != null) {
