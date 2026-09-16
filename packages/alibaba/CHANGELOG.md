@@ -1,5 +1,11 @@
 # @ai-sdk/alibaba
 
+## 2.0.49
+
+### Patch Changes
+
+- 7f803af: feat(alibaba): preserve reasoning in multi-turn requests by default on supported models
+
 ## 2.0.48
 
 ### Patch Changes
