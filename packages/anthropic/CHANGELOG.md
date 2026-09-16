@@ -1,5 +1,18 @@
 # @ai-sdk/anthropic
 
+## 4.0.56
+
+### Patch Changes
+
+- d4d96bf: Add `anthropic.evaluationModel()` for experimental Choice, Score, and Boolean evaluations through Messages structured output, with exact labels, validated score bounds, and prompted Boolean P(true) estimates validated to be in [0, 1]. Boolean estimates are not guaranteed to be calibrated; application code chooses thresholds.
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/provider@4.0.17
+
 ## 4.0.55
 
 ### Patch Changes

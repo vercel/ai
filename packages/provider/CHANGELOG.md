@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 4.0.17
+
+### Patch Changes
+
+- a7dd893: Add experimental evaluation model aliases and registry resolution. `customProvider` accepts `evaluationModels`, registries expose `evaluationModel`, and `experimental_evaluate` accepts string IDs when an evaluation-capable default provider is explicitly configured. Evaluation never implicitly falls back to Gateway. Model-resolution errors now identify `evaluationModel` while stable provider contracts remain unchanged.
+
 ## 4.0.16
 
 ### Patch Changes
