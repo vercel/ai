@@ -70,9 +70,6 @@ jobs:
           cd packages/gateway
           pnpm generate-model-settings
 
-      - name: Format generated model settings
-        run: pnpm exec oxfmt packages/gateway/src/gateway-*-model-settings.ts
-
       - name: Check for changes
         id: check-changes
         run: |
