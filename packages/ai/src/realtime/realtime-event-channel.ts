@@ -34,6 +34,10 @@ export class RealtimeEventChannel {
       options.model.parseServerEvent.bind(options.model);
   }
 
+  get hasPendingIncoming(): boolean {
+    return this.incomingCount > 0;
+  }
+
   dispose(): void {
     this.active = false;
   }
