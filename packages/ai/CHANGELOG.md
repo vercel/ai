@@ -1,5 +1,14 @@
 # ai
 
+## 6.0.284
+
+### Patch Changes
+
+- 124aa53: fix(ai): reject embedding model responses that contain no embeddings
+- 0f48555: fix(ai): reject invalid reranking provider indices
+- Updated dependencies [09e0817]
+  - @ai-sdk/gateway@3.0.195
+
 ## 6.0.283
 
 ### Patch Changes
