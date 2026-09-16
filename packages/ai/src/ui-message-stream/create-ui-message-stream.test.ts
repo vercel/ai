@@ -267,6 +267,29 @@ describe('createUIMessageStream', () => {
     `);
   });
 
+  it('should invoke onError only once per error when onEnd requires stream processing', async () => {
+    const onError = vi.fn(() => 'error-message');
+
+    const stream = createUIMessageStream({
+      execute: () => {
+        throw new Error('execute-error');
+      },
+      onError,
+      // forces handleUIMessageStreamFinish to run processUIMessageStream,
+      // which previously re-reported the error chunk
+      onEnd: () => {},
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toEqual([
+      { type: 'error', errorText: 'error-message' },
+    ]);
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ message: 'execute-error' }),
+    );
+  });
+
   it('should add error parts when execute throws with promise', async () => {
     const stream = createUIMessageStream({
       execute: async () => {
