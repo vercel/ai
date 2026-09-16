@@ -1,5 +1,14 @@
 # ai
 
+## 7.0.105
+
+### Patch Changes
+
+- 6982e9d: Resolve evaluation model IDs through AI Gateway when no default provider is configured, including string aliases in custom providers.
+- Updated dependencies [6982e9d]
+- Updated dependencies [6982e9d]
+  - @ai-sdk/gateway@4.0.85
+
 ## 7.0.104
 
 ### Patch Changes
