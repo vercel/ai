@@ -93,15 +93,15 @@ If set and supported by the model, calls will generate deterministic results.
 
 Controls how much reasoning the model performs before generating a response.
 
-| Value                | Behavior                                                             |
-| -------------------- | -------------------------------------------------------------------- |
-| `'provider-default'` | Use the provider's default reasoning behavior (default when omitted) |
-| `'none'`             | Disable reasoning                                                    |
-| `'minimal'`          | Bare-minimum reasoning                                               |
-| `'low'`              | Fast, concise reasoning                                              |
-| `'medium'`           | Balanced reasoning                                                   |
-| `'high'`             | Thorough reasoning                                                   |
-| `'xhigh'`            | Maximum reasoning                                                    |
+| Value                | Behavior                                                                   |
+| -------------------- | -------------------------------------------------------------------------- |
+| `'provider-default'` | Use the provider's default reasoning behavior (default when omitted)       |
+| `'none'`             | Disable reasoning where supported; known models may use a minimum fallback |
+| `'minimal'`          | Bare-minimum reasoning                                                     |
+| `'low'`              | Fast, concise reasoning                                                    |
+| `'medium'`           | Balanced reasoning                                                         |
+| `'high'`             | Thorough reasoning                                                         |
+| `'xhigh'`            | Maximum reasoning                                                          |
 
 If you also set reasoning-related options in `providerOptions` (e.g. `openai.reasoningEffort` or `anthropic.thinking`), the provider-specific options take precedence and the top-level `reasoning` parameter is ignored.
 

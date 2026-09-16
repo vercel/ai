@@ -148,7 +148,7 @@ describe('doGenerate', () => {
       expect(result.warnings).toEqual([]);
     });
 
-    it('should omit unsupported top-level reasoning none and warn', async () => {
+    it('should use the minimum GPT-OSS reasoning effort and warn', async () => {
       const gptOssModel = provider('openai/gpt-oss-120b');
 
       const result = await gptOssModel.doGenerate({
@@ -156,13 +156,14 @@ describe('doGenerate', () => {
         reasoning: 'none',
       });
 
-      expect(
-        (await server.calls[0].requestBodyJson).reasoning_effort,
-      ).toBeUndefined();
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'low',
+      );
       expect(result.warnings).toContainEqual({
-        type: 'unsupported',
+        type: 'compatibility',
         feature: 'reasoning',
-        details: 'reasoning "none" is not supported by this model.',
+        details:
+          'reasoning "none" is not supported by this model. Using reasoning effort "low" instead.',
       });
     });
 

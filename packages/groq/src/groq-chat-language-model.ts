@@ -178,8 +178,22 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
     let reasoningEffort = groqOptions?.reasoningEffort;
     if (reasoningEffort == null && isCustomReasoning(reasoning)) {
       if (reasoning === 'none') {
-        if (this.modelId === 'qwen/qwen3.6-27b') {
+        if (
+          this.modelId === 'qwen/qwen3.6-27b' ||
+          this.modelId === 'qwen/qwen3.8-27b'
+        ) {
           reasoningEffort = 'none';
+        } else if (
+          this.modelId === 'openai/gpt-oss-20b' ||
+          this.modelId === 'openai/gpt-oss-120b'
+        ) {
+          reasoningEffort = 'low';
+          warnings.push({
+            type: 'compatibility',
+            feature: 'reasoning',
+            details:
+              'reasoning "none" is not supported by this model. Using reasoning effort "low" instead.',
+          });
         } else {
           warnings.push({
             type: 'unsupported',

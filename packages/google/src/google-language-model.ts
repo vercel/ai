@@ -332,11 +332,11 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       },
     });
 
-    const resolvedThinking = resolveThinkingConfig({
-      reasoning,
-      modelId,
-      warnings,
-    });
+    const resolvedThinking =
+      googleOptions?.thinkingConfig?.thinkingBudget != null ||
+      googleOptions?.thinkingConfig?.thinkingLevel != null
+        ? undefined
+        : resolveThinkingConfig({ reasoning, modelId, warnings });
     const thinkingConfig =
       googleOptions?.thinkingConfig || resolvedThinking
         ? { ...resolvedThinking, ...googleOptions?.thinkingConfig }
@@ -1365,7 +1365,10 @@ function getMinimumThinkingLevelForGemini3Model(
 ): 'minimal' | 'low' {
   const modelName = modelId.split('/').at(-1)?.toLowerCase();
 
-  if (modelName === 'gemini-flash-latest') {
+  if (
+    modelName === 'gemini-flash-latest' ||
+    /^gemini-3(?:\.1)?-pro(?:$|-)/.test(modelName ?? '')
+  ) {
     return 'low';
   }
 
@@ -1398,6 +1401,15 @@ function resolveGemini25ThinkingConfig({
   warnings: SharedV4Warning[];
 }): Pick<GoogleThinkingConfig, 'thinkingBudget'> | undefined {
   if (reasoning === 'none') {
+    if (/(^|\/)gemini-2\.5-pro(?:$|-)/i.test(modelId)) {
+      warnings.push({
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "none" is not supported by this model. Using thinking budget 128 instead.',
+      });
+      return { thinkingBudget: 128 };
+    }
     return { thinkingBudget: 0 };
   }
 

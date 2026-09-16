@@ -291,7 +291,17 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
           details: `reasoning "${reasoning}" is not supported by this model.`,
         });
       } else if (reasoning === 'none') {
-        resolvedReasoningEffort = 'none';
+        if (modelId === 'grok-4.5' || modelId === 'grok-4.6') {
+          resolvedReasoningEffort = 'low';
+          warnings.push({
+            type: 'compatibility',
+            feature: 'reasoning',
+            details:
+              'reasoning "none" is not supported by this model. Using reasoning effort "low" instead.',
+          });
+        } else {
+          resolvedReasoningEffort = 'none';
+        }
       } else {
         resolvedReasoningEffort = mapReasoningToProviderEffort({
           reasoning,

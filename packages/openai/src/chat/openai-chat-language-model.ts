@@ -16,7 +16,6 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
-  isCustomReasoning,
   parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
@@ -25,6 +24,7 @@ import {
   type FetchFunction,
   type ParseResult,
 } from '@ai-sdk/provider-utils';
+import { mapOpenAIReasoning } from '../map-openai-reasoning';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
 import {
@@ -119,10 +119,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
 
-    // AI SDK reasoning values map directly to the OpenAI reasoning values.
+    // Normalize shared reasoning without changing explicit provider options.
     let resolvedReasoningEffort =
       openaiOptions.reasoningEffort ??
-      (isCustomReasoning(reasoning) ? reasoning : undefined);
+      mapOpenAIReasoning({ reasoning, modelId: this.modelId, warnings });
 
     if (
       resolvedReasoningEffort != null &&

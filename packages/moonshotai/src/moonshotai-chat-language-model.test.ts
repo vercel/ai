@@ -623,20 +623,21 @@ describe('doGenerate', () => {
       );
     });
 
-    it('should warn and omit reasoning_effort for reasoning none', async () => {
+    it('should warn and use low reasoning effort for reasoning none', async () => {
       const result = await provider.chatModel('kimi-k3').doGenerate({
         prompt: TEST_PROMPT,
         reasoning: 'none',
       });
 
-      expect(
-        (await server.calls[0].requestBodyJson).reasoning_effort,
-      ).toBeUndefined();
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'low',
+      );
       expect(result.warnings).toEqual([
         {
-          type: 'unsupported',
-          feature: 'reasoning "none"',
-          details: 'Kimi K3 reasoning cannot be disabled.',
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "none" is not supported by this model. Using reasoning effort "low" instead.',
         },
       ]);
     });

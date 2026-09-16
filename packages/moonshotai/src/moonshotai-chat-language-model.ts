@@ -259,15 +259,17 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
               'Kimi K3 always reasons and does not accept the thinking field. The option has been omitted.',
           });
         }
-        if (reasoning === 'none') {
+        if (reasoning === 'none' && requestedReasoningEffort == null) {
           allWarnings.push({
-            type: 'unsupported',
-            feature: 'reasoning "none"',
-            details: 'Kimi K3 reasoning cannot be disabled.',
+            type: 'compatibility',
+            feature: 'reasoning',
+            details:
+              'reasoning "none" is not supported by this model. Using reasoning effort "low" instead.',
           });
         }
         reasoningEffort =
           requestedReasoningEffort ??
+          (reasoning === 'none' ? 'low' : undefined) ??
           (isCustomReasoning(reasoning) && reasoning !== 'none'
             ? mapReasoningToProviderEffort({
                 reasoning,
