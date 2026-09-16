@@ -1,5 +1,19 @@
 # @ai-sdk/gateway
 
+## 4.0.83
+
+### Patch Changes
+
+- 0c9ab5a: chore(provider/gateway): update gateway model settings files
+- 2cce7da: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
 ## 4.0.82
 
 ### Patch Changes

@@ -4064,6 +4064,24 @@ describe('doStream', () => {
       `);
     });
   });
+
+  it('should extract response metadata after an empty placeholder chunk', async () => {
+    prepareChunksFixtureResponse('placeholder-first-chunk');
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(events.find(event => event.type === 'response-metadata')).toEqual({
+      type: 'response-metadata',
+      id: 'chatcmpl-123',
+      modelId: 'actual-model-name',
+      timestamp: new Date(1700000000 * 1000),
+    });
+  });
 });
 
 describe('metadata extraction', () => {

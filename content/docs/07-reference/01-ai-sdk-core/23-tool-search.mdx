@@ -1,0 +1,64 @@
+---
+title: toolSearch
+description: Search deferred tools and discover their schemas through code mode conversation updates.
+---
+
+# `toolSearch()`
+
+Creates a tool that searches the surrounding generation's deferred tools by name
+and description. The tool takes no arguments. Use it with `generateText`,
+`streamText`, or `ToolLoopAgent` and code mode configured with
+`toolDiscovery: 'conversation'`.
+
+```ts
+import { toolSearch } from 'ai';
+
+const search = toolSearch();
+```
+
+Register all tools in `tools`, mark searchable tools with `deferLoading: true`,
+and route both search and deferred tools exclusively through code mode using
+`experimental_toolCallers`. Keep the search tool itself loaded. See
+[Searching Deferred Tools](/docs/ai-sdk-core/code-mode#searching-deferred-tools)
+for a complete example.
+
+## Model Input
+
+The model invokes the search tool through code mode:
+
+```ts
+return await tools.tool_search({ query: 'weather forecast' });
+```
+
+`query` is a required, nonempty string of search keywords. Search is local and
+case-insensitive, matching words in tool names and descriptions. Camel-case names
+are split into words. Name matches rank above description matches; equal scores
+preserve registration order. Function descriptions are resolved with the current
+tool context and sandbox. No embedding service or additional model call is used.
+
+## Output
+
+```ts
+{
+  tools: [
+    { name: 'getForecast', description: 'Get the weather forecast for a city.' },
+  ],
+}
+```
+
+Results contain at most five matching tools, with their names and optional
+descriptions. They do not include schemas. No matches returns `{ tools: [] }`.
+Every returned match is queued for discovery. The model must finish the current
+code mode execution and wait for the next capability update before calling a
+newly discovered tool.
+
+## Discovery Lifecycle
+
+Before the next model step, the SDK makes discovered tools available to code mode
+and appends a user message containing the updated capability catalog. Existing
+catalogs remain in the conversation; the latest catalog describes the complete
+currently available tool set. The provider-visible code mode definition stays
+unchanged. Actual prompt-cache reuse depends on the provider.
+
+Set a multi-step `stopWhen` condition with `generateText` and `streamText` so the
+model can search, use the discovered tools, and answer.
