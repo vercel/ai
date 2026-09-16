@@ -94,9 +94,12 @@ export class EvaluationTypeSafeModel implements EvaluationModelV4 {
     }));
     const modelHeaders =
       this.config.headers === undefined
-        ? {
-            Authorization: `Bearer ${loadApiKey({ apiKey: undefined, environmentVariableName: 'TYPESAFE_AI_API_KEY', description: 'TypeSafe' })}`,
-          }
+        ? withUserAgentSuffix(
+            {
+              Authorization: `Bearer ${loadApiKey({ apiKey: undefined, environmentVariableName: 'TYPESAFE_AI_API_KEY', description: 'TypeSafe' })}`,
+            },
+            `ai-sdk/typesafe-ai/${VERSION}`,
+          )
         : await resolve(this.config.headers);
     const {
       value: response,
@@ -104,10 +107,7 @@ export class EvaluationTypeSafeModel implements EvaluationModelV4 {
       responseHeaders,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/systemone`,
-      headers: withUserAgentSuffix(
-        combineHeaders(modelHeaders, headers),
-        `ai-sdk/typesafe-ai/${VERSION}`,
-      ),
+      headers: combineHeaders(modelHeaders, headers),
       body: {
         model: this.modelId,
         state,
