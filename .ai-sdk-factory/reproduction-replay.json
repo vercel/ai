@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "issueId": 20845,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20845.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20845.ts",
+    "examples/ai-functions/package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #20845 REPRODUCED: useChat-only default split bundle contains realtime browser runtime"
+  }
+}
