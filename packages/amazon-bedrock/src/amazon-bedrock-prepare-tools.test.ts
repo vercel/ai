@@ -174,6 +174,33 @@ describe('prepareTools', () => {
       ]);
     });
 
+    it.each([
+      'anthropic.web_search_20260318' as const,
+      'anthropic.web_fetch_20260318' as const,
+    ])('should warn and filter out unsupported %s tool', async toolId => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'provider',
+            id: toolId,
+            name: toolId.includes('search') ? 'web_search' : 'web_fetch',
+            args: {},
+          },
+        ],
+        modelId: ANTHROPIC_MODEL,
+      });
+
+      const toolType = toolId.slice('anthropic.'.length);
+      expect(result.toolConfig).toEqual({});
+      expect(result.toolWarnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: `${toolType} tool`,
+          details: `The ${toolType} tool is not supported on Amazon Bedrock.`,
+        },
+      ]);
+    });
+
     it('should return empty toolConfig when all tools are filtered out', async () => {
       const result = await prepareTools({
         tools: [

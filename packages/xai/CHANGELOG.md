@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 5.0.0
+
+### Major Changes
+
+- 1f20dba: feat(xai)!: remove Chat Completions API
+
 ## 4.0.59
 
 ### Patch Changes
