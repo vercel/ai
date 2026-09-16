@@ -166,6 +166,18 @@ export function buildModelStepResult(
         sources.push(part);
         content.push(part);
         break;
+      case 'tool-approval-request': {
+        const toolCall = validToolCalls.find(
+          call => call.toolCallId === part.toolCallId,
+        );
+        if (toolCall != null)
+          content.push({
+            type: 'tool-approval-request',
+            approvalId: part.approvalId,
+            toolCall: toolCall as StepResult<ToolSet>['toolCalls'][number],
+          });
+        break;
+      }
       case 'tool-call': {
         const toolCall = validToolCallsByIndex.get(part.toolCallIndex);
         if (toolCall != null) {

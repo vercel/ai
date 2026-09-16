@@ -118,7 +118,21 @@ export async function doStreamStep(
           // streamModelCall expects Prompt (ModelMessage[]) but we pass the
           // pre-converted LanguageModelV4Prompt. standardizePrompt inside
           // streamModelCall handles both formats.
-          messages: conversationPrompt as unknown as ModelMessage[],
+          messages: conversationPrompt.map(message =>
+            message.role !== 'tool'
+              ? message
+              : {
+                  ...message,
+                  // Provider prompt approval responses have already been filtered by
+                  // convertToLanguageModelPrompt. Restore the marker expected by the
+                  // model-call helper when it converts these messages again.
+                  content: message.content.map(part =>
+                    part.type === 'tool-approval-response'
+                      ? { ...part, providerExecuted: true }
+                      : part,
+                  ),
+                },
+          ) as unknown as ModelMessage[],
           allowSystemInMessages: true,
           tools,
           toolChoice: options?.toolChoice,
@@ -246,6 +260,13 @@ export async function doStreamStep(
           break;
         case 'source':
           content.push(part);
+          break;
+        case 'tool-approval-request':
+          content.push({
+            type: 'tool-approval-request',
+            approvalId: part.approvalId,
+            toolCallId: part.toolCall.toolCallId,
+          });
           break;
         case 'tool-call': {
           // parseToolCall adds dynamic/invalid/error at runtime
