@@ -1878,6 +1878,7 @@ class DefaultStreamTextResult<
           if (isAbortError(error) && abortSignal?.aborted) {
             await abort();
           } else {
+            await telemetryDispatcher.onError?.({ callId, error });
             controller.error(error);
           }
         }
