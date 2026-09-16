@@ -1,5 +1,22 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.85
+
+### Patch Changes
+
+- 132bdae: feat(anthropic): add 20260318 web search and web fetch tools with response inclusion controls
+- d82eac2: fix(amazon-bedrock): enable Anthropic features for application inference profile chat models
+- Updated dependencies [132bdae]
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/anthropic@4.0.55
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+  - @ai-sdk/openai@4.0.68
+
 ## 5.0.84
 
 ### Patch Changes
