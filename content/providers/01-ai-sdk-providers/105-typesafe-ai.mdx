@@ -1,0 +1,117 @@
+---
+title: TypeSafe
+description: Use TypeSafe System One models for typed evaluations with the AI SDK.
+---
+
+# TypeSafe Provider
+
+The [TypeSafe](https://typesafe.ai) provider supports the experimental evaluation
+API with native Choice, Score, and Boolean answers. It sends all questions in one
+request against the same state.
+
+## Setup
+
+Install the provider:
+
+```sh
+pnpm add @ai-sdk/typesafe-ai
+```
+
+Set the `TYPESAFE_AI_API_KEY` environment variable. Import the default provider or
+configure an instance:
+
+```ts
+import { createTypeSafe, typesafe } from '@ai-sdk/typesafe-ai';
+
+const customTypeSafe = createTypeSafe({
+  apiKey: 'your-api-key',
+});
+```
+
+`createTypeSafe` accepts:
+
+| Setting   | Description                                 |
+| --------- | ------------------------------------------- |
+| `apiKey`  | API key; defaults to `TYPESAFE_AI_API_KEY`. |
+| `baseURL` | Defaults to `https://api.typesafe.ai/v1`.   |
+| `headers` | Additional request headers.                 |
+| `fetch`   | Custom fetch implementation.                |
+
+## Evaluation
+
+```ts
+import { typesafe } from '@ai-sdk/typesafe-ai';
+import { experimental_evaluate } from 'ai';
+
+const result = await experimental_evaluate({
+  model: typesafe.evaluationModel('jev-latest'),
+  state: {
+    message: 'I was charged twice. Please refund the duplicate.',
+  },
+  questions: {
+    department: {
+      type: 'choice',
+      instructions: 'Which team should handle this?',
+      criteria: {
+        billing: { includes: ['Charges', 'Invoices', 'Refunds'] },
+        technical: ['Bugs', 'Outages'],
+        other: null,
+      },
+    },
+    severity: {
+      type: 'score',
+      instructions: 'How severe is the issue?',
+      criteria: ['Cosmetic', 'Workaround exists', 'Blocking; no workaround'],
+    },
+    requestsRefund: {
+      type: 'boolean',
+      instructions: 'Is the customer requesting money back?',
+    },
+  },
+});
+
+console.log(result.answers.department.choice);
+console.log(result.answers.severity.score);
+console.log(result.answers.requestsRefund.probability);
+console.log(result.usage);
+```
+
+Use `jev-latest` or another TypeSafe model ID. The response includes the actual
+model ID, such as the resolved version behind the alias. String model resolution
+and registry integration are not supported yet; pass a model instance.
+
+| Question  | Native TypeSafe primitive | Limits and semantics                                                 |
+| --------- | ------------------------- | -------------------------------------------------------------------- |
+| `choice`  | Choice                    | 1–255 options; selected option and full probabilities.               |
+| `score`   | Score                     | 2–10 ordered rubric levels; fractional score and full probabilities. |
+| `boolean` | Noul                      | Required model-estimated probability of true.                        |
+
+State, instructions, and descriptions accept JSON objects and arrays in addition
+to strings. Descriptions may be `null`. Boolean true/false criteria are optional.
+The SDK uses the neutral name `boolean` and maps it to TypeSafe's `noul` field.
+
+### Rounded values and confidence
+
+TypeSafe returns scores and probabilities rounded to two decimal places.
+`result.rounding` reports this precision so the SDK can account for rounding when
+checking distribution sums and weighted means. The returned values are preserved
+unchanged; rounding means probabilities may not add up to exactly one.
+
+Confidence is a separate TypeSafe statistic, available under
+`result.providerMetadata.typesafe.confidence[questionId]` for Choice and Score
+answers. Boolean probability always means P(true), not confidence in either
+outcome. Choose decision thresholds in application code.
+
+### Errors and retries
+
+Provider failures use `APICallError`, including validation and authentication
+errors. Core retries transient failures such as `429` and `529` according to
+`maxRetries` (default: 2). `abortSignal`, request headers, and custom fetch are
+forwarded. There is no provider-side retry loop.
+
+No provider-specific options are currently defined. Unknown entries under
+`providerOptions.typesafe` produce unsupported-option warnings. Language,
+embedding, and image model factories throw `NoSuchModelError`.
+
+Evaluation models support workflow serialization. A custom fetch function is not
+serialized; restored models use the default fetch implementation.
