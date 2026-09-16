@@ -46,16 +46,26 @@ async function triage(model: Experimental_EvaluationModel, message: string) {
 
 ## Provider models
 
-Use a provider's `evaluationModel` factory, for example
-`typeSafeAi.evaluationModel('jev-latest')` or
-`openai.evaluationModel('gpt-5.6-luna')`.
+Use a provider's `evaluationModel` factory:
 
-TypeSafe AI supplies native Choice, Score, and Boolean evaluations. OpenAI adapts
-structured language-model output for Choice, Score, and Boolean. Boolean answers
-contain prompted estimates of P(true), validated to be finite and in `[0, 1]`.
-These estimates are not guaranteed to be calibrated. Choice and Score answers
-do not include probability distributions. Select a model that supports the provider's structured-output API; judge quality against your
-own labeled examples before choosing a model for a task.
+| Provider    | Example model                                            |
+| ----------- | -------------------------------------------------------- |
+| TypeSafe AI | `typeSafeAi.evaluationModel('jev-latest')`               |
+| OpenAI      | `openai.evaluationModel('gpt-5.6-luna')`                 |
+| Anthropic   | `anthropic.evaluationModel('claude-haiku-4-5-20251001')` |
+| Google      | `google.evaluationModel('gemini-3.5-flash-lite')`        |
+
+TypeSafe AI supplies native Choice, Score, and Boolean evaluations. OpenAI,
+Anthropic, and Google adapt structured language-model output for all three types.
+Boolean answers contain prompted estimates of P(true), validated to be finite
+and in `[0, 1]`. These estimates are not guaranteed to be calibrated. Choice and
+Score answers do not include probability distributions. Select a model that
+supports the provider's structured-output API; judge quality against your own
+labeled examples before choosing a model for a task.
+
+The language-model adapters evaluate all questions in one prompt. They do not
+provide TypeSafe's native independent-question execution semantics. The example
+model IDs demonstrate API compatibility; they are not benchmark-selected defaults.
 
 ## Question types
 
