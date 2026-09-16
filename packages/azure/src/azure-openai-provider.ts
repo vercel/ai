@@ -10,6 +10,7 @@ import {
 import { DeepSeekChatLanguageModel } from '@ai-sdk/deepseek/internal';
 import {
   InvalidArgumentError,
+  UnsupportedFunctionalityError,
   type EmbeddingModelV4,
   type LanguageModelV4,
   type ProviderV4,
@@ -21,11 +22,20 @@ import {
   loadApiKey,
   loadSetting,
   normalizeHeaders,
+  parseProviderOptions,
+  serializeModelOptions,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { azureOpenaiTools } from './azure-openai-tools';
+import { AzureSpeechTranscriptionModel } from './azure-speech-transcription-model';
+import {
+  azureTranscriptionModelOptions,
+  isMAITranscribe2,
+} from './azure-transcription-model-options';
 import { VERSION } from './version';
 
 export interface AzureOpenAIProvider extends ProviderV4 {
@@ -87,7 +97,8 @@ export interface AzureOpenAIProvider extends ProviderV4 {
   imageModel(deploymentId: string): ImageModelV4;
 
   /**
-   * Creates an Azure OpenAI model for audio transcription.
+   * Creates an Azure transcription model. MAI-Transcribe-2 uses the Speech API
+   * by default; other IDs use OpenAI. Override with providerOptions.azure.api.
    */
   transcription(deploymentId: string): TranscriptionModelV4;
 
@@ -199,15 +210,16 @@ export function createAzure(
     });
   }
 
-  const getHeaders = () => {
+  const getHeaders = (api: 'openai' | 'speech' = 'openai') => {
     const authHeaders = tokenProvider
       ? {}
       : {
-          'api-key': loadApiKey({
-            apiKey: options.apiKey,
-            environmentVariableName: 'AZURE_API_KEY',
-            description: 'Azure OpenAI',
-          }),
+          [api === 'speech' ? 'Ocp-Apim-Subscription-Key' : 'api-key']:
+            loadApiKey({
+              apiKey: options.apiKey,
+              environmentVariableName: 'AZURE_API_KEY',
+              description: 'Azure OpenAI',
+            }),
         };
 
     return withUserAgentSuffix(
@@ -333,12 +345,34 @@ export function createAzure(
     });
 
   const createTranscriptionModel = (modelId: string) =>
-    new OpenAITranscriptionModel(modelId, {
-      provider: 'azure.transcription',
-      url,
-      headers: getHeaders,
-      fetch,
-    });
+    new AzureTranscriptionModel(
+      modelId,
+      options,
+      new OpenAITranscriptionModel(modelId, {
+        provider: 'azure.transcription',
+        url,
+        headers: getHeaders,
+        fetch,
+      }),
+      new AzureSpeechTranscriptionModel(modelId, {
+        url: () => {
+          const baseURL = withoutTrailingSlash(
+            options.baseURL ??
+              `https://${getResourceName()}.cognitiveservices.azure.com`,
+          );
+          const speechURL = new URL(
+            `${baseURL}/speechtotext/transcriptions:transcribe`,
+          );
+          speechURL.searchParams.set(
+            'api-version',
+            options.apiVersion ?? '2025-10-15',
+          );
+          return speechURL.toString();
+        },
+        headers: () => getHeaders('speech'),
+        fetch,
+      }),
+    );
 
   const createSpeechModel = (modelId: string) =>
     new OpenAISpeechModel(modelId, {
@@ -380,3 +414,81 @@ export function createAzure(
  * Default Azure OpenAI provider instance.
  */
 export const azure = createAzure();
+
+// Resolve the API per request: providerOptions also reach this model via Gateway.
+class AzureTranscriptionModel implements TranscriptionModelV4 {
+  readonly specificationVersion = 'v4';
+  readonly provider = 'azure.transcription';
+
+  constructor(
+    readonly modelId: string,
+    private readonly config: AzureOpenAIProviderSettings,
+    private readonly openai: OpenAITranscriptionModel,
+    private readonly speech: AzureSpeechTranscriptionModel,
+  ) {}
+
+  static [WORKFLOW_SERIALIZE](model: AzureTranscriptionModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: AzureOpenAIProviderSettings;
+  }) {
+    return createAzure(options.config).transcription(options.modelId);
+  }
+
+  async doGenerate(options: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
+    const azureOptions = await this.getOptions(options.providerOptions);
+    if (azureOptions.api === 'speech') {
+      return this.speech.doGenerate(options, azureOptions);
+    }
+
+    const result = await this.openai.doGenerate(options);
+    return {
+      ...result,
+      warnings: [
+        ...result.warnings,
+        ...Object.keys(azureOptions)
+          .filter(key => key !== 'api')
+          .map(key => ({
+            type: 'unsupported' as const,
+            feature: `providerOptions.azure.${key}`,
+            details: 'This option requires the Azure Speech API.',
+          })),
+      ],
+    };
+  }
+
+  async doStream(
+    options: Parameters<NonNullable<TranscriptionModelV4['doStream']>>[0],
+  ) {
+    const azureOptions = await this.getOptions(options.providerOptions);
+    if (azureOptions.api === 'speech') {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'streaming transcription with the Azure Speech API',
+      });
+    }
+    return this.openai.doStream(options);
+  }
+
+  private async getOptions(
+    providerOptions: Parameters<
+      TranscriptionModelV4['doGenerate']
+    >[0]['providerOptions'],
+  ) {
+    const options = await parseProviderOptions({
+      provider: 'azure',
+      providerOptions,
+      schema: azureTranscriptionModelOptions,
+    });
+    return {
+      ...options,
+      api:
+        options?.api ?? (isMAITranscribe2(this.modelId) ? 'speech' : 'openai'),
+    };
+  }
+}
