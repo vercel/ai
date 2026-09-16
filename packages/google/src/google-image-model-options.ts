@@ -6,7 +6,7 @@ import {
   type GoogleSearchToolArgs,
 } from './tool/google-search';
 
-export const googleImageModelOptionsSchema = lazySchema(() =>
+export const googleImageModelOptionsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       /**

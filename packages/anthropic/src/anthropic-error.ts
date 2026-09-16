@@ -6,7 +6,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const anthropicErrorDataSchema = lazySchema(() =>
+export const anthropicErrorDataSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       type: z.literal('error'),
@@ -20,7 +20,8 @@ export const anthropicErrorDataSchema = lazySchema(() =>
 
 export type AnthropicErrorData = InferSchema<typeof anthropicErrorDataSchema>;
 
-export const anthropicFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: anthropicErrorDataSchema,
-  errorToMessage: data => data.error.message,
-});
+export const anthropicFailedResponseHandler =
+  /* @__PURE__ */ createJsonErrorResponseHandler({
+    errorSchema: anthropicErrorDataSchema,
+    errorToMessage: data => data.error.message,
+  });

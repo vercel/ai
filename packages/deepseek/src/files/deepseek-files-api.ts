@@ -1,7 +1,7 @@
 import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const deepSeekFilesResponseSchema = lazySchema(() =>
+export const deepSeekFilesResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       id: z.string(),

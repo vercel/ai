@@ -16,7 +16,8 @@ export const openaiErrorDataSchema = z.object({
 
 export type OpenAIErrorData = z.infer<typeof openaiErrorDataSchema>;
 
-export const openaiFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: openaiErrorDataSchema,
-  errorToMessage: data => data.error.message,
-});
+export const openaiFailedResponseHandler =
+  /* @__PURE__ */ createJsonErrorResponseHandler({
+    errorSchema: openaiErrorDataSchema,
+    errorToMessage: data => data.error.message,
+  });

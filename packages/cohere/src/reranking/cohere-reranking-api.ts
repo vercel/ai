@@ -11,7 +11,7 @@ export type CohereRerankingInput = {
   priority: number | undefined;
 };
 
-export const cohereRerankingResponseSchema = lazySchema(() =>
+export const cohereRerankingResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       id: z.string().nullish(),

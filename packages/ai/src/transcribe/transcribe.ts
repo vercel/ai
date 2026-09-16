@@ -29,7 +29,7 @@ import type { Warning } from '../types';
  *
  * @returns A result object that contains the generated transcript.
  */
-const defaultDownload = createDownload();
+const defaultDownload = /* @__PURE__ */ createDownload();
 
 export async function transcribe({
   model,

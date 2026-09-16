@@ -45,10 +45,11 @@ const alibabaVideoErrorSchema = z.object({
   request_id: z.string().nullish(),
 });
 
-const alibabaVideoFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: alibabaVideoErrorSchema,
-  errorToMessage: data => data.message,
-});
+const alibabaVideoFailedResponseHandler =
+  /* @__PURE__ */ createJsonErrorResponseHandler({
+    errorSchema: alibabaVideoErrorSchema,
+    errorToMessage: data => data.message,
+  });
 
 const alibabaVideoCreateTaskSchema = z.object({
   output: z

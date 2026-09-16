@@ -104,7 +104,7 @@ export class VoyageRerankingModel implements RerankingModelV4 {
   }
 }
 
-const voyageRerankingResponseSchema = lazySchema(() =>
+const voyageRerankingResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       data: z.array(

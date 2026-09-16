@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const textEditor_20250728ArgsSchema = lazySchema(() =>
+export const textEditor_20250728ArgsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       maxCharacters: z.number().optional(),
@@ -13,7 +13,7 @@ export const textEditor_20250728ArgsSchema = lazySchema(() =>
   ),
 );
 
-const textEditor_20250728InputSchema = lazySchema(() =>
+const textEditor_20250728InputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       command: z.enum(['view', 'create', 'str_replace', 'insert']),
@@ -28,7 +28,7 @@ const textEditor_20250728InputSchema = lazySchema(() =>
   ),
 );
 
-const factory = createProviderDefinedToolFactory<
+const factory = /* @__PURE__ */ createProviderDefinedToolFactory<
   {
     /**
      * The commands to run. Allowed options are: `view`, `create`, `str_replace`, `insert`.

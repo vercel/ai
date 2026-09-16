@@ -25,7 +25,7 @@ export type OpenAIChatToolChoice =
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-export const openaiChatResponseSchema = lazySchema(() =>
+export const openaiChatResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       id: z.string().nullish(),
@@ -110,7 +110,7 @@ export const openaiChatResponseSchema = lazySchema(() =>
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-export const openaiChatChunkSchema = lazySchema(() =>
+export const openaiChatChunkSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.union([
       z.object({

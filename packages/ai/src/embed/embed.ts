@@ -17,7 +17,7 @@ import { VERSION } from '../version';
 import type { EmbedEndEvent, EmbedStartEvent } from './embed-events';
 import type { EmbedResult } from './embed-result';
 
-const originalGenerateCallId = createIdGenerator({
+const originalGenerateCallId = /* @__PURE__ */ createIdGenerator({
   prefix: 'call',
   size: 24,
 });

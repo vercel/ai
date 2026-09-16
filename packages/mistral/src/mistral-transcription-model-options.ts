@@ -11,7 +11,7 @@ export type MistralTranscriptionModelId =
   | (string & {});
 
 // https://docs.mistral.ai/api/endpoint/audio/transcriptions
-export const mistralTranscriptionModelOptions = lazySchema(() =>
+export const mistralTranscriptionModelOptions = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       /**

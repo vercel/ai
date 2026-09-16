@@ -11,7 +11,8 @@ export const fishAudioErrorDataSchema = z.object({
 
 export type FishAudioErrorData = z.infer<typeof fishAudioErrorDataSchema>;
 
-export const fishAudioFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: fishAudioErrorDataSchema,
-  errorToMessage: data => data.message ?? 'Unknown Fish Audio error',
-});
+export const fishAudioFailedResponseHandler =
+  /* @__PURE__ */ createJsonErrorResponseHandler({
+    errorSchema: fishAudioErrorDataSchema,
+    errorToMessage: data => data.message ?? 'Unknown Fish Audio error',
+  });

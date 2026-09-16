@@ -73,7 +73,7 @@ export type OpenAIChatModelId =
   | 'gpt-6-astra'
   | (string & {});
 
-export const openaiLanguageModelChatOptions = lazySchema(() =>
+export const openaiLanguageModelChatOptions = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       /**

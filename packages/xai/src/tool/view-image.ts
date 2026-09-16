@@ -9,7 +9,7 @@ const viewImageOutputSchema = z.object({
     .describe('objects detected in the image'),
 });
 
-const viewImageToolFactory = createProviderExecutedToolFactory({
+const viewImageToolFactory = /* @__PURE__ */ createProviderExecutedToolFactory({
   id: 'xai.view_image',
   inputSchema: z.object({}).describe('no input parameters'),
   outputSchema: viewImageOutputSchema,

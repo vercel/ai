@@ -7,7 +7,8 @@ const voyageErrorDataSchema = z.object({
 
 export type VoyageErrorData = z.infer<typeof voyageErrorDataSchema>;
 
-export const voyageFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: voyageErrorDataSchema,
-  errorToMessage: data => data.detail,
-});
+export const voyageFailedResponseHandler =
+  /* @__PURE__ */ createJsonErrorResponseHandler({
+    errorSchema: voyageErrorDataSchema,
+    errorToMessage: data => data.detail,
+  });

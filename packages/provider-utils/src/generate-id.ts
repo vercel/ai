@@ -54,4 +54,4 @@ export type IdGenerator = () => string;
  * Generates a 16-character random string to use for IDs.
  * Not cryptographically secure.
  */
-export const generateId = createIdGenerator();
+export const generateId = /* @__PURE__ */ createIdGenerator();

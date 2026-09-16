@@ -7,11 +7,13 @@ const viewXVideoOutputSchema = z.object({
   duration: z.number().optional().describe('duration in seconds'),
 });
 
-const viewXVideoToolFactory = createProviderExecutedToolFactory({
-  id: 'xai.view_x_video',
-  inputSchema: z.object({}).describe('no input parameters'),
-  outputSchema: viewXVideoOutputSchema,
-});
+const viewXVideoToolFactory = /* @__PURE__ */ createProviderExecutedToolFactory(
+  {
+    id: 'xai.view_x_video',
+    inputSchema: z.object({}).describe('no input parameters'),
+    outputSchema: viewXVideoOutputSchema,
+  },
+);
 
 export const viewXVideo = (
   args: Parameters<typeof viewXVideoToolFactory>[0] = {},

@@ -87,11 +87,11 @@ const anthropicBatchResponseZodSchema = () =>
     results_url: z.string().nullish(),
   });
 
-const anthropicBatchResponseSchema = lazySchema(() =>
+const anthropicBatchResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(anthropicBatchResponseZodSchema()),
 );
 
-const anthropicBatchListResponseSchema = lazySchema(() =>
+const anthropicBatchListResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       data: z.array(anthropicBatchResponseZodSchema()),
@@ -123,7 +123,7 @@ const knownAnthropicBatchContentTypes = new Set([
   'web_search_tool_result',
 ]);
 
-const anthropicBatchResultSchema = lazySchema(() =>
+const anthropicBatchResultSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.discriminatedUnion('type', [
       z.object({
@@ -147,7 +147,7 @@ const anthropicBatchResultSchema = lazySchema(() =>
   ),
 );
 
-const anthropicBatchResultLineSchema = lazySchema(() =>
+const anthropicBatchResultLineSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       custom_id: z.string(),

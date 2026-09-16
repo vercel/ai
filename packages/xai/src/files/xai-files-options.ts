@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const xaiFilesOptionsSchema = lazySchema(() =>
+export const xaiFilesOptionsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.looseObject({
       teamId: z.string().optional(),

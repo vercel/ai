@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-const memory_20250818InputSchema = lazySchema(() =>
+const memory_20250818InputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.discriminatedUnion('command', [
       z.object({
@@ -43,7 +43,7 @@ const memory_20250818InputSchema = lazySchema(() =>
   ),
 );
 
-export const memory_20250818 = createProviderDefinedToolFactory<
+export const memory_20250818 = /* @__PURE__ */ createProviderDefinedToolFactory<
   | { command: 'view'; path: string; view_range?: [number, number] }
   | { command: 'create'; path: string; file_text: string }
   | { command: 'str_replace'; path: string; old_str: string; new_str: string }

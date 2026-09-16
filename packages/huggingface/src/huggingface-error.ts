@@ -11,7 +11,8 @@ const huggingfaceErrorDataSchema = z.object({
 
 export type HuggingFaceErrorData = z.infer<typeof huggingfaceErrorDataSchema>;
 
-export const huggingfaceFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: huggingfaceErrorDataSchema,
-  errorToMessage: data => data.error.message,
-});
+export const huggingfaceFailedResponseHandler =
+  /* @__PURE__ */ createJsonErrorResponseHandler({
+    errorSchema: huggingfaceErrorDataSchema,
+    errorToMessage: data => data.error.message,
+  });

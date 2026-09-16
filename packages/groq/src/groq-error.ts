@@ -10,7 +10,8 @@ export const groqErrorDataSchema = z.object({
 
 export type GroqErrorData = z.infer<typeof groqErrorDataSchema>;
 
-export const groqFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: groqErrorDataSchema,
-  errorToMessage: data => data.error.message,
-});
+export const groqFailedResponseHandler =
+  /* @__PURE__ */ createJsonErrorResponseHandler({
+    errorSchema: groqErrorDataSchema,
+    errorToMessage: data => data.error.message,
+  });

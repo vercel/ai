@@ -19,7 +19,7 @@ export type GoogleVideoModelOptions = {
   [key: string]: unknown; // For passthrough
 };
 
-export const googleVideoModelOptionsSchema = lazySchema(() =>
+export const googleVideoModelOptionsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.looseObject({
       pollIntervalMs: z.number().positive().nullish(),

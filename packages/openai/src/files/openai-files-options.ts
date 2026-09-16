@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const openaiFilesOptionsSchema = lazySchema(() =>
+export const openaiFilesOptionsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       /*

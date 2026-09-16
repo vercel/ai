@@ -125,7 +125,7 @@ const gatewayRerankingWarningSchema = z.discriminatedUnion('type', [
   }),
 ]);
 
-const gatewayRerankingResponseSchema = lazySchema(() =>
+const gatewayRerankingResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       ranking: z.array(

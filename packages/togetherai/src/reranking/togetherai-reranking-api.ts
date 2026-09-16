@@ -12,7 +12,7 @@ export type TogetherAIRerankingInput = {
   rank_fields: string[] | undefined;
 };
 
-export const togetheraiErrorSchema = lazySchema(() =>
+export const togetheraiErrorSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       error: z.object({
@@ -22,22 +22,23 @@ export const togetheraiErrorSchema = lazySchema(() =>
   ),
 );
 
-export const togetheraiRerankingResponseSchema = lazySchema(() =>
-  zodSchema(
-    z.object({
-      id: z.string().nullish(),
-      model: z.string().nullish(),
-      results: z.array(
-        z.object({
-          index: z.number(),
-          relevance_score: z.number(),
+export const togetheraiRerankingResponseSchema = /* @__PURE__ */ lazySchema(
+  () =>
+    zodSchema(
+      z.object({
+        id: z.string().nullish(),
+        model: z.string().nullish(),
+        results: z.array(
+          z.object({
+            index: z.number(),
+            relevance_score: z.number(),
+          }),
+        ),
+        usage: z.object({
+          prompt_tokens: z.number(),
+          completion_tokens: z.number(),
+          total_tokens: z.number(),
         }),
-      ),
-      usage: z.object({
-        prompt_tokens: z.number(),
-        completion_tokens: z.number(),
-        total_tokens: z.number(),
       }),
-    }),
-  ),
+    ),
 );

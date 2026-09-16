@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const falImageModelOptionsSchema = lazySchema(() =>
+export const falImageModelOptionsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z
       .looseObject({

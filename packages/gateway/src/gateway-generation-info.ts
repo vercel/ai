@@ -87,7 +87,7 @@ export class GatewayGenerationInfoFetcher {
   }
 }
 
-const gatewayGenerationInfoResponseSchema = lazySchema(() =>
+const gatewayGenerationInfoResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z
       .object({

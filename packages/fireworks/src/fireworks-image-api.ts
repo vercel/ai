@@ -2,7 +2,7 @@ import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 // Schema for async submit response
-export const asyncSubmitResponseSchema = lazySchema(() =>
+export const asyncSubmitResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       request_id: z.string(),
@@ -11,7 +11,7 @@ export const asyncSubmitResponseSchema = lazySchema(() =>
 );
 
 // Schema for async poll response
-export const asyncPollResponseSchema = lazySchema(() =>
+export const asyncPollResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       id: z.string(),

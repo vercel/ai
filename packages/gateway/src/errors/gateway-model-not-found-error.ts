@@ -6,7 +6,7 @@ const name = 'GatewayModelNotFoundError';
 const marker = `vercel.ai.gateway.error.${name}`;
 const symbol = Symbol.for(marker);
 
-export const modelNotFoundParamSchema = lazySchema(() =>
+export const modelNotFoundParamSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       modelId: z.string(),

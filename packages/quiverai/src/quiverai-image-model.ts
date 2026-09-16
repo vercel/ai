@@ -324,8 +324,9 @@ const quiveraiErrorSchema = z.object({
   request_id: z.string().min(1),
 });
 
-export const quiveraiFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: quiveraiErrorSchema,
-  errorToMessage: error => error.message,
-  isRetryable: response => response.status === 429 || response.status >= 500,
-});
+export const quiveraiFailedResponseHandler =
+  /* @__PURE__ */ createJsonErrorResponseHandler({
+    errorSchema: quiveraiErrorSchema,
+    errorToMessage: error => error.message,
+    isRetryable: response => response.status === 429 || response.status >= 500,
+  });

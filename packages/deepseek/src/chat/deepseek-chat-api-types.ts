@@ -184,7 +184,7 @@ export const deepseekChatResponseSchema = z.object({
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-export const deepseekChatChunkSchema = lazySchema(() =>
+export const deepseekChatChunkSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.union([
       z.object({

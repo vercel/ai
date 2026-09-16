@@ -148,7 +148,7 @@ export async function createGatewayErrorFromResponse({
   }
 }
 
-const gatewayErrorResponseSchema = lazySchema(() =>
+const gatewayErrorResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       error: z.object({

@@ -10,7 +10,8 @@ export const elevenlabsErrorDataSchema = z.object({
 
 export type ElevenLabsErrorData = z.infer<typeof elevenlabsErrorDataSchema>;
 
-export const elevenlabsFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: elevenlabsErrorDataSchema,
-  errorToMessage: data => data.error.message,
-});
+export const elevenlabsFailedResponseHandler =
+  /* @__PURE__ */ createJsonErrorResponseHandler({
+    errorSchema: elevenlabsErrorDataSchema,
+    errorToMessage: data => data.error.message,
+  });

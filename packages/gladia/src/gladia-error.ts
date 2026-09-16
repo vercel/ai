@@ -10,7 +10,8 @@ export const gladiaErrorDataSchema = z.object({
 
 export type GladiaErrorData = z.infer<typeof gladiaErrorDataSchema>;
 
-export const gladiaFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: gladiaErrorDataSchema,
-  errorToMessage: data => data.error.message,
-});
+export const gladiaFailedResponseHandler =
+  /* @__PURE__ */ createJsonErrorResponseHandler({
+    errorSchema: gladiaErrorDataSchema,
+    errorToMessage: data => data.error.message,
+  });

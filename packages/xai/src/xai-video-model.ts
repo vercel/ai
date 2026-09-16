@@ -691,9 +691,8 @@ const xaiVideoStatusResponseSchema = z.object({
     .nullish(),
 });
 
-const xaiVideoStatusJsonResponseHandler = createJsonResponseHandler(
-  xaiVideoStatusResponseSchema,
-);
+const xaiVideoStatusJsonResponseHandler =
+  /* @__PURE__ */ createJsonResponseHandler(xaiVideoStatusResponseSchema);
 
 // Generous bound for a `{status, progress}` payload of ~50 bytes.
 const MAX_PENDING_BODY_BYTES = 1024 * 1024;

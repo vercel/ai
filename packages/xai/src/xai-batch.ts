@@ -57,7 +57,7 @@ const xaiBatchEndpoint = '/v1/responses';
 const xaiBatchName = 'ai-sdk-text-batch';
 const xaiBatchResultsPageSize = 1000;
 
-const xaiBatchProviderOptionsSchema = lazySchema(() =>
+const xaiBatchProviderOptionsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       /**
@@ -137,7 +137,7 @@ const xaiBatchResponseZodSchema = () =>
       .nullish(),
   });
 
-const xaiBatchResponseSchema = lazySchema(() =>
+const xaiBatchResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(xaiBatchResponseZodSchema()),
 );
 
@@ -219,7 +219,7 @@ const xaiBatchTextResponseSchema = z.object({
 
 type XaiBatchTextResponse = z.infer<typeof xaiBatchTextResponseSchema>;
 
-const xaiBatchResultsPageSchema = lazySchema(() =>
+const xaiBatchResultsPageSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       results: z.array(xaiBatchResultSchema),
@@ -228,7 +228,7 @@ const xaiBatchResultsPageSchema = lazySchema(() =>
   ),
 );
 
-const xaiBatchListResponseSchema = lazySchema(() =>
+const xaiBatchListResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       batches: z.array(xaiBatchResponseZodSchema()),

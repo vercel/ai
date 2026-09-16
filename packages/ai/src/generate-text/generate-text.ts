@@ -125,12 +125,12 @@ import type { ToolsContextParameter } from './tools-context-parameter';
 import { maybeSignApproval } from './tool-approval-signature';
 import { validateApprovedToolApprovals } from './validate-tool-approvals';
 
-const originalGenerateId = createIdGenerator({
+const originalGenerateId = /* @__PURE__ */ createIdGenerator({
   prefix: 'aitxt',
   size: 24,
 });
 
-const originalGenerateCallId = createIdGenerator({
+const originalGenerateCallId = /* @__PURE__ */ createIdGenerator({
   prefix: 'call',
   size: 24,
 });

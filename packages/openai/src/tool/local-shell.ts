@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const localShellInputSchema = lazySchema(() =>
+export const localShellInputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       action: z.object({
@@ -20,53 +20,54 @@ export const localShellInputSchema = lazySchema(() =>
   ),
 );
 
-export const localShellOutputSchema = lazySchema(() =>
+export const localShellOutputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(z.object({ output: z.string() })),
 );
 
-export const localShell = createProviderDefinedToolFactoryWithOutputSchema<
-  {
-    /**
-     * Execute a shell command on the server.
-     */
-    action: {
-      type: 'exec';
-
+export const localShell =
+  /* @__PURE__ */ createProviderDefinedToolFactoryWithOutputSchema<
+    {
       /**
-       * The command to run.
+       * Execute a shell command on the server.
        */
-      command: string[];
+      action: {
+        type: 'exec';
 
-      /**
-       * Optional timeout in milliseconds for the command.
-       */
-      timeoutMs?: number;
+        /**
+         * The command to run.
+         */
+        command: string[];
 
-      /**
-       * Optional user to run the command as.
-       */
-      user?: string;
+        /**
+         * Optional timeout in milliseconds for the command.
+         */
+        timeoutMs?: number;
 
-      /**
-       * Optional working directory to run the command in.
-       */
-      workingDirectory?: string;
+        /**
+         * Optional user to run the command as.
+         */
+        user?: string;
 
+        /**
+         * Optional working directory to run the command in.
+         */
+        workingDirectory?: string;
+
+        /**
+         * Environment variables to set for the command.
+         */
+        env?: Record<string, string>;
+      };
+    },
+    {
       /**
-       * Environment variables to set for the command.
+       * The output of local shell tool call.
        */
-      env?: Record<string, string>;
-    };
-  },
-  {
-    /**
-     * The output of local shell tool call.
-     */
-    output: string;
-  },
-  {}
->({
-  id: 'openai.local_shell',
-  inputSchema: localShellInputSchema,
-  outputSchema: localShellOutputSchema,
-});
+      output: string;
+    },
+    {}
+  >({
+    id: 'openai.local_shell',
+    inputSchema: localShellInputSchema,
+    outputSchema: localShellOutputSchema,
+  });

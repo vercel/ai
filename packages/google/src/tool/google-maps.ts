@@ -8,7 +8,11 @@ import { z } from 'zod/v4';
 // https://ai.google.dev/gemini-api/docs/maps-grounding
 // https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/grounding-with-google-maps
 
-export const googleMaps = createProviderExecutedToolFactory<{}, {}, {}>({
+export const googleMaps = /* @__PURE__ */ createProviderExecutedToolFactory<
+  {},
+  {},
+  {}
+>({
   id: 'google.google_maps',
   inputSchema: lazySchema(() => zodSchema(z.object({}))),
   outputSchema: lazySchema(() => zodSchema(z.object({}))),

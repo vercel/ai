@@ -277,7 +277,7 @@ const stepSchema = () => {
 
 export type GoogleInteractionsStep = z.infer<ReturnType<typeof stepSchema>>;
 
-export const googleInteractionsResponseSchema = lazySchema(() =>
+export const googleInteractionsResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z
       .object({
@@ -306,7 +306,7 @@ export type GoogleInteractionsResponse = InferSchema<
   typeof googleInteractionsResponseSchema
 >;
 
-export const googleInteractionsEventSchema = lazySchema(() =>
+export const googleInteractionsEventSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     (() => {
       const status = interactionStatusSchema();

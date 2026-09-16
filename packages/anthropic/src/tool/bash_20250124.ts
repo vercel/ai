@@ -21,7 +21,7 @@ type Bash20250124Input = {
   restart?: boolean;
 };
 
-const bash_20250124InputSchema = lazySchema(() =>
+const bash_20250124InputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       command: z.string(),
@@ -30,13 +30,11 @@ const bash_20250124InputSchema = lazySchema(() =>
   ),
 );
 
-export const bash_20250124_internal = createProviderDefinedToolFactory<
-  Bash20250124Input,
-  {}
->({
-  id: 'anthropic.bash_20250124',
-  inputSchema: bash_20250124InputSchema,
-});
+export const bash_20250124_internal =
+  /* @__PURE__ */ createProviderDefinedToolFactory<Bash20250124Input, {}>({
+    id: 'anthropic.bash_20250124',
+    inputSchema: bash_20250124InputSchema,
+  });
 
 type Bash20250124Options<OUTPUT> = {
   execute?: ToolExecuteFunction<Bash20250124Input, OUTPUT, {}>;

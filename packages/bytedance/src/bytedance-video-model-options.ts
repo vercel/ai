@@ -23,7 +23,7 @@ export type ByteDanceVideoModelOptions = {
   [key: string]: unknown;
 };
 
-export const byteDanceVideoModelOptionsSchema = lazySchema(() =>
+export const byteDanceVideoModelOptionsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.looseObject({
       watermark: z.boolean().nullish(),

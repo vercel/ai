@@ -10,7 +10,8 @@ export const humeErrorDataSchema = z.object({
 
 export type HumeErrorData = z.infer<typeof humeErrorDataSchema>;
 
-export const humeFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: humeErrorDataSchema,
-  errorToMessage: data => data.error.message,
-});
+export const humeFailedResponseHandler =
+  /* @__PURE__ */ createJsonErrorResponseHandler({
+    errorSchema: humeErrorDataSchema,
+    errorToMessage: data => data.error.message,
+  });

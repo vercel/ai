@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const imageGenerationArgsSchema = lazySchema(() =>
+export const imageGenerationArgsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z
       .object({
@@ -37,9 +37,11 @@ export const imageGenerationArgsSchema = lazySchema(() =>
   ),
 );
 
-const imageGenerationInputSchema = lazySchema(() => zodSchema(z.object({})));
+const imageGenerationInputSchema = /* @__PURE__ */ lazySchema(() =>
+  zodSchema(z.object({})),
+);
 
-export const imageGenerationOutputSchema = lazySchema(() =>
+export const imageGenerationOutputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(z.object({ result: z.string() })),
 );
 
@@ -118,20 +120,21 @@ type ImageGenerationArgs = {
   size?: 'auto' | '1024x1024' | '1024x1536' | '1536x1024' | (string & {});
 };
 
-const imageGenerationToolFactory = createProviderExecutedToolFactory<
-  {},
-  {
-    /**
-     * The generated image encoded in base64.
-     */
-    result: string;
-  },
-  ImageGenerationArgs
->({
-  id: 'openai.image_generation',
-  inputSchema: imageGenerationInputSchema,
-  outputSchema: imageGenerationOutputSchema,
-});
+const imageGenerationToolFactory =
+  /* @__PURE__ */ createProviderExecutedToolFactory<
+    {},
+    {
+      /**
+       * The generated image encoded in base64.
+       */
+      result: string;
+    },
+    ImageGenerationArgs
+  >({
+    id: 'openai.image_generation',
+    inputSchema: imageGenerationInputSchema,
+    outputSchema: imageGenerationOutputSchema,
+  });
 
 export const imageGeneration = (
   args: ImageGenerationArgs = {}, // default

@@ -7,7 +7,8 @@ const cohereErrorDataSchema = z.object({
 
 export type CohereErrorData = z.infer<typeof cohereErrorDataSchema>;
 
-export const cohereFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: cohereErrorDataSchema,
-  errorToMessage: data => data.message,
-});
+export const cohereFailedResponseHandler =
+  /* @__PURE__ */ createJsonErrorResponseHandler({
+    errorSchema: cohereErrorDataSchema,
+    errorToMessage: data => data.message,
+  });

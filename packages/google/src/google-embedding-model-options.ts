@@ -27,7 +27,7 @@ const googleEmbeddingContentPartSchema = z.union([
   }),
 ]);
 
-export const googleEmbeddingModelOptions = lazySchema(() =>
+export const googleEmbeddingModelOptions = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       /**

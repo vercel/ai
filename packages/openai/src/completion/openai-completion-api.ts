@@ -7,7 +7,7 @@ import {
 } from '@ai-sdk/provider-utils';
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-export const openaiCompletionResponseSchema = lazySchema(() =>
+export const openaiCompletionResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       id: z.string().nullish(),
@@ -39,7 +39,7 @@ export const openaiCompletionResponseSchema = lazySchema(() =>
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-export const openaiCompletionChunkSchema = lazySchema(() =>
+export const openaiCompletionChunkSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.union([
       z.object({

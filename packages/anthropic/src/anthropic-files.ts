@@ -15,7 +15,7 @@ import {
 import { z } from 'zod/v4';
 import { anthropicFailedResponseHandler } from './anthropic-error';
 
-const anthropicUploadFileResponseSchema = lazySchema(() =>
+const anthropicUploadFileResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       id: z.string(),

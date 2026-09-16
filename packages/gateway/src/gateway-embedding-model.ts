@@ -143,7 +143,7 @@ const gatewayEmbeddingWarningSchema = z.discriminatedUnion('type', [
   }),
 ]);
 
-const gatewayEmbeddingResponseSchema = lazySchema(() =>
+const gatewayEmbeddingResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       embeddings: z.array(z.array(z.number())),

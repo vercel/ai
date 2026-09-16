@@ -165,12 +165,12 @@ import type { StaticToolOutputDenied } from './tool-output-denied';
 import type { ToolsContextParameter } from './tools-context-parameter';
 import { validateApprovedToolApprovals } from './validate-tool-approvals';
 
-const originalGenerateId = createIdGenerator({
+const originalGenerateId = /* @__PURE__ */ createIdGenerator({
   prefix: 'aitxt',
   size: 24,
 });
 
-const originalGenerateCallId = createIdGenerator({
+const originalGenerateCallId = /* @__PURE__ */ createIdGenerator({
   prefix: 'call',
   size: 24,
 });

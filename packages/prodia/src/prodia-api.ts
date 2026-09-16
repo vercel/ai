@@ -181,20 +181,21 @@ const prodiaErrorSchema = z.object({
   error: z.string().optional(),
 });
 
-export const prodiaFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: prodiaErrorSchema,
-  errorToMessage: error => {
-    const parsed = prodiaErrorSchema.safeParse(error);
-    if (!parsed.success) return 'Unknown Prodia error';
-    const { message, detail, error: errorField } = parsed.data;
-    if (typeof detail === 'string') return detail;
-    if (detail != null) {
-      try {
-        return JSON.stringify(detail);
-      } catch {
-        // ignore
+export const prodiaFailedResponseHandler =
+  /* @__PURE__ */ createJsonErrorResponseHandler({
+    errorSchema: prodiaErrorSchema,
+    errorToMessage: error => {
+      const parsed = prodiaErrorSchema.safeParse(error);
+      if (!parsed.success) return 'Unknown Prodia error';
+      const { message, detail, error: errorField } = parsed.data;
+      if (typeof detail === 'string') return detail;
+      if (detail != null) {
+        try {
+          return JSON.stringify(detail);
+        } catch {
+          // ignore
+        }
       }
-    }
-    return errorField ?? message ?? 'Unknown Prodia error';
-  },
-});
+      return errorField ?? message ?? 'Unknown Prodia error';
+    },
+  });

@@ -10,7 +10,8 @@ export const falErrorDataSchema = z.object({
 
 export type FalErrorData = z.infer<typeof falErrorDataSchema>;
 
-export const falFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: falErrorDataSchema,
-  errorToMessage: data => data.error.message,
-});
+export const falFailedResponseHandler =
+  /* @__PURE__ */ createJsonErrorResponseHandler({
+    errorSchema: falErrorDataSchema,
+    errorToMessage: data => data.error.message,
+  });

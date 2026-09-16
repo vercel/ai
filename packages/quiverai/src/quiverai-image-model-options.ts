@@ -10,7 +10,7 @@ import { z } from 'zod/v4';
  *
  * @see https://quiver.ai/
  */
-export const quiveraiImageModelOptionsSchema = lazySchema(() =>
+export const quiveraiImageModelOptionsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       /**

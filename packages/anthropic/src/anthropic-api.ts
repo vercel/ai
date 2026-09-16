@@ -741,7 +741,7 @@ const anthropicInputTransformationSchema = z.object({
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-export const anthropicResponseSchema = lazySchema(() =>
+export const anthropicResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       type: z.literal('message'),
@@ -1074,7 +1074,7 @@ export const anthropicResponseSchema = lazySchema(() =>
 
 // limited version of the schema, focused on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-export const anthropicChunkSchema = lazySchema(() =>
+export const anthropicChunkSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.discriminatedUnion('type', [
       z.object({
@@ -1494,7 +1494,7 @@ export const anthropicChunkSchema = lazySchema(() =>
   ),
 );
 
-export const anthropicReasoningMetadataSchema = lazySchema(() =>
+export const anthropicReasoningMetadataSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       signature: z.string().optional(),

@@ -29,7 +29,7 @@ export type CohereRerankingModelOptions = {
 };
 
 export const cohereRerankingModelOptionsSchema: FlexibleSchema<CohereRerankingModelOptions> =
-  lazySchema(() =>
+  /* @__PURE__ */ lazySchema(() =>
     zodSchema(
       z.object({
         maxTokensPerDoc: z.number().optional(),

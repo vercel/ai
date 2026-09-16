@@ -20,7 +20,7 @@ const toolMetadataSchema: ZodType<JSONObject> = z.record(
   jsonValueSchema.optional(),
 );
 
-export const uiMessageChunkSchema = lazySchema(() =>
+export const uiMessageChunkSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema<UIMessageChunk>(
     z.union([
       z.looseObject({

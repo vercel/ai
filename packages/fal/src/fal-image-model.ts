@@ -374,14 +374,16 @@ function isValidationError(error: unknown): error is ValidationError {
   return falValidationErrorSchema.safeParse(error).success;
 }
 
-const falFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: falErrorSchema,
-  errorToMessage: error => {
-    if (isValidationError(error)) {
-      return error.detail
-        .map(detail => `${detail.loc.join('.')}: ${detail.msg}`)
-        .join('\n');
-    }
-    return error.message ?? 'Unknown fal error';
+const falFailedResponseHandler = /* @__PURE__ */ createJsonErrorResponseHandler(
+  {
+    errorSchema: falErrorSchema,
+    errorToMessage: error => {
+      if (isValidationError(error)) {
+        return error.detail
+          .map(detail => `${detail.loc.join('.')}: ${detail.msg}`)
+          .join('\n');
+      }
+      return error.message ?? 'Unknown fal error';
+    },
   },
-});
+);

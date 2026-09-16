@@ -215,8 +215,9 @@ const byteDanceErrorSchema = z.object({
   message: z.string().nullish(),
 });
 
-const byteDanceFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: byteDanceErrorSchema,
-  errorToMessage: data =>
-    data.error?.message ?? data.message ?? 'Unknown error',
-});
+const byteDanceFailedResponseHandler =
+  /* @__PURE__ */ createJsonErrorResponseHandler({
+    errorSchema: byteDanceErrorSchema,
+    errorToMessage: data =>
+      data.error?.message ?? data.message ?? 'Unknown error',
+  });

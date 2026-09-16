@@ -57,7 +57,7 @@ import type { ResponsesReasoningProviderMetadata } from './responses/openai-resp
 const openaiBatchEndpoint = '/v1/responses';
 const openaiBatchInputFileDefaultExpiresAfterSeconds = 48 * 60 * 60;
 
-const openaiBatchProviderOptionsSchema = lazySchema(() =>
+const openaiBatchProviderOptionsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       /**
@@ -133,13 +133,13 @@ const openaiBatchResponseZodSchema = () =>
       .nullish(),
   });
 
-const openaiBatchResponseSchema = lazySchema(() =>
+const openaiBatchResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(openaiBatchResponseZodSchema()),
 );
 
 type OpenAIBatchResponse = InferSchema<typeof openaiBatchResponseSchema>;
 
-const openaiBatchResultLineSchema = lazySchema(() =>
+const openaiBatchResultLineSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       custom_id: z.string(),
@@ -160,7 +160,7 @@ const openaiBatchResultLineSchema = lazySchema(() =>
   ),
 );
 
-const openaiBatchListResponseSchema = lazySchema(() =>
+const openaiBatchListResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       data: z.array(openaiBatchResponseZodSchema()),

@@ -1716,7 +1716,7 @@ export const getUrlContextMetadataSchema = () =>
       .nullish(),
   });
 
-export const responseSchema = lazySchema(() =>
+export const responseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       responseId: z.string().nullish(),
@@ -1769,7 +1769,7 @@ export type UsageMetadataSchema = NonNullable<
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const chunkSchema = lazySchema(() =>
+const chunkSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       responseId: z.string().nullish(),

@@ -8,7 +8,8 @@ export const klingaiErrorDataSchema = z.object({
 
 export type KlingAIErrorData = z.infer<typeof klingaiErrorDataSchema>;
 
-export const klingaiFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: klingaiErrorDataSchema,
-  errorToMessage: data => data.message,
-});
+export const klingaiFailedResponseHandler =
+  /* @__PURE__ */ createJsonErrorResponseHandler({
+    errorSchema: klingaiErrorDataSchema,
+    errorToMessage: data => data.message,
+  });

@@ -13,7 +13,7 @@ import { z } from 'zod/v4';
  *
  * @note Only works with Vertex Gemini models.
  */
-export const vertexRagStore = createProviderExecutedToolFactory<
+export const vertexRagStore = /* @__PURE__ */ createProviderExecutedToolFactory<
   {},
   {},
   {

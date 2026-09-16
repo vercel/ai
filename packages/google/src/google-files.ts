@@ -226,7 +226,7 @@ type GoogleFileResource = {
   state: string;
 };
 
-const googleFileResponseSchema = lazySchema(() =>
+const googleFileResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       name: z.string(),
@@ -243,7 +243,7 @@ const googleFileResponseSchema = lazySchema(() =>
   ),
 );
 
-const googleFilesUploadOptionsSchema = lazySchema(() =>
+const googleFilesUploadOptionsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.looseObject({
       displayName: z.string().nullish(),

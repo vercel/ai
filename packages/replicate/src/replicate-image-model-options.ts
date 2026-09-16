@@ -12,7 +12,7 @@ import { z } from 'zod/v4';
  * This schema includes common parameters, but you can pass any
  * model-specific parameters through the passthrough.
  */
-export const replicateImageModelOptionsSchema = lazySchema(() =>
+export const replicateImageModelOptionsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.looseObject({
       /**

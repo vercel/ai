@@ -17,7 +17,7 @@ import { z } from 'zod/v4';
  *
  * @see https://console.groq.com/docs/browser-search
  */
-export const browserSearch = createProviderExecutedToolFactory<
+export const browserSearch = /* @__PURE__ */ createProviderExecutedToolFactory<
   {
     // Browser search doesn't take input parameters - it's controlled by the prompt
     // The tool is activated automatically when included in the tools array

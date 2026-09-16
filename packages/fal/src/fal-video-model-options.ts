@@ -11,7 +11,7 @@ export type FalVideoModelOptions = {
 };
 
 // Provider options schema for FAL video generation
-export const falVideoModelOptionsSchema = lazySchema(() =>
+export const falVideoModelOptionsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.looseObject({
       // Video loop - only for Luma models

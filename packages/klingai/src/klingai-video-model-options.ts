@@ -197,7 +197,7 @@ export type KlingAIVideoModelOptions = {
   [key: string]: unknown; // For passthrough
 };
 
-export const klingaiVideoModelOptionsSchema = lazySchema(() =>
+export const klingaiVideoModelOptionsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.looseObject({
       mode: z.enum(['std', 'pro']).nullish(),

@@ -9,7 +9,7 @@ import { z } from 'zod/v4';
  * Schema for image generation tool arguments.
  * @see https://docs.x.ai/developers/tools/overview
  */
-export const imageGenerationArgsSchema = lazySchema(() =>
+export const imageGenerationArgsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       action: z.enum(['auto', 'generate', 'edit']).optional(),
@@ -17,9 +17,11 @@ export const imageGenerationArgsSchema = lazySchema(() =>
   ),
 );
 
-const imageGenerationInputSchema = lazySchema(() => zodSchema(z.object({})));
+const imageGenerationInputSchema = /* @__PURE__ */ lazySchema(() =>
+  zodSchema(z.object({})),
+);
 
-const imageGenerationOutputSchema = lazySchema(() =>
+const imageGenerationOutputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       result: z.string(),
@@ -28,34 +30,35 @@ const imageGenerationOutputSchema = lazySchema(() =>
   ),
 );
 
-const imageGenerationToolFactory = createProviderExecutedToolFactory<
-  {},
-  {
-    /**
-     * The generated image encoded in base64.
-     */
-    result: string;
+const imageGenerationToolFactory =
+  /* @__PURE__ */ createProviderExecutedToolFactory<
+    {},
+    {
+      /**
+       * The generated image encoded in base64.
+       */
+      result: string;
 
-    /**
-     * The prompt that the model wrote for the image model.
-     */
-    prompt?: string;
-  },
-  {
-    /**
-     * Restricts what the tool can do. Defaults to 'auto'.
-     *
-     * - 'auto': the model can generate and edit images.
-     * - 'generate': text-to-image generation only.
-     * - 'edit': image editing only.
-     */
-    action?: 'auto' | 'generate' | 'edit';
-  }
->({
-  id: 'xai.image_generation',
-  inputSchema: imageGenerationInputSchema,
-  outputSchema: imageGenerationOutputSchema,
-});
+      /**
+       * The prompt that the model wrote for the image model.
+       */
+      prompt?: string;
+    },
+    {
+      /**
+       * Restricts what the tool can do. Defaults to 'auto'.
+       *
+       * - 'auto': the model can generate and edit images.
+       * - 'generate': text-to-image generation only.
+       * - 'edit': image editing only.
+       */
+      action?: 'auto' | 'generate' | 'edit';
+    }
+  >({
+    id: 'xai.image_generation',
+    inputSchema: imageGenerationInputSchema,
+    outputSchema: imageGenerationOutputSchema,
+  });
 
 export const imageGeneration = (
   args: Parameters<typeof imageGenerationToolFactory>[0] = {},

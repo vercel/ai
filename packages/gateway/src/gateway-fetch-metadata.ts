@@ -82,7 +82,7 @@ export class GatewayFetchMetadata {
   }
 }
 
-const gatewayAvailableModelsResponseSchema = lazySchema(() =>
+const gatewayAvailableModelsResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       models: z
@@ -130,7 +130,7 @@ const gatewayAvailableModelsResponseSchema = lazySchema(() =>
   ),
 );
 
-const gatewayCreditsResponseSchema = lazySchema(() =>
+const gatewayCreditsResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z
       .object({

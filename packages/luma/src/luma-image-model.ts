@@ -362,7 +362,7 @@ export class LumaImageModel implements ImageModelV4 {
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const lumaGenerationResponseSchema = lazySchema(() =>
+const lumaGenerationResponseSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       id: z.string(),

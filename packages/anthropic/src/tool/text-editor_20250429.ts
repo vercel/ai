@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-const textEditor_20250429InputSchema = lazySchema(() =>
+const textEditor_20250429InputSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.object({
       command: z.enum(['view', 'create', 'str_replace', 'insert']),
@@ -20,51 +20,52 @@ const textEditor_20250429InputSchema = lazySchema(() =>
   ),
 );
 
-export const textEditor_20250429 = createProviderDefinedToolFactory<
-  {
-    /**
-     * The commands to run. Allowed options are: `view`, `create`, `str_replace`, `insert`.
-     * Note: `undo_edit` is not supported in Claude 4 models.
-     */
-    command: 'view' | 'create' | 'str_replace' | 'insert';
+export const textEditor_20250429 =
+  /* @__PURE__ */ createProviderDefinedToolFactory<
+    {
+      /**
+       * The commands to run. Allowed options are: `view`, `create`, `str_replace`, `insert`.
+       * Note: `undo_edit` is not supported in Claude 4 models.
+       */
+      command: 'view' | 'create' | 'str_replace' | 'insert';
 
-    /**
-     * Absolute path to file or directory, e.g. `/repo/file.py` or `/repo`.
-     */
-    path: string;
+      /**
+       * Absolute path to file or directory, e.g. `/repo/file.py` or `/repo`.
+       */
+      path: string;
 
-    /**
-     * Required parameter of `create` command, with the content of the file to be created.
-     */
-    file_text?: string;
+      /**
+       * Required parameter of `create` command, with the content of the file to be created.
+       */
+      file_text?: string;
 
-    /**
-     * Required parameter of `insert` command. The `new_str` will be inserted AFTER the line `insert_line` of `path`.
-     */
-    insert_line?: number;
+      /**
+       * Required parameter of `insert` command. The `new_str` will be inserted AFTER the line `insert_line` of `path`.
+       */
+      insert_line?: number;
 
-    /**
-     * Optional parameter of `str_replace` command containing the new string (if not given, no string will be added).
-     */
-    new_str?: string;
+      /**
+       * Optional parameter of `str_replace` command containing the new string (if not given, no string will be added).
+       */
+      new_str?: string;
 
-    /**
-     * Required parameter of `insert` command containing the text to insert.
-     */
-    insert_text?: string;
+      /**
+       * Required parameter of `insert` command containing the text to insert.
+       */
+      insert_text?: string;
 
-    /**
-     * Required parameter of `str_replace` command containing the string in `path` to replace.
-     */
-    old_str?: string;
+      /**
+       * Required parameter of `str_replace` command containing the string in `path` to replace.
+       */
+      old_str?: string;
 
-    /**
-     * Optional parameter of `view` command when `path` points to a file. If none is given, the full file is shown. If provided, the file will be shown in the indicated line number range, e.g. [11, 12] will show lines 11 and 12. Indexing at 1 to start. Setting `[start_line, -1]` shows all lines from `start_line` to the end of the file.
-     */
-    view_range?: number[];
-  },
-  {}
->({
-  id: 'anthropic.text_editor_20250429',
-  inputSchema: textEditor_20250429InputSchema,
-});
+      /**
+       * Optional parameter of `view` command when `path` points to a file. If none is given, the full file is shown. If provided, the file will be shown in the indicated line number range, e.g. [11, 12] will show lines 11 and 12. Indexing at 1 to start. Setting `[start_line, -1]` shows all lines from `start_line` to the end of the file.
+       */
+      view_range?: number[];
+    },
+    {}
+  >({
+    id: 'anthropic.text_editor_20250429',
+    inputSchema: textEditor_20250429InputSchema,
+  });

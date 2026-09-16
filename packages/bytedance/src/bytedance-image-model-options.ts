@@ -44,7 +44,7 @@ export type ByteDanceImageModelOptions = {
   [key: string]: unknown;
 };
 
-export const byteDanceImageModelOptionsSchema = lazySchema(() =>
+export const byteDanceImageModelOptionsSchema = /* @__PURE__ */ lazySchema(() =>
   zodSchema(
     z.looseObject({
       watermark: z.boolean().nullish(),
