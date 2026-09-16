@@ -13,7 +13,13 @@ import {
 import { createQuiverAI } from './quiverai-provider';
 
 const decoder = new TextDecoder();
-const canonicalModelIds = ['arrow-1', 'arrow-1.1', 'arrow-1.1-max'] as const;
+const canonicalModelIds = [
+  'arrow-1',
+  'arrow-1.1',
+  'arrow-1.1-max',
+  'arrow-2',
+  'arrow-2-telos',
+] as const;
 
 const server = createTestServer({
   'https://api.quiver.ai/v1/svgs/generations': {
@@ -197,7 +203,6 @@ describe('createQuiverAI', () => {
     );
     expect(await server.calls[0].requestBodyJson).toMatchObject({
       model: 'arrow-1',
-      n: 1,
       image: {
         base64: 'AQID',
       },
@@ -321,6 +326,160 @@ describe('createQuiverAI', () => {
       target_size: 1024,
       stream: false,
     });
+  });
+
+  it.each(['arrow-2', 'arrow-2-telos'])(
+    'forwards Arrow 2 options for %s on both endpoints',
+    async modelId => {
+      const provider = createQuiverAI({ apiKey: 'test-api-key' });
+      for (const operation of ['generate', 'vectorize'] as const) {
+        const result = await provider.image(modelId).doGenerate({
+          ...generateOptions,
+          files: [{ type: 'url', url: 'https://example.com/reference.png' }],
+          providerOptions: {
+            quiverai: {
+              operation,
+              reasoningEffort: 'high',
+              attributes: {
+                viewBox: { minX: -10, minY: 0, width: 100, height: 50 },
+              },
+              maxOutputTokens: 65536,
+            },
+          },
+        });
+        expect(result.images).toHaveLength(1);
+        expect(result.usage?.totalTokens).toBeGreaterThan(0);
+        expect(result.providerMetadata?.quiverai).not.toHaveProperty('credits');
+      }
+      const requestBodies = await Promise.all(
+        server.calls.map(call => call.requestBodyJson),
+      );
+      for (const body of requestBodies) {
+        expect(body).toMatchObject({
+          model: modelId,
+          reasoning_effort: 'high',
+          attributes: {
+            viewBox: { minX: -10, minY: 0, width: 100, height: 50 },
+          },
+          max_output_tokens: 65536,
+          stream: false,
+        });
+      }
+      expect(requestBodies[0]).toHaveProperty('n', 1);
+      expect(requestBodies[1]).not.toHaveProperty('n');
+    },
+  );
+
+  it.each(['arrow-2', 'arrow-2-telos'])(
+    'rejects output budgets above the limit for %s',
+    async modelId => {
+      const provider = createQuiverAI({ apiKey: 'test-api-key' });
+      await expect(
+        provider.image(modelId).doGenerate({
+          ...generateOptions,
+          providerOptions: { quiverai: { maxOutputTokens: 65537 } },
+        }),
+      ).rejects.toThrow('supports at most 65536 output tokens');
+      expect(server.calls).toHaveLength(0);
+    },
+  );
+
+  it('retains the legacy output budget allowance', async () => {
+    const provider = createQuiverAI({ apiKey: 'test-api-key' });
+    await provider.image('arrow-1.1').doGenerate({
+      ...generateOptions,
+      providerOptions: { quiverai: { maxOutputTokens: 131072 } },
+    });
+    expect(await server.calls[0].requestBodyJson).toHaveProperty(
+      'max_output_tokens',
+      131072,
+    );
+  });
+
+  it.each(['arrow-2', 'arrow-2-telos', 'future-model'])(
+    'leaves model-specific reference limits to the API for %s',
+    async modelId => {
+      const provider = createQuiverAI({ apiKey: 'test-api-key' });
+      const files = Array.from({ length: 16 }, () => ({
+        type: 'url' as const,
+        url: 'https://example.com/reference.png',
+      }));
+      await provider.image(modelId).doGenerate({ ...generateOptions, files });
+      expect(
+        ((await server.calls[0].requestBodyJson) as { references: unknown[] })
+          .references,
+      ).toHaveLength(16);
+      await expect(
+        provider
+          .image(modelId)
+          .doGenerate({ ...generateOptions, files: [...files, files[0]] }),
+      ).rejects.toThrow('supports up to 16 reference images');
+      expect(server.calls).toHaveLength(1);
+    },
+  );
+
+  it.each(['arrow-1', 'arrow-1.0', 'arrow-1.1'])(
+    'retains the four-reference limit for %s',
+    async modelId => {
+      const provider = createQuiverAI({ apiKey: 'test-api-key' });
+      await expect(
+        provider.image(modelId).doGenerate({
+          ...generateOptions,
+          files: Array.from({ length: 5 }, () => ({
+            type: 'url' as const,
+            url: 'https://example.com/reference.png',
+          })),
+        }),
+      ).rejects.toThrow('supports up to 4 reference images');
+      expect(server.calls).toHaveLength(0);
+    },
+  );
+
+  it.each([0, 20])(
+    'preserves fixed-credit billing metadata (%s credits) without requiring usage',
+    async credits => {
+      server.urls['https://api.quiver.ai/v1/svgs/generations'].response = {
+        type: 'json-value',
+        body: { ...generateSvgResponseFixture, usage: undefined, credits },
+      };
+      const provider = createQuiverAI({ apiKey: 'test-api-key' });
+      const result = await provider
+        .image('arrow-1.1')
+        .doGenerate(generateOptions);
+      expect(result.usage).toBeUndefined();
+      expect(result.providerMetadata?.quiverai).toEqual({
+        credits,
+        images: [{ index: 0, mimeType: 'image/svg+xml' }],
+      });
+    },
+  );
+
+  it.each([
+    { reasoningEffort: 'none' },
+    { attributes: { viewBox: { minX: 0, minY: 0, width: 0, height: 100 } } },
+    { attributes: { viewBox: { minX: 0, minY: 0, width: 100, height: -1 } } },
+  ])('rejects invalid Arrow 2 options: %j', async quiverai => {
+    const provider = createQuiverAI({ apiKey: 'test-api-key' });
+    await expect(
+      provider.image('arrow-2').doGenerate({
+        ...generateOptions,
+        providerOptions: { quiverai },
+      }),
+    ).rejects.toThrow();
+    expect(server.calls).toHaveLength(0);
+  });
+
+  it('rejects vectorization batching instead of silently returning fewer outputs', async () => {
+    const provider = createQuiverAI({ apiKey: 'test-api-key' });
+    await expect(
+      provider.image('arrow-2').doGenerate({
+        ...generateOptions,
+        n: 2,
+        files: [{ type: 'url', url: 'https://example.com/logo.png' }],
+        providerOptions: { quiverai: { operation: 'vectorize' } },
+      }),
+    ).rejects.toThrow('Set maxImagesPerCall to 1');
+    expect(server.calls).toHaveLength(0);
   });
 
   it('fails fast when vectorize is requested without an input image', async () => {
