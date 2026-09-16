@@ -9,7 +9,6 @@ import {
   type SkillsV4,
 } from '@ai-sdk/provider';
 import {
-  Experimental_EvaluationLanguageModel as EvaluationLanguageModel,
   generateId,
   loadApiKey,
   loadOptionalSetting,
@@ -18,6 +17,7 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
+import { Experimental_EvaluationLanguageModel as EvaluationLanguageModel } from '@ai-sdk/provider-utils/experimental-evaluation';
 import { AnthropicFiles } from './anthropic-files';
 import { AnthropicLanguageModel } from './anthropic-language-model';
 import { AnthropicBatch } from './anthropic-batch';
