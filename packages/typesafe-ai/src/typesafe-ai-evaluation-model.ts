@@ -20,32 +20,32 @@ import {
 import {
   typesafeEvaluationResponseSchema,
   typesafeFailedResponseHandler,
-} from './typesafe-evaluation-api';
+} from './typesafe-ai-evaluation-api';
 import { VERSION } from './version';
 
-export type TypeSafeEvaluationModelId = 'jev-latest' | (string & {});
+export type TypeSafeAiEvaluationModelId = 'jev-latest' | (string & {});
 
-type TypeSafeEvaluationModelConfig = {
+type TypeSafeAiEvaluationModelConfig = {
   provider: string;
   baseURL: string;
   headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 };
 
-export class EvaluationTypeSafeModel implements EvaluationModelV4 {
+export class EvaluationTypeSafeAiModel implements EvaluationModelV4 {
   readonly specificationVersion = 'v4';
   readonly supportedQuestionTypes = ['choice', 'score', 'boolean'] as const;
 
   constructor(
-    readonly modelId: TypeSafeEvaluationModelId,
-    private readonly config: TypeSafeEvaluationModelConfig,
+    readonly modelId: TypeSafeAiEvaluationModelId,
+    private readonly config: TypeSafeAiEvaluationModelConfig,
   ) {}
 
   get provider() {
     return this.config.provider;
   }
 
-  static [WORKFLOW_SERIALIZE](model: EvaluationTypeSafeModel) {
+  static [WORKFLOW_SERIALIZE](model: EvaluationTypeSafeAiModel) {
     return serializeModelOptions({
       modelId: model.modelId,
       config: model.config,
@@ -53,10 +53,10 @@ export class EvaluationTypeSafeModel implements EvaluationModelV4 {
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
-    modelId: TypeSafeEvaluationModelId;
-    config: TypeSafeEvaluationModelConfig;
+    modelId: TypeSafeAiEvaluationModelId;
+    config: TypeSafeAiEvaluationModelConfig;
   }) {
-    return new EvaluationTypeSafeModel(options.modelId, options.config);
+    return new EvaluationTypeSafeAiModel(options.modelId, options.config);
   }
 
   async doEvaluate({

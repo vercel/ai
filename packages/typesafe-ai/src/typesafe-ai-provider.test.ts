@@ -1,11 +1,11 @@
 import { NoSuchModelError } from '@ai-sdk/provider';
 import { describe, expect, it } from 'vitest';
-import { createTypeSafe, typesafe } from './typesafe-provider';
+import { createTypeSafeAi, typeSafeAi } from './typesafe-ai-provider';
 
 describe('TypeSafe provider', () => {
   it('provides the experimental evaluation capability', () => {
-    const model = typesafe.evaluationModel('jev-latest');
-    expect(typesafe.specificationVersion).toBe('v4');
+    const model = typeSafeAi.evaluationModel('jev-latest');
+    expect(typeSafeAi.specificationVersion).toBe('v4');
     expect(model.specificationVersion).toBe('v4');
     expect(model.provider).toBe('typesafe.evaluation');
     expect(model.modelId).toBe('jev-latest');
@@ -19,7 +19,7 @@ describe('TypeSafe provider', () => {
   it.each(['languageModel', 'embeddingModel', 'imageModel'] as const)(
     'rejects unsupported %s factories',
     factory => {
-      expect(() => createTypeSafe()[factory]('unknown')).toThrow(
+      expect(() => createTypeSafeAi()[factory]('unknown')).toThrow(
         NoSuchModelError,
       );
     },

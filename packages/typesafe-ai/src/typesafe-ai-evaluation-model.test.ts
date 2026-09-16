@@ -6,8 +6,8 @@ import {
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createTypeSafe } from './typesafe-provider';
-import { EvaluationTypeSafeModel } from './typesafe-evaluation-model';
+import { createTypeSafeAi } from './typesafe-ai-provider';
+import { EvaluationTypeSafeAiModel } from './typesafe-ai-evaluation-model';
 
 const nativeRequest = JSON.parse(
   readFileSync('src/__fixtures__/evaluation-request.json', 'utf8'),
@@ -24,7 +24,7 @@ const questions = {
 };
 const options = { state: nativeRequest.state, questions };
 const url = 'https://api.typesafe.ai/v1/systemone';
-const provider = createTypeSafe({ apiKey: 'test-api-key' });
+const provider = createTypeSafeAi({ apiKey: 'test-api-key' });
 const model = provider.evaluationModel('jev-latest');
 const server = createTestServer({
   [url]: {},
@@ -83,7 +83,7 @@ it('passes custom fetch, headers, base URL, and future model IDs', async () => {
       },
     }),
   );
-  const custom = createTypeSafe({
+  const custom = createTypeSafeAi({
     apiKey: 'custom-key',
     baseURL: 'https://custom.example/v1/',
     fetch: fetchMock,
@@ -108,7 +108,7 @@ it('passes custom fetch, headers, base URL, and future model IDs', async () => {
 });
 
 it('loads TYPESAFE_AI_API_KEY lazily from the environment', async () => {
-  const environmentModel = createTypeSafe().evaluationModel('jev-latest');
+  const environmentModel = createTypeSafeAi().evaluationModel('jev-latest');
   vi.stubEnv('TYPESAFE_AI_API_KEY', 'environment-key');
   await environmentModel.doEvaluate(options);
   expect(server.calls[0].requestHeaders.authorization).toBe(
@@ -231,7 +231,7 @@ it('forwards cancellation to fetch', async () => {
       throw reason;
     });
   await expect(
-    createTypeSafe({ apiKey: 'test', fetch: fetchMock })
+    createTypeSafeAi({ apiKey: 'test', fetch: fetchMock })
       .evaluationModel('jev-latest')
       .doEvaluate({ ...options, abortSignal: controller.signal }),
   ).rejects.toBeDefined();
@@ -239,17 +239,17 @@ it('forwards cancellation to fetch', async () => {
 });
 
 it('serializes and restores a model for workflow boundaries', async () => {
-  const original = new EvaluationTypeSafeModel('jev-latest', {
+  const original = new EvaluationTypeSafeAiModel('jev-latest', {
     provider: 'typesafe.evaluation',
     baseURL: 'https://api.typesafe.ai/v1',
     headers: () => ({ Authorization: 'Bearer restored-key' }),
     fetch: vi.fn(),
   });
-  const serialized = EvaluationTypeSafeModel[WORKFLOW_SERIALIZE](original);
+  const serialized = EvaluationTypeSafeAiModel[WORKFLOW_SERIALIZE](original);
   expect(serialized.config.fetch).toBeUndefined();
-  const restored = EvaluationTypeSafeModel[WORKFLOW_DESERIALIZE](
+  const restored = EvaluationTypeSafeAiModel[WORKFLOW_DESERIALIZE](
     serialized as unknown as Parameters<
-      (typeof EvaluationTypeSafeModel)[typeof WORKFLOW_DESERIALIZE]
+      (typeof EvaluationTypeSafeAiModel)[typeof WORKFLOW_DESERIALIZE]
     >[0],
   );
   await restored.doEvaluate(options);
@@ -265,7 +265,7 @@ it('serializes and restores a model for workflow boundaries', async () => {
 
 it('restores authentication from the environment when no headers are serialized', async () => {
   vi.stubEnv('TYPESAFE_AI_API_KEY', 'workflow-key');
-  const restored = EvaluationTypeSafeModel[WORKFLOW_DESERIALIZE]({
+  const restored = EvaluationTypeSafeAiModel[WORKFLOW_DESERIALIZE]({
     modelId: 'jev-latest',
     config: {
       provider: 'typesafe.evaluation',

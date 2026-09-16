@@ -13,11 +13,11 @@ pnpm add @ai-sdk/typesafe-ai ai
 Set `TYPESAFE_AI_API_KEY`, then pass an evaluation model instance:
 
 ```ts
-import { typesafe } from '@ai-sdk/typesafe-ai';
+import { typeSafeAi } from '@ai-sdk/typesafe-ai';
 import { experimental_evaluate } from 'ai';
 
 const result = await experimental_evaluate({
-  model: typesafe.evaluationModel('jev-latest'),
+  model: typeSafeAi.evaluationModel('jev-latest'),
   state: 'I was charged twice. Please refund the duplicate.',
   questions: {
     department: {
@@ -35,13 +35,13 @@ const result = await experimental_evaluate({
 console.log(result.answers);
 ```
 
-Evaluation is experimental. The package exports `typesafe`, `createTypeSafe`,
-`TypeSafeProviderSettings`, `Experimental_TypeSafeProvider`,
-`Experimental_TypeSafeEvaluationModelId`, and `VERSION`.
+Evaluation is experimental. The package exports `typeSafeAi`, `createTypeSafeAi`,
+`TypeSafeAiProviderSettings`, `TypeSafeAiProvider`,
+`Experimental_TypeSafeAiEvaluationModelId`, and `VERSION`.
 
 ## Configuration
 
-`createTypeSafe({ apiKey, baseURL, headers, fetch })` supports an explicit key,
+`createTypeSafeAi({ apiKey, baseURL, headers, fetch })` supports an explicit key,
 custom headers, a custom fetch implementation, and a base URL (default:
 `https://api.typesafe.ai/v1`). The default key comes from `TYPESAFE_AI_API_KEY`.
 Language, embedding, and image model factories are unsupported.

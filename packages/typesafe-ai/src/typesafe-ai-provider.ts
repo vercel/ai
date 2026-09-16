@@ -10,17 +10,17 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import {
-  EvaluationTypeSafeModel,
-  type TypeSafeEvaluationModelId,
-} from './typesafe-evaluation-model';
+  EvaluationTypeSafeAiModel,
+  type TypeSafeAiEvaluationModelId,
+} from './typesafe-ai-evaluation-model';
 import { VERSION } from './version';
 
 /** TypeSafe's experimental evaluation capability, isolated from ProviderV4. */
-export interface TypeSafeProvider extends ProviderV4 {
-  evaluationModel(modelId: TypeSafeEvaluationModelId): EvaluationModelV4;
+export interface TypeSafeAiProvider extends ProviderV4 {
+  evaluationModel(modelId: TypeSafeAiEvaluationModelId): EvaluationModelV4;
 }
 
-export interface TypeSafeProviderSettings {
+export interface TypeSafeAiProviderSettings {
   /** API key. Defaults to the TYPESAFE_AI_API_KEY environment variable. */
   apiKey?: string;
   /** API base URL. Defaults to https://api.typesafe.ai/v1. */
@@ -29,9 +29,9 @@ export interface TypeSafeProviderSettings {
   fetch?: FetchFunction;
 }
 
-export function createTypeSafe(
-  options: TypeSafeProviderSettings = {},
-): TypeSafeProvider {
+export function createTypeSafeAi(
+  options: TypeSafeAiProviderSettings = {},
+): TypeSafeAiProvider {
   const baseURL =
     withoutTrailingSlash(options.baseURL) ?? 'https://api.typesafe.ai/v1';
   const headers = () =>
@@ -46,7 +46,7 @@ export function createTypeSafe(
   return {
     specificationVersion: 'v4',
     evaluationModel: modelId =>
-      new EvaluationTypeSafeModel(modelId, {
+      new EvaluationTypeSafeAiModel(modelId, {
         provider: 'typesafe.evaluation',
         baseURL,
         headers,
@@ -64,4 +64,4 @@ export function createTypeSafe(
   };
 }
 
-export const typesafe = createTypeSafe();
+export const typeSafeAi = createTypeSafeAi();

@@ -1,10 +1,10 @@
-import { typesafe } from '@ai-sdk/typesafe-ai';
+import { typeSafeAi } from '@ai-sdk/typesafe-ai';
 import { experimental_evaluate } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await experimental_evaluate({
-    model: typesafe.evaluationModel('jev-latest'),
+    model: typeSafeAi.evaluationModel('jev-latest'),
     state: 'I was charged twice. Please refund the duplicate.',
     questions: {
       department: {

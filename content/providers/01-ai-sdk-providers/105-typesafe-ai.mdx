@@ -21,14 +21,14 @@ Set the `TYPESAFE_AI_API_KEY` environment variable. Import the default provider 
 configure an instance:
 
 ```ts
-import { createTypeSafe, typesafe } from '@ai-sdk/typesafe-ai';
+import { createTypeSafeAi, typeSafeAi } from '@ai-sdk/typesafe-ai';
 
-const customTypeSafe = createTypeSafe({
+const customTypeSafe = createTypeSafeAi({
   apiKey: 'your-api-key',
 });
 ```
 
-`createTypeSafe` accepts:
+`createTypeSafeAi` accepts:
 
 | Setting   | Description                                 |
 | --------- | ------------------------------------------- |
@@ -40,11 +40,11 @@ const customTypeSafe = createTypeSafe({
 ## Evaluation
 
 ```ts
-import { typesafe } from '@ai-sdk/typesafe-ai';
+import { typeSafeAi } from '@ai-sdk/typesafe-ai';
 import { experimental_evaluate } from 'ai';
 
 const result = await experimental_evaluate({
-  model: typesafe.evaluationModel('jev-latest'),
+  model: typeSafeAi.evaluationModel('jev-latest'),
   state: {
     message: 'I was charged twice. Please refund the duplicate.',
   },
