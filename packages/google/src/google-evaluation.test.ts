@@ -1,7 +1,7 @@
 import {
   googleEvaluationModels,
   type GoogleEvaluationModelId,
-} from './google-evaluation-model-options';
+} from './google-evaluation-models';
 import { InvalidResponseDataError, NoSuchModelError } from '@ai-sdk/provider';
 import { readFileSync } from 'node:fs';
 import { expect, it, vi } from 'vitest';

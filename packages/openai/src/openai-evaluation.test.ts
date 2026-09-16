@@ -1,7 +1,7 @@
 import {
   openaiEvaluationModels,
   type OpenAIEvaluationModelId,
-} from './openai-evaluation-model-options';
+} from './openai-evaluation-models';
 import {
   APICallError,
   InvalidResponseDataError,

@@ -1,7 +1,7 @@
 import {
   anthropicEvaluationModels,
   type AnthropicEvaluationModelId,
-} from './anthropic-evaluation-model-options';
+} from './anthropic-evaluation-models';
 import {
   InvalidArgumentError,
   NoSuchModelError,

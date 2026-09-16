@@ -1,7 +1,7 @@
 import {
   anthropicEvaluationModels,
   type AnthropicEvaluationModelId,
-} from './anthropic-evaluation-model-options';
+} from './anthropic-evaluation-models';
 import { InvalidResponseDataError, NoSuchModelError } from '@ai-sdk/provider';
 import { readFileSync } from 'node:fs';
 import { expect, it, vi } from 'vitest';

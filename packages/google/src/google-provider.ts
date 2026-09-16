@@ -1,7 +1,7 @@
 import {
   googleEvaluationModels,
   type GoogleEvaluationModelId,
-} from './google-evaluation-model-options';
+} from './google-evaluation-models';
 import {
   NoSuchModelError,
   type EmbeddingModelV4,
