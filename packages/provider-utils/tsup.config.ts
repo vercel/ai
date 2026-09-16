@@ -17,6 +17,15 @@ export default defineConfig([
     },
   },
   {
+    entry: ['src/experimental-evaluation/index.ts'],
+    outDir: 'dist/experimental-evaluation',
+    format: ['esm'],
+    dts: true,
+    sourcemap: true,
+    target: 'es2018',
+    platform: 'node',
+  },
+  {
     entry: ['src/test/index.ts'],
     outDir: 'dist/test',
     format: ['esm'],

@@ -52,3 +52,8 @@ Boolean questions prompt the model to estimate P(true), with bounds described in
 the prompt and validated locally. These are prompted estimates without a
 calibration guarantee; callers choose their own thresholds. Choice and Score
 distributions are not generated.
+
+The shared adapter is exported from
+`@ai-sdk/provider-utils/experimental-evaluation`. Its separate entry point keeps
+computed Workflow serialization hooks at module scope for the Workflow compiler
+while allowing ordinary provider-utils imports to exclude evaluation code.
