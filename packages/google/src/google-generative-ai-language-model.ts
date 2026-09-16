@@ -614,10 +614,18 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       unified: 'other',
       raw: undefined,
     };
+<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
     let usage: GoogleGenerativeAIUsageMetadata | undefined = undefined;
     let providerMetadata: SharedV3ProviderMetadata | undefined = undefined;
+=======
+    let usage: GoogleUsageMetadata | undefined = undefined;
+    let promptFeedback: PromptFeedbackSchema | null = null;
+>>>>>>> a22b5b277f (fix: preserve Google streaming prompt feedback and terminal block outcomes across chunks (#20762)):packages/google/src/google-language-model.ts
     let lastGroundingMetadata: GroundingMetadataSchema | null = null;
     let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
+    let lastSafetyRatings: SafetyRatingSchema[] | null = null;
+    let lastFinishMessage: string | null = null;
+    let confirmedPromptBlockReason: string | undefined;
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
@@ -714,16 +722,21 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
               usage = usageMetadata;
             }
 
-            const candidate = value.candidates?.[0];
+            if (
+              value.promptFeedback != null &&
+              confirmedPromptBlockReason == null
+            ) {
+              promptFeedback = value.promptFeedback;
 
-            // sometimes the API returns an empty candidates array
-            if (candidate == null) {
-              const promptBlockReason = value.promptFeedback?.blockReason;
-              if (promptBlockReason != null) {
+              if (
+                isConfirmedPromptBlockReason(value.promptFeedback.blockReason)
+              ) {
+                confirmedPromptBlockReason = value.promptFeedback.blockReason;
                 finishReason = {
                   unified: 'content-filter',
-                  raw: promptBlockReason,
+                  raw: confirmedPromptBlockReason,
                 };
+<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
                 providerMetadata = {
                   [providerOptionsName]: {
                     promptFeedback: value.promptFeedback ?? null,
@@ -735,18 +748,35 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                     serviceTier: usage?.serviceTier ?? null,
                   } satisfies GoogleGenerativeAIProviderMetadata,
                 };
+=======
+>>>>>>> a22b5b277f (fix: preserve Google streaming prompt feedback and terminal block outcomes across chunks (#20762)):packages/google/src/google-language-model.ts
               }
+            }
+
+            const candidate = value.candidates?.[0];
+
+            if (candidate != null) {
+              if (candidate.groundingMetadata != null) {
+                lastGroundingMetadata = candidate.groundingMetadata;
+              }
+              if (candidate.urlContextMetadata != null) {
+                lastUrlContextMetadata = candidate.urlContextMetadata;
+              }
+              if (candidate.safetyRatings != null) {
+                lastSafetyRatings = candidate.safetyRatings;
+              }
+              if (candidate.finishMessage != null) {
+                lastFinishMessage = candidate.finishMessage;
+              }
+            }
+
+            // A confirmed prompt block is terminal for generated content, but
+            // later chunks can still contribute usage and provider metadata.
+            if (confirmedPromptBlockReason != null || candidate == null) {
               return;
             }
 
             const content = candidate.content;
-
-            if (candidate.groundingMetadata != null) {
-              lastGroundingMetadata = candidate.groundingMetadata;
-            }
-            if (candidate.urlContextMetadata != null) {
-              lastUrlContextMetadata = candidate.urlContextMetadata;
-            }
 
             const sources = extractSources({
               groundingMetadata: candidate.groundingMetadata,
@@ -1125,14 +1155,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
               }
             }
 
-            const promptBlockReason = value.promptFeedback?.blockReason;
-            const isPromptBlocked =
-              candidate.finishReason == null && promptBlockReason != null;
-            const rawFinishReason =
-              candidate.finishReason ?? promptBlockReason ?? undefined;
-
-            if (rawFinishReason != null) {
+            if (candidate.finishReason != null) {
               finishReason = {
+<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
                 unified: isPromptBlocked
                   ? 'content-filter'
                   : mapGoogleGenerativeAIFinishReason({
@@ -1153,6 +1178,14 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                   serviceTier: usage?.serviceTier ?? null,
                 } satisfies GoogleGenerativeAIProviderMetadata,
               };
+=======
+                unified: mapGoogleFinishReason({
+                  finishReason: candidate.finishReason,
+                  hasToolCalls,
+                }),
+                raw: candidate.finishReason,
+              };
+>>>>>>> a22b5b277f (fix: preserve Google streaming prompt feedback and terminal block outcomes across chunks (#20762)):packages/google/src/google-language-model.ts
             }
           },
 
@@ -1173,8 +1206,21 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
             controller.enqueue({
               type: 'finish',
               finishReason,
+<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
               usage: convertGoogleGenerativeAIUsage(usage),
               providerMetadata,
+=======
+              usage: convertGoogleUsage(usage),
+              providerMetadata: wrapProviderMetadata({
+                promptFeedback,
+                groundingMetadata: lastGroundingMetadata,
+                urlContextMetadata: lastUrlContextMetadata,
+                safetyRatings: lastSafetyRatings,
+                usageMetadata: usage ?? null,
+                finishMessage: lastFinishMessage,
+                serviceTier: usage?.serviceTier ?? null,
+              } satisfies GoogleProviderMetadata),
+>>>>>>> a22b5b277f (fix: preserve Google streaming prompt feedback and terminal block outcomes across chunks (#20762)):packages/google/src/google-language-model.ts
             });
           },
         }),
@@ -1609,3 +1655,14 @@ const chunkSchema = lazySchema(() =>
 );
 
 type ChunkSchema = InferSchema<typeof chunkSchema>;
+
+function isConfirmedPromptBlockReason(
+  blockReason: string | null | undefined,
+): blockReason is string {
+  return (
+    blockReason != null &&
+    blockReason !== '' &&
+    blockReason !== 'BLOCK_REASON_UNSPECIFIED' &&
+    blockReason !== 'BLOCKED_REASON_UNSPECIFIED'
+  );
+}
