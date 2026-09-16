@@ -1,6 +1,7 @@
 import type {
   EmbeddingModelV4,
   Experimental_BatchV4 as BatchV4,
+  Experimental_EvaluationModelV4 as EvaluationModelV4,
   Experimental_VideoModelV4,
   FilesV4,
   ImageModelV4,
@@ -13,6 +14,7 @@ import type {
   TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  Experimental_EvaluationLanguageModel as EvaluationLanguageModel,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
@@ -60,6 +62,9 @@ export interface GoogleProvider extends ProviderV4 {
   languageModel(modelId: GoogleModelId): LanguageModelV4;
 
   chat(modelId: GoogleModelId): LanguageModelV4;
+
+  /** Creates an experimental Choice/Score evaluation model using Gemini. */
+  evaluationModel(modelId: GoogleModelId): EvaluationModelV4;
 
   experimental_batch(): BatchV4<{
     text: GoogleModelId;
@@ -430,6 +435,11 @@ export function createGoogle(
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.generativeAI = createChatModel;
+  provider.evaluationModel = (modelId: GoogleModelId) =>
+    new EvaluationLanguageModel({
+      model: createChatModel(modelId),
+      provider: `${providerName.replace(/\.generative-ai$/, '')}.evaluation`,
+    });
   provider.experimental_batch = createBatch;
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;
