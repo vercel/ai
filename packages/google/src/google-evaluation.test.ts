@@ -1,4 +1,8 @@
-import { InvalidResponseDataError } from '@ai-sdk/provider';
+import {
+  googleEvaluationModels,
+  type GoogleEvaluationModelId,
+} from './google-evaluation-model-options';
+import { InvalidResponseDataError, NoSuchModelError } from '@ai-sdk/provider';
 import { readFileSync } from 'node:fs';
 import { expect, it, vi } from 'vitest';
 import { createGoogle } from './google-provider';
@@ -21,7 +25,10 @@ const options = {
     },
   },
 } as const;
-function setup(body: unknown = fixture) {
+function setup(
+  body: unknown = fixture,
+  modelId: GoogleEvaluationModelId = 'gemini-3.5-flash-lite',
+) {
   const fetch = vi.fn().mockImplementation(
     async () =>
       new Response(JSON.stringify(body), {
@@ -37,7 +44,7 @@ function setup(body: unknown = fixture) {
     headers: { 'x-provider': 'configured' },
     fetch,
   });
-  return { model: provider.evaluationModel('gemini-3.5-flash-lite'), fetch };
+  return { model: provider.evaluationModel(modelId), fetch };
 }
 
 it('uses Gemini structured output and forwards thinking options and cancellation', async () => {
@@ -188,4 +195,54 @@ it('rejects an aborted evaluation without a request', async () => {
     model.doEvaluate({ ...options, abortSignal: AbortSignal.abort(reason) }),
   ).rejects.toBe(reason);
   expect(fetch).not.toHaveBeenCalled();
+});
+
+it.each(Object.keys(googleEvaluationModels) as GoogleEvaluationModelId[])(
+  'uses the declared evaluation reasoning setting for %s',
+  async modelId => {
+    const { model, fetch } = setup(fixture, modelId);
+    const result = await model.doEvaluate(options);
+    expect(result.answers.department).toEqual({
+      type: 'choice',
+      choice: 'billing',
+    });
+    const body = JSON.parse(fetch.mock.calls[0][1].body);
+    const { reasoningEffort } = googleEvaluationModels[modelId];
+    expect(body.generationConfig.thinkingConfig).toEqual({
+      thinkingLevel: reasoningEffort,
+    });
+  },
+);
+it.each([
+  'unlisted-model',
+  'gemini-4-pro',
+  'gemini-2.5-pro',
+  'toString',
+  '__proto__',
+])('rejects an unlisted evaluation model %s', modelId => {
+  // Runtime validation also protects registry lookups and JavaScript callers.
+  expect(() => setup(fixture, modelId as GoogleEvaluationModelId)).toThrow(
+    NoSuchModelError,
+  );
+});
+
+it('uses an explicit evaluation budget without adding a conflicting level', async () => {
+  const { model, fetch } = setup(fixture, 'gemini-3.1-pro-preview');
+  await model.doEvaluate({
+    ...options,
+    providerOptions: { google: { thinkingConfig: { thinkingBudget: 1024 } } },
+  });
+  expect(
+    JSON.parse(fetch.mock.calls[0][1].body).generationConfig.thinkingConfig,
+  ).toEqual({ thinkingBudget: 1024 });
+});
+it('retains the evaluation minimum with a display-only option', async () => {
+  const { model, fetch } = setup(fixture, 'gemini-3.1-pro-preview');
+  await model.doEvaluate({
+    ...options,
+    providerOptions: { google: { thinkingConfig: { includeThoughts: true } } },
+  });
+  expect(
+    JSON.parse(fetch.mock.calls[0][1].body).generationConfig.thinkingConfig,
+  ).toEqual({ thinkingLevel: 'low', includeThoughts: true });
 });

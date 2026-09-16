@@ -1,4 +1,12 @@
-import { APICallError, InvalidResponseDataError } from '@ai-sdk/provider';
+import {
+  openaiEvaluationModels,
+  type OpenAIEvaluationModelId,
+} from './openai-evaluation-model-options';
+import {
+  APICallError,
+  InvalidResponseDataError,
+  NoSuchModelError,
+} from '@ai-sdk/provider';
 import { expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { createOpenAI } from './openai-provider';
@@ -23,7 +31,10 @@ const options = {
   },
 } as const;
 
-function setup(body: unknown = fixture) {
+function setup(
+  body: unknown = fixture,
+  modelId: OpenAIEvaluationModelId = 'gpt-5.6-luna',
+) {
   const fetch = vi.fn().mockImplementation(
     async () =>
       new Response(JSON.stringify(body), {
@@ -39,7 +50,7 @@ function setup(body: unknown = fixture) {
     headers: { 'x-provider': 'configured' },
     fetch,
   });
-  return { model: provider.evaluationModel('gpt-5.6-luna'), fetch };
+  return { model: provider.evaluationModel(modelId), fetch };
 }
 
 it('evaluates through the configured Responses API with strict structured output', async () => {
@@ -151,4 +162,37 @@ it('rejects a refusal instead of returning partial answers', async () => {
     ],
   });
   await expect(model.doEvaluate(options)).rejects.toBeInstanceOf(APICallError);
+});
+
+it.each(Object.keys(openaiEvaluationModels) as OpenAIEvaluationModelId[])(
+  'uses the declared evaluation reasoning setting for %s',
+  async modelId => {
+    const { model, fetch } = setup(fixture, modelId);
+    const result = await model.doEvaluate(options);
+    expect(result.answers.department).toEqual({
+      type: 'choice',
+      choice: 'billing',
+    });
+    const body = JSON.parse(fetch.mock.calls[0][1].body);
+    const { reasoningEffort } = openaiEvaluationModels[modelId];
+    expect(body.reasoning.effort).toBe(reasoningEffort);
+  },
+);
+it.each(['unlisted-model', 'gpt-7', 'gpt-4.1', 'toString', '__proto__'])(
+  'rejects an unlisted evaluation model %s',
+  modelId => {
+    // Runtime validation also protects registry lookups and JavaScript callers.
+    expect(() => setup(fixture, modelId as OpenAIEvaluationModelId)).toThrow(
+      NoSuchModelError,
+    );
+  },
+);
+
+it('overrides the minimum effort of a required-reasoning evaluation model', async () => {
+  const { model, fetch } = setup(fixture, 'gpt-6-astra');
+  await model.doEvaluate({
+    ...options,
+    providerOptions: { openai: { reasoningEffort: 'high' } },
+  });
+  expect(JSON.parse(fetch.mock.calls[0][1].body).reasoning.effort).toBe('high');
 });

@@ -1,15 +1,20 @@
-import type {
-  Experimental_BatchV4 as BatchV4,
-  Experimental_EvaluationModelV4 as EvaluationModelV4,
-  EmbeddingModelV4,
-  FilesV4,
-  ImageModelV4,
-  LanguageModelV4,
-  ProviderV4,
-  SpeechModelV4,
-  SkillsV4,
-  TranscriptionModelV4,
-  Experimental_SpeechTranslationModelV4 as SpeechTranslationModelV4,
+import {
+  openaiEvaluationModels,
+  type OpenAIEvaluationModelId,
+} from './openai-evaluation-model-options';
+import {
+  NoSuchModelError,
+  type Experimental_BatchV4 as BatchV4,
+  type Experimental_EvaluationModelV4 as EvaluationModelV4,
+  type EmbeddingModelV4,
+  type FilesV4,
+  type ImageModelV4,
+  type LanguageModelV4,
+  type ProviderV4,
+  type SpeechModelV4,
+  type SkillsV4,
+  type TranscriptionModelV4,
+  type Experimental_SpeechTranslationModelV4 as SpeechTranslationModelV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
@@ -51,7 +56,7 @@ export interface OpenAIProvider extends ProviderV4 {
   (modelId: OpenAIResponsesModelId): LanguageModelV4;
 
   /** Creates an experimental Choice/Score/Boolean evaluation model using the Responses API. */
-  evaluationModel(modelId: OpenAIResponsesModelId): EvaluationModelV4;
+  evaluationModel(modelId: OpenAIEvaluationModelId): EvaluationModelV4;
 
   /**
    * Creates an OpenAI model for text generation.
@@ -352,11 +357,19 @@ export function createOpenAI(
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;
   provider.responses = createResponsesModel;
-  provider.evaluationModel = (modelId: OpenAIResponsesModelId) =>
-    new EvaluationLanguageModel({
+  provider.evaluationModel = (modelId: OpenAIEvaluationModelId) => {
+    if (
+      !Object.prototype.hasOwnProperty.call(openaiEvaluationModels, modelId)
+    ) {
+      throw new NoSuchModelError({ modelId, modelType: 'evaluationModel' });
+    }
+    return new EvaluationLanguageModel({
       model: createResponsesModel(modelId),
       provider: `${providerName}.evaluation`,
+      reasoningEffort: openaiEvaluationModels[modelId].reasoningEffort,
+      reasoningProviderOptions: [['openai', 'reasoningEffort']],
     });
+  };
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;

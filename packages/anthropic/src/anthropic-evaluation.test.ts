@@ -1,4 +1,8 @@
-import { InvalidResponseDataError } from '@ai-sdk/provider';
+import {
+  anthropicEvaluationModels,
+  type AnthropicEvaluationModelId,
+} from './anthropic-evaluation-model-options';
+import { InvalidResponseDataError, NoSuchModelError } from '@ai-sdk/provider';
 import { readFileSync } from 'node:fs';
 import { expect, it, vi } from 'vitest';
 import { createAnthropic } from './anthropic-provider';
@@ -21,7 +25,10 @@ const options = {
     },
   },
 } as const;
-function setup(body: unknown = fixture) {
+function setup(
+  body: unknown = fixture,
+  modelId: AnthropicEvaluationModelId = 'claude-haiku-4-5-20251001',
+) {
   const fetch = vi.fn().mockImplementation(
     async () =>
       new Response(JSON.stringify(body), {
@@ -38,7 +45,7 @@ function setup(body: unknown = fixture) {
     fetch,
   });
   return {
-    model: provider.evaluationModel('claude-haiku-4-5-20251001'),
+    model: provider.evaluationModel(modelId),
     fetch,
   };
 }
@@ -202,3 +209,60 @@ it.each(['outputFormat', 'jsonTool'] as const)(
     expect(schema.properties.q2).not.toHaveProperty('maximum');
   },
 );
+
+it.each(Object.keys(anthropicEvaluationModels) as AnthropicEvaluationModelId[])(
+  'uses the declared evaluation reasoning setting for %s',
+  async modelId => {
+    const { model, fetch } = setup(fixture, modelId);
+    const result = await model.doEvaluate(options);
+    expect(result.answers.department).toEqual({
+      type: 'choice',
+      choice: 'billing',
+    });
+    const body = JSON.parse(fetch.mock.calls[0][1].body);
+    const { reasoningEffort } = anthropicEvaluationModels[modelId];
+    expect(body.thinking).toEqual(
+      reasoningEffort === 'none'
+        ? { type: 'disabled' }
+        : { type: 'adaptive', display: 'summarized' },
+    );
+    expect(body.output_config.effort).toBe(
+      reasoningEffort === 'none' ? undefined : 'low',
+    );
+  },
+);
+it.each([
+  'unlisted-model',
+  'claude-fable-6',
+  'claude-opus-4-0',
+  'toString',
+  '__proto__',
+])('rejects an unlisted evaluation model %s', modelId => {
+  // Runtime validation also protects registry lookups and JavaScript callers.
+  expect(() => setup(fixture, modelId as AnthropicEvaluationModelId)).toThrow(
+    NoSuchModelError,
+  );
+});
+
+it('does not impose an evaluation effort when explicit thinking is supplied', async () => {
+  const { model, fetch } = setup(fixture, 'claude-fable-5');
+  await model.doEvaluate({
+    ...options,
+    providerOptions: {
+      anthropic: { thinking: { type: 'adaptive', display: 'omitted' } },
+    },
+  });
+  const body = JSON.parse(fetch.mock.calls[0][1].body);
+  expect(body.thinking).toEqual({ type: 'adaptive', display: 'omitted' });
+  expect(body.output_config.effort).toBeUndefined();
+});
+it('uses explicit effort instead of the evaluation minimum', async () => {
+  const { model, fetch } = setup(fixture, 'claude-fable-5');
+  await model.doEvaluate({
+    ...options,
+    providerOptions: { anthropic: { effort: 'high' } },
+  });
+  const body = JSON.parse(fetch.mock.calls[0][1].body);
+  expect(body.output_config.effort).toBe('high');
+  expect(body.thinking).toBeUndefined();
+});
