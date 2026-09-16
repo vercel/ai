@@ -1,4 +1,5 @@
 import type * as AnthropicInternal from '@ai-sdk/anthropic/internal';
+import { prepareTools as prepareAnthropicTools } from '@ai-sdk/anthropic/internal';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { prepareTools } from './bedrock-prepare-tools';
 
@@ -16,6 +17,8 @@ vi.mock('@ai-sdk/anthropic/internal', async importOriginal => {
 
 const NON_ANTHROPIC_MODEL = 'meta.llama3-70b-instruct-v1:0';
 const ANTHROPIC_MODEL = 'anthropic.claude-sonnet-4-5-20250929-v1:0';
+const ANTHROPIC_APPLICATION_INFERENCE_PROFILE =
+  'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/x22wi1wctngi';
 
 describe('prepareTools', () => {
   beforeEach(() => {
@@ -131,6 +134,23 @@ describe('prepareTools', () => {
   });
 
   describe('unsupported provider-defined tools', () => {
+    it('should prepare Anthropic provider-defined tools for an application inference profile ARN', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'anthropic.bash_20241022',
+            name: 'bash',
+            args: {},
+          },
+        ],
+        modelId: ANTHROPIC_APPLICATION_INFERENCE_PROFILE,
+      });
+
+      expect(result.toolWarnings).toEqual([]);
+      expect(vi.mocked(prepareAnthropicTools)).toHaveBeenCalledOnce();
+    });
+
     it('should warn for provider-defined tools on non-anthropic models', async () => {
       const result = await prepareTools({
         tools: [

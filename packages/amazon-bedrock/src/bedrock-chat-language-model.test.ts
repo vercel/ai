@@ -149,6 +149,12 @@ const sonnet5AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   sonnet5AnthropicModelId,
 )}/converse`;
 
+const applicationInferenceProfileArn =
+  'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/x22wi1wctngi';
+const applicationInferenceProfileGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  applicationInferenceProfileArn,
+)}/converse`;
+
 const server = createTestServer({
   [generateUrl]: {},
   [streamUrl]: {
@@ -172,6 +178,7 @@ const server = createTestServer({
   [opusAnthropicGenerateUrl]: {},
   [opus5AnthropicGenerateUrl]: {},
   [sonnet5AnthropicGenerateUrl]: {},
+  [applicationInferenceProfileGenerateUrl]: {},
 });
 
 describe('supportedUrls', () => {
@@ -335,6 +342,65 @@ const opus5AnthropicModel = new BedrockChatLanguageModel(
     generateId: () => 'test-id',
   },
 );
+
+const applicationInferenceProfileModel = new BedrockChatLanguageModel(
+  applicationInferenceProfileArn,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
+describe('application inference profile structured output', () => {
+  it.each(['auto', 'outputFormat'] as const)(
+    'uses native output_config.format in %s mode',
+    async structuredOutputMode => {
+      server.urls[applicationInferenceProfileGenerateUrl].response = {
+        type: 'json-value',
+        body: JSON.parse(
+          fs.readFileSync(
+            'src/__fixtures__/amazon-bedrock-application-inference-profile-native-structured-output.json',
+            'utf8',
+          ),
+        ),
+      };
+
+      await applicationInferenceProfileModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          bedrock: { structuredOutputMode },
+        },
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              assignments: { type: 'array', items: { type: 'object' } },
+              entities: { type: 'array', items: { type: 'object' } },
+              relations: { type: 'array', items: { type: 'object' } },
+            },
+            required: ['assignments', 'entities', 'relations'],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+
+      expect(requestBody.toolConfig).toBeUndefined();
+      expect(
+        requestBody.additionalModelRequestFields?.output_config?.format,
+      ).toMatchObject({
+        type: 'json_schema',
+        schema: {
+          type: 'object',
+          required: ['assignments', 'entities', 'relations'],
+        },
+      });
+    },
+  );
+});
 
 describe('application inference profile reasoning', () => {
   it('returns reasoning for an Anthropic application inference profile ARN when budgetTokens is configured', async () => {

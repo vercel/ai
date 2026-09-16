@@ -1,0 +1,51 @@
+{
+  "metrics": {
+    "latencyMs": 1067
+  },
+  "output": {
+    "message": {
+      "content": [
+        {
+          "toolUse": {
+            "input": {
+              "assignments": [
+                {
+                  "id": "1",
+                  "category": "a"
+                },
+                {
+                  "id": "2",
+                  "category": "b"
+                }
+              ],
+              "entities": [
+                {
+                  "name": "see you Tuesday"
+                },
+                {
+                  "name": "can everyone hear me"
+                }
+              ],
+              "relations": []
+            },
+            "name": "json",
+            "toolUseId": "tooluse_D6l0zdn1wpi1zoiuJ9rQAM",
+            "type": "tool_use"
+          }
+        }
+      ],
+      "role": "assistant"
+    }
+  },
+  "stopReason": "tool_use",
+  "usage": {
+    "cacheReadInputTokenCount": 0,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokenCount": 0,
+    "cacheWriteInputTokens": 0,
+    "inputTokens": 867,
+    "outputTokens": 123,
+    "serverToolUsage": {},
+    "totalTokens": 990
+  }
+}
