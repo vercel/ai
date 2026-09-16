@@ -37,8 +37,10 @@ import {
 import {
   amazonBedrockLanguageModelOptions,
   type BedrockChatModelId,
+  type AmazonBedrockChatModelSettings,
 } from './bedrock-chat-options';
 import {
+  isAnthropicModel as detectAnthropicModel,
   supportsNativeStructuredOutput,
   supportsStrictTools,
 } from './bedrock-anthropic-model-support';
@@ -59,6 +61,7 @@ type BedrockChatConfig = {
   headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   generateId: () => string;
+  modelFamily?: AmazonBedrockChatModelSettings['modelFamily'];
 };
 
 function isJsonResponseToolName(name: string): boolean {
@@ -165,12 +168,11 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       });
     }
 
-    // Application inference profile ARNs do not expose their underlying model.
-    // The Anthropic-only reasoning budget provides the model-family signal.
-    const isAnthropicModel =
-      this.modelId.includes('anthropic') ||
-      (this.modelId.includes(':application-inference-profile/') &&
-        bedrockOptions.reasoningConfig?.budgetTokens != null);
+    const isAnthropicModel = detectAnthropicModel({
+      modelId: this.modelId,
+      modelFamily: this.config.modelFamily,
+      reasoningBudgetTokens: bedrockOptions.reasoningConfig?.budgetTokens,
+    });
     const openAIModelId = /^(?:[^.]+\.)?(openai\..+)$/.exec(this.modelId)?.[1];
     const isOpenAIModel = openAIModelId != null;
     const isOpenAIGptOssModel =
@@ -215,7 +217,9 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
 
     const modelSupportsNativeStructuredOutput =
       supportsNativeStructuredOutput(this.modelId) &&
-      (modelSupportsStructuredOutput || isThinkingEnabled);
+      (modelSupportsStructuredOutput ||
+        isThinkingEnabled ||
+        this.config.modelFamily === 'anthropic');
 
     const useNativeStructuredOutput =
       isAnthropicModel &&
@@ -254,6 +258,8 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
         toolChoice:
           jsonResponseTool != null ? { type: 'required' } : toolChoice,
         modelId: this.modelId,
+        modelFamily: this.config.modelFamily,
+        reasoningBudgetTokens: bedrockOptions.reasoningConfig?.budgetTokens,
         disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
       });
 

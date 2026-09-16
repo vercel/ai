@@ -14,7 +14,10 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
-import type { BedrockChatModelId } from './bedrock-chat-options';
+import type {
+  AmazonBedrockChatModelSettings,
+  BedrockChatModelId,
+} from './bedrock-chat-options';
 import { BedrockEmbeddingModel } from './bedrock-embedding-model';
 import type {
   BedrockEmbeddingModelId,
@@ -115,9 +118,15 @@ export interface AmazonBedrockProviderSettings {
 }
 
 export interface AmazonBedrockProvider extends ProviderV3 {
-  (modelId: BedrockChatModelId): LanguageModelV3;
+  (
+    modelId: BedrockChatModelId,
+    settings?: AmazonBedrockChatModelSettings,
+  ): LanguageModelV3;
 
-  languageModel(modelId: BedrockChatModelId): LanguageModelV3;
+  languageModel(
+    modelId: BedrockChatModelId,
+    settings?: AmazonBedrockChatModelSettings,
+  ): LanguageModelV3;
 
   /**
    * Creates a model for text embeddings.
@@ -315,22 +324,29 @@ export function createAmazonBedrock(
         'AWS_ENDPOINT_URL_BEDROCK_AGENT_RUNTIME',
     });
 
-  const createChatModel = (modelId: BedrockChatModelId) =>
+  const createChatModel = (
+    modelId: BedrockChatModelId,
+    settings: AmazonBedrockChatModelSettings = {},
+  ) =>
     new BedrockChatLanguageModel(modelId, {
       baseUrl: getBedrockRuntimeBaseUrl,
       headers: getHeaders,
       fetch: fetchFunction,
       generateId,
+      modelFamily: settings.modelFamily,
     });
 
-  const provider = function (modelId: BedrockChatModelId) {
+  const provider = function (
+    modelId: BedrockChatModelId,
+    settings?: AmazonBedrockChatModelSettings,
+  ) {
     if (new.target) {
       throw new Error(
         'The Amazon Bedrock model function cannot be called with the new keyword.',
       );
     }
 
-    return createChatModel(modelId);
+    return createChatModel(modelId, settings);
   };
 
   const createEmbeddingModel = (
