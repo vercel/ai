@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.123
+
+### Patch Changes
+
+- c36c87c: fix(google): preserve prompt feedback and metadata across streaming chunks
+
 ## 3.0.122
 
 ### Patch Changes
