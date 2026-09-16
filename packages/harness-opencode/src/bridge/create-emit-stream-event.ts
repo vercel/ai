@@ -5,6 +5,7 @@ import {
   emitMissingFinalDelta,
   emitOpenCodeStreamStart,
   openCodeMessageInfoFromValue,
+  emitOpenCodeStreamStart,
   type TranslationState,
 } from './opencode-events';
 import {
