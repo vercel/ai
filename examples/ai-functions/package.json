@@ -106,8 +106,6 @@
     "type-check": "tsc --build"
   },
   "devDependencies": {
-    "@rsbuild/core": "2.2.6",
-    "@rsbuild/plugin-react": "2.1.0",
     "@types/node": "22.19.19",
     "@types/ws": "^8.5.13",
     "tsx": "4.23.12",
