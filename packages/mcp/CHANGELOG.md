@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 1.0.81
+
+### Patch Changes
+
+- 5246507: fix(mcp): use the stored authorization server for OAuth callbacks when protected resource metadata rediscovery fails
+
 ## 1.0.80
 
 ### Patch Changes

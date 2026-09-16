@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.113
+
+### Patch Changes
+
+- 90757ce: fix(openai): report apply patch responses with a tool-calls finish reason
+
 ## 3.0.112
 
 ### Patch Changes
