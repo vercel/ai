@@ -1,5 +1,18 @@
 # @ai-sdk/quiverai
 
+## 2.0.43
+
+### Patch Changes
+
+- 89febde: Add Arrow 2 and Arrow 2 Telos model IDs, reasoning effort and SVG viewBox options, and fixed-credit billing metadata. Respect Arrow 2 output-token limits, stop applying legacy reference limits to newer models, and omit the unsupported vectorization output count with guidance for splitting multiple vectorizations into separate calls.
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/provider@4.0.17
+
 ## 2.0.42
 
 ### Patch Changes
