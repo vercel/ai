@@ -19,9 +19,11 @@ import {
 } from 'ai';
 import { createRestrictedTelemetryDispatcher } from 'ai/internal';
 import { buildModelStepResult } from './build-model-step-result.js';
+import { doGenerateStep } from './do-generate-step.js';
 import { doStreamStep } from './do-stream-step.js';
 import type {
   ModelCallStreamPart,
+  ModelCallOptions,
   ModelStopCondition,
   ParsedToolCall,
   ProviderExecutedToolResult,
@@ -31,6 +33,7 @@ import {
   addToolResultsToConversation,
   type ProviderExecutedToolResultPosition,
 } from './add-tool-results-to-conversation.js';
+import { toModelResponseMessages } from './to-model-response-messages.js';
 import { resolveToolContext } from './resolve-tool-context.js';
 import { serializeToolSet } from './serializable-schema.js';
 import type {
@@ -112,6 +115,8 @@ export interface ModelCallIteratorErrorValue {
 // This runs in the workflow context
 export async function* modelCallIterator({
   prompt,
+  mode = 'stream',
+  include,
   initialInstructions,
   initialMessages = prompt as unknown as ModelMessage[],
   tools = {},
@@ -135,6 +140,8 @@ export async function* modelCallIterator({
   experimental_sandbox: sandbox,
 }: {
   prompt: LanguageModelV4Prompt;
+  mode?: 'generate' | 'stream';
+  include?: ModelCallOptions['include'];
   initialInstructions?: Instructions;
   initialMessages?: Array<ModelMessage>;
   tools: ToolSet;
@@ -201,6 +208,8 @@ export async function* modelCallIterator({
   while (!done) {
     // Check for abort signal
     if (currentGenerationSettings.abortSignal?.aborted) {
+      if (mode === 'generate')
+        currentGenerationSettings.abortSignal.throwIfAborted();
       break;
     }
 
@@ -344,21 +353,33 @@ export async function* modelCallIterator({
         headers: currentGenerationSettings.headers,
       } as never);
 
-      const stepInputMessages = conversationPrompt as unknown as ModelMessage[];
-      const modelCallResult = await doStreamStep(
-        conversationPrompt,
-        currentModel,
-        writable,
-        serializedTools,
-        {
-          ...currentGenerationSettings,
-          toolChoice: currentToolChoice,
-          includeRawChunks,
-          timeoutAt,
-          repairToolCall,
-          responseFormat,
-        },
-      );
+      const stepInputMessages = (mode === 'generate'
+        ? [...conversationPrompt]
+        : conversationPrompt) as unknown as ModelMessage[];
+      const callOptions = {
+        ...currentGenerationSettings,
+        toolChoice: currentToolChoice,
+        includeRawChunks,
+        timeoutAt,
+        repairToolCall,
+        responseFormat,
+        include,
+      };
+      const modelCallResult =
+        mode === 'generate'
+          ? await doGenerateStep(
+              conversationPrompt,
+              currentModel,
+              serializedTools,
+              callOptions,
+            )
+          : await doStreamStep(
+              conversationPrompt,
+              currentModel,
+              writable,
+              serializedTools,
+              callOptions,
+            );
 
       if (modelCallResult.aborted) {
         wasAborted = true;
@@ -366,6 +387,7 @@ export async function* modelCallIterator({
       }
 
       if ('terminalError' in modelCallResult) {
+        if (mode === 'generate') throw modelCallResult.terminalError;
         terminalError = modelCallResult.terminalError;
         hasTerminalError = true;
       }
@@ -395,6 +417,11 @@ export async function* modelCallIterator({
         finish,
         providerExecutedToolResults,
         {
+          tools: effectiveTools,
+          requestMessages:
+            mode === 'generate' && include?.requestMessages
+              ? stepInputMessages
+              : undefined,
           stepNumber,
           runtimeContext: currentRuntimeContext,
           toolsContext: currentToolsContext,
@@ -452,7 +479,7 @@ export async function* modelCallIterator({
         const {
           content: assistantContent,
           providerExecutedToolResultPositions,
-        } = getAssistantMessageContent(step);
+        } = getAssistantMessageContent(step, mode);
         const includedToolCallIds = new Set(
           assistantContent.flatMap(part =>
             part.type === 'tool-call' ? [part.toolCallId] : [],
@@ -472,7 +499,7 @@ export async function* modelCallIterator({
             ...assistantContent,
             ...toolCalls
               .filter(toolCall => !includedToolCallIds.has(toolCall.toolCallId))
-              .map(toAssistantToolCallContent),
+              .map(call => toAssistantToolCallContent(call, mode)),
           ],
         });
 
@@ -502,7 +529,9 @@ export async function* modelCallIterator({
           providerExecutedToolResultPositions,
         });
         step.response.messages.push(
-          ...(responseMessages as unknown as typeof step.response.messages),
+          ...(mode === 'generate'
+            ? toModelResponseMessages(responseMessages)
+            : (responseMessages as unknown as typeof step.response.messages)),
         );
 
         const stopConditionList =
@@ -521,9 +550,16 @@ export async function* modelCallIterator({
         done =
           stopConditionMet ||
           (!hasClientToolCalls && pendingDeferredToolCallIds.size === 0);
-      } else if (finishReason === 'stop' || finishReason === 'tool-calls') {
+      } else if (
+        mode === 'generate' ||
+        finishReason === 'stop' ||
+        finishReason === 'tool-calls'
+      ) {
         // Add assistant response content to the conversation
-        const { content: assistantContent } = getAssistantMessageContent(step);
+        const { content: assistantContent } = getAssistantMessageContent(
+          step,
+          mode,
+        );
 
         if (assistantContent.length > 0) {
           const assistantMessage = {
@@ -532,7 +568,11 @@ export async function* modelCallIterator({
           } as const;
           conversationPrompt.push(assistantMessage);
           step.response.messages.push(
-            assistantMessage as unknown as (typeof step.response.messages)[number],
+            ...(mode === 'generate'
+              ? toModelResponseMessages([assistantMessage])
+              : [
+                  assistantMessage as unknown as (typeof step.response.messages)[number],
+                ]),
           );
         }
 
@@ -696,15 +736,11 @@ function normalizeStepForTelemetry(step: StepResult<any, any>) {
   };
 }
 
-/**
- * Reconstruct a full `StepResult` from the minimal aggregates returned by
- * `doStreamStep`. Runs outside the step boundary so StepResult's redundant
- * fields (duplicate tool-call lists, `text`, `files`, `sources`, and
- * `reasoningText`) and the per-chunk snapshot don't cross it. Tool-result
- * arrays are initialized here and populated after execution. The shape matches
- * what the AI SDK's `streamText` exposes to callers.
- */
-function getAssistantMessageContent(step: StepResult<any, any>): {
+/** Preserve assistant ordering and positions for provider-executed results. */
+function getAssistantMessageContent(
+  step: StepResult<any, any>,
+  mode: 'generate' | 'stream',
+): {
   content: Extract<
     LanguageModelV4Prompt[number],
     { role: 'assistant' }
@@ -723,13 +759,29 @@ function getAssistantMessageContent(step: StepResult<any, any>): {
     switch (part.type) {
       case 'text':
         if (part.text.length > 0) {
-          content.push({ type: 'text', text: part.text });
+          content.push({
+            type: 'text',
+            text: part.text,
+            ...(mode === 'generate' && part.providerMetadata != null
+              ? { providerOptions: part.providerMetadata }
+              : {}),
+          });
           contentIndex++;
         }
         break;
+      case 'reasoning':
+      case 'custom':
+        if (mode === 'generate') {
+          const { providerMetadata, ...messagePart } = part;
+          content.push({ ...messagePart, providerOptions: providerMetadata });
+          contentIndex++;
+        }
+        break;
+      case 'reasoning-file':
+        if (mode !== 'generate') break;
       case 'file':
         content.push({
-          type: 'file',
+          type: part.type,
           data: { type: 'data', data: part.file.base64 },
           mediaType: part.file.mediaType,
           ...(part.providerMetadata != null
@@ -742,7 +794,7 @@ function getAssistantMessageContent(step: StepResult<any, any>): {
         contentIndex++;
         break;
       case 'tool-call':
-        content.push(toAssistantToolCallContent(part));
+        content.push(toAssistantToolCallContent(part, mode));
         contentIndex++;
         break;
       case 'tool-result':
@@ -761,16 +813,20 @@ function getAssistantMessageContent(step: StepResult<any, any>): {
   return { content, providerExecutedToolResultPositions };
 }
 
-function toAssistantToolCallContent(toolCall: {
-  toolCallId: string;
-  toolName: string;
-  input: unknown;
-  providerExecuted?: boolean;
-  providerMetadata?: unknown;
-}) {
-  const sanitizedMetadata = sanitizeProviderMetadataForToolCall(
-    toolCall.providerMetadata,
-  );
+function toAssistantToolCallContent(
+  toolCall: {
+    toolCallId: string;
+    toolName: string;
+    input: unknown;
+    providerExecuted?: boolean;
+    providerMetadata?: unknown;
+  },
+  mode: 'generate' | 'stream' = 'stream',
+) {
+  const sanitizedMetadata =
+    mode === 'generate'
+      ? toolCall.providerMetadata
+      : sanitizeProviderMetadataForToolCall(toolCall.providerMetadata);
   return {
     type: 'tool-call' as const,
     toolCallId: toolCall.toolCallId,

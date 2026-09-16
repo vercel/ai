@@ -1,6 +1,7 @@
 import type {
   JSONObject,
   LanguageModelV4CallOptions,
+  LanguageModelV4Content,
   LanguageModelV4Source,
   SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
@@ -60,6 +61,11 @@ export interface ModelCallOptions {
   toolChoice?: ToolChoice<ToolSet>;
   includeRawChunks?: boolean;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
+  include?: {
+    requestBody?: boolean;
+    responseBody?: boolean;
+    requestMessages?: boolean;
+  };
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
 }
 
@@ -91,6 +97,16 @@ export interface ModelCallFinish {
 }
 
 export type ModelCallRawContentPart =
+  | Extract<
+      LanguageModelV4Content,
+      {
+        type:
+          | 'reasoning'
+          | 'custom'
+          | 'reasoning-file'
+          | 'tool-approval-request';
+      }
+    >
   | {
       type: 'text';
       text: string;
@@ -135,7 +151,20 @@ export type ToolInputLifecycleEvent =
 export interface ModelCallRawResult {
   content: ModelCallRawContentPart[];
   reasoning: Array<{ text: string }>;
-  responseMetadata?: { id?: string; timestamp?: Date; modelId?: string };
+  responseMetadata?: {
+    id?: string;
+    timestamp?: Date;
+    modelId?: string;
+    headers?: Record<string, string>;
+    body?: unknown;
+  };
+  /** Present only on non-streaming results; old stream payloads remain valid. */
+  generation?: {
+    provider: string;
+    modelId: string;
+    request?: { body?: unknown };
+    responseTimeMs: number;
+  };
   warnings?: unknown[];
 }
 
@@ -152,6 +181,6 @@ export type ModelCallResult =
        * tool input lifecycle callback replay was added.
        */
       toolInputLifecycleEvents?: ToolInputLifecycleEvent[];
-      /** Present when the model stream emitted an error part. */
+      /** Present when the model stream emitted an error part or generation failed. */
       terminalError?: unknown;
     };

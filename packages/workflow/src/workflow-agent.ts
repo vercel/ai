@@ -18,6 +18,9 @@ import {
 } from '@ai-sdk/provider-utils';
 import {
   Output,
+  isStepCount,
+  NoOutputGeneratedError,
+  type GenerateTextResult,
   experimental_filterActiveTools as filterActiveTools,
   type FinishReason,
   type LanguageModelResponseMetadata,
@@ -41,6 +44,9 @@ import {
 } from 'ai';
 import {
   createRestrictedTelemetryDispatcher,
+  DefaultGenerateTextResult,
+  addLanguageModelUsage,
+  createNullLanguageModelUsage,
   collectToolApprovals,
   convertToLanguageModelPrompt,
   mergeAbortSignals,
@@ -59,6 +65,7 @@ import type {
   ProviderExecutedToolResult,
 } from './do-stream-step.js';
 import { resolveToolContext } from './resolve-tool-context.js';
+import { toModelResponseMessages } from './to-model-response-messages.js';
 import { modelCallIterator } from './model-call-iterator.js';
 import {
   resolveWorkflowStreamResult,
@@ -927,7 +934,7 @@ export type WorkflowAgentOnToolExecutionEndCallback<
 /**
  * Options for the {@link WorkflowAgent.stream} method.
  */
-export type WorkflowAgentStreamOptions<
+export type WorkflowAgentCallOptions<
   TTools extends ToolSet = ToolSet,
   TRuntimeContext extends Context = Context,
   OUTPUT = never,
@@ -966,7 +973,7 @@ export type WorkflowAgentStreamOptions<
       }
   ) & {
     /**
-     * Instructions override for this stream call.
+     * Instructions override for this call.
      */
     instructions?: Instructions;
 
@@ -976,30 +983,6 @@ export type WorkflowAgentStreamOptions<
      * @deprecated Use `instructions` instead.
      */
     system?: string;
-
-    /**
-     * A WritableStream that receives raw LanguageModelV4StreamPart chunks in real-time
-     * as the model generates them. This enables streaming to the client without
-     * coupling WorkflowAgent to UIMessageChunk format.
-     *
-     * Convert to UIMessageChunks at the response boundary using
-     * `createUIMessageChunkTransform()` from `@ai-sdk/workflow`.
-     *
-     * @example
-     * ```typescript
-     * // In the workflow:
-     * await agent.stream({
-     *   messages,
-     *   writable: getWritable<ModelCallStreamPart>(),
-     * });
-     *
-     * // In the route handler:
-     * return createUIMessageStreamResponse({
-     *   stream: run.readable.pipeThrough(createModelCallToUIChunkTransform()),
-     * });
-     * ```
-     */
-    writable?: WritableStream<ModelCallStreamPart<ToolSet>>;
 
     /**
      * Condition for stopping the generation when there are tool results in the last step.
@@ -1077,14 +1060,6 @@ export type WorkflowAgentStreamOptions<
     output?: OutputSpecification<OUTPUT, PARTIAL_OUTPUT>;
 
     /**
-     * Whether to include raw chunks from the provider in the stream.
-     * When enabled, you will receive raw chunks with type 'raw' that contain the unprocessed data from the provider.
-     * This allows access to cutting-edge provider features not yet wrapped by the AI SDK.
-     * Defaults to false.
-     */
-    includeRawChunks?: boolean;
-
-    /**
      * A function that attempts to repair a tool call that failed to parse.
      */
     repairToolCall?: ToolCallRepairFunction<TTools>;
@@ -1095,15 +1070,6 @@ export type WorkflowAgentStreamOptions<
      * @deprecated Use `repairToolCall` instead.
      */
     experimental_repairToolCall?: ToolCallRepairFunction<TTools>;
-
-    /**
-     * Optional stream transformations.
-     * They are applied in the order they are provided.
-     * The stream transformations must maintain the stream structure for streamText to work correctly.
-     */
-    experimental_transform?:
-      | StreamTextTransform<TTools>
-      | Array<StreamTextTransform<TTools>>;
 
     /**
      * Custom download function to use for URLs.
@@ -1227,24 +1193,113 @@ export type WorkflowAgentStreamOptions<
     prepareStep?: PrepareStepCallback<TTools, TRuntimeContext>;
 
     /**
-     * Timeout in milliseconds for the stream operation.
+     * Timeout in milliseconds for model calls in this operation.
      * When specified, creates an AbortSignal that will abort the operation after the given time.
      * If both `timeout` and `abortSignal` are provided, whichever triggers first will abort.
      */
     timeout?: number;
-
-    /**
-     * Whether to send a 'finish' chunk to the writable stream when streaming completes.
-     * @default true
-     */
-    sendFinish?: boolean;
-
-    /**
-     * Whether to prevent the writable stream from being closed after streaming completes.
-     * @default false
-     */
-    preventClose?: boolean;
   };
+
+/** Streaming options add transport controls to the shared call options. */
+export type WorkflowAgentStreamOptions<
+  TTools extends ToolSet = ToolSet,
+  TRuntimeContext extends Context = Context,
+  OUTPUT = never,
+  PARTIAL_OUTPUT = never,
+> = WorkflowAgentCallOptions<
+  TTools,
+  TRuntimeContext,
+  OUTPUT,
+  PARTIAL_OUTPUT
+> & {
+  /**
+   * A WritableStream that receives raw LanguageModelV4StreamPart chunks in real-time
+   * as the model generates them. This enables streaming to the client without
+   * coupling WorkflowAgent to UIMessageChunk format.
+   *
+   * Convert to UIMessageChunks at the response boundary using
+   * `createUIMessageChunkTransform()` from `@ai-sdk/workflow`.
+   *
+   * @example
+   * ```typescript
+   * // In the workflow:
+   * await agent.stream({
+   *   messages,
+   *   writable: getWritable<ModelCallStreamPart>(),
+   * });
+   *
+   * // In the route handler:
+   * return createUIMessageStreamResponse({
+   *   stream: run.readable.pipeThrough(createModelCallToUIChunkTransform()),
+   * });
+   * ```
+   */
+  writable?: WritableStream<ModelCallStreamPart<ToolSet>>;
+
+  /**
+   * Whether to include raw chunks from the provider in the stream.
+   * When enabled, you will receive raw chunks with type 'raw' that contain the unprocessed data from the provider.
+   * This allows access to cutting-edge provider features not yet wrapped by the AI SDK.
+   * Defaults to false.
+   */
+  includeRawChunks?: boolean;
+
+  /**
+   * Optional stream transformations.
+   * They are applied in the order they are provided.
+   * The stream transformations must maintain the stream structure for streamText to work correctly.
+   */
+  experimental_transform?:
+    | StreamTextTransform<TTools>
+    | Array<StreamTextTransform<TTools>>;
+
+  /**
+   * Whether to send a 'finish' chunk to the writable stream when streaming completes.
+   * @default true
+   */
+  sendFinish?: boolean;
+
+  /**
+   * Whether to prevent the writable stream from being closed after streaming completes.
+   * @default false
+   */
+  preventClose?: boolean;
+};
+
+export type WorkflowAgentGenerateOptions<
+  TTools extends ToolSet = ToolSet,
+  TRuntimeContext extends Context = Context,
+  OUTPUT = string,
+  PARTIAL_OUTPUT = never,
+> = WorkflowAgentCallOptions<
+  TTools,
+  TRuntimeContext,
+  OUTPUT,
+  PARTIAL_OUTPUT
+> & {
+  /** Request/response bodies and request messages are omitted by default. */
+  include?: {
+    requestBody?: boolean;
+    responseBody?: boolean;
+    requestMessages?: boolean;
+  };
+};
+
+/** Core result semantics, available inside the workflow that runs generation. */
+export type WorkflowAgentGenerateResult<
+  TTools extends ToolSet = ToolSet,
+  TRuntimeContext extends Context = Context,
+  OUTPUT = string,
+> = Omit<
+  GenerateTextResult<TTools, TRuntimeContext, Output.Output>,
+  'output'
+> & { readonly output: OUTPUT };
+
+type DefaultGenerateOutput<OUTPUT> = [
+  DefaultWorkflowAgentOutput<OUTPUT>,
+] extends [never]
+  ? string
+  : OUTPUT;
 
 /**
  * A tool call made by the model. Matches the AI SDK's tool call shape.
@@ -1285,6 +1340,7 @@ type WorkflowToolExecutionResult = {
 function addToolResultsToStep(
   step: StepResult<ToolSet, any> | undefined,
   executedResults: WorkflowToolExecutionResult[],
+  mode: 'generate' | 'stream' = 'stream',
 ) {
   if (step == null || executedResults.length === 0) {
     return;
@@ -1312,6 +1368,14 @@ function addToolResultsToStep(
       toolCallId: result.modelResult.toolCallId,
       toolName: result.modelResult.toolName,
       input: toolCall?.input,
+      ...(mode === 'generate'
+        ? {
+            dynamic: toolCall?.dynamic === true,
+            ...(toolCall?.toolMetadata != null
+              ? { toolMetadata: toolCall.toolMetadata }
+              : {}),
+          }
+        : {}),
       ...(toolCall?.dynamic === true ? { dynamic: true as const } : {}),
       ...(toolCall?.providerExecuted === true
         ? { providerExecuted: true }
@@ -1334,6 +1398,9 @@ function addToolResultsToStep(
   });
 
   step.content.push(...(toolOutputs as StepResult<ToolSet, any>['content']));
+
+  // Core's generate step derives its tool lists from content getters.
+  if (mode === 'generate') return;
 
   const toolResults = toolOutputs.filter(
     result => result.type === 'tool-result',
@@ -1561,8 +1628,52 @@ export class WorkflowAgent<
     };
   }
 
-  generate() {
-    throw new Error('Not implemented');
+  async generate<
+    TTools extends TBaseTools = TBaseTools,
+    TOutput = DefaultGenerateOutput<OUTPUT>,
+    TPartialOutput = DefaultWorkflowAgentOutput<PARTIAL_OUTPUT>,
+  >(
+    options: WorkflowAgentGenerateOptions<
+      TTools,
+      TRuntimeContext,
+      TOutput,
+      TPartialOutput
+    >,
+  ): Promise<WorkflowAgentGenerateResult<TTools, TRuntimeContext, TOutput>> {
+    const {
+      data,
+      outcome,
+      initialResponseMessages = [],
+    } = await this.execute(options, 'generate');
+    if (outcome.status === 'failed') throw outcome.error;
+    if (outcome.status === 'aborted') {
+      if (outcome.rejection != null) throw outcome.rejection.value;
+      options.abortSignal?.throwIfAborted();
+      throw new DOMException('Generation aborted.', 'AbortError');
+    }
+    const lastStep = data.steps.at(-1);
+    if (lastStep == null) throw new NoOutputGeneratedError();
+    let output: TOutput | undefined;
+    if (
+      lastStep.finishReason === 'stop' ||
+      (lastStep.finishReason !== 'tool-calls' && lastStep.text.length > 0)
+    ) {
+      const specification = options.output ?? this.output ?? Output.text();
+      output = (await specification.parseCompleteOutput(
+        { text: lastStep.text },
+        {
+          response: lastStep.response,
+          usage: lastStep.usage,
+          finishReason: lastStep.finishReason,
+        },
+      )) as TOutput;
+    }
+    return new DefaultGenerateTextResult({
+      initialResponseMessages,
+      steps: data.steps as StepResult<TTools, TRuntimeContext>[],
+      totalUsage: data.totalUsage,
+      output,
+    }) as WorkflowAgentGenerateResult<TTools, TRuntimeContext, TOutput>;
   }
 
   async stream<
@@ -1590,7 +1701,8 @@ export class WorkflowAgent<
       TRuntimeContext,
       TOutput,
       TPartialOutput
-    >,
+    > & { include?: WorkflowAgentGenerateOptions['include'] },
+    mode: 'generate' | 'stream' = 'stream',
   ) {
     const { onFinish, onEnd = onFinish } = options;
 
@@ -1611,7 +1723,10 @@ export class WorkflowAgent<
         Context | undefined
       >;
     let effectiveToolChoiceFromPrepare = options.toolChoice ?? this.toolChoice;
-    let effectiveStopWhenFromPrepare = options.stopWhen ?? this.stopWhen;
+    let effectiveStopWhenFromPrepare =
+      options.stopWhen ??
+      this.stopWhen ??
+      (mode === 'generate' ? isStepCount(20) : undefined);
     let effectiveActiveToolsFromPrepare =
       options.activeTools ?? this.activeTools;
     let effectiveDownloadFromPrepare =
@@ -1774,7 +1889,8 @@ export class WorkflowAgent<
       TRuntimeContext,
       TOutput,
       TPartialOutput
-    >,
+    > & { include?: WorkflowAgentGenerateOptions['include'] },
+    mode: 'generate' | 'stream' = 'stream',
   ): Promise<WorkflowExecutionResult<TTools, TOutput>> {
     const {
       onEnd,
@@ -1796,7 +1912,9 @@ export class WorkflowAgent<
       timeoutAt,
       mergedOnToolExecutionStart,
       mergedOnToolExecutionEnd,
-    } = await this.prepareInvocation(options);
+    } = await this.prepareInvocation(options, mode);
+    const initialResponseMessages: WorkflowAgentGenerateResult<TTools>['responseMessages'] =
+      [];
 
     // Process tool approval responses before starting the agent loop.
     // This mirrors how stream-text.ts handles tool-approval-response parts:
@@ -2015,6 +2133,13 @@ export class WorkflowAgent<
         } else {
           cleanedMessages.push(msg);
         }
+      }
+
+      if (mode === 'generate' && toolResultContent.length > 0) {
+        initialResponseMessages.push({
+          role: 'tool',
+          content: toolResultContent,
+        } as unknown as WorkflowAgentGenerateResult<TTools>['responseMessages'][number]);
       }
 
       // Add tool results as a new tool message
@@ -2372,13 +2497,15 @@ export class WorkflowAgent<
           toolCalls: [],
           toolResults: [],
           finishReason: 'other',
-          totalUsage: aggregateUsage(steps),
+          totalUsage: aggregateExecutionUsage(steps, mode),
           output: undefined as TOutput,
         },
       };
     }
 
     const iterator = modelCallIterator({
+      mode,
+      include: options.include,
       model: effectiveModel,
       tools: effectiveTools as ToolSet,
       writable: options.writable,
@@ -2439,6 +2566,19 @@ export class WorkflowAgent<
           providerExecutedToolResults,
           providerExecutedToolResultPositions,
         } = result.value;
+        if (mode === 'generate' && step != null) {
+          for (const call of toolCalls) {
+            if (call.invalid && !call.providerExecuted)
+              step.content.push({
+                type: 'tool-error',
+                toolCallId: call.toolCallId,
+                toolName: call.toolName,
+                input: call.input,
+                error: call.error,
+                dynamic: true,
+              });
+          }
+        }
         const capturedProviderToolResults =
           providerExecutedToolResults ??
           new Map<string, ProviderExecutedToolResult>();
@@ -2610,7 +2750,7 @@ export class WorkflowAgent<
               output: r.rawOutput,
             }));
 
-            addToolResultsToStep(step, executedResults);
+            addToolResultsToStep(step, executedResults, mode);
 
             const responseMessages = addToolResultsToConversation({
               messages: iterMessages,
@@ -2623,14 +2763,16 @@ export class WorkflowAgent<
               providerExecutedToolResultPositions,
             });
             step?.response.messages.push(
-              ...(responseMessages as unknown as NonNullable<
-                typeof step
-              >['response']['messages']),
+              ...(mode === 'generate'
+                ? toModelResponseMessages(responseMessages)
+                : (responseMessages as unknown as NonNullable<
+                    typeof step
+                  >['response']['messages'])),
             );
 
             const messages = iterMessages as unknown as ModelMessage[];
             const lastStep = steps[steps.length - 1];
-            const totalUsage = aggregateUsage(steps);
+            const totalUsage = aggregateExecutionUsage(steps, mode);
             const finishReason = lastStep?.finishReason ?? 'other';
 
             const data: WorkflowExecutionData<TTools, TOutput> = {
@@ -2642,6 +2784,14 @@ export class WorkflowAgent<
               totalUsage,
               output: undefined as TOutput,
             };
+            if (mode === 'generate' && step != null) {
+              await mergedOnStepEnd?.(
+                step as StepResult<TTools, TRuntimeContext>,
+              );
+              await telemetryDispatcher.onStepEnd?.(
+                normalizeStepForTelemetry(step),
+              );
+            }
             await notifyEnd(data, wasAborted);
 
             // Emit tool-approval-request chunks for tools that need approval
@@ -2698,7 +2848,11 @@ export class WorkflowAgent<
             }
 
             await closeOutput();
-            return { data, outcome: { status: 'completed' } };
+            return {
+              data,
+              outcome: { status: 'completed' },
+              initialResponseMessages,
+            };
           }
 
           // Execute client tools (all have execute functions at this point)
@@ -2826,7 +2980,7 @@ export class WorkflowAgent<
             output: r.rawOutput,
           }));
 
-          addToolResultsToStep(step, executedToolResults);
+          addToolResultsToStep(step, executedToolResults, mode);
 
           result = await iterator.next(continuationToolResults);
         } else {
@@ -2888,7 +3042,7 @@ export class WorkflowAgent<
       | OutputSpecification<TOutput, TPartialOutput>
       | undefined;
     let experimentalOutput: TOutput = undefined as TOutput;
-    if (effectiveOutput && steps.length > 0) {
+    if (mode === 'stream' && effectiveOutput && steps.length > 0) {
       const lastStep = steps[steps.length - 1];
       const text = lastStep.text;
       if (text) {
@@ -2913,7 +3067,7 @@ export class WorkflowAgent<
     }
 
     const lastStep = steps[steps.length - 1];
-    const totalUsage = aggregateUsage(steps);
+    const totalUsage = aggregateExecutionUsage(steps, mode);
     const finishReason = lastStep?.finishReason ?? 'other';
 
     const data: WorkflowExecutionData<TTools, TOutput> = {
@@ -2925,7 +3079,8 @@ export class WorkflowAgent<
       totalUsage,
       output: experimentalOutput,
     };
-    await notifyEnd(data, wasAborted);
+    if (mode === 'stream' || (!hasEncounteredError && !hasTerminalError))
+      await notifyEnd(data, wasAborted);
     await closeOutput();
 
     const outcome: WorkflowExecutionOutcome = hasEncounteredError
@@ -2937,7 +3092,7 @@ export class WorkflowAgent<
         : wasAborted
           ? { status: 'aborted' }
           : { status: 'completed' };
-    return { data, outcome };
+    return { data, outcome, initialResponseMessages };
 
     async function notifyEnd(
       data: WorkflowExecutionData<TTools, TOutput>,
@@ -3441,4 +3596,16 @@ async function executeTool(
     rawOutput: toolResult,
     isError: false,
   };
+}
+
+function aggregateExecutionUsage(
+  steps: StepResult<any, any>[],
+  mode: 'generate' | 'stream',
+): LanguageModelUsage {
+  return mode === 'stream'
+    ? aggregateUsage(steps)
+    : steps.reduce(
+        (usage, step) => addLanguageModelUsage(usage, step.usage),
+        createNullLanguageModelUsage(),
+      );
 }

@@ -1,4 +1,4 @@
-import type { ToolSet } from 'ai';
+import type { ToolSet, GenerateTextResult } from 'ai';
 import type { WorkflowAgentStreamResult } from './workflow-agent.js';
 
 /** Reconstructed workflow data, never the payload of a durable model step. */
@@ -22,6 +22,11 @@ export type WorkflowExecutionOutcome =
     };
 
 export interface WorkflowExecutionResult<TOOLS extends ToolSet, OUTPUT> {
+  initialResponseMessages?: GenerateTextResult<
+    TOOLS,
+    any,
+    any
+  >['responseMessages'];
   data: WorkflowExecutionData<TOOLS, OUTPUT>;
   outcome: WorkflowExecutionOutcome;
 }

@@ -15,7 +15,7 @@ import {
   type ProviderOptions,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
-import { NoOutputGeneratedError, ToolChoiceViolationError } from '../error';
+import { ToolChoiceViolationError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import type { ModelMessage } from '../prompt';
@@ -75,6 +75,7 @@ import type {
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from './generate-text-events';
+import { DefaultGenerateTextResult } from './default-generate-text-result';
 import type { GenerateTextResult } from './generate-text-result';
 import { isToolExecutionAllowedFinishReason } from './is-tool-execution-allowed-finish-reason';
 import type {
@@ -82,11 +83,9 @@ import type {
   OnLanguageModelCallStartCallback,
 } from './language-model-events';
 import { text, type Output } from './output';
-import type { InferCompleteOutput } from './output-utils';
 import { parseToolCall } from './parse-tool-call';
 import type { PrepareStepFunction } from './prepare-step';
 import { prepareStepCallSettings } from './prepare-step-call-settings';
-import { convertToReasoningOutputs } from './reasoning-output';
 import { resolveToolApproval } from './resolve-tool-approval';
 import type { ResponseMessage } from './response-message';
 import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
@@ -1654,123 +1653,4 @@ async function executeTools<TOOLS extends ToolSet>({
   return toolResults.filter(
     (result): result is NonNullable<typeof result> => result != null,
   );
-}
-
-class DefaultGenerateTextResult<
-  TOOLS extends ToolSet,
-  RUNTIME_CONTEXT extends Context,
-  OUTPUT extends Output,
-> implements GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
-  readonly steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'];
-  readonly totalUsage: LanguageModelUsage;
-  private readonly _output: InferCompleteOutput<OUTPUT> | undefined;
-
-  constructor(options: {
-    initialResponseMessages: Array<ResponseMessage>;
-    steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'];
-    output: InferCompleteOutput<OUTPUT> | undefined;
-    totalUsage: LanguageModelUsage;
-  }) {
-    this.initialResponseMessages = options.initialResponseMessages;
-    this.steps = options.steps;
-    this._output = options.output;
-    this.totalUsage = options.totalUsage;
-  }
-
-  private readonly initialResponseMessages: Array<ResponseMessage>;
-
-  get finalStep() {
-    return this.steps.at(-1)!;
-  }
-
-  get content() {
-    return this.steps.flatMap(step => step.content);
-  }
-
-  get text() {
-    return this.finalStep.text;
-  }
-
-  get files() {
-    return this.steps.flatMap(step => step.files);
-  }
-
-  get reasoningText() {
-    return this.finalStep.reasoningText;
-  }
-
-  get reasoning() {
-    return convertToReasoningOutputs(this.finalStep.reasoning);
-  }
-
-  get toolCalls() {
-    return this.steps.flatMap(step => step.toolCalls);
-  }
-
-  get staticToolCalls() {
-    return this.steps.flatMap(step => step.staticToolCalls);
-  }
-
-  get dynamicToolCalls() {
-    return this.steps.flatMap(step => step.dynamicToolCalls);
-  }
-
-  get toolResults() {
-    return this.steps.flatMap(step => step.toolResults);
-  }
-
-  get staticToolResults() {
-    return this.steps.flatMap(step => step.staticToolResults);
-  }
-
-  get dynamicToolResults() {
-    return this.steps.flatMap(step => step.dynamicToolResults);
-  }
-
-  get sources() {
-    return this.steps.flatMap(step => step.sources);
-  }
-
-  get finishReason() {
-    return this.finalStep.finishReason;
-  }
-
-  get rawFinishReason() {
-    return this.finalStep.rawFinishReason;
-  }
-
-  get warnings() {
-    return this.steps.flatMap(step => step.warnings ?? []);
-  }
-
-  get providerMetadata() {
-    return this.finalStep.providerMetadata;
-  }
-
-  get response() {
-    return this.finalStep.response;
-  }
-
-  get responseMessages() {
-    return [
-      ...this.initialResponseMessages,
-      ...this.steps.flatMap(step => step.response.messages),
-    ];
-  }
-
-  get request() {
-    return this.finalStep.request;
-  }
-
-  get usage() {
-    return this.totalUsage;
-  }
-
-  get output() {
-    if (this._output == null) {
-      throw new NoOutputGeneratedError();
-    }
-
-    return this._output;
-  }
 }
