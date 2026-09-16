@@ -1,10 +1,17 @@
 import { mockId } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import { screen, waitFor } from '@testing-library/vue';
+import { render, screen, waitFor } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import type { ChatTransport, UIMessage, UIMessageChunk } from 'ai';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { defineComponent, effectScope, h, nextTick, ref } from 'vue';
+import {
+  defineComponent,
+  effectScope,
+  h,
+  nextTick,
+  ref,
+  type PropType,
+} from 'vue';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
 
@@ -51,6 +58,65 @@ function getText(message: UIMessage | undefined) {
     .map(part => (part.type === 'text' ? part.text : ''))
     .join('');
 }
+
+const MessageText = defineComponent({
+  props: {
+    message: {
+      type: Object as PropType<UIMessage>,
+      required: true,
+    },
+  },
+  setup(props) {
+    return () =>
+      h(
+        'span',
+        { 'data-testid': `message-${props.message.id}` },
+        getText(props.message),
+      );
+  },
+});
+
+const PartText = defineComponent({
+  props: {
+    part: {
+      type: Object as PropType<UIMessage['parts'][number]>,
+      required: true,
+    },
+    testId: {
+      type: String,
+      required: true,
+    },
+  },
+  setup(props) {
+    return () =>
+      h(
+        'span',
+        { 'data-testid': props.testId },
+        props.part.type === 'text' ? props.part.text : '',
+      );
+  },
+});
+
+const MessageWithPartChild = defineComponent({
+  props: {
+    message: {
+      type: Object as PropType<UIMessage>,
+      required: true,
+    },
+  },
+  setup(props) {
+    return () =>
+      h('div', [
+        h(MessageText, { message: props.message }),
+        props.message.parts[0] != null
+          ? h(PartText, {
+              part: props.message.parts[0],
+              testId: `part-${props.message.id}`,
+            })
+          : null,
+      ]);
+  },
+});
 
 describe('useChat', () => {
   describe('initial messages', () => {
@@ -362,6 +428,155 @@ describe('useChat', () => {
         scope.stop();
       },
     );
+
+    it.each([undefined, 0])(
+      'updates child message and part props when throttle is %s',
+      async throttle => {
+        const { controller, transport } = createControlledTransport();
+        let chat!: ReturnType<typeof useChat>;
+
+        const { unmount } = render(
+          defineComponent({
+            setup() {
+              chat = useChat<UIMessage>({
+                generateId: mockId(),
+                throttle,
+                transport,
+              });
+
+              return () => {
+                const assistantMessage = chat.messages.value[1];
+                return assistantMessage == null
+                  ? null
+                  : h(MessageWithPartChild, {
+                      message: assistantMessage,
+                    });
+              };
+            },
+          }),
+        );
+
+        const request = chat.sendMessage({ text: 'hi' });
+        await waitForCondition(() => chat.status.value === 'submitted');
+
+        controller.enqueue({ type: 'text-start', id: '0' });
+        controller.enqueue({ type: 'text-delta', id: '0', delta: 'Hel' });
+        await waitForCondition(
+          () =>
+            screen.queryByTestId('message-id-2')?.textContent === 'Hel' &&
+            screen.queryByTestId('part-id-2')?.textContent === 'Hel',
+        );
+
+        controller.enqueue({ type: 'text-delta', id: '0', delta: 'lo' });
+        await waitForCondition(
+          () =>
+            screen.queryByTestId('message-id-2')?.textContent === 'Hello' &&
+            screen.queryByTestId('part-id-2')?.textContent === 'Hello',
+        );
+
+        controller.close();
+        await request;
+        unmount();
+      },
+    );
+
+    it('preserves unchanged historical child identities across throttled publications', async () => {
+      const { controller, transport } = createControlledTransport();
+      const renderCounts = new Map<string, number>();
+      let chat!: ReturnType<typeof useChat>;
+
+      const RenderCountingMessage = defineComponent({
+        props: {
+          message: {
+            type: Object as PropType<UIMessage>,
+            required: true,
+          },
+        },
+        setup(props) {
+          return () => {
+            renderCounts.set(
+              props.message.id,
+              (renderCounts.get(props.message.id) ?? 0) + 1,
+            );
+
+            return h(MessageWithPartChild, { message: props.message });
+          };
+        },
+      });
+
+      const { unmount } = render(
+        defineComponent({
+          setup() {
+            chat = useChat<UIMessage>({
+              generateId: mockId(),
+              messages: [
+                {
+                  id: 'history-1',
+                  role: 'user',
+                  parts: [{ type: 'text', text: 'first' }],
+                },
+                {
+                  id: 'history-2',
+                  role: 'assistant',
+                  parts: [{ type: 'text', text: 'second' }],
+                },
+              ],
+              throttle: 50,
+              transport,
+            });
+
+            return () =>
+              h(
+                'div',
+                chat.messages.value.map(message =>
+                  h(RenderCountingMessage, {
+                    key: message.id,
+                    message,
+                  }),
+                ),
+              );
+          },
+        }),
+      );
+
+      expect(renderCounts.get('history-1')).toBe(1);
+      expect(renderCounts.get('history-2')).toBe(1);
+
+      const request = chat.sendMessage({ text: 'hi' });
+      await waitForCondition(() => chat.status.value === 'submitted');
+      await nextTick();
+
+      expect(renderCounts.get('history-1')).toBe(1);
+      expect(renderCounts.get('history-2')).toBe(1);
+
+      controller.enqueue({ type: 'text-start', id: '0' });
+      controller.enqueue({ type: 'text-delta', id: '0', delta: 'Hel' });
+      await waitForCondition(() => chat.status.value === 'streaming');
+      await vi.advanceTimersByTimeAsync(50);
+      await waitForCondition(
+        () =>
+          screen.queryByTestId('message-id-2')?.textContent === 'Hel' &&
+          screen.queryByTestId('part-id-2')?.textContent === 'Hel',
+      );
+
+      expect(renderCounts.get('history-1')).toBe(1);
+      expect(renderCounts.get('history-2')).toBe(1);
+
+      controller.enqueue({ type: 'text-delta', id: '0', delta: 'lo' });
+      await vi.advanceTimersByTimeAsync(50);
+      await waitForCondition(
+        () =>
+          screen.queryByTestId('message-id-2')?.textContent === 'Hello' &&
+          screen.queryByTestId('part-id-2')?.textContent === 'Hello',
+      );
+
+      expect(renderCounts.get('history-1')).toBe(1);
+      expect(renderCounts.get('history-2')).toBe(1);
+
+      controller.close();
+      await request;
+      unmount();
+    });
 
     it('flushes the latest snapshot before error status is observable', async () => {
       const { controller, transport } = createControlledTransport();

@@ -12,7 +12,6 @@ import {
   onScopeDispose,
   shallowRef,
   toValue,
-  triggerRef,
   watch,
   type ComputedRef,
   type MaybeRefOrGetter,
@@ -63,6 +62,9 @@ class VueChatState<
   UI_MESSAGE extends UIMessage,
 > implements ChatState<UI_MESSAGE> {
   private messagesValue: UI_MESSAGE[];
+  private publishedMessages: UI_MESSAGE[] = [];
+  private publishedMessageSources: UI_MESSAGE[] = [];
+  private readonly dirtyMessageIndices = new Set<number>();
   private statusValue: ChatStatus = 'ready';
   private errorValue: Error | undefined;
   private readonly throttleWaitMs: number | undefined;
@@ -106,7 +108,15 @@ class VueChatState<
   }
 
   set messages(messages: UI_MESSAGE[]) {
+    const previousMessages = this.messagesValue;
     this.messagesValue = messages;
+
+    for (let index = 0; index < messages.length; index++) {
+      if (messages[index] !== previousMessages[index]) {
+        this.dirtyMessageIndices.add(index);
+      }
+    }
+
     this.schedulePublication();
   }
 
@@ -143,6 +153,7 @@ class VueChatState<
 
   pushMessage = (message: UI_MESSAGE) => {
     this.messagesValue.push(message);
+    this.dirtyMessageIndices.add(this.messagesValue.length - 1);
     this.schedulePublication();
   };
 
@@ -153,6 +164,7 @@ class VueChatState<
 
   replaceMessage = (index: number, message: UI_MESSAGE) => {
     this.messagesValue[index] = message;
+    this.dirtyMessageIndices.add(index);
     this.schedulePublication();
   };
 
@@ -166,11 +178,17 @@ class VueChatState<
 
   setMessagesFromConsumer(messages: UI_MESSAGE[]) {
     this.messagesValue = messages;
+    this.publishedMessages = messages;
+    this.publishedMessageSources = messages;
+    this.dirtyMessageIndices.clear();
   }
 
   dispose() {
     this.isActive = false;
     this.hasPendingPublication = false;
+    this.dirtyMessageIndices.clear();
+    this.publishedMessages = [];
+    this.publishedMessageSources = [];
 
     if (this.timeout != null) {
       clearTimeout(this.timeout);
@@ -225,18 +243,20 @@ class VueChatState<
       return;
     }
 
-    const publishedMessages =
-      this.throttleWaitMs == null
-        ? this.messagesValue
-        : this.messagesValue.map(message => snapshotValue(message));
+    const publishedMessages = this.messagesValue.map((message, index) =>
+      this.dirtyMessageIndices.has(index) ||
+      this.publishedMessageSources[index] !== message
+        ? snapshotValue(message)
+        : this.publishedMessages[index],
+    );
+
+    this.publishedMessages = publishedMessages;
+    this.publishedMessageSources = [...this.messagesValue];
+    this.dirtyMessageIndices.clear();
 
     this.isPublishing = true;
     try {
-      if (this.messagesRef.value === publishedMessages) {
-        triggerRef(this.messagesRef);
-      } else {
-        this.messagesRef.value = publishedMessages;
-      }
+      this.messagesRef.value = publishedMessages;
     } finally {
       this.isPublishing = false;
     }
