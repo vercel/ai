@@ -15,7 +15,7 @@ export type BrowserRealtimeTransportOptions = {
   onError: (error: Error) => void;
   onFatalError?: (error: Error, drain?: Promise<void>) => void;
   onClosing?: () => void;
-  onClose: (error?: Error, event?: CloseEvent) => void;
+  onClose: (error?: Error) => void;
 };
 
 function getCloseError(event: CloseEvent): Error | undefined {
@@ -169,22 +169,33 @@ export class BrowserRealtimeTransport {
       if (this.ws === ws) {
         this.ws = null;
         const closeError = getCloseError(event) ?? connectionError;
+        const reportCloseErrorImmediately =
+          closeError != null && !codec.hasPendingIncoming;
         codec.stopWriting();
         this.notifyClosing();
         if (this.epoch !== epoch) return;
+        const drain = codec.finish();
+        if (reportCloseErrorImmediately) {
+          try {
+            this.onError(closeError);
+          } catch {
+            /* Application callbacks cannot interrupt teardown. */
+          }
+          if (this.epoch !== epoch) return;
+        }
         const complete = () => {
           if (this.epoch !== epoch) return;
           clearTimeout(this.drainTimer);
           this.epoch++;
           codec.dispose();
           try {
-            this.onClose(closeError, event);
+            this.onClose(closeError);
           } catch (error) {
             this.reportCallbackError(error);
           }
         };
         this.drainTimer = setTimeout(complete, 1_000);
-        void this.awaitDrain(codec.finish(), complete);
+        void this.awaitDrain(drain, complete);
       }
     };
   }

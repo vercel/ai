@@ -114,7 +114,6 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
     store: RealtimeStore;
     onToolCall: UseRealtimeOptions['onToolCall'];
     onEvent: UseRealtimeOptions['onEvent'];
-    onClose: UseRealtimeOptions['onClose'];
     onError: UseRealtimeOptions['onError'];
   } | null>(null);
   const {
@@ -129,7 +128,6 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
     maxPlaybackBufferSeconds,
     onToolCall,
     onEvent,
-    onClose,
     onError,
   } = options;
   const { token, websocket, session: sessionEndpoint } = api;
@@ -159,10 +157,6 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
         ownerRef.current?.store === store
           ? ownerRef.current.onEvent?.(...args)
           : undefined,
-      onClose: (...args) =>
-        ownerRef.current?.store === store
-          ? ownerRef.current.onClose?.(...args)
-          : undefined,
       onError: (...args) =>
         ownerRef.current?.store === store
           ? ownerRef.current.onError?.(...args)
@@ -186,7 +180,7 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
 
   // Publish before child layout effects; insertion cleanup only revokes refs.
   useInsertionEffect(() => {
-    ownerRef.current = { store: rt, onToolCall, onEvent, onClose, onError };
+    ownerRef.current = { store: rt, onToolCall, onEvent, onError };
     rt.onToolCall =
       onToolCall == null
         ? undefined

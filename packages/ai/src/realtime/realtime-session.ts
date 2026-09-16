@@ -53,7 +53,6 @@ export type RealtimeSessionOptions = {
     toolCall: { toolCallId: string; toolName: string; args: unknown };
   }) => Promise<unknown> | unknown | undefined;
   onEvent?: (event: RealtimeServerEvent) => void;
-  onClose?: (event: CloseEvent) => void;
   onError?: (error: Error) => void;
 };
 
@@ -62,7 +61,6 @@ export abstract class AbstractRealtimeSession {
   protected maxEvents: number;
   onToolCall: RealtimeSessionOptions['onToolCall'];
   onEvent: RealtimeSessionOptions['onEvent'];
-  onClose: RealtimeSessionOptions['onClose'];
   onError: RealtimeSessionOptions['onError'];
   private reducer: RealtimeEventReducer;
   private readonly sessionLifecycle: boolean;
@@ -112,7 +110,6 @@ export abstract class AbstractRealtimeSession {
     this.reducer = new RealtimeEventReducer(this.maxEvents);
     this.onToolCall = options.onToolCall;
     this.onEvent = options.onEvent;
-    this.onClose = options.onClose;
     this.onError = options.onError;
   }
 
@@ -209,6 +206,7 @@ export abstract class AbstractRealtimeSession {
         if (current())
           this.fail(new Error('Realtime session startup timed out'));
       });
+      const reportedTransportErrors = new WeakSet<Error>();
       const callbacks = {
         model,
         onEvent: async (event: RealtimeServerEvent) => {
@@ -224,7 +222,10 @@ export abstract class AbstractRealtimeSession {
           }
         },
         onError: (error: Error) => {
-          if (current()) void this.reportError(error, attempt);
+          if (current()) {
+            reportedTransportErrors.add(error);
+            void this.reportError(error, attempt);
+          }
         },
         onFatalError: (error: Error, drain?: Promise<void>) => {
           if (current()) this.fail(error, drain);
@@ -242,20 +243,13 @@ export abstract class AbstractRealtimeSession {
             status: attempt.cause == null ? 'closing' : 'error',
           });
         },
-        onClose: (error?: Error, event?: CloseEvent) => {
-          if (!current()) return;
-          if (event != null) {
-            try {
-              this.onClose?.(event);
-            } catch (callbackError) {
-              void this.reportError(callbackError, attempt);
-            }
-          }
+        onClose: (error?: Error) => {
           if (!current()) return;
           const finalizationConfirmed =
             model.capabilities?.finalization === 'session-close' &&
             this.state.session?.finalization === 'confirmed';
-          if (error != null && !finalizationConfirmed) this.fail(error);
+          if (error != null && !finalizationConfirmed)
+            this.fail(error, undefined, !reportedTransportErrors.has(error));
           else if (!attempt.ready && !finalizationConfirmed)
             this.fail(
               new Error('Realtime connection closed before becoming ready'),
@@ -359,7 +353,7 @@ export abstract class AbstractRealtimeSession {
     }
   }
 
-  private fail(error: unknown, drain?: Promise<void>): void {
+  private fail(error: unknown, drain?: Promise<void>, report = true): void {
     const attempt = this.attempt;
     if (attempt == null || !attempt.active || attempt.cause != null) return;
     attempt.cause = error instanceof Error ? error : new Error(String(error));
@@ -370,7 +364,7 @@ export abstract class AbstractRealtimeSession {
     if (this.attempt !== attempt || !attempt.active) return;
     if (drain == null) this.disconnect();
     else void this.drainAttempt(attempt, drain);
-    void this.reportError(attempt.cause, attempt);
+    if (report) void this.reportError(attempt.cause, attempt);
   }
 
   private async drainAttempt(

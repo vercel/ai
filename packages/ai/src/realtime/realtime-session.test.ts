@@ -6,18 +6,18 @@ const sentEvents: Array<{ type: string; [key: string]: unknown }> = [];
 const transportInstances: Array<{
   connect: ReturnType<typeof vi.fn>;
   emitServerEvent: (event: unknown) => Promise<void> | void;
-  emitClose: (error?: Error, event?: CloseEvent) => void;
+  emitClose: (error?: Error) => void;
 }> = [];
 
 vi.mock('./browser-realtime-transport', () => ({
   BrowserRealtimeTransport: class {
     private readonly options: {
       onServerEvent: (event: unknown) => Promise<void> | void;
-      onClose: (error?: Error, event?: CloseEvent) => void;
+      onClose: (error?: Error) => void;
     };
     constructor(options: {
       onServerEvent: (event: unknown) => Promise<void> | void;
-      onClose: (error?: Error, event?: CloseEvent) => void;
+      onClose: (error?: Error) => void;
     }) {
       this.options = options;
       transportInstances.push(this);
@@ -33,8 +33,8 @@ vi.mock('./browser-realtime-transport', () => ({
     emitServerEvent(event: unknown) {
       return this.options.onServerEvent(event);
     }
-    emitClose(error?: Error, event?: CloseEvent) {
-      this.options.onClose(error, event);
+    emitClose(error?: Error) {
+      this.options.onClose(error);
     }
   },
 }));
@@ -245,36 +245,6 @@ describe('AbstractRealtimeSession', () => {
     expect(onError.mock.calls[0][0].message).toContain(
       'No handler provided for tool',
     );
-  });
-
-  it('forwards WebSocket close diagnostics to onClose', async () => {
-    const onClose = vi.fn();
-    const session = new TestSession({
-      model: createModel(),
-      api: { token: 'token' },
-      onClose,
-    });
-    await session.connect();
-    const transport = transportInstances.at(-1)!;
-    await transport.emitServerEvent({
-      type: 'session-created',
-      sessionId: 'session',
-      raw: {},
-    });
-
-    const closeEvent = {
-      code: 1007,
-      reason: 'Request contains an invalid argument',
-      wasClean: true,
-    } as CloseEvent;
-    transport.emitClose(
-      new Error(
-        'Realtime WebSocket closed unexpectedly (code 1007: Request contains an invalid argument)',
-      ),
-      closeEvent,
-    );
-
-    expect(onClose).toHaveBeenCalledExactlyOnceWith(closeEvent);
   });
 
   it('requests a single response after all tool outputs are submitted', async () => {

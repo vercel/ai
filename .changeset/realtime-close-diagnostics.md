@@ -1,6 +1,5 @@
 ---
 'ai': patch
-'@ai-sdk/react': patch
 ---
 
-fix(ai): expose realtime WebSocket close diagnostics
+fix(ai): report abnormal realtime WebSocket close diagnostics through `onError`
