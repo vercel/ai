@@ -13,13 +13,9 @@ export type BrowserRealtimeTransportOptions = {
   model: RealtimeModel;
   onServerEvent: (event: RealtimeServerEvent) => void | Promise<void>;
   onError: (error: Error) => void;
-<<<<<<< HEAD
-  onClose: (event: CloseEvent) => void;
-=======
   onFatalError?: (error: Error, drain?: Promise<void>) => void;
   onClosing?: () => void;
-  onClose: (error?: Error) => void;
->>>>>>> origin/main
+  onClose: (error?: Error, event?: CloseEvent) => void;
 };
 
 function getCloseError(event: CloseEvent): Error | undefined {
@@ -172,9 +168,6 @@ export class BrowserRealtimeTransport {
     ws.onclose = event => {
       if (this.ws === ws) {
         this.ws = null;
-<<<<<<< HEAD
-        this.onClose(event);
-=======
         const closeError = getCloseError(event) ?? connectionError;
         codec.stopWriting();
         this.notifyClosing();
@@ -185,14 +178,13 @@ export class BrowserRealtimeTransport {
           this.epoch++;
           codec.dispose();
           try {
-            this.onClose(closeError);
+            this.onClose(closeError, event);
           } catch (error) {
             this.reportCallbackError(error);
           }
         };
         this.drainTimer = setTimeout(complete, 1_000);
         void this.awaitDrain(codec.finish(), complete);
->>>>>>> origin/main
       }
     };
   }

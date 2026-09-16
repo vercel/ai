@@ -61,19 +61,8 @@ export abstract class AbstractRealtimeSession {
   protected state: RealtimeState = createInitialRealtimeState();
   protected maxEvents: number;
   onToolCall: RealtimeSessionOptions['onToolCall'];
-<<<<<<< HEAD
-  onEvent: ((event: RealtimeServerEvent) => void) | undefined;
-  onClose: ((event: CloseEvent) => void) | undefined;
-  onError: ((error: Error) => void) | undefined;
-
-  private readonly model: RealtimeModel;
-  private readonly api: RealtimeSessionOptions['api'];
-  private readonly sessionConfig: Partial<RealtimeSessionConfig> | undefined;
-  private readonly reducer: RealtimeEventReducer;
-  private readonly transport: BrowserRealtimeTransport;
-  private readonly audio: BrowserRealtimeAudio;
-=======
   onEvent: RealtimeSessionOptions['onEvent'];
+  onClose: RealtimeSessionOptions['onClose'];
   onError: RealtimeSessionOptions['onError'];
   private reducer: RealtimeEventReducer;
   private readonly sessionLifecycle: boolean;
@@ -88,7 +77,6 @@ export abstract class AbstractRealtimeSession {
   private suppliedStream?: MediaStream;
   private captureGeneration = 0;
   private captureRequested = false;
->>>>>>> origin/main
   private currentResponseItemId: string | null = null;
   private readonly toolCallsInResponse = new Set<string>();
   private readonly submittedToolOutputs = new Set<string>();
@@ -126,40 +114,6 @@ export abstract class AbstractRealtimeSession {
     this.onEvent = options.onEvent;
     this.onClose = options.onClose;
     this.onError = options.onError;
-<<<<<<< HEAD
-
-    const sampleRate = options.sampleRate ?? 24000;
-    const captureSampleRate =
-      options.sessionConfig?.inputAudioFormat?.rate ?? sampleRate;
-    const playbackSampleRate =
-      options.sessionConfig?.outputAudioFormat?.rate ?? sampleRate;
-
-    this.transport = new BrowserRealtimeTransport({
-      model: this.model,
-      onServerEvent: event => this.handleServerEvent(event),
-      onError: error => {
-        this.applyState(this.reducer.setStatus(this.state, 'error'));
-        this.onError?.(error);
-      },
-      onClose: event => {
-        this.applyState(this.reducer.setStatus(this.state, 'disconnected'));
-        this.onClose?.(event);
-      },
-    });
-
-    this.audio = new BrowserRealtimeAudio({
-      captureSampleRate,
-      playbackSampleRate,
-      onAudio: audio => this.sendAudio(audio),
-      onCapturingChange: isCapturing => {
-        this.applyState(this.reducer.setCapturing(this.state, isCapturing));
-      },
-      onPlayingChange: isPlaying => {
-        this.applyState(this.reducer.setPlaying(this.state, isPlaying));
-      },
-    });
-=======
->>>>>>> origin/main
   }
 
   private validateConnection(): void {
@@ -288,7 +242,15 @@ export abstract class AbstractRealtimeSession {
             status: attempt.cause == null ? 'closing' : 'error',
           });
         },
-        onClose: (error?: Error) => {
+        onClose: (error?: Error, event?: CloseEvent) => {
+          if (!current()) return;
+          if (event != null) {
+            try {
+              this.onClose?.(event);
+            } catch (callbackError) {
+              void this.reportError(callbackError, attempt);
+            }
+          }
           if (!current()) return;
           const finalizationConfirmed =
             model.capabilities?.finalization === 'session-close' &&

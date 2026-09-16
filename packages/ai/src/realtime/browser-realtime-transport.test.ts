@@ -632,11 +632,7 @@ describe('BrowserRealtimeTransport', () => {
     expect(onOpen).toHaveBeenCalledOnce();
   });
 
-<<<<<<< HEAD
-  it('forwards close events only from the active socket', () => {
-=======
-  it('closes an existing socket before reconnecting', async () => {
->>>>>>> origin/main
+  it('closes an existing socket and forwards close events only from the active socket', async () => {
     const onClose = vi.fn();
     const transport = new BrowserRealtimeTransport({
       model,
@@ -663,7 +659,6 @@ describe('BrowserRealtimeTransport', () => {
 
     expect(firstSocket.close).toHaveBeenCalledOnce();
 
-<<<<<<< HEAD
     const retiredSocketCloseEvent = {
       code: 1000,
       reason: '',
@@ -678,15 +673,13 @@ describe('BrowserRealtimeTransport', () => {
       wasClean: true,
     } as CloseEvent;
     secondSocket.onclose?.(activeSocketCloseEvent);
-    expect(onClose).toHaveBeenCalledExactlyOnceWith(activeSocketCloseEvent);
-=======
-    firstSocket.closeFromServer();
-    expect(onClose).not.toHaveBeenCalled();
-
-    secondSocket.closeFromServer();
     await flush();
-    expect(onClose).toHaveBeenCalledOnce();
-    expect(onClose).toHaveBeenCalledWith(undefined);
+    expect(onClose).toHaveBeenCalledExactlyOnceWith(
+      new Error(
+        'Realtime WebSocket closed unexpectedly (code 1007: Request contains an invalid argument)',
+      ),
+      activeSocketCloseEvent,
+    );
   });
 
   it('preserves an abnormal server close as an error', async () => {
@@ -706,11 +699,12 @@ describe('BrowserRealtimeTransport', () => {
     });
     const socket = MockWebSocket.instances[0];
     socket.open();
-    socket.closeFromServer({
+    const closeEvent = {
       code: 1011,
       reason: 'upstream unavailable',
       wasClean: true,
-    });
+    } as CloseEvent;
+    socket.onclose?.(closeEvent);
 
     await flush();
 
@@ -718,6 +712,7 @@ describe('BrowserRealtimeTransport', () => {
       new Error(
         'Realtime WebSocket closed unexpectedly (code 1011: upstream unavailable)',
       ),
+      closeEvent,
     );
   });
 
@@ -745,13 +740,18 @@ describe('BrowserRealtimeTransport', () => {
     expect(socket.close).not.toHaveBeenCalled();
     expect(onFatalError).not.toHaveBeenCalled();
 
-    socket.closeFromServer({ code: 1006, wasClean: false });
+    const closeEvent = {
+      code: 1006,
+      reason: '',
+      wasClean: false,
+    } as CloseEvent;
+    socket.onclose?.(closeEvent);
     await flush();
 
     expect(onClose).toHaveBeenCalledExactlyOnceWith(
       new Error('Realtime WebSocket closed unexpectedly (code 1006)'),
+      closeEvent,
     );
->>>>>>> origin/main
   });
 
   it('preserves send order when serialization is async', async () => {

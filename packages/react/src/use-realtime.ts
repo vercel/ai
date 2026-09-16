@@ -110,27 +110,11 @@ type UseRealtimeReturn = {
 };
 
 function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
-<<<<<<< HEAD
-  const callbacksRef = useRef({
-    onToolCall: options.onToolCall,
-    onEvent: options.onEvent,
-    onClose: options.onClose,
-    onError: options.onError,
-  });
-  callbacksRef.current = {
-    onToolCall: options.onToolCall,
-    onEvent: options.onEvent,
-    onClose: options.onClose,
-    onError: options.onError,
-  };
-
-  const realtimeRef = useRef<{
-=======
   const ownerRef = useRef<{
->>>>>>> origin/main
     store: RealtimeStore;
     onToolCall: UseRealtimeOptions['onToolCall'];
     onEvent: UseRealtimeOptions['onEvent'];
+    onClose: UseRealtimeOptions['onClose'];
     onError: UseRealtimeOptions['onError'];
   } | null>(null);
   const {
@@ -145,6 +129,7 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
     maxPlaybackBufferSeconds,
     onToolCall,
     onEvent,
+    onClose,
     onError,
   } = options;
   const { token, websocket, session: sessionEndpoint } = api;
@@ -174,6 +159,10 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
         ownerRef.current?.store === store
           ? ownerRef.current.onEvent?.(...args)
           : undefined,
+      onClose: (...args) =>
+        ownerRef.current?.store === store
+          ? ownerRef.current.onClose?.(...args)
+          : undefined,
       onError: (...args) =>
         ownerRef.current?.store === store
           ? ownerRef.current.onError?.(...args)
@@ -195,24 +184,9 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
     maxPlaybackBufferSeconds,
   ]);
 
-<<<<<<< HEAD
-  if (
-    realtimeEntry == null ||
-    shouldCreateRealtimeStore(realtimeEntry.key, options)
-  ) {
-    realtimeEntry = {
-      store: new RealtimeStore({
-        ...options,
-        onToolCall: (...args) => callbacksRef.current.onToolCall?.(...args),
-        onEvent: (...args) => callbacksRef.current.onEvent?.(...args),
-        onClose: (...args) => callbacksRef.current.onClose?.(...args),
-        onError: (...args) => callbacksRef.current.onError?.(...args),
-      }),
-      key: getRealtimeStoreKey(options),
-=======
   // Publish before child layout effects; insertion cleanup only revokes refs.
   useInsertionEffect(() => {
-    ownerRef.current = { store: rt, onToolCall, onEvent, onError };
+    ownerRef.current = { store: rt, onToolCall, onEvent, onClose, onError };
     rt.onToolCall =
       onToolCall == null
         ? undefined
@@ -222,7 +196,6 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
               : undefined;
     return () => {
       ownerRef.current = null;
->>>>>>> origin/main
     };
   });
 
