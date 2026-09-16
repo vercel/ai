@@ -4385,7 +4385,7 @@ describe('doGenerate', () => {
       const gemini3Model = provider.chat('gemini-3-pro-preview');
       const gemini37FlashModel = provider.chat('gemini-3.7-flash');
 
-      it('should map reasoning "minimal" to thinkingLevel "minimal"', async () => {
+      it('should map reasoning "minimal" to thinkingLevel "low"', async () => {
         server.urls[TEST_URL_GEMINI_3_PRO].response = {
           type: 'json-value',
           body: simpleResponseBody,
@@ -4398,7 +4398,7 @@ describe('doGenerate', () => {
 
         expect(await server.calls[0].requestBodyJson).toMatchObject({
           generationConfig: {
-            thinkingConfig: { thinkingLevel: 'minimal' },
+            thinkingConfig: { thinkingLevel: 'low' },
           },
         });
       });
@@ -4457,7 +4457,7 @@ describe('doGenerate', () => {
         });
       });
 
-      it('should map reasoning "none" to thinkingLevel "minimal"', async () => {
+      it('should map reasoning "none" to thinkingLevel "low"', async () => {
         server.urls[TEST_URL_GEMINI_3_PRO].response = {
           type: 'json-value',
           body: simpleResponseBody,
@@ -4470,7 +4470,7 @@ describe('doGenerate', () => {
 
         expect(await server.calls[0].requestBodyJson).toMatchObject({
           generationConfig: {
-            thinkingConfig: { thinkingLevel: 'minimal' },
+            thinkingConfig: { thinkingLevel: 'low' },
           },
         });
       });
@@ -4673,7 +4673,7 @@ describe('doGenerate', () => {
       const gemini25ProModel = provider.chat('gemini-2.5-pro');
       const gemini25FlashLiteModel = provider.chat('gemini-2.5-flash-lite');
 
-      it('should map reasoning "none" to thinkingBudget 0', async () => {
+      it('should map reasoning "none" to the minimum Pro thinking budget', async () => {
         server.urls[TEST_URL_GEMINI_2_5_PRO].response = {
           type: 'json-value',
           body: simpleResponseBody,
@@ -4686,7 +4686,7 @@ describe('doGenerate', () => {
 
         expect(await server.calls[0].requestBodyJson).toMatchObject({
           generationConfig: {
-            thinkingConfig: { thinkingBudget: 0 },
+            thinkingConfig: { thinkingBudget: 128 },
           },
         });
       });

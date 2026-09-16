@@ -487,8 +487,13 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
      * Map top-level `reasoning` to Anthropic thinking/effort when provider
      * options don't already specify them. Provider options always take precedence.
      */
-    if (isCustomReasoning(reasoning) && anthropicOptions?.effort == null) {
+    if (
+      isCustomReasoning(reasoning) &&
+      anthropicOptions?.effort == null &&
+      (reasoning !== 'none' || anthropicOptions.thinking == null)
+    ) {
       const reasoningConfig = resolveAnthropicReasoningConfig({
+        modelId,
         reasoning,
         supportsAdaptiveThinking,
         supportsXhighEffort,
@@ -3011,6 +3016,7 @@ export function hasDynamicFilteringWebToolWithoutCodeExecution(
 }
 
 function resolveAnthropicReasoningConfig({
+  modelId,
   reasoning,
   supportsAdaptiveThinking,
   supportsXhighEffort,
@@ -3022,12 +3028,24 @@ function resolveAnthropicReasoningConfig({
   supportsXhighEffort: boolean;
   maxOutputTokensForModel: number;
   warnings: SharedV4Warning[];
+  modelId: string;
 }): Pick<AnthropicLanguageModelOptions, 'thinking' | 'effort'> | undefined {
   if (!isCustomReasoning(reasoning)) {
     return undefined;
   }
 
   if (reasoning === 'none') {
+    // These families require thinking. Match the family rather than a release
+    // number so new versions and hosted IDs inherit the same minimum effort.
+    if (/(^|[./])claude-(?:fable|mythos)(?:-|$)/.test(modelId)) {
+      warnings.push({
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "none" is not supported by this model. Using reasoning effort "low" instead.',
+      });
+      return { thinking: { type: 'adaptive' }, effort: 'low' };
+    }
     return { thinking: { type: 'disabled' } };
   }
 

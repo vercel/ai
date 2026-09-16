@@ -332,11 +332,11 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       },
     });
 
-    const resolvedThinking = resolveThinkingConfig({
-      reasoning,
-      modelId,
-      warnings,
-    });
+    const resolvedThinking =
+      googleOptions?.thinkingConfig?.thinkingBudget != null ||
+      googleOptions?.thinkingConfig?.thinkingLevel != null
+        ? undefined
+        : resolveThinkingConfig({ reasoning, modelId, warnings });
     const thinkingConfig =
       googleOptions?.thinkingConfig || resolvedThinking
         ? { ...resolvedThinking, ...googleOptions?.thinkingConfig }
@@ -1365,20 +1365,23 @@ function getMinimumThinkingLevelForGemini3Model(
 ): 'minimal' | 'low' {
   const modelName = modelId.split('/').at(-1)?.toLowerCase();
 
-  if (modelName === 'gemini-flash-latest') {
-    return 'low';
+  // Flash-Lite retains its own minimum across versions and the latest alias.
+  if (/^gemini-(?:\d+(?:\.\d+)?-)?flash-lite(?:$|-)/.test(modelName ?? '')) {
+    return 'minimal';
   }
 
-  const versionMatch = /^gemini-(\d+)\.(\d+)-flash(?:$|-(?!lite(?:-|$)))/.exec(
+  // Only older Flash generations accept minimal. Newer Gemini versions and
+  // aliases inherit the latest low minimum, including future Pro models.
+  const versionMatch = /^gemini-(\d+)(?:\.(\d+))?-flash(?:$|-)/.exec(
     modelName ?? '',
   );
 
   if (versionMatch == null) {
-    return 'minimal';
+    return 'low';
   }
 
   const majorVersion = Number(versionMatch[1]);
-  const minorVersion = Number(versionMatch[2]);
+  const minorVersion = Number(versionMatch[2] ?? 0);
 
   return majorVersion > 3 || (majorVersion === 3 && minorVersion >= 7)
     ? 'low'
@@ -1398,6 +1401,15 @@ function resolveGemini25ThinkingConfig({
   warnings: SharedV4Warning[];
 }): Pick<GoogleThinkingConfig, 'thinkingBudget'> | undefined {
   if (reasoning === 'none') {
+    if (/(^|\/)gemini-2\.5-pro(?:$|-)/i.test(modelId)) {
+      warnings.push({
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "none" is not supported by this model. Using thinking budget 128 instead.',
+      });
+      return { thinkingBudget: 128 };
+    }
     return { thinkingBudget: 0 };
   }
 

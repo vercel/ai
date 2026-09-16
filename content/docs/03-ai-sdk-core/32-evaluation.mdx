@@ -67,9 +67,11 @@ The language-model adapters evaluate all questions in one prompt. They do not
 provide TypeSafe's native independent-question execution semantics. The example
 model IDs demonstrate API compatibility; they are not benchmark-selected defaults.
 
-Language-model adapters request `reasoning: 'none'` by default. Each provider
-maps this setting to its model's reasoning controls; it does not guarantee that
-every model runs without thinking. To enable reasoning for more demanding
+Language-model adapters request `reasoning: 'none'` by default. OpenAI, Anthropic,
+and Google disable thinking where the model supports it, otherwise they request
+the lowest supported reasoning effort or budget. Evaluations can therefore still
+consume reasoning tokens. See [reasoning](/docs/ai-sdk-core/reasoning) for model-family
+fallbacks and custom model limitations. To enable reasoning for more demanding
 evaluations, pass the model's supported reasoning settings through
 `providerOptions`, which take precedence over this default. For example, use
 `providerOptions: { openai: { reasoningEffort: 'high' } }` with an OpenAI model

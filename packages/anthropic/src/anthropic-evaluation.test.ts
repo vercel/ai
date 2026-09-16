@@ -21,7 +21,10 @@ const options = {
     },
   },
 } as const;
-function setup(body: unknown = fixture) {
+function setup(
+  body: unknown = fixture,
+  modelId: string = 'claude-haiku-4-5-20251001',
+) {
   const fetch = vi.fn().mockImplementation(
     async () =>
       new Response(JSON.stringify(body), {
@@ -38,7 +41,7 @@ function setup(body: unknown = fixture) {
     fetch,
   });
   return {
-    model: provider.evaluationModel('claude-haiku-4-5-20251001'),
+    model: provider.evaluationModel(modelId),
     fetch,
   };
 }
@@ -200,5 +203,34 @@ it.each(['outputFormat', 'jsonTool'] as const)(
     });
     expect(schema.properties.q2).not.toHaveProperty('minimum');
     expect(schema.properties.q2).not.toHaveProperty('maximum');
+  },
+);
+
+it.each([
+  ['claude-fable-5', 'low'],
+  ['claude-mythos-preview', 'low'],
+  ['claude-fable-6', 'low'],
+])(
+  'uses the minimum reasoning setting for %s evaluations',
+  async (modelId, expected) => {
+    const { model, fetch } = setup(fixture, modelId);
+    const result = await model.doEvaluate(options);
+    expect(result.answers.department).toEqual({
+      type: 'choice',
+      choice: 'billing',
+    });
+    expect(
+      JSON.parse(fetch.mock.calls[0][1].body).output_config.effort,
+    ).toEqual(expected);
+    expect(JSON.parse(fetch.mock.calls[0][1].body).thinking).toEqual({
+      type: 'adaptive',
+    });
+    await model.doEvaluate({
+      ...options,
+      providerOptions: { anthropic: { effort: 'high' } },
+    });
+    expect(
+      JSON.parse(fetch.mock.calls[1][1].body).output_config.effort,
+    ).toEqual('high');
   },
 );

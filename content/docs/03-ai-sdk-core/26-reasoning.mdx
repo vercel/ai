@@ -21,15 +21,39 @@ const { text, reasoning, reasoningText } = await generateText({
 
 The `reasoning` parameter accepts the following values:
 
-| Value                | Behavior                                                             |
-| -------------------- | -------------------------------------------------------------------- |
-| `'provider-default'` | Use the provider's default reasoning behavior (default when omitted) |
-| `'none'`             | Disable reasoning                                                    |
-| `'minimal'`          | Bare-minimum reasoning                                               |
-| `'low'`              | Fast, concise reasoning                                              |
-| `'medium'`           | Balanced reasoning                                                   |
-| `'high'`             | Thorough reasoning                                                   |
-| `'xhigh'`            | Maximum reasoning                                                    |
+| Value                | Behavior                                                                               |
+| -------------------- | -------------------------------------------------------------------------------------- |
+| `'provider-default'` | Use the provider's default reasoning behavior (default when omitted)                   |
+| `'none'`             | Disable thinking where supported; otherwise use the lowest supported reasoning setting |
+| `'minimal'`          | Bare-minimum reasoning                                                                 |
+| `'low'`              | Fast, concise reasoning                                                                |
+| `'medium'`           | Balanced reasoning                                                                     |
+| `'high'`             | Thorough reasoning                                                                     |
+| `'xhigh'`            | Maximum reasoning                                                                      |
+
+`'none'` requests disabled thinking where the model supports it, otherwise the
+lowest supported reasoning effort or token budget. It does not guarantee zero
+reasoning tokens. This is the actual minimum supported by the model, which can
+differ from the SDK's percentage-based budget for `'minimal'`.
+
+OpenAI Chat/Responses, Anthropic Messages, and Google GenerateContent implement
+these fallbacks for recognizable model families. These are also the language-model
+APIs used by their evaluation adapters. Examples include GPT-6 and later models
+using `low`, Gemini 2.5 Pro using a budget of 128, and Claude Fable/Mythos using
+adaptive thinking with `low` effort. Support in other providers and endpoints
+varies.
+
+Newer versions of recognizable model families inherit the latest known behavior:
+GPT-6 and later use their lowest supported effort, Claude Fable/Mythos continue to
+require thinking, and newer Gemini models use `low` (Flash-Lite uses `minimal`).
+Known older models retain their own mappings. These defaults assume future models
+retain their family's controls; use explicit `providerOptions` if a model differs.
+Custom deployment names that do not identify a model family retain the provider's
+existing behavior because the underlying model's capabilities cannot be inferred.
+
+For OpenAI Responses, a minimum fallback also uses the existing default of
+`reasoningSummary: 'detailed'` for non-`none` effort. Set
+`providerOptions.openai.reasoningSummary: null` to omit summaries.
 
 ## Streaming
 
@@ -55,7 +79,7 @@ for await (const part of result.stream) {
 
 ## Precedence Rules
 
-The top-level `reasoning` parameter and provider-specific `providerOptions` are **never merged**. If you set reasoning-related options in `providerOptions`, they take full precedence and the top-level `reasoning` parameter is ignored.
+Explicit provider-specific reasoning controls take precedence over the top-level `reasoning` parameter. Display-only options, such as Google's `includeThoughts`, can be combined with the shared setting.
 
 ```ts
 import { generateText } from 'ai';
@@ -79,7 +103,7 @@ This design lets you use the portable `reasoning` parameter by default and fall 
 
 The `reasoning` parameter is supported by the following providers: OpenAI, Anthropic, Google, xAI, Groq, DeepSeek, Fireworks, and Amazon Bedrock. Each provider translates the value to its native reasoning API. Some providers support all six levels natively, while others coerce to fewer levels (a warning is emitted when coercion occurs). Some providers use a numeric token budget instead of an enum for reasoning control; in those cases the top-level `reasoning` value is mapped to a budget calculated as a percentage of the model's maximum output tokens.
 
-Providers that do not support reasoning (e.g. Mistral, Perplexity, Cohere) emit an `unsupported` warning and ignore the parameter.
+Support depends on the model and endpoint. Providers without a supported reasoning control may emit an `unsupported` warning and ignore the parameter.
 
 ## Migrating from `providerOptions`
 

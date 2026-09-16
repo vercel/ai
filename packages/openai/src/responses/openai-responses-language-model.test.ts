@@ -1525,15 +1525,20 @@ describe('OpenAIResponsesLanguageModel', () => {
                 },
               ],
               reasoning: {
-                effort: reasoningValue,
-                ...(reasoningValue !== 'none' && {
-                  summary: 'detailed',
-                }),
+                effort: reasoningValue === 'none' ? 'low' : reasoningValue,
+                summary: 'detailed',
               },
             });
 
             if (reasoningValue === 'none') {
-              expect(warnings).toStrictEqual([]);
+              expect(warnings).toStrictEqual([
+                {
+                  type: 'compatibility',
+                  feature: 'reasoning',
+                  details:
+                    'reasoning "none" is not supported by this model. Using reasoning effort "low" instead.',
+                },
+              ]);
             }
           },
         );

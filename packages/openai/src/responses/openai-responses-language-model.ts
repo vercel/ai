@@ -21,7 +21,6 @@ import {
   createJsonResponseHandler,
   createToolNameMapping,
   generateId,
-  isCustomReasoning,
   parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
@@ -30,6 +29,7 @@ import {
   type InferSchema,
   type ParseResult,
 } from '@ai-sdk/provider-utils';
+import { mapOpenAIReasoning } from '../map-openai-reasoning';
 import {
   prepareOpenAIConfigForWorkflowDeserialize,
   type OpenAIConfig,
@@ -310,7 +310,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     let resolvedReasoningEffort =
       openaiOptions?.reasoningEffort ??
-      (isCustomReasoning(reasoning) ? reasoning : undefined);
+      mapOpenAIReasoning({ reasoning, modelId: modelId, warnings });
 
     if (
       resolvedReasoningEffort != null &&

@@ -23,7 +23,7 @@ const options = {
   },
 } as const;
 
-function setup(body: unknown = fixture) {
+function setup(body: unknown = fixture, modelId: string = 'gpt-5.6-luna') {
   const fetch = vi.fn().mockImplementation(
     async () =>
       new Response(JSON.stringify(body), {
@@ -39,7 +39,7 @@ function setup(body: unknown = fixture) {
     headers: { 'x-provider': 'configured' },
     fetch,
   });
-  return { model: provider.evaluationModel('gpt-5.6-luna'), fetch };
+  return { model: provider.evaluationModel(modelId), fetch };
 }
 
 it('evaluates through the configured Responses API with strict structured output', async () => {
@@ -152,3 +152,29 @@ it('rejects a refusal instead of returning partial answers', async () => {
   });
   await expect(model.doEvaluate(options)).rejects.toBeInstanceOf(APICallError);
 });
+
+it.each([
+  ['gpt-6-astra', 'low'],
+  ['gpt-7', 'low'],
+  ['gpt-5-mini', 'minimal'],
+])(
+  'uses the minimum reasoning setting for %s evaluations',
+  async (modelId, expected) => {
+    const { model, fetch } = setup(fixture, modelId);
+    const result = await model.doEvaluate(options);
+    expect(result.answers.department).toEqual({
+      type: 'choice',
+      choice: 'billing',
+    });
+    expect(JSON.parse(fetch.mock.calls[0][1].body).reasoning.effort).toEqual(
+      expected,
+    );
+    await model.doEvaluate({
+      ...options,
+      providerOptions: { openai: { reasoningEffort: 'high' } },
+    });
+    expect(JSON.parse(fetch.mock.calls[1][1].body).reasoning.effort).toEqual(
+      'high',
+    );
+  },
+);

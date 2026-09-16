@@ -21,7 +21,10 @@ const options = {
     },
   },
 } as const;
-function setup(body: unknown = fixture) {
+function setup(
+  body: unknown = fixture,
+  modelId: string = 'gemini-3.5-flash-lite',
+) {
   const fetch = vi.fn().mockImplementation(
     async () =>
       new Response(JSON.stringify(body), {
@@ -37,7 +40,7 @@ function setup(body: unknown = fixture) {
     headers: { 'x-provider': 'configured' },
     fetch,
   });
-  return { model: provider.evaluationModel('gemini-3.5-flash-lite'), fetch };
+  return { model: provider.evaluationModel(modelId), fetch };
 }
 
 it('uses Gemini structured output and forwards thinking options and cancellation', async () => {
@@ -189,3 +192,29 @@ it('rejects an aborted evaluation without a request', async () => {
   ).rejects.toBe(reason);
   expect(fetch).not.toHaveBeenCalled();
 });
+
+it.each([
+  ['gemini-2.5-pro', { thinkingBudget: 128 }],
+  ['gemini-3.1-pro-preview', { thinkingLevel: 'low' }],
+  ['gemini-4-pro', { thinkingLevel: 'low' }],
+] as const)(
+  'uses the minimum reasoning setting for %s evaluations',
+  async (modelId, expected) => {
+    const { model, fetch } = setup(fixture, modelId);
+    const result = await model.doEvaluate(options);
+    expect(result.answers.department).toEqual({
+      type: 'choice',
+      choice: 'billing',
+    });
+    expect(
+      JSON.parse(fetch.mock.calls[0][1].body).generationConfig.thinkingConfig,
+    ).toEqual(expected);
+    await model.doEvaluate({
+      ...options,
+      providerOptions: { google: { thinkingConfig: { thinkingBudget: 1024 } } },
+    });
+    expect(
+      JSON.parse(fetch.mock.calls[1][1].body).generationConfig.thinkingConfig,
+    ).toEqual({ thinkingBudget: 1024 });
+  },
+);

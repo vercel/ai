@@ -72,7 +72,8 @@ export type LanguageModelCallOptions = {
    * the model performs before generating a response.
    *
    * Use `'provider-default'` to use the provider's default reasoning level.
-   * Use `'none'` to disable reasoning (if supported by the provider).
+   * Use `'none'` to disable thinking where supported, otherwise request the
+   * lowest supported reasoning setting for the provider and model.
    */
   reasoning?: LanguageModelV4CallOptions['reasoning'];
 };
