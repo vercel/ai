@@ -136,11 +136,13 @@ export async function getDefaultDownloadFetch(): Promise<FetchFunction> {
 function createSafeNodeFetch(): FetchFunction {
   // Load Node-only modules indirectly so browser bundlers do not pull undici
   // and Node built-ins into the browser-facing provider-utils entry point.
-  const { createRequire } = loadBuiltinModule<NodeModule>('node:module');
+  // oxlint-disable-next-line nextjs/no-assign-module-variable -- Node file tracing recognizes module.createRequire.
+  const module = loadBuiltinModule<NodeModule>('node:module');
   const { lookup } = loadBuiltinModule<NodeDns>('node:dns');
-  const { Agent, fetch } = createRequire(getCurrentModulePath())(
-    'undici',
-  ) as Undici;
+  // Keep the module.createRequire call and literal require separate so Node
+  // file tracers can include undici in bundled deployments.
+  const require = module.createRequire(getCurrentModulePath());
+  const { Agent, fetch } = require('undici') as Undici;
 
   const dispatcher = new Agent({
     connect: {
