@@ -29,6 +29,7 @@ import {
   BEDROCK_STOP_REASONS,
 } from './bedrock-api-types';
 import {
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
   type BedrockChatModelId,
   bedrockProviderOptions,
 } from './bedrock-chat-options';
@@ -38,6 +39,36 @@ import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-
 import { prepareTools } from './bedrock-prepare-tools';
 import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
 import { mapBedrockFinishReason } from './map-bedrock-finish-reason';
+=======
+  amazonBedrockLanguageModelChatOptions,
+  type AmazonBedrockLanguageModelChatOptions,
+  type AmazonBedrockChatModelId,
+  type AmazonBedrockChatModelSettings,
+} from './amazon-bedrock-chat-language-model-options';
+import {
+  isAnthropicModel as detectAnthropicModel,
+  supportsNativeStructuredOutput,
+  supportsStrictTools,
+} from './amazon-bedrock-anthropic-model-support';
+import {
+  amazonBedrockFailedResponseHandler,
+  AmazonBedrockErrorSchema,
+} from './amazon-bedrock-error';
+import { createAmazonBedrockEventStreamResponseHandler } from './amazon-bedrock-event-stream-response-handler';
+import {
+  getAmazonBedrockStreamErrorMetadata,
+  type AmazonBedrockStreamErrorType,
+} from './amazon-bedrock-stream-error';
+import { prepareTools } from './amazon-bedrock-prepare-tools';
+import {
+  convertAmazonBedrockUsage,
+  type AmazonBedrockUsage,
+} from './convert-amazon-bedrock-usage';
+import { convertToAmazonBedrockChatMessages } from './convert-to-amazon-bedrock-chat-messages';
+import { mapAmazonBedrockFinishReason } from './map-amazon-bedrock-finish-reason';
+import { isMistralModel, normalizeToolCallId } from './normalize-tool-call-id';
+import type { AmazonBedrockReasoningMetadata } from './amazon-bedrock-reasoning-metadata';
+>>>>>>> c559a12ec0 (fix: preserve Amazon Bedrock API error messages when the error type is omitted (#20933)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
 
 type BedrockChatConfig = {
   baseUrl: () => string;
@@ -640,12 +671,19 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       url,
       headers: await this.getHeaders({ headers: options.headers }),
       body: args,
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: BedrockErrorSchema,
         errorToMessage: error => `${error.type}: ${error.message}`,
       }),
       successfulResponseHandler:
         createBedrockEventStreamResponseHandler(BedrockStreamSchema),
+=======
+      failedResponseHandler: amazonBedrockFailedResponseHandler,
+      successfulResponseHandler: createAmazonBedrockEventStreamResponseHandler(
+        AmazonBedrockStreamSchema,
+      ),
+>>>>>>> c559a12ec0 (fix: preserve Amazon Bedrock API error messages when the error type is omitted (#20933)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
