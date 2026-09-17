@@ -63,6 +63,60 @@ console.log('Reasoning:', reasoningText);
 console.log('Answer:', text);
 ```
 
+## Preserved Thinking Example (Multi-Turn Reasoning)
+
+For models that support preserved thinking, the AI SDK sends reasoning from
+previous assistant messages back as Alibaba `reasoning_content` by default
+(`preserve_thinking`), so the model can build on its earlier thought process:
+
+```ts
+import { alibaba } from '@ai-sdk/alibaba';
+import { generateText } from 'ai';
+
+const providerOptions = {
+  alibaba: {
+    enableThinking: true,
+    thinkingBudget: 2048,
+  },
+};
+
+const opening = {
+  role: 'user' as const,
+  content: 'Is Kafka or RocketMQ a better fit for transactional messages?',
+};
+
+const first = await generateText({
+  model: alibaba('qwen3.7-max'),
+  messages: [opening],
+  providerOptions,
+});
+
+const second = await generateText({
+  model: alibaba('qwen3.7-max'),
+  messages: [
+    opening,
+    ...first.responseMessages, // append unchanged to keep the reasoning parts
+    { role: 'user', content: 'Which tradeoff mattered most?' },
+  ],
+  providerOptions,
+});
+```
+
+When continuing the conversation, append `responseMessages` unchanged so the
+reasoning parts survive to be serialized as `reasoning_content`. Set the
+`preserveThinking` provider option to `false` to opt out. Keep in mind:
+
+- `preserveThinking` does not enable thinking by itself.
+- It is enabled by default only for models that Alibaba documents as supporting
+  preserved thinking; for other models the option is not sent unless you set it
+  explicitly. See Alibaba's
+  [preserved-thinking documentation](https://docs.qwencloud.com/developer-guides/text-generation/thinking#preserve-thinking-in-multi-turn).
+- Reasoning from the current tool-call round is always sent back with tool
+  results, as Alibaba recommends.
+- Preserved reasoning increases input token usage and billing.
+- Historical reasoning remains separate from visible assistant text; it is never
+  merged into `content`.
+
 ## Embedding Model Example
 
 ```ts
