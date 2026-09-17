@@ -57,8 +57,8 @@ function prepareJsonResponse({
 }
 
 describe('GoogleVertexImageModel', () => {
-  it('should return 10 for maxImagesPerCall', () => {
-    expect(model.maxImagesPerCall).toBe(10);
+  it('should return 1 for maxImagesPerCall', () => {
+    expect(model.maxImagesPerCall).toBe(1);
   });
 
   describe('doGenerate', () => {
@@ -343,7 +343,7 @@ describe('GoogleVertexImageModel', () => {
       ]);
     });
 
-    it('should reject unsupported URL editing input, multiple images, and masks', async () => {
+    it('should reject unsupported URL editing input and masks', async () => {
       prepareJsonResponse({});
 
       await expect(
@@ -358,21 +358,6 @@ describe('GoogleVertexImageModel', () => {
           providerOptions: {},
         }),
       ).rejects.toThrow(/media type "image\/\*".*not passed as inline bytes/);
-
-      await expect(
-        model.doGenerate({
-          prompt: 'A beautiful sunset',
-          files: undefined,
-          mask: undefined,
-          n: 2,
-          size: undefined,
-          aspectRatio: undefined,
-          seed: undefined,
-          providerOptions: {},
-        }),
-      ).rejects.toThrow(
-        'Gemini image models do not support generating a set number of images per call.',
-      );
 
       await expect(
         model.doGenerate({

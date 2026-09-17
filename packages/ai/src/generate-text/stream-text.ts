@@ -968,14 +968,16 @@ function createOutputTransformStream<
   let text = '';
   let textChunk = '';
   let textProviderMetadata: ProviderMetadata | undefined = undefined;
-  let lastPublishedValue = '';
+  let lastPublishedValue: string | undefined = undefined;
+  let hasPublishedValue = false;
 
-  function resetAttemptState() {
+  function resetOutputState() {
     firstTextChunkId = undefined;
     text = '';
     textChunk = '';
     textProviderMetadata = undefined;
-    lastPublishedValue = '';
+    lastPublishedValue = undefined;
+    hasPublishedValue = false;
   }
 
   function enqueueChunk({
@@ -1020,9 +1022,13 @@ function createOutputTransformStream<
   >({
     async transform(chunk, controller) {
       if (isStreamRetryBoundaryPart(chunk)) {
-        resetAttemptState();
+        resetOutputState();
         controller.enqueue(chunk);
         return;
+      }
+
+      if (chunk.type === 'start-step') {
+        resetOutputState();
       }
 
       // ensure that we publish the last text chunk before the step finish:
@@ -1096,9 +1102,10 @@ function createOutputTransformStream<
           typeof result.partial === 'string'
             ? result.partial
             : JSON.stringify(result.partial);
-        if (currentValue !== lastPublishedValue) {
+        if (!hasPublishedValue || currentValue !== lastPublishedValue) {
           publishTextChunk({ controller, partialOutput: result.partial });
           lastPublishedValue = currentValue;
+          hasPublishedValue = true;
         }
       }
     },
@@ -1414,6 +1421,7 @@ class DefaultStreamTextResult<
     const initialResponseMessages: Array<ResponseMessage> = [];
     let stepMessagesForNextStep: Array<ModelMessage> | undefined;
     let currentStepMessages: Array<ModelMessage> = [];
+    let currentStepModel = model;
 
     // provider-assigned text/reasoning part IDs are only unique within a
     // single model call (e.g. Anthropic uses the content block index, which
@@ -1661,8 +1669,8 @@ class DefaultStreamTextResult<
             new DefaultStepResult({
               callId,
               stepNumber: recordedSteps.length,
-              provider: model.provider,
-              modelId: model.modelId,
+              provider: currentStepModel.provider,
+              modelId: currentStepModel.modelId,
               runtimeContext,
               toolsContext,
               content: recordedContent,
@@ -1691,8 +1699,8 @@ class DefaultStreamTextResult<
 
           logWarnings({
             warnings: recordedWarnings,
-            provider: model.provider,
-            model: model.modelId,
+            provider: currentStepModel.provider,
+            model: currentStepModel.modelId,
           });
 
           recordedSteps.push(currentStepResult);
@@ -1885,6 +1893,7 @@ class DefaultStreamTextResult<
           if (isAbortError(error) && abortSignal?.aborted) {
             await abort();
           } else {
+            await telemetryDispatcher.onError?.({ callId, error });
             controller.error(error);
           }
         }
@@ -2328,6 +2337,7 @@ class DefaultStreamTextResult<
           const stepModel = resolveLanguageModel(
             prepareStepResult?.model ?? model,
           );
+          currentStepModel = stepModel;
 
           const stepActiveTools = filterActiveTools({
             tools,
@@ -3375,7 +3385,7 @@ class DefaultStreamTextResult<
           InferPartialOutput<OUTPUT>
         >({
           transform({ partialOutput }, controller) {
-            if (partialOutput != null) {
+            if (partialOutput !== undefined) {
               controller.enqueue(partialOutput);
             }
           },
