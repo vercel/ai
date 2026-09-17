@@ -413,6 +413,7 @@ describe('parseToolCall', () => {
         instructions: 'test instructions',
         system: 'test instructions',
         error: expect.any(InvalidToolInputError),
+        abortSignal: undefined,
       });
 
       // Verify the repaired result was used
@@ -507,6 +508,68 @@ describe('parseToolCall', () => {
           "type": "tool-call",
         }
       `);
+    });
+
+    it('should stop waiting for repair when aborted', async () => {
+      const abortController = new AbortController();
+      let resolveRepairStarted!: () => void;
+      const repairStarted = new Promise<void>(resolve => {
+        resolveRepairStarted = resolve;
+      });
+      let resolveRepair!: (value: {
+        type: 'tool-call';
+        toolName: string;
+        toolCallId: string;
+        input: string;
+      }) => void;
+      const repair = new Promise<{
+        type: 'tool-call';
+        toolName: string;
+        toolCallId: string;
+        input: string;
+      }>(resolve => {
+        resolveRepair = resolve;
+      });
+      const repairToolCall = vi.fn(
+        async ({ abortSignal }: { abortSignal?: AbortSignal }) => {
+          expect(abortSignal).toBe(abortController.signal);
+          resolveRepairStarted();
+          return await repair;
+        },
+      );
+
+      const result = parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolName: 'testTool',
+          toolCallId: '123',
+          input: 'invalid json',
+        },
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({
+              param1: z.string(),
+              param2: z.number(),
+            }),
+          }),
+        } as const,
+        repairToolCall,
+        messages: [],
+        instructions: undefined,
+        abortSignal: abortController.signal,
+      });
+
+      await repairStarted;
+      abortController.abort();
+
+      await expect(result).rejects.toMatchObject({ name: 'AbortError' });
+
+      resolveRepair({
+        type: 'tool-call',
+        toolName: 'testTool',
+        toolCallId: '123',
+        input: '{"param1": "test", "param2": 42}',
+      });
     });
 
     it('should throw ToolCallRepairError if repairToolCall throws', async () => {
