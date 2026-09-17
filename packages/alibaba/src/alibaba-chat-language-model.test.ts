@@ -186,6 +186,227 @@ describe('doGenerate', () => {
       thinking_budget: 2048,
     });
   });
+
+  describe('preserveThinking', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('alibaba-reasoning');
+    });
+
+    it('should send preserve_thinking and replay reasoning as reasoning_content', async () => {
+      await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Think before answering.' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'reasoning', text: 'Hidden reasoning.' },
+              { type: 'text', text: 'Visible answer.' },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Continue.' }],
+          },
+        ],
+        providerOptions: {
+          alibaba: {
+            preserveThinking: true,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.preserve_thinking).toBe(true);
+      expect(body.messages).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Think before answering.' }],
+        },
+        {
+          role: 'assistant',
+          content: 'Visible answer.',
+          reasoning_content: 'Hidden reasoning.',
+          tool_calls: undefined,
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Continue.' }],
+        },
+      ]);
+    });
+
+    it('should omit preserve_thinking when the option is not set', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('preserve_thinking');
+    });
+
+    it('should combine preserveThinking with enableThinking', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          alibaba: { enableThinking: true, preserveThinking: true },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        enable_thinking: true,
+        preserve_thinking: true,
+      });
+    });
+
+    it('should default preserve_thinking to true for supported models', async () => {
+      const supportedModel = provider.chatModel('qwen3.7-max');
+
+      await supportedModel.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Think before answering.' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'reasoning', text: 'Hidden reasoning.' },
+              { type: 'text', text: 'Visible answer.' },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Continue.' }],
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.preserve_thinking).toBe(true);
+      expect(body.messages).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Think before answering.' }],
+        },
+        {
+          role: 'assistant',
+          content: 'Visible answer.',
+          reasoning_content: 'Hidden reasoning.',
+          tool_calls: undefined,
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Continue.' }],
+        },
+      ]);
+    });
+
+    it('should let supported models opt out with preserveThinking false', async () => {
+      const supportedModel = provider.chatModel('qwen3.7-max');
+
+      await supportedModel.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Think before answering.' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'reasoning', text: 'Hidden reasoning.' },
+              { type: 'text', text: 'Visible answer.' },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Continue.' }],
+          },
+        ],
+        providerOptions: {
+          alibaba: {
+            preserveThinking: false,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.preserve_thinking).toBe(false);
+      expect(body.messages).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Think before answering.' }],
+        },
+        {
+          role: 'assistant',
+          content: 'Visible answer.',
+          tool_calls: undefined,
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Continue.' }],
+        },
+      ]);
+    });
+
+    it('should keep same-round reasoning with tool calls even when preserveThinking is false', async () => {
+      await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Weather in San Francisco?' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'reasoning', text: 'Need to check the weather.' },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'get_weather',
+                input: { location: 'San Francisco' },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'get_weather',
+                output: { type: 'text', value: 'Sunny, 72F.' },
+              },
+            ],
+          },
+        ],
+        providerOptions: {
+          alibaba: {
+            preserveThinking: false,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.messages).toContainEqual({
+        role: 'assistant',
+        content: null,
+        reasoning_content: 'Need to check the weather.',
+        tool_calls: [
+          {
+            id: 'call-1',
+            type: 'function',
+            function: {
+              name: 'get_weather',
+              arguments: '{"location":"San Francisco"}',
+            },
+          },
+        ],
+      });
+    });
+  });
 });
 
 describe('doStream', () => {
@@ -338,6 +559,59 @@ describe('doStream', () => {
       type: 'finish',
       finishReason: 'stop',
       providerMetadata: { alibaba: { cacheCreationInputTokens: 20 } },
+    });
+  });
+
+  describe('preserveThinking', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('alibaba-reasoning');
+    });
+
+    it('should send explicit preserve_thinking false and omit historical reasoning', async () => {
+      const result = await model.doStream({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Think before answering.' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'reasoning', text: 'Hidden reasoning.' },
+              { type: 'text', text: 'Visible answer.' },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Continue.' }],
+          },
+        ],
+        providerOptions: {
+          alibaba: {
+            preserveThinking: false,
+          },
+        },
+      });
+
+      await convertReadableStreamToArray(result.stream);
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.preserve_thinking).toBe(false);
+      expect(body.messages).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Think before answering.' }],
+        },
+        {
+          role: 'assistant',
+          content: 'Visible answer.',
+          tool_calls: undefined,
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Continue.' }],
+        },
+      ]);
     });
   });
 });
