@@ -665,8 +665,33 @@ function createOutputTransformStream<
   let text = '';
   let textChunk = '';
   let textProviderMetadata: ProviderMetadata | undefined = undefined;
-  let lastPublishedValue = '';
+  let lastPublishedValue: string | undefined = undefined;
+  let hasPublishedValue = false;
 
+<<<<<<< HEAD
+=======
+  function resetAttemptState() {
+    firstTextChunkId = undefined;
+    text = '';
+    textChunk = '';
+    textProviderMetadata = undefined;
+    lastPublishedValue = undefined;
+    hasPublishedValue = false;
+  }
+
+  function enqueueChunk({
+    controller,
+    chunk,
+  }: {
+    controller: TransformStreamDefaultController<
+      InternalEnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
+    >;
+    chunk: EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>;
+  }) {
+    controller.enqueue(chunk);
+  }
+
+>>>>>>> 84f5d1b29f (fix: preserve null and empty-string values in structured partial output streams (#20973))
   function publishTextChunk({
     controller,
     partialOutput = undefined,
@@ -749,9 +774,10 @@ function createOutputTransformStream<
           typeof result.partial === 'string'
             ? result.partial
             : JSON.stringify(result.partial);
-        if (currentValue !== lastPublishedValue) {
+        if (!hasPublishedValue || currentValue !== lastPublishedValue) {
           publishTextChunk({ controller, partialOutput: result.partial });
           lastPublishedValue = currentValue;
+          hasPublishedValue = true;
         }
       }
     },
@@ -2652,7 +2678,7 @@ class DefaultStreamTextResult<
           InferPartialOutput<OUTPUT>
         >({
           transform({ partialOutput }, controller) {
-            if (partialOutput != null) {
+            if (partialOutput !== undefined) {
               controller.enqueue(partialOutput);
             }
           },
