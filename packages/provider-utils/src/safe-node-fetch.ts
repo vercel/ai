@@ -134,11 +134,12 @@ export async function getDefaultDownloadFetch(): Promise<FetchFunction> {
 }
 
 function createSafeNodeFetch(): FetchFunction {
-  // NFT only recognizes an indirectly loaded createRequire when its receiver
+  // @vercel/nft (node file trace) only recognizes an indirectly loaded createRequire when its receiver
   // is named `module` and the returned require function is assigned.
   // eslint-disable-next-line @next/next/no-assign-module-variable
   const module = loadBuiltinModule<NodeModule>('node:module');
   const { lookup } = loadBuiltinModule<NodeDns>('node:dns');
+
   // Assign the created require function so deployment tracers can recognize
   // the static dependency without bundlers inlining undici.
   const nodeRequire = module.createRequire(getCurrentModulePath());
