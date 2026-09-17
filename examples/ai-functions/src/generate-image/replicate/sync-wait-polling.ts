@@ -35,7 +35,7 @@ run(async () => {
         // that the provider follows the prediction by polling urls.get.
         maxWaitTimeInSeconds: 1,
         pollIntervalMillis: 500,
-        pollTimeoutMillis: 600_000,
+        maxPollAttempts: 240,
       } satisfies ReplicateImageModelOptions,
     },
   });

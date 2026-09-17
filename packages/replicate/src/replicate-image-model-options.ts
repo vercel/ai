@@ -32,10 +32,10 @@ export const replicateImageModelOptionsSchema = lazySchema(() =>
       pollIntervalMillis: z.number().int().positive().nullish(),
 
       /**
-       * Maximum time in milliseconds to poll for a prediction before timing out.
-       * Defaults to 10 minutes.
+       * Maximum number of polling attempts before giving up.
+       * Defaults to 240 attempts.
        */
-      pollTimeoutMillis: z.number().int().positive().nullish(),
+      maxPollAttempts: z.number().int().positive().nullish(),
 
       /**
        * Guidance scale for classifier-free guidance.

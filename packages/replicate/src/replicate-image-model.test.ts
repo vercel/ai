@@ -181,7 +181,7 @@ describe('doGenerate', () => {
         replicate: {
           maxWaitTimeInSeconds: 120,
           pollIntervalMillis: 10,
-          pollTimeoutMillis: 1000,
+          maxPollAttempts: 100,
           guidance_scale: 7.5,
         },
       },
@@ -190,7 +190,7 @@ describe('doGenerate', () => {
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.input.maxWaitTimeInSeconds).toBeUndefined();
     expect(requestBody.input.pollIntervalMillis).toBeUndefined();
-    expect(requestBody.input.pollTimeoutMillis).toBeUndefined();
+    expect(requestBody.input.maxPollAttempts).toBeUndefined();
     expect(requestBody.input.guidance_scale).toBe(7.5);
   });
 
@@ -279,7 +279,7 @@ describe('doGenerate', () => {
       providerOptions: {
         replicate: {
           pollIntervalMillis: 1,
-          pollTimeoutMillis: 100,
+          maxPollAttempts: 100,
         },
       },
     });
@@ -338,7 +338,7 @@ describe('doGenerate', () => {
       providerOptions: {
         replicate: {
           pollIntervalMillis: 1,
-          pollTimeoutMillis: 100,
+          maxPollAttempts: 100,
         },
       },
     });
@@ -379,7 +379,7 @@ describe('doGenerate', () => {
           providerOptions: {
             replicate: {
               pollIntervalMillis: 1,
-              pollTimeoutMillis: 100,
+              maxPollAttempts: 100,
             },
           },
         }),
@@ -422,7 +422,7 @@ describe('doGenerate', () => {
     expect(server.calls).toHaveLength(1);
   });
 
-  it('should time out when the prediction remains pending', async () => {
+  it('should stop when the maximum polling attempts are reached', async () => {
     server.urls['https://api.replicate.com/*'].response = {
       type: 'json-value',
       body: {
@@ -448,11 +448,13 @@ describe('doGenerate', () => {
         providerOptions: {
           replicate: {
             pollIntervalMillis: 1,
-            pollTimeoutMillis: 2,
+            maxPollAttempts: 2,
           },
         },
       }),
-    ).rejects.toThrow('Replicate image generation timed out after 2ms.');
+    ).rejects.toThrow(
+      'Replicate image generation did not complete after 2 polling attempts.',
+    );
     expect(server.calls).toHaveLength(3);
   });
 

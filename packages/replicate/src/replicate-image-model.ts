@@ -25,7 +25,7 @@ import { replicateImageModelOptionsSchema } from './replicate-image-model-option
 import type { ReplicateImageModelId } from './replicate-image-settings';
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;
-const DEFAULT_POLL_TIMEOUT_MILLIS = 600_000;
+const DEFAULT_MAX_POLL_ATTEMPTS = 240;
 
 interface ReplicateImageModelConfig {
   provider: string;
@@ -153,7 +153,7 @@ export class ReplicateImageModel implements ImageModelV4 {
     const {
       maxWaitTimeInSeconds,
       pollIntervalMillis = DEFAULT_POLL_INTERVAL_MILLIS,
-      pollTimeoutMillis = DEFAULT_POLL_TIMEOUT_MILLIS,
+      maxPollAttempts = DEFAULT_MAX_POLL_ATTEMPTS,
       ...inputOptions
     } = replicateOptions ?? {};
 
@@ -205,7 +205,7 @@ export class ReplicateImageModel implements ImageModelV4 {
       prediction: initialPrediction,
       headers: combineHeaders(resolvedHeaders, headers),
       pollIntervalMillis: pollIntervalMillis ?? DEFAULT_POLL_INTERVAL_MILLIS,
-      pollTimeoutMillis: pollTimeoutMillis ?? DEFAULT_POLL_TIMEOUT_MILLIS,
+      maxPollAttempts: maxPollAttempts ?? DEFAULT_MAX_POLL_ATTEMPTS,
       abortSignal,
     });
 
@@ -251,18 +251,15 @@ export class ReplicateImageModel implements ImageModelV4 {
     prediction,
     headers,
     pollIntervalMillis,
-    pollTimeoutMillis,
+    maxPollAttempts,
     abortSignal,
   }: {
     prediction: ReplicateImagePrediction;
     headers: Record<string, string | undefined>;
     pollIntervalMillis: number;
-    pollTimeoutMillis: number;
+    maxPollAttempts: number;
     abortSignal: AbortSignal | undefined;
   }): Promise<ReplicateImagePrediction> {
-    const maxPollAttempts = Math.ceil(
-      pollTimeoutMillis / Math.max(1, pollIntervalMillis),
-    );
     let currentPrediction = prediction;
 
     for (let i = 0; i < maxPollAttempts; i++) {
@@ -298,7 +295,7 @@ export class ReplicateImageModel implements ImageModelV4 {
     }
 
     throw new Error(
-      `Replicate image generation timed out after ${pollTimeoutMillis}ms.`,
+      `Replicate image generation did not complete after ${maxPollAttempts} polling attempts.`,
     );
   }
 
