@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 20991,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/read-ui-message-stream-early-exit.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/read-ui-message-stream-early-exit.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "REPRODUCTION FAILURE: readUIMessageStream early exit caused an unhandled closed-controller rejection"
+  }
+}
