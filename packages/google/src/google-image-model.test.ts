@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { GoogleImageModel } from './google-image-model';
@@ -28,6 +27,7 @@ function prepareJsonResponse({
     candidatesTokenCount: 100,
     totalTokenCount: 110,
   },
+  finishReason = 'STOP',
   headers,
   groundingMetadata,
 }: {
@@ -37,6 +37,7 @@ function prepareJsonResponse({
     candidatesTokenCount: number;
     totalTokenCount: number;
   };
+  finishReason?: string;
   headers?: Record<string, string>;
   groundingMetadata?: Record<string, unknown>;
 } = {}) {
@@ -55,7 +56,7 @@ function prepareJsonResponse({
             })),
             role: 'model',
           },
-          finishReason: 'STOP',
+          finishReason,
           ...(groundingMetadata != null ? { groundingMetadata } : {}),
         },
       ],
@@ -135,6 +136,7 @@ describe('GoogleImageModel', () => {
         {
           "google": {
             "finishMessage": null,
+            "finishReason": "STOP",
             "groundingMetadata": null,
             "images": [
               {},
@@ -195,19 +197,14 @@ describe('GoogleImageModel', () => {
       });
     });
 
-    it('should preserve a live candidate finish reason in image diagnostics', async () => {
-      server.urls[TEST_URL].response = {
-        type: 'json-value',
-        body: JSON.parse(
-          readFileSync(
-            'src/__fixtures__/google-image-no-image-live.json',
-            'utf8',
-          ),
-        ),
-      };
+    it('should expose the candidate finish reason in provider metadata', async () => {
+      prepareJsonResponse({
+        images: [],
+        finishReason: 'IMAGE_SAFETY',
+      });
 
       const result = await model.doGenerate({
-        prompt: 'Fixture.',
+        prompt: 'A blocked image prompt',
         files: undefined,
         mask: undefined,
         n: 1,
@@ -217,12 +214,10 @@ describe('GoogleImageModel', () => {
         providerOptions: {},
       });
 
-      expect(
-        JSON.stringify({
-          providerMetadata: result.providerMetadata,
-          response: result.response,
-        }),
-      ).toContain('NO_IMAGE');
+      expect(result.providerMetadata?.google).toMatchObject({
+        finishReason: 'IMAGE_SAFETY',
+        images: [],
+      });
     });
 
     it('should send response modalities, aspect ratio, seed, and headers', async () => {
@@ -391,6 +386,7 @@ describe('GoogleImageModel', () => {
       expect(result.providerMetadata?.google).toMatchInlineSnapshot(`
         {
           "finishMessage": null,
+          "finishReason": "STOP",
           "groundingMetadata": {
             "groundingChunks": [
               {
