@@ -1,7 +1,13 @@
-import { dynamicTool, jsonSchema, tool } from '@ai-sdk/provider-utils';
-import { describe, expect, it, vi } from 'vitest';
+import {
+  DelayedPromise,
+  dynamicTool,
+  jsonSchema,
+  tool,
+} from '@ai-sdk/provider-utils';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { InvalidToolInputError } from '../error/invalid-tool-input-error';
+import { isNodeRuntime } from '../util/is-node-runtime';
 import { parseToolCall } from './parse-tool-call';
 
 describe('parseToolCall', () => {
@@ -570,6 +576,101 @@ describe('parseToolCall', () => {
         toolCallId: '123',
         input: '{"param1": "test", "param2": 42}',
       });
+    });
+
+    describe.runIf(isNodeRuntime())(
+      'repair rejection after synchronous cancellation',
+      () => {
+        let unhandledRejections: unknown[];
+        const onUnhandledRejection = (reason: unknown) => {
+          unhandledRejections.push(reason);
+        };
+
+        beforeEach(() => {
+          unhandledRejections = [];
+          process.on('unhandledRejection', onUnhandledRejection);
+        });
+
+        afterEach(async () => {
+          try {
+            await new Promise(resolve => setTimeout(resolve, 0));
+            expect(unhandledRejections).toStrictEqual([]);
+          } finally {
+            process.off('unhandledRejection', onUnhandledRejection);
+          }
+        });
+
+        it('should observe the repair rejection', async () => {
+          const abortController = new AbortController();
+          const cancellationReason = new Error('cancelled');
+          const repairError = new Error('repair failed');
+
+          const result = parseToolCall({
+            toolCall: {
+              type: 'tool-call',
+              toolName: 'testTool',
+              toolCallId: '123',
+              input: 'invalid json',
+            },
+            tools: {
+              testTool: tool({
+                inputSchema: z.object({
+                  param1: z.string(),
+                  param2: z.number(),
+                }),
+              }),
+            } as const,
+            repairToolCall: async () => {
+              abortController.abort(cancellationReason);
+              throw repairError;
+            },
+            messages: [],
+            instructions: undefined,
+            abortSignal: abortController.signal,
+          });
+
+          await expect(result).rejects.toBe(cancellationReason);
+        });
+      },
+    );
+
+    it('should reject when aborted during repaired input validation', async () => {
+      const abortController = new AbortController();
+      const cancellationReason = new Error('cancelled');
+      const validationStarted = new DelayedPromise<void>();
+      const validationFinished = new DelayedPromise<void>();
+
+      const result = parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolName: 'testTool',
+          toolCallId: '123',
+          input: 'invalid json',
+        },
+        tools: {
+          testTool: tool({
+            inputSchema: z
+              .object({ value: z.string() })
+              .superRefine(async () => {
+                validationStarted.resolve(undefined);
+                await validationFinished.promise;
+              }),
+          }),
+        } as const,
+        repairToolCall: async ({ toolCall }) => ({
+          ...toolCall,
+          input: '{"value":"repaired"}',
+        }),
+        messages: [],
+        instructions: undefined,
+        abortSignal: abortController.signal,
+      });
+
+      await validationStarted.promise;
+      abortController.abort(cancellationReason);
+      validationFinished.resolve(undefined);
+
+      await expect(result).rejects.toBe(cancellationReason);
     });
 
     it('should throw ToolCallRepairError if repairToolCall throws', async () => {

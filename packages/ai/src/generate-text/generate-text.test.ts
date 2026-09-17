@@ -7758,6 +7758,42 @@ describe('generateText', () => {
       ]);
     });
 
+    it('should not execute a repaired tool when aborted during input validation', async () => {
+      const abortController = new AbortController();
+      const cancellationReason = new Error('cancelled');
+      const validationStarted = new DelayedPromise<void>();
+      const validationFinished = new DelayedPromise<void>();
+      const execute = vi.fn(async () => 'tool result');
+
+      const result = generateText({
+        model: invalidToolCallModel(),
+        tools: {
+          tool1: tool({
+            inputSchema: z
+              .object({ value: z.string() })
+              .superRefine(async () => {
+                validationStarted.resolve(undefined);
+                await validationFinished.promise;
+              }),
+            execute,
+          }),
+        },
+        prompt: 'test-input',
+        abortSignal: abortController.signal,
+        repairToolCall: async ({ toolCall }) => ({
+          ...toolCall,
+          input: `{ "value": "repaired" }`,
+        }),
+      });
+
+      await validationStarted.promise;
+      abortController.abort(cancellationReason);
+      validationFinished.resolve(undefined);
+
+      await expect(result).rejects.toBe(cancellationReason);
+      expect(execute).not.toHaveBeenCalled();
+    });
+
     it('should support the deprecated experimental_repairToolCall option', async () => {
       const result = await generateText({
         model: invalidToolCallModel(),

@@ -95,10 +95,14 @@ export async function parseToolCall<TOOLS extends ToolSet>({
         throw error;
       }
 
-      return await refineParsedToolCallInput({
+      const parsedRepairedToolCall = await refineParsedToolCallInput({
         toolCall: await doParseToolCall({ toolCall: repairedToolCall, tools }),
         refineToolInput,
       });
+
+      abortSignal?.throwIfAborted();
+
+      return parsedRepairedToolCall;
     }
   } catch (error) {
     abortSignal?.throwIfAborted();
@@ -145,13 +149,6 @@ async function waitForPromiseWithAbortSignal<T>({
       reject(abortSignal.reason);
     };
 
-    abortSignal.addEventListener('abort', onAbort, { once: true });
-
-    if (abortSignal.aborted) {
-      onAbort();
-      return;
-    }
-
     Promise.resolve(promise)
       .then(value => {
         cleanup();
@@ -161,6 +158,12 @@ async function waitForPromiseWithAbortSignal<T>({
         cleanup();
         reject(error);
       });
+
+    abortSignal.addEventListener('abort', onAbort, { once: true });
+
+    if (abortSignal.aborted) {
+      onAbort();
+    }
   });
 }
 
