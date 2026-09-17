@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20940,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20940-mcp-sse-oauth-refresh.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20940-mcp-sse-oauth-refresh.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_20940_REPRODUCED: legacy SSE performed more than one OAuth refresh for a 401 race"
+  }
+}
