@@ -38,8 +38,6 @@ export const typesafeFailedResponseHandler = createJsonErrorResponseHandler({
     error: z
       .union([z.string(), z.object({ message: z.string().nullish() })])
       .nullish(),
-    // TypeSafe reports several failures, `max_tokens_exceeded` among them, as
-    // a bare code with no prose field.
     error_type: z.string().nullish(),
   }),
   errorToMessage: error =>
