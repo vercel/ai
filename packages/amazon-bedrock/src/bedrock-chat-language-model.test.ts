@@ -15,6 +15,7 @@ import type {
 import { anthropicTools, prepareTools } from '@ai-sdk/anthropic/internal';
 import { z } from 'zod/v4';
 import fs from 'node:fs';
+import { createAmazonBedrock } from './bedrock-provider';
 
 const mockPrepareAnthropicTools = vi.mocked(prepareTools);
 
@@ -83,6 +84,8 @@ const sonnet46ModelId = 'anthropic.claude-sonnet-4-6-v1';
 const haiku45ModelId = 'us.anthropic.claude-haiku-4-5-20251001-v1:0';
 const unsupportedStructuredOutputModelId =
   'anthropic.claude-sonnet-4-20250514-v1:0';
+const applicationInferenceProfileArn =
+  'arn:aws:bedrock:us-east-1:474668406012:application-inference-profile/kr2b9n8klm2f';
 const baseUrl = 'https://bedrock-runtime.us-east-1.amazonaws.com';
 
 const streamUrl = `${baseUrl}/model/${encodeURIComponent(
@@ -106,6 +109,9 @@ const haiku45GenerateUrl = `${baseUrl}/model/${encodeURIComponent(
 )}/converse`;
 const unsupportedStructuredOutputGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   unsupportedStructuredOutputModelId,
+)}/converse`;
+const applicationInferenceProfileGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  applicationInferenceProfileArn,
 )}/converse`;
 
 const legacyAnthropic37ModelId = 'us.anthropic.claude-3-7-sonnet-20250219-v1:0';
@@ -153,6 +159,7 @@ const server = createTestServer({
   [sonnet46GenerateUrl]: {},
   [haiku45GenerateUrl]: {},
   [unsupportedStructuredOutputGenerateUrl]: {},
+  [applicationInferenceProfileGenerateUrl]: {},
   [legacyAnthropic37GenerateUrl]: {},
   [novaGenerateUrl]: {},
   [openaiGenerateUrl]: {},
@@ -174,6 +181,66 @@ describe('supportedUrls', () => {
       'image/*': [/^s3:\/\//],
     });
   });
+});
+
+describe('application inference profile structured output', () => {
+  it.each(['outputFormat', 'auto'] as const)(
+    'uses native structured output in %s mode when the Anthropic family is declared',
+    async structuredOutputMode => {
+      server.urls[applicationInferenceProfileGenerateUrl].response = {
+        type: 'json-value',
+        body: JSON.parse(
+          fs.readFileSync(
+            'src/__fixtures__/amazon-bedrock-application-inference-profile-json-tool-fallback.json',
+            'utf8',
+          ),
+        ),
+      };
+
+      type ModelFactoryWithFamily = (
+        modelId: string,
+        settings: { modelFamily: 'anthropic' },
+      ) => ReturnType<ReturnType<typeof createAmazonBedrock>>;
+
+      const provider = createAmazonBedrock({
+        baseURL: baseUrl,
+        fetch: fakeFetchWithAuth,
+      });
+      const applicationProfileModel = (provider as ModelFactoryWithFamily)(
+        applicationInferenceProfileArn,
+        { modelFamily: 'anthropic' },
+      );
+
+      await applicationProfileModel.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              assignments: { type: 'array', items: { type: 'object' } },
+              entities: { type: 'array', items: { type: 'object' } },
+              relations: { type: 'array', items: { type: 'object' } },
+            },
+            required: ['assignments', 'entities', 'relations'],
+            additionalProperties: false,
+          },
+        },
+        providerOptions: {
+          bedrock: { structuredOutputMode },
+        },
+      });
+
+      const requestBody = await server.calls.at(-1)!.requestBodyJson;
+
+      expect(requestBody.toolConfig).toBeUndefined();
+      expect(
+        requestBody.additionalModelRequestFields?.output_config?.format,
+      ).toMatchObject({
+        type: 'json_schema',
+      });
+    },
+  );
 });
 
 function prepareJsonFixtureResponse(filename: string) {
