@@ -1,0 +1,276 @@
+---
+title: WebSocketChatTransport
+description: API Reference for the WebSocketChatTransport class.
+---
+
+# `WebSocketChatTransport`
+
+A [`ChatTransport`](/docs/ai-sdk-ui/transport) implementation that sends chat
+requests and receives `UIMessageChunk` streams over one persistent WebSocket
+connection.
+
+```tsx
+import { useChat } from '@ai-sdk/react';
+import { WebSocketChatTransport } from 'ai';
+import { useEffect, useMemo } from 'react';
+
+export default function Chat() {
+  const transport = useMemo(
+    () => new WebSocketChatTransport({ url: '/api/chat' }),
+    [],
+  );
+
+  useEffect(() => () => transport.close(), [transport]);
+
+  const { messages, sendMessage, stop } = useChat({ transport });
+
+  // ... render the chat
+}
+```
+
+## Import
+
+<Snippet text={`import { WebSocketChatTransport } from "ai"`} prompt={false} />
+
+## Constructor
+
+<PropertiesTable
+  content={[
+    {
+      name: 'url',
+      type: 'string',
+      isRequired: true,
+      description:
+        'The WebSocket endpoint. Relative URLs are resolved against the browser location. HTTP and HTTPS URLs are converted to WS and WSS.',
+    },
+    {
+      name: 'protocols',
+      type: 'string | string[]',
+      isOptional: true,
+      description: 'WebSocket subprotocols sent during the handshake.',
+    },
+    {
+      name: 'params',
+      type: 'Resolvable<Record<string, string>>',
+      isOptional: true,
+      description:
+        'Query parameters resolved and appended whenever a new connection is opened.',
+    },
+    {
+      name: 'headers',
+      type: 'Resolvable<Record<string, string> | Headers>',
+      isOptional: true,
+      description:
+        'Headers included inside each application-level send or resume frame. These are not WebSocket handshake headers.',
+    },
+    {
+      name: 'body',
+      type: 'Resolvable<object>',
+      isOptional: true,
+      description:
+        'Additional application data merged with per-request body data and included in send and resume frames.',
+    },
+    {
+      name: 'webSocket',
+      type: 'WebSocketConstructor',
+      isOptional: true,
+      description:
+        'A custom WebSocket constructor. Use this for Node.js WebSocket implementations or tests. Defaults to globalThis.WebSocket.',
+    },
+    {
+      name: 'prepareSendMessagesRequest',
+      type: 'PrepareWebSocketChatTransportSendMessagesRequest',
+      isOptional: true,
+      description:
+        'Transforms the messages, headers, or body before a send frame is transmitted.',
+    },
+    {
+      name: 'prepareReconnectToStreamRequest',
+      type: 'PrepareWebSocketChatTransportReconnectToStreamRequest',
+      isOptional: true,
+      description:
+        'Transforms the headers or body before a resume frame is transmitted.',
+    },
+  ]}
+/>
+
+`headers` supplied to `sendMessage`, `regenerate`, or an automatic tool
+follow-up override transport-level headers with the same lower-cased name.
+Per-request `body` properties override transport-level body properties.
+Preparation callbacks receive the merged values; values they return replace
+the corresponding merged value.
+
+## Methods
+
+### `sendMessages()`
+
+Opens the socket when necessary, sends a `send` frame, and returns the
+correlated `ReadableStream<UIMessageChunk>`. Multiple requests can share the
+same connection and are routed by `requestId`.
+
+### `reconnectToStream()`
+
+Sends a `resume` frame. The promise resolves as follows:
+
+- `start`, the first `chunk`, or `end` resolves to a readable stream.
+- `no-active` resolves to `null`.
+- `error`, cancellation, or a connection failure rejects the promise if no
+  stream has been returned yet.
+
+Servers should send `start` as soon as they confirm that a resumable stream is
+active, so the client does not need to wait for its next chunk.
+
+### `close()`
+
+Closes the current socket and errors active streams. A later send or resume
+request opens a new connection.
+
+Call `close()` when the transport is no longer used:
+
+```tsx
+useEffect(() => {
+  return () => transport.close();
+}, [transport]);
+```
+
+## Wire Protocol
+
+Each frame is a JSON object with a `type` and a correlated `requestId`.
+
+### Client-to-server frames
+
+| Type     | Purpose                                                                                                                            |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `send`   | Starts a new or regenerated turn and includes `id`, `messages`, `trigger`, `messageId`, request `headers`, `body`, and `metadata`. |
+| `resume` | Requests the active stream for a chat `id` and includes request `headers`, `body`, and `metadata`.                                 |
+| `abort`  | Cancels the operation identified by `requestId`.                                                                                   |
+
+Use `WebSocketChatTransportRequest<UI_MESSAGE>`,
+`WebSocketChatTransportSendRequest`, `WebSocketChatTransportResumeRequest`,
+and `WebSocketChatTransportAbortRequest` to type these frames.
+
+### Server-to-client frames
+
+| Type        | Purpose                                                                       |
+| ----------- | ----------------------------------------------------------------------------- |
+| `start`     | Confirms that a resume request has an active stream.                          |
+| `chunk`     | Carries one valid `UIMessageChunk` in the `chunk` property.                   |
+| `end`       | Closes the correlated response stream.                                        |
+| `error`     | Errors the correlated stream with the optional `errorText`.                   |
+| `no-active` | Resolves a resume request to `null`; for a send request it closes the stream. |
+
+Use `WebSocketChatTransportResponse` to type server frames.
+
+Responses for unknown or completed request IDs are ignored. Malformed frames,
+unknown response types, and invalid UI message chunks are treated as protocol
+errors: the connection is closed and all active streams are errored.
+
+## Server Example
+
+The server owns authentication, authorization, message validation, model
+execution, resumable stream storage, and cancellation. The following Node.js
+outline forwards a `streamText` UI message stream:
+
+```ts
+import { WebSocketServer } from 'ws';
+import {
+  convertToModelMessages,
+  streamText,
+  toUIMessageStream,
+  validateUIMessages,
+  type UIMessage,
+  type WebSocketChatTransportRequest,
+  type WebSocketChatTransportResponse,
+} from 'ai';
+import { safeParseJSON } from '@ai-sdk/provider-utils';
+__PROVIDER_IMPORT__;
+
+const server = new WebSocketServer({ port: 8080 });
+const activeRequests = new Map<string, AbortController>();
+
+server.on('connection', (socket, request) => {
+  // Validate request.headers.origin and authenticate the connection here.
+
+  socket.on('message', async data => {
+    const parsed = await safeParseJSON({ text: data.toString() });
+    if (!parsed.success) {
+      socket.close(1008, 'Invalid frame');
+      return;
+    }
+
+    const frame = parsed.value as WebSocketChatTransportRequest<UIMessage>;
+
+    const send = (response: WebSocketChatTransportResponse) => {
+      socket.send(JSON.stringify(response));
+    };
+
+    if (frame.type === 'abort') {
+      activeRequests.get(frame.requestId)?.abort();
+      return;
+    }
+
+    if (frame.type === 'resume') {
+      send({
+        type: 'no-active',
+        requestId: frame.requestId,
+      });
+      return;
+    }
+
+    const abortController = new AbortController();
+    activeRequests.set(frame.requestId, abortController);
+
+    try {
+      const messages = await validateUIMessages({
+        messages: frame.messages,
+      });
+      const result = streamText({
+        model: __MODEL__,
+        messages: await convertToModelMessages(messages),
+        abortSignal: abortController.signal,
+      });
+
+      for await (const chunk of toUIMessageStream({ stream: result.stream })) {
+        send({ type: 'chunk', requestId: frame.requestId, chunk });
+      }
+      send({ type: 'end', requestId: frame.requestId });
+    } catch (error) {
+      send({
+        type: 'error',
+        requestId: frame.requestId,
+        errorText: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      activeRequests.delete(frame.requestId);
+    }
+  });
+});
+```
+
+The example returns `no-active` because it does not persist response streams.
+For real resume support, store stream chunks outside the WebSocket process,
+send `start`, replay the stored chunks in order, and continue forwarding live
+chunks before `end`.
+
+## Authentication and Deployment
+
+- Use WSS in production.
+- Browser WebSockets cannot set arbitrary handshake headers. Prefer secure
+  cookies, short-lived query tokens, or subprotocols.
+- Validate the handshake origin, authorize chat IDs, validate every frame and
+  UI message, limit frame sizes, and rate-limit connections.
+- Do not depend on process memory for reconnection when your deployment can
+  restart or move the connection to another process.
+- The transport does not automatically replay interrupted `send` requests,
+  because replay can duplicate model output or tool side effects.
+
+`WebSocketChatTransport` is separate from the experimental Realtime APIs.
+Realtime transports implement provider realtime sessions; this transport
+carries the provider-independent AI SDK UI message protocol used by `useChat`.
+
+## Client-side Tool Follow-ups
+
+When `sendAutomaticallyWhen` triggers after client-side tool output is added,
+the next turn reuses the same WebSocket. This avoids another HTTP connection,
+but the current `ChatTransport` contract remains turn-based: the tool output is
+not injected into a model generation that is still active.

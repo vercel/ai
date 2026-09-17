@@ -33,6 +33,17 @@ export { lastAssistantMessageIsCompleteWithApprovalResponses } from './last-assi
 export { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
 export { TextStreamChatTransport } from './text-stream-chat-transport';
 export {
+  WebSocketChatTransport,
+  type PrepareWebSocketChatTransportReconnectToStreamRequest,
+  type PrepareWebSocketChatTransportSendMessagesRequest,
+  type WebSocketChatTransportAbortRequest,
+  type WebSocketChatTransportInitOptions,
+  type WebSocketChatTransportRequest,
+  type WebSocketChatTransportResponse,
+  type WebSocketChatTransportResumeRequest,
+  type WebSocketChatTransportSendRequest,
+} from './websocket-chat-transport';
+export {
   getStaticToolName,
   getToolName,
   getToolOrDynamicToolName,
