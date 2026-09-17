@@ -968,14 +968,16 @@ function createOutputTransformStream<
   let text = '';
   let textChunk = '';
   let textProviderMetadata: ProviderMetadata | undefined = undefined;
-  let lastPublishedValue = '';
+  let lastPublishedValue: string | undefined = undefined;
+  let hasPublishedValue = false;
 
   function resetAttemptState() {
     firstTextChunkId = undefined;
     text = '';
     textChunk = '';
     textProviderMetadata = undefined;
-    lastPublishedValue = '';
+    lastPublishedValue = undefined;
+    hasPublishedValue = false;
   }
 
   function enqueueChunk({
@@ -1096,9 +1098,10 @@ function createOutputTransformStream<
           typeof result.partial === 'string'
             ? result.partial
             : JSON.stringify(result.partial);
-        if (currentValue !== lastPublishedValue) {
+        if (!hasPublishedValue || currentValue !== lastPublishedValue) {
           publishTextChunk({ controller, partialOutput: result.partial });
           lastPublishedValue = currentValue;
+          hasPublishedValue = true;
         }
       }
     },
@@ -3376,7 +3379,7 @@ class DefaultStreamTextResult<
           InferPartialOutput<OUTPUT>
         >({
           transform({ partialOutput }, controller) {
-            if (partialOutput != null) {
+            if (partialOutput !== undefined) {
               controller.enqueue(partialOutput);
             }
           },

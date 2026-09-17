@@ -23049,6 +23049,38 @@ describe('streamText', () => {
       });
     });
 
+    describe('json output', () => {
+      it('should stream null and empty string values', async () => {
+        for (const value of [null, ''] as const) {
+          const result = streamText({
+            model: createTestModel({
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                {
+                  type: 'text-delta',
+                  id: '1',
+                  delta: JSON.stringify(value),
+                },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+            output: Output.json(),
+            prompt: 'prompt',
+          });
+
+          expect(
+            await convertAsyncIterableToArray(result.partialOutputStream),
+          ).toStrictEqual([value]);
+          await expect(result.output).resolves.toStrictEqual(value);
+        }
+      });
+    });
+
     describe('choice output', () => {
       it('should stream an choice value', async () => {
         const mockModel = createTestModel({
