@@ -1,4 +1,8 @@
-import type { Context, ModelMessage, ToolSet } from '@ai-sdk/provider-utils';
+import type {
+  InferToolSetContext,
+  ModelMessage,
+  ToolSet,
+} from '@ai-sdk/provider-utils';
 import { createIdMap } from '../util/create-id-map';
 import { getOwn } from '../util/get-own';
 import type { LanguageModelStreamPart } from './stream-language-model-call';
@@ -6,26 +10,24 @@ import {
   isStreamRetryAttemptBoundaryPart,
   type StreamRetryAttemptBoundaryPart,
 } from './stream-retry-attempt-boundary';
+import { validateToolContext } from './validate-tool-context';
 
 type ToolCallbackStreamPart<TOOLS extends ToolSet> =
   | LanguageModelStreamPart<TOOLS>
   | StreamRetryAttemptBoundaryPart;
 
-export function invokeToolCallbacksFromStream<
-  TOOLS extends ToolSet,
-  RUNTIME_CONTEXT extends Context,
->({
+export function invokeToolCallbacksFromStream<TOOLS extends ToolSet>({
   stream,
   tools,
   stepInputMessages,
   abortSignal,
-  runtimeContext,
+  toolsContext,
 }: {
   stream: ReadableStream<ToolCallbackStreamPart<TOOLS>>;
   tools: TOOLS | undefined;
   stepInputMessages: Array<ModelMessage>;
   abortSignal: AbortSignal | undefined;
-  runtimeContext: RUNTIME_CONTEXT;
+  toolsContext: InferToolSetContext<TOOLS>;
 }): ReadableStream<ToolCallbackStreamPart<TOOLS>> {
   if (tools == null) return stream;
 
@@ -50,7 +52,11 @@ export function invokeToolCallbacksFromStream<
                 toolCallId: chunk.id,
                 messages: stepInputMessages,
                 abortSignal,
-                context: runtimeContext,
+                context: await validateToolContext({
+                  toolName: chunk.toolName,
+                  context: getOwn(toolsContext, chunk.toolName),
+                  contextSchema: tool.contextSchema,
+                }),
               });
             }
 
@@ -67,7 +73,11 @@ export function invokeToolCallbacksFromStream<
                 toolCallId: chunk.id,
                 messages: stepInputMessages,
                 abortSignal,
-                context: runtimeContext,
+                context: await validateToolContext({
+                  toolName,
+                  context: getOwn(toolsContext, toolName),
+                  contextSchema: tool.contextSchema,
+                }),
               });
             }
 
@@ -86,7 +96,11 @@ export function invokeToolCallbacksFromStream<
                 toolCallId: chunk.toolCallId,
                 messages: stepInputMessages,
                 abortSignal,
-                context: runtimeContext,
+                context: await validateToolContext({
+                  toolName,
+                  context: getOwn(toolsContext, toolName),
+                  contextSchema: tool.contextSchema,
+                }),
               });
             }
           }
