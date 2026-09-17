@@ -1,4 +1,5 @@
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
+import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
 import { describe, expect, it, vi } from 'vitest';
 import { createPiPathMapper } from './pi-paths';
 import { createPiRemoteOps } from './pi-remote-ops';
@@ -102,6 +103,44 @@ function makeOps(behaviors: Parameters<typeof makeMockSandbox>[0]) {
   const ops = createPiRemoteOps({ sandbox: env.sandbox, paths });
   return { ...env, paths, ops };
 }
+
+describe('createPiRemoteOps with just-bash', () => {
+  it('supports file operations when realpath is unavailable', async () => {
+    const session = await createJustBashSandbox({
+      cwd: sandboxWorkDir,
+    }).createSession();
+    const sandbox = session.restricted();
+
+    try {
+      expect((await sandbox.run({ command: 'realpath /tmp' })).exitCode).toBe(
+        127,
+      );
+      await sandbox.writeTextFile({
+        path: `${sandboxWorkDir}/notes.md`,
+        content: 'alpha\n',
+      });
+
+      const ops = createPiRemoteOps({
+        sandbox,
+        paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
+      });
+
+      expect((await ops.readBuffer('notes.md')).toString('utf8')).toBe(
+        'alpha\n',
+      );
+      await ops.writeFile('created.md', 'created\n');
+      await expect(ops.editFile('notes.md', 'alpha', 'beta')).resolves.toBe(
+        'beta\n',
+      );
+      await expect(ops.findFiles('*.md', '.')).resolves.toEqual([
+        'created.md',
+        'notes.md',
+      ]);
+    } finally {
+      await session.destroy();
+    }
+  });
+});
 
 describe('createPiRemoteOps.readBuffer', () => {
   it('reads via readBinaryFile and returns a Buffer', async () => {
