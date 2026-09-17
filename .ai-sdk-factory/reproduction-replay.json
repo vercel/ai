@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20988,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20988-extract-json-trailing-whitespace.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20988-extract-json-trailing-whitespace.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_20988_REPRODUCED: streamText failed to parse valid fenced JSON and leaked the closing fence in 6 trailing-whitespace scenarios"
+  }
+}
