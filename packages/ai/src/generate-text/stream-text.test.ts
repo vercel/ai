@@ -6123,8 +6123,10 @@ describe('streamText', () => {
         StreamTextOnStepStartCallback<any, any>
       >[0][] = [];
       const stepFinishModels: Array<StepResult<any>['model']> = [];
+      const stepFinishResponseModelIds: string[] = [];
       let finishModel: StepResult<any>['model'] | undefined;
       let finishStepModels: Array<StepResult<any>['model']> = [];
+      let finishResponseModelId: string | undefined;
       let responseCount = 0;
 
       const alternateModel = new MockLanguageModelV3({
@@ -6132,12 +6134,6 @@ describe('streamText', () => {
         modelId: 'alternate-model-id',
         doStream: async () => ({
           stream: convertArrayToReadableStream([
-            {
-              type: 'response-metadata' as const,
-              id: 'id-1',
-              modelId: 'alternate-model-id',
-              timestamp: new Date(1000),
-            },
             { type: 'text-start' as const, id: '1' },
             { type: 'text-delta' as const, id: '1', delta: 'Final answer.' },
             { type: 'text-end' as const, id: '1' },
@@ -6200,10 +6196,12 @@ describe('streamText', () => {
         },
         onStepFinish: async event => {
           stepFinishModels.push(event.model);
+          stepFinishResponseModelIds.push(event.response.modelId);
         },
         onFinish: async event => {
           finishModel = event.model;
           finishStepModels = event.steps.map(step => step.model);
+          finishResponseModelId = event.response.modelId;
         },
         onError: () => {},
       });
@@ -6220,11 +6218,20 @@ describe('streamText', () => {
 
       expect(stepStartEvents.map(event => event.model)).toEqual(expectedModels);
       expect(stepFinishModels).toEqual(expectedModels);
+      expect(stepFinishResponseModelIds).toEqual([
+        'mock-model-id',
+        'alternate-model-id',
+      ]);
       expect((await result.steps).map(step => step.model)).toEqual(
         expectedModels,
       );
+      expect((await result.steps).map(step => step.response.modelId)).toEqual([
+        'mock-model-id',
+        'alternate-model-id',
+      ]);
       expect(finishStepModels).toEqual(expectedModels);
       expect(finishModel).toEqual(expectedModels[1]);
+      expect(finishResponseModelId).toBe('alternate-model-id');
     });
 
     it('should apply prepareStep model call settings only to the current step', async () => {

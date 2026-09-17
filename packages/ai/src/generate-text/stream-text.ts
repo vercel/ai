@@ -1971,7 +1971,7 @@ class DefaultStreamTextResult<
               {
                 id: generateId(),
                 timestamp: new Date(),
-                modelId: modelInfo.modelId,
+                modelId: stepModelInfo.modelId,
               };
 
             // raw text as it comes from the provider. recorded for telemetry.
