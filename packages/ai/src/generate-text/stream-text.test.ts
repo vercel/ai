@@ -17083,6 +17083,81 @@ describe('streamText', () => {
         ]);
       });
 
+      it('should stream structured output after an earlier tool step emits text', async () => {
+        let responseCount = 0;
+        const result = streamText({
+          model: new MockLanguageModelV3({
+            doStream: async () => {
+              switch (responseCount++) {
+                case 0:
+                  return {
+                    stream: convertArrayToReadableStream([
+                      { type: 'text-start', id: 'intro' },
+                      {
+                        type: 'text-delta',
+                        id: 'intro',
+                        delta: 'Checking the value.',
+                      },
+                      { type: 'text-end', id: 'intro' },
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'call-1',
+                        toolName: 'lookup',
+                        input: '{}',
+                      },
+                      {
+                        type: 'finish',
+                        finishReason: {
+                          unified: 'tool-calls',
+                          raw: 'tool-calls',
+                        },
+                        usage: testUsage,
+                      },
+                    ]),
+                  };
+                case 1:
+                  return {
+                    stream: convertArrayToReadableStream([
+                      { type: 'text-start', id: 'answer' },
+                      {
+                        type: 'text-delta',
+                        id: 'answer',
+                        delta: '{"value":"done"}',
+                      },
+                      { type: 'text-end', id: 'answer' },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'stop', raw: 'stop' },
+                        usage: testUsage,
+                      },
+                    ]),
+                  };
+                default:
+                  throw new Error(
+                    `Unexpected response count: ${responseCount}`,
+                  );
+              }
+            },
+          }),
+          tools: {
+            lookup: tool({
+              inputSchema: z.object({}),
+              execute: async () => 'done',
+            }),
+          },
+          output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
+          prompt: 'Look up the value and return it.',
+          stopWhen: stepCountIs(2),
+        });
+
+        await expect(
+          convertAsyncIterableToArray(result.partialOutputStream),
+        ).resolves.toStrictEqual([{ value: 'done' }]);
+        await expect(result.output).resolves.toStrictEqual({ value: 'done' });
+      });
+
       it('should send partial output stream when last chunk contains content', async () => {
         const result = streamText({
           model: createTestModel({
@@ -17743,6 +17818,86 @@ describe('streamText', () => {
             `"{"elements":[{"content":"element 1"},{"content":"element 2"}]}"`,
           );
         });
+      });
+
+      it('should stream array elements after an earlier tool step emits text', async () => {
+        let responseCount = 0;
+        const result = streamText({
+          model: new MockLanguageModelV3({
+            doStream: async () => {
+              switch (responseCount++) {
+                case 0:
+                  return {
+                    stream: convertArrayToReadableStream([
+                      { type: 'text-start', id: 'answer' },
+                      {
+                        type: 'text-delta',
+                        id: 'answer',
+                        delta: 'Checking the value.',
+                      },
+                      { type: 'text-end', id: 'answer' },
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'call-1',
+                        toolName: 'lookup',
+                        input: '{}',
+                      },
+                      {
+                        type: 'finish',
+                        finishReason: {
+                          unified: 'tool-calls',
+                          raw: 'tool-calls',
+                        },
+                        usage: testUsage,
+                      },
+                    ]),
+                  };
+                case 1:
+                  return {
+                    stream: convertArrayToReadableStream([
+                      { type: 'text-start', id: 'answer' },
+                      {
+                        type: 'text-delta',
+                        id: 'answer',
+                        delta: '{"elements":[{"value":"done"}]}',
+                      },
+                      { type: 'text-end', id: 'answer' },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'stop', raw: 'stop' },
+                        usage: testUsage,
+                      },
+                    ]),
+                  };
+                default:
+                  throw new Error(
+                    `Unexpected response count: ${responseCount}`,
+                  );
+              }
+            },
+          }),
+          tools: {
+            lookup: tool({
+              inputSchema: z.object({}),
+              execute: async () => 'done',
+            }),
+          },
+          output: Output.array({
+            element: z.object({ value: z.string() }),
+          }),
+          prompt: 'Look up the value and return it.',
+          stopWhen: stepCountIs(2),
+        });
+
+        const [partials, elements, output] = await Promise.all([
+          convertAsyncIterableToArray(result.partialOutputStream),
+          convertAsyncIterableToArray(result.elementStream),
+          result.output,
+        ]);
+
+        expect(partials).toStrictEqual([[{ value: 'done' }]]);
+        expect(elements).toStrictEqual([{ value: 'done' }]);
+        expect(output).toStrictEqual([{ value: 'done' }]);
       });
     });
 

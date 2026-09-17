@@ -668,6 +668,14 @@ function createOutputTransformStream<
   let lastPublishedValue: string | undefined = undefined;
   let hasPublishedValue = false;
 
+  function resetOutputState() {
+    firstTextChunkId = undefined;
+    text = '';
+    textChunk = '';
+    textProviderMetadata = undefined;
+    lastPublishedValue = '';
+  }
+
   function publishTextChunk({
     controller,
     partialOutput = undefined,
@@ -694,6 +702,10 @@ function createOutputTransformStream<
     EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
   >({
     async transform(chunk, controller) {
+      if (chunk.type === 'start-step') {
+        resetOutputState();
+      }
+
       // ensure that we publish the last text chunk before the step finish:
       if (chunk.type === 'finish-step' && textChunk.length > 0) {
         publishTextChunk({ controller });
