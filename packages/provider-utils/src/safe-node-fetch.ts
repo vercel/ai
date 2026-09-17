@@ -1,4 +1,5 @@
 import type * as nodeDnsModule from 'node:dns';
+import { createRequire } from 'node:module';
 import type * as undiciModule from 'undici';
 import type { FetchFunction } from './fetch-function';
 import { validateDownloadAddress } from './validate-download-url';
@@ -131,11 +132,12 @@ export async function getDefaultDownloadFetch(): Promise<FetchFunction> {
   return (safeNodeFetchPromise ??= Promise.resolve().then(createSafeNodeFetch));
 }
 
-async function createSafeNodeFetch(): Promise<FetchFunction> {
+function createSafeNodeFetch(): FetchFunction {
   const { lookup } = loadBuiltinModule<NodeDns>('node:dns');
-  // Keep the Node-only transport lazy while making the dependency visible to
-  // deployment tracers. Browser bundles remove undici via the package map.
-  const { Agent, fetch } = (await import('undici')) as Undici;
+  // Assign the created require function so deployment tracers can recognize
+  // the static dependency without bundlers inlining undici.
+  const nodeRequire = createRequire(getCurrentModulePath());
+  const { Agent, fetch } = nodeRequire('undici') as Undici;
 
   const dispatcher = new Agent({
     connect: {
@@ -166,4 +168,28 @@ function loadBuiltinModule<T>(id: string): T {
   }
 
   return builtinModule as T;
+}
+
+function getCurrentModulePath(): string {
+  // `import.meta.url` breaks when provider-utils is rebundled as CommonJS.
+  // The caller frame points at this package when loaded directly and at the
+  // consuming bundle when inlined, giving createRequire the correct base path.
+  const originalPrepareStackTrace = Error.prepareStackTrace;
+
+  try {
+    Error.prepareStackTrace = (_error, callSites) => callSites as never;
+
+    const error = new Error('Capture current module path');
+    Error.captureStackTrace(error, getCurrentModulePath);
+    const [caller] = error.stack as unknown as NodeJS.CallSite[];
+    const fileName = caller?.getFileName();
+
+    if (fileName == null) {
+      throw new Error('Unable to determine the current module path');
+    }
+
+    return fileName;
+  } finally {
+    Error.prepareStackTrace = originalPrepareStackTrace;
+  }
 }

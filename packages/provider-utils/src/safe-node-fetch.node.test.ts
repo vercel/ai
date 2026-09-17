@@ -171,10 +171,10 @@ it('does not fall back to global fetch when loading Node built-ins fails', async
   expect(onConnection).not.toHaveBeenCalled();
 });
 
-it('keeps the lazy Undici import statically analyzable in the build output', async () => {
+it('keeps the Undici dependency analyzable in the build output', async () => {
   const builtSource = await readFile(resolve('dist/index.js'), 'utf8');
 
-  expect(builtSource).toMatch(/import\(["']undici["']\)/);
+  expect(builtSource).toMatch(/["']undici["']/);
 });
 
 it.each(['endpoint', 'redirects'] as const)(

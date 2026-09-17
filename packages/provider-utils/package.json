@@ -8,6 +8,8 @@
   "types": "./dist/index.d.ts",
   "source": "./src/index.ts",
   "browser": {
+    "module": false,
+    "node:module": false,
     "undici": false
   },
   "files": [
