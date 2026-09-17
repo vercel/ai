@@ -2835,6 +2835,36 @@ describe('doGenerate', () => {
     expect(result.response?.id).toBe('blocked-response-id');
   });
 
+  it.each(['', 'BLOCK_REASON_UNSPECIFIED', 'BLOCKED_REASON_UNSPECIFIED'])(
+    'should not classify the default prompt block reason %j as a content filter',
+    async blockReason => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'json-value',
+        body: {
+          candidates: [],
+          promptFeedback: { blockReason },
+          usageMetadata: {
+            promptTokenCount: 9,
+            totalTokenCount: 9,
+          },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toEqual([]);
+      expect(result.finishReason).toEqual({
+        unified: 'other',
+        raw: undefined,
+      });
+      expect(result.providerMetadata?.google.promptFeedback).toEqual({
+        blockReason,
+      });
+    },
+  );
+
   it('should expose grounding metadata in provider metadata', async () => {
     prepareJsonResponse({
       content: 'test response',
