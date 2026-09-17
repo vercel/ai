@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21044,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21044-duplicate-content-type.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-21044-duplicate-content-type.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_21044_DUPLICATE_CONTENT_TYPE: 12 assertions failed"
+  }
+}
