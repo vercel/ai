@@ -971,7 +971,7 @@ function createOutputTransformStream<
   let lastPublishedValue: string | undefined = undefined;
   let hasPublishedValue = false;
 
-  function resetAttemptState() {
+  function resetOutputState() {
     firstTextChunkId = undefined;
     text = '';
     textChunk = '';
@@ -1022,9 +1022,13 @@ function createOutputTransformStream<
   >({
     async transform(chunk, controller) {
       if (isStreamRetryBoundaryPart(chunk)) {
-        resetAttemptState();
+        resetOutputState();
         controller.enqueue(chunk);
         return;
+      }
+
+      if (chunk.type === 'start-step') {
+        resetOutputState();
       }
 
       // ensure that we publish the last text chunk before the step finish:
