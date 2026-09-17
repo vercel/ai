@@ -915,7 +915,7 @@ describe('simulateStreamingMiddleware', () => {
         signature: 'test-signature',
       },
     };
-    const mockModel = new MockLanguageModelV4({
+    const mockModel = new MockLanguageModelV3({
       async doGenerate() {
         return {
           content: [
