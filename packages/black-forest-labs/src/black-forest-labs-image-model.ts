@@ -387,15 +387,13 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
       pollOverrides?.pollTimeoutMillis ??
       this.config.pollTimeoutMillis ??
       DEFAULT_POLL_TIMEOUT_MILLIS;
-    const maxPollAttempts = Math.ceil(
-      pollTimeoutMillis / Math.max(1, pollIntervalMillis),
-    );
 
     const url = new URL(pollUrl);
     if (!url.searchParams.has('id')) {
       url.searchParams.set('id', requestId);
     }
 
+<<<<<<< HEAD
     for (let i = 0; i < maxPollAttempts; i++) {
       const { value } = await getFromApi({
         url: url.toString(),
@@ -409,18 +407,55 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
         abortSignal,
         fetch: this.config.fetch,
       });
+=======
+    const timeoutController = new AbortController();
+    let didTimeout = false;
+    const timeoutId = setTimeout(() => {
+      didTimeout = true;
+      timeoutController.abort();
+    }, pollTimeoutMillis);
+    const pollingAbortSignal =
+      abortSignal == null
+        ? timeoutController.signal
+        : AbortSignal.any([abortSignal, timeoutController.signal]);
+>>>>>>> e4e761ea62 (fix: Black Forest Labs and Fireworks image polling can ignore pollTimeoutMillis during slow or hanging requests (#21014))
 
-      const status = value.status;
-      if (status === 'Ready') {
-        if (typeof value.result?.sample === 'string') {
-          return {
-            imageUrl: value.result.sample,
-            seed: value.result.seed ?? undefined,
-            start_time: value.result.start_time ?? undefined,
-            end_time: value.result.end_time ?? undefined,
-            duration: value.result.duration ?? undefined,
-          };
+    try {
+      while (true) {
+        const { value } = await getFromApi({
+          url: url.toString(),
+          // The polling URL comes from the provider response; validate it.
+          validateUrl: true,
+          trustedOrigin: this.config.baseURL,
+          // Only send credentials when it stays on a trusted provider host.
+          headers: isTrustedUrl(url.toString(), this.config.baseURL)
+            ? headers
+            : undefined,
+          failedResponseHandler: bflFailedResponseHandler,
+          successfulResponseHandler: createJsonResponseHandler(bflPollSchema),
+          abortSignal: pollingAbortSignal,
+          fetch: this.config.fetch,
+        });
+
+        const status = value.status;
+        if (status === 'Ready') {
+          if (typeof value.result?.sample === 'string') {
+            return {
+              imageUrl: value.result.sample,
+              seed: value.result.seed ?? undefined,
+              start_time: value.result.start_time ?? undefined,
+              end_time: value.result.end_time ?? undefined,
+              duration: value.result.duration ?? undefined,
+            };
+          }
+          throw new Error(
+            'Black Forest Labs poll response is Ready but missing result.sample',
+          );
         }
+        if (status === 'Error' || status === 'Failed') {
+          throw new Error('Black Forest Labs generation failed.');
+        }
+<<<<<<< HEAD
         throw new Error(
           'Black Forest Labs poll response is Ready but missing result.sample',
         );
@@ -435,11 +470,21 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
       ) {
         throw new Error(`Black Forest Labs generation failed: ${status}.`);
       }
+=======
+>>>>>>> e4e761ea62 (fix: Black Forest Labs and Fireworks image polling can ignore pollTimeoutMillis during slow or hanging requests (#21014))
 
-      await delay(pollIntervalMillis);
+        await delay(pollIntervalMillis, {
+          abortSignal: pollingAbortSignal,
+        });
+      }
+    } catch (error) {
+      if (didTimeout) {
+        throw new Error('Black Forest Labs generation timed out.');
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
     }
-
-    throw new Error('Black Forest Labs generation timed out.');
   }
 }
 
