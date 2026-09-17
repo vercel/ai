@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { generateText } from './generate-text';
 import { streamText } from './stream-text';
 
@@ -89,7 +89,7 @@ describe('prompt attachment download cancellation', () => {
     const abortController = new AbortController();
     const doGenerate = vi.fn();
     const operation = generateText({
-      model: new MockLanguageModelV4({
+      model: new MockLanguageModelV3({
         supportedUrls: {},
         doGenerate,
       }),
@@ -112,7 +112,7 @@ describe('prompt attachment download cancellation', () => {
     const abortController = new AbortController();
     const doStream = vi.fn();
     const result = streamText({
-      model: new MockLanguageModelV4({
+      model: new MockLanguageModelV3({
         supportedUrls: {},
         doStream,
       }),
@@ -136,7 +136,7 @@ describe('prompt attachment download cancellation', () => {
     const download = createPendingDownload();
     const doGenerate = vi.fn();
     const operation = generateText({
-      model: new MockLanguageModelV4({
+      model: new MockLanguageModelV3({
         supportedUrls: {},
         doGenerate,
       }),

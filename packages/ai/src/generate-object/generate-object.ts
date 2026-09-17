@@ -259,7 +259,6 @@ export async function generateObject<
   const jsonSchema = await outputStrategy.jsonSchema();
 
   try {
-<<<<<<< HEAD
     return await recordSpan({
       name: 'ai.generateObject',
       attributes: selectTelemetryAttributes({
@@ -281,44 +280,6 @@ export async function generateObject<
           'ai.schema.name': schemaName,
           'ai.schema.description': schemaDescription,
           'ai.settings.output': outputStrategy.type,
-=======
-    const standardizedPrompt = await standardizePrompt({
-      instructions,
-      system,
-      prompt,
-      messages,
-      allowSystemInMessages,
-    } as Prompt);
-
-    const promptMessages = await convertToLanguageModelPrompt({
-      prompt: standardizedPrompt,
-      supportedUrls: await model.supportedUrls,
-      download,
-      abortSignal,
-      provider: model.provider.split('.')[0],
-    });
-
-    await notify({
-      event: {
-        callId,
-        stepNumber: 0 as const,
-        provider: model.provider,
-        modelId: model.modelId,
-        providerOptions,
-        headers: headersWithUserAgent,
-        promptMessages,
-      },
-      callbacks: [resolvedOnStepStart, telemetryDispatcher.onObjectStepStart],
-    });
-
-    const generateResult = await retry(() =>
-      model.doGenerate({
-        responseFormat: {
-          type: 'json',
-          schema: jsonSchema,
-          name: schemaName,
-          description: schemaDescription,
->>>>>>> 4a6778391f (fix: cancel prompt attachment downloads when calls are aborted or time out (#20968))
         },
       }),
       tracer,
@@ -343,6 +304,7 @@ export async function generateObject<
           prompt: standardizedPrompt,
           supportedUrls: await model.supportedUrls,
           download,
+          abortSignal,
         });
 
         const generateResult = await retry(() =>

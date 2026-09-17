@@ -43,10 +43,6 @@ export const createDefaultDownloadFunction =
       requestedDownloads.map(async requestedDownload =>
         requestedDownload.isUrlSupportedByModel
           ? null
-<<<<<<< HEAD
-          : download(requestedDownload),
-=======
           : await download({ ...requestedDownload, abortSignal }),
->>>>>>> 4a6778391f (fix: cancel prompt attachment downloads when calls are aborted or time out (#20968))
       ),
     );
