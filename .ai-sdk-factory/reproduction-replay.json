@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 14373,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/smooth-stream-provider-metadata.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/smooth-stream-provider-metadata.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_14373_REPRODUCED: smoothStream dropped providerMetadata from chunked stream parts; word reasoning-delta missing=[\"First \",\"second \"]; line text-delta missing=[\"First line\\n\",\"Second line\\n\"]"
+  }
+}
