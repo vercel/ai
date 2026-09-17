@@ -1259,6 +1259,10 @@ export async function auth(
       error instanceof InvalidClientError ||
       error instanceof UnauthorizedClientError
     ) {
+      if (options.authorizationCode !== undefined) {
+        throw error;
+      }
+
       await provider.invalidateCredentials?.('all');
       return await authInternal(provider, options);
     } else if (error instanceof InvalidGrantError) {
