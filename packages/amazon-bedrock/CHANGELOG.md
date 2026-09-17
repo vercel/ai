@@ -1,5 +1,55 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.86
+
+### Patch Changes
+
+- Updated dependencies [d4d96bf]
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/anthropic@4.0.56
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/openai@4.0.69
+  - @ai-sdk/provider@4.0.17
+
+## 5.0.85
+
+### Patch Changes
+
+- 132bdae: feat(anthropic): add 20260318 web search and web fetch tools with response inclusion controls
+- d82eac2: fix(amazon-bedrock): enable Anthropic features for application inference profile chat models
+- Updated dependencies [132bdae]
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/anthropic@4.0.55
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+  - @ai-sdk/openai@4.0.68
+
+## 5.0.84
+
+### Patch Changes
+
+- c83bc67: feat: add Claude Fable 5.1 model IDs to Bedrock and Vertex providers
+
+## 5.0.83
+
+### Patch Changes
+
+- 9a46ac6: fix(amazon-bedrock): rename thinking block binding field for Bedrock
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/openai@4.0.67
+  - @ai-sdk/anthropic@4.0.54
+  - @ai-sdk/provider-utils@5.0.41
+
 ## 5.0.82
 
 ### Patch Changes

@@ -137,6 +137,32 @@ async function convertFunctionToolResultOutput({
               const imageDetail =
                 item.providerOptions?.[providerOptionsName]?.imageDetail;
 
+              if (item.data.type === 'reference') {
+                const fileId = resolveProviderReference({
+                  reference: item.data.reference,
+                  provider: providerOptionsName,
+                });
+
+                if (topLevel === 'image') {
+                  return {
+                    type: 'input_image' as const,
+                    file_id: fileId,
+                    detail: imageDetail,
+                    ...(promptCacheBreakpoint != null && {
+                      prompt_cache_breakpoint: promptCacheBreakpoint,
+                    }),
+                  };
+                }
+
+                return {
+                  type: 'input_file' as const,
+                  file_id: fileId,
+                  ...(promptCacheBreakpoint != null && {
+                    prompt_cache_breakpoint: promptCacheBreakpoint,
+                  }),
+                };
+              }
+
               if (item.data.type === 'data') {
                 const fullMediaType = resolveFullMediaType({ part: item });
                 if (topLevel === 'image') {
@@ -611,8 +637,7 @@ export async function convertToOpenAIResponsesInput({
               input.push({
                 ...(explicitMessageItemType && { type: 'message' as const }),
                 role: 'assistant',
-                content: [{ type: 'output_text', text: part.text }],
-                id,
+                content: part.text,
                 ...(phase != null && { phase }),
               });
 

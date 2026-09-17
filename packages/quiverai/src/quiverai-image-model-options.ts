@@ -28,6 +28,27 @@ export const quiveraiImageModelOptionsSchema = lazySchema(() =>
       instructions: z.string().min(1).optional(),
 
       /**
+       * Reasoning effort applied to generation or vectorization.
+       */
+      reasoningEffort: z.enum(['low', 'medium', 'high', 'xhigh']).optional(),
+
+      /**
+       * SVG root attributes requested for generation or vectorization.
+       */
+      attributes: z
+        .object({
+          viewBox: z
+            .object({
+              minX: z.number(),
+              minY: z.number(),
+              width: z.number().positive(),
+              height: z.number().positive(),
+            })
+            .optional(),
+        })
+        .optional(),
+
+      /**
        * Sampling temperature (0-2).
        */
       temperature: z.number().min(0).max(2).optional(),
@@ -43,7 +64,8 @@ export const quiveraiImageModelOptionsSchema = lazySchema(() =>
       presencePenalty: z.number().min(-2).max(2).nullable().optional(),
 
       /**
-       * Maximum number of output tokens (1 - 131072).
+       * Maximum number of output tokens (1 - 65536 for Arrow 2 models).
+       * The legacy upper bound of 131072 is retained for other model IDs.
        */
       maxOutputTokens: z.number().int().min(1).max(131072).optional(),
 

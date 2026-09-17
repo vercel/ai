@@ -25,7 +25,8 @@ export class NoSuchProviderError extends NoSuchModelError {
       | 'transcriptionModel'
       | 'speechModel'
       | 'rerankingModel'
-      | 'videoModel';
+      | 'videoModel'
+      | 'evaluationModel';
     providerId: string;
     availableProviders: string[];
     message?: string;

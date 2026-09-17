@@ -1,5 +1,59 @@
 # @ai-sdk/google
 
+## 4.0.74
+
+### Patch Changes
+
+- d4d96bf: Add `google.evaluationModel()` for experimental Choice, Score, and Boolean evaluations through Gemini structured output, preserving provider thinking options and validating exact labels and score bounds. Boolean answers contain prompted P(true) estimates validated to be in [0, 1]. Boolean estimates are not guaranteed to be calibrated; application code chooses thresholds.
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/provider@4.0.17
+
+## 4.0.73
+
+### Patch Changes
+
+- a22b5b2: fix(google): preserve prompt feedback and metadata across streaming chunks
+- 2cd80b3: Keep default Node.js downloads protected by DNS validation and connection pinning when frameworks or instrumentation wrap global fetch before or after the SDK loads.
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
+## 4.0.72
+
+### Patch Changes
+
+- 4a994ad: feat(google): realtime session options for Gemini 3.8 Live
+
+  Add `thinkingConfig` (`thinkingLevel`, `thinkingBudget`, `includeThoughts`) and
+  `defaultToolBehavior` to `GoogleRealtimeModelOptions`. `thinkingConfig` is merged
+  into the Live `setup.generationConfig`. Background-reasoning Live models such as
+  `gemini-3.8-live-extended-thinking` require exactly one of `thinkingLevel` or
+  `thinkingBudget`, so the provider sends `thinkingLevel: 'low'` on those models
+  when neither is set. `defaultToolBehavior` stamps `behavior` on every function
+  declaration in the setup.
+
+  Forward the Live `interactionStatus` and `waitingForInput` server messages as
+  custom events so applications can tell when a background-reasoning model is idle,
+  since `turnComplete` alone no longer means that.
+
+## 4.0.71
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/provider-utils@5.0.41
+
 ## 4.0.70
 
 ### Patch Changes

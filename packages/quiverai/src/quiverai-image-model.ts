@@ -121,6 +121,7 @@ export class QuiverAIImageModel implements ImageModelV4 {
       warnings,
       providerMetadata: {
         quiverai: {
+          ...(response.credits != null && { credits: response.credits }),
           images: response.data.map((image, index) => ({
             index,
             mimeType: image.mime_type,
@@ -152,7 +153,9 @@ function getOperationPath(operation: QuiverAIOperation) {
 }
 
 function getGenerateReferenceLimit(modelId: string) {
-  return modelId === 'arrow-1.1-max' ? 16 : 4;
+  // Only apply the lower limit to documented Arrow 1.x models. The API
+  // enforces model-specific limits within its 16-reference request limit.
+  return ['arrow-1', 'arrow-1.0', 'arrow-1.1'].includes(modelId) ? 4 : 16;
 }
 
 function toQuiverAIImageReference(image: ImageModelV4File) {
@@ -182,11 +185,24 @@ function buildRequestBody({
   operation: QuiverAIOperation;
   options: QuiverAIImageModelOptions;
 }) {
+  if (
+    (modelId === 'arrow-2' || modelId === 'arrow-2-telos') &&
+    options.maxOutputTokens != null &&
+    options.maxOutputTokens > 65536
+  ) {
+    throw new InvalidArgumentError({
+      argument: 'maxOutputTokens',
+      message: `QuiverAI model "${modelId}" supports at most 65536 output tokens.`,
+    });
+  }
+
   const sharedOptions = {
     temperature: options.temperature,
     top_p: options.topP,
     presence_penalty: options.presencePenalty,
     max_output_tokens: options.maxOutputTokens,
+    reasoning_effort: options.reasoningEffort,
+    attributes: options.attributes,
     stream: false as const,
   };
 
@@ -234,9 +250,16 @@ function buildRequestBody({
     });
   }
 
+  if (n !== 1) {
+    throw new InvalidArgumentError({
+      argument: 'n',
+      message:
+        'QuiverAI vectorize returns one SVG per request. Set maxImagesPerCall to 1 in generateImage to vectorize multiple times.',
+    });
+  }
+
   return {
     model: modelId,
-    n,
     image: toQuiverAIImageReference(files[0]),
     ...sharedOptions,
     auto_crop: options.autoCrop,
@@ -315,6 +338,7 @@ const svgGenerationResponseSchema = z.object({
   created: z.number().int().nonnegative(),
   data: z.array(svgDocumentSchema).min(1),
   usage: svgUsageSchema.nullish(),
+  credits: z.number().int().nonnegative().nullish(),
 });
 
 const quiveraiErrorSchema = z.object({

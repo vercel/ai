@@ -22232,6 +22232,81 @@ describe('streamText', () => {
         ]);
       });
 
+      it('should stream structured output after an earlier tool step emits text', async () => {
+        let responseCount = 0;
+        const result = streamText({
+          model: new MockLanguageModelV4({
+            doStream: async () => {
+              switch (responseCount++) {
+                case 0:
+                  return {
+                    stream: convertArrayToReadableStream([
+                      { type: 'text-start', id: 'intro' },
+                      {
+                        type: 'text-delta',
+                        id: 'intro',
+                        delta: 'Checking the value.',
+                      },
+                      { type: 'text-end', id: 'intro' },
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'call-1',
+                        toolName: 'lookup',
+                        input: '{}',
+                      },
+                      {
+                        type: 'finish',
+                        finishReason: {
+                          unified: 'tool-calls',
+                          raw: 'tool-calls',
+                        },
+                        usage: testUsage,
+                      },
+                    ]),
+                  };
+                case 1:
+                  return {
+                    stream: convertArrayToReadableStream([
+                      { type: 'text-start', id: 'answer' },
+                      {
+                        type: 'text-delta',
+                        id: 'answer',
+                        delta: '{"value":"done"}',
+                      },
+                      { type: 'text-end', id: 'answer' },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'stop', raw: 'stop' },
+                        usage: testUsage,
+                      },
+                    ]),
+                  };
+                default:
+                  throw new Error(
+                    `Unexpected response count: ${responseCount}`,
+                  );
+              }
+            },
+          }),
+          tools: {
+            lookup: tool({
+              inputSchema: z.object({}),
+              execute: async () => 'done',
+            }),
+          },
+          output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
+          prompt: 'Look up the value and return it.',
+          stopWhen: isStepCount(2),
+        });
+
+        await expect(
+          convertAsyncIterableToArray(result.partialOutputStream),
+        ).resolves.toStrictEqual([{ value: 'done' }]);
+        await expect(result.output).resolves.toStrictEqual({ value: 'done' });
+      });
+
       it('should send partial output stream when last chunk contains content', async () => {
         const result = streamText({
           model: createTestModel({
@@ -23000,6 +23075,86 @@ describe('streamText', () => {
         });
       });
 
+      it('should stream array elements after an earlier tool step emits text', async () => {
+        let responseCount = 0;
+        const result = streamText({
+          model: new MockLanguageModelV4({
+            doStream: async () => {
+              switch (responseCount++) {
+                case 0:
+                  return {
+                    stream: convertArrayToReadableStream([
+                      { type: 'text-start', id: 'answer' },
+                      {
+                        type: 'text-delta',
+                        id: 'answer',
+                        delta: 'Checking the value.',
+                      },
+                      { type: 'text-end', id: 'answer' },
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'call-1',
+                        toolName: 'lookup',
+                        input: '{}',
+                      },
+                      {
+                        type: 'finish',
+                        finishReason: {
+                          unified: 'tool-calls',
+                          raw: 'tool-calls',
+                        },
+                        usage: testUsage,
+                      },
+                    ]),
+                  };
+                case 1:
+                  return {
+                    stream: convertArrayToReadableStream([
+                      { type: 'text-start', id: 'answer' },
+                      {
+                        type: 'text-delta',
+                        id: 'answer',
+                        delta: '{"elements":[{"value":"done"}]}',
+                      },
+                      { type: 'text-end', id: 'answer' },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'stop', raw: 'stop' },
+                        usage: testUsage,
+                      },
+                    ]),
+                  };
+                default:
+                  throw new Error(
+                    `Unexpected response count: ${responseCount}`,
+                  );
+              }
+            },
+          }),
+          tools: {
+            lookup: tool({
+              inputSchema: z.object({}),
+              execute: async () => 'done',
+            }),
+          },
+          output: Output.array({
+            element: z.object({ value: z.string() }),
+          }),
+          prompt: 'Look up the value and return it.',
+          stopWhen: isStepCount(2),
+        });
+
+        const [partials, elements, output] = await Promise.all([
+          convertAsyncIterableToArray(result.partialOutputStream),
+          convertAsyncIterableToArray(result.elementStream),
+          result.output,
+        ]);
+
+        expect(partials).toStrictEqual([[{ value: 'done' }]]);
+        expect(elements).toStrictEqual([{ value: 'done' }]);
+        expect(output).toStrictEqual([{ value: 'done' }]);
+      });
+
       it('should error elementStream when the model exceeds maxItems', async () => {
         const result = streamText({
           model: createTestModel({
@@ -23046,6 +23201,38 @@ describe('streamText', () => {
             name: 'AI_TypeValidationError',
           },
         });
+      });
+    });
+
+    describe('json output', () => {
+      it('should stream null and empty string values', async () => {
+        for (const value of [null, ''] as const) {
+          const result = streamText({
+            model: createTestModel({
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                {
+                  type: 'text-delta',
+                  id: '1',
+                  delta: JSON.stringify(value),
+                },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+            output: Output.json(),
+            prompt: 'prompt',
+          });
+
+          expect(
+            await convertAsyncIterableToArray(result.partialOutputStream),
+          ).toStrictEqual([value]);
+          await expect(result.output).resolves.toStrictEqual(value);
+        }
       });
     });
 
@@ -23318,6 +23505,77 @@ describe('streamText', () => {
           output: ['getInventory'],
         }),
       );
+    });
+
+    it('announces local caller tools in a message while preserving the caller definition', async () => {
+      let modelTools: LanguageModelV4CallOptions['tools'];
+      let modelPrompt!: LanguageModelV4CallOptions['prompt'];
+
+      const localCaller = experimental_toolCaller(
+        tool({
+          description: 'Stable caller description.',
+          inputSchema: z.object({}),
+          execute: async () => undefined,
+        }),
+        {
+          type: 'local',
+          bind: () =>
+            tool({
+              description: 'Bound caller description.',
+              inputSchema: z.object({}),
+              execute: async () => undefined,
+            }),
+          prepareModelMessage: tools =>
+            `Available caller tools: ${Object.keys(tools).join(', ')}.`,
+        },
+      );
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async options => {
+            modelTools = options.tools;
+            modelPrompt = options.prompt;
+            return {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        tools: {
+          code_mode: localCaller,
+          getInventory: tool({
+            inputSchema: z.object({ sku: z.string() }),
+            execute: async ({ sku }) => ({ sku, availableUnits: 42 }),
+          }),
+        },
+        experimental_toolCallers: {
+          getInventory: ['code_mode'],
+        },
+        prompt: 'Check inventory.',
+      });
+
+      await result.consumeStream();
+
+      expect(modelTools).toMatchObject([
+        {
+          name: 'code_mode',
+          description: 'Stable caller description.',
+        },
+      ]);
+      expect(modelPrompt).toContainEqual({
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Available caller tools: getInventory.',
+          },
+        ],
+      });
     });
 
     it('adds provider caller options while preserving direct access', async () => {
