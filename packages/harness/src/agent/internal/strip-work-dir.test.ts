@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { HarnessV1StreamPart } from '../../v1';
-import { stripWorkDir } from './strip-work-dir';
+import { createToolInputWorkDirStripper, stripWorkDir } from './strip-work-dir';
 
 const WORK_DIR = '/vercel/sandbox/claude-code-abc123';
 
@@ -99,6 +99,68 @@ describe('stripWorkDir', () => {
       { type: 'file-change' }
     >;
     expect(out.path).toBe('notes.md');
+  });
+
+  it('preserves the work dir text inside longer path segments', () => {
+    const part: HarnessV1StreamPart = {
+      type: 'tool-result',
+      toolCallId: 'c1',
+      toolName: 'bash',
+      result: {
+        command:
+          'ls .github/workflows && echo origin/workcell && cat /work/a.ts',
+        path: '/work/.github/workflows/ci.yml',
+        branch: 'origin/workcell/topic',
+      },
+    };
+    const out = stripWorkDir(part, '/work') as Extract<
+      HarnessV1StreamPart,
+      { type: 'tool-result' }
+    >;
+    expect(out.result).toEqual({
+      command: 'ls .github/workflows && echo origin/workcell && cat a.ts',
+      path: '.github/workflows/ci.yml',
+      branch: 'origin/workcell/topic',
+    });
+  });
+
+  it('preserves embedded work dir text split across tool-input deltas', () => {
+    const strip = createToolInputWorkDirStripper({
+      sessionWorkDir: '/work',
+    });
+    const parts: HarnessV1StreamPart[] = [
+      { type: 'tool-input-start', id: 'c1', toolName: 'bash' },
+      {
+        type: 'tool-input-delta',
+        id: 'c1',
+        delta: '{"command":"ls .github/wor',
+      },
+      {
+        type: 'tool-input-delta',
+        id: 'c1',
+        delta: 'kflows && cat /wo',
+      },
+      { type: 'tool-input-delta', id: 'c1', delta: 'rk/a.ts"}' },
+      { type: 'tool-input-end', id: 'c1' },
+    ];
+
+    const output = parts.flatMap(part =>
+      strip(
+        part as Extract<
+          HarnessV1StreamPart,
+          {
+            type: 'tool-input-start' | 'tool-input-delta' | 'tool-input-end';
+          }
+        >,
+      ),
+    );
+
+    expect(
+      output
+        .filter(part => part.type === 'tool-input-delta')
+        .map(part => part.delta)
+        .join(''),
+    ).toBe('{"command":"ls .github/workflows && cat a.ts"}');
   });
 
   it('passes through variants with no path-bearing fields unchanged', () => {
