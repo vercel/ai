@@ -665,7 +665,33 @@ function createOutputTransformStream<
   let text = '';
   let textChunk = '';
   let textProviderMetadata: ProviderMetadata | undefined = undefined;
+<<<<<<< HEAD
   let lastPublishedValue = '';
+=======
+  let lastPublishedValue: string | undefined = undefined;
+  let hasPublishedValue = false;
+
+  function resetOutputState() {
+    firstTextChunkId = undefined;
+    text = '';
+    textChunk = '';
+    textProviderMetadata = undefined;
+    lastPublishedValue = undefined;
+    hasPublishedValue = false;
+  }
+
+  function enqueueChunk({
+    controller,
+    chunk,
+  }: {
+    controller: TransformStreamDefaultController<
+      InternalEnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
+    >;
+    chunk: EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>;
+  }) {
+    controller.enqueue(chunk);
+  }
+>>>>>>> 2a5ed5502a (fix: preserve structured output streaming when earlier tool steps emit text (#20972))
 
   function publishTextChunk({
     controller,
@@ -693,6 +719,19 @@ function createOutputTransformStream<
     EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
   >({
     async transform(chunk, controller) {
+<<<<<<< HEAD
+=======
+      if (isStreamRetryBoundaryPart(chunk)) {
+        resetOutputState();
+        controller.enqueue(chunk);
+        return;
+      }
+
+      if (chunk.type === 'start-step') {
+        resetOutputState();
+      }
+
+>>>>>>> 2a5ed5502a (fix: preserve structured output streaming when earlier tool steps emit text (#20972))
       // ensure that we publish the last text chunk before the step finish:
       if (chunk.type === 'finish-step' && textChunk.length > 0) {
         publishTextChunk({ controller });
