@@ -3397,3 +3397,48 @@ const result = await generateSpeech({
 | `tts-1`           | <Check />    |
 | `tts-1-hd`        | <Check />    |
 | `gpt-4o-mini-tts` | <Check />    |
+
+## Evaluation Models
+
+Create an experimental evaluation model with `openai.evaluationModel(modelId)`.
+It uses the Responses API with structured output to answer Choice, Score, and
+Boolean questions. Choose a model that supports structured output, such as `gpt-5.6-luna`.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { experimental_evaluate } from 'ai';
+
+const { answers } = await experimental_evaluate({
+  model: openai.evaluationModel('gpt-5.6-luna'),
+  state: 'I was charged twice.',
+  questions: {
+    requestsRefund: {
+      type: 'boolean',
+      instructions: 'Is the customer requesting money back?',
+    },
+    department: {
+      type: 'choice',
+      instructions: 'Which team should handle this?',
+      criteria: { billing: 'Charges and refunds', support: 'Other requests' },
+    },
+  },
+});
+```
+
+Scores are finite fractional positions on the ordered rubric. Choice labels are
+returned exactly as supplied. These are model judgments: no probability
+distributions are returned for Choice or Score. Boolean answers contain a prompted
+estimate of P(true), validated to be finite and in `[0, 1]`. These estimates are
+not guaranteed to be calibrated. Apply thresholds in application code, for example
+`answers.requestsRefund.probability >= 0.5`.
+
+The factory respects `createOpenAI` settings, including custom fetch and base URL.
+Pass Responses options through `providerOptions.openai`. Usage, warnings,
+response information, and provider metadata are preserved. Refusals, truncated
+output, or invalid answers fail the entire call. See [Evaluation](/docs/ai-sdk-core/evaluation).
+
+Evaluation models can also be accessed through `customProvider` aliases or
+`createProviderRegistry().evaluationModel('provider:model')`. Direct string IDs
+use Gateway by default, or an explicitly configured default provider with an
+`evaluationModel` method. See
+[model aliases and registries](/docs/ai-sdk-core/evaluation#model-aliases-and-registries).

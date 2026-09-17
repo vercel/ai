@@ -1,5 +1,50 @@
 # ai
 
+## 7.0.105
+
+### Patch Changes
+
+- 6982e9d: Resolve evaluation model IDs through AI Gateway when no default provider is configured, including string aliases in custom providers.
+- Updated dependencies [6982e9d]
+- Updated dependencies [6982e9d]
+  - @ai-sdk/gateway@4.0.85
+
+## 7.0.104
+
+### Patch Changes
+
+- a7dd893: Add experimental evaluation model aliases and registry resolution. `customProvider` accepts `evaluationModels`, registries expose `evaluationModel`, and `experimental_evaluate` accepts string IDs when an evaluation-capable default provider is explicitly configured. Evaluation never implicitly falls back to Gateway. Model-resolution errors now identify `evaluationModel` while stable provider contracts remain unchanged.
+- 227f3b0: fix(ai): report abnormal realtime WebSocket close diagnostics through `onError`
+- 3456e2c: feat(ai): support tool search with direct tool calling
+- c4e76de: feat(ai): add native tool search tool
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/provider@4.0.17
+  - @ai-sdk/gateway@4.0.84
+
+## 7.0.103
+
+### Patch Changes
+
+- 91c2128: feat(ai): add mid conversation tool discovery/updates for code-mode
+- 25a0447: feat(ai): deprecate rawInput in output-error UI message parts
+- 2cd80b3: Keep default Node.js downloads protected by DNS validation and connection pinning when frameworks or instrumentation wrap global fetch before or after the SDK loads.
+- 123d71f: Add `experimental_evaluate` and the isolated experimental v4 evaluation model specification for Choice, Score, and Boolean questions against shared state. Includes typed answers, optional Choice/Score distributions, required Boolean probabilities, validation, retries, cancellation, and `Experimental_EvaluationUnsupportedQuestionTypeError` for unsupported questions.
+- Updated dependencies [91c2128]
+- Updated dependencies [0c9ab5a]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+- Updated dependencies [2cce7da]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/gateway@4.0.83
+  - @ai-sdk/provider@4.0.16
+
 ## 7.0.102
 
 ### Patch Changes

@@ -1,5 +1,44 @@
 # @ai-sdk/react
 
+## 4.0.108
+
+### Patch Changes
+
+- Updated dependencies [6982e9d]
+  - ai@7.0.105
+
+## 4.0.107
+
+### Patch Changes
+
+- b0cfd5b: fix(react): allow unused realtime runtime code to be tree-shaken
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [227f3b0]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - ai@7.0.104
+  - @ai-sdk/provider@4.0.17
+  - @ai-sdk/mcp@2.0.52
+
+## 4.0.106
+
+### Patch Changes
+
+- Updated dependencies [91c2128]
+- Updated dependencies [df91a09]
+- Updated dependencies [25a0447]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - ai@7.0.103
+  - @ai-sdk/mcp@2.0.51
+  - @ai-sdk/provider@4.0.16
+
 ## 4.0.105
 
 ### Patch Changes
