@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 20971,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/openai-responses-tool-result-file-reference.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/openai-responses-tool-result-file-reference.ts",
+    "packages/openai/src/responses/openai-responses-tool-result-file-reference.test.ts",
+    "packages/openai/src/responses/__fixtures__/openai-function-tool-output-image-reference.1.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "OpenAI Responses dropped provider-referenced tool files from function_call_output."
+  }
+}
