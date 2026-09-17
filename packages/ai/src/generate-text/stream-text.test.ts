@@ -24865,10 +24865,12 @@ describe('streamText', () => {
       let result: StreamTextResult<any, any, never>;
       let onErrorCalls: Array<{ error: unknown }> = [];
       let onAbortCalls: Array<{ steps: StepResult<any, any>[] }> = [];
+      let onEndCalls = 0;
 
       beforeEach(() => {
         onErrorCalls = [];
         onAbortCalls = [];
+        onEndCalls = 0;
 
         const abortController = new AbortController();
         let pullCalls = 0;
@@ -24878,6 +24880,9 @@ describe('streamText', () => {
           abortSignal: abortController.signal,
           onAbort: event => {
             onAbortCalls.push(event);
+          },
+          onEnd: () => {
+            onEndCalls++;
           },
           model: new MockLanguageModelV4({
             doStream: async () => ({
@@ -25087,6 +25092,11 @@ describe('streamText', () => {
             },
           ]
         `);
+      });
+
+      it('should not call onEnd when aborting after a completed step', async () => {
+        await result.consumeStream();
+        expect(onEndCalls).toBe(0);
       });
 
       it('should only stream initial chunks in full stream', async () => {
