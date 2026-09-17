@@ -20,7 +20,25 @@ function stripMarkdownCodeFenceSuffix(text: string): string {
 }
 
 function getPotentialSuffixStart(text: string): number {
-  return text.search(/\s*`{0,3}\s*$/);
+  let index = text.length;
+
+  while (index > 0 && /\s/.test(text[index - 1])) {
+    index--;
+  }
+
+  let backtickCount = 0;
+  while (index > 0 && backtickCount < 3 && text[index - 1] === '`') {
+    index--;
+    backtickCount++;
+  }
+
+  if (backtickCount > 0) {
+    while (index > 0 && /\s/.test(text[index - 1])) {
+      index--;
+    }
+  }
+
+  return index;
 }
 
 /**

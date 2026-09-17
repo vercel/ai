@@ -847,6 +847,36 @@ describe('extractJsonMiddleware', () => {
       }
     });
 
+    it('should efficiently stream whitespace-heavy content followed by non-whitespace', async () => {
+      const text = `${' '.repeat(10_000)}x`;
+      const mockModel = new MockLanguageModelV4({
+        async doStream() {
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: text },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      });
+
+      const result = streamText({
+        model: wrapLanguageModel({
+          model: mockModel,
+          middleware: extractJsonMiddleware(),
+        }),
+        prompt: 'Generate JSON',
+      });
+
+      expect(await result.text).toBe(text);
+    });
+
     it('should verify stream output matches expected structure', async () => {
       const mockModel = new MockLanguageModelV4({
         async doStream() {
