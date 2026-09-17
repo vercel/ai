@@ -222,7 +222,10 @@ export function executeToolsFromStream<
           }
 
           case 'model-call-end': {
-            if (!isToolExecutionAllowedFinishReason(chunk.finishReason)) {
+            if (
+              !isToolExecutionAllowedFinishReason(chunk.finishReason) ||
+              chunk.toolChoiceViolation
+            ) {
               return;
             }
 

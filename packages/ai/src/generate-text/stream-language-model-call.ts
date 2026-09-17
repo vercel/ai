@@ -112,6 +112,15 @@ export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
       rawFinishReason: string | undefined;
       usage: LanguageModelUsage;
       providerMetadata?: ProviderMetadata;
+      /**
+       * True when this model call violated an enforced tool choice (a
+       * `required` or specific-tool `toolChoice` that the model did not
+       * honor). The `error` chunk carrying the corresponding
+       * `ToolChoiceViolationError` immediately follows this one. Downstream
+       * consumers (e.g. tool execution) must not act on any tool calls
+       * queued for this model call when this is true.
+       */
+      toolChoiceViolation?: boolean;
       performance: {
         responseTimeMs: number;
         effectiveOutputTokensPerSecond: number;
@@ -636,35 +645,41 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
             callbacks: onLanguageModelCallEnd,
           });
 
+          const enforcedToolChoice =
+            toolChoice.type === 'required' || toolChoice.type === 'tool'
+              ? toolChoice
+              : undefined;
+
+          const toolChoiceViolation =
+            enforcedToolChoice != null &&
+            ![...toolCallsByToolCallId.values()].some(
+              toolCall =>
+                enforcedToolChoice.type === 'required' ||
+                toolCall.toolName === enforcedToolChoice.toolName,
+            );
+
           // Preserve the completed model call's usage, metadata, and
           // performance even when response validation below surfaces a
-          // semantic error.
+          // semantic error. toolChoiceViolation (computed above, before
+          // this is enqueued) tells downstream consumers -- in particular
+          // executeToolsFromStream, which otherwise treats model-call-end
+          // alone as its signal to run any tool calls queued for this
+          // model call -- not to execute them for this step.
           controller.enqueue({
             type: 'model-call-end',
             finishReason: chunk.finishReason.unified,
             rawFinishReason: chunk.finishReason.raw,
             usage,
             providerMetadata: chunk.providerMetadata,
+            ...(toolChoiceViolation ? { toolChoiceViolation: true } : {}),
             performance,
           });
 
-          const enforcedToolChoice =
-            toolChoice.type === 'required' || toolChoice.type === 'tool'
-              ? toolChoice
-              : undefined;
-
-          if (
-            enforcedToolChoice != null &&
-            ![...toolCallsByToolCallId.values()].some(
-              toolCall =>
-                enforcedToolChoice.type === 'required' ||
-                toolCall.toolName === enforcedToolChoice.toolName,
-            )
-          ) {
+          if (toolChoiceViolation) {
             controller.enqueue({
               type: 'error',
               error: new ToolChoiceViolationError({
-                toolChoice: enforcedToolChoice,
+                toolChoice: enforcedToolChoice!,
                 finishReason: chunk.finishReason.unified,
                 provider,
                 modelId,
