@@ -322,7 +322,7 @@ describe('responses (default language model)', () => {
         {
           type: 'message',
           role: 'assistant',
-          content: [{ type: 'output_text', text: 'Hi.' }],
+          content: 'Hi.',
         },
         {
           type: 'message',

@@ -307,6 +307,34 @@ describe('createToolModelOutput', () => {
       `);
     });
 
+    it.each([
+      ['own __proto__', '{"rows":[{"__proto__":"value"}]}'],
+      [
+        'nested constructor.prototype',
+        '{"rows":[{"constructor":{"prototype":{"value":true}}}]}',
+      ],
+    ])('should preserve %s properties', async (_, serializedOutput) => {
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
+        output: JSON.parse(serializedOutput),
+        tool: undefined,
+        errorMode: 'none',
+      });
+
+      expect(result.type).toBe('json');
+      if (result.type === 'json') {
+        expect(JSON.stringify(result.value)).toBe(serializedOutput);
+
+        // the keys must be own data properties; the prototype chain
+        // of the result and of Object.prototype must not be modified.
+        const row = (result.value as { rows: object[] }).rows[0];
+        expect(Object.getPrototypeOf(row)).toBe(Object.prototype);
+        expect(Object.getPrototypeOf({})).toBe(Object.prototype);
+        expect(({} as Record<string, unknown>).value).toBeUndefined();
+      }
+    });
+
     it('should return json type for array output', async () => {
       const result = await createToolModelOutput({
         toolCallId: '123',
