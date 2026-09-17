@@ -306,6 +306,7 @@ export async function streamLanguageModelCall<
     },
     supportedUrls: await resolvedModel.supportedUrls,
     download,
+    abortSignal,
     provider: resolvedModel.provider.split('.')[0],
   });
 

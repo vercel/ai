@@ -463,10 +463,15 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       ) as SharedV4ProviderMetadata;
     const candidate = response.candidates?.[0];
     const promptBlockReason = response.promptFeedback?.blockReason;
+    const confirmedPromptBlockReason = isConfirmedPromptBlockReason(
+      promptBlockReason,
+    )
+      ? promptBlockReason
+      : undefined;
     const isPromptBlocked =
-      candidate?.finishReason == null && promptBlockReason != null;
+      candidate?.finishReason == null && confirmedPromptBlockReason != null;
     const rawFinishReason =
-      candidate?.finishReason ?? promptBlockReason ?? undefined;
+      candidate?.finishReason ?? confirmedPromptBlockReason;
     const content: Array<LanguageModelV4Content> = [];
 
     // map ordered parts to content:

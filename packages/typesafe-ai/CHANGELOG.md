@@ -1,5 +1,11 @@
 # @ai-sdk/typesafe-ai
 
+## 3.0.2
+
+### Patch Changes
+
+- 7fb07aa: fix(typesafe-ai): surface the error_type code instead of a generic failure message
+
 ## 3.0.1
 
 ### Patch Changes
