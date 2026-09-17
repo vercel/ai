@@ -964,6 +964,7 @@ export async function generateText<
                 },
                 supportedUrls: await stepModel.supportedUrls,
                 download,
+                abortSignal: mergedAbortSignal,
                 provider: stepModel.provider.split('.')[0],
               });
 
