@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.260
+
+### Patch Changes
+
+- ab8aa35: fix(ai): preserve provider metadata when simulating text streams
+
 ## 5.0.259
 
 ### Patch Changes
