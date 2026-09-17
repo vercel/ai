@@ -52,7 +52,10 @@ import {
   supportsNativeStructuredOutput,
   supportsStrictTools,
 } from './amazon-bedrock-anthropic-model-support';
-import { AmazonBedrockErrorSchema } from './amazon-bedrock-error';
+import {
+  amazonBedrockFailedResponseHandler,
+  AmazonBedrockErrorSchema,
+} from './amazon-bedrock-error';
 import { createAmazonBedrockEventStreamResponseHandler } from './amazon-bedrock-event-stream-response-handler';
 import {
   getAmazonBedrockStreamErrorMetadata,
@@ -811,10 +814,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       url,
       headers: await this.getHeaders({ headers: options.headers }),
       body: args,
-      failedResponseHandler: createJsonErrorResponseHandler({
-        errorSchema: AmazonBedrockErrorSchema,
-        errorToMessage: error => `${error.type}: ${error.message}`,
-      }),
+      failedResponseHandler: amazonBedrockFailedResponseHandler,
       successfulResponseHandler: createAmazonBedrockEventStreamResponseHandler(
         AmazonBedrockStreamSchema,
       ),

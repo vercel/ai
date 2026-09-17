@@ -67,8 +67,8 @@ function prepareJsonResponse({
 
 describe('GoogleImageModel', () => {
   describe('maxImagesPerCall', () => {
-    it('should return 10 by default', () => {
-      expect(model.maxImagesPerCall).toBe(10);
+    it('should default to a supported per-call limit', () => {
+      expect(model.maxImagesPerCall).toBe(1);
     });
 
     it('should respect a custom setting', () => {
@@ -197,6 +197,7 @@ describe('GoogleImageModel', () => {
       });
     });
 
+<<<<<<< HEAD
     it('should expose the candidate finish reason in provider metadata', async () => {
       prepareJsonResponse({
         images: [],
@@ -219,6 +220,43 @@ describe('GoogleImageModel', () => {
         images: [],
       });
     });
+=======
+    it.each(['', 'BLOCK_REASON_UNSPECIFIED', 'BLOCKED_REASON_UNSPECIFIED'])(
+      'should leave empty responses with default prompt block reason %j retryable',
+      async blockReason => {
+        server.urls[TEST_URL].response = {
+          type: 'json-value',
+          body: {
+            candidates: [],
+            promptFeedback: { blockReason },
+            usageMetadata: {
+              promptTokenCount: 9,
+              totalTokenCount: 9,
+            },
+          },
+        };
+
+        const result = await model.doGenerate({
+          prompt: 'An image prompt with an empty response',
+          files: undefined,
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        });
+
+        expect(result.images).toEqual([]);
+        expect(result.isRetryable).toBeUndefined();
+        expect(result.providerMetadata?.google).toMatchObject({
+          promptFeedback: {
+            blockReason,
+          },
+        });
+      },
+    );
+>>>>>>> origin/main
 
     it('should send response modalities, aspect ratio, seed, and headers', async () => {
       prepareJsonResponse({});
@@ -452,7 +490,7 @@ describe('GoogleImageModel', () => {
       ]);
     });
 
-    it('should reject unsupported URL editing input, multiple images, and masks', async () => {
+    it('should reject unsupported URL editing input and masks', async () => {
       prepareJsonResponse({});
 
       await expect(
@@ -467,21 +505,6 @@ describe('GoogleImageModel', () => {
           providerOptions: {},
         }),
       ).rejects.toThrow(/media type "image\/\*".*not passed as inline bytes/);
-
-      await expect(
-        model.doGenerate({
-          prompt: 'A beautiful sunset',
-          files: undefined,
-          mask: undefined,
-          n: 2,
-          size: undefined,
-          aspectRatio: undefined,
-          seed: undefined,
-          providerOptions: {},
-        }),
-      ).rejects.toThrow(
-        'Gemini image models do not support generating a set number of images per call.',
-      );
 
       await expect(
         model.doGenerate({
