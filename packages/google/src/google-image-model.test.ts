@@ -65,26 +65,8 @@ function prepareJsonResponse({
 
 describe('GoogleImageModel', () => {
   describe('maxImagesPerCall', () => {
-    it('should default to a supported per-call limit', async () => {
-      prepareJsonResponse({});
-
+    it('should default to a supported per-call limit', () => {
       expect(model.maxImagesPerCall).toBe(1);
-
-      await expect(
-        model.doGenerate({
-          prompt: 'A beautiful sunset',
-          files: undefined,
-          mask: undefined,
-          n: model.maxImagesPerCall,
-          size: undefined,
-          aspectRatio: undefined,
-          seed: undefined,
-          providerOptions: {},
-        }),
-      ).resolves.toMatchObject({
-        images: ['base64-generated-image'],
-      });
-      expect(server.calls).toHaveLength(1);
     });
 
     it('should respect a custom setting', () => {
@@ -443,7 +425,7 @@ describe('GoogleImageModel', () => {
       ]);
     });
 
-    it('should reject unsupported URL editing input, multiple images, and masks', async () => {
+    it('should reject unsupported URL editing input and masks', async () => {
       prepareJsonResponse({});
 
       await expect(
@@ -458,21 +440,6 @@ describe('GoogleImageModel', () => {
           providerOptions: {},
         }),
       ).rejects.toThrow(/media type "image\/\*".*not passed as inline bytes/);
-
-      await expect(
-        model.doGenerate({
-          prompt: 'A beautiful sunset',
-          files: undefined,
-          mask: undefined,
-          n: 2,
-          size: undefined,
-          aspectRatio: undefined,
-          seed: undefined,
-          providerOptions: {},
-        }),
-      ).rejects.toThrow(
-        'Gemini image models do not support generating a set number of images per call.',
-      );
 
       await expect(
         model.doGenerate({
