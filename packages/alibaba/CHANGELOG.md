@@ -1,5 +1,11 @@
 # @ai-sdk/alibaba
 
+## 1.0.55
+
+### Patch Changes
+
+- def3cdf: feat(alibaba): preserve reasoning in multi-turn requests by default on supported models
+
 ## 1.0.54
 
 ### Patch Changes
