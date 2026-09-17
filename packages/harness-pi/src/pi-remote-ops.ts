@@ -106,7 +106,7 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
       [
         `target=${shellQuote(remotePath)}`,
         `if [ ! -e "$target" ]; then echo "__PI_REALPATH_NOT_FOUND__"; exit 2; fi`,
-        `resolved=$(realpath "$target" 2>/dev/null) || { echo "__PI_REALPATH_FAILED__"; exit 3; }`,
+        `resolved=$(realpath "$target" 2>/dev/null) || resolved=$(readlink -f -- "$target" 2>/dev/null) || { echo "__PI_REALPATH_FAILED__"; exit 3; }`,
         `printf '%s\\n' "$resolved"`,
       ].join('; '),
     );
@@ -141,12 +141,12 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
     const result = await runShell(
       [
         `target=${shellQuote(remotePath)}`,
-        `if [ -e "$target" ] || [ -L "$target" ]; then resolved=$(realpath "$target" 2>/dev/null) || { echo "__PI_REALPATH_FAILED__"; exit 3; }; printf '%s\\n' "$resolved"; exit 0; fi`,
+        `if [ -e "$target" ] || [ -L "$target" ]; then resolved=$(realpath "$target" 2>/dev/null) || resolved=$(readlink -f -- "$target" 2>/dev/null) || { echo "__PI_REALPATH_FAILED__"; exit 3; }; printf '%s\\n' "$resolved"; exit 0; fi`,
         `dir=$(dirname "$target")`,
         `base=$(basename "$target")`,
         `missing="$base"`,
         `while [ ! -e "$dir" ] && [ ! -L "$dir" ]; do parent=$(dirname "$dir"); if [ "$parent" = "$dir" ]; then echo "__PI_REALPATH_NOT_FOUND__"; exit 2; fi; missing="$(basename "$dir")/$missing"; dir="$parent"; done`,
-        `resolved_dir=$(realpath "$dir" 2>/dev/null) || { echo "__PI_REALPATH_FAILED__"; exit 3; }`,
+        `resolved_dir=$(realpath "$dir" 2>/dev/null) || resolved_dir=$(readlink -f -- "$dir" 2>/dev/null) || { echo "__PI_REALPATH_FAILED__"; exit 3; }`,
         `printf '%s/%s\\n' "$resolved_dir" "$missing"`,
       ].join('; '),
     );
