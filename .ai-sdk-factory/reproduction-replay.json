@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 20970,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/simulate-streaming-text-provider-metadata.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/tsconfig.json",
+    "examples/ai-functions/src/reproduction/simulate-streaming-text-provider-metadata.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_20970_REPRODUCED: simulated streaming must retain text provider metadata; missing from result.content, result.response.messages, continuation request, Google continuation replay, Experimental_Agent.stream"
+  }
+}
