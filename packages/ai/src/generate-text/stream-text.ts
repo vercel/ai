@@ -930,6 +930,7 @@ class DefaultStreamTextResult<
     const recordedSteps: StepResult<TOOLS>[] = [];
     let recordedNoOutputError: NoOutputGeneratedError | undefined;
     let currentStepToolSet = tools;
+    let currentStepModel = model;
 
     // provider-assigned text/reasoning part IDs are only unique within a
     // single model call (e.g. Anthropic uses the content block index, which
@@ -1170,7 +1171,10 @@ class DefaultStreamTextResult<
           // Add step information (after response messages are updated):
           const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
             stepNumber: recordedSteps.length,
-            model: modelInfo,
+            model: {
+              provider: currentStepModel.provider,
+              modelId: currentStepModel.modelId,
+            },
             ...callbackTelemetryProps,
             experimental_context,
             content: recordedContent,
@@ -1193,8 +1197,8 @@ class DefaultStreamTextResult<
 
           logWarnings({
             warnings: recordedWarnings,
-            provider: modelInfo.provider,
-            model: modelInfo.modelId,
+            provider: currentStepModel.provider,
+            model: currentStepModel.modelId,
           });
 
           recordedSteps.push(currentStepResult);
@@ -1777,6 +1781,7 @@ class DefaultStreamTextResult<
             const stepModel = resolveLanguageModel(
               prepareStepResult?.model ?? model,
             );
+            currentStepModel = stepModel;
             const stepModelInfo = {
               provider: stepModel.provider,
               modelId: stepModel.modelId,
@@ -1980,7 +1985,7 @@ class DefaultStreamTextResult<
               {
                 id: generateId(),
                 timestamp: new Date(),
-                modelId: modelInfo.modelId,
+                modelId: stepModelInfo.modelId,
               };
 
             // raw text as it comes from the provider. recorded for telemetry.
