@@ -1,5 +1,6 @@
 import {
   APICallError,
+  InvalidArgumentError,
   type LanguageModelV4,
   type LanguageModelV4CallOptions,
   type LanguageModelV4Content,
@@ -147,6 +148,8 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       extensionRegistry: this.extensionRegistry,
       providerToolsByName,
       strictResponseInput: this.config.strictResponseInput,
+      customToolId: this.config.customToolId,
+      reasoningReplay: this.config.reasoningReplay,
     });
 
     warnings.push(...inputWarnings);
@@ -166,6 +169,43 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
 
     for (const tool of tools ?? []) {
       if (tool.type === 'provider') {
+        if (
+          this.config.customToolId != null &&
+          tool.id === this.config.customToolId
+        ) {
+          const format =
+            tool.args.format != null &&
+            typeof tool.args.format === 'object' &&
+            !Array.isArray(tool.args.format)
+              ? tool.args.format
+              : undefined;
+
+          convertedTools.push({
+            type: 'custom',
+            name: tool.name,
+            description:
+              typeof tool.args.description === 'string'
+                ? tool.args.description
+                : undefined,
+            format:
+              format != null &&
+              'type' in format &&
+              format.type === 'grammar' &&
+              'syntax' in format &&
+              (format.syntax === 'regex' || format.syntax === 'lark') &&
+              'definition' in format &&
+              typeof format.definition === 'string'
+                ? {
+                    type: 'grammar',
+                    syntax: format.syntax,
+                    definition: format.definition,
+                  }
+                : format != null && 'type' in format && format.type === 'text'
+                  ? { type: 'text' }
+                  : undefined,
+          });
+          continue;
+        }
         const extension = this.extensionRegistry.byProviderToolId.get(tool.id);
         let encoded: OpenResponsesExtensionRecord | undefined;
 
@@ -219,7 +259,16 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       );
 
       if (registeredTool == null) {
-        if (!providerToolsByName.has(toolChoice.toolName)) {
+        if (
+          this.config.customToolId != null &&
+          providerToolsByName.get(toolChoice.toolName)?.id ===
+            this.config.customToolId
+        ) {
+          convertedToolChoice = {
+            type: 'custom',
+            name: toolChoice.toolName,
+          };
+        } else if (!providerToolsByName.has(toolChoice.toolName)) {
           convertedToolChoice = {
             type: 'function',
             name: toolChoice.toolName,
@@ -255,7 +304,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
     }
 
     const textFormat =
-      responseFormat?.type === 'json'
+      responseFormat?.type === 'json' && this.config.structuredOutputs !== false
         ? {
             type: 'json_schema' as const,
             ...(responseFormat.schema != null
@@ -269,13 +318,20 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
           }
         : undefined;
 
+    if (
+      responseFormat?.type === 'json' &&
+      this.config.structuredOutputs === false
+    ) {
+      warnings.push({ type: 'unsupported', feature: 'responseFormat' });
+    }
+
     const openResponsesOptions = await parseProviderOptions({
       provider: this.config.providerOptionsName,
       providerOptions,
       schema: openResponsesLanguageModelOptions,
     });
 
-    const resolvedReasoningEffort =
+    let resolvedReasoningEffort =
       openResponsesOptions?.reasoningEffort ??
       (isCustomReasoning(reasoning)
         ? reasoning === 'none'
@@ -292,6 +348,44 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
               warnings,
             })
         : undefined);
+
+    if (
+      openResponsesOptions?.reasoningEffort != null &&
+      this.config.supportedReasoningEfforts != null &&
+      !this.config.supportedReasoningEfforts.includes(
+        openResponsesOptions.reasoningEffort,
+      )
+    ) {
+      throw new InvalidArgumentError({
+        argument: 'providerOptions',
+        message: `Unsupported reasoning effort: ${openResponsesOptions.reasoningEffort}`,
+      });
+    }
+
+    if (
+      openResponsesOptions?.reasoningSummary != null &&
+      this.config.supportedReasoningSummaries != null &&
+      !this.config.supportedReasoningSummaries.includes(
+        openResponsesOptions.reasoningSummary,
+      )
+    ) {
+      throw new InvalidArgumentError({
+        argument: 'providerOptions',
+        message: `Unsupported reasoning summary: ${openResponsesOptions.reasoningSummary}`,
+      });
+    }
+
+    if (
+      resolvedReasoningEffort != null &&
+      this.config.supportedReasoningEfforts != null &&
+      !this.config.supportedReasoningEfforts.includes(resolvedReasoningEffort)
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: `reasoning effort ${resolvedReasoningEffort}`,
+      });
+      resolvedReasoningEffort = undefined;
+    }
 
     return {
       body: {
@@ -442,6 +536,20 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
           break;
         }
 
+        case 'custom_tool_call': {
+          hasToolCalls = true;
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.call_id,
+            toolName: part.name,
+            input: JSON.stringify(part.input),
+            providerMetadata: {
+              [this.config.providerOptionsName]: { itemId: part.id },
+            },
+          });
+          break;
+        }
+
         default: {
           if (!isOpenResponsesExtensionItem(part)) {
             break;
@@ -466,6 +574,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
     const usage = response.usage;
     const inputTokens = usage?.input_tokens;
     const cachedInputTokens = usage?.input_tokens_details?.cached_tokens;
+    const cacheWriteTokens = usage?.input_tokens_details?.cache_write_tokens;
     const outputTokens = usage?.output_tokens;
     const reasoningTokens = usage?.output_tokens_details?.reasoning_tokens;
 
@@ -481,9 +590,12 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       usage: {
         inputTokens: {
           total: inputTokens,
-          noCache: (inputTokens ?? 0) - (cachedInputTokens ?? 0),
+          noCache:
+            (inputTokens ?? 0) -
+            (cachedInputTokens ?? 0) -
+            (cacheWriteTokens ?? 0),
           cacheRead: cachedInputTokens,
-          cacheWrite: undefined,
+          cacheWrite: cacheWriteTokens,
         },
         outputTokens: {
           total: outputTokens,
@@ -550,15 +662,20 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       const inputTokens = responseUsage.input_tokens;
       const cachedInputTokens =
         responseUsage.input_tokens_details?.cached_tokens;
+      const cacheWriteTokens =
+        responseUsage.input_tokens_details?.cache_write_tokens;
       const outputTokens = responseUsage.output_tokens;
       const reasoningTokens =
         responseUsage.output_tokens_details?.reasoning_tokens;
 
       usage.inputTokens = {
         total: inputTokens,
-        noCache: (inputTokens ?? 0) - (cachedInputTokens ?? 0),
+        noCache:
+          (inputTokens ?? 0) -
+          (cachedInputTokens ?? 0) -
+          (cacheWriteTokens ?? 0),
         cacheRead: cachedInputTokens,
-        cacheWrite: undefined,
+        cacheWrite: cacheWriteTokens,
       };
       usage.outputTokens = {
         total: outputTokens,
@@ -577,6 +694,10 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
     const toolCallsByItemId = new Map<
       string,
       { toolName?: string; toolCallId?: string; arguments?: string }
+    >();
+    const customToolCallsByItemId = new Map<
+      string,
+      { toolName?: string; toolCallId?: string; input?: string }
     >();
     const providerOptionsName = this.config.providerOptionsName;
     const extensionRegistry = this.extensionRegistry;
@@ -688,6 +809,56 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
               hasToolCalls = true;
 
               toolCallsByItemId.delete(chunk.item.id);
+            } else if (
+              chunk.type === 'response.output_item.added' &&
+              chunk.item.type === 'custom_tool_call'
+            ) {
+              customToolCallsByItemId.set(chunk.item.id, {
+                toolName: chunk.item.name,
+                toolCallId: chunk.item.call_id,
+                input: chunk.item.input,
+              });
+              controller.enqueue({
+                type: 'tool-input-start',
+                id: chunk.item.call_id,
+                toolName: chunk.item.name,
+              });
+            } else if (chunk.type === 'response.custom_tool_call_input.delta') {
+              const toolCall = customToolCallsByItemId.get(chunk.item_id);
+              if (toolCall == null) {
+                customToolCallsByItemId.set(chunk.item_id, {
+                  input: chunk.delta,
+                });
+              } else {
+                toolCall.input = (toolCall.input ?? '') + chunk.delta;
+              }
+              controller.enqueue({
+                type: 'tool-input-delta',
+                id:
+                  customToolCallsByItemId.get(chunk.item_id)?.toolCallId ??
+                  chunk.item_id,
+                delta: chunk.delta,
+              });
+            } else if (
+              chunk.type === 'response.output_item.done' &&
+              chunk.item.type === 'custom_tool_call'
+            ) {
+              const toolCall = customToolCallsByItemId.get(chunk.item.id);
+              const toolCallId = toolCall?.toolCallId ?? chunk.item.call_id;
+              controller.enqueue({ type: 'tool-input-end', id: toolCallId });
+              controller.enqueue({
+                type: 'tool-call',
+                toolCallId,
+                toolName: toolCall?.toolName ?? chunk.item.name,
+                input: JSON.stringify(
+                  toolCall?.input ?? chunk.item.input ?? '',
+                ),
+                providerMetadata: {
+                  [providerOptionsName]: { itemId: chunk.item.id },
+                },
+              });
+              hasToolCalls = true;
+              customToolCallsByItemId.delete(chunk.item.id);
             } else if (
               chunk.type === 'response.output_item.done' &&
               isOpenResponsesExtensionItem(chunk.item)

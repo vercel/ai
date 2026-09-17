@@ -110,6 +110,7 @@ describe('createQuiverAI', () => {
   });
 
   it('throws when the QuiverAI API key is missing', async () => {
+    vi.stubEnv('QUIVERAI_API_KEY', undefined);
     const provider = createQuiverAI();
 
     const result = provider.image('arrow-1').doGenerate(generateOptions);
@@ -144,11 +145,12 @@ describe('createQuiverAI', () => {
     });
   });
 
-  it('throws for unsupported language and embedding models', () => {
+  it('creates language models and throws for unsupported embedding models', () => {
     const provider = createQuiverAI({ apiKey: 'test-api-key' });
 
-    expect(() => provider.languageModel('chat-model')).toThrow(
-      NoSuchModelError,
+    expect(provider('arrow-2').modelId).toBe('arrow-2');
+    expect(provider.languageModel('arrow-2-telos').provider).toBe(
+      'quiverai.responses',
     );
     expect(() => provider.embeddingModel('embed-model')).toThrow(
       NoSuchModelError,

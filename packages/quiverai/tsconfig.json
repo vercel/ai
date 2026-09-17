@@ -13,6 +13,9 @@
   ],
   "references": [
     {
+      "path": "../open-responses"
+    },
+    {
       "path": "../provider"
     },
     {
