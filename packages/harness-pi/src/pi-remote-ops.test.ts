@@ -283,9 +283,6 @@ describe('createPiRemoteOps.grepFiles', () => {
       limit: 50,
     });
     expect(out).toContain('foo.ts:1:hit');
-    // The inner command is wrapped in `bash -lc '...'`, so its single quotes
-    // get escaped to `'\''` in the outer string. We just look for the
-    // signature substrings without quoting.
     const cmd =
       env.runCalls.find(call => call.command.includes('grep '))?.command ?? '';
     expect(cmd).toContain('grep');
@@ -294,8 +291,10 @@ describe('createPiRemoteOps.grepFiles', () => {
     expect(cmd).toContain('-i');
     expect(cmd).toContain('-F');
     expect(cmd).toContain('-C');
-    expect(cmd).toContain('--include');
-    expect(cmd).toContain('*.ts');
+    expect(cmd).toContain("'--include=*.ts'");
+    expect(cmd).toContain("-e 'TODO'");
+    expect(cmd).not.toContain('--binary-files');
+    expect(cmd).not.toContain('2>/dev/null');
     expect(cmd).toContain('head -n 50');
   });
 
@@ -303,6 +302,18 @@ describe('createPiRemoteOps.grepFiles', () => {
     const env = makeOps({ run: () => ({ stdout: '' }) });
     const out = await env.ops.grepFiles('x', {});
     expect(out).toBe('No matches found');
+  });
+
+  it('surfaces grep errors instead of reporting no matches', async () => {
+    const env = makeOps({
+      run: () => ({
+        stderr: 'grep: invalid option\n',
+        exitCode: 0,
+      }),
+    });
+    await expect(env.ops.grepFiles('x', {})).rejects.toThrow(
+      'grep: invalid option',
+    );
   });
 
   it('rejects workspace symlinks before running grep outside readable roots', async () => {
