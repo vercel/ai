@@ -1,3 +1,8 @@
+import { execFile } from 'node:child_process';
+import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { promisify } from 'node:util';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
 import { describe, expect, it, vi } from 'vitest';
@@ -10,6 +15,8 @@ type RunCalls = Array<{
 }>;
 type ReadCalls = string[];
 type WriteCalls = Array<{ path: string; content: string }>;
+
+const execFileAsync = promisify(execFile);
 
 function makeMockSandbox(behaviors: {
   run?: (command: string) => {
@@ -139,6 +146,49 @@ async function makeJustBashOps() {
   });
 
   return { sandboxSession, sandbox, ops };
+}
+
+function makeNativeShellOps(workDir: string) {
+  const sandbox = {
+    description: 'native shell',
+    async run({
+      command,
+      workingDirectory,
+      env,
+    }: {
+      command: string;
+      workingDirectory?: string;
+      env?: Record<string, string>;
+    }) {
+      try {
+        const result = await execFileAsync('bash', ['-c', command], {
+          cwd: workingDirectory,
+          env: { ...process.env, ...env },
+          encoding: 'utf8',
+        });
+        return { exitCode: 0, ...result };
+      } catch (error) {
+        const result = error as {
+          code?: number;
+          stdout?: string;
+          stderr?: string;
+        };
+        return {
+          exitCode: typeof result.code === 'number' ? result.code : 1,
+          stdout: result.stdout ?? '',
+          stderr: result.stderr ?? '',
+        };
+      }
+    },
+  } as unknown as Experimental_SandboxSession;
+
+  return createPiRemoteOps({
+    sandbox,
+    paths: createPiPathMapper({
+      hostWorkDir: workDir,
+      sandboxWorkDir: workDir,
+    }),
+  });
 }
 
 describe('createPiRemoteOps.readBuffer', () => {
@@ -339,6 +389,7 @@ describe('createPiRemoteOps.grepFiles', () => {
     expect(cmd).toContain('grep $binary_option');
     expect(cmd).not.toContain('2>/dev/null');
     expect(cmd).toContain('head -n 50');
+    expect(cmd).toContain('head -c 8192 "$grep_stderr" >&2');
     expect(cmd).not.toContain('grep_output=');
   });
 
@@ -381,6 +432,61 @@ describe('createPiRemoteOps.grepFiles', () => {
     await expect(env.ops.grepFiles('x', {})).rejects.toThrow(
       'grep: invalid option',
     );
+  });
+
+  it('preserves GNU grep matches when recursive traversal also reports diagnostics', async () => {
+    const workDir = await mkdtemp(path.join(tmpdir(), 'pi-grep-gnu-'));
+    const blockedDirectory = path.join(workDir, 'blocked');
+
+    try {
+      await writeFile(path.join(workDir, 'match.txt'), 'needle\n');
+      await mkdir(blockedDirectory);
+      await writeFile(path.join(blockedDirectory, 'hidden.txt'), 'needle\n');
+      await chmod(blockedDirectory, 0);
+
+      const output = await makeNativeShellOps(workDir).grepFiles('needle', {
+        literal: true,
+      });
+
+      expect(output).toContain('match.txt:1:needle');
+      expect(output).toContain('Permission denied');
+    } finally {
+      await chmod(blockedDirectory, 0o700).catch(() => {});
+      await rm(workDir, { recursive: true, force: true });
+    }
+  });
+
+  it('bounds GNU grep diagnostics independently of the match limit', async () => {
+    const workDir = await mkdtemp(path.join(tmpdir(), 'pi-grep-gnu-'));
+    const blockedDirectories = Array.from({ length: 250 }, (_, index) =>
+      path.join(workDir, `blocked-${String(index).padStart(3, '0')}`),
+    );
+
+    try {
+      await writeFile(path.join(workDir, 'match.txt'), 'needle\n');
+      await Promise.all(
+        blockedDirectories.map(async directory => {
+          await mkdir(directory);
+          await chmod(directory, 0);
+        }),
+      );
+
+      const output = await makeNativeShellOps(workDir).grepFiles('needle', {
+        literal: true,
+        limit: 1,
+      });
+
+      expect(output).toContain('match.txt:1:needle');
+      expect(output).toContain('Permission denied');
+      expect(Buffer.byteLength(output)).toBeLessThan(8_300);
+    } finally {
+      await Promise.all(
+        blockedDirectories.map(directory =>
+          chmod(directory, 0o700).catch(() => {}),
+        ),
+      );
+      await rm(workDir, { recursive: true, force: true });
+    }
   });
 
   it('rejects workspace symlinks before running grep outside readable roots', async () => {

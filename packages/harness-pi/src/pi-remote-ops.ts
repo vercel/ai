@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { shellQuote } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
@@ -63,8 +64,11 @@ interface RunShellInput {
 interface RunShellResult {
   exitCode: number | null;
   output: Buffer;
+  stdout: Buffer;
   stderr: Buffer;
 }
+
+const MAX_GREP_DIAGNOSTIC_BYTES = 8_192;
 
 function lastOutputLine(output: Buffer): string | undefined {
   return output.toString('utf8').trim().split('\n').filter(Boolean).at(-1);
@@ -87,6 +91,7 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
       ...(input.signal ? { abortSignal: input.signal } : {}),
     });
 
+    const stdout = Buffer.from(result.stdout, 'utf8');
     const stderr = Buffer.from(result.stderr, 'utf8');
     const combined = `${result.stdout}${result.stderr}`;
     const output = Buffer.from(combined, 'utf8');
@@ -97,6 +102,7 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
     return {
       exitCode: result.exitCode,
       output,
+      stdout,
       stderr,
     };
   };
@@ -337,6 +343,7 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
         : []),
       ...(input.glob ? [`--include=${input.glob}`] : []),
     ];
+    const stderrPath = `/tmp/.ai-sdk-harness-pi-grep-${randomUUID()}.stderr`;
     const result = await runShell(
       [
         `if [ ! -e ${shellQuote(resolvedPath)} ]; then echo "__PI_GREP_NOT_FOUND__"; exit 2; fi`,
@@ -345,8 +352,13 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
         // unsupported option to just-bash.
         `binary_option_error=$(grep --binary-files=without-match -e '' /dev/null 2>&1)`,
         `if [ -z "$binary_option_error" ]; then binary_option='--binary-files=without-match'; else binary_option=''; fi`,
+        `grep_stderr=${shellQuote(stderrPath)}`,
         'set -o pipefail',
-        `grep $binary_option ${flags.map(shellQuote).join(' ')} -e ${shellQuote(pattern)} ${shellQuote(targetPath)} | head -n ${limit}`,
+        `grep $binary_option ${flags.map(shellQuote).join(' ')} -e ${shellQuote(pattern)} ${shellQuote(targetPath)} 2>"$grep_stderr" | head -n ${limit}`,
+        'grep_status=$?',
+        `head -c ${MAX_GREP_DIAGNOSTIC_BYTES} "$grep_stderr" >&2`,
+        'rm -f "$grep_stderr"',
+        'exit "$grep_status"',
       ].join('; '),
     );
 
@@ -354,22 +366,33 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
     if (output.includes('__PI_GREP_NOT_FOUND__')) {
       throw new Error(`Path not found: ${input.path ?? '.'}`);
     }
+    const stdout = result.stdout.toString('utf8').trim();
     const stderr = result.stderr.toString('utf8').trim();
+
+    if (
+      result.exitCode === 0 ||
+      result.exitCode === 1 ||
+      // GNU grep can receive SIGPIPE after head reaches the requested limit.
+      result.exitCode === 141
+    ) {
+      if (stdout) {
+        return [stdout, stderr].filter(Boolean).join('\n');
+      }
+      if (stderr) {
+        throw new Error(stderr);
+      }
+      return 'No matches found';
+    }
+
+    // GNU grep exits 2 when recursive traversal encounters unreadable entries,
+    // even if it also found useful matches in readable files.
+    if (result.exitCode === 2 && stdout && stderr) {
+      return `${stdout}\n${stderr}`;
+    }
     if (stderr) {
       throw new Error(stderr);
     }
-    if (
-      result.exitCode !== 0 &&
-      result.exitCode !== 1 &&
-      // GNU grep can receive SIGPIPE after head reaches the requested limit.
-      result.exitCode !== 141
-    ) {
-      throw new Error(
-        output || `grep failed with exit code ${result.exitCode}`,
-      );
-    }
-
-    return output || 'No matches found';
+    throw new Error(output || `grep failed with exit code ${result.exitCode}`);
   };
 
   return {
