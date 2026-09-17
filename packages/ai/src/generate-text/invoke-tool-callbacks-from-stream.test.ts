@@ -185,6 +185,64 @@ describe('invokeToolCallbacksFromStream', () => {
     ).toBe(true);
   });
 
+  it('should validate context once per tool call and reuse the transformed value for all callbacks', async () => {
+    let validationCount = 0;
+    const callbackContexts: unknown[] = [];
+
+    const tools = {
+      'test-tool': tool({
+        inputSchema: z.object({ value: z.string() }),
+        contextSchema: z.object({ prefix: z.string() }).transform(context => ({
+          ...context,
+          validationCount: ++validationCount,
+        })),
+        onInputStart: ({ context }) => {
+          callbackContexts.push(context);
+        },
+        onInputDelta: ({ context }) => {
+          callbackContexts.push(context);
+        },
+        onInputAvailable: ({ context }) => {
+          callbackContexts.push(context);
+        },
+      }),
+    };
+
+    const chunks: Array<LanguageModelStreamPart<typeof tools>> = [
+      { type: 'tool-input-start', id: 'call-1', toolName: 'test-tool' },
+      { type: 'tool-input-delta', id: 'call-1', delta: '{"value":"' },
+      { type: 'tool-input-delta', id: 'call-1', delta: 'Sparkle Day"}' },
+      { type: 'tool-input-end', id: 'call-1' },
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'test-tool',
+        input: { value: 'Sparkle Day' },
+      },
+    ];
+
+    const result = invokeToolCallbacksFromStream({
+      stream: convertArrayToReadableStream(chunks),
+      tools,
+      stepInputMessages: [],
+      abortSignal: undefined,
+      toolsContext: {
+        'test-tool': { prefix: 'tool-context', validationCount: 0 },
+      },
+    });
+
+    await expect(convertReadableStreamToArray(result)).resolves.toEqual(chunks);
+    expect(validationCount).toBe(1);
+    expect(callbackContexts).toHaveLength(4);
+    expect(callbackContexts[0]).toEqual({
+      prefix: 'tool-context',
+      validationCount: 1,
+    });
+    expect(
+      callbackContexts.every(context => context === callbackContexts[0]),
+    ).toBe(true);
+  });
+
   it('should skip onInputAvailable for invalid tool calls', async () => {
     const recordedCalls: string[] = [];
     const tools = {
@@ -226,7 +284,7 @@ describe('invokeToolCallbacksFromStream', () => {
       tools,
       stepInputMessages: [],
       abortSignal: undefined,
-      runtimeContext: {},
+      toolsContext: {},
     });
 
     await expect(convertReadableStreamToArray(result)).resolves.toEqual(chunks);

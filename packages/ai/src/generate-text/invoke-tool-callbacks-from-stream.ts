@@ -31,7 +31,40 @@ export function invokeToolCallbacksFromStream<TOOLS extends ToolSet>({
 }): ReadableStream<ToolCallbackStreamPart<TOOLS>> {
   if (tools == null) return stream;
 
-  const ongoingToolCallToolNames: Record<string, string> = createIdMap();
+  let ongoingToolCalls: Record<
+    string,
+    {
+      toolName: string;
+      validatedContext: Promise<unknown> | undefined;
+    }
+  > = createIdMap();
+
+  const getValidatedContext = ({
+    toolCallId,
+    toolName,
+  }: {
+    toolCallId: string;
+    toolName: string;
+  }): Promise<unknown> => {
+    const ongoingToolCall = ongoingToolCalls[toolCallId];
+
+    if (ongoingToolCall?.validatedContext != null) {
+      return ongoingToolCall.validatedContext;
+    }
+
+    const tool = getOwn(tools, toolName);
+    const validatedContext = validateToolContext({
+      toolName,
+      context: getOwn(toolsContext, toolName),
+      contextSchema: tool?.contextSchema,
+    });
+
+    if (ongoingToolCall != null) {
+      ongoingToolCall.validatedContext = validatedContext;
+    }
+
+    return validatedContext;
+  };
 
   return stream.pipeThrough(
     new TransformStream({
@@ -39,12 +72,16 @@ export function invokeToolCallbacksFromStream<TOOLS extends ToolSet>({
         controller.enqueue(chunk);
 
         if (isStreamRetryAttemptBoundaryPart(chunk)) {
+          ongoingToolCalls = createIdMap();
           return;
         }
 
         switch (chunk.type) {
           case 'tool-input-start': {
-            ongoingToolCallToolNames[chunk.id] = chunk.toolName;
+            ongoingToolCalls[chunk.id] = {
+              toolName: chunk.toolName,
+              validatedContext: undefined,
+            };
 
             const tool = getOwn(tools, chunk.toolName);
             if (tool?.onInputStart != null) {
@@ -52,10 +89,9 @@ export function invokeToolCallbacksFromStream<TOOLS extends ToolSet>({
                 toolCallId: chunk.id,
                 messages: stepInputMessages,
                 abortSignal,
-                context: await validateToolContext({
+                context: await getValidatedContext({
+                  toolCallId: chunk.id,
                   toolName: chunk.toolName,
-                  context: getOwn(toolsContext, chunk.toolName),
-                  contextSchema: tool.contextSchema,
                 }),
               });
             }
@@ -64,7 +100,7 @@ export function invokeToolCallbacksFromStream<TOOLS extends ToolSet>({
           }
 
           case 'tool-input-delta': {
-            const toolName = ongoingToolCallToolNames[chunk.id];
+            const toolName = ongoingToolCalls[chunk.id]?.toolName;
             const tool = getOwn(tools, toolName);
 
             if (tool?.onInputDelta != null) {
@@ -73,10 +109,9 @@ export function invokeToolCallbacksFromStream<TOOLS extends ToolSet>({
                 toolCallId: chunk.id,
                 messages: stepInputMessages,
                 abortSignal,
-                context: await validateToolContext({
+                context: await getValidatedContext({
+                  toolCallId: chunk.id,
                   toolName,
-                  context: getOwn(toolsContext, toolName),
-                  contextSchema: tool.contextSchema,
                 }),
               });
             }
@@ -85,23 +120,26 @@ export function invokeToolCallbacksFromStream<TOOLS extends ToolSet>({
           }
 
           case 'tool-call': {
-            const toolName = ongoingToolCallToolNames[chunk.toolCallId];
+            const toolName = ongoingToolCalls[chunk.toolCallId]?.toolName;
             const tool = getOwn(tools, toolName);
 
-            delete ongoingToolCallToolNames[chunk.toolCallId];
-
             if (!chunk.invalid && tool?.onInputAvailable != null) {
+              const validatedContext = getValidatedContext({
+                toolCallId: chunk.toolCallId,
+                toolName,
+              });
+
+              delete ongoingToolCalls[chunk.toolCallId];
+
               await tool.onInputAvailable({
                 input: chunk.input,
                 toolCallId: chunk.toolCallId,
                 messages: stepInputMessages,
                 abortSignal,
-                context: await validateToolContext({
-                  toolName,
-                  context: getOwn(toolsContext, toolName),
-                  contextSchema: tool.contextSchema,
-                }),
+                context: await validatedContext,
               });
+            } else {
+              delete ongoingToolCalls[chunk.toolCallId];
             }
           }
         }
