@@ -5,13 +5,9 @@ description: Poe Provider for the AI SDK
 
 # Poe
 
-[Poe](https://poe.com) is a unified AI platform that provides access to models from Anthropic, OpenAI, Google, and other providers through a single API. The Poe provider for the AI SDK enables seamless integration with all these models:
+[Poe](https://poe.com) provides access to models from Anthropic, OpenAI, Google, and other providers through a single API key. The `ai-sdk-provider-poe` community provider connects these models to the AI SDK.
 
-- **Multi-Provider Access**: Use Anthropic, OpenAI, Google, and other models with a single API key
-- **Unified API**: Standardized interface across different model providers
-- **Simple Model Selection**: Specify models using `provider/model-id` format
-
-Learn more about Poe's API in the [Poe Documentation](https://creator.poe.com/docs/accessing-other-bots-on-poe).
+Get an API key from [Poe API keys](https://poe.com/api/keys) and browse available models in the [Poe model catalog](https://poe.com/api/models).
 
 ## Setup
 
@@ -52,23 +48,17 @@ import { poe } from 'ai-sdk-provider-poe';
 
 ## Language Models
 
-Models are specified using a `provider/model-id` format. The provider routes requests to the appropriate API endpoint based on the prefix:
-
-| Prefix | Provider | Endpoint |
-| --- | --- | --- |
-| `anthropic/*` | Anthropic | `/messages` |
-| `openai/*` | OpenAI | `/responses` |
-| `*/*` | Default | `/chat/completions` |
+Pass a model ID from the Poe model catalog. A provider prefix, such as `anthropic/`, is optional. Routing uses the model's `supported_endpoints` metadata, with a bundled catalog that refreshes from `/v1/models` at runtime. A prefix does not force a particular API endpoint.
 
 ```typescript
 // Anthropic models
-const claude = poe('anthropic/claude-sonnet-4-20250514');
+const claude = poe('anthropic/claude-sonnet-4');
 
 // OpenAI models
-const gpt = poe('openai/gpt-4o');
+const gpt = poe('openai/gpt-5.4');
 
 // Google models (via OpenAI-compatible endpoint)
-const gemini = poe('google/gemini-2.0-flash');
+const gemini = poe('google/gemini-3.1-pro');
 ```
 
 ## Examples
@@ -80,7 +70,7 @@ import { poe } from 'ai-sdk-provider-poe';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: poe('anthropic/claude-sonnet-4-20250514'),
+  model: poe('anthropic/claude-sonnet-4'),
   prompt: 'What is Poe?',
 });
 
@@ -94,7 +84,7 @@ import { poe } from 'ai-sdk-provider-poe';
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: poe('openai/gpt-4o'),
+  model: poe('openai/gpt-5.4'),
   prompt: 'Write a short story about AI.',
 });
 
