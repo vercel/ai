@@ -266,6 +266,64 @@ describe('OpenAIResponsesLanguageModel', () => {
   }
 
   describe('doGenerate', () => {
+    it('should send provider-referenced image content in function tool output', async () => {
+      prepareJsonFixtureResponse(
+        'openai-function-tool-output-image-reference.1',
+      );
+
+      const { warnings } = await createModel('gpt-4.1').doGenerate({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_issue_20971',
+                toolName: 'lookup',
+                input: {},
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_issue_20971',
+                toolName: 'lookup',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      mediaType: 'image/png',
+                      data: {
+                        type: 'reference',
+                        reference: {
+                          openai: 'file-live-provider-reference',
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      const functionCallOutput = requestBody.input.find(
+        (item: { type?: string }) => item.type === 'function_call_output',
+      );
+
+      expect(functionCallOutput.output).toContainEqual({
+        type: 'input_image',
+        file_id: 'file-live-provider-reference',
+      });
+      expect(warnings).toStrictEqual([]);
+    });
+
     it('should throw a descriptive error when the response has no output', async () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'json-value',
