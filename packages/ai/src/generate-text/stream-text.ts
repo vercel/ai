@@ -668,30 +668,6 @@ function createOutputTransformStream<
   let lastPublishedValue: string | undefined = undefined;
   let hasPublishedValue = false;
 
-<<<<<<< HEAD
-=======
-  function resetAttemptState() {
-    firstTextChunkId = undefined;
-    text = '';
-    textChunk = '';
-    textProviderMetadata = undefined;
-    lastPublishedValue = undefined;
-    hasPublishedValue = false;
-  }
-
-  function enqueueChunk({
-    controller,
-    chunk,
-  }: {
-    controller: TransformStreamDefaultController<
-      InternalEnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
-    >;
-    chunk: EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>;
-  }) {
-    controller.enqueue(chunk);
-  }
-
->>>>>>> 84f5d1b29f (fix: preserve null and empty-string values in structured partial output streams (#20973))
   function publishTextChunk({
     controller,
     partialOutput = undefined,
