@@ -64,6 +64,10 @@ export { normalizeHeaders } from './normalize-headers';
 export { normalizeBatchRequestCounts } from './normalize-batch-request-counts';
 export * from './parse-json';
 export { parseJsonEventStream } from './parse-json-event-stream';
+export {
+  JsonStreamParser,
+  type JsonSchemaCompiler,
+} from './json-stream-parser';
 export { parseProviderOptions } from './parse-provider-options';
 export * from './post-multipart-stream-to-api';
 export * from './post-to-api';

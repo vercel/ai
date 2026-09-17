@@ -4,6 +4,7 @@ import {
 } from 'eventsource-parser/stream';
 import { safeParseJSON, type ParseResult } from './parse-json';
 import type { FlexibleSchema } from './schema';
+import { JsonStreamParser } from './json-stream-parser';
 
 /**
  * Parses a JSON event stream into a stream of parsed JSON objects.
@@ -13,7 +14,7 @@ export function parseJsonEventStream<T>({
   schema,
 }: {
   stream: ReadableStream<Uint8Array>;
-  schema: FlexibleSchema<T>;
+  schema: FlexibleSchema<T> | JsonStreamParser<T>;
 }): ReadableStream<ParseResult<T>> {
   return stream
     .pipeThrough(new TextDecoderStream())
@@ -26,7 +27,11 @@ export function parseJsonEventStream<T>({
             return;
           }
 
-          controller.enqueue(await safeParseJSON({ text: data, schema }));
+          controller.enqueue(
+            await (schema instanceof JsonStreamParser
+              ? schema.parse(data)
+              : safeParseJSON({ text: data, schema })),
+          );
         },
       }),
     );

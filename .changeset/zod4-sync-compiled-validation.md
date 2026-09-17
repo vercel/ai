@@ -1,14 +1,12 @@
 ---
 '@ai-sdk/provider-utils': patch
+'@ai-sdk/openai': patch
 ---
 
-perf: validate provably-synchronous zod v4 schemas through compiled clones
-
-When the installed zod exposes ahead-of-time compilation (zod >= 4.5),
-`zodSchema()` classifies each v4 schema once via `compile(schema, { strict:
-true })`: success proves the schema contains no async refinements, transforms,
-or pipes, and validation then runs synchronously through the compiled clone
-(no per-validation promise, eligible for zod's compiled fast path — up to
-3-9x faster parsing on union-heavy schemas such as provider stream chunks).
-Schemas with async constructs, unsupported constructs, or older zod versions
-keep the existing `safeParseAsync` behavior unchanged.
+Add an experimental, default-off OpenAI chat SSE parsing option using an
+explicitly supplied Zod compiler. Only the SDK-owned chat response chunk schema
+is compiled, and its parser accepts JSON text rather than arbitrary values.
+Generic Zod validation continues to use `safeParseAsync` on all supported peers.
+The opt-in honors `jitless`, caches compilation per provider instance, and uses
+the original async validator if compilation fails. Invalid compiled inputs use
+Zod's original-parser fallback. Existing applications do not need a newer Zod version.

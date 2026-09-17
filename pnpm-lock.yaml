@@ -3800,6 +3800,9 @@ importers:
       zod:
         specifier: 3.25.76
         version: 3.25.76
+      zod-modern:
+        specifier: npm:zod@4.5.4
+        version: zod@4.5.4
 
   packages/quiverai:
     dependencies:
@@ -24804,6 +24807,9 @@ packages:
 
   zod@4.4.3:
     resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
+
+  zod@4.5.4:
+    resolution: {integrity: sha512-sC95tT5iHHH9gtpj6A81kh+NEaRAUFN+qlUPDUbRfOMvNf5QCBqsb3WgvnpVtK5Y+4UfA6KqufotuTvMGiTlsA==}
 
   zone.js@0.15.1:
     resolution: {integrity: sha512-XE96n56IQpJM7NAoXswY3XRLcWFW83xe0BiAOeMD7K5k5xecOeul3Qcpx6GqEeeHNkW5DWL5zOyTbEfB4eti8w==}
@@ -52234,6 +52240,8 @@ snapshots:
   zod@4.3.6: {}
 
   zod@4.4.3: {}
+
+  zod@4.5.4: {}
 
   zone.js@0.15.1:
     optional: true

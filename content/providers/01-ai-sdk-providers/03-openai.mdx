@@ -74,6 +74,25 @@ You can use the following optional settings to customize the OpenAI provider ins
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
+- **experimental_compileChatChunks** _function_
+
+  Opt in to compiled validation of SDK-owned Chat Completions SSE chunks.
+  Supply `compile` from the same Zod 4.5.4 installation used by the provider.
+  Disabled by default; older supported Zod peers need no compiler.
+
+  ```ts
+  import { createOpenAI } from '@ai-sdk/openai';
+  import { compile } from 'zod/v4';
+
+  const openai = createOpenAI({ experimental_compileChatChunks: compile });
+  const model = openai.chat('gpt-4.1');
+  ```
+
+  Compilation is lazy and cached per provider instance, honors `jitless`, and
+  falls back to async validation if compilation fails. Only freshly parsed JSON
+  chat chunks are compiled. Generic validation is unchanged. This process-local
+  option is omitted by workflow serialization and makes no latency guarantee.
+
 ## Language Models
 
 The OpenAI provider instance is a function that you can invoke to create a language model:

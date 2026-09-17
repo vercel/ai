@@ -23,6 +23,7 @@ import {
   WORKFLOW_SERIALIZE,
   type FetchFunction,
   type ParseResult,
+  type JsonStreamParser,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
@@ -53,6 +54,7 @@ type OpenAIChatConfig = {
   headers?: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
+  getChatChunkParser?: () => JsonStreamParser<OpenAIChatChunk>;
 };
 
 export class OpenAIChatLanguageModel implements LanguageModelV4 {
@@ -454,7 +456,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
-        openaiChatChunkSchema,
+        this.config.getChatChunkParser?.() ?? openaiChatChunkSchema,
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,

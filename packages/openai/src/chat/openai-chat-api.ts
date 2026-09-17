@@ -1,8 +1,10 @@
 import type { JSONSchema7 } from '@ai-sdk/provider';
 import {
   lazySchema,
+  JsonStreamParser,
   zodSchema,
   type InferSchema,
+  type JsonSchemaCompiler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { openaiErrorDataSchema } from '../openai-error';
@@ -112,7 +114,7 @@ export const openaiChatResponseSchema = lazySchema(() =>
 // this approach limits breakages when the API changes and increases efficiency
 export const openaiChatChunkSchema = lazySchema(() =>
   zodSchema(
-    z.union([
+    (openaiChatChunkSchemaRaw = z.union([
       z.object({
         id: z.string().nullish(),
         created: z.number().nullish(),
@@ -195,9 +197,21 @@ export const openaiChatChunkSchema = lazySchema(() =>
           .nullish(),
       }),
       openaiErrorDataSchema,
-    ]),
+    ])),
   ),
 );
+
+let openaiChatChunkSchemaRaw: z.core.$ZodType;
+
+export function createOpenAIChatChunkParser(compiler: JsonSchemaCompiler) {
+  openaiChatChunkSchema();
+  // Shares the lazy wrapper's audited, callback-free graph and inferred output.
+  // JsonStreamParser restricts compiled validation to freshly parsed JSON.
+  return new JsonStreamParser(
+    openaiChatChunkSchemaRaw as z.core.$ZodType<OpenAIChatChunk>,
+    compiler,
+  );
+}
 
 export type OpenAIChatResponse = InferSchema<typeof openaiChatResponseSchema>;
 

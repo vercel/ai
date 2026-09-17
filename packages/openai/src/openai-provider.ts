@@ -20,7 +20,13 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
   type WebSocketConstructor,
+  type JsonStreamParser,
+  type JsonSchemaCompiler,
 } from '@ai-sdk/provider-utils';
+import {
+  createOpenAIChatChunkParser,
+  type OpenAIChatChunk,
+} from './chat/openai-chat-api';
 import { OpenAIChatLanguageModel } from './chat/openai-chat-language-model';
 import type { OpenAIChatModelId } from './chat/openai-chat-language-model-options';
 import { OpenAICompletionLanguageModel } from './completion/openai-completion-language-model';
@@ -143,6 +149,9 @@ export interface OpenAIProvider extends ProviderV4 {
 }
 
 export interface OpenAIProviderSettings {
+  /** Opt in to audited JSON chat-chunk compilation by supplying Zod 4.5.4's `compile`. */
+  experimental_compileChatChunks?: JsonSchemaCompiler;
+
   /**
    * Base URL for the OpenAI API calls.
    */
@@ -219,9 +228,18 @@ export function createOpenAI(
       `ai-sdk/openai/${VERSION}`,
     );
 
+  const compileChatChunks = options.experimental_compileChatChunks;
+  let chatChunkParser: JsonStreamParser<OpenAIChatChunk> | undefined;
+  const getChatChunkParser =
+    compileChatChunks == null
+      ? undefined
+      : () =>
+          (chatChunkParser ??= createOpenAIChatChunkParser(compileChatChunks));
+
   const createChatModel = (modelId: OpenAIChatModelId) =>
     new OpenAIChatLanguageModel(modelId, {
       provider: `${providerName}.chat`,
+      getChatChunkParser,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,

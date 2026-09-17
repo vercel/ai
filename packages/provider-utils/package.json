@@ -23,7 +23,8 @@
     "build:watch": "pnpm clean && tsup --watch",
     "clean": "del-cli dist *.tsbuildinfo",
     "type-check": "tsc --build",
-    "test": "pnpm test:node && pnpm test:edge",
+    "test": "pnpm test:node && pnpm test:edge && pnpm test:zod-modern",
+    "test:zod-modern": "vitest --config vitest.zod-modern.config.js --run && vitest --config vitest.zod-modern.config.js --environment edge-runtime --run",
     "test:update": "pnpm test:node -u",
     "test:watch": "vitest --config vitest.node.config.js",
     "test:edge": "vitest --config vitest.edge.config.js --run",
@@ -55,7 +56,8 @@
     "msw": "2.7.0",
     "tsup": "^8.5.1",
     "typescript": "5.8.3",
-    "zod": "3.25.76"
+    "zod": "3.25.76",
+    "zod-modern": "npm:zod@4.5.4"
   },
   "peerDependencies": {
     "zod": "^3.25.76 || ^4.1.8"

@@ -6,6 +6,7 @@ import { parseJSON, safeParseJSON, type ParseResult } from './parse-json';
 import { parseJsonEventStream } from './parse-json-event-stream';
 import { readResponseWithSizeLimit } from './read-response-with-size-limit';
 import type { FlexibleSchema } from './schema';
+import type { JsonStreamParser } from './json-stream-parser';
 
 export type ResponseHandler<RETURN_TYPE> = (options: {
   url: string;
@@ -170,7 +171,7 @@ export const createJsonErrorResponseHandler =
 
 export const createEventSourceResponseHandler =
   <T>(
-    chunkSchema: FlexibleSchema<T>,
+    chunkSchema: FlexibleSchema<T> | JsonStreamParser<T>,
   ): ResponseHandler<ReadableStream<ParseResult<T>>> =>
   async ({ response, url, requestBodyValues }) => {
     const responseHeaders = extractResponseHeaders(response);
