@@ -22,12 +22,15 @@ async function settleWithin(
 }
 
 function createPendingDownload() {
-  const started = Promise.withResolvers<void>();
+  let resolveStarted!: () => void;
+  const started = new Promise<void>(resolve => {
+    resolveStarted = resolve;
+  });
   let signal: AbortSignal | null | undefined;
 
   globalThis.fetch = vi.fn(async (_url, init) => {
     signal = init?.signal;
-    started.resolve();
+    resolveStarted();
 
     return await new Promise<Response>((_resolve, reject) => {
       const abort = () => reject(signal?.reason);
@@ -41,7 +44,7 @@ function createPendingDownload() {
   });
 
   return {
-    started: started.promise,
+    started,
     getSignal: () => signal,
   };
 }
