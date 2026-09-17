@@ -17086,7 +17086,7 @@ describe('streamText', () => {
       it('should stream structured output after an earlier tool step emits text', async () => {
         let responseCount = 0;
         const result = streamText({
-          model: new MockLanguageModelV4({
+          model: new MockLanguageModelV3({
             doStream: async () => {
               switch (responseCount++) {
                 case 0:
@@ -17149,7 +17149,7 @@ describe('streamText', () => {
             schema: z.object({ value: z.string() }),
           }),
           prompt: 'Look up the value and return it.',
-          stopWhen: isStepCount(2),
+          stopWhen: stepCountIs(2),
         });
 
         await expect(
@@ -17819,13 +17819,11 @@ describe('streamText', () => {
           );
         });
       });
-<<<<<<< HEAD
-=======
 
       it('should stream array elements after an earlier tool step emits text', async () => {
         let responseCount = 0;
         const result = streamText({
-          model: new MockLanguageModelV4({
+          model: new MockLanguageModelV3({
             doStream: async () => {
               switch (responseCount++) {
                 case 0:
@@ -17888,7 +17886,7 @@ describe('streamText', () => {
             element: z.object({ value: z.string() }),
           }),
           prompt: 'Look up the value and return it.',
-          stopWhen: isStepCount(2),
+          stopWhen: stepCountIs(2),
         });
 
         const [partials, elements, output] = await Promise.all([
@@ -17901,87 +17899,6 @@ describe('streamText', () => {
         expect(elements).toStrictEqual([{ value: 'done' }]);
         expect(output).toStrictEqual([{ value: 'done' }]);
       });
-
-      it('should error elementStream when the model exceeds maxItems', async () => {
-        const result = streamText({
-          model: createTestModel({
-            stream: convertArrayToReadableStream([
-              { type: 'text-start', id: '1' },
-              { type: 'text-delta', id: '1', delta: '{"elements":[' },
-              { type: 'text-delta', id: '1', delta: '"element 1",' },
-              { type: 'text-delta', id: '1', delta: '"element 2",' },
-              { type: 'text-delta', id: '1', delta: '"element 3"]}' },
-              { type: 'text-end', id: '1' },
-              {
-                type: 'finish',
-                finishReason: { unified: 'stop', raw: 'stop' },
-                usage: testUsage,
-              },
-            ]),
-          }),
-          output: Output.array({
-            element: z.string(),
-            maxItems: 2,
-          }),
-          prompt: 'prompt',
-        });
-
-        const elements: string[] = [];
-        let streamError: unknown;
-
-        try {
-          for await (const element of result.elementStream) {
-            elements.push(element);
-          }
-        } catch (error) {
-          streamError = error;
-        }
-
-        expect(elements).toStrictEqual(['element 1', 'element 2']);
-        expect(TypeValidationError.isInstance(streamError)).toBe(true);
-        expect((streamError as TypeValidationError).message).toContain(
-          'elements array must contain at most 2 items',
-        );
-        await expect(result.output).rejects.toMatchObject({
-          name: 'AI_NoObjectGeneratedError',
-          cause: {
-            name: 'AI_TypeValidationError',
-          },
-        });
-      });
-    });
-
-    describe('json output', () => {
-      it('should stream null and empty string values', async () => {
-        for (const value of [null, ''] as const) {
-          const result = streamText({
-            model: createTestModel({
-              stream: convertArrayToReadableStream([
-                { type: 'text-start', id: '1' },
-                {
-                  type: 'text-delta',
-                  id: '1',
-                  delta: JSON.stringify(value),
-                },
-                { type: 'text-end', id: '1' },
-                {
-                  type: 'finish',
-                  finishReason: { unified: 'stop', raw: 'stop' },
-                  usage: testUsage,
-                },
-              ]),
-            }),
-            output: Output.json(),
-            prompt: 'prompt',
-          });
-
-          expect(
-            await convertAsyncIterableToArray(result.partialOutputStream),
-          ).toStrictEqual([value]);
-          await expect(result.output).resolves.toStrictEqual(value);
-        }
-      });
->>>>>>> 2a5ed5502a (fix: preserve structured output streaming when earlier tool steps emit text (#20972))
     });
 
     describe('choice output', () => {
