@@ -359,6 +359,219 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       warnings: [...warnings, ...toolWarnings],
       providerOptionsName,
       extraHeaders: vertexPaygoHeaders,
+<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
+=======
+      toolNameMapping,
+    };
+  }
+
+  private getArgs(
+    options: LanguageModelV4CallOptions,
+    { isStreaming = false }: { isStreaming?: boolean } = {},
+  ) {
+    return GoogleLanguageModel.prepareRequest({
+      modelId: this.modelId,
+      config: this.config,
+      options,
+      isStreaming,
+    });
+  }
+
+  static convertGenerateContentResponse({
+    config,
+    response,
+    warnings,
+    providerOptionsNames,
+    toolNameMapping,
+  }: {
+    config: GoogleLanguageModelConfig;
+    response: InferSchema<typeof responseSchema>;
+    warnings: SharedV4Warning[];
+    providerOptionsNames: readonly string[];
+    toolNameMapping?: ReturnType<typeof createToolNameMapping>;
+  }): LanguageModelV4GenerateResult {
+    const wrapProviderMetadata = (payload: Record<string, unknown>) =>
+      Object.fromEntries(
+        providerOptionsNames.map(name => [name, payload]),
+      ) as SharedV4ProviderMetadata;
+    const candidate = response.candidates?.[0];
+    const promptBlockReason = response.promptFeedback?.blockReason;
+    const confirmedPromptBlockReason = isConfirmedPromptBlockReason(
+      promptBlockReason,
+    )
+      ? promptBlockReason
+      : undefined;
+    const isPromptBlocked =
+      candidate?.finishReason == null && confirmedPromptBlockReason != null;
+    const rawFinishReason =
+      candidate?.finishReason ?? confirmedPromptBlockReason;
+    const content: Array<LanguageModelV4Content> = [];
+
+    // map ordered parts to content:
+    const parts = candidate?.content?.parts ?? [];
+
+    const usageMetadata = response.usageMetadata;
+
+    // Associates code execution results with their preceding call.
+    let lastCodeExecutionToolCallId: string | undefined;
+    // Associates a server-side tool response with its preceding call (tool combination).
+    let lastServerToolCallId: string | undefined;
+
+    // Build content array from all parts
+    for (const part of parts) {
+      if ('executableCode' in part && part.executableCode?.code) {
+        const toolCallId = config.generateId();
+        lastCodeExecutionToolCallId = toolCallId;
+
+        content.push({
+          type: 'tool-call',
+          toolCallId,
+          toolName:
+            toolNameMapping?.toCustomToolName('code_execution') ??
+            'code_execution',
+          input: JSON.stringify(part.executableCode),
+          providerExecuted: true,
+        });
+      } else if ('codeExecutionResult' in part && part.codeExecutionResult) {
+        content.push({
+          type: 'tool-result',
+          // Results correspond to the most recent executable code part.
+          toolCallId: lastCodeExecutionToolCallId!,
+          toolName:
+            toolNameMapping?.toCustomToolName('code_execution') ??
+            'code_execution',
+          result: {
+            outcome: part.codeExecutionResult.outcome,
+            output: part.codeExecutionResult.output ?? '',
+          },
+        });
+      } else if ('text' in part && part.text != null) {
+        const thoughtSignatureMetadata = part.thoughtSignature
+          ? wrapProviderMetadata({
+              thoughtSignature: part.thoughtSignature,
+            })
+          : undefined;
+
+        if (part.text.length === 0) {
+          if (thoughtSignatureMetadata != null && content.length > 0) {
+            const lastContent = content[content.length - 1];
+            lastContent.providerMetadata = thoughtSignatureMetadata;
+          }
+        } else {
+          content.push({
+            type: part.thought === true ? 'reasoning' : 'text',
+            text: part.text,
+            providerMetadata: thoughtSignatureMetadata,
+          });
+        }
+      } else if ('functionCall' in part && part.functionCall.name != null) {
+        content.push({
+          type: 'tool-call' as const,
+          toolCallId: part.functionCall.id || config.generateId(),
+          toolName: part.functionCall.name,
+          input: JSON.stringify(part.functionCall.args ?? {}),
+          providerMetadata: part.thoughtSignature
+            ? wrapProviderMetadata({
+                thoughtSignature: part.thoughtSignature,
+              })
+            : undefined,
+        });
+      } else if ('inlineData' in part) {
+        const hasThought = part.thought === true;
+        const hasThoughtSignature = !!part.thoughtSignature;
+        content.push({
+          type: hasThought ? 'reasoning-file' : 'file',
+          data: { type: 'data', data: part.inlineData.data },
+          mediaType: part.inlineData.mimeType,
+          providerMetadata: hasThoughtSignature
+            ? wrapProviderMetadata({
+                thoughtSignature: part.thoughtSignature,
+              })
+            : undefined,
+        });
+      } else if ('toolCall' in part && part.toolCall) {
+        const toolCallId = part.toolCall.id || config.generateId();
+        lastServerToolCallId = toolCallId;
+        content.push({
+          type: 'tool-call',
+          toolCallId,
+          toolName: `server:${part.toolCall.toolType}`,
+          input: JSON.stringify(part.toolCall.args ?? {}),
+          providerExecuted: true,
+          dynamic: true,
+          providerMetadata: part.thoughtSignature
+            ? wrapProviderMetadata({
+                thoughtSignature: part.thoughtSignature,
+                serverToolCallId: toolCallId,
+                serverToolType: part.toolCall.toolType,
+              })
+            : wrapProviderMetadata({
+                serverToolCallId: toolCallId,
+                serverToolType: part.toolCall.toolType,
+              }),
+        });
+      } else if ('toolResponse' in part && part.toolResponse) {
+        const responseToolCallId =
+          lastServerToolCallId || part.toolResponse.id || config.generateId();
+        content.push({
+          type: 'tool-result',
+          toolCallId: responseToolCallId,
+          toolName: `server:${part.toolResponse.toolType}`,
+          result: (part.toolResponse.response ?? {}) as JSONObject,
+          providerMetadata: part.thoughtSignature
+            ? wrapProviderMetadata({
+                thoughtSignature: part.thoughtSignature,
+                serverToolCallId: responseToolCallId,
+                serverToolType: part.toolResponse.toolType,
+              })
+            : wrapProviderMetadata({
+                serverToolCallId: responseToolCallId,
+                serverToolType: part.toolResponse.toolType,
+              }),
+        });
+        lastServerToolCallId = undefined;
+      }
+    }
+
+    const sources =
+      extractSources({
+        groundingMetadata: candidate?.groundingMetadata,
+        generateId: config.generateId,
+      }) ?? [];
+    for (const source of sources) {
+      content.push(source);
+    }
+
+    return {
+      content,
+      finishReason: {
+        unified: isPromptBlocked
+          ? 'content-filter'
+          : mapGoogleFinishReason({
+              finishReason: rawFinishReason,
+              // Only count client-executed tool calls for finish reason determination.
+              hasToolCalls: content.some(
+                part => part.type === 'tool-call' && !part.providerExecuted,
+              ),
+            }),
+        raw: rawFinishReason,
+      },
+      usage: convertGoogleUsage(usageMetadata),
+      warnings,
+      providerMetadata: wrapProviderMetadata({
+        promptFeedback: response.promptFeedback ?? null,
+        groundingMetadata: candidate?.groundingMetadata ?? null,
+        urlContextMetadata: candidate?.urlContextMetadata ?? null,
+        safetyRatings: candidate?.safetyRatings ?? null,
+        usageMetadata: usageMetadata ?? null,
+        finishMessage: candidate?.finishMessage ?? null,
+        serviceTier: usageMetadata?.serviceTier ?? null,
+      } satisfies GoogleProviderMetadata),
+      response: {
+        // TODO timestamp, model id
+        id: response.responseId ?? undefined,
+      },
+>>>>>>> 2b391f8cc7 (fix: Google non-streaming default block reasons being misclassified as content filters and disabling image retries (#20924)):packages/google/src/google-language-model.ts
     };
   }
 
