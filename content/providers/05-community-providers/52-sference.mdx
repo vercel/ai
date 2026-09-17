@@ -6,14 +6,14 @@ description: sference Provider for the AI SDK
 # sference
 
 [sference](https://sference.com) is a managed-inference platform for open-weight
-models (Qwen, GLM, DeepSeek, Kimi, and more), exposing an OpenAI-compatible
+models (GLM, DeepSeek, Kimi, and more), exposing an OpenAI-compatible
 `/v1/chat/completions` endpoint with realtime sync and SSE streaming. The sference
 provider for the AI SDK maps this surface onto the
 [`LanguageModelV4`](https://ai-sdk.dev/providers/community-providers/custom-providers)
 specification so `generateText`, `streamText`, `generateObject`, `streamObject`,
 and agents work out of the box.
 
-- **Open-weight models, managed**: run Qwen, GLM, DeepSeek, Kimi and friends
+- **Open-weight models, managed**: run GLM, DeepSeek, Kimi and friends
   without managing infra
 - **OpenAI-compatible**: standard `/v1/chat/completions` wire format, so the
   provider is thin and predictable
@@ -96,9 +96,9 @@ call the provider as a function:
 import { sference } from "@sference/vercel-provider";
 
 // All three are equivalent:
-const model = sference("Qwen/Qwen3.6-35B-A3B");
-const model = sference.chat("Qwen/Qwen3.6-35B-A3B");
-const model = sference.languageModel("Qwen/Qwen3.6-35B-A3B");
+const model = sference("deepseek-ai/DeepSeek-V4.1-Flash");
+const model = sference.chat("deepseek-ai/DeepSeek-V4.1-Flash");
+const model = sference.languageModel("deepseek-ai/DeepSeek-V4.1-Flash");
 ```
 
 The model id is the sference model identifier (typically `org/model-name`).
@@ -115,7 +115,7 @@ import { sference } from "@sference/vercel-provider";
 import { generateText } from "ai";
 
 const { text } = await generateText({
-  model: sference("Qwen/Qwen3.6-35B-A3B"),
+  model: sference("deepseek-ai/DeepSeek-V4.1-Flash"),
   prompt: "What is sference?",
 });
 
@@ -129,7 +129,7 @@ import { sference } from "@sference/vercel-provider";
 import { streamText } from "ai";
 
 const result = streamText({
-  model: sference("Qwen/Qwen3.6-35B-A3B"),
+  model: sference("deepseek-ai/DeepSeek-V4.1-Flash"),
   prompt: "Write a short story about AI.",
 });
 
@@ -146,7 +146,7 @@ import { generateObject } from "ai";
 import { z } from "zod";
 
 const { object } = await generateObject({
-  model: sference("Qwen/Qwen3.6-35B-A3B"),
+  model: sference("deepseek-ai/DeepSeek-V4.1-Flash"),
   schema: z.object({
     city: z.string(),
     country: z.string(),
@@ -165,7 +165,7 @@ import { generateText, tool } from "ai";
 import { z } from "zod";
 
 const { toolCalls, toolResults } = await generateText({
-  model: sference("Qwen/Qwen3.6-35B-A3B"),
+  model: sference("deepseek-ai/DeepSeek-V4.1-Flash"),
   tools: {
     get_weather: tool({
       inputSchema: z.object({ city: z.string() }),
@@ -180,16 +180,18 @@ const { toolCalls, toolResults } = await generateText({
 
 ### Reasoning Support
 
-sference surfaces chain-of-thought from reasoning models (Qwen3, GLM, Kimi, …)
-as AI SDK `reasoning` parts. Control it with the standard AI SDK `reasoning`
-option — `none` disables thinking, any other level enables it:
+sference surfaces chain-of-thought from reasoning models (DeepSeek, Kimi, GLM,
+…) as AI SDK `reasoning` parts. Control it with the standard AI SDK `reasoning`
+option — `none` disables thinking, any other level enables it. (Exception: the
+GLM-5.3 family always reasons — disabling thinking there is rejected with a
+400.)
 
 ```javascript
 import { sference } from "@sference/vercel-provider";
 import { generateText } from "ai";
 
 const { text, reasoningText } = await generateText({
-  model: sference("Qwen/Qwen3.6-35B-A3B"),
+  model: sference("deepseek-ai/DeepSeek-V4.1-Flash"),
   prompt: "Solve this step by step: ...",
   reasoning: "high", // enables thinking; 'none' disables it
 });
@@ -207,7 +209,7 @@ Pass sference-specific fields via `providerOptions.sference`:
 
 ```javascript
 await generateText({
-  model: sference("Qwen/Qwen3.6-35B-A3B"),
+  model: sference("deepseek-ai/DeepSeek-V4.1-Flash"),
   prompt: "Hello",
   providerOptions: {
     sference: {
