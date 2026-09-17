@@ -751,6 +751,25 @@ describe('doStream', () => {
     mockOptions = { ...mockOptions, ...options };
   }
 
+  it('should surface the Bedrock error message when the error body has no type', async () => {
+    server.urls[streamUrl].response = {
+      type: 'error',
+      status: 400,
+      body: JSON.stringify({
+        message:
+          "This model doesn't support the image field for user messages. Remove image and try again.",
+      }),
+    };
+
+    await expect(model.doStream({ prompt: TEST_PROMPT })).rejects.toMatchObject(
+      {
+        name: 'AI_APICallError',
+        message:
+          "This model doesn't support the image field for user messages. Remove image and try again.",
+      },
+    );
+  });
+
   describe('text', () => {
     beforeEach(() => {
       setupMockEventStreamHandler();

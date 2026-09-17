@@ -20,7 +20,10 @@ import {
   type AmazonBedrockEmbeddingModelId,
   type AmazonBedrockEmbeddingModelSettings,
 } from './amazon-bedrock-embedding-model-options';
-import { AmazonBedrockErrorSchema } from './amazon-bedrock-error';
+import {
+  AmazonBedrockErrorSchema,
+  amazonBedrockErrorToMessage,
+} from './amazon-bedrock-error';
 import { z } from 'zod/v4';
 
 type AmazonBedrockEmbeddingConfig = {
@@ -148,7 +151,7 @@ export class AmazonBedrockEmbeddingModel implements EmbeddingModelV4 {
       body: args,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: AmazonBedrockErrorSchema,
-        errorToMessage: error => `${error.type}: ${error.message}`,
+        errorToMessage: amazonBedrockErrorToMessage,
       }),
       successfulResponseHandler: createJsonResponseHandler(
         AmazonBedrockEmbeddingResponseSchema,

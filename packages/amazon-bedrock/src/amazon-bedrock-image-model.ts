@@ -22,7 +22,10 @@ import {
   type AmazonBedrockImageModelId,
 } from './amazon-bedrock-image-settings';
 import { amazonBedrockImageModelOptionsSchema } from './amazon-bedrock-image-model-options';
-import { AmazonBedrockErrorSchema } from './amazon-bedrock-error';
+import {
+  AmazonBedrockErrorSchema,
+  amazonBedrockErrorToMessage,
+} from './amazon-bedrock-error';
 import { z } from 'zod/v4';
 
 type AmazonBedrockImageModelConfig = {
@@ -261,7 +264,7 @@ export class AmazonBedrockImageModel implements ImageModelV4 {
       body: args,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: AmazonBedrockErrorSchema,
-        errorToMessage: error => `${error.type}: ${error.message}`,
+        errorToMessage: amazonBedrockErrorToMessage,
       }),
       successfulResponseHandler: createJsonResponseHandler(
         amazonBedrockImageResponseSchema,
