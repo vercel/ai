@@ -248,16 +248,17 @@ describe('createPiRemoteOps.editFile', () => {
 });
 
 describe('createPiRemoteOps.listDirectory', () => {
-  it('uses ls -1Ap inside the sandbox and parses output (preserves trailing / for dirs)', async () => {
+  it('uses compatible ls flags and preserves trailing directory markers', async () => {
     const env = makeOps({
       run: () => ({ stdout: 'src/\nREADME.md\nnode_modules/\n' }),
     });
     const names = await env.ops.listDirectory('.');
     expect(names).toEqual(['node_modules/', 'README.md', 'src/']);
     const cmd =
-      env.runCalls.find(call => call.command.includes('ls -1Ap'))?.command ??
+      env.runCalls.find(call => call.command.includes('ls -1AF'))?.command ??
       '';
-    expect(cmd).toContain('ls -1Ap');
+    expect(cmd).toContain('ls -1AF');
+    expect(cmd).not.toContain('ls -1Ap');
   });
 
   it('throws on __PI_LS_NOT_FOUND__ sentinel', async () => {
