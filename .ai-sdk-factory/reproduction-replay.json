@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 20910,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20910-google-image-finish-reason.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20910-google-image-finish-reason.ts",
+    "packages/google/src/__fixtures__/google-image-no-image-live.json",
+    "packages/google/src/google-image-model.test.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_20910_REPRODUCED: Google finish reasons were erased from public image diagnostics"
+  }
+}
