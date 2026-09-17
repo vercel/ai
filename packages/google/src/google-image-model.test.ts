@@ -65,8 +65,26 @@ function prepareJsonResponse({
 
 describe('GoogleImageModel', () => {
   describe('maxImagesPerCall', () => {
-    it('should return 10 by default', () => {
-      expect(model.maxImagesPerCall).toBe(10);
+    it('should default to a supported per-call limit', async () => {
+      prepareJsonResponse({});
+
+      expect(model.maxImagesPerCall).toBe(1);
+
+      await expect(
+        model.doGenerate({
+          prompt: 'A beautiful sunset',
+          files: undefined,
+          mask: undefined,
+          n: model.maxImagesPerCall,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).resolves.toMatchObject({
+        images: ['base64-generated-image'],
+      });
+      expect(server.calls).toHaveLength(1);
     });
 
     it('should respect a custom setting', () => {
