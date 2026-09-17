@@ -5,10 +5,7 @@ import {
 import { MCPClientError } from '../error/mcp-client-error';
 import { deserializeMessage, SseMCPTransport } from './mcp-sse-transport';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-<<<<<<< HEAD
 import { LATEST_PROTOCOL_VERSION } from './types';
-=======
-import { LATEST_LEGACY_PROTOCOL_VERSION } from './types';
 import type { OAuthClientProvider } from './oauth';
 import type { OAuthTokens } from './oauth-types';
 
@@ -19,7 +16,6 @@ function deferred(): { promise: Promise<void>; resolve: () => void } {
   });
   return { promise, resolve };
 }
->>>>>>> 4b5cb49077 (fix: Prevent redundant legacy SSE OAuth refreshes for concurrent or late stale-token 401 responses (#20943))
 
 describe('SseMCPTransport', () => {
   const server = createTestServer({
@@ -277,7 +273,6 @@ describe('SseMCPTransport', () => {
         access_token: 'access-old',
         refresh_token: 'refresh-stable',
         token_type: 'Bearer',
-        issuer: authorizationServerUrl,
         authorization_server: authorizationServerUrl,
         token_endpoint: tokenEndpoint,
       };
