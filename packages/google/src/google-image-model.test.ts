@@ -197,7 +197,6 @@ describe('GoogleImageModel', () => {
       });
     });
 
-<<<<<<< HEAD
     it('should expose the candidate finish reason in provider metadata', async () => {
       prepareJsonResponse({
         images: [],
@@ -220,7 +219,7 @@ describe('GoogleImageModel', () => {
         images: [],
       });
     });
-=======
+
     it.each(['', 'BLOCK_REASON_UNSPECIFIED', 'BLOCKED_REASON_UNSPECIFIED'])(
       'should leave empty responses with default prompt block reason %j retryable',
       async blockReason => {
@@ -256,7 +255,6 @@ describe('GoogleImageModel', () => {
         });
       },
     );
->>>>>>> origin/main
 
     it('should send response modalities, aspect ratio, seed, and headers', async () => {
       prepareJsonResponse({});
