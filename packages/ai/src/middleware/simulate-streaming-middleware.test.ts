@@ -770,7 +770,7 @@ describe('simulateStreamingMiddleware', () => {
         signature: 'test-signature',
       },
     };
-    const mockModel = new MockLanguageModelV4({
+    const mockModel = new MockLanguageModelV2({
       async doGenerate() {
         return {
           content: [
@@ -780,7 +780,7 @@ describe('simulateStreamingMiddleware', () => {
               providerMetadata,
             },
           ],
-          finishReason: { unified: 'stop', raw: 'stop' },
+          finishReason: 'stop',
           usage: testUsage,
           warnings: [],
         };
