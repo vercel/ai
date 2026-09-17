@@ -1,0 +1,14 @@
+{
+  "input": {
+    "maskSha256": "e96f55904a466f26e2a908337c6fde5a1b7b6efa9e889207d0a558701e0a0845",
+    "sourceSha256": "5f5fb34216382c6a50e184a155a8c6291d104e8350eaccc2569a45cb1209c88c"
+  },
+  "metrics": {
+    "editMeanAbsoluteDifference": 45.50360850680684,
+    "preservedMeanAbsoluteDifference": 37.78343598915028,
+    "substantiallyChangedPreservedRatio": 0.5163981849240586
+  },
+  "output": {
+    "imageSha256": "bd35eb9a1d87523d9bb33b1797d07c02d78dc13c6779944ce04bbce6cf00abf9"
+  }
+}
