@@ -87,4 +87,31 @@ describe('ACP recovered session', () => {
       'Recovered ACP session disposed.',
     );
   });
+
+  it('sends implementation-specific prompt metadata', async () => {
+    const request = vi.fn(async () => ({ stopReason: 'end_turn' as const }));
+    const session = createACPRecoveredSession({
+      agent: { request } as unknown as acp.ClientContext,
+      sessionId: 'session-structured',
+      restorationResponse: {},
+      updates: createACPRecoveredSessionUpdates(),
+    });
+    const schema = {
+      type: 'object',
+      properties: { answer: { type: 'string' } },
+      required: ['answer'],
+    };
+
+    await session.promptWithMeta?.({
+      prompt: [{ type: 'text', text: 'Answer.' }],
+      meta: { outputSchema: schema },
+    });
+
+    expect(request).toHaveBeenCalledWith('session/prompt', {
+      sessionId: 'session-structured',
+      prompt: [{ type: 'text', text: 'Answer.' }],
+      _meta: { outputSchema: schema },
+    });
+    session.dispose();
+  });
 });

@@ -6,6 +6,7 @@ import type {
 } from '@ai-sdk/harness/agent';
 import { classifyDiskLog } from '@ai-sdk/harness/utils';
 import {
+  isRecord,
   parseJSON,
   type Experimental_SandboxSession,
 } from '@ai-sdk/provider-utils';
@@ -159,9 +160,7 @@ export async function terminateACPBridgeForRecovery({
   }
   const meta = await parseJSON({ text: rawMeta });
   if (
-    meta == null ||
-    typeof meta !== 'object' ||
-    Array.isArray(meta) ||
+    !isRecord(meta) ||
     typeof meta.pid !== 'number' ||
     !Number.isSafeInteger(meta.pid) ||
     meta.pid <= 1
@@ -219,14 +218,9 @@ function getACPBridgeRecoveryCoordinates({
   lastSeenEventId: number;
 } {
   const data = state.data;
-  const bridge =
-    data != null && typeof data === 'object' && !Array.isArray(data)
-      ? data.bridge
-      : undefined;
+  const bridge = isRecord(data) ? data.bridge : undefined;
   if (
-    bridge == null ||
-    typeof bridge !== 'object' ||
-    Array.isArray(bridge) ||
+    !isRecord(bridge) ||
     typeof bridge.stateDir !== 'string' ||
     !bridge.stateDir.startsWith('/') ||
     typeof bridge.lastSeenEventId !== 'number'
@@ -250,13 +244,9 @@ async function readACPHandoffState({
     text: await readFile(statePath, 'utf8'),
   });
   if (
-    value == null ||
-    typeof value !== 'object' ||
-    Array.isArray(value) ||
+    !isRecord(value) ||
     typeof value.sessionId !== 'string' ||
-    value.state == null ||
-    typeof value.state !== 'object' ||
-    Array.isArray(value.state) ||
+    !isRecord(value.state) ||
     (value.state.type !== 'resume-session' &&
       value.state.type !== 'continue-turn')
   ) {

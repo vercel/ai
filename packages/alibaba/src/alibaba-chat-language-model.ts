@@ -37,6 +37,7 @@ import { convertAlibabaUsage } from './convert-alibaba-usage';
 import { convertToAlibabaChatMessages } from './convert-to-alibaba-chat-messages';
 import { CacheControlValidator } from './get-cache-control';
 import { mapAlibabaFinishReason } from './map-alibaba-finish-reason';
+import { supportsPreservedThinking } from './supports-preserved-thinking';
 
 /**
  * Alibaba language model implementation.
@@ -115,6 +116,13 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });
     }
 
+    // Preserved thinking defaults to on for models that support it; an
+    // explicit option always passes through. Unsupported models without an
+    // explicit option omit the wire field entirely.
+    const preserveThinking =
+      alibabaOptions?.preserveThinking ??
+      (supportsPreservedThinking(this.modelId) ? true : undefined);
+
     // Build base request arguments
     const baseArgs = {
       model: this.modelId,
@@ -145,10 +153,15 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
         warnings,
       }),
 
+      ...(preserveThinking != null
+        ? { preserve_thinking: preserveThinking }
+        : {}),
+
       // Convert messages with cache control support
       messages: convertToAlibabaChatMessages({
         prompt,
         cacheControlValidator,
+        preserveThinking: preserveThinking ?? false,
       }),
     };
 
@@ -219,7 +232,7 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
       for (const toolCall of choice.message.tool_calls) {
         content.push({
           type: 'tool-call',
-          toolCallId: toolCall.id ?? generateId(),
+          toolCallId: toolCall.id || generateId(),
           toolName: toolCall.function.name,
           input: toolCall.function.arguments!,
         });
@@ -379,7 +392,7 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
             }
 
             // Handle tool call streaming
-            if (delta.tool_calls != null) {
+            if (delta.tool_calls != null && delta.tool_calls.length > 0) {
               // End any active reasoning or text before tool calls
               if (activeReasoningId != null) {
                 controller.enqueue({

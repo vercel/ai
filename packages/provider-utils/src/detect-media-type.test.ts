@@ -10,7 +10,14 @@ import { convertUint8ArrayToBase64 } from './uint8-utils';
 describe('detectMediaType signature matching', () => {
   describe('GIF', () => {
     it('should detect GIF from bytes', () => {
-      const gifBytes = new Uint8Array([0x47, 0x49, 0x46, 0xff, 0xff]);
+      const gifBytes = new Uint8Array([
+        0x47,
+        0x49,
+        0x46,
+        0x38,
+        0x39,
+        0x61, // GIF89a
+      ]);
       expect(
         detectMediaType({
           data: gifBytes,
@@ -20,13 +27,24 @@ describe('detectMediaType signature matching', () => {
     });
 
     it('should detect GIF from base64', () => {
-      const gifBase64 = 'R0lGabc123'; // Base64 string starting with GIF signature
+      const gifBase64 = convertUint8ArrayToBase64(
+        new Uint8Array([0x47, 0x49, 0x46, 0x38, 0x37, 0x61]), // GIF87a
+      );
       expect(
         detectMediaType({
           data: gifBase64,
           topLevelType: 'image',
         }),
       ).toBe('image/gif');
+    });
+
+    it('should not detect text that only starts with GIF', () => {
+      expect(
+        detectMediaType({
+          data: new TextEncoder().encode('GIF support notes'),
+          topLevelType: 'image',
+        }),
+      ).toBeUndefined();
     });
   });
 
@@ -191,24 +209,44 @@ describe('detectMediaType signature matching', () => {
   });
 
   describe('BMP', () => {
+    const bmpHeader = new Uint8Array([
+      0x42,
+      0x4d, // BM
+      0x36,
+      0x00,
+      0x00,
+      0x00, // file size
+      0x00,
+      0x00,
+      0x00,
+      0x00, // reserved fields
+    ]);
+
     it('should detect BMP from bytes', () => {
-      const bmpBytes = new Uint8Array([0x42, 0x4d, 0xff, 0xff]);
       expect(
         detectMediaType({
-          data: bmpBytes,
+          data: bmpHeader,
           topLevelType: 'image',
         }),
       ).toBe('image/bmp');
     });
 
     it('should detect BMP from base64', () => {
-      const bmpBytes = new Uint8Array([0x42, 0x4d, 0xff, 0xff]);
       expect(
         detectMediaType({
-          data: convertUint8ArrayToBase64(bmpBytes),
+          data: convertUint8ArrayToBase64(bmpHeader),
           topLevelType: 'image',
         }),
       ).toBe('image/bmp');
+    });
+
+    it('should not detect text that only starts with BM', () => {
+      expect(
+        detectMediaType({
+          data: new TextEncoder().encode('BM25 ranking notes'),
+          topLevelType: 'image',
+        }),
+      ).toBeUndefined();
     });
   });
 

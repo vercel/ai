@@ -1510,6 +1510,52 @@ describe('LegacyOpenTelemetry integration with generateText', () => {
     `);
   });
 
+  it('should include configured runtime context on tool call spans', async () => {
+    await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async () => ({
+          ...integrationDummyResponseValues,
+          content: [
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              input: `{ "value": "value" }`,
+            },
+          ],
+        }),
+      }),
+      tools: {
+        tool1: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: async () => 'result1',
+        },
+      },
+      prompt: 'test-input',
+      runtimeContext: {
+        requestId: 'request-123',
+        privateValue: 'excluded',
+      },
+      telemetry: {
+        isEnabled: true,
+        includeRuntimeContext: {
+          requestId: true,
+        },
+        integrations: new LegacyOpenTelemetry({ tracer }),
+      },
+    });
+
+    const toolCallSpan = tracer.spans.find(span => span.name === 'ai.toolCall');
+
+    expect(toolCallSpan?.attributes).toMatchObject({
+      'ai.settings.context.requestId': 'request-123',
+    });
+    expect(
+      toolCallSpan?.attributes['ai.settings.context.privateValue'],
+    ).toBeUndefined();
+  });
+
   it('should record error on tool call', async () => {
     await generateText({
       model: new MockLanguageModelV4({

@@ -27,8 +27,9 @@ export function convertPerplexityUsage(
       cacheWrite: undefined,
     },
     outputTokens: {
-      total: completionTokens,
-      text: completionTokens - reasoningTokens,
+      // Perplexity reports reasoning tokens separately from completion tokens.
+      total: completionTokens + reasoningTokens,
+      text: completionTokens,
       reasoning: reasoningTokens,
     },
     raw: usage,

@@ -20,7 +20,6 @@ createFeatureTestSuite({
     invalidModel: provider.chat('no-such-model'),
     languageModels: [
       createChatModel('gpt-oss-120b'),
-      createChatModel('zai-glm-4.7'),
       createLanguageModelWithCapabilities(provider.chat('gemma-4-31b'), [
         'imageInput',
         'objectGeneration',

@@ -1,5 +1,6 @@
 import { ArrowUpRight } from 'lucide-react';
 import type { Metadata } from 'next';
+import { socialCard } from '@/lib/og';
 import Link from 'next/link';
 import { Templates } from '@/components/docs/templates';
 
@@ -7,6 +8,10 @@ export const metadata: Metadata = {
   title: 'AI SDK Templates',
   description:
     'Official app templates, examples, and framework integrations built with the AI SDK.',
+  ...socialCard(
+    'AI SDK Templates',
+    'Official app templates, examples, and framework integrations built with the AI SDK.',
+  ),
 };
 
 const TemplatesPage = () => (

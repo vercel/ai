@@ -82,6 +82,24 @@ describe('XaiVideoModel', () => {
         body: doneStatusResponse,
       },
     },
+    [`${TEST_BASE_URL}/videos/abc%2F..%2F..%2Finternal`]: {
+      response: {
+        type: 'json-value',
+        body: doneStatusResponse,
+      },
+    },
+    [`${TEST_BASE_URL}/videos/%252E`]: {
+      response: {
+        type: 'json-value',
+        body: doneStatusResponse,
+      },
+    },
+    [`${TEST_BASE_URL}/videos/%252E%252E`]: {
+      response: {
+        type: 'json-value',
+        body: doneStatusResponse,
+      },
+    },
   });
 
   describe('constructor', () => {
@@ -1224,6 +1242,37 @@ describe('XaiVideoModel', () => {
   });
 
   describe('doStatus', () => {
+    it('should encode the request ID as a single URL path segment', async () => {
+      const model = createModel();
+      const requestId = 'abc/../../internal';
+
+      await model.doStatus({
+        operation: { requestId },
+      });
+
+      expect(server.calls[0].requestUrl).toBe(
+        `${TEST_BASE_URL}/videos/${encodeURIComponent(requestId)}`,
+      );
+    });
+
+    it.each([
+      { requestId: '.', encodedRequestId: '%252E' },
+      { requestId: '..', encodedRequestId: '%252E%252E' },
+    ])(
+      'should preserve the $requestId request ID as a URL path segment',
+      async ({ requestId, encodedRequestId }) => {
+        const model = createModel();
+
+        await model.doStatus({
+          operation: { requestId },
+        });
+
+        expect(server.calls[0].requestUrl).toBe(
+          `${TEST_BASE_URL}/videos/${encodedRequestId}`,
+        );
+      },
+    );
+
     it('should return completed with video data when done', async () => {
       const model = createModel();
 
@@ -1342,7 +1391,7 @@ describe('XaiVideoModel', () => {
       };
     });
 
-    it('should throw when video URL missing on done', async () => {
+    it('should report an error status when video URL missing on done', async () => {
       server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
         type: 'json-value',
         body: {
@@ -1354,9 +1403,16 @@ describe('XaiVideoModel', () => {
 
       const model = createModel();
 
-      await expect(
-        model.doStatus({ operation: { requestId: 'req-123' } }),
-      ).rejects.toThrow('no video URL');
+      const result = await model.doStatus({
+        operation: { requestId: 'req-123' },
+      });
+
+      expect(result.status).toBe('error');
+      if (result.status === 'error') {
+        expect(result.error).toBe(
+          'Video generation completed but no video URL was returned.',
+        );
+      }
 
       // Reset
       server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
@@ -1365,7 +1421,7 @@ describe('XaiVideoModel', () => {
       };
     });
 
-    it('should throw when respect_moderation is false', async () => {
+    it('should report an error status when respect_moderation is false', async () => {
       server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
         type: 'json-value',
         body: {
@@ -1380,9 +1436,16 @@ describe('XaiVideoModel', () => {
 
       const model = createModel();
 
-      await expect(
-        model.doStatus({ operation: { requestId: 'req-123' } }),
-      ).rejects.toThrow('content policy violation');
+      const result = await model.doStatus({
+        operation: { requestId: 'req-123' },
+      });
+
+      expect(result.status).toBe('error');
+      if (result.status === 'error') {
+        expect(result.error).toBe(
+          'Video generation was blocked due to a content policy violation.',
+        );
+      }
 
       server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
         type: 'json-value',

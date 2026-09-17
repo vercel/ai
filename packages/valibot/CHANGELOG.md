@@ -1,5 +1,121 @@
 # @ai-sdk/valibot
 
+## 3.0.43
+
+### Patch Changes
+
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+
+## 3.0.42
+
+### Patch Changes
+
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+
+## 3.0.41
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@5.0.41
+
+## 3.0.40
+
+### Patch Changes
+
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider-utils@5.0.40
+
+## 3.0.39
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@5.0.39
+
+## 3.0.38
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@5.0.38
+
+## 3.0.37
+
+### Patch Changes
+
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider-utils@5.0.37
+
+## 3.0.36
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
+## 3.0.35
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider-utils@5.0.35
+
+## 3.0.34
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@5.0.34
+
+## 3.0.33
+
+### Patch Changes
+
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
+## 3.0.32
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 3.0.31
+
+### Patch Changes
+
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
+## 3.0.30
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@5.0.30
+
+## 3.0.29
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+
+## 3.0.28
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
 ## 3.0.27
 
 ### Patch Changes

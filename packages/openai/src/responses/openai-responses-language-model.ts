@@ -6,6 +6,7 @@ import {
   type LanguageModelV4CallOptions,
   type LanguageModelV4Content,
   type LanguageModelV4FinishReason,
+  type LanguageModelV4FunctionTool,
   type LanguageModelV4GenerateResult,
   type LanguageModelV4ProviderTool,
   type LanguageModelV4StreamPart,
@@ -29,10 +30,16 @@ import {
   type InferSchema,
   type ParseResult,
 } from '@ai-sdk/provider-utils';
-import type { OpenAIConfig } from '../openai-config';
+import {
+  prepareOpenAIConfigForWorkflowDeserialize,
+  type OpenAIConfig,
+} from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
-import { throwIfOpenAIStreamErrorBeforeOutput } from '../openai-stream-error';
+import {
+  createOpenAIProviderStreamError,
+  throwIfOpenAIStreamErrorBeforeOutput,
+} from '../openai-stream-error';
 import type { applyPatchInputSchema } from '../tool/apply-patch';
 import type {
   codeInterpreterInputSchema,
@@ -58,7 +65,12 @@ import {
   type OpenAIResponsesUsage,
 } from './convert-openai-responses-usage';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
+import {
+  expandParallelToolCall,
+  isUndeclaredParallelToolCall,
+} from './expand-parallel-tool-call';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
+import { normalizeOpenAIJsonSchema } from '../normalize-openai-json-schema';
 import {
   openaiResponsesChunkSchema,
   openaiResponsesResponseSchema,
@@ -83,6 +95,7 @@ import type {
   ResponsesReasoningProviderMetadata,
   ResponsesSourceDocumentProviderMetadata,
   ResponsesTextProviderMetadata,
+  ResponsesToolCallProviderMetadata,
 } from './openai-responses-provider-metadata';
 
 /**
@@ -191,6 +204,11 @@ function mapComputerCallInput({
   };
 }
 
+export const openaiResponsesSupportedUrls: Record<string, RegExp[]> = {
+  'image/*': [/^https?:\/\/.*$/],
+  'application/pdf': [/^https?:\/\/.*$/],
+};
+
 export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -206,10 +224,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
-    modelId: OpenAIResponsesModelId;
-    config: OpenAIConfig;
+    modelId: string;
+    config: Parameters<typeof prepareOpenAIConfigForWorkflowDeserialize>[0];
   }) {
-    return new OpenAIResponsesLanguageModel(options.modelId, options.config);
+    return new OpenAIResponsesLanguageModel(
+      options.modelId as OpenAIResponsesModelId,
+      prepareOpenAIConfigForWorkflowDeserialize(options.config),
+    );
   }
 
   constructor(modelId: OpenAIResponsesModelId, config: OpenAIConfig) {
@@ -217,33 +238,38 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     this.config = config;
   }
 
-  readonly supportedUrls: Record<string, RegExp[]> = {
-    'image/*': [/^https?:\/\/.*$/],
-    'application/pdf': [/^https?:\/\/.*$/],
-  };
+  readonly supportedUrls = openaiResponsesSupportedUrls;
 
   get provider(): string {
     return this.config.provider;
   }
 
-  protected async getArgs({
-    maxOutputTokens,
-    temperature,
-    stopSequences,
-    topP,
-    topK,
-    presencePenalty,
-    frequencyPenalty,
-    seed,
-    prompt,
-    reasoning,
-    providerOptions,
-    tools,
-    toolChoice,
-    responseFormat,
-  }: LanguageModelV4CallOptions) {
+  static async prepareRequest({
+    modelId,
+    config,
+    options: {
+      maxOutputTokens,
+      temperature,
+      stopSequences,
+      topP,
+      topK,
+      presencePenalty,
+      frequencyPenalty,
+      seed,
+      prompt,
+      reasoning,
+      providerOptions,
+      tools,
+      toolChoice,
+      responseFormat,
+    },
+  }: {
+    modelId: OpenAIResponsesModelId;
+    config: OpenAIConfig;
+    options: LanguageModelV4CallOptions;
+  }) {
     const warnings: SharedV4Warning[] = [];
-    const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
+    const modelCapabilities = getOpenAILanguageModelCapabilities(modelId);
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
@@ -265,7 +291,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'stopSequences' });
     }
 
-    const providerOptionsName = this.config.provider.includes('azure')
+    const providerOptionsName = config.provider.includes('azure')
       ? 'azure'
       : 'openai';
     let openaiOptions = await parseProviderOptions({
@@ -282,9 +308,25 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       });
     }
 
-    const resolvedReasoningEffort =
+    let resolvedReasoningEffort =
       openaiOptions?.reasoningEffort ??
       (isCustomReasoning(reasoning) ? reasoning : undefined);
+
+    if (
+      resolvedReasoningEffort != null &&
+      modelCapabilities.supportedReasoningEfforts != null &&
+      !modelCapabilities.supportedReasoningEfforts.includes(
+        resolvedReasoningEffort,
+      )
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'reasoningEffort',
+        details: `${modelId} only supports the following reasoning efforts: ${modelCapabilities.supportedReasoningEfforts.join(', ')}`,
+      });
+      resolvedReasoningEffort = undefined;
+    }
+
     const resolvedReasoningSummary =
       openaiOptions?.reasoningSummary !== undefined
         ? openaiOptions.reasoningSummary
@@ -337,6 +379,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       toolNameMapping,
       customProviderToolNames,
       outputSchemaToolNames,
+      supportsAsyncToolCalling: modelCapabilities.supportsAsyncToolCalling,
     });
 
     const { input, warnings: inputWarnings } =
@@ -349,7 +392,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             ? 'developer'
             : modelCapabilities.systemMessageMode),
         providerOptionsName,
-        fileIdPrefixes: this.config.fileIdPrefixes,
+        explicitMessageItemType: config.explicitMessageItemType,
+        fileIdPrefixes: config.fileIdPrefixes,
         passThroughUnsupportedFiles:
           openaiOptions?.passThroughUnsupportedFiles ?? false,
         store: openaiOptions?.store ?? true,
@@ -359,6 +403,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         hasShellTool: hasOpenAITool('openai.shell'),
         hasApplyPatchTool: hasOpenAITool('openai.apply_patch'),
         hasComputerTool: hasOpenAITool('openai.computer'),
+        toolSearchToolName: getOpenAIToolName('openai.tool_search'),
         customProviderToolNames:
           customProviderToolNames.size > 0
             ? customProviderToolNames
@@ -369,7 +414,45 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     warnings.push(...inputWarnings);
 
+    const reasoningEffortUpdate = openaiOptions?.reasoningEffortUpdate;
+    const configurationUpdateIsSupported =
+      reasoningEffortUpdate == null ||
+      (modelCapabilities.supportsConfigurationUpdate &&
+        openaiOptions?.reasoningMode !== 'pro' &&
+        openaiOptions?.contextManagement == null &&
+        openaiOptions?.truncation !== 'auto');
+
+    if (reasoningEffortUpdate != null && !configurationUpdateIsSupported) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'reasoningEffortUpdate',
+        details: !modelCapabilities.supportsConfigurationUpdate
+          ? 'reasoningEffortUpdate is only supported by GPT-6 and later models'
+          : 'reasoningEffortUpdate requires standard reasoning mode without automatic compaction or automatic truncation',
+      });
+    } else if (reasoningEffortUpdate != null) {
+      input.unshift({
+        type: 'configuration_update',
+        reasoning: { effort: reasoningEffortUpdate },
+      });
+    }
+
+    // A compaction trigger is a request control, not conversation history.
+    // OpenAI requires it to be the final input item, so append it only after
+    // the complete prompt has been converted.
+    if (openaiOptions?.compactionTrigger) {
+      input.push({ type: 'compaction_trigger' });
+    }
+
     const strictJsonSchema = openaiOptions?.strictJsonSchema ?? true;
+    const normalizedResponseFormatSchema =
+      responseFormat?.type === 'json' && responseFormat.schema != null
+        ? normalizeOpenAIJsonSchema(responseFormat.schema)
+        : undefined;
+
+    if (normalizedResponseFormatSchema != null) {
+      warnings.push(...normalizedResponseFormatSchema.warnings);
+    }
 
     let include: OpenAIResponsesIncludeOptions = openaiOptions?.include;
 
@@ -381,10 +464,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       }
     }
 
+    function getOpenAIToolName(id: string) {
+      return tools?.find(tool => tool.type === 'provider' && tool.id === id)
+        ?.name;
+    }
+
     function hasOpenAITool(id: string) {
-      return (
-        tools?.find(tool => tool.type === 'provider' && tool.id === id) != null
-      );
+      return getOpenAIToolName(id) != null;
     }
 
     // when logprobs are requested, automatically include them:
@@ -409,7 +495,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       ) as LanguageModelV4ProviderTool | undefined
     )?.name;
 
-    if (webSearchToolName) {
+    if (
+      webSearchToolName &&
+      config.supportsWebSearchSourcesInclude !== false &&
+      openaiOptions?.includeWebSearchSources !== false
+    ) {
       addInclude('web_search_call.action.sources');
     }
 
@@ -426,7 +516,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     }
 
     const baseArgs = {
-      model: this.modelId,
+      model: modelId,
       input,
       temperature,
       top_p: topP,
@@ -436,13 +526,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         text: {
           ...(responseFormat?.type === 'json' && {
             format:
-              responseFormat.schema != null
+              normalizedResponseFormatSchema != null
                 ? {
                     type: 'json_schema',
                     strict: strictJsonSchema,
                     name: responseFormat.name ?? 'response',
                     description: responseFormat.description,
-                    schema: responseFormat.schema,
+                    schema: normalizedResponseFormatSchema.schema,
                   }
                 : { type: 'json_object' },
           }),
@@ -501,6 +591,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         }),
     };
 
+    if (
+      modelCapabilities.supportsConfigurationUpdate &&
+      baseArgs.prompt_cache_retention != null
+    ) {
+      baseArgs.prompt_cache_retention = undefined;
+      warnings.push({
+        type: 'unsupported',
+        feature: 'promptCacheRetention',
+        details:
+          'promptCacheRetention is not supported by GPT-6 and later models; use promptCacheOptions instead',
+      });
+    }
+
     // remove unsupported settings for reasoning models
     // see https://platform.openai.com/docs/guides/reasoning#limitations
     if (isReasoningModel) {
@@ -527,6 +630,26 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             type: 'unsupported',
             feature: 'topP',
             details: 'topP is not supported for reasoning models',
+          });
+        }
+
+        if (
+          modelCapabilities.supportedReasoningEfforts != null &&
+          (baseArgs.top_logprobs != null ||
+            baseArgs.include?.includes('message.output_text.logprobs'))
+        ) {
+          baseArgs.top_logprobs = undefined;
+          const filteredInclude = baseArgs.include?.filter(
+            value => value !== 'message.output_text.logprobs',
+          );
+          baseArgs.include =
+            filteredInclude != null && filteredInclude.length > 0
+              ? filteredInclude
+              : undefined;
+          warnings.push({
+            type: 'unsupported',
+            feature: 'logprobs',
+            details: 'logprobs is not supported for reasoning models',
           });
         }
       }
@@ -620,6 +743,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     };
   }
 
+  private getArgs(options: LanguageModelV4CallOptions) {
+    return OpenAIResponsesLanguageModel.prepareRequest({
+      modelId: this.modelId,
+      config: this.config,
+      options,
+    });
+  }
+
   async doGenerate(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
@@ -684,6 +815,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     const content: Array<LanguageModelV4Content> = [];
     const logprobs: Array<OpenAIResponsesLogprobs> = [];
+    const functionTools =
+      options.tools?.filter(
+        (tool): tool is LanguageModelV4FunctionTool => tool.type === 'function',
+      ) ?? [];
 
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
@@ -944,6 +1079,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         case 'function_call': {
           hasFunctionCall = true;
 
+          const expandedToolCalls = await expandParallelToolCall({
+            toolCall: {
+              toolCallId: part.call_id,
+              toolName: part.name,
+              input: part.arguments,
+            },
+            tools: functionTools,
+            providerOptionsName,
+            itemId: part.id,
+          });
+
+          if (expandedToolCalls != null) {
+            content.push(...expandedToolCalls);
+            break;
+          }
+
           content.push({
             type: 'tool-call',
             toolCallId: part.call_id,
@@ -952,6 +1103,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             providerMetadata: {
               [providerOptionsName]: {
                 itemId: part.id,
+                ...(part.async != null && { async: part.async }),
                 ...(part.namespace != null && { namespace: part.namespace }),
                 ...(part.caller != null && {
                   caller:
@@ -962,7 +1114,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                         }
                       : part.caller,
                 }),
-              },
+              } satisfies ResponsesToolCallProviderMetadata,
             },
           });
           break;
@@ -1021,7 +1173,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             providerMetadata: {
               [providerOptionsName]: {
                 itemId: part.id,
-              },
+                ...(part.async != null && { async: part.async }),
+              } satisfies ResponsesToolCallProviderMetadata,
             },
           });
           break;
@@ -1210,6 +1363,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         }
 
         case 'apply_patch_call': {
+          hasFunctionCall = true;
+
           content.push({
             type: 'tool-call',
             toolCallId: part.call_id,
@@ -1335,6 +1490,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     const approvalRequestIdToDummyToolCallIdFromPrompt =
       extractApprovalRequestIdToToolCallIdMapping(options.prompt);
 
+    const functionTools =
+      options.tools?.filter(
+        (tool): tool is LanguageModelV4FunctionTool => tool.type === 'function',
+      ) ?? [];
+
     const approvalRequestIdToDummyToolCallIdFromStream = new Map<
       string,
       string
@@ -1361,6 +1521,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             endEmitted: boolean;
           };
           toolSearchExecution?: 'server' | 'client';
+          suppressInputStreaming?: boolean;
+          bufferedInputDeltas?: string[];
+          async?: boolean | null;
         }
       | undefined
     > = {};
@@ -1434,6 +1597,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   })
                 : chunk.error;
 
+              encounteredStreamError = true;
               finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error });
               return;
@@ -1443,16 +1607,26 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
             if (isResponseOutputItemAddedChunk(value)) {
               if (value.item.type === 'function_call') {
+                const suppressInputStreaming = isUndeclaredParallelToolCall({
+                  toolName: value.item.name,
+                  tools: functionTools,
+                });
+
                 ongoingToolCalls[value.output_index] = {
                   toolName: value.item.name,
                   toolCallId: value.item.call_id,
+                  suppressInputStreaming,
+                  bufferedInputDeltas: suppressInputStreaming ? [] : undefined,
+                  async: value.item.async,
                 };
 
-                controller.enqueue({
-                  type: 'tool-input-start',
-                  id: value.item.call_id,
-                  toolName: value.item.name,
-                });
+                if (!suppressInputStreaming) {
+                  controller.enqueue({
+                    type: 'tool-input-start',
+                    id: value.item.call_id,
+                    toolName: value.item.name,
+                  });
+                }
               } else if (value.item.type === 'custom_tool_call') {
                 const toolName = toolNameMapping.toCustomToolName(
                   value.item.name,
@@ -1460,6 +1634,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 ongoingToolCalls[value.output_index] = {
                   toolName,
                   toolCallId: value.item.call_id,
+                  async: value.item.async,
                 };
 
                 controller.enqueue({
@@ -1690,43 +1865,125 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 });
                 activeOutputItemIds[value.output_index] = undefined;
               } else if (value.item.type === 'function_call') {
+                const item = value.item;
+                const ongoingToolCall = ongoingToolCalls[value.output_index];
                 ongoingToolCalls[value.output_index] = undefined;
                 hasFunctionCall = true;
 
-                controller.enqueue({
-                  type: 'tool-input-end',
-                  id: value.item.call_id,
-                  ...(value.item.namespace != null && {
+                const suppressInputStreaming =
+                  ongoingToolCall?.suppressInputStreaming ??
+                  isUndeclaredParallelToolCall({
+                    toolName: item.name,
+                    tools: functionTools,
+                  });
+
+                const enqueueUnexpandedToolCall = () => {
+                  if (suppressInputStreaming) {
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: item.call_id,
+                      toolName: item.name,
+                    });
+
+                    const bufferedInputDeltas =
+                      ongoingToolCall?.bufferedInputDeltas ?? [];
+
+                    if (bufferedInputDeltas.length > 0) {
+                      for (const delta of bufferedInputDeltas) {
+                        controller.enqueue({
+                          type: 'tool-input-delta',
+                          id: item.call_id,
+                          delta,
+                        });
+                      }
+                    } else if (item.arguments.length > 0) {
+                      controller.enqueue({
+                        type: 'tool-input-delta',
+                        id: item.call_id,
+                        delta: item.arguments,
+                      });
+                    }
+                  }
+
+                  controller.enqueue({
+                    type: 'tool-input-end',
+                    id: item.call_id,
+                    ...(item.namespace != null && {
+                      providerMetadata: {
+                        [providerOptionsName]: {
+                          namespace: item.namespace,
+                        },
+                      },
+                    }),
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId: item.call_id,
+                    toolName: item.name,
+                    input: item.arguments,
                     providerMetadata: {
                       [providerOptionsName]: {
-                        namespace: value.item.namespace,
-                      },
+                        itemId: item.id,
+                        ...(item.async != null
+                          ? { async: item.async }
+                          : ongoingToolCall?.async != null
+                            ? { async: ongoingToolCall.async }
+                            : {}),
+                        ...(item.namespace != null && {
+                          namespace: item.namespace,
+                        }),
+                        ...(item.caller != null && {
+                          caller:
+                            item.caller.type === 'program'
+                              ? {
+                                  type: 'program',
+                                  callerId: item.caller.caller_id,
+                                }
+                              : item.caller,
+                        }),
+                      } satisfies ResponsesToolCallProviderMetadata,
                     },
-                  }),
-                });
+                  });
+                };
 
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallId: value.item.call_id,
-                  toolName: value.item.name,
-                  input: value.item.arguments,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      itemId: value.item.id,
-                      ...(value.item.namespace != null && {
-                        namespace: value.item.namespace,
-                      }),
-                      ...(value.item.caller != null && {
-                        caller:
-                          value.item.caller.type === 'program'
-                            ? {
-                                type: 'program',
-                                callerId: value.item.caller.caller_id,
-                              }
-                            : value.item.caller,
-                      }),
-                    },
+                if (!suppressInputStreaming) {
+                  enqueueUnexpandedToolCall();
+                  return;
+                }
+
+                return expandParallelToolCall({
+                  toolCall: {
+                    toolCallId: item.call_id,
+                    toolName: item.name,
+                    input: item.arguments,
                   },
+                  tools: functionTools,
+                  providerOptionsName,
+                  itemId: item.id,
+                }).then(expandedToolCalls => {
+                  if (expandedToolCalls == null) {
+                    enqueueUnexpandedToolCall();
+                    return;
+                  }
+
+                  for (const toolCall of expandedToolCalls) {
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: toolCall.toolCallId,
+                      toolName: toolCall.toolName,
+                    });
+                    controller.enqueue({
+                      type: 'tool-input-delta',
+                      id: toolCall.toolCallId,
+                      delta: toolCall.input,
+                    });
+                    controller.enqueue({
+                      type: 'tool-input-end',
+                      id: toolCall.toolCallId,
+                    });
+                    controller.enqueue(toolCall);
+                  }
                 });
               } else if (value.item.type === 'program') {
                 controller.enqueue({
@@ -1768,6 +2025,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   },
                 });
               } else if (value.item.type === 'custom_tool_call') {
+                const ongoingToolCall = ongoingToolCalls[value.output_index];
                 ongoingToolCalls[value.output_index] = undefined;
                 hasFunctionCall = true;
                 const toolName = toolNameMapping.toCustomToolName(
@@ -1787,7 +2045,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   providerMetadata: {
                     [providerOptionsName]: {
                       itemId: value.item.id,
-                    },
+                      ...(value.item.async != null
+                        ? { async: value.item.async }
+                        : ongoingToolCall?.async != null
+                          ? { async: ongoingToolCall.async }
+                          : {}),
+                    } satisfies ResponsesToolCallProviderMetadata,
                   },
                 });
               } else if (value.item.type === 'web_search_call') {
@@ -2044,6 +2307,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
                 // Emit the final tool-call with complete diff when status is 'completed'
                 if (toolCall && value.item.status === 'completed') {
+                  hasFunctionCall = true;
+
                   controller.enqueue({
                     type: 'tool-call',
                     toolCallId: toolCall.toolCallId,
@@ -2209,11 +2474,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               const toolCall = ongoingToolCalls[value.output_index];
 
               if (toolCall != null) {
-                controller.enqueue({
-                  type: 'tool-input-delta',
-                  id: toolCall.toolCallId,
-                  delta: value.delta,
-                });
+                if (toolCall.suppressInputStreaming) {
+                  toolCall.bufferedInputDeltas?.push(value.delta);
+                } else {
+                  controller.enqueue({
+                    type: 'tool-input-delta',
+                    id: toolCall.toolCallId,
+                    delta: value.delta,
+                  });
+                }
               }
             } else if (isResponseCustomToolCallInputDeltaChunk(value)) {
               const toolCall = ongoingToolCalls[value.output_index];
@@ -2432,14 +2701,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 }
               }
             } else if (isResponseFinishedChunk(value)) {
-              finishReason = {
-                unified: mapOpenAIResponseFinishReason({
-                  finishReason: value.response.incomplete_details?.reason,
-                  hasFunctionCall,
-                }),
-                raw: value.response.incomplete_details?.reason ?? undefined,
-              };
-              usage = value.response.usage;
+              if (!encounteredStreamError) {
+                finishReason = {
+                  unified: mapOpenAIResponseFinishReason({
+                    finishReason: value.response.incomplete_details?.reason,
+                    hasFunctionCall,
+                  }),
+                  raw: value.response.incomplete_details?.reason ?? undefined,
+                };
+              }
+              usage = value.response.usage ?? undefined;
               if (typeof value.response.service_tier === 'string') {
                 serviceTier = value.response.service_tier;
               }
@@ -2465,17 +2736,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
               if (!encounteredStreamError && value.response.error != null) {
                 encounteredStreamError = true;
+                const error = {
+                  type: 'response.failed',
+                  sequence_number: value.sequence_number,
+                  response: {
+                    error: value.response.error,
+                    incomplete_details: value.response.incomplete_details,
+                    service_tier: value.response.service_tier,
+                  },
+                };
                 controller.enqueue({
                   type: 'error',
-                  error: {
-                    type: 'response.failed',
-                    sequence_number: value.sequence_number,
-                    response: {
-                      error: value.response.error,
-                      incomplete_details: value.response.incomplete_details,
-                      service_tier: value.response.service_tier,
-                    },
-                  },
+                  error: createOpenAIProviderStreamError(error) ?? error,
                 });
               }
             } else if (isResponseAnnotationAddedChunk(value)) {
@@ -2549,11 +2821,34 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             } else if (isErrorChunk(value)) {
               encounteredStreamError = true;
               finishReason = { unified: 'error', raw: 'error' };
-              controller.enqueue({ type: 'error', error: value });
+              controller.enqueue({
+                type: 'error',
+                error: createOpenAIProviderStreamError(value) ?? value,
+              });
             }
           },
 
           flush(controller) {
+            for (const toolCall of Object.values(ongoingToolCalls)) {
+              if (!toolCall?.suppressInputStreaming) {
+                continue;
+              }
+
+              controller.enqueue({
+                type: 'tool-input-start',
+                id: toolCall.toolCallId,
+                toolName: toolCall.toolName,
+              });
+
+              for (const delta of toolCall.bufferedInputDeltas ?? []) {
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: toolCall.toolCallId,
+                  delta,
+                });
+              }
+            }
+
             const providerMetadata: SharedV4ProviderMetadata = {
               [providerOptionsName]: {
                 responseId: responseId,
@@ -2746,7 +3041,7 @@ function isResponseOutputChunk(chunk: OpenAIResponsesChunk): boolean {
   );
 }
 
-function mapWebSearchOutput(
+export function mapWebSearchOutput(
   action: OpenAIResponsesWebSearchAction | null | undefined,
 ): InferSchema<typeof webSearchOutputSchema> {
   if (action == null) {

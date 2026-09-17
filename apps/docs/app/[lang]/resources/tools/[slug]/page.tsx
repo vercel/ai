@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Tab, Tabs } from '@/components/docs/tabs';
 import { HighlightedCode } from '@/components/resources/highlighted-code';
+import { socialCard } from '@/lib/og';
 import { tools } from '@/lib/tools-registry';
 
 const linkButtonClass =
@@ -141,9 +142,12 @@ export const generateMetadata = async ({
     notFound();
   }
 
+  const description = `Use the ${tool.name} tool in your AI SDK agent with just a few lines of code.`;
+
   return {
     title: tool.name,
-    description: `Use the ${tool.name} tool in your AI SDK agent with just a few lines of code.`,
+    description,
+    ...socialCard(tool.name, description),
   };
 };
 

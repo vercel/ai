@@ -1,5 +1,8 @@
-import type { Sandbox } from '@vercel/sandbox';
-import { HarnessSandboxAuthenticationError } from '@ai-sdk/harness';
+import type { NetworkPolicy, Sandbox } from '@vercel/sandbox';
+import {
+  HarnessSandboxAuthenticationError,
+  type HarnessV1NetworkSandboxSession,
+} from '@ai-sdk/harness';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createVercelSandbox } from './vercel-sandbox';
 
@@ -24,6 +27,7 @@ type MockSpies = {
   stop: ReturnType<typeof vi.fn>;
   delete: ReturnType<typeof vi.fn>;
   routes: Array<{ port: number }>;
+  networkPolicy: NetworkPolicy | undefined;
 };
 
 function makeMockSandbox(overrides: Partial<MockSpies> = {}) {
@@ -33,6 +37,7 @@ function makeMockSandbox(overrides: Partial<MockSpies> = {}) {
   const stop = overrides.stop ?? vi.fn(async () => {});
   const deleteSandbox = overrides.delete ?? vi.fn(async () => {});
   const routes: Array<{ port: number }> = overrides.routes ?? [{ port: 4000 }];
+  const networkPolicy = overrides.networkPolicy;
   const sandbox = {
     name: 'sbx_harness',
     domain,
@@ -41,12 +46,48 @@ function makeMockSandbox(overrides: Partial<MockSpies> = {}) {
     stop,
     delete: deleteSandbox,
     routes,
-    currentSession: () => ({ cwd: '/vercel/sandbox' }),
+    networkPolicy,
+    currentSession: () => ({
+      cwd: '/vercel/sandbox',
+      networkPolicy,
+    }),
   } as unknown as Sandbox;
   return {
     sandbox,
-    spies: { domain, update, runCommand, stop, delete: deleteSandbox, routes },
+    spies: {
+      domain,
+      update,
+      runCommand,
+      stop,
+      delete: deleteSandbox,
+      routes,
+      networkPolicy,
+    },
   };
+}
+
+function getSetRequestTransformations(
+  session: HarnessV1NetworkSandboxSession,
+): NonNullable<HarnessV1NetworkSandboxSession['setRequestTransformations']> {
+  const setRequestTransformations = session.setRequestTransformations;
+  if (setRequestTransformations == null) {
+    throw new Error(
+      'Expected Vercel Sandbox to support request transformations.',
+    );
+  }
+  return setRequestTransformations;
+}
+
+function getAddRequestTransformations(
+  session: HarnessV1NetworkSandboxSession,
+): NonNullable<HarnessV1NetworkSandboxSession['addRequestTransformations']> {
+  const addRequestTransformations = session.addRequestTransformations;
+  if (addRequestTransformations == null) {
+    throw new Error(
+      'Expected Vercel Sandbox to support additive request transformations.',
+    );
+  }
+  return addRequestTransformations;
 }
 
 async function captureError(promise: PromiseLike<unknown>): Promise<unknown> {
@@ -93,12 +134,12 @@ describe('createVercelSandbox (wrap existing)', () => {
 
   it('destroy is a no-op (caller owns lifecycle)', async () => {
     const { sandbox, spies } = makeMockSandbox();
-    await (await createVercelSandbox({ sandbox }).createSession()).destroy?.();
+    await (await createVercelSandbox({ sandbox }).createSession()).destroy();
     expect(spies.stop).not.toHaveBeenCalled();
     expect(spies.delete).not.toHaveBeenCalled();
   });
 
-  describe('getPortUrl', () => {
+  describe('getPortEndpoint', () => {
     it('returns the value from sandbox.domain for https', async () => {
       const { sandbox, spies } = makeMockSandbox({
         routes: [{ port: 3000 }],
@@ -106,39 +147,57 @@ describe('createVercelSandbox (wrap existing)', () => {
       spies.domain.mockReturnValueOnce('https://sub.vercel.run');
 
       const handle = await createVercelSandbox({ sandbox }).createSession();
-      const url = await handle.getPortUrl({ port: 3000 });
+      const endpoint = await handle.getPortEndpoint({ port: 3000 });
       expect(spies.domain).toHaveBeenCalledWith(3000);
-      expect(url).toBe('https://sub.vercel.run/');
+      expect(endpoint).toEqual({ url: 'https://sub.vercel.run/' });
     });
 
     it('upgrades ws to wss when domain is https', async () => {
       const { sandbox, spies } = makeMockSandbox();
       spies.domain.mockReturnValueOnce('https://sub.vercel.run');
       const handle = await createVercelSandbox({ sandbox }).createSession();
-      const url = await handle.getPortUrl({ port: 4000, protocol: 'ws' });
-      expect(url).toBe('wss://sub.vercel.run/');
+      const endpoint = await handle.getPortEndpoint({
+        port: 4000,
+        protocol: 'ws',
+      });
+      expect(endpoint).toEqual({ url: 'wss://sub.vercel.run/' });
     });
 
     it('keeps ws as ws when domain is http', async () => {
       const { sandbox, spies } = makeMockSandbox();
       spies.domain.mockReturnValueOnce('http://sub.vercel.run');
       const handle = await createVercelSandbox({ sandbox }).createSession();
-      const url = await handle.getPortUrl({ port: 4000, protocol: 'ws' });
-      expect(url).toBe('ws://sub.vercel.run/');
+      const endpoint = await handle.getPortEndpoint({
+        port: 4000,
+        protocol: 'ws',
+      });
+      expect(endpoint).toEqual({ url: 'ws://sub.vercel.run/' });
     });
 
     it('throws when the requested port is not in the sandbox routes', async () => {
       const { sandbox } = makeMockSandbox({ routes: [{ port: 4000 }] });
       const handle = await createVercelSandbox({ sandbox }).createSession();
-      await expect(handle.getPortUrl({ port: 9999 })).rejects.toThrow(
+      await expect(handle.getPortEndpoint({ port: 9999 })).rejects.toThrow(
         /Port 9999 is not exposed/,
       );
+    });
+
+    it('keeps getPortUrl as a compatibility wrapper', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+      spies.domain.mockReturnValueOnce('https://sub.vercel.run');
+      const handle = await createVercelSandbox({ sandbox }).createSession();
+
+      await expect(
+        handle.getPortUrl({ port: 4000, protocol: 'ws' }),
+      ).resolves.toBe('wss://sub.vercel.run/');
     });
   });
 
   describe('setNetworkPolicy', () => {
     it('maps allow-all', async () => {
-      const { sandbox, spies } = makeMockSandbox();
+      const { sandbox, spies } = makeMockSandbox({
+        networkPolicy: 'deny-all',
+      });
       const handle = await createVercelSandbox({ sandbox }).createSession();
       await handle.setNetworkPolicy!({ mode: 'allow-all' });
       expect(spies.update).toHaveBeenCalledWith({ networkPolicy: 'allow-all' });
@@ -207,6 +266,149 @@ describe('createVercelSandbox (wrap existing)', () => {
     });
   });
 
+  describe('setRequestTransformations', () => {
+    const credentialTransformation = {
+      match: {
+        host: 'ai-gateway.vercel.sh',
+        method: ['POST'],
+        path: { startsWith: '/v1/' },
+      },
+      transform: {
+        headers: { authorization: 'Bearer host-only-credential' },
+      },
+    } as const;
+
+    it('preserves allow-all when only request transformations are configured', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+      const handle = await createVercelSandbox({ sandbox }).createSession();
+      await getSetRequestTransformations(handle)([credentialTransformation]);
+      expect(spies.update).toHaveBeenCalledWith({
+        networkPolicy: {
+          allow: {
+            'ai-gateway.vercel.sh': [
+              {
+                match: {
+                  method: ['POST'],
+                  path: { startsWith: '/v1/' },
+                },
+                transform: [
+                  {
+                    headers: {
+                      authorization: 'Bearer host-only-credential',
+                    },
+                  },
+                ],
+              },
+            ],
+            '*': [],
+          },
+        },
+      });
+    });
+
+    it('groups several request transformations for the same host', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+      const handle = await createVercelSandbox({ sandbox }).createSession();
+      await getSetRequestTransformations(handle)([
+        credentialTransformation,
+        {
+          match: { host: 'ai-gateway.vercel.sh', path: { exact: '/models' } },
+          transform: { headers: { 'x-api-key': 'second-credential' } },
+        },
+      ]);
+      const update = spies.update.mock.calls.at(-1)?.[0];
+      expect(
+        (
+          update?.networkPolicy as
+            | {
+                allow: Record<string, ReadonlyArray<unknown>>;
+              }
+            | undefined
+        )?.allow['ai-gateway.vercel.sh'],
+      ).toHaveLength(2);
+    });
+
+    it('keeps access policy authoritative regardless of setter order', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+      const handle = await createVercelSandbox({ sandbox }).createSession();
+      await getSetRequestTransformations(handle)([credentialTransformation]);
+      await handle.setNetworkPolicy!({
+        mode: 'custom',
+        allowedHosts: ['registry.npmjs.org'],
+        deniedCIDRs: ['169.254.169.254/32'],
+      });
+      expect(spies.update).toHaveBeenLastCalledWith({
+        networkPolicy: {
+          allow: ['registry.npmjs.org'],
+          subnets: { deny: ['169.254.169.254/32'] },
+        },
+      });
+    });
+
+    it('keeps transformations pending when the initial policy does not allow their host', async () => {
+      const { sandbox, spies } = makeMockSandbox({
+        networkPolicy: { allow: ['registry.npmjs.org'] },
+      });
+      const handle = await createVercelSandbox({ sandbox }).createSession();
+      await getSetRequestTransformations(handle)([credentialTransformation]);
+      expect(spies.update).not.toHaveBeenCalled();
+
+      await handle.setNetworkPolicy!({
+        mode: 'custom',
+        allowedHosts: ['ai-gateway.vercel.sh'],
+      });
+      expect(spies.update).toHaveBeenLastCalledWith({
+        networkPolicy: {
+          allow: {
+            'ai-gateway.vercel.sh': expect.any(Array),
+          },
+        },
+      });
+    });
+
+    it('restores the access policy when request transformations are cleared', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+      const handle = await createVercelSandbox({ sandbox }).createSession();
+      await handle.setNetworkPolicy!({
+        mode: 'custom',
+        allowedHosts: ['registry.npmjs.org'],
+      });
+      const setRequestTransformations = getSetRequestTransformations(handle);
+      await setRequestTransformations([credentialTransformation]);
+      await setRequestTransformations([]);
+      expect(spies.update).toHaveBeenLastCalledWith({
+        networkPolicy: { allow: ['registry.npmjs.org'] },
+      });
+    });
+  });
+
+  describe('addRequestTransformations', () => {
+    it('delegates additive transformations to the policy manager', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+      const handle = await createVercelSandbox({ sandbox }).createSession();
+
+      await getAddRequestTransformations(handle)([
+        {
+          match: { host: 'api.example.com' },
+          transform: { headers: { authorization: 'Bearer secret' } },
+        },
+      ]);
+
+      expect(spies.update).toHaveBeenCalledWith({
+        networkPolicy: {
+          allow: {
+            '*': [],
+            'api.example.com': [
+              {
+                transform: [{ headers: { authorization: 'Bearer secret' } }],
+              },
+            ],
+          },
+        },
+      });
+    });
+  });
+
   describe('setPorts', () => {
     it('forwards the requested port list to sandbox.update', async () => {
       const { sandbox, spies } = makeMockSandbox();
@@ -216,23 +418,6 @@ describe('createVercelSandbox (wrap existing)', () => {
         { ports: [4000, 5000] },
         undefined,
       );
-    });
-  });
-
-  describe('bridgePorts', () => {
-    it('is exposed on the provider when set on settings', () => {
-      const { sandbox } = makeMockSandbox();
-      const provider = createVercelSandbox({
-        sandbox,
-        bridgePorts: [5001, 5002],
-      });
-      expect(provider.bridgePorts).toEqual([5001, 5002]);
-    });
-
-    it('is undefined when not set', () => {
-      const { sandbox } = makeMockSandbox();
-      const provider = createVercelSandbox({ sandbox });
-      expect(provider.bridgePorts).toBeUndefined();
     });
   });
 });
@@ -326,7 +511,7 @@ describe('createVercelSandbox (create from scratch)', () => {
     expect(error).toBe(cause);
   });
 
-  it('applies a 30 minute default timeout when none is provided', async () => {
+  it('preserves the Node 24 runtime and 30 minute timeout defaults', async () => {
     const { sandbox } = makeMockSandbox();
     createMock.mockResolvedValueOnce(sandbox);
 
@@ -334,8 +519,61 @@ describe('createVercelSandbox (create from scratch)', () => {
 
     expect(createMock).toHaveBeenCalledTimes(1);
     expect(createMock.mock.calls[0][0]).toMatchObject({
+      runtime: 'node24',
       timeout: 30 * 60 * 1_000,
     });
+  });
+
+  it('does not add the legacy runtime when an image is provided', async () => {
+    const { sandbox } = makeMockSandbox();
+    createMock.mockResolvedValueOnce(sandbox);
+
+    await createVercelSandbox({
+      image: 'vercel/sandbox/universal',
+    }).createSession();
+
+    expect(createMock.mock.calls[0][0]).toMatchObject({
+      image: 'vercel/sandbox/universal',
+    });
+    expect(createMock.mock.calls[0][0]).not.toHaveProperty('runtime');
+  });
+
+  it('uses an image for a template without forwarding it to snapshot forks', async () => {
+    const { sandbox: template } = makeMockSandbox();
+    const { sandbox: fork } = makeMockSandbox();
+    Object.assign(template, { currentSnapshotId: 'snap_123' });
+    getOrCreateMock.mockResolvedValueOnce(template);
+    createMock.mockResolvedValueOnce(fork);
+
+    await createVercelSandbox({
+      image: 'vercel/sandbox/universal',
+    }).createSession({
+      identity: 'template-test',
+      onFirstCreate: async () => {},
+    });
+
+    expect(getOrCreateMock.mock.calls[0][0]).toMatchObject({
+      image: 'vercel/sandbox/universal',
+    });
+    expect(createMock.mock.calls[0][0]).toMatchObject({
+      source: { type: 'snapshot', snapshotId: 'snap_123' },
+    });
+    expect(createMock.mock.calls[0][0]).not.toHaveProperty('image');
+    expect(createMock.mock.calls[0][0]).not.toHaveProperty('runtime');
+  });
+
+  it('does not add the legacy runtime when restoring a snapshot', async () => {
+    const { sandbox } = makeMockSandbox();
+    createMock.mockResolvedValueOnce(sandbox);
+
+    await createVercelSandbox({
+      source: { type: 'snapshot', snapshotId: 'snap_123' },
+    }).createSession();
+
+    expect(createMock.mock.calls[0][0]).toMatchObject({
+      source: { type: 'snapshot', snapshotId: 'snap_123' },
+    });
+    expect(createMock.mock.calls[0][0]).not.toHaveProperty('runtime');
   });
 
   it('respects an explicitly provided timeout', async () => {
@@ -347,13 +585,22 @@ describe('createVercelSandbox (create from scratch)', () => {
     expect(createMock.mock.calls[0][0]).toMatchObject({ timeout: 60_000 });
   });
 
-  it('destroy stops and deletes owned sandboxes', async () => {
-    const { sandbox, spies } = makeMockSandbox();
+  it('destroy stops before deleting owned sandboxes', async () => {
+    const calls: string[] = [];
+    const { sandbox, spies } = makeMockSandbox({
+      stop: vi.fn(async () => {
+        calls.push('stop');
+      }),
+      delete: vi.fn(async () => {
+        calls.push('delete');
+      }),
+    });
     createMock.mockResolvedValueOnce(sandbox);
 
     const handle = await createVercelSandbox({}).createSession();
-    await handle.destroy?.();
+    await handle.destroy();
 
+    expect(calls).toEqual(['stop', 'delete']);
     expect(spies.stop).toHaveBeenCalledTimes(1);
     expect(spies.delete).toHaveBeenCalledTimes(1);
   });
@@ -367,7 +614,7 @@ describe('createVercelSandbox (create from scratch)', () => {
     createMock.mockResolvedValueOnce(sandbox);
 
     const handle = await createVercelSandbox({}).createSession();
-    await handle.destroy?.();
+    await handle.destroy();
 
     expect(spies.stop).toHaveBeenCalledTimes(1);
     expect(spies.delete).toHaveBeenCalledTimes(1);

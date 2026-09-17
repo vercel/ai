@@ -1,6 +1,7 @@
 import { posix } from 'node:path';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import type { HarnessV1Bootstrap } from '../../v1';
+import { resolveSandboxDefaultWorkingDirectory } from '../../utils/resolve-sandbox-default-working-directory';
 import type { HarnessAgentSandboxConfig } from '../harness-agent-settings';
 import { applyBootstrapRecipe, hashHarnessBootstrap } from './bootstrap-recipe';
 
@@ -148,8 +149,8 @@ export async function runSandboxBootstrap({
 
   const resolvedDefaultWorkingDirectory =
     defaultWorkingDirectory ??
-    (await resolveDefaultWorkingDirectory({
-      session,
+    (await resolveSandboxDefaultWorkingDirectory({
+      sandboxSession: session,
       abortSignal,
     }));
 
@@ -179,32 +180,6 @@ export async function runSandboxBootstrap({
     abortSignal,
   });
   await onBootstrap({ session, workDir: bootstrapWorkDir, abortSignal });
-}
-
-export async function resolveDefaultWorkingDirectory({
-  session,
-  abortSignal,
-}: {
-  readonly session: SandboxSession;
-  readonly abortSignal?: AbortSignal;
-}): Promise<string> {
-  const result = await session.run({
-    command: 'pwd',
-    abortSignal,
-  });
-  if (result.exitCode !== 0) {
-    throw new Error(
-      `Failed to resolve sandbox default working directory (exit ${result.exitCode}): ${result.stderr || result.stdout}`,
-    );
-  }
-
-  const cwd = result.stdout.trim();
-  if (!posix.isAbsolute(cwd)) {
-    throw new Error(
-      `Failed to resolve sandbox default working directory: expected an absolute path, got ${JSON.stringify(cwd)}.`,
-    );
-  }
-  return cwd === '/' ? cwd : cwd.replace(/\/+$/, '');
 }
 
 export async function ensureSandboxDirectory({

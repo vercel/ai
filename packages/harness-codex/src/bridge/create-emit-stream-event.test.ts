@@ -10,7 +10,7 @@ describe('createEmitStreamEvent', () => {
     const threadIds: string[] = [];
     const stepTracker = {
       observeEvent: input => observed.push(input),
-      finishStep: () => observed.push('finish'),
+      finishTurn: () => observed.push('finish'),
     } as CodexStepTracker;
     const emitStreamEvent = createEmitStreamEvent({
       send: event => emitted.push(event),
@@ -119,7 +119,7 @@ describe('createEmitStreamEvent', () => {
     const emitted: Record<string, unknown>[] = [];
     const stepTracker = {
       observeEvent: () => {},
-      finishStep: () => {},
+      finishTurn: () => {},
     } as CodexStepTracker;
     const emitStreamEvent = createEmitStreamEvent({
       send: event => emitted.push(event),
@@ -175,7 +175,7 @@ describe('createEmitStreamEvent', () => {
     const emitted: Record<string, unknown>[] = [];
     const stepTracker = {
       observeEvent: () => {},
-      finishStep: () => {},
+      finishTurn: () => {},
     } as CodexStepTracker;
     const emitStreamEvent = createEmitStreamEvent({
       send: event => emitted.push(event),
@@ -244,5 +244,59 @@ describe('createEmitStreamEvent', () => {
         },
       ]
     `);
+  });
+
+  it('preserves web search action metadata', () => {
+    const emitted: Record<string, unknown>[] = [];
+    const stepTracker = {
+      observeEvent: () => {},
+      finishTurn: () => {},
+    } as CodexStepTracker;
+    const emitStreamEvent = createEmitStreamEvent({
+      send: event => emitted.push(event),
+      stepTracker,
+      setTurnUsage: () => {},
+      setThreadId: () => {},
+      emitWarning: () => {},
+      emitError: () => {},
+    });
+
+    const action = {
+      type: 'search',
+      query: 'top news stories',
+    };
+    emitStreamEvent({
+      type: 'item.started',
+      item: {
+        type: 'web_search',
+        id: 'search-1',
+        action,
+      },
+    });
+    emitStreamEvent({
+      type: 'item.completed',
+      item: {
+        type: 'web_search',
+        id: 'search-1',
+        action,
+      },
+    });
+
+    expect(emitted).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'search-1',
+        toolName: 'webSearch',
+        nativeName: 'web_search',
+        input: JSON.stringify({ query: 'top news stories' }),
+        providerExecuted: true,
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'search-1',
+        toolName: 'webSearch',
+        result: action,
+      },
+    ]);
   });
 });

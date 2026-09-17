@@ -33,6 +33,18 @@ export async function resolveACPInstructionConfiguration({
     return { sessionMeta, environment: resolvedEnvironment };
   }
 
+  if (instructionMapping.type === 'filesystem') {
+    if (
+      typeof instructionMapping.path !== 'string' ||
+      instructionMapping.path.trim().length === 0
+    ) {
+      throw new Error(
+        'ACP instruction mapping filesystem path must be a non-empty string.',
+      );
+    }
+    return { sessionMeta, environment: resolvedEnvironment };
+  }
+
   assertSafePath({ path: instructionMapping.path });
 
   if (instructionMapping.type === 'session-meta') {

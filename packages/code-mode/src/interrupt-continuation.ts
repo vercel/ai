@@ -143,29 +143,27 @@ function assertInterruptMatchesLedger(interrupt: CodeModeInterrupt): void {
       'Code-mode interrupt outer tool call id does not match its continuation.',
     );
   }
-  const matches = interrupt.continuation.ledger.filter(
-    entry =>
-      entry.status === 'interrupted' &&
-      entry.interruptId === interrupt.interruptId &&
-      entry.toolCallId === interrupt.toolCallId &&
-      entry.name === interrupt.toolName &&
-      jsonEqual(fromJsonPayload(entry.inputJson), interrupt.input) &&
-      jsonEqual(entry.interruptPayload, interrupt.payload),
-  );
-  if (matches.length !== 1) {
+  const pending =
+    interrupt.continuation.pendingInterruptions[
+      interrupt.continuation.resolutions.length
+    ];
+  if (
+    pending === undefined ||
+    pending.interruptId !== interrupt.interruptId ||
+    pending.toolCallId !== interrupt.toolCallId ||
+    pending.toolName !== interrupt.toolName ||
+    !jsonEqual(pending.input, interrupt.input) ||
+    !jsonEqual(pending.payload, interrupt.payload)
+  ) {
     throw new CodeModeProtocolError(
       'Code-mode interrupt metadata does not match the signed continuation ledger.',
-      { interruptId: interrupt.interruptId, matches: matches.length },
+      { interruptId: interrupt.interruptId },
     );
   }
 }
 
 function jsonEqual(left: unknown, right: unknown): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
-}
-
-function fromJsonPayload(valueJson: string): unknown {
-  return valueJson === '' ? undefined : JSON.parse(valueJson);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

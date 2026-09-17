@@ -251,7 +251,6 @@ const providerPreferredModels: Partial<
   },
   image: {
     openai: 'openai/gpt-image-1',
-    google: 'google/imagen-4.0-generate-001',
     xai: 'xai/grok-imagine-image-pro',
   },
   video: {

@@ -469,6 +469,13 @@ To see `streamText` in action, check out [these examples](#examples).
         'Maximum number of retries. Set to 0 to disable retries. Default: 2.',
     },
     {
+      name: 'streamRetries',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum number of automatic retries for provider error events received after response streaming begins. Retries rerun only the current model step and preserve completed earlier steps and their tool results. Tool-related output and client-side tool work from failed attempts are discarded; other output already emitted cannot be retracted, but is excluded from the recovered step result, structured output parsing, response messages, and subsequent model steps. Final request and response metadata come from the recovered attempt. Open text and reasoning parts are ended before recovered output begins. onStepStart runs once for the logical step, onLanguageModelCallStart runs for each attempt, and onLanguageModelCallEnd runs for attempts that reach a model-call finish. Provider-executed tool work cannot be undone and may repeat. Set to 0 to disable automatic retries while allowing onError to request one callback-directed retry. With automatic retries configured, onError can request at most one additional retry after they are exhausted, bounding total recovery calls to streamRetries + 1. Omit to disable all stream retry behavior and preserve incremental tool streaming for existing onError observers. Default: 0.',
+    },
+    {
       name: 'abortSignal',
       type: 'AbortSignal',
       isOptional: true,
@@ -620,7 +627,7 @@ To see `streamText` in action, check out [these examples](#examples).
       type: 'ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>',
       isOptional: true,
       description:
-        "Approval configuration for this call. Pass a `GenericToolApprovalFunction` to handle all tool calls in one callback with `toolCall`, `tools`, `toolsContext`, `messages`, and `runtimeContext`, or pass a per-tool object where each key can be a status (`'not-applicable'`, `'approved'`, `'denied'`, or `'user-approval'`), an object form such as `{ type: 'denied', reason: 'blocked by policy' }`, or a `SingleToolApprovalFunction` that receives the tool input and options `toolCallId`, `messages`, `toolContext`, and `runtimeContext` (same shape as tool execution options without `abortSignal`, with `context` renamed to `toolContext`). The `RUNTIME_CONTEXT` type parameter matches the call's `runtimeContext`. A `GenericToolApprovalFunction` or `SingleToolApprovalFunction` may return `undefined` for the same effect as `'not-applicable'`. `'not-applicable'` is the default execution path and runs the tool without approval metadata. Use `'approved'`, `'denied'`, or their object forms when you want explicit automatic approval request/response parts in the output. Automatic approvals and denials can include a `reason`, which is forwarded to the emitted approval response. This setting takes precedence over a tool's `needsApproval` default.",
+        "Approval configuration for this call. Pass a `GenericToolApprovalFunction` to handle all tool calls in one callback with `toolCall`, `tools`, `toolsContext`, `messages`, and `runtimeContext`, or pass a per-tool object where each key can be a status (`'not-applicable'`, `'approved'`, `'denied'`, or `'user-approval'`), an object form such as `{ type: 'denied', reason: 'blocked by policy' }`, or a `SingleToolApprovalFunction` that receives the tool input and options `toolCallId`, `messages`, `toolContext`, and `runtimeContext` (same shape as tool execution options without `abortSignal`, with `context` renamed to `toolContext`). The `RUNTIME_CONTEXT` type parameter matches the call's `runtimeContext`. A `GenericToolApprovalFunction` or `SingleToolApprovalFunction` may return `undefined` for the same effect as `'not-applicable'`. `'not-applicable'` is the default execution path and runs the tool without approval metadata. Use `'approved'`, `'denied'`, or their object forms when you want explicit automatic approval request/response parts in the output. Object statuses can include a `reason`: automatic approvals and denials forward it to the approval response, while manual user approvals forward it to the approval request for the human approver. This setting takes precedence over a tool's `needsApproval` default.",
     },
     {
       name: 'experimental_toolCallers',
@@ -1184,10 +1191,10 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'onError',
-      type: '(event: OnErrorResult) => Promise<void> |void',
+      type: 'StreamTextOnErrorCallback | StreamTextOnErrorRetryCallback',
       isOptional: true,
       description:
-        'Callback that is called when an error occurs during streaming. You can use it to log errors.',
+        'Callback that is called when an error occurs during streaming. StreamTextOnErrorCallback preserves the existing PromiseLike<void> | void observer contract. StreamTextOnErrorRetryCallback additionally types `{ retry: true }` results for retry-capable handlers. Well-formed mid-stream provider error events are exposed as StreamProviderError instances. When streamRetries is explicitly configured, return `{ retry: true }` to request one callback-directed retry for the current model step after automatic retries are exhausted. Other return values do not request a retry.',
       properties: [
         {
           type: 'OnErrorResult',
@@ -1195,7 +1202,8 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'error',
               type: 'unknown',
-              description: 'The error that occurred.',
+              description:
+                'The error that occurred. Use StreamProviderError.isInstance to identify normalized provider error events and inspect their retry metadata.',
             },
           ],
         },
@@ -1263,6 +1271,20 @@ To see `streamText` in action, check out [these examples](#examples).
                       type: 'Schema<ELEMENT>',
                       description:
                         'The schema of the array elements to generate.',
+                    },
+                    {
+                      name: 'minItems',
+                      type: 'number',
+                      isOptional: true,
+                      description:
+                        'Optional minimum number of array elements. Must be a non-negative integer.',
+                    },
+                    {
+                      name: 'maxItems',
+                      type: 'number',
+                      isOptional: true,
+                      description:
+                        'Optional maximum number of array elements. Must be a non-negative integer and greater than or equal to minItems.',
                     },
                     {
                       name: 'name',
@@ -1708,6 +1730,13 @@ To see `streamText` in action, check out [these examples](#examples).
                 'The raw reason why the generation finished (from the provider).',
             },
             {
+              name: 'output',
+              type: 'COMPLETE_OUTPUT | undefined',
+              isOptional: true,
+              description:
+                'The parsed output when an output setting was provided and parsing succeeded.',
+            },
+            {
               name: 'usage',
               type: 'LanguageModelUsage',
               description: 'The token usage of last step.',
@@ -2055,9 +2084,22 @@ To see `streamText` in action, check out [these examples](#examples).
           type: 'OnAbortResult',
           parameters: [
             {
+              name: 'callId',
+              type: 'string',
+              description:
+                'Unique identifier for this generation call, used to correlate events.',
+            },
+            {
               name: 'steps',
               type: 'Array<StepResult>',
               description: 'Details for all previously finished steps.',
+            },
+            {
+              name: 'reason',
+              type: 'unknown',
+              isOptional: true,
+              description:
+                'The raw abort reason from the AbortSignal, when one is available.',
             },
           ],
         },
@@ -3299,7 +3341,7 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'stream',
       type: 'AsyncIterable<TextStreamPart<TOOLS>> & ReadableStream<TextStreamPart<TOOLS>>',
       description:
-        'A stream with all events, including text deltas, tool calls, tool results, and errors. You can use it as either an AsyncIterable or a ReadableStream. Only errors that stop the stream, such as network errors, are thrown.',
+        'A stream with all events, including text deltas, tool calls, tool results, and errors. Well-formed mid-stream provider failures are emitted in error parts as StreamProviderError instances. You can use it as either an AsyncIterable or a ReadableStream. Only errors that stop the stream, such as network errors, are thrown.',
       properties: [
         {
           type: 'TextStreamPart',
@@ -3964,10 +4006,10 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'reason',
-              type: 'unknown',
+              type: 'string',
               isOptional: true,
               description:
-                'Optional abort reason (from AbortSignal.reason) when the stream is aborted.',
+                'Optional serialized abort reason when the stream is aborted.',
             },
           ],
         },
@@ -3989,7 +4031,7 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'elementStream',
       type: 'AsyncIterableStream<ELEMENT_OUTPUT>',
       description:
-        'A stream of individual array elements as they complete. Only available when using `output: Output.array()`. Each element is complete and validated against the element schema. AsyncIterableStream is defined as AsyncIterable<T> & ReadableStream<T>.',
+        'A stream of individual array elements as they complete. Only available when using `output: Output.array()`. Each element is complete and validated against the element schema. When `maxItems` is set, the stream errors before emitting the first excess element. AsyncIterableStream is defined as AsyncIterable<T> & ReadableStream<T>.',
     },
     {
       name: 'output',
@@ -4033,13 +4075,13 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'onEnd',
-              type: '(options: { messages: UIMessage[]; isContinuation: boolean; responseMessage: UIMessage; isAborted: boolean; }) => void',
+              type: '(options: { messages: UIMessage[]; isContinuation: boolean; responseMessage: UIMessage; isAborted: boolean; outcome: UIMessageStreamOutcome; finishReason?: FinishReason; }) => PromiseLike<void> | void',
               isOptional: true,
-              description: 'Callback function called when the stream ends. Provides the updated list of UI messages, whether the response is a continuation, the response message, and whether the stream was aborted.',
+              description: 'Callback function called when the stream ends. Provides the updated messages, continuation and abort state, model finish reason, and operation-level outcome.',
             },
             {
               name: 'onFinish',
-              type: '(options: { messages: UIMessage[]; isContinuation: boolean; responseMessage: UIMessage; isAborted: boolean; }) => void',
+              type: '(options: { messages: UIMessage[]; isContinuation: boolean; responseMessage: UIMessage; isAborted: boolean; outcome: UIMessageStreamOutcome; finishReason?: FinishReason; }) => PromiseLike<void> | void',
               isOptional: true,
               description: 'Deprecated alias for `onEnd`.',
             },

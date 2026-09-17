@@ -5,7 +5,7 @@ WorkflowAgent is a class for building durable AI agents that can maintain state 
 ## Installation
 
 ```bash
-npm install @ai-sdk/workflow ai
+npm install @ai-sdk/workflow ai workflow@beta
 ```
 
 ## Usage
@@ -42,6 +42,30 @@ console.log('Final messages:', result.messages);
 console.log('Steps:', result.steps);
 ```
 
+### Durable video generation
+
+`experimental_generateVideo` starts asynchronous video generation, suspends the
+workflow until a provider webhook arrives, and returns the provider's video
+data without downloading hosted URLs.
+
+```typescript
+import { experimental_generateVideo as generateVideo } from '@ai-sdk/workflow/video';
+
+export async function videoWorkflow(prompt: string) {
+  'use workflow';
+
+  const result = await generateVideo({
+    model: 'klingai/kling-v3.0-t2v',
+    prompt,
+  });
+
+  return result.videos;
+}
+```
+
+The workflow can persist, copy, or process each returned video URL in a
+separate step without serializing the video bytes through the workflow.
+
 ## Features
 
 - **Streaming Support**: Stream responses in real-time
@@ -52,6 +76,7 @@ console.log('Steps:', result.steps);
 - **Step Callbacks**: Hook into each step of the agent loop
 - **Provider-Executed Tools**: Support for provider-executed tools
 - **Abort Support**: Cancel operations with AbortSignal
+- **Durable Video Generation**: Suspend on video webhooks without polling or automatically downloading hosted videos
 
 ## API
 

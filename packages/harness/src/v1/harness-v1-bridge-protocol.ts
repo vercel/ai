@@ -4,6 +4,7 @@ import {
   harnessV1DebugLevelSchema,
   type HarnessV1Diagnostic,
 } from './harness-v1-diagnostic';
+import type { HarnessV1ResponseFormat } from './harness-v1-response-format';
 import {
   harnessV1CompactionPartSchema,
   harnessV1ErrorPartSchema,
@@ -20,6 +21,9 @@ import {
   harnessV1TextStartPartSchema,
   harnessV1ToolApprovalRequestPartSchema,
   harnessV1ToolCallPartSchema,
+  harnessV1ToolInputDeltaPartSchema,
+  harnessV1ToolInputEndPartSchema,
+  harnessV1ToolInputStartPartSchema,
   harnessV1ToolResultPartSchema,
 } from './harness-v1-stream-part';
 
@@ -87,6 +91,17 @@ export const harnessV1BridgeBuiltinToolFilteringSchema = z.discriminatedUnion(
   ],
 );
 
+export const harnessV1BridgeResponseFormatSchema: z.ZodType<HarnessV1ResponseFormat> =
+  z.discriminatedUnion('type', [
+    z.object({ type: z.literal('text') }),
+    z.object({
+      type: z.literal('json'),
+      schema: z.record(z.string(), z.json()).optional(),
+      name: z.string().optional(),
+      description: z.string().optional(),
+    }),
+  ]);
+
 /**
  * Common fields of the inbound `start` message. Each adapter extends this with
  * its runtime-specific configuration (e.g. `thinking`/`continue` for Claude
@@ -105,6 +120,7 @@ export const harnessV1BridgeStartBaseSchema = z.object({
   debug: harnessV1DebugConfigSchema.optional(),
   permissionMode: harnessV1BridgePermissionModeSchema.optional(),
   builtinToolFiltering: harnessV1BridgeBuiltinToolFilteringSchema.optional(),
+  responseFormat: harnessV1BridgeResponseFormatSchema.optional(),
 });
 
 // --- Transport / control frames (outbound, not consumer events) ---
@@ -120,6 +136,18 @@ export const harnessV1BridgeHelloSchema = z.object({
   type: z.literal('bridge-hello'),
   state: z.string().optional(),
   lastSeq: z.number().optional(),
+  capabilities: z
+    .object({
+      experimental_userMessageResponses: z.boolean().optional(),
+    })
+    .optional(),
+});
+
+export const experimental_harnessV1BridgeUserMessageResponseSchema = z.object({
+  type: z.literal('user-message-response'),
+  messageId: z.string(),
+  accepted: z.boolean(),
+  error: z.object({ message: z.string() }).optional(),
 });
 
 /**
@@ -188,6 +216,9 @@ export const harnessV1BridgeOutboundMessageSchema = z.discriminatedUnion(
     harnessV1ReasoningStartPartSchema,
     harnessV1ReasoningDeltaPartSchema,
     harnessV1ReasoningEndPartSchema,
+    harnessV1ToolInputStartPartSchema,
+    harnessV1ToolInputDeltaPartSchema,
+    harnessV1ToolInputEndPartSchema,
     harnessV1ToolCallPartSchema,
     harnessV1ToolApprovalRequestPartSchema,
     harnessV1ToolResultPartSchema,
@@ -198,6 +229,7 @@ export const harnessV1BridgeOutboundMessageSchema = z.discriminatedUnion(
     harnessV1ErrorPartSchema,
     harnessV1RawPartSchema,
     harnessV1BridgeHelloSchema,
+    experimental_harnessV1BridgeUserMessageResponseSchema,
     harnessV1BridgeStopSchema,
     harnessV1BridgeThreadSchema,
     harnessV1BridgeSandboxLogSchema,
@@ -207,6 +239,10 @@ export const harnessV1BridgeOutboundMessageSchema = z.discriminatedUnion(
 
 export type HarnessV1BridgeOutboundMessage = z.infer<
   typeof harnessV1BridgeOutboundMessageSchema
+>;
+
+export type Experimental_HarnessV1BridgeUserMessageResponse = z.infer<
+  typeof experimental_harnessV1BridgeUserMessageResponseSchema
 >;
 
 export type HarnessV1BridgeSandboxLog = z.infer<
@@ -259,6 +295,7 @@ export const harnessV1BridgeToolResultInboundSchema = z.object({
   toolCallId: z.string(),
   output: z.unknown(),
   isError: z.boolean().optional(),
+  toolResult: z.unknown().optional(),
 });
 
 export const harnessV1BridgeToolApprovalResponseInboundSchema = z.object({
@@ -270,8 +307,14 @@ export const harnessV1BridgeToolApprovalResponseInboundSchema = z.object({
 
 export const harnessV1BridgeUserMessageInboundSchema = z.object({
   type: z.literal('user-message'),
+  messageId: z.string().optional(),
   text: z.string(),
 });
+
+export const experimental_harnessV1BridgeUserMessageInboundSchema =
+  harnessV1BridgeUserMessageInboundSchema.extend({
+    messageId: z.string(),
+  });
 
 export const harnessV1BridgeAbortInboundSchema = z.object({
   type: z.literal('abort'),

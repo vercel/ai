@@ -101,6 +101,22 @@ describe('google-vertex-provider-base', () => {
     );
   });
 
+  it('should configure the tool result download size limit', () => {
+    const provider = createGoogleVertex({
+      project: 'test-project',
+      location: 'test-location',
+      toolResultDownloads: { maxBytes: 20 * 1024 * 1024 },
+    });
+    provider('test-model-id');
+
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      expect.objectContaining({
+        downloadToolResultFiles: { maxBytes: 20 * 1024 * 1024 },
+      }),
+    );
+  });
+
   it('should create an interactions model targeting the location-scoped interactions resource', () => {
     const provider = createGoogleVertex({
       project: 'test-project',
@@ -406,10 +422,10 @@ describe('google-vertex-provider-base', () => {
       project: 'test-project',
       location: 'test-location',
     });
-    provider.image('imagen-3.0-generate-002');
+    provider.image('gemini-2.5-flash-image');
 
     expect(GoogleVertexImageModel).toHaveBeenCalledWith(
-      'imagen-3.0-generate-002',
+      'gemini-2.5-flash-image',
       expect.objectContaining({
         provider: 'google.vertex.image',
         baseURL:
@@ -461,10 +477,10 @@ describe('google-vertex-provider-base', () => {
       project: 'test-project',
       location: 'global',
     });
-    provider.image('imagen-3.0-generate-002');
+    provider.image('gemini-2.5-flash-image');
 
     expect(GoogleVertexImageModel).toHaveBeenCalledWith(
-      'imagen-3.0-generate-002',
+      'gemini-2.5-flash-image',
       expect.objectContaining({
         provider: 'google.vertex.image',
         baseURL:
@@ -516,6 +532,9 @@ describe('google-vertex-provider-base', () => {
       .toMatchInlineSnapshot(`
         {
           "baseURL": "https://aiplatform.us.rep.googleapis.com/v1beta1/projects/test-project/locations/us/publishers/google",
+          "downloadToolResultFiles": {
+            "maxBytes": 7340032,
+          },
           "fetch": undefined,
           "generateId": [MockFunction],
           "headers": [Function],
@@ -536,6 +555,9 @@ describe('google-vertex-provider-base', () => {
       .toMatchInlineSnapshot(`
         {
           "baseURL": "https://aiplatform.eu.rep.googleapis.com/v1beta1/projects/test-project/locations/eu/publishers/google",
+          "downloadToolResultFiles": {
+            "maxBytes": 7340032,
+          },
           "fetch": undefined,
           "generateId": [MockFunction],
           "headers": [Function],

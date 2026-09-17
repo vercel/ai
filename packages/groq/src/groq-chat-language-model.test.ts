@@ -134,8 +134,24 @@ describe('doGenerate', () => {
       );
     });
 
-    it('should not pass top-level reasoning none as reasoning_effort', async () => {
-      await model.doGenerate({
+    it('should map top-level reasoning none to reasoning_effort for Qwen 3.6', async () => {
+      const qwenModel = provider('qwen/qwen3.6-27b');
+
+      const result = await qwenModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'none',
+      );
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should omit unsupported top-level reasoning none and warn', async () => {
+      const gptOssModel = provider('openai/gpt-oss-120b');
+
+      const result = await gptOssModel.doGenerate({
         prompt: TEST_PROMPT,
         reasoning: 'none',
       });
@@ -143,10 +159,17 @@ describe('doGenerate', () => {
       expect(
         (await server.calls[0].requestBodyJson).reasoning_effort,
       ).toBeUndefined();
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'reasoning',
+        details: 'reasoning "none" is not supported by this model.',
+      });
     });
 
     it('should prefer providerOptions reasoningEffort over top-level reasoning', async () => {
-      await model.doGenerate({
+      const gptOssModel = provider('openai/gpt-oss-120b');
+
+      const result = await gptOssModel.doGenerate({
         prompt: TEST_PROMPT,
         reasoning: 'medium',
         providerOptions: {
@@ -157,6 +180,7 @@ describe('doGenerate', () => {
       expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
         'high',
       );
+      expect(result.warnings).toEqual([]);
     });
   });
 
@@ -1054,6 +1078,36 @@ describe('doStream', () => {
       prepareChunksFixtureResponse('groq-reasoning');
     });
 
+    it('should keep reasoning active when deltas include empty tool calls', async () => {
+      server.urls[CHAT_COMPLETIONS_URL].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+            `"choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning":"Think ","tool_calls":[]},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+            `"choices":[{"index":0,"delta":{"content":"","reasoning":"more...","tool_calls":[]},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+            `"choices":[{"index":0,"delta":{"content":"Hello","reasoning":"","tool_calls":[]},"finish_reason":"stop"}]}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      expect(
+        events.filter(({ type }) => type.startsWith('reasoning-')),
+      ).toStrictEqual([
+        { type: 'reasoning-start', id: 'reasoning-0' },
+        { type: 'reasoning-delta', id: 'reasoning-0', delta: 'Think ' },
+        { type: 'reasoning-delta', id: 'reasoning-0', delta: 'more...' },
+        { type: 'reasoning-end', id: 'reasoning-0' },
+      ]);
+    });
+
     it('should stream reasoning', async () => {
       const result = await model.doStream({
         prompt: TEST_PROMPT,
@@ -1451,12 +1505,16 @@ describe('doStream', () => {
   });
 
   it('should handle error stream parts', async () => {
+    const data = {
+      error: {
+        message: 'Rate limit reached',
+        type: 'rate_limit_error',
+      },
+    };
+
     server.urls[CHAT_COMPLETIONS_URL].response = {
       type: 'stream-chunks',
-      chunks: [
-        `data: {"error":{"message": "The server had an error processing your request. Sorry about that!","type":"invalid_request_error"}}\n\n`,
-        'data: [DONE]\n\n',
-      ],
+      chunks: [`data: ${JSON.stringify(data)}\n\n`, 'data: [DONE]\n\n'],
     };
 
     const { stream } = await model.doStream({
@@ -1471,8 +1529,17 @@ describe('doStream', () => {
         },
         {
           "error": {
-            "message": "The server had an error processing your request. Sorry about that!",
-            "type": "invalid_request_error",
+            "code": undefined,
+            "data": {
+              "error": {
+                "message": "Rate limit reached",
+                "type": "rate_limit_error",
+              },
+            },
+            "isRetryable": true,
+            "message": "Rate limit reached",
+            "statusCode": 429,
+            "type": "rate_limit_error",
           },
           "type": "error",
         },

@@ -1,5 +1,15 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createPi } from './pi-harness';
+import type * as PiSessionModule from './pi-session';
+
+const mocks = vi.hoisted(() => ({
+  createPiSession: vi.fn(async () => ({})),
+}));
+
+vi.mock('./pi-session', async importOriginal => {
+  const actual = await importOriginal<typeof PiSessionModule>();
+  return { ...actual, createPiSession: mocks.createPiSession };
+});
 
 describe('createPi adapter', () => {
   it('declares the harness id and builtin tools', () => {

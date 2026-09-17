@@ -14,6 +14,10 @@ npm i @ai-sdk/sandbox-vercel
 
 The factory is synchronous. The returned provider is stable; the actual `@vercel/sandbox` `Sandbox` is created on demand inside `provider.createSession()`.
 
+When neither `runtime` nor `image` is provided, the adapter uses the legacy
+`node24` runtime on both Vercel Sandbox v2 and v3. Pass `image` explicitly to
+opt into a v3 managed image such as `vercel/sandbox/universal`.
+
 ```ts
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
@@ -45,7 +49,7 @@ Credential resolution failures throw
 `HarnessSandboxAuthenticationError` from `@ai-sdk/harness` and preserve the
 underlying Vercel SDK error as `cause`.
 
-`networkSandboxSession.restricted()` is typed as `Experimental_SandboxSession`, so it's safe to pass to AI SDK tools that accept `experimental_sandbox`. The network sandbox session itself carries the infra surface (`ports`, `getPortUrl`, `setNetworkPolicy`, `stop`) that only the harness should reach for.
+`networkSandboxSession.restricted()` is typed as `Experimental_SandboxSession`, so it's safe to pass to AI SDK tools that accept `experimental_sandbox`. The network sandbox session itself carries the infra surface (`ports`, `getPortEndpoint`, `setNetworkPolicy`, `setRequestTransformations`, `addRequestTransformations`, `stop`) that only the harness should reach for. `getPortUrl` remains available as a deprecated compatibility wrapper.
 
 The flat-field settings are aliased directly from `@vercel/sandbox`'s `Sandbox.create` parameters, so every option Vercel supports — including its native `NetworkPolicy` — is available without re-declaration:
 
@@ -85,3 +89,13 @@ await networkSandboxSession.setNetworkPolicy?.({
 ```
 
 `HarnessV1NetworkPolicy` is the harness-level abstraction used here. The provider translates it to `@vercel/sandbox`'s native `NetworkPolicy` for enforcement.
+
+### Request transformations and credential brokering
+
+Vercel Sandbox supports outbound request transformations for use cases such as
+credential brokering. `setRequestTransformations()` replaces the managed rules,
+while `addRequestTransformations()` adds rules without replacing unrelated
+rules. Re-adding a managed rule with the same request matcher and transformed
+header names refreshes that rule in place, which keeps resumed credential
+brokering idempotent. Network access policies remain authoritative over which
+hosts can be reached.

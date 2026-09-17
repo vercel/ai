@@ -143,7 +143,7 @@ describe('code-mode approval continuations', () => {
     expect(isCodeModeApprovalInterrupt(forged)).toBe(false);
   });
 
-  it('resumes concurrent approvals one at a time', async () => {
+  it('exposes run approval batches one at a time', async () => {
     const first = vi.fn(async () => 'first');
     const second = vi.fn(async () => 'second');
     const tools = {
@@ -183,7 +183,9 @@ describe('code-mode approval continuations', () => {
       tools,
     });
     expect(isCodeModeApprovalInterrupt(pendingSecond)).toBe(true);
-    expect(first).toHaveBeenCalledTimes(1);
+    // `run` requires the complete interruption batch to be resolved together,
+    // so code mode collects each decision before replaying any tool.
+    expect(first).not.toHaveBeenCalled();
     expect(second).not.toHaveBeenCalled();
 
     const secondInterrupt = pendingSecond as CodeModeApprovalInterrupt;

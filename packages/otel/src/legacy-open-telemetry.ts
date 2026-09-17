@@ -492,7 +492,7 @@ export class LegacyOpenTelemetry implements Telemetry {
       model: { provider: event.provider, modelId: event.modelId },
       headers: event.headers,
       settings,
-      context: undefined,
+      context: event.runtimeContext,
     });
 
     const value = event.value;
@@ -612,6 +612,11 @@ export class LegacyOpenTelemetry implements Telemetry {
         operationId: 'ai.toolCall',
         telemetry,
       }),
+      ...Object.fromEntries(
+        Object.entries(state.baseTelemetryAttributes).filter(([key]) =>
+          key.startsWith('ai.settings.context.'),
+        ),
+      ),
       'ai.toolCall.name': toolCall.toolName,
       'ai.toolCall.id': toolCall.toolCallId,
       'ai.toolCall.args': {
@@ -1013,7 +1018,7 @@ export class LegacyOpenTelemetry implements Telemetry {
       model: { provider: event.provider, modelId: event.modelId },
       headers: event.headers,
       settings,
-      context: undefined,
+      context: event.runtimeContext,
     });
 
     const attributes = selectAttributes(telemetry, {

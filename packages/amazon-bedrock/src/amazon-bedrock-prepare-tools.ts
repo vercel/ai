@@ -9,20 +9,30 @@ import {
   anthropicTools,
   prepareTools as prepareAnthropicTools,
 } from '@ai-sdk/anthropic/internal';
-import { supportsStrictTools } from './amazon-bedrock-anthropic-model-support';
+import {
+  isAnthropicModel as detectAnthropicModel,
+  supportsStrictTools,
+} from './amazon-bedrock-anthropic-model-support';
 import type {
   AmazonBedrockTool,
   AmazonBedrockToolConfiguration,
 } from './amazon-bedrock-api-types';
+import type { AmazonBedrockChatModelSettings } from './amazon-bedrock-chat-language-model-options';
 
 export async function prepareTools({
   tools,
   toolChoice,
   modelId,
+  modelFamily,
+  reasoningBudgetTokens,
+  disableParallelToolUse,
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice?: LanguageModelV4CallOptions['toolChoice'];
   modelId: string;
+  modelFamily?: AmazonBedrockChatModelSettings['modelFamily'];
+  reasoningBudgetTokens?: number;
+  disableParallelToolUse?: boolean;
 }): Promise<{
   toolConfig: AmazonBedrockToolConfiguration;
   additionalTools: Record<string, unknown> | undefined;
@@ -41,17 +51,18 @@ export async function prepareTools({
     };
   }
 
-  // Filter out unsupported web_search tool and add a warning
+  // Filter out Anthropic web tools that Amazon Bedrock does not support.
   const supportedTools = tools.filter(tool => {
     if (
       tool.type === 'provider' &&
-      tool.id === 'anthropic.web_search_20250305'
+      (tool.id === 'anthropic.web_search_20250305' ||
+        tool.id === 'anthropic.web_search_20260318' ||
+        tool.id === 'anthropic.web_fetch_20260318')
     ) {
       toolWarnings.push({
         type: 'unsupported',
-        feature: 'web_search_20250305 tool',
-        details:
-          'The web_search_20250305 tool is not supported on Amazon Bedrock.',
+        feature: `${tool.id.slice('anthropic.'.length)} tool`,
+        details: `The ${tool.id.slice('anthropic.'.length)} tool is not supported on Amazon Bedrock.`,
       });
       return false; // Exclude this tool
     }
@@ -67,7 +78,11 @@ export async function prepareTools({
     };
   }
 
-  const isAnthropicModel = modelId.includes('anthropic.');
+  const isAnthropicModel = detectAnthropicModel({
+    modelId,
+    modelFamily,
+    reasoningBudgetTokens,
+  });
   const ProviderTools = supportedTools.filter(t => t.type === 'provider');
   const functionTools = supportedTools.filter(t => t.type === 'function');
 
@@ -85,6 +100,7 @@ export async function prepareTools({
     } = await prepareAnthropicTools({
       tools: ProviderTools,
       toolChoice,
+      disableParallelToolUse,
       supportsStructuredOutput: false,
       supportsStrictTools: false,
     });
@@ -161,10 +177,36 @@ export async function prepareTools({
     });
   }
 
+  if (
+    isAnthropicModel &&
+    !usingAnthropicTools &&
+    disableParallelToolUse &&
+    amazonBedrockTools.length > 0 &&
+    toolChoice?.type !== 'none'
+  ) {
+    additionalTools = {
+      tool_choice:
+        toolChoice?.type === 'required'
+          ? { type: 'any', disable_parallel_tool_use: true }
+          : toolChoice?.type === 'tool'
+            ? {
+                type: 'tool',
+                name: toolChoice.toolName,
+                disable_parallel_tool_use: true,
+              }
+            : { type: 'auto', disable_parallel_tool_use: true },
+    };
+  }
+
   // Handle toolChoice for standard Bedrock tools, but NOT for Anthropic provider-defined tools
   let amazonBedrockToolChoice: AmazonBedrockToolConfiguration['toolChoice'] =
     undefined;
-  if (!usingAnthropicTools && amazonBedrockTools.length > 0 && toolChoice) {
+  if (
+    !usingAnthropicTools &&
+    additionalTools?.tool_choice == null &&
+    amazonBedrockTools.length > 0 &&
+    toolChoice
+  ) {
     const type = toolChoice.type;
     switch (type) {
       case 'auto':

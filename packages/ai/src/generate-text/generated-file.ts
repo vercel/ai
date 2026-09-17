@@ -2,6 +2,7 @@ import {
   convertBase64ToUint8Array,
   convertUint8ArrayToBase64,
 } from '@ai-sdk/provider-utils';
+import type { JSONObject } from '@ai-sdk/provider';
 
 /**
  * A generated file.
@@ -23,6 +24,11 @@ export interface GeneratedFile {
    * @see https://www.iana.org/assignments/media-types/media-types.xhtml
    */
   readonly mediaType: string;
+
+  /**
+   * Provider-specific metadata for this file.
+   */
+  readonly providerMetadata?: Record<string, JSONObject>;
 }
 
 /**
@@ -35,18 +41,22 @@ export class DefaultGeneratedFile implements GeneratedFile {
   private uint8ArrayData: Uint8Array | undefined;
 
   readonly mediaType: string;
+  readonly providerMetadata?: Record<string, JSONObject>;
 
   constructor({
     data,
     mediaType,
+    providerMetadata,
   }: {
     data: string | Uint8Array;
     mediaType: string;
+    providerMetadata?: Record<string, JSONObject>;
   }) {
     const isUint8Array = data instanceof Uint8Array;
     this.base64Data = isUint8Array ? undefined : data;
     this.uint8ArrayData = isUint8Array ? data : undefined;
     this.mediaType = mediaType;
+    this.providerMetadata = providerMetadata;
   }
 
   // lazy conversion with caching to avoid unnecessary conversion overhead:
@@ -69,7 +79,11 @@ export class DefaultGeneratedFile implements GeneratedFile {
 export class DefaultGeneratedFileWithType extends DefaultGeneratedFile {
   readonly type = 'file';
 
-  constructor(options: { data: string | Uint8Array; mediaType: string }) {
+  constructor(options: {
+    data: string | Uint8Array;
+    mediaType: string;
+    providerMetadata?: Record<string, JSONObject>;
+  }) {
     super(options);
   }
 }

@@ -112,6 +112,14 @@ describe('DeepInfraProvider', () => {
         }),
       );
     });
+
+    it('should set supportsStructuredOutputs so response_format json_schema is forwarded', () => {
+      const provider = createDeepInfra();
+      provider.chatModel('test-model');
+
+      const config = DeepInfraChatLanguageModelMock.mock.calls[0][1];
+      expect(config.supportsStructuredOutputs).toBe(true);
+    });
   });
 
   describe('completionModel', () => {

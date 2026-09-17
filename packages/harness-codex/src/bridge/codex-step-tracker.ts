@@ -16,7 +16,7 @@ export type CodexStepTracker = {
     event: CodexStepTrackerEvent;
     itemId: string | undefined;
   }): void;
-  finishStep(): void;
+  finishTurn(): void;
 };
 
 export function createCodexStepTracker(input: {
@@ -53,7 +53,10 @@ export function createCodexStepTracker(input: {
         return;
       }
     },
-    finishStep,
+    finishTurn() {
+      pendingToolItemIds.clear();
+      finishStep();
+    },
   };
 }
 

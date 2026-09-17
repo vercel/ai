@@ -115,10 +115,22 @@
       "path": "../../packages/harness-claude-code"
     },
     {
+      "path": "../../packages/harness-cline"
+    },
+    {
       "path": "../../packages/harness-codex"
     },
     {
+      "path": "../../packages/harness-cursor"
+    },
+    {
       "path": "../../packages/harness-deepagents"
+    },
+    {
+      "path": "../../packages/harness-fx"
+    },
+    {
+      "path": "../../packages/harness-github-copilot"
     },
     {
       "path": "../../packages/harness-grok-build"
@@ -140,9 +152,6 @@
     },
     {
       "path": "../../packages/langchain"
-    },
-    {
-      "path": "../../packages/lmnt"
     },
     {
       "path": "../../packages/luma"
@@ -202,6 +211,9 @@
       "path": "../../packages/tui"
     },
     {
+      "path": "../../packages/typesafe-ai"
+    },
+    {
       "path": "../../packages/valibot"
     },
     {
@@ -209,6 +221,9 @@
     },
     {
       "path": "../../packages/xai"
+    },
+    {
+      "path": "../../packages/zai"
     }
   ]
 }

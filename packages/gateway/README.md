@@ -33,7 +33,7 @@ import { gateway } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: gateway('xai/grok-3-beta'),
+  model: gateway('xai/grok-4.6'),
   prompt:
     'Tell me about the history of the San Francisco Mission-style burrito.',
 });

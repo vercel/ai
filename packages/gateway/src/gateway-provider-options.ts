@@ -21,6 +21,12 @@ export type GatewayProviderOptions = {
    */
   has?: Array<'implicit-caching' | 'vision'>;
 
+  /**
+   * Idempotency key for `experimental_startBatch`: retries with the same
+   * key replay the original batch instead of creating a duplicate.
+   */
+  idempotencyKey?: string;
+
   /** Array of model slugs specifying fallback models to use in order. */
   models?: string[];
 

@@ -6,6 +6,7 @@ export {
   type WorkflowAgentOptions,
   type WorkflowAgentStreamOptions,
   type WorkflowAgentStreamResult,
+  type WorkflowToolApprovalSecret,
   type GenerationSettings,
   type InferWorkflowAgentTools,
   type InferWorkflowAgentUIMessage,
@@ -28,6 +29,8 @@ export {
   type ToolCallRepairFunction,
   type WorkflowAgentOnStartCallback,
   type WorkflowAgentOnStepStartCallback,
+  type WorkflowAgentToolExecutionStartEvent,
+  type WorkflowAgentToolExecutionEndEvent,
   type WorkflowAgentOnToolExecutionStartCallback,
   type WorkflowAgentOnToolExecutionEndCallback,
 } from './workflow-agent.js';

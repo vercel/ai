@@ -133,6 +133,7 @@ export class SandboxChannel<
   private readonly onCloseHandlers = new Set<
     (code: number, reason: string) => void
   >();
+  private readonly onReconnectHandlers = new Set<() => void>();
 
   private readonly connectThunk: () => Promise<WebSocket>;
   private readonly outboundSchema: FlexibleSchema<TOut>;
@@ -245,6 +246,13 @@ export class SandboxChannel<
 
   onClose(handler: (code: number, reason: string) => void): void {
     this.onCloseHandlers.add(handler);
+  }
+
+  onReconnect(handler: () => void): () => void {
+    this.onReconnectHandlers.add(handler);
+    return () => {
+      this.onReconnectHandlers.delete(handler);
+    };
   }
 
   send(message: TIn): void {
@@ -386,6 +394,7 @@ export class SandboxChannel<
           }),
         );
         this.flushPending();
+        for (const handler of this.onReconnectHandlers) handler();
         this.onDebug?.({
           event: 'reconnected',
           attempt,

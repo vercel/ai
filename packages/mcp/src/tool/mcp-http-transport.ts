@@ -10,16 +10,20 @@ import {
   validateJSONRPCMessage,
   type JSONRPCMessage,
 } from './json-rpc-message';
-import type { MCPTransport } from './mcp-transport';
+import type { MCPTransport, MCPTransportSendOptions } from './mcp-transport';
 import { VERSION } from '../version';
 import {
-  extractResourceMetadataUrl,
+  extractWWWAuthenticateParams,
   UnauthorizedError,
   auth,
   type AuthResult,
   type OAuthClientProvider,
 } from './oauth';
-import { LATEST_PROTOCOL_VERSION } from './types';
+import {
+  LATEST_LEGACY_PROTOCOL_VERSION,
+  LATEST_PROTOCOL_VERSION,
+} from './types';
+import { encodeMCPHeaderValue } from './mcp-http-headers';
 
 function isMessageEvent(event: string | undefined): boolean {
   return event === undefined || event === 'message';
@@ -33,6 +37,8 @@ function isMessageEvent(event: string | undefined): boolean {
  * for receiving messages.
  */
 export class HttpMCPTransport implements MCPTransport {
+  readonly supportsProtocolVersionDiscovery = true;
+  readonly supportsMcpToolParameterHeaders = true;
   private url: URL;
   private abortController?: AbortController;
   private headers?: Record<string, string>;
@@ -90,7 +96,8 @@ export class HttpMCPTransport implements MCPTransport {
     this.authProvider = authProvider;
     this.redirectMode = redirect;
     this.sessionId = initialSessionId;
-    this.protocolVersion = initialProtocolVersion;
+    this.protocolVersion =
+      initialProtocolVersion ?? LATEST_LEGACY_PROTOCOL_VERSION;
     this.onSessionIdChange = onSessionIdChange;
     this.onSessionExpired = onSessionExpired;
     this.terminateSessionOnClose = terminateSessionOnClose;
@@ -99,6 +106,27 @@ export class HttpMCPTransport implements MCPTransport {
 
   setProtocolVersion(version: string): void {
     this.protocolVersion = version;
+
+    if (!this.abortController) {
+      return;
+    }
+
+    if (this.isModernProtocol()) {
+      this.inboundSseConnection?.close();
+      this.inboundSseConnection = undefined;
+      return;
+    }
+
+    if (!this.inboundSseConnection) {
+      this.startInboundSse();
+    }
+  }
+
+  private isModernProtocol(): boolean {
+    return (
+      (this.protocolVersion ?? LATEST_PROTOCOL_VERSION) ===
+      LATEST_PROTOCOL_VERSION
+    );
   }
 
   private async commonHeaders({
@@ -111,10 +139,11 @@ export class HttpMCPTransport implements MCPTransport {
     const headers: Record<string, string> = {
       ...this.headers,
       ...base,
-      'mcp-protocol-version': this.protocolVersion ?? LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version':
+        this.protocolVersion ?? LATEST_LEGACY_PROTOCOL_VERSION,
     };
 
-    if (includeSessionId && this.sessionId) {
+    if (!this.isModernProtocol() && includeSessionId && this.sessionId) {
       headers['mcp-session-id'] = this.sessionId;
     }
 
@@ -142,6 +171,10 @@ export class HttpMCPTransport implements MCPTransport {
   }
 
   private applySessionIdFromResponse(response: Response): void {
+    if (this.isModernProtocol()) {
+      return;
+    }
+
     const sessionId = response.headers.get('mcp-session-id');
     if (sessionId) {
       this.setSessionId(sessionId);
@@ -159,7 +192,10 @@ export class HttpMCPTransport implements MCPTransport {
   /**
    * Runs a single OAuth recovery flow for concurrent 401 responses.
    */
-  private authorizeOnce(resourceMetadataUrl?: URL): Promise<AuthResult> {
+  private authorizeOnce(
+    resourceMetadataUrl?: URL,
+    scope?: string,
+  ): Promise<AuthResult> {
     if (!this.authProvider) {
       return Promise.resolve('REDIRECT');
     }
@@ -168,6 +204,7 @@ export class HttpMCPTransport implements MCPTransport {
       this.authPromise = auth(this.authProvider, {
         serverUrl: this.url,
         resourceMetadataUrl,
+        scope,
         fetchFn: this.fetchFn,
       }).finally(() => {
         this.authPromise = undefined;
@@ -186,7 +223,12 @@ export class HttpMCPTransport implements MCPTransport {
     }
     this.abortController = new AbortController();
 
-    this.startInboundSse();
+    if (
+      this.protocolVersion != null &&
+      this.protocolVersion !== LATEST_PROTOCOL_VERSION
+    ) {
+      this.startInboundSse();
+    }
   }
 
   async close(options?: { signal?: AbortSignal }): Promise<void> {
@@ -195,6 +237,7 @@ export class HttpMCPTransport implements MCPTransport {
 
     try {
       if (
+        !this.isModernProtocol() &&
         this.sessionId &&
         this.terminateSessionOnClose &&
         this.abortController
@@ -216,7 +259,7 @@ export class HttpMCPTransport implements MCPTransport {
 
   async send(
     message: JSONRPCMessage,
-    options?: { signal?: AbortSignal },
+    options?: MCPTransportSendOptions,
   ): Promise<void> {
     options?.signal?.throwIfAborted();
 
@@ -239,6 +282,12 @@ export class HttpMCPTransport implements MCPTransport {
           base: {
             'Content-Type': 'application/json',
             Accept: 'application/json, text/event-stream',
+            ...(this.isModernProtocol() ? options?.headers : {}),
+            ...(this.isModernProtocol() &&
+            'method' in message &&
+            'id' in message
+              ? this.getStandardRequestHeaders(message)
+              : {}),
           },
           includeSessionId: !isInitializeRequest,
         });
@@ -256,9 +305,14 @@ export class HttpMCPTransport implements MCPTransport {
         this.applySessionIdFromResponse(response);
 
         if (response.status === 401 && this.authProvider && !triedAuth) {
-          this.resourceMetadataUrl = extractResourceMetadataUrl(response);
+          const { resourceMetadataUrl, scope } =
+            extractWWWAuthenticateParams(response);
+          this.resourceMetadataUrl = resourceMetadataUrl;
           try {
-            const result = await this.authorizeOnce(this.resourceMetadataUrl);
+            const result = await this.authorizeOnce(
+              this.resourceMetadataUrl,
+              scope,
+            );
             if (result !== 'AUTHORIZED') {
               const error = new UnauthorizedError();
               throw error;
@@ -274,7 +328,7 @@ export class HttpMCPTransport implements MCPTransport {
         if (response.status === 202) {
           // If inbound SSE was not available earlier (e.g. 405 before init), try again now
           // Do not await to avoid blocking send()
-          if (!this.inboundSseConnection) {
+          if (!this.isModernProtocol() && !this.inboundSseConnection) {
             this.startInboundSse();
           }
           return;
@@ -282,15 +336,30 @@ export class HttpMCPTransport implements MCPTransport {
 
         if (!response.ok) {
           const text = await response.text().catch(() => null);
+
+          if ('id' in message && text != null) {
+            const jsonRpcMessage = await parseJSONRPCMessage(text).catch(
+              () => undefined,
+            );
+            if (jsonRpcMessage != null && 'error' in jsonRpcMessage) {
+              this.onmessage?.(
+                jsonRpcMessage.id == null
+                  ? { ...jsonRpcMessage, id: message.id }
+                  : jsonRpcMessage,
+              );
+              return;
+            }
+          }
+
           let errorMessage = `MCP HTTP Transport Error: POSTing to endpoint (HTTP ${response.status}): ${text}`;
 
           if (response.status === 404) {
-            if (sessionIdForRequest) {
+            if (!this.isModernProtocol() && sessionIdForRequest) {
               this.expireSessionId(sessionIdForRequest);
 
               errorMessage +=
                 '. The MCP session expired. Create a new client without `initialSessionId` to start a fresh session';
-            } else {
+            } else if (!this.isModernProtocol()) {
               errorMessage +=
                 '. This server does not support HTTP transport. Try using `sse` transport instead';
             }
@@ -404,6 +473,27 @@ export class HttpMCPTransport implements MCPTransport {
     await attempt();
   }
 
+  private getStandardRequestHeaders(
+    message: Extract<JSONRPCMessage, { method: string; id: unknown }>,
+  ): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Mcp-Method': message.method,
+    };
+    const params = message.params;
+    const name =
+      message.method === 'resources/read'
+        ? params?.uri
+        : message.method === 'tools/call' || message.method === 'prompts/get'
+          ? params?.name
+          : undefined;
+
+    if (typeof name === 'string') {
+      headers['Mcp-Name'] = encodeMCPHeaderValue(name);
+    }
+
+    return headers;
+  }
+
   private getNextReconnectionDelay(attempt: number): number {
     const {
       initialReconnectionDelay,
@@ -439,6 +529,10 @@ export class HttpMCPTransport implements MCPTransport {
     triedAuth: boolean = false,
     resumeToken?: string,
   ): void {
+    if (this.isModernProtocol()) {
+      return;
+    }
+
     void this.openInboundSse(triedAuth, resumeToken).catch(error => {
       if (error instanceof Error && error.name === 'AbortError') {
         return;
@@ -452,6 +546,10 @@ export class HttpMCPTransport implements MCPTransport {
     triedAuth: boolean = false,
     resumeToken?: string,
   ): Promise<void> {
+    if (this.isModernProtocol()) {
+      return;
+    }
+
     try {
       const sessionIdForRequest = this.sessionId;
       const headers = await this.commonHeaders({
@@ -473,9 +571,14 @@ export class HttpMCPTransport implements MCPTransport {
       this.applySessionIdFromResponse(response);
 
       if (response.status === 401 && this.authProvider && !triedAuth) {
-        this.resourceMetadataUrl = extractResourceMetadataUrl(response);
+        const { resourceMetadataUrl, scope } =
+          extractWWWAuthenticateParams(response);
+        this.resourceMetadataUrl = resourceMetadataUrl;
         try {
-          const result = await this.authorizeOnce(this.resourceMetadataUrl);
+          const result = await this.authorizeOnce(
+            this.resourceMetadataUrl,
+            scope,
+          );
           if (result !== 'AUTHORIZED') {
             const error = new UnauthorizedError();
             this.onerror?.(error);

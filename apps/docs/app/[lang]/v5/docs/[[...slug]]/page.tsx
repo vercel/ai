@@ -1,5 +1,6 @@
 import { MobileDocsBar } from '@vercel/geistdocs/mobile-docs-bar';
 import { createDocsPage } from '@vercel/geistdocs/pages/docs';
+import { Upsell } from '@/components/docs/upsell';
 import { getMdxComponents } from '@/components/mdx-components';
 import { config } from '@/lib/geistdocs/config';
 import { v5Source } from '@/lib/geistdocs/source';
@@ -20,6 +21,9 @@ const docsPage = createDocsPage({
   }),
   renderTop: ({ data }) => <MobileDocsBar toc={data.toc} />,
   source: v5Source,
+  tableOfContent: {
+    footer: <Upsell />,
+  },
   tableOfContentPopover: {
     enabled: false,
   },

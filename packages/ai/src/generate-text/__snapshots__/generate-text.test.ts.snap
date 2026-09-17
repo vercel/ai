@@ -1544,6 +1544,7 @@ exports[`generateText > result.files > should contain files 1`] = `
   DefaultGeneratedFile {
     "base64Data": "AQID",
     "mediaType": "image/png",
+    "providerMetadata": undefined,
     "uint8ArrayData": Uint8Array [
       1,
       2,
@@ -1553,6 +1554,7 @@ exports[`generateText > result.files > should contain files 1`] = `
   DefaultGeneratedFile {
     "base64Data": "QkFVRw==",
     "mediaType": "image/jpeg",
+    "providerMetadata": undefined,
     "uint8ArrayData": undefined,
   },
 ]
@@ -1844,6 +1846,7 @@ exports[`generateText > result.steps > should contain files 1`] = `
         "file": DefaultGeneratedFile {
           "base64Data": "AQID",
           "mediaType": "image/png",
+          "providerMetadata": undefined,
           "uint8ArrayData": Uint8Array [
             1,
             2,
@@ -1856,6 +1859,7 @@ exports[`generateText > result.steps > should contain files 1`] = `
         "file": DefaultGeneratedFile {
           "base64Data": "QkFVRw==",
           "mediaType": "image/jpeg",
+          "providerMetadata": undefined,
           "uint8ArrayData": undefined,
         },
         "type": "file",
