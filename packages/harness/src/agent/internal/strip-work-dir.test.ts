@@ -163,6 +163,36 @@ describe('stripWorkDir', () => {
     ).toBe('{"command":"ls .github/workflows && cat a.ts"}');
   });
 
+  it('preserves a work dir prefix after a non-boundary character in a previous delta', () => {
+    const strip = createToolInputWorkDirStripper({
+      sessionWorkDir: '/work',
+    });
+    const parts: HarnessV1StreamPart[] = [
+      { type: 'tool-input-start', id: 'c1', toolName: 'bash' },
+      { type: 'tool-input-delta', id: 'c1', delta: 'foo' },
+      { type: 'tool-input-delta', id: 'c1', delta: '/work/bar' },
+      { type: 'tool-input-end', id: 'c1' },
+    ];
+
+    const output = parts.flatMap(part =>
+      strip(
+        part as Extract<
+          HarnessV1StreamPart,
+          {
+            type: 'tool-input-start' | 'tool-input-delta' | 'tool-input-end';
+          }
+        >,
+      ),
+    );
+
+    expect(
+      output
+        .filter(part => part.type === 'tool-input-delta')
+        .map(part => part.delta)
+        .join(''),
+    ).toBe('foo/work/bar');
+  });
+
   it('passes through variants with no path-bearing fields unchanged', () => {
     const part: HarnessV1StreamPart = {
       type: 'text-delta',

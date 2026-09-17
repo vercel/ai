@@ -12,36 +12,63 @@ export function createToolInputWorkDirStripper({
 }: {
   sessionWorkDir: string;
 }): (part: ToolInputStreamPart) => ToolInputStreamPart[] {
-  const pendingByToolCallId = new Map<string, string>();
+  const stateByToolCallId = new Map<
+    string,
+    {
+      pending: string;
+      precedingCharacter: string | undefined;
+    }
+  >();
 
   return part => {
     if (sessionWorkDir.length === 0) return [part];
 
     if (part.type === 'tool-input-start') {
-      pendingByToolCallId.set(part.id, '');
+      stateByToolCallId.set(part.id, {
+        pending: '',
+        precedingCharacter: undefined,
+      });
       return [part];
     }
 
     if (part.type === 'tool-input-delta') {
+      const state = stateByToolCallId.get(part.id) ?? {
+        pending: '',
+        precedingCharacter: undefined,
+      };
+      const value = state.pending + part.delta;
       const stripped = stripStreamingString({
-        value: (pendingByToolCallId.get(part.id) ?? '') + part.delta,
+        value,
         workDir: sessionWorkDir,
         final: false,
+        precedingCharacter: state.precedingCharacter,
       });
-      pendingByToolCallId.set(part.id, stripped.pending);
+      const pendingStart = value.length - stripped.pending.length;
+      stateByToolCallId.set(part.id, {
+        pending: stripped.pending,
+        precedingCharacter:
+          stripped.pending.length > 0
+            ? pendingStart > 0
+              ? value[pendingStart - 1]
+              : state.precedingCharacter
+            : value.length > 0
+              ? value[value.length - 1]
+              : state.precedingCharacter,
+      });
       return stripped.output.length === 0
         ? []
         : [{ ...part, delta: stripped.output }];
     }
 
-    const pending = pendingByToolCallId.get(part.id);
-    pendingByToolCallId.delete(part.id);
-    if (pending == null || pending.length === 0) return [part];
+    const state = stateByToolCallId.get(part.id);
+    stateByToolCallId.delete(part.id);
+    if (state == null || state.pending.length === 0) return [part];
 
     const stripped = stripStreamingString({
-      value: pending,
+      value: state.pending,
       workDir: sessionWorkDir,
       final: true,
+      precedingCharacter: state.precedingCharacter,
     });
     return stripped.output.length === 0
       ? [part]
@@ -133,19 +160,26 @@ function stripStreamingString({
   value,
   workDir,
   final,
+  precedingCharacter,
 }: {
   value: string;
   workDir: string;
   final: boolean;
+  precedingCharacter: string | undefined;
 }): { output: string; pending: string } {
   let remaining = value;
   let output = '';
+  let characterBeforeRemaining = precedingCharacter;
 
   while (remaining.length > 0) {
     const matchIndex = remaining.indexOf(workDir);
     if (matchIndex >= 0) {
       const followingIndex = matchIndex + workDir.length;
-      const hasPathBoundary = isPathBoundary(remaining, matchIndex);
+      const hasPathBoundary = isPathBoundary(
+        remaining,
+        matchIndex,
+        characterBeforeRemaining,
+      );
       if (hasPathBoundary && followingIndex === remaining.length && !final) {
         return {
           output: output + remaining.slice(0, matchIndex),
@@ -159,9 +193,11 @@ function stripStreamingString({
           remaining[followingIndex] === '/');
       if (!isPath) {
         output += remaining.slice(0, followingIndex);
+        characterBeforeRemaining = remaining[followingIndex - 1];
         remaining = remaining.slice(followingIndex);
       } else if (remaining[followingIndex] === '/') {
         output += remaining.slice(0, matchIndex);
+        characterBeforeRemaining = remaining[followingIndex];
         remaining = remaining.slice(followingIndex + 1);
       } else {
         output += remaining.slice(0, matchIndex) + '.';
@@ -176,7 +212,11 @@ function stripStreamingString({
     while (
       pendingLength > 0 &&
       (!workDir.startsWith(remaining.slice(-pendingLength)) ||
-        !isPathBoundary(remaining, remaining.length - pendingLength))
+        !isPathBoundary(
+          remaining,
+          remaining.length - pendingLength,
+          characterBeforeRemaining,
+        ))
     ) {
       pendingLength -= 1;
     }
@@ -190,8 +230,13 @@ function stripStreamingString({
   return { output, pending: '' };
 }
 
-function isPathBoundary(value: string, index: number): boolean {
-  return index === 0 || /[\s"'`=]/.test(value[index - 1]!);
+function isPathBoundary(
+  value: string,
+  index: number,
+  precedingCharacter?: string,
+): boolean {
+  const character = index === 0 ? precedingCharacter : value[index - 1]!;
+  return character === undefined || /[\s"'`=]/.test(character);
 }
 
 /**
