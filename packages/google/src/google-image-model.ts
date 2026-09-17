@@ -53,7 +53,7 @@ export class GoogleImageModel implements ImageModelV4 {
     if (this.settings.maxImagesPerCall != null) {
       return this.settings.maxImagesPerCall;
     }
-    return 10;
+    return 1;
   }
 
   get provider(): string {
