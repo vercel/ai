@@ -9465,10 +9465,13 @@ describe('streamText', () => {
       expect(await result.text).toBe('Hello, world!');
     });
 
-    it('should reflect model changes from prepareStep', async () => {
+    it('should reflect model changes from prepareStep in step events and results', async () => {
       const stepStartEvents: Parameters<
         GenerateTextOnStepStartCallback<any, any>
       >[0][] = [];
+      const stepEndModels: Array<StepResult<any>['model']> = [];
+      let endModel: StepResult<any>['model'] | undefined;
+      let endStepModels: Array<StepResult<any>['model']> = [];
       let responseCount = 0;
 
       const alternateModel = new MockLanguageModelV4({
@@ -9542,15 +9545,38 @@ describe('streamText', () => {
         onStepStart: async event => {
           stepStartEvents.push(event);
         },
+        onStepEnd: async event => {
+          stepEndModels.push(event.model);
+        },
+        onEnd: async event => {
+          endModel = event.model;
+          endStepModels = event.steps.map(step => step.model);
+        },
         onError: () => {},
       });
 
       await result.consumeStream();
 
-      expect(stepStartEvents[0].provider).toBe('mock-provider');
-      expect(stepStartEvents[0].modelId).toBe('mock-model-id');
-      expect(stepStartEvents[1].provider).toBe('alternate-provider');
-      expect(stepStartEvents[1].modelId).toBe('alternate-model-id');
+      const expectedModels = [
+        { provider: 'mock-provider', modelId: 'mock-model-id' },
+        {
+          provider: 'alternate-provider',
+          modelId: 'alternate-model-id',
+        },
+      ];
+
+      expect(
+        stepStartEvents.map(({ provider, modelId }) => ({
+          provider,
+          modelId,
+        })),
+      ).toEqual(expectedModels);
+      expect(stepEndModels).toEqual(expectedModels);
+      expect((await result.steps).map(step => step.model)).toEqual(
+        expectedModels,
+      );
+      expect(endStepModels).toEqual(expectedModels);
+      expect(endModel).toEqual(expectedModels[1]);
     });
 
     it('should apply prepareStep model call settings only to the current step', async () => {
