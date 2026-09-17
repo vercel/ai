@@ -6,9 +6,8 @@ export const BedrockErrorSchema = z.object({
   type: z.string().nullish(),
 });
 
-export const amazonBedrockFailedResponseHandler =
-  createJsonErrorResponseHandler({
-    errorSchema: AmazonBedrockErrorSchema,
-    errorToMessage: error =>
-      error.type == null ? error.message : `${error.type}: ${error.message}`,
-  });
+export const bedrockFailedResponseHandler = createJsonErrorResponseHandler({
+  errorSchema: BedrockErrorSchema,
+  errorToMessage: error =>
+    error.type == null ? error.message : `${error.type}: ${error.message}`,
+});
