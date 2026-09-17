@@ -63,6 +63,7 @@ interface RunShellInput {
 interface RunShellResult {
   exitCode: number | null;
   output: Buffer;
+  stderr: Buffer;
 }
 
 function lastOutputLine(output: Buffer): string | undefined {
@@ -86,6 +87,7 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
       ...(input.signal ? { abortSignal: input.signal } : {}),
     });
 
+    const stderr = Buffer.from(result.stderr, 'utf8');
     const combined = `${result.stdout}${result.stderr}`;
     const output = Buffer.from(combined, 'utf8');
     if (output.length > 0) {
@@ -95,6 +97,7 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
     return {
       exitCode: result.exitCode,
       output,
+      stderr,
     };
   };
 
@@ -322,26 +325,37 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
     const flags = [
       '-r',
       '-n',
-      '--binary-files=without-match',
       ...(input.ignoreCase ? ['-i'] : []),
       ...(input.literal ? ['-F'] : []),
       ...(typeof input.context === 'number' && input.context > 0
         ? ['-C', String(input.context)]
         : []),
-      ...(input.glob ? ['--include', input.glob] : []),
+      ...(input.glob ? [`--include=${input.glob}`] : []),
     ];
     const limit = Math.max(1, input.limit ?? 100);
     const result = await runShell(
       [
         `if [ ! -e ${shellQuote(resolvedPath)} ]; then echo "__PI_GREP_NOT_FOUND__"; exit 2; fi`,
         `cd ${shellQuote(options.paths.sandboxWorkDir)}`,
-        `grep ${flags.map(shellQuote).join(' ')} -- ${shellQuote(pattern)} ${shellQuote(targetPath)} 2>/dev/null | head -n ${limit}`,
+        `grep_output=$(grep ${flags.map(shellQuote).join(' ')} -e ${shellQuote(pattern)} ${shellQuote(targetPath)})`,
+        'grep_status=$?',
+        'if [ "$grep_status" -gt 1 ]; then exit "$grep_status"; fi',
+        `printf '%s\\n' "$grep_output" | head -n ${limit}`,
       ].join('; '),
     );
 
     const output = result.output.toString('utf8').trim();
     if (output.includes('__PI_GREP_NOT_FOUND__')) {
       throw new Error(`Path not found: ${input.path ?? '.'}`);
+    }
+    const stderr = result.stderr.toString('utf8').trim();
+    if (stderr) {
+      throw new Error(stderr);
+    }
+    if (result.exitCode !== 0) {
+      throw new Error(
+        output || `grep failed with exit code ${result.exitCode}`,
+      );
     }
 
     return output || 'No matches found';
