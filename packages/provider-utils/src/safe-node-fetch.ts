@@ -1,10 +1,11 @@
 import type * as nodeDnsModule from 'node:dns';
-import { createRequire } from 'node:module';
+import type * as nodeModule from 'node:module';
 import type * as undiciModule from 'undici';
 import type { FetchFunction } from './fetch-function';
 import { validateDownloadAddress } from './validate-download-url';
 
 type NodeDns = typeof nodeDnsModule;
+type NodeModule = typeof nodeModule;
 type Undici = typeof undiciModule;
 
 type LookupAddress = {
@@ -133,10 +134,14 @@ export async function getDefaultDownloadFetch(): Promise<FetchFunction> {
 }
 
 function createSafeNodeFetch(): FetchFunction {
+  // NFT only recognizes an indirectly loaded createRequire when its receiver
+  // is named `module` and the returned require function is assigned.
+  // eslint-disable-next-line @next/next/no-assign-module-variable
+  const module = loadBuiltinModule<NodeModule>('node:module');
   const { lookup } = loadBuiltinModule<NodeDns>('node:dns');
   // Assign the created require function so deployment tracers can recognize
   // the static dependency without bundlers inlining undici.
-  const nodeRequire = createRequire(getCurrentModulePath());
+  const nodeRequire = module.createRequire(getCurrentModulePath());
   const { Agent, fetch } = nodeRequire('undici') as Undici;
 
   const dispatcher = new Agent({
