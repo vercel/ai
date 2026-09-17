@@ -48,7 +48,7 @@ it('uses Gemini structured output and forwards thinking options and cancellation
     abortSignal,
     headers: { 'x-call': 'forwarded' },
     providerOptions: {
-      google: { thinkingConfig: { thinkingLevel: 'minimal' } },
+      google: { thinkingConfig: { thinkingLevel: 'high' } },
     },
   });
   expect(model.provider).toBe('google.evaluation');
@@ -77,7 +77,7 @@ it('uses Gemini structured output and forwards thinking options and cancellation
   const body = JSON.parse(request.body);
   expect(body.generationConfig).toMatchObject({
     responseMimeType: 'application/json',
-    thinkingConfig: { thinkingLevel: 'minimal' },
+    thinkingConfig: { thinkingLevel: 'high' },
     responseJsonSchema: {
       type: 'object',
       properties: {
@@ -94,6 +94,13 @@ it('uses Gemini structured output and forwards thinking options and cancellation
   expect(
     body.generationConfig.responseJsonSchema.properties.q1,
   ).not.toHaveProperty('maximum');
+});
+it('defaults to the minimum thinking level through the provider reasoning mapping', async () => {
+  const { model, fetch } = setup();
+  await model.doEvaluate(options);
+  expect(
+    JSON.parse(fetch.mock.calls[0][1].body).generationConfig.thinkingConfig,
+  ).toEqual({ thinkingLevel: 'minimal' });
 });
 it('ignores thought text while counting reasoning tokens in usage', async () => {
   const { model } = setup({

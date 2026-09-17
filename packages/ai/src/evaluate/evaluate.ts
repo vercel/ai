@@ -6,7 +6,7 @@ import {
   withUserAgentSuffix,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
-import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
+import { resolveEvaluationModel } from '../model/resolve-model';
 import { logWarnings } from '../logger/log-warnings';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
@@ -24,7 +24,7 @@ import {
 export async function evaluate<
   const QUESTIONS extends Record<string, EvaluationQuestion>,
 >({
-  model,
+  model: modelArg,
   state,
   questions,
   maxRetries,
@@ -32,7 +32,7 @@ export async function evaluate<
   headers,
   providerOptions = {},
 }: {
-  /** An evaluation model instance. String model resolution is not yet supported. */
+  /** An evaluation model instance or an ID resolved by the configured default provider. */
   model: EvaluationModel;
   state: EvaluationModelV4CallOptions['state'];
   questions: QUESTIONS;
@@ -42,13 +42,7 @@ export async function evaluate<
   headers?: Record<string, string>;
   providerOptions?: ProviderOptions;
 }): Promise<EvaluationResult<QUESTIONS>> {
-  if (model.specificationVersion !== 'v4') {
-    throw new UnsupportedModelVersionError({
-      version: model.specificationVersion,
-      provider: model.provider,
-      modelId: model.modelId,
-    });
-  }
+  const model = resolveEvaluationModel(modelArg);
 
   validateEvaluationInput({ state, questions });
 

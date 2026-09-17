@@ -1,3 +1,4 @@
+import type { ResolvedToolCallers } from '../generate-text/tool-caller-configuration';
 import {
   experimental_toolCaller,
   tool,
@@ -162,18 +163,56 @@ describe('deferred tool search', () => {
     });
   });
 
-  it.each([
+  it.each<ResolvedToolCallers | undefined>([
     undefined,
     {},
-    { search: ['code'], getWeather: [] },
+    { search: ['AI_SDK_DIRECT_TOOL_CALL'] },
+    { getWeather: ['AI_SDK_DIRECT_TOOL_CALL'] },
     {
-      ...toolCallers,
-      getWeather: ['code', 'AI_SDK_DIRECT_TOOL_CALL'],
+      search: ['AI_SDK_DIRECT_TOOL_CALL'],
+      getWeather: ['AI_SDK_DIRECT_TOOL_CALL'],
     },
-  ])('rejects missing or direct caller routing: %j', routing => {
-    expect(() =>
-      createToolSearchState({ tools, toolCallers: routing }),
-    ).toThrow("toolDiscovery: 'conversation'");
+    {
+      search: ['code', 'AI_SDK_DIRECT_TOOL_CALL'],
+      getWeather: ['AI_SDK_DIRECT_TOOL_CALL'],
+    },
+  ])('discovers directly callable tools with routing %j', async routing => {
+    const prepare = createToolSearchState({ tools, toolCallers: routing });
+    const first = prepare(tools)!;
+    expect(first.getWeather).toBeUndefined();
+    expect(await search(first, 'weather')).toEqual({
+      tools: [{ name: 'getWeather', description: 'Weather forecast.' }],
+    });
+    expect(first.getWeather).toBeUndefined();
+    expect(prepare(tools)!.getWeather).toBe(weather);
+  });
+
+  it.each<ResolvedToolCallers>([
+    { getWeather: [] },
+    { search: [] },
+    { getWeather: ['code'] },
+    { search: ['code'] },
+  ])('does not cross caller boundaries with routing %j', async routing => {
+    const prepare = createToolSearchState({ tools, toolCallers: routing });
+    expect(await search(prepare(tools)!, 'weather')).toEqual({ tools: [] });
+    expect(prepare(tools)!.getWeather).toBeUndefined();
+  });
+
+  it('respects activeTools before and after direct discovery', async () => {
+    const prepare = createToolSearchState({ tools, toolCallers: undefined });
+    const { getWeather: _excluded, ...eligible } = tools;
+    expect(await search(prepare(eligible)!, 'weather')).toEqual({ tools: [] });
+    await search(prepare(tools)!, 'weather');
+    expect(prepare(eligible)!.getWeather).toBeUndefined();
+  });
+
+  it('treats inherited routing properties as omitted entries', async () => {
+    const registry = { search: toolSearch(), constructor: weather };
+    const prepare = createToolSearchState({ tools: registry, toolCallers: {} });
+    expect(await search(prepare(registry)!, 'weather')).toEqual({
+      tools: [{ name: 'constructor', description: 'Weather forecast.' }],
+    });
+    expect(prepare(registry)!.constructor).toBe(weather);
   });
 
   it('rejects description discovery and provider callers', () => {

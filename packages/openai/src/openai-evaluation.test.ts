@@ -47,7 +47,6 @@ it('evaluates through the configured Responses API with strict structured output
   const result = await model.doEvaluate({
     ...options,
     headers: { 'x-call': 'forwarded' },
-    providerOptions: { openai: { reasoningEffort: 'none' } },
   });
   expect(model.provider).toBe('openai.evaluation');
   expect(model.supportedQuestionTypes).toEqual(['choice', 'score', 'boolean']);
@@ -88,6 +87,17 @@ it('evaluates through the configured Responses API with strict structured output
         },
       },
     },
+  });
+});
+
+it('allows provider options to override the default reasoning effort', async () => {
+  const { model, fetch } = setup();
+  await model.doEvaluate({
+    ...options,
+    providerOptions: { openai: { reasoningEffort: 'high' } },
+  });
+  expect(JSON.parse(fetch.mock.calls[0][1].body).reasoning).toMatchObject({
+    effort: 'high',
   });
 });
 

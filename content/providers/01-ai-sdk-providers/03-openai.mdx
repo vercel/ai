@@ -3436,3 +3436,9 @@ The factory respects `createOpenAI` settings, including custom fetch and base UR
 Pass Responses options through `providerOptions.openai`. Usage, warnings,
 response information, and provider metadata are preserved. Refusals, truncated
 output, or invalid answers fail the entire call. See [Evaluation](/docs/ai-sdk-core/evaluation).
+
+Evaluation models can also be accessed through `customProvider` aliases or
+`createProviderRegistry().evaluationModel('provider:model')`. Direct string IDs
+use Gateway by default, or an explicitly configured default provider with an
+`evaluationModel` method. See
+[model aliases and registries](/docs/ai-sdk-core/evaluation#model-aliases-and-registries).

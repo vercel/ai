@@ -1,5 +1,24 @@
 # @ai-sdk/gateway
 
+## 4.0.85
+
+### Patch Changes
+
+- 6982e9d: Include evaluation models in getAvailableModels() instead of filtering them out as unknown model types.
+- 6982e9d: feat(gateway): add experimental evaluation model support
+
+## 4.0.84
+
+### Patch Changes
+
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/provider@4.0.17
+
 ## 4.0.83
 
 ### Patch Changes

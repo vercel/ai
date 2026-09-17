@@ -5,8 +5,12 @@ import {
   type Experimental_SandboxSession as SandboxSession,
 } from '@ai-sdk/provider-utils';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
-import type { ResolvedToolCallers } from '../generate-text/tool-caller-configuration';
+import {
+  DIRECT_TOOL_CALL,
+  type ResolvedToolCallers,
+} from '../generate-text/tool-caller-configuration';
 import { resolveToolDescription } from '../prompt/prepare-tools';
+import { getOwn } from '../util/get-own';
 import { isToolSearch } from './tool-search';
 
 /** Create discovery state for one generation, never for a shared tool instance. */
@@ -31,12 +35,17 @@ export function createToolSearchState({
   }
 
   const discovered = new Set<string>();
+  // An omitted entry permits direct calls; an explicit empty list permits none.
+  const getCallers = (name: string) =>
+    getOwn(toolCallers, name) ?? [DIRECT_TOOL_CALL];
 
   for (const [name, tool] of searchTools) {
-    const callers = toolCallers?.[name] ?? [];
+    const callers = getCallers(name);
     if (
-      callers.length === 0 ||
       callers.some(name => {
+        if (name === DIRECT_TOOL_CALL) {
+          return false;
+        }
         const caller = experimental_getToolCaller(tools?.[name]);
         return caller?.type !== 'local' || caller.prepareModelMessage == null;
       }) ||
@@ -45,7 +54,7 @@ export function createToolSearchState({
       throw new InvalidArgumentError({
         parameter: 'tools',
         value: name,
-        message: `tool "${name}" requires exclusive routing through code mode with toolDiscovery: 'conversation'. The search tool itself must not defer loading.`,
+        message: `tool "${name}" must be callable directly or through code mode with toolDiscovery: 'conversation'. The search tool itself must not defer loading.`,
       });
     }
   }
@@ -66,14 +75,15 @@ export function createToolSearchState({
             return [searchName, tool];
           }
 
-          const callers = (toolCallers?.[searchName] ?? []).filter(name =>
-            Object.hasOwn(activeTools, name),
+          const callers = getCallers(searchName).filter(
+            name =>
+              name === DIRECT_TOOL_CALL || Object.hasOwn(activeTools, name),
           );
           const candidates = entries.filter(
             ([name, candidate]) =>
               candidate.deferLoading &&
               !isToolSearch(candidate) &&
-              callers.some(caller => toolCallers?.[name]?.includes(caller)),
+              callers.some(caller => getCallers(name).includes(caller)),
           );
 
           return [

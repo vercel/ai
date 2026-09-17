@@ -63,7 +63,7 @@ export const customTool = dynamicTool({
               isOptional: true,
               type: 'boolean',
               description:
-                "Keep this tool out of the model context until toolSearch discovers it. Requires exclusive routing through code mode with toolDiscovery: 'conversation'. Discovered tools become available on the next model step. Defaults to false.",
+                "Keep this tool out of the model context until toolSearch discovers it. Supports direct calling or code mode with toolDiscovery: 'conversation'. Discovered tools become available on the next model step. Defaults to false.",
             },
             {
               name: 'title',
