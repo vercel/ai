@@ -1,11 +1,9 @@
 import type * as nodeDnsModule from 'node:dns';
-import type * as nodeModule from 'node:module';
 import type * as undiciModule from 'undici';
 import type { FetchFunction } from './fetch-function';
 import { validateDownloadAddress } from './validate-download-url';
 
 type NodeDns = typeof nodeDnsModule;
-type NodeModule = typeof nodeModule;
 type Undici = typeof undiciModule;
 
 type LookupAddress = {
@@ -133,14 +131,11 @@ export async function getDefaultDownloadFetch(): Promise<FetchFunction> {
   return (safeNodeFetchPromise ??= Promise.resolve().then(createSafeNodeFetch));
 }
 
-function createSafeNodeFetch(): FetchFunction {
-  // Load Node-only modules indirectly so browser bundlers do not pull undici
-  // and Node built-ins into the browser-facing provider-utils entry point.
-  const { createRequire } = loadBuiltinModule<NodeModule>('node:module');
+async function createSafeNodeFetch(): Promise<FetchFunction> {
   const { lookup } = loadBuiltinModule<NodeDns>('node:dns');
-  const { Agent, fetch } = createRequire(getCurrentModulePath())(
-    'undici',
-  ) as Undici;
+  // Keep the Node-only transport lazy while making the dependency visible to
+  // deployment tracers. Browser bundles remove undici via the package map.
+  const { Agent, fetch } = (await import('undici')) as Undici;
 
   const dispatcher = new Agent({
     connect: {
@@ -171,28 +166,4 @@ function loadBuiltinModule<T>(id: string): T {
   }
 
   return builtinModule as T;
-}
-
-function getCurrentModulePath(): string {
-  // `import.meta.url` breaks when provider-utils is rebundled as CommonJS.
-  // The caller frame points at this package when loaded directly and at the
-  // consuming bundle when inlined, giving createRequire the correct base path.
-  const originalPrepareStackTrace = Error.prepareStackTrace;
-
-  try {
-    Error.prepareStackTrace = (_error, callSites) => callSites as never;
-
-    const error = new Error('Capture current module path');
-    Error.captureStackTrace(error, getCurrentModulePath);
-    const [caller] = error.stack as unknown as NodeJS.CallSite[];
-    const fileName = caller?.getFileName();
-
-    if (fileName == null) {
-      throw new Error('Unable to determine the current module path');
-    }
-
-    return fileName;
-  } finally {
-    Error.prepareStackTrace = originalPrepareStackTrace;
-  }
 }

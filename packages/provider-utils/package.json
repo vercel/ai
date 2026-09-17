@@ -7,6 +7,9 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "source": "./src/index.ts",
+  "browser": {
+    "undici": false
+  },
   "files": [
     "dist/**/*",
     "src",
