@@ -1,4 +1,5 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { GoogleImageModel } from './google-image-model';
 import type { GoogleImageModelOptions } from './google-image-model-options';
@@ -65,8 +66,8 @@ function prepareJsonResponse({
 
 describe('GoogleImageModel', () => {
   describe('maxImagesPerCall', () => {
-    it('should return 10 by default', () => {
-      expect(model.maxImagesPerCall).toBe(10);
+    it('should return 1 by default', () => {
+      expect(model.maxImagesPerCall).toBe(1);
     });
 
     it('should respect a custom setting', () => {
@@ -81,6 +82,31 @@ describe('GoogleImageModel', () => {
       );
 
       expect(customModel.maxImagesPerCall).toBe(5);
+    });
+
+    it('should advertise a default accepted by doGenerate', async () => {
+      server.urls[TEST_URL].response = {
+        type: 'json-value',
+        body: JSON.parse(
+          fs.readFileSync(
+            'src/__fixtures__/google-image-gemini-3.1-flash-image.json',
+            'utf8',
+          ),
+        ),
+      };
+
+      const result = await model.doGenerate({
+        prompt: 'A beautiful sunset',
+        files: undefined,
+        mask: undefined,
+        n: model.maxImagesPerCall,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.images).toHaveLength(1);
     });
   });
 
