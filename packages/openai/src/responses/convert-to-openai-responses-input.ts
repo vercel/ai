@@ -122,6 +122,34 @@ async function convertFunctionToolResultOutput({
               };
             }
 
+            case 'file-id': {
+              return {
+                type: 'input_file' as const,
+                file_id:
+                  typeof item.fileId === 'string'
+                    ? item.fileId
+                    : item.fileId[providerOptionsName],
+                ...(promptCacheBreakpoint != null && {
+                  prompt_cache_breakpoint: promptCacheBreakpoint,
+                }),
+              };
+            }
+
+            case 'image-file-id': {
+              return {
+                type: 'input_image' as const,
+                file_id:
+                  typeof item.fileId === 'string'
+                    ? item.fileId
+                    : item.fileId[providerOptionsName],
+                detail:
+                  item.providerOptions?.[providerOptionsName]?.imageDetail,
+                ...(promptCacheBreakpoint != null && {
+                  prompt_cache_breakpoint: promptCacheBreakpoint,
+                }),
+              };
+            }
+
             case 'file-data': {
               return {
                 type: 'input_file' as const,

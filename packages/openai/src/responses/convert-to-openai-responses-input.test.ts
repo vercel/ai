@@ -2995,6 +2995,79 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
+    it('should convert provider references in tool result content', async () => {
+      const promptCacheBreakpoint = { mode: 'explicit' } as const;
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'text',
+                      text: 'Referenced files:',
+                    },
+                    {
+                      type: 'file-id',
+                      fileId: { openai: 'file-pdf-123' },
+                      providerOptions: {
+                        openai: { promptCacheBreakpoint },
+                      },
+                    },
+                    {
+                      type: 'image-file-id',
+                      fileId: { openai: 'file-image-123' },
+                      providerOptions: {
+                        openai: {
+                          imageDetail: 'high',
+                          promptCacheBreakpoint,
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_123',
+          output: [
+            {
+              type: 'input_text',
+              text: 'Referenced files:',
+            },
+            {
+              type: 'input_file',
+              file_id: 'file-pdf-123',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+            {
+              type: 'input_image',
+              file_id: 'file-image-123',
+              detail: 'high',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+          ],
+        },
+      ]);
+      expect(result.warnings).toEqual([]);
+    });
+
     it('should convert single tool result part with multipart that contains file (PDF)', async () => {
       const base64Data = 'AQIDBAU=';
       const result = await convertToOpenAIResponsesInput({
