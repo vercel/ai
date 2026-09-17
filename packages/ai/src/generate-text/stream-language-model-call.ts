@@ -372,6 +372,7 @@ export async function streamLanguageModelCall<
       messages: standardizedPrompt.messages,
       repairToolCall,
       refineToolInput,
+      abortSignal,
       callId: effectiveCallId,
       provider: resolvedModel.provider,
       modelId: resolvedModel.modelId,
@@ -399,6 +400,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   messages,
   repairToolCall,
   refineToolInput,
+  abortSignal,
   callId,
   provider,
   modelId,
@@ -413,6 +415,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   messages: ModelMessage[];
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
   refineToolInput: ToolInputRefinement<TOOLS> | undefined;
+  abortSignal: AbortSignal | undefined;
   callId: string;
   provider: string;
   modelId: string;
@@ -687,6 +690,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
               refineToolInput,
               instructions,
               messages,
+              abortSignal,
             });
 
             toolCallsByToolCallId.set(toolCall.toolCallId, toolCall);

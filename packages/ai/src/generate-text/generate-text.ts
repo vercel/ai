@@ -1082,6 +1082,7 @@ export async function generateText<
                       refineToolInput,
                       instructions: stepInstructions,
                       messages: stepMessages,
+                      abortSignal: mergedAbortSignal,
                     }),
                   ),
               );
