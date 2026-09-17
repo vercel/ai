@@ -6,7 +6,6 @@ import type {
 import {
   combineHeaders,
   convertUint8ArrayToBase64,
-  createJsonErrorResponseHandler,
   createJsonResponseHandler,
   postJsonToApi,
   resolve,
@@ -15,9 +14,16 @@ import {
 } from '@ai-sdk/provider-utils';
 import {
   modelMaxImagesPerCall,
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-image-model.ts
   type BedrockImageModelId,
 } from './bedrock-image-settings';
 import { BedrockErrorSchema } from './bedrock-error';
+=======
+  type AmazonBedrockImageModelId,
+} from './amazon-bedrock-image-settings';
+import { amazonBedrockImageModelOptionsSchema } from './amazon-bedrock-image-model-options';
+import { amazonBedrockFailedResponseHandler } from './amazon-bedrock-error';
+>>>>>>> c559a12ec0 (fix: preserve Amazon Bedrock API error messages when the error type is omitted (#20933)):packages/amazon-bedrock/src/amazon-bedrock-image-model.ts
 import { z } from 'zod/v4';
 
 type BedrockImageModelConfig = {
@@ -223,10 +229,14 @@ export class BedrockImageModel implements ImageModelV3 {
         combineHeaders(await resolve(this.config.headers), headers),
       ),
       body: args,
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-image-model.ts
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: BedrockErrorSchema,
         errorToMessage: error => `${error.type}: ${error.message}`,
       }),
+=======
+      failedResponseHandler: amazonBedrockFailedResponseHandler,
+>>>>>>> c559a12ec0 (fix: preserve Amazon Bedrock API error messages when the error type is omitted (#20933)):packages/amazon-bedrock/src/amazon-bedrock-image-model.ts
       successfulResponseHandler: createJsonResponseHandler(
         bedrockImageResponseSchema,
       ),

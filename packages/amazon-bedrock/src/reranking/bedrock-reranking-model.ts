@@ -1,7 +1,6 @@
 import type { RerankingModelV3 } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  createJsonErrorResponseHandler,
   createJsonResponseHandler,
   parseProviderOptions,
   postJsonToApi,
@@ -9,7 +8,11 @@ import {
   type FetchFunction,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
+<<<<<<< HEAD:packages/amazon-bedrock/src/reranking/bedrock-reranking-model.ts
 import { BedrockErrorSchema } from '../bedrock-error';
+=======
+import { amazonBedrockFailedResponseHandler } from '../amazon-bedrock-error';
+>>>>>>> c559a12ec0 (fix: preserve Amazon Bedrock API error messages when the error type is omitted (#20933)):packages/amazon-bedrock/src/reranking/amazon-bedrock-reranking-model.ts
 import {
   bedrockRerankingResponseSchema,
   type BedrockRerankingInput,
@@ -92,11 +95,16 @@ export class BedrockRerankingModel implements RerankingModelV3 {
                   jsonDocument: value,
                 },
         })),
+<<<<<<< HEAD:packages/amazon-bedrock/src/reranking/bedrock-reranking-model.ts
       } satisfies BedrockRerankingInput,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: BedrockErrorSchema,
         errorToMessage: error => `${error.type}: ${error.message}`,
       }),
+=======
+      } satisfies AmazonBedrockRerankingInput,
+      failedResponseHandler: amazonBedrockFailedResponseHandler,
+>>>>>>> c559a12ec0 (fix: preserve Amazon Bedrock API error messages when the error type is omitted (#20933)):packages/amazon-bedrock/src/reranking/amazon-bedrock-reranking-model.ts
       successfulResponseHandler: createJsonResponseHandler(
         bedrockRerankingResponseSchema,
       ),

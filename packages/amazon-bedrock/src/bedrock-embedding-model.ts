@@ -4,7 +4,6 @@ import {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  createJsonErrorResponseHandler,
   createJsonResponseHandler,
   parseProviderOptions,
   postJsonToApi,
@@ -16,8 +15,13 @@ import {
   amazonBedrockEmbeddingModelOptionsSchema,
   type BedrockEmbeddingModelId,
   type AmazonBedrockEmbeddingModelSettings,
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-embedding-model.ts
 } from './bedrock-embedding-options';
 import { BedrockErrorSchema } from './bedrock-error';
+=======
+} from './amazon-bedrock-embedding-model-options';
+import { amazonBedrockFailedResponseHandler } from './amazon-bedrock-error';
+>>>>>>> c559a12ec0 (fix: preserve Amazon Bedrock API error messages when the error type is omitted (#20933)):packages/amazon-bedrock/src/amazon-bedrock-embedding-model.ts
 import { z } from 'zod/v4';
 
 type BedrockEmbeddingConfig = {
@@ -118,10 +122,14 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
         combineHeaders(await resolve(this.config.headers), headers),
       ),
       body: args,
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-embedding-model.ts
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: BedrockErrorSchema,
         errorToMessage: error => `${error.type}: ${error.message}`,
       }),
+=======
+      failedResponseHandler: amazonBedrockFailedResponseHandler,
+>>>>>>> c559a12ec0 (fix: preserve Amazon Bedrock API error messages when the error type is omitted (#20933)):packages/amazon-bedrock/src/amazon-bedrock-embedding-model.ts
       successfulResponseHandler: createJsonResponseHandler(
         BedrockEmbeddingResponseSchema,
       ),

@@ -43,10 +43,19 @@ import {
   isAnthropicModel as detectAnthropicModel,
   supportsNativeStructuredOutput,
   supportsStrictTools,
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
 } from './bedrock-anthropic-model-support';
 import { BedrockErrorSchema } from './bedrock-error';
 import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-response-handler';
 import { prepareTools } from './bedrock-prepare-tools';
+=======
+} from './amazon-bedrock-anthropic-model-support';
+import {
+  amazonBedrockFailedResponseHandler,
+  AmazonBedrockErrorSchema,
+} from './amazon-bedrock-error';
+import { createAmazonBedrockEventStreamResponseHandler } from './amazon-bedrock-event-stream-response-handler';
+>>>>>>> c559a12ec0 (fix: preserve Amazon Bedrock API error messages when the error type is omitted (#20933)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
 import {
   convertBedrockUsage,
   type BedrockUsage,
@@ -732,12 +741,19 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       url,
       headers: await this.getHeaders({ headers: options.headers }),
       body: args,
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: BedrockErrorSchema,
         errorToMessage: error => `${error.type}: ${error.message}`,
       }),
       successfulResponseHandler:
         createBedrockEventStreamResponseHandler(BedrockStreamSchema),
+=======
+      failedResponseHandler: amazonBedrockFailedResponseHandler,
+      successfulResponseHandler: createAmazonBedrockEventStreamResponseHandler(
+        AmazonBedrockStreamSchema,
+      ),
+>>>>>>> c559a12ec0 (fix: preserve Amazon Bedrock API error messages when the error type is omitted (#20933)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
