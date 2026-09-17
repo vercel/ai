@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21000,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21000-poll-timeout.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-21000-poll-timeout.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_21000_REPRODUCED: pollTimeoutMillis did not enforce a wall-clock polling deadline"
+  }
+}
