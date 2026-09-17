@@ -6122,9 +6122,9 @@ describe('streamText', () => {
       const stepStartEvents: Parameters<
         StreamTextOnStepStartCallback<any, any>
       >[0][] = [];
-      const stepEndModels: Array<StepResult<any>['model']> = [];
-      let endModel: StepResult<any>['model'] | undefined;
-      let endStepModels: Array<StepResult<any>['model']> = [];
+      const stepFinishModels: Array<StepResult<any>['model']> = [];
+      let finishModel: StepResult<any>['model'] | undefined;
+      let finishStepModels: Array<StepResult<any>['model']> = [];
       let responseCount = 0;
 
       const alternateModel = new MockLanguageModelV3({
@@ -6198,28 +6198,18 @@ describe('streamText', () => {
         experimental_onStepStart: async event => {
           stepStartEvents.push(event);
         },
-        onStepEnd: async event => {
-          stepEndModels.push(event.model);
+        onStepFinish: async event => {
+          stepFinishModels.push(event.model);
         },
-        onEnd: async event => {
-          endModel = event.model;
-          endStepModels = event.steps.map(step => step.model);
+        onFinish: async event => {
+          finishModel = event.model;
+          finishStepModels = event.steps.map(step => step.model);
         },
         onError: () => {},
       });
 
       await result.consumeStream();
 
-<<<<<<< HEAD
-      expect(stepStartEvents[0].model).toEqual({
-        provider: 'mock-provider',
-        modelId: 'mock-model-id',
-      });
-      expect(stepStartEvents[1].model).toEqual({
-        provider: 'alternate-provider',
-        modelId: 'alternate-model-id',
-      });
-=======
       const expectedModels = [
         { provider: 'mock-provider', modelId: 'mock-model-id' },
         {
@@ -6228,19 +6218,13 @@ describe('streamText', () => {
         },
       ];
 
-      expect(
-        stepStartEvents.map(({ provider, modelId }) => ({
-          provider,
-          modelId,
-        })),
-      ).toEqual(expectedModels);
-      expect(stepEndModels).toEqual(expectedModels);
+      expect(stepStartEvents.map(event => event.model)).toEqual(expectedModels);
+      expect(stepFinishModels).toEqual(expectedModels);
       expect((await result.steps).map(step => step.model)).toEqual(
         expectedModels,
       );
-      expect(endStepModels).toEqual(expectedModels);
-      expect(endModel).toEqual(expectedModels[1]);
->>>>>>> 669672843c (fix: report the model selected by prepareStep in streamed step results and callbacks (#20946))
+      expect(finishStepModels).toEqual(expectedModels);
+      expect(finishModel).toEqual(expectedModels[1]);
     });
 
     it('should apply prepareStep model call settings only to the current step', async () => {
