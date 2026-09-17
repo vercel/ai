@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21042,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21042-wrap-provider-uploads.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-21042-wrap-provider-uploads.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #21042 REPRODUCED: wrapProvider removed file and skill upload support"
+  }
+}
