@@ -16,6 +16,7 @@ import type { FlexibleSchema } from './schema';
 export async function parseJSON(options: {
   text: string;
   schema?: undefined;
+  allowPrototypeProperties?: boolean;
 }): Promise<JSONValue>;
 /**
  * Parses a JSON string into a strongly-typed object using the provided schema.
@@ -28,16 +29,19 @@ export async function parseJSON(options: {
 export async function parseJSON<T>(options: {
   text: string;
   schema: FlexibleSchema<T>;
+  allowPrototypeProperties?: boolean;
 }): Promise<T>;
 export async function parseJSON<T>({
   text,
   schema,
+  allowPrototypeProperties,
 }: {
   text: string;
   schema?: FlexibleSchema<T>;
+  allowPrototypeProperties?: boolean;
 }): Promise<T> {
   try {
-    const value = secureJsonParse(text);
+    const value = secureJsonParse(text, { allowPrototypeProperties });
 
     if (schema == null) {
       return value;

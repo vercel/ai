@@ -41,5 +41,8 @@ async function toJSONValue(value: unknown): Promise<JSONValue> {
   const serialized = JSON.stringify(value);
   return serialized === undefined
     ? null
-    : await parseJSON({ text: serialized });
+    : await parseJSON({
+        text: serialized,
+        allowPrototypeProperties: true,
+      });
 }
