@@ -307,6 +307,27 @@ describe('createToolModelOutput', () => {
       `);
     });
 
+    it.each([
+      ['own __proto__', '{"rows":[{"__proto__":"value"}]}'],
+      [
+        'nested constructor.prototype',
+        '{"rows":[{"constructor":{"prototype":{"value":true}}}]}',
+      ],
+    ])('should preserve %s properties', async (_, serializedOutput) => {
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
+        output: JSON.parse(serializedOutput),
+        tool: undefined,
+        errorMode: 'none',
+      });
+
+      expect(result.type).toBe('json');
+      if (result.type === 'json') {
+        expect(JSON.stringify(result.value)).toBe(serializedOutput);
+      }
+    });
+
     it('should return json type for array output', async () => {
       const result = await createToolModelOutput({
         toolCallId: '123',

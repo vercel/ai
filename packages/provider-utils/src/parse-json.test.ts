@@ -9,6 +9,30 @@ describe('parseJSON', () => {
     expect(result).toEqual({ foo: 'bar' });
   });
 
+  it.each([
+    ['own __proto__', '{"rows":[{"__proto__":"value"}]}'],
+    [
+      'nested constructor.prototype',
+      '{"rows":[{"constructor":{"prototype":{"value":true}}}]}',
+    ],
+  ])(
+    'should preserve %s properties when explicitly allowed',
+    async (_, text) => {
+      const result = await parseJSON({
+        text,
+        allowPrototypeProperties: true,
+      });
+
+      expect(JSON.stringify(result)).toBe(text);
+    },
+  );
+
+  it('should reject prototype properties by default', async () => {
+    await expect(
+      parseJSON({ text: '{"rows":[{"__proto__":"value"}]}' }),
+    ).rejects.toThrow(JSONParseError);
+  });
+
   it('should parse JSON with schema validation', async () => {
     const schema = z.object({ foo: z.string() });
     const result = await parseJSON({ text: '{"foo": "bar"}', schema });
