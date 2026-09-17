@@ -1,1 +1,1 @@
-export type GatewayEvaluationModelId = 'typesafe-ai/jev-latest' | (string & {});
+export type GatewayEvaluationModelId = 'typesafe-ai/jev' | (string & {});

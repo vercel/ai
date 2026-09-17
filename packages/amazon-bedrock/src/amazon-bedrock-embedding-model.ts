@@ -4,7 +4,6 @@ import {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  createJsonErrorResponseHandler,
   createJsonResponseHandler,
   parseProviderOptions,
   postJsonToApi,
@@ -20,7 +19,7 @@ import {
   type AmazonBedrockEmbeddingModelId,
   type AmazonBedrockEmbeddingModelSettings,
 } from './amazon-bedrock-embedding-model-options';
-import { AmazonBedrockErrorSchema } from './amazon-bedrock-error';
+import { amazonBedrockFailedResponseHandler } from './amazon-bedrock-error';
 import { z } from 'zod/v4';
 
 type AmazonBedrockEmbeddingConfig = {
@@ -146,10 +145,7 @@ export class AmazonBedrockEmbeddingModel implements EmbeddingModelV4 {
         ),
       ),
       body: args,
-      failedResponseHandler: createJsonErrorResponseHandler({
-        errorSchema: AmazonBedrockErrorSchema,
-        errorToMessage: error => `${error.type}: ${error.message}`,
-      }),
+      failedResponseHandler: amazonBedrockFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         AmazonBedrockEmbeddingResponseSchema,
       ),

@@ -234,7 +234,7 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
         `if [ ! -e ${shellQuote(resolvedPath)} ]; then echo "__PI_LS_NOT_FOUND__"; exit 2; fi`,
         `if [ ! -d ${shellQuote(resolvedPath)} ]; then echo "__PI_LS_NOT_DIR__"; exit 3; fi`,
         `cd ${shellQuote(resolvedPath)}`,
-        'ls -1Ap',
+        'ls -1AF',
       ].join('; '),
     );
 

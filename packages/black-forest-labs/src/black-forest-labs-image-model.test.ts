@@ -631,19 +631,38 @@ describe('BlackForestLabsImageModel', () => {
       expect(pollCalls.length).toBe(3);
     });
 
-    it('uses configured pollTimeoutMillis and pollIntervalMillis to time out', async () => {
-      server.urls['https://api.example.com/poll'].response = ({
-        callNumber,
-      }) => ({
-        type: 'json-value',
-        body: { status: 'Pending', callNumber },
-      });
+    it('enforces pollTimeoutMillis while a polling request is pending', async () => {
+      let pollingSignal: AbortSignal | null | undefined;
+      const fetch: FetchFunction = async (input, init) => {
+        const url = input instanceof Request ? input.url : input.toString();
 
-      const pollIntervalMillis = 10;
-      const pollTimeoutMillis = 25;
+        if (url === 'https://api.example.com/v1/test-model') {
+          return new Response(
+            JSON.stringify({
+              id: 'req-123',
+              polling_url: 'https://api.example.com/poll',
+            }),
+            {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            },
+          );
+        }
+
+        pollingSignal = init?.signal;
+        return new Promise<Response>((_resolve, reject) => {
+          pollingSignal?.addEventListener(
+            'abort',
+            () => reject(pollingSignal?.reason),
+            { once: true },
+          );
+        });
+      };
+
       const model = createBasicModel({
-        pollIntervalMillis,
-        pollTimeoutMillis,
+        fetch,
+        pollIntervalMillis: 10,
+        pollTimeoutMillis: 25,
       });
 
       await expect(
@@ -659,18 +678,7 @@ describe('BlackForestLabsImageModel', () => {
         }),
       ).rejects.toThrow('Black Forest Labs generation timed out.');
 
-      const pollCalls = server.calls.filter(
-        c =>
-          c.requestMethod === 'GET' &&
-          c.requestUrl.startsWith('https://api.example.com/poll'),
-      );
-      expect(pollCalls.length).toBe(
-        Math.ceil(pollTimeoutMillis / pollIntervalMillis),
-      );
-      const imageFetchCalls = server.calls.filter(c =>
-        c.requestUrl.startsWith('https://api.example.com/image.png'),
-      );
-      expect(imageFetchCalls.length).toBe(0);
+      expect(pollingSignal?.aborted).toBe(true);
     });
 
     it('throws when poll is Ready but sample is missing', async () => {

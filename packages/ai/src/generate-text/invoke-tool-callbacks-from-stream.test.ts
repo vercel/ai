@@ -184,4 +184,52 @@ describe('invokeToolCallbacksFromStream', () => {
       ),
     ).toBe(true);
   });
+
+  it('should skip onInputAvailable for invalid tool calls', async () => {
+    const recordedCalls: string[] = [];
+    const tools = {
+      'test-tool': tool({
+        inputSchema: z.object({ value: z.string() }),
+        onInputStart: () => {
+          recordedCalls.push('onInputStart');
+        },
+        onInputDelta: () => {
+          recordedCalls.push('onInputDelta');
+        },
+        onInputAvailable: () => {
+          recordedCalls.push('onInputAvailable');
+        },
+      }),
+    };
+
+    const chunks: Array<LanguageModelStreamPart<typeof tools>> = [
+      { type: 'tool-input-start', id: 'call-1', toolName: 'test-tool' },
+      {
+        type: 'tool-input-delta',
+        id: 'call-1',
+        delta: '{"value":42}',
+      },
+      { type: 'tool-input-end', id: 'call-1' },
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'test-tool',
+        input: { value: 42 },
+        dynamic: true,
+        invalid: true,
+        error: new Error('invalid tool input'),
+      },
+    ];
+
+    const result = invokeToolCallbacksFromStream({
+      stream: convertArrayToReadableStream(chunks),
+      tools,
+      stepInputMessages: [],
+      abortSignal: undefined,
+      runtimeContext: {},
+    });
+
+    await expect(convertReadableStreamToArray(result)).resolves.toEqual(chunks);
+    expect(recordedCalls).toEqual(['onInputStart', 'onInputDelta']);
+  });
 });
