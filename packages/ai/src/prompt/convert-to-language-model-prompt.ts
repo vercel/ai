@@ -38,15 +38,17 @@ import { MissingToolResultsError } from '../error/missing-tool-result-error';
 export async function convertToLanguageModelPrompt({
   prompt,
   supportedUrls,
-  download = createDefaultDownloadFunction(),
+  download,
+  abortSignal,
 }: {
   prompt: StandardizedPrompt;
   supportedUrls: Record<string, RegExp[]>;
   download: DownloadFunction | undefined;
+  abortSignal?: AbortSignal;
 }): Promise<LanguageModelV3Prompt> {
   const downloadedAssets = await downloadAssets(
     prompt.messages,
-    download,
+    download ?? createDefaultDownloadFunction(undefined, abortSignal),
     supportedUrls,
   );
 

@@ -304,6 +304,7 @@ export async function generateObject<
           prompt: standardizedPrompt,
           supportedUrls: await model.supportedUrls,
           download,
+          abortSignal,
         });
 
         const generateResult = await retry(() =>

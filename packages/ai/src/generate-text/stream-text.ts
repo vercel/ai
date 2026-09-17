@@ -1775,6 +1775,7 @@ class DefaultStreamTextResult<
               },
               supportedUrls: await stepModel.supportedUrls,
               download,
+              abortSignal,
             });
 
             const stepActiveTools =

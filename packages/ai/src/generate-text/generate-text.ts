@@ -744,6 +744,7 @@ export async function generateText<
               },
               supportedUrls: await stepModel.supportedUrls,
               download,
+              abortSignal: mergedAbortSignal,
             });
 
             experimental_context =
