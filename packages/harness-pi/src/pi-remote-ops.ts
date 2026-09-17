@@ -153,8 +153,8 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
       [
         resolveSandboxPathFunction,
         `target=${shellQuote(remotePath)}`,
-        `if [ ! -e "$target" ]; then echo "__PI_REALPATH_NOT_FOUND__"; exit 2; fi`,
         `resolved=$(pi_resolve_path "$target") || { echo "__PI_REALPATH_FAILED__"; exit 3; }`,
+        `if [ ! -e "$resolved" ]; then echo "__PI_REALPATH_NOT_FOUND__"; exit 2; fi`,
         `printf '%s\\n' "$resolved"`,
       ].join('\n'),
     );

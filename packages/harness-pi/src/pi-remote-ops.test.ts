@@ -141,7 +141,7 @@ describe('createPiRemoteOps with just-bash', () => {
     }
   });
 
-  it('resolves intermediate workspace symlinks for file operations', async () => {
+  it('resolves chained workspace symlinks for file operations', async () => {
     const session = await createJustBashSandbox({
       cwd: sandboxWorkDir,
     }).createSession();
@@ -154,7 +154,8 @@ describe('createPiRemoteOps with just-bash', () => {
           `printf 'read content\\n' > ${sandboxWorkDir}/target/docs/read.txt`,
           `printf 'old content\\n' > ${sandboxWorkDir}/target/docs/edit.txt`,
           `printf 'search needle\\n' > ${sandboxWorkDir}/target/docs/search.txt`,
-          `ln -s target ${sandboxWorkDir}/linked`,
+          `ln -s target ${sandboxWorkDir}/intermediate`,
+          `ln -s intermediate/docs ${sandboxWorkDir}/linked-docs`,
         ].join(' && '),
       });
       expect(setup.exitCode).toBe(0);
@@ -188,10 +189,10 @@ describe('createPiRemoteOps with just-bash', () => {
       });
 
       expect(
-        (await ops.readBuffer('linked/docs/read.txt')).toString('utf8'),
+        (await ops.readBuffer('linked-docs/read.txt')).toString('utf8'),
       ).toBe('read content\n');
 
-      await ops.writeFile('linked/docs/written.txt', 'written content\n');
+      await ops.writeFile('linked-docs/written.txt', 'written content\n');
       await expect(
         sandbox.readTextFile({
           path: `${sandboxWorkDir}/target/docs/written.txt`,
@@ -199,7 +200,7 @@ describe('createPiRemoteOps with just-bash', () => {
       ).resolves.toBe('written content\n');
 
       await expect(
-        ops.editFile('linked/docs/edit.txt', 'old', 'updated'),
+        ops.editFile('linked-docs/edit.txt', 'old', 'updated'),
       ).resolves.toBe('updated content\n');
       await expect(
         sandbox.readTextFile({
@@ -207,7 +208,13 @@ describe('createPiRemoteOps with just-bash', () => {
         }),
       ).resolves.toBe('updated content\n');
 
-      await expect(ops.findFiles('*.txt', 'linked/docs')).resolves.toEqual([
+      await expect(ops.listDirectory('linked-docs')).resolves.toEqual([
+        'edit.txt',
+        'read.txt',
+        'search.txt',
+        'written.txt',
+      ]);
+      await expect(ops.findFiles('*.txt', 'linked-docs')).resolves.toEqual([
         'edit.txt',
         'read.txt',
         'search.txt',
@@ -215,13 +222,13 @@ describe('createPiRemoteOps with just-bash', () => {
       ]);
       await expect(
         ops.grepFiles('needle', {
-          path: 'linked/docs',
+          path: 'linked-docs',
           literal: true,
         }),
       ).resolves.toContain('search.txt:1:search needle');
       expect(grepCommands).toHaveLength(1);
       expect(grepCommands[0]).toContain('target/docs');
-      expect(grepCommands[0]).not.toContain('linked/docs');
+      expect(grepCommands[0]).not.toContain('linked-docs');
     } finally {
       await session.destroy();
     }
