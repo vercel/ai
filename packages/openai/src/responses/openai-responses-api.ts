@@ -266,8 +266,7 @@ export type OpenAIResponsesUserMessage = {
 export type OpenAIResponsesAssistantMessage = {
   type?: 'message';
   role: 'assistant';
-  content: Array<{ type: 'output_text'; text: string }>;
-  id?: string;
+  content: string;
   phase?: 'commentary' | 'final_answer' | null;
 };
 
