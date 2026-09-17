@@ -548,6 +548,7 @@ export class HarnessAgent<
         sandboxSession,
         ownsSandboxLifecycle,
         sessionWorkDir,
+        stripWorkDir: this.sandboxConfig.stripWorkDir !== false,
         toolApproval: this.settings.toolApproval,
         pendingToolApprovals: effectiveContinueFrom?.pendingToolApprovals,
         pendingToolResults: effectiveContinueFrom?.pendingToolResults,

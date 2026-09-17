@@ -62,11 +62,10 @@ export function createToolInputWorkDirStripper({
  * operates. The absolute paths are correct but noisy in a UI, so this strips
  * the prefix for the consumer-facing projection only.
  *
- * Blanket prefix replacement (rather than rewriting known path fields) is used
- * deliberately: `tool-result` results are free-form text — command stdout, grep
- * output — where paths can appear anywhere and field-aware rewriting is
- * impossible. The prefix is long and contains the session id, so it is unique
- * enough that replacing every occurrence is safe.
+ * Boundary-aware prefix replacement (rather than rewriting known path fields)
+ * is used deliberately: `tool-result` results are free-form text — command
+ * stdout, grep output — where paths can appear anywhere and field-aware
+ * rewriting is impossible.
  */
 export function stripWorkDir(
   part: HarnessV1StreamPart,
@@ -101,7 +100,33 @@ export function stripWorkDir(
  * becomes `.`.
  */
 function stripString(value: string, workDir: string): string {
-  return value.split(`${workDir}/`).join('').split(workDir).join('.');
+  let remaining = value;
+  let output = '';
+
+  while (remaining.length > 0) {
+    const matchIndex = remaining.indexOf(workDir);
+    if (matchIndex < 0) return output + remaining;
+
+    const followingIndex = matchIndex + workDir.length;
+    const isPath =
+      isPathBoundary(remaining, matchIndex) &&
+      (followingIndex === remaining.length ||
+        remaining[followingIndex] === '/');
+
+    if (!isPath) {
+      output += remaining.slice(0, followingIndex);
+      remaining = remaining.slice(followingIndex);
+      continue;
+    }
+
+    output += remaining.slice(0, matchIndex);
+    if (followingIndex === remaining.length) {
+      return output + '.';
+    }
+    remaining = remaining.slice(followingIndex + 1);
+  }
+
+  return output;
 }
 
 function stripStreamingString({
@@ -119,15 +144,27 @@ function stripStreamingString({
   while (remaining.length > 0) {
     const matchIndex = remaining.indexOf(workDir);
     if (matchIndex >= 0) {
-      output += remaining.slice(0, matchIndex);
       const followingIndex = matchIndex + workDir.length;
-      if (followingIndex === remaining.length && !final) {
-        return { output, pending: remaining.slice(matchIndex) };
+      const hasPathBoundary = isPathBoundary(remaining, matchIndex);
+      if (hasPathBoundary && followingIndex === remaining.length && !final) {
+        return {
+          output: output + remaining.slice(0, matchIndex),
+          pending: remaining.slice(matchIndex),
+        };
       }
-      if (remaining[followingIndex] === '/') {
+
+      const isPath =
+        hasPathBoundary &&
+        (followingIndex === remaining.length ||
+          remaining[followingIndex] === '/');
+      if (!isPath) {
+        output += remaining.slice(0, followingIndex);
+        remaining = remaining.slice(followingIndex);
+      } else if (remaining[followingIndex] === '/') {
+        output += remaining.slice(0, matchIndex);
         remaining = remaining.slice(followingIndex + 1);
       } else {
-        output += '.';
+        output += remaining.slice(0, matchIndex) + '.';
         remaining = remaining.slice(followingIndex);
       }
       continue;
@@ -138,7 +175,8 @@ function stripStreamingString({
     let pendingLength = Math.min(remaining.length, workDir.length - 1);
     while (
       pendingLength > 0 &&
-      !workDir.startsWith(remaining.slice(-pendingLength))
+      (!workDir.startsWith(remaining.slice(-pendingLength)) ||
+        !isPathBoundary(remaining, remaining.length - pendingLength))
     ) {
       pendingLength -= 1;
     }
@@ -150,6 +188,10 @@ function stripStreamingString({
   }
 
   return { output, pending: '' };
+}
+
+function isPathBoundary(value: string, index: number): boolean {
+  return index === 0 || /[\s"'`=]/.test(value[index - 1]!);
 }
 
 /**
