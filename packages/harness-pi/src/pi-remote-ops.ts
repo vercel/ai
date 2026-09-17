@@ -321,10 +321,15 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
     const targetPath =
       relativeTarget.startsWith('../') || path.posix.isAbsolute(relativeTarget)
         ? resolvedPath
-        : relativeTarget;
+        : relativeTarget.startsWith('-')
+          ? `./${relativeTarget}`
+          : relativeTarget;
+    const limit = Math.max(1, input.limit ?? 100);
     const flags = [
       '-r',
       '-n',
+      '-m',
+      String(limit),
       ...(input.ignoreCase ? ['-i'] : []),
       ...(input.literal ? ['-F'] : []),
       ...(typeof input.context === 'number' && input.context > 0
@@ -332,15 +337,16 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
         : []),
       ...(input.glob ? [`--include=${input.glob}`] : []),
     ];
-    const limit = Math.max(1, input.limit ?? 100);
     const result = await runShell(
       [
         `if [ ! -e ${shellQuote(resolvedPath)} ]; then echo "__PI_GREP_NOT_FOUND__"; exit 2; fi`,
         `cd ${shellQuote(options.paths.sandboxWorkDir)}`,
-        `grep_output=$(grep ${flags.map(shellQuote).join(' ')} -e ${shellQuote(pattern)} ${shellQuote(targetPath)})`,
-        'grep_status=$?',
-        'if [ "$grep_status" -gt 1 ]; then exit "$grep_status"; fi',
-        `printf '%s\\n' "$grep_output" | head -n ${limit}`,
+        // Preserve binary skipping where grep supports it without passing an
+        // unsupported option to just-bash.
+        `binary_option_error=$(grep --binary-files=without-match -e '' /dev/null 2>&1)`,
+        `if [ -z "$binary_option_error" ]; then binary_option='--binary-files=without-match'; else binary_option=''; fi`,
+        'set -o pipefail',
+        `grep $binary_option ${flags.map(shellQuote).join(' ')} -e ${shellQuote(pattern)} ${shellQuote(targetPath)} | head -n ${limit}`,
       ].join('; '),
     );
 
@@ -352,7 +358,12 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
     if (stderr) {
       throw new Error(stderr);
     }
-    if (result.exitCode !== 0) {
+    if (
+      result.exitCode !== 0 &&
+      result.exitCode !== 1 &&
+      // GNU grep can receive SIGPIPE after head reaches the requested limit.
+      result.exitCode !== 141
+    ) {
       throw new Error(
         output || `grep failed with exit code ${result.exitCode}`,
       );

@@ -1,4 +1,5 @@
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
+import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
 import { describe, expect, it, vi } from 'vitest';
 import { createPiPathMapper } from './pi-paths';
 import { createPiRemoteOps } from './pi-remote-ops';
@@ -101,6 +102,43 @@ function makeOps(behaviors: Parameters<typeof makeMockSandbox>[0]) {
   });
   const ops = createPiRemoteOps({ sandbox: env.sandbox, paths });
   return { ...env, paths, ops };
+}
+
+async function makeJustBashOps() {
+  const sandboxSession = await createJustBashSandbox({
+    cwd: sandboxWorkDir,
+  }).createSession();
+  const justBashSandbox = sandboxSession.restricted();
+  const sandbox = new Proxy(justBashSandbox, {
+    get(target, property) {
+      if (property === 'run') {
+        return async (
+          input: Parameters<Experimental_SandboxSession['run']>[0],
+        ) => {
+          const realpathResult = mockRealpathCommand(
+            input.command,
+            path => path,
+          );
+          return realpathResult == null
+            ? target.run(input)
+            : {
+                exitCode: realpathResult.exitCode ?? 0,
+                stdout: realpathResult.stdout ?? '',
+                stderr: realpathResult.stderr ?? '',
+              };
+        };
+      }
+
+      const value = Reflect.get(target, property, target);
+      return typeof value === 'function' ? value.bind(target) : value;
+    },
+  });
+  const ops = createPiRemoteOps({
+    sandbox,
+    paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
+  });
+
+  return { sandboxSession, sandbox, ops };
 }
 
 describe('createPiRemoteOps.readBuffer', () => {
@@ -291,17 +329,45 @@ describe('createPiRemoteOps.grepFiles', () => {
     expect(cmd).toContain('-i');
     expect(cmd).toContain('-F');
     expect(cmd).toContain('-C');
+    expect(cmd).toContain("'-m' '50'");
     expect(cmd).toContain("'--include=*.ts'");
     expect(cmd).toContain("-e 'TODO'");
-    expect(cmd).not.toContain('--binary-files');
+    expect(cmd).toContain(
+      'binary_option_error=$(grep --binary-files=without-match',
+    );
+    expect(cmd).toContain('grep $binary_option');
     expect(cmd).not.toContain('2>/dev/null');
     expect(cmd).toContain('head -n 50');
+    expect(cmd).not.toContain('grep_output=');
   });
 
   it('returns "No matches found" on empty output', async () => {
-    const env = makeOps({ run: () => ({ stdout: '' }) });
+    const env = makeOps({ run: () => ({ stdout: '', exitCode: 1 }) });
     const out = await env.ops.grepFiles('x', {});
     expect(out).toBe('No matches found');
+  });
+
+  it('accepts grep SIGPIPE when head stops after the requested limit', async () => {
+    const env = makeOps({
+      run: () => ({ stdout: 'foo.ts:1:hit\n', exitCode: 141 }),
+    });
+
+    await expect(env.ops.grepFiles('hit', { limit: 1 })).resolves.toBe(
+      'foo.ts:1:hit',
+    );
+  });
+
+  it('prefixes option-like relative targets with ./', async () => {
+    const env = makeOps({
+      run: () => ({ stdout: './-notes.txt:1:hit\n' }),
+    });
+
+    await env.ops.grepFiles('hit', { path: '-notes.txt' });
+
+    const cmd =
+      env.runCalls.find(call => call.command.includes('grep $binary_option'))
+        ?.command ?? '';
+    expect(cmd).toContain("'./-notes.txt'");
   });
 
   it('surfaces grep errors instead of reporting no matches', async () => {
@@ -335,6 +401,85 @@ describe('createPiRemoteOps.grepFiles', () => {
     expect(env.runCalls.some(call => call.command.includes('grep '))).toBe(
       false,
     );
+  });
+
+  it('returns text matches when a just-bash workspace also contains matching binary data', async () => {
+    const { sandboxSession, sandbox, ops } = await makeJustBashOps();
+
+    try {
+      await sandbox.writeTextFile({
+        path: `${sandboxWorkDir}/text.txt`,
+        content: 'hello from text\n',
+      });
+      await sandbox.writeBinaryFile({
+        path: `${sandboxWorkDir}/data.bin`,
+        content: new Uint8Array([0, 104, 101, 108, 108, 111, 10]),
+      });
+
+      await expect(
+        ops.grepFiles('hello', { literal: true }),
+      ).resolves.toContain('text.txt:1:hello from text');
+    } finally {
+      await sandboxSession.destroy();
+    }
+  });
+
+  it('searches an option-like filename in just-bash', async () => {
+    const { sandboxSession, sandbox, ops } = await makeJustBashOps();
+
+    try {
+      await sandbox.writeTextFile({
+        path: `${sandboxWorkDir}/-notes.txt`,
+        content: 'hello\n',
+      });
+
+      await expect(
+        ops.grepFiles('hello', { path: '-notes.txt', literal: true }),
+      ).resolves.toContain('hello');
+    } finally {
+      await sandboxSession.destroy();
+    }
+  });
+
+  it('surfaces grep diagnostics from just-bash', async () => {
+    const { sandboxSession, sandbox, ops } = await makeJustBashOps();
+
+    try {
+      await sandbox.writeTextFile({
+        path: `${sandboxWorkDir}/text.txt`,
+        content: 'hello\n',
+      });
+
+      await expect(ops.grepFiles('[', {})).rejects.toThrow(
+        'grep: invalid regular expression',
+      );
+    } finally {
+      await sandboxSession.destroy();
+    }
+  });
+
+  it('limits high-cardinality grep output in just-bash', async () => {
+    const { sandboxSession, sandbox, ops } = await makeJustBashOps();
+
+    try {
+      await sandbox.writeTextFile({
+        path: `${sandboxWorkDir}/many.txt`,
+        content: `${Array.from(
+          { length: 5_000 },
+          (_, index) => `match ${index}`,
+        ).join('\n')}\n`,
+      });
+
+      const output = await ops.grepFiles('match', {
+        literal: true,
+        limit: 3,
+      });
+
+      expect(output.split('\n')).toHaveLength(3);
+      expect(output).toContain('many.txt:1:match 0');
+    } finally {
+      await sandboxSession.destroy();
+    }
   });
 });
 
