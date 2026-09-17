@@ -195,7 +195,6 @@ describe('GoogleImageModel', () => {
       });
     });
 
-<<<<<<< HEAD
     it('should preserve a live candidate finish reason in image diagnostics', async () => {
       server.urls[TEST_URL].response = {
         type: 'json-value',
@@ -225,7 +224,7 @@ describe('GoogleImageModel', () => {
         }),
       ).toContain('NO_IMAGE');
     });
-=======
+
     it.each(['', 'BLOCK_REASON_UNSPECIFIED', 'BLOCKED_REASON_UNSPECIFIED'])(
       'should leave empty responses with default prompt block reason %j retryable',
       async blockReason => {
@@ -261,7 +260,6 @@ describe('GoogleImageModel', () => {
         });
       },
     );
->>>>>>> origin/main
 
     it('should send response modalities, aspect ratio, seed, and headers', async () => {
       prepareJsonResponse({});
