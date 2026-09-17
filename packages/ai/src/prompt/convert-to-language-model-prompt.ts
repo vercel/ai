@@ -38,15 +38,29 @@ import { MissingToolResultsError } from '../error/missing-tool-result-error';
 export async function convertToLanguageModelPrompt({
   prompt,
   supportedUrls,
+<<<<<<< HEAD
   download = createDefaultDownloadFunction(),
+=======
+  download,
+  abortSignal,
+  // `provider` is only needed here to convert legacy tool output types via `mapToolResultOutput`.
+  // TODO: remove in v8 when "file-id" and "image-file-id" types are removed
+  provider,
+>>>>>>> 4a6778391f (fix: cancel prompt attachment downloads when calls are aborted or time out (#20968))
 }: {
   prompt: StandardizedPrompt;
   supportedUrls: Record<string, RegExp[]>;
   download: DownloadFunction | undefined;
+<<<<<<< HEAD
 }): Promise<LanguageModelV3Prompt> {
+=======
+  abortSignal?: AbortSignal;
+  provider?: string;
+}): Promise<LanguageModelV4Prompt> {
+>>>>>>> 4a6778391f (fix: cancel prompt attachment downloads when calls are aborted or time out (#20968))
   const downloadedAssets = await downloadAssets(
     prompt.messages,
-    download,
+    download ?? createDefaultDownloadFunction(undefined, abortSignal),
     supportedUrls,
   );
 

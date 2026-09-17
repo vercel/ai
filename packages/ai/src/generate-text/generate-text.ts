@@ -968,6 +968,7 @@ export async function generateText<
                 ? stepToolChoice
                 : undefined;
 
+<<<<<<< HEAD
             if (
               enforcedToolChoice != null &&
               !stepToolCalls.some(
@@ -979,6 +980,174 @@ export async function generateText<
               throw new ToolChoiceViolationError({
                 toolChoice: enforcedToolChoice,
                 finishReason: currentModelResponse.finishReason.unified,
+=======
+      let currentModelResponse: LanguageModelV4GenerateResult & {
+        response: { id: string; timestamp: Date; modelId: string };
+      };
+      let clientToolCalls: Array<TypedToolCall<TOOLS>> = [];
+      let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
+      let toolApprovalResponses: Array<ToolApprovalResponseOutput<TOOLS>> = [];
+      let deniedToolApprovalResponses: Array<
+        ToolApprovalResponseOutput<TOOLS>
+      > = [];
+      const steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'] =
+        [];
+      let instructionsForNextStep = initialPrompt.instructions;
+      let messagesForNextStep = [
+        ...initialMessages,
+        ...initialResponseMessages,
+      ];
+
+      // Track provider-executed tool calls that support deferred results
+      // (e.g., code_execution in programmatic tool calling scenarios).
+      // These tools may not return their results in the same turn as their call.
+      const pendingDeferredToolCalls = new Map<string, { toolName: string }>();
+
+      do {
+        if (steps.length > 0) {
+          mergedAbortSignal?.throwIfAborted();
+        }
+
+        // Set up step timeout if configured
+        const stepTimeoutId = setAbortTimeout({
+          abortController: stepAbortController,
+          label: 'Step',
+          timeoutMs: stepTimeoutMs,
+        });
+        const stepNumber = steps.length;
+
+        try {
+          await runInTracingChannelSpan({
+            type: 'step',
+            event: { callId, stepNumber },
+            execute: async () => {
+              const accumulatedResponseMessages = [
+                ...initialResponseMessages,
+                ...steps.flatMap(step => step.response.messages),
+              ];
+              const stepInputMessages = messagesForNextStep;
+
+              const prepareStepResult = await prepareStep?.({
+                model,
+                steps,
+                stepNumber: steps.length,
+                instructions: instructionsForNextStep,
+                initialInstructions: initialPrompt.instructions,
+                messages: stepInputMessages,
+                initialMessages,
+                responseMessages: accumulatedResponseMessages,
+                runtimeContext,
+                toolsContext,
+                experimental_sandbox: sandbox,
+              });
+
+              const stepSandbox =
+                prepareStepResult?.experimental_sandbox ?? sandbox;
+
+              const stepModel = resolveLanguageModel(
+                prepareStepResult?.model ?? model,
+              );
+
+              const stepInstructions =
+                prepareStepResult?.instructions ??
+                prepareStepResult?.system ??
+                instructionsForNextStep;
+
+              runtimeContext =
+                prepareStepResult?.runtimeContext ?? runtimeContext;
+              toolsContext = prepareStepResult?.toolsContext ?? toolsContext;
+
+              const stepActiveTools = filterActiveTools({
+                tools,
+                activeTools: prepareStepResult?.activeTools ?? activeTools,
+              });
+              const {
+                executionTools: stepExecutionTools,
+                modelTools: stepModelTools,
+                toolCallerMessages,
+              } = prepareToolsForToolCallers({
+                tools: prepareToolSearch(stepActiveTools, {
+                  toolsContext,
+                  experimental_sandbox: stepSandbox,
+                }),
+                toolCallers: resolvedToolCallers,
+              });
+              const stepToolOrder = prepareStepResult?.toolOrder ?? toolOrder;
+
+              const stepTools = await prepareTools({
+                tools: stepModelTools as ActiveToolSubset<
+                  TOOLS,
+                  ActiveTools<NoInfer<TOOLS>>
+                >,
+                toolOrder: stepToolOrder as ToolOrder<
+                  ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
+                >,
+                // active tools context is a subset of the tools context, so we can cast to the unknown type
+                toolsContext: toolsContext as unknown as InferToolSetContext<
+                  ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
+                >,
+                experimental_sandbox: stepSandbox,
+              });
+
+              const stepToolChoice = prepareToolChoice({
+                toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+              });
+
+              const stepMessages = appendToolCallerMessages({
+                messages: prepareStepResult?.messages ?? stepInputMessages,
+                toolCallerMessages,
+              });
+
+              const promptMessages = await convertToLanguageModelPrompt({
+                prompt: {
+                  instructions: stepInstructions,
+                  messages: stepMessages,
+                },
+                supportedUrls: await stepModel.supportedUrls,
+                download,
+                abortSignal: mergedAbortSignal,
+                provider: stepModel.provider.split('.')[0],
+              });
+
+              const stepProviderOptions = mergeObjects(
+                providerOptions,
+                prepareStepResult?.providerOptions,
+              );
+
+              const stepCallSettings = prepareStepCallSettings({
+                callSettings,
+                stepSettings: prepareStepResult,
+              });
+
+              await notify({
+                event: {
+                  callId,
+                  provider: stepModel.provider,
+                  modelId: stepModel.modelId,
+                  stepNumber,
+                  instructions: stepInstructions,
+                  messages: stepMessages,
+                  tools,
+                  toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+                  activeTools: prepareStepResult?.activeTools ?? activeTools,
+                  toolOrder: stepToolOrder,
+                  steps: [...steps],
+                  providerOptions: stepProviderOptions,
+                  output,
+                  runtimeContext,
+                  promptMessages,
+                  stepTools,
+                  stepToolChoice,
+                  toolsContext,
+                },
+                callbacks: [
+                  resolvedOnStepStart,
+                  telemetryDispatcher.onStepStart,
+                ],
+              });
+
+              const languageModelCallContext = {
+>>>>>>> 4a6778391f (fix: cancel prompt attachment downloads when calls are aborted or time out (#20968))
                 provider: stepModel.provider,
                 modelId: stepModel.modelId,
                 content: currentModelResponse.content,

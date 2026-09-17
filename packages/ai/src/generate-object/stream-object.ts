@@ -504,6 +504,7 @@ class DefaultStreamObjectResult<
           system,
           prompt,
           messages,
+<<<<<<< HEAD
           allowSystemInMessages,
         } as Prompt);
 
@@ -520,6 +521,65 @@ class DefaultStreamObjectResult<
             supportedUrls: await model.supportedUrls,
             download,
           }),
+=======
+          maxOutputTokens: callSettings.maxOutputTokens,
+          temperature: callSettings.temperature,
+          topP: callSettings.topP,
+          topK: callSettings.topK,
+          presencePenalty: callSettings.presencePenalty,
+          frequencyPenalty: callSettings.frequencyPenalty,
+          seed: callSettings.seed,
+          maxRetries,
+          headers,
+          providerOptions,
+          output: outputStrategy.type as
+            | 'object'
+            | 'array'
+            | 'enum'
+            | 'no-schema',
+          schema: jsonSchema as Record<string, unknown> | undefined,
+          schemaName,
+          schemaDescription,
+        },
+        callbacks: [onStart, telemetryDispatcher.onStart],
+      });
+
+      const standardizedPrompt = await standardizePrompt({
+        instructions,
+        system,
+        prompt,
+        messages,
+        allowSystemInMessages,
+      } as Prompt);
+
+      const callOptions = {
+        responseFormat: {
+          type: 'json' as const,
+          schema: jsonSchema,
+          name: schemaName,
+          description: schemaDescription,
+        },
+        ...prepareLanguageModelCallOptions(settings),
+        prompt: await convertToLanguageModelPrompt({
+          prompt: standardizedPrompt,
+          supportedUrls: await model.supportedUrls,
+          download,
+          abortSignal,
+          provider: model.provider.split('.')[0],
+        }),
+        providerOptions,
+        abortSignal,
+        headers,
+        includeRawChunks: false,
+      };
+
+      await notify({
+        event: {
+          callId,
+          stepNumber: 0 as const,
+          provider: model.provider,
+          modelId: model.modelId,
+>>>>>>> 4a6778391f (fix: cancel prompt attachment downloads when calls are aborted or time out (#20968))
           providerOptions,
           abortSignal,
           headers,
