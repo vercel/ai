@@ -3015,23 +3015,15 @@ describe('convertToOpenAIResponsesInput', () => {
                       text: 'Referenced files:',
                     },
                     {
-                      type: 'file',
-                      mediaType: 'application/pdf',
-                      data: {
-                        type: 'reference',
-                        reference: { openai: 'file-pdf-123' },
-                      },
+                      type: 'file-id',
+                      fileId: { openai: 'file-pdf-123' },
                       providerOptions: {
                         openai: { promptCacheBreakpoint },
                       },
                     },
                     {
-                      type: 'file',
-                      mediaType: 'image/png',
-                      data: {
-                        type: 'reference',
-                        reference: { openai: 'file-image-123' },
-                      },
+                      type: 'image-file-id',
+                      fileId: { openai: 'file-image-123' },
                       providerOptions: {
                         openai: {
                           imageDetail: 'high',

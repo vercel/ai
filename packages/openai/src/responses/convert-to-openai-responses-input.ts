@@ -110,7 +110,6 @@ async function convertFunctionToolResultOutput({
               };
             }
 
-<<<<<<< HEAD
             case 'image-url': {
               return {
                 type: 'input_image' as const,
@@ -122,55 +121,34 @@ async function convertFunctionToolResultOutput({
                 }),
               };
             }
-=======
-              if (item.data.type === 'reference') {
-                const fileId = resolveProviderReference({
-                  reference: item.data.reference,
-                  provider: providerOptionsName,
-                });
 
-                if (topLevel === 'image') {
-                  return {
-                    type: 'input_image' as const,
-                    file_id: fileId,
-                    detail: imageDetail,
-                    ...(promptCacheBreakpoint != null && {
-                      prompt_cache_breakpoint: promptCacheBreakpoint,
-                    }),
-                  };
-                }
+            case 'file-id': {
+              return {
+                type: 'input_file' as const,
+                file_id:
+                  typeof item.fileId === 'string'
+                    ? item.fileId
+                    : item.fileId[providerOptionsName],
+                ...(promptCacheBreakpoint != null && {
+                  prompt_cache_breakpoint: promptCacheBreakpoint,
+                }),
+              };
+            }
 
-                return {
-                  type: 'input_file' as const,
-                  file_id: fileId,
-                  ...(promptCacheBreakpoint != null && {
-                    prompt_cache_breakpoint: promptCacheBreakpoint,
-                  }),
-                };
-              }
-
-              if (item.data.type === 'data') {
-                const fullMediaType = resolveFullMediaType({ part: item });
-                if (topLevel === 'image') {
-                  return {
-                    type: 'input_image' as const,
-                    image_url: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
-                    detail: imageDetail,
-                    ...(promptCacheBreakpoint != null && {
-                      prompt_cache_breakpoint: promptCacheBreakpoint,
-                    }),
-                  };
-                }
-                return {
-                  type: 'input_file' as const,
-                  filename: item.filename ?? 'data',
-                  file_data: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
-                  ...(promptCacheBreakpoint != null && {
-                    prompt_cache_breakpoint: promptCacheBreakpoint,
-                  }),
-                };
-              }
->>>>>>> fd75ceeb62 (fix: Preserve uploaded-file references in OpenAI Responses tool results (#20978))
+            case 'image-file-id': {
+              return {
+                type: 'input_image' as const,
+                file_id:
+                  typeof item.fileId === 'string'
+                    ? item.fileId
+                    : item.fileId[providerOptionsName],
+                detail:
+                  item.providerOptions?.[providerOptionsName]?.imageDetail,
+                ...(promptCacheBreakpoint != null && {
+                  prompt_cache_breakpoint: promptCacheBreakpoint,
+                }),
+              };
+            }
 
             case 'file-data': {
               return {
