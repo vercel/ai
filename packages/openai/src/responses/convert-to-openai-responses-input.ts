@@ -611,8 +611,7 @@ export async function convertToOpenAIResponsesInput({
               input.push({
                 ...(explicitMessageItemType && { type: 'message' as const }),
                 role: 'assistant',
-                content: [{ type: 'output_text', text: part.text }],
-                id,
+                content: part.text,
                 ...(phase != null && { phase }),
               });
 
