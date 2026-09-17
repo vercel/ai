@@ -80,7 +80,7 @@ export function invokeToolCallbacksFromStream<
 
             delete ongoingToolCallToolNames[chunk.toolCallId];
 
-            if (tool?.onInputAvailable != null) {
+            if (!chunk.invalid && tool?.onInputAvailable != null) {
               await tool.onInputAvailable({
                 input: chunk.input,
                 toolCallId: chunk.toolCallId,
