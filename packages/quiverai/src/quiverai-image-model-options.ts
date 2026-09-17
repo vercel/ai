@@ -19,8 +19,10 @@ export const quiveraiImageModelOptionsSchema = lazySchema(() =>
        * - `generate`: Text-to-SVG generation. Requires `prompt`.
        * - `vectorize`: Convert an input raster image into an SVG. Requires a
        *   single image in `prompt.images` / `files`.
+       * - `animate`: Animate an input SVG. Requires a single SVG in
+       *   `prompt.images` / `files`; the text prompt is optional.
        */
-      operation: z.enum(['generate', 'vectorize']).optional(),
+      operation: z.enum(['generate', 'vectorize', 'animate']).optional(),
 
       /**
        * Extra style guidance for prompt-based generation.

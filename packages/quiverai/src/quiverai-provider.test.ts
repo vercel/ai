@@ -7,6 +7,7 @@ import {
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  animateSvgResponseFixture,
   generateSvgResponseFixture,
   vectorizeSvgResponseFixture,
 } from './__fixtures__/quiverai-fixtures';
@@ -44,6 +45,12 @@ const server = createTestServer({
     response: {
       type: 'json-value',
       body: vectorizeSvgResponseFixture,
+    },
+  },
+  'https://api.quiver.ai/v1/svgs/animations': {
+    response: {
+      type: 'json-value',
+      body: animateSvgResponseFixture,
     },
   },
 });
@@ -110,6 +117,7 @@ describe('createQuiverAI', () => {
   });
 
   it('throws when the QuiverAI API key is missing', async () => {
+    vi.stubEnv('QUIVERAI_API_KEY', undefined);
     const provider = createQuiverAI();
 
     const result = provider.image('arrow-1').doGenerate(generateOptions);
@@ -208,6 +216,302 @@ describe('createQuiverAI', () => {
       },
     });
   });
+
+  it('animates binary SVG input without an instruction', async () => {
+    const sourceSvg =
+      '<svg xmlns="http://www.w3.org/2000/svg"><circle r="4"/></svg>';
+    const provider = createQuiverAI({ apiKey: 'test-api-key' });
+
+    const result = await provider.image('arrow-2').doGenerate({
+      ...generateOptions,
+      prompt: undefined,
+      files: [
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: new TextEncoder().encode(sourceSvg),
+        },
+      ],
+      providerOptions: { quiverai: { operation: 'animate' } },
+    });
+
+    expect(decoder.decode(result.images[0] as Uint8Array)).toBe(
+      animateSvgResponseFixture.data[0].svg,
+    );
+    expect(result.providerMetadata?.quiverai).toEqual({
+      images: [
+        {
+          index: 0,
+          mimeType: 'image/svg+xml',
+          loopPeriodMs: 1200,
+          openingAnimationMs: null,
+        },
+      ],
+    });
+    expect(server.calls[0].requestUrl).toBe(
+      'https://api.quiver.ai/v1/svgs/animations',
+    );
+    expect(await server.calls[0].requestBodyJson).toEqual({
+      model: 'arrow-2',
+      svg_source: {
+        base64: btoa(sourceSvg),
+      },
+      stream: false,
+    });
+  });
+
+  it('forwards an animation instruction and supported options', async () => {
+    const provider = createQuiverAI({ apiKey: 'test-api-key' });
+
+    await provider.image('arrow-2-telos').doGenerate({
+      ...generateOptions,
+      prompt: 'Make the circle pulse gently.',
+      files: [
+        {
+          type: 'url',
+          url: 'https://example.com/source.svg',
+        },
+      ],
+      providerOptions: {
+        quiverai: {
+          operation: 'animate',
+          temperature: 0.4,
+          maxOutputTokens: 4096,
+          reasoningEffort: 'medium',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toEqual({
+      model: 'arrow-2-telos',
+      svg_source: {
+        url: 'https://example.com/source.svg',
+      },
+      prompt: 'Make the circle pulse gently.',
+      temperature: 0.4,
+      max_output_tokens: 4096,
+      reasoning_effort: 'medium',
+      stream: false,
+    });
+  });
+
+  it.each([
+    {
+      name: 'raw base64',
+      data: btoa('<svg xmlns="http://www.w3.org/2000/svg"/>'),
+    },
+    {
+      name: 'SVG data URL',
+      data: `data:image/svg+xml;base64,${btoa(
+        '<svg xmlns="http://www.w3.org/2000/svg"/>',
+      )}`,
+    },
+  ])('normalizes $name animation input', async ({ data }) => {
+    const provider = createQuiverAI({ apiKey: 'test-api-key' });
+
+    await provider.image('arrow-2').doGenerate({
+      ...generateOptions,
+      prompt: undefined,
+      files: [{ type: 'file', mediaType: 'image/svg+xml', data }],
+      providerOptions: { quiverai: { operation: 'animate' } },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      svg_source: {
+        base64: btoa('<svg xmlns="http://www.w3.org/2000/svg"/>'),
+      },
+    });
+  });
+
+  it.each([
+    {
+      name: 'no source SVG',
+      files: undefined,
+      n: 1,
+      modelId: 'arrow-2',
+    },
+    {
+      name: 'multiple source SVGs',
+      files: [
+        {
+          type: 'url' as const,
+          url: 'https://example.com/source-1.svg',
+        },
+        {
+          type: 'url' as const,
+          url: 'https://example.com/source-2.svg',
+        },
+      ],
+      n: 1,
+      modelId: 'arrow-2',
+    },
+    {
+      name: 'batched outputs',
+      files: [
+        {
+          type: 'url' as const,
+          url: 'https://example.com/source.svg',
+        },
+      ],
+      n: 2,
+      modelId: 'arrow-2',
+    },
+    {
+      name: 'unsupported model',
+      files: [
+        {
+          type: 'url' as const,
+          url: 'https://example.com/source.svg',
+        },
+      ],
+      n: 1,
+      modelId: 'arrow-1.1',
+    },
+  ])('rejects animation requests with $name', async ({ files, n, modelId }) => {
+    const provider = createQuiverAI({ apiKey: 'test-api-key' });
+
+    await expect(
+      provider.image(modelId).doGenerate({
+        ...generateOptions,
+        prompt: undefined,
+        files,
+        n,
+        providerOptions: { quiverai: { operation: 'animate' } },
+      }),
+    ).rejects.toBeInstanceOf(InvalidArgumentError);
+    expect(server.calls).toHaveLength(0);
+  });
+
+  it.each([
+    {
+      name: 'non-SVG binary input',
+      files: [
+        {
+          type: 'file' as const,
+          mediaType: 'image/png',
+          data: new Uint8Array([1, 2, 3]),
+        },
+      ],
+    },
+    {
+      name: 'non-HTTP URL input',
+      files: [
+        {
+          type: 'url' as const,
+          url: 'file:///source.svg',
+        },
+      ],
+    },
+    {
+      name: 'malformed URL input',
+      files: [
+        {
+          type: 'url' as const,
+          url: 'https://',
+        },
+      ],
+    },
+  ])('rejects $name for animation', async ({ files }) => {
+    const provider = createQuiverAI({ apiKey: 'test-api-key' });
+
+    await expect(
+      provider.image('arrow-2').doGenerate({
+        ...generateOptions,
+        prompt: undefined,
+        files,
+        providerOptions: { quiverai: { operation: 'animate' } },
+      }),
+    ).rejects.toBeInstanceOf(InvalidArgumentError);
+    expect(server.calls).toHaveLength(0);
+  });
+
+  it('rejects animation source SVGs above the base64 size limit', async () => {
+    const provider = createQuiverAI({ apiKey: 'test-api-key' });
+    const oversizedSvg = new TextEncoder().encode(
+      `<svg xmlns="http://www.w3.org/2000/svg"><!--${'a'.repeat(
+        800_000,
+      )}--></svg>`,
+    );
+
+    await expect(
+      provider.image('arrow-2').doGenerate({
+        ...generateOptions,
+        prompt: undefined,
+        files: [
+          {
+            type: 'file',
+            mediaType: 'image/svg+xml',
+            data: oversizedSvg,
+          },
+        ],
+        providerOptions: { quiverai: { operation: 'animate' } },
+      }),
+    ).rejects.toThrow('accepts at most 1066668 base64 characters');
+    expect(server.calls).toHaveLength(0);
+  });
+
+  it('rejects animation masks and operation-specific provider options', async () => {
+    const provider = createQuiverAI({ apiKey: 'test-api-key' });
+    const source = {
+      type: 'url' as const,
+      url: 'https://example.com/source.svg',
+    };
+
+    await expect(
+      provider.image('arrow-2').doGenerate({
+        ...generateOptions,
+        prompt: undefined,
+        files: [source],
+        mask: source,
+        providerOptions: { quiverai: { operation: 'animate' } },
+      }),
+    ).rejects.toThrow('does not support masks');
+
+    await expect(
+      provider.image('arrow-2').doGenerate({
+        ...generateOptions,
+        prompt: undefined,
+        files: [source],
+        providerOptions: {
+          quiverai: { operation: 'animate', autoCrop: true },
+        },
+      }),
+    ).rejects.toThrow('does not support providerOptions.quiverai.autoCrop');
+    expect(server.calls).toHaveLength(0);
+  });
+
+  it('rejects empty animation instructions', async () => {
+    const provider = createQuiverAI({ apiKey: 'test-api-key' });
+
+    await expect(
+      provider.image('arrow-2').doGenerate({
+        ...generateOptions,
+        prompt: '   ',
+        files: [{ type: 'url', url: 'https://example.com/source.svg' }],
+        providerOptions: { quiverai: { operation: 'animate' } },
+      }),
+    ).rejects.toThrow('requires a non-empty prompt');
+    expect(server.calls).toHaveLength(0);
+  });
+
+  it.each([{ temperature: 2.1 }, { maxOutputTokens: 65537 }])(
+    'rejects invalid animation options: %j',
+    async quiverai => {
+      const provider = createQuiverAI({ apiKey: 'test-api-key' });
+
+      await expect(
+        provider.image('arrow-2').doGenerate({
+          ...generateOptions,
+          prompt: undefined,
+          files: [{ type: 'url', url: 'https://example.com/source.svg' }],
+          providerOptions: {
+            quiverai: { operation: 'animate', ...quiverai },
+          },
+        }),
+      ).rejects.toBeInstanceOf(InvalidArgumentError);
+      expect(server.calls).toHaveLength(0);
+    },
+  );
 
   it('forwards docs-backed generation options and reference images', async () => {
     const provider = createQuiverAI({ apiKey: 'test-api-key' });
