@@ -136,13 +136,18 @@ export async function getDefaultDownloadFetch(): Promise<FetchFunction> {
 async function createSafeNodeFetch(): Promise<FetchFunction> {
   // Load Node-only modules indirectly so browser bundlers do not pull undici
   // and Node built-ins into the browser-facing provider-utils entry point.
-  const [{ createRequire }, { lookup }] = await Promise.all([
+  // @vercel/nft (node file trace) only recognizes an indirectly loaded createRequire when its receiver
+  // is named `module` and the returned require function is assigned.
+  // eslint-disable-next-line @next/next/no-assign-module-variable
+  const [module, { lookup }] = await Promise.all([
     loadNodeModule<NodeModule>('node:module'),
     loadNodeModule<NodeDns>('node:dns'),
   ]);
-  const { Agent, fetch } = createRequire(getCurrentModulePath())(
-    'undici',
-  ) as Undici;
+
+  // Assign the created require function so deployment tracers can recognize
+  // the static dependency without bundlers inlining undici.
+  const nodeRequire = module.createRequire(getCurrentModulePath());
+  const { Agent, fetch } = nodeRequire('undici') as Undici;
 
   const dispatcher = new Agent({
     connect: {
