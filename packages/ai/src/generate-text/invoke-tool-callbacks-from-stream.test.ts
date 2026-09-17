@@ -9,10 +9,9 @@ import type { LanguageModelStreamPart } from './stream-language-model-call';
 import { invokeToolCallbacksFromStream } from './invoke-tool-callbacks-from-stream';
 
 describe('invokeToolCallbacksFromStream', () => {
-  it('should invoke tool callbacks in order and pass through the stream', async () => {
+  it('should invoke tool callbacks in order with the tool context and pass through the stream', async () => {
     const recordedCalls: unknown[] = [];
     const abortController = new AbortController();
-    const runtimeContext = { requestId: 'req-1' };
     const stepInputMessages: Array<ModelMessage> = [
       { role: 'user', content: 'test-input' },
     ];
@@ -20,6 +19,7 @@ describe('invokeToolCallbacksFromStream', () => {
     const tools = {
       'test-tool': tool({
         inputSchema: z.object({ value: z.string() }),
+        contextSchema: z.object({ prefix: z.string() }),
         onInputStart: options => {
           recordedCalls.push({ type: 'onInputStart', options });
         },
@@ -51,7 +51,9 @@ describe('invokeToolCallbacksFromStream', () => {
       tools,
       stepInputMessages,
       abortSignal: abortController.signal,
-      runtimeContext,
+      toolsContext: {
+        'test-tool': { prefix: 'tool-context' },
+      },
     });
     const resultChunks = await convertReadableStreamToArray(result);
     const recordedCallsForSnapshot = recordedCalls.map(call => ({
@@ -104,7 +106,7 @@ describe('invokeToolCallbacksFromStream', () => {
           "options": {
             "abortSignal": "[AbortSignal]",
             "context": {
-              "requestId": "req-1",
+              "prefix": "tool-context",
             },
             "messages": [
               {
@@ -120,7 +122,7 @@ describe('invokeToolCallbacksFromStream', () => {
           "options": {
             "abortSignal": "[AbortSignal]",
             "context": {
-              "requestId": "req-1",
+              "prefix": "tool-context",
             },
             "inputTextDelta": "{"value":"",
             "messages": [
@@ -137,7 +139,7 @@ describe('invokeToolCallbacksFromStream', () => {
           "options": {
             "abortSignal": "[AbortSignal]",
             "context": {
-              "requestId": "req-1",
+              "prefix": "tool-context",
             },
             "inputTextDelta": "Sparkle Day"}",
             "messages": [
@@ -154,7 +156,7 @@ describe('invokeToolCallbacksFromStream', () => {
           "options": {
             "abortSignal": "[AbortSignal]",
             "context": {
-              "requestId": "req-1",
+              "prefix": "tool-context",
             },
             "input": {
               "value": "Sparkle Day",
