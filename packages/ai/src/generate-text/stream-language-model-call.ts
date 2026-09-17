@@ -53,6 +53,7 @@ import type {
 } from './language-model-events';
 import type { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
+import { resolveGeneratedFileData } from './resolve-generated-file-data';
 import type {
   TextStreamFilePart,
   TextStreamPart,
@@ -380,6 +381,7 @@ export async function streamLanguageModelCall<
       now,
       callStartTimestampMs,
       onLanguageModelCallEnd,
+      abortSignal,
     }),
   );
 
@@ -407,6 +409,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   now,
   callStartTimestampMs,
   onLanguageModelCallEnd,
+  abortSignal,
 }: {
   tools: TOOLS | undefined;
   instructions: Instructions | undefined;
@@ -421,6 +424,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   now: () => number;
   callStartTimestampMs: number;
   onLanguageModelCallEnd?: Arrayable<OnLanguageModelCallEndCallback<TOOLS>>;
+  abortSignal?: AbortSignal;
 }) {
   // keep track of parsed tool calls so provider-emitted approval requests can reference them
   // keep track of tool inputs for provider-side tool results
@@ -561,10 +565,10 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         case 'file':
         case 'reasoning-file': {
           const file = new DefaultGeneratedFileWithType({
-            data:
-              chunk.data.type === 'data'
-                ? chunk.data.data
-                : chunk.data.url.toString(),
+            data: await resolveGeneratedFileData({
+              data: chunk.data,
+              abortSignal,
+            }),
             mediaType: chunk.mediaType,
           });
 
