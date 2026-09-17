@@ -298,6 +298,11 @@ export type OpenAIResponsesFunctionCallOutput = {
             prompt_cache_breakpoint?: { mode: 'explicit' };
           }
         | {
+            type: 'input_image';
+            file_id: string;
+            prompt_cache_breakpoint?: { mode: 'explicit' };
+          }
+        | {
             type: 'input_file';
             filename: string;
             file_data: string;
@@ -306,6 +311,11 @@ export type OpenAIResponsesFunctionCallOutput = {
         | {
             type: 'input_file';
             file_url: string;
+            prompt_cache_breakpoint?: { mode: 'explicit' };
+          }
+        | {
+            type: 'input_file';
+            file_id: string;
             prompt_cache_breakpoint?: { mode: 'explicit' };
           }
       >;

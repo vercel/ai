@@ -202,6 +202,7 @@ export async function startBatch<
               prompt: standardizedPrompt,
               supportedUrls,
               download: undefined,
+              abortSignal: operationAbortSignal,
               provider: batchApi.provider.split('.')[0],
             }),
             tools: preparedTools,
