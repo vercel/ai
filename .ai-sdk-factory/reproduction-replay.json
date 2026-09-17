@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20991,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/read-ui-message-stream-early-exit.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/read-ui-message-stream-early-exit.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_20991_REPRODUCED: iterator break and reader.cancel() returned, then caused unhandled ERR_INVALID_STATE closed-controller rejections"
+  }
+}
