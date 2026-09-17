@@ -185,6 +185,44 @@ describe('HTTP errors', () => {
     });
   });
 
+  it('surfaces a bare error_type code, observed in production as max_tokens_exceeded', async () => {
+    server.urls[url].response = {
+      type: 'error',
+      status: 400,
+      body: JSON.stringify({ error_type: 'max_tokens_exceeded' }),
+    };
+    await expect(model.doEvaluate(options)).rejects.toMatchObject({
+      name: 'AI_APICallError',
+      statusCode: 400,
+      message: 'max_tokens_exceeded',
+    });
+  });
+
+  it('prefers a prose field over the error_type code', async () => {
+    server.urls[url].response = {
+      type: 'error',
+      status: 400,
+      body: JSON.stringify({
+        error_type: 'max_tokens_exceeded',
+        message: 'Input exceeds the model context window',
+      }),
+    };
+    await expect(model.doEvaluate(options)).rejects.toMatchObject({
+      message: 'Input exceeds the model context window',
+    });
+  });
+
+  it('still falls back when the body carries no recognised field', async () => {
+    server.urls[url].response = {
+      type: 'error',
+      status: 400,
+      body: JSON.stringify({ unrecognised: 'shape' }),
+    };
+    await expect(model.doEvaluate(options)).rejects.toMatchObject({
+      message: 'TypeSafe request failed',
+    });
+  });
+
   it('rejects malformed successful responses', async () => {
     server.urls[url].response = {
       type: 'json-value',
