@@ -325,6 +325,13 @@ describe('createToolModelOutput', () => {
       expect(result.type).toBe('json');
       if (result.type === 'json') {
         expect(JSON.stringify(result.value)).toBe(serializedOutput);
+
+        // the keys must be own data properties; the prototype chain
+        // of the result and of Object.prototype must not be modified.
+        const row = (result.value as { rows: object[] }).rows[0];
+        expect(Object.getPrototypeOf(row)).toBe(Object.prototype);
+        expect(Object.getPrototypeOf({})).toBe(Object.prototype);
+        expect(({} as Record<string, unknown>).value).toBeUndefined();
       }
     });
 

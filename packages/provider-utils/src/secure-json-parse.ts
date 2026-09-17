@@ -26,15 +26,12 @@ const suspectProtoRx =
 const suspectConstructorRx =
   /"(?:c|\\u0063)(?:o|\\u006[Ff])(?:n|\\u006[Ee])(?:s|\\u0073)(?:t|\\u0074)(?:r|\\u0072)(?:u|\\u0075)(?:c|\\u0063)(?:t|\\u0074)(?:o|\\u006[Ff])(?:r|\\u0072)"\s*:/;
 
-function _parse(
-  text: string,
-  { allowPrototypeProperties = false }: SecureJsonParseOptions = {},
-) {
+function _parse(text: string) {
   // Parse normally
   const obj = JSON.parse(text);
 
   // Ignore null and non-objects
-  if (allowPrototypeProperties || obj === null || typeof obj !== 'object') {
+  if (obj === null || typeof obj !== 'object') {
     return obj;
   }
 
@@ -81,30 +78,18 @@ function filter(obj: any) {
   return obj;
 }
 
-export type SecureJsonParseOptions = {
-  /**
-   * Allows own `__proto__` properties and nested `constructor.prototype`
-   * properties to be preserved. Only enable this for JSON that was serialized
-   * from an already materialized in-process value.
-   */
-  allowPrototypeProperties?: boolean;
-};
-
-export function secureJsonParse(
-  text: string,
-  options?: SecureJsonParseOptions,
-) {
+export function secureJsonParse(text: string) {
   const { stackTraceLimit } = Error;
   try {
     // Performance optimization, see https://github.com/fastify/secure-json-parse/pull/90
     Error.stackTraceLimit = 0;
   } catch {
     // Fallback in case Error is immutable (v8 readonly)
-    return _parse(text, options);
+    return _parse(text);
   }
 
   try {
-    return _parse(text, options);
+    return _parse(text);
   } finally {
     Error.stackTraceLimit = stackTraceLimit;
   }

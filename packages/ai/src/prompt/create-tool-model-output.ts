@@ -1,9 +1,5 @@
 import { getErrorMessage, type JSONValue } from '@ai-sdk/provider';
-import {
-  parseJSON,
-  type Tool,
-  type ToolResultOutput,
-} from '@ai-sdk/provider-utils';
+import type { Tool, ToolResultOutput } from '@ai-sdk/provider-utils';
 
 export async function createToolModelOutput({
   toolCallId,
@@ -21,7 +17,7 @@ export async function createToolModelOutput({
   if (errorMode === 'text') {
     return { type: 'error-text', value: getErrorMessage(output) };
   } else if (errorMode === 'json') {
-    return { type: 'error-json', value: await toJSONValue(output) };
+    return { type: 'error-json', value: toJSONValue(output) };
   }
 
   if (tool?.toModelOutput) {
@@ -30,19 +26,29 @@ export async function createToolModelOutput({
 
   return typeof output === 'string'
     ? { type: 'text', value: output }
-    : { type: 'json', value: await toJSONValue(output) };
+    : { type: 'json', value: toJSONValue(output) };
 }
 
-async function toJSONValue(value: unknown): Promise<JSONValue> {
+/**
+ * Normalizes an in-process tool output to a plain JSON value
+ * (applies `toJSON`, converts `Date`, drops `undefined`, etc.)
+ * by round-tripping it through `JSON.stringify`.
+ *
+ * The parsed text is produced by `JSON.stringify` from a value that is
+ * already materialized in this process, so it is not untrusted input.
+ * `JSON.parse` is used deliberately instead of the secure parser from
+ * `@ai-sdk/provider-utils`: the secure parser rejects own `__proto__` and
+ * `constructor.prototype` keys, which are valid data in tool outputs
+ * (e.g. rows from an external API). `JSON.parse` defines `__proto__` as an
+ * own data property and never modifies the prototype chain, so preserving
+ * these keys here is safe. Do not reuse this pattern for text that comes
+ * from outside the process; use `parseJSON` / `safeParseJSON` instead.
+ */
+function toJSONValue(value: unknown): JSONValue {
   if (value === undefined) {
     return null;
   }
 
   const serialized = JSON.stringify(value);
-  return serialized === undefined
-    ? null
-    : await parseJSON({
-        text: serialized,
-        allowPrototypeProperties: true,
-      });
+  return serialized === undefined ? null : JSON.parse(serialized);
 }
