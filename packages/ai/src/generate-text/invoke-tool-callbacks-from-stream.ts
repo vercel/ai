@@ -75,8 +75,7 @@ export function invokeToolCallbacksFromStream<
           }
 
           case 'tool-call': {
-            const toolName = ongoingToolCallToolNames[chunk.toolCallId];
-            const tool = getOwn(tools, toolName);
+            const tool = getOwn(tools, chunk.toolName);
 
             delete ongoingToolCallToolNames[chunk.toolCallId];
 
