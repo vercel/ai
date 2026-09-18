@@ -6,7 +6,6 @@ import {
   type FetchFunction,
   type Resolvable,
   combineHeaders,
-  createJsonErrorResponseHandler,
   createJsonResponseHandler,
   parseProviderOptions,
   postJsonToApi,
@@ -16,7 +15,7 @@ import {
   type BedrockEmbeddingModelId,
   bedrockEmbeddingProviderOptions,
 } from './bedrock-embedding-options';
-import { BedrockErrorSchema } from './bedrock-error';
+import { bedrockFailedResponseHandler } from './bedrock-error';
 import { z } from 'zod/v4';
 
 type BedrockEmbeddingConfig = {
@@ -81,10 +80,7 @@ export class BedrockEmbeddingModel implements EmbeddingModelV2<string> {
         combineHeaders(await resolve(this.config.headers), headers),
       ),
       body: args,
-      failedResponseHandler: createJsonErrorResponseHandler({
-        errorSchema: BedrockErrorSchema,
-        errorToMessage: error => `${error.type}: ${error.message}`,
-      }),
+      failedResponseHandler: bedrockFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         BedrockEmbeddingResponseSchema,
       ),
