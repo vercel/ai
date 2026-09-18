@@ -945,7 +945,7 @@ describe('ByteDanceVideoModel', () => {
       ]);
     });
 
-    it('should add first_frame role when combining a start image with inputReferences', async () => {
+    it('should treat a start image as a reference image when combining it with inputReferences', async () => {
       const model = createBasicModel({
         modelId: 'dreamina-seedance-2-0-260128',
       });
@@ -975,7 +975,7 @@ describe('ByteDanceVideoModel', () => {
         {
           type: 'image_url',
           image_url: { url: 'https://example.com/start.png' },
-          role: 'first_frame',
+          role: 'reference_image',
         },
         {
           type: 'image_url',
@@ -1190,7 +1190,7 @@ describe('ByteDanceVideoModel', () => {
       ]);
     });
 
-    it('should add first_frame role when combining a start image with referenceImages', async () => {
+    it('should treat a start image as a reference image when combining it with referenceImages', async () => {
       const model = createBasicModel({
         modelId: 'dreamina-seedance-2-0-260128',
       });
@@ -1218,7 +1218,7 @@ describe('ByteDanceVideoModel', () => {
         {
           type: 'image_url',
           image_url: { url: 'https://example.com/start.png' },
-          role: 'first_frame',
+          role: 'reference_image',
         },
         {
           type: 'image_url',

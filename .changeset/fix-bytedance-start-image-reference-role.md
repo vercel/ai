@@ -2,4 +2,4 @@
 '@ai-sdk/bytedance': patch
 ---
 
-fix(bytedance): add `first_frame` role to starting image
+fix(bytedance): add `reference_image` role to starting image

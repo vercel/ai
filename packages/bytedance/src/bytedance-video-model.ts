@@ -253,9 +253,11 @@ export class ByteDanceVideoModel implements VideoModelV4 {
       content.push({
         type: 'image_url',
         image_url: { url: convertImageModelFileToDataUri(startImage) },
-        ...(lastFrameImageUrl != null || referenceContent.length > 0
+        ...(lastFrameImageUrl != null
           ? { role: 'first_frame' }
-          : {}),
+          : referenceContent.length > 0
+            ? { role: 'reference_image' }
+            : {}),
       });
     }
 
