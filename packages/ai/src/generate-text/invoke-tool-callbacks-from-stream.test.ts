@@ -230,4 +230,65 @@ describe('invokeToolCallbacksFromStream', () => {
     await expect(convertReadableStreamToArray(result)).resolves.toEqual(chunks);
     expect(recordedCalls).toEqual(['onInputStart', 'onInputDelta']);
   });
+
+  it('should invoke onInputAvailable for the tool named by the completed tool call', async () => {
+    const recordedCalls: string[] = [];
+    const tools = {
+      originalTool: tool({
+        inputSchema: z.object({ value: z.string() }),
+        onInputStart: () => {
+          recordedCalls.push('originalTool.onInputStart');
+        },
+        onInputDelta: () => {
+          recordedCalls.push('originalTool.onInputDelta');
+        },
+        onInputAvailable: () => {
+          recordedCalls.push('originalTool.onInputAvailable');
+        },
+      }),
+      repairedTool: tool({
+        inputSchema: z.object({ count: z.number() }),
+        onInputAvailable: ({ input }) => {
+          recordedCalls.push(
+            `repairedTool.onInputAvailable:${JSON.stringify(input)}`,
+          );
+        },
+      }),
+    };
+
+    const chunks: Array<LanguageModelStreamPart<typeof tools>> = [
+      {
+        type: 'tool-input-start',
+        id: 'call-1',
+        toolName: 'originalTool',
+      },
+      {
+        type: 'tool-input-delta',
+        id: 'call-1',
+        delta: '{"count":3}',
+      },
+      { type: 'tool-input-end', id: 'call-1' },
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'repairedTool',
+        input: { count: 3 },
+      },
+    ];
+
+    const result = invokeToolCallbacksFromStream({
+      stream: convertArrayToReadableStream(chunks),
+      tools,
+      stepInputMessages: [],
+      abortSignal: undefined,
+      runtimeContext: {},
+    });
+
+    await expect(convertReadableStreamToArray(result)).resolves.toEqual(chunks);
+    expect(recordedCalls).toEqual([
+      'originalTool.onInputStart',
+      'originalTool.onInputDelta',
+      'repairedTool.onInputAvailable:{"count":3}',
+    ]);
+  });
 });
