@@ -32,7 +32,10 @@ import {
   type BedrockChatModelId,
   bedrockProviderOptions,
 } from './bedrock-chat-options';
-import { BedrockErrorSchema } from './bedrock-error';
+import {
+  bedrockFailedResponseHandler,
+  BedrockErrorSchema,
+} from './bedrock-error';
 import type { BedrockReasoningMetadata } from './bedrock-reasoning-metadata';
 import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-response-handler';
 import { prepareTools } from './bedrock-prepare-tools';
@@ -640,10 +643,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       url,
       headers: await this.getHeaders({ headers: options.headers }),
       body: args,
-      failedResponseHandler: createJsonErrorResponseHandler({
-        errorSchema: BedrockErrorSchema,
-        errorToMessage: error => `${error.type}: ${error.message}`,
-      }),
+      failedResponseHandler: bedrockFailedResponseHandler,
       successfulResponseHandler:
         createBedrockEventStreamResponseHandler(BedrockStreamSchema),
       abortSignal: options.abortSignal,
