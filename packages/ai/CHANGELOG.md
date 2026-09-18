@@ -1,5 +1,47 @@
 # ai
 
+## 7.0.107
+
+### Patch Changes
+
+- 79681c4: fix(ai): preserve provider file and skill upload APIs in wrapProvider
+- 98c7275: fix(ai): preserve query parameters in chat reconnect URLs
+- a105059: fix(workflow): support deferred tool discovery in WorkflowAgent
+- 31532f3: fix(ai): prevent preliminary tool outputs from completing chats
+- e61cbd8: fix(ai): preserve raw speech audio format metadata
+- 8ade040: fix(ai): pass tool-specific context to input callbacks
+- 970a01e: fix(ai): enforce polling timeouts for in-flight video status requests
+- 85539c5: fix(ai): preserve multiple Set-Cookie headers in Node stream responses
+- 611d301: fix(ai): prevent duplicate content types in chat transport requests
+- c415657: fix(ai): decode base64 text data URLs using their declared charset
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+  - @ai-sdk/gateway@4.0.87
+
+## 7.0.106
+
+### Patch Changes
+
+- 4775577: fix(ai): preserve provider metadata when simulating text streams
+- 6696728: fix(ai): report the prepareStep model in streamed step results
+- 09516a1: fix(ai): prevent unhandled rejections when UI message stream reading stops early
+- 1aef01e: fix(ai): preserve prototype-named properties in serialized tool outputs
+- 9c1ea74: fix(ai): close telemetry spans when provider response streams fail
+- 107343a: fix(ai): use the prepareStep-selected model for streamed response metadata fallbacks
+- 03c3e33: fix(ai): preserve tool calls required by retained pending approvals
+- 5d42ebd: fix(ai): skip input available callbacks for invalid streamed tool calls
+- 4a67783: fix(ai): cancel prompt attachment downloads when model calls are aborted or time out
+- 1058ed5: fix(ai): strip streamed JSON fences before arbitrary trailing whitespace
+- 84f5d1b: fix(ai): stream null and empty string JSON partial outputs
+- 2d53a5d: fix(ai): prevent onEnd after aborting a multi-step text stream
+- 2a5ed55: fix(ai): stream structured output from the final tool-loop step
+- Updated dependencies [4fdf51e]
+- Updated dependencies [0455398]
+  - @ai-sdk/gateway@4.0.86
+  - @ai-sdk/provider-utils@5.0.44
+
 ## 7.0.105
 
 ### Patch Changes

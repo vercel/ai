@@ -10,8 +10,10 @@ definition into its initial context. Register tools with `deferLoading: true`;
 search matches their names and descriptions and makes them available on the
 **next model step**.
 
-Use it with `generateText`, `streamText`, or `ToolLoopAgent`. The factory takes no
-arguments; the model supplies a search query.
+Use it with `generateText`, `streamText`, `ToolLoopAgent`, or `WorkflowAgent` from
+`@ai-sdk/workflow`. The factory takes no arguments; the model supplies a search
+query. `WorkflowAgent` supports direct tool calling; the other APIs also support
+cache-preserving code mode.
 
 ## Direct Tool Calling
 
