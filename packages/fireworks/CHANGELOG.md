@@ -1,5 +1,14 @@
 # @ai-sdk/fireworks
 
+## 3.0.55
+
+### Patch Changes
+
+- e4e761e: fix(black-forest-labs): enforce wall-clock image polling deadlines
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+  - @ai-sdk/openai-compatible@3.0.52
+
 ## 3.0.54
 
 ### Patch Changes

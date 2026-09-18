@@ -1,5 +1,13 @@
 # @ai-sdk/replicate
 
+## 3.0.45
+
+### Patch Changes
+
+- c0df1d1: fix(replicate): poll image predictions that exceed the synchronous wait duration
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+
 ## 3.0.44
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @ai-sdk/openai
 
+## 4.0.70
+
+### Patch Changes
+
+- fd75cee: fix(openai): preserve provider file references in Responses tool results
+- 1f5bb62: fix(openai): send assistant text as Responses easy input messages
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+
 ## 4.0.69
 
 ### Patch Changes

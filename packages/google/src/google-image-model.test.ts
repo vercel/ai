@@ -194,6 +194,42 @@ describe('GoogleImageModel', () => {
       });
     });
 
+    it.each(['', 'BLOCK_REASON_UNSPECIFIED', 'BLOCKED_REASON_UNSPECIFIED'])(
+      'should leave empty responses with default prompt block reason %j retryable',
+      async blockReason => {
+        server.urls[TEST_URL].response = {
+          type: 'json-value',
+          body: {
+            candidates: [],
+            promptFeedback: { blockReason },
+            usageMetadata: {
+              promptTokenCount: 9,
+              totalTokenCount: 9,
+            },
+          },
+        };
+
+        const result = await model.doGenerate({
+          prompt: 'An image prompt with an empty response',
+          files: undefined,
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        });
+
+        expect(result.images).toEqual([]);
+        expect(result.isRetryable).toBeUndefined();
+        expect(result.providerMetadata?.google).toMatchObject({
+          promptFeedback: {
+            blockReason,
+          },
+        });
+      },
+    );
+
     it('should send response modalities, aspect ratio, seed, and headers', async () => {
       prepareJsonResponse({});
 
