@@ -1,7 +1,16 @@
 import type {
   LanguageModelV2,
   LanguageModelV3,
+  LanguageModelV3Content,
+  LanguageModelV3DataContent,
+  LanguageModelV3Prompt,
+  LanguageModelV3StreamPart,
   LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4Prompt,
+  LanguageModelV4StreamPart,
+  SharedV4FileData,
 } from '@ai-sdk/provider';
 import { asLanguageModelV3 } from './as-language-model-v3';
 
@@ -18,8 +27,102 @@ export function asLanguageModelV4(
 
   return new Proxy(v3Model, {
     get(target, prop: keyof LanguageModelV3) {
-      if (prop === 'specificationVersion') return 'v4';
-      return target[prop];
+      switch (prop) {
+        case 'specificationVersion':
+          return 'v4';
+        case 'doGenerate':
+          return async (options: LanguageModelV4CallOptions) => {
+            const result = await target.doGenerate({
+              ...options,
+              prompt: convertV4PromptToV3(options.prompt),
+            });
+
+            return {
+              ...result,
+              content: result.content.map(convertV3ContentToV4),
+            };
+          };
+        case 'doStream':
+          return async (options: LanguageModelV4CallOptions) => {
+            const result = await target.doStream({
+              ...options,
+              prompt: convertV4PromptToV3(options.prompt),
+            });
+
+            return {
+              ...result,
+              stream: convertV3StreamToV4(result.stream),
+            };
+          };
+        default:
+          return target[prop];
+      }
     },
   }) as unknown as LanguageModelV4;
+}
+
+function convertV4PromptToV3(
+  prompt: LanguageModelV4Prompt,
+): LanguageModelV3Prompt {
+  return prompt.map(message => {
+    if (message.role === 'system') {
+      return message;
+    }
+
+    return {
+      ...message,
+      content: message.content.map(part =>
+        part.type === 'file'
+          ? {
+              ...part,
+              data: convertV4FileDataToV3(part.data),
+            }
+          : part,
+      ),
+    };
+  }) as LanguageModelV3Prompt;
+}
+
+function convertV4FileDataToV3(
+  data: SharedV4FileData,
+): LanguageModelV3DataContent {
+  switch (data.type) {
+    case 'data':
+      return data.data;
+    case 'url':
+      return data.url;
+    default:
+      // V3 has no equivalent for V4 provider references or inline text files.
+      return data as unknown as LanguageModelV3DataContent;
+  }
+}
+
+function convertV3ContentToV4(
+  content: LanguageModelV3Content,
+): LanguageModelV4Content {
+  return content.type === 'file'
+    ? {
+        ...content,
+        data: { type: 'data', data: content.data },
+      }
+    : content;
+}
+
+function convertV3StreamToV4(
+  stream: ReadableStream<LanguageModelV3StreamPart>,
+): ReadableStream<LanguageModelV4StreamPart> {
+  return stream.pipeThrough(
+    new TransformStream<LanguageModelV3StreamPart, LanguageModelV4StreamPart>({
+      transform(chunk, controller) {
+        controller.enqueue(
+          chunk.type === 'file'
+            ? {
+                ...chunk,
+                data: { type: 'data', data: chunk.data },
+              }
+            : chunk,
+        );
+      },
+    }),
+  );
 }
