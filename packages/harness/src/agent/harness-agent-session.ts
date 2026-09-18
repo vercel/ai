@@ -1,6 +1,7 @@
 import type {
   Context,
   Experimental_SandboxSession as SandboxSession,
+  InferToolSetContext,
   ToolApprovalResponse,
   ToolResultPart,
   ToolSet,
@@ -65,6 +66,7 @@ type ActivePromptControl = {
 type ActiveTurnSettings = {
   readonly persisted: HarnessV1TurnSettings;
   readonly tools: ToolSet;
+  readonly toolsContext: Record<string, Context | undefined>;
   readonly activeTools: ToolSet;
   readonly builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
 };
@@ -201,6 +203,7 @@ export class HarnessAgentSession {
     skills: ReadonlyArray<HarnessV1Skill>;
     instructions: string | undefined;
     tools: TOOLS;
+    toolsContext: InferToolSetContext<TOOLS>;
     activeTools: ToolSet;
     toolSpecs: HarnessAgentToolSpec[];
     builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
@@ -225,6 +228,7 @@ export class HarnessAgentSession {
     this.activeTurnSettings = {
       persisted: this.persistedTurnSettings,
       tools: options.tools,
+      toolsContext: options.toolsContext,
       activeTools: options.activeTools,
       builtinToolFiltering: options.builtinToolFiltering,
     };
@@ -239,6 +243,7 @@ export class HarnessAgentSession {
         skills: options.skills,
         instructions: options.instructions,
         tools: options.tools,
+        toolsContext: options.toolsContext,
         activeTools: options.activeTools,
         toolSpecs: options.toolSpecs,
         builtinToolFiltering: options.builtinToolFiltering,
@@ -302,6 +307,7 @@ export class HarnessAgentSession {
     skills: ReadonlyArray<HarnessV1Skill>;
     instructions: string | undefined;
     tools: TOOLS;
+    toolsContext: InferToolSetContext<TOOLS>;
     activeTools: ToolSet;
     toolSpecs: HarnessAgentToolSpec[];
     builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
@@ -322,6 +328,7 @@ export class HarnessAgentSession {
       skills: options.skills,
       instructions: options.instructions,
       tools: options.tools,
+      toolsContext: options.toolsContext,
       activeTools: options.activeTools,
       toolSpecs: options.toolSpecs,
       builtinToolFiltering: options.builtinToolFiltering,
@@ -337,6 +344,7 @@ export class HarnessAgentSession {
         skills: turnSettings.persisted.skills,
         instructions: turnSettings.persisted.instructions,
         tools: turnSettings.tools as TOOLS,
+        toolsContext: turnSettings.toolsContext as InferToolSetContext<TOOLS>,
         activeTools: turnSettings.activeTools,
         toolSpecs: [...turnSettings.persisted.tools],
         builtinToolFiltering: turnSettings.builtinToolFiltering,
@@ -778,6 +786,7 @@ export class HarnessAgentSession {
     skills: ReadonlyArray<HarnessV1Skill>;
     instructions: string | undefined;
     tools: ToolSet;
+    toolsContext: Record<string, Context | undefined>;
     activeTools: ToolSet;
     toolSpecs: HarnessAgentToolSpec[];
     builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
@@ -811,6 +820,7 @@ export class HarnessAgentSession {
     this.activeTurnSettings = {
       persisted,
       tools: options.tools,
+      toolsContext: options.toolsContext,
       activeTools,
       builtinToolFiltering: options.builtinToolFiltering,
     };

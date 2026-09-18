@@ -24,6 +24,13 @@ const userTools = {
   }),
 };
 
+const contextualTools = {
+  lookupAccount: tool({
+    inputSchema: z.object({}),
+    contextSchema: z.object({ userId: z.string() }),
+  }),
+};
+
 const sandbox = undefined as never as HarnessV1SandboxProvider;
 
 type Settings = HarnessAgentSettings<typeof harness, typeof userTools>;
@@ -105,6 +112,35 @@ describe('HarnessAgentSettings tool filtering types', () => {
           instructions: {
             role: 'system',
             content: `Serve ${options.tenant}`,
+          },
+        };
+      },
+    };
+
+    expectTypeOf(settings).toMatchTypeOf<CallSettings>();
+  });
+
+  test('prepareCall can derive typed tool context from call options', () => {
+    type CallOptions = { userId: string };
+    type CallSettings = HarnessAgentSettings<
+      typeof harness,
+      typeof contextualTools,
+      Record<string, never>,
+      never,
+      CallOptions
+    >;
+    const settings: CallSettings = {
+      harness,
+      tools: contextualTools,
+      callOptionsSchema: z.object({ userId: z.string() }),
+      prepareCall: ({ options, toolsContext, ...rest }) => {
+        expectTypeOf(toolsContext).toEqualTypeOf<
+          { lookupAccount: { userId: string } } | undefined
+        >();
+        return {
+          ...rest,
+          toolsContext: {
+            lookupAccount: { userId: options.userId },
           },
         };
       },

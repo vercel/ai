@@ -13,6 +13,7 @@ import type {
   Context,
   Experimental_SandboxSession as SandboxSession,
   FlexibleSchema,
+  InferToolSetContext,
   MaybePromiseLike,
   SystemModelMessage,
   ToolSet,
@@ -151,6 +152,15 @@ export type HarnessAgentSettings<
   readonly tools?: TUserTools;
 
   /**
+   * Per-tool context passed to host-executed tools. Each entry is validated
+   * against the matching tool's `contextSchema` before execution.
+   * `prepareCall` can replace it for each new turn.
+   */
+  readonly toolsContext?: InferToolSetContext<
+    HarnessAllTools<THarness, TUserTools>
+  >;
+
+  /**
    * Skills made available to the underlying runtime. Each adapter decides how
    * to surface skills. `prepareCall` can replace them between completed turns.
    */
@@ -224,7 +234,7 @@ export type HarnessAgentSettings<
           NoInfer<OUTPUT>,
           CALL_OPTIONS
         >,
-        'model' | 'skills' | 'instructions' | 'tools'
+        'model' | 'skills' | 'instructions' | 'tools' | 'toolsContext'
       >,
   ) => MaybePromiseLike<
     Pick<
@@ -235,7 +245,7 @@ export type HarnessAgentSettings<
         NoInfer<OUTPUT>,
         CALL_OPTIONS
       >,
-      'model' | 'skills' | 'instructions' | 'tools'
+      'model' | 'skills' | 'instructions' | 'tools' | 'toolsContext'
     > &
       Omit<Prompt, 'system' | 'instructions' | 'allowSystemInMessages'>
   >;

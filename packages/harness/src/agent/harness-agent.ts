@@ -10,6 +10,7 @@ import {
   asArray,
   asSchema,
   generateId,
+  type InferToolSetContext,
   normalizeHeaders,
   validateTypes,
   type Context,
@@ -99,6 +100,7 @@ type PreparedHarnessAgentTurnSettings<
   skills: ReadonlyArray<HarnessAgentSkill>;
   instructions: string | undefined;
   tools: HarnessAllTools<THarness, TUserTools>;
+  toolsContext: InferToolSetContext<HarnessAllTools<THarness, TUserTools>>;
   activeTools: TUserTools;
   toolSpecs: HarnessAgentToolSpec[];
   builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
@@ -785,6 +787,7 @@ export class HarnessAgent<
       skills: input.turnSettings.skills,
       instructions: input.turnSettings.instructions,
       tools: input.turnSettings.tools,
+      toolsContext: input.turnSettings.toolsContext,
       activeTools: input.turnSettings.activeTools,
       toolSpecs: input.turnSettings.toolSpecs,
       builtinToolFiltering: input.turnSettings.builtinToolFiltering,
@@ -943,6 +946,7 @@ export class HarnessAgent<
       skills: this.settings.skills,
       instructions: this.settings.instructions,
       tools: this.settings.tools,
+      toolsContext: this.settings.toolsContext,
       ...promptOptions,
     };
     const preparedCallArgs =
@@ -972,6 +976,7 @@ export class HarnessAgent<
         skills: preparedCallArgs.skills,
         instructions: preparedCallArgs.instructions,
         tools: preparedCallArgs.tools,
+        toolsContext: preparedCallArgs.toolsContext,
       }),
     };
   }
@@ -986,6 +991,7 @@ export class HarnessAgent<
         skills: this.settings.skills,
         instructions: this.settings.instructions,
         tools: this.settings.tools,
+        toolsContext: this.settings.toolsContext,
       }),
       toolApprovalContinuations: options.toolApprovalContinuations ?? [],
       toolResultContinuations: options.toolResultContinuations ?? [],
@@ -997,6 +1003,7 @@ export class HarnessAgent<
     skills?: ReadonlyArray<HarnessAgentSkill>;
     instructions?: string | SystemModelMessage;
     tools?: TUserTools;
+    toolsContext?: InferToolSetContext<HarnessAllTools<THarness, TUserTools>>;
   }): PreparedHarnessAgentTurnSettings<THarness, TUserTools> {
     const userTools = options.tools ?? ({} as TUserTools);
     assertNoReservedQuestionTool({
@@ -1022,6 +1029,9 @@ export class HarnessAgent<
           ? options.instructions
           : options.instructions?.content,
       tools,
+      toolsContext:
+        options.toolsContext ??
+        ({} as InferToolSetContext<HarnessAllTools<THarness, TUserTools>>),
       activeTools: toolFiltering.activeUserTools,
       toolSpecs: this._toToolSpecs(toolFiltering.activeUserTools),
       builtinToolFiltering: toolFiltering.builtinToolFiltering,
