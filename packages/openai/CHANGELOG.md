@@ -1,5 +1,15 @@
 # @ai-sdk/openai
 
+## 4.0.71
+
+### Patch Changes
+
+- e76a0a3: fix(openai): cancel image edit URL downloads when the request is aborted
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+
 ## 4.0.70
 
 ### Patch Changes

@@ -1,5 +1,25 @@
 # ai
 
+## 7.0.107
+
+### Patch Changes
+
+- 79681c4: fix(ai): preserve provider file and skill upload APIs in wrapProvider
+- 98c7275: fix(ai): preserve query parameters in chat reconnect URLs
+- a105059: fix(workflow): support deferred tool discovery in WorkflowAgent
+- 31532f3: fix(ai): prevent preliminary tool outputs from completing chats
+- e61cbd8: fix(ai): preserve raw speech audio format metadata
+- 8ade040: fix(ai): pass tool-specific context to input callbacks
+- 970a01e: fix(ai): enforce polling timeouts for in-flight video status requests
+- 85539c5: fix(ai): preserve multiple Set-Cookie headers in Node stream responses
+- 611d301: fix(ai): prevent duplicate content types in chat transport requests
+- c415657: fix(ai): decode base64 text data URLs using their declared charset
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+  - @ai-sdk/gateway@4.0.87
+
 ## 7.0.106
 
 ### Patch Changes
