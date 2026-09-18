@@ -649,6 +649,72 @@ describe('detectMediaType signature matching', () => {
   });
 
   describe('AAC', () => {
+    it.each([
+      {
+        name: 'MPEG-4 ADTS with CRC',
+        header: [0xff, 0xf0],
+      },
+      {
+        name: 'MPEG-4 ADTS without CRC',
+        header: [0xff, 0xf1],
+      },
+      {
+        name: 'MPEG-2 ADTS with CRC',
+        header: [0xff, 0xf8],
+      },
+      {
+        name: 'MPEG-2 ADTS without CRC',
+        header: [0xff, 0xf9],
+      },
+    ])('should detect $name from bytes and base64', ({ header }) => {
+      const aacBytes = new Uint8Array([...header, 0x50, 0x40]);
+
+      expect(
+        detectMediaType({
+          data: aacBytes,
+          topLevelType: 'audio',
+        }),
+      ).toBe('audio/aac');
+      expect(
+        detectMediaType({
+          data: convertUint8ArrayToBase64(aacBytes),
+          topLevelType: 'audio',
+        }),
+      ).toBe('audio/aac');
+    });
+
+    it('should detect ID3-tagged ADTS AAC from bytes and base64', () => {
+      const aacBytes = new Uint8Array([
+        0x49,
+        0x44,
+        0x33, // 'ID3'
+        0x04,
+        0x00, // version
+        0x00, // flags
+        0x00,
+        0x00,
+        0x00,
+        0x00, // empty tag
+        0xff,
+        0xf1, // MPEG-4 ADTS without CRC
+        0x50,
+        0x40,
+      ]);
+
+      expect(
+        detectMediaType({
+          data: aacBytes,
+          topLevelType: 'audio',
+        }),
+      ).toBe('audio/aac');
+      expect(
+        detectMediaType({
+          data: convertUint8ArrayToBase64(aacBytes),
+          topLevelType: 'audio',
+        }),
+      ).toBe('audio/aac');
+    });
+
     it('should detect AAC from bytes', () => {
       const aacBytes = new Uint8Array([0x40, 0x15, 0x00, 0x00]);
       expect(
