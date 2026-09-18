@@ -1316,6 +1316,32 @@ function markToolInputEmitted(
   }
 }
 
+function hasEmittedToolOutputInCurrentStep(
+  state: LangGraphEventState,
+  toolCallId: string,
+  namespace: string,
+): boolean {
+  return !state.currentStepsByNamespace.has(namespace)
+    ? state.emittedToolOutputCallIds.has(toolCallId)
+    : state.emittedToolOutputsInCurrentStepByNamespace
+        .get(namespace)
+        ?.has(toolCallId) === true;
+}
+
+function markToolOutputEmitted(
+  state: LangGraphEventState,
+  toolCallId: string,
+  namespace: string,
+): void {
+  state.emittedToolOutputCallIds.add(toolCallId);
+  if (state.currentStepsByNamespace.has(namespace)) {
+    getOrCreateNamespaceSet(
+      state.emittedToolOutputsInCurrentStepByNamespace,
+      namespace,
+    ).add(toolCallId);
+  }
+}
+
 function findMessageCurrentStepNamespace(
   state: LangGraphEventState,
   messageId: string,
@@ -1482,6 +1508,10 @@ export function processLangGraphEvent(
             eventNamespace,
             new Set(),
           );
+          state.emittedToolOutputsInCurrentStepByNamespace.set(
+            eventNamespace,
+            new Set(),
+          );
         } else if (langgraphStep !== currentStep) {
           const hasConcurrentMessageParts = closeStepNamespaceMessages(
             state,
@@ -1509,6 +1539,10 @@ export function processLangGraphEvent(
             new Set(),
           );
           state.emittedToolInputsInCurrentStepByNamespace.set(
+            eventNamespace,
+            new Set(),
+          );
+          state.emittedToolOutputsInCurrentStepByNamespace.set(
             eventNamespace,
             new Set(),
           );
@@ -1765,7 +1799,8 @@ export function processLangGraphEvent(
         const status = dataSource.status as string | undefined;
 
         if (toolCallId) {
-          state.emittedToolOutputs.add(msgId);
+          state.emittedToolOutputMessageIds.add(msgId);
+          markToolOutputEmitted(state, toolCallId, eventNamespace);
           if (status === 'error') {
             // Tool execution failed
             controller.enqueue({
@@ -1868,6 +1903,7 @@ export function processLangGraphEvent(
 
         case 'on_tool_end': {
           ensureToolInputLifecycle({ allowPreviousStep: true });
+          markToolOutputEmitted(state, toolCallId, eventNamespace);
           controller.enqueue({
             type: 'tool-output-available',
             toolCallId,
@@ -1878,6 +1914,7 @@ export function processLangGraphEvent(
 
         case 'on_tool_error': {
           ensureToolInputLifecycle({ allowPreviousStep: true });
+          markToolOutputEmitted(state, toolCallId, eventNamespace);
           controller.enqueue({
             type: 'tool-output-error',
             toolCallId,
@@ -2147,14 +2184,20 @@ export function processLangGraphEvent(
                 if (
                   toolCall.id &&
                   trailingToolMessageInfo != null &&
-                  !state.emittedToolOutputs.has(
+                  !state.emittedToolOutputMessageIds.has(
                     trailingToolMessageInfo.outputId,
+                  ) &&
+                  !hasEmittedToolOutputInCurrentStep(
+                    state,
+                    toolCall.id,
+                    lifecycleNamespace,
                   ) &&
                   emittedToolCalls.has(toolCall.id)
                 ) {
-                  state.emittedToolOutputs.add(
+                  state.emittedToolOutputMessageIds.add(
                     trailingToolMessageInfo.outputId,
                   );
+                  markToolOutputEmitted(state, toolCall.id, lifecycleNamespace);
                   const trailingToolMessage = trailingToolMessageInfo.data;
                   if (trailingToolMessage.status === 'error') {
                     controller.enqueue({
