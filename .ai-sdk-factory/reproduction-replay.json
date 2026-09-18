@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 20926,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/amazon-bedrock-undefined-error-type.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/amazon-bedrock-undefined-error-type.ts",
+    "packages/amazon-bedrock/src/__fixtures__/amazon-bedrock-validation-error-no-type.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #20926 REPRODUCED: Bedrock API errors without a body type are exposed to users with an \"undefined:\" prefix."
+  }
+}
