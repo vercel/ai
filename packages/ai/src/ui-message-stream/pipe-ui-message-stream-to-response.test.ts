@@ -3,6 +3,28 @@ import { createMockServerResponse } from '../test/mock-server-response';
 import { pipeUIMessageStreamToResponse } from './pipe-ui-message-stream-to-response';
 import { describe, it, expect } from 'vitest';
 
+const cookies = [
+  'theme=light; Expires=Wed, 21 Oct 2030 07:28:00 GMT; Path=/',
+  'locale=en; Path=/',
+];
+
+const multipleCookieHeaderInputs = [
+  {
+    name: 'Headers input',
+    headers: new Headers([
+      ['set-cookie', cookies[0]],
+      ['set-cookie', cookies[1]],
+    ]),
+  },
+  {
+    name: 'header pair array input',
+    headers: [
+      ['set-cookie', cookies[0]],
+      ['set-cookie', cookies[1]],
+    ],
+  },
+] satisfies Array<{ name: string; headers: HeadersInit }>;
+
 describe('pipeUIMessageStreamToResponse', () => {
   it('should write to ServerResponse with correct headers and encoded stream', async () => {
     const mockResponse = createMockServerResponse();
@@ -60,6 +82,7 @@ describe('pipeUIMessageStreamToResponse', () => {
     `);
   });
 
+<<<<<<< HEAD
   it('should write an opening comment when keep-alives are enabled', async () => {
     const mockResponse = createMockServerResponse();
 
@@ -75,6 +98,27 @@ describe('pipeUIMessageStreamToResponse', () => {
 
     expect(mockResponse.getDecodedChunks()[0]).toBe(': stream-open\n\n');
   });
+=======
+  it.each(multipleCookieHeaderInputs)(
+    'should preserve multiple Set-Cookie headers with $name',
+    async ({ headers }) => {
+      const mockResponse = createMockServerResponse();
+
+      pipeUIMessageStreamToResponse({
+        response: mockResponse,
+        headers,
+        stream: convertArrayToReadableStream([
+          { type: 'start', messageId: 'message-id' },
+          { type: 'finish' },
+        ]),
+      });
+
+      await mockResponse.waitForEnd();
+
+      expect(mockResponse.headers['set-cookie']).toStrictEqual(cookies);
+    },
+  );
+>>>>>>> 85539c5795 (fix: Node streaming response helpers dropping repeated Set-Cookie headers (#21069))
 
   it('should handle errors in the stream', async () => {
     const mockResponse = createMockServerResponse();

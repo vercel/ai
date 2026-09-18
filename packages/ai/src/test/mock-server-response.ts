@@ -3,7 +3,7 @@ import type { ServerResponse } from 'node:http';
 
 class MockServerResponse extends EventEmitter {
   writtenChunks: any[] = [];
-  headers: Record<string, string> = {};
+  headers: Record<string, string | string[]> = {};
   statusCode = 0;
   statusMessage = '';
   ended = false;
@@ -17,6 +17,20 @@ class MockServerResponse extends EventEmitter {
     this.ended = true;
   }
 
+  setHeaders(headers: Headers): void {
+    this.headers = {};
+
+    for (const [key, value] of headers.entries()) {
+      const existingValue = this.headers[key];
+      this.headers[key] =
+        existingValue == null
+          ? value
+          : Array.isArray(existingValue)
+            ? [...existingValue, value]
+            : [existingValue, value];
+    }
+  }
+
   writeHead(
     statusCode: number,
     arg2: string | Record<string, string>,
@@ -26,8 +40,10 @@ class MockServerResponse extends EventEmitter {
 
     if (typeof arg2 === 'string') {
       this.statusMessage = arg2;
-      this.headers = arg3 ?? {};
-    } else {
+      if (arg3 != null) {
+        this.headers = arg3;
+      }
+    } else if (arg2 != null) {
       this.statusMessage = '';
       this.headers = arg2;
     }
