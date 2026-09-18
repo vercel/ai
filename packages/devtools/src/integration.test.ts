@@ -409,6 +409,59 @@ describe('DevToolsTelemetry', () => {
     });
   });
 
+  describe('evaluate lifecycle', () => {
+    it('captures state, questions, answers, usage, and the raw response', async () => {
+      const integration = createIntegration();
+
+      await integration.onStart!(
+        makeStartEvent({ operationId: 'ai.evaluate' }),
+      );
+      await integration.onEvaluateStart!({
+        callId: 'call-1',
+        operationId: 'ai.evaluate.doEvaluate',
+        provider: 'test-provider',
+        modelId: 'test-model',
+        state: { message: 'Please refund me' },
+        questions: {
+          refund: { type: 'boolean', instructions: 'Refund?' },
+        },
+      });
+
+      expect(JSON.parse(mockCreateStep.mock.calls[0][0].input)).toEqual({
+        state: { message: 'Please refund me' },
+        questions: {
+          refund: { type: 'boolean', instructions: 'Refund?' },
+        },
+      });
+
+      await integration.onEvaluateEnd!({
+        callId: 'call-1',
+        operationId: 'ai.evaluate.doEvaluate',
+        provider: 'test-provider',
+        modelId: 'test-model',
+        state: { message: 'Please refund me' },
+        questions: {
+          refund: { type: 'boolean', instructions: 'Refund?' },
+        },
+        answers: { refund: { type: 'boolean', probability: 0.9 } },
+        usage: { inputTokens: 12, outputTokens: 2 },
+        warnings: [],
+        response: { body: { id: 'response-1' } },
+      });
+
+      const result = mockUpdateStepResult.mock.calls[0][1];
+      expect(JSON.parse(result.output)).toEqual({
+        answers: { refund: { type: 'boolean', probability: 0.9 } },
+        response: { body: { id: 'response-1' } },
+      });
+      expect(JSON.parse(result.usage)).toEqual({
+        inputTokens: 12,
+        outputTokens: 2,
+      });
+      expect(JSON.parse(result.raw_response)).toEqual({ id: 'response-1' });
+    });
+  });
+
   describe('onError', () => {
     it('extracts error message from Error cause', async () => {
       const integration = createIntegration();

@@ -7,6 +7,7 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
+import type { Telemetry } from '../telemetry/telemetry';
 import { EvaluationMockModelV4 } from '../test/evaluation-mock-model-v4';
 import { evaluate } from './evaluate';
 import type { EvaluationQuestion } from './evaluation-result';
@@ -482,4 +483,134 @@ it('does not return a result after cancellation during a call', async () => {
       abortSignal: controller.signal,
     }),
   ).rejects.toBe(reason);
+});
+
+describe('telemetry', () => {
+  it('emits operation and model-call lifecycle events', async () => {
+    const onStart = vi.fn();
+    const onEvaluateStart = vi.fn();
+    const onEvaluateEnd = vi.fn();
+    const onEnd = vi.fn();
+    const integration: Telemetry = {
+      onStart,
+      onEvaluateStart,
+      onEvaluateEnd,
+      onEnd,
+    };
+    const state = { message: 'refund' };
+
+    await evaluate({
+      ...setup({
+        answers,
+        warnings: [],
+        usage: { inputTokens: 30, outputTokens: 4 },
+      }),
+      state,
+      questions,
+      telemetry: {
+        integrations: integration,
+        functionId: 'evaluate-test',
+        recordInputs: false,
+        recordOutputs: true,
+      },
+      runtimeContext: { requestId: 'request-1', secret: 'hidden' },
+      _internal: { generateCallId: () => 'test-call-id' },
+    });
+
+    expect(onStart).toHaveBeenCalledWith(
+      expect.objectContaining({
+        callId: 'test-call-id',
+        operationId: 'ai.evaluate',
+        provider: 'mock-provider',
+        modelId: 'mock-model-id',
+        state,
+        questions,
+        runtimeContext: {},
+        maxRetries: 2,
+        recordInputs: false,
+        recordOutputs: true,
+        functionId: 'evaluate-test',
+      }),
+    );
+    expect(onEvaluateStart).toHaveBeenCalledWith(
+      expect.objectContaining({
+        callId: 'test-call-id',
+        operationId: 'ai.evaluate.doEvaluate',
+        state,
+        questions,
+      }),
+    );
+    expect(onEvaluateEnd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        callId: 'test-call-id',
+        operationId: 'ai.evaluate.doEvaluate',
+        answers,
+        usage: { inputTokens: 30, outputTokens: 4 },
+      }),
+    );
+    expect(onEnd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        callId: 'test-call-id',
+        operationId: 'ai.evaluate',
+        answers,
+        usage: { inputTokens: 30, outputTokens: 4, totalTokens: 34 },
+        runtimeContext: {},
+      }),
+    );
+  });
+
+  it('includes only selected runtime context fields', async () => {
+    const onStart = vi.fn();
+
+    await evaluate({
+      ...setup(),
+      state: 'text',
+      questions,
+      telemetry: {
+        integrations: { onStart },
+        includeRuntimeContext: { requestId: true },
+      },
+      runtimeContext: { requestId: 'request-1', secret: 'hidden' },
+    });
+
+    expect(onStart).toHaveBeenCalledWith(
+      expect.objectContaining({ runtimeContext: { requestId: 'request-1' } }),
+    );
+  });
+
+  it('accepts experimental_telemetry as an alias', async () => {
+    const onStart = vi.fn();
+
+    await evaluate({
+      ...setup(),
+      state: 'text',
+      questions,
+      experimental_telemetry: { integrations: { onStart } },
+    });
+
+    expect(onStart).toHaveBeenCalledOnce();
+  });
+
+  it('emits an error event when evaluation fails', async () => {
+    const error = new Error('evaluation failed');
+    const onError = vi.fn();
+    const { model } = setup();
+    model.doEvaluate = vi.fn().mockRejectedValue(error);
+
+    await expect(
+      evaluate({
+        model,
+        state: 'text',
+        questions,
+        maxRetries: 0,
+        telemetry: { integrations: { onError } },
+        _internal: { generateCallId: () => 'test-call-id' },
+      }),
+    ).rejects.toBe(error);
+
+    expect(onError).toHaveBeenCalledWith({
+      callId: 'test-call-id',
+      error,
+    });
+  });
 });

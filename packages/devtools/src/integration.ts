@@ -5,6 +5,8 @@ import type {
   GenerateObjectStartEvent,
   GenerateObjectStepStartEvent,
   GenerateObjectStepEndEvent,
+  Experimental_EvaluationModelCallStartEvent as EvaluationModelCallStartEvent,
+  Experimental_EvaluationModelCallEndEvent as EvaluationModelCallEndEvent,
   Telemetry,
   ToolSet,
 } from 'ai';
@@ -406,6 +408,58 @@ export function DevToolsTelemetry(
       });
 
       state.stepStates.delete(stepResult.stepNumber);
+    },
+
+    onEvaluateStart: async event => {
+      const evaluationEvent = event as EvaluationModelCallStartEvent;
+      const state = callStates.get(evaluationEvent.callId);
+      if (!state) return;
+
+      const stepId = crypto.randomUUID();
+      const stepState = { stepId, startTime: Date.now() };
+      state.stepStates.set(0, stepState);
+      activeSteps.set(stepId, stepState);
+
+      await createStep({
+        id: stepId,
+        run_id: state.runId,
+        step_number: state.stepNumberOffset + 1,
+        type: state.operationType,
+        model_id: evaluationEvent.modelId,
+        provider: evaluationEvent.provider,
+        started_at: new Date().toISOString(),
+        input: serializeForDevTools({
+          state: evaluationEvent.state,
+          questions: evaluationEvent.questions,
+        }),
+        provider_options: null,
+      });
+    },
+
+    onEvaluateEnd: async event => {
+      const evaluationEvent = event as EvaluationModelCallEndEvent;
+      const state = callStates.get(evaluationEvent.callId);
+      const stepState = state?.stepStates.get(0);
+      if (!state || !stepState) return;
+
+      activeSteps.delete(stepState.stepId);
+      await updateStepResult(stepState.stepId, {
+        duration_ms: Date.now() - stepState.startTime,
+        output: serializeForDevTools({
+          answers: evaluationEvent.answers,
+          response: evaluationEvent.response,
+        }),
+        usage: evaluationEvent.usage
+          ? JSON.stringify(evaluationEvent.usage)
+          : null,
+        error: null,
+        raw_request: null,
+        raw_response: evaluationEvent.response?.body
+          ? JSON.stringify(evaluationEvent.response.body)
+          : null,
+        raw_chunks: null,
+      });
+      state.stepStates.delete(0);
     },
 
     onEnd: async event => {
