@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21112,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21112-aac-adts-media-type.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-21112-aac-adts-media-type.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_21112_REPRODUCED: valid ADTS AAC is mislabelled by media detection, speech metadata, or transcription input"
+  }
+}
