@@ -30,6 +30,24 @@ export const vectorizeSvgResponseFixture = {
   },
 };
 
+export const animateSvgResponseFixture = {
+  id: 'svg-animation-1',
+  created: 1_713_374_520,
+  data: [
+    {
+      svg: '<svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"><animate attributeName="r" values="3;4;3" dur="1200ms" repeatCount="indefinite"/></circle></svg>',
+      mime_type: 'image/svg+xml' as const,
+      loop_period_ms: 1200,
+      opening_animation_ms: null,
+    },
+  ],
+  usage: {
+    total_tokens: 24,
+    input_tokens: 13,
+    output_tokens: 11,
+  },
+};
+
 export const editSvgResponseFixture = {
   id: 'svg-edit-1',
   created: 1_713_374_520,

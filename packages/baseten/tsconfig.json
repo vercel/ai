@@ -20,9 +20,6 @@
     },
     {
       "path": "../provider-utils"
-    },
-    {
-      "path": "../test-server"
     }
   ]
 }

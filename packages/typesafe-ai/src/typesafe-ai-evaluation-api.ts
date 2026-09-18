@@ -38,6 +38,7 @@ export const typesafeFailedResponseHandler = createJsonErrorResponseHandler({
     error: z
       .union([z.string(), z.object({ message: z.string().nullish() })])
       .nullish(),
+    error_type: z.string().nullish(),
   }),
   errorToMessage: error =>
     error.message ??
@@ -45,5 +46,6 @@ export const typesafeFailedResponseHandler = createJsonErrorResponseHandler({
     (typeof error.detail === 'string'
       ? error.detail
       : JSON.stringify(error.detail)) ??
+    error.error_type ??
     'TypeSafe request failed',
 });

@@ -70,17 +70,12 @@ const doWrap = ({
     maxImagesPerCallRaw instanceof Function
       ? maxImagesPerCallRaw.bind(model)
       : maxImagesPerCallRaw;
-  const maxImagesPerPrompt =
-    model.maxImagesPerPrompt instanceof Function
-      ? model.maxImagesPerPrompt.bind(model)
-      : model.maxImagesPerPrompt;
 
   return {
     specificationVersion: 'v4',
     provider: providerId ?? overrideProvider?.({ model }) ?? model.provider,
     modelId: modelId ?? overrideModelId?.({ model }) ?? model.modelId,
     maxImagesPerCall,
-    maxImagesPerPrompt,
     async doGenerate(
       params: ImageModelV4CallOptions,
     ): Promise<ImageModelV4Result> {

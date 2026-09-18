@@ -45,9 +45,6 @@ interface QuiverAIImageModelConfig {
 export class QuiverAIImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 16;
-  readonly maxImagesPerPrompt: ImageModelV4['maxImagesPerPrompt'] = ({
-    providerOptions,
-  }) => (providerOptions.quiverai?.operation === 'edit' ? 1 : undefined);
 
   get provider(): string {
     return this.config.provider;
@@ -134,6 +131,12 @@ export class QuiverAIImageModel implements ImageModelV4 {
           images: response.data.map((image, index) => ({
             index,
             mimeType: image.mime_type,
+            ...(image.loop_period_ms !== undefined && {
+              loopPeriodMs: image.loop_period_ms,
+            }),
+            ...(image.opening_animation_ms !== undefined && {
+              openingAnimationMs: image.opening_animation_ms,
+            }),
           })),
         },
       },
@@ -163,6 +166,8 @@ function getOperationPath(operation: QuiverAIOperation) {
       return '/svgs/vectorizations';
     case 'edit':
       return '/svgs/edits';
+    case 'animate':
+      return '/svgs/animations';
   }
 }
 
@@ -182,6 +187,80 @@ function toQuiverAIImageReference(image: ImageModelV4File) {
         ? image.data
         : convertUint8ArrayToBase64(image.data),
   };
+}
+
+const maxAnimationSourceBase64Length = 1_066_668;
+
+function toQuiverAIAnimationSource(image: ImageModelV4File) {
+  if (image.type === 'url') {
+    let url: URL;
+    try {
+      url = new URL(image.url);
+    } catch {
+      throw new InvalidArgumentError({
+        argument: 'files',
+        message: 'QuiverAI animate requires a valid HTTP or HTTPS SVG URL.',
+      });
+    }
+
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      throw new InvalidArgumentError({
+        argument: 'files',
+        message: 'QuiverAI animate requires an HTTP or HTTPS SVG URL.',
+      });
+    }
+
+    return { url: image.url };
+  }
+
+  let base64: string;
+  let bytes: Uint8Array;
+
+  if (typeof image.data === 'string') {
+    const dataUrlMatch =
+      /^data:image\/svg\+xml(?:;[^,]*)?;base64,([\s\S]+)$/i.exec(image.data);
+    const encodedData = dataUrlMatch?.[1] ?? image.data;
+
+    try {
+      bytes = convertBase64ToUint8Array(encodedData);
+    } catch {
+      throw new InvalidArgumentError({
+        argument: 'files',
+        message:
+          'QuiverAI animate requires the source SVG string to be valid base64 or an SVG data URL.',
+      });
+    }
+    base64 = convertUint8ArrayToBase64(bytes);
+  } else {
+    bytes = image.data;
+    base64 = convertUint8ArrayToBase64(bytes);
+  }
+
+  if (!isSvg(bytes)) {
+    throw new InvalidArgumentError({
+      argument: 'files',
+      message: 'QuiverAI animate requires the input file to contain SVG data.',
+    });
+  }
+
+  if (base64.length > maxAnimationSourceBase64Length) {
+    throw new InvalidArgumentError({
+      argument: 'files',
+      message: `QuiverAI animate accepts at most ${maxAnimationSourceBase64Length} base64 characters for the source SVG.`,
+    });
+  }
+
+  return { base64 };
+}
+
+function isSvg(data: Uint8Array): boolean {
+  const head = new TextDecoder('utf-8', { fatal: false })
+    .decode(data.subarray(0, 4096))
+    .trimStart();
+
+  return /^(?:(?:<\?xml[\s\S]*?\?>|<!--[\s\S]*?-->|<!DOCTYPE[\s\S]*?>)\s*)*<svg(?:\s|>)/i.test(
+    head,
+  );
 }
 
 function buildRequestBody({
@@ -222,9 +301,11 @@ function buildRequestBody({
     stream: false as const,
   };
 
-  if (operation === 'generate') {
+  if (operation !== 'edit') {
     rejectEditOnlyOptions(operation, options);
+  }
 
+  if (operation === 'generate') {
     if (prompt == null || prompt.trim().length === 0) {
       throw new InvalidArgumentError({
         argument: 'prompt',
@@ -264,7 +345,16 @@ function buildRequestBody({
     });
   }
 
-  rejectEditOnlyOptions(operation, options);
+  if (operation === 'animate') {
+    return buildAnimationRequestBody({
+      modelId,
+      n,
+      prompt,
+      files,
+      mask,
+      options,
+    });
+  }
 
   if (files == null || files.length === 0) {
     throw new InvalidArgumentError({
@@ -295,6 +385,97 @@ function buildRequestBody({
     ...sharedOptions,
     auto_crop: options.autoCrop,
     target_size: options.targetSize,
+  };
+}
+
+function buildAnimationRequestBody({
+  modelId,
+  n,
+  prompt,
+  files,
+  mask,
+  options,
+}: {
+  modelId: string;
+  n: number;
+  prompt: string | undefined;
+  files: ImageModelV4File[] | undefined;
+  mask: ImageModelV4File | undefined;
+  options: QuiverAIImageModelOptions;
+}) {
+  if (modelId !== 'arrow-2' && modelId !== 'arrow-2-telos') {
+    throw new InvalidArgumentError({
+      argument: 'modelId',
+      message:
+        'QuiverAI animate is supported by the "arrow-2" and "arrow-2-telos" models.',
+    });
+  }
+
+  if (files == null || files.length === 0) {
+    throw new InvalidArgumentError({
+      argument: 'files',
+      message:
+        'QuiverAI animate requires exactly one source SVG in prompt.images.',
+    });
+  }
+
+  if (files.length !== 1) {
+    throw new InvalidArgumentError({
+      argument: 'files',
+      message:
+        'QuiverAI animate accepts exactly one source SVG in prompt.images.',
+    });
+  }
+
+  if (n !== 1) {
+    throw new InvalidArgumentError({
+      argument: 'n',
+      message:
+        'QuiverAI animate returns one SVG per request. Set maxImagesPerCall to 1 in generateImage to animate multiple times.',
+    });
+  }
+
+  if (mask != null) {
+    throw new InvalidArgumentError({
+      argument: 'mask',
+      message: 'QuiverAI animate does not support masks.',
+    });
+  }
+
+  if (prompt != null && prompt.trim().length === 0) {
+    throw new InvalidArgumentError({
+      argument: 'prompt',
+      message:
+        'QuiverAI animate requires a non-empty prompt when an animation instruction is provided.',
+    });
+  }
+
+  const unsupportedOptions = [
+    ['instructions', options.instructions],
+    ['topP', options.topP],
+    ['presencePenalty', options.presencePenalty],
+    ['attributes', options.attributes],
+    ['autoCrop', options.autoCrop],
+    ['targetSize', options.targetSize],
+  ].filter((option): option is [string, NonNullable<unknown>] => {
+    return option[1] !== undefined;
+  });
+
+  if (unsupportedOptions.length > 0) {
+    throw new InvalidArgumentError({
+      argument: `providerOptions.quiverai.${unsupportedOptions[0][0]}`,
+      message: `QuiverAI animate does not support providerOptions.quiverai.${unsupportedOptions[0][0]}.`,
+    });
+  }
+
+  return {
+    model: modelId,
+    svg_source: toQuiverAIAnimationSource(files[0]),
+    prompt,
+    temperature: options.temperature,
+    max_output_tokens: options.maxOutputTokens,
+    reasoning_effort: options.reasoningEffort,
+    stream: false as const,
   };
 }
 
@@ -358,7 +539,8 @@ function buildEditRequestBody({
   if (n !== 1) {
     throw new InvalidArgumentError({
       argument: 'n',
-      message: 'QuiverAI SVG editing returns exactly one SVG per request.',
+      message:
+        'QuiverAI SVG editing returns exactly one SVG per request. Set maxImagesPerCall to 1 in generateImage to edit multiple times.',
     });
   }
 
@@ -828,6 +1010,8 @@ const svgUsageSchema = z.object({
 const svgDocumentSchema = z.object({
   svg: z.string().min(1),
   mime_type: z.literal('image/svg+xml'),
+  loop_period_ms: z.number().int().nonnegative().nullish(),
+  opening_animation_ms: z.number().int().nonnegative().nullish(),
 });
 
 const svgGenerationResponseSchema = z.object({

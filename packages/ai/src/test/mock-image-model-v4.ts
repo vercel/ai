@@ -6,7 +6,6 @@ export class MockImageModelV4 implements ImageModelV4 {
   readonly provider: ImageModelV4['provider'];
   readonly modelId: ImageModelV4['modelId'];
   readonly maxImagesPerCall: ImageModelV4['maxImagesPerCall'];
-  readonly maxImagesPerPrompt: ImageModelV4['maxImagesPerPrompt'];
 
   doGenerate: ImageModelV4['doGenerate'];
 
@@ -14,19 +13,16 @@ export class MockImageModelV4 implements ImageModelV4 {
     provider = 'mock-provider',
     modelId = 'mock-model-id',
     maxImagesPerCall = 1,
-    maxImagesPerPrompt,
     doGenerate = notImplemented,
   }: {
     provider?: ImageModelV4['provider'];
     modelId?: ImageModelV4['modelId'];
     maxImagesPerCall?: ImageModelV4['maxImagesPerCall'];
-    maxImagesPerPrompt?: ImageModelV4['maxImagesPerPrompt'];
     doGenerate?: ImageModelV4['doGenerate'];
   } = {}) {
     this.provider = provider;
     this.modelId = modelId;
     this.maxImagesPerCall = maxImagesPerCall;
-    this.maxImagesPerPrompt = maxImagesPerPrompt;
     this.doGenerate = doGenerate;
   }
 }

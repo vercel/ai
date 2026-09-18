@@ -15,6 +15,7 @@ export type QuiverAIImageModelId =
  * QuiverAI image operation:
  * - `generate`: Text-to-SVG generation (default).
  * - `vectorize`: Convert a raster image into an SVG.
- * - `edit`: Edit an existing SVG using an instruction.
+ * - `animate`: Animate a single source SVG.
+ * - `edit`: Edit a single source SVG with a text instruction.
  */
-export type QuiverAIOperation = 'generate' | 'vectorize' | 'edit';
+export type QuiverAIOperation = 'generate' | 'vectorize' | 'animate' | 'edit';

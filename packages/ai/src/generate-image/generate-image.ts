@@ -1,5 +1,4 @@
 import {
-  InvalidArgumentError,
   isJSONObject,
   type ImageModelV4,
   type ImageModelV4CallOptions,
@@ -180,18 +179,6 @@ export async function generateImage({
     additionalRetryableError: error =>
       error instanceof RetryableNoImageResultError,
   });
-
-  const maxImagesPerPrompt = await invokeModelMaxImagesPerPrompt(
-    model,
-    providerOptions ?? {},
-  );
-
-  if (maxImagesPerPrompt != null && n > maxImagesPerPrompt) {
-    throw new InvalidArgumentError({
-      argument: 'n',
-      message: `The image model supports at most ${maxImagesPerPrompt} image${maxImagesPerPrompt === 1 ? '' : 's'} for this prompt, but ${n} were requested.`,
-    });
-  }
 
   // default to 1 if the model has not specified limits on
   // how many images can be generated in a single call
@@ -424,22 +411,6 @@ async function invokeModelMaxImagesPerCall(model: ImageModelV4) {
 
   return model.maxImagesPerCall({
     modelId: model.modelId,
-  });
-}
-
-async function invokeModelMaxImagesPerPrompt(
-  model: ImageModelV4,
-  providerOptions: ImageModelV4CallOptions['providerOptions'],
-) {
-  const maxImagesPerPrompt = model.maxImagesPerPrompt;
-
-  if (!(maxImagesPerPrompt instanceof Function)) {
-    return maxImagesPerPrompt;
-  }
-
-  return maxImagesPerPrompt({
-    modelId: model.modelId,
-    providerOptions,
   });
 }
 

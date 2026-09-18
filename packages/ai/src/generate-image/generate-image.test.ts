@@ -1,10 +1,8 @@
-import {
-  InvalidArgumentError,
-  type ImageModelV4,
-  type ImageModelV4ProviderMetadata,
-  type ImageModelV4Result,
-  type ImageModelV4Usage,
-  type SharedV4ProviderOptions,
+import type {
+  ImageModelV4,
+  ImageModelV4ProviderMetadata,
+  ImageModelV4Result,
+  ImageModelV4Usage,
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
@@ -353,49 +351,6 @@ describe('generateImage', () => {
   });
 
   describe('when several calls are required', () => {
-    it('should reject requests above the model total image limit before batching', async () => {
-      const doGenerate = vi.fn();
-      const maxImagesPerPrompt = vi.fn(
-        ({
-          providerOptions,
-        }: {
-          modelId: string;
-          providerOptions: SharedV4ProviderOptions;
-        }) =>
-          providerOptions['mock-provider']?.operation === 'edit'
-            ? 1
-            : undefined,
-      );
-
-      await expect(
-        generateImage({
-          model: new MockImageModelV4({
-            maxImagesPerCall: 16,
-            maxImagesPerPrompt,
-            doGenerate,
-          }),
-          prompt,
-          n: 2,
-          maxImagesPerCall: 1,
-          providerOptions: {
-            'mock-provider': {
-              operation: 'edit',
-            },
-          },
-        }),
-      ).rejects.toBeInstanceOf(InvalidArgumentError);
-
-      expect(maxImagesPerPrompt).toHaveBeenCalledWith({
-        modelId: 'mock-model-id',
-        providerOptions: {
-          'mock-provider': {
-            operation: 'edit',
-          },
-        },
-      });
-      expect(doGenerate).not.toHaveBeenCalled();
-    });
-
     it('should generate images', async () => {
       const base64Images = [pngBase64, jpegBase64, gifBase64];
 

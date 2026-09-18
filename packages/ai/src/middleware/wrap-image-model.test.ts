@@ -253,41 +253,6 @@ describe('wrapImageModel', () => {
     expect(maxImagesPerCallThis).toBe(model);
   });
 
-  it('should preserve maxImagesPerPrompt with its model context', async () => {
-    let maxImagesPerPromptThis: unknown = undefined;
-
-    class MockImageModelWithPromptLimit extends MockImageModelV4 {
-      readonly value = 1;
-
-      constructor() {
-        super({
-          maxImagesPerPrompt: function () {
-            maxImagesPerPromptThis = this;
-            return (this as any).value;
-          },
-        });
-      }
-    }
-
-    const model = new MockImageModelWithPromptLimit();
-    const wrappedModel = wrapImageModel({
-      model,
-      middleware: { specificationVersion: 'v4' },
-    });
-
-    if (!(wrappedModel.maxImagesPerPrompt instanceof Function)) {
-      throw new Error('Expected maxImagesPerPrompt to be a function');
-    }
-
-    const result = await wrappedModel.maxImagesPerPrompt({
-      modelId: wrappedModel.modelId,
-      providerOptions: {},
-    });
-
-    expect(result).toBe(1);
-    expect(maxImagesPerPromptThis).toBe(model);
-  });
-
   describe('multiple middlewares', () => {
     it('should call multiple transformParams middlewares in sequence for doGenerate', async () => {
       let capturedArgs!: Parameters<MockImageModelV4['doGenerate']>[0];
