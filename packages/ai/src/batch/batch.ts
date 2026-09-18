@@ -620,7 +620,7 @@ async function convertGenerateResult<TOOLS extends ToolSet>({
         }),
       ),
   );
-  const content = convertLanguageModelContent<TOOLS>({
+  const content = await convertLanguageModelContent<TOOLS>({
     content: result.content,
     toolCalls,
     toolOutputs: [],

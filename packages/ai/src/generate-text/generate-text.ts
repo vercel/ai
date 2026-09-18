@@ -1097,13 +1097,16 @@ export async function generateText<
               > = {};
               const blockedToolCallIds = new Set<string>();
 
-              const modelCallContent = convertLanguageModelContent({
+              const generatedFileDataCache = new WeakMap();
+              const modelCallContent = await convertLanguageModelContent({
                 content: currentModelResponse.content,
                 toolCalls: stepToolCalls,
                 toolOutputs: [],
                 toolApprovalRequests: [],
                 toolApprovalResponses: [],
                 tools,
+                abortSignal: mergedAbortSignal,
+                generatedFileDataCache,
               });
 
               await notify({
@@ -1413,13 +1416,15 @@ export async function generateText<
               }
 
               // content:
-              const stepContent = convertLanguageModelContent({
+              const stepContent = await convertLanguageModelContent({
                 content: currentModelResponse.content,
                 toolCalls: stepToolCalls,
                 toolOutputs: clientToolOutputs,
                 toolApprovalRequests: Object.values(toolApprovalRequests),
                 toolApprovalResponses,
                 tools,
+                abortSignal: mergedAbortSignal,
+                generatedFileDataCache,
               });
 
               const stepResponseMessages = await toResponseMessages({

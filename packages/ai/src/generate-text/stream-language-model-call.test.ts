@@ -853,6 +853,38 @@ describe('streamLanguageModelCall', () => {
       `);
     });
 
+    it('should download URL-backed files', async () => {
+      const result = await streamLanguageModelCallResult({
+        streamParts: [
+          {
+            type: 'file',
+            data: {
+              type: 'url',
+              url: new URL('data:text/plain;base64,SGVsbG8gV29ybGQ='),
+            },
+            mediaType: 'text/plain',
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ],
+        tools: undefined,
+      });
+
+      const filePart = result[0];
+      expect(filePart.type).toBe('file');
+      if (filePart.type !== 'file') {
+        throw new Error('Expected a file part.');
+      }
+
+      expect(filePart.file.base64).toBe('SGVsbG8gV29ybGQ=');
+      expect(filePart.file.uint8Array).toEqual(
+        new TextEncoder().encode('Hello World'),
+      );
+    });
+
     it('should use GeneratedFile with providerMetadata', async () => {
       const result = await streamLanguageModelCallResult({
         streamParts: [
