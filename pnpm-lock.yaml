@@ -22674,8 +22674,8 @@ packages:
     resolution: {integrity: sha512-RQsvleCbF8cVHEv+xuDGaA4pOizFqJ0GgjtMSRo6oP8pnN7WsigHgVGey6aILRBKv4W2YOMHLqbKdnB6hpB9fw==}
     engines: {node: '>=20.0.0'}
 
-  smol-toml@1.6.1:
-    resolution: {integrity: sha512-dWUG8F5sIIARXih1DTaQAX4SsiTXhInKf1buxdY9DIg4ZYPZK5nGM1VRIYmEbDbsHt7USo99xSLFu5Q1IqTmsg==}
+  smol-toml@1.8.0:
+    resolution: {integrity: sha512-kCZr2V3ch9i00x8zXRhjUNVcjG9ijES5dDudkXvUVCT5QlJNQWElSJdZqyPemffHoLNUYwOcou0Fy+ojN0uHSQ==}
     engines: {node: '>= 18'}
 
   sockjs@0.3.24:
@@ -44735,7 +44735,7 @@ snapshots:
       quickjs-emscripten: 0.32.0
       re2js: 1.3.3
       seek-bzip: 2.0.0
-      smol-toml: 1.6.1
+      smol-toml: 1.8.0
       sprintf-js: 1.1.3
       sql.js: 1.14.1
       turndown: 7.2.4
@@ -44758,7 +44758,7 @@ snapshots:
       quickjs-emscripten: 0.32.0
       re2js: 1.3.3
       seek-bzip: 2.0.0
-      smol-toml: 1.6.1
+      smol-toml: 1.8.0
       sprintf-js: 1.1.3
       sql.js: 1.14.1
       turndown: 7.2.4
@@ -47693,7 +47693,7 @@ snapshots:
       cross-spawn: 7.0.6
       open: 10.2.0
       recheck: 4.5.0
-      smol-toml: 1.6.1
+      smol-toml: 1.8.0
       zod: 3.25.76
     optionalDependencies:
       '@earendil-works/pi-ai': 0.74.2(@modelcontextprotocol/sdk@1.30.0(@cfworker/json-schema@4.1.1)(supports-color@10.2.2)(zod@3.25.76))(@opentelemetry/api@1.9.1)(supports-color@10.2.2)(ws@8.21.3)(zod@3.25.76)
@@ -50018,7 +50018,7 @@ snapshots:
 
   smob@1.6.2: {}
 
-  smol-toml@1.6.1: {}
+  smol-toml@1.8.0: {}
 
   sockjs@0.3.24:
     dependencies:
