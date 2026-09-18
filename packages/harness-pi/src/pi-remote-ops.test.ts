@@ -1,4 +1,10 @@
+import { execFile } from 'node:child_process';
+import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { promisify } from 'node:util';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
+import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
 import { describe, expect, it, vi } from 'vitest';
 import { createPiPathMapper } from './pi-paths';
 import { createPiRemoteOps } from './pi-remote-ops';
@@ -9,6 +15,8 @@ type RunCalls = Array<{
 }>;
 type ReadCalls = string[];
 type WriteCalls = Array<{ path: string; content: string }>;
+
+const execFileAsync = promisify(execFile);
 
 function makeMockSandbox(behaviors: {
   run?: (command: string) => {
@@ -101,6 +109,86 @@ function makeOps(behaviors: Parameters<typeof makeMockSandbox>[0]) {
   });
   const ops = createPiRemoteOps({ sandbox: env.sandbox, paths });
   return { ...env, paths, ops };
+}
+
+async function makeJustBashOps() {
+  const sandboxSession = await createJustBashSandbox({
+    cwd: sandboxWorkDir,
+  }).createSession();
+  const justBashSandbox = sandboxSession.restricted();
+  const sandbox = new Proxy(justBashSandbox, {
+    get(target, property) {
+      if (property === 'run') {
+        return async (
+          input: Parameters<Experimental_SandboxSession['run']>[0],
+        ) => {
+          const realpathResult = mockRealpathCommand(
+            input.command,
+            path => path,
+          );
+          return realpathResult == null
+            ? target.run(input)
+            : {
+                exitCode: realpathResult.exitCode ?? 0,
+                stdout: realpathResult.stdout ?? '',
+                stderr: realpathResult.stderr ?? '',
+              };
+        };
+      }
+
+      const value = Reflect.get(target, property, target);
+      return typeof value === 'function' ? value.bind(target) : value;
+    },
+  });
+  const ops = createPiRemoteOps({
+    sandbox,
+    paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
+  });
+
+  return { sandboxSession, sandbox, ops };
+}
+
+function makeNativeShellOps(workDir: string) {
+  const sandbox = {
+    description: 'native shell',
+    async run({
+      command,
+      workingDirectory,
+      env,
+    }: {
+      command: string;
+      workingDirectory?: string;
+      env?: Record<string, string>;
+    }) {
+      try {
+        const result = await execFileAsync('bash', ['-c', command], {
+          cwd: workingDirectory,
+          env: { ...process.env, ...env },
+          encoding: 'utf8',
+        });
+        return { exitCode: 0, ...result };
+      } catch (error) {
+        const result = error as {
+          code?: number;
+          stdout?: string;
+          stderr?: string;
+        };
+        return {
+          exitCode: typeof result.code === 'number' ? result.code : 1,
+          stdout: result.stdout ?? '',
+          stderr: result.stderr ?? '',
+        };
+      }
+    },
+  } as unknown as Experimental_SandboxSession;
+
+  return createPiRemoteOps({
+    sandbox,
+    paths: createPiPathMapper({
+      hostWorkDir: workDir,
+      sandboxWorkDir: workDir,
+    }),
+  });
 }
 
 describe('createPiRemoteOps.readBuffer', () => {
@@ -284,9 +372,6 @@ describe('createPiRemoteOps.grepFiles', () => {
       limit: 50,
     });
     expect(out).toContain('foo.ts:1:hit');
-    // The inner command is wrapped in `bash -lc '...'`, so its single quotes
-    // get escaped to `'\''` in the outer string. We just look for the
-    // signature substrings without quoting.
     const cmd =
       env.runCalls.find(call => call.command.includes('grep '))?.command ?? '';
     expect(cmd).toContain('grep');
@@ -295,15 +380,116 @@ describe('createPiRemoteOps.grepFiles', () => {
     expect(cmd).toContain('-i');
     expect(cmd).toContain('-F');
     expect(cmd).toContain('-C');
-    expect(cmd).toContain('--include');
-    expect(cmd).toContain('*.ts');
+    expect(cmd).toContain("'-m' '50'");
+    expect(cmd).toContain("'--include=*.ts'");
+    expect(cmd).toContain("-e 'TODO'");
+    expect(cmd).toContain(
+      'binary_option_error=$(grep --binary-files=without-match',
+    );
+    expect(cmd).toContain('grep $binary_option');
+    expect(cmd).not.toContain('2>/dev/null');
     expect(cmd).toContain('head -n 50');
+    expect(cmd).toContain('head -c 8192 "$grep_stderr" >&2');
+    expect(cmd).not.toContain('grep_output=$(grep');
+    expect(cmd).toContain('find ');
+    expect(cmd).toContain('-exec bash -c');
+    expect(cmd).toContain('grep_remaining');
   });
 
   it('returns "No matches found" on empty output', async () => {
-    const env = makeOps({ run: () => ({ stdout: '' }) });
+    const env = makeOps({ run: () => ({ stdout: '', exitCode: 1 }) });
     const out = await env.ops.grepFiles('x', {});
     expect(out).toBe('No matches found');
+  });
+
+  it('accepts grep SIGPIPE when head stops after the requested limit', async () => {
+    const env = makeOps({
+      run: () => ({ stdout: 'foo.ts:1:hit\n', exitCode: 141 }),
+    });
+
+    await expect(env.ops.grepFiles('hit', { limit: 1 })).resolves.toBe(
+      'foo.ts:1:hit',
+    );
+  });
+
+  it('prefixes option-like relative targets with ./', async () => {
+    const env = makeOps({
+      run: () => ({ stdout: './-notes.txt:1:hit\n' }),
+    });
+
+    await env.ops.grepFiles('hit', { path: '-notes.txt' });
+
+    const cmd =
+      env.runCalls.find(call => call.command.includes('grep $binary_option'))
+        ?.command ?? '';
+    expect(cmd).toContain("'./-notes.txt'");
+  });
+
+  it('surfaces grep errors instead of reporting no matches', async () => {
+    const env = makeOps({
+      run: () => ({
+        stderr: 'grep: invalid option\n',
+        exitCode: 0,
+      }),
+    });
+    await expect(env.ops.grepFiles('x', {})).rejects.toThrow(
+      'grep: invalid option',
+    );
+  });
+
+  it('preserves GNU grep matches when recursive traversal also reports diagnostics', async () => {
+    const workDir = await mkdtemp(path.join(tmpdir(), 'pi-grep-gnu-'));
+    const blockedDirectory = path.join(workDir, 'blocked');
+
+    try {
+      await writeFile(path.join(workDir, 'match.txt'), 'needle\n');
+      await mkdir(blockedDirectory);
+      await writeFile(path.join(blockedDirectory, 'hidden.txt'), 'needle\n');
+      await chmod(blockedDirectory, 0);
+
+      const output = await makeNativeShellOps(workDir).grepFiles('needle', {
+        literal: true,
+      });
+
+      expect(output).toContain('match.txt:1:needle');
+      expect(output).toContain('Permission denied');
+    } finally {
+      await chmod(blockedDirectory, 0o700).catch(() => {});
+      await rm(workDir, { recursive: true, force: true });
+    }
+  });
+
+  it('bounds GNU grep diagnostics independently of the match limit', async () => {
+    const workDir = await mkdtemp(path.join(tmpdir(), 'pi-grep-gnu-'));
+    const blockedDirectories = Array.from({ length: 250 }, (_, index) =>
+      path.join(workDir, `blocked-${String(index).padStart(3, '0')}`),
+    );
+
+    try {
+      await writeFile(path.join(workDir, 'match.txt'), 'needle\n');
+      await Promise.all(
+        blockedDirectories.map(async directory => {
+          await mkdir(directory);
+          await chmod(directory, 0);
+        }),
+      );
+
+      const output = await makeNativeShellOps(workDir).grepFiles('needle', {
+        literal: true,
+        limit: 1,
+      });
+
+      expect(output).toContain('match.txt:1:needle');
+      expect(output).toContain('Permission denied');
+      expect(Buffer.byteLength(output)).toBeLessThan(8_300);
+    } finally {
+      await Promise.all(
+        blockedDirectories.map(directory =>
+          chmod(directory, 0o700).catch(() => {}),
+        ),
+      );
+      await rm(workDir, { recursive: true, force: true });
+    }
   });
 
   it('rejects workspace symlinks before running grep outside readable roots', async () => {
@@ -325,6 +511,111 @@ describe('createPiRemoteOps.grepFiles', () => {
     expect(env.runCalls.some(call => call.command.includes('grep '))).toBe(
       false,
     );
+  });
+
+  it('returns text matches when a just-bash workspace also contains matching binary data', async () => {
+    const { sandboxSession, sandbox, ops } = await makeJustBashOps();
+
+    try {
+      await sandbox.writeTextFile({
+        path: `${sandboxWorkDir}/text.txt`,
+        content: 'hello from text\n',
+      });
+      await sandbox.writeBinaryFile({
+        path: `${sandboxWorkDir}/data.bin`,
+        content: new Uint8Array([0, 104, 101, 108, 108, 111, 10]),
+      });
+
+      await expect(
+        ops.grepFiles('hello', { literal: true }),
+      ).resolves.toContain('text.txt:1:hello from text');
+    } finally {
+      await sandboxSession.destroy();
+    }
+  });
+
+  it('searches an option-like filename in just-bash', async () => {
+    const { sandboxSession, sandbox, ops } = await makeJustBashOps();
+
+    try {
+      await sandbox.writeTextFile({
+        path: `${sandboxWorkDir}/-notes.txt`,
+        content: 'hello\n',
+      });
+
+      await expect(
+        ops.grepFiles('hello', { path: '-notes.txt', literal: true }),
+      ).resolves.toContain('hello');
+    } finally {
+      await sandboxSession.destroy();
+    }
+  });
+
+  it('surfaces grep diagnostics from just-bash', async () => {
+    const { sandboxSession, sandbox, ops } = await makeJustBashOps();
+
+    try {
+      await sandbox.writeTextFile({
+        path: `${sandboxWorkDir}/text.txt`,
+        content: 'hello\n',
+      });
+
+      await expect(ops.grepFiles('[', {})).rejects.toThrow(
+        'grep: invalid regular expression',
+      );
+    } finally {
+      await sandboxSession.destroy();
+    }
+  });
+
+  it('limits high-cardinality grep output in just-bash', async () => {
+    const { sandboxSession, sandbox, ops } = await makeJustBashOps();
+
+    try {
+      await sandbox.writeTextFile({
+        path: `${sandboxWorkDir}/many.txt`,
+        content: `${Array.from(
+          { length: 5_000 },
+          (_, index) => `match ${index}`,
+        ).join('\n')}\n`,
+      });
+
+      const output = await ops.grepFiles('match', {
+        literal: true,
+        limit: 3,
+      });
+
+      expect(output.split('\n')).toHaveLength(3);
+      expect(output).toContain('many.txt:1:match 0');
+    } finally {
+      await sandboxSession.destroy();
+    }
+  });
+
+  it('limits matches spread across many files in just-bash', async () => {
+    const { sandboxSession, sandbox, ops } = await makeJustBashOps();
+
+    try {
+      await Promise.all(
+        Array.from({ length: 250 }, (_, index) =>
+          sandbox.writeTextFile({
+            path: `${sandboxWorkDir}/match-${String(index).padStart(3, '0')}.ts`,
+            content: `match ${index}\n`,
+          }),
+        ),
+      );
+
+      const output = await ops.grepFiles('match', {
+        glob: '*.ts',
+        literal: true,
+        limit: 3,
+      });
+
+      expect(output.split('\n')).toHaveLength(3);
+      expect(output).toContain('match-000.ts:1:match 0');
+    } finally {
+      await sandboxSession.destroy();
+    }
   });
 });
 
