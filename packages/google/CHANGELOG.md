@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.124
+
+### Patch Changes
+
+- 9548d8e: fix(google): ignore default prompt block reasons in non-streaming responses
+
 ## 3.0.123
 
 ### Patch Changes
