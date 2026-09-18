@@ -2,7 +2,14 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  render,
+  renderHook,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
@@ -404,6 +411,55 @@ describe('text stream', () => {
       expect(screen.getByTestId('error')).toBeEmptyDOMElement();
       expect(screen.getByTestId('loading')).toHaveTextContent('false');
     });
+  });
+
+  it('should keep an initial object cleared for shared and remounted hooks', async () => {
+    const options = {
+      id: 'shared-cleared-initial-object',
+      api: '/api/use-object',
+      schema: z.object({ content: z.string() }),
+      initialValue: { content: 'Initial content' },
+    };
+
+    const first = renderHook(() => useObject(options));
+    const second = renderHook(() => useObject(options));
+
+    expect(first.result.current.object).toEqual(options.initialValue);
+    expect(second.result.current.object).toEqual(options.initialValue);
+
+    await act(async () => {
+      first.result.current.clear();
+    });
+
+    expect(first.result.current.object).toBeUndefined();
+    expect(second.result.current.object).toBeUndefined();
+
+    first.unmount();
+    second.unmount();
+
+    const remounted = renderHook(() => useObject(options));
+
+    expect(remounted.result.current.object).toBeUndefined();
+    remounted.unmount();
+  });
+
+  it('should clear a null initial object', async () => {
+    const { result } = renderHook(() =>
+      useObject({
+        id: 'cleared-null-initial-object',
+        api: '/api/use-object',
+        schema: z.null(),
+        initialValue: null,
+      }),
+    );
+
+    expect(result.current.object).toBeNull();
+
+    await act(async () => {
+      result.current.clear();
+    });
+
+    expect(result.current.object).toBeUndefined();
   });
 
   it('should preserve the object state when the API changes', async () => {
