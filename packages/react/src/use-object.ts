@@ -164,12 +164,13 @@ export function useObject<
   }, []);
 
   const submit = async (input: INPUT) => {
+    const abortController = new AbortController();
+
     try {
       clearObject();
 
       setIsLoading(true);
 
-      const abortController = new AbortController();
       abortControllerRef.current = abortController;
 
       // Resolve headers at request time (supports async functions for dynamic auth tokens)
@@ -216,8 +217,9 @@ export function useObject<
           },
 
           async close() {
-            setIsLoading(false);
-            abortControllerRef.current = null;
+            if (abortControllerRef.current === abortController) {
+              setIsLoading(false);
+            }
 
             if (onFinish != null) {
               const validationResult = await safeValidateTypes({
@@ -231,6 +233,10 @@ export function useObject<
                   : { object: undefined, error: validationResult.error },
               );
             }
+
+            if (abortControllerRef.current === abortController) {
+              abortControllerRef.current = null;
+            }
           },
         }),
       );
@@ -243,8 +249,11 @@ export function useObject<
         onError(error);
       }
 
-      setIsLoading(false);
-      setError(error instanceof Error ? error : new Error(String(error)));
+      if (abortControllerRef.current === abortController) {
+        setIsLoading(false);
+        abortControllerRef.current = null;
+        setError(error instanceof Error ? error : new Error(String(error)));
+      }
     }
   };
 
