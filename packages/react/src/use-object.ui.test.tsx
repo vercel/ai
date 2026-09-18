@@ -246,6 +246,54 @@ describe('text stream', () => {
       },
     );
 
+    it('should keep the newer overlapping request active when the older request fails', async () => {
+      const firstController = new TestResponseController();
+      const secondController = new TestResponseController();
+      server.urls['/api/use-object'].response = [
+        {
+          type: 'controlled-stream',
+          controller: firstController,
+        },
+        {
+          type: 'controlled-stream',
+          controller: secondController,
+        },
+      ];
+
+      await userEvent.click(screen.getByTestId('submit-button'));
+      await firstController.write('{"content":"first');
+
+      await userEvent.click(screen.getByTestId('submit-button'));
+      await secondController.write('{"content":"second');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('true');
+        expect(screen.getByTestId('object')).toHaveTextContent(
+          '{"content":"second"}',
+        );
+      });
+
+      await firstController.error(new Error('first request failed'));
+
+      await waitFor(() => {
+        expect(onErrorResult?.message).toBe('first request failed');
+        expect(screen.getByTestId('loading')).toHaveTextContent('true');
+        expect(screen.getByTestId('error')).toBeEmptyDOMElement();
+      });
+
+      await userEvent.click(screen.getByTestId('stop-button'));
+
+      await expect(secondController.write('-after-stop"}')).rejects.toThrow();
+      await expect(secondController.close()).rejects.toThrow();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('false');
+        expect(screen.getByTestId('object')).toHaveTextContent(
+          '{"content":"second"}',
+        );
+      });
+    });
+
     it('should stop and clear the object state after a call to submit then clear', async () => {
       const controller = new TestResponseController();
       server.urls['/api/use-object'].response = {
