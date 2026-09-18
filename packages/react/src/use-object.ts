@@ -163,12 +163,13 @@ function useObject<
   }, []);
 
   const submit = async (input: INPUT) => {
+    const abortController = new AbortController();
+
     try {
       clearObject();
 
       setIsLoading(true);
 
-      const abortController = new AbortController();
       abortControllerRef.current = abortController;
 
       const actualFetch = fetch ?? getOriginalFetch();
@@ -212,8 +213,9 @@ function useObject<
           },
 
           async close() {
-            setIsLoading(false);
-            abortControllerRef.current = null;
+            if (abortControllerRef.current === abortController) {
+              setIsLoading(false);
+            }
 
             if (onFinish != null) {
               const validationResult = await safeValidateTypes({
@@ -227,6 +229,10 @@ function useObject<
                   : { object: undefined, error: validationResult.error },
               );
             }
+
+            if (abortControllerRef.current === abortController) {
+              abortControllerRef.current = null;
+            }
           },
         }),
       );
@@ -239,8 +245,11 @@ function useObject<
         onError(error);
       }
 
-      setIsLoading(false);
-      setError(error instanceof Error ? error : new Error(String(error)));
+      if (abortControllerRef.current === abortController) {
+        setIsLoading(false);
+        abortControllerRef.current = null;
+        setError(error instanceof Error ? error : new Error(String(error)));
+      }
     }
   };
 
