@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21134,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21134-use-completion-headers.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-21134-use-completion-headers.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_21134_REPRODUCED: Headers instance values were dropped or failed to override hook defaults"
+  }
+}
