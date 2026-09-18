@@ -14,6 +14,7 @@
     "type-check:full": "tsc --build tsconfig.with-examples.json",
     "check": "ultracite check",
     "fix": "ultracite fix",
+    "validate:docs": "node tools/validate-properties-tables.mjs",
     "publint": "turbo publint",
     "test": "turbo test --concurrency 16 --filter=!@example/*",
     "test:ci": "turbo test --concurrency 16 --filter=!@example/* --filter=!ai --filter=!@ai-sdk/codemod --only",
