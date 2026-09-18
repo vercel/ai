@@ -1059,6 +1059,83 @@ describe('toUIMessageStream', () => {
     `);
   });
 
+  it('should emit completed tool lifecycles from values-only streams', async () => {
+    const toolCallId = 'call-completed';
+    const messages = [
+      new HumanMessage({
+        content: 'list products',
+        id: 'human-message',
+      }),
+      new AIMessage({
+        content: '',
+        id: 'ai-message',
+        tool_calls: [
+          {
+            id: toolCallId,
+            name: 'searchProducts',
+            args: { query: 'list' },
+          },
+        ],
+      }),
+    ];
+    const inputStream = convertArrayToReadableStream([
+      [
+        'values',
+        {
+          messages,
+        },
+      ],
+      [
+        'values',
+        {
+          messages: [
+            ...messages,
+            new ToolMessage({
+              content: '{"products":["p1","p2","p3"]}',
+              id: 'tool-message',
+              tool_call_id: toolCallId,
+            }),
+          ],
+        },
+      ],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "start",
+        },
+        {
+          "dynamic": true,
+          "toolCallId": "call-completed",
+          "toolName": "searchProducts",
+          "type": "tool-input-start",
+        },
+        {
+          "dynamic": true,
+          "input": {
+            "query": "list",
+          },
+          "toolCallId": "call-completed",
+          "toolName": "searchProducts",
+          "type": "tool-input-available",
+        },
+        {
+          "output": "{"products":["p1","p2","p3"]}",
+          "toolCallId": "call-completed",
+          "type": "tool-output-available",
+        },
+        {
+          "type": "finish",
+        },
+      ]
+    `);
+  });
+
   it('should handle tool calls in additional_kwargs format from values event', async () => {
     // Simulate OpenAI format tool calls in additional_kwargs
     const valuesData = {
