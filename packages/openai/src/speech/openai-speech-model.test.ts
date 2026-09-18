@@ -1,4 +1,5 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { readFileSync } from 'node:fs';
 import { createOpenAI } from '../openai-provider';
 import { OpenAISpeechModel } from './openai-speech-model';
 import { describe, it, expect, vi } from 'vitest';
@@ -97,6 +98,32 @@ describe('doGenerate', () => {
       speed: 1.5,
       response_format: 'opus',
     });
+  });
+
+  it('should pass speed and instructions from provider options', async () => {
+    const fixture = JSON.parse(
+      readFileSync(
+        'src/speech/__fixtures__/gpt-4o-mini-tts-provider-options-response.json',
+        'utf8',
+      ),
+    );
+    prepareAudioResponse();
+
+    await provider.speech(fixture.request.model).doGenerate({
+      text: fixture.request.input,
+      voice: fixture.request.voice,
+      outputFormat: fixture.request.response_format,
+      providerOptions: {
+        openai: {
+          speed: fixture.request.speed,
+          instructions: fixture.request.instructions,
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject(
+      fixture.request,
+    );
   });
 
   it('should return audio data with correct content type', async () => {
