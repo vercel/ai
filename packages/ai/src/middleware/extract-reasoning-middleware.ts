@@ -95,7 +95,10 @@ export function extractReasoningMiddleware({
         }
       > = createIdMap();
 
-      let delayedTextStart: LanguageModelV4StreamPart | undefined;
+      const delayedTextStarts: Record<
+        string,
+        Extract<LanguageModelV4StreamPart, { type: 'text-start' }>
+      > = createIdMap();
 
       return {
         stream: stream.pipeThrough(
@@ -107,13 +110,16 @@ export function extractReasoningMiddleware({
               // do not send `text-start` before `reasoning-start`
               // https://github.com/vercel/ai/issues/7774
               if (chunk.type === 'text-start') {
-                delayedTextStart = chunk;
+                delayedTextStarts[chunk.id] = chunk;
                 return;
               }
 
-              if (chunk.type === 'text-end' && delayedTextStart) {
-                controller.enqueue(delayedTextStart);
-                delayedTextStart = undefined;
+              if (
+                chunk.type === 'text-end' &&
+                delayedTextStarts[chunk.id] != null
+              ) {
+                controller.enqueue(delayedTextStarts[chunk.id]);
+                delete delayedTextStarts[chunk.id];
               }
 
               if (chunk.type !== 'text-delta') {
@@ -165,9 +171,11 @@ export function extractReasoningMiddleware({
                       id: `reasoning-${activeExtraction.idCounter}`,
                     });
                   } else {
-                    if (delayedTextStart) {
-                      controller.enqueue(delayedTextStart);
-                      delayedTextStart = undefined;
+                    if (delayedTextStarts[activeExtraction.textId] != null) {
+                      controller.enqueue(
+                        delayedTextStarts[activeExtraction.textId],
+                      );
+                      delete delayedTextStarts[activeExtraction.textId];
                     }
                     controller.enqueue({
                       type: 'text-delta',
