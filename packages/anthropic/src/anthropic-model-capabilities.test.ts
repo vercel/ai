@@ -8,6 +8,8 @@ describe('getModelCapabilities', () => {
       supportsStructuredOutput: true,
       rejectsSamplingParameters: true,
       rejectsThinkingDisabledAboveHighEffort: true,
+      rejectsThinkingDisabled: false,
+      rejectsForcedToolUse: false,
       isKnownModel: false,
     });
     expect(
@@ -17,6 +19,8 @@ describe('getModelCapabilities', () => {
       supportsStructuredOutput: true,
       rejectsSamplingParameters: true,
       rejectsThinkingDisabledAboveHighEffort: true,
+      rejectsThinkingDisabled: false,
+      rejectsForcedToolUse: false,
       isKnownModel: false,
     });
   });
@@ -34,6 +38,8 @@ describe('getModelCapabilities', () => {
         supportsStructuredOutput: false,
         rejectsSamplingParameters: false,
         rejectsThinkingDisabledAboveHighEffort: false,
+        rejectsThinkingDisabled: false,
+        rejectsForcedToolUse: false,
         isKnownModel: false,
       });
     },
@@ -45,6 +51,8 @@ describe('getModelCapabilities', () => {
       supportsStructuredOutput: true,
       rejectsSamplingParameters: false,
       rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: false,
+      rejectsForcedToolUse: false,
       isKnownModel: true,
     });
   });
@@ -55,7 +63,28 @@ describe('getModelCapabilities', () => {
       supportsStructuredOutput: true,
       rejectsSamplingParameters: true,
       rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: true,
+      rejectsForcedToolUse: true,
       isKnownModel: true,
+    });
+  });
+
+  it('recognizes Opus 5.5 as always-adaptive and rejecting forced tool use', () => {
+    expect(getModelCapabilities('claude-opus-5-5')).toEqual({
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      rejectsSamplingParameters: true,
+      rejectsThinkingDisabledAboveHighEffort: true,
+      rejectsThinkingDisabled: true,
+      rejectsForcedToolUse: true,
+      isKnownModel: true,
+    });
+    expect(getModelCapabilities('claude-opus-5').rejectsForcedToolUse).toBe(
+      false,
+    );
+    expect(getModelCapabilities('claude-fable-5')).toMatchObject({
+      rejectsThinkingDisabled: true,
+      rejectsForcedToolUse: false,
     });
   });
 
@@ -65,6 +94,8 @@ describe('getModelCapabilities', () => {
       supportsStructuredOutput: false,
       rejectsSamplingParameters: false,
       rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: false,
+      rejectsForcedToolUse: false,
       isKnownModel: false,
     });
   });
