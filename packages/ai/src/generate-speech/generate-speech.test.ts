@@ -230,6 +230,89 @@ describe('generateSpeech', () => {
     expect(result.audio.uint8Array).toStrictEqual(aacAudio.uint8Array);
   });
 
+  describe('audio metadata', () => {
+    it.each([
+      { label: 'Uint8Array', audio: new Uint8Array([1, 2, 3, 4]) },
+      { label: 'base64', audio: 'AQIDBA==' },
+    ])(
+      'should identify headerless PCM returned as $label from the requested format',
+      async ({ audio }) => {
+        const result = await generateSpeech({
+          model: new MockSpeechModelV4({
+            doGenerate: async () => ({
+              audio,
+              warnings: [],
+              response: {
+                timestamp: testDate,
+                modelId: 'test-model',
+              },
+            }),
+          }),
+          text: sampleText,
+          outputFormat: 'pcm',
+        });
+
+        expect(result.audio).toMatchObject({
+          format: 'pcm',
+          mediaType: 'audio/pcm',
+        });
+      },
+    );
+
+    it('should identify headerless audio from the response content type', async () => {
+      const result = await generateSpeech({
+        model: new MockSpeechModelV4({
+          doGenerate: async () => ({
+            audio,
+            warnings: [],
+            response: {
+              timestamp: testDate,
+              modelId: 'test-model',
+              headers: {
+                'Content-Type': 'audio/pcm; rate=24000',
+              },
+            },
+          }),
+        }),
+        text: sampleText,
+      });
+
+      expect(result.audio).toMatchObject({
+        format: 'pcm',
+        mediaType: 'audio/pcm',
+      });
+    });
+
+    it('should prefer the detected format over response and request metadata', async () => {
+      const wav = new Uint8Array([
+        0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x41, 0x56, 0x45,
+      ]);
+
+      const result = await generateSpeech({
+        model: new MockSpeechModelV4({
+          doGenerate: async () => ({
+            audio: wav,
+            warnings: [],
+            response: {
+              timestamp: testDate,
+              modelId: 'test-model',
+              headers: {
+                'content-type': 'audio/pcm',
+              },
+            },
+          }),
+        }),
+        text: sampleText,
+        outputFormat: 'pcm',
+      });
+
+      expect(result.audio).toMatchObject({
+        format: 'wav',
+        mediaType: 'audio/wav',
+      });
+    });
+  });
+
   describe('error handling', () => {
     it('should throw NoSpeechGeneratedError when no audio is returned', async () => {
       await expect(
