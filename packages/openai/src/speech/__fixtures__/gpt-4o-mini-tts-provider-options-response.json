@@ -1,0 +1,16 @@
+{
+  "recordedAt": "2026-09-18",
+  "request": {
+    "model": "gpt-4o-mini-tts",
+    "input": "Hello.",
+    "voice": "alloy",
+    "response_format": "mp3",
+    "speed": 0.75,
+    "instructions": "Speak slowly."
+  },
+  "response": {
+    "status": 200,
+    "content-type": "audio/mpeg",
+    "bodyByteLength": 48384
+  }
+}
