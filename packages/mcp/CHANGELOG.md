@@ -1,5 +1,13 @@
 # @ai-sdk/mcp
 
+## 2.0.53
+
+### Patch Changes
+
+- 4b5cb49: fix(mcp): avoid duplicate legacy SSE OAuth refreshes for stale 401 responses
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+
 ## 2.0.52
 
 ### Patch Changes
