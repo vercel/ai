@@ -5,7 +5,15 @@ export type {
 } from './quiverai-provider';
 export type { QuiverAIImageModelId } from './quiverai-image-settings';
 export type { QuiverAIImageModelOptions } from './quiverai-image-model-options';
+<<<<<<< HEAD
 export type { QuiverAILanguageModelId } from './quiverai-language-model-settings';
 export type { QuiverAILanguageModelOptions } from './quiverai-language-model-options';
 export type { OpenResponsesCustomToolOptions as QuiverAICustomToolOptions } from '@ai-sdk/open-responses';
+=======
+export {
+  prepareQuiverAIImageReference,
+  type QuiverAIImageReference,
+  type QuiverAIImageReferenceInput,
+} from './prepare-quiverai-image-reference';
+>>>>>>> origin/main
 export { VERSION } from './version';
