@@ -29,9 +29,11 @@ import {
   BEDROCK_STOP_REASONS,
 } from './bedrock-api-types';
 import {
+  type AmazonBedrockChatModelSettings,
   type BedrockChatModelId,
   bedrockProviderOptions,
 } from './bedrock-chat-options';
+import { isAnthropicModel as detectAnthropicModel } from './bedrock-anthropic-model-support';
 import {
   bedrockFailedResponseHandler,
   BedrockErrorSchema,
@@ -47,6 +49,7 @@ type BedrockChatConfig = {
   headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   generateId: () => string;
+  modelFamily?: AmazonBedrockChatModelSettings['modelFamily'];
 };
 
 const anthropicProviderOptions = z.object({
@@ -148,7 +151,11 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       });
     }
 
-    const isAnthropicModel = this.modelId.includes('anthropic');
+    const isAnthropicModel = detectAnthropicModel({
+      modelId: this.modelId,
+      modelFamily: this.config.modelFamily,
+      reasoningBudgetTokens: bedrockOptions.reasoningConfig?.budgetTokens,
+    });
     const openAIModelId = /^(?:[^.]+\.)?(openai\..+)$/.exec(this.modelId)?.[1];
     const isOpenAIModel = openAIModelId != null;
     const isOpenAIGptOssModel =
@@ -188,14 +195,17 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       }
     }
 
+    const modelSupportsNativeStructuredOutput =
+      this.config.modelFamily === 'anthropic' ||
+      (supportsNativeStructuredOutput(this.modelId) && isThinkingRequested);
+
     const useNativeStructuredOutput =
       isAnthropicModel &&
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
       (structuredOutputMode === 'outputFormat' ||
         (structuredOutputMode === 'auto' &&
-          supportsNativeStructuredOutput(this.modelId) &&
-          isThinkingRequested));
+          modelSupportsNativeStructuredOutput));
 
     const jsonResponseTool: LanguageModelV2FunctionTool | undefined =
       responseFormat?.type === 'json' &&
@@ -215,6 +225,8 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
         toolChoice:
           jsonResponseTool != null ? { type: 'required' } : toolChoice,
         modelId: this.modelId,
+        modelFamily: this.config.modelFamily,
+        reasoningBudgetTokens: bedrockOptions.reasoningConfig?.budgetTokens,
         disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
       });
 
