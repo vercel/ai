@@ -7,6 +7,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { logWarnings } from '../logger/log-warnings';
 import { getEmbeddingModelMaxInputBytesPerCall } from '../model/get-embedding-model-max-input-bytes-per-call';
+import { getEmbeddingModelProviderOptionsTransformer } from '../model/get-embedding-model-provider-options-transformer';
 import { resolveEmbeddingModel } from '../model/resolve-model';
 import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
@@ -321,6 +322,14 @@ export async function embedMany<RUNTIME_CONTEXT extends Context = Context>({
             ? maxInputBytesPerCall
             : Infinity,
         });
+        const chunkStartIndices = new Map<Array<string>, number>();
+        let nextChunkStartIndex = 0;
+        for (const chunk of valueChunks) {
+          chunkStartIndices.set(chunk, nextChunkStartIndex);
+          nextChunkStartIndex += chunk.length;
+        }
+        const providerOptionsTransformer =
+          getEmbeddingModelProviderOptionsTransformer(model);
 
         const embeddings: Array<Embedding> = [];
         const warnings: Array<Warning> = [];
@@ -342,6 +351,16 @@ export async function embedMany<RUNTIME_CONTEXT extends Context = Context>({
         for (const parallelChunk of parallelChunks) {
           const results = await Promise.all(
             parallelChunk.map(async chunk => {
+              const startIndex = chunkStartIndices.get(chunk)!;
+              const chunkProviderOptions = providerOptionsTransformer
+                ? await providerOptionsTransformer({
+                    providerOptions,
+                    values,
+                    startIndex,
+                    endIndex: startIndex + chunk.length,
+                  })
+                : providerOptions;
+
               const result = await retry(async () => {
                 const embedCallId = generateCallId();
 
@@ -361,7 +380,7 @@ export async function embedMany<RUNTIME_CONTEXT extends Context = Context>({
                   values: chunk,
                   abortSignal,
                   headers: headersWithUserAgent,
-                  providerOptions,
+                  providerOptions: chunkProviderOptions,
                 });
 
                 const chunkEmbeddings = modelResponse.embeddings;

@@ -5,6 +5,8 @@ import {
 import {
   combineHeaders,
   createJsonResponseHandler,
+  type EmbeddingModelProviderOptionsTransformer,
+  EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER,
   lazySchema,
   parseProviderOptions,
   postJsonToApi,
@@ -19,6 +21,7 @@ import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
 import {
   googleEmbeddingModelOptions,
+  type GoogleEmbeddingModelOptions,
   type GoogleEmbeddingModelId,
 } from './google-embedding-model-options';
 type GoogleEmbeddingConfig = {
@@ -33,6 +36,30 @@ export class GoogleEmbeddingModel implements EmbeddingModelV4 {
   readonly modelId: GoogleEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 100;
   readonly supportsParallelCalls = true;
+  readonly [EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER]: EmbeddingModelProviderOptionsTransformer =
+    async ({ providerOptions, values, startIndex, endIndex }) => {
+      const googleOptions = await parseProviderOptions({
+        provider: 'google',
+        providerOptions,
+        schema: googleEmbeddingModelOptions,
+      });
+      const multimodalContent = googleOptions?.content;
+
+      validateMultimodalContentLength({
+        multimodalContent,
+        values,
+      });
+
+      return multimodalContent == null
+        ? providerOptions
+        : {
+            ...providerOptions,
+            google: {
+              ...providerOptions?.google,
+              content: multimodalContent.slice(startIndex, endIndex),
+            },
+          };
+    };
 
   private readonly config: GoogleEmbeddingConfig;
 
@@ -89,14 +116,7 @@ export class GoogleEmbeddingModel implements EmbeddingModelV4 {
 
     const multimodalContent = googleOptions?.content;
 
-    if (
-      multimodalContent != null &&
-      multimodalContent.length !== values.length
-    ) {
-      throw new Error(
-        `The number of multimodal content entries (${multimodalContent.length}) must match the number of values (${values.length}).`,
-      );
-    }
+    validateMultimodalContentLength({ multimodalContent, values });
 
     // For single embeddings, use the single endpoint
     if (values.length === 1) {
@@ -199,3 +219,17 @@ const googleGenerativeAISingleEmbeddingResponseSchema = lazySchema(() =>
     }),
   ),
 );
+
+function validateMultimodalContentLength({
+  multimodalContent,
+  values,
+}: {
+  multimodalContent: GoogleEmbeddingModelOptions['content'];
+  values: Array<string>;
+}) {
+  if (multimodalContent != null && multimodalContent.length !== values.length) {
+    throw new Error(
+      `The number of multimodal content entries (${multimodalContent.length}) must match the number of values (${values.length}).`,
+    );
+  }
+}
