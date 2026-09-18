@@ -5,6 +5,7 @@ This example demonstrates using the AI SDK's `WorkflowAgent` with the Workflow D
 ## Features
 
 - **Durable Agent**: Uses `WorkflowAgent` from `@ai-sdk/workflow` for fault-tolerant AI agent execution
+- **Tool Search**: Loads weather, calculator, and file tool definitions only after the model discovers them
 - **Tool Calling**: Includes weather lookup and calculator tools implemented as durable steps
 - **`toModelOutput`**: The `getWeather` tool sends the model a compact one-line summary while the UI keeps the full structured result
 - **Streaming**: Real-time streaming responses via `getWritable()` and `createUIMessageStreamResponse`
@@ -32,6 +33,21 @@ The `getWeather` tool in `workflow/agent-chat.ts` demonstrates this:
    ```
 
 The `calculate` tool has no `toModelOutput`, so its model-facing output stays the default `json` serialization for comparison.
+
+## Testing Tool Search
+
+The main chat registers `searchTools: toolSearch()` and marks the weather,
+calculator, and file tools with `deferLoading: true`. Their schemas stay out of
+the initial model context and are added only after a matching search result.
+
+1. Run the app and ask: **"Will it rain in Boston?"**
+2. The first agent step calls `searchTools` and returns `getWeather` as a match.
+3. The next step calls the newly available `getWeather` tool.
+4. The assistant answers from the weather result.
+
+The chat renders both tool calls, so the discovery step and the subsequently
+loaded tool are visible separately. The workflow can replay this sequence after
+a restart because model calls and tool executions remain durable steps.
 
 ## Running
 

@@ -33,6 +33,7 @@ import {
   agentToolApprovalE2e,
   agentToolCallE2e,
   agentToolInputSchemaE2e,
+  agentToolSearchE2e,
 } from './test/agent-e2e-workflows.js';
 
 afterEach(() => {
@@ -107,6 +108,26 @@ describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
       const rv = await run.returnValue;
       expect(rv).toMatchObject({ stepCount: 2 });
       expect(rv.lastStepText).toBe('The sum is 10');
+    });
+
+    it('discovers and executes a deferred tool across durable workflow steps', async () => {
+      const run = await start(agentToolSearchE2e, []);
+      const rv = await run.returnValue;
+
+      expect(rv).toEqual({
+        stepCount: 3,
+        toolCallsByStep: [['search'], ['getForecast'], []],
+        searchResult: {
+          tools: [
+            {
+              name: 'getForecast',
+              description: 'Get the weather forecast for a city.',
+            },
+          ],
+        },
+        forecastResult: { city: 'London', forecast: 'rain' },
+        lastStepText: 'Rain is expected.',
+      });
     });
 
     it('multiple sequential tool calls', async () => {

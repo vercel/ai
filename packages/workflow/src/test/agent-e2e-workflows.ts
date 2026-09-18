@@ -1,7 +1,7 @@
 /**
  * Integration test workflows for WorkflowAgent using mock providers.
  */
-import { tool } from 'ai';
+import { tool, toolSearch } from 'ai';
 import { WorkflowAgent } from '../workflow-agent.js';
 import { mockTextModel, mockSequenceModel } from '../providers/mock.js';
 import { retryingModel } from './retrying-model.js';
@@ -16,6 +16,16 @@ import { z } from 'zod/v4';
 async function addNumbers(input: { a: number; b: number }): Promise<number> {
   'use step';
   return input.a + input.b;
+}
+
+async function getForecast(input: { city: string }) {
+  'use step';
+  return { city: input.city, forecast: 'rain' };
+}
+
+async function getStockPrice(input: { ticker: string }) {
+  'use step';
+  return { ticker: input.ticker, price: 42 };
 }
 
 async function echoStep(input: { step: number }): Promise<string> {
@@ -123,6 +133,60 @@ export async function agentToolCallE2e(a: number, b: number) {
     stepCount: result.steps.length,
     toolResults: result.toolResults,
     lastStepText: result.steps[result.steps.length - 1]?.text,
+  };
+}
+
+export async function agentToolSearchE2e() {
+  'use workflow';
+  const agent = new WorkflowAgent({
+    model: mockSequenceModel([
+      {
+        type: 'tool-call',
+        toolName: 'search',
+        input: JSON.stringify({ query: 'weather forecast' }),
+      },
+      {
+        type: 'tool-call',
+        toolName: 'getForecast',
+        input: JSON.stringify({ city: 'London' }),
+      },
+      { type: 'text', text: 'Rain is expected.' },
+    ]),
+    tools: {
+      search: toolSearch(),
+      getForecast: tool({
+        deferLoading: true,
+        description: 'Get the weather forecast for a city.',
+        inputSchema: z.object({ city: z.string() }),
+        execute: getForecast,
+      }),
+      getStockPrice: tool({
+        deferLoading: true,
+        description: 'Get the stock price for a ticker symbol.',
+        inputSchema: z.object({ ticker: z.string() }),
+        execute: getStockPrice,
+      }),
+    },
+  });
+
+  const result = await agent.stream({
+    messages: [
+      {
+        role: 'user',
+        content: 'Use tool search to find the forecast for London.',
+      },
+    ],
+    writable: getWritable(),
+  });
+
+  return {
+    stepCount: result.steps.length,
+    toolCallsByStep: result.steps.map(step =>
+      step.toolCalls.map(call => call.toolName),
+    ),
+    searchResult: result.steps[0]?.toolResults[0]?.output,
+    forecastResult: result.steps[1]?.toolResults[0]?.output,
+    lastStepText: result.steps.at(-1)?.text,
   };
 }
 

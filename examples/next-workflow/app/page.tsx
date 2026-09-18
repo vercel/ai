@@ -31,7 +31,8 @@ export default function Chat() {
       <header className="p-4 border-b">
         <h1 className="text-lg font-semibold">WorkflowAgent Chat</h1>
         <p className="text-sm text-gray-500">
-          A workflow AI agent with weather, calculator, and file tools
+          A durable agent that discovers weather, calculator, and file tools on
+          demand
         </p>
         <Link
           href="/telemetry"
@@ -188,7 +189,7 @@ export default function Chat() {
         <input
           name="message"
           type="text"
-          placeholder="Ask about weather, math, or file operations..."
+          placeholder='Try: "Will it rain in Boston?"'
           className="flex-1 rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           disabled={status === 'streaming' || status === 'submitted'}
         />

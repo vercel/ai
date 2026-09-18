@@ -2,6 +2,7 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { WorkflowAgent, type ModelCallStreamPart } from '@ai-sdk/workflow';
 import {
   convertToModelMessages,
+  toolSearch,
   type UIMessage,
   type ToolCallRepairFunction,
 } from 'ai';
@@ -80,7 +81,11 @@ async function deleteFileStep(
 // ============================================================================
 
 const tools = {
+  // Only this tool is loaded initially. The agent uses it to discover the
+  // deferred tools below by matching their names and descriptions.
+  searchTools: toolSearch(),
   getWeather: {
+    deferLoading: true,
     description: 'Get the current weather for a city.',
     inputSchema: z.object({ city: z.string().describe('The city name') }),
     contextSchema: z.object({
@@ -103,6 +108,7 @@ const tools = {
     }),
   },
   calculate: {
+    deferLoading: true,
     description: 'Evaluate a math expression.',
     inputSchema: z.object({
       expression: z.string().describe('The expression'),
@@ -110,6 +116,7 @@ const tools = {
     execute: calculate,
   },
   deleteFile: {
+    deferLoading: true,
     description: 'Delete a file from the filesystem.',
     inputSchema: z.object({ path: z.string().describe('The file path') }),
     contextSchema: z.object({
@@ -156,7 +163,7 @@ export async function chat(messages: UIMessage[], request: ChatRequestContext) {
   const agent = new WorkflowAgent({
     model: anthropic('claude-sonnet-4-20250514'),
     instructions:
-      'You are a helpful assistant with access to weather, calculator, and file deletion tools. Always use the appropriate tool when the user asks to perform an action — never just say you will do it, actually call the tool. Keep responses concise.',
+      'You are a helpful assistant with access to weather, calculator, and file deletion tools. Their definitions are loaded on demand: call searchTools first to discover the appropriate tool, then call the discovered tool on the next step. Never just say you will perform an action—actually use the tools. Keep responses concise.',
     tools,
 
     // Shared agent state. Available in `prepareStep`, lifecycle callbacks,
