@@ -1,4 +1,4 @@
-import { prepareHeaders } from './prepare-headers';
+import { prepareHeaders, prepareNodeResponseHeaders } from './prepare-headers';
 import { describe, it, expect } from 'vitest';
 
 describe('prepareHeaders', () => {
@@ -47,5 +47,24 @@ describe('prepareHeaders', () => {
     expect(headers.get('init')).toBe('foo');
     expect(headers.get('extra')).toBe('bar');
     expect(headers.get('Content-Type')).toBe('application/json');
+  });
+});
+
+describe('prepareNodeResponseHeaders', () => {
+  it('should preserve multiple Set-Cookie headers', () => {
+    const headers = new Headers([
+      [
+        'set-cookie',
+        'theme=light; Expires=Wed, 21 Oct 2030 07:28:00 GMT; Path=/',
+      ],
+      ['set-cookie', 'locale=en; Path=/'],
+    ]);
+
+    expect(prepareNodeResponseHeaders(headers, {})).toStrictEqual({
+      'set-cookie': [
+        'theme=light; Expires=Wed, 21 Oct 2030 07:28:00 GMT; Path=/',
+        'locale=en; Path=/',
+      ],
+    });
   });
 });
