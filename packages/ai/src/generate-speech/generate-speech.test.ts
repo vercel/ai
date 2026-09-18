@@ -208,6 +208,28 @@ describe('generateSpeech', () => {
     });
   });
 
+  it('should return ADTS AAC audio with AAC metadata', async () => {
+    const aacAudio = new DefaultGeneratedAudioFile({
+      data: new Uint8Array([0xff, 0xf1, 0x50, 0x40]),
+      mediaType: 'audio/aac',
+    });
+
+    const result = await generateSpeech({
+      model: new MockSpeechModelV4({
+        doGenerate: async () =>
+          createMockResponse({
+            audio: aacAudio,
+          }),
+      }),
+      text: sampleText,
+      outputFormat: 'aac',
+    });
+
+    expect(result.audio.mediaType).toBe('audio/aac');
+    expect(result.audio.format).toBe('aac');
+    expect(result.audio.uint8Array).toStrictEqual(aacAudio.uint8Array);
+  });
+
   describe('error handling', () => {
     it('should throw NoSpeechGeneratedError when no audio is returned', async () => {
       await expect(
