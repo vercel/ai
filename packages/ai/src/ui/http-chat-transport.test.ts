@@ -290,6 +290,48 @@ describe('HttpChatTransport', () => {
   });
 
   describe('reconnectToStream', () => {
+    it.each([
+      {
+        api: '/api/chat?mode=demo',
+        expectedApi: '/api/chat/c123/stream?mode=demo',
+      },
+      {
+        api: 'https://example.com/api/chat?mode=demo&locale=en',
+        expectedApi:
+          'https://example.com/api/chat/c123/stream?mode=demo&locale=en',
+      },
+      {
+        api: '/api/chat?mode=a%2Fb',
+        expectedApi: '/api/chat/c123/stream?mode=a%2Fb',
+      },
+      {
+        api: '/api/chat?mode=demo#section',
+        expectedApi: '/api/chat/c123/stream?mode=demo#section',
+      },
+      {
+        api: '/api/chat#section',
+        expectedApi: '/api/chat/c123/stream#section',
+      },
+    ])(
+      'should append the reconnect path before query parameters and fragments for $api',
+      async ({ api, expectedApi }) => {
+        let receivedApi: RequestInfo | URL | undefined;
+        const transport = new MockHttpChatTransport({
+          api,
+          fetch: async input => {
+            receivedApi = input;
+            return new Response(null, { status: 204 });
+          },
+        });
+
+        await transport.reconnectToStream({
+          chatId: 'c123',
+        });
+
+        expect(receivedApi).toBe(expectedApi);
+      },
+    );
+
     it('should pass the abort signal to fetch', async () => {
       const abortController = new AbortController();
       let receivedAbortSignal: AbortSignal | null | undefined;
