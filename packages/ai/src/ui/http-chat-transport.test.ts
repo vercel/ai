@@ -180,6 +180,62 @@ describe('HttpChatTransport', () => {
         'test-value-fn',
       );
     });
+
+    it.each([
+      {
+        name: 'constructor headers',
+        createTransport: () =>
+          new MockHttpChatTransport({
+            api: 'http://localhost/api/chat',
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+            },
+          }),
+        requestHeaders: undefined,
+      },
+      {
+        name: 'per-request headers',
+        createTransport: () =>
+          new MockHttpChatTransport({
+            api: 'http://localhost/api/chat',
+          }),
+        requestHeaders: {
+          'Content-Type': 'application/json; charset=utf-8',
+        },
+      },
+      {
+        name: 'prepared request headers',
+        createTransport: () =>
+          new MockHttpChatTransport({
+            api: 'http://localhost/api/chat',
+            prepareSendMessagesRequest: () => ({
+              body: {},
+              headers: {
+                'Content-Type': 'application/json; charset=utf-8',
+              },
+            }),
+          }),
+        requestHeaders: undefined,
+      },
+    ])('should use custom content type from $name once', async testCase => {
+      server.urls['http://localhost/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [],
+      };
+
+      await testCase.createTransport().sendMessages({
+        chatId: 'c123',
+        messageId: 'm123',
+        trigger: 'submit-message',
+        messages: [],
+        abortSignal: new AbortController().signal,
+        headers: testCase.requestHeaders,
+      });
+
+      expect(server.calls[0].requestHeaders['content-type']).toBe(
+        'application/json; charset=utf-8',
+      );
+    });
   });
 
   describe('error response', () => {
