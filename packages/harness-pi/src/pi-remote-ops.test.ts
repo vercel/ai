@@ -1,4 +1,5 @@
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
+import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
 import { describe, expect, it, vi } from 'vitest';
 import { createPiPathMapper } from './pi-paths';
 import { createPiRemoteOps } from './pi-remote-ops';
@@ -102,6 +103,190 @@ function makeOps(behaviors: Parameters<typeof makeMockSandbox>[0]) {
   const ops = createPiRemoteOps({ sandbox: env.sandbox, paths });
   return { ...env, paths, ops };
 }
+
+describe('createPiRemoteOps with just-bash', () => {
+  it('supports file operations when realpath is unavailable', async () => {
+    const session = await createJustBashSandbox({
+      cwd: sandboxWorkDir,
+    }).createSession();
+    const sandbox = session.restricted();
+
+    try {
+      expect((await sandbox.run({ command: 'realpath /tmp' })).exitCode).toBe(
+        127,
+      );
+      await sandbox.writeTextFile({
+        path: `${sandboxWorkDir}/notes.md`,
+        content: 'alpha\n',
+      });
+
+      const ops = createPiRemoteOps({
+        sandbox,
+        paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
+      });
+
+      expect((await ops.readBuffer('notes.md')).toString('utf8')).toBe(
+        'alpha\n',
+      );
+      await ops.writeFile('created.md', 'created\n');
+      await expect(ops.editFile('notes.md', 'alpha', 'beta')).resolves.toBe(
+        'beta\n',
+      );
+      await expect(ops.findFiles('*.md', '.')).resolves.toEqual([
+        'created.md',
+        'notes.md',
+      ]);
+    } finally {
+      await session.destroy();
+    }
+  });
+
+  it('resolves chained workspace symlinks for file operations', async () => {
+    const session = await createJustBashSandbox({
+      cwd: sandboxWorkDir,
+    }).createSession();
+    const sandbox = session.restricted();
+
+    try {
+      const setup = await sandbox.run({
+        command: [
+          `mkdir -p ${sandboxWorkDir}/target/docs`,
+          `printf 'read content\\n' > ${sandboxWorkDir}/target/docs/read.txt`,
+          `printf 'old content\\n' > ${sandboxWorkDir}/target/docs/edit.txt`,
+          `printf 'search needle\\n' > ${sandboxWorkDir}/target/docs/search.txt`,
+          `ln -s target ${sandboxWorkDir}/intermediate`,
+          `ln -s intermediate/docs ${sandboxWorkDir}/linked-docs`,
+        ].join(' && '),
+      });
+      expect(setup.exitCode).toBe(0);
+
+      // just-bash grep does not support every flag used by grepFiles. Run the
+      // path probe in just-bash, then capture only the final grep command so
+      // the test can assert that it receives the canonical target path.
+      const grepCommands: string[] = [];
+      const sandboxWithGrep = new Proxy(sandbox, {
+        get(target, property) {
+          if (property === 'run') {
+            return async (input: { command: string }) => {
+              if (input.command.includes('grep ')) {
+                grepCommands.push(input.command);
+                return {
+                  exitCode: 0,
+                  stdout: 'target/docs/search.txt:1:search needle\n',
+                  stderr: '',
+                };
+              }
+              return target.run(input);
+            };
+          }
+          const value = Reflect.get(target, property, target);
+          return typeof value === 'function' ? value.bind(target) : value;
+        },
+      });
+      const ops = createPiRemoteOps({
+        sandbox: sandboxWithGrep,
+        paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
+      });
+
+      expect(
+        (await ops.readBuffer('linked-docs/read.txt')).toString('utf8'),
+      ).toBe('read content\n');
+
+      await ops.writeFile('linked-docs/written.txt', 'written content\n');
+      await expect(
+        sandbox.readTextFile({
+          path: `${sandboxWorkDir}/target/docs/written.txt`,
+        }),
+      ).resolves.toBe('written content\n');
+
+      await expect(
+        ops.editFile('linked-docs/edit.txt', 'old', 'updated'),
+      ).resolves.toBe('updated content\n');
+      await expect(
+        sandbox.readTextFile({
+          path: `${sandboxWorkDir}/target/docs/edit.txt`,
+        }),
+      ).resolves.toBe('updated content\n');
+
+      await expect(ops.listDirectory('linked-docs')).resolves.toEqual([
+        'edit.txt',
+        'read.txt',
+        'search.txt',
+        'written.txt',
+      ]);
+      await expect(ops.findFiles('*.txt', 'linked-docs')).resolves.toEqual([
+        'edit.txt',
+        'read.txt',
+        'search.txt',
+        'written.txt',
+      ]);
+      await expect(
+        ops.grepFiles('needle', {
+          path: 'linked-docs',
+          literal: true,
+        }),
+      ).resolves.toContain('search.txt:1:search needle');
+      expect(grepCommands).toHaveLength(1);
+      expect(grepCommands[0]).toContain('target/docs');
+      expect(grepCommands[0]).not.toContain('linked-docs');
+    } finally {
+      await session.destroy();
+    }
+  });
+
+  it('rejects intermediate workspace symlinks outside readable roots', async () => {
+    const session = await createJustBashSandbox({
+      cwd: sandboxWorkDir,
+    }).createSession();
+    const sandbox = session.restricted();
+
+    try {
+      const outsideDir = '/sandbox/outside';
+      const setup = await sandbox.run({
+        command: [
+          `mkdir -p ${outsideDir}`,
+          `printf 'outside secret\\n' > ${outsideDir}/secret.txt`,
+          `printf 'old outside\\n' > ${outsideDir}/edit.txt`,
+          `ln -s ../outside ${sandboxWorkDir}/outside-link`,
+        ].join(' && '),
+      });
+      expect(setup.exitCode).toBe(0);
+
+      const ops = createPiRemoteOps({
+        sandbox,
+        paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
+      });
+
+      await expect(ops.readBuffer('outside-link/secret.txt')).rejects.toThrow(
+        /escapes the readable roots/,
+      );
+      await expect(
+        ops.writeFile('outside-link/written.txt', 'should not be written\n'),
+      ).rejects.toThrow(/escapes the workspace/);
+      await expect(
+        ops.editFile('outside-link/edit.txt', 'old', 'updated'),
+      ).rejects.toThrow(/escapes the readable roots/);
+      await expect(ops.findFiles('*.txt', 'outside-link')).rejects.toThrow(
+        /escapes the readable roots/,
+      );
+      await expect(
+        ops.grepFiles('secret', {
+          path: 'outside-link',
+          literal: true,
+        }),
+      ).rejects.toThrow(/escapes the readable roots/);
+
+      await expect(
+        sandbox.readTextFile({ path: `${outsideDir}/edit.txt` }),
+      ).resolves.toBe('old outside\n');
+      await expect(
+        sandbox.readTextFile({ path: `${outsideDir}/written.txt` }),
+      ).resolves.toBeNull();
+    } finally {
+      await session.destroy();
+    }
+  });
+});
 
 describe('createPiRemoteOps.readBuffer', () => {
   it('reads via readBinaryFile and returns a Buffer', async () => {
