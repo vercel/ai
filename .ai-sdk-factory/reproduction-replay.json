@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21071,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/openai-speech-provider-options.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/openai-speech-provider-options.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #21071 REPRODUCED: providerOptions.openai.speed and instructions were omitted from OpenAI speech request bodies"
+  }
+}
