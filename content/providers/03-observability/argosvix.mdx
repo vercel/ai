@@ -1,0 +1,90 @@
+---
+title: Argosvix
+description: Monitor AI SDK calls with cost, latency, and token tracking using Argosvix
+---
+
+# Argosvix Observability
+
+[Argosvix](https://argosvix.com) is an LLM observability platform that records
+provider, model, token usage (including cached and reasoning tokens), cost,
+latency, and time-to-first-token for every AI SDK call. The integration works
+through `wrapLanguageModel` middleware, so no OpenTelemetry setup is required.
+
+<Note>
+  The middleware records calls to OpenAI (including Azure OpenAI), Anthropic,
+  Google Gemini (including Vertex), and Mistral models. Calls to other
+  providers run normally but are not recorded.
+</Note>
+
+## Setup
+
+Install the Argosvix SDK:
+
+<InstallPackages packages="@argosvix/sdk" />
+
+Create an API key in the [Argosvix dashboard](https://dashboard.argosvix.com)
+and set it as an environment variable:
+
+```bash filename=".env"
+ARGOSVIX_API_KEY="argk_..."
+```
+
+Then wrap your model with the Argosvix middleware:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { wrapLanguageModel, generateText } from 'ai';
+import { argosvixMiddleware } from '@argosvix/sdk';
+
+const argosvix = argosvixMiddleware({
+  apiKey: process.env.ARGOSVIX_API_KEY,
+});
+
+const model = wrapLanguageModel({
+  model: openai('gpt-5.5'),
+  middleware: argosvix,
+});
+
+const { text } = await generateText({
+  model,
+  prompt: 'Write a short welcome message for a new user.',
+});
+```
+
+Every call through the wrapped model is recorded — `generateText`,
+`streamText`, `generateObject`, and `streamObject`, including calls the AI SDK
+issues internally during tool loops and multi-step agent runs. Streaming calls
+also record time-to-first-token. Recording is best-effort and never breaks
+your model call: if recording fails, the call itself still succeeds.
+
+## Short-lived environments
+
+In serverless and edge runtimes (Vercel Functions, Cloudflare Workers, AWS
+Lambda), flush buffered records before the runtime exits:
+
+```ts
+try {
+  await generateText({ model, prompt: 'Hello world' });
+} finally {
+  await argosvix.flush();
+}
+```
+
+## Grouping calls into traces
+
+Wrap related calls with `withTrace` to group them into a single trace in the
+dashboard. All AI SDK calls inside the callback share the trace automatically:
+
+```ts
+import { withTrace } from '@argosvix/sdk';
+
+await withTrace(async () => {
+  const outline = await generateText({ model, prompt: 'Outline the answer.' });
+  await generateText({ model, prompt: `Write it: ${outline.text}` });
+});
+```
+
+## Resources
+
+- [Argosvix documentation](https://argosvix.com/en/docs/sdk-reference#vercel-ai-sdk-ai-package)
+- [`@argosvix/sdk` on npm](https://www.npmjs.com/package/@argosvix/sdk)
