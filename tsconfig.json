@@ -220,6 +220,9 @@
       "path": "packages/tui"
     },
     {
+      "path": "packages/typesafe-ai"
+    },
+    {
       "path": "packages/valibot"
     },
     {

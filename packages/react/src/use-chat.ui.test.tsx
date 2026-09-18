@@ -233,7 +233,9 @@ describe('use-chat', () => {
       await userEvent.click(screen.getByTestId('do-send'));
 
       await screen.findByTestId('error');
-      expect(screen.getByTestId('error')).toHaveTextContent('Error: Not found');
+      expect(screen.getByTestId('error')).toHaveTextContent(
+        'AI_APICallError: Not found',
+      );
     });
 
     it('should show error response when there is a streaming error', async () => {

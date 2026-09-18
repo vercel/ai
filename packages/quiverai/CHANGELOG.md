@@ -1,5 +1,47 @@
 # @ai-sdk/quiverai
 
+## 2.0.44
+
+### Patch Changes
+
+- 351b2ac: feat(quiverai): support Arrow 2 SVG animation through generateImage
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+
+## 2.0.43
+
+### Patch Changes
+
+- 89febde: Add Arrow 2 and Arrow 2 Telos model IDs, reasoning effort and SVG viewBox options, and fixed-credit billing metadata. Respect Arrow 2 output-token limits, stop applying legacy reference limits to newer models, and omit the unsupported vectorization output count with guidance for splitting multiple vectorizations into separate calls.
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/provider@4.0.17
+
+## 2.0.42
+
+### Patch Changes
+
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
+## 2.0.41
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/provider-utils@5.0.41
+
 ## 2.0.40
 
 ### Patch Changes

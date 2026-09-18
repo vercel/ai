@@ -1,5 +1,67 @@
 # @ai-sdk/harness-grok-build
 
+## 1.0.53
+
+### Patch Changes
+
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+  - @ai-sdk/harness@1.0.116
+  - @ai-sdk/harness-acp@1.0.54
+
+## 1.0.52
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.115
+- @ai-sdk/harness-acp@1.0.53
+
+## 1.0.51
+
+### Patch Changes
+
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/harness@1.0.114
+  - @ai-sdk/harness-acp@1.0.52
+
+## 1.0.50
+
+### Patch Changes
+
+- d82eac2: fix(harness-grok-build): refresh expiring native subscription credentials
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/harness@1.0.113
+  - @ai-sdk/harness-acp@1.0.51
+
+## 1.0.49
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.112
+- @ai-sdk/provider-utils@5.0.41
+- @ai-sdk/harness-acp@1.0.50
+
+## 1.0.48
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.111
+- @ai-sdk/harness-acp@1.0.49
+
+## 1.0.47
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.110
+- @ai-sdk/harness-acp@1.0.48
+
 ## 1.0.46
 
 ### Patch Changes

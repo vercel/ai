@@ -243,4 +243,98 @@ describe('AI SDK tool bridge', () => {
 
     expect(result.toolResults[0]?.output).toEqual({ sum: 10 });
   });
+
+  it('announces changed tools in conversation while keeping the model tool stable', async () => {
+    const modelToolDescriptions: Array<string | undefined> = [];
+    const prompts: unknown[] = [];
+    const model = {
+      specificationVersion: 'v4' as const,
+      provider: 'test',
+      modelId: 'test',
+      supportedUrls: Promise.resolve({}),
+      doGenerate: async (options: {
+        tools?: Array<{ name: string; description?: string }>;
+        prompt: unknown;
+      }) => {
+        modelToolDescriptions.push(options.tools?.[0]?.description);
+        prompts.push(options.prompt);
+        return {
+          content: [{ type: 'text' as const, text: 'done' }],
+          finishReason: { unified: 'stop' as const, raw: 'stop' },
+          usage: {
+            inputTokens: {
+              total: 1,
+              noCache: 1,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: 1,
+              text: 1,
+              reasoning: undefined,
+            },
+          },
+          warnings: [],
+        };
+      },
+      doStream: async () => {
+        throw new Error('not implemented');
+      },
+    };
+    const codeMode = codeModeTool({ toolDiscovery: 'conversation' });
+
+    const first = await generateText({
+      model,
+      tools: {
+        code_mode: codeMode,
+        lookup: tool({
+          description: 'Look up a record.',
+          inputSchema: z.object({ id: z.string() }),
+          execute: async ({ id }) => ({ id }),
+        }),
+      },
+      experimental_toolCallers: {
+        lookup: ['code_mode'],
+      },
+      prompt: 'Look up record one.',
+    });
+
+    await generateText({
+      model,
+      tools: {
+        code_mode: codeMode,
+        lookup: tool({
+          description: 'Look up a record by id and region.',
+          inputSchema: z.object({
+            id: z.string(),
+            region: z.string(),
+          }),
+          execute: async ({ id, region }) => ({ id, region }),
+        }),
+      },
+      experimental_toolCallers: {
+        lookup: ['code_mode'],
+      },
+      messages: [
+        { role: 'user', content: 'Look up record one.' },
+        ...first.responseMessages,
+        { role: 'user', content: 'Look up record two in us-east.' },
+      ],
+    });
+
+    expect(modelToolDescriptions[0]).toBe(modelToolDescriptions[1]);
+    expect(modelToolDescriptions[0]).not.toContain('lookup');
+    expect(JSON.stringify(prompts[0])).toContain(
+      'Code mode capability update.',
+    );
+    expect(JSON.stringify(prompts[0])).toContain(
+      'lookup: (input: { id: string; })',
+    );
+    expect(
+      JSON.stringify(prompts[1]).match(/Code mode capability update/g),
+    ).toHaveLength(1);
+    expect(JSON.stringify(prompts[1])).toContain(
+      'lookup: (input: { id: string; region: string; })',
+    );
+  });
 });

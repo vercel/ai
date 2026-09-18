@@ -39,7 +39,8 @@ You can use the following optional settings to customize the OpenAI provider ins
 - **baseURL** _string_
 
   Use a different URL prefix for API calls, e.g. to use proxy servers.
-  The default prefix is `https://api.openai.com/v1`.
+  It defaults to the `OPENAI_BASE_URL` environment variable, and then to
+  `https://api.openai.com/v1`.
   The default OpenAI model factory (`openai('model-id')`) uses the Responses
   API. If your custom base URL only supports the Chat Completions API, create
   chat models with `openai.chat('model-id')` instead, or use the
@@ -2850,17 +2851,38 @@ The following optional provider options are available for OpenAI completion mode
 
 <Note type="warning">Realtime is an experimental feature.</Note>
 
-You can create models that call the [OpenAI Realtime API](https://platform.openai.com/docs/guides/realtime)
-using the `.experimental_realtime()` factory method.
+Use `.experimental_realtime()` for both [OpenAI Realtime](https://platform.openai.com/docs/guides/realtime)
+and [OpenAI Live](https://developers.openai.com/api/docs/guides/live) models.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
 
 const model = openai.experimental_realtime('gpt-realtime');
+const liveModel = openai.experimental_realtime('gpt-live-1');
+
+// Select the API explicitly for an early-access or otherwise unknown model ID.
+const earlyAccessModel = openai.experimental_realtime('not-yet-released', {
+  api: 'live',
+});
 ```
 
-Realtime sessions run in the browser and require a short-lived token created on
-your server with `openai.experimental_realtime.getToken()`:
+The OpenAI-only `api` option accepts `'live'` or `'realtime'` and takes precedence
+over model-ID selection. Without it, the known `gpt-live-1` ID uses Live and other
+IDs retain the Realtime default. The provider does not switch APIs after a failed
+request. Both model implementations use the existing experimental realtime interface.
+
+Live supports **browser WSS sessions through an application-owned relay with client
+delegation**, using `experimental_useRealtime` for the browser runtime, and optional
+browser-direct WebRTC. Your application owns the agent and tool execution; Live
+delegations do not invoke `onToolCall`. For a low-level server adapter, obtain server-only connection
+settings with `liveModel.getServerWebSocketConfig()` and serialize commands with
+`liveModel.serializeClientEvent()`. Create one parser per connection with
+`liveModel.createServerEventParser()` and pass incoming JSON to the returned
+function. It returns arrays of normalized events and retains each original event
+in `raw`.
+
+For a token-based **Realtime API** session, create a short-lived token on your
+server with `openai.experimental_realtime.getToken()`:
 
 ```ts
 const token = await openai.experimental_realtime.getToken({
@@ -2868,8 +2890,81 @@ const token = await openai.experimental_realtime.getToken({
 });
 ```
 
-See [Realtime](/docs/ai-sdk-core/realtime) for the complete setup and tool
-calling pattern.
+Live does not use Realtime client-secret minting. Calling `getToken` for a known
+Live model or with `api: 'live'` rejects before a mint request. Live's WebSocket
+connection authenticates on a trusted server; keep the provider API key out of
+browser code. The API selector chooses a protocol, not a different authentication
+capability for the same model.
+
+Browser authentication to an application-owned relay is separate from OpenAI
+authentication. Protect that relay with your application's session or short-lived
+credential; an origin check alone is not user authentication. The relay uses its
+server-held OpenAI key upstream. Selecting a Live model does not make the Realtime
+client-secret endpoint compatible with the Live API.
+
+For browser-direct Live WebRTC, an authenticated application endpoint performs the
+SDP exchange through `liveModel.doCreateWebRTCSession({ sdp, sessionConfig, abortSignal })`
+using the server's project key. The browser receives the
+session connection answer, not the project key or a Realtime client secret. This
+setup endpoint still needs application authentication. See the
+[`experimental_useRealtime` reference](/docs/reference/ai-sdk-ui/use-realtime)
+for the `api.session` setup contract and the runnable example.
+
+### Live session options
+
+Configure Live-specific settings through `sessionConfig.providerOptions.openai`,
+typed with `Experimental_OpenAIRealtimeModelLiveOptions`. For example:
+
+```ts
+import type { Experimental_OpenAIRealtimeModelLiveOptions as OpenAIRealtimeModelLiveOptions } from '@ai-sdk/openai';
+
+const sessionConfig = {
+  instructions: 'Be concise. Delegate questions that need research or tools.',
+  providerOptions: {
+    openai: {
+      delegation: { type: 'client' },
+    } satisfies OpenAIRealtimeModelLiveOptions,
+  },
+};
+```
+
+- `delegation`: use `{ type: 'client' }` for application-owned work. Omission or
+  `null` also selects client mode. Other delegation modes are unsupported.
+- `input`: prior text messages with developer, user or assistant roles.
+- `voice`: an authorized custom voice reference `{ id }`, mutually exclusive with
+  the ordinary `sessionConfig.voice` string.
+- `store`: requests provider-side session storage; availability depends on the
+  OpenAI project configuration.
+- `client.dataChannel`: WebRTC startup permission policy with
+  `allowedClientEvents` and `allowedServerEvents`. Set it on the application server,
+  not from trusted-looking browser input. Omission retains the provider default;
+  `[]` allows none and `'all'` allows all. Response event selectors use
+  `{ type: 'response.event', responseEvent: 'response.completed' }` to select
+  native nested events, which remain raw `custom` events rather than managed SDK
+  responses. Keep readiness, errors, and terminal usage observable for
+  the session features your application enables.
+
+Send the initial WebSocket configuration with `session-start`; WebRTC starts the
+session during SDP setup and negotiates audio formats through SDP. Live startup settings are
+immutable: `session-update` is rejected. Use `input-audio-mute` and
+`input-audio-unmute` for remote input processing; these commands do not release the
+local microphone. Return application context through
+`context-append`, using the opaque `delegationId` from `delegation-created`, or
+`null` for context without a delegation. Its `providerOptions.openai.channel`
+accepts `instructions`, `thinking` (the default), or `commentary`.
+
+For graceful shutdown, install a `session-closed` listener before sending `session-close`;
+that event confirms final voice usage. `session-usage` contains cumulative seconds,
+so replace earlier snapshots rather than adding them.
+
+For the browser integration, see the
+[`experimental_useRealtime` reference](/docs/reference/ai-sdk-ui/use-realtime#continuous-conversations).
+It covers the JSON/PCM16 WebSocket relay runtime, optional WebRTC setup and permission
+policy, microphone and playback ownership, `session.delegations`, `sendEvent` for
+application context, and `close()` for bounded finalization. Use `wss:` for production
+relays. Continuous conversation semantics do not imply browser support for every
+provider codec or transport. The [Realtime guide](/docs/ai-sdk-core/realtime) covers
+legacy token-based, turn-based sessions.
 
 ## Embedding Models
 
@@ -3302,3 +3397,48 @@ const result = await generateSpeech({
 | `tts-1`           | <Check />    |
 | `tts-1-hd`        | <Check />    |
 | `gpt-4o-mini-tts` | <Check />    |
+
+## Evaluation Models
+
+Create an experimental evaluation model with `openai.evaluationModel(modelId)`.
+It uses the Responses API with structured output to answer Choice, Score, and
+Boolean questions. Choose a model that supports structured output, such as `gpt-5.6-luna`.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { experimental_evaluate } from 'ai';
+
+const { answers } = await experimental_evaluate({
+  model: openai.evaluationModel('gpt-5.6-luna'),
+  state: 'I was charged twice.',
+  questions: {
+    requestsRefund: {
+      type: 'boolean',
+      instructions: 'Is the customer requesting money back?',
+    },
+    department: {
+      type: 'choice',
+      instructions: 'Which team should handle this?',
+      criteria: { billing: 'Charges and refunds', support: 'Other requests' },
+    },
+  },
+});
+```
+
+Scores are finite fractional positions on the ordered rubric. Choice labels are
+returned exactly as supplied. These are model judgments: no probability
+distributions are returned for Choice or Score. Boolean answers contain a prompted
+estimate of P(true), validated to be finite and in `[0, 1]`. These estimates are
+not guaranteed to be calibrated. Apply thresholds in application code, for example
+`answers.requestsRefund.probability >= 0.5`.
+
+The factory respects `createOpenAI` settings, including custom fetch and base URL.
+Pass Responses options through `providerOptions.openai`. Usage, warnings,
+response information, and provider metadata are preserved. Refusals, truncated
+output, or invalid answers fail the entire call. See [Evaluation](/docs/ai-sdk-core/evaluation).
+
+Evaluation models can also be accessed through `customProvider` aliases or
+`createProviderRegistry().evaluationModel('provider:model')`. Direct string IDs
+use Gateway by default, or an explicitly configured default provider with an
+`evaluationModel` method. See
+[model aliases and registries](/docs/ai-sdk-core/evaluation#model-aliases-and-registries).

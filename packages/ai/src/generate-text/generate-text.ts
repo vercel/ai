@@ -63,6 +63,7 @@ import type { ActiveTools } from './active-tools';
 import { calculateTokensPerSecond } from './calculate-tokens-per-second';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { convertLanguageModelContent } from './convert-language-model-content';
+import { createToolSearchState } from '../tool-search/prepare-tool-search';
 import { executeToolCall } from './execute-tool-call';
 import {
   filterActiveTools,
@@ -106,6 +107,7 @@ import type { ToolApprovalConfiguration } from './tool-approval-configuration';
 import type { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import type { ToolApprovalResponseOutput } from './tool-approval-response-output';
 import {
+  appendToolCallerMessages,
   prepareToolsForToolCallers,
   resolveToolCallerConfiguration,
   type Experimental_ToolCallers,
@@ -574,6 +576,10 @@ export async function generateText<
     tools,
     toolCallers: experimental_toolCallers,
   });
+  const prepareToolSearch = createToolSearchState({
+    tools,
+    toolCallers: resolvedToolCallers,
+  });
   const stopConditions = asArray(stopWhen);
   const resolvedOnStart = onStart ?? experimental_onStart;
   const resolvedOnStepStart = onStepStart ?? experimental_onStepStart;
@@ -906,16 +912,6 @@ export async function generateText<
                 prepareStepResult?.system ??
                 instructionsForNextStep;
 
-              const promptMessages = await convertToLanguageModelPrompt({
-                prompt: {
-                  instructions: stepInstructions,
-                  messages: prepareStepResult?.messages ?? stepInputMessages,
-                },
-                supportedUrls: await stepModel.supportedUrls,
-                download,
-                provider: stepModel.provider.split('.')[0],
-              });
-
               runtimeContext =
                 prepareStepResult?.runtimeContext ?? runtimeContext;
               toolsContext = prepareStepResult?.toolsContext ?? toolsContext;
@@ -927,8 +923,12 @@ export async function generateText<
               const {
                 executionTools: stepExecutionTools,
                 modelTools: stepModelTools,
+                toolCallerMessages,
               } = prepareToolsForToolCallers({
-                tools: stepActiveTools,
+                tools: prepareToolSearch(stepActiveTools, {
+                  toolsContext,
+                  experimental_sandbox: stepSandbox,
+                }),
                 toolCallers: resolvedToolCallers,
               });
               const stepToolOrder = prepareStepResult?.toolOrder ?? toolOrder;
@@ -952,8 +952,21 @@ export async function generateText<
                 toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
               });
 
-              const stepMessages =
-                prepareStepResult?.messages ?? stepInputMessages;
+              const stepMessages = appendToolCallerMessages({
+                messages: prepareStepResult?.messages ?? stepInputMessages,
+                toolCallerMessages,
+              });
+
+              const promptMessages = await convertToLanguageModelPrompt({
+                prompt: {
+                  instructions: stepInstructions,
+                  messages: stepMessages,
+                },
+                supportedUrls: await stepModel.supportedUrls,
+                download,
+                abortSignal: mergedAbortSignal,
+                provider: stepModel.provider.split('.')[0],
+              });
 
               const stepProviderOptions = mergeObjects(
                 providerOptions,

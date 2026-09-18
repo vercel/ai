@@ -1,5 +1,61 @@
 # @ai-sdk/gateway
 
+## 4.0.86
+
+### Patch Changes
+
+- 4fdf51e: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+
+## 4.0.85
+
+### Patch Changes
+
+- 6982e9d: Include evaluation models in getAvailableModels() instead of filtering them out as unknown model types.
+- 6982e9d: feat(gateway): add experimental evaluation model support
+
+## 4.0.84
+
+### Patch Changes
+
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/provider@4.0.17
+
+## 4.0.83
+
+### Patch Changes
+
+- 0c9ab5a: chore(provider/gateway): update gateway model settings files
+- 2cce7da: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
+## 4.0.82
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/provider-utils@5.0.41
+
+## 4.0.81
+
+### Patch Changes
+
+- 23a0fff: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.80
 
 ### Patch Changes
