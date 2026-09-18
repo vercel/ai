@@ -10,6 +10,14 @@ import type { ChatTransport } from './chat-transport';
 import { createUIApiCallError } from './create-ui-api-call-error';
 import type { UIMessage } from './ui-messages';
 
+function appendPathToUrl(url: string, path: string): string {
+  const queryOrFragmentStart = url.search(/[?#]/);
+
+  return queryOrFragmentStart === -1
+    ? `${url}${path}`
+    : `${url.slice(0, queryOrFragmentStart)}${path}${url.slice(queryOrFragmentStart)}`;
+}
+
 export type PrepareSendMessagesRequest<UI_MESSAGE extends UIMessage> = (
   options: {
     id: string;
@@ -239,7 +247,9 @@ export abstract class HttpChatTransport<
       requestMetadata: options.metadata,
     });
 
-    const api = preparedRequest?.api ?? `${this.api}/${options.chatId}/stream`;
+    const api =
+      preparedRequest?.api ??
+      appendPathToUrl(this.api, `/${options.chatId}/stream`);
     const headers =
       preparedRequest?.headers !== undefined
         ? normalizeHeaders(preparedRequest.headers)
