@@ -1,5 +1,5 @@
 import type { ServerResponse } from 'node:http';
-import { prepareHeaders } from '../util/prepare-headers';
+import { prepareNodeResponseHeaders } from '../util/prepare-headers';
 import { writeToServerResponse } from '../util/write-to-server-response';
 import { JsonToSseTransformStream } from './json-to-sse-transform-stream';
 import { UI_MESSAGE_STREAM_HEADERS } from './ui-message-stream-headers';
@@ -44,9 +44,7 @@ export function pipeUIMessageStreamToResponse({
     response,
     status,
     statusText,
-    headers: Object.fromEntries(
-      prepareHeaders(headers, UI_MESSAGE_STREAM_HEADERS).entries(),
-    ),
+    headers: prepareNodeResponseHeaders(headers, UI_MESSAGE_STREAM_HEADERS),
     stream: sseStream.pipeThrough(new TextEncoderStream()),
   });
 }

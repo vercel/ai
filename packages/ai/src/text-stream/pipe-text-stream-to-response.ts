@@ -1,5 +1,5 @@
 import type { ServerResponse } from 'node:http';
-import { prepareHeaders } from '../util/prepare-headers';
+import { prepareNodeResponseHeaders } from '../util/prepare-headers';
 import { writeToServerResponse } from '../util/write-to-server-response';
 
 /**
@@ -29,11 +29,9 @@ export function pipeTextStreamToResponse({
     response,
     status,
     statusText,
-    headers: Object.fromEntries(
-      prepareHeaders(headers, {
-        'content-type': 'text/plain; charset=utf-8',
-      }).entries(),
-    ),
+    headers: prepareNodeResponseHeaders(headers, {
+      'content-type': 'text/plain; charset=utf-8',
+    }),
     stream: stream.pipeThrough(new TextEncoderStream()),
   });
 }
