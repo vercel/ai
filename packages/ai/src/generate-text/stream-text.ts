@@ -2769,7 +2769,7 @@ class DefaultStreamTextResult<
           const createStepResponse = () => ({
             id: generateId(),
             timestamp: new Date(),
-            modelId: model.modelId,
+            modelId: stepModel.modelId,
           });
           let stepResponse: {
             id: string;

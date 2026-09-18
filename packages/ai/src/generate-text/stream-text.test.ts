@@ -9470,8 +9470,10 @@ describe('streamText', () => {
         GenerateTextOnStepStartCallback<any, any>
       >[0][] = [];
       const stepEndModels: Array<StepResult<any>['model']> = [];
+      const stepEndResponseModelIds: string[] = [];
       let endModel: StepResult<any>['model'] | undefined;
       let endStepModels: Array<StepResult<any>['model']> = [];
+      let endResponseModelId: string | undefined;
       let responseCount = 0;
 
       const alternateModel = new MockLanguageModelV4({
@@ -9479,12 +9481,6 @@ describe('streamText', () => {
         modelId: 'alternate-model-id',
         doStream: async () => ({
           stream: convertArrayToReadableStream([
-            {
-              type: 'response-metadata' as const,
-              id: 'id-1',
-              modelId: 'alternate-model-id',
-              timestamp: new Date(1000),
-            },
             { type: 'text-start' as const, id: '1' },
             { type: 'text-delta' as const, id: '1', delta: 'Final answer.' },
             { type: 'text-end' as const, id: '1' },
@@ -9547,10 +9543,12 @@ describe('streamText', () => {
         },
         onStepEnd: async event => {
           stepEndModels.push(event.model);
+          stepEndResponseModelIds.push(event.response.modelId);
         },
         onEnd: async event => {
           endModel = event.model;
           endStepModels = event.steps.map(step => step.model);
+          endResponseModelId = event.response.modelId;
         },
         onError: () => {},
       });
@@ -9572,11 +9570,20 @@ describe('streamText', () => {
         })),
       ).toEqual(expectedModels);
       expect(stepEndModels).toEqual(expectedModels);
+      expect(stepEndResponseModelIds).toEqual([
+        'mock-model-id',
+        'alternate-model-id',
+      ]);
       expect((await result.steps).map(step => step.model)).toEqual(
         expectedModels,
       );
+      expect((await result.steps).map(step => step.response.modelId)).toEqual([
+        'mock-model-id',
+        'alternate-model-id',
+      ]);
       expect(endStepModels).toEqual(expectedModels);
       expect(endModel).toEqual(expectedModels[1]);
+      expect(endResponseModelId).toBe('alternate-model-id');
     });
 
     it('should apply prepareStep model call settings only to the current step', async () => {
