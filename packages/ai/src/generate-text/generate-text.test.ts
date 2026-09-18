@@ -7758,6 +7758,42 @@ describe('generateText', () => {
       ]);
     });
 
+    it('should not execute a repaired tool when aborted during input validation', async () => {
+      const abortController = new AbortController();
+      const cancellationReason = new Error('cancelled');
+      const validationStarted = new DelayedPromise<void>();
+      const validationFinished = new DelayedPromise<void>();
+      const execute = vi.fn(async () => 'tool result');
+
+      const result = generateText({
+        model: invalidToolCallModel(),
+        tools: {
+          tool1: tool({
+            inputSchema: z
+              .object({ value: z.string() })
+              .superRefine(async () => {
+                validationStarted.resolve(undefined);
+                await validationFinished.promise;
+              }),
+            execute,
+          }),
+        },
+        prompt: 'test-input',
+        abortSignal: abortController.signal,
+        repairToolCall: async ({ toolCall }) => ({
+          ...toolCall,
+          input: `{ "value": "repaired" }`,
+        }),
+      });
+
+      await validationStarted.promise;
+      abortController.abort(cancellationReason);
+      validationFinished.resolve(undefined);
+
+      await expect(result).rejects.toBe(cancellationReason);
+      expect(execute).not.toHaveBeenCalled();
+    });
+
     it('should support the deprecated experimental_repairToolCall option', async () => {
       const result = await generateText({
         model: invalidToolCallModel(),
@@ -7882,7 +7918,7 @@ describe('generateText', () => {
   });
 
   describe('tool callbacks', () => {
-    it('should invoke callbacks in the correct order', async () => {
+    it('should invoke callbacks in the correct order with the step tool context', async () => {
       const recordedCalls: unknown[] = [];
 
       await generateText({
@@ -7910,6 +7946,7 @@ describe('generateText', () => {
               required: ['value'],
               additionalProperties: false,
             }),
+            contextSchema: z.object({ prefix: z.string() }),
             onInputAvailable: options => {
               recordedCalls.push({ type: 'onInputAvailable', options });
             },
@@ -7921,6 +7958,11 @@ describe('generateText', () => {
             },
           }),
         },
+        runtimeContext: { prefix: 'runtime-context' },
+        toolsContext: { 'test-tool': { prefix: 'initial-tool-context' } },
+        prepareStep: () => ({
+          toolsContext: { 'test-tool': { prefix: 'step-tool-context' } },
+        }),
         toolChoice: 'required',
         prompt: 'test-input',
       });
@@ -7930,7 +7972,9 @@ describe('generateText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "context": {},
+              "context": {
+                "prefix": "step-tool-context",
+              },
               "messages": [
                 {
                   "content": "test-input",
@@ -7944,7 +7988,9 @@ describe('generateText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "context": {},
+              "context": {
+                "prefix": "step-tool-context",
+              },
               "input": {
                 "value": "value",
               },
