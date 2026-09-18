@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21109,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/use-object-async-on-finish.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/use-object-async-on-finish.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "REPRODUCED: useObject ignored the rejected async onFinish callback"
+  }
+}
