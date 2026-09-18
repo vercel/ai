@@ -1136,6 +1136,53 @@ describe('toUIMessageStream', () => {
     `);
   });
 
+  it('should not replay a trailing historical tool lifecycle from an initial values snapshot', async () => {
+    const toolCallId = 'call-historical';
+    const historicalMessages = [
+      new HumanMessage({
+        content: 'list products',
+        id: 'human-message',
+      }),
+      new AIMessage({
+        content: '',
+        id: 'ai-message',
+        tool_calls: [
+          {
+            id: toolCallId,
+            name: 'searchProducts',
+            args: { query: 'list' },
+          },
+        ],
+      }),
+      new ToolMessage({
+        content: '{"products":["p1","p2","p3"]}',
+        id: 'tool-message',
+        tool_call_id: toolCallId,
+      }),
+    ];
+    const inputStream = convertArrayToReadableStream([
+      ['values', { messages: historicalMessages }],
+      [
+        'values',
+        {
+          messages: [
+            ...historicalMessages,
+            new AIMessage({
+              content: 'There are three products.',
+              id: 'new-ai-message',
+            }),
+          ],
+        },
+      ],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toEqual([{ type: 'start' }, { type: 'finish' }]);
+  });
+
   it('should not duplicate tool outputs across tools and values modes', async () => {
     const toolCallId = 'call-completed';
     const messages = [

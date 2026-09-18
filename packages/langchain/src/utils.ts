@@ -2129,27 +2129,31 @@ export function processLangGraphEvent(
                 );
                 const lifecycleNamespace = messageNamespace ?? eventNamespace;
                 const wasObservedInCurrentStep = messageNamespace !== undefined;
+                const wasToolCallEmittedInCurrentStep = toolCall.id
+                  ? hasEmittedToolCallInCurrentStep(
+                      state,
+                      toolCall.id,
+                      lifecycleNamespace,
+                    )
+                  : false;
                 const trailingToolMessageInfo = toolCall.id
                   ? trailingToolMessages.get(toolCall.id)
                   : undefined;
+                const canRecoverCompletedToolCall =
+                  wasObservedInCurrentStep || wasToolCallEmittedInCurrentStep;
                 /**
                  * Emit tool calls recovered from a message in the current step,
                  * even when a prior step used the same provider-scoped ID.
                  * Otherwise, preserve stream-wide suppression for historical calls
-                 * while recovering completed values-only calls from trailing
-                 * ToolMessages.
+                 * while recovering completed calls observed in the current step or
+                 * an earlier values snapshot before their trailing ToolMessage arrived.
                  */
                 if (
                   toolCall.id &&
-                  !hasEmittedToolCallInCurrentStep(
-                    state,
-                    toolCall.id,
-                    lifecycleNamespace,
-                  ) &&
+                  !wasToolCallEmittedInCurrentStep &&
                   (wasObservedInCurrentStep ||
                     (!emittedToolCalls.has(toolCall.id) &&
-                      (!completedToolCallIds.has(toolCall.id) ||
-                        trailingToolMessageInfo != null)))
+                      !completedToolCallIds.has(toolCall.id)))
                 ) {
                   markToolCallEmitted(state, toolCall.id, lifecycleNamespace);
                   // Store mapping for HITL interrupt lookup
@@ -2192,7 +2196,7 @@ export function processLangGraphEvent(
                     toolCall.id,
                     lifecycleNamespace,
                   ) &&
-                  emittedToolCalls.has(toolCall.id)
+                  canRecoverCompletedToolCall
                 ) {
                   state.emittedToolOutputMessageIds.add(
                     trailingToolMessageInfo.outputId,
