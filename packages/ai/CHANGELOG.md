@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.261
+
+### Patch Changes
+
+- 69879fe: fix(ai): prevent unhandled rejections when UI message stream reading stops early
+
 ## 5.0.260
 
 ### Patch Changes
