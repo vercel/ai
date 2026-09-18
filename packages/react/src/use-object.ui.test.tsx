@@ -23,9 +23,14 @@ describe('text stream', () => {
   const TestComponent = ({
     headers,
     credentials,
+    onFinish,
   }: {
     headers?: Record<string, string> | Headers;
     credentials?: RequestCredentials;
+    onFinish?: (event: {
+      object: { content: string } | undefined;
+      error: Error | undefined;
+    }) => Promise<void> | void;
   }) => {
     const { object, error, submit, isLoading, stop, clear } = useObject({
       api: '/api/use-object',
@@ -35,6 +40,7 @@ describe('text stream', () => {
       },
       onFinish(event) {
         onFinishCalls.push(event);
+        return onFinish?.(event);
       },
       headers,
       credentials,
@@ -290,6 +296,30 @@ describe('text stream', () => {
       authorization: 'Bearer TEST_TOKEN',
       'x-custom-header': 'CustomValue',
     });
+  });
+
+  it('should surface rejected asynchronous onFinish callbacks', async () => {
+    server.urls['/api/use-object'].response = {
+      type: 'stream-chunks',
+      chunks: ['{ ', '"content": "Hello, ', 'world', '!"', '}'],
+    };
+
+    render(
+      <TestComponent
+        onFinish={async () => {
+          await Promise.resolve();
+          throw new Error('Save failed');
+        }}
+      />,
+    );
+
+    await userEvent.click(screen.getByTestId('submit-button'));
+
+    await waitFor(() => {
+      expect(onErrorResult?.message).toBe('Save failed');
+    });
+    expect(screen.getByTestId('error')).toHaveTextContent('Save failed');
+    expect(screen.getByTestId('loading')).toHaveTextContent('false');
   });
 
   it('should send headers from async function', async () => {
