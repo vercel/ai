@@ -12,7 +12,64 @@ interface SchemaContext {
 const MAX_SCHEMA_DEPTH = 8;
 const MAX_COMPACT_OBJECT_TYPE_LENGTH = 120;
 
-export function buildCodeModeToolDescription(tools: CodeModeToolSet): string {
+export function buildCodeModeToolDescription(
+  tools: CodeModeToolSet,
+  toolDiscovery: 'description' | 'conversation' = 'description',
+): string {
+  const sections = [
+    'Execute code-mode TypeScript in an isolated sandbox.',
+    '',
+    'Put the full program in `js`; top-level `await`/`return` work. Return a JSON-serializable result.',
+    'Call host tools only as async `tools.name(input)`; await each or use `Promise.all` for independent calls.',
+    toolDiscovery === 'description'
+      ? 'Use exact names/types below. `JSON.parse`/`JSON.stringify` are available.'
+      : 'Use exact names/types from the latest capability update. `JSON.parse`/`JSON.stringify` are available.',
+    'Fetch: `fetch` is not available.',
+  ];
+
+  if (toolDiscovery === 'conversation') {
+    sections.push(
+      '',
+      'Tools:',
+      'The current host-tool API is provided in "Code mode capability update" user messages. Follow the latest catalog and ignore earlier catalogs.',
+    );
+    return sections.join('\n');
+  }
+
+  const { typeBlock, exampleBlock } = renderToolCatalog(tools);
+  sections.push('', 'Tools:', typeBlock);
+
+  if (exampleBlock.length > 0) {
+    sections.push(exampleBlock);
+  }
+
+  return sections.join('\n');
+}
+
+export function buildCodeModeToolCatalogMessage(
+  tools: CodeModeToolSet,
+): string {
+  const { typeBlock, exampleBlock } = renderToolCatalog(tools);
+  const sections = [
+    'Code mode capability update.',
+    '',
+    'This catalog replaces all previous code mode capability catalogs. Only the tools listed below are currently available through `tools`.',
+    '',
+    'Tools:',
+    typeBlock,
+  ];
+
+  if (exampleBlock.length > 0) {
+    sections.push(exampleBlock);
+  }
+
+  return sections.join('\n');
+}
+
+function renderToolCatalog(tools: CodeModeToolSet): {
+  typeBlock: string;
+  exampleBlock: string;
+} {
   const toolEntries = Object.entries(tools);
   const typeBlock =
     toolEntries.length === 0
@@ -36,22 +93,7 @@ export function buildCodeModeToolDescription(tools: CodeModeToolSet): string {
           '```',
         ].join('\n');
 
-  const sections = [
-    'Execute code-mode TypeScript in an isolated sandbox.',
-    '',
-    'Put the full program in `js`; top-level `await`/`return` work. Return a JSON-serializable result.',
-    'Call host tools only as async `tools.name(input)`; await each or use `Promise.all` for independent calls.',
-    'Use exact names/types below. `JSON.parse`/`JSON.stringify` are available.',
-    'Fetch: `fetch` is not available.',
-  ];
-
-  sections.push('', 'Tools:', typeBlock);
-
-  if (exampleBlock.length > 0) {
-    sections.push(exampleBlock);
-  }
-
-  return sections.join('\n');
+  return { typeBlock, exampleBlock };
 }
 
 function renderToolType([toolName, tool]: [

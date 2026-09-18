@@ -86,6 +86,16 @@ export type AmazonBedrockChatModelId =
   | 'us.meta.llama4-maverick-17b-instruct-v1:0'
   | (string & {});
 
+export type AmazonBedrockChatModelSettings = {
+  /**
+   * The chat model family.
+   *
+   * Specify this when the model ID does not identify the underlying model,
+   * such as an application inference profile ARN.
+   */
+  modelFamily?: 'anthropic';
+};
+
 /**
  * Bedrock file part provider options for document-specific features.
  * These options apply to individual file parts (documents).

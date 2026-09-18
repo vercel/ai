@@ -609,6 +609,17 @@ describe('AmazonBedrockProvider', () => {
       expect(model).toBeInstanceOf(AmazonBedrockEmbeddingModel);
     });
 
+    it('should pass chat model settings to the model', () => {
+      const provider = createAmazonBedrock();
+      const modelId =
+        'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/qibm5eutlkcy';
+
+      provider(modelId, { modelFamily: 'anthropic' });
+
+      const constructorCall = AmazonBedrockChatLanguageModelMock.mock.calls[0];
+      expect(constructorCall[1].modelFamily).toBe('anthropic');
+    });
+
     it('should pass embedding model settings to the model', () => {
       const provider = createAmazonBedrock();
       const modelId =

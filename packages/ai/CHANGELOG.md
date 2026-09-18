@@ -1,5 +1,92 @@
 # ai
 
+## 7.0.107
+
+### Patch Changes
+
+- 79681c4: fix(ai): preserve provider file and skill upload APIs in wrapProvider
+- 98c7275: fix(ai): preserve query parameters in chat reconnect URLs
+- a105059: fix(workflow): support deferred tool discovery in WorkflowAgent
+- 31532f3: fix(ai): prevent preliminary tool outputs from completing chats
+- e61cbd8: fix(ai): preserve raw speech audio format metadata
+- 8ade040: fix(ai): pass tool-specific context to input callbacks
+- 970a01e: fix(ai): enforce polling timeouts for in-flight video status requests
+- 85539c5: fix(ai): preserve multiple Set-Cookie headers in Node stream responses
+- 611d301: fix(ai): prevent duplicate content types in chat transport requests
+- c415657: fix(ai): decode base64 text data URLs using their declared charset
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+  - @ai-sdk/gateway@4.0.87
+
+## 7.0.106
+
+### Patch Changes
+
+- 4775577: fix(ai): preserve provider metadata when simulating text streams
+- 6696728: fix(ai): report the prepareStep model in streamed step results
+- 09516a1: fix(ai): prevent unhandled rejections when UI message stream reading stops early
+- 1aef01e: fix(ai): preserve prototype-named properties in serialized tool outputs
+- 9c1ea74: fix(ai): close telemetry spans when provider response streams fail
+- 107343a: fix(ai): use the prepareStep-selected model for streamed response metadata fallbacks
+- 03c3e33: fix(ai): preserve tool calls required by retained pending approvals
+- 5d42ebd: fix(ai): skip input available callbacks for invalid streamed tool calls
+- 4a67783: fix(ai): cancel prompt attachment downloads when model calls are aborted or time out
+- 1058ed5: fix(ai): strip streamed JSON fences before arbitrary trailing whitespace
+- 84f5d1b: fix(ai): stream null and empty string JSON partial outputs
+- 2d53a5d: fix(ai): prevent onEnd after aborting a multi-step text stream
+- 2a5ed55: fix(ai): stream structured output from the final tool-loop step
+- Updated dependencies [4fdf51e]
+- Updated dependencies [0455398]
+  - @ai-sdk/gateway@4.0.86
+  - @ai-sdk/provider-utils@5.0.44
+
+## 7.0.105
+
+### Patch Changes
+
+- 6982e9d: Resolve evaluation model IDs through AI Gateway when no default provider is configured, including string aliases in custom providers.
+- Updated dependencies [6982e9d]
+- Updated dependencies [6982e9d]
+  - @ai-sdk/gateway@4.0.85
+
+## 7.0.104
+
+### Patch Changes
+
+- a7dd893: Add experimental evaluation model aliases and registry resolution. `customProvider` accepts `evaluationModels`, registries expose `evaluationModel`, and `experimental_evaluate` accepts string IDs when an evaluation-capable default provider is explicitly configured. Evaluation never implicitly falls back to Gateway. Model-resolution errors now identify `evaluationModel` while stable provider contracts remain unchanged.
+- 227f3b0: fix(ai): report abnormal realtime WebSocket close diagnostics through `onError`
+- 3456e2c: feat(ai): support tool search with direct tool calling
+- c4e76de: feat(ai): add native tool search tool
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/provider@4.0.17
+  - @ai-sdk/gateway@4.0.84
+
+## 7.0.103
+
+### Patch Changes
+
+- 91c2128: feat(ai): add mid conversation tool discovery/updates for code-mode
+- 25a0447: feat(ai): deprecate rawInput in output-error UI message parts
+- 2cd80b3: Keep default Node.js downloads protected by DNS validation and connection pinning when frameworks or instrumentation wrap global fetch before or after the SDK loads.
+- 123d71f: Add `experimental_evaluate` and the isolated experimental v4 evaluation model specification for Choice, Score, and Boolean questions against shared state. Includes typed answers, optional Choice/Score distributions, required Boolean probabilities, validation, retries, cancellation, and `Experimental_EvaluationUnsupportedQuestionTypeError` for unsupported questions.
+- Updated dependencies [91c2128]
+- Updated dependencies [0c9ab5a]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+- Updated dependencies [2cce7da]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/gateway@4.0.83
+  - @ai-sdk/provider@4.0.16
+
 ## 7.0.102
 
 ### Patch Changes

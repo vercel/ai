@@ -9,6 +9,7 @@ declare global {
    * String model ids are resolved to the default provider and model id.
    *
    * If not set, the default provider is the Vercel AI gateway provider.
+   * Experimental evaluation requires an explicitly configured evaluation-capable provider.
    *
    * @see https://ai-sdk.dev/docs/ai-sdk-core/provider-management#global-provider-configuration
    */
