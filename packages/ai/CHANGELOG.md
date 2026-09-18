@@ -1,5 +1,17 @@
 # ai
 
+## 6.0.286
+
+### Patch Changes
+
+- 8a9722e: fix(ai): preserve provider metadata when simulating text streams
+- 6a0f2d9: fix(ai): report the prepareStep model in streamed step results
+- db02971: fix(ai): prevent unhandled rejections when UI message stream reading stops early
+- 4d91999: fix(ai): preserve tool calls required by retained pending approvals
+- b2ad994: fix(ai): cancel prompt attachment downloads when model calls are aborted or time out
+- 9c85bd4: fix(ai): stream null and empty string JSON partial outputs
+- becaa32: fix(ai): stream structured output from the final tool-loop step
+
 ## 6.0.285
 
 ### Patch Changes
