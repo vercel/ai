@@ -265,12 +265,12 @@ provider. It uses Bedrock's native InvokeModel API, which accepts application
 inference profile ARNs, and identifies the model as Anthropic automatically:
 
 ```ts
-import { amazonBedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
+import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
 
 const profileArn =
   'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/qibm5eutlkcy';
 
-const model = amazonBedrockAnthropic(profileArn);
+const model = bedrockAnthropic(profileArn);
 ```
 
 Use `modelFamily: 'anthropic'` only when you need to use the generic
