@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21105,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/chat-reconnect-query-url.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/chat-reconnect-query-url.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #21105 REPRODUCED: 10 reconnect requests appended the stream path inside query parameters."
+  }
+}
