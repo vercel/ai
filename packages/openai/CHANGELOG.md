@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.114
+
+### Patch Changes
+
+- e53d917: fix(openai): preserve provider file references in Responses tool results
+
 ## 3.0.113
 
 ### Patch Changes

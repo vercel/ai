@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 1.0.82
+
+### Patch Changes
+
+- 1620182: fix(mcp): avoid duplicate legacy SSE OAuth refreshes for stale 401 responses
+
 ## 1.0.81
 
 ### Patch Changes

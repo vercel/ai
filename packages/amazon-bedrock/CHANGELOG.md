@@ -1,5 +1,13 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.178
+
+### Patch Changes
+
+- 96b6d3f: fix(amazon-bedrock): preserve API error messages when the error type is omitted
+- Updated dependencies [e53d917]
+  - @ai-sdk/openai@3.0.114
+
 ## 4.0.177
 
 ### Patch Changes
