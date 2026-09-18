@@ -3008,6 +3008,109 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
+  test('passes prepareCall tool context to host tools and step results', async () => {
+    const { harness, toolResults } = mockHarness({
+      script: () => [
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'lookupAccount',
+          input: JSON.stringify({}),
+        },
+        ...finishEvents(),
+      ],
+    });
+    const execute = vi.fn(
+      async (
+        _input: Record<string, never>,
+        { context }: { context: { userId: string } },
+      ) => ({ userId: context.userId }),
+    );
+    const lookupAccount = tool({
+      inputSchema: z.object({}),
+      contextSchema: z.object({ userId: z.string() }),
+      execute,
+    });
+    const agent = new HarnessAgent({
+      harness,
+      tools: { lookupAccount },
+      sandbox: makeSandboxProvider(),
+      callOptionsSchema: z.object({ userId: z.string() }),
+      prepareCall: ({ options, ...rest }) => ({
+        ...rest,
+        toolsContext: {
+          lookupAccount: { userId: options.userId },
+        },
+      }),
+    });
+    const session = await agent.createSession();
+
+    const result = await agent.generate({
+      session,
+      prompt: 'go',
+      options: { userId: 'user-123' },
+    });
+
+    expect(execute).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({
+        context: { userId: 'user-123' },
+      }),
+    );
+    expect(toolResults).toEqual([
+      { toolCallId: 'c1', output: { userId: 'user-123' } },
+    ]);
+    expect(result.steps[0]?.toolsContext).toEqual({
+      lookupAccount: { userId: 'user-123' },
+    });
+
+    await session.destroy();
+  });
+
+  test('validates host tool context before execution', async () => {
+    const { harness, toolResults } = mockHarness({
+      script: () => [
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'lookupAccount',
+          input: JSON.stringify({}),
+        },
+        ...finishEvents(),
+      ],
+    });
+    const execute = vi.fn(async () => ({ ok: true }));
+    const lookupAccount = tool({
+      inputSchema: z.object({}),
+      contextSchema: z.object({ userId: z.string() }),
+      execute,
+    });
+    const agent = new HarnessAgent({
+      harness,
+      tools: { lookupAccount },
+      toolsContext: {
+        lookupAccount: { userId: 123 },
+      } as never,
+      sandbox: makeSandboxProvider(),
+    });
+    const session = await agent.createSession();
+
+    await agent.generate({ session, prompt: 'go' });
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(toolResults).toEqual([
+      {
+        toolCallId: 'c1',
+        output: {
+          error: expect.stringContaining('tool context'),
+        },
+        isError: true,
+      },
+    ]);
+
+    await session.destroy();
+  });
+
   test('rejects activeTools and inactiveTools together at runtime', () => {
     const { harness } = mockHarness({ script: () => [] });
 
