@@ -578,6 +578,11 @@ export type TextField = {
  */
 export type InputTokensDetails = {
   cached_tokens: number;
+  /**
+   * Number of input tokens written to cache. Not part of the OpenAI Responses
+   * API; surfaced by providers that bill cache writes separately.
+   */
+  cache_write_tokens?: number;
 };
 
 /**

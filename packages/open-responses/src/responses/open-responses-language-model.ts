@@ -466,6 +466,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
     const usage = response.usage;
     const inputTokens = usage?.input_tokens;
     const cachedInputTokens = usage?.input_tokens_details?.cached_tokens;
+    const cacheWriteTokens = usage?.input_tokens_details?.cache_write_tokens;
     const outputTokens = usage?.output_tokens;
     const reasoningTokens = usage?.output_tokens_details?.reasoning_tokens;
 
@@ -481,9 +482,12 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       usage: {
         inputTokens: {
           total: inputTokens,
-          noCache: (inputTokens ?? 0) - (cachedInputTokens ?? 0),
+          noCache:
+            (inputTokens ?? 0) -
+            (cachedInputTokens ?? 0) -
+            (cacheWriteTokens ?? 0),
           cacheRead: cachedInputTokens,
-          cacheWrite: undefined,
+          cacheWrite: cacheWriteTokens,
         },
         outputTokens: {
           total: outputTokens,
@@ -550,15 +554,20 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       const inputTokens = responseUsage.input_tokens;
       const cachedInputTokens =
         responseUsage.input_tokens_details?.cached_tokens;
+      const cacheWriteTokens =
+        responseUsage.input_tokens_details?.cache_write_tokens;
       const outputTokens = responseUsage.output_tokens;
       const reasoningTokens =
         responseUsage.output_tokens_details?.reasoning_tokens;
 
       usage.inputTokens = {
         total: inputTokens,
-        noCache: (inputTokens ?? 0) - (cachedInputTokens ?? 0),
+        noCache:
+          (inputTokens ?? 0) -
+          (cachedInputTokens ?? 0) -
+          (cacheWriteTokens ?? 0),
         cacheRead: cachedInputTokens,
-        cacheWrite: undefined,
+        cacheWrite: cacheWriteTokens,
       };
       usage.outputTokens = {
         total: outputTokens,

@@ -274,6 +274,70 @@ describe('OpenResponsesLanguageModel', () => {
       });
     });
 
+    describe('cache write tokens', () => {
+      // input_tokens is the total and includes both cache reads and writes;
+      // the two subsets come out so noCache is only the ordinary remainder.
+      const USAGE = {
+        input_tokens: 10_000,
+        output_tokens: 2_000,
+        total_tokens: 12_000,
+        input_tokens_details: {
+          cached_tokens: 3_000,
+          cache_write_tokens: 1_000,
+        },
+        output_tokens_details: { reasoning_tokens: 0 },
+      };
+
+      const EXPECTED_USAGE = {
+        inputTokens: {
+          total: 10_000,
+          noCache: 6_000,
+          cacheRead: 3_000,
+          cacheWrite: 1_000,
+        },
+        outputTokens: { total: 2_000, text: 2_000, reasoning: 0 },
+      };
+
+      it('maps them from a JSON response', async () => {
+        server.urls[URL].response = {
+          type: 'json-value',
+          body: {
+            ...JSON.parse(
+              fs.readFileSync(
+                `src/responses/__fixtures__/lmstudio-basic.1.json`,
+                'utf8',
+              ),
+            ),
+            usage: USAGE,
+          },
+        };
+
+        const result = await createModel().doGenerate({ prompt: TEST_PROMPT });
+
+        expect(result.usage).toMatchObject(EXPECTED_USAGE);
+      });
+
+      it('maps them from a stream', async () => {
+        server.urls[URL].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: ${JSON.stringify({
+              type: 'response.completed',
+              sequence_number: 1,
+              response: { id: 'resp_1', status: 'completed', usage: USAGE },
+            })}\n\n`,
+            'data: [DONE]\n\n',
+          ],
+        };
+
+        const result = await createModel().doStream({ prompt: TEST_PROMPT });
+        const parts = await convertReadableStreamToArray(result.stream);
+
+        const finish = parts.find(part => part.type === 'finish');
+        expect(finish?.usage).toMatchObject(EXPECTED_USAGE);
+      });
+    });
+
     describe('manual history replay', () => {
       it('should preserve output item order and ids', async () => {
         prepareOutputResponse([
