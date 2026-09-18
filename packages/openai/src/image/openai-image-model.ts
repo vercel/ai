@@ -110,10 +110,10 @@ export class OpenAIImageModel implements ImageModelV3 {
                     ],
                     { type: file.mediaType },
                   )
-                : downloadBlob(file.url),
+                : downloadBlob(file.url, { abortSignal }),
             ),
           ),
-          mask: mask != null ? await fileToBlob(mask) : undefined,
+          mask: mask != null ? await fileToBlob(mask, abortSignal) : undefined,
           n,
           size,
           quality: openaiOptions.quality,
@@ -295,12 +295,17 @@ type OpenAIImageEditInput = {
 };
 
 async function fileToBlob(
+<<<<<<< HEAD
   file: ImageModelV3File | undefined,
+=======
+  file: ImageModelV4File | undefined,
+  abortSignal: AbortSignal | undefined,
+>>>>>>> e76a0a3677 (fix: OpenAI image edits remain pending after cancellation while downloading images or masks (#21085))
 ): Promise<Blob | undefined> {
   if (!file) return undefined;
 
   if (file.type === 'url') {
-    return downloadBlob(file.url);
+    return downloadBlob(file.url, { abortSignal });
   }
 
   const data =
