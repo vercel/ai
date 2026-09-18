@@ -199,7 +199,7 @@ export abstract class HttpChatTransport<
     const response = await fetch(api, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'content-type': 'application/json',
         ...headers,
       },
       body: JSON.stringify(body),
