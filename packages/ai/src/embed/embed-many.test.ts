@@ -550,6 +550,110 @@ describe('options.providerOptions', () => {
       values: ['test-input'],
     });
   });
+
+  it('should slice per-value google.content across chunks', async () => {
+    const values = ['a', 'b', 'c', 'd', 'e'];
+    const content = [
+      [{ text: 'a-extra' }],
+      null,
+      [{ text: 'c-extra' }],
+      null,
+      [{ text: 'e-extra' }],
+    ];
+
+    const model = new MockEmbeddingModelV4({
+      maxEmbeddingsPerCall: 2,
+      doEmbed: async ({ values: chunkValues, providerOptions }) => {
+        const chunkContent = (
+          providerOptions?.google as { content?: Array<unknown> } | undefined
+        )?.content;
+        assert.deepStrictEqual(chunkContent?.length, chunkValues.length);
+        return {
+          embeddings: chunkValues.map(value => [value.length]),
+          warnings: [],
+        };
+      },
+    });
+
+    const result = await embedMany({
+      model,
+      values,
+      providerOptions: { google: { content } },
+    });
+
+    expect(result.embeddings).toStrictEqual([[1], [1], [1], [1], [1]]);
+    expect(
+      model.doEmbedCalls.map(
+        call =>
+          (call.providerOptions?.google as { content?: unknown } | undefined)
+            ?.content,
+      ),
+    ).toStrictEqual([
+      content.slice(0, 2),
+      content.slice(2, 4),
+      content.slice(4),
+    ]);
+  });
+
+  it('should keep content aligned with parallel calls', async () => {
+    const values = ['a', 'b', 'c'];
+    const content = [[{ text: 'a-extra' }], null, [{ text: 'c-extra' }]];
+
+    const model = new MockEmbeddingModelV4({
+      maxEmbeddingsPerCall: 2,
+      supportsParallelCalls: true,
+      doEmbed: async ({ values: chunkValues, providerOptions }) => {
+        const chunkContent = (
+          providerOptions?.google as { content?: Array<unknown> } | undefined
+        )?.content;
+        assert.deepStrictEqual(chunkContent?.length, chunkValues.length);
+        return {
+          embeddings: chunkValues.map(value => [value.length]),
+          warnings: [],
+        };
+      },
+    });
+
+    const result = await embedMany({
+      model,
+      values,
+      providerOptions: { google: { content } },
+    });
+
+    expect(result.embeddings).toStrictEqual([[1], [1], [1]]);
+    expect(
+      model.doEmbedCalls.map(
+        call =>
+          (call.providerOptions?.google as { content?: unknown } | undefined)
+            ?.content,
+      ),
+    ).toStrictEqual([content.slice(0, 2), content.slice(2)]);
+  });
+
+  it('should forward mismatched content length unchanged', async () => {
+    const model = new MockEmbeddingModelV4({
+      maxEmbeddingsPerCall: 2,
+      doEmbed: async ({ values: chunkValues, providerOptions }) => {
+        const chunkContent = (
+          providerOptions?.google as { content?: Array<unknown> } | undefined
+        )?.content;
+        if (chunkContent?.length !== chunkValues.length) {
+          throw new Error(
+            `The number of multimodal content entries (${chunkContent?.length}) must match the number of values (${chunkValues.length}).`,
+          );
+        }
+        return { embeddings: chunkValues.map(() => [1]), warnings: [] };
+      },
+    });
+
+    await expect(
+      embedMany({
+        model,
+        values: ['a', 'b', 'c'],
+        providerOptions: { google: { content: [[{ text: 'only' }]] } },
+      }),
+    ).rejects.toThrow('must match the number of values');
+  });
 });
 
 describe('result.providerMetadata', () => {

@@ -334,69 +334,89 @@ export async function embedMany<RUNTIME_CONTEXT extends Context = Context>({
         let tokens = 0;
         let providerMetadata: ProviderMetadata | undefined;
 
+        let chunkStartIndex = 0;
+        const chunkInputs = valueChunks.map(chunk => {
+          const startIndex = chunkStartIndex;
+          chunkStartIndex += chunk.length;
+          return {
+            values: chunk,
+            providerOptions: getProviderOptionsForChunk({
+              providerOptions,
+              startIndex,
+              chunkLength: chunk.length,
+              totalLength: values.length,
+            }),
+          };
+        });
+
         const parallelChunks = splitArray(
-          valueChunks,
+          chunkInputs,
           supportsParallelCalls ? maxParallelCalls : 1,
         );
 
         for (const parallelChunk of parallelChunks) {
           const results = await Promise.all(
-            parallelChunk.map(async chunk => {
-              const result = await retry(async () => {
-                const embedCallId = generateCallId();
+            parallelChunk.map(
+              async ({
+                values: chunk,
+                providerOptions: chunkProviderOptions,
+              }) => {
+                const result = await retry(async () => {
+                  const embedCallId = generateCallId();
 
-                await notify({
-                  event: {
-                    callId,
-                    embedCallId,
-                    operationId: 'ai.embedMany.doEmbed',
-                    provider: model.provider,
-                    modelId: model.modelId,
+                  await notify({
+                    event: {
+                      callId,
+                      embedCallId,
+                      operationId: 'ai.embedMany.doEmbed',
+                      provider: model.provider,
+                      modelId: model.modelId,
+                      values: chunk,
+                    },
+                    callbacks: [telemetryDispatcher.onEmbedStart],
+                  });
+
+                  const modelResponse = await model.doEmbed({
                     values: chunk,
-                  },
-                  callbacks: [telemetryDispatcher.onEmbedStart],
-                });
+                    abortSignal,
+                    headers: headersWithUserAgent,
+                    providerOptions: chunkProviderOptions,
+                  });
 
-                const modelResponse = await model.doEmbed({
-                  values: chunk,
-                  abortSignal,
-                  headers: headersWithUserAgent,
-                  providerOptions,
-                });
+                  const chunkEmbeddings = modelResponse.embeddings;
+                  const usage = modelResponse.usage ?? { tokens: NaN };
 
-                const chunkEmbeddings = modelResponse.embeddings;
-                const usage = modelResponse.usage ?? { tokens: NaN };
+                  await notify({
+                    event: {
+                      callId,
+                      embedCallId,
+                      operationId: 'ai.embedMany.doEmbed',
+                      provider: model.provider,
+                      modelId: model.modelId,
+                      values: chunk,
+                      embeddings: chunkEmbeddings,
+                      usage,
+                    },
+                    callbacks: [telemetryDispatcher.onEmbedEnd],
+                  });
 
-                await notify({
-                  event: {
-                    callId,
-                    embedCallId,
-                    operationId: 'ai.embedMany.doEmbed',
-                    provider: model.provider,
-                    modelId: model.modelId,
-                    values: chunk,
+                  return {
                     embeddings: chunkEmbeddings,
                     usage,
-                  },
-                  callbacks: [telemetryDispatcher.onEmbedEnd],
+                    warnings: modelResponse.warnings ?? [],
+                    providerMetadata: modelResponse.providerMetadata,
+                    response: modelResponse.response,
+                  };
                 });
 
-                return {
-                  embeddings: chunkEmbeddings,
-                  usage,
-                  warnings: modelResponse.warnings ?? [],
-                  providerMetadata: modelResponse.providerMetadata,
-                  response: modelResponse.response,
-                };
-              });
+                validateEmbeddingCount({
+                  embeddings: result.embeddings,
+                  values: chunk,
+                });
 
-              validateEmbeddingCount({
-                embeddings: result.embeddings,
-                values: chunk,
-              });
-
-              return result;
-            }),
+                return result;
+              },
+            ),
           );
 
           for (const result of results) {
@@ -473,6 +493,37 @@ function validateEmbeddingCount({
       message: `Expected ${values.length} embeddings, but received ${embeddings.length}.`,
     });
   }
+}
+
+function getProviderOptionsForChunk({
+  providerOptions,
+  startIndex,
+  chunkLength,
+  totalLength,
+}: {
+  providerOptions: ProviderOptions | undefined;
+  startIndex: number;
+  chunkLength: number;
+  totalLength: number;
+}): ProviderOptions | undefined {
+  if (providerOptions == null) {
+    return providerOptions;
+  }
+  const googleOptions = providerOptions.google;
+  if (googleOptions == null) {
+    return providerOptions;
+  }
+  const content = googleOptions.content;
+  if (!Array.isArray(content) || content.length !== totalLength) {
+    return providerOptions;
+  }
+  return {
+    ...providerOptions,
+    google: {
+      ...googleOptions,
+      content: content.slice(startIndex, startIndex + chunkLength),
+    },
+  };
 }
 
 const textEncoder = new TextEncoder();
