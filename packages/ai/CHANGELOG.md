@@ -1,5 +1,27 @@
 # ai
 
+## 7.0.106
+
+### Patch Changes
+
+- 4775577: fix(ai): preserve provider metadata when simulating text streams
+- 6696728: fix(ai): report the prepareStep model in streamed step results
+- 09516a1: fix(ai): prevent unhandled rejections when UI message stream reading stops early
+- 1aef01e: fix(ai): preserve prototype-named properties in serialized tool outputs
+- 9c1ea74: fix(ai): close telemetry spans when provider response streams fail
+- 107343a: fix(ai): use the prepareStep-selected model for streamed response metadata fallbacks
+- 03c3e33: fix(ai): preserve tool calls required by retained pending approvals
+- 5d42ebd: fix(ai): skip input available callbacks for invalid streamed tool calls
+- 4a67783: fix(ai): cancel prompt attachment downloads when model calls are aborted or time out
+- 1058ed5: fix(ai): strip streamed JSON fences before arbitrary trailing whitespace
+- 84f5d1b: fix(ai): stream null and empty string JSON partial outputs
+- 2d53a5d: fix(ai): prevent onEnd after aborting a multi-step text stream
+- 2a5ed55: fix(ai): stream structured output from the final tool-loop step
+- Updated dependencies [4fdf51e]
+- Updated dependencies [0455398]
+  - @ai-sdk/gateway@4.0.86
+  - @ai-sdk/provider-utils@5.0.44
+
 ## 7.0.105
 
 ### Patch Changes

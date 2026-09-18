@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 5.0.44
+
+### Patch Changes
+
+- 0455398: fix(provider-utils): make lazy Undici import visible to deployment tracers
+
 ## 5.0.43
 
 ### Patch Changes
