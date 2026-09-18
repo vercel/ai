@@ -578,19 +578,6 @@ describe('telemetry', () => {
     );
   });
 
-  it('accepts experimental_telemetry as an alias', async () => {
-    const onStart = vi.fn();
-
-    await evaluate({
-      ...setup(),
-      state: 'text',
-      questions,
-      experimental_telemetry: { integrations: { onStart } },
-    });
-
-    expect(onStart).toHaveBeenCalledOnce();
-  });
-
   it('emits an error event when evaluation fails', async () => {
     const error = new Error('evaluation failed');
     const onError = vi.fn();

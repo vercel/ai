@@ -1439,7 +1439,6 @@ export class OpenTelemetry implements Telemetry {
       'gen_ai.operation.name': 'evaluate',
       'gen_ai.provider.name': mapProviderName(event.provider),
       'gen_ai.request.model': event.modelId,
-      'gen_ai.agent.name': telemetry.functionId,
       ...baseSupplementalAttributes,
       ...selectSupplementalAttributes(telemetry, this.supplementalAttributes, {
         evaluation: {

@@ -44,8 +44,7 @@ export async function evaluate<
   abortSignal,
   headers,
   providerOptions = {},
-  experimental_telemetry,
-  telemetry = experimental_telemetry,
+  telemetry,
   runtimeContext = {} as RUNTIME_CONTEXT,
   onStart,
   onEnd,
@@ -62,12 +61,6 @@ export async function evaluate<
   providerOptions?: ProviderOptions;
   /** Optional telemetry configuration. */
   telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
-  /**
-   * Optional telemetry configuration.
-   *
-   * @deprecated Use `telemetry` instead.
-   */
-  experimental_telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
   /** User-defined runtime context. Treat runtime context as immutable. */
   runtimeContext?: RUNTIME_CONTEXT;
   /** Called when the evaluate operation begins. */

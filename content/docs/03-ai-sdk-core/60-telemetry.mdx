@@ -543,9 +543,19 @@ retries. Both include the provider and requested model with
 `gen_ai.operation.name: "evaluate"`. Token
 usage is recorded on the child span.
 
-Evaluation state, questions, and answers do not have GenAI semantic-convention
-attributes. Enable the `evaluation` supplemental option to record them under
-AI SDK-specific `ai.evaluation.*` attributes.
+`evaluate` is an AI SDK-defined custom operation name, not a well-known
+OpenTelemetry GenAI operation. OpenTelemetry permits custom operation names
+when no well-known value describes the operation.
+
+OpenTelemetry's `gen_ai.evaluation.result` event describes the result of
+evaluating a GenAI output for quality or other characteristics. In contrast,
+`experimental_evaluate` can evaluate arbitrary JSON state for classification,
+routing, scoring, and similar tasks. The integration therefore does not emit a
+`gen_ai.evaluation.result` event.
+
+Evaluation state, questions, and answers also do not have applicable GenAI
+semantic-convention attributes. Enable the `evaluation` supplemental option to
+record them under AI SDK-specific `ai.evaluation.*` attributes.
 
 #### GenAI span details
 
