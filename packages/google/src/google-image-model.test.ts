@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { GoogleImageModel } from './google-image-model';
@@ -192,6 +193,36 @@ describe('GoogleImageModel', () => {
         },
         serviceTier: 'standard',
       });
+    });
+
+    it('should preserve a live candidate finish reason in image diagnostics', async () => {
+      server.urls[TEST_URL].response = {
+        type: 'json-value',
+        body: JSON.parse(
+          readFileSync(
+            'src/__fixtures__/google-image-no-image-live.json',
+            'utf8',
+          ),
+        ),
+      };
+
+      const result = await model.doGenerate({
+        prompt: 'Fixture.',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(
+        JSON.stringify({
+          providerMetadata: result.providerMetadata,
+          response: result.response,
+        }),
+      ).toContain('NO_IMAGE');
     });
 
     it.each(['', 'BLOCK_REASON_UNSPECIFIED', 'BLOCKED_REASON_UNSPECIFIED'])(
