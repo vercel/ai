@@ -1421,6 +1421,8 @@ class DefaultStreamTextResult<
     const initialResponseMessages: Array<ResponseMessage> = [];
     let stepMessagesForNextStep: Array<ModelMessage> | undefined;
     let currentStepMessages: Array<ModelMessage> = [];
+    let isAborted = false;
+    let currentStepModel = model;
 
     // provider-assigned text/reasoning part IDs are only unique within a
     // single model call (e.g. Anthropic uses the content block index, which
@@ -1668,8 +1670,8 @@ class DefaultStreamTextResult<
             new DefaultStepResult({
               callId,
               stepNumber: recordedSteps.length,
-              provider: model.provider,
-              modelId: model.modelId,
+              provider: currentStepModel.provider,
+              modelId: currentStepModel.modelId,
               runtimeContext,
               toolsContext,
               content: recordedContent,
@@ -1698,8 +1700,8 @@ class DefaultStreamTextResult<
 
           logWarnings({
             warnings: recordedWarnings,
-            provider: model.provider,
-            model: model.modelId,
+            provider: currentStepModel.provider,
+            model: currentStepModel.modelId,
           });
 
           recordedSteps.push(currentStepResult);
@@ -1749,6 +1751,10 @@ class DefaultStreamTextResult<
 
           // aggregate results:
           self._steps.resolve(recordedSteps);
+
+          if (isAborted) {
+            return;
+          }
 
           // call onEnd callback:
           const finalStep = recordedSteps[recordedSteps.length - 1];
@@ -1852,6 +1858,8 @@ class DefaultStreamTextResult<
       async pull(controller) {
         // abort handling:
         async function abort() {
+          isAborted = true;
+
           await notify({
             event: {
               callId,
@@ -2336,6 +2344,7 @@ class DefaultStreamTextResult<
           const stepModel = resolveLanguageModel(
             prepareStepResult?.model ?? model,
           );
+          currentStepModel = stepModel;
 
           const stepActiveTools = filterActiveTools({
             tools,
