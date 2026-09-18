@@ -1,5 +1,19 @@
 # @ai-sdk/google-vertex
 
+## 5.0.87
+
+### Patch Changes
+
+- e369c4d: fix(google): advertise the supported Gemini image per-call limit
+- Updated dependencies [e369c4d]
+- Updated dependencies [2b391f8]
+- Updated dependencies [1284569]
+- Updated dependencies [0455398]
+  - @ai-sdk/google@4.0.75
+  - @ai-sdk/provider-utils@5.0.44
+  - @ai-sdk/anthropic@4.0.57
+  - @ai-sdk/openai-compatible@3.0.52
+
 ## 5.0.86
 
 ### Patch Changes

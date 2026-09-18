@@ -1,6 +1,7 @@
 import {
   UnsupportedFunctionalityError,
   type JSONObject,
+  type JSONSchema7Definition,
   type LanguageModelV4CallOptions,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
@@ -153,11 +154,21 @@ export async function prepareTools({
   const supportsStrictOnTools = supportsStrictTools(modelId);
 
   for (const tool of filteredFunctionTools) {
+    const supportsStrictForTool =
+      supportsStrictOnTools &&
+      (tool.strict !== true || isStrictToolSchemaCompatible(tool.inputSchema));
+
     if (!supportsStrictOnTools && tool.strict != null) {
       toolWarnings.push({
         type: 'unsupported',
         feature: 'strict',
         details: `Tool '${tool.name}' has strict: ${tool.strict}, but strict mode is not supported by this model on Amazon Bedrock. The strict property will be ignored.`,
+      });
+    } else if (tool.strict === true && !supportsStrictForTool) {
+      toolWarnings.push({
+        type: 'unsupported',
+        feature: 'strict',
+        details: `Tool '${tool.name}' has strict: true, but Amazon Bedrock requires every object in a strict tool schema to set additionalProperties: false. The strict property will be ignored.`,
       });
     }
 
@@ -167,7 +178,7 @@ export async function prepareTools({
         ...(tool.description?.trim() !== ''
           ? { description: tool.description }
           : {}),
-        ...(tool.strict != null && supportsStrictOnTools
+        ...(tool.strict != null && supportsStrictForTool
           ? { strict: tool.strict }
           : {}),
         inputSchema: {
@@ -242,4 +253,82 @@ export async function prepareTools({
     betas,
     toolWarnings,
   };
+}
+
+function isStrictToolSchemaCompatible(schema: JSONSchema7Definition): boolean {
+  if (typeof schema === 'boolean') {
+    return true;
+  }
+
+  const schemaWithDefs = schema as typeof schema & {
+    $defs?: Record<string, JSONSchema7Definition>;
+  };
+
+  if (
+    (schema.type === 'object' ||
+      (Array.isArray(schema.type) && schema.type.includes('object'))) &&
+    schema.additionalProperties !== false
+  ) {
+    return false;
+  }
+
+  const schemaMaps = [
+    schema.properties,
+    schema.patternProperties,
+    schema.definitions,
+    schemaWithDefs.$defs,
+  ];
+
+  for (const schemaMap of schemaMaps) {
+    if (
+      schemaMap != null &&
+      Object.values(schemaMap).some(
+        definition => !isStrictToolSchemaCompatible(definition),
+      )
+    ) {
+      return false;
+    }
+  }
+
+  if (
+    schema.dependencies != null &&
+    Object.values(schema.dependencies).some(
+      dependency =>
+        !Array.isArray(dependency) && !isStrictToolSchemaCompatible(dependency),
+    )
+  ) {
+    return false;
+  }
+
+  const nestedSchemas = [
+    schema.propertyNames,
+    schema.contains,
+    schema.not,
+    schema.if,
+    schema.then,
+    schema.else,
+  ];
+
+  if (
+    nestedSchemas.some(
+      nestedSchema =>
+        nestedSchema != null && !isStrictToolSchemaCompatible(nestedSchema),
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    schema.items != null &&
+    (Array.isArray(schema.items)
+      ? schema.items.some(item => !isStrictToolSchemaCompatible(item))
+      : !isStrictToolSchemaCompatible(schema.items))
+  ) {
+    return false;
+  }
+
+  return [schema.anyOf, schema.allOf, schema.oneOf].every(
+    alternatives =>
+      alternatives == null || alternatives.every(isStrictToolSchemaCompatible),
+  );
 }
