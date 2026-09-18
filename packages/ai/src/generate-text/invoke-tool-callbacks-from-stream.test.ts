@@ -9,10 +9,9 @@ import type { LanguageModelStreamPart } from './stream-language-model-call';
 import { invokeToolCallbacksFromStream } from './invoke-tool-callbacks-from-stream';
 
 describe('invokeToolCallbacksFromStream', () => {
-  it('should invoke tool callbacks in order and pass through the stream', async () => {
+  it('should invoke tool callbacks in order with the tool context and pass through the stream', async () => {
     const recordedCalls: unknown[] = [];
     const abortController = new AbortController();
-    const runtimeContext = { requestId: 'req-1' };
     const stepInputMessages: Array<ModelMessage> = [
       { role: 'user', content: 'test-input' },
     ];
@@ -20,6 +19,7 @@ describe('invokeToolCallbacksFromStream', () => {
     const tools = {
       'test-tool': tool({
         inputSchema: z.object({ value: z.string() }),
+        contextSchema: z.object({ prefix: z.string() }),
         onInputStart: options => {
           recordedCalls.push({ type: 'onInputStart', options });
         },
@@ -51,7 +51,9 @@ describe('invokeToolCallbacksFromStream', () => {
       tools,
       stepInputMessages,
       abortSignal: abortController.signal,
-      runtimeContext,
+      toolsContext: {
+        'test-tool': { prefix: 'tool-context' },
+      },
     });
     const resultChunks = await convertReadableStreamToArray(result);
     const recordedCallsForSnapshot = recordedCalls.map(call => ({
@@ -104,7 +106,7 @@ describe('invokeToolCallbacksFromStream', () => {
           "options": {
             "abortSignal": "[AbortSignal]",
             "context": {
-              "requestId": "req-1",
+              "prefix": "tool-context",
             },
             "messages": [
               {
@@ -120,7 +122,7 @@ describe('invokeToolCallbacksFromStream', () => {
           "options": {
             "abortSignal": "[AbortSignal]",
             "context": {
-              "requestId": "req-1",
+              "prefix": "tool-context",
             },
             "inputTextDelta": "{"value":"",
             "messages": [
@@ -137,7 +139,7 @@ describe('invokeToolCallbacksFromStream', () => {
           "options": {
             "abortSignal": "[AbortSignal]",
             "context": {
-              "requestId": "req-1",
+              "prefix": "tool-context",
             },
             "inputTextDelta": "Sparkle Day"}",
             "messages": [
@@ -154,7 +156,7 @@ describe('invokeToolCallbacksFromStream', () => {
           "options": {
             "abortSignal": "[AbortSignal]",
             "context": {
-              "requestId": "req-1",
+              "prefix": "tool-context",
             },
             "input": {
               "value": "Sparkle Day",
@@ -181,5 +183,111 @@ describe('invokeToolCallbacksFromStream', () => {
           ).options.abortSignal === abortController.signal,
       ),
     ).toBe(true);
+  });
+
+  it('should validate context once per tool call and reuse the transformed value for all callbacks', async () => {
+    let validationCount = 0;
+    const callbackContexts: unknown[] = [];
+
+    const tools = {
+      'test-tool': tool({
+        inputSchema: z.object({ value: z.string() }),
+        contextSchema: z.object({ prefix: z.string() }).transform(context => ({
+          ...context,
+          validationCount: ++validationCount,
+        })),
+        onInputStart: ({ context }) => {
+          callbackContexts.push(context);
+        },
+        onInputDelta: ({ context }) => {
+          callbackContexts.push(context);
+        },
+        onInputAvailable: ({ context }) => {
+          callbackContexts.push(context);
+        },
+      }),
+    };
+
+    const chunks: Array<LanguageModelStreamPart<typeof tools>> = [
+      { type: 'tool-input-start', id: 'call-1', toolName: 'test-tool' },
+      { type: 'tool-input-delta', id: 'call-1', delta: '{"value":"' },
+      { type: 'tool-input-delta', id: 'call-1', delta: 'Sparkle Day"}' },
+      { type: 'tool-input-end', id: 'call-1' },
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'test-tool',
+        input: { value: 'Sparkle Day' },
+      },
+    ];
+
+    const result = invokeToolCallbacksFromStream({
+      stream: convertArrayToReadableStream(chunks),
+      tools,
+      stepInputMessages: [],
+      abortSignal: undefined,
+      toolsContext: {
+        'test-tool': { prefix: 'tool-context', validationCount: 0 },
+      },
+    });
+
+    await expect(convertReadableStreamToArray(result)).resolves.toEqual(chunks);
+    expect(validationCount).toBe(1);
+    expect(callbackContexts).toHaveLength(4);
+    expect(callbackContexts[0]).toEqual({
+      prefix: 'tool-context',
+      validationCount: 1,
+    });
+    expect(
+      callbackContexts.every(context => context === callbackContexts[0]),
+    ).toBe(true);
+  });
+
+  it('should skip onInputAvailable for invalid tool calls', async () => {
+    const recordedCalls: string[] = [];
+    const tools = {
+      'test-tool': tool({
+        inputSchema: z.object({ value: z.string() }),
+        onInputStart: () => {
+          recordedCalls.push('onInputStart');
+        },
+        onInputDelta: () => {
+          recordedCalls.push('onInputDelta');
+        },
+        onInputAvailable: () => {
+          recordedCalls.push('onInputAvailable');
+        },
+      }),
+    };
+
+    const chunks: Array<LanguageModelStreamPart<typeof tools>> = [
+      { type: 'tool-input-start', id: 'call-1', toolName: 'test-tool' },
+      {
+        type: 'tool-input-delta',
+        id: 'call-1',
+        delta: '{"value":42}',
+      },
+      { type: 'tool-input-end', id: 'call-1' },
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'test-tool',
+        input: { value: 42 },
+        dynamic: true,
+        invalid: true,
+        error: new Error('invalid tool input'),
+      },
+    ];
+
+    const result = invokeToolCallbacksFromStream({
+      stream: convertArrayToReadableStream(chunks),
+      tools,
+      stepInputMessages: [],
+      abortSignal: undefined,
+      toolsContext: {},
+    });
+
+    await expect(convertReadableStreamToArray(result)).resolves.toEqual(chunks);
+    expect(recordedCalls).toEqual(['onInputStart', 'onInputDelta']);
   });
 });

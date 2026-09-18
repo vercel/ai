@@ -51,7 +51,8 @@ export async function readGrokBuildSubscription({
   const parsed = await safeParseJSON({ text });
   if (!parsed.success || !isRecord(parsed.value)) return undefined;
 
-  const selected = selectOAuthRecord(parsed.value);
+  const authRecords = { ...parsed.value };
+  const selected = selectOAuthRecord(authRecords);
   if (selected == null) return undefined;
   let accessToken = selected.record.key;
   if (isAccessTokenExpiringSoon({ expiresAt: selected.record.expiresAt })) {
@@ -80,8 +81,8 @@ export async function readGrokBuildSubscription({
       ...(fetch == null ? {} : { fetch }),
     });
     accessToken = refreshed.accessToken;
-    const originalRecord = parsed.value[selected.scope];
-    parsed.value[selected.scope] = {
+    const originalRecord = authRecords[selected.scope];
+    authRecords[selected.scope] = {
       ...(isRecord(originalRecord) ? originalRecord : {}),
       key: refreshed.accessToken,
       refresh_token: refreshed.refreshToken ?? selected.record.refreshToken,
@@ -90,7 +91,7 @@ export async function readGrokBuildSubscription({
     const temporaryPath = `${authPath}.${process.pid}.tmp`;
     await writeFile(
       temporaryPath,
-      `${JSON.stringify(parsed.value, null, 2)}\n`,
+      `${JSON.stringify(authRecords, null, 2)}\n`,
       {
         mode: 0o600,
       },

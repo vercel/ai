@@ -373,6 +373,56 @@ describe('GoogleRealtimeEventMapper', () => {
       });
     });
 
+    it('surfaces interactionStatus as a custom event', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = { serverContent: { interactionStatus: 'IN_PROGRESS' } };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'custom',
+        rawType: 'interactionStatus',
+        raw,
+      });
+    });
+
+    it('emits interactionStatus alongside turnComplete events', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: { parts: [{ inlineData: { data: 'AAAA' } }] },
+        },
+      });
+      const raw = {
+        serverContent: { turnComplete: true, interactionStatus: 'IDLE' },
+      };
+
+      const events = mapper.parseServerEvent(raw);
+      expect(Array.isArray(events)).toBe(true);
+      if (Array.isArray(events)) {
+        expect(events).toContainEqual({
+          type: 'custom',
+          rawType: 'interactionStatus',
+          raw,
+        });
+        expect(events).toContainEqual({
+          type: 'response-done',
+          responseId: 'google-resp-0',
+          status: 'completed',
+          raw,
+        });
+      }
+    });
+
+    it('surfaces waitingForInput as a custom event', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = { serverContent: { waitingForInput: true } };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'custom',
+        rawType: 'waitingForInput',
+        raw,
+      });
+    });
+
     it('keeps generationComplete distinct from turnComplete', () => {
       const mapper = new GoogleRealtimeEventMapper();
       const raw = { serverContent: { generationComplete: true } };
@@ -479,7 +529,7 @@ describe('GoogleRealtimeEventMapper', () => {
                 {
                   name: 'getWeather',
                   description: 'Get weather',
-                  parameters: {
+                  parametersJsonSchema: {
                     type: 'object',
                     properties: {
                       city: { type: 'string' },
@@ -616,7 +666,39 @@ describe('GoogleRealtimeEventMapper', () => {
       });
     });
 
-    it('falls back to empty object for malformed function-call-output', async () => {
+    it.each([
+      ['a string', '"SEARCH_UNAVAILABLE"', { output: 'SEARCH_UNAVAILABLE' }],
+      ['a number', '42', { output: 42 }],
+      ['an array', '["a","b"]', { output: ['a', 'b'] }],
+      ['null', 'null', { output: null }],
+      ['a boolean', 'false', { output: false }],
+    ])(
+      'wraps %s tool result so the response stays an object',
+      async (_label, output, expected) => {
+        const result = await mapper.serializeClientEvent(
+          {
+            type: 'conversation-item-create',
+            item: {
+              type: 'function-call-output',
+              callId: 'call_1',
+              name: 'getWeather',
+              output,
+            },
+          },
+          'model',
+        );
+
+        expect(result).toEqual({
+          toolResponse: {
+            functionResponses: [
+              { id: 'call_1', name: 'getWeather', response: expected },
+            ],
+          },
+        });
+      },
+    );
+
+    it('keeps unparseable function-call-output as text instead of an empty object', async () => {
       const result = await mapper.serializeClientEvent(
         {
           type: 'conversation-item-create',
@@ -636,7 +718,7 @@ describe('GoogleRealtimeEventMapper', () => {
             {
               id: 'call_1',
               name: 'getWeather',
-              response: {},
+              response: { output: '{' },
             },
           ],
         },
@@ -738,7 +820,7 @@ describe('buildGoogleSessionConfig', () => {
             {
               "description": "Get weather",
               "name": "getWeather",
-              "parameters": {
+              "parametersJsonSchema": {
                 "properties": {
                   "city": {
                     "type": "string",
@@ -756,7 +838,7 @@ describe('buildGoogleSessionConfig', () => {
     `);
   });
 
-  it('builds config with inlined local JSON Schema references', () => {
+  it('builds config with preserved local JSON Schema references', () => {
     const result = buildGoogleSessionConfig(
       {
         tools: [
@@ -786,12 +868,15 @@ describe('buildGoogleSessionConfig', () => {
           {
             name: 'formatDate',
             description: 'Format a date',
-            parameters: {
+            parametersJsonSchema: {
               type: 'object',
               properties: {
-                locale: { type: 'string', enum: ['de', 'en'] },
+                locale: { $ref: '#/$defs/Locale' },
               },
               required: ['locale'],
+              $defs: {
+                Locale: { type: 'string', enum: ['de', 'en'] },
+              },
             },
           },
         ],
@@ -880,6 +965,202 @@ describe('buildGoogleSessionConfig', () => {
         targetLanguageCode: 'fr',
       },
     });
+  });
+
+  it('maps providerOptions.google.thinkingConfig to generationConfig', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          google: {
+            thinkingConfig: {
+              thinkingLevel: 'high',
+              includeThoughts: true,
+            },
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.8-live-extended-thinking',
+    );
+
+    expect(result).toEqual({
+      model: 'models/gemini-3.8-live-extended-thinking',
+      generationConfig: {
+        responseModalities: ['AUDIO'],
+        thinkingConfig: {
+          thinkingLevel: 'high',
+          includeThoughts: true,
+        },
+      },
+    });
+  });
+
+  it('defaults thinkingLevel to low on background-reasoning Live models', () => {
+    for (const modelId of [
+      'gemini-3.8-live-extended-thinking',
+      'models/gemini-3.8-live-extended-thinking',
+    ]) {
+      expect(buildGoogleSessionConfig(undefined, modelId)).toEqual({
+        model: 'models/gemini-3.8-live-extended-thinking',
+        generationConfig: {
+          responseModalities: ['AUDIO'],
+          thinkingConfig: { thinkingLevel: 'low' },
+        },
+      });
+    }
+
+    expect(
+      buildGoogleSessionConfig(
+        { outputModalities: ['audio'], instructions: 'Be brief.' },
+        'gemini-3.8-live-extended-thinking',
+      ).generationConfig,
+    ).toEqual({
+      responseModalities: ['AUDIO'],
+      thinkingConfig: { thinkingLevel: 'low' },
+    });
+  });
+
+  it('does not default thinkingConfig on Live models without background reasoning', () => {
+    for (const modelId of [
+      'gemini-3.8-live',
+      'gemini-3.1-flash-live-preview',
+      'gemini-3.5-live-translate-preview',
+    ]) {
+      expect(
+        buildGoogleSessionConfig({ outputModalities: ['audio'] }, modelId)
+          .generationConfig,
+      ).toEqual({ responseModalities: ['AUDIO'] });
+    }
+  });
+
+  it('does not add a default thinkingLevel when thinkingBudget is set', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          google: {
+            thinkingConfig: { thinkingBudget: 256 },
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.8-live-extended-thinking',
+    );
+
+    expect(result.generationConfig).toEqual({
+      responseModalities: ['AUDIO'],
+      thinkingConfig: { thinkingBudget: 256 },
+    });
+  });
+
+  it('keeps the default thinkingLevel under a raw generationConfig provider option', () => {
+    const result = buildGoogleSessionConfig(
+      { providerOptions: { generationConfig: { temperature: 0.2 } } },
+      'gemini-3.8-live-extended-thinking',
+    );
+
+    expect(result.generationConfig).toEqual({
+      temperature: 0.2,
+      thinkingConfig: { thinkingLevel: 'low' },
+    });
+  });
+
+  it('merges thinking config into raw generationConfig provider options', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            temperature: 0.2,
+          },
+          google: {
+            thinkingConfig: { thinkingBudget: 512 },
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.8-live-extended-thinking',
+    );
+
+    expect(result.generationConfig).toEqual({
+      responseModalities: ['AUDIO'],
+      temperature: 0.2,
+      thinkingConfig: { thinkingBudget: 512 },
+    });
+  });
+
+  it('merges translation and thinking config together into generationConfig', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          google: {
+            translationConfig: { targetLanguageCode: 'fr' },
+            thinkingConfig: { thinkingBudget: 1024 },
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.8-live-extended-thinking',
+    );
+
+    expect(result.generationConfig).toEqual({
+      responseModalities: ['AUDIO'],
+      translationConfig: { targetLanguageCode: 'fr' },
+      thinkingConfig: { thinkingBudget: 1024 },
+    });
+  });
+
+  it('stamps defaultToolBehavior onto every function declaration', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        tools: [
+          {
+            type: 'function',
+            name: 'getWeather',
+            description: 'Get weather',
+            parameters: {
+              type: 'object',
+              properties: { city: { type: 'string' } },
+              required: ['city'],
+            },
+          },
+          {
+            type: 'function',
+            name: 'getTime',
+            parameters: { type: 'object', properties: {} },
+          },
+        ],
+        providerOptions: {
+          google: {
+            defaultToolBehavior: 'BLOCKING',
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.8-live',
+    );
+
+    const tools = result.tools as Array<{
+      functionDeclarations: Array<Record<string, unknown>>;
+    }>;
+    expect(tools[0].functionDeclarations.map(d => d.behavior)).toEqual([
+      'BLOCKING',
+      'BLOCKING',
+    ]);
+  });
+
+  it('omits behavior from function declarations when defaultToolBehavior is unset', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        tools: [
+          {
+            type: 'function',
+            name: 'getWeather',
+            parameters: { type: 'object', properties: {} },
+          },
+        ],
+      },
+      'gemini-3.8-live',
+    );
+
+    const tools = result.tools as Array<{
+      functionDeclarations: Array<Record<string, unknown>>;
+    }>;
+    expect('behavior' in tools[0].functionDeclarations[0]).toBe(false);
   });
 
   it('preserves model path that already includes slash', () => {

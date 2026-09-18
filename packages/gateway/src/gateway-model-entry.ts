@@ -2,6 +2,7 @@ import type { LanguageModelV4 } from '@ai-sdk/provider';
 
 export const KNOWN_MODEL_TYPES = [
   'embedding',
+  'evaluation',
   'image',
   'language',
   'realtime',
