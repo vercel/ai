@@ -69,6 +69,22 @@ const documentMediaTypeSignatures = [
 
 const audioMediaTypeSignaturesWithoutMp4 = [
   {
+    mediaType: 'audio/aac' as const,
+    bytesPrefix: [0xff, 0xf0], // MPEG-4 ADTS with CRC
+  },
+  {
+    mediaType: 'audio/aac' as const,
+    bytesPrefix: [0xff, 0xf1], // MPEG-4 ADTS without CRC
+  },
+  {
+    mediaType: 'audio/aac' as const,
+    bytesPrefix: [0xff, 0xf8], // MPEG-2 ADTS with CRC
+  },
+  {
+    mediaType: 'audio/aac' as const,
+    bytesPrefix: [0xff, 0xf9], // MPEG-2 ADTS without CRC
+  },
+  {
     mediaType: 'audio/mpeg' as const,
     bytesPrefix: [0xff, 0xfb],
   },
