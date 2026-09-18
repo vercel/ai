@@ -29,6 +29,7 @@ export type GatewayModelId =
   | 'alibaba/qwen3.8-flash'
   | 'alibaba/qwen3.8-max'
   | 'alibaba/qwen3.8-max-0902'
+  | 'alibaba/qwen3.8-omni-flash'
   | 'amazon/nova-2-lite'
   | 'amazon/nova-lite'
   | 'amazon/nova-micro'
@@ -245,5 +246,6 @@ export type GatewayModelId =
   | 'zai/glm-5.3'
   | 'zai/glm-5.3-fast'
   | 'zai/glm-5.3-flash'
+  | 'zai/glm-5.3-flashx'
   | 'zai/glm-5v-turbo'
   | (string & {});
