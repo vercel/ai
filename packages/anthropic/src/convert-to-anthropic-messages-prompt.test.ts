@@ -92,7 +92,9 @@ describe('system messages', () => {
     expect(
       result.betas.has('mid-conversation-system-clear-at-2026-08-21'),
     ).toBe(true);
-    expect(result.betas.has('mid-conversation-effort-2026-08-01')).toBe(true);
+    expect(result.betas.has('mid-conversation-output-config-2026-07-01')).toBe(
+      true,
+    );
   });
 
   it('should omit empty text for a system message that only sets turn effort', async () => {
@@ -2640,5 +2642,159 @@ describe('citations', () => {
         },
       }
     `);
+  });
+});
+
+describe('toolsets', () => {
+  it('should serialize toolset tool calls and results with toolset_name', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_click',
+              toolName: 'computer',
+              input: { action: 'left_click', coordinate: [640, 60] },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'toolu_click',
+              toolName: 'computer',
+              output: { type: 'text', value: 'OK' },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolsetNames: { computer: 'computer' },
+    });
+
+    expect(result.prompt.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "cache_control": undefined,
+              "id": "toolu_click",
+              "input": {
+                "coordinate": [
+                  640,
+                  60,
+                ],
+              },
+              "name": "left_click",
+              "toolset_name": "computer",
+              "type": "tool_use",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "cache_control": undefined,
+              "content": "OK",
+              "is_error": undefined,
+              "tool_use_id": "toolu_click",
+              "toolset_name": "computer",
+              "type": "tool_result",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
+  it('should detect toolset tool calls through provider metadata when the tool is not passed', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_screenshot',
+              toolName: 'computer',
+              input: { action: 'screenshot' },
+              providerOptions: { anthropic: { toolsetName: 'computer' } },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'toolu_screenshot',
+              toolName: 'computer',
+              output: { type: 'text', value: 'OK' },
+              providerOptions: { anthropic: { toolsetName: 'computer' } },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+    });
+
+    expect(result.prompt.messages[0].content).toEqual([
+      {
+        type: 'tool_use',
+        id: 'toolu_screenshot',
+        name: 'screenshot',
+        toolset_name: 'computer',
+        input: {},
+        cache_control: undefined,
+      },
+    ]);
+    expect(result.prompt.messages[1].content).toEqual([
+      {
+        type: 'tool_result',
+        tool_use_id: 'toolu_screenshot',
+        toolset_name: 'computer',
+        content: 'OK',
+        is_error: undefined,
+        cache_control: undefined,
+      },
+    ]);
+  });
+
+  it('should warn and skip toolset tool calls without an action', async () => {
+    const warnings: LanguageModelV2CallWarning[] = [];
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_bad',
+              toolName: 'computer',
+              input: { coordinate: [1, 2] },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings,
+      toolsetNames: { computer: 'computer' },
+    });
+
+    expect(result.prompt.messages[0].content).toEqual([]);
+    expect(warnings).toEqual([
+      {
+        type: 'other',
+        message: 'toolset tool call for tool computer is missing the action',
+      },
+    ]);
   });
 });
