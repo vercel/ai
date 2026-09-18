@@ -1020,40 +1020,59 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
   });
 
   describe('completed step tool results', () => {
-    it('discovers deferred tools before making them available to the model', async () => {
+    it('discovers and executes deferred tools', async () => {
       let call = 0;
       const model = new MockLanguageModelV4({
         doStream: async () => {
           call++;
-          const chunks: LanguageModelV4StreamPart[] =
-            call === 1
-              ? [
-                  { type: 'stream-start' as const, warnings: [] },
-                  {
-                    type: 'tool-call' as const,
-                    toolCallId: 'search-call',
-                    toolName: 'search',
-                    input: '{"query":"weather forecast"}',
-                  },
-                  {
-                    ...dummyStreamFinish,
-                    finishReason: {
-                      unified: 'tool-calls' as const,
-                      raw: 'tool-calls',
-                    },
-                  },
-                ]
-              : [
-                  { type: 'stream-start' as const, warnings: [] },
-                  { type: 'text-start' as const, id: 'text' },
-                  {
-                    type: 'text-delta' as const,
-                    id: 'text',
-                    delta: 'done',
-                  },
-                  { type: 'text-end' as const, id: 'text' },
-                  dummyStreamFinish,
-                ];
+          let chunks: LanguageModelV4StreamPart[];
+          if (call === 1) {
+            chunks = [
+              { type: 'stream-start' as const, warnings: [] },
+              {
+                type: 'tool-call' as const,
+                toolCallId: 'search-call',
+                toolName: 'search',
+                input: '{"query":"weather forecast"}',
+              },
+              {
+                ...dummyStreamFinish,
+                finishReason: {
+                  unified: 'tool-calls' as const,
+                  raw: 'tool-calls',
+                },
+              },
+            ];
+          } else if (call === 2) {
+            chunks = [
+              { type: 'stream-start' as const, warnings: [] },
+              {
+                type: 'tool-call' as const,
+                toolCallId: 'weather-call',
+                toolName: 'weather',
+                input: '{"city":"London"}',
+              },
+              {
+                ...dummyStreamFinish,
+                finishReason: {
+                  unified: 'tool-calls' as const,
+                  raw: 'tool-calls',
+                },
+              },
+            ];
+          } else {
+            chunks = [
+              { type: 'stream-start' as const, warnings: [] },
+              { type: 'text-start' as const, id: 'text' },
+              {
+                type: 'text-delta' as const,
+                id: 'text',
+                delta: 'done',
+              },
+              { type: 'text-end' as const, id: 'text' },
+              dummyStreamFinish,
+            ];
+          }
 
           return {
             stream: convertArrayToReadableStream(chunks),
@@ -1081,7 +1100,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
 
       expect(
         model.doStreamCalls.map(call => call.tools?.map(tool => tool.name)),
-      ).toEqual([['search'], ['search', 'weather']]);
+      ).toEqual([['search'], ['search', 'weather'], ['search', 'weather']]);
       expect(result.steps[0]?.toolResults).toContainEqual(
         expect.objectContaining({
           type: 'tool-result',
@@ -1095,6 +1114,14 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
               },
             ],
           },
+        }),
+      );
+      expect(result.steps[1]?.toolResults).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-result',
+          toolCallId: 'weather-call',
+          toolName: 'weather',
+          output: { city: 'London', forecast: 'rain' },
         }),
       );
     });
