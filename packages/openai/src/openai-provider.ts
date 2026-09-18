@@ -23,8 +23,6 @@ import {
 import { Experimental_EvaluationLanguageModel as EvaluationLanguageModel } from '@ai-sdk/provider-utils/experimental-evaluation';
 import { OpenAIChatLanguageModel } from './chat/openai-chat-language-model';
 import type { OpenAIChatModelId } from './chat/openai-chat-language-model-options';
-import { OpenAICompletionLanguageModel } from './completion/openai-completion-language-model';
-import type { OpenAICompletionModelId } from './completion/openai-completion-language-model-options';
 import { OpenAIEmbeddingModel } from './embedding/openai-embedding-model';
 import { OpenAIFiles } from './files/openai-files';
 import type { OpenAIEmbeddingModelId } from './embedding/openai-embedding-model-options';
@@ -67,11 +65,6 @@ export interface OpenAIProvider extends ProviderV4 {
    * Creates an OpenAI responses API model for text generation.
    */
   responses(modelId: OpenAIResponsesModelId): LanguageModelV4;
-
-  /**
-   * Creates an OpenAI completion model for text generation.
-   */
-  completion(modelId: OpenAICompletionModelId): LanguageModelV4;
 
   /**
    * Creates a model for text embeddings.
@@ -239,14 +232,6 @@ export function createOpenAI(
       fetch: options.fetch,
     });
 
-  const createCompletionModel = (modelId: OpenAICompletionModelId) =>
-    new OpenAICompletionLanguageModel(modelId, {
-      provider: `${providerName}.completion`,
-      url: ({ path }) => `${baseURL}${path}`,
-      headers: getHeaders,
-      fetch: options.fetch,
-    });
-
   const createEmbeddingModel = (modelId: OpenAIEmbeddingModelId) =>
     new OpenAIEmbeddingModel(modelId, {
       provider: `${providerName}.embedding`,
@@ -350,7 +335,6 @@ export function createOpenAI(
   provider.specificationVersion = 'v4' as const;
   provider.languageModel = createLanguageModel;
   provider.chat = createChatModel;
-  provider.completion = createCompletionModel;
   provider.responses = createResponsesModel;
   provider.evaluationModel = (modelId: OpenAIResponsesModelId) =>
     new EvaluationLanguageModel({

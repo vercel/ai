@@ -915,9 +915,6 @@ describe('OpenAI batch service', () => {
     expect((provider('gpt-5.6') as any).doStartBatch).toBeUndefined();
     expect((provider.responses('gpt-5.6') as any).doStartBatch).toBeUndefined();
     expect((provider.chat('gpt-5.6') as any).doStartBatch).toBeUndefined();
-    expect(
-      (provider.completion('gpt-3.5-turbo-instruct') as any).doStartBatch,
-    ).toBeUndefined();
   });
 
   describe('batch result lifecycle', () => {
