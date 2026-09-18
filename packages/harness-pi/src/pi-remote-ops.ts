@@ -64,8 +64,8 @@ interface RunShellInput {
 interface RunShellResult {
   exitCode: number | null;
   output: Buffer;
-  stdout: Buffer;
-  stderr: Buffer;
+  stdout: string;
+  stderr: string;
 }
 
 const MAX_GREP_DIAGNOSTIC_BYTES = 8_192;
@@ -91,10 +91,7 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
       ...(input.signal ? { abortSignal: input.signal } : {}),
     });
 
-    const stdout = Buffer.from(result.stdout, 'utf8');
-    const stderr = Buffer.from(result.stderr, 'utf8');
-    const combined = `${result.stdout}${result.stderr}`;
-    const output = Buffer.from(combined, 'utf8');
+    const output = Buffer.from(`${result.stdout}${result.stderr}`, 'utf8');
     if (output.length > 0) {
       input.onData?.(output);
     }
@@ -102,8 +99,8 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
     return {
       exitCode: result.exitCode,
       output,
-      stdout,
-      stderr,
+      stdout: result.stdout,
+      stderr: result.stderr,
     };
   };
 
@@ -331,19 +328,73 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
           ? `./${relativeTarget}`
           : relativeTarget;
     const limit = Math.max(1, input.limit ?? 100);
-    const flags = [
-      '-r',
+    const commonFlags = [
       '-n',
-      '-m',
-      String(limit),
       ...(input.ignoreCase ? ['-i'] : []),
       ...(input.literal ? ['-F'] : []),
       ...(typeof input.context === 'number' && input.context > 0
         ? ['-C', String(input.context)]
         : []),
+    ];
+    const recursiveFlags = [
+      '-r',
+      ...commonFlags,
+      '-m',
+      String(limit),
       ...(input.glob ? [`--include=${input.glob}`] : []),
     ];
-    const stderrPath = `/tmp/.ai-sdk-harness-pi-grep-${randomUUID()}.stderr`;
+    const temporaryPathPrefix = `/tmp/.ai-sdk-harness-pi-grep-${randomUUID()}`;
+    const outputPath = `${temporaryPathPrefix}.stdout`;
+    const stderrPath = `${temporaryPathPrefix}.stderr`;
+    const statusPath = `${temporaryPathPrefix}.status`;
+    const fileOutputPath = `${temporaryPathPrefix}.file.stdout`;
+    const fileStderrPath = `${temporaryPathPrefix}.file.stderr`;
+    const findStderrPath = `${temporaryPathPrefix}.find.stderr`;
+    const boundedFileGrepScript = [
+      `grep_limit=${limit}`,
+      `grep_output=${shellQuote(outputPath)}`,
+      `grep_stderr=${shellQuote(stderrPath)}`,
+      `grep_status=${shellQuote(statusPath)}`,
+      `grep_file_output=${shellQuote(fileOutputPath)}`,
+      `grep_file_stderr=${shellQuote(fileStderrPath)}`,
+      'grep_output_lines=$(wc -l < "$grep_output")',
+      'grep_overall_status=$(cat "$grep_status")',
+      'for grep_file in "$@"; do',
+      'grep_remaining=$((grep_limit - grep_output_lines))',
+      'if [ "$grep_remaining" -le 0 ]; then break; fi',
+      `grep ${commonFlags.map(shellQuote).join(' ')} -m "$grep_remaining" -e ${shellQuote(pattern)} "$grep_file" > "$grep_file_output" 2> "$grep_file_stderr"`,
+      'grep_file_status=$?',
+      'if [ "$grep_file_status" -eq 0 ]; then',
+      'grep_display_file=${grep_file#./}',
+      'grep_file_lines=0',
+      'while IFS= read -r grep_line; do',
+      'if [ "$grep_file_lines" -ge "$grep_remaining" ]; then break; fi',
+      'case "$grep_line" in',
+      `'--') printf '%s\\n' "$grep_line" ;;`,
+      `[0-9]*:*) printf '%s:%s\\n' "$grep_display_file" "$grep_line" ;;`,
+      `[0-9]*-*) printf '%s-%s\\n' "$grep_display_file" "$grep_line" ;;`,
+      `*) printf '%s:%s\\n' "$grep_display_file" "$grep_line" ;;`,
+      'esac',
+      'grep_file_lines=$((grep_file_lines + 1))',
+      'done < "$grep_file_output" >> "$grep_output"',
+      'grep_output_lines=$((grep_output_lines + grep_file_lines))',
+      'grep_overall_status=0',
+      'elif [ "$grep_file_status" -gt 1 ]; then',
+      `grep_diagnostic_size=$(wc -c < "$grep_stderr")`,
+      `grep_diagnostic_remaining=$((${MAX_GREP_DIAGNOSTIC_BYTES} - grep_diagnostic_size))`,
+      'if [ "$grep_diagnostic_remaining" -gt 0 ]; then head -c "$grep_diagnostic_remaining" "$grep_file_stderr" >> "$grep_stderr"; fi',
+      'grep_overall_status=2',
+      'break',
+      'fi',
+      'done',
+      'printf \'%s\\n\' "$grep_overall_status" > "$grep_status"',
+    ].join('\n');
+    const findFlags = [
+      shellQuote(targetPath),
+      '-type',
+      'f',
+      ...(input.glob ? ['-name', shellQuote(input.glob)] : []),
+    ].join(' ');
     const result = await runShell(
       [
         `if [ ! -e ${shellQuote(resolvedPath)} ]; then echo "__PI_GREP_NOT_FOUND__"; exit 2; fi`,
@@ -353,11 +404,25 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
         `binary_option_error=$(grep --binary-files=without-match -e '' /dev/null 2>&1)`,
         `if [ -z "$binary_option_error" ]; then binary_option='--binary-files=without-match'; else binary_option=''; fi`,
         `grep_stderr=${shellQuote(stderrPath)}`,
-        'set -o pipefail',
-        `grep $binary_option ${flags.map(shellQuote).join(' ')} -e ${shellQuote(pattern)} ${shellQuote(targetPath)} 2>"$grep_stderr" | head -n ${limit}`,
-        'grep_status=$?',
+        `grep_output=${shellQuote(outputPath)}`,
+        `grep_status_file=${shellQuote(statusPath)}`,
+        `grep_find_stderr=${shellQuote(findStderrPath)}`,
+        ': > "$grep_stderr"',
+        // just-bash buffers every pipeline stage and applies grep -m per file.
+        // Search files individually there so the producer never emits more
+        // than the remaining global result limit.
+        `if [ -n "$binary_option" ] || [ ! -d ${shellQuote(targetPath)} ]; then set -o pipefail; grep $binary_option ${recursiveFlags.map(shellQuote).join(' ')} -e ${shellQuote(pattern)} ${shellQuote(targetPath)} 2>"$grep_stderr" | head -n ${limit}; grep_status=$?; else : > "$grep_output"; printf '1\\n' > "$grep_status_file"; find ${findFlags} -exec bash -c ${shellQuote(boundedFileGrepScript)} bash {} + 2>"$grep_find_stderr"; find_status=$?; grep_diagnostic_size=$(wc -c < "$grep_stderr"); grep_diagnostic_remaining=$((${MAX_GREP_DIAGNOSTIC_BYTES} - grep_diagnostic_size)); if [ "$grep_diagnostic_remaining" -gt 0 ]; then head -c "$grep_diagnostic_remaining" "$grep_find_stderr" >> "$grep_stderr"; fi; grep_status=$(cat "$grep_status_file"); if [ "$find_status" -ne 0 ]; then grep_status=2; fi; cat "$grep_output"; fi`,
         `head -c ${MAX_GREP_DIAGNOSTIC_BYTES} "$grep_stderr" >&2`,
-        'rm -f "$grep_stderr"',
+        `rm -f ${[
+          outputPath,
+          stderrPath,
+          statusPath,
+          fileOutputPath,
+          fileStderrPath,
+          findStderrPath,
+        ]
+          .map(shellQuote)
+          .join(' ')}`,
         'exit "$grep_status"',
       ].join('; '),
     );
@@ -366,8 +431,8 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
     if (output.includes('__PI_GREP_NOT_FOUND__')) {
       throw new Error(`Path not found: ${input.path ?? '.'}`);
     }
-    const stdout = result.stdout.toString('utf8').trim();
-    const stderr = result.stderr.toString('utf8').trim();
+    const stdout = result.stdout.trim();
+    const stderr = result.stderr.trim();
 
     if (
       result.exitCode === 0 ||

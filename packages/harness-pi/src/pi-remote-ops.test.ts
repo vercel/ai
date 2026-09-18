@@ -390,7 +390,10 @@ describe('createPiRemoteOps.grepFiles', () => {
     expect(cmd).not.toContain('2>/dev/null');
     expect(cmd).toContain('head -n 50');
     expect(cmd).toContain('head -c 8192 "$grep_stderr" >&2');
-    expect(cmd).not.toContain('grep_output=');
+    expect(cmd).not.toContain('grep_output=$(grep');
+    expect(cmd).toContain('find ');
+    expect(cmd).toContain('-exec bash -c');
+    expect(cmd).toContain('grep_remaining');
   });
 
   it('returns "No matches found" on empty output', async () => {
@@ -584,6 +587,32 @@ describe('createPiRemoteOps.grepFiles', () => {
 
       expect(output.split('\n')).toHaveLength(3);
       expect(output).toContain('many.txt:1:match 0');
+    } finally {
+      await sandboxSession.destroy();
+    }
+  });
+
+  it('limits matches spread across many files in just-bash', async () => {
+    const { sandboxSession, sandbox, ops } = await makeJustBashOps();
+
+    try {
+      await Promise.all(
+        Array.from({ length: 250 }, (_, index) =>
+          sandbox.writeTextFile({
+            path: `${sandboxWorkDir}/match-${String(index).padStart(3, '0')}.ts`,
+            content: `match ${index}\n`,
+          }),
+        ),
+      );
+
+      const output = await ops.grepFiles('match', {
+        glob: '*.ts',
+        literal: true,
+        limit: 3,
+      });
+
+      expect(output.split('\n')).toHaveLength(3);
+      expect(output).toContain('match-000.ts:1:match 0');
     } finally {
       await sandboxSession.destroy();
     }
