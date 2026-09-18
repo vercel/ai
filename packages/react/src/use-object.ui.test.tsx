@@ -171,6 +171,68 @@ describe('text stream', () => {
       });
     });
 
+    it.each(['stop', 'clear'] as const)(
+      'should keep the newer overlapping request active until %s is called',
+      async action => {
+        const firstController = new TestResponseController();
+        const secondController = new TestResponseController();
+        server.urls['/api/use-object'].response = [
+          {
+            type: 'controlled-stream',
+            controller: firstController,
+          },
+          {
+            type: 'controlled-stream',
+            controller: secondController,
+          },
+        ];
+
+        await userEvent.click(screen.getByTestId('submit-button'));
+        await firstController.write('{"content":"first');
+
+        await waitFor(() => {
+          expect(screen.getByTestId('object')).toHaveTextContent(
+            '{"content":"first"}',
+          );
+        });
+
+        await userEvent.click(screen.getByTestId('submit-button'));
+        await secondController.write('{"content":"second');
+
+        await waitFor(() => {
+          expect(screen.getByTestId('loading')).toHaveTextContent('true');
+          expect(screen.getByTestId('object')).toHaveTextContent(
+            '{"content":"second"}',
+          );
+        });
+
+        await firstController.close();
+
+        await waitFor(() => {
+          expect(onFinishCalls).toHaveLength(1);
+          expect(screen.getByTestId('loading')).toHaveTextContent('true');
+        });
+
+        await userEvent.click(screen.getByTestId(`${action}-button`));
+
+        await expect(
+          secondController.write('-after-cancel"}'),
+        ).rejects.toThrow();
+        await expect(secondController.close()).rejects.toThrow();
+
+        await waitFor(() => {
+          expect(screen.getByTestId('loading')).toHaveTextContent('false');
+          if (action === 'stop') {
+            expect(screen.getByTestId('object')).toHaveTextContent(
+              '{"content":"second"}',
+            );
+          } else {
+            expect(screen.getByTestId('object')).toBeEmptyDOMElement();
+          }
+        });
+      },
+    );
+
     it('should stop and clear the object state after a call to submit then clear', async () => {
       const controller = new TestResponseController();
       server.urls['/api/use-object'].response = {

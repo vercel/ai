@@ -212,8 +212,10 @@ export function useObject<
           },
 
           async close() {
-            setIsLoading(false);
-            abortControllerRef.current = null;
+            if (abortControllerRef.current === abortController) {
+              setIsLoading(false);
+              abortControllerRef.current = null;
+            }
 
             if (onFinish != null) {
               const validationResult = await safeValidateTypes({
