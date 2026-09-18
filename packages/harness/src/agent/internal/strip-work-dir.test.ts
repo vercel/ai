@@ -124,6 +124,63 @@ describe('stripWorkDir', () => {
     });
   });
 
+  it('preserves repeated work dir text after an embedded occurrence in complete and streamed values', () => {
+    const value = 'origin/work/work/foo';
+    const toolCall = stripWorkDir(
+      {
+        type: 'tool-call',
+        toolCallId: 'c1',
+        toolName: 'bash',
+        input: value,
+      },
+      '/work',
+    ) as Extract<HarnessV1StreamPart, { type: 'tool-call' }>;
+    const toolResult = stripWorkDir(
+      {
+        type: 'tool-result',
+        toolCallId: 'c1',
+        toolName: 'bash',
+        result: value,
+      },
+      '/work',
+    ) as Extract<HarnessV1StreamPart, { type: 'tool-result' }>;
+    const fileChange = stripWorkDir(
+      {
+        type: 'file-change',
+        event: 'modify',
+        path: value,
+      },
+      '/work',
+    ) as Extract<HarnessV1StreamPart, { type: 'file-change' }>;
+
+    const strip = createToolInputWorkDirStripper({
+      sessionWorkDir: '/work',
+    });
+    const streamed = [
+      { type: 'tool-input-start', id: 'c1', toolName: 'bash' },
+      { type: 'tool-input-delta', id: 'c1', delta: value },
+      { type: 'tool-input-end', id: 'c1' },
+    ]
+      .flatMap(part =>
+        strip(
+          part as Extract<
+            HarnessV1StreamPart,
+            {
+              type: 'tool-input-start' | 'tool-input-delta' | 'tool-input-end';
+            }
+          >,
+        ),
+      )
+      .filter(part => part.type === 'tool-input-delta')
+      .map(part => part.delta)
+      .join('');
+
+    expect(toolCall.input).toBe(streamed);
+    expect(toolResult.result).toBe(streamed);
+    expect(fileChange.path).toBe(streamed);
+    expect(streamed).toBe(value);
+  });
+
   it('preserves embedded work dir text split across tool-input deltas', () => {
     const strip = createToolInputWorkDirStripper({
       sessionWorkDir: '/work',

@@ -127,33 +127,12 @@ export function stripWorkDir(
  * becomes `.`.
  */
 function stripString(value: string, workDir: string): string {
-  let remaining = value;
-  let output = '';
-
-  while (remaining.length > 0) {
-    const matchIndex = remaining.indexOf(workDir);
-    if (matchIndex < 0) return output + remaining;
-
-    const followingIndex = matchIndex + workDir.length;
-    const isPath =
-      isPathBoundary(remaining, matchIndex) &&
-      (followingIndex === remaining.length ||
-        remaining[followingIndex] === '/');
-
-    if (!isPath) {
-      output += remaining.slice(0, followingIndex);
-      remaining = remaining.slice(followingIndex);
-      continue;
-    }
-
-    output += remaining.slice(0, matchIndex);
-    if (followingIndex === remaining.length) {
-      return output + '.';
-    }
-    remaining = remaining.slice(followingIndex + 1);
-  }
-
-  return output;
+  return stripStreamingString({
+    value,
+    workDir,
+    final: true,
+    precedingCharacter: undefined,
+  }).output;
 }
 
 function stripStreamingString({
