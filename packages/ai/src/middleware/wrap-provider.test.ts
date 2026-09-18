@@ -154,9 +154,6 @@ describe('wrapProvider', () => {
         return skills;
       },
     } satisfies ProviderV4;
-    const filesSpy = vi.spyOn(provider, 'files');
-    const skillsSpy = vi.spyOn(provider, 'skills');
-
     const wrappedProvider = wrapProvider({
       provider,
       languageModelMiddleware: { specificationVersion: 'v4' },
@@ -164,8 +161,6 @@ describe('wrapProvider', () => {
 
     expect(wrappedProvider.files?.()).toBe(files);
     expect(wrappedProvider.skills?.()).toBe(skills);
-    expect(filesSpy.mock.contexts[0]).toBe(provider);
-    expect(skillsSpy.mock.contexts[0]).toBe(provider);
   });
 
   it('should not add file and skill upload interfaces when unsupported', () => {

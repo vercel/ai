@@ -47,9 +47,7 @@ export function wrapProvider({
     transcriptionModel: providerV4.transcriptionModel,
     speechModel: providerV4.speechModel,
     rerankingModel: providerV4.rerankingModel,
-    ...(providerV4.files != null ? { files: () => providerV4.files!() } : {}),
-    ...(providerV4.skills != null
-      ? { skills: () => providerV4.skills!() }
-      : {}),
+    ...(providerV4.files != null ? { files: providerV4.files } : {}),
+    ...(providerV4.skills != null ? { skills: providerV4.skills } : {}),
   };
 }
