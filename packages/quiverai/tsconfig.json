@@ -13,11 +13,10 @@
   ],
   "references": [
     {
-<<<<<<< HEAD
-      "path": "../open-responses"
-=======
       "path": "../ai"
->>>>>>> origin/main
+    },
+    {
+      "path": "../open-responses"
     },
     {
       "path": "../provider"

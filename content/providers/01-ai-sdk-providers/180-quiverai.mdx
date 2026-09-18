@@ -5,11 +5,7 @@ description: Learn how to use QuiverAI models with the AI SDK.
 
 # QuiverAI Provider
 
-<<<<<<< HEAD
-[QuiverAI](https://quiver.ai/) provides Arrow language models that can reason about and create SVG documents, plus native SVG generation and vectorization endpoints. The AI SDK provider exposes Arrow 2 through `generateText` and `streamText` and preserves the existing image-model factories.
-=======
-[QuiverAI](https://quiver.ai/) generates SVG documents directly from text prompts, vectorizes raster images into clean SVGs, and edits and animates existing SVGs. The QuiverAI provider for the AI SDK exposes these operations through `generateImage`.
->>>>>>> origin/main
+[QuiverAI](https://quiver.ai/) provides Arrow language models that can reason about and create SVG documents, plus native SVG generation, vectorization, editing, and animation endpoints. The AI SDK provider exposes Arrow 2 through `generateText` and `streamText` and exposes image operations through `generateImage`.
 
 ## Setup
 
@@ -436,8 +432,4 @@ Source SVGs, text instructions, and remote source URLs are sent to QuiverAI. Ani
 
 Arrow 2 models return measured token counts in `result.usage`. Fixed-credit models may return compatibility token counts of zero; their credit charge is available in `result.providerMetadata?.quiverai?.credits` when supplied by the API.
 
-<<<<<<< HEAD
-Model availability and supported operations depend on your organization and API key permissions. Consult QuiverAI's [model catalog](https://docs.quiver.ai/developers/models) for current capabilities and billing. Editing and animation are not yet exposed by this provider.
-=======
-Model availability and supported operations depend on your organization and API key permissions. Consult QuiverAI's [model catalog](https://docs.quiver.ai/developers/models) for current capabilities and billing. The Responses API is not yet exposed by this provider.
->>>>>>> origin/main
+Model availability and supported operations depend on your organization and API key permissions. Consult QuiverAI's [model catalog](https://docs.quiver.ai/developers/models) for current capabilities and billing.
