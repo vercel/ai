@@ -1,5 +1,30 @@
 # @ai-sdk/react
 
+## 4.0.110
+
+### Patch Changes
+
+- 00da674: fix(react): preserve Headers instances in useCompletion requests
+- e43032f: fix(react): handle rejected asynchronous useObject onFinish callbacks
+- f42a247: fix(react): keep useObject cleared when an initial value is configured
+- 21d4b7d: fix(react): preserve active useObject cancellation state during overlapping requests
+- Updated dependencies [79681c4]
+- Updated dependencies [98c7275]
+- Updated dependencies [2973485]
+- Updated dependencies [a105059]
+- Updated dependencies [31532f3]
+- Updated dependencies [e61cbd8]
+- Updated dependencies [8ade040]
+- Updated dependencies [970a01e]
+- Updated dependencies [85539c5]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+- Updated dependencies [611d301]
+- Updated dependencies [c415657]
+  - ai@7.0.107
+  - @ai-sdk/provider-utils@5.0.45
+  - @ai-sdk/mcp@2.0.54
+
 ## 4.0.109
 
 ### Patch Changes

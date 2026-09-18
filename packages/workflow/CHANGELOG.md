@@ -1,5 +1,26 @@
 # @ai-sdk/workflow
 
+## 2.0.38
+
+### Patch Changes
+
+- a105059: fix(workflow): support deferred tool discovery in WorkflowAgent
+- Updated dependencies [79681c4]
+- Updated dependencies [98c7275]
+- Updated dependencies [2973485]
+- Updated dependencies [a105059]
+- Updated dependencies [31532f3]
+- Updated dependencies [e61cbd8]
+- Updated dependencies [8ade040]
+- Updated dependencies [970a01e]
+- Updated dependencies [85539c5]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+- Updated dependencies [611d301]
+- Updated dependencies [c415657]
+  - ai@7.0.107
+  - @ai-sdk/provider-utils@5.0.45
+
 ## 2.0.37
 
 ### Patch Changes
