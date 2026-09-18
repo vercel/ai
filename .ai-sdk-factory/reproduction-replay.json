@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21072,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/generate-speech-pcm-metadata.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/generate-speech-pcm-metadata.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #21072: raw PCM output metadata is inconsistent with the returned PCM bytes"
+  }
+}
