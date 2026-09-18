@@ -88,6 +88,27 @@ describe('stripWorkDir', () => {
     expect(out.path).toBe('.');
   });
 
+  it.each([
+    ['whitespace', 'cd /work && pwd', 'cd . && pwd'],
+    ['a quote in JSON', '{"cwd":"/work"}', '{"cwd":"."}'],
+    ['a shell delimiter', 'cd /work;pwd', 'cd .;pwd'],
+  ])(
+    'maps a bare work dir followed by %s to "." in a complete value',
+    (_description, input, expected) => {
+      const part: HarnessV1StreamPart = {
+        type: 'tool-call',
+        toolCallId: 'c1',
+        toolName: 'bash',
+        input,
+      };
+      const out = stripWorkDir(part, '/work') as Extract<
+        HarnessV1StreamPart,
+        { type: 'tool-call' }
+      >;
+      expect(out.input).toBe(expected);
+    },
+  );
+
   it('strips the prefix from a file-change path', () => {
     const part: HarnessV1StreamPart = {
       type: 'file-change',
@@ -180,6 +201,49 @@ describe('stripWorkDir', () => {
     expect(fileChange.path).toBe(streamed);
     expect(streamed).toBe(value);
   });
+
+  it.each([
+    ['whitespace', ['cd /work', ' && pwd'], 'cd . && pwd'],
+    ['a quote in JSON', ['{"cwd":"/work', '"}'], '{"cwd":"."}'],
+    ['a shell delimiter', ['cd /work', ';pwd'], 'cd .;pwd'],
+  ])(
+    'maps a streamed bare work dir followed by %s to "."',
+    (_description, deltas, expected) => {
+      const strip = createToolInputWorkDirStripper({
+        sessionWorkDir: '/work',
+      });
+      const parts: HarnessV1StreamPart[] = [
+        { type: 'tool-input-start', id: 'c1', toolName: 'bash' },
+        ...deltas.map(
+          delta =>
+            ({
+              type: 'tool-input-delta',
+              id: 'c1',
+              delta,
+            }) as const,
+        ),
+        { type: 'tool-input-end', id: 'c1' },
+      ];
+
+      const output = parts.flatMap(part =>
+        strip(
+          part as Extract<
+            HarnessV1StreamPart,
+            {
+              type: 'tool-input-start' | 'tool-input-delta' | 'tool-input-end';
+            }
+          >,
+        ),
+      );
+
+      expect(
+        output
+          .filter(part => part.type === 'tool-input-delta')
+          .map(part => part.delta)
+          .join(''),
+      ).toBe(expected);
+    },
+  );
 
   it('preserves embedded work dir text split across tool-input deltas', () => {
     const strip = createToolInputWorkDirStripper({

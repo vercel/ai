@@ -169,7 +169,8 @@ function stripStreamingString({
       const isPath =
         hasPathBoundary &&
         (followingIndex === remaining.length ||
-          remaining[followingIndex] === '/');
+          remaining[followingIndex] === '/' ||
+          isPathTerminator(remaining[followingIndex]));
       if (!isPath) {
         output += remaining.slice(0, followingIndex);
         characterBeforeRemaining = remaining[followingIndex - 1];
@@ -216,6 +217,10 @@ function isPathBoundary(
 ): boolean {
   const character = index === 0 ? precedingCharacter : value[index - 1]!;
   return character === undefined || /[\s"'`=]/.test(character);
+}
+
+function isPathTerminator(character: string | undefined): boolean {
+  return character === undefined || /[\s"'`;|&<>()]/.test(character);
 }
 
 /**
