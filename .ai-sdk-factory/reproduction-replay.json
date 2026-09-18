@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21080,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/openai-image-edit-download-cancellation.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/openai-image-edit-download-cancellation.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_21080_REPRODUCED: OpenAI image-edit download cancellation did not settle all 8 cases"
+  }
+}
