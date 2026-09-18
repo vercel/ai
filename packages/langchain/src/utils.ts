@@ -1765,6 +1765,7 @@ export function processLangGraphEvent(
         const status = dataSource.status as string | undefined;
 
         if (toolCallId) {
+          state.emittedToolOutputs.add(msgId);
           if (status === 'error') {
             // Tool execution failed
             controller.enqueue({
@@ -1948,11 +1949,28 @@ export function processLangGraphEvent(
         const messages = (data as { messages?: unknown[] }).messages;
         if (Array.isArray(messages)) {
           /**
-           * First pass: Collect all tool call IDs that have been responded to by ToolMessages.
-           * These are historical tool calls that are already complete.
+           * First pass: Collect all tool call IDs that have been responded to by
+           * ToolMessages. Calls followed by another non-tool message are historical,
+           * while trailing ToolMessages can be the only evidence of a completed call
+           * when the node is tagged with `nostream`.
            */
           const completedToolCallIds = new Set<string>();
-          for (const msg of messages) {
+          const trailingToolMessages = new Map<
+            string,
+            {
+              data: Record<string, unknown>;
+              outputId: string;
+            }
+          >();
+          let trailingToolMessageStart = messages.length;
+          while (
+            trailingToolMessageStart > 0 &&
+            isToolMessageType(messages[trailingToolMessageStart - 1])
+          ) {
+            trailingToolMessageStart--;
+          }
+
+          for (const [index, msg] of messages.entries()) {
             if (!msg || typeof msg !== 'object') continue;
 
             if (isToolMessageType(msg)) {
@@ -1968,13 +1986,19 @@ export function processLangGraphEvent(
               const toolCallId = dataSource.tool_call_id as string | undefined;
               if (toolCallId) {
                 completedToolCallIds.add(toolCallId);
+                if (index >= trailingToolMessageStart) {
+                  trailingToolMessages.set(toolCallId, {
+                    data: dataSource,
+                    outputId: getMessageId(msg) ?? `${toolCallId}:${index}`,
+                  });
+                }
               }
             }
           }
 
           /**
-           * Second pass: Process messages and emit tool events only for NEW tool calls
-           * (those not already completed by a ToolMessage in the history)
+           * Second pass: Process messages and emit tool events for new tool calls,
+           * including calls completed by trailing ToolMessages that were not streamed.
            */
           for (const msg of messages) {
             if (!msg || typeof msg !== 'object') continue;
@@ -2068,11 +2092,15 @@ export function processLangGraphEvent(
                 );
                 const lifecycleNamespace = messageNamespace ?? eventNamespace;
                 const wasObservedInCurrentStep = messageNamespace !== undefined;
+                const trailingToolMessageInfo = toolCall.id
+                  ? trailingToolMessages.get(toolCall.id)
+                  : undefined;
                 /**
                  * Emit tool calls recovered from a message in the current step,
                  * even when a prior step used the same provider-scoped ID.
-                 * Otherwise, preserve stream-wide suppression for historical
-                 * completed calls and values-only streams without step metadata.
+                 * Otherwise, preserve stream-wide suppression for historical calls
+                 * while recovering completed values-only calls from trailing
+                 * ToolMessages.
                  */
                 if (
                   toolCall.id &&
@@ -2083,7 +2111,8 @@ export function processLangGraphEvent(
                   ) &&
                   (wasObservedInCurrentStep ||
                     (!emittedToolCalls.has(toolCall.id) &&
-                      !completedToolCallIds.has(toolCall.id)))
+                      (!completedToolCallIds.has(toolCall.id) ||
+                        trailingToolMessageInfo != null)))
                 ) {
                   markToolCallEmitted(state, toolCall.id, lifecycleNamespace);
                   // Store mapping for HITL interrupt lookup
@@ -2113,6 +2142,36 @@ export function processLangGraphEvent(
                   // so that __interrupt__ handling can match them by key
                   const toolCallKey = `${toolCall.name}:${JSON.stringify(toolCall.args)}`;
                   emittedToolCallsByKey.set(toolCallKey, toolCall.id);
+                }
+
+                if (
+                  toolCall.id &&
+                  trailingToolMessageInfo != null &&
+                  !state.emittedToolOutputs.has(
+                    trailingToolMessageInfo.outputId,
+                  ) &&
+                  emittedToolCalls.has(toolCall.id)
+                ) {
+                  state.emittedToolOutputs.add(
+                    trailingToolMessageInfo.outputId,
+                  );
+                  const trailingToolMessage = trailingToolMessageInfo.data;
+                  if (trailingToolMessage.status === 'error') {
+                    controller.enqueue({
+                      type: 'tool-output-error',
+                      toolCallId: toolCall.id,
+                      errorText:
+                        typeof trailingToolMessage.content === 'string'
+                          ? trailingToolMessage.content
+                          : 'Tool execution failed',
+                    });
+                  } else {
+                    controller.enqueue({
+                      type: 'tool-output-available',
+                      toolCallId: toolCall.id,
+                      output: trailingToolMessage.content,
+                    });
+                  }
                 }
               }
             }

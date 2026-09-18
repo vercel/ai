@@ -26,6 +26,8 @@ export interface LangGraphEventState {
   emittedToolInputs: Set<string>;
   /** Tracks complete tool inputs emitted in each namespace's current step */
   emittedToolInputsInCurrentStepByNamespace: Map<string, Set<string>>;
+  /** Tracks terminal tool outputs emitted from ToolMessages */
+  emittedToolOutputs: Set<string>;
   /** Maps image IDs to their message IDs (for chunks that don't include the ID) */
   emittedImages: Set<string>;
   /** Maps reasoning block IDs to their message IDs (for chunks that don't include the ID) */
