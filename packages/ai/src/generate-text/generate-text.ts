@@ -725,6 +725,7 @@ export async function generateText<
         toolsContext,
         runtimeContext,
         toolApprovalSecret: experimental_toolApprovalSecret,
+        refineToolInput,
       });
 
       const deniedToolApprovals = [
