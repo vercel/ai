@@ -49,6 +49,12 @@ export type HarnessAgentSandboxConfig = {
   readonly workDir?: string;
 
   /**
+   * Whether to replace the session working-directory prefix with relative
+   * paths in consumer-facing stream parts. Defaults to `true`.
+   */
+  readonly stripWorkDir?: boolean;
+
+  /**
    * Caller-controlled identity for `onBootstrap`. Change this whenever the
    * bootstrap side effects should invalidate the reusable sandbox snapshot.
    */
