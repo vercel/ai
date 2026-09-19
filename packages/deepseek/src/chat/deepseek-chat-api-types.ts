@@ -70,7 +70,7 @@ export interface DeepSeekMessageToolCall {
 
 export interface DeepSeekToolMessage {
   role: 'tool';
-  content: string;
+  content: string | Array<DeepSeekContentPartText | DeepSeekContentPartImage>;
   tool_call_id: string;
 }
 

@@ -15,6 +15,7 @@ import {
 import type {
   DeepSeekChatPrompt,
   DeepSeekContentPart,
+  DeepSeekToolMessage,
 } from './deepseek-chat-api-types';
 import { deepseekFilePartProviderOptions } from './deepseek-file-part-options';
 import { deepseekAssistantMessageProviderOptions } from './deepseek-chat-language-model-options';
@@ -357,7 +358,7 @@ export async function convertToDeepSeekChatMessages({
           }
           const output = toolResponse.output;
 
-          let contentValue: string;
+          let contentValue: DeepSeekToolMessage['content'];
           switch (output.type) {
             case 'text':
             case 'error-text':
@@ -366,7 +367,89 @@ export async function convertToDeepSeekChatMessages({
             case 'execution-denied':
               contentValue = output.reason ?? 'Tool call execution denied.';
               break;
-            case 'content':
+            case 'content': {
+              // Images in tool results (e.g. screenshots) are sent as content
+              // parts so that vision models can read them. Serializing them
+              // would turn the image into base64 text.
+              const hasImagePart = output.value.some(
+                part =>
+                  part.type === 'file' &&
+                  (part.data.type === 'url' || part.data.type === 'data') &&
+                  getTopLevelMediaType(part.mediaType) === 'image',
+              );
+
+              if (!hasImagePart) {
+                contentValue = JSON.stringify(output.value);
+                break;
+              }
+
+              const toolContent: Exclude<
+                DeepSeekToolMessage['content'],
+                string
+              > = [];
+
+              for (const part of output.value) {
+                if (part.type === 'text') {
+                  toolContent.push({ type: 'text', text: part.text });
+                } else if (
+                  part.type === 'file' &&
+                  (part.data.type === 'url' || part.data.type === 'data') &&
+                  getTopLevelMediaType(part.mediaType) === 'image'
+                ) {
+                  const filePartOptions = await parseProviderOptions({
+                    provider: providerOptionsName,
+                    providerOptions: part.providerOptions,
+                    schema: deepseekFilePartProviderOptions,
+                  });
+                  const resolvedMediaType = resolveFullMediaType({ part });
+
+                  if (!supportedImageMediaTypes.has(resolvedMediaType)) {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: `DeepSeek image media type ${resolvedMediaType}`,
+                      message:
+                        'DeepSeek supports JPEG, PNG, GIF, and WebP image inputs.',
+                    });
+                  }
+
+                  let url: string;
+                  if (part.data.type === 'url') {
+                    url = part.data.url.toString();
+
+                    if (url.length > 8192) {
+                      throw new InvalidPromptError({
+                        prompt,
+                        message:
+                          'DeepSeek image URLs must not exceed 8192 characters.',
+                      });
+                    }
+                  } else {
+                    url = `data:${
+                      resolvedMediaType === 'image/jpg'
+                        ? 'image/jpeg'
+                        : resolvedMediaType
+                    };base64,${convertToBase64(part.data.data)}`;
+                  }
+
+                  toolContent.push({
+                    type: 'image_url',
+                    image_url: {
+                      url,
+                      ...(filePartOptions?.imageDetail != null && {
+                        detail: filePartOptions.imageDetail,
+                      }),
+                    },
+                  });
+                } else {
+                  toolContent.push({
+                    type: 'text',
+                    text: JSON.stringify(part),
+                  });
+                }
+              }
+
+              contentValue = toolContent;
+              break;
+            }
             case 'json':
             case 'error-json':
               contentValue = JSON.stringify(output.value);
