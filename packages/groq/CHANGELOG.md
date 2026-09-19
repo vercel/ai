@@ -1,5 +1,12 @@
 # @ai-sdk/groq
 
+## 3.0.67
+
+### Patch Changes
+
+- Updated dependencies [82e18b0]
+  - @ai-sdk/provider-utils@4.0.52
+
 ## 3.0.66
 
 ### Patch Changes

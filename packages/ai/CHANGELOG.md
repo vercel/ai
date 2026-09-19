@@ -1,5 +1,16 @@
 # ai
 
+## 6.0.287
+
+### Patch Changes
+
+- 9af6cfa: fix(ai): preserve provider metadata when converting failed tool calls
+- Updated dependencies [5f2d078]
+- Updated dependencies [82e18b0]
+- Updated dependencies [eea6869]
+  - @ai-sdk/gateway@3.0.197
+  - @ai-sdk/provider-utils@4.0.52
+
 ## 6.0.286
 
 ### Patch Changes
