@@ -313,54 +313,71 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
       pollOverrides?.pollTimeoutMillis ??
       this.config.pollTimeoutMillis ??
       DEFAULT_POLL_TIMEOUT_MILLIS;
-    const maxPollAttempts = Math.ceil(
-      pollTimeoutMillis / Math.max(1, pollIntervalMillis),
-    );
 
     const url = new URL(pollUrl);
     if (!url.searchParams.has('id')) {
       url.searchParams.set('id', requestId);
     }
 
-    for (let i = 0; i < maxPollAttempts; i++) {
-      const { value } = await getFromApi({
-        url: url.toString(),
-        // The polling URL comes from the provider response; validate it.
-        validateUrl: true,
-        trustedOrigin: this.config.baseURL,
-        // Only send credentials when it stays on a trusted provider host.
-        headers: isTrustedUrl(url.toString(), this.config.baseURL)
-          ? headers
-          : undefined,
-        failedResponseHandler: bflFailedResponseHandler,
-        successfulResponseHandler: createJsonResponseHandler(bflPollSchema),
-        abortSignal,
-        fetch: this.config.fetch,
-      });
+    const timeoutController = new AbortController();
+    let didTimeout = false;
+    const timeoutId = setTimeout(() => {
+      didTimeout = true;
+      timeoutController.abort();
+    }, pollTimeoutMillis);
+    const pollingAbortSignal =
+      abortSignal == null
+        ? timeoutController.signal
+        : AbortSignal.any([abortSignal, timeoutController.signal]);
 
-      const status = value.status;
-      if (status === 'Ready') {
-        if (typeof value.result?.sample === 'string') {
-          return {
-            imageUrl: value.result.sample,
-            seed: value.result.seed ?? undefined,
-            start_time: value.result.start_time ?? undefined,
-            end_time: value.result.end_time ?? undefined,
-            duration: value.result.duration ?? undefined,
-          };
+    try {
+      while (true) {
+        const { value } = await getFromApi({
+          url: url.toString(),
+          // The polling URL comes from the provider response; validate it.
+          validateUrl: true,
+          trustedOrigin: this.config.baseURL,
+          // Only send credentials when it stays on a trusted provider host.
+          headers: isTrustedUrl(url.toString(), this.config.baseURL)
+            ? headers
+            : undefined,
+          failedResponseHandler: bflFailedResponseHandler,
+          successfulResponseHandler: createJsonResponseHandler(bflPollSchema),
+          abortSignal: pollingAbortSignal,
+          fetch: this.config.fetch,
+        });
+
+        const status = value.status;
+        if (status === 'Ready') {
+          if (typeof value.result?.sample === 'string') {
+            return {
+              imageUrl: value.result.sample,
+              seed: value.result.seed ?? undefined,
+              start_time: value.result.start_time ?? undefined,
+              end_time: value.result.end_time ?? undefined,
+              duration: value.result.duration ?? undefined,
+            };
+          }
+          throw new Error(
+            'Black Forest Labs poll response is Ready but missing result.sample',
+          );
         }
-        throw new Error(
-          'Black Forest Labs poll response is Ready but missing result.sample',
-        );
-      }
-      if (status === 'Error' || status === 'Failed') {
-        throw new Error('Black Forest Labs generation failed.');
-      }
+        if (status === 'Error' || status === 'Failed') {
+          throw new Error('Black Forest Labs generation failed.');
+        }
 
-      await delay(pollIntervalMillis);
+        await delay(pollIntervalMillis, {
+          abortSignal: pollingAbortSignal,
+        });
+      }
+    } catch (error) {
+      if (didTimeout) {
+        throw new Error('Black Forest Labs generation timed out.');
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
     }
-
-    throw new Error('Black Forest Labs generation timed out.');
   }
 }
 

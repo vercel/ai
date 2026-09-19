@@ -1,5 +1,24 @@
 # @ai-sdk/google
 
+## 4.0.76
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+
+## 4.0.75
+
+### Patch Changes
+
+- e369c4d: fix(google): advertise the supported Gemini image per-call limit
+- 2b391f8: fix(google): ignore default prompt block reasons in non-streaming responses
+- 1284569: fix(google): include tool-use prompt tokens in input usage
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+
 ## 4.0.74
 
 ### Patch Changes
