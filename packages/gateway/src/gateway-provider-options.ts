@@ -117,72 +117,19 @@ const gatewayProviderOptions = lazySchema(() =>
        *
        * - `'implicit-caching'`: models that perform automatic (implicit)
        *   prompt caching
+       * - `'reasoning'`: models that support reasoning
+       * - `'tool-use'`: models that support tool calling
        * - `'vision'`: models that accept image input
        *
        * The capability is a property of the model, so the filter applies to
        * both BYOK and system credentials. If no provider model for the
        * requested model satisfies the capabilities, the request fails.
        */
-      has: z.array(z.enum(['implicit-caching', 'vision'])).optional(),
+      has: z
+        .array(z.enum(['implicit-caching', 'reasoning', 'tool-use', 'vision']))
+        .optional(),
     }),
   ),
 );
 
-<<<<<<< HEAD
 export type GatewayProviderOptions = InferSchema<typeof gatewayProviderOptions>;
-=======
-  /** Request-scoped BYOK credentials to use instead of cached credentials. */
-  byok?: Record<string, Array<Record<string, unknown>>>;
-
-  /** Enables automatic caching behavior when supported by the Gateway. */
-  caching?: 'auto';
-
-  /** Filter to providers that do not train on prompt data. */
-  disallowPromptTraining?: boolean;
-
-  /**
-   * Restrict routing to models that have all of the given capabilities.
-   * Currently supports `'implicit-caching'`, `'reasoning'`, `'tool-use'`, and
-   * `'vision'` (image input).
-   */
-  has?: Array<'implicit-caching' | 'reasoning' | 'tool-use' | 'vision'>;
-
-  /**
-   * Idempotency key for `experimental_startBatch`: retries with the same
-   * key replay the original batch instead of creating a duplicate.
-   */
-  idempotencyKey?: string;
-
-  /** Array of model slugs specifying fallback models to use in order. */
-  models?: string[];
-
-  /** Array of provider slugs that are the only ones allowed to be used. */
-  only?: string[];
-
-  /** Array of provider slugs specifying the provider attempt order. */
-  order?: string[];
-
-  /** Per-provider timeouts for BYOK credentials in milliseconds. */
-  providerTimeouts?: {
-    byok?: Record<string, number>;
-  };
-
-  /** Entity identifier against which quota is tracked. */
-  quotaEntityId?: string;
-
-  /** Unified service tier intent. */
-  serviceTier?: 'flex' | 'priority';
-
-  /** Sort providers by a performance or cost metric before routing. */
-  sort?: 'cost' | 'tps' | 'ttft';
-
-  /** User-specified tags for reporting and filtering usage. */
-  tags?: string[];
-
-  /** End-user identifier for spend tracking and attribution. */
-  user?: string;
-
-  /** Filter to providers with zero data retention agreements. */
-  zeroDataRetention?: boolean;
-};
->>>>>>> 20dd00abba (feat(provider/gateway): support `reasoning` and `tool-use` in `has` model filtering (#21173))

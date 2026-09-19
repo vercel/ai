@@ -1,5 +1,5 @@
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
-import { isStepCount, streamText } from 'ai';
+import { stepCountIs, streamText } from 'ai';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 import { weatherTool } from '../../tools/weather-tool';
@@ -13,7 +13,7 @@ run(async () => {
       } satisfies GatewayProviderOptions,
     },
     tools: { weather: weatherTool },
-    stopWhen: isStepCount(2),
+    stopWhen: stepCountIs(2),
     prompt: 'What is the weather in San Francisco?',
   });
 
