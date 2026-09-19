@@ -93,6 +93,32 @@ const agent = new HarnessAgent({
 When the harness calls `weather`, `HarnessAgent` executes the tool in your host
 process, then submits the result back to the harness runtime.
 
+Host-executed tools can declare a `contextSchema` and receive turn-scoped
+context through `toolsContext`:
+
+```ts
+const lookupAccount = tool({
+  inputSchema: z.object({}),
+  contextSchema: z.object({ userId: z.string() }),
+  execute: async (_, { context }) => {
+    return loadAccount(context.userId);
+  },
+});
+
+const agent = new HarnessAgent({
+  harness: claudeCode,
+  tools: { lookupAccount },
+  toolsContext: {
+    lookupAccount: { userId: 'user-123' },
+  },
+});
+```
+
+Use `prepareCall` to replace `toolsContext` when the value depends on custom
+call options. `HarnessAgent` validates each entry against the tool's
+`contextSchema` before execution and exposes the configured map in step results
+and lifecycle callbacks.
+
 ## Client-Side Tools
 
 Omit `execute` when a browser, user interaction, or another external process

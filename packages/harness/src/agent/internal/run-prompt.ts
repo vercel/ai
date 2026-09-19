@@ -57,6 +57,7 @@ import {
 import { resolveCustomToolApproval } from './permission-mode';
 import { logBridgeError } from '../../utils/bridge-diagnostics';
 import { pinSandboxChannelEventCheckpoint } from '../../utils/sandbox-channel';
+import { resolveToolContext } from './resolve-tool-context';
 
 function unwrapToolResultOutput(toolResult: ToolResultPart): {
   output: unknown;
@@ -112,6 +113,7 @@ export function runPrompt<
   skills?: ReadonlyArray<HarnessV1Skill>;
   instructions: string | undefined;
   tools: TOOLS;
+  toolsContext?: InferToolSetContext<TOOLS>;
   activeTools?: ToolSet;
   toolSpecs: HarnessV1ToolSpec[];
   builtinToolFiltering?: HarnessV1BuiltinToolFiltering | undefined;
@@ -147,7 +149,7 @@ export function runPrompt<
   done: Promise<void>;
 } {
   const callId = generateId();
-  const toolsContext = {} as InferToolSetContext<TOOLS>;
+  const toolsContext = input.toolsContext ?? ({} as InferToolSetContext<TOOLS>);
   const result = new HarnessStreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
     tools: input.tools,
     runtimeContext: input.runtimeContext,
@@ -701,6 +703,7 @@ export function runPrompt<
       const execution = await maybeExecuteHostTool({
         event: rawToolCall,
         tools: activeTools,
+        toolsContext,
         wrappedExecuteTool: lifecycle.executeTool,
         sandboxSession: input.sandboxSession,
         abortSignal: input.abortSignal,
@@ -1260,6 +1263,7 @@ export function runPrompt<
               const execution = await maybeExecuteHostTool({
                 event: toolCall,
                 tools: activeTools,
+                toolsContext,
                 wrappedExecuteTool: lifecycle.executeTool,
                 sandboxSession: input.sandboxSession,
                 abortSignal: input.abortSignal,
@@ -1426,6 +1430,7 @@ function hasTool(input: { tools: ToolSet; toolName: string }): boolean {
 async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
   event: { toolCallId: string; toolName: string; input: string };
   tools: TOOLS;
+  toolsContext: InferToolSetContext<TOOLS>;
   wrappedExecuteTool: TurnLifecycle<ToolSet, Context>['executeTool'];
   sandboxSession: SandboxSession;
   abortSignal: AbortSignal | undefined;
@@ -1445,6 +1450,12 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
   const args = parsed.success ? parsed.value : input.event.input;
 
   try {
+    const context = await resolveToolContext({
+      toolName: input.event.toolName,
+      tool,
+      toolsContext: input.toolsContext,
+    });
+
     /*
      * Normalize the tool's return value through `executeTool`, the same helper
      * the non-harness AI SDK uses, so generator `execute` functions behave
@@ -1466,7 +1477,7 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
             toolCallId: input.event.toolCallId,
             messages: [],
             abortSignal: input.abortSignal,
-            context: undefined as never,
+            context: context as never,
             experimental_sandbox: input.sandboxSession,
           },
         });
