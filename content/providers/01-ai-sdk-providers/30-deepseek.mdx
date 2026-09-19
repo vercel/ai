@@ -438,6 +438,12 @@ Set `fileData: true` on an inline image file part to use DeepSeek's
 DeepSeek accepts JPEG, PNG, GIF, and WebP image inputs. HTTP image URLs can be
 at most 8,192 characters.
 
+Images in tool results are supported as well. When a tool returns `content`
+output that includes inline images or image URLs (for example a screenshot
+returned from `toModelOutput`), the provider sends them as image content parts
+of the tool message, so that vision models can read them. `imageDetail` applies
+to these parts too. Tool result content without images is sent as JSON text.
+
 You can upload images using the [DeepSeek Files API](https://api-docs.deepseek.com/guides/files_api) and pass the returned provider reference to `deepseek-v4-flash-vision-exp`. This avoids sending the image bytes again in each request.
 
 ```ts

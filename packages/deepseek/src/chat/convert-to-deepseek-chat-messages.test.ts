@@ -691,6 +691,213 @@ describe('convertToDeepSeekChatMessages', () => {
       `);
     });
 
+    it('should convert image data in tool results to image URL content parts', async () => {
+      const result = await convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                input: {},
+                toolCallId: 'call-1',
+                toolName: 'takeScreenshot',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'takeScreenshot',
+                output: {
+                  type: 'content',
+                  value: [
+                    { type: 'text', text: 'Screenshot captured.' },
+                    {
+                      type: 'file',
+                      mediaType: 'image/png',
+                      data: {
+                        type: 'data',
+                        data: new Uint8Array([0, 1, 2, 3]),
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-flash',
+      });
+
+      expect(result.messages[1]).toMatchInlineSnapshot(`
+        {
+          "content": [
+            {
+              "text": "Screenshot captured.",
+              "type": "text",
+            },
+            {
+              "image_url": {
+                "url": "data:image/png;base64,AAECAw==",
+              },
+              "type": "image_url",
+            },
+          ],
+          "role": "tool",
+          "tool_call_id": "call-1",
+        }
+      `);
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should convert image URLs in tool results and pass imageDetail', async () => {
+      const result = await convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                input: {},
+                toolCallId: 'call-1',
+                toolName: 'takeScreenshot',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'takeScreenshot',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      mediaType: 'image/jpeg',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/screenshot.jpg'),
+                      },
+                      providerOptions: { deepseek: { imageDetail: 'low' } },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-flash',
+      });
+
+      expect(result.messages[1]).toMatchInlineSnapshot(`
+        {
+          "content": [
+            {
+              "image_url": {
+                "detail": "low",
+                "url": "https://example.com/screenshot.jpg",
+              },
+              "type": "image_url",
+            },
+          ],
+          "role": "tool",
+          "tool_call_id": "call-1",
+        }
+      `);
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should stringify tool result content without image parts', async () => {
+      const result = await convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                input: {},
+                toolCallId: 'call-1',
+                toolName: 'takeScreenshot',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'takeScreenshot',
+                output: {
+                  type: 'content',
+                  value: [
+                    { type: 'text', text: 'first' },
+                    { type: 'text', text: 'second' },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-flash',
+      });
+
+      expect(result.messages[1]).toMatchInlineSnapshot(`
+        {
+          "content": "[{"type":"text","text":"first"},{"type":"text","text":"second"}]",
+          "role": "tool",
+          "tool_call_id": "call-1",
+        }
+      `);
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should reject unsupported image formats in tool results', async () => {
+      await expect(
+        convertToDeepSeekChatMessages({
+          prompt: [
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call-1',
+                  toolName: 'takeScreenshot',
+                  output: {
+                    type: 'content',
+                    value: [
+                      {
+                        type: 'file',
+                        mediaType: 'image/tiff',
+                        data: {
+                          type: 'data',
+                          data: new Uint8Array([0, 1, 2, 3]),
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+          responseFormat: undefined,
+          modelId: 'deepseek-flash',
+        }),
+      ).rejects.toThrow(
+        'DeepSeek supports JPEG, PNG, GIF, and WebP image inputs.',
+      );
+    });
+
     it('should support reasoning content in tool calls', async () => {
       const result = await convertToDeepSeekChatMessages({
         prompt: [
