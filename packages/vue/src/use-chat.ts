@@ -357,6 +357,7 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>(
     VueChat<UI_MESSAGE>
   >;
   let chatState: VueChatState<UI_MESSAGE> | undefined;
+  let currentTransport: ChatInit<UI_MESSAGE>['transport'];
 
   watch(
     messages,
@@ -371,9 +372,11 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>(
   watch(
     () => toValue(init),
     opts => {
+      currentTransport?.close?.();
       chatState?.dispose();
 
       const { throttle, ...chatInit } = opts ?? {};
+      currentTransport = chatInit.transport;
       const nextChatState = new VueChatState<UI_MESSAGE>({
         initialMessages: chatInit.messages ?? [],
         messagesRef: messages,
@@ -395,6 +398,7 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>(
 
   if (getCurrentScope() != null) {
     onScopeDispose(() => {
+      currentTransport?.close?.();
       chatState?.dispose();
     });
   }

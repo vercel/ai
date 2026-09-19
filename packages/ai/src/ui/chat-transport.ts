@@ -14,6 +14,14 @@ import type { UIMessage } from './ui-messages';
  */
 export interface ChatTransport<UI_MESSAGE extends UIMessage> {
   /**
+   * Releases persistent resources owned by the transport.
+   *
+   * Framework integrations call this optional method when an owned chat is
+   * disposed or its transport is replaced.
+   */
+  close?: () => void;
+
+  /**
    * Sends messages to the chat API endpoint and returns a streaming response.
    *
    * This method handles both new message submission and message regeneration.
