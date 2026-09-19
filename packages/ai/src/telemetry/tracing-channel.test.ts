@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import { embed } from '../embed/embed';
 import { embedMany } from '../embed/embed-many';
+import { evaluate } from '../evaluate/evaluate';
 import { generateText } from '../generate-text';
 import { streamText } from '../generate-text/stream-text';
 import { isStepCount } from '../generate-text/stop-condition';
@@ -13,6 +14,7 @@ import { rerank } from '../rerank/rerank';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
+import { EvaluationMockModelV4 } from '../test/evaluation-mock-model-v4';
 import { createTelemetryDispatcher } from './create-telemetry-dispatcher';
 import {
   AI_SDK_TELEMETRY_TRACING_CHANNEL,
@@ -642,6 +644,32 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
       [
         "bindStart rerank",
         "asyncEnd rerank",
+      ]
+    `);
+  });
+
+  it('traces the current evaluate lifecycle sequence', async () => {
+    const sequence = await collectTracingChannelEventSequence(async () => {
+      await evaluate({
+        model: new EvaluationMockModelV4({
+          doEvaluate: async () => ({
+            answers: {
+              refund: { type: 'boolean', probability: 0.9 },
+            },
+            warnings: [],
+          }),
+        }),
+        state: 'Please refund me',
+        questions: {
+          refund: { type: 'boolean', instructions: 'Refund?' },
+        },
+      });
+    });
+
+    expect(sequence).toMatchInlineSnapshot(`
+      [
+        "bindStart evaluate",
+        "asyncEnd evaluate",
       ]
     `);
   });

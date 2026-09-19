@@ -205,7 +205,8 @@ export function DevToolsTelemetry(
       if (
         operationId === 'ai.embed' ||
         operationId === 'ai.embedMany' ||
-        operationId === 'ai.rerank'
+        operationId === 'ai.rerank' ||
+        operationId === 'ai.evaluate'
       ) {
         return;
       }

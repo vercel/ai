@@ -6,6 +6,12 @@ import type {
   EmbeddingModelCallStartEvent,
 } from '../embed/embed-events';
 import type {
+  EvaluateEndEvent,
+  EvaluateStartEvent,
+  EvaluationModelCallEndEvent,
+  EvaluationModelCallStartEvent,
+} from '../evaluate/evaluate-events';
+import type {
   GenerateObjectEndEvent,
   GenerateObjectStartEvent,
   GenerateObjectStepEndEvent,
@@ -49,13 +55,15 @@ type OperationStartEvent =
   | GenerateTextStartEvent
   | GenerateObjectStartEvent
   | EmbedStartEvent
-  | RerankStartEvent;
+  | RerankStartEvent
+  | EvaluateStartEvent;
 
 type OperationEndEvent =
   | GenerateTextEndEvent<ToolSet>
   | GenerateObjectEndEvent<unknown>
   | EmbedEndEvent
-  | RerankEndEvent;
+  | RerankEndEvent
+  | EvaluateEndEvent;
 
 export interface TelemetryDispatcher {
   /**
@@ -92,6 +100,8 @@ export interface TelemetryDispatcher {
   onEmbedEnd?: Callback<EmbeddingModelCallEndEvent>;
   onRerankStart?: Callback<RerankingModelCallStartEvent>;
   onRerankEnd?: Callback<RerankingModelCallEndEvent>;
+  onEvaluateStart?: Callback<EvaluationModelCallStartEvent>;
+  onEvaluateEnd?: Callback<EvaluationModelCallEndEvent>;
   onEnd?: Callback<OperationEndEvent>;
   onAbort?: Callback<GenerateTextAbortEvent<ToolSet>>;
   onError?: Callback<unknown>;
@@ -213,6 +223,14 @@ export interface Telemetry {
    * Contains the ranking results from the model response.
    */
   onRerankEnd?: Callback<InferTelemetryEvent<RerankingModelCallEndEvent>>;
+
+  /** Called immediately before an evaluation model call begins. */
+  onEvaluateStart?: Callback<
+    InferTelemetryEvent<EvaluationModelCallStartEvent>
+  >;
+
+  /** Called after an evaluation model response has been validated. */
+  onEvaluateEnd?: Callback<InferTelemetryEvent<EvaluationModelCallEndEvent>>;
 
   /**
    * Called when an operation completes. Fired for text generation
