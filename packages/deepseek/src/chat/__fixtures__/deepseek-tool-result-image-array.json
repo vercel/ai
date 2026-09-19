@@ -1,0 +1,32 @@
+{
+  "id": "c54db585-352a-4450-a878-040474482401",
+  "object": "chat.completion",
+  "created": 1789805239,
+  "model": "deepseek-flash",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Based on the screenshot:\n\n- **Large white code:** ORBIT 7319\n- **Frame color:** Cyan",
+        "reasoning_content": "The image shows a large white code \"ORBIT 7319\" and the frame color is cyan."
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 531,
+    "completion_tokens": 45,
+    "total_tokens": 576,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 21
+    },
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 531
+  },
+  "system_fingerprint": "aeb56401ca74e127821c4f9126dcb669"
+}

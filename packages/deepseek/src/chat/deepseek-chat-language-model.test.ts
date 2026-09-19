@@ -847,6 +847,92 @@ describe('DeepSeekChatLanguageModel', () => {
         prepareJsonFixtureResponse('deepseek-tool-call');
       });
 
+      it('should send image tool results as content parts', async () => {
+        prepareJsonFixtureResponse('deepseek-tool-result-image-array');
+
+        await provider.chat('deepseek-flash').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Read the screenshot returned by the tool.',
+                },
+              ],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-image',
+                  toolName: 'inspect_image',
+                  input: {},
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call-image',
+                  toolName: 'inspect_image',
+                  output: {
+                    type: 'content',
+                    value: [
+                      {
+                        type: 'text',
+                        text: 'Screenshot captured.',
+                      },
+                      {
+                        type: 'file',
+                        mediaType: 'image/png',
+                        data: {
+                          type: 'data',
+                          data: new Uint8Array([0x89, 0x50, 0x4e, 0x47]),
+                        },
+                      },
+                      {
+                        type: 'file',
+                        mediaType: 'image/png',
+                        data: {
+                          type: 'url',
+                          url: new URL(
+                            'https://example.com/tool-screenshot.png',
+                          ),
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.messages[2].content).toStrictEqual([
+          {
+            type: 'text',
+            text: 'Screenshot captured.',
+          },
+          {
+            type: 'image_url',
+            image_url: {
+              url: 'data:image/png;base64,iVBORw==',
+            },
+          },
+          {
+            type: 'image_url',
+            image_url: {
+              url: 'https://example.com/tool-screenshot.png',
+            },
+          },
+        ]);
+      });
+
       it('should send correct request body', async () => {
         await provider.chat('deepseek-reasoner').doGenerate({
           prompt: TEST_PROMPT,
