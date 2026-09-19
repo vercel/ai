@@ -9744,4 +9744,58 @@ describe('processUIMessageStream', () => {
       ]);
     });
   });
+
+  describe('stream with mismatched message ID', () => {
+    it('should not adopt previous turn parts when resuming stream with a mismatched message ID', async () => {
+      let state: StreamingUIMessageState<UIMessage>;
+      const runUpdateMessageJob = async (
+        job: (options: {
+          state: StreamingUIMessageState<UIMessage>;
+          write: () => void;
+        }) => Promise<void>,
+      ) => {
+        await job({
+          state,
+          write: () => {},
+        });
+      };
+
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'turn-1:reply' },
+        { type: 'text-start', id: 't1' },
+        { type: 'text-delta', id: 't1', delta: 'RESUMED-TEXT' },
+        { type: 'text-end', id: 't1' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'turn-0:reply',
+        lastMessage: {
+          id: 'turn-0:reply',
+          role: 'assistant',
+          metadata: undefined,
+          parts: [{ type: 'text', text: 'FIRST ANSWER', state: 'done' }],
+        },
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state.message.id).toBe('turn-1:reply');
+      expect(state.message.parts).toEqual([
+        {
+          type: 'text',
+          text: 'RESUMED-TEXT',
+          state: 'done',
+        },
+      ]);
+    });
+  });
 });
