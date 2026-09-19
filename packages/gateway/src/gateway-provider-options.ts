@@ -117,13 +117,17 @@ const gatewayProviderOptions = lazySchema(() =>
        *
        * - `'implicit-caching'`: models that perform automatic (implicit)
        *   prompt caching
+       * - `'reasoning'`: models that support reasoning
+       * - `'tool-use'`: models that support tool calling
        * - `'vision'`: models that accept image input
        *
        * The capability is a property of the model, so the filter applies to
        * both BYOK and system credentials. If no provider model for the
        * requested model satisfies the capabilities, the request fails.
        */
-      has: z.array(z.enum(['implicit-caching', 'vision'])).optional(),
+      has: z
+        .array(z.enum(['implicit-caching', 'reasoning', 'tool-use', 'vision']))
+        .optional(),
     }),
   ),
 );
