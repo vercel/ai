@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20944,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20944-stream-text-prepare-step-model.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20944-stream-text-prepare-step-model.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_20944_REPRODUCED: completed step and callbacks report provider-a/model-a after prepareStep selected provider-b/model-b"
+  }
+}
