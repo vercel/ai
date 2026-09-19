@@ -17,6 +17,7 @@ import {
   DefaultChatTransport,
   isStaticToolUIPart,
   TextStreamChatTransport,
+  type ChatTransport,
   type FinishReason,
   type UIMessage,
   type UIMessageChunk,
@@ -37,6 +38,43 @@ const server = createTestServer({
 });
 
 describe('use-chat', () => {
+  describe('transport lifecycle', () => {
+    afterEach(cleanup);
+
+    function createTransport(close: () => void): ChatTransport<UIMessage> {
+      return {
+        close,
+        sendMessages: async () => new ReadableStream<UIMessageChunk>(),
+        reconnectToStream: async () => null,
+      };
+    }
+
+    it('closes transports when they are replaced and on unmount', () => {
+      const closeFirst = vi.fn();
+      const closeSecond = vi.fn();
+      const firstTransport = createTransport(closeFirst);
+      const secondTransport = createTransport(closeSecond);
+
+      function TestComponent({
+        transport,
+      }: {
+        transport: ChatTransport<UIMessage>;
+      }) {
+        useChat({ transport });
+        return null;
+      }
+
+      const view = render(<TestComponent transport={firstTransport} />);
+      view.rerender(<TestComponent transport={secondTransport} />);
+
+      expect(closeFirst).toHaveBeenCalledOnce();
+      expect(closeSecond).not.toHaveBeenCalled();
+
+      view.unmount();
+      expect(closeSecond).toHaveBeenCalledOnce();
+    });
+  });
+
   describe('initial messages', () => {
     setupTestComponent(
       ({ id: idParam }: { id: string }) => {

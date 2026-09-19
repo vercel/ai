@@ -12,15 +12,13 @@ connection.
 ```tsx
 import { useChat } from '@ai-sdk/react';
 import { WebSocketChatTransport } from 'ai';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 
 export default function Chat() {
   const transport = useMemo(
     () => new WebSocketChatTransport({ url: '/api/chat' }),
     [],
   );
-
-  useEffect(() => () => transport.close(), [transport]);
 
   const { messages, sendMessage, stop } = useChat({ transport });
 
@@ -118,19 +116,21 @@ Sends a `resume` frame. The promise resolves as follows:
   stream has been returned yet.
 
 Servers should send `start` as soon as they confirm that a resumable stream is
-active, so the client does not need to wait for its next chunk.
+active, then replay only chunks whose `sequence` is greater than
+`lastSequence`. The transport rejects gaps and ignores duplicate sequence
+numbers.
 
 ### `close()`
 
 Closes the current socket and errors active streams. A later send or resume
 request opens a new connection.
 
-Call `close()` when the transport is no longer used:
+React `useChat` and Vue `useChat` close replaced transports and close the
+current transport during hook cleanup. If you manage a `Chat` instance
+directly, call `dispose()`:
 
-```tsx
-useEffect(() => {
-  return () => transport.close();
-}, [transport]);
+```ts
+await chat.dispose();
 ```
 
 ## Wire Protocol
@@ -139,11 +139,11 @@ Each frame is a JSON object with a `type` and a correlated `requestId`.
 
 ### Client-to-server frames
 
-| Type     | Purpose                                                                                                                            |
-| -------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `send`   | Starts a new or regenerated turn and includes `id`, `messages`, `trigger`, `messageId`, request `headers`, `body`, and `metadata`. |
-| `resume` | Requests the active stream for a chat `id` and includes request `headers`, `body`, and `metadata`.                                 |
-| `abort`  | Cancels the operation identified by `requestId`.                                                                                   |
+| Type     | Purpose                                                                                                                              |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `send`   | Starts a new or regenerated turn and includes `id`, `messages`, `trigger`, `messageId`, request `headers`, `body`, and `metadata`.   |
+| `resume` | Requests the active stream for a chat `id` and includes the last accepted `lastSequence`, request `headers`, `body`, and `metadata`. |
+| `abort`  | Cancels the operation identified by `requestId`.                                                                                     |
 
 Use `WebSocketChatTransportRequest<UI_MESSAGE>`,
 `WebSocketChatTransportSendRequest`, `WebSocketChatTransportResumeRequest`,
@@ -154,7 +154,7 @@ and `WebSocketChatTransportAbortRequest` to type these frames.
 | Type        | Purpose                                                                       |
 | ----------- | ----------------------------------------------------------------------------- |
 | `start`     | Confirms that a resume request has an active stream.                          |
-| `chunk`     | Carries one valid `UIMessageChunk` in the `chunk` property.                   |
+| `chunk`     | Carries a monotonic `sequence` and one valid `UIMessageChunk` in `chunk`.     |
 | `end`       | Closes the correlated response stream.                                        |
 | `error`     | Errors the correlated stream with the optional `errorText`.                   |
 | `no-active` | Resolves a resume request to `null`; for a send request it closes the stream. |
@@ -165,6 +165,21 @@ Responses for unknown or completed request IDs are ignored. Malformed frames,
 unknown response types, and invalid UI message chunks are treated as protocol
 errors: the connection is closed and all active streams are errored.
 
+Validate every untrusted client frame before using its fields:
+
+```ts
+const validated = await safeValidateWebSocketChatTransportRequest({
+  value: parsed.value,
+});
+
+if (!validated.success) {
+  socket.close(1008, 'Invalid frame');
+  return;
+}
+
+const frame = validated.data;
+```
+
 ## Server Example
 
 The server owns authentication, authorization, message validation, model
@@ -172,24 +187,38 @@ execution, resumable stream storage, and cancellation. The following Node.js
 outline forwards a `streamText` UI message stream:
 
 ```ts
-import { WebSocketServer } from 'ws';
+import { WebSocket, WebSocketServer } from 'ws';
 import {
   convertToModelMessages,
+  safeValidateWebSocketChatTransportRequest,
   streamText,
   toUIMessageStream,
   validateUIMessages,
   type UIMessage,
-  type WebSocketChatTransportRequest,
+  type UIMessageChunk,
   type WebSocketChatTransportResponse,
 } from 'ai';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 __PROVIDER_IMPORT__;
 
 const server = new WebSocketServer({ port: 8080 });
-const activeRequests = new Map<string, AbortController>();
+
+type RetainedStream = {
+  abortController: AbortController;
+  chunks: Array<{ sequence: number; chunk: UIMessageChunk }>;
+  subscribers: Map<WebSocket, string>;
+  ended: boolean;
+};
+
+// Scope retained streams to an authenticated user. Use durable storage when
+// reconnects can land in another process.
+const streamsByUser = new Map<string, Map<string, RetainedStream>>();
 
 server.on('connection', (socket, request) => {
-  // Validate request.headers.origin and authenticate the connection here.
+  const userId = authenticateAndValidateOrigin(request);
+  const streams =
+    streamsByUser.get(userId) ?? new Map<string, RetainedStream>();
+  streamsByUser.set(userId, streams);
 
   socket.on('message', async data => {
     const parsed = await safeParseJSON({ text: data.toString() });
@@ -198,27 +227,73 @@ server.on('connection', (socket, request) => {
       return;
     }
 
-    const frame = parsed.value as WebSocketChatTransportRequest<UIMessage>;
+    const validated =
+      await safeValidateWebSocketChatTransportRequest<UIMessage>({
+        value: parsed.value,
+      });
+    if (!validated.success) {
+      socket.close(1008, 'Invalid frame');
+      return;
+    }
+    const frame = validated.data;
 
     const send = (response: WebSocketChatTransportResponse) => {
       socket.send(JSON.stringify(response));
     };
 
     if (frame.type === 'abort') {
-      activeRequests.get(frame.requestId)?.abort();
+      for (const stream of streams.values()) {
+        if (stream.subscribers.get(socket) === frame.requestId) {
+          stream.subscribers.delete(socket);
+          stream.abortController.abort();
+        }
+      }
       return;
     }
 
     if (frame.type === 'resume') {
+      const stream = streams.get(frame.id);
+      if (stream == null) {
+        send({ type: 'no-active', requestId: frame.requestId });
+        return;
+      }
+
+      send({ type: 'start', requestId: frame.requestId });
+      if (!stream.ended) {
+        stream.subscribers.set(socket, frame.requestId);
+      }
+      for (const stored of stream.chunks) {
+        if (stored.sequence > (frame.lastSequence ?? -1)) {
+          send({
+            type: 'chunk',
+            requestId: frame.requestId,
+            ...stored,
+          });
+        }
+      }
+      if (stream.ended) {
+        send({ type: 'end', requestId: frame.requestId });
+      }
+      return;
+    }
+
+    if (streams.get(frame.id)?.ended === false) {
       send({
-        type: 'no-active',
+        type: 'error',
         requestId: frame.requestId,
+        errorText: 'A response is already active for this chat.',
       });
       return;
     }
 
     const abortController = new AbortController();
-    activeRequests.set(frame.requestId, abortController);
+    const stream: RetainedStream = {
+      abortController,
+      chunks: [],
+      subscribers: new Map([[socket, frame.requestId]]),
+      ended: false,
+    };
+    streams.set(frame.id, stream);
 
     try {
       const messages = await validateUIMessages({
@@ -231,26 +306,46 @@ server.on('connection', (socket, request) => {
       });
 
       for await (const chunk of toUIMessageStream({ stream: result.stream })) {
-        send({ type: 'chunk', requestId: frame.requestId, chunk });
+        const stored = { sequence: stream.chunks.length, chunk };
+        stream.chunks.push(stored);
+        for (const [subscriber, requestId] of stream.subscribers) {
+          subscriber.send(
+            JSON.stringify({ type: 'chunk', requestId, ...stored }),
+          );
+        }
       }
-      send({ type: 'end', requestId: frame.requestId });
+      stream.ended = true;
+      for (const [subscriber, requestId] of stream.subscribers) {
+        subscriber.send(JSON.stringify({ type: 'end', requestId }));
+      }
     } catch (error) {
-      send({
-        type: 'error',
-        requestId: frame.requestId,
-        errorText: error instanceof Error ? error.message : String(error),
-      });
+      // Log the internal error server-side, but do not expose it to the client.
+      console.error(error);
+      for (const [subscriber, requestId] of stream.subscribers) {
+        subscriber.send(
+          JSON.stringify({
+            type: 'error',
+            requestId,
+            errorText: 'Chat request failed.',
+          }),
+        );
+      }
     } finally {
-      activeRequests.delete(frame.requestId);
+      stream.subscribers.clear();
+    }
+  });
+
+  socket.on('close', () => {
+    for (const stream of streams.values()) {
+      stream.subscribers.delete(socket);
     }
   });
 });
 ```
 
-The example returns `no-active` because it does not persist response streams.
-For real resume support, store stream chunks outside the WebSocket process,
-send `start`, replay the stored chunks in order, and continue forwarding live
-chunks before `end`.
+This outline keeps completed chunks in memory to make the replay behavior
+clear. Production servers should expire completed streams and store resumable
+state durably when reconnects can reach another process.
 
 ## Authentication and Deployment
 

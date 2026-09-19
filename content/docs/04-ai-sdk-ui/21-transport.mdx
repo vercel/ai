@@ -106,7 +106,7 @@ interactions.
 ```tsx
 import { useChat } from '@ai-sdk/react';
 import { WebSocketChatTransport } from 'ai';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 
 export default function Chat() {
   const transport = useMemo(
@@ -118,8 +118,6 @@ export default function Chat() {
     [],
   );
 
-  useEffect(() => () => transport.close(), [transport]);
-
   const { messages, sendMessage } = useChat({ transport });
 
   // ... render the chat
@@ -129,12 +127,16 @@ export default function Chat() {
 The transport multiplexes requests by `requestId`, validates incoming
 `UIMessageChunk` values, forwards aborts to the server, and reuses the open
 socket for later turns. HTTP and HTTPS URLs are automatically converted to WS
-and WSS URLs.
+and WSS URLs. React and Vue chat hooks close replaced transports and close the
+current transport on unmount or scope disposal. Call `chat.dispose()` when you
+manage a framework `Chat` instance directly.
 
 Your WebSocket server must implement the
 [`WebSocketChatTransport` protocol](/docs/reference/ai-sdk-ui/websocket-chat-transport#wire-protocol).
 The exported `WebSocketChatTransportRequest` and
-`WebSocketChatTransportResponse` types can be used to type server frames.
+`WebSocketChatTransportResponse` types can be used to type server frames. Use
+`safeValidateWebSocketChatTransportRequest` before handling an untrusted client
+frame.
 
 <Note>
   Browser WebSocket APIs cannot set arbitrary handshake headers. The `headers`
@@ -151,6 +153,8 @@ model generation.
 If the socket closes during a response, the active stream errors. A later send
 opens a new connection. The transport does not automatically replay requests,
 because replaying a generation can duplicate model output or tool effects.
+`reconnectToStream` sends the last accepted chunk sequence so a server can
+replay retained chunks without duplicating client output.
 
 For complete options, protocol details, cancellation behavior, and a server
 example, see the

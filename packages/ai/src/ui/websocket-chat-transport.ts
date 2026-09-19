@@ -17,6 +17,7 @@ import {
   type UIMessageChunk,
 } from '../ui-message-stream/ui-message-chunks';
 import type { ChatTransport } from './chat-transport';
+import { safeValidateUIMessages } from './validate-ui-messages';
 import type { UIMessage } from './ui-messages';
 
 export type WebSocketChatTransportSendRequest<
@@ -37,6 +38,7 @@ export type WebSocketChatTransportResumeRequest = {
   type: 'resume';
   requestId: string;
   id: string;
+  lastSequence: number | undefined;
   headers: Record<string, string>;
   body: object;
   metadata: unknown;
@@ -62,10 +64,27 @@ export type WebSocketChatTransportRequest<
  */
 export type WebSocketChatTransportResponse =
   | { type: 'start'; requestId: string }
-  | { type: 'chunk'; requestId: string; chunk: UIMessageChunk }
+  | {
+      type: 'chunk';
+      requestId: string;
+      sequence: number;
+      chunk: UIMessageChunk;
+    }
   | { type: 'end'; requestId: string }
   | { type: 'error'; requestId: string; errorText?: string }
   | { type: 'no-active'; requestId: string };
+
+export type SafeValidateWebSocketChatTransportRequestResult<
+  UI_MESSAGE extends UIMessage,
+> =
+  | {
+      success: true;
+      data: WebSocketChatTransportRequest<UI_MESSAGE>;
+    }
+  | {
+      success: false;
+      error: Error;
+    };
 
 export type PrepareWebSocketChatTransportSendMessagesRequest<
   UI_MESSAGE extends UIMessage,
@@ -163,7 +182,9 @@ type ConnectionState = {
 
 type ActiveRequest = {
   requestId: string;
+  chatId: string;
   kind: 'send' | 'resume';
+  lastSequence: number;
   stream: ReadableStream<UIMessageChunk>;
   controller: ReadableStreamDefaultController<UIMessageChunk>;
   responseSettled: boolean;
@@ -194,6 +215,100 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === 'object' && !Array.isArray(value);
 }
 
+function isStringRecord(value: unknown): value is Record<string, string> {
+  return (
+    isRecord(value) &&
+    Object.values(value).every(item => typeof item === 'string')
+  );
+}
+
+function isSequence(value: unknown): value is number {
+  return Number.isSafeInteger(value) && (value as number) >= 0;
+}
+
+/**
+ * Validates an untrusted client-to-server WebSocket chat frame.
+ */
+export async function safeValidateWebSocketChatTransportRequest<
+  UI_MESSAGE extends UIMessage = UIMessage,
+>({
+  value,
+}: {
+  value: unknown;
+}): Promise<SafeValidateWebSocketChatTransportRequestResult<UI_MESSAGE>> {
+  try {
+    if (!isRecord(value) || typeof value.type !== 'string') {
+      throw new Error('Invalid WebSocket chat request frame.');
+    }
+
+    if (value.type === 'abort') {
+      if (typeof value.requestId !== 'string') {
+        throw new Error('Invalid WebSocket chat abort request.');
+      }
+
+      return {
+        success: true,
+        data: value as WebSocketChatTransportAbortRequest,
+      };
+    }
+
+    if (
+      typeof value.requestId !== 'string' ||
+      typeof value.id !== 'string' ||
+      !isStringRecord(value.headers) ||
+      !isRecord(value.body)
+    ) {
+      throw new Error('Invalid WebSocket chat request frame.');
+    }
+
+    if (value.type === 'resume') {
+      if (value.lastSequence != null && !isSequence(value.lastSequence)) {
+        throw new Error('Invalid WebSocket chat resume sequence.');
+      }
+
+      return {
+        success: true,
+        data: value as WebSocketChatTransportResumeRequest,
+      };
+    }
+
+    if (
+      value.type !== 'send' ||
+      !['submit-message', 'regenerate-message'].includes(
+        value.trigger as string,
+      ) ||
+      (value.messageId != null && typeof value.messageId !== 'string')
+    ) {
+      throw new Error('Invalid WebSocket chat send request.');
+    }
+
+    const messages = await safeValidateUIMessages<UI_MESSAGE>({
+      messages: value.messages,
+    });
+    if (!messages.success) {
+      throw new Error('Invalid UI messages in WebSocket chat request.', {
+        cause: messages.error,
+      });
+    }
+
+    return {
+      success: true,
+      data: {
+        ...(value as Omit<
+          WebSocketChatTransportSendRequest<UI_MESSAGE>,
+          'messages'
+        >),
+        messages: messages.data,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: asError(error),
+    };
+  }
+}
+
 /**
  * A `ChatTransport` that multiplexes correlated UI message streams over one
  * persistent WebSocket connection.
@@ -215,6 +330,8 @@ export class WebSocketChatTransport<
 
   private connection?: ConnectionState;
   private readonly activeRequests = new Map<string, ActiveRequest>();
+  private readonly lastSequenceByChatId = new Map<string, number>();
+  private sendQueue: Promise<void> = Promise.resolve();
 
   constructor(options: WebSocketChatTransportInitOptions<UI_MESSAGE>) {
     this.url = options.url;
@@ -261,9 +378,12 @@ export class WebSocketChatTransport<
 
     const socket = await this.getSocket(abortSignal);
     const requestId = generateId();
+    this.lastSequenceByChatId.delete(options.chatId);
     const request = this.createActiveRequest({
       requestId,
+      chatId: options.chatId,
       kind: 'send',
+      lastSequence: -1,
       abortSignal,
     });
 
@@ -337,7 +457,9 @@ export class WebSocketChatTransport<
 
     const request = this.createActiveRequest({
       requestId,
+      chatId: options.chatId,
       kind: 'resume',
+      lastSequence: this.lastSequenceByChatId.get(options.chatId) ?? -1,
       abortSignal: options.abortSignal,
       resolveResponse,
       rejectResponse,
@@ -347,6 +469,8 @@ export class WebSocketChatTransport<
       type: 'resume',
       requestId,
       id: options.chatId,
+      lastSequence:
+        request.lastSequence === -1 ? undefined : request.lastSequence,
       headers:
         preparedRequest?.headers == null
           ? headers
@@ -607,13 +731,17 @@ export class WebSocketChatTransport<
 
   private createActiveRequest({
     requestId,
+    chatId,
     kind,
+    lastSequence,
     abortSignal,
     resolveResponse,
     rejectResponse,
   }: {
     requestId: string;
+    chatId: string;
     kind: ActiveRequest['kind'];
+    lastSequence: number;
     abortSignal: AbortSignal | undefined;
     resolveResponse?: ActiveRequest['resolveResponse'];
     rejectResponse?: ActiveRequest['rejectResponse'];
@@ -630,7 +758,9 @@ export class WebSocketChatTransport<
 
     const request: ActiveRequest = {
       requestId,
+      chatId,
       kind,
+      lastSequence,
       stream,
       controller,
       responseSettled: false,
@@ -756,6 +886,16 @@ export class WebSocketChatTransport<
       }
 
       case 'chunk': {
+        if (!isSequence(parsed.value.sequence)) {
+          throw new Error('Invalid WebSocket chat chunk sequence.');
+        }
+        if (parsed.value.sequence <= request.lastSequence) {
+          return;
+        }
+        if (parsed.value.sequence !== request.lastSequence + 1) {
+          throw new Error('Out-of-order WebSocket chat chunk sequence.');
+        }
+
         const chunk = await safeValidateTypes<UIMessageChunk>({
           value: parsed.value.chunk,
           schema: uiMessageChunkSchema,
@@ -765,12 +905,15 @@ export class WebSocketChatTransport<
         }
         this.resolveResumeStream(request);
         request.controller.enqueue(chunk.value);
+        request.lastSequence = parsed.value.sequence;
+        this.lastSequenceByChatId.set(request.chatId, parsed.value.sequence);
         return;
       }
 
       case 'end': {
         this.resolveResumeStream(request);
         this.cleanupRequest(request);
+        this.clearLastSequence(request);
         request.controller.close();
         return;
       }
@@ -781,6 +924,7 @@ export class WebSocketChatTransport<
           request.resolveResponse?.(null);
         }
         this.cleanupRequest(request);
+        this.clearLastSequence(request);
         request.controller.close();
         return;
       }
@@ -799,6 +943,7 @@ export class WebSocketChatTransport<
               'WebSocket chat server returned an error.',
           ),
         );
+        this.clearLastSequence(request);
         return;
       }
 
@@ -812,16 +957,28 @@ export class WebSocketChatTransport<
     frame: WebSocketChatTransportRequest<UI_MESSAGE>,
     abortSignal?: AbortSignal,
   ): Promise<void> {
-    await waitForWebSocketBufferDrain(socket, { abortSignal });
-    this.throwIfAborted(abortSignal);
+    const send = this.sendQueue.then(async () => {
+      await waitForWebSocketBufferDrain(socket, { abortSignal });
+      this.throwIfAborted(abortSignal);
 
+      if (
+        this.connection?.socket !== socket ||
+        socket.readyState !== WEBSOCKET_OPEN_STATE
+      ) {
+        throw new TypeError('WebSocket chat network connection is not open.');
+      }
+
+      socket.send(JSON.stringify(frame));
+    });
+    this.sendQueue = send.catch(() => {});
+    return send;
+  }
+
+  private clearLastSequence(request: ActiveRequest): void {
     if (
-      this.connection?.socket !== socket ||
-      socket.readyState !== WEBSOCKET_OPEN_STATE
+      this.lastSequenceByChatId.get(request.chatId) === request.lastSequence
     ) {
-      throw new TypeError('WebSocket chat network connection is not open.');
+      this.lastSequenceByChatId.delete(request.chatId);
     }
-
-    socket.send(JSON.stringify(frame));
   }
 }

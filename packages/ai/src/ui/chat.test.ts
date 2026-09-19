@@ -17,6 +17,7 @@ import {
 import { DefaultChatTransport } from './default-chat-transport';
 import { lastAssistantMessageIsCompleteWithApprovalResponses } from './last-assistant-message-is-complete-with-approval-responses';
 import { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
+import type { ChatTransport } from './chat-transport';
 import type { UIMessage } from './ui-messages';
 
 class TestChatState<
@@ -85,6 +86,20 @@ describe('Chat', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('disposes the configured transport', async () => {
+    const close = vi.fn();
+    const transport = {
+      close,
+      sendMessages: async () => new ReadableStream<UIMessageChunk>(),
+      reconnectToStream: async () => null,
+    } satisfies ChatTransport<UIMessage>;
+    const chat = new TestChat({ transport });
+
+    await chat.dispose();
+
+    expect(close).toHaveBeenCalledOnce();
   });
 
   describe('send a simple message', () => {

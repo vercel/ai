@@ -5,6 +5,7 @@ import type {
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import {
+  safeValidateWebSocketChatTransportRequest,
   WebSocketChatTransport,
   type WebSocketChatTransportRequest,
 } from './websocket-chat-transport';
@@ -16,6 +17,7 @@ class MockWebSocket implements WebSocketLike {
   readyState = 0;
   bufferedAmount = 0;
   sent: string[] = [];
+  onSend?: () => void;
   closeCalls: Array<{ code?: number; reason?: string }> = [];
   onopen: ((event: unknown) => void) | null = null;
   onmessage: ((event: { data: unknown }) => void) | null = null;
@@ -31,6 +33,7 @@ class MockWebSocket implements WebSocketLike {
 
   send(data: string | Uint8Array | ArrayBuffer): void {
     this.sent.push(String(data));
+    this.onSend?.();
   }
 
   close(code?: number, reason?: string): void {
@@ -50,6 +53,12 @@ class MockWebSocket implements WebSocketLike {
   receiveBinary(value: unknown): void {
     this.onmessage?.({
       data: new TextEncoder().encode(JSON.stringify(value)),
+    });
+  }
+
+  receiveBlob(value: unknown): void {
+    this.onmessage?.({
+      data: new Blob([JSON.stringify(value)]),
     });
   }
 
@@ -173,6 +182,7 @@ describe('WebSocketChatTransport', () => {
     socket.receiveBinary({
       type: 'chunk',
       requestId: frame.requestId,
+      sequence: 0,
       chunk: { type: 'text-start', id: 'text-1' },
     });
     await expect(reader.read()).resolves.toEqual({
@@ -257,11 +267,13 @@ describe('WebSocketChatTransport', () => {
     socket.receive({
       type: 'chunk',
       requestId: secondFrame.requestId,
+      sequence: 0,
       chunk: secondChunk,
     });
     socket.receive({
       type: 'chunk',
       requestId: firstFrame.requestId,
+      sequence: 0,
       chunk: firstChunk,
     });
 
@@ -346,6 +358,272 @@ describe('WebSocketChatTransport', () => {
     const stream = await resumePromise;
 
     expect(stream).toBeInstanceOf(ReadableStream);
+  });
+
+  it('resumes after the last received sequence and ignores replayed chunks', async () => {
+    const transport = new WebSocketChatTransport<UIMessage>({
+      url: 'wss://example.com/chat',
+      webSocket,
+    });
+
+    const streamPromise = transport.sendMessages({
+      chatId: 'chat-1',
+      messageId: 'message-1',
+      trigger: 'submit-message',
+      messages: [],
+      abortSignal: undefined,
+    });
+    const firstSocket = await openPendingConnection();
+    const firstReader = (await streamPromise).getReader();
+    const firstFrame = readFrame(firstSocket);
+
+    firstSocket.receive({
+      type: 'chunk',
+      requestId: firstFrame.requestId,
+      sequence: 0,
+      chunk: { type: 'text-start', id: 'text-1' },
+    });
+    await expect(firstReader.read()).resolves.toMatchObject({
+      value: { type: 'text-start', id: 'text-1' },
+    });
+    firstSocket.finishClose();
+    await expect(firstReader.read()).rejects.toThrow();
+
+    const resumePromise = transport.reconnectToStream({
+      chatId: 'chat-1',
+    });
+    await vi.waitFor(() => {
+      expect(MockWebSocket.instances).toHaveLength(2);
+    });
+    const secondSocket = MockWebSocket.instances[1];
+    secondSocket.open();
+    await vi.waitFor(() => {
+      expect(secondSocket.sent).toHaveLength(1);
+    });
+    const resumeFrame = readFrame(secondSocket);
+    expect(resumeFrame).toMatchObject({
+      type: 'resume',
+      lastSequence: 0,
+    });
+
+    secondSocket.receive({
+      type: 'start',
+      requestId: resumeFrame.requestId,
+    });
+    const resumeReader = (await resumePromise)!.getReader();
+    secondSocket.receive({
+      type: 'chunk',
+      requestId: resumeFrame.requestId,
+      sequence: 0,
+      chunk: { type: 'text-start', id: 'text-1' },
+    });
+    secondSocket.receive({
+      type: 'chunk',
+      requestId: resumeFrame.requestId,
+      sequence: 1,
+      chunk: { type: 'text-delta', id: 'text-1', delta: 'hello' },
+    });
+
+    await expect(resumeReader.read()).resolves.toMatchObject({
+      value: { type: 'text-delta', id: 'text-1', delta: 'hello' },
+    });
+  });
+
+  it('serializes concurrent writes before checking backpressure', async () => {
+    const transport = new WebSocketChatTransport<UIMessage>({
+      url: 'wss://example.com/chat',
+      webSocket,
+    });
+
+    const firstPromise = transport.sendMessages({
+      chatId: 'chat-1',
+      messageId: 'message-1',
+      trigger: 'submit-message',
+      messages: [],
+      abortSignal: undefined,
+    });
+    const secondPromise = transport.sendMessages({
+      chatId: 'chat-2',
+      messageId: 'message-2',
+      trigger: 'submit-message',
+      messages: [],
+      abortSignal: undefined,
+    });
+    const socket = await openPendingConnection();
+    socket.onSend = () => {
+      if (socket.sent.length === 1) {
+        socket.bufferedAmount = 2 * 1024 * 1024;
+      }
+    };
+
+    await firstPromise;
+    await new Promise(resolve => setTimeout(resolve, 30));
+    expect(socket.sent).toHaveLength(1);
+
+    socket.bufferedAmount = 0;
+    await secondPromise;
+    expect(socket.sent).toHaveLength(2);
+  });
+
+  it('decodes Blob response frames', async () => {
+    const transport = new WebSocketChatTransport<UIMessage>({
+      url: 'wss://example.com/chat',
+      webSocket,
+    });
+
+    const streamPromise = transport.sendMessages({
+      chatId: 'chat-1',
+      messageId: 'message-1',
+      trigger: 'submit-message',
+      messages: [],
+      abortSignal: undefined,
+    });
+    const socket = await openPendingConnection();
+    const reader = (await streamPromise).getReader();
+    const frame = readFrame(socket);
+
+    socket.receiveBlob({
+      type: 'chunk',
+      requestId: frame.requestId,
+      sequence: 0,
+      chunk: { type: 'text-start', id: 'text-1' },
+    });
+
+    await expect(reader.read()).resolves.toMatchObject({
+      value: { type: 'text-start', id: 'text-1' },
+    });
+  });
+
+  it('errors a stream when the server sends an error frame', async () => {
+    const transport = new WebSocketChatTransport<UIMessage>({
+      url: 'wss://example.com/chat',
+      webSocket,
+    });
+
+    const streamPromise = transport.sendMessages({
+      chatId: 'chat-1',
+      messageId: 'message-1',
+      trigger: 'submit-message',
+      messages: [],
+      abortSignal: undefined,
+    });
+    const socket = await openPendingConnection();
+    const reader = (await streamPromise).getReader();
+    const frame = readFrame(socket);
+
+    socket.receive({
+      type: 'error',
+      requestId: frame.requestId,
+      errorText: 'Request failed.',
+    });
+
+    await expect(reader.read()).rejects.toThrow('Request failed.');
+  });
+
+  it('closes the connection for an unknown active response type', async () => {
+    const transport = new WebSocketChatTransport<UIMessage>({
+      url: 'wss://example.com/chat',
+      webSocket,
+    });
+
+    const streamPromise = transport.sendMessages({
+      chatId: 'chat-1',
+      messageId: 'message-1',
+      trigger: 'submit-message',
+      messages: [],
+      abortSignal: undefined,
+    });
+    const socket = await openPendingConnection();
+    const reader = (await streamPromise).getReader();
+    const frame = readFrame(socket);
+
+    socket.receive({ type: 'future-frame', requestId: frame.requestId });
+
+    await expect(reader.read()).rejects.toThrow(
+      'Unknown WebSocket chat response type: future-frame.',
+    );
+    expect(socket.closeCalls).toEqual([
+      { code: 1011, reason: 'WebSocket chat transport error' },
+    ]);
+  });
+
+  it('rejects out-of-order response chunks', async () => {
+    const transport = new WebSocketChatTransport<UIMessage>({
+      url: 'wss://example.com/chat',
+      webSocket,
+    });
+
+    const streamPromise = transport.sendMessages({
+      chatId: 'chat-1',
+      messageId: 'message-1',
+      trigger: 'submit-message',
+      messages: [],
+      abortSignal: undefined,
+    });
+    const socket = await openPendingConnection();
+    const reader = (await streamPromise).getReader();
+    const frame = readFrame(socket);
+
+    socket.receive({
+      type: 'chunk',
+      requestId: frame.requestId,
+      sequence: 1,
+      chunk: { type: 'text-start', id: 'text-1' },
+    });
+
+    await expect(reader.read()).rejects.toThrow(
+      'Out-of-order WebSocket chat chunk sequence.',
+    );
+  });
+
+  it('does not send a request aborted while the connection is pending', async () => {
+    const abortController = new AbortController();
+    const transport = new WebSocketChatTransport<UIMessage>({
+      url: 'wss://example.com/chat',
+      webSocket,
+    });
+
+    const sendPromise = transport.sendMessages({
+      chatId: 'chat-1',
+      messageId: 'message-1',
+      trigger: 'submit-message',
+      messages: [],
+      abortSignal: abortController.signal,
+    });
+    await vi.waitFor(() => {
+      expect(MockWebSocket.instances).toHaveLength(1);
+    });
+    abortController.abort();
+
+    await expect(sendPromise).rejects.toMatchObject({ name: 'AbortError' });
+    expect(MockWebSocket.instances[0].sent).toHaveLength(0);
+  });
+
+  it('handles abort, connection close, and transport close races', async () => {
+    const abortController = new AbortController();
+    const transport = new WebSocketChatTransport<UIMessage>({
+      url: 'wss://example.com/chat',
+      webSocket,
+    });
+
+    const streamPromise = transport.sendMessages({
+      chatId: 'chat-1',
+      messageId: 'message-1',
+      trigger: 'submit-message',
+      messages: [],
+      abortSignal: abortController.signal,
+    });
+    const socket = await openPendingConnection();
+    const reader = (await streamPromise).getReader();
+
+    abortController.abort();
+    socket.finishClose();
+    transport.close();
+
+    await expect(reader.read()).resolves.toEqual({
+      done: true,
+      value: undefined,
+    });
   });
 
   it('errors active streams when the connection closes unexpectedly', async () => {
@@ -434,5 +712,44 @@ describe('WebSocketChatTransport', () => {
     });
     MockWebSocket.instances[1].open();
     await secondPromise;
+  });
+});
+
+describe('safeValidateWebSocketChatTransportRequest', () => {
+  it('validates UI messages and rejects malformed envelopes', async () => {
+    await expect(
+      safeValidateWebSocketChatTransportRequest({
+        value: {
+          type: 'send',
+          requestId: 'request-1',
+          id: 'chat-1',
+          trigger: 'submit-message',
+          messages: [
+            {
+              id: 'message-1',
+              role: 'user',
+              parts: [{ type: 'text', text: 'hello' }],
+            },
+          ],
+          headers: {},
+          body: {},
+          metadata: undefined,
+        },
+      }),
+    ).resolves.toMatchObject({ success: true });
+
+    await expect(
+      safeValidateWebSocketChatTransportRequest({
+        value: {
+          type: 'send',
+          requestId: 'request-1',
+          id: 'chat-1',
+          trigger: 'submit-message',
+          messages: [{ role: 'user', parts: [] }],
+          headers: {},
+          body: {},
+        },
+      }),
+    ).resolves.toMatchObject({ success: false });
   });
 });
