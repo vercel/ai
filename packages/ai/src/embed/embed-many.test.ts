@@ -2,6 +2,7 @@ import {
   InvalidResponseDataError,
   type EmbeddingModelV4,
 } from '@ai-sdk/provider';
+import { EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER } from '@ai-sdk/provider-utils';
 import assert from 'node:assert';
 import {
   afterEach,
@@ -549,6 +550,87 @@ describe('options.providerOptions', () => {
       },
       values: ['test-input'],
     });
+  });
+
+  it('should transform provider options for each automatic batch', async () => {
+    const providerOptionsTransformer = vi.fn(
+      ({ providerOptions, startIndex, endIndex }) => {
+        const content = providerOptions?.aProvider.content;
+        assert.ok(Array.isArray(content));
+
+        return {
+          ...providerOptions,
+          aProvider: {
+            ...providerOptions?.aProvider,
+            content: content.slice(startIndex, endIndex),
+          },
+        };
+      },
+    );
+    const model = Object.assign(
+      new MockEmbeddingModelV4({
+        maxEmbeddingsPerCall: 2,
+        supportsParallelCalls: true,
+        doEmbed: async ({ values }) => ({
+          embeddings: values.map(value => [Number(value)]),
+          warnings: [],
+        }),
+      }),
+      {
+        [EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER]:
+          providerOptionsTransformer,
+      },
+    );
+
+    const result = await embedMany({
+      model,
+      values: ['0', '1', '2'],
+      providerOptions: {
+        aProvider: {
+          content: ['content-0', null, 'content-2'],
+        },
+      },
+    });
+
+    expect(providerOptionsTransformer.mock.calls).toStrictEqual([
+      [
+        {
+          providerOptions: {
+            aProvider: {
+              content: ['content-0', null, 'content-2'],
+            },
+          },
+          values: ['0', '1', '2'],
+          startIndex: 0,
+          endIndex: 2,
+        },
+      ],
+      [
+        {
+          providerOptions: {
+            aProvider: {
+              content: ['content-0', null, 'content-2'],
+            },
+          },
+          values: ['0', '1', '2'],
+          startIndex: 2,
+          endIndex: 3,
+        },
+      ],
+    ]);
+    expect(model.doEmbedCalls.map(call => call.providerOptions)).toStrictEqual([
+      {
+        aProvider: {
+          content: ['content-0', null],
+        },
+      },
+      {
+        aProvider: {
+          content: ['content-2'],
+        },
+      },
+    ]);
+    expect(result.embeddings).toStrictEqual([[0], [1], [2]]);
   });
 });
 
