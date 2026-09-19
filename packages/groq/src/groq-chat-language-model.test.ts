@@ -1,4 +1,7 @@
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import {
+  InvalidResponseDataError,
+  type LanguageModelV4Prompt,
+} from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import fs from 'node:fs';
@@ -39,6 +42,20 @@ describe('doGenerate', () => {
   describe('text', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('groq-text');
+    });
+
+    it('should reject a response without choices', async () => {
+      prepareJsonFixtureResponse('groq-empty-choices');
+
+      await expect(
+        model.doGenerate({
+          prompt: TEST_PROMPT,
+        }),
+      ).rejects.toSatisfy(
+        error =>
+          InvalidResponseDataError.isInstance(error) &&
+          error.message === 'Response did not contain any choices.',
+      );
     });
 
     it('should extract text content', async () => {

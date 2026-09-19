@@ -1,0 +1,12 @@
+{
+  "id": "chatcmpl-empty",
+  "object": "chat.completion",
+  "created": 0,
+  "model": "openai/gpt-oss-20b",
+  "choices": [],
+  "usage": {
+    "prompt_tokens": 1,
+    "completion_tokens": 0,
+    "total_tokens": 1
+  }
+}
