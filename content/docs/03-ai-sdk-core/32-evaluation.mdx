@@ -67,13 +67,30 @@ The language-model adapters evaluate all questions in one prompt. They do not
 provide TypeSafe's native independent-question execution semantics. The example
 model IDs demonstrate API compatibility; they are not benchmark-selected defaults.
 
-Language-model adapters request `reasoning: 'none'` by default. Each provider
-maps this setting to its model's reasoning controls; it does not guarantee that
-every model runs without thinking. To enable reasoning for more demanding
-evaluations, pass the model's supported reasoning settings through
-`providerOptions`, which take precedence over this default. For example, use
-`providerOptions: { openai: { reasoningEffort: 'high' } }` with an OpenAI model
-that supports that effort.
+OpenAI, Anthropic, and Google maintain explicit evaluation model catalogs. Each
+supported ID declares a `reasoningEffort` that the evaluation adapter passes as
+its default `reasoning` setting: `none` where thinking can be disabled, otherwise
+the model's lowest supported effort. Evaluations can still consume reasoning tokens.
+These defaults apply only to evaluation; ordinary language-model reasoning behavior
+is unchanged.
+
+See the supported IDs and defaults for [OpenAI](/providers/ai-sdk-providers/openai#evaluation-models),
+[Anthropic](/providers/ai-sdk-providers/anthropic#evaluation-models), and
+[Google](/providers/ai-sdk-providers/google-generative-ai#evaluation-models).
+Unlisted IDs throw `NoSuchModelError` when creating an evaluation model. This includes
+new releases, unlisted snapshots, and custom deployment names: support requires an
+explicit catalog entry, rather than inferring settings from the model name.
+`customProvider` can still assign application-specific aliases to supported evaluation
+model instances.
+
+To override the evaluation default, pass the model's native reasoning controls
+through `providerOptions`, such as `openai.reasoningEffort`, Anthropic's `thinking`
+or `effort`, or Google's `thinkingConfig.thinkingBudget` or `thinkingLevel`.
+Explicit controls take precedence as a group, so a Google budget does not get
+combined with a default thinking level. Unrelated options, including Google's
+`includeThoughts`, preserve the default. For example, use
+`providerOptions: { openai: { reasoningEffort: 'high' } }` for a more demanding
+evaluation on a model supporting that effort.
 
 ## Model aliases and registries
 

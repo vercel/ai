@@ -1,17 +1,22 @@
-import type {
-  EmbeddingModelV4,
-  Experimental_BatchV4 as BatchV4,
-  Experimental_EvaluationModelV4 as EvaluationModelV4,
-  Experimental_VideoModelV4,
-  FilesV4,
-  ImageModelV4,
-  LanguageModelV4,
-  ProviderV4,
-  Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
-  Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
-  SpeechModelV4,
-  Experimental_SpeechTranslationModelV4 as SpeechTranslationModelV4,
-  TranscriptionModelV4,
+import {
+  googleEvaluationModels,
+  type GoogleEvaluationModelId,
+} from './google-evaluation-models';
+import {
+  NoSuchModelError,
+  type EmbeddingModelV4,
+  type Experimental_BatchV4 as BatchV4,
+  type Experimental_EvaluationModelV4 as EvaluationModelV4,
+  type Experimental_VideoModelV4,
+  type FilesV4,
+  type ImageModelV4,
+  type LanguageModelV4,
+  type ProviderV4,
+  type Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
+  type Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
+  type SpeechModelV4,
+  type Experimental_SpeechTranslationModelV4 as SpeechTranslationModelV4,
+  type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
@@ -64,7 +69,7 @@ export interface GoogleProvider extends ProviderV4 {
   chat(modelId: GoogleModelId): LanguageModelV4;
 
   /** Creates an experimental Choice/Score/Boolean evaluation model using Gemini. */
-  evaluationModel(modelId: GoogleModelId): EvaluationModelV4;
+  evaluationModel(modelId: GoogleEvaluationModelId): EvaluationModelV4;
 
   experimental_batch(): BatchV4<{
     text: GoogleModelId;
@@ -435,11 +440,22 @@ export function createGoogle(
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.generativeAI = createChatModel;
-  provider.evaluationModel = (modelId: GoogleModelId) =>
-    new EvaluationLanguageModel({
+  provider.evaluationModel = (modelId: GoogleEvaluationModelId) => {
+    if (
+      !Object.prototype.hasOwnProperty.call(googleEvaluationModels, modelId)
+    ) {
+      throw new NoSuchModelError({ modelId, modelType: 'evaluationModel' });
+    }
+    return new EvaluationLanguageModel({
       model: createChatModel(modelId),
       provider: `${providerName.replace(/\.generative-ai$/, '')}.evaluation`,
+      reasoningEffort: googleEvaluationModels[modelId].reasoningEffort,
+      reasoningProviderOptions: [
+        ['google', 'thinkingConfig', 'thinkingBudget'],
+        ['google', 'thinkingConfig', 'thinkingLevel'],
+      ],
     });
+  };
   provider.experimental_batch = createBatch;
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;

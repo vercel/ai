@@ -1,4 +1,8 @@
 import {
+  anthropicEvaluationModels,
+  type AnthropicEvaluationModelId,
+} from './anthropic-evaluation-models';
+import {
   InvalidArgumentError,
   NoSuchModelError,
   type Experimental_BatchV4 as BatchV4,
@@ -55,7 +59,7 @@ export interface AnthropicProvider extends ProviderV4 {
   messages(modelId: AnthropicModelId): LanguageModelV4;
 
   /** Creates an experimental Choice/Score/Boolean evaluation model using Messages. */
-  evaluationModel(modelId: AnthropicModelId): EvaluationModelV4;
+  evaluationModel(modelId: AnthropicEvaluationModelId): EvaluationModelV4;
 
   experimental_batch(): BatchV4<{ text: AnthropicModelId }>;
 
@@ -209,11 +213,22 @@ export function createAnthropic(
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.messages = createChatModel;
-  provider.evaluationModel = (modelId: AnthropicModelId) =>
-    new EvaluationLanguageModel({
+  provider.evaluationModel = (modelId: AnthropicEvaluationModelId) => {
+    if (
+      !Object.prototype.hasOwnProperty.call(anthropicEvaluationModels, modelId)
+    ) {
+      throw new NoSuchModelError({ modelId, modelType: 'evaluationModel' });
+    }
+    return new EvaluationLanguageModel({
       model: createChatModel(modelId),
       provider: `${providerName.replace(/\.messages$/, '')}.evaluation`,
+      reasoningEffort: anthropicEvaluationModels[modelId].reasoningEffort,
+      reasoningProviderOptions: [
+        ['anthropic', 'thinking'],
+        ['anthropic', 'effort'],
+      ],
     });
+  };
   provider.experimental_batch = createBatch;
 
   provider.embeddingModel = (modelId: string) => {
