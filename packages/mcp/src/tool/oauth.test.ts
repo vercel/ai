@@ -14,7 +14,11 @@ import {
   type AuthResult,
 } from './oauth';
 import type { AuthorizationServerMetadata } from './oauth-types';
-import { ServerError } from '../error/oauth-error';
+import {
+  InvalidClientError,
+  ServerError,
+  UnauthorizedClientError,
+} from '../error/oauth-error';
 import { LATEST_PROTOCOL_VERSION } from './types';
 
 // Mock the pkce-challenge module
@@ -2380,6 +2384,154 @@ describe('auth function', () => {
     expect(
       mockFetch.mock.calls.some(call => call[0].toString().includes('/token')),
     ).toBe(false);
+  });
+
+  it('rethrows InvalidClientError without invalidating credentials during code exchange', async () => {
+    setupAuthorizationCodeFlow();
+
+    mockFetch.mockImplementation(url => {
+      const urlString = url.toString();
+
+      if (urlString.includes('/.well-known/oauth-protected-resource')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            resource: 'https://api.example.com/mcp-server',
+            authorization_servers: ['https://auth.example.com'],
+          }),
+        });
+      }
+
+      if (urlString.includes('/.well-known/oauth-authorization-server')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            issuer: 'https://auth.example.com',
+            authorization_endpoint: 'https://auth.example.com/authorize',
+            token_endpoint: 'https://auth.example.com/token',
+            response_types_supported: ['code'],
+            code_challenge_methods_supported: ['S256'],
+          }),
+        });
+      }
+
+      if (urlString.includes('/token')) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              error: 'invalid_client',
+              error_description: 'Client authentication failed',
+            }),
+            { status: 401, headers: { 'Content-Type': 'application/json' } },
+          ),
+        );
+      }
+
+      return Promise.resolve({ ok: false, status: 404 });
+    });
+
+    let clientInfo: unknown = {
+      client_id: 'test-client',
+      client_secret: 'test-secret',
+      authorization_server: 'https://auth.example.com/',
+      token_endpoint: 'https://auth.example.com/token',
+    };
+    const invalidateCredentials = vi.fn(async (scope: string) => {
+      if (scope === 'all' || scope === 'client') {
+        clientInfo = undefined;
+      }
+    });
+    const provider: OAuthClientProvider = {
+      ...mockProvider,
+      clientInformation: vi.fn(() => clientInfo as any),
+      invalidateCredentials,
+    };
+
+    await expect(
+      auth(provider, {
+        serverUrl: 'https://api.example.com/mcp-server',
+        authorizationCode: 'auth-code-123',
+      }),
+    ).rejects.toThrow(InvalidClientError);
+
+    expect(invalidateCredentials).not.toHaveBeenCalled();
+    expect(clientInfo).toBeDefined();
+  });
+
+  it('rethrows UnauthorizedClientError without invalidating credentials during code exchange', async () => {
+    setupAuthorizationCodeFlow();
+
+    mockFetch.mockImplementation(url => {
+      const urlString = url.toString();
+
+      if (urlString.includes('/.well-known/oauth-protected-resource')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            resource: 'https://api.example.com/mcp-server',
+            authorization_servers: ['https://auth.example.com'],
+          }),
+        });
+      }
+
+      if (urlString.includes('/.well-known/oauth-authorization-server')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            issuer: 'https://auth.example.com',
+            authorization_endpoint: 'https://auth.example.com/authorize',
+            token_endpoint: 'https://auth.example.com/token',
+            response_types_supported: ['code'],
+            code_challenge_methods_supported: ['S256'],
+          }),
+        });
+      }
+
+      if (urlString.includes('/token')) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              error: 'unauthorized_client',
+              error_description: 'Client is not authorized',
+            }),
+            { status: 400, headers: { 'Content-Type': 'application/json' } },
+          ),
+        );
+      }
+
+      return Promise.resolve({ ok: false, status: 404 });
+    });
+
+    let clientInfo: unknown = {
+      client_id: 'test-client',
+      client_secret: 'test-secret',
+      authorization_server: 'https://auth.example.com/',
+      token_endpoint: 'https://auth.example.com/token',
+    };
+    const invalidateCredentials = vi.fn(async (scope: string) => {
+      if (scope === 'all' || scope === 'client') {
+        clientInfo = undefined;
+      }
+    });
+    const provider: OAuthClientProvider = {
+      ...mockProvider,
+      clientInformation: vi.fn(() => clientInfo as any),
+      invalidateCredentials,
+    };
+
+    await expect(
+      auth(provider, {
+        serverUrl: 'https://api.example.com/mcp-server',
+        authorizationCode: 'auth-code-123',
+      }),
+    ).rejects.toThrow(UnauthorizedClientError);
+
+    expect(invalidateCredentials).not.toHaveBeenCalled();
+    expect(clientInfo).toBeDefined();
   });
 
   it('includes resource in token refresh', async () => {
