@@ -75,6 +75,75 @@ evaluations, pass the model's supported reasoning settings through
 `providerOptions: { openai: { reasoningEffort: 'high' } }` with an OpenAI model
 that supports that effort.
 
+## Embedding-backed evaluation
+
+The same provider factory can select a Choice evaluator backed by embeddings:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { experimental_evaluate } from 'ai';
+
+// Keep this instance to reuse criterion embeddings across calls.
+const model = google.evaluationModel('gemini-embedding-2');
+const result = await experimental_evaluate({
+  model,
+  state: 'I was charged twice. Please refund the duplicate.',
+  questions: {
+    department: {
+      type: 'choice',
+      instructions: 'Which team should handle this request?',
+      criteria: {
+        billing: 'Charges, invoices, payments, and refunds',
+        technical: 'Software bugs, crashes, and outages',
+        account: 'Login, passwords, and account access',
+      },
+    },
+  },
+});
+```
+
+Supported built-in embedding models are
+`google.evaluationModel('gemini-embedding-2')`,
+`openai.evaluationModel('text-embedding-3-large')`, and
+`cohere.evaluationModel('embed-v4.0')`. Providers own model-ID autocomplete,
+backend selection, and task settings. OpenAI and Google also accept an explicit
+`{ modelType: 'embedding' }` factory setting for custom embedding IDs; unknown
+IDs otherwise retain their language-model behavior. Cohere evaluation uses only
+embedding models.
+
+Embedding evaluation supports **Choice only**, without probabilities. Boolean or
+Score questions cause the entire call to fail before I/O. These models classify
+by semantic similarity; they do not execute arbitrary logical rules in
+instructions, perform general rubric scoring, or supply calibrated probabilities.
+An `other` or unknown label is an ordinary candidate, not automatic abstention.
+
+For each question, the adapter JSON-encodes `{ instructions, content }`, using
+the shared state as content for one input and each criterion description for the
+candidate inputs. Structured objects and arrays remain JSON content; an array
+is one state. A null description uses its label as content. Non-null descriptions
+are used without their label keys, so opaque labels do not affect similarity.
+Instructions provide semantic context on both sides of the comparison. Google
+adds its classification task prefix; Cohere defaults to the classification input
+type. Vectors are normalized before matching. Exact ties select the first option
+in JavaScript property enumeration order.
+
+The adapter deduplicates matching inputs within each call, honors provider count
+and UTF-8 request-byte budgets, and sends requests sequentially. An individual
+input exceeding a byte budget is sent alone and remains subject to provider
+validation. Reusing a model instance caches up to 256 criterion embeddings;
+state-only inputs are not cached. Changed instructions, descriptions, headers,
+or provider options cause cache misses or invalidation. Caches are process-local
+and are excluded from workflow serialization. Concurrent calls may repeat setup
+work rather than share in-flight requests and cancellation signals.
+
+Usage sums input tokens across embedding requests, including uncached criteria;
+output tokens are zero. Unknown input usage remains undefined. Warnings are
+aggregated; response and provider metadata describe the last embedding request.
+Retries remain in core and repeat the full evaluation after a retryable failure.
+Measure initialization separately from warm calls. These evaluation models work
+with the same custom-provider aliases, registries, and explicit default-provider
+configuration as other evaluation models.
+
 ## Model aliases and registries
 
 Use `customProvider` to give models application-specific names, then register

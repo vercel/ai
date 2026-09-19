@@ -21,7 +21,15 @@ import {
   type FetchFunction,
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
-import { Experimental_EvaluationLanguageModel as EvaluationLanguageModel } from '@ai-sdk/provider-utils/experimental-evaluation';
+import {
+  Experimental_EvaluationLanguageModel as EvaluationLanguageModel,
+  Experimental_EvaluationEmbeddingModel as EvaluationEmbeddingModel,
+} from '@ai-sdk/provider-utils/experimental-evaluation';
+import {
+  evaluationEmbeddingModelIds,
+  type GoogleEvaluationModelId,
+  type GoogleEvaluationModelSettings,
+} from './google-evaluation-settings';
 import { VERSION } from './version';
 import { GoogleEmbeddingModel } from './google-embedding-model';
 import type { GoogleEmbeddingModelId } from './google-embedding-model-options';
@@ -63,8 +71,11 @@ export interface GoogleProvider extends ProviderV4 {
 
   chat(modelId: GoogleModelId): LanguageModelV4;
 
-  /** Creates an experimental Choice/Score/Boolean evaluation model using Gemini. */
-  evaluationModel(modelId: GoogleModelId): EvaluationModelV4;
+  /** Creates an experimental evaluation model using Gemini generation or Choice-only embeddings. */
+  evaluationModel(
+    modelId: GoogleEvaluationModelId,
+    settings?: GoogleEvaluationModelSettings,
+  ): EvaluationModelV4;
 
   experimental_batch(): BatchV4<{
     text: GoogleModelId;
@@ -435,11 +446,30 @@ export function createGoogle(
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.generativeAI = createChatModel;
-  provider.evaluationModel = (modelId: GoogleModelId) =>
-    new EvaluationLanguageModel({
+  provider.evaluationModel = (
+    modelId: GoogleEvaluationModelId,
+    settings: GoogleEvaluationModelSettings = {},
+  ) => {
+    const modelType =
+      settings.modelType ??
+      (Object.prototype.hasOwnProperty.call(
+        evaluationEmbeddingModelIds,
+        modelId,
+      )
+        ? 'embedding'
+        : 'language');
+    if (modelType === 'embedding') {
+      return new EvaluationEmbeddingModel({
+        model: createEmbeddingModel(modelId),
+        provider: `${providerName.replace(/\.generative-ai$/, '')}.evaluation`,
+        inputPrefix: 'task: classification | query: ',
+      });
+    }
+    return new EvaluationLanguageModel({
       model: createChatModel(modelId),
       provider: `${providerName.replace(/\.generative-ai$/, '')}.evaluation`,
     });
+  };
   provider.experimental_batch = createBatch;
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;

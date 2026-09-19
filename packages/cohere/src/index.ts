@@ -14,3 +14,5 @@ export type {
   CohereRerankingModelOptions as CohereRerankingOptions,
 } from './reranking/cohere-reranking-model-options';
 export { VERSION } from './version';
+
+export type { CohereEvaluationModelId as Experimental_CohereEvaluationModelId } from './cohere-evaluation-settings';

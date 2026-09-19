@@ -345,3 +345,46 @@ The following provider options are available:
 | `rerank-v3.5`              |
 | `rerank-english-v3.0`      |
 | `rerank-multilingual-v3.0` |
+
+## Evaluation Models
+
+Use `cohere.evaluationModel('embed-v4.0')` for experimental Choice evaluation
+using embeddings. The provider selects the embedding backend automatically.
+
+```ts
+import { cohere } from '@ai-sdk/cohere';
+import { experimental_evaluate } from 'ai';
+
+const model = cohere.evaluationModel('embed-v4.0');
+const result = await experimental_evaluate({
+  model,
+  state: 'I was charged twice. Please refund the duplicate.',
+  questions: {
+    department: {
+      type: 'choice',
+      instructions: 'Which team should handle this request?',
+      criteria: {
+        billing: 'Charges, invoices, payments, and refunds',
+        technical: 'Software bugs, crashes, and outages',
+        account: 'Login, passwords, and account access',
+      },
+    },
+  },
+});
+
+result.answers.department.choice; // 'billing' | 'technical' | 'account'
+```
+
+The adapter selects the criterion with the highest cosine similarity and returns
+no probability distribution. It supports **Choice only**. Boolean and Score
+questions, including mixed requests, fail before network access. Instructions
+are encoded as semantic context; the adapter does not execute arbitrary rules,
+negations, or reasoning instructions. Validate classification quality on your
+own examples. See [embedding evaluation](/docs/ai-sdk-core/evaluation#embedding-backed-evaluation)
+for encoding, caching, usage, and capability details.
+
+Cohere evaluation uses embeddings, with `embed-v4.0` suggested by autocomplete;
+custom embedding IDs are also accepted. Defaults are `inputType: 'classification'`
+and `truncate: 'NONE'`. Override embedding options in `providerOptions.cohere`,
+for example `outputDimension: 1024`. Overriding the input type changes the
+embedding task and requires revalidating classification quality.

@@ -3401,7 +3401,7 @@ const result = await generateSpeech({
 ## Evaluation Models
 
 Create an experimental evaluation model with `openai.evaluationModel(modelId)`.
-It uses the Responses API with structured output to answer Choice, Score, and
+For language models, it uses the Responses API with structured output to answer Choice, Score, and
 Boolean questions. Choose a model that supports structured output, such as `gpt-5.6-luna`.
 
 ```ts
@@ -3442,3 +3442,49 @@ Evaluation models can also be accessed through `customProvider` aliases or
 use Gateway by default, or an explicitly configured default provider with an
 `evaluationModel` method. See
 [model aliases and registries](/docs/ai-sdk-core/evaluation#model-aliases-and-registries).
+
+### Embedding-backed evaluation
+
+Use `openai.evaluationModel('text-embedding-3-large')` for experimental Choice evaluation
+using embeddings. The provider selects the embedding backend automatically.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { experimental_evaluate } from 'ai';
+
+const model = openai.evaluationModel('text-embedding-3-large');
+const result = await experimental_evaluate({
+  model,
+  state: 'I was charged twice. Please refund the duplicate.',
+  questions: {
+    department: {
+      type: 'choice',
+      instructions: 'Which team should handle this request?',
+      criteria: {
+        billing: 'Charges, invoices, payments, and refunds',
+        technical: 'Software bugs, crashes, and outages',
+        account: 'Login, passwords, and account access',
+      },
+    },
+  },
+});
+
+result.answers.department.choice; // 'billing' | 'technical' | 'account'
+```
+
+The adapter selects the criterion with the highest cosine similarity and returns
+no probability distribution. It supports **Choice only**. Boolean and Score
+questions, including mixed requests, fail before network access. Instructions
+are encoded as semantic context; the adapter does not execute arbitrary rules,
+negations, or reasoning instructions. Validate classification quality on your
+own examples. See [embedding evaluation](/docs/ai-sdk-core/evaluation#embedding-backed-evaluation)
+for encoding, caching, usage, and capability details.
+
+The built-in embedding ID is `text-embedding-3-large`. Embedding options such as
+`dimensions` go in `providerOptions.openai`. The factory's model-ID type includes
+both language and embedding model literals for autocomplete. Other IDs retain
+the language backend by default. For a custom embedding deployment:
+
+```ts
+openai.evaluationModel('custom-embedding-id', { modelType: 'embedding' });
+```

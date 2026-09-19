@@ -133,7 +133,10 @@ export class GoogleEmbeddingModel implements EmbeddingModelV4 {
       return {
         warnings: [],
         embeddings: [response.embedding.values],
-        usage: undefined,
+        usage:
+          response.usageMetadata?.promptTokenCount != null
+            ? { tokens: response.usageMetadata.promptTokenCount }
+            : undefined,
         response: { headers: responseHeaders, body: rawValue },
       };
     }
@@ -175,7 +178,10 @@ export class GoogleEmbeddingModel implements EmbeddingModelV4 {
     return {
       warnings: [],
       embeddings: response.embeddings.map(item => item.values),
-      usage: undefined,
+      usage:
+        response.usageMetadata?.promptTokenCount != null
+          ? { tokens: response.usageMetadata.promptTokenCount }
+          : undefined,
       response: { headers: responseHeaders, body: rawValue },
     };
   }
@@ -187,6 +193,9 @@ const googleGenerativeAITextEmbeddingResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       embeddings: z.array(z.object({ values: z.array(z.number()) })),
+      usageMetadata: z
+        .object({ promptTokenCount: z.number().nullish() })
+        .nullish(),
     }),
   ),
 );
@@ -196,6 +205,9 @@ const googleGenerativeAISingleEmbeddingResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       embedding: z.object({ values: z.array(z.number()) }),
+      usageMetadata: z
+        .object({ promptTokenCount: z.number().nullish() })
+        .nullish(),
     }),
   ),
 );
