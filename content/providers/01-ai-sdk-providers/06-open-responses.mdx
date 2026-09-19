@@ -52,9 +52,10 @@ You can use the following optional settings to customize the Open Responses prov
 
   API key that is sent as a bearer token in the `Authorization` header.
 
-- **headers** _Record&lt;string,string&gt;_
+- **headers** _Record&lt;string,string&gt; | () => Record&lt;string,string&gt;_
 
-  Custom headers to include in the requests.
+  Custom headers to include in requests. Pass a function when headers must be
+  resolved lazily for each request.
 
 - **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
 
@@ -67,6 +68,34 @@ You can use the following optional settings to customize the Open Responses prov
   Assistant messages without an item ID are sent as easy input messages, while
   messages with a genuine provider item ID are sent as complete output items.
   Defaults to `false`.
+
+- **customToolId** _\`${string}.${string}\`_
+
+  Provider-tool ID used by `provider.tools.customTool`. Defaults to
+  `open-responses.custom`.
+
+- **reasoningReplay** _'full' | 'id-and-summary'_
+
+  Controls whether stateless history replay includes all reasoning fields or
+  only opaque item IDs and safe summaries. Defaults to `full`.
+
+- **structuredOutputs** _boolean_
+
+  Whether JSON response formats are sent to the endpoint. When `false`,
+  structured-output requests are omitted with an unsupported warning.
+  Defaults to `true`.
+
+- **supportedReasoningEfforts** _readonly string[]_
+
+  Optional allowlist for provider-native reasoning effort values.
+
+- **supportedReasoningSummaries** _readonly string[]_
+
+  Optional allowlist for provider-native reasoning summary values.
+
+- **userAgentSuffix** _string_
+
+  Overrides the default `ai-sdk/open-responses/<version>` user-agent suffix.
 
 ### Endpoint Examples
 
@@ -198,6 +227,35 @@ set, `providerOptions` `reasoningEffort` takes precedence over the top-level
 combined with either reasoning effort setting. Reasoning support and accepted
 effort values depend on the endpoint and model; unsupported values may be
 rejected or ignored by the endpoint.
+
+## Custom Tools
+
+Open Responses custom tools return a caller-executed raw string, optionally
+constrained by a regex or Lark grammar:
+
+```ts
+import { generateText, isStepCount } from 'ai';
+
+const result = await generateText({
+  model: openResponses('your-model-id'),
+  prompt: 'Write a SQL query that lists active users.',
+  tools: {
+    write_sql: openResponses.tools.customTool({
+      description: 'Return a SQL SELECT query.',
+      format: {
+        type: 'grammar',
+        syntax: 'regex',
+        definition: 'SELECT .+',
+      },
+      execute: async sql => runReadOnlyQuery(sql),
+    }),
+  },
+  stopWhen: isStepCount(3),
+});
+```
+
+The endpoint must support the standard Open Responses `custom` tool,
+`custom_tool_call`, and `custom_tool_call_output` wire types.
 
 ## File Inputs
 

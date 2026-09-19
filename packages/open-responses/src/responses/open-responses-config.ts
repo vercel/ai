@@ -10,4 +10,9 @@ export type OpenResponsesConfig = {
   generateId: () => string;
   extensionRegistry?: OpenResponsesExtensionRegistry;
   strictResponseInput?: boolean;
+  customToolId?: `${string}.${string}`;
+  reasoningReplay?: 'full' | 'id-and-summary';
+  structuredOutputs?: boolean;
+  supportedReasoningEfforts?: readonly string[];
+  supportedReasoningSummaries?: readonly string[];
 };
