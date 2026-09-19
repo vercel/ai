@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21095,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/google-embed-many-content-batching.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/google-embed-many-content-batching.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_21095_REPRODUCED: matching 101-entry content was rejected against a 100-value batch before any HTTP request"
+  }
+}
