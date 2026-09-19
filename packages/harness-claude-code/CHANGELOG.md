@@ -1,5 +1,12 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.122
+
+### Patch Changes
+
+- e3ff272: fix(harness-claude-code): ignore non-array user messages when converting tool results
+  - @ai-sdk/harness@1.0.118
+
 ## 1.0.121
 
 ### Patch Changes

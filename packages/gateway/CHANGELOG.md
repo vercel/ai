@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 4.0.88
+
+### Patch Changes
+
+- 20dd00a: feat(provider/gateway): support `reasoning` and `tool-use` in `has` model filtering
+- fd9b3f3: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.87
 
 ### Patch Changes

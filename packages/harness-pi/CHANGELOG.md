@@ -1,5 +1,12 @@
 # @ai-sdk/harness-pi
 
+## 1.0.120
+
+### Patch Changes
+
+- a0f7700: fix(harness-pi): make grep compatible with just-bash sandboxes while preserving matches alongside bounded traversal diagnostics
+  - @ai-sdk/harness@1.0.118
+
 ## 1.0.119
 
 ### Patch Changes

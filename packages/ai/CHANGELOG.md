@@ -1,5 +1,14 @@
 # ai
 
+## 7.0.108
+
+### Patch Changes
+
+- 6317504: fix(ai): stop pending tool-call repairs when generation is cancelled
+- Updated dependencies [20dd00a]
+- Updated dependencies [fd9b3f3]
+  - @ai-sdk/gateway@4.0.88
+
 ## 7.0.107
 
 ### Patch Changes
