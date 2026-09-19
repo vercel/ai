@@ -122,6 +122,135 @@ describe('asLanguageModelV4', () => {
       expect(response.finishReason.unified).toBe('stop');
     });
 
+    it('should convert v4 file prompt data to v3 for doGenerate', async () => {
+      const binaryData = new Uint8Array([1, 2, 3]);
+      const base64Data = 'AQID';
+      const urlData = new URL('https://example.com/file.pdf');
+      const v3Model = new MockLanguageModelV3({
+        doGenerate: async options => {
+          expect(options.prompt).toEqual([
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'application/octet-stream',
+                  data: binaryData,
+                },
+                {
+                  type: 'file',
+                  mediaType: 'application/octet-stream',
+                  data: base64Data,
+                },
+                {
+                  type: 'file',
+                  mediaType: 'application/pdf',
+                  data: urlData,
+                },
+              ],
+            },
+          ]);
+
+          return {
+            content: [],
+            finishReason: { unified: 'stop', raw: undefined },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: undefined,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 1,
+                text: undefined,
+                reasoning: undefined,
+              },
+            },
+            warnings: [],
+          };
+        },
+      });
+
+      await asLanguageModelV4(v3Model).doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'application/octet-stream',
+                data: { type: 'data', data: binaryData },
+              },
+              {
+                type: 'file',
+                mediaType: 'application/octet-stream',
+                data: { type: 'data', data: base64Data },
+              },
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                data: { type: 'url', url: urlData },
+              },
+            ],
+          },
+        ],
+      });
+    });
+
+    it('should convert v3 generated file data to v4', async () => {
+      const binaryData = new Uint8Array([1, 2, 3]);
+      const base64Data = 'AQID';
+      const v3Model = new MockLanguageModelV3({
+        doGenerate: {
+          content: [
+            {
+              type: 'file',
+              mediaType: 'application/octet-stream',
+              data: binaryData,
+            },
+            {
+              type: 'file',
+              mediaType: 'application/octet-stream',
+              data: base64Data,
+            },
+          ],
+          finishReason: { unified: 'stop', raw: undefined },
+          usage: {
+            inputTokens: {
+              total: 1,
+              noCache: undefined,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: 1,
+              text: undefined,
+              reasoning: undefined,
+            },
+          },
+          warnings: [],
+        },
+      });
+
+      const result = await asLanguageModelV4(v3Model).doGenerate({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+      });
+
+      expect(result.content).toEqual([
+        {
+          type: 'file',
+          mediaType: 'application/octet-stream',
+          data: { type: 'data', data: binaryData },
+        },
+        {
+          type: 'file',
+          mediaType: 'application/octet-stream',
+          data: { type: 'data', data: base64Data },
+        },
+      ]);
+    });
+
     it('should make doStream method callable', async () => {
       const v3Model = new MockLanguageModelV3({
         provider: 'test-provider',
@@ -164,6 +293,107 @@ describe('asLanguageModelV4', () => {
       const parts = await convertReadableStreamToArray(stream);
       expect(parts).toHaveLength(4);
       expect(parts[0].type).toBe('text-start');
+    });
+
+    it('should convert v4 file prompt data to v3 for doStream', async () => {
+      const binaryData = new Uint8Array([1, 2, 3]);
+      const base64Data = 'AQID';
+      const urlData = new URL('https://example.com/file.pdf');
+      const v3Model = new MockLanguageModelV3({
+        doStream: async options => {
+          expect(options.prompt).toEqual([
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'application/octet-stream',
+                  data: binaryData,
+                },
+                {
+                  type: 'file',
+                  mediaType: 'application/octet-stream',
+                  data: base64Data,
+                },
+                {
+                  type: 'file',
+                  mediaType: 'application/pdf',
+                  data: urlData,
+                },
+              ],
+            },
+          ]);
+
+          return {
+            stream: convertArrayToReadableStream([]),
+          };
+        },
+      });
+
+      const { stream } = await asLanguageModelV4(v3Model).doStream({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'application/octet-stream',
+                data: { type: 'data', data: binaryData },
+              },
+              {
+                type: 'file',
+                mediaType: 'application/octet-stream',
+                data: { type: 'data', data: base64Data },
+              },
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                data: { type: 'url', url: urlData },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toEqual([]);
+    });
+
+    it('should convert v3 streamed file data to v4', async () => {
+      const binaryData = new Uint8Array([1, 2, 3]);
+      const base64Data = 'AQID';
+      const v3Model = new MockLanguageModelV3({
+        doStream: {
+          stream: convertArrayToReadableStream([
+            {
+              type: 'file',
+              mediaType: 'application/octet-stream',
+              data: binaryData,
+            },
+            {
+              type: 'file',
+              mediaType: 'application/octet-stream',
+              data: base64Data,
+            },
+          ]),
+        },
+      });
+
+      const { stream } = await asLanguageModelV4(v3Model).doStream({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toEqual([
+        {
+          type: 'file',
+          mediaType: 'application/octet-stream',
+          data: { type: 'data', data: binaryData },
+        },
+        {
+          type: 'file',
+          mediaType: 'application/octet-stream',
+          data: { type: 'data', data: base64Data },
+        },
+      ]);
     });
   });
 
