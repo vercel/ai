@@ -586,4 +586,37 @@ console.log(result.text);`,
     websiteUrl: 'https://nitrosend.com',
     npmUrl: 'https://www.npmjs.com/package/@nitrosend/ai-sdk',
   },
+  {
+    slug: 'algenta',
+    name: 'Algenta',
+    description:
+      'Governed decision-engine tools for the Vercel AI SDK, backed by your own self-hosted Algenta engine over MCP. Tool profiles (observe, govern, execute, full) control which tools the model can see, executions return typed receipts, and policy-blocked calls fail with named safety gates.',
+    packageName: 'algenta-tools',
+    tags: ['mcp', 'governance', 'decision-engine', 'self-hosted'],
+    installCommand: {
+      pnpm: 'pnpm add algenta-tools ai zod',
+      npm: 'npm install algenta-tools ai zod',
+      yarn: 'yarn add algenta-tools ai zod',
+      bun: 'bun add algenta-tools ai zod',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createAlgentaTools } from 'algenta-tools';
+
+// Connects to your own self-hosted Algenta engine
+// (ALGENTA_BASE_URL, or pass baseUrl). 'observe' is read-only.
+const tools = await createAlgentaTools({ profile: 'observe' });
+
+const { text } = await generateText({
+  model: 'openai/gpt-5.2',
+  prompt: 'What is the expected value of scenario X?',
+  tools,
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl:
+      'https://github.com/thyn-ai/algenta-integrations/tree/main/typescript/algenta-tools/packages/algenta-tools#readme',
+    websiteUrl: 'https://algenta.ai',
+    npmUrl: 'https://www.npmjs.com/package/algenta-tools',
+  },
 ];
