@@ -2275,6 +2275,12 @@ console.log('Reasoning tokens:', usage.outputTokenDetails.reasoningTokens);
 ```
 
 <Note>
+  Reasoning summaries (`reasoningSummary`) are only available with [responses
+  models](#reasoning-output). Chat models ignore this option and return an
+  `unsupported` warning.
+</Note>
+
+<Note>
   System messages are automatically converted to OpenAI developer messages for
   reasoning models when supported.
 </Note>
