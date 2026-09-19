@@ -1908,6 +1908,63 @@ describe('streamText', () => {
         await expect(result.finishReason).resolves.toBe('error');
       });
 
+      it('should not execute the wrong tool when a different tool is called instead of the required tool', async () => {
+        const onError = vi.fn();
+        const tool1Execute = vi.fn(async () => 'tool1-result');
+        const tool2Execute = vi.fn(async () => 'tool2-result');
+
+        const result = streamText({
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'tool2',
+                  input: `{ "value": "value" }`,
+                },
+                {
+                  type: 'finish',
+                  finishReason: {
+                    unified: 'tool-calls',
+                    raw: 'tool_calls',
+                  },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: tool1Execute,
+            }),
+            tool2: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: tool2Execute,
+            }),
+          },
+          toolChoice: { type: 'tool', toolName: 'tool1' },
+          prompt: 'test-input',
+          onError,
+        });
+
+        await result.consumeStream();
+
+        expect(onError).toHaveBeenCalledOnce();
+        expect(onError.mock.calls[0][0].error).toMatchObject({
+          name: 'AI_ToolChoiceViolationError',
+        });
+
+        // Regression check for the gap left by #20426: the error above was
+        // already correctly surfaced, but tool2 (the wrong tool) was still
+        // being executed by executeToolsFromStream, because model-call-end
+        // (which triggers execution of queued tool calls) is emitted before
+        // the tool-choice violation is detected and its error is enqueued.
+        expect(tool2Execute).not.toHaveBeenCalled();
+        expect(tool1Execute).not.toHaveBeenCalled();
+      });
+
       it('should enforce the tool choice returned by prepareStep', async () => {
         const onError = vi.fn();
 
