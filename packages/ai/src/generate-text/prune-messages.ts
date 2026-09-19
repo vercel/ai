@@ -47,7 +47,9 @@ export function pruneMessages({
 
       return {
         ...message,
-        content: message.content.filter(part => part.type !== 'reasoning'),
+        content: message.content.filter(
+          part => part.type !== 'reasoning' && part.type !== 'reasoning-file',
+        ),
       };
     });
   }
