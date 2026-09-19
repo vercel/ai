@@ -1,0 +1,118 @@
+---
+title: TokenLab
+description: Learn how to use TokenLab provider with the AI SDK.
+---
+
+# TokenLab Provider
+
+[TokenLab](https://docs.tokenlab.sh/) is an AI gateway with OpenAI-compatible
+APIs, native Responses, Anthropic Messages, Gemini generateContent, media,
+audio, embeddings, rerank, translation, and live model and pricing discovery.
+
+The TokenLab AI SDK provider uses TokenLab's OpenAI-compatible API for text
+generation and streaming. Native endpoint families are available through the
+TokenLab REST API.
+
+## Setup
+
+The TokenLab provider is available in the `@tokenlabai/ai-sdk-provider` module.
+You can install it with:
+
+<InstallPackages packages="@tokenlabai/ai-sdk-provider" />
+
+## Provider Instance
+
+You can import the default provider instance `tokenlab` from
+`@tokenlabai/ai-sdk-provider`:
+
+```ts
+import { tokenlab } from '@tokenlabai/ai-sdk-provider';
+```
+
+For custom configuration, use `createTokenLab`:
+
+```ts
+import { createTokenLab } from '@tokenlabai/ai-sdk-provider';
+
+const tokenlab = createTokenLab({
+  apiKey: process.env.TOKENLAB_API_KEY,
+  baseURL: 'https://api.tokenlab.sh/v1',
+});
+```
+
+You can use the following optional settings to customize the TokenLab provider
+instance:
+
+- **baseURL** _string_
+
+  Use a different OpenAI-compatible URL prefix for API calls. The default is
+  `https://api.tokenlab.sh/v1`.
+
+- **apiKey** _string_
+
+  API key that is sent using the `Authorization` header. It defaults to the
+  `TOKENLAB_API_KEY` environment variable.
+
+## Language Models
+
+Use `tokenlab.chatModel()` with any TokenLab OpenAI-compatible chat model ID:
+
+```ts
+const model = tokenlab.chatModel('gpt-5.4');
+```
+
+You can discover current models through the TokenLab model catalog:
+
+- [TokenLab model catalog](https://api.tokenlab.sh/v1/models)
+- [TokenLab model discovery JSON](https://api.tokenlab.sh/models.json)
+- [TokenLab pricing discovery JSON](https://api.tokenlab.sh/pricing.json)
+
+## Example Usage
+
+### `generateText`
+
+```ts
+import { generateText } from 'ai';
+import { tokenlab } from '@tokenlabai/ai-sdk-provider';
+
+const { text } = await generateText({
+  model: tokenlab.chatModel('gpt-5.4'),
+  prompt: 'Explain TokenLab in one sentence.',
+});
+
+console.log(text);
+```
+
+### `streamText`
+
+```ts
+import { streamText } from 'ai';
+import { tokenlab } from '@tokenlabai/ai-sdk-provider';
+
+const result = streamText({
+  model: tokenlab.chatModel('gpt-5.4'),
+  prompt: 'Write a short story about an AI gateway.',
+});
+
+for await (const chunk of result.textStream) {
+  console.log(chunk);
+}
+```
+
+## Native Endpoints
+
+For TokenLab native endpoints, use the TokenLab REST API directly:
+
+- Responses: `POST https://api.tokenlab.sh/v1/responses`
+- Anthropic Messages: `POST https://api.tokenlab.sh/v1/messages`
+- Gemini generateContent:
+  `POST https://api.tokenlab.sh/v1beta/models/{model}:generateContent`
+- Images, videos, audio, embeddings, rerank, and translation: see the
+  [TokenLab documentation](https://docs.tokenlab.sh/)
+
+## Additional Resources
+
+- [TokenLab AI SDK Provider Repository](https://github.com/hedging8563/tokenlab-ai-sdk-provider)
+- [TokenLab Vercel AI SDK Documentation](https://docs.tokenlab.sh/integrations/vercel-ai-sdk)
+- [TokenLab OpenAPI Definition](https://docs.tokenlab.sh/openapi.json)
+- [TokenLab Model Catalog](https://api.tokenlab.sh/v1/models)
