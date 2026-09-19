@@ -1259,6 +1259,17 @@ export async function auth(
       error instanceof InvalidClientError ||
       error instanceof UnauthorizedClientError
     ) {
+      const clientInformation = await provider.clientInformation();
+      const isDynamicallyRegisteredClient =
+        OAuthClientInformationFullSchema.safeParse(clientInformation).success;
+
+      if (
+        options.authorizationCode !== undefined ||
+        !isDynamicallyRegisteredClient
+      ) {
+        throw error;
+      }
+
       await provider.invalidateCredentials?.('all');
       return await authInternal(provider, options);
     } else if (error instanceof InvalidGrantError) {
