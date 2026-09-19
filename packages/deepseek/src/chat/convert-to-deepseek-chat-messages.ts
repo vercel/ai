@@ -2,6 +2,7 @@ import {
   InvalidPromptError,
   UnsupportedFunctionalityError,
   type LanguageModelV4CallOptions,
+  type LanguageModelV4FilePart,
   type LanguageModelV4Prompt,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
@@ -27,6 +28,34 @@ const supportedImageMediaTypes = new Set([
   'image/png',
   'image/webp',
 ]);
+
+function resolveDeepSeekImageMediaType(part: LanguageModelV4FilePart): string {
+  const resolvedMediaType = resolveFullMediaType({ part });
+
+  if (!supportedImageMediaTypes.has(resolvedMediaType)) {
+    throw new UnsupportedFunctionalityError({
+      functionality: `DeepSeek image media type ${resolvedMediaType}`,
+      message: 'DeepSeek supports JPEG, PNG, GIF, and WebP image inputs.',
+    });
+  }
+
+  return resolvedMediaType;
+}
+
+function validateDeepSeekImageUrl({
+  url,
+  prompt,
+}: {
+  url: string;
+  prompt: LanguageModelV4Prompt;
+}): void {
+  if (url.length > 8192) {
+    throw new InvalidPromptError({
+      prompt,
+      message: 'DeepSeek image URLs must not exceed 8192 characters.',
+    });
+  }
+}
 
 export async function convertToDeepSeekChatMessages({
   prompt,
@@ -169,26 +198,12 @@ export async function convertToDeepSeekChatMessages({
                 }),
               });
             } else if (part.data.type === 'url' || part.data.type === 'data') {
-              const resolvedMediaType = resolveFullMediaType({ part });
-
-              if (!supportedImageMediaTypes.has(resolvedMediaType)) {
-                throw new UnsupportedFunctionalityError({
-                  functionality: `DeepSeek image media type ${resolvedMediaType}`,
-                  message:
-                    'DeepSeek supports JPEG, PNG, GIF, and WebP image inputs.',
-                });
-              }
+              const resolvedMediaType = resolveDeepSeekImageMediaType(part);
 
               if (part.data.type === 'url') {
                 const url = part.data.url.toString();
 
-                if (url.length > 8192) {
-                  throw new InvalidPromptError({
-                    prompt,
-                    message:
-                      'DeepSeek image URLs must not exceed 8192 characters.',
-                  });
-                }
+                validateDeepSeekImageUrl({ url, prompt });
 
                 if (filePartOptions?.fileData === true) {
                   throw new InvalidPromptError({
@@ -357,7 +372,7 @@ export async function convertToDeepSeekChatMessages({
           }
           const output = toolResponse.output;
 
-          let contentValue: string;
+          let contentValue: string | Array<DeepSeekContentPart>;
           switch (output.type) {
             case 'text':
             case 'error-text':
@@ -366,11 +381,59 @@ export async function convertToDeepSeekChatMessages({
             case 'execution-denied':
               contentValue = output.reason ?? 'Tool call execution denied.';
               break;
-            case 'content':
             case 'json':
             case 'error-json':
               contentValue = JSON.stringify(output.value);
               break;
+            case 'content': {
+              const hasImagePart = output.value.some(
+                part =>
+                  part.type === 'file' &&
+                  (part.data.type === 'url' || part.data.type === 'data') &&
+                  getTopLevelMediaType(part.mediaType) === 'image',
+              );
+
+              if (!hasImagePart) {
+                contentValue = JSON.stringify(output.value);
+                break;
+              }
+
+              contentValue = [];
+              for (const part of output.value) {
+                if (part.type === 'text') {
+                  contentValue.push({ type: 'text', text: part.text });
+                } else if (
+                  part.type === 'file' &&
+                  (part.data.type === 'url' || part.data.type === 'data') &&
+                  getTopLevelMediaType(part.mediaType) === 'image'
+                ) {
+                  const resolvedMediaType = resolveDeepSeekImageMediaType(part);
+                  let url: string;
+
+                  if (part.data.type === 'url') {
+                    url = part.data.url.toString();
+                    validateDeepSeekImageUrl({ url, prompt });
+                  } else {
+                    url = `data:${
+                      resolvedMediaType === 'image/jpg'
+                        ? 'image/jpeg'
+                        : resolvedMediaType
+                    };base64,${convertToBase64(part.data.data)}`;
+                  }
+
+                  contentValue.push({
+                    type: 'image_url',
+                    image_url: { url },
+                  });
+                } else {
+                  warnings.push({
+                    type: 'unsupported',
+                    feature: `tool result content part type: ${part.type}`,
+                  });
+                }
+              }
+              break;
+            }
           }
 
           messages.push({
