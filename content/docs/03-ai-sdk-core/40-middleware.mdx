@@ -195,7 +195,7 @@ export const yourLogMiddleware: LanguageModelV2Middleware = {
     const result = await doGenerate();
 
     console.log('doGenerate finished');
-    console.log(`generated text: ${result.text}`);
+    console.log(`generated content: ${JSON.stringify(result.content)}`);
 
     return result;
   },
@@ -319,23 +319,99 @@ Guard rails are a way to ensure that the generated text of a language model call
 is safe and appropriate. This example shows how to use guardrails as middleware.
 
 ```ts
-import type { LanguageModelV2Middleware } from '@ai-sdk/provider';
+import type {
+  LanguageModelV2Middleware,
+  LanguageModelV2StreamPart,
+} from '@ai-sdk/provider';
+
+const redactText = (text: string) => text.replace(/badword/g, '<REDACTED>');
 
 export const yourGuardrailMiddleware: LanguageModelV2Middleware = {
   wrapGenerate: async ({ doGenerate }) => {
-    const { text, ...rest } = await doGenerate();
+    const result = await doGenerate();
 
     // filtering approach, e.g. for PII or other sensitive information:
-    const cleanedText = text?.replace(/badword/g, '<REDACTED>');
+    const content = result.content.map(part =>
+      part.type === 'text' ? { ...part, text: redactText(part.text) } : part,
+    );
 
-    return { text: cleanedText, ...rest };
+    return { ...result, content };
   },
 
-  // here you would implement the guardrail logic for streaming
-  // Note: streaming guardrails are difficult to implement, because
-  // you do not know the full content of the stream until it's finished.
+  wrapStream: async ({ doStream }) => {
+    const { stream, ...rest } = await doStream();
+
+    // Keep a separate buffer for each text block in the stream.
+    const buffers = new Map<string, string>();
+
+    const transformStream = new TransformStream<
+      LanguageModelV2StreamPart,
+      LanguageModelV2StreamPart
+    >({
+      transform(chunk, controller) {
+        if (chunk.type === 'text-start') {
+          buffers.set(chunk.id, '');
+          controller.enqueue(chunk);
+          return;
+        }
+
+        if (chunk.type === 'text-delta') {
+          buffers.set(chunk.id, (buffers.get(chunk.id) ?? '') + chunk.delta);
+          return;
+        }
+
+        if (chunk.type === 'text-end') {
+          const bufferedText = buffers.get(chunk.id);
+
+          if (bufferedText != null) {
+            const redactedText = redactText(bufferedText);
+
+            if (redactedText) {
+              controller.enqueue({
+                type: 'text-delta',
+                id: chunk.id,
+                delta: redactedText,
+              });
+            }
+
+            buffers.delete(chunk.id);
+          }
+        }
+
+        controller.enqueue(chunk);
+      },
+
+      flush(controller) {
+        for (const [id, bufferedText] of buffers) {
+          const redactedText = redactText(bufferedText);
+
+          if (redactedText) {
+            controller.enqueue({
+              type: 'text-delta',
+              id,
+              delta: redactedText,
+            });
+          }
+        }
+      },
+    });
+
+    return {
+      stream: stream.pipeThrough(transformStream),
+      ...rest,
+    };
+  },
 };
 ```
+
+<Note>
+  The streaming example buffers each text block until `text-end` so matches
+  split across `text-delta` chunks cannot leak through. This delays output and
+  uses memory proportional to the text block size. Do not redact each delta
+  independently. An incremental implementation must retain every possible
+  incomplete match, and a fixed-size buffer alone is not safe for unbounded
+  variable-length patterns.
+</Note>
 
 ## Configuring Per Request Custom Metadata
 
