@@ -355,6 +355,12 @@ const OFFICIAL_MODELS: ModelCardData[] = [
 
 const COMMUNITY_MODELS: ModelCardData[] = [
   {
+    title: 'Lanseq',
+    href: '/providers/community-providers/lanseq',
+    color: '2563EB',
+    features: { object: true, tool: true, stream: true },
+  },
+  {
     title: 'Ollama',
     logo: { src: '/images/icons/ollama.png', invert: true },
     href: '/providers/community-providers/ollama',
