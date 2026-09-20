@@ -262,6 +262,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   private pendingMessagePreparations = new Set<AbortController>();
   private activeResponse: ActiveResponse<UI_MESSAGE> | undefined = undefined;
   private activeResumeRequest: ActiveResumeRequest | undefined = undefined;
+  private activeRequestPromises = new Set<Promise<unknown>>();
   private jobExecutor = new SerialJobExecutor();
 
   constructor({
@@ -619,6 +620,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
     this.activeResumeRequest?.abortController.abort();
     this.activeResponse?.abortController.abort();
+    await Promise.allSettled(Array.from(this.activeRequestPromises));
   };
 
   private async shouldSendAutomatically(): Promise<boolean> {
@@ -636,7 +638,22 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     return result as boolean;
   }
 
-  private async makeRequest({
+  private async makeRequest(
+    options: {
+      trigger: 'submit-message' | 'resume-stream' | 'regenerate-message';
+      messageId?: string;
+    } & ChatRequestOptions,
+  ) {
+    const promise = this._makeRequest(options);
+    this.activeRequestPromises.add(promise);
+    try {
+      await promise;
+    } finally {
+      this.activeRequestPromises.delete(promise);
+    }
+  }
+
+  private async _makeRequest({
     trigger,
     metadata,
     headers,
