@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const bridgeMock = vi.hoisted(() => ({
@@ -74,26 +77,30 @@ function createUserMessages() {
   };
 }
 
-function setBridgeArgv() {
+function setBridgeArgv(workdir = '/tmp/opencode-bridge-test') {
   process.argv.length = 0;
   process.argv.push(
     process.execPath,
     'opencode-bridge',
     '--workdir',
-    '/tmp/opencode-bridge-test',
+    workdir,
     '--bridge-state-dir',
-    '/tmp/opencode-bridge-test-state',
+    `${workdir}-state`,
     '--bootstrap-dir',
-    '/tmp/opencode-bridge-test-bootstrap',
+    `${workdir}-bootstrap`,
   );
 }
 
 describe('OpenCode bridge turn settlement', () => {
   const originalArgv = [...process.argv];
+  const tempDirectories: string[] = [];
 
   afterEach(() => {
     process.argv.length = 0;
     for (const arg of originalArgv) process.argv.push(arg);
+    for (const directory of tempDirectories.splice(0)) {
+      rmSync(directory, { recursive: true, force: true });
+    }
     vi.resetModules();
     bridgeMock.onStart = undefined;
     relayMock.authorizeToolCall.mockReset();
@@ -253,6 +260,176 @@ describe('OpenCode bridge turn settlement', () => {
         }),
       }),
     );
+  });
+
+  it('allows external directory access in allow-all mode', async () => {
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'Create /workspace/other/.state.',
+      permissionMode: 'allow-all',
+    };
+    bridgeMock.turn = {
+      emit: vi.fn(),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: createUserMessages(),
+      abortSignal: new AbortController().signal,
+      firstTurn: true,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    };
+    sdkMock.client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+        get: vi.fn(async () => ({ data: {} })),
+        messages: vi.fn(async () => ({ data: [] })),
+        promptAsync: vi.fn(async () => ({ data: {} })),
+      },
+      event: {
+        subscribe: vi.fn(async () => ({
+          stream: {
+            async *[Symbol.asyncIterator]() {
+              yield {
+                type: 'permission.v2.asked',
+                properties: {
+                  id: 'external-request',
+                  sessionID: 'session-1',
+                  action: 'external_directory',
+                  resources: ['/workspace/other/.state'],
+                  source: { callID: 'bash-call' },
+                },
+              };
+              yield {
+                type: 'session.next.step.failed',
+                properties: {
+                  sessionID: 'session-1',
+                  error: 'end permission test turn',
+                },
+              };
+            },
+          },
+        })),
+      },
+      v2: {
+        session: {
+          context: vi.fn(async () => ({ data: [] })),
+          permission: { reply: permissionReplyMock },
+          switchModel: vi.fn(async () => ({ data: {} })),
+        },
+      },
+    };
+    setBridgeArgv();
+
+    await import('./index');
+
+    expect(permissionReplyMock).toHaveBeenCalledWith({
+      sessionID: 'session-1',
+      requestID: 'external-request',
+      reply: 'always',
+    });
+  });
+
+  it('uses canonical paths when enforcing restrictive directory access', async () => {
+    const tempDirectory = mkdtempSync(
+      path.join(tmpdir(), 'opencode-permissions-'),
+    );
+    tempDirectories.push(tempDirectory);
+    const realWorkdir = path.join(tempDirectory, 'real-workdir');
+    const linkedWorkdir = path.join(tempDirectory, 'linked-workdir');
+    const externalDirectory = path.join(tempDirectory, 'external');
+    mkdirSync(realWorkdir);
+    mkdirSync(externalDirectory);
+    symlinkSync(realWorkdir, linkedWorkdir, 'dir');
+    symlinkSync(externalDirectory, path.join(realWorkdir, 'escape'), 'dir');
+
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'Read workspace files.',
+      permissionMode: 'allow-reads',
+    };
+    bridgeMock.turn = {
+      emit: vi.fn(),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: createUserMessages(),
+      abortSignal: new AbortController().signal,
+      firstTurn: true,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    };
+    sdkMock.client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+        get: vi.fn(async () => ({ data: {} })),
+        messages: vi.fn(async () => ({ data: [] })),
+        promptAsync: vi.fn(async () => ({ data: {} })),
+      },
+      event: {
+        subscribe: vi.fn(async () => ({
+          stream: {
+            async *[Symbol.asyncIterator]() {
+              yield {
+                type: 'permission.v2.asked',
+                properties: {
+                  id: 'canonical-workdir-request',
+                  sessionID: 'session-1',
+                  action: 'read',
+                  resources: [path.join(realWorkdir, 'inside.txt')],
+                  source: { callID: 'inside-read-call' },
+                },
+              };
+              yield {
+                type: 'permission.v2.asked',
+                properties: {
+                  id: 'symlink-escape-request',
+                  sessionID: 'session-1',
+                  action: 'read',
+                  resources: [
+                    path.join(linkedWorkdir, 'escape', 'outside.txt'),
+                  ],
+                  source: { callID: 'outside-read-call' },
+                },
+              };
+              yield {
+                type: 'session.next.step.failed',
+                properties: {
+                  sessionID: 'session-1',
+                  error: 'end permission test turn',
+                },
+              };
+            },
+          },
+        })),
+      },
+      v2: {
+        session: {
+          context: vi.fn(async () => ({ data: [] })),
+          permission: { reply: permissionReplyMock },
+          switchModel: vi.fn(async () => ({ data: {} })),
+        },
+      },
+    };
+    setBridgeArgv(linkedWorkdir);
+
+    await import('./index');
+
+    expect(permissionReplyMock).toHaveBeenNthCalledWith(1, {
+      sessionID: 'session-1',
+      requestID: 'canonical-workdir-request',
+      reply: 'always',
+    });
+    expect(permissionReplyMock).toHaveBeenNthCalledWith(2, {
+      sessionID: 'session-1',
+      requestID: 'symlink-escape-request',
+      reply: 'reject',
+      message: 'External directory access rejected.',
+    });
   });
 
   it('passes headers to a direct provider', async () => {
