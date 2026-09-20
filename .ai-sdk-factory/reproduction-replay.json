@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 21187,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21187.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-21187.ts",
+    "packages/harness-opencode/src/bridge/issue-21187.reproduction.test.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #21187 REPRODUCED: permissionMode \"allow-all\" rejected external directory access."
+  }
+}
