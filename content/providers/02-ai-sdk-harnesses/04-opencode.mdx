@@ -81,6 +81,11 @@ Use `createOpenCode()` to configure the runtime:
 ```ts
 const harness = createOpenCode({
   reasoningVariant: 'high',
+  reconnect: {
+    maxElapsedMs: 120_000,
+    initialDelayMs: 100,
+    maxDelayMs: 5_000,
+  },
   openCodeConfig: {
     agent: {
       general: {
@@ -113,6 +118,12 @@ Settings:
   such as `low`, `medium`, or `high`.
 - `port`: bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the bridge to start.
+- `reconnect`: reconnect timing after an established bridge WebSocket
+  connection drops. `maxElapsedMs` controls the total retry window and defaults
+  to 30 seconds. `initialDelayMs` defaults to 50 milliseconds, and
+  `maxDelayMs` defaults to 2 seconds. These retries use exponential backoff and
+  are separate from `startupTimeoutMs`. They cannot recover when the sandbox,
+  bridge process, or port endpoint is permanently unavailable.
 - `mintBridgeToken`: synchronous function that receives the sandbox id and
   returns the bridge authentication token. By default, the adapter generates a
   random 32-byte token. Custom implementations must return a suitably secret
