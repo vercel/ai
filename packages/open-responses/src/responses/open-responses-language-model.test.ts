@@ -801,6 +801,23 @@ describe('OpenResponsesLanguageModel', () => {
       });
     });
 
+    describe('json response format without a schema', () => {
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          responseFormat: { type: 'json' },
+        });
+      });
+
+      it('should send json_object, not an incomplete json_schema', async () => {
+        expect((await server.calls[0].requestBodyJson).text).toStrictEqual({
+          format: { type: 'json_object' },
+        });
+      });
+    });
+
     describe('tools', () => {
       let result: LanguageModelV4GenerateResult;
 
