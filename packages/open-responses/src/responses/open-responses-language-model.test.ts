@@ -171,15 +171,16 @@ describe('OpenResponsesLanguageModel', () => {
   });
 
   describe('doGenerate', () => {
+    function readJsonFixture(filename: string) {
+      return JSON.parse(
+        fs.readFileSync(`src/responses/__fixtures__/${filename}.json`, 'utf8'),
+      );
+    }
+
     function prepareJsonFixtureResponse(filename: string) {
       server.urls[URL].response = {
         type: 'json-value',
-        body: JSON.parse(
-          fs.readFileSync(
-            `src/responses/__fixtures__/${filename}.json`,
-            'utf8',
-          ),
-        ),
+        body: readJsonFixture(filename),
       };
       return;
     }
@@ -202,6 +203,45 @@ describe('OpenResponsesLanguageModel', () => {
         },
       };
     }
+
+    it('should generate schema-less JSON with the json_object format', async () => {
+      const errorFixture = readJsonFixture('openai-schema-less-json-error.1');
+      const successFixture = readJsonFixture(
+        'openai-schema-less-json-object.1',
+      );
+      let requestBody: Record<string, any> | undefined;
+
+      const model = new OpenResponsesLanguageModel('gpt-4o-mini', {
+        provider: 'openai.responses',
+        providerOptionsName: 'openai',
+        url: URL,
+        headers: () => ({}),
+        generateId: mockId(),
+        extensionRegistry: createOpenResponsesExtensionRegistry(),
+        fetch: async (_input, init) => {
+          requestBody = JSON.parse(String(init?.body));
+          const isValidSchemaLessJsonRequest =
+            requestBody?.text?.format?.type === 'json_object';
+
+          return Response.json(
+            isValidSchemaLessJsonRequest ? successFixture : errorFixture,
+            { status: isValidSchemaLessJsonRequest ? 200 : 400 },
+          );
+        },
+      });
+
+      await expect(
+        model.doGenerate({
+          prompt: TEST_PROMPT,
+          responseFormat: { type: 'json' },
+        }),
+      ).resolves.toMatchObject({
+        content: [{ type: 'text', text: '{"ok":true}' }],
+      });
+      expect(requestBody?.text).toEqual({
+        format: { type: 'json_object' },
+      });
+    });
 
     it('should throw a descriptive error when the response has no output', async () => {
       server.urls[URL].response = {
