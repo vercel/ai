@@ -210,6 +210,13 @@ export function useObject<
 
       if (onError && err instanceof Error) onError(err);
 
+      if (onFinish != null) {
+        onFinish({
+          object: undefined,
+          error: err instanceof Error ? err : new Error(String(err)),
+        });
+      }
+
       await mutateLoading(() => false);
       error.value = err instanceof Error ? err : new Error(String(err));
     }

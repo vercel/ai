@@ -249,6 +249,13 @@ export function useObject<
         onError(error);
       }
 
+      if (onFinish != null) {
+        onFinish({
+          object: undefined,
+          error: error instanceof Error ? error : new Error(String(error)),
+        });
+      }
+
       if (abortControllerRef.current === abortController) {
         setIsLoading(false);
         abortControllerRef.current = null;
