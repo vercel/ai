@@ -362,9 +362,27 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     options?: ChatRequestOptions,
   ): Promise<void> => {
     if (message == null) {
+      let messageId = this.lastMessage?.id;
+
+      // An approval response can belong to an earlier assistant message when
+      // the conversation has continued in the meantime. Continue that message
+      // so result chunks can resolve its tool invocation.
+      for (let i = this.state.messages.length - 1; i >= 0; i--) {
+        const candidate = this.state.messages[i];
+        if (
+          candidate.role === 'assistant' &&
+          candidate.parts.some(
+            part => isToolUIPart(part) && part.state === 'approval-responded',
+          )
+        ) {
+          messageId = candidate.id;
+          break;
+        }
+      }
+
       await this.makeRequest({
         trigger: 'submit-message',
-        messageId: this.lastMessage?.id,
+        messageId,
         ...options,
       });
       return;
@@ -512,7 +530,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   }) =>
     this.jobExecutor.run(async () => {
       const messages = this.state.messages;
-      const lastMessage = messages[messages.length - 1];
 
       const updatePart = (
         part: UIMessagePart<UIDataTypes, UITools>,
@@ -527,11 +544,24 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
             }
           : part;
 
-      // update the message to trigger an immediate UI update
-      this.state.replaceMessage(messages.length - 1, {
-        ...lastMessage,
-        parts: lastMessage.parts.map(updatePart),
-      });
+      const messageIndex = messages.findIndex(message =>
+        message.parts.some(
+          part =>
+            isToolUIPart(part) &&
+            part.state === 'approval-requested' &&
+            part.approval.id === id,
+        ),
+      );
+
+      if (messageIndex !== -1) {
+        const message = messages[messageIndex];
+
+        // update the message to trigger an immediate UI update
+        this.state.replaceMessage(messageIndex, {
+          ...message,
+          parts: message.parts.map(updatePart),
+        });
+      }
 
       // update the active response if it exists
       if (this.activeResponse) {
@@ -550,7 +580,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
             // no await to avoid deadlocking
             this.makeRequest({
               trigger: 'submit-message',
-              messageId: this.lastMessage?.id,
+              messageId:
+                messageIndex === -1
+                  ? this.lastMessage?.id
+                  : messages[messageIndex].id,
               ...options,
             });
           }
@@ -723,6 +756,18 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.setStatus({ status: 'submitted', error: undefined });
 
     const lastMessage = this.lastMessage;
+    const responseMessageIndex =
+      trigger === 'submit-message' && messageId != null
+        ? this.state.messages.findIndex(message => message.id === messageId)
+        : this.state.messages.length - 1;
+    const responseMessage =
+      responseMessageIndex === -1
+        ? lastMessage
+        : this.state.messages[responseMessageIndex];
+    const usesEarlierAssistantMessage =
+      responseMessageIndex !== -1 &&
+      responseMessageIndex < this.state.messages.length - 1 &&
+      responseMessage?.role === 'assistant';
 
     let isAbort = false;
     let isDisconnect = false;
@@ -735,7 +780,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           lastMessage:
             trigger === 'resume-stream' || trigger === 'regenerate-message'
               ? undefined
-              : this.state.snapshot(lastMessage),
+              : this.state.snapshot(responseMessage),
           messageId: this.generateId(),
         }),
         abortController,
@@ -789,10 +834,12 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
                 this.setStatus({ status: 'streaming' });
               }
 
-              const replaceLastMessage =
-                response.state.message.id === this.lastMessage?.id;
-
-              if (replaceLastMessage) {
+              if (usesEarlierAssistantMessage) {
+                this.state.replaceMessage(
+                  responseMessageIndex,
+                  response.state.message,
+                );
+              } else if (response.state.message.id === this.lastMessage?.id) {
                 this.state.replaceMessage(
                   this.state.messages.length - 1,
                   response.state.message,
