@@ -530,7 +530,11 @@ export function convertToGoogleMessages(
                       toolResponse: {
                         toolType: serverToolType,
                         response:
-                          part.output.type === 'json' ? part.output.value : {},
+                          part.output.type === 'json'
+                            ? (sanitizeFunctionResponseContent(
+                                part.output.value,
+                              ) as any)
+                            : {},
                         id: serverToolCallId,
                       },
                       thoughtSignature,
@@ -580,7 +584,11 @@ export function convertToGoogleMessages(
                   toolResponse: {
                     toolType: serverToolType,
                     response:
-                      part.output.type === 'json' ? part.output.value : {},
+                      part.output.type === 'json'
+                        ? (sanitizeFunctionResponseContent(
+                            part.output.value,
+                          ) as any)
+                        : {},
                     id: serverToolCallId,
                   },
                   thoughtSignature: serverThoughtSignature,
@@ -622,7 +630,7 @@ export function convertToGoogleMessages(
                   content:
                     output.type === 'execution-denied'
                       ? (output.reason ?? 'Tool call execution denied.')
-                      : output.value,
+                      : (sanitizeFunctionResponseContent(output.value) as any),
                 },
               },
             });
@@ -675,4 +683,20 @@ export function convertToGoogleMessages(
         : undefined,
     contents,
   };
+}
+
+function sanitizeFunctionResponseContent(value: unknown): unknown {
+  if (value === null || typeof value !== 'object') {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map(sanitizeFunctionResponseContent);
+  }
+  const result: Record<string, unknown> = {};
+  for (const [key, val] of Object.entries(value)) {
+    const sanitizedKey =
+      key === '$ref' ? '_ref' : key === '$defs' ? '_defs' : key;
+    result[sanitizedKey] = sanitizeFunctionResponseContent(val);
+  }
+  return result;
 }
