@@ -8,6 +8,7 @@ import {
   loadSetting,
   resolve,
   withUserAgentSuffix,
+  withoutTrailingSlash,
   type FetchFunction,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
@@ -256,10 +257,12 @@ export function createAmazonBedrockAnthropic(
 
   const getBaseURL = (): string => {
     if (isMantle) {
-      const resolvedBaseURL = options.baseURL ?? loadOptionalSetting({
-        settingValue: undefined,
-        environmentVariableName: 'AWS_ENDPOINT_URL',
-      });
+      const resolvedBaseURL =
+        options.baseURL ??
+        loadOptionalSetting({
+          settingValue: undefined,
+          environmentVariableName: 'AWS_ENDPOINT_URL',
+        });
       if (resolvedBaseURL != null) {
         return withoutTrailingSlash(resolvedBaseURL) ?? resolvedBaseURL;
       }
@@ -286,21 +289,6 @@ export function createAmazonBedrockAnthropic(
         'AWS_ENDPOINT_URL_BEDROCK_RUNTIME',
     });
   };
-          settingValue: options.region,
-          settingName: 'region',
-          environmentVariableName: 'AWS_REGION',
-          description: 'AWS region',
-<<<<<<< HEAD
-        })}.${isMantle ? 'api.aws/anthropic' : 'amazonaws.com'}`,
-    ) ??
-    `https://bedrock-${isMantle ? 'mantle' : 'runtime'}.us-east-1.${isMantle ? 'api.aws/anthropic' : 'amazonaws.com'}`;
-=======
-        }),
-      service: 'bedrock-runtime',
-      serviceEndpointUrlEnvironmentVariableName:
-        'AWS_ENDPOINT_URL_BEDROCK_RUNTIME',
-    });
->>>>>>> upstream/main
 
   const getHeaders = async () => {
     const baseHeaders = (await resolve(options.headers)) ?? {};
