@@ -15,6 +15,8 @@ import {
 } from 'react';
 import { Chat } from './chat.react';
 
+const resumedChats = new WeakMap<any, Promise<void>>();
+
 export type { CreateUIMessage, UIMessage };
 
 export type UseChatHelpers<UI_MESSAGE extends UIMessage> = {
@@ -231,7 +233,12 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
 
   useEffect(() => {
     if (resume) {
-      chat.resumeStream();
+      if (!resumedChats.has(chat)) {
+        resumedChats.set(
+          chat,
+          chat.resumeStream(),
+        );
+      }
     }
   }, [resume, chat]);
 
