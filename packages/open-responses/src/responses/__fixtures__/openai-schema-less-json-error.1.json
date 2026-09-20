@@ -1,8 +1,0 @@
-{
-  "error": {
-    "message": "Missing required parameter: 'text.format.name'.",
-    "type": "invalid_request_error",
-    "param": "text.format.name",
-    "code": "missing_required_parameter"
-  }
-}
