@@ -114,7 +114,7 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
         `resolved=$(realpath "$target" 2>/dev/null) || { echo "__PI_REALPATH_FAILED__"; exit 3; }`,
         `if [ ! -e "$resolved" ]; then echo "__PI_REALPATH_NOT_FOUND__"; exit 2; fi`,
         `printf '%s\\n' "$resolved"`,
-      ].join('\n'),
+      ].join('; '),
     );
 
     const output = result.output.toString('utf8');
@@ -154,7 +154,7 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
         `while [ ! -e "$dir" ] && [ ! -L "$dir" ]; do parent=$(dirname "$dir"); if [ "$parent" = "$dir" ]; then echo "__PI_REALPATH_NOT_FOUND__"; exit 2; fi; missing="$(basename "$dir")/$missing"; dir="$parent"; done`,
         `resolved_dir=$(realpath "$dir" 2>/dev/null) || { echo "__PI_REALPATH_FAILED__"; exit 3; }`,
         `printf '%s/%s\\n' "$resolved_dir" "$missing"`,
-      ].join('\n'),
+      ].join('; '),
     );
 
     const output = result.output.toString('utf8');
