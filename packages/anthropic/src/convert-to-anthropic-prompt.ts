@@ -700,6 +700,10 @@ export async function convertToAnthropicPrompt({
                   | undefined;
 
                 if (textMetadata?.type === 'compaction') {
+                  if (part.text === '') {
+                    break;
+                  }
+
                   anthropicContent.push({
                     type: 'compaction',
                     content: part.text,
@@ -1339,10 +1343,12 @@ export async function convertToAnthropicPrompt({
           }
         }
 
-        messages.push({
-          role: 'assistant',
-          content: moveToolUseBlocksToEnd(anthropicContent),
-        });
+        if (anthropicContent.length > 0) {
+          messages.push({
+            role: 'assistant',
+            content: moveToolUseBlocksToEnd(anthropicContent),
+          });
+        }
 
         break;
       }
