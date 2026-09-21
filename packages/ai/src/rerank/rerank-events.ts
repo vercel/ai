@@ -81,14 +81,28 @@ export type RerankEndEvent<RUNTIME_CONTEXT extends Context = Context> = {
   /** Optional provider-specific metadata. */
   readonly providerMetadata: ProviderMetadata | undefined;
 
-  /** Response data including headers and body. */
-  readonly response: {
-    id?: string;
-    timestamp: Date;
-    modelId: string;
-    headers?: Record<string, string>;
-    body?: unknown;
-  };
+  /**
+   * Response data including headers and body. A single response for `rerank`,
+   * an array for `rerankMany` (one entry per document window).
+   */
+  readonly response:
+    | {
+        id?: string;
+        timestamp: Date;
+        modelId: string;
+        headers?: Record<string, string>;
+        body?: unknown;
+      }
+    | Array<
+        | {
+            id?: string;
+            timestamp: Date;
+            modelId: string;
+            headers?: Record<string, string>;
+            body?: unknown;
+          }
+        | undefined
+      >;
 };
 
 /**
@@ -98,7 +112,13 @@ export type RerankingModelCallStartEvent = {
   /** Unique identifier for this rerank call, used to correlate events. */
   readonly callId: string;
 
-  /** Identifies the inner operation ('ai.rerank.doRerank'). */
+  /**
+   * Unique identifier for this individual doRerank invocation, used to
+   * correlate start/finish within parallel windows. Set by `rerankMany`.
+   */
+  readonly rerankCallId?: string;
+
+  /** Identifies the inner operation (e.g. 'ai.rerank.doRerank' or 'ai.rerankMany.doRerank'). */
   readonly operationId: string;
 
   /** The provider identifier. */
@@ -129,7 +149,13 @@ export type RerankingModelCallEndEvent = {
   /** Unique identifier for this rerank call, used to correlate events. */
   readonly callId: string;
 
-  /** Identifies the inner operation ('ai.rerank.doRerank'). */
+  /**
+   * Unique identifier for this individual doRerank invocation, used to
+   * correlate start/finish within parallel windows. Set by `rerankMany`.
+   */
+  readonly rerankCallId?: string;
+
+  /** Identifies the inner operation (e.g. 'ai.rerank.doRerank' or 'ai.rerankMany.doRerank'). */
   readonly operationId: string;
 
   /** The provider identifier. */
