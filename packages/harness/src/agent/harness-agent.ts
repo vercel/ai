@@ -21,7 +21,7 @@ import {
   type ToolResultPart,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
-import { mergeCallbacks } from 'ai/internal';
+import { mergeCallbacks, type ToolsContextSettings } from 'ai/internal';
 import type {
   Agent,
   AgentCallParameters,
@@ -322,7 +322,9 @@ export class HarnessAgent<
      * serialized into lifecycle state because it may contain credentials or
      * non-serializable host objects.
      */
-    toolsContext?: InferToolSetContext<HarnessAllTools<THarness, TUserTools>>;
+    toolsContext?: ToolsContextSettings<
+      HarnessAllTools<THarness, TUserTools>
+    >['toolsContext'];
     /**
      * Existing sandbox session to run the harness in. When provided, the
      * caller retains ownership of the sandbox lifecycle.
@@ -959,7 +961,9 @@ export class HarnessAgent<
       skills: this.settings.skills,
       instructions: this.settings.instructions,
       tools: this.settings.tools,
-      toolsContext: this.settings.toolsContext,
+      toolsContext:
+        this.settings.toolsContext ??
+        ({} as InferToolSetContext<HarnessAllTools<THarness, TUserTools>>),
       ...promptOptions,
     };
     const preparedCallArgs =

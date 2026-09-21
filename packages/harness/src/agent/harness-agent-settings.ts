@@ -35,6 +35,7 @@ import type {
   TelemetryOptions,
   ToolApprovalStatus,
 } from 'ai';
+import type { ToolsContextSettings } from 'ai/internal';
 import type { HarnessAllTools } from './harness-agent-tool-types';
 
 export type HarnessAgentToolApprovalConfiguration = Readonly<
@@ -234,8 +235,12 @@ export type HarnessAgentSettings<
           NoInfer<OUTPUT>,
           CALL_OPTIONS
         >,
-        'model' | 'skills' | 'instructions' | 'tools' | 'toolsContext'
-      >,
+        'model' | 'skills' | 'instructions' | 'tools'
+      > & {
+        toolsContext: InferToolSetContext<
+          HarnessAllTools<THarness, TUserTools>
+        >;
+      },
   ) => MaybePromiseLike<
     Pick<
       HarnessAgentSettings<
@@ -245,9 +250,10 @@ export type HarnessAgentSettings<
         NoInfer<OUTPUT>,
         CALL_OPTIONS
       >,
-      'model' | 'skills' | 'instructions' | 'tools' | 'toolsContext'
-    > &
-      Omit<Prompt, 'system' | 'instructions' | 'allowSystemInMessages'>
+      'model' | 'skills' | 'instructions' | 'tools'
+    > & {
+      toolsContext: InferToolSetContext<HarnessAllTools<THarness, TUserTools>>;
+    } & Omit<Prompt, 'system' | 'instructions' | 'allowSystemInMessages'>
   >;
 
   /**
@@ -386,4 +392,5 @@ export type HarnessAgentSettings<
    * stderr default — wire this to capture diagnostics in code.
    */
   readonly onLog?: (event: HarnessDiagnostic) => void;
-} & HarnessAgentToolFilteringSettings<HarnessAllTools<THarness, TUserTools>>;
+} & ToolsContextSettings<HarnessAllTools<THarness, TUserTools>> &
+  HarnessAgentToolFilteringSettings<HarnessAllTools<THarness, TUserTools>>;

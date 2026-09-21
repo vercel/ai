@@ -32,7 +32,11 @@ import {
   type LanguageModelV4ToolCall,
   type LanguageModelV4Usage,
 } from '@ai-sdk/provider';
-import { asLanguageModelUsage, parseToolCall } from 'ai/internal';
+import {
+  asLanguageModelUsage,
+  parseToolCall,
+  validateToolContext,
+} from 'ai/internal';
 import type {
   ContentPart,
   OutputInterface as Output,
@@ -47,6 +51,7 @@ import type {
 } from 'ai';
 import type { HarnessAgentToolApprovalConfiguration } from '../harness-agent-settings';
 import { HarnessStreamTextResult } from './harness-stream-text-result';
+import { getOwn } from './get-own';
 import { translateStreamPart } from './translate-stream-part';
 import { createToolInputWorkDirStripper, stripWorkDir } from './strip-work-dir';
 import {
@@ -57,7 +62,6 @@ import {
 import { resolveCustomToolApproval } from './permission-mode';
 import { logBridgeError } from '../../utils/bridge-diagnostics';
 import { pinSandboxChannelEventCheckpoint } from '../../utils/sandbox-channel';
-import { resolveToolContext } from './resolve-tool-context';
 
 function unwrapToolResultOutput(toolResult: ToolResultPart): {
   output: unknown;
@@ -1451,10 +1455,10 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
 
   let context: unknown;
   try {
-    context = await resolveToolContext({
+    context = await validateToolContext({
       toolName: input.event.toolName,
-      tool,
-      toolsContext: input.toolsContext,
+      context: getOwn(input.toolsContext, input.event.toolName),
+      contextSchema: tool.contextSchema,
     });
   } catch (err) {
     // Context is host-only and can contain credentials. Keep the detailed

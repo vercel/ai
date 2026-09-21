@@ -3034,6 +3034,9 @@ describe('HarnessAgent', () => {
     const agent = new HarnessAgent({
       harness,
       tools: { lookupAccount },
+      toolsContext: {
+        lookupAccount: { userId: 'initial-user' },
+      },
       sandbox: makeSandboxProvider(),
       callOptionsSchema: z.object({ userId: z.string() }),
       prepareCall: ({ options, ...rest }) => ({
@@ -3100,6 +3103,9 @@ describe('HarnessAgent', () => {
     const agent = new HarnessAgent({
       harness,
       tools: { lookupAccount },
+      toolsContext: {
+        lookupAccount: { userId: 'initial-user' },
+      },
       sandbox: makeSandboxProvider(),
       callOptionsSchema: z.object({ userId: z.string() }),
       prepareCall: ({ options, ...rest }) => ({
@@ -3143,7 +3149,7 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
-  test('preserves closure-bound context for tools without a configured context entry', async () => {
+  test('rejects missing required host tool context before execution', async () => {
     const { harness, toolResults } = mockHarness({
       script: () => [
         {
@@ -3155,8 +3161,7 @@ describe('HarnessAgent', () => {
         ...finishEvents(),
       ],
     });
-    const boundContext = { userId: 'closure-user' };
-    const execute = vi.fn(async () => ({ userId: boundContext.userId }));
+    const execute = vi.fn(async () => ({ ok: true }));
     const lookupAccount = tool({
       inputSchema: z.object({}),
       contextSchema: z.object({ userId: z.string() }),
@@ -3166,14 +3171,19 @@ describe('HarnessAgent', () => {
       harness,
       tools: { lookupAccount },
       sandbox: makeSandboxProvider(),
+      toolsContext: {} as never,
     });
     const session = await agent.createSession();
 
     await agent.generate({ session, prompt: 'go' });
 
-    expect(execute).toHaveBeenCalledOnce();
+    expect(execute).not.toHaveBeenCalled();
     expect(toolResults).toEqual([
-      { toolCallId: 'c1', output: { userId: 'closure-user' } },
+      {
+        toolCallId: 'c1',
+        output: { error: 'Tool context validation failed.' },
+        isError: true,
+      },
     ]);
 
     await session.destroy();

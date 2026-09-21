@@ -115,9 +115,12 @@ const agent = new HarnessAgent({
 ```
 
 Use `prepareCall` to replace `toolsContext` when the value depends on custom
-call options. `HarnessAgent` validates each entry against the tool's
-`contextSchema` before execution and exposes the configured map in step results
-and lifecycle callbacks.
+call options. The type of `toolsContext` follows the tool set: it is rejected
+when no tool declares a context schema, required when a tool requires a
+context object, and optional when every context object is optional.
+`HarnessAgent` validates each entry against the tool's `contextSchema` before
+execution and exposes the configured map in step results and lifecycle
+callbacks.
 
 Tool context remains host-only and is not serialized into suspended-turn state.
 When recreating a session for an unfinished turn, rebind it explicitly:
@@ -132,8 +135,9 @@ const session = await agent.createSession({
 });
 ```
 
-Only context entries supplied through `toolsContext` are schema-validated by
-the harness. This preserves tools that bind context inside an `execute` wrapper.
+Missing or invalid context fails validation before the host tool executes. The
+validation error returned to the harness runtime is intentionally generic so
+host-only context values and schema details are not disclosed to the model.
 
 ## Client-Side Tools
 
