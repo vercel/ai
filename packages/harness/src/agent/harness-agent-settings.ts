@@ -157,9 +157,7 @@ export type HarnessAgentSettings<
    * against the matching tool's `contextSchema` before execution.
    * `prepareCall` can replace it for each new turn.
    */
-  readonly toolsContext?: InferToolSetContext<
-    HarnessAllTools<THarness, TUserTools>
-  >;
+  readonly toolsContext?: InferToolSetContext<TUserTools>;
 
   /**
    * Skills made available to the underlying runtime. Each adapter decides how
@@ -237,9 +235,7 @@ export type HarnessAgentSettings<
         >,
         'model' | 'skills' | 'instructions' | 'tools'
       > & {
-        toolsContext: InferToolSetContext<
-          HarnessAllTools<THarness, TUserTools>
-        >;
+        toolsContext: InferToolSetContext<TUserTools>;
       },
   ) => MaybePromiseLike<
     Pick<
@@ -252,7 +248,7 @@ export type HarnessAgentSettings<
       >,
       'model' | 'skills' | 'instructions' | 'tools'
     > & {
-      toolsContext: InferToolSetContext<HarnessAllTools<THarness, TUserTools>>;
+      toolsContext: InferToolSetContext<TUserTools>;
     } & Omit<Prompt, 'system' | 'instructions' | 'allowSystemInMessages'>
   >;
 
@@ -392,5 +388,5 @@ export type HarnessAgentSettings<
    * stderr default — wire this to capture diagnostics in code.
    */
   readonly onLog?: (event: HarnessDiagnostic) => void;
-} & ToolsContextSettings<HarnessAllTools<THarness, TUserTools>> &
+} & ToolsContextSettings<TUserTools> &
   HarnessAgentToolFilteringSettings<HarnessAllTools<THarness, TUserTools>>;

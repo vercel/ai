@@ -322,9 +322,7 @@ export class HarnessAgent<
      * serialized into lifecycle state because it may contain credentials or
      * non-serializable host objects.
      */
-    toolsContext?: ToolsContextSettings<
-      HarnessAllTools<THarness, TUserTools>
-    >['toolsContext'];
+    toolsContext?: ToolsContextSettings<TUserTools>['toolsContext'];
     /**
      * Existing sandbox session to run the harness in. When provided, the
      * caller retains ownership of the sandbox lifecycle.
@@ -962,8 +960,7 @@ export class HarnessAgent<
       instructions: this.settings.instructions,
       tools: this.settings.tools,
       toolsContext:
-        this.settings.toolsContext ??
-        ({} as InferToolSetContext<HarnessAllTools<THarness, TUserTools>>),
+        this.settings.toolsContext ?? ({} as InferToolSetContext<TUserTools>),
       ...promptOptions,
     };
     const preparedCallArgs =
@@ -1020,7 +1017,7 @@ export class HarnessAgent<
     skills?: ReadonlyArray<HarnessAgentSkill>;
     instructions?: string | SystemModelMessage;
     tools?: TUserTools;
-    toolsContext?: InferToolSetContext<HarnessAllTools<THarness, TUserTools>>;
+    toolsContext?: InferToolSetContext<TUserTools>;
   }): PreparedHarnessAgentTurnSettings<THarness, TUserTools> {
     const userTools = options.tools ?? ({} as TUserTools);
     assertNoReservedQuestionTool({
@@ -1046,9 +1043,9 @@ export class HarnessAgent<
           ? options.instructions
           : options.instructions?.content,
       tools,
-      toolsContext:
-        options.toolsContext ??
-        ({} as InferToolSetContext<HarnessAllTools<THarness, TUserTools>>),
+      toolsContext: (options.toolsContext ?? {}) as InferToolSetContext<
+        HarnessAllTools<THarness, TUserTools>
+      >,
       activeTools: toolFiltering.activeUserTools,
       toolSpecs: this._toToolSpecs(toolFiltering.activeUserTools),
       builtinToolFiltering: toolFiltering.builtinToolFiltering,
