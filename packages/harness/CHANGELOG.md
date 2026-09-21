@@ -1,5 +1,17 @@
 # @ai-sdk/harness
 
+## 1.0.118
+
+### Patch Changes
+
+- d975097: feat(harness): add `AbortSignal` to `SandboxChannel.connect`, plus a `sleep()` helper function
+- b2baeba: fix(harness): preserve work directory text inside longer path segments
+- Updated dependencies [3f6852a]
+- Updated dependencies [6317504]
+- Updated dependencies [3cb2dcd]
+- Updated dependencies [ccf98e7]
+  - ai@7.0.108
+
 ## 1.0.117
 
 ### Patch Changes
