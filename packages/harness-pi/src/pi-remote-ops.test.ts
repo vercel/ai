@@ -113,16 +113,16 @@ function makeOps(behaviors: Parameters<typeof makeMockSandbox>[0]) {
 }
 
 describe('createPiRemoteOps with just-bash', () => {
-  it('supports file operations when realpath is unavailable', async () => {
+  it('supports file operations with the seeded realpath command', async () => {
     const session = await createJustBashSandbox({
       cwd: sandboxWorkDir,
     }).createSession();
     const sandbox = session.restricted();
 
     try {
-      expect((await sandbox.run({ command: 'realpath /tmp' })).exitCode).toBe(
-        127,
-      );
+      const realpath = await sandbox.run({ command: 'realpath /tmp' });
+      expect(realpath.exitCode).toBe(0);
+      expect(realpath.stdout).toBe('/tmp\n');
       await sandbox.writeTextFile({
         path: `${sandboxWorkDir}/notes.md`,
         content: 'alpha\n',
@@ -300,31 +300,7 @@ async function makeJustBashOps() {
   const sandboxSession = await createJustBashSandbox({
     cwd: sandboxWorkDir,
   }).createSession();
-  const justBashSandbox = sandboxSession.restricted();
-  const sandbox = new Proxy(justBashSandbox, {
-    get(target, property) {
-      if (property === 'run') {
-        return async (
-          input: Parameters<Experimental_SandboxSession['run']>[0],
-        ) => {
-          const realpathResult = mockRealpathCommand(
-            input.command,
-            path => path,
-          );
-          return realpathResult == null
-            ? target.run(input)
-            : {
-                exitCode: realpathResult.exitCode ?? 0,
-                stdout: realpathResult.stdout ?? '',
-                stderr: realpathResult.stderr ?? '',
-              };
-        };
-      }
-
-      const value = Reflect.get(target, property, target);
-      return typeof value === 'function' ? value.bind(target) : value;
-    },
-  });
+  const sandbox = sandboxSession.restricted();
   const ops = createPiRemoteOps({
     sandbox,
     paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),

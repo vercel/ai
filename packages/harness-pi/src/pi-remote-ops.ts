@@ -74,53 +74,6 @@ function lastOutputLine(output: Buffer): string | undefined {
   return output.toString('utf8').trim().split('\n').filter(Boolean).at(-1);
 }
 
-const resolveSandboxPathFunction = [
-  'pi_resolve_path() {',
-  '  if resolved=$(realpath "$1" 2>/dev/null); then',
-  `    printf '%s\\n' "$resolved"`,
-  '    return 0',
-  '  fi',
-  '  pending=$1',
-  '  resolved=',
-  '  link_count=0',
-  '  case "$pending" in',
-  '    /*) ;;',
-  '    *) pending=$PWD/$pending ;;',
-  '  esac',
-  '  while [ -n "$pending" ]; do',
-  '    pending=${pending#/}',
-  '    [ -n "$pending" ] || break',
-  '    component=${pending%%/*}',
-  '    if [ "$pending" = "$component" ]; then',
-  '      pending=',
-  '    else',
-  '      pending=${pending#*/}',
-  '    fi',
-  '    case "$component" in',
-  '      ""|.) continue ;;',
-  '      ..)',
-  '        resolved=${resolved%/*}',
-  '        continue',
-  '        ;;',
-  '    esac',
-  '    candidate=$resolved/$component',
-  '    if [ -L "$candidate" ]; then',
-  '      link_count=$((link_count + 1))',
-  '      [ "$link_count" -le 64 ] || return 1',
-  '      target=$(readlink "$candidate") || return 1',
-  '      case "$target" in',
-  '        /*) pending=$target${pending:+/$pending} ;;',
-  '        *) pending=${candidate%/*}/$target${pending:+/$pending} ;;',
-  '      esac',
-  '      resolved=',
-  '    else',
-  '      resolved=$candidate',
-  '    fi',
-  '  done',
-  `  printf '%s\\n' "\${resolved:-/}"`,
-  '}',
-].join('\n');
-
 export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
   const runShell = async (
     command: string,
@@ -157,9 +110,8 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
   ): Promise<string> => {
     const result = await runShell(
       [
-        resolveSandboxPathFunction,
         `target=${shellQuote(remotePath)}`,
-        `resolved=$(pi_resolve_path "$target") || { echo "__PI_REALPATH_FAILED__"; exit 3; }`,
+        `resolved=$(realpath "$target" 2>/dev/null) || { echo "__PI_REALPATH_FAILED__"; exit 3; }`,
         `if [ ! -e "$resolved" ]; then echo "__PI_REALPATH_NOT_FOUND__"; exit 2; fi`,
         `printf '%s\\n' "$resolved"`,
       ].join('\n'),
@@ -194,14 +146,13 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
   ): Promise<string> => {
     const result = await runShell(
       [
-        resolveSandboxPathFunction,
         `target=${shellQuote(remotePath)}`,
-        `if [ -e "$target" ] || [ -L "$target" ]; then resolved=$(pi_resolve_path "$target") || { echo "__PI_REALPATH_FAILED__"; exit 3; }; printf '%s\\n' "$resolved"; exit 0; fi`,
+        `if [ -e "$target" ] || [ -L "$target" ]; then resolved=$(realpath "$target" 2>/dev/null) || { echo "__PI_REALPATH_FAILED__"; exit 3; }; printf '%s\\n' "$resolved"; exit 0; fi`,
         `dir=$(dirname "$target")`,
         `base=$(basename "$target")`,
         `missing="$base"`,
         `while [ ! -e "$dir" ] && [ ! -L "$dir" ]; do parent=$(dirname "$dir"); if [ "$parent" = "$dir" ]; then echo "__PI_REALPATH_NOT_FOUND__"; exit 2; fi; missing="$(basename "$dir")/$missing"; dir="$parent"; done`,
-        `resolved_dir=$(pi_resolve_path "$dir") || { echo "__PI_REALPATH_FAILED__"; exit 3; }`,
+        `resolved_dir=$(realpath "$dir" 2>/dev/null) || { echo "__PI_REALPATH_FAILED__"; exit 3; }`,
         `printf '%s/%s\\n' "$resolved_dir" "$missing"`,
       ].join('\n'),
     );
