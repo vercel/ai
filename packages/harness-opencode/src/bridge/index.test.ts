@@ -332,7 +332,7 @@ describe('OpenCode bridge turn settlement', () => {
     });
   });
 
-  it('uses canonical paths when enforcing restrictive directory access', async () => {
+  it('uses canonical paths and accepts dot-prefixed children in restrictive modes', async () => {
     const tempDirectory = mkdtempSync(
       path.join(tmpdir(), 'opencode-permissions-'),
     );
@@ -341,6 +341,7 @@ describe('OpenCode bridge turn settlement', () => {
     const linkedWorkdir = path.join(tempDirectory, 'linked-workdir');
     const externalDirectory = path.join(tempDirectory, 'external');
     mkdirSync(realWorkdir);
+    mkdirSync(path.join(realWorkdir, '..cache'));
     mkdirSync(externalDirectory);
     symlinkSync(realWorkdir, linkedWorkdir, 'dir');
     symlinkSync(externalDirectory, path.join(realWorkdir, 'escape'), 'dir');
@@ -387,6 +388,18 @@ describe('OpenCode bridge turn settlement', () => {
               yield {
                 type: 'permission.v2.asked',
                 properties: {
+                  id: 'dot-prefixed-directory-request',
+                  sessionID: 'session-1',
+                  action: 'read',
+                  resources: [
+                    path.join(linkedWorkdir, '..cache', 'inside.txt'),
+                  ],
+                  source: { callID: 'dot-prefixed-read-call' },
+                },
+              };
+              yield {
+                type: 'permission.v2.asked',
+                properties: {
                   id: 'symlink-escape-request',
                   sessionID: 'session-1',
                   action: 'read',
@@ -425,6 +438,11 @@ describe('OpenCode bridge turn settlement', () => {
       reply: 'always',
     });
     expect(permissionReplyMock).toHaveBeenNthCalledWith(2, {
+      sessionID: 'session-1',
+      requestID: 'dot-prefixed-directory-request',
+      reply: 'always',
+    });
+    expect(permissionReplyMock).toHaveBeenNthCalledWith(3, {
       sessionID: 'session-1',
       requestID: 'symlink-escape-request',
       reply: 'reject',
