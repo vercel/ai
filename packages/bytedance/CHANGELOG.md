@@ -1,5 +1,12 @@
 # @ai-sdk/bytedance
 
+## 1.0.41
+
+### Patch Changes
+
+- Updated dependencies [82e18b0]
+  - @ai-sdk/provider-utils@4.0.52
+
 ## 1.0.40
 
 ### Patch Changes
