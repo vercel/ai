@@ -72,7 +72,7 @@ export type GitHubCopilotHarnessSettings = {
 
 /*
  * This catalog reflects the stable, non-MCP tool surface emitted by GitHub
- * Copilot CLI 1.0.82. Loose object schemas preserve compatibility when the
+ * Copilot CLI >=1.0.82. Loose object schemas preserve compatibility when the
  * CLI adds fields without changing the established inputs.
  */
 const GITHUB_COPILOT_BUILTIN_TOOLS = {
