@@ -68,8 +68,8 @@ export interface AnthropicMessageMetadata {
    * `providerOptions.anthropic.safeguards`, one entry per requested safeguard.
    * For `dangerous_tool_use`, `status.type` is `'available'` when the
    * classifier ran and `status.tool_uses` maps each tool call id to its
-   * verdict (`type: 'evaluated'` with an `outcome`, `'skipped'`, or
-   * `'unavailable'`).
+   * verdict (`type: 'evaluated'` with an `outcome` of `'not_flagged'` or
+   * `'flagged'` plus an `explanation`, `'skipped'`, or `'unavailable'`).
    *
    * Kept in the API's wire shape (snake_case, unknown keys preserved): the
    * beta schema is still evolving and consumers such as Claude Code read the
