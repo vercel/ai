@@ -28,6 +28,11 @@
   },
   "exports": {
     "./package.json": "./package.json",
+    "./translate": {
+      "types": "./dist/pi-translate.d.ts",
+      "import": "./dist/pi-translate.js",
+      "default": "./dist/pi-translate.js"
+    },
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
