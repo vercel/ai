@@ -1,4 +1,4 @@
-import type { JSONSchema7, JSONValue } from '@ai-sdk/provider';
+import type { JSONSchema7 } from '@ai-sdk/provider';
 import {
   lazySchema,
   zodSchema,
@@ -657,36 +657,26 @@ const anthropicStopDetailsSchema = z.object({
 
 export type AnthropicStopDetails = z.infer<typeof anthropicStopDetailsSchema>;
 
-// Loose at every level: the beta schema is still evolving and consumers
-// (e.g. Claude Code behind a gateway) need the verdicts passed through intact.
-const anthropicSafeguardResultSchema = z.looseObject({
+const anthropicSafeguardResultSchema = z.object({
   type: z.string(),
-  status: z.looseObject({
+  status: z.object({
     type: z.string(),
     tool_uses: z
       .record(
         z.string(),
-        z.looseObject({
+        z.object({
           type: z.string(),
           outcome: z.string().nullish(),
+          explanation: z.string().nullish(),
         }),
       )
       .nullish(),
   }),
 });
 
-// Declared by hand (not inferred) so it stays JSON-compatible for provider
-// metadata; the parsed value is cast, which is safe because the loose schema
-// only admits JSON.
-export type AnthropicSafeguardResult = {
-  type: string;
-  status: {
-    type: string;
-    tool_uses?: Record<string, { type: string; outcome?: string | null }>;
-    [key: string]: JSONValue | undefined;
-  };
-  [key: string]: JSONValue | undefined;
-};
+export type AnthropicSafeguardResult = z.infer<
+  typeof anthropicSafeguardResultSchema
+>;
 
 const anthropicToolCallCallerSchema = z.union([
   z.object({

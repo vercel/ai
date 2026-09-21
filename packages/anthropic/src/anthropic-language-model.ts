@@ -51,7 +51,6 @@ import {
   type AnthropicContainer,
   type AnthropicReasoningMetadata,
   type AnthropicResponseContextManagement,
-  type AnthropicSafeguardResult,
   type AnthropicStopDetails,
   type AnthropicTool,
   type AnthropicToolCallCaller,
@@ -1579,10 +1578,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             ? { inputTransformations: response.input_transformations }
             : {}),
           ...(response.safeguard_results != null
-            ? {
-                safeguardResults:
-                  response.safeguard_results as AnthropicSafeguardResult[],
-              }
+            ? { safeguardResults: response.safeguard_results }
             : {}),
 
           iterations: response.usage.iterations
@@ -2729,8 +2725,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               // Earlier deltas may carry null while the classifier is still
               // running; the last non-null value is the final verdict.
               if (value.delta.safeguard_results != null) {
-                safeguardResults = value.delta
-                  .safeguard_results as AnthropicSafeguardResult[];
+                safeguardResults = value.delta.safeguard_results;
               }
 
               rawUsage = {

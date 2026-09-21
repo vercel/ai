@@ -432,7 +432,9 @@ The verdicts are available on `providerMetadata.anthropic.safeguardResults`, one
 ]
 ```
 
-`status.type` is `available` when the classifier ran; `unsupported` means the API key is not enabled for the beta. Inside `status.tool_uses`, each tool call id maps to `evaluated` (with an `outcome` of `not_flagged` or `flagged`, the latter with an `explanation` such as `[Data Exfiltration]`), `skipped`, or `unavailable` (a transient classifier failure). Unknown keys are preserved as the beta evolves. When streaming, the verdicts arrive on the final `message_delta` event and are exposed on the `finish` part's provider metadata.
+`status.type` is `available` when the classifier ran; `unsupported` means the API key is not enabled for the beta. Inside `status.tool_uses`, each tool call id maps to `evaluated` (with an `outcome` of `not_flagged` or `flagged`, the latter with an `explanation` such as `[Data Exfiltration]`), `skipped`, or `unavailable` (a transient classifier failure). When streaming, the verdicts arrive on the final `message_delta` event and are exposed on the `finish` part's provider metadata.
+
+Anthropic's platform reference does not document the beta yet; the feature is described from the client side in the Claude Code [auto mode classifier](https://code.claude.com/docs/en/auto-mode-classifier-billing) and [gateway compatibility](https://code.claude.com/docs/en/llm-gateway-protocol#feature-pass-through) guides.
 
 ### Reasoning
 

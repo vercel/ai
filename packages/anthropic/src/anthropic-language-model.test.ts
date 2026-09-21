@@ -6733,7 +6733,7 @@ describe('AnthropicLanguageModel', () => {
         ).not.toContain('dangerous-tool-use');
       });
 
-      it('should expose safeguard_results as provider metadata, preserving unknown keys', async () => {
+      it('should expose safeguard_results as provider metadata', async () => {
         server.urls['https://api.anthropic.com/v1/messages'].response = {
           type: 'json-value',
           body: {
@@ -6753,7 +6753,19 @@ describe('AnthropicLanguageModel', () => {
             stop_sequence: null,
             usage: { input_tokens: 100, output_tokens: 50 },
             safeguard_results: [
-              { ...safeguardResults[0], future_field: 'kept' },
+              {
+                type: 'dangerous_tool_use',
+                status: {
+                  type: 'available',
+                  tool_uses: {
+                    toolu_01: {
+                      type: 'evaluated',
+                      outcome: 'flagged',
+                      explanation: '[Data Exfiltration]',
+                    },
+                  },
+                },
+              },
             ],
           },
         };
@@ -6761,7 +6773,19 @@ describe('AnthropicLanguageModel', () => {
         const result = await model.doGenerate({ prompt: TEST_PROMPT });
 
         expect(result.providerMetadata?.anthropic?.safeguardResults).toEqual([
-          { ...safeguardResults[0], future_field: 'kept' },
+          {
+            type: 'dangerous_tool_use',
+            status: {
+              type: 'available',
+              tool_uses: {
+                toolu_01: {
+                  type: 'evaluated',
+                  outcome: 'flagged',
+                  explanation: '[Data Exfiltration]',
+                },
+              },
+            },
+          },
         ]);
       });
 

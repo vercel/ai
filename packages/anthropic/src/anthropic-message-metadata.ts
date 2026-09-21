@@ -71,9 +71,8 @@ export interface AnthropicMessageMetadata {
    * verdict (`type: 'evaluated'` with an `outcome` of `'not_flagged'` or
    * `'flagged'` plus an `explanation`, `'skipped'`, or `'unavailable'`).
    *
-   * Kept in the API's wire shape (snake_case, unknown keys preserved): the
-   * beta schema is still evolving and consumers such as Claude Code read the
-   * verdicts verbatim.
+   * Kept in the API's wire shape (snake_case), since consumers such as Claude
+   * Code read the verdicts verbatim.
    */
   safeguardResults?: AnthropicSafeguardResult[];
 
