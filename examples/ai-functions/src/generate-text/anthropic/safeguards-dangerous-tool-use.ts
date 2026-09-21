@@ -35,7 +35,6 @@ run(async () => {
 
   // One entry per requested safeguard; `status.tool_uses` maps each tool call
   // id to its verdict (evaluated with an outcome, skipped, or unavailable).
-  const safeguardResults =
-    result.finalStep.providerMetadata?.anthropic?.safeguardResults;
+  const safeguardResults = result.providerMetadata?.anthropic?.safeguardResults;
   console.log('Safeguard results:', JSON.stringify(safeguardResults, null, 2));
 });
