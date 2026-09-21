@@ -1,10 +1,14 @@
-import type {
-  SharedV4ProviderMetadata,
-  SharedV4Warning,
-  SpeechModelV4,
+import {
+  InvalidResponseDataError,
+  type Experimental_SpeechModelV4StreamPart,
+  type Experimental_SpeechModelV4StreamResult,
+  type SharedV4ProviderMetadata,
+  type SharedV4Warning,
+  type SpeechModelV4,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   getErrorMessage,
@@ -13,7 +17,7 @@ import {
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from './zod';
-import { asGatewayError } from './errors';
+import { asGatewayError, GatewayInternalServerError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import type { GatewayConfig } from './gateway-config';
 
@@ -101,6 +105,127 @@ export class GatewaySpeechModel implements SpeechModelV4 {
     }
   }
 
+  async doStream({
+    abortSignal,
+    headers,
+    ...options
+  }: Parameters<
+    NonNullable<SpeechModelV4['doStream']>
+  >[0]): Promise<Experimental_SpeechModelV4StreamResult> {
+    const resolvedHeaders = this.config.headers
+      ? await resolve(this.config.headers)
+      : undefined;
+    try {
+      const { value, responseHeaders } = await postJsonToApi({
+        url: this.getUrl(),
+        headers: combineHeaders(
+          resolvedHeaders,
+          headers,
+          this.getModelConfigHeaders(),
+          { 'ai-speech-model-streaming': 'true' },
+          await resolve(this.config.o11yHeaders),
+        ),
+        body: options,
+        successfulResponseHandler: createEventSourceResponseHandler(
+          gatewaySpeechStreamSchema,
+        ),
+        failedResponseHandler: createJsonErrorResponseHandler({
+          errorSchema: z.any(),
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
+        }),
+        abortSignal,
+        fetch: this.config.fetch,
+      });
+      const reader = value.getReader();
+      let warnings: SharedV4Warning[];
+      try {
+        const first = await reader.read();
+        if (first.done)
+          throw new InvalidResponseDataError({
+            data: undefined,
+            message: 'Gateway speech stream is empty.',
+          });
+        if (!first.value.success) throw first.value.error;
+        if (first.value.value.type !== 'stream-start')
+          throw new InvalidResponseDataError({
+            data: first.value.value,
+            message: 'Expected a speech stream-start event.',
+          });
+        warnings = first.value.value.warnings;
+      } catch (error) {
+        try {
+          await reader.cancel(error);
+        } finally {
+          reader.releaseLock();
+        }
+        throw error;
+      }
+      let closed = false;
+      return {
+        warnings,
+        response: {
+          timestamp: new Date(),
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+        stream: new ReadableStream<Experimental_SpeechModelV4StreamPart>({
+          async pull(controller) {
+            try {
+              const next = await reader.read();
+              if (closed) return;
+              if (next.done) {
+                closed = true;
+                reader.releaseLock();
+                controller.close();
+                return;
+              }
+              if (!next.value.success) throw next.value.error;
+              const part = next.value.value;
+              if (part.type === 'error')
+                throw new GatewayInternalServerError({
+                  message: part.error.message,
+                });
+              if (part.type === 'stream-start')
+                throw new InvalidResponseDataError({
+                  data: part,
+                  message: 'Unexpected duplicate speech stream-start event.',
+                });
+              controller.enqueue({
+                ...part,
+                providerMetadata: part.providerMetadata as
+                  | SharedV4ProviderMetadata
+                  | undefined,
+              });
+            } catch (error) {
+              if (closed) return;
+              closed = true;
+              controller.error(error);
+              try {
+                await reader.cancel(error);
+              } finally {
+                reader.releaseLock();
+              }
+            }
+          },
+          async cancel(reason) {
+            if (closed) return;
+            closed = true;
+            try {
+              await reader.cancel(reason);
+            } finally {
+              reader.releaseLock();
+            }
+          },
+        }),
+      };
+    } catch (error) {
+      throw await asGatewayError(
+        error,
+        await parseAuthMethod(resolvedHeaders ?? {}),
+      );
+    }
+  }
+
   private getUrl() {
     return `${this.config.baseURL}/speech-model`;
   }
@@ -144,3 +269,36 @@ const gatewaySpeechResponseSchema = z.object({
     .record(z.string(), providerMetadataEntrySchema)
     .optional(),
 });
+
+const gatewaySpeechStreamSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('stream-start'),
+    warnings: z.array(gatewaySpeechWarningSchema),
+  }),
+  z.object({
+    type: z.literal('audio'),
+    audio: z.string(),
+    mediaType: z.string(),
+    providerMetadata: z
+      .record(z.string(), providerMetadataEntrySchema)
+      .optional(),
+  }),
+  z.object({
+    type: z.literal('finish'),
+    finishReason: z.object({
+      unified: z.enum(['stop', 'length', 'content-filter', 'error', 'other']),
+      raw: z.string().optional(),
+    }),
+    usage: z.object({
+      inputTokens: z.number().nonnegative().optional(),
+      outputTokens: z.number().nonnegative().optional(),
+    }),
+    providerMetadata: z
+      .record(z.string(), providerMetadataEntrySchema)
+      .optional(),
+  }),
+  z.object({
+    type: z.literal('error'),
+    error: z.object({ message: z.string() }),
+  }),
+]);

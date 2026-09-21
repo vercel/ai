@@ -1,5 +1,6 @@
 import {
   UnsupportedFunctionalityError,
+  InvalidResponseDataError,
   type Experimental_SpeechModelV4StreamPart,
 } from '@ai-sdk/provider';
 import {
@@ -62,10 +63,22 @@ export async function streamSpeech({
   });
 
   let hasAudio = false;
+  let finished = false;
   const stream = result.stream.pipeThrough(
     new TransformStream<Experimental_SpeechModelV4StreamPart, SpeechStreamPart>(
       {
         transform(part, controller) {
+          if (finished) {
+            throw new InvalidResponseDataError({
+              data: part,
+              message: 'Speech stream continued after its finish event.',
+            });
+          }
+          if (part.type === 'finish') {
+            finished = true;
+            controller.enqueue(part);
+            return;
+          }
           const audio =
             typeof part.audio === 'string'
               ? convertBase64ToUint8Array(part.audio)
@@ -78,6 +91,12 @@ export async function streamSpeech({
         flush() {
           if (!hasAudio) {
             throw new NoSpeechGeneratedError({ responses: [result.response] });
+          }
+          if (!finished) {
+            throw new InvalidResponseDataError({
+              data: undefined,
+              message: 'Speech stream ended without a finish event.',
+            });
           }
         },
       },
@@ -106,7 +125,14 @@ export async function streamSpeech({
         claimStream().pipeThrough(
           new TransformStream<SpeechStreamPart, Uint8Array>({
             transform(part, controller) {
-              controller.enqueue(part.audio);
+              if (part.type === 'audio') {
+                controller.enqueue(part.audio);
+              } else if (part.finishReason.unified !== 'stop') {
+                throw new InvalidResponseDataError({
+                  data: part,
+                  message: `Speech generation ended with finish reason: ${part.finishReason.raw ?? part.finishReason.unified}.`,
+                });
+              }
             },
           }),
         ),

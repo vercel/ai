@@ -49,13 +49,25 @@ A `Promise<StreamSpeechResult>` with:
 | Property      | Type                                    | Description                                                                   |
 | ------------- | --------------------------------------- | ----------------------------------------------------------------------------- |
 | `audioStream` | `AsyncIterableStream<Uint8Array>`       | Audio bytes in generation order. Chunks need not be standalone files.         |
-| `fullStream`  | `AsyncIterableStream<SpeechStreamPart>` | Audio chunks with media type and provider metadata.                           |
+| `fullStream`  | `AsyncIterableStream<SpeechStreamPart>` | Audio chunks and terminal completion, usage, and metadata.                           |
 | `warnings`    | `Warning[]`                             | Warnings available when the request starts.                                   |
 | `responses`   | `SpeechModelResponseMetadata[]`         | Response metadata, including timestamp, model ID, and headers when available. |
 
-Each `SpeechStreamPart` contains `type: 'audio'`, `audio: Uint8Array`,
+An audio `SpeechStreamPart` contains `type: 'audio'`, `audio: Uint8Array`,
 `mediaType: string`, and optional `providerMetadata`. For Google, the latter
 contains `google.sampleRate` and `google.mimeType`.
+
+The final part has `type: 'finish'`, `finishReason: { unified, raw? }`,
+`usage: { inputTokens?, outputTokens? }`, and optional `providerMetadata`.
+Token counts are provider-reported; missing counts are not assumed to be zero.
+Check the unified finish reason (`stop`, `length`, `content-filter`, `error`, or
+`other`) before treating the output as complete. `audioStream` rejects non-`stop`
+completion; `fullStream` exposes the finish event for application handling.
+Streams that end without a finish event reject reads.
+
+The Gateway provider supports this transport when the Gateway deployment and
+selected upstream provider support streaming speech. Gateway cost and routing
+metadata arrive on the finish event.
 
 Choose either `audioStream` or `fullStream` and access it once. They share a single
 underlying response; no second stream is buffered for replay. Both streams are

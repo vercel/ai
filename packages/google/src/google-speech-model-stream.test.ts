@@ -21,11 +21,14 @@ const audioPart = (data: string, mimeType = 'audio/L16;rate=24000') => ({
   inlineData: { data, mimeType },
 });
 
-function prepareResponse(chunks: unknown[]) {
+function prepareResponse(chunks: unknown[], complete = true) {
   server.urls[url].response = {
     type: 'stream-chunks',
     headers: { 'x-test': 'value' },
-    chunks: chunks.map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+    chunks: [
+      ...chunks,
+      ...(complete ? [{ candidates: [{ finishReason: 'STOP' }] }] : []),
+    ].map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
   };
 }
 
@@ -85,7 +88,9 @@ describe('doStream', () => {
     ]);
     const result = await model.doStream({ text: 'Hello' });
     const chunks = await convertReadableStreamToArray(result.stream);
-    expect(chunks.map(chunk => chunk.audio)).toEqual([
+    expect(
+      chunks.filter(chunk => chunk.type === 'audio').map(chunk => chunk.audio),
+    ).toEqual([
       new Uint8Array([1, 2]),
       new Uint8Array([3, 4]),
       new Uint8Array([5, 6]),
@@ -99,6 +104,55 @@ describe('doStream', () => {
       },
     });
     expect(chunks[2].providerMetadata?.google.sampleRate).toBe(16000);
+  });
+
+  it.each([
+    ['STOP', 'stop'],
+    ['MAX_TOKENS', 'length'],
+    ['OTHER', 'other'],
+    ['SAFETY', 'content-filter'],
+  ])('preserves %s completion and terminal usage', async (raw, unified) => {
+    prepareResponse(
+      [
+        { candidates: [{ content: { parts: [audioPart('AQI=')] } }] },
+        {
+          candidates: [{ finishReason: raw }],
+          usageMetadata: { promptTokenCount: 12, candidatesTokenCount: 34 },
+        },
+      ],
+      false,
+    );
+    const result = await model.doStream({ text: 'Hello' });
+    expect((await convertReadableStreamToArray(result.stream)).at(-1)).toEqual({
+      type: 'finish',
+      finishReason: { unified, raw },
+      usage: { inputTokens: 12, outputTokens: 34 },
+    });
+  });
+
+  it('keeps usage that arrives after the finish reason', async () => {
+    prepareResponse(
+      [
+        { candidates: [{ finishReason: 'STOP' }] },
+        { usageMetadata: { promptTokenCount: 12, candidatesTokenCount: 34 } },
+      ],
+      false,
+    );
+    const result = await model.doStream({ text: 'Hello' });
+    expect(
+      (await convertReadableStreamToArray(result.stream)).at(-1),
+    ).toMatchObject({ usage: { inputTokens: 12, outputTokens: 34 } });
+  });
+
+  it('rejects EOF without a finish reason even after audio', async () => {
+    prepareResponse(
+      [{ candidates: [{ content: { parts: [audioPart('AQI=')] } }] }],
+      false,
+    );
+    const result = await model.doStream({ text: 'Hello' });
+    await expect(convertReadableStreamToArray(result.stream)).rejects.toThrow(
+      'without a finish reason',
+    );
   });
 
   it('preserves multi-speaker configuration', async () => {
@@ -134,7 +188,9 @@ describe('doStream', () => {
       expect.objectContaining({ type: 'unsupported', feature: 'outputFormat' }),
     ]);
     expect(
-      (await convertReadableStreamToArray(result.stream))[0].audio,
+      (await convertReadableStreamToArray(result.stream)).filter(
+        part => part.type === 'audio',
+      )[0].audio,
     ).toEqual(new Uint8Array([1, 2]));
   });
 
@@ -216,7 +272,9 @@ describe('doStream', () => {
       ),
     );
     const reader = result.stream.getReader();
-    expect((await reader.read()).value?.audio).toEqual(new Uint8Array([1, 2]));
+    expect(
+      ((await reader.read()).value as { audio: Uint8Array }).audio,
+    ).toEqual(new Uint8Array([1, 2]));
     await reader.cancel('done');
     await vi.waitFor(() => expect(cancel).toHaveBeenCalled());
   });

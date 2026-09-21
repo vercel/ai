@@ -46,6 +46,19 @@ const { text } = await generateText({
 
 The AI SDK automatically uses the AI Gateway when you pass a model string in the `creator/model-name` format.
 
+## Streaming speech
+
+Use `experimental_streamSpeech` with `gateway.speech(modelId)` for models whose
+Gateway deployment and serving provider support streaming speech. The speech
+model must implement `doStream`; support depends on the upstream provider.
+
+Consume `result.audioStream` for audio bytes, or `result.fullStream` for audio
+chunks followed by a `finish` event with completion reason, token usage, and
+Gateway cost/routing metadata. Google streams raw PCM rather than WAV files.
+`audioStream` rejects incomplete generation. See the
+[streaming speech reference](/docs/reference/ai-sdk-core/stream-speech) for the
+experimental contract and cancellation behavior.
+
 ## Provider Instance
 
 <Note>

@@ -1,5 +1,6 @@
 import {
   APICallError,
+  InvalidResponseDataError,
   UnsupportedFunctionalityError,
   type Experimental_SpeechModelV4StreamPart,
   type Experimental_SpeechModelV4StreamResult,
@@ -22,6 +23,7 @@ import {
   type ParseResult,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
+import { mapGoogleFinishReason } from './map-google-finish-reason';
 import { googleFailedResponseHandler } from './google-error';
 import { googleSpeechResponseSchema } from './google-speech-api';
 import {
@@ -222,6 +224,12 @@ export class GoogleSpeechModel implements SpeechModelV4 {
       fetch: this.config.fetch,
     });
 
+    let finishReason: string | undefined;
+    let finishMessage: string | undefined;
+    let blocked = false;
+    let inputTokens: number | undefined;
+    let outputTokens: number | undefined;
+
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -244,6 +252,18 @@ export class GoogleSpeechModel implements SpeechModelV4 {
               });
             }
 
+            const candidate = chunk.value.candidates?.[0];
+            finishReason = candidate?.finishReason ?? finishReason;
+            finishMessage = candidate?.finishMessage ?? finishMessage;
+            if (chunk.value.promptFeedback?.blockReason) {
+              blocked = true;
+              finishReason = chunk.value.promptFeedback.blockReason;
+            }
+            inputTokens =
+              chunk.value.usageMetadata?.promptTokenCount ?? inputTokens;
+            outputTokens =
+              chunk.value.usageMetadata?.candidatesTokenCount ?? outputTokens;
+
             // Candidates are alternative outputs; only stream the first one.
             for (const part of chunk.value.candidates?.[0]?.content?.parts ??
               []) {
@@ -265,6 +285,28 @@ export class GoogleSpeechModel implements SpeechModelV4 {
                 },
               });
             }
+          },
+          flush(controller) {
+            if (finishReason == null) {
+              throw new InvalidResponseDataError({
+                data: undefined,
+                message: 'Google speech stream ended without a finish reason.',
+              });
+            }
+            const unified = blocked
+              ? 'content-filter'
+              : mapGoogleFinishReason({ finishReason, hasToolCalls: false });
+            controller.enqueue({
+              type: 'finish',
+              finishReason: {
+                unified: unified === 'tool-calls' ? 'other' : unified,
+                raw: finishReason,
+              },
+              usage: { inputTokens, outputTokens },
+              ...(finishMessage != null
+                ? { providerMetadata: { google: { finishMessage } } }
+                : {}),
+            });
           },
         }),
       ),

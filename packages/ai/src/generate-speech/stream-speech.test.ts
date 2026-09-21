@@ -1,5 +1,6 @@
 import {
   APICallError,
+  InvalidResponseDataError,
   UnsupportedFunctionalityError,
   type Experimental_SpeechModelV4StreamPart,
 } from '@ai-sdk/provider';
@@ -24,11 +25,16 @@ const audioPart: Experimental_SpeechModelV4StreamPart = {
   mediaType: 'audio/pcm',
   providerMetadata: { google: { sampleRate: 24000 } },
 };
+const finishPart: Experimental_SpeechModelV4StreamPart = {
+  type: 'finish',
+  finishReason: { unified: 'stop', raw: 'STOP' },
+  usage: { inputTokens: 12, outputTokens: 34 },
+};
 function createResponse(
   parts: Experimental_SpeechModelV4StreamPart[] = [audioPart],
 ) {
   return {
-    stream: convertArrayToReadableStream(parts),
+    stream: convertArrayToReadableStream([...parts, finishPart]),
     warnings: [],
     response,
   };
@@ -77,6 +83,7 @@ describe('streamSpeech', () => {
     );
     expect(await convertAsyncIterableToArray(result.fullStream)).toEqual([
       audioPart,
+      finishPart,
     ]);
   });
 
@@ -114,6 +121,62 @@ describe('streamSpeech', () => {
     await expect(
       convertAsyncIterableToArray(result.audioStream),
     ).rejects.toBeInstanceOf(NoSpeechGeneratedError);
+  });
+
+  it('exposes incomplete completion and usage in fullStream', async () => {
+    const finish = {
+      ...finishPart,
+      finishReason: { unified: 'length' as const, raw: 'MAX_TOKENS' },
+    };
+    const result = await streamSpeech({
+      model: new MockSpeechModelV4({
+        doStream: async () => ({
+          ...createResponse(),
+          stream: convertArrayToReadableStream([audioPart, finish]),
+        }),
+      }),
+      text: 'Hello',
+    });
+    expect(await convertAsyncIterableToArray(result.fullStream)).toEqual([
+      audioPart,
+      finish,
+    ]);
+  });
+
+  it('rejects incomplete generation in audioStream', async () => {
+    const result = await streamSpeech({
+      model: new MockSpeechModelV4({
+        doStream: async () => ({
+          ...createResponse(),
+          stream: convertArrayToReadableStream([
+            audioPart,
+            {
+              ...finishPart,
+              finishReason: { unified: 'length', raw: 'MAX_TOKENS' },
+            },
+          ]),
+        }),
+      }),
+      text: 'Hello',
+    });
+    await expect(
+      convertAsyncIterableToArray(result.audioStream),
+    ).rejects.toThrow('MAX_TOKENS');
+  });
+
+  it('rejects a stream that ends without a finish event', async () => {
+    const result = await streamSpeech({
+      model: new MockSpeechModelV4({
+        doStream: async () => ({
+          ...createResponse(),
+          stream: convertArrayToReadableStream([audioPart]),
+        }),
+      }),
+      text: 'Hello',
+    });
+    await expect(
+      convertAsyncIterableToArray(result.fullStream),
+    ).rejects.toBeInstanceOf(InvalidResponseDataError);
   });
 
   it('retries failures while opening the request', async () => {

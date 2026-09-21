@@ -15,9 +15,18 @@ export const googleSpeechResponseSchema = lazySchema(() =>
           code: z.number().nullish(),
         })
         .nullish(),
+      usageMetadata: z
+        .object({
+          promptTokenCount: z.number().nullish(),
+          candidatesTokenCount: z.number().nullish(),
+        })
+        .nullish(),
+      promptFeedback: z.object({ blockReason: z.string().nullish() }).nullish(),
       candidates: z
         .array(
           z.object({
+            finishReason: z.string().nullish(),
+            finishMessage: z.string().nullish(),
             content: z
               .object({
                 parts: z

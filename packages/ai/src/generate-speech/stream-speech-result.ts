@@ -3,10 +3,14 @@ import type { SpeechModelResponseMetadata } from '../types/speech-model-response
 import type { Warning } from '../types/warning';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
 
-export type SpeechStreamPart = Omit<
-  Experimental_SpeechModelV4StreamPart,
-  'audio'
-> & { audio: Uint8Array };
+export type SpeechStreamPart =
+  | (Omit<
+      Extract<Experimental_SpeechModelV4StreamPart, { type: 'audio' }>,
+      'audio'
+    > & {
+      audio: Uint8Array;
+    })
+  | Extract<Experimental_SpeechModelV4StreamPart, { type: 'finish' }>;
 
 export interface StreamSpeechResult {
   /**
@@ -16,7 +20,7 @@ export interface StreamSpeechResult {
    */
   readonly audioStream: AsyncIterableStream<Uint8Array>;
 
-  /** Audio chunks with their media type and provider-specific metadata. */
+  /** Audio chunks and a final event with finish reason, usage, and metadata. */
   readonly fullStream: AsyncIterableStream<SpeechStreamPart>;
 
   /** Warnings available when the request starts. */

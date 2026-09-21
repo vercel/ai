@@ -54,7 +54,10 @@ mono PCM, normally at 24 kHz. These chunks are not standalone WAV files.
 
 Use `result.fullStream` instead of `result.audioStream` to receive objects with
 `type: 'audio'`, `audio` bytes, `mediaType`, and optional `providerMetadata`.
-Google reports the sample rate in `chunk.providerMetadata.google.sampleRate`.
+For audio chunks, Google reports the sample rate in
+`chunk.providerMetadata.google.sampleRate`. The final `type: 'finish'` event
+contains the finish reason and provider-reported token usage. `audioStream`
+rejects incomplete generation; check the finish reason when using `fullStream`.
 Choose one stream and consume it once; the SDK does not buffer a second copy.
 `result.warnings` and `result.responses` contain request warnings and response
 metadata available when the request starts.

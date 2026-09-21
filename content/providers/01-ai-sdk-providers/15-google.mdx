@@ -2276,7 +2276,11 @@ const result = await streamSpeech({
 });
 
 for await (const chunk of result.fullStream) {
-  console.log(chunk.audio, chunk.providerMetadata?.google.sampleRate);
+  if (chunk.type === 'audio') {
+    console.log(chunk.audio, chunk.providerMetadata?.google.sampleRate);
+  } else {
+    console.log(chunk.finishReason, chunk.usage);
+  }
 }
 ```
 
