@@ -10,6 +10,7 @@ import {
 import {
   createCredentialRequestTransformation,
   isSandboxCredentialPlaceholder,
+  type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
 import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
@@ -59,6 +60,12 @@ export type GitHubCopilotHarnessSettings = {
   readonly port?: number;
   readonly portEndpoint?: HarnessV1PortEndpoint;
   readonly startupTimeoutMs?: number;
+  /**
+   * Configures reconnection attempts after an established bridge connection
+   * drops. Defaults to a 30 second reconnect window with exponential backoff
+   * from 50 milliseconds up to 2 seconds.
+   */
+  readonly reconnect?: SandboxChannelReconnectOptions;
   readonly mintBridgeToken?: (sandboxId: string) => string;
 };
 
@@ -477,6 +484,7 @@ export function createGitHubCopilot(
     port: settings.port,
     portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,
+    reconnect: settings.reconnect,
     mintBridgeToken: settings.mintBridgeToken,
   });
 }

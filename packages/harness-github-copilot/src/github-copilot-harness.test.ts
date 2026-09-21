@@ -315,6 +315,11 @@ describe('createGitHubCopilot', () => {
     const mintBridgeToken = (sandboxId: string) => sandboxId;
     const mcpServers = { docs: { url: 'https://mcp.example' } };
     const portEndpoint = { url: 'wss://sandbox.example/bridge' };
+    const reconnect = {
+      maxElapsedMs: 120_000,
+      initialDelayMs: 100,
+      maxDelayMs: 5_000,
+    };
 
     createGitHubCopilot({
       auth: 'direct',
@@ -324,6 +329,7 @@ describe('createGitHubCopilot', () => {
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
+      reconnect,
       mintBridgeToken,
     });
 
@@ -335,6 +341,7 @@ describe('createGitHubCopilot', () => {
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
+      reconnect,
       mintBridgeToken,
     });
     await settings.credentialForwarding?.({

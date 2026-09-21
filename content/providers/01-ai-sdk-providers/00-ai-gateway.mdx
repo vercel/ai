@@ -220,7 +220,7 @@ the failure without inspecting the Gateway's serialized error payload.
 </Note>
 
 AI Gateway supports durable text batches through `experimental_startBatch`,
-`experimental_getBatchStatus`, and `experimental_getBatchResults`. See
+`experimental_getBatchStatus`, `experimental_getBatchResults`, and `experimental_cancelBatch`. See
 [Batch](/docs/ai-sdk-core/batch) for the provider-agnostic workflow,
 and the [AI Gateway batch processing guide](https://vercel.com/docs/ai-gateway/models-and-providers/batch-processing)
 for supported models, limits, and Gateway-specific behavior.
@@ -413,6 +413,19 @@ AI Gateway expects a 2xx response within 10 seconds and retries failed deliverie
 Each request specifies its `type` and `model`. AI Gateway currently requires
 every text request in a batch to use the same model and throws before submission
 when the models differ.
+
+### Cancelling a batch
+
+Pass the batch reference returned by `experimental_startBatch` to request cancellation:
+
+```ts
+import { gateway } from '@ai-sdk/gateway';
+import { experimental_cancelBatch as cancelBatch } from 'ai';
+
+await cancelBatch({ provider: gateway, batch });
+```
+
+Cancellation is asynchronous. Continue checking `experimental_getBatchStatus` until the batch is terminal, then read `experimental_getBatchResults` for any partial results. A batch may finish before cancellation takes effect, and successful requests remain billable. Cancellation returns acknowledgement metadata, not confirmation that provider execution has stopped.
 
 ## Reranking Models
 
@@ -736,7 +749,7 @@ import { generateText, tool } from 'ai';
 import { z } from 'zod';
 
 const { text } = await generateText({
-  model: 'xai/grok-4.6',
+  model: 'xai/grok-4.7',
   prompt: 'What is the weather like in San Francisco?',
   tools: {
     getWeather: tool({

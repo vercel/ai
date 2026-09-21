@@ -51,7 +51,7 @@ import {
   mapUsage,
   type ClaudeMessage,
 } from './create-emit-stream-event';
-import { jsonSchemaToZodShape } from './json-schema-to-zod';
+import { jsonSchemaToZodObject } from './json-schema-to-zod';
 import {
   resolveInactiveNativeTools,
   resolveNativeTools,
@@ -380,11 +380,12 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       version: '1.0.0',
     });
     for (const tool of start.tools) {
-      const shape = jsonSchemaToZodShape(tool.inputSchema);
-      server.tool(
+      server.registerTool(
         tool.name,
-        tool.description ?? '',
-        shape,
+        {
+          description: tool.description ?? '',
+          inputSchema: jsonSchemaToZodObject(tool.inputSchema),
+        },
         async (
           ...handlerArgs: [
             Record<string, unknown>,

@@ -13,6 +13,7 @@ const sentMessages: unknown[] = [];
 const channelMocks = vi.hoisted(() => ({
   connectOnOpen: false,
   connects: [] as Array<() => Promise<unknown>>,
+  reconnects: [] as Array<unknown>,
 }));
 const webSocketMocks = vi.hoisted(() => {
   type Listener = (...args: unknown[]) => void;
@@ -60,8 +61,15 @@ vi.mock('ws', () => ({ WebSocket: webSocketMocks.WebSocket }));
 vi.mock('@ai-sdk/harness/utils', async importOriginal => {
   const actual = await importOriginal<typeof HarnessUtils>();
   class FakeSandboxChannel {
-    constructor({ connect }: { connect: () => Promise<unknown> }) {
+    constructor({
+      connect,
+      reconnect,
+    }: {
+      connect: () => Promise<unknown>;
+      reconnect?: unknown;
+    }) {
       channelMocks.connects.push(connect);
+      channelMocks.reconnects.push(reconnect);
     }
     async open(): Promise<void> {
       if (channelMocks.connectOnOpen) {
@@ -184,6 +192,7 @@ describe('createDeepAgents', () => {
   beforeEach(() => {
     channelMocks.connectOnOpen = false;
     channelMocks.connects.length = 0;
+    channelMocks.reconnects.length = 0;
     webSocketMocks.calls.length = 0;
   });
 
@@ -520,7 +529,16 @@ describe('createDeepAgents', () => {
       url: 'wss://sandbox.example/bridge?existing=value',
       headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
     };
-    const harness = createDeepAgents({ mintBridgeToken, portEndpoint });
+    const reconnect = {
+      maxElapsedMs: 120_000,
+      initialDelayMs: 100,
+      maxDelayMs: 5_000,
+    };
+    const harness = createDeepAgents({
+      mintBridgeToken,
+      portEndpoint,
+      reconnect,
+    });
     const sandboxSession = fakeSandboxSession({
       spawnEnvs,
       bridgePortEndpoint: { url: 'ws://unused.example' },
@@ -548,6 +566,7 @@ describe('createDeepAgents', () => {
       resumeFrom,
     });
     expect(mintBridgeToken).toHaveBeenCalledTimes(1);
+    expect(channelMocks.reconnects).toEqual([reconnect, reconnect]);
     expect(webSocketMocks.calls).toEqual([
       {
         url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-test-sandbox',
