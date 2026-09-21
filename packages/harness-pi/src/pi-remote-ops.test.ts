@@ -1,6 +1,13 @@
 import { execFile } from 'node:child_process';
 import { realpathSync } from 'node:fs';
-import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import {
+  chmod,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -27,6 +34,7 @@ function makeMockSandbox(behaviors: {
     exitCode?: number;
   };
   realpath?: (path: string) => string | null;
+  realpathBytes?: (path: string) => Uint8Array | undefined;
   readBinary?: (path: string) => Uint8Array | null;
 }): {
   sandbox: Experimental_SandboxSession;
@@ -50,7 +58,11 @@ function makeMockSandbox(behaviors: {
       }) => {
         runCalls.push({ command, workingDirectory });
         const result =
-          mockRealpathCommand(command, behaviors.realpath) ??
+          mockRealpathCommand(
+            command,
+            behaviors.realpath,
+            behaviors.realpathBytes,
+          ) ??
           behaviors.run?.(command) ??
           {};
         return {
@@ -82,6 +94,7 @@ function makeMockSandbox(behaviors: {
 function mockRealpathCommand(
   command: string,
   resolvePath: ((path: string) => string | null) | undefined,
+  resolveBytes: ((path: string) => Uint8Array | undefined) | undefined,
 ): { stdout?: string; stderr?: string; exitCode?: number } | undefined {
   if (!command.includes('realpath')) {
     return undefined;
@@ -97,8 +110,13 @@ function mockRealpathCommand(
     return { stdout: '__PI_REALPATH_NOT_FOUND__\n', exitCode: 2 };
   }
   const frame = command.match(/realpath_marker='([^']+)'/)?.[1];
+  const resolvedBytes =
+    resolveBytes?.(target) ?? Buffer.from(resolvedPath, 'utf8');
+  const outputPath = command.includes('base64')
+    ? Buffer.from(resolvedBytes).toString('base64')
+    : new TextDecoder().decode(resolvedBytes);
   return {
-    stdout: frame == null ? `${resolvedPath}\n` : `${resolvedPath}${frame}`,
+    stdout: frame == null ? `${resolvedPath}\n` : `${outputPath}${frame}`,
   };
 }
 
@@ -492,6 +510,82 @@ function makeNativeShellOps(workDir: string) {
   });
 }
 
+function createNativeFileSandbox(options: {
+  readonly readCalls: string[];
+  readonly writeCalls: WriteCalls;
+}): Experimental_SandboxSession {
+  const decodeOutput = (value: unknown): string => {
+    if (typeof value === 'string') return value;
+    if (value instanceof Uint8Array) return new TextDecoder().decode(value);
+    return '';
+  };
+
+  return {
+    description: 'native shell with lossy log decoding',
+    run: vi.fn(
+      async ({
+        command,
+        workingDirectory,
+        env,
+      }: {
+        command: string;
+        workingDirectory?: string;
+        env?: Record<string, string>;
+      }) => {
+        try {
+          const result = await execFileAsync('bash', ['-c', command], {
+            cwd: workingDirectory,
+            env: { ...process.env, ...env },
+            encoding: 'buffer',
+          });
+          return {
+            exitCode: 0,
+            stdout: decodeOutput(result.stdout),
+            stderr: decodeOutput(result.stderr),
+          };
+        } catch (error) {
+          const result = error as {
+            code?: number;
+            stdout?: Uint8Array | string;
+            stderr?: Uint8Array | string;
+          };
+          return {
+            exitCode: typeof result.code === 'number' ? result.code : 1,
+            stdout: decodeOutput(result.stdout),
+            stderr: decodeOutput(result.stderr),
+          };
+        }
+      },
+    ),
+    readBinaryFile: vi.fn(async ({ path: inputPath }: { path: string }) => {
+      options.readCalls.push(inputPath);
+      try {
+        return await readFile(inputPath);
+      } catch (error) {
+        if ((error as { code?: unknown }).code === 'ENOENT') return null;
+        throw error;
+      }
+    }),
+    readFile: vi.fn(),
+    readTextFile: vi.fn(),
+    writeFile: vi.fn(),
+    writeBinaryFile: vi.fn(),
+    writeTextFile: vi.fn(
+      async ({
+        path: inputPath,
+        content,
+      }: {
+        path: string;
+        content: string;
+      }) => {
+        options.writeCalls.push({ path: inputPath, content });
+        await writeFile(inputPath, content);
+      },
+    ),
+    spawn: vi.fn(),
+  } as unknown as Experimental_SandboxSession;
+}
+
 describe('createPiRemoteOps.readBuffer', () => {
   it('reads via readBinaryFile and returns a Buffer', async () => {
     const env = makeOps({
@@ -539,6 +633,85 @@ describe('createPiRemoteOps.readBuffer', () => {
       env.ops.readBuffer('repo-controlled-secret-link'),
     ).rejects.toThrow(/escapes the readable roots/);
     expect(env.readCalls).toEqual([]);
+  });
+
+  it('rejects canonical paths with invalid UTF-8 before file access', async () => {
+    const aliasPath = `${sandboxWorkDir}/raw-alias`;
+    const invalidCanonicalPath = Buffer.from(
+      `${sandboxWorkDir}/raw-\xff`,
+      'latin1',
+    );
+    const replacementCanonicalPath = `${sandboxWorkDir}/raw-�`;
+    const env = makeOps({
+      realpathBytes: path =>
+        path === aliasPath ? invalidCanonicalPath : undefined,
+      readBinary: path =>
+        path === replacementCanonicalPath
+          ? new TextEncoder().encode('outside secret')
+          : null,
+    });
+
+    await expect(env.ops.readBuffer('raw-alias')).rejects.toThrow(
+      /Unable to resolve path/,
+    );
+    await expect(
+      env.ops.writeFile('raw-alias', 'should not be written'),
+    ).rejects.toThrow(/Unable to resolve path/);
+    expect(env.readCalls).toEqual([]);
+    expect(env.writeCalls).toEqual([]);
+  });
+
+  it('rejects invalid UTF-8 paths from native shell output', async () => {
+    const workDir = await mkdtemp(path.join(tmpdir(), 'pi-invalid-path-'));
+    const workspace = path.join(workDir, 'workspace');
+    const outside = path.join(workDir, 'outside');
+    const aliasPath = path.join(workspace, 'raw-alias');
+    const replacementPath = path.join(workspace, 'raw-�');
+    const outsideSecretPath = path.join(outside, 'secret.txt');
+    const readCalls: string[] = [];
+    const writeCalls: WriteCalls = [];
+
+    try {
+      await mkdir(workspace);
+      await mkdir(outside);
+      await writeFile(outsideSecretPath, 'outside\n');
+
+      const sandbox = createNativeFileSandbox({
+        readCalls,
+        writeCalls,
+      });
+      const setup = await sandbox.run({
+        command: [
+          `raw_path=${shellQuote(`${workspace}/raw-`)}$(printf '\\377')`,
+          `printf 'inside\\n' > "$raw_path"`,
+          `ln -s ${shellQuote(outsideSecretPath)} ${shellQuote(replacementPath)}`,
+          `ln -s "$raw_path" ${shellQuote(aliasPath)}`,
+        ].join('; '),
+      });
+      expect(setup.exitCode).toBe(0);
+
+      const ops = createPiRemoteOps({
+        sandbox,
+        paths: createPiPathMapper({
+          hostWorkDir: workspace,
+          sandboxWorkDir: workspace,
+        }),
+      });
+
+      await expect(ops.readBuffer('raw-alias')).rejects.toThrow(
+        /Unable to resolve path/,
+      );
+      await expect(
+        ops.writeFile('raw-alias', 'should not be written'),
+      ).rejects.toThrow(/Unable to resolve path/);
+      expect(readCalls).toEqual([]);
+      expect(writeCalls).toEqual([]);
+      await expect(readFile(outsideSecretPath, 'utf8')).resolves.toBe(
+        'outside\n',
+      );
+    } finally {
+      await rm(workDir, { recursive: true, force: true });
+    }
   });
 });
 

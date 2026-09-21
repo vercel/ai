@@ -70,9 +70,12 @@ interface RunShellResult {
 
 const MAX_GREP_DIAGNOSTIC_BYTES = 8_192;
 const REALPATH_FRAME = '__PI_REALPATH_FRAME__';
+const BASE64_PATH_PATTERN =
+  /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 
 function realpathShellLines(targetVariable: string): string[] {
   return [
+    'set -o pipefail',
     `realpath_marker=${shellQuote(REALPATH_FRAME)}`,
     `realpath_framed=$(realpath "$${targetVariable}" 2>/dev/null; realpath_status=$?; printf '%s' "$realpath_marker"; exit "$realpath_status")`,
     'realpath_status=$?',
@@ -82,9 +85,25 @@ function realpathShellLines(targetVariable: string): string[] {
   ];
 }
 
+function framePathShell(pathExpression: string): string {
+  return `if ! printf '%s' ${pathExpression} | base64 | tr -d '\\r\\n'; then exit 4; fi; printf '%s' "$realpath_marker"`;
+}
+
 function parseFramedPath(output: string): string | undefined {
   if (!output.endsWith(REALPATH_FRAME)) return undefined;
-  return output.slice(0, -REALPATH_FRAME.length);
+
+  const encodedPath = output.slice(0, -REALPATH_FRAME.length);
+  if (!encodedPath || !BASE64_PATH_PATTERN.test(encodedPath)) {
+    return undefined;
+  }
+
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(
+      Buffer.from(encodedPath, 'base64'),
+    );
+  } catch {
+    return undefined;
+  }
 }
 
 export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
@@ -126,7 +145,7 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
         `target=${shellQuote(remotePath)}`,
         ...realpathShellLines('target'),
         `if [ ! -e "$resolved" ]; then echo "__PI_REALPATH_NOT_FOUND__"; exit 2; fi`,
-        `printf '%s%s' "$resolved" "$realpath_marker"`,
+        framePathShell('"$resolved"'),
       ].join('; '),
     );
 
@@ -160,14 +179,14 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
     const result = await runShell(
       [
         `target=${shellQuote(remotePath)}`,
-        `if [ -e "$target" ] || [ -L "$target" ]; then ${realpathShellLines('target').join('; ')}; printf '%s%s' "$resolved" "$realpath_marker"; exit 0; fi`,
+        `if [ -e "$target" ] || [ -L "$target" ]; then ${realpathShellLines('target').join('; ')}; ${framePathShell('"$resolved"')}; exit 0; fi`,
         'dir=${target%/*}',
         'base=${target##*/}',
         '[ -n "$dir" ] || dir=/',
         `missing="$base"`,
         'while [ ! -e "$dir" ] && [ ! -L "$dir" ]; do parent=${dir%/*}; [ -n "$parent" ] || parent=/; if [ "$parent" = "$dir" ]; then echo "__PI_REALPATH_NOT_FOUND__"; exit 2; fi; missing=${dir##*/}/$missing; dir=$parent; done',
         ...realpathShellLines('dir'),
-        `printf '%s/%s%s' "$resolved" "$missing" "$realpath_marker"`,
+        framePathShell('"$resolved/$missing"'),
       ].join('; '),
     );
 
