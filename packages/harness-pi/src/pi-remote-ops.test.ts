@@ -1,8 +1,17 @@
 import { execFile } from 'node:child_process';
-import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
+import {
+  chmod,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
+import { shellQuote } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
 import { describe, expect, it, vi } from 'vitest';
@@ -25,6 +34,7 @@ function makeMockSandbox(behaviors: {
     exitCode?: number;
   };
   realpath?: (path: string) => string | null;
+  realpathBytes?: (path: string) => Uint8Array | undefined;
   readBinary?: (path: string) => Uint8Array | null;
 }): {
   sandbox: Experimental_SandboxSession;
@@ -48,7 +58,11 @@ function makeMockSandbox(behaviors: {
       }) => {
         runCalls.push({ command, workingDirectory });
         const result =
-          mockRealpathCommand(command, behaviors.realpath) ??
+          mockRealpathCommand(
+            command,
+            behaviors.realpath,
+            behaviors.realpathBytes,
+          ) ??
           behaviors.run?.(command) ??
           {};
         return {
@@ -80,6 +94,7 @@ function makeMockSandbox(behaviors: {
 function mockRealpathCommand(
   command: string,
   resolvePath: ((path: string) => string | null) | undefined,
+  resolveBytes: ((path: string) => Uint8Array | undefined) | undefined,
 ): { stdout?: string; stderr?: string; exitCode?: number } | undefined {
   if (!command.includes('realpath')) {
     return undefined;
@@ -94,7 +109,15 @@ function mockRealpathCommand(
   if (resolvedPath === null) {
     return { stdout: '__PI_REALPATH_NOT_FOUND__\n', exitCode: 2 };
   }
-  return { stdout: `${resolvedPath}\n` };
+  const frame = command.match(/realpath_marker='([^']+)'/)?.[1];
+  const resolvedBytes =
+    resolveBytes?.(target) ?? Buffer.from(resolvedPath, 'utf8');
+  const outputPath = command.includes('base64')
+    ? Buffer.from(resolvedBytes).toString('base64')
+    : new TextDecoder().decode(resolvedBytes);
+  return {
+    stdout: frame == null ? `${resolvedPath}\n` : `${outputPath}${frame}`,
+  };
 }
 
 const hostWorkDir = '/tmp/pi-test-host';
@@ -111,35 +134,330 @@ function makeOps(behaviors: Parameters<typeof makeMockSandbox>[0]) {
   return { ...env, paths, ops };
 }
 
+describe('createPiRemoteOps with just-bash', () => {
+  it('supports file operations with the seeded realpath command', async () => {
+    const session = await createJustBashSandbox({
+      cwd: sandboxWorkDir,
+    }).createSession();
+    const sandbox = session.restricted();
+
+    try {
+      const realpath = await sandbox.run({ command: 'realpath /tmp' });
+      expect(realpath.exitCode).toBe(0);
+      expect(realpath.stdout).toBe('/tmp\n');
+      await sandbox.writeTextFile({
+        path: `${sandboxWorkDir}/notes.md`,
+        content: 'alpha\n',
+      });
+
+      const ops = createPiRemoteOps({
+        sandbox,
+        paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
+      });
+
+      expect((await ops.readBuffer('notes.md')).toString('utf8')).toBe(
+        'alpha\n',
+      );
+      await ops.writeFile('created.md', 'created\n');
+      await expect(ops.editFile('notes.md', 'alpha', 'beta')).resolves.toBe(
+        'beta\n',
+      );
+      await expect(ops.findFiles('*.md', '.')).resolves.toEqual([
+        'created.md',
+        'notes.md',
+      ]);
+    } finally {
+      await session.destroy();
+    }
+  });
+
+  it('resolves chained workspace symlinks for file operations', async () => {
+    const session = await createJustBashSandbox({
+      cwd: sandboxWorkDir,
+    }).createSession();
+    const sandbox = session.restricted();
+
+    try {
+      const setup = await sandbox.run({
+        command: [
+          `mkdir -p ${sandboxWorkDir}/target/docs`,
+          `printf 'read content\\n' > ${sandboxWorkDir}/target/docs/read.txt`,
+          `printf 'old content\\n' > ${sandboxWorkDir}/target/docs/edit.txt`,
+          `printf 'search needle\\n' > ${sandboxWorkDir}/target/docs/search.txt`,
+          `ln -s target ${sandboxWorkDir}/intermediate`,
+          `ln -s intermediate/docs ${sandboxWorkDir}/linked-docs`,
+        ].join(' && '),
+      });
+      expect(setup.exitCode).toBe(0);
+
+      // just-bash grep does not support every flag used by grepFiles. Run the
+      // path probe in just-bash, then capture only the final grep command so
+      // the test can assert that it receives the canonical target path.
+      const grepCommands: string[] = [];
+      const sandboxWithGrep = new Proxy(sandbox, {
+        get(target, property) {
+          if (property === 'run') {
+            return async (input: { command: string }) => {
+              if (input.command.includes('grep ')) {
+                grepCommands.push(input.command);
+                return {
+                  exitCode: 0,
+                  stdout: 'target/docs/search.txt:1:search needle\n',
+                  stderr: '',
+                };
+              }
+              return target.run(input);
+            };
+          }
+          const value = Reflect.get(target, property, target);
+          return typeof value === 'function' ? value.bind(target) : value;
+        },
+      });
+      const ops = createPiRemoteOps({
+        sandbox: sandboxWithGrep,
+        paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
+      });
+
+      expect(
+        (await ops.readBuffer('linked-docs/read.txt')).toString('utf8'),
+      ).toBe('read content\n');
+
+      await ops.writeFile('linked-docs/written.txt', 'written content\n');
+      await expect(
+        sandbox.readTextFile({
+          path: `${sandboxWorkDir}/target/docs/written.txt`,
+        }),
+      ).resolves.toBe('written content\n');
+
+      await expect(
+        ops.editFile('linked-docs/edit.txt', 'old', 'updated'),
+      ).resolves.toBe('updated content\n');
+      await expect(
+        sandbox.readTextFile({
+          path: `${sandboxWorkDir}/target/docs/edit.txt`,
+        }),
+      ).resolves.toBe('updated content\n');
+
+      await expect(ops.listDirectory('linked-docs')).resolves.toEqual([
+        'edit.txt',
+        'read.txt',
+        'search.txt',
+        'written.txt',
+      ]);
+      await expect(ops.findFiles('*.txt', 'linked-docs')).resolves.toEqual([
+        'edit.txt',
+        'read.txt',
+        'search.txt',
+        'written.txt',
+      ]);
+      await expect(
+        ops.grepFiles('needle', {
+          path: 'linked-docs',
+          literal: true,
+        }),
+      ).resolves.toContain('search.txt:1:search needle');
+      expect(grepCommands).toHaveLength(1);
+      expect(grepCommands[0]).toContain('target/docs');
+      expect(grepCommands[0]).not.toContain('linked-docs');
+    } finally {
+      await session.destroy();
+    }
+  });
+
+  it('preserves trailing whitespace in canonical paths', async () => {
+    const { sandboxSession, sandbox, ops } = await makeJustBashOps();
+    const outsideReadPath = '/sandbox/outside/read-secret.txt';
+    const outsideWritePath = '/sandbox/outside/write-target.txt';
+    const insideReadPath = `${sandboxWorkDir}/read-target `;
+    const insideWritePath = `${sandboxWorkDir}/write-target `;
+
+    try {
+      await sandbox.writeTextFile({
+        path: outsideReadPath,
+        content: 'outside read\n',
+      });
+      await sandbox.writeTextFile({
+        path: outsideWritePath,
+        content: 'outside write\n',
+      });
+      await sandbox.writeTextFile({
+        path: insideReadPath,
+        content: 'inside read\n',
+      });
+      await sandbox.writeTextFile({
+        path: insideWritePath,
+        content: 'inside write\n',
+      });
+
+      const setup = await sandbox.run({
+        command: [
+          `ln -s ${shellQuote(outsideReadPath)} ${shellQuote(`${sandboxWorkDir}/read-target`)}`,
+          `ln -s ${shellQuote('read-target ')} ${shellQuote(`${sandboxWorkDir}/read-alias`)}`,
+          `ln -s ${shellQuote(outsideWritePath)} ${shellQuote(`${sandboxWorkDir}/write-target`)}`,
+          `ln -s ${shellQuote('write-target ')} ${shellQuote(`${sandboxWorkDir}/write-alias`)}`,
+        ].join(' && '),
+      });
+      expect(setup.exitCode).toBe(0);
+
+      await expect(ops.readBuffer('read-alias')).resolves.toEqual(
+        Buffer.from('inside read\n'),
+      );
+      await ops.writeFile('write-alias', 'updated inside\n');
+      await expect(
+        sandbox.readTextFile({ path: insideWritePath }),
+      ).resolves.toBe('updated inside\n');
+      await expect(
+        sandbox.readTextFile({ path: outsideWritePath }),
+      ).resolves.toBe('outside write\n');
+    } finally {
+      await sandboxSession.destroy();
+    }
+  });
+
+  it('preserves newlines in canonical paths', async () => {
+    const { sandboxSession, sandbox, ops } = await makeJustBashOps();
+    const insideReadPath = `${sandboxWorkDir}/read\nname`;
+    const insideWritePath = `${sandboxWorkDir}/write\nname`;
+
+    try {
+      await sandbox.writeTextFile({
+        path: insideReadPath,
+        content: 'newline read\n',
+      });
+      await sandbox.writeTextFile({
+        path: insideWritePath,
+        content: 'newline write\n',
+      });
+
+      const setup = await sandbox.run({
+        command: [
+          `ln -s ${shellQuote('read\nname')} ${shellQuote(`${sandboxWorkDir}/newline-read-alias`)}`,
+          `ln -s ${shellQuote('write\nname')} ${shellQuote(`${sandboxWorkDir}/newline-write-alias`)}`,
+        ].join(' && '),
+      });
+      expect(setup.exitCode).toBe(0);
+
+      await expect(ops.readBuffer('newline-read-alias')).resolves.toEqual(
+        Buffer.from('newline read\n'),
+      );
+      await ops.writeFile('newline-write-alias', 'updated newline\n');
+      await expect(
+        sandbox.readTextFile({ path: insideWritePath }),
+      ).resolves.toBe('updated newline\n');
+    } finally {
+      await sandboxSession.destroy();
+    }
+  });
+
+  it('preserves trailing newlines in canonical paths', async () => {
+    const { sandboxSession, sandbox, ops } = await makeJustBashOps();
+    const outsideReadPath = '/sandbox/outside/trailing-read.txt';
+    const outsideWritePath = '/sandbox/outside/trailing-write.txt';
+    const insideReadPath = `${sandboxWorkDir}/trailing-read\n`;
+    const insideWritePath = `${sandboxWorkDir}/trailing-write\n`;
+
+    try {
+      await sandbox.writeTextFile({
+        path: outsideReadPath,
+        content: 'outside trailing read\n',
+      });
+      await sandbox.writeTextFile({
+        path: outsideWritePath,
+        content: 'outside trailing write\n',
+      });
+      await sandbox.writeTextFile({
+        path: insideReadPath,
+        content: 'inside trailing read\n',
+      });
+      await sandbox.writeTextFile({
+        path: insideWritePath,
+        content: 'inside trailing write\n',
+      });
+
+      const setup = await sandbox.run({
+        command: [
+          `ln -s ${shellQuote(outsideReadPath)} ${shellQuote(`${sandboxWorkDir}/trailing-read`)}`,
+          `ln -s ${shellQuote('trailing-read\n')} ${shellQuote(`${sandboxWorkDir}/trailing-read-alias`)}`,
+          `ln -s ${shellQuote(outsideWritePath)} ${shellQuote(`${sandboxWorkDir}/trailing-write`)}`,
+          `ln -s ${shellQuote('trailing-write\n')} ${shellQuote(`${sandboxWorkDir}/trailing-write-alias`)}`,
+        ].join(' && '),
+      });
+      expect(setup.exitCode).toBe(0);
+
+      await expect(ops.readBuffer('trailing-read-alias')).resolves.toEqual(
+        Buffer.from('inside trailing read\n'),
+      );
+      await ops.writeFile('trailing-write-alias', 'updated trailing\n');
+      await expect(
+        sandbox.readTextFile({ path: insideWritePath }),
+      ).resolves.toBe('updated trailing\n');
+      await expect(
+        sandbox.readTextFile({ path: outsideWritePath }),
+      ).resolves.toBe('outside trailing write\n');
+    } finally {
+      await sandboxSession.destroy();
+    }
+  });
+
+  it('rejects intermediate workspace symlinks outside readable roots', async () => {
+    const session = await createJustBashSandbox({
+      cwd: sandboxWorkDir,
+    }).createSession();
+    const sandbox = session.restricted();
+
+    try {
+      const outsideDir = '/sandbox/outside';
+      const setup = await sandbox.run({
+        command: [
+          `mkdir -p ${outsideDir}`,
+          `printf 'outside secret\\n' > ${outsideDir}/secret.txt`,
+          `printf 'old outside\\n' > ${outsideDir}/edit.txt`,
+          `ln -s ../outside ${sandboxWorkDir}/outside-link`,
+        ].join(' && '),
+      });
+      expect(setup.exitCode).toBe(0);
+
+      const ops = createPiRemoteOps({
+        sandbox,
+        paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
+      });
+
+      await expect(ops.readBuffer('outside-link/secret.txt')).rejects.toThrow(
+        /escapes the readable roots/,
+      );
+      await expect(
+        ops.writeFile('outside-link/written.txt', 'should not be written\n'),
+      ).rejects.toThrow(/escapes the workspace/);
+      await expect(
+        ops.editFile('outside-link/edit.txt', 'old', 'updated'),
+      ).rejects.toThrow(/escapes the readable roots/);
+      await expect(ops.findFiles('*.txt', 'outside-link')).rejects.toThrow(
+        /escapes the readable roots/,
+      );
+      await expect(
+        ops.grepFiles('secret', {
+          path: 'outside-link',
+          literal: true,
+        }),
+      ).rejects.toThrow(/escapes the readable roots/);
+
+      await expect(
+        sandbox.readTextFile({ path: `${outsideDir}/edit.txt` }),
+      ).resolves.toBe('old outside\n');
+      await expect(
+        sandbox.readTextFile({ path: `${outsideDir}/written.txt` }),
+      ).resolves.toBeNull();
+    } finally {
+      await session.destroy();
+    }
+  });
+});
+
 async function makeJustBashOps() {
   const sandboxSession = await createJustBashSandbox({
     cwd: sandboxWorkDir,
   }).createSession();
-  const justBashSandbox = sandboxSession.restricted();
-  const sandbox = new Proxy(justBashSandbox, {
-    get(target, property) {
-      if (property === 'run') {
-        return async (
-          input: Parameters<Experimental_SandboxSession['run']>[0],
-        ) => {
-          const realpathResult = mockRealpathCommand(
-            input.command,
-            path => path,
-          );
-          return realpathResult == null
-            ? target.run(input)
-            : {
-                exitCode: realpathResult.exitCode ?? 0,
-                stdout: realpathResult.stdout ?? '',
-                stderr: realpathResult.stderr ?? '',
-              };
-        };
-      }
-
-      const value = Reflect.get(target, property, target);
-      return typeof value === 'function' ? value.bind(target) : value;
-    },
-  });
+  const sandbox = sandboxSession.restricted();
   const ops = createPiRemoteOps({
     sandbox,
     paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
@@ -149,6 +467,7 @@ async function makeJustBashOps() {
 }
 
 function makeNativeShellOps(workDir: string) {
+  const canonicalWorkDir = realpathSync.native(workDir);
   const sandbox = {
     description: 'native shell',
     async run({
@@ -185,10 +504,86 @@ function makeNativeShellOps(workDir: string) {
   return createPiRemoteOps({
     sandbox,
     paths: createPiPathMapper({
-      hostWorkDir: workDir,
-      sandboxWorkDir: workDir,
+      hostWorkDir: canonicalWorkDir,
+      sandboxWorkDir: canonicalWorkDir,
     }),
   });
+}
+
+function createNativeFileSandbox(options: {
+  readonly readCalls: string[];
+  readonly writeCalls: WriteCalls;
+}): Experimental_SandboxSession {
+  const decodeOutput = (value: unknown): string => {
+    if (typeof value === 'string') return value;
+    if (value instanceof Uint8Array) return new TextDecoder().decode(value);
+    return '';
+  };
+
+  return {
+    description: 'native shell with lossy log decoding',
+    run: vi.fn(
+      async ({
+        command,
+        workingDirectory,
+        env,
+      }: {
+        command: string;
+        workingDirectory?: string;
+        env?: Record<string, string>;
+      }) => {
+        try {
+          const result = await execFileAsync('bash', ['-c', command], {
+            cwd: workingDirectory,
+            env: { ...process.env, ...env },
+            encoding: 'buffer',
+          });
+          return {
+            exitCode: 0,
+            stdout: decodeOutput(result.stdout),
+            stderr: decodeOutput(result.stderr),
+          };
+        } catch (error) {
+          const result = error as {
+            code?: number;
+            stdout?: Uint8Array | string;
+            stderr?: Uint8Array | string;
+          };
+          return {
+            exitCode: typeof result.code === 'number' ? result.code : 1,
+            stdout: decodeOutput(result.stdout),
+            stderr: decodeOutput(result.stderr),
+          };
+        }
+      },
+    ),
+    readBinaryFile: vi.fn(async ({ path: inputPath }: { path: string }) => {
+      options.readCalls.push(inputPath);
+      try {
+        return await readFile(inputPath);
+      } catch (error) {
+        if ((error as { code?: unknown }).code === 'ENOENT') return null;
+        throw error;
+      }
+    }),
+    readFile: vi.fn(),
+    readTextFile: vi.fn(),
+    writeFile: vi.fn(),
+    writeBinaryFile: vi.fn(),
+    writeTextFile: vi.fn(
+      async ({
+        path: inputPath,
+        content,
+      }: {
+        path: string;
+        content: string;
+      }) => {
+        options.writeCalls.push({ path: inputPath, content });
+        await writeFile(inputPath, content);
+      },
+    ),
+    spawn: vi.fn(),
+  } as unknown as Experimental_SandboxSession;
 }
 
 describe('createPiRemoteOps.readBuffer', () => {
@@ -238,6 +633,85 @@ describe('createPiRemoteOps.readBuffer', () => {
       env.ops.readBuffer('repo-controlled-secret-link'),
     ).rejects.toThrow(/escapes the readable roots/);
     expect(env.readCalls).toEqual([]);
+  });
+
+  it('rejects canonical paths with invalid UTF-8 before file access', async () => {
+    const aliasPath = `${sandboxWorkDir}/raw-alias`;
+    const invalidCanonicalPath = Buffer.from(
+      `${sandboxWorkDir}/raw-\xff`,
+      'latin1',
+    );
+    const replacementCanonicalPath = `${sandboxWorkDir}/raw-�`;
+    const env = makeOps({
+      realpathBytes: path =>
+        path === aliasPath ? invalidCanonicalPath : undefined,
+      readBinary: path =>
+        path === replacementCanonicalPath
+          ? new TextEncoder().encode('outside secret')
+          : null,
+    });
+
+    await expect(env.ops.readBuffer('raw-alias')).rejects.toThrow(
+      /Unable to resolve path/,
+    );
+    await expect(
+      env.ops.writeFile('raw-alias', 'should not be written'),
+    ).rejects.toThrow(/Unable to resolve path/);
+    expect(env.readCalls).toEqual([]);
+    expect(env.writeCalls).toEqual([]);
+  });
+
+  it('rejects invalid UTF-8 paths from native shell output', async () => {
+    const workDir = await mkdtemp(path.join(tmpdir(), 'pi-invalid-path-'));
+    const workspace = path.join(workDir, 'workspace');
+    const outside = path.join(workDir, 'outside');
+    const aliasPath = path.join(workspace, 'raw-alias');
+    const replacementPath = path.join(workspace, 'raw-�');
+    const outsideSecretPath = path.join(outside, 'secret.txt');
+    const readCalls: string[] = [];
+    const writeCalls: WriteCalls = [];
+
+    try {
+      await mkdir(workspace);
+      await mkdir(outside);
+      await writeFile(outsideSecretPath, 'outside\n');
+
+      const sandbox = createNativeFileSandbox({
+        readCalls,
+        writeCalls,
+      });
+      const setup = await sandbox.run({
+        command: [
+          `raw_path=${shellQuote(`${workspace}/raw-`)}$(printf '\\377')`,
+          `printf 'inside\\n' > "$raw_path"`,
+          `ln -s ${shellQuote(outsideSecretPath)} ${shellQuote(replacementPath)}`,
+          `ln -s "$raw_path" ${shellQuote(aliasPath)}`,
+        ].join('; '),
+      });
+      expect(setup.exitCode).toBe(0);
+
+      const ops = createPiRemoteOps({
+        sandbox,
+        paths: createPiPathMapper({
+          hostWorkDir: workspace,
+          sandboxWorkDir: workspace,
+        }),
+      });
+
+      await expect(ops.readBuffer('raw-alias')).rejects.toThrow(
+        /Unable to resolve path/,
+      );
+      await expect(
+        ops.writeFile('raw-alias', 'should not be written'),
+      ).rejects.toThrow(/Unable to resolve path/);
+      expect(readCalls).toEqual([]);
+      expect(writeCalls).toEqual([]);
+      await expect(readFile(outsideSecretPath, 'utf8')).resolves.toBe(
+        'outside\n',
+      );
+    } finally {
+      await rm(workDir, { recursive: true, force: true });
+    }
   });
 });
 
