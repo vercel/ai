@@ -90,10 +90,12 @@ export function extractReasoningMiddleware({
           afterSwitch: boolean;
           isReasoning: boolean;
           buffer: string;
-          idCounter: number;
+          reasoningId: string | undefined;
           textId: string;
         }
       > = createIdMap();
+
+      let reasoningIdCounter = 0;
 
       const delayedTextStarts: Record<
         string,
@@ -134,7 +136,7 @@ export function extractReasoningMiddleware({
                   afterSwitch: false,
                   isReasoning: startWithReasoning,
                   buffer: '',
-                  idCounter: 0,
+                  reasoningId: undefined,
                   textId: chunk.id,
                 };
               }
@@ -142,6 +144,10 @@ export function extractReasoningMiddleware({
               const activeExtraction = reasoningExtractions[chunk.id];
 
               activeExtraction.buffer += chunk.delta;
+
+              function getReasoningId() {
+                return (activeExtraction.reasoningId ??= `reasoning-${reasoningIdCounter++}`);
+              }
 
               function publish(text: string) {
                 if (text.length > 0) {
@@ -160,7 +166,7 @@ export function extractReasoningMiddleware({
                   ) {
                     controller.enqueue({
                       type: 'reasoning-start',
-                      id: `reasoning-${activeExtraction.idCounter}`,
+                      id: getReasoningId(),
                     });
                   }
 
@@ -168,7 +174,7 @@ export function extractReasoningMiddleware({
                     controller.enqueue({
                       type: 'reasoning-delta',
                       delta: prefix + text,
-                      id: `reasoning-${activeExtraction.idCounter}`,
+                      id: getReasoningId(),
                     });
                   } else {
                     if (delayedTextStarts[activeExtraction.textId] != null) {
@@ -229,15 +235,16 @@ export function extractReasoningMiddleware({
                     if (activeExtraction.isFirstReasoning) {
                       controller.enqueue({
                         type: 'reasoning-start',
-                        id: `reasoning-${activeExtraction.idCounter}`,
+                        id: getReasoningId(),
                       });
                     }
 
                     // reasoning part finished:
                     controller.enqueue({
                       type: 'reasoning-end',
-                      id: `reasoning-${activeExtraction.idCounter++}`,
+                      id: getReasoningId(),
                     });
+                    activeExtraction.reasoningId = undefined;
                   }
 
                   activeExtraction.isReasoning = !activeExtraction.isReasoning;
