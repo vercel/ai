@@ -640,40 +640,47 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
             callbacks: onLanguageModelCallEnd,
           });
 
-          // Preserve the completed model call's usage, metadata, and
-          // performance even when response validation below surfaces a
-          // semantic error.
-          controller.enqueue({
-            type: 'model-call-end',
-            finishReason: chunk.finishReason.unified,
-            rawFinishReason: chunk.finishReason.raw,
-            usage,
-            providerMetadata: chunk.providerMetadata,
-            performance,
-          });
-
           const enforcedToolChoice =
             toolChoice.type === 'required' || toolChoice.type === 'tool'
               ? toolChoice
               : undefined;
 
-          if (
+          const toolChoiceViolationError =
             enforcedToolChoice != null &&
             ![...toolCallsByToolCallId.values()].some(
               toolCall =>
                 enforcedToolChoice.type === 'required' ||
                 toolCall.toolName === enforcedToolChoice.toolName,
             )
-          ) {
+              ? new ToolChoiceViolationError({
+                  toolChoice: enforcedToolChoice,
+                  finishReason: chunk.finishReason.unified,
+                  provider,
+                  modelId,
+                  content: rawModelCallContent,
+                })
+              : undefined;
+
+          // Preserve the completed model call's usage, metadata, and
+          // performance even when response validation below surfaces a
+          // semantic error. Prevent invalid tool calls from being executed
+          // when the model-call-end event reaches the tool executor.
+          controller.enqueue({
+            type: 'model-call-end',
+            finishReason:
+              toolChoiceViolationError == null
+                ? chunk.finishReason.unified
+                : 'error',
+            rawFinishReason: chunk.finishReason.raw,
+            usage,
+            providerMetadata: chunk.providerMetadata,
+            performance,
+          });
+
+          if (toolChoiceViolationError != null) {
             controller.enqueue({
               type: 'error',
-              error: new ToolChoiceViolationError({
-                toolChoice: enforcedToolChoice,
-                finishReason: chunk.finishReason.unified,
-                provider,
-                modelId,
-                content: rawModelCallContent,
-              }),
+              error: toolChoiceViolationError,
             });
             break;
           }
