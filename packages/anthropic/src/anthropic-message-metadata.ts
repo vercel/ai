@@ -1,5 +1,5 @@
 import type { JSONObject } from '@ai-sdk/provider';
-import type { AnthropicSafeguardResult } from './anthropic-api';
+import type { AnthropicSafeguardResult } from './anthropic-messages-api';
 
 /**
  * Represents a single iteration in the usage breakdown.
