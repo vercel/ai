@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/harness-pi': patch
+'@ai-sdk/sandbox-just-bash': patch
 ---
 
-fix(harness-pi): support file operations in sandboxes without realpath
+fix(sandbox-just-bash): seed `realpath` binary via `readlink` so that it is available to consumers that require it
