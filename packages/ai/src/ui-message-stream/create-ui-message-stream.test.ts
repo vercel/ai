@@ -692,6 +692,223 @@ describe('createUIMessageStream', () => {
     `);
   });
 
+  it('calls onFinish with partial messages when execute throws mid-stream', async () => {
+    const onFinish = vi.fn();
+
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        writer.write({ type: 'text-start', id: '1' });
+        writer.write({ type: 'text-delta', id: '1', delta: 'partial work' });
+        throw new Error('mid-stream failure');
+      },
+      onError: error =>
+        error instanceof Error ? error.message : 'unknown error',
+      onFinish,
+      generateId: () => 'response-message-id',
+    });
+
+    await consumeStream({ stream });
+
+    expect(onFinish).toHaveBeenCalledTimes(1);
+    expect(onFinish.mock.calls[0][0]).toMatchObject({
+      isAborted: false,
+      outcome: {
+        status: 'failed',
+        error: expect.objectContaining({ message: 'mid-stream failure' }),
+      },
+      responseMessage: {
+        id: 'response-message-id',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'text',
+            text: 'partial work',
+            state: 'streaming',
+          },
+        ],
+      },
+      messages: [
+        {
+          id: 'response-message-id',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'text',
+              text: 'partial work',
+              state: 'streaming',
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('calls onFinish with partial messages when an abort chunk is written', async () => {
+    const onFinish = vi.fn();
+
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        writer.write({ type: 'text-start', id: '1' });
+        writer.write({ type: 'text-delta', id: '1', delta: 'partial work' });
+        writer.write({ type: 'abort' });
+      },
+      onFinish,
+      generateId: () => 'response-message-id',
+    });
+
+    await consumeStream({ stream });
+
+    expect(onFinish).toHaveBeenCalledTimes(1);
+    expect(onFinish.mock.calls[0][0]).toMatchObject({
+      isAborted: true,
+      outcome: { status: 'aborted' },
+      responseMessage: {
+        id: 'response-message-id',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'text',
+            text: 'partial work',
+            state: 'streaming',
+          },
+        ],
+      },
+    });
+  });
+
+  it('calls onFinish with partial messages when a merged stream aborts', async () => {
+    const onFinish = vi.fn();
+
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        writer.merge(
+          new ReadableStream({
+            start(controller) {
+              controller.enqueue({ type: 'text-start', id: '1' });
+              controller.enqueue({
+                type: 'text-delta',
+                id: '1',
+                delta: 'partial work',
+              });
+              controller.enqueue({ type: 'abort' });
+              controller.close();
+            },
+          }),
+        );
+      },
+      onFinish,
+      generateId: () => 'response-message-id',
+    });
+
+    await consumeStream({ stream });
+
+    expect(onFinish).toHaveBeenCalledTimes(1);
+    expect(onFinish.mock.calls[0][0]).toMatchObject({
+      isAborted: true,
+      outcome: { status: 'aborted' },
+      responseMessage: {
+        id: 'response-message-id',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'text',
+            text: 'partial work',
+            state: 'streaming',
+          },
+        ],
+      },
+    });
+  });
+
+  it('calls onFinish with partial messages when a merged stream errors mid-stream', async () => {
+    const onFinish = vi.fn();
+    let controller: ReadableStreamDefaultController<UIMessageChunk>;
+
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        writer.merge(
+          new ReadableStream({
+            start(controllerArg) {
+              controller = controllerArg;
+            },
+          }),
+        );
+      },
+      onError: error =>
+        error instanceof Error ? error.message : 'unknown error',
+      onFinish,
+      generateId: () => 'response-message-id',
+    });
+
+    controller!.enqueue({ type: 'text-start', id: '1' });
+    controller!.enqueue({
+      type: 'text-delta',
+      id: '1',
+      delta: 'partial work',
+    });
+    // Let the merge reader drain emitted chunks before the source errors.
+    // ReadableStream discards queued chunks once the stream is errored.
+    await vi.advanceTimersByTimeAsync(0);
+    controller!.error(new Error('merged stream failure'));
+
+    await consumeStream({ stream });
+
+    expect(onFinish).toHaveBeenCalledTimes(1);
+    expect(onFinish.mock.calls[0][0]).toMatchObject({
+      isAborted: false,
+      outcome: {
+        status: 'failed',
+        error: expect.objectContaining({ message: 'merged stream failure' }),
+      },
+      responseMessage: {
+        id: 'response-message-id',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'text',
+            text: 'partial work',
+            state: 'streaming',
+          },
+        ],
+      },
+    });
+  });
+
+  it('calls onFinish with partial messages when the reader is cancelled', async () => {
+    const onFinish = vi.fn();
+
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        writer.write({ type: 'text-start', id: '1' });
+        writer.write({ type: 'text-delta', id: '1', delta: 'partial work' });
+        writer.write({ type: 'text-delta', id: '1', delta: ' continues' });
+      },
+      onFinish,
+      generateId: () => 'response-message-id',
+    });
+
+    const reader = stream.getReader();
+    await reader.read();
+    await reader.read();
+    await reader.cancel();
+    reader.releaseLock();
+
+    expect(onFinish).toHaveBeenCalledTimes(1);
+    expect(onFinish.mock.calls[0][0]).toMatchObject({
+      responseMessage: {
+        id: 'response-message-id',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'text',
+            text: 'partial work',
+            state: 'streaming',
+          },
+        ],
+      },
+    });
+  });
+
   it('reports operation outcomes without inferring failure from error chunks', async () => {
     const observe = async (
       execute: Parameters<typeof createUIMessageStream>[0]['execute'],
