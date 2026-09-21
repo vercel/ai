@@ -6392,6 +6392,37 @@ describe('AnthropicLanguageModel', () => {
         });
       });
 
+      it.each([
+        ['empty', ''],
+        ['null', null],
+      ])(
+        'should omit compaction response with %s content',
+        async (_, content) => {
+          server.urls['https://api.anthropic.com/v1/messages'].response = {
+            type: 'json-value',
+            body: {
+              id: 'msg_123',
+              type: 'message',
+              role: 'assistant',
+              content: [
+                { type: 'compaction', content },
+                { type: 'text', text: 'Hello' },
+              ],
+              model: 'claude-3-haiku-20240307',
+              stop_reason: 'end_turn',
+              stop_sequence: null,
+              usage: { input_tokens: 100, output_tokens: 50 },
+            },
+          };
+
+          const result = await model.doGenerate({
+            prompt: TEST_PROMPT,
+          });
+
+          expect(result.content).toEqual([{ type: 'text', text: 'Hello' }]);
+        },
+      );
+
       it('should parse context_management with compact_20260112 from response', async () => {
         server.urls['https://api.anthropic.com/v1/messages'].response = {
           type: 'json-value',

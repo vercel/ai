@@ -1878,6 +1878,58 @@ describe('Anthropic batch', () => {
       ]);
     });
 
+    it('omits empty and null compaction blocks from successful results', async () => {
+      server.urls[urls.batch].response = {
+        type: 'json-value',
+        body: batchResponse(),
+      };
+      server.urls[urls.results].response = {
+        type: 'stream-chunks',
+        chunks: [
+          JSON.stringify({
+            custom_id: 'compaction',
+            result: {
+              type: 'succeeded',
+              message: {
+                ...messageResultBody('Done'),
+                content: [
+                  { type: 'compaction', content: '' },
+                  { type: 'compaction', content: null },
+                  { type: 'compaction', content: 'Summary' },
+                  { type: 'text', text: 'Done' },
+                ],
+              },
+            },
+          }),
+        ],
+      };
+      const model = createAnthropic({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
+
+      const stream = await model.doGetBatchResults({
+        batchId: 'msgbatch_123',
+      });
+      const results = await convertReadableStreamToArray(stream);
+
+      expect(results).toMatchObject([
+        {
+          id: 'compaction',
+          status: 'succeeded',
+          result: {
+            content: [
+              {
+                type: 'text',
+                text: 'Summary',
+                providerMetadata: { anthropic: { type: 'compaction' } },
+              },
+              { type: 'text', text: 'Done' },
+            ],
+          },
+        },
+      ]);
+    });
+
     it('does not fail a successful message for a container upload block', async () => {
       server.urls[urls.batch].response = {
         type: 'json-value',
