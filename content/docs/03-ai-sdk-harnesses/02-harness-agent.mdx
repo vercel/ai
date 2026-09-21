@@ -362,6 +362,8 @@ When you only have raw continuation state from `suspendTurn()`, resume with
 const session = await agent.createSession({
   sessionId: chatId,
   continueFrom: continuationState,
+  // Rebind this when the suspended turn used host-only tool context:
+  toolsContext,
 });
 
 const result = await agent.continueStream({ session });
@@ -369,6 +371,11 @@ const result = await agent.continueStream({ session });
 
 Use `continueStream()` for incremental output, or `continueGenerate()` to drain
 the continued turn and return a `GenerateTextResult`.
+
+`toolsContext` is intentionally not stored in continuation state because it can
+contain credentials or non-serializable host objects. When a suspended turn
+used static or `prepareCall`-derived tool context, pass the same per-tool map to
+`createSession` to rebind it in the process that continues the turn.
 
 ## Stop After a Harness Step
 
