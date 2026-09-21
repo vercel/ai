@@ -2260,6 +2260,39 @@ bytes instead; the sample rate is reported in `result.providerMetadata.google.sa
 Gemini honors natural-language style direction. The `instructions` argument is prepended to the
 spoken text, so `instructions: 'Say cheerfully'` with `text: 'Hello'` speaks `Say cheerfully: Hello`.
 
+### Streaming speech
+
+`gemini-3.1-flash-tts-preview` supports streaming through `streamGenerateContent`.
+The Gemini 2.5 TTS models do not support streaming.
+
+```ts
+import { experimental_streamSpeech as streamSpeech } from 'ai';
+import { google } from '@ai-sdk/google';
+
+const result = await streamSpeech({
+  model: google.speech('gemini-3.1-flash-tts-preview'),
+  text: 'Say cheerfully: Have a wonderful day!',
+  voice: 'Kore',
+});
+
+for await (const chunk of result.fullStream) {
+  console.log(chunk.audio, chunk.providerMetadata?.google.sampleRate);
+}
+```
+
+Streaming returns raw signed 16-bit little-endian mono PCM, normally at 24 kHz,
+with `mediaType: 'audio/pcm'`. Each chunk includes its sample rate and original
+MIME type in `providerMetadata.google`. WAV and other container formats are not
+supported for streaming; requesting them produces a warning and returns PCM.
+Use `generateSpeech` to obtain a complete WAV file.
+
+Use `result.audioStream` instead of `result.fullStream` when only the audio bytes
+are needed. Consume one of these streams once. The same voice and multi-speaker
+options apply to streaming; for multi-speaker style direction, include the
+instructions in `text`, since the separate `instructions` option is ignored for
+multi-speaker requests. See [Streaming speech](/docs/ai-sdk-core/speech#streaming-speech)
+for cancellation, retries, and error handling.
+
 ### Multi-speaker audio
 
 For multi-speaker dialogue, pass a `multiSpeakerVoiceConfig` through `providerOptions`. Each speaker
@@ -2299,11 +2332,11 @@ const result = await generateSpeech({
 
 ### Model Capabilities
 
-| Model                          | Multi-speaker | Style via instructions |
-| ------------------------------ | ------------- | ---------------------- |
-| `gemini-2.5-flash-preview-tts` | <Check />     | <Check />              |
-| `gemini-2.5-pro-preview-tts`   | <Check />     | <Check />              |
-| `gemini-3.1-flash-tts-preview` | <Check />     | <Check />              |
+| Model                          | Multi-speaker | Style via instructions | Streaming |
+| ------------------------------ | ------------- | ---------------------- | --------- |
+| `gemini-2.5-flash-preview-tts` | <Check />     | <Check />              |           |
+| `gemini-2.5-pro-preview-tts`   | <Check />     | <Check />              |           |
+| `gemini-3.1-flash-tts-preview` | <Check />     | <Check />              | <Check /> |
 
 ## Evaluation Models
 

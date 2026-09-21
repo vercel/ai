@@ -1,0 +1,72 @@
+---
+title: experimental_streamSpeech
+description: API Reference for experimental_streamSpeech.
+---
+
+# `experimental_streamSpeech()`
+
+<Note>Streaming speech is experimental and may change in patch releases.</Note>
+
+Streams audio generated from text. Await the request setup, then consume one of
+the returned streams. The complete audio is not buffered.
+
+```ts
+import { experimental_streamSpeech as streamSpeech } from 'ai';
+import { google } from '@ai-sdk/google';
+
+const result = await streamSpeech({
+  model: google.speech('gemini-3.1-flash-tts-preview'),
+  text: 'Say cheerfully: Have a wonderful day!',
+  voice: 'Kore',
+});
+
+for await (const audio of result.audioStream) {
+  console.log(audio.byteLength);
+}
+```
+
+## Parameters
+
+Accepts the same [parameters as `generateSpeech`](/docs/reference/ai-sdk-core/generate-speech#parameters):
+`model`, `text`, `voice`, `outputFormat`, `instructions`, `speed`, `language`,
+`providerOptions`, `maxRetries`, `abortSignal`, and `headers`.
+
+The model must implement streaming speech. Pass a provider model instance such as
+`google.speech('gemini-3.1-flash-tts-preview')`; string model IDs resolve through the
+global provider, which must itself support streaming speech.
+
+Output format support depends on the provider. Google returns raw signed 16-bit
+little-endian mono PCM, normally at 24 kHz. It warns and uses PCM if another format
+is requested. Use `generateSpeech` for a complete WAV file.
+
+`maxRetries` defaults to `2` and applies only to opening the request. Once the
+response is streaming, errors propagate without retries to avoid repeating audio.
+
+## Returns
+
+A `Promise<StreamSpeechResult>` with:
+
+| Property      | Type                                    | Description                                                                   |
+| ------------- | --------------------------------------- | ----------------------------------------------------------------------------- |
+| `audioStream` | `AsyncIterableStream<Uint8Array>`       | Audio bytes in generation order. Chunks need not be standalone files.         |
+| `fullStream`  | `AsyncIterableStream<SpeechStreamPart>` | Audio chunks with media type and provider metadata.                           |
+| `warnings`    | `Warning[]`                             | Warnings available when the request starts.                                   |
+| `responses`   | `SpeechModelResponseMetadata[]`         | Response metadata, including timestamp, model ID, and headers when available. |
+
+Each `SpeechStreamPart` contains `type: 'audio'`, `audio: Uint8Array`,
+`mediaType: string`, and optional `providerMetadata`. For Google, the latter
+contains `google.sampleRate` and `google.mimeType`.
+
+Choose either `audioStream` or `fullStream` and access it once. They share a single
+underlying response; no second stream is buffered for replay. Both streams are
+readable streams and support `for await` iteration. Cancelling them or exiting
+iteration early cancels the provider response. `abortSignal` can also abort the
+request.
+
+## Errors
+
+Models without streaming support raise `UnsupportedFunctionalityError` during
+request setup. Authentication and other request failures reject the function's
+promise. Malformed responses and connection failures during streaming reject
+stream reads. If the stream completes without audio, reads reject with
+[`NoSpeechGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-speech-generated-error).

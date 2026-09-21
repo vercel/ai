@@ -1,5 +1,6 @@
 import type { SpeechModelV4CallOptions } from './speech-model-v4-call-options';
 import type { SpeechModelV4Result } from './speech-model-v4-result';
+import type { SpeechModelV4StreamResult } from './speech-model-v4-stream-result';
 
 /**
  * Speech model specification version 4.
@@ -30,4 +31,12 @@ export type SpeechModelV4 = {
   doGenerate(
     options: SpeechModelV4CallOptions,
   ): PromiseLike<SpeechModelV4Result>;
+
+  /**
+   * Streams generated audio. Experimental: this contract may change in patch
+   * releases while `experimental_streamSpeech` is experimental.
+   */
+  doStream?(
+    options: SpeechModelV4CallOptions,
+  ): PromiseLike<SpeechModelV4StreamResult>;
 };

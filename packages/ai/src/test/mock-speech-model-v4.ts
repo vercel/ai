@@ -7,18 +7,22 @@ export class MockSpeechModelV4 implements SpeechModelV4 {
   readonly modelId: SpeechModelV4['modelId'];
 
   doGenerate: SpeechModelV4['doGenerate'];
+  doStream?: SpeechModelV4['doStream'];
 
   constructor({
     provider = 'mock-provider',
     modelId = 'mock-model-id',
     doGenerate = notImplemented,
+    doStream,
   }: {
     provider?: SpeechModelV4['provider'];
     modelId?: SpeechModelV4['modelId'];
     doGenerate?: SpeechModelV4['doGenerate'];
+    doStream?: SpeechModelV4['doStream'];
   } = {}) {
     this.provider = provider;
     this.modelId = modelId;
     this.doGenerate = doGenerate;
+    this.doStream = doStream;
   }
 }

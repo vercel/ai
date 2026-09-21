@@ -1,8 +1,16 @@
-import type { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import {
+  APICallError,
+  UnsupportedFunctionalityError,
+  type Experimental_SpeechModelV4StreamPart,
+  type Experimental_SpeechModelV4StreamResult,
+  type SpeechModelV4,
+  type SharedV4Warning,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
+  createEventSourceResponseHandler,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -10,6 +18,8 @@ import {
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
   type FetchFunction,
+  type InferSchema,
+  type ParseResult,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { googleFailedResponseHandler } from './google-error';
@@ -166,6 +176,106 @@ export class GoogleSpeechModel implements SpeechModelV4 {
     };
 
     return { requestBody, warnings, outputFormat: resolvedOutputFormat };
+  }
+
+  async doStream(
+    options: Parameters<NonNullable<SpeechModelV4['doStream']>>[0],
+  ): Promise<Experimental_SpeechModelV4StreamResult> {
+    if (
+      this.modelId === 'gemini-2.5-flash-preview-tts' ||
+      this.modelId === 'gemini-2.5-pro-preview-tts'
+    ) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'streaming speech',
+        message: 'Gemini TTS streaming requires a 3.1 or newer TTS model.',
+      });
+    }
+
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    // Streaming PCM cannot include a WAV header with a known final data size.
+    const { requestBody, warnings } = await this.getArgs({
+      ...options,
+      outputFormat: 'pcm',
+    });
+    if (options.outputFormat != null && options.outputFormat !== 'pcm') {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'outputFormat',
+        details:
+          'Google Gemini TTS streaming only supports raw PCM. Using pcm instead.',
+      });
+    }
+
+    const url = `${this.config.baseURL}/models/${this.modelId}:streamGenerateContent?alt=sse`;
+    const { value: response, responseHeaders } = await postJsonToApi({
+      url,
+      headers: combineHeaders(
+        this.config.headers ? await resolve(this.config.headers) : undefined,
+        options.headers,
+      ),
+      body: requestBody,
+      failedResponseHandler: googleFailedResponseHandler,
+      successfulResponseHandler: createEventSourceResponseHandler(
+        googleSpeechResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    return {
+      stream: response.pipeThrough(
+        new TransformStream<
+          ParseResult<InferSchema<typeof googleSpeechResponseSchema>>,
+          Experimental_SpeechModelV4StreamPart
+        >({
+          transform(chunk, controller) {
+            if (!chunk.success) {
+              throw chunk.error;
+            }
+            if (chunk.value.error != null) {
+              throw new APICallError({
+                message: chunk.value.error.message,
+                statusCode: chunk.value.error.code ?? undefined,
+                url,
+                requestBodyValues: requestBody,
+                responseHeaders,
+                responseBody: JSON.stringify(chunk.rawValue),
+                isRetryable: false,
+              });
+            }
+
+            // Candidates are alternative outputs; only stream the first one.
+            for (const part of chunk.value.candidates?.[0]?.content?.parts ??
+              []) {
+              if (!part.inlineData?.data) {
+                continue;
+              }
+              const mimeType = part.inlineData.mimeType;
+              controller.enqueue({
+                type: 'audio',
+                audio: convertBase64ToUint8Array(part.inlineData.data),
+                mediaType: 'audio/pcm',
+                providerMetadata: {
+                  google: {
+                    sampleRate:
+                      parseSampleRate(mimeType ?? undefined) ??
+                      DEFAULT_SAMPLE_RATE,
+                    mimeType: mimeType ?? null,
+                  },
+                },
+              });
+            }
+          },
+        }),
+      ),
+      warnings,
+      request: { body: JSON.stringify(requestBody) },
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+      },
+    };
   }
 
   async doGenerate(

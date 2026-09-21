@@ -9,6 +9,12 @@ import { z } from 'zod/v4';
 export const googleSpeechResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      error: z
+        .object({
+          message: z.string(),
+          code: z.number().nullish(),
+        })
+        .nullish(),
       candidates: z
         .array(
           z.object({
