@@ -1,5 +1,25 @@
 # @ai-sdk/harness-pi
 
+## 1.0.120
+
+### Patch Changes
+
+- f39733b: fix(sandbox-just-bash): seed `realpath` binary via `readlink` so that it is available to consumers that require it, such as the Pi harness
+- a0f7700: fix(harness-pi): make grep compatible with just-bash sandboxes while preserving matches alongside bounded traversal diagnostics
+- Updated dependencies [d975097]
+- Updated dependencies [b2baeba]
+  - @ai-sdk/harness@1.0.118
+
+## 1.0.119
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+  - @ai-sdk/harness@1.0.117
+
 ## 1.0.118
 
 ### Patch Changes

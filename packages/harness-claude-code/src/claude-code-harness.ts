@@ -38,10 +38,12 @@ import {
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
+  sleep,
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
   withBridgeToken,
   writeSkills,
+  type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
 import {
   safeParseJSON,
@@ -128,6 +130,13 @@ export type ClaudeCodeHarnessSettings = {
   readonly portEndpoint?: HarnessV1PortEndpoint;
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
+  /**
+   * Configures reconnection attempts after an established bridge connection
+   * drops. The reconnect window includes connection establishment and
+   * backoff delays. Defaults to 30 seconds with exponential backoff from 50
+   * milliseconds up to 2 seconds.
+   */
+  readonly reconnect?: SandboxChannelReconnectOptions;
   /**
    * Creates the authentication token used by the sandbox bridge. Defaults to
    * a random 32-byte hexadecimal token.
@@ -964,10 +973,16 @@ export function createClaudeCode(
       // (re)connect: open the socket, then wait for `bridge-hello` so the
       // end-to-end link is proven live before any frame is sent.
       const buildConnect =
-        (endpoint: HarnessV1PortEndpoint) => async (): Promise<WebSocket> => {
+        (endpoint: HarnessV1PortEndpoint) =>
+        async ({
+          abortSignal,
+        }: {
+          abortSignal: AbortSignal;
+        }): Promise<WebSocket> => {
           return openBridgeWebSocket({
             endpoint,
             timeoutMs,
+            abortSignal,
             onHello: supportsResponses => {
               supportsUserMessageResponses = supportsResponses;
             },
@@ -999,6 +1014,7 @@ export function createClaudeCode(
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
             onBridgeError,
+            reconnect: settings.reconnect,
           });
           await attachChannel.open(isContinue ? { resume: true } : undefined);
           return createSession({
@@ -1144,6 +1160,7 @@ export function createClaudeCode(
         outboundSchema: outboundMessageSchema,
         onDiagnostic,
         onBridgeError,
+        reconnect: settings.reconnect,
         // In replay mode the respawned bridge reloaded the finished turn from
         // disk; seed the cursor and resume so it streams the tail (incl.
         // `finish`) rather than starting empty.
@@ -1270,14 +1287,23 @@ function openWebSocketAndWaitForBridgeHello({
   endpoint,
   openTimeoutMs,
   getHelloTimeoutMs,
+  abortSignal,
   onHello,
 }: {
   endpoint: HarnessV1PortEndpoint;
   openTimeoutMs: number;
   getHelloTimeoutMs: () => number;
+  abortSignal: AbortSignal;
   onHello: (supportsUserMessageResponses: boolean) => void;
 }): Promise<WebSocket> {
   return new Promise<WebSocket>((resolve, reject) => {
+    const abortReason = () =>
+      abortSignal.reason ?? new Error('WebSocket connection aborted');
+    if (abortSignal.aborted) {
+      reject(abortReason());
+      return;
+    }
+
     const ws = new WebSocket(endpoint.url, {
       headers: endpoint.headers == null ? undefined : { ...endpoint.headers },
     });
@@ -1286,6 +1312,7 @@ function openWebSocketAndWaitForBridgeHello({
     let settled = false;
     let openTimer: ReturnType<typeof setTimeout> | undefined;
     let helloTimer: ReturnType<typeof setTimeout> | undefined;
+    let onAbort: (() => void) | undefined;
 
     const cleanup = ({
       keepTerminationListeners = false,
@@ -1296,6 +1323,9 @@ function openWebSocketAndWaitForBridgeHello({
       if (helloTimer) clearTimeout(helloTimer);
       ws.off('open', onOpen);
       ws.off('message', onMessage);
+      if (onAbort != null) {
+        abortSignal.removeEventListener('abort', onAbort);
+      }
       if (!keepTerminationListeners) {
         ws.off('close', onClose);
         ws.off('error', onError);
@@ -1374,6 +1404,7 @@ function openWebSocketAndWaitForBridgeHello({
       cleanup();
     };
     const onError = (err: Error) => settle(err);
+    onAbort = () => settle(abortReason());
     openTimer = setTimeout(
       () =>
         settle(new Error(`WebSocket open timed out after ${openTimeoutMs}ms`)),
@@ -1384,23 +1415,26 @@ function openWebSocketAndWaitForBridgeHello({
     ws.on('message', onMessage);
     ws.on('close', onClose);
     ws.on('error', onError);
+    abortSignal.addEventListener('abort', onAbort, { once: true });
   });
 }
 
 async function openBridgeWebSocket({
   endpoint,
   timeoutMs,
+  abortSignal,
   onHello,
 }: {
   endpoint: HarnessV1PortEndpoint;
   timeoutMs: number;
+  abortSignal: AbortSignal;
   onHello: (supportsUserMessageResponses: boolean) => void;
 }): Promise<WebSocket> {
   const deadline = Date.now() + timeoutMs;
   let attempt = 0;
   let lastError: unknown;
 
-  while (Date.now() < deadline) {
+  while (!abortSignal.aborted && Date.now() < deadline) {
     attempt++;
     try {
       const remaining = Math.max(1, deadline - Date.now());
@@ -1409,14 +1443,25 @@ async function openBridgeWebSocket({
         openTimeoutMs: Math.min(10_000, remaining),
         getHelloTimeoutMs: () =>
           Math.min(5_000, Math.max(1, deadline - Date.now())),
+        abortSignal,
         onHello,
       });
     } catch (err) {
+      if (abortSignal.aborted) {
+        throw abortSignal.reason ?? new Error('WebSocket connection aborted');
+      }
       lastError = err;
       const remaining = deadline - Date.now();
       if (remaining <= 0) break;
-      await sleep(Math.min(250 * attempt, 1_000, remaining));
+      await sleep({
+        ms: Math.min(250 * attempt, 1_000, remaining),
+        abortSignal,
+      });
     }
+  }
+
+  if (abortSignal.aborted) {
+    throw abortSignal.reason ?? new Error('WebSocket connection aborted');
   }
 
   throw new Error(
@@ -1435,13 +1480,6 @@ function webSocketMessageToString(raw: unknown): string {
     );
   }
   return String(raw);
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => {
-    const timer = setTimeout(resolve, ms);
-    timer.unref?.();
-  });
 }
 
 function formatUnknownError(error: unknown): string {

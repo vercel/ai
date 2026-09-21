@@ -1,5 +1,27 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.122
+
+### Patch Changes
+
+- d975097: feat(harness): add `AbortSignal` to `SandboxChannel.connect`, plus a `sleep()` helper function
+- 44f860b: fix(harness-claude-code): preserve open-object tool parameters
+- e3ff272: fix(harness-claude-code): ignore non-array user messages when converting tool results
+- c0e5d1d: feat(harness): allow consumers of bridge backed harnesses to configure `reconnect` timeout
+- Updated dependencies [d975097]
+- Updated dependencies [b2baeba]
+  - @ai-sdk/harness@1.0.118
+
+## 1.0.121
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+  - @ai-sdk/harness@1.0.117
+
 ## 1.0.120
 
 ### Patch Changes

@@ -277,6 +277,12 @@
                 "from": "@ai-sdk/harness/utils"
               }
             ],
+            "importTypes": [
+              {
+                "name": "SandboxChannelReconnectOptions",
+                "from": "@ai-sdk/harness/utils"
+              }
+            ],
             "exportTypes": [
               {
                 "name": "${harnessId.toPascalCase()}HarnessSettings",
@@ -287,6 +293,7 @@
                     "mintBridgeToken": "HarnessV1MintBridgeTokenCallback",
                     "port": { "type": "number" },
                     "portEndpoint": "HarnessV1PortEndpoint",
+                    "reconnect": "SandboxChannelReconnectOptions",
                     "startupTimeoutMs": { "type": "number" }
                   }
                 }
@@ -305,6 +312,12 @@
           "for": { "files": ["${harnessId}-harness.ts"] },
           "if": { "hasFile": "v1/bridge/index.ts" },
           "must": {
+            "importTypes": [
+              {
+                "name": "SandboxChannelReconnectOptions",
+                "from": "@ai-sdk/harness/utils"
+              }
+            ],
             "exportTypes": [
               {
                 "name": "${harnessId.toPascalCase()}HarnessSettings",
@@ -315,6 +328,7 @@
                     "mintBridgeToken": "HarnessV1MintBridgeTokenCallback",
                     "port": { "type": "number" },
                     "portEndpoint": "HarnessV1PortEndpoint",
+                    "reconnect": "SandboxChannelReconnectOptions",
                     "startupTimeoutMs": { "type": "number" }
                   }
                 }

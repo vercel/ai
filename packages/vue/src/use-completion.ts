@@ -119,6 +119,7 @@ export function useCompletion<BODY extends object = object>({
       setAbortController: controller => {
         abortController = controller;
       },
+      getAbortController: () => abortController,
       onFinish,
       onError,
       fetch,
@@ -135,7 +136,6 @@ export function useCompletion<BODY extends object = object>({
   const stop = () => {
     if (abortController) {
       abortController.abort();
-      abortController = null;
     }
   };
 

@@ -1,5 +1,32 @@
 # @ai-sdk/langchain
 
+## 3.0.108
+
+### Patch Changes
+
+- Updated dependencies [3f6852a]
+- Updated dependencies [6317504]
+- Updated dependencies [3cb2dcd]
+- Updated dependencies [ccf98e7]
+  - ai@7.0.108
+
+## 3.0.107
+
+### Patch Changes
+
+- 63c4d96: fix(langchain): emit completed tool lifecycles from values-only streams
+- Updated dependencies [79681c4]
+- Updated dependencies [98c7275]
+- Updated dependencies [a105059]
+- Updated dependencies [31532f3]
+- Updated dependencies [e61cbd8]
+- Updated dependencies [8ade040]
+- Updated dependencies [970a01e]
+- Updated dependencies [85539c5]
+- Updated dependencies [611d301]
+- Updated dependencies [c415657]
+  - ai@7.0.107
+
 ## 3.0.106
 
 ### Patch Changes

@@ -13,6 +13,7 @@ import type {
   Context,
   Experimental_SandboxSession as SandboxSession,
   FlexibleSchema,
+  InferToolSetContext,
   MaybePromiseLike,
   SystemModelMessage,
   ToolSet,
@@ -34,6 +35,7 @@ import type {
   TelemetryOptions,
   ToolApprovalStatus,
 } from 'ai';
+import type { ToolsContextSettings } from 'ai/internal';
 import type { HarnessAllTools } from './harness-agent-tool-types';
 
 export type HarnessAgentToolApprovalConfiguration = Readonly<
@@ -151,6 +153,13 @@ export type HarnessAgentSettings<
   readonly tools?: TUserTools;
 
   /**
+   * Per-tool context passed to host-executed tools. Each entry is validated
+   * against the matching tool's `contextSchema` before execution.
+   * `prepareCall` can replace it for each new turn.
+   */
+  readonly toolsContext?: InferToolSetContext<TUserTools>;
+
+  /**
    * Skills made available to the underlying runtime. Each adapter decides how
    * to surface skills. `prepareCall` can replace them between completed turns.
    */
@@ -225,7 +234,9 @@ export type HarnessAgentSettings<
           CALL_OPTIONS
         >,
         'model' | 'skills' | 'instructions' | 'tools'
-      >,
+      > & {
+        toolsContext: InferToolSetContext<TUserTools>;
+      },
   ) => MaybePromiseLike<
     Pick<
       HarnessAgentSettings<
@@ -236,8 +247,9 @@ export type HarnessAgentSettings<
         CALL_OPTIONS
       >,
       'model' | 'skills' | 'instructions' | 'tools'
-    > &
-      Omit<Prompt, 'system' | 'instructions' | 'allowSystemInMessages'>
+    > & {
+      toolsContext: InferToolSetContext<TUserTools>;
+    } & Omit<Prompt, 'system' | 'instructions' | 'allowSystemInMessages'>
   >;
 
   /**
@@ -376,4 +388,5 @@ export type HarnessAgentSettings<
    * stderr default — wire this to capture diagnostics in code.
    */
   readonly onLog?: (event: HarnessDiagnostic) => void;
-} & HarnessAgentToolFilteringSettings<HarnessAllTools<THarness, TUserTools>>;
+} & ToolsContextSettings<TUserTools> &
+  HarnessAgentToolFilteringSettings<HarnessAllTools<THarness, TUserTools>>;

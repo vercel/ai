@@ -1852,6 +1852,7 @@ describe('streamText', () => {
 
       it('should surface an error when a different tool is called instead of the required tool', async () => {
         const onError = vi.fn();
+        const executeTool2 = vi.fn();
 
         const result = streamText({
           model: new MockLanguageModelV4({
@@ -1880,6 +1881,7 @@ describe('streamText', () => {
             }),
             tool2: tool({
               inputSchema: z.object({ value: z.string() }),
+              execute: executeTool2,
             }),
           },
           toolChoice: { type: 'tool', toolName: 'tool1' },
@@ -1906,6 +1908,7 @@ describe('streamText', () => {
           ],
         });
         await expect(result.finishReason).resolves.toBe('error');
+        expect(executeTool2).not.toHaveBeenCalled();
       });
 
       it('should enforce the tool choice returned by prepareStep', async () => {
@@ -19456,7 +19459,7 @@ describe('streamText', () => {
   });
 
   describe('tool callbacks', () => {
-    it('should invoke callbacks in the correct order', async () => {
+    it('should invoke callbacks in the correct order with the step tool context', async () => {
       const recordedCalls: unknown[] = [];
 
       const result = streamText({
@@ -19533,6 +19536,7 @@ describe('streamText', () => {
               required: ['value'],
               additionalProperties: false,
             }),
+            contextSchema: z.object({ prefix: z.string() }),
             onInputAvailable: options => {
               recordedCalls.push({ type: 'onInputAvailable', options });
             },
@@ -19544,6 +19548,11 @@ describe('streamText', () => {
             },
           }),
         },
+        runtimeContext: { prefix: 'runtime-context' },
+        toolsContext: { 'test-tool': { prefix: 'initial-tool-context' } },
+        prepareStep: () => ({
+          toolsContext: { 'test-tool': { prefix: 'step-tool-context' } },
+        }),
         toolChoice: 'required',
         prompt: 'test-input',
         _internal: {
@@ -19558,7 +19567,9 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "context": {},
+              "context": {
+                "prefix": "step-tool-context",
+              },
               "messages": [
                 {
                   "content": "test-input",
@@ -19572,7 +19583,9 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "context": {},
+              "context": {
+                "prefix": "step-tool-context",
+              },
               "inputTextDelta": "{"",
               "messages": [
                 {
@@ -19587,7 +19600,9 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "context": {},
+              "context": {
+                "prefix": "step-tool-context",
+              },
               "inputTextDelta": "value",
               "messages": [
                 {
@@ -19602,7 +19617,9 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "context": {},
+              "context": {
+                "prefix": "step-tool-context",
+              },
               "inputTextDelta": "":"",
               "messages": [
                 {
@@ -19617,7 +19634,9 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "context": {},
+              "context": {
+                "prefix": "step-tool-context",
+              },
               "inputTextDelta": "Spark",
               "messages": [
                 {
@@ -19632,7 +19651,9 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "context": {},
+              "context": {
+                "prefix": "step-tool-context",
+              },
               "inputTextDelta": "le",
               "messages": [
                 {
@@ -19647,7 +19668,9 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "context": {},
+              "context": {
+                "prefix": "step-tool-context",
+              },
               "inputTextDelta": " Day",
               "messages": [
                 {
@@ -19662,7 +19685,9 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "context": {},
+              "context": {
+                "prefix": "step-tool-context",
+              },
               "inputTextDelta": ""}",
               "messages": [
                 {
@@ -19677,7 +19702,9 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "context": {},
+              "context": {
+                "prefix": "step-tool-context",
+              },
               "input": {
                 "value": "Sparkle Day",
               },
