@@ -389,7 +389,9 @@ export async function convertToDeepSeekChatMessages({
               const hasImagePart = output.value.some(
                 part =>
                   part.type === 'file' &&
-                  (part.data.type === 'url' || part.data.type === 'data') &&
+                  (part.data.type === 'reference' ||
+                    part.data.type === 'url' ||
+                    part.data.type === 'data') &&
                   getTopLevelMediaType(part.mediaType) === 'image',
               );
 
@@ -404,9 +406,22 @@ export async function convertToDeepSeekChatMessages({
                   contentValue.push({ type: 'text', text: part.text });
                 } else if (
                   part.type === 'file' &&
-                  (part.data.type === 'url' || part.data.type === 'data') &&
+                  (part.data.type === 'reference' ||
+                    part.data.type === 'url' ||
+                    part.data.type === 'data') &&
                   getTopLevelMediaType(part.mediaType) === 'image'
                 ) {
+                  if (part.data.type === 'reference') {
+                    contentValue.push({
+                      type: 'file',
+                      file_id: resolveProviderReference({
+                        reference: part.data.reference,
+                        provider: 'deepseek',
+                      }),
+                    });
+                    continue;
+                  }
+
                   const resolvedMediaType = resolveDeepSeekImageMediaType(part);
                   let url: string;
 

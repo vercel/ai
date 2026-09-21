@@ -691,7 +691,7 @@ describe('convertToDeepSeekChatMessages', () => {
       `);
     });
 
-    it('should convert inline and URL images in tool results to content parts', async () => {
+    it('should convert inline, URL, and referenced images in tool results to content parts', async () => {
       const result = await convertToDeepSeekChatMessages({
         prompt: [
           {
@@ -720,6 +720,17 @@ describe('convertToDeepSeekChatMessages', () => {
                         url: new URL('https://example.com/image.webp'),
                       },
                       mediaType: 'image/webp',
+                    },
+                    {
+                      type: 'file',
+                      data: {
+                        type: 'reference',
+                        reference: {
+                          deepseek: 'file-api-deepseek',
+                          openai: 'file-openai',
+                        },
+                      },
+                      mediaType: 'image/png',
                     },
                   ],
                 },
@@ -752,6 +763,10 @@ describe('convertToDeepSeekChatMessages', () => {
                 image_url: {
                   url: 'https://example.com/image.webp',
                 },
+              },
+              {
+                type: 'file',
+                file_id: 'file-api-deepseek',
               },
             ],
           },
