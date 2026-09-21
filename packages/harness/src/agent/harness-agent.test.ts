@@ -3067,7 +3067,119 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
-  test('validates host tool context before execution', async () => {
+  test('rebinds prepareCall tool context after recreating a suspended session', async () => {
+    let finishInitialPrompt!: () => void;
+    const initialPromptDone = new Promise<void>(resolve => {
+      finishInitialPrompt = resolve;
+    });
+    const { harness, toolResults } = mockHarness({
+      script: () => [],
+      promptDone: () => initialPromptDone,
+      onSuspendTurn: () => finishInitialPrompt(),
+      continueScript: () => [
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'lookupAccount',
+          input: JSON.stringify({}),
+        },
+        ...finishEvents(),
+      ],
+    });
+    const execute = vi.fn(
+      async (
+        _input: Record<string, never>,
+        { context }: { context: { userId: string } },
+      ) => ({ userId: context.userId }),
+    );
+    const lookupAccount = tool({
+      inputSchema: z.object({}),
+      contextSchema: z.object({ userId: z.string() }),
+      execute,
+    });
+    const agent = new HarnessAgent({
+      harness,
+      tools: { lookupAccount },
+      sandbox: makeSandboxProvider(),
+      callOptionsSchema: z.object({ userId: z.string() }),
+      prepareCall: ({ options, ...rest }) => ({
+        ...rest,
+        toolsContext: {
+          lookupAccount: { userId: options.userId },
+        },
+      }),
+    });
+    let session = await agent.createSession();
+    const first = await agent.stream({
+      session,
+      prompt: 'go',
+      options: { userId: 'user-123' },
+    });
+    const firstConsumption = first.consumeStream();
+    const sessionId = session.sessionId;
+    const continueFrom = await session.suspendTurn();
+    await firstConsumption;
+
+    // Context remains host-only instead of being serialized with turn state.
+    expect(continueFrom.turnSettings).not.toHaveProperty('toolsContext');
+
+    session = await agent.createSession({
+      sessionId,
+      continueFrom: structuredClone(continueFrom),
+      toolsContext: {
+        lookupAccount: { userId: 'user-123' },
+      },
+    });
+    await agent.continueGenerate({ session });
+
+    expect(execute).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({ context: { userId: 'user-123' } }),
+    );
+    expect(toolResults).toEqual([
+      { toolCallId: 'c1', output: { userId: 'user-123' } },
+    ]);
+
+    await session.destroy();
+  });
+
+  test('preserves closure-bound context for tools without a configured context entry', async () => {
+    const { harness, toolResults } = mockHarness({
+      script: () => [
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'lookupAccount',
+          input: JSON.stringify({}),
+        },
+        ...finishEvents(),
+      ],
+    });
+    const boundContext = { userId: 'closure-user' };
+    const execute = vi.fn(async () => ({ userId: boundContext.userId }));
+    const lookupAccount = tool({
+      inputSchema: z.object({}),
+      contextSchema: z.object({ userId: z.string() }),
+      execute,
+    });
+    const agent = new HarnessAgent({
+      harness,
+      tools: { lookupAccount },
+      sandbox: makeSandboxProvider(),
+    });
+    const session = await agent.createSession();
+
+    await agent.generate({ session, prompt: 'go' });
+
+    expect(execute).toHaveBeenCalledOnce();
+    expect(toolResults).toEqual([
+      { toolCallId: 'c1', output: { userId: 'closure-user' } },
+    ]);
+
+    await session.destroy();
+  });
+
+  test('validates host tool context without disclosing it to the model', async () => {
     const { harness, toolResults } = mockHarness({
       script: () => [
         {
@@ -3080,6 +3192,7 @@ describe('HarnessAgent', () => {
       ],
     });
     const execute = vi.fn(async () => ({ ok: true }));
+    let hostValidationError: unknown;
     const lookupAccount = tool({
       inputSchema: z.object({}),
       contextSchema: z.object({ userId: z.string() }),
@@ -3089,9 +3202,14 @@ describe('HarnessAgent', () => {
       harness,
       tools: { lookupAccount },
       toolsContext: {
-        lookupAccount: { userId: 123 },
+        lookupAccount: { userId: 123, apiKey: 'host-secret' },
       } as never,
       sandbox: makeSandboxProvider(),
+      onToolExecutionEnd: event => {
+        if (event.toolOutput.type === 'tool-error') {
+          hostValidationError = event.toolOutput.error;
+        }
+      },
     });
     const session = await agent.createSession();
 
@@ -3101,12 +3219,12 @@ describe('HarnessAgent', () => {
     expect(toolResults).toEqual([
       {
         toolCallId: 'c1',
-        output: {
-          error: expect.stringContaining('tool context'),
-        },
+        output: { error: 'Tool context validation failed.' },
         isError: true,
       },
     ]);
+    expect(JSON.stringify(toolResults)).not.toContain('host-secret');
+    expect(String(hostValidationError)).toContain('host-secret');
 
     await session.destroy();
   });

@@ -1449,13 +1449,26 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
   const parsed = await safeParseJSON({ text: input.event.input });
   const args = parsed.success ? parsed.value : input.event.input;
 
+  let context: unknown;
   try {
-    const context = await resolveToolContext({
+    context = await resolveToolContext({
       toolName: input.event.toolName,
       tool,
       toolsContext: input.toolsContext,
     });
+  } catch (err) {
+    // Context is host-only and can contain credentials. Keep the detailed
+    // validation error in the host-facing outcome, but never send its value or
+    // schema diagnostics back to the runtime/model.
+    await input.submitToolResult({
+      toolCallId: input.event.toolCallId,
+      output: { error: 'Tool context validation failed.' },
+      isError: true,
+    });
+    return { executed: true, outcome: { ok: false, error: err } };
+  }
 
+  try {
     /*
      * Normalize the tool's return value through `executeTool`, the same helper
      * the non-harness AI SDK uses, so generator `execute` functions behave

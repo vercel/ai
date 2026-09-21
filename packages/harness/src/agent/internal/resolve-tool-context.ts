@@ -12,11 +12,16 @@ export async function resolveToolContext({
   tool: Tool;
   toolsContext: Record<string, Context | undefined>;
 }): Promise<unknown> {
-  const context = Object.prototype.hasOwnProperty.call(toolsContext, toolName)
-    ? toolsContext[toolName]
-    : undefined;
+  const hasConfiguredContext = Object.prototype.hasOwnProperty.call(
+    toolsContext,
+    toolName,
+  );
+  const context = hasConfiguredContext ? toolsContext[toolName] : undefined;
 
-  if (tool.contextSchema == null) {
+  // Preserve closure-bound contextual tools: before toolsContext support,
+  // wrappers could inject context from inside execute(). Only validate context
+  // that HarnessAgent was explicitly configured to provide.
+  if (!hasConfiguredContext || tool.contextSchema == null) {
     return context;
   }
 

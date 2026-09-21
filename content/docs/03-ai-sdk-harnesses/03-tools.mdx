@@ -119,6 +119,22 @@ call options. `HarnessAgent` validates each entry against the tool's
 `contextSchema` before execution and exposes the configured map in step results
 and lifecycle callbacks.
 
+Tool context remains host-only and is not serialized into suspended-turn state.
+When recreating a session for an unfinished turn, rebind it explicitly:
+
+```ts
+const session = await agent.createSession({
+  sessionId,
+  continueFrom,
+  toolsContext: {
+    lookupAccount: { userId: 'user-123' },
+  },
+});
+```
+
+Only context entries supplied through `toolsContext` are schema-validated by
+the harness. This preserves tools that bind context inside an `execute` wrapper.
+
 ## Client-Side Tools
 
 Omit `execute` when a browser, user interaction, or another external process

@@ -121,6 +121,9 @@ export class HarnessAgentSession {
     | undefined;
   private activeTurnSettings: ActiveTurnSettings | undefined;
   private persistedTurnSettings: HarnessV1TurnSettings | undefined;
+  private readonly resumedToolsContext:
+    | Record<string, Context | undefined>
+    | undefined;
 
   /**
    * Whether this session was created from `resumeFrom` or `continueFrom`.
@@ -139,6 +142,7 @@ export class HarnessAgentSession {
     pendingToolApprovals?: readonly HarnessAgentPendingToolApproval[];
     pendingToolResults?: readonly HarnessAgentPendingToolResult[];
     turnSettings?: HarnessV1TurnSettings;
+    resumedToolsContext?: Record<string, Context | undefined>;
     turnState?: HarnessAgentTurnState;
   }) {
     this.sessionId = options.sessionId;
@@ -155,6 +159,7 @@ export class HarnessAgentSession {
       this.pendingToolResults.set(pendingResult.toolCallId, pendingResult);
     }
     this.persistedTurnSettings = options.turnSettings;
+    this.resumedToolsContext = options.resumedToolsContext;
     this.turnState =
       options.turnState ??
       (this.pendingToolApprovals.size > 0
@@ -820,7 +825,7 @@ export class HarnessAgentSession {
     this.activeTurnSettings = {
       persisted,
       tools: options.tools,
-      toolsContext: options.toolsContext,
+      toolsContext: this.resumedToolsContext ?? options.toolsContext,
       activeTools,
       builtinToolFiltering: options.builtinToolFiltering,
     };

@@ -317,6 +317,13 @@ export class HarnessAgent<
      */
     continueFrom?: HarnessAgentContinueTurnState;
     /**
+     * Rebinds host-only tool context for an unfinished turn resumed with
+     * `continueFrom` (directly or through `resumeFrom`). Tool context is not
+     * serialized into lifecycle state because it may contain credentials or
+     * non-serializable host objects.
+     */
+    toolsContext?: InferToolSetContext<HarnessAllTools<THarness, TUserTools>>;
+    /**
      * Existing sandbox session to run the harness in. When provided, the
      * caller retains ownership of the sandbox lifecycle.
      */
@@ -358,6 +365,11 @@ export class HarnessAgent<
 
     const effectiveContinueFrom =
       validatedContinueFrom ?? validatedResumeFrom?.continueFrom;
+    if (options?.toolsContext != null && effectiveContinueFrom == null) {
+      throw new Error(
+        'HarnessAgent.createSession: `toolsContext` can only rebind an unfinished turn from `continueFrom` or `resumeFrom`.',
+      );
+    }
     const isResumedSession =
       validatedResumeFrom != null || effectiveContinueFrom != null;
 
@@ -554,6 +566,7 @@ export class HarnessAgent<
         pendingToolApprovals: effectiveContinueFrom?.pendingToolApprovals,
         pendingToolResults: effectiveContinueFrom?.pendingToolResults,
         turnSettings: effectiveContinueFrom?.turnSettings,
+        resumedToolsContext: options?.toolsContext,
         turnState:
           effectiveContinueFrom == null
             ? 'idle'
