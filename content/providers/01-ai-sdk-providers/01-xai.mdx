@@ -73,10 +73,10 @@ You can use the following optional settings to customize the xAI provider instan
 ## Language Models
 
 You can create [xAI models](https://console.x.ai) using a provider instance. The
-first argument is the model id, e.g. `grok-4.6`.
+first argument is the model id, e.g. `grok-4.7`.
 
 ```ts
-const model = xai('grok-4.6');
+const model = xai('grok-4.7');
 ```
 
 By default, `xai(modelId)` uses the Chat API. To use the Responses API with server-side agentic tools, explicitly use `xai.responses(modelId)`.
@@ -90,7 +90,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai('grok-4.6'),
+  model: xai('grok-4.7'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -154,7 +154,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai.responses('grok-4.6'),
+  model: xai.responses('grok-4.7'),
   messages: [
     {
       role: 'user',
