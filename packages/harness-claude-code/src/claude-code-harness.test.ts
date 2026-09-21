@@ -92,13 +92,15 @@ const wsMock = vi.hoisted(() => {
 vi.mock('@ai-sdk/harness/utils', async importOriginal => {
   const actual = await importOriginal<typeof HarnessUtils>();
   class FakeSandboxChannel {
-    private readonly connect: () => Promise<unknown>;
+    private readonly connect: (options: {
+      abortSignal: AbortSignal;
+    }) => Promise<unknown>;
 
     constructor({
       connect,
       reconnect,
     }: {
-      connect: () => Promise<unknown>;
+      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
       reconnect?: unknown;
     }) {
       this.connect = connect;
@@ -108,7 +110,7 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
     async open(opts?: { resume?: boolean }): Promise<void> {
       openCalls.push(opts);
       if (connectOnOpen) {
-        await this.connect();
+        await this.connect({ abortSignal: new AbortController().signal });
       }
     }
     on(): () => void {

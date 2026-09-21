@@ -123,8 +123,9 @@ export type OpenCodeHarnessSettings = {
   readonly startupTimeoutMs?: number;
   /**
    * Configures reconnection attempts after an established bridge connection
-   * drops. Defaults to a 30 second reconnect window with exponential backoff
-   * from 50 milliseconds up to 2 seconds.
+   * drops. The reconnect window includes connection establishment and
+   * backoff delays. Defaults to 30 seconds with exponential backoff from 50
+   * milliseconds up to 2 seconds.
    */
   readonly reconnect?: SandboxChannelReconnectOptions;
   /**
@@ -444,10 +445,11 @@ export function createOpenCode(
           });
           let supportsUserMessageResponses = false;
           const attachChannel: OpenCodeChannel = new SandboxChannel({
-            connect: () =>
+            connect: ({ abortSignal }) =>
               openWebSocket({
                 endpoint: attachEndpoint,
                 helloTimeoutMs: Math.min(timeoutMs, 5_000),
+                abortSignal,
                 onHello: supported => {
                   supportsUserMessageResponses = supported;
                 },
@@ -618,10 +620,11 @@ export function createOpenCode(
       let supportsUserMessageResponses = false;
 
       const channel: OpenCodeChannel = new SandboxChannel({
-        connect: () =>
+        connect: ({ abortSignal }) =>
           openWebSocket({
             endpoint: bridgeEndpoint,
             helloTimeoutMs: Math.min(timeoutMs, 5_000),
+            abortSignal,
             onHello: supported => {
               supportsUserMessageResponses = supported;
             },
@@ -735,25 +738,39 @@ async function resolveBridgeEndpoint({
 function openWebSocket({
   endpoint,
   helloTimeoutMs,
+  abortSignal,
   onHello,
 }: {
   endpoint: HarnessV1PortEndpoint;
   helloTimeoutMs: number;
+  abortSignal: AbortSignal;
   onHello(supportsUserMessageResponses: boolean): void;
 }): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
+    const abortReason = () =>
+      abortSignal.reason ?? new Error('WebSocket connection aborted');
+    if (abortSignal.aborted) {
+      reject(abortReason());
+      return;
+    }
+
     const ws = new WebSocket(endpoint.url, {
       headers: endpoint.headers == null ? undefined : { ...endpoint.headers },
     });
     let opened = false;
     let receivedHello = false;
     let settled = false;
+    let helloTimer: ReturnType<typeof setTimeout> | undefined;
+    let onAbort: (() => void) | undefined;
     const cleanup = () => {
       clearTimeout(helloTimer);
       ws.off('open', onOpen);
       ws.off('message', onMessage);
       ws.off('close', onClose);
       ws.off('error', onError);
+      if (onAbort != null) {
+        abortSignal.removeEventListener('abort', onAbort);
+      }
     };
     const settle = (error?: unknown) => {
       if (settled) return;
@@ -762,6 +779,20 @@ function openWebSocket({
       if (error == null) {
         resolve(ws);
       } else {
+        const suppressError = () => {};
+        const socketWithOnce = ws as WebSocket & {
+          once?: (event: string, listener: () => void) => void;
+        };
+        socketWithOnce.once?.('error', suppressError);
+        try {
+          ws.terminate();
+        } catch {
+          try {
+            ws.close();
+          } catch {
+            // best-effort
+          }
+        }
         reject(error);
       }
     };
@@ -802,11 +833,17 @@ function openWebSocket({
     const onError = (err: Error) => {
       settle(err);
     };
+    onAbort = () => settle(abortReason());
     ws.on('open', onOpen);
     ws.on('message', onMessage);
     ws.on('close', onClose);
     ws.on('error', onError);
-    const helloTimer = setTimeout(
+    abortSignal.addEventListener('abort', onAbort, { once: true });
+    if (abortSignal.aborted) {
+      onAbort();
+      return;
+    }
+    helloTimer = setTimeout(
       () =>
         settle(
           new Error(
