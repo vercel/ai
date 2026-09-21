@@ -1555,10 +1555,11 @@ describe('assistant messages', () => {
     expect(result.prompt.messages).toEqual([
       {
         role: 'user',
-        content: [
-          { type: 'text', text: 'first user message' },
-          { type: 'text', text: 'second user message' },
-        ],
+        content: [{ type: 'text', text: 'first user message' }],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'second user message' }],
       },
     ]);
   });
