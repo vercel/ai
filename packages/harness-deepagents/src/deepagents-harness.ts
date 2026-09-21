@@ -36,6 +36,7 @@ import {
   waitForBridgeReady,
   withBridgeToken,
   writeSkills,
+  type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
 import {
   tool,
@@ -113,6 +114,12 @@ export type DeepAgentsHarnessSettings = {
   readonly portEndpoint?: HarnessV1PortEndpoint;
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
+  /**
+   * Configures reconnection attempts after an established bridge connection
+   * drops. Defaults to a 30 second reconnect window with exponential backoff
+   * from 50 milliseconds up to 2 seconds.
+   */
+  readonly reconnect?: SandboxChannelReconnectOptions;
   /**
    * Creates the authentication token used by the sandbox bridge. Defaults to
    * a random 32-byte hexadecimal token.
@@ -339,6 +346,7 @@ export function createDeepAgents(
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
             onBridgeError,
+            reconnect: settings.reconnect,
           });
           await attachChannel.open(isContinue ? { resume: true } : undefined);
           return createSession({
@@ -461,6 +469,7 @@ export function createDeepAgents(
         outboundSchema: outboundMessageSchema,
         onDiagnostic,
         onBridgeError,
+        reconnect: settings.reconnect,
       });
       await channel.open();
 
