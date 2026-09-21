@@ -17,6 +17,53 @@ const server = createTestServer({
   '/api/completion': {},
 });
 
+describe('request cancellation', () => {
+  it('keeps a restarted request loading and cancellable after the previous abort settles', async () => {
+    const signals: AbortSignal[] = [];
+    const { result } = renderHook(() =>
+      useCompletion({
+        streamProtocol: 'text',
+        fetch: (_url, init) =>
+          new Promise((_resolve, reject) => {
+            const signal = init!.signal!;
+            signals.push(signal);
+            signal.addEventListener('abort', () => {
+              reject(new DOMException('Aborted', 'AbortError'));
+            });
+          }),
+      }),
+    );
+
+    let first!: Promise<string | null | undefined>;
+    let second!: Promise<string | null | undefined>;
+    act(() => {
+      first = result.current.complete('first');
+    });
+
+    await act(async () => {
+      result.current.stop();
+      second = result.current.complete('second');
+      await first;
+    });
+
+    expect(signals[0].aborted).toBe(true);
+    expect(signals[1].aborted).toBe(false);
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.error).toBeUndefined();
+
+    act(() => {
+      result.current.stop();
+    });
+    // Assert before awaiting, so a lost controller fails instead of hanging.
+    expect(signals[1].aborted).toBe(true);
+    await act(async () => {
+      await second;
+    });
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.error).toBeUndefined();
+  });
+});
+
 describe('stream data stream', () => {
   let onFinishResult: { prompt: string; completion: string } | undefined;
 
