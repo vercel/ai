@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import type { z } from 'zod/v4';
 
 type QueryArgs = {
   prompt: AsyncIterable<unknown>;
@@ -119,10 +120,17 @@ vi.mock('@anthropic-ai/claude-agent-sdk', () => ({
 
 vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => ({
   McpServer: class {
-    tool(...args: [string, string, unknown, ToolHandler]): void {
-      const name = args[0];
-      const handler = args[3];
-      state.toolHandlers.set(name, handler);
+    registerTool(
+      name: string,
+      config: {
+        description: string;
+        inputSchema: z.ZodType<Record<string, unknown>>;
+      },
+      handler: ToolHandler,
+    ): void {
+      state.toolHandlers.set(name, async (input, extra) =>
+        handler(await config.inputSchema.parseAsync(input), extra),
+      );
     }
   },
 }));
@@ -495,6 +503,45 @@ describe('Claude Code bridge configuration', () => {
         },
       },
     });
+  });
+
+  test('preserves root and nested open-object fields in host tool calls', async () => {
+    state.start = {
+      ...state.start,
+      tools: [
+        {
+          name: 'stripe_api_read',
+          inputSchema: {
+            type: 'object',
+            properties: { parameters: { type: 'object' } },
+            required: ['parameters'],
+          },
+        },
+      ],
+    };
+    const input = {
+      parameters: { customer: 'cus_example', limit: 1 },
+      account: 'acct_example',
+    };
+    state.messages = [
+      {
+        type: 'invoke-host-tools',
+        calls: [{ toolName: 'stripe_api_read', toolCallId: 'read-1', input }],
+      },
+      ...state.messages,
+    ];
+
+    await import('./index');
+
+    expect(state.emitted.filter(event => event.type === 'tool-call')).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'read-1',
+        toolName: 'stripe_api_read',
+        input: JSON.stringify(input),
+        providerExecuted: false,
+      },
+    ]);
   });
 
   test('uses callback metadata to correlate identical parallel host tool calls', async () => {

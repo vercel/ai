@@ -107,6 +107,10 @@ Settings:
 - `mcpServers`: MCP server definitions keyed by server name.
 - `port`: ACP bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the ACP bridge to start.
+- `reconnect`: optional timing configuration for reconnecting after an
+  established ACP bridge connection drops. Set `maxElapsedMs` for the total
+  reconnect window and `initialDelayMs` and `maxDelayMs` for exponential
+  backoff.
 - `mintBridgeToken`: synchronous function that receives the sandbox id and
   returns the ACP bridge authentication token. By default, the adapter generates
   a random 32-byte token. Custom implementations must return a suitably secret

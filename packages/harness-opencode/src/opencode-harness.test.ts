@@ -85,19 +85,44 @@ const harnessUtilsMocks = vi.hoisted(() => {
     sent: unknown[];
     closed: boolean;
     connect: () => Promise<unknown>;
+    reconnect:
+      | {
+          readonly maxElapsedMs?: number;
+          readonly initialDelayMs?: number;
+          readonly maxDelayMs?: number;
+        }
+      | undefined;
     emit(type: string, event: ChannelEvent): void;
   }> = [];
 
   class MockSandboxChannel {
     sent: unknown[] = [];
     closed = false;
+    readonly reconnect:
+      | {
+          readonly maxElapsedMs?: number;
+          readonly initialDelayMs?: number;
+          readonly maxDelayMs?: number;
+        }
+      | undefined;
     private readonly listeners = new Map<
       string,
       Set<(event: ChannelEvent) => void>
     >();
 
-    constructor({ connect }: { connect: () => Promise<unknown> }) {
+    constructor({
+      connect,
+      reconnect,
+    }: {
+      connect: () => Promise<unknown>;
+      reconnect?: {
+        readonly maxElapsedMs?: number;
+        readonly initialDelayMs?: number;
+        readonly maxDelayMs?: number;
+      };
+    }) {
       this.connect = connect;
+      this.reconnect = reconnect;
       channels.push(this);
     }
 
@@ -190,6 +215,7 @@ function getBuiltinToolMetadata(tool: unknown): {
 
 describe('createOpenCode adapter', () => {
   beforeEach(() => {
+    harnessUtilsMocks.channels.length = 0;
     harnessUtilsMocks.connectOnOpen = false;
     webSocketMocks.supportsUserMessageResponses = true;
     webSocketMocks.calls.length = 0;
@@ -259,7 +285,7 @@ describe('createOpenCode adapter', () => {
     ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
   });
 
-  it('reuses a caller-minted token and passes endpoint headers when attaching', async () => {
+  it('passes connection settings to spawned and attached bridge channels', async () => {
     harnessUtilsMocks.connectOnOpen = true;
     harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
@@ -308,7 +334,16 @@ describe('createOpenCode adapter', () => {
       url: 'wss://sandbox.example/bridge?existing=value',
       headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
     };
-    const harness = createOpenCode({ mintBridgeToken, portEndpoint });
+    const reconnect = {
+      maxElapsedMs: 120_000,
+      initialDelayMs: 100,
+      maxDelayMs: 5_000,
+    };
+    const harness = createOpenCode({
+      mintBridgeToken,
+      portEndpoint,
+      reconnect,
+    });
     const session = await harness.doStart({
       sessionId: 's1',
       sandboxSession,
@@ -342,6 +377,9 @@ describe('createOpenCode adapter', () => {
         headers: portEndpoint.headers,
       },
     ]);
+    expect(
+      harnessUtilsMocks.channels.map(channel => channel.reconnect),
+    ).toEqual([reconnect, reconnect]);
     await attachedSession.doDetach();
   });
 

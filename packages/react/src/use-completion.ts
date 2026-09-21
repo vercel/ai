@@ -3,6 +3,7 @@ import {
   type CompletionRequestOptions,
   type UseCompletionOptions,
 } from 'ai';
+import { normalizeHeaders } from '@ai-sdk/provider-utils';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import useSWR from 'swr';
 import { throttle } from './throttle';
@@ -129,7 +130,10 @@ export function useCompletion<BODY extends object = object>({
         api,
         prompt,
         credentials: extraMetadataRef.current.credentials,
-        headers: { ...extraMetadataRef.current.headers, ...options?.headers },
+        headers: {
+          ...normalizeHeaders(extraMetadataRef.current.headers),
+          ...normalizeHeaders(options?.headers),
+        },
         body: {
           ...extraMetadataRef.current.body,
           ...options?.body,

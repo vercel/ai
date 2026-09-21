@@ -34,6 +34,7 @@ import {
   withBridgeToken,
   writeInstructions,
   writeSkills,
+  type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
 import {
   asSchema,
@@ -130,6 +131,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
   port: portOverride,
   portEndpoint: portEndpointOverride,
   startupTimeoutMs,
+  reconnect,
   clientApp,
   lifecycleStateSchema,
 }: {
@@ -138,6 +140,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
   port?: number;
   portEndpoint?: HarnessV1PortEndpoint;
   startupTimeoutMs?: number;
+  reconnect?: SandboxChannelReconnectOptions;
   clientApp: ACPClientApp;
   lifecycleStateSchema: NonNullable<
     HarnessV1<TBuiltinTools>['lifecycleStateSchema']
@@ -446,6 +449,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               initialLastSeenEventId: coords.lastSeenEventId,
               onDiagnostic,
               onBridgeError,
+              reconnect,
             });
             await attachChannel.open(isContinue ? { resume: true } : undefined);
             return createSession({
@@ -707,6 +711,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           : {}),
         onDiagnostic,
         onBridgeError,
+        reconnect,
       });
       await channel.open(
         respawnStrategy?.mode === 'disk-replay' ? { resume: true } : undefined,

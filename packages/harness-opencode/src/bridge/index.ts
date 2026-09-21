@@ -4,6 +4,7 @@ import {
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
 import { randomUUID } from 'node:crypto';
+import { realpathSync } from 'node:fs';
 import path from 'node:path';
 import { argv, env as procEnv } from 'node:process';
 import { isDeepStrictEqual } from 'node:util';
@@ -1304,9 +1305,6 @@ async function selectPermissionReply({
   emit: Emit;
 }): Promise<{ reply: 'once' | 'always' | 'reject'; message?: string }> {
   const toolName = toPermissionToolName(action);
-  if (resources.some(resource => isExternalPath(resource))) {
-    return { reply: 'reject', message: 'External directory access rejected.' };
-  }
   if (
     isBuiltinToolInactive({ toolName, toolFiltering: builtinToolFiltering })
   ) {
@@ -1325,6 +1323,9 @@ async function selectPermissionReply({
   }
   if (!permissionMode || permissionMode === 'allow-all') {
     return { reply: 'always' };
+  }
+  if (resources.some(resource => isExternalPath(resource))) {
+    return { reply: 'reject', message: 'External directory access rejected.' };
   }
   const kind = TOOL_KIND[toolName] ?? 'bash';
   const allowed =
@@ -1387,16 +1388,38 @@ function isBuiltinToolInactive(input: {
 
 function isExternalPath(resource: string): boolean {
   if (!path.isAbsolute(resource)) return false;
-  const normalized = path.resolve(resource);
   return (
-    !isPathInsideOrEqual(normalized, workdir) &&
-    (!skillsDir || !isPathInsideOrEqual(normalized, skillsDir))
+    !isPathInsideOrEqual(resource, workdir) &&
+    (!skillsDir || !isPathInsideOrEqual(resource, skillsDir))
   );
 }
 
 function isPathInsideOrEqual(file: string, root: string): boolean {
-  const normalizedRoot = path.resolve(root);
-  return file === normalizedRoot || file.startsWith(`${normalizedRoot}/`);
+  const relative = path.relative(
+    canonicalizeForContainment(root),
+    canonicalizeForContainment(file),
+  );
+  return (
+    relative === '' ||
+    (relative !== '..' &&
+      !relative.startsWith(`..${path.sep}`) &&
+      !path.isAbsolute(relative))
+  );
+}
+
+function canonicalizeForContainment(inputPath: string): string {
+  const normalized = path.resolve(inputPath);
+  try {
+    return realpathSync.native(normalized);
+  } catch {
+    const parent = path.dirname(normalized);
+    return parent === normalized
+      ? normalized
+      : path.join(
+          canonicalizeForContainment(parent),
+          path.basename(normalized),
+        );
+  }
 }
 
 function toWireToolName(nativeName: string): string {
