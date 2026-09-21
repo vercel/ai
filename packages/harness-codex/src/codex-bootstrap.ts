@@ -20,6 +20,14 @@ export const CODEX_BOOTSTRAP_DIR = '.harness-bootstrap/codex';
 
 let cachedBootstrap: HarnessV1Bootstrap | undefined;
 
+export async function getRestrictedCodexBootstrap(): Promise<HarnessV1Bootstrap> {
+  return {
+    ...await getCodexBootstrap(),
+    requiresDirectExecution: true,
+    commands: [{ command: 'pnpm install --frozen-lockfile --ignore-scripts --store-dir .pnpm-store --config.userconfig=/dev/null' }],
+  };
+}
+
 export async function getCodexBootstrap(): Promise<HarnessV1Bootstrap> {
   if (cachedBootstrap != null) return cachedBootstrap;
   const [pkg, lock, bridge] = await Promise.all([

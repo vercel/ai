@@ -27,7 +27,7 @@ export default defineConfig([
     // the sandbox only installs the bridge's own deps, so a bare import would
     // not resolve there. tsup externalizes package.json deps by default, hence
     // the explicit override.
-    noExternal: ['@ai-sdk/harness'],
+    noExternal: ['@ai-sdk/harness', '@ai-sdk/provider-utils', '@ai-sdk/provider'],
     external: ['@openai/codex-sdk', '@openai/codex', 'ws'],
     define: {
       __PACKAGE_VERSION__: packageVersion,

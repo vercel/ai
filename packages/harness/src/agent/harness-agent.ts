@@ -1,3 +1,4 @@
+import { withCleanSandboxEnvironment } from '../utils/with-clean-sandbox-environment';
 import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-unsupported-error';
 import type {
   HarnessV1,
@@ -364,8 +365,9 @@ export class HarnessAgent<
     // snapshot based on the bootstrap-based hashes.
     let sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
     let sessionWorkDir: string;
+    const recipe = await harness.getBootstrap?.({ abortSignal });
     if (providedSandboxSession != null) {
-      sandboxSession = providedSandboxSession;
+      sandboxSession = recipe?.requiresDirectExecution ? withCleanSandboxEnvironment(providedSandboxSession) : providedSandboxSession;
       const toolSafeSandboxSession =
         getRestrictedSandboxSession(sandboxSession);
       const defaultWorkingDirectory =
@@ -380,7 +382,6 @@ export class HarnessAgent<
         workDir: this.sandboxConfig.workDir,
       });
 
-      const recipe = await harness.getBootstrap?.({ abortSignal });
       if (recipe != null) {
         const recipeIdentity = await hashHarnessBootstrap(recipe);
         try {
@@ -406,7 +407,6 @@ export class HarnessAgent<
         );
       }
 
-      const recipe = await harness.getBootstrap?.({ abortSignal });
       if (isResumedSession) {
         if (sandboxProvider.resumeSession == null) {
           throw new HarnessCapabilityUnsupportedError({
@@ -418,7 +418,7 @@ export class HarnessAgent<
           sessionId,
           abortSignal,
         });
-        sandboxSession = resumedSandboxSession;
+        sandboxSession = recipe?.requiresDirectExecution ? withCleanSandboxEnvironment(resumedSandboxSession) : resumedSandboxSession;
         sessionWorkDir = resolveSessionWorkDir({
           defaultWorkingDirectory:
             resumedSandboxSession.defaultWorkingDirectory,
@@ -467,7 +467,7 @@ export class HarnessAgent<
           identity: sandboxBootstrapPlan.identity,
           onFirstCreate: sandboxBootstrapPlan.onFirstCreate,
         });
-        sandboxSession = createdSandboxSession;
+        sandboxSession = recipe?.requiresDirectExecution ? withCleanSandboxEnvironment(createdSandboxSession) : createdSandboxSession;
         sessionWorkDir = resolveSessionWorkDir({
           defaultWorkingDirectory:
             createdSandboxSession.defaultWorkingDirectory,

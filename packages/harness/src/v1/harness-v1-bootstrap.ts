@@ -26,6 +26,12 @@ export interface HarnessV1BootstrapCommand {
  */
 export interface HarnessV1Bootstrap {
   /**
+   * Require direct process launch with a replacement environment throughout
+   * bootstrap and session startup. Unsupported sandbox providers fail before
+   * any process is run, even when a cached bootstrap marker exists.
+   */
+  readonly requiresDirectExecution?: boolean;
+  /**
    * Stable id of the adapter that owns this recipe. Conventionally matches
    * {@link HarnessV1.harnessId}. Contributes to the recipe hash.
    */

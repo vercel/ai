@@ -39,6 +39,7 @@ import {
   waitForBridgeReady,
   withBridgeToken,
   writeSkills,
+  withCleanSandboxEnvironment,
   type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
 import {
@@ -50,6 +51,7 @@ import { z } from 'zod/v4';
 import {
   CODEX_BOOTSTRAP_DIR as BOOTSTRAP_DIR,
   getCodexBootstrap,
+  getRestrictedCodexBootstrap,
 } from './codex-bootstrap';
 import {
   CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES,
@@ -90,6 +92,13 @@ const DEFAULT_CODEX_MODEL = 'gpt-5.5';
 const CODEX_CLIENT_APP = `ai-sdk/harness-codex/${VERSION}`;
 
 export type CodexHarnessSettings = {
+  /**
+   * Disable native local execution and route host tools through the pinned
+   * app-server. Requires a separate, trusted controller sandbox and explicit
+   * API credentials. Resume, detach, skills, MCP, and native config overrides
+   * are unsupported in this mode.
+   */
+  readonly localExecution?: 'enabled' | 'disabled';
   readonly auth?: CodexAuthenticationMode;
   /**
    * Customizes each credential value before it is forwarded into a sandbox
@@ -201,16 +210,35 @@ type CodexBridgeCoords = z.infer<typeof codexBridgeCoordsSchema>;
 export function createCodex(
   settings: CodexHarnessSettings = {},
 ): HarnessV1<typeof CODEX_BUILTIN_TOOLS> {
+  const restricted = settings.localExecution === 'disabled';
+  if (restricted) {
+    if (settings.codexConfig != null || settings.mcpServers != null || settings.reconnect != null ||
+        settings.auth == null || typeof settings.auth !== 'object' ||
+        Object.keys(settings.auth).some(key => !['OPENAI_API_KEY', 'CODEX_API_KEY', 'OPENAI_BASE_URL'].includes(key)) ||
+        !(settings.auth.OPENAI_API_KEY || settings.auth.CODEX_API_KEY)) {
+      throw new HarnessCapabilityUnsupportedError({ harnessId: 'codex', message:
+        'localExecution: disabled requires explicit API credentials and does not support codexConfig, mcpServers, or reconnect overrides.' });
+    }
+  }
   return {
     specificationVersion: 'harness-v1',
     harnessId: 'codex',
     builtinTools: CODEX_BUILTIN_TOOLS,
     supportsBuiltinToolApprovals: false,
+    supportsBuiltinToolFiltering: restricted,
     lifecycleStateSchema: codexResumeStateSchema,
-    getBootstrap: getCodexBootstrap,
+    getBootstrap: restricted ? getRestrictedCodexBootstrap : getCodexBootstrap,
     doStart: async startOpts => {
       const model = DEFAULT_CODEX_MODEL;
-      if (startOpts.builtinToolFiltering != null) {
+      if (restricted && (startOpts.resumeFrom != null || startOpts.continueFrom != null)) {
+        throw new HarnessCapabilityUnsupportedError({ harnessId: 'codex', message: 'Restricted Codex does not support resume or continuation.' });
+      }
+      const filter = startOpts.builtinToolFiltering;
+      if (restricted && filter?.mode === 'allow' && filter.toolNames.some(name => name !== 'webSearch')) {
+        throw new HarnessCapabilityUnsupportedError({ harnessId: 'codex', message: 'Restricted Codex can only enable the webSearch built-in.' });
+      }
+      const webSearch = !restricted ? settings.webSearch : settings.webSearch === true && (!filter || (filter.mode === 'allow' ? filter.toolNames.includes('webSearch') : !filter.toolNames.includes('webSearch')));
+      if (!restricted && startOpts.builtinToolFiltering != null) {
         throw new HarnessCapabilityUnsupportedError({
           message:
             "Harness 'codex' does not support built-in tool filtering controls.",
@@ -218,7 +246,7 @@ export function createCodex(
         });
       }
       if (
-        startOpts.permissionMode != null &&
+        !restricted && startOpts.permissionMode != null &&
         startOpts.permissionMode !== 'allow-all'
       ) {
         throw new HarnessCapabilityUnsupportedError({
@@ -227,7 +255,7 @@ export function createCodex(
           harnessId: 'codex',
         });
       }
-      const sandboxSession = startOpts.sandboxSession;
+      const sandboxSession = (restricted ? withCleanSandboxEnvironment(startOpts.sandboxSession) : startOpts.sandboxSession) as HarnessV1NetworkSandboxSession | SandboxSession;
       const toolSafeSandboxSession =
         getRestrictedSandboxSession(sandboxSession);
       const sandboxId = 'id' in sandboxSession ? sandboxSession.id : undefined;
@@ -329,7 +357,7 @@ export function createCodex(
       );
 
       const workDir = startOpts.sessionWorkDir;
-      const sandboxHomeDir = await resolveSandboxHomeDir({
+      const sandboxHomeDir = restricted ? defaultWorkingDirectory : await resolveSandboxHomeDir({
         sandbox: toolSafeSandboxSession,
         abortSignal: startOpts.abortSignal,
       });
@@ -382,7 +410,7 @@ export function createCodex(
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
             onBridgeError,
-            reconnect: settings.reconnect,
+            reconnect: restricted ? { maxElapsedMs: 0 } : settings.reconnect,
           });
           await attachChannel.open(isContinue ? { resume: true } : undefined);
           return createSession({
@@ -393,7 +421,8 @@ export function createCodex(
             proc: undefined,
             model,
             reasoningEffort: settings.reasoningEffort,
-            webSearch: settings.webSearch,
+            webSearch,
+            localExecution: settings.localExecution,
             codexConfig: settings.codexConfig,
             mcpServers: settings.mcpServers,
             headers: startOpts.headers,
@@ -487,7 +516,15 @@ export function createCodex(
         abortSignal: startOpts.abortSignal,
       });
 
-      const proc = await toolSafeSandboxSession.spawn({
+      const proc = restricted ? await toolSafeSandboxSession.spawnDirect!({
+        executable: '/usr/bin/env',
+        args: ['node', `${bootstrapDir}/bridge.mjs`, '--workdir', workDir,
+          '--bridge-state-dir', bridgeStateDir, '--cli-shim-dir', cliShimDir,
+          '--local-execution-disabled'],
+        workingDirectory: bootstrapDir,
+        env: { PATH: '/usr/local/bin:/usr/bin:/bin', HOME: '/nonexistent', ...env },
+        abortSignal: startOpts.abortSignal,
+      }) : await toolSafeSandboxSession.spawn({
         command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --cli-shim-dir ${shellQuote(cliShimDir)}`,
         env,
         abortSignal: startOpts.abortSignal,
@@ -538,7 +575,7 @@ export function createCodex(
         outboundSchema: outboundMessageSchema,
         onDiagnostic,
         onBridgeError,
-        reconnect: settings.reconnect,
+        reconnect: restricted ? { maxElapsedMs: 0 } : settings.reconnect,
         // In replay mode the respawned bridge reloaded the finished turn from
         // disk; seed the cursor and resume so it streams the tail (incl.
         // `finish`).
@@ -557,7 +594,8 @@ export function createCodex(
         proc,
         model,
         reasoningEffort: settings.reasoningEffort,
-        webSearch: settings.webSearch,
+        webSearch,
+            localExecution: settings.localExecution,
         codexConfig: settings.codexConfig,
         mcpServers: settings.mcpServers,
         headers: startOpts.headers,
@@ -673,6 +711,7 @@ function createSession({
   model,
   reasoningEffort,
   webSearch,
+  localExecution,
   codexConfig,
   mcpServers,
   headers,
@@ -698,6 +737,7 @@ function createSession({
   model: string | undefined;
   reasoningEffort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
   webSearch: boolean | undefined;
+  localExecution?: 'enabled' | 'disabled';
   codexConfig: Record<string, unknown> | undefined;
   mcpServers: Record<string, unknown> | undefined;
   headers: Readonly<Record<string, string>> | undefined;
@@ -715,6 +755,10 @@ function createSession({
   sandboxHomeDir: string;
   turnConfigurationFingerprint: string | undefined;
 }): HarnessV1Session {
+  const restricted = localExecution === 'disabled';
+  const unsupportedLifecycle = () => {
+    throw new HarnessCapabilityUnsupportedError({ harnessId: 'codex', message: 'Restricted Codex does not support detach, stop/resume, or turn suspension. Use destroy().' });
+  };
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
   /*
@@ -760,7 +804,10 @@ function createSession({
     }>;
     abortSignal?: AbortSignal;
   }): Promise<{ restartThread: boolean }> => {
-    const skillsResult = await writeSkills({
+    if (restricted && skills.length > 0) {
+      throw new HarnessCapabilityUnsupportedError({ harnessId: 'codex', message: 'Restricted Codex does not support skills.' });
+    }
+    const skillsResult = restricted ? { changed: false } : await writeSkills({
       sandbox,
       homePath: sandboxHomeDir,
       skillsDir: '.agents/skills',
@@ -982,7 +1029,7 @@ function createSession({
       if (!initialPromptGuidanceApplied) {
         promptText = frameInitialPromptGuidance({
           toolUsageBlock:
-            tools.length > 0
+            !restricted && tools.length > 0
               ? composeToolUsageInstructions({
                   tools,
                   cliShimPath,
@@ -1022,6 +1069,7 @@ function createSession({
       return turn.control;
     },
     doContinueTurn: async continueOpts => {
+      if (restricted) unsupportedLifecycle();
       if (
         continueOpts.responseFormat?.type === 'json' &&
         continueOpts.responseFormat.schema == null
@@ -1112,6 +1160,7 @@ function createSession({
       });
     },
     doDetach: async () => {
+      if (restricted) unsupportedLifecycle();
       if (stopped) {
         throw new Error(
           `codex session ${sessionId} is already stopped; cannot detach.`,
@@ -1178,6 +1227,7 @@ function createSession({
       return stopPromise;
     },
     doStop: async () => {
+      if (restricted) unsupportedLifecycle();
       if (stopped) {
         throw new Error(
           `codex session ${sessionId} is already stopped; cannot stop.`,
@@ -1266,6 +1316,7 @@ function createSession({
       return payload;
     },
     doSuspendTurn: async () => {
+      if (restricted) unsupportedLifecycle();
       if (stopped) {
         throw new Error(
           `codex session ${sessionId} is stopped; cannot suspend.`,

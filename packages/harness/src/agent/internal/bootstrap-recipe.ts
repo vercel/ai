@@ -1,3 +1,4 @@
+import { withCleanSandboxEnvironment } from '../../utils/with-clean-sandbox-environment';
 import { posix } from 'node:path';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import type { HarnessV1Bootstrap } from '../../v1';
@@ -27,6 +28,7 @@ export async function hashHarnessBootstrap(
     chunks.push(encoder.encode('\0'));
   };
 
+  if (recipe.requiresDirectExecution) pushString('requires-direct-execution');
   pushString(recipe.harnessId);
   pushString(recipe.bootstrapDir);
 
@@ -104,6 +106,7 @@ export async function applyBootstrapRecipe({
   defaultWorkingDirectory: string;
   abortSignal?: AbortSignal;
 }): Promise<void> {
+  if (recipe.requiresDirectExecution) session = withCleanSandboxEnvironment(session);
   const markerPath = bootstrapMarkerPath({
     recipe,
     identity,

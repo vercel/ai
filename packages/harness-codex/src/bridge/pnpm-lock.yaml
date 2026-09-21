@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@openai/codex':
+        specifier: 0.149.1
+        version: 0.149.1
       '@openai/codex-sdk':
         specifier: 0.149.1
         version: 0.149.1

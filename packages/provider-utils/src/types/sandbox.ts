@@ -68,6 +68,22 @@ type WriteFileOptions<CONTENT> = {
  */
 export type SandboxSession = {
   /**
+   * Optional direct process launch. Must execute the absolute executable with
+   * the supplied arguments, without an implicit shell, login profile, PATH
+   * lookup, or inherited executable startup settings. `env` REPLACES the
+   * environment (unlike run/spawn). Providers that cannot guarantee this must
+   * omit this method. The caller still owns sandbox isolation and trusted
+   * executable installation.
+   */
+  readonly spawnDirect?: (options: {
+    executable: string;
+    args: string[];
+    workingDirectory?: string;
+    env: Record<string, string>;
+    abortSignal?: AbortSignal;
+  }) => PromiseLike<SandboxProcess>;
+
+  /**
    * Description of the sandbox environment that can be added to the agent's instructions
    * so that the agent knows about relevant details such as the root directory, exposed
    * ports, the public hostname, etc.

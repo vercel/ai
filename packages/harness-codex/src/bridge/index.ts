@@ -47,6 +47,8 @@ import { argv, env as procEnv, stdout } from 'node:process';
  *   2. the `external` array in tsup.config.ts, and
  *   3. the dependency entry in `src/bridge/package.json`.
  */
+import { RestrictedCodex } from './restricted-codex';
+
 import * as codexSdkModule from '@openai/codex-sdk';
 
 const args = parseArgs(argv.slice(2));
@@ -68,16 +70,23 @@ const codexSdk = codexSdkModule as any;
 // returned to the host on `stop` so a future process can resume the thread.
 const threadState: { id: string | undefined } = { id: undefined };
 
+const restrictedCodex = argv.includes('--local-execution-disabled') ? new RestrictedCodex() : undefined;
+
 await runBridge<StartMessage>({
   bridgeType: 'codex',
   bridgeStateDir,
   onStart: runTurn,
-  onStop: () => (threadState.id ? { threadId: threadState.id } : {}),
+  onStop: () => {
+    if (restrictedCodex) throw new Error('Restricted Codex cannot export lifecycle state.');
+    return threadState.id ? { threadId: threadState.id } : {};
+  },
+  onDestroy: () => restrictedCodex?.close(),
 });
 
 type Emit = (msg: Record<string, unknown>) => void;
 
 async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+  if (restrictedCodex) return restrictedCodex.run(start, turn);
   const emit: Emit = msg => turn.emit(msg as BridgeEvent);
 
   // Cross-process resume: the host carries the threadId we returned on stop.

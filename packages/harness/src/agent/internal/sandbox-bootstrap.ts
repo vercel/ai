@@ -1,3 +1,4 @@
+import { withCleanSandboxEnvironment } from '../../utils/with-clean-sandbox-environment';
 import { posix } from 'node:path';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import type { HarnessV1Bootstrap } from '../../v1';
@@ -146,6 +147,7 @@ export async function runSandboxBootstrap({
   readonly abortSignal?: AbortSignal;
 }): Promise<void> {
   if (recipe == null && onBootstrap == null) return;
+  if (recipe?.requiresDirectExecution) session = withCleanSandboxEnvironment(session);
 
   const resolvedDefaultWorkingDirectory =
     defaultWorkingDirectory ??
