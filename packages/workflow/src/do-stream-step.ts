@@ -383,7 +383,8 @@ export async function doStreamStep(
           ongoingToolCallToolNames.delete(toolCallPart.toolCallId);
           if (
             lifecycleToolName != null &&
-            serializedTools?.[lifecycleToolName]?.hasOnInputAvailable
+            serializedTools?.[lifecycleToolName]?.hasOnInputAvailable &&
+            !toolCallPart.invalid
           ) {
             toolInputLifecycleEvents.push([
               'available',

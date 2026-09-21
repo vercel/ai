@@ -248,6 +248,50 @@ describe('streamTextIterator', () => {
     expect(callback).not.toHaveBeenCalled();
   });
 
+  it('skips onInputAvailable for invalid tool calls', async () => {
+    const onInputAvailable = vi.fn();
+    vi.mocked(doStreamStep).mockResolvedValue(
+      createMockDoStreamStepResult({
+        finishReason: 'tool-calls',
+        toolCalls: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'search',
+            input: { query: 42 },
+            invalid: true,
+          },
+        ],
+        toolInputLifecycleEvents: [
+          ['start', 'call-1', 'search'],
+          ['available', 'call-1'],
+        ],
+      }),
+    );
+
+    const iterator = streamTextIterator({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'search' }] }],
+      tools: {
+        search: {
+          inputSchema: jsonSchema({
+            type: 'object',
+            properties: { query: { type: 'string' } },
+          }),
+          onInputStart: () => {},
+          onInputAvailable,
+        },
+      },
+      toolsContext: { search: { requestId: 'request-1' } },
+      model: vi.fn() as any,
+    });
+
+    await iterator.next();
+
+    // Stale 'available' events (e.g. replayed from persisted pre-fix step
+    // results) must not deliver invalid inputs to the callback.
+    expect(onInputAvailable).not.toHaveBeenCalled();
+  });
+
   it('accepts persisted model-step results without callback replay data', async () => {
     const persistedResult = createMockDoStreamStepResult();
     delete (persistedResult as { toolInputLifecycleEvents?: unknown })

@@ -681,7 +681,11 @@ async function invokeToolInputLifecycleCallbacks({
         break;
       case 'available': {
         const toolCall = toolCallsById.get(toolCallId);
-        if (toolCall == null) {
+        // Skip invalid inputs (e.g. 'available' events replayed from step
+        // results persisted before invalid inputs were filtered at the
+        // source). Mirrors the packages/ai fix for invalid streamed tool
+        // calls skipping onInputAvailable.
+        if (toolCall == null || toolCall.invalid) {
           break;
         }
         await tool.onInputAvailable?.({
