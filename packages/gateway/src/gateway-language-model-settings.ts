@@ -219,6 +219,7 @@ export type GatewayModelId =
   | 'spacexai/grok-4.3'
   | 'spacexai/grok-4.5'
   | 'spacexai/grok-4.6'
+  | 'spacexai/grok-4.7'
   | 'spacexai/grok-build-0.1'
   | 'stepfun/step-3.5-flash'
   | 'stepfun/step-3.7-flash'
