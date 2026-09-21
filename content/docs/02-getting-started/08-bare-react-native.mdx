@@ -1,0 +1,667 @@
+---
+title: Bare React Native
+description: Learn how to build a streaming AI chat client in a bare React Native app using your own backend and nitro-fetch.
+---
+
+# Bare React Native Quickstart (Nitro Fetch)
+
+In this quickstart tutorial, you'll build a streaming chat interface in a **bare React Native** app (no Expo) using [nitro-fetch](https://fetch.margelo.com/), the fastest networking library for React Native built by [Margelo](https://margelo.com/). This mirrors the [Expo quickstart](/docs/getting-started/expo), with two differences:
+
+1. You bring **your own backend**. A bare React Native app has no bundled server (there's no equivalent of Expo's `+api.ts` routes), so the AI SDK's server-side code lives in a separate backend you deploy.
+2. You stream responses with **nitro-fetch**, a native `fetch` implementation (URLSession on iOS, Cronet on Android) that supports streaming in the React Native runtime.
+
+If you are unfamiliar with the concepts of [Prompt Engineering](/docs/advanced/prompt-engineering) and [HTTP Streaming](/docs/foundations/streaming), you can optionally read these documents first.
+
+## Why nitro-fetch?
+
+nitro-fetch is a native `fetch` built on Nitro Modules. In [its benchmarks](https://fetch.margelo.com/docs/benchmarks), it is roughly 20% faster than React Native's built-in fetch, and prefetching widens the gap further. It also supports streaming, which React Native's built-in fetch does not.
+
+## Prerequisites
+
+To follow this quickstart, you'll need:
+
+- Node.js 22+ and pnpm installed on your local development machine.
+- A bare React Native app. If you don't have one yet, follow React Native's [Get Started Without a Framework](https://reactnative.dev/docs/getting-started-without-a-framework) guide.
+- A [Vercel AI Gateway](https://vercel.com/ai-gateway) API key.
+
+If you haven't obtained your Vercel AI Gateway API key, you can do so by [signing up](https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai&title=Go+to+AI+Gateway) on the Vercel website.
+
+## Set Up Your Backend
+
+Because a bare React Native app has no server runtime, your streaming endpoint runs on a backend you host. Any of the AI SDK's [Backend Framework Examples](/docs/getting-started#backend-framework-examples) works: Node.js, Hono, Express, Fastify, or Nest.js.
+
+Your endpoint should accept the chat `messages` and return a UI message stream. For example, with a Node.js HTTP server:
+
+```ts filename="server/chat.ts"
+import {
+  streamText,
+  UIMessage,
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  toUIMessageStream,
+} from 'ai';
+__PROVIDER_IMPORT__;
+
+export async function POST(req: Request) {
+  const { messages }: { messages: UIMessage[] } = await req.json();
+
+  const result = streamText({
+    model: __MODEL__,
+    messages: await convertToModelMessages(messages),
+  });
+
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+    headers: {
+      'Content-Type': 'application/octet-stream',
+      'Content-Encoding': 'none',
+    },
+  });
+}
+```
+
+This exposes a `POST /api/chat` endpoint. Keep your provider API key on the backend, and never ship it in the mobile bundle. For the full server setup and other frameworks, follow the [Backend Framework Examples](/docs/getting-started#backend-framework-examples).
+
+This guide uses the [Vercel AI Gateway](https://vercel.com/ai-gateway) provider, the default [global provider](/docs/ai-sdk-core/provider-management#global-provider-configuration), so you can reference models with a simple string and swap providers without touching your app. Set your `AI_GATEWAY_API_KEY` in the backend environment. To use a provider directly instead, install its package and pass its model, for example `openai('gpt-5.1')`. See [AI SDK providers](/providers/ai-sdk-providers) for the full list.
+
+## Install Client Dependencies
+
+In your React Native app, install the AI package and React hooks, nitro-fetch and its companion native decoder, and `react-native-safe-area-context` for safe-area insets:
+
+<InstallPackages packages="ai @ai-sdk/react react-native-safe-area-context react-native-nitro-fetch react-native-nitro-text-decoder react-native-nitro-modules @ungap/structured-clone" />
+
+Then install the native pods for iOS:
+
+<Snippet text="cd ios && pod install && cd .." />
+
+<Note>
+  Bare React Native is missing several APIs the AI SDK relies on, so
+  you also need the [polyfills](#polyfills) described at the end of this guide.
+  Add them before running the app or streaming will fail.
+</Note>
+
+## Wire nitro-fetch into the Transport
+
+nitro-fetch returns a **streaming** response body only when `stream: true` is set on the request init. Wrap it once so every AI SDK request opts into streaming, then pass the wrapper to `DefaultChatTransport`:
+
+```ts filename="lib/nitroFetch.ts"
+import { fetch as nitroFetch } from 'react-native-nitro-fetch';
+
+// nitro-fetch streams the response body only when `stream: true` is set, so wrap it to opt every AI SDK request into streaming.
+export const nitroStreamingFetch = ((input: any, init: any) =>
+  nitroFetch(input, { ...(init ?? {}), stream: true })) as unknown as typeof globalThis.fetch;
+```
+
+### Create the API URL Generator
+
+Point the client at the backend you set up. In development, the host machine's loopback address differs by platform. The Android emulator maps it to `10.0.2.2`, while the iOS simulator shares `localhost`:
+
+```ts filename="lib/generateAPIUrl.ts"
+import { Platform } from 'react-native';
+
+// Where your backend runs during development.
+const DEV_API_BASE_URL = Platform.select({
+  android: 'http://10.0.2.2:3000',
+  default: 'http://localhost:3000',
+});
+
+// Set this to your deployed backend for production builds.
+const PROD_API_BASE_URL = 'https://your-backend.example.com';
+
+export const generateAPIUrl = (relativePath: string) => {
+  const base = __DEV__ ? DEV_API_BASE_URL : PROD_API_BASE_URL;
+  const path = relativePath.startsWith('/') ? relativePath : `/${relativePath}`;
+  return `${base}${path}`;
+};
+```
+
+<Note>
+  On a physical device, `localhost` / `10.0.2.2` won't reach your machine, so use
+  your computer's LAN IP (e.g. `http://192.168.1.20:3000`) instead.
+</Note>
+
+### Build the Chat UI
+
+Update your root component to render the chat messages and an input, wiring `useChat` to the nitro-fetch transport:
+
+```tsx filename="App.tsx"
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+import { useState } from 'react';
+import { View, TextInput, ScrollView, Text } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { nitroStreamingFetch } from './lib/nitroFetch';
+import { generateAPIUrl } from './lib/generateAPIUrl';
+
+export default function App() {
+  const [input, setInput] = useState('');
+  const { messages, error, sendMessage } = useChat({
+    transport: new DefaultChatTransport({
+      fetch: nitroStreamingFetch,
+      api: generateAPIUrl('/api/chat'),
+    }),
+    onError: error => console.error(error, 'ERROR'),
+  });
+
+  if (error) return <Text>{error.message}</Text>;
+
+  return (
+    <SafeAreaProvider>
+      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+        <View
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            paddingHorizontal: 8,
+          }}
+        >
+          <ScrollView style={{ flex: 1 }}>
+            {messages.map(m => (
+              <View key={m.id} style={{ marginVertical: 8 }}>
+                <View>
+                  <Text style={{ fontWeight: 700 }}>{m.role}</Text>
+                  {m.parts.map((part, i) => {
+                    switch (part.type) {
+                      case 'text':
+                        return <Text key={`${m.id}-${i}`}>{part.text}</Text>;
+                    }
+                  })}
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+
+          <View style={{ marginTop: 8 }}>
+            <TextInput
+              style={{ backgroundColor: 'white', padding: 8 }}
+              placeholder="Say something..."
+              value={input}
+              onChange={e => setInput(e.nativeEvent.text)}
+              onSubmitEditing={e => {
+                e.preventDefault();
+                sendMessage({ text: input });
+                setInput('');
+              }}
+              autoFocus={true}
+            />
+          </View>
+        </View>
+      </SafeAreaView>
+    </SafeAreaProvider>
+  );
+}
+```
+
+The [`useChat`](/docs/reference/ai-sdk-ui/use-chat) hook manages the message list and streaming for you. The [`DefaultChatTransport`](/docs/ai-sdk-ui/transport) is where you inject the custom `fetch`. Passing `nitroStreamingFetch` routes every request through nitro-fetch's native transport. Each message exposes an ordered `parts` array; here you render the `text` parts.
+
+## Running Your Application
+
+Start Metro and run the app on a simulator or device (with your backend running):
+
+<Snippet text="npm start" />
+
+In a second terminal:
+
+<Snippet text="npm run ios" />
+
+or
+
+<Snippet text="npm run android" />
+
+Enter a message and watch the response stream in token-by-token over nitro-fetch.
+
+## Enhance Your Chatbot with Tools
+
+While large language models (LLMs) have incredible generation capabilities, they struggle with discrete tasks (e.g. mathematics) and interacting with the outside world (e.g. getting the weather). This is where [tools](/docs/ai-sdk-core/tools-and-tool-calling) come in.
+
+Tools are actions that an LLM can invoke. The results of these actions can be reported back to the LLM to be considered in the next response. Because your `streamText` code runs on the backend, tools are defined there, and the client renders the results.
+
+Let's enhance your chatbot by adding a simple weather tool.
+
+### Update Your Backend Route
+
+Tool inputs are described with [Zod](https://zod.dev/) schemas, so install `zod` in your backend:
+
+<InstallPackages packages="zod" />
+
+Then add the weather tool to the `streamText` call in `server/chat.ts`:
+
+```ts filename="server/chat.ts"
+import {
+  streamText,
+  UIMessage,
+  convertToModelMessages,
+  tool,
+  createUIMessageStreamResponse,
+  toUIMessageStream,
+} from 'ai';
+__PROVIDER_IMPORT__;
+import { z } from 'zod';
+
+export async function POST(req: Request) {
+  const { messages }: { messages: UIMessage[] } = await req.json();
+
+  const result = streamText({
+    model: __MODEL__,
+    messages: await convertToModelMessages(messages),
+    tools: {
+      weather: tool({
+        description: 'Get the weather in a location (fahrenheit)',
+        inputSchema: z.object({
+          location: z.string().describe('The location to get the weather for'),
+        }),
+        execute: async ({ location }) => {
+          const temperature = Math.round(Math.random() * (90 - 32) + 32);
+          return {
+            location,
+            temperature,
+          };
+        },
+      }),
+    },
+  });
+
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+    headers: {
+      'Content-Type': 'application/octet-stream',
+      'Content-Encoding': 'none',
+    },
+  });
+}
+```
+
+In this updated code:
+
+1. You import the `tool` function from the `ai` package and `z` from `zod` for schema validation.
+2. You define a `tools` object with a `weather` tool. This tool:
+   - Has a description that helps the model understand when to use it.
+   - Defines `inputSchema` using a Zod schema, specifying that it requires a `location` string to execute this tool.
+   - Defines an `execute` function that simulates getting weather data (a random temperature). This is an asynchronous function, so you can fetch real data from an external API.
+
+<Note>
+  Tool parts are always named `tool-{toolName}`, where `{toolName}` is the key
+  you used when defining the tool. Since we defined the tool as `weather`, the
+  part type is `tool-weather`.
+</Note>
+
+### Update the UI
+
+To display the weather tool invocation, update `App.tsx` to handle the `tool-weather` part:
+
+```tsx filename="App.tsx"
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+import { useState } from 'react';
+import { View, TextInput, ScrollView, Text } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { nitroStreamingFetch } from './lib/nitroFetch';
+import { generateAPIUrl } from './lib/generateAPIUrl';
+
+export default function App() {
+  const [input, setInput] = useState('');
+  const { messages, error, sendMessage } = useChat({
+    transport: new DefaultChatTransport({
+      fetch: nitroStreamingFetch,
+      api: generateAPIUrl('/api/chat'),
+    }),
+    onError: error => console.error(error, 'ERROR'),
+  });
+
+  if (error) return <Text>{error.message}</Text>;
+
+  return (
+    <SafeAreaProvider>
+      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+        <View
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            paddingHorizontal: 8,
+          }}
+        >
+          <ScrollView style={{ flex: 1 }}>
+            {messages.map(m => (
+              <View key={m.id} style={{ marginVertical: 8 }}>
+                <View>
+                  <Text style={{ fontWeight: 700 }}>{m.role}</Text>
+                  {m.parts.map((part, i) => {
+                    switch (part.type) {
+                      case 'text':
+                        return <Text key={`${m.id}-${i}`}>{part.text}</Text>;
+                      case 'tool-weather':
+                        return (
+                          <Text key={`${m.id}-${i}`}>
+                            {JSON.stringify(part, null, 2)}
+                          </Text>
+                        );
+                    }
+                  })}
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+
+          <View style={{ marginTop: 8 }}>
+            <TextInput
+              style={{ backgroundColor: 'white', padding: 8 }}
+              placeholder="Say something..."
+              value={input}
+              onChange={e => setInput(e.nativeEvent.text)}
+              onSubmitEditing={e => {
+                e.preventDefault();
+                sendMessage({ text: input });
+                setInput('');
+              }}
+              autoFocus={true}
+            />
+          </View>
+        </View>
+      </SafeAreaView>
+    </SafeAreaProvider>
+  );
+}
+```
+
+For text parts you display the text as before. For weather tool invocations you display a JSON representation of the tool call and its result. Ask something like "What's the weather in New York?" and you'll see the tool call and result in the chat.
+
+## Enabling Multi-Step Tool Calls
+
+You may notice the model doesn't use the tool result to answer your original question. This is because once the model generates a tool call, it has technically completed its generation.
+
+To solve this, enable multi-step tool calls with `stopWhen`. By default it is `isStepCount(1)`, which stops after the first step when there are tool results. By raising it, the model sends tool results back to itself to trigger further generations until the stopping condition is met.
+
+### Update Your Backend Route
+
+Add the `stopWhen` condition to `server/chat.ts`:
+
+```ts filename="server/chat.ts"
+import {
+  streamText,
+  UIMessage,
+  convertToModelMessages,
+  tool,
+  isStepCount,
+  createUIMessageStreamResponse,
+  toUIMessageStream,
+} from 'ai';
+__PROVIDER_IMPORT__;
+import { z } from 'zod';
+
+export async function POST(req: Request) {
+  const { messages }: { messages: UIMessage[] } = await req.json();
+
+  const result = streamText({
+    model: __MODEL__,
+    messages: await convertToModelMessages(messages),
+    stopWhen: isStepCount(5),
+    tools: {
+      weather: tool({
+        description: 'Get the weather in a location (fahrenheit)',
+        inputSchema: z.object({
+          location: z.string().describe('The location to get the weather for'),
+        }),
+        execute: async ({ location }) => {
+          const temperature = Math.round(Math.random() * (90 - 32) + 32);
+          return {
+            location,
+            temperature,
+          };
+        },
+      }),
+    },
+  });
+
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+    headers: {
+      'Content-Type': 'application/octet-stream',
+      'Content-Encoding': 'none',
+    },
+  });
+}
+```
+
+By setting `stopWhen: isStepCount(5)`, you allow the model to use up to 5 steps for any given generation. Ask about the weather again and the model will use the tool result to answer.
+
+### Add More Tools
+
+Add a second tool to convert the temperature from Fahrenheit to Celsius:
+
+```ts filename="server/chat.ts"
+import {
+  streamText,
+  UIMessage,
+  convertToModelMessages,
+  tool,
+  isStepCount,
+  createUIMessageStreamResponse,
+  toUIMessageStream,
+} from 'ai';
+__PROVIDER_IMPORT__;
+import { z } from 'zod';
+
+export async function POST(req: Request) {
+  const { messages }: { messages: UIMessage[] } = await req.json();
+
+  const result = streamText({
+    model: __MODEL__,
+    messages: await convertToModelMessages(messages),
+    stopWhen: isStepCount(5),
+    tools: {
+      weather: tool({
+        description: 'Get the weather in a location (fahrenheit)',
+        inputSchema: z.object({
+          location: z.string().describe('The location to get the weather for'),
+        }),
+        execute: async ({ location }) => {
+          const temperature = Math.round(Math.random() * (90 - 32) + 32);
+          return {
+            location,
+            temperature,
+          };
+        },
+      }),
+      convertFahrenheitToCelsius: tool({
+        description: 'Convert a temperature in fahrenheit to celsius',
+        inputSchema: z.object({
+          temperature: z
+            .number()
+            .describe('The temperature in fahrenheit to convert'),
+        }),
+        execute: async ({ temperature }) => {
+          const celsius = Math.round((temperature - 32) * (5 / 9));
+          return {
+            celsius,
+          };
+        },
+      }),
+    },
+  });
+
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+    headers: {
+      'Content-Type': 'application/octet-stream',
+      'Content-Encoding': 'none',
+    },
+  });
+}
+```
+
+### Update the UI for the New Tool
+
+Handle the new tool part in `App.tsx`:
+
+```tsx filename="App.tsx"
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+import { useState } from 'react';
+import { View, TextInput, ScrollView, Text } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { nitroStreamingFetch } from './lib/nitroFetch';
+import { generateAPIUrl } from './lib/generateAPIUrl';
+
+export default function App() {
+  const [input, setInput] = useState('');
+  const { messages, error, sendMessage } = useChat({
+    transport: new DefaultChatTransport({
+      fetch: nitroStreamingFetch,
+      api: generateAPIUrl('/api/chat'),
+    }),
+    onError: error => console.error(error, 'ERROR'),
+  });
+
+  if (error) return <Text>{error.message}</Text>;
+
+  return (
+    <SafeAreaProvider>
+      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+        <View
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            paddingHorizontal: 8,
+          }}
+        >
+          <ScrollView style={{ flex: 1 }}>
+            {messages.map(m => (
+              <View key={m.id} style={{ marginVertical: 8 }}>
+                <View>
+                  <Text style={{ fontWeight: 700 }}>{m.role}</Text>
+                  {m.parts.map((part, i) => {
+                    switch (part.type) {
+                      case 'text':
+                        return <Text key={`${m.id}-${i}`}>{part.text}</Text>;
+                      case 'tool-weather':
+                      case 'tool-convertFahrenheitToCelsius':
+                        return (
+                          <Text key={`${m.id}-${i}`}>
+                            {JSON.stringify(part, null, 2)}
+                          </Text>
+                        );
+                    }
+                  })}
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+
+          <View style={{ marginTop: 8 }}>
+            <TextInput
+              style={{ backgroundColor: 'white', padding: 8 }}
+              placeholder="Say something..."
+              value={input}
+              onChange={e => setInput(e.nativeEvent.text)}
+              onSubmitEditing={e => {
+                e.preventDefault();
+                sendMessage({ text: input });
+                setInput('');
+              }}
+              autoFocus={true}
+            />
+          </View>
+        </View>
+      </SafeAreaView>
+    </SafeAreaProvider>
+  );
+}
+```
+
+Now when you ask "What's the weather in New York in celsius?", the model calls the weather tool, then the conversion tool, and uses both results to answer in natural language.
+
+## Polyfills
+
+Several APIs the AI SDK uses internally are not present in the React Native runtime. In particular, Hermes ships `TextEncoder` but **not** `TextDecoder`, and the SSE parsing pipeline relies on `TextEncoderStream` / `TextDecoderStream` and `structuredClone`.
+
+Create a `polyfills.ts` file in the root of your project:
+
+```ts filename="polyfills.ts"
+import structuredClone from '@ungap/structured-clone';
+import { polyfillGlobal } from 'react-native/Libraries/Utilities/PolyfillFunctions';
+import { TextDecoder as NitroTextDecoder } from 'react-native-nitro-text-decoder';
+
+// nitro-text-decoder installs web-streams-polyfill's ReadableStream/WritableStream/TransformStream as globals; build the stream polyfills below on that SAME global TransformStream so brands match nitro-fetch's body and the AI SDK's SSE pipe (else pipeThrough's brand check fails).
+
+// Decode with nitro's native (C++) decoder, on the global TransformStream.
+class NitroDecoderStream {
+  readable: ReadableStream<string>;
+  writable: WritableStream<Uint8Array>;
+
+  constructor(label?: string, options?: { fatal?: boolean; ignoreBOM?: boolean }) {
+    const decoder = new NitroTextDecoder(label, options);
+    const ts = new (globalThis as any).TransformStream({
+      transform(chunk: Uint8Array, controller: { enqueue: (s: string) => void }) {
+        const text = decoder.decode(chunk, { stream: true });
+        if (text) controller.enqueue(text);
+      },
+      flush(controller: { enqueue: (s: string) => void }) {
+        const text = decoder.decode();
+        if (text) controller.enqueue(text);
+      },
+    });
+    this.readable = ts.readable;
+    this.writable = ts.writable;
+  }
+}
+
+// TextEncoder is a Hermes builtin; encode on the same global TransformStream.
+class TextEncoderStreamPolyfill {
+  readable: ReadableStream<Uint8Array>;
+  writable: WritableStream<string>;
+
+  constructor() {
+    const encoder = new (globalThis as any).TextEncoder();
+    const ts = new (globalThis as any).TransformStream({
+      transform(chunk: string, controller: { enqueue: (b: Uint8Array) => void }) {
+        controller.enqueue(encoder.encode(chunk));
+      },
+    });
+    this.readable = ts.readable;
+    this.writable = ts.writable;
+  }
+}
+
+if (!('structuredClone' in globalThis)) {
+  polyfillGlobal('structuredClone', () => structuredClone);
+}
+// Hermes has no TextDecoder; install nitro's as the global (the AI SDK calls `new TextDecoder()` directly in its SSE path).
+polyfillGlobal('TextDecoder', () => NitroTextDecoder);
+polyfillGlobal('TextEncoderStream', () => TextEncoderStreamPolyfill);
+polyfillGlobal('TextDecoderStream', () => NitroDecoderStream);
+
+export {};
+```
+
+Then import it **first** in your `index.js`, before anything else:
+
+```js filename="index.js" highlight="1"
+import './polyfills';
+import { AppRegistry } from 'react-native';
+import App from './App';
+import { name as appName } from './app.json';
+
+AppRegistry.registerComponent(appName, () => App);
+```
+
+<Note>
+  Installing `react-native-nitro-text-decoder` is what provides the global
+  `ReadableStream` / `TransformStream` classes (it imports
+  `web-streams-polyfill/polyfill`). The stream polyfills above deliberately build
+  on those same globals so every stream shares one identity.
+</Note>
+
+## Using nitro-fetch with Expo
+
+nitro-fetch isn't limited to bare React Native. It ships an [Expo config plugin](https://fetch.margelo.com/docs/prefetch#expo-plugin-android), so you can use it in an Expo project with a [development build](https://docs.expo.dev/develop/development-builds/introduction/) (it includes native code, so it won't run in Expo Go). The transport wiring and polyfills in this guide stay the same.
+
+## Where to Next?
+
+You've built a streaming AI chat client in a bare React Native app with nitro-fetch! From here:
+
+- Learn more about [custom transports](/docs/ai-sdk-ui/transport) and [`useChat`](/docs/reference/ai-sdk-ui/use-chat).
+- Explore [tools and tool calling](/docs/ai-sdk-core/tools-and-tool-calling).
+- Read the full [AI SDK documentation](/docs).
