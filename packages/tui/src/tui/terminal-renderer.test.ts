@@ -66,6 +66,46 @@ describe('TerminalRenderer', () => {
     expect(stripAnsi(output.text())).toContain('╭ User ');
   });
 
+  describe.each(['\u007f', '\b'])('backspace (%j)', key => {
+    it.each([
+      ['ASCII', 'hello', 'hell'],
+      ['CJK', '你好', '你'],
+      ['emoji', 'hello 😀', 'hello '],
+      ['emoji with a skin tone', 'hello 👍🏽', 'hello '],
+      ['joined emoji', 'hello 👩‍💻', 'hello '],
+      ['flag emoji', 'hello 🇨🇳', 'hello '],
+      ['combining accent', 'cafe\u0301', 'caf'],
+      ['a single emoji', '😀', ''],
+      ['empty input', '', ''],
+    ])('removes the last grapheme from %s input', async (_, text, expected) => {
+      const input = createInput();
+      const output = createOutput();
+      const renderer = new TerminalRenderer({ input, output });
+      const promptPromise = renderer.readPrompt({ title: 'Test' });
+
+      input.emit('data', Buffer.from(text));
+      input.emit('data', Buffer.from(key));
+      input.emit('data', Buffer.from('\r'));
+
+      await expect(promptPromise).resolves.toBe(expected);
+    });
+
+    it('can delete an initial prompt and continue typing', async () => {
+      const input = createInput();
+      const output = createOutput();
+      const renderer = new TerminalRenderer({ input, output });
+      const promptPromise = renderer.readPrompt({ initialPrompt: '你👩‍💻' });
+
+      input.emit('data', Buffer.from(key));
+      input.emit('data', Buffer.from(key));
+      input.emit('data', Buffer.from(key));
+      input.emit('data', Buffer.from('next'));
+      input.emit('data', Buffer.from('\r'));
+
+      await expect(promptPromise).resolves.toBe('next');
+    });
+  });
+
   it('streams assistant text with output tokens per second by default', async () => {
     const input = createInput();
     const output = createOutput();

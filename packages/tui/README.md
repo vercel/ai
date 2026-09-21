@@ -64,6 +64,7 @@ await runAgentTUI({
 ## Controls
 
 - `Enter`: submit prompt
+- `Backspace`: delete the last character, including emoji and combining marks
 - `y` / `n`: approve or reject tool calls
 - `Up` / `Down`: scroll transcript
 - `PageUp` / `PageDown`: scroll transcript by a full page

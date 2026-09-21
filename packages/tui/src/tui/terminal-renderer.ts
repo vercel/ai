@@ -137,6 +137,9 @@ const sectionStyles: Record<
 };
 
 const inputCursorBlinkMs = 500;
+const inputSegmenter = new Intl.Segmenter(undefined, {
+  granularity: 'grapheme',
+});
 const activeControls = '↑/↓ · PgUp/PgDn · Esc/Ctrl+C';
 const doneControls = '↑/↓ · PgUp/PgDn · q/Esc/Ctrl+C';
 const processingStatus = `Processing input... ${activeControls}`;
@@ -203,7 +206,12 @@ export class TerminalRenderer {
             this.#paint();
             break;
           case 'backspace':
-            this.#inputText = this.#inputText.slice(0, -1);
+            this.#inputText = this.#inputText.slice(
+              0,
+              inputSegmenter
+                .segment(this.#inputText)
+                .containing(this.#inputText.length - 1)?.index ?? 0,
+            );
             this.#showInputCursor();
             this.#paint();
             break;
