@@ -124,7 +124,7 @@ Reranking models are used to reorder candidate documents by relevance to a query
 - **Model specification**
   - `RerankingModelV4` - [`packages/provider/src/reranking-model/v4/reranking-model-v4.ts`](../packages/provider/src/reranking-model/v4/reranking-model-v4.ts)
 - **Provider implementations (examples)**
-  - [`CohereRerankingModel`](../packages/cohere/src/reranking/cohere-reranking-model.ts), [`BedrockRerankingModel`](../packages/amazon-bedrock/src/reranking/bedrock-reranking-model.ts)
+  - [`CohereRerankingModel`](../packages/cohere/src/reranking/cohere-reranking-model.ts), [`BedrockRerankingModel`](../packages/amazon-bedrock/src/reranking/amazon-bedrock-reranking-model.ts)
 
 ```mermaid
 classDiagram
