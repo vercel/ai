@@ -1852,6 +1852,7 @@ describe('streamText', () => {
 
       it('should surface an error when a different tool is called instead of the required tool', async () => {
         const onError = vi.fn();
+        const executeTool2 = vi.fn();
 
         const result = streamText({
           model: new MockLanguageModelV4({
@@ -1880,6 +1881,7 @@ describe('streamText', () => {
             }),
             tool2: tool({
               inputSchema: z.object({ value: z.string() }),
+              execute: executeTool2,
             }),
           },
           toolChoice: { type: 'tool', toolName: 'tool1' },
@@ -1906,6 +1908,7 @@ describe('streamText', () => {
           ],
         });
         await expect(result.finishReason).resolves.toBe('error');
+        expect(executeTool2).not.toHaveBeenCalled();
       });
 
       it('should enforce the tool choice returned by prepareStep', async () => {
