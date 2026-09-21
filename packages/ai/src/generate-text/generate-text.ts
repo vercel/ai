@@ -1079,7 +1079,7 @@ export async function generateText<
                   .map(toolCall =>
                     parseToolCall({
                       toolCall,
-                      tools: stepExecutionTools as TOOLS,
+                      tools: stepModelTools as TOOLS,
                       repairToolCall,
                       refineToolInput,
                       instructions: stepInstructions,

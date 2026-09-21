@@ -212,6 +212,65 @@ describe('abort signal handling', () => {
 });
 
 describe('experimental_toolCallers', () => {
+  it('does not execute local-only callees emitted as direct model calls', async () => {
+    const execute = vi.fn();
+
+    const localCaller = experimental_toolCaller(
+      tool({
+        inputSchema: z.object({}),
+        execute: async (): Promise<unknown> => {
+          throw new Error('Caller was not bound.');
+        },
+      }),
+      {
+        type: 'local',
+        bind: tools =>
+          tool({
+            inputSchema: z.object({}),
+            execute: async () => Object.keys(tools),
+          }),
+      },
+    );
+
+    const result = await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+          content: [
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'getInventory',
+              input: '{"sku":"sku-1"}',
+            },
+          ],
+        }),
+      }),
+      tools: {
+        code_mode: localCaller,
+        getInventory: tool({
+          inputSchema: z.object({ sku: z.string() }),
+          execute,
+        }),
+      },
+      experimental_toolCallers: {
+        getInventory: ['code_mode'],
+      },
+      prompt: 'Check inventory.',
+    });
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(result.toolResults).toEqual([]);
+    expect(result.toolCalls).toMatchObject([
+      {
+        toolName: 'getInventory',
+        invalid: true,
+      },
+    ]);
+  });
+
   it('late-binds local caller tools and hides local-only callees', async () => {
     let modelTools: LanguageModelV4CallOptions['tools'];
 
