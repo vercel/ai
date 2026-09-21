@@ -444,7 +444,8 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               token: coords.token,
             });
             const attachChannel: ACPChannel = new SandboxChannel({
-              connect: () => openWebSocket(attachEndpoint),
+              connect: ({ abortSignal }) =>
+                openWebSocket({ ...attachEndpoint, abortSignal }),
               outboundSchema: outboundMessageSchema,
               initialLastSeenEventId: coords.lastSeenEventId,
               onDiagnostic,
@@ -704,7 +705,8 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       });
       const bridgeEndpoint = withBridgeToken({ endpoint, token });
       const channel: ACPChannel = new SandboxChannel({
-        connect: () => openWebSocket(bridgeEndpoint),
+        connect: ({ abortSignal }) =>
+          openWebSocket({ ...bridgeEndpoint, abortSignal }),
         outboundSchema: outboundMessageSchema,
         ...(respawnStrategy?.mode === 'disk-replay'
           ? { initialLastSeenEventId: respawnStrategy.afterSeq }
@@ -1014,21 +1016,57 @@ async function resolveBridgeEndpoint({
 function openWebSocket({
   url,
   headers,
-}: HarnessV1PortEndpoint): Promise<WebSocket> {
+  abortSignal,
+}: HarnessV1PortEndpoint & { abortSignal: AbortSignal }): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
+    if (abortSignal.aborted) {
+      reject(abortSignal.reason ?? new Error('WebSocket connection aborted'));
+      return;
+    }
+
     const ws = new WebSocket(url, {
       headers: headers == null ? undefined : { ...headers },
     });
-    const onOpen = () => {
+
+    let settled = false;
+    const cleanup = () => {
+      abortSignal.removeEventListener('abort', onAbort);
+      ws.off('open', onOpen);
       ws.off('error', onError);
+    };
+    const rejectWithCleanup = (error: unknown) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      ws.once('error', () => {});
+      try {
+        ws.terminate();
+      } catch {
+        try {
+          ws.close();
+        } catch {
+          // best-effort
+        }
+      }
+      reject(error);
+    };
+    const onOpen = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
       resolve(ws);
     };
     const onError = (error: Error) => {
-      ws.off('open', onOpen);
-      reject(error);
+      rejectWithCleanup(error);
     };
+    const onAbort = () =>
+      rejectWithCleanup(
+        abortSignal.reason ?? new Error('WebSocket connection aborted'),
+      );
+
     ws.once('open', onOpen);
     ws.once('error', onError);
+    abortSignal.addEventListener('abort', onAbort, { once: true });
   });
 }
 

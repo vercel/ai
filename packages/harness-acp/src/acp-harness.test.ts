@@ -65,7 +65,7 @@ const harnessUtilsMocks = vi.hoisted(() => {
     readonly sent: unknown[] = [];
     readonly options: {
       initialLastSeenEventId?: number;
-      connect: () => Promise<unknown>;
+      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
       reconnect?: {
         readonly maxElapsedMs?: number;
         readonly initialDelayMs?: number;
@@ -88,7 +88,7 @@ const harnessUtilsMocks = vi.hoisted(() => {
 
     constructor(options: {
       initialLastSeenEventId?: number;
-      connect: () => Promise<unknown>;
+      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
       reconnect?: {
         readonly maxElapsedMs?: number;
         readonly initialDelayMs?: number;
@@ -103,7 +103,11 @@ const harnessUtilsMocks = vi.hoisted(() => {
       this.openOptions = options;
       const error = harnessUtilsMocks.openErrors.shift();
       if (error != null) throw error;
-      if (harnessUtilsMocks.connectOnOpen) await this.options.connect();
+      if (harnessUtilsMocks.connectOnOpen) {
+        await this.options.connect({
+          abortSignal: new AbortController().signal,
+        });
+      }
     }
     on(
       type: string,
