@@ -107,8 +107,7 @@ export function useCompletion<BODY extends object = object>({
   const completion = data!;
 
   // Abort controller to cancel the current API call.
-  const [abortController, setAbortController] =
-    useState<AbortController | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const extraMetadataRef = useRef({
     credentials,
@@ -147,7 +146,10 @@ export function useCompletion<BODY extends object = object>({
         ),
         setLoading: mutateLoading,
         setError,
-        setAbortController,
+        setAbortController: controller => {
+          abortControllerRef.current = controller;
+        },
+        getAbortController: () => abortControllerRef.current,
         onFinish,
         onError,
       }),
@@ -156,7 +158,6 @@ export function useCompletion<BODY extends object = object>({
       mutateLoading,
       api,
       extraMetadataRef,
-      setAbortController,
       onFinish,
       onError,
       setError,
@@ -167,11 +168,8 @@ export function useCompletion<BODY extends object = object>({
   );
 
   const stop = useCallback(() => {
-    if (abortController) {
-      abortController.abort();
-      setAbortController(null);
-    }
-  }, [abortController]);
+    abortControllerRef.current?.abort();
+  }, []);
 
   const setCompletion = useCallback(
     (completion: string) => {
