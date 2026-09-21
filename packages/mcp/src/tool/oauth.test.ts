@@ -2012,47 +2012,64 @@ describe('auth function', () => {
     },
   );
 
-  it('preserves a pre-registered client when token refresh returns invalid_client', async () => {
-    let registrationAttempted = false;
-    setupClientErrorFlow({
-      errorCode: 'invalid_client',
-      onRegistration: () => {
-        registrationAttempted = true;
-      },
-    });
+  it.each([
+    {
+      errorCode: 'invalid_client' as const,
+      ErrorClass: InvalidClientError,
+    },
+    {
+      errorCode: 'unauthorized_client' as const,
+      ErrorClass: UnauthorizedClientError,
+    },
+  ])(
+    'preserves a full-shaped pre-registered client when token refresh returns $errorCode',
+    async ({ errorCode, ErrorClass }) => {
+      let registrationAttempted = false;
+      setupClientErrorFlow({
+        errorCode,
+        onRegistration: () => {
+          registrationAttempted = true;
+        },
+      });
 
-    const clientInformation = {
-      client_id: 'pre-registered-client',
-      client_secret: 'invalid-secret',
-    };
-    const invalidateCredentials = vi.fn();
-    const provider: OAuthClientProvider = {
-      ...mockProvider,
-      clientInformation: vi.fn().mockResolvedValue(clientInformation),
-      authorizationServerInformation: vi.fn().mockResolvedValue({
-        authorizationServerUrl: 'https://auth.example.com',
-        tokenEndpoint: 'https://auth.example.com/token',
-      }),
-      tokens: vi.fn().mockResolvedValue({
-        access_token: 'expired-token',
-        token_type: 'Bearer',
-        refresh_token: 'refresh-token',
-        authorization_server: 'https://auth.example.com/',
-        token_endpoint: 'https://auth.example.com/token',
-      }),
-      invalidateCredentials,
-    };
+      const clientInformation = {
+        client_id: 'pre-registered-client',
+        client_secret: 'invalid-secret',
+        redirect_uris: ['http://localhost:3000/callback'],
+        grant_types: ['authorization_code', 'refresh_token'],
+        response_types: ['code'],
+      };
+      const invalidateCredentials = vi.fn();
+      const provider: OAuthClientProvider = {
+        ...mockProvider,
+        clientInformation: vi.fn().mockResolvedValue(clientInformation),
+        authorizationServerInformation: vi.fn().mockResolvedValue({
+          authorizationServerUrl: 'https://auth.example.com',
+          tokenEndpoint: 'https://auth.example.com/token',
+        }),
+        tokens: vi.fn().mockResolvedValue({
+          access_token: 'expired-token',
+          token_type: 'Bearer',
+          refresh_token: 'refresh-token',
+          authorization_server: 'https://auth.example.com/',
+          token_endpoint: 'https://auth.example.com/token',
+        }),
+        invalidateCredentials,
+      };
 
-    await expect(
-      auth(provider, {
-        serverUrl: 'https://api.example.com/mcp-server',
-      }),
-    ).rejects.toBeInstanceOf(InvalidClientError);
+      await expect(
+        auth(provider, {
+          serverUrl: 'https://api.example.com/mcp-server',
+        }),
+      ).rejects.toBeInstanceOf(ErrorClass);
 
-    expect(invalidateCredentials).not.toHaveBeenCalled();
-    await expect(provider.clientInformation()).resolves.toBe(clientInformation);
-    expect(registrationAttempted).toBe(false);
-  });
+      expect(invalidateCredentials).not.toHaveBeenCalled();
+      await expect(provider.clientInformation()).resolves.toBe(
+        clientInformation,
+      );
+      expect(registrationAttempted).toBe(false);
+    },
+  );
 
   it('re-registers a dynamically registered client when token refresh returns invalid_client', async () => {
     let registrationAttempted = false;
@@ -2103,6 +2120,7 @@ describe('auth function', () => {
         authorizationServerUrl: 'https://auth.example.com',
         tokenEndpoint: 'https://auth.example.com/token',
       }),
+      isClientInformationDynamicallyRegistered: vi.fn().mockResolvedValue(true),
       tokens: vi.fn(async () => tokens),
       invalidateCredentials,
     };
