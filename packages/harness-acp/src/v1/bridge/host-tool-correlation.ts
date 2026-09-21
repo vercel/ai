@@ -284,6 +284,9 @@ function mergeObservedToolCall({
 }): ACPToolCall {
   return {
     toolCallId: update.toolCallId,
+    ...((update.name ?? previous?.name) == null
+      ? {}
+      : { name: update.name ?? previous?.name }),
     title: update.title ?? previous?.title ?? `Tool ${update.toolCallId}`,
     ...(update.kind == null ? {} : { kind: update.kind }),
     ...(update.status == null ? {} : { status: update.status }),
@@ -312,6 +315,10 @@ function hasPortableEvidence({
       value: evidence,
       property: 'name',
     });
+    if (programmaticName === invocation.toolName) {
+      hasServerIdentity = true;
+      hasToolName = true;
+    }
     const deferredToolName = getProperty({
       value: rawInput,
       property: 'tool_name',
@@ -392,6 +399,12 @@ function resolvePermissionHostTool({
     }
   | undefined {
   if (!isRecord(toolCall.rawInput)) return undefined;
+  if (toolCall.name === toolName) {
+    return {
+      input: toolCall.rawInput,
+      hasRequestIdentity: true,
+    };
+  }
   const deferredToolName = getProperty({
     value: toolCall.rawInput,
     property: 'tool_name',
