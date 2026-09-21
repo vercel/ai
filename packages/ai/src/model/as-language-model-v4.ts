@@ -1,17 +1,20 @@
-import type {
-  LanguageModelV2,
-  LanguageModelV3,
-  LanguageModelV3Content,
-  LanguageModelV3DataContent,
-  LanguageModelV3Prompt,
-  LanguageModelV3StreamPart,
-  LanguageModelV4,
-  LanguageModelV4CallOptions,
-  LanguageModelV4Content,
-  LanguageModelV4Prompt,
-  LanguageModelV4StreamPart,
-  SharedV4FileData,
+import {
+  type LanguageModelV2,
+  type LanguageModelV3,
+  type LanguageModelV3Content,
+  type LanguageModelV3DataContent,
+  type LanguageModelV3Prompt,
+  type LanguageModelV3StreamPart,
+  type LanguageModelV3ToolResultOutput,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4Prompt,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4ToolResultOutput,
+  type SharedV4FileData,
 } from '@ai-sdk/provider';
+import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import { asLanguageModelV3 } from './as-language-model-v3';
 
 export function asLanguageModelV4(
@@ -71,14 +74,22 @@ function convertV4PromptToV3(
 
     return {
       ...message,
-      content: message.content.map(part =>
-        part.type === 'file'
-          ? {
+      content: message.content.map(part => {
+        switch (part.type) {
+          case 'file':
+            return {
               ...part,
               data: convertV4FileDataToV3(part.data),
-            }
-          : part,
-      ),
+            };
+          case 'tool-result':
+            return {
+              ...part,
+              output: convertV4ToolResultOutputToV3(part.output),
+            };
+          default:
+            return part;
+        }
+      }),
     };
   }) as LanguageModelV3Prompt;
 }
@@ -91,10 +102,56 @@ function convertV4FileDataToV3(
       return data.data;
     case 'url':
       return data.url;
-    default:
-      // V3 has no equivalent for V4 provider references or inline text files.
+    case 'reference':
+    case 'text':
+      // pass through unsupported types as is
       return data as unknown as LanguageModelV3DataContent;
   }
+}
+
+function convertV4ToolResultOutputToV3(
+  output: LanguageModelV4ToolResultOutput,
+): LanguageModelV3ToolResultOutput {
+  if (output.type !== 'content') {
+    return output;
+  }
+
+  return {
+    ...output,
+    value: output.value.map(part => {
+      if (part.type !== 'file') {
+        return part;
+      }
+
+      switch (part.data.type) {
+        case 'data':
+          return {
+            type: 'file-data' as const,
+            data:
+              typeof part.data.data === 'string'
+                ? part.data.data
+                : convertUint8ArrayToBase64(part.data.data),
+            mediaType: part.mediaType,
+            filename: part.filename,
+            providerOptions: part.providerOptions,
+          };
+        case 'url':
+          return {
+            type: 'file-url' as const,
+            url: part.data.url.toString(),
+            providerOptions: part.providerOptions,
+          };
+        case 'reference':
+          return {
+            type: 'file-id' as const,
+            fileId: part.data.reference,
+            providerOptions: part.providerOptions,
+          };
+        case 'text':
+          return part;
+      }
+    }),
+  } as LanguageModelV3ToolResultOutput;
 }
 
 function convertV3ContentToV4(
