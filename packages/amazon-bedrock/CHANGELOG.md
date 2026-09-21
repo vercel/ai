@@ -1,5 +1,12 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.132
+
+### Patch Changes
+
+- f6f8b61: fix(amazon-bedrock): enable Anthropic features for application inference profile chat models
+- 8399d3e: fix(amazon-bedrock): preserve API error messages when the error type is omitted
+
 ## 3.0.131
 
 ### Patch Changes
