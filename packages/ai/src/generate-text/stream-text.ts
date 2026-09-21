@@ -2675,7 +2675,7 @@ class DefaultStreamTextResult<
               tools: stepExecutionTools as TOOLS,
               stepInputMessages: stepMessages,
               abortSignal,
-              runtimeContext,
+              toolsContext,
             });
 
           // Create child spans under the current step context.
@@ -2769,7 +2769,7 @@ class DefaultStreamTextResult<
           const createStepResponse = () => ({
             id: generateId(),
             timestamp: new Date(),
-            modelId: model.modelId,
+            modelId: stepModel.modelId,
           });
           let stepResponse: {
             id: string;

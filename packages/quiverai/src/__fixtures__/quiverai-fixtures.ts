@@ -47,3 +47,19 @@ export const animateSvgResponseFixture = {
     output_tokens: 11,
   },
 };
+
+export const editSvgResponseFixture = {
+  id: 'svg-edit-1',
+  created: 1_713_374_520,
+  data: [
+    {
+      svg: '<svg viewBox="0 0 10 10"><rect width="10" height="10" fill="blue"/></svg>',
+      mime_type: 'image/svg+xml' as const,
+    },
+  ],
+  usage: {
+    total_tokens: 25,
+    input_tokens: 14,
+    output_tokens: 11,
+  },
+};

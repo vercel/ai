@@ -945,6 +945,46 @@ describe('ByteDanceVideoModel', () => {
       ]);
     });
 
+    it('should treat a start image as a reference image when combining it with inputReferences', async () => {
+      const model = createBasicModel({
+        modelId: 'dreamina-seedance-2-0-260128',
+      });
+
+      await model.doStart({
+        ...defaultOptions,
+        image: {
+          type: 'url',
+          url: 'https://example.com/start.png',
+          mediaType: 'image/png',
+        },
+        inputReferences: [
+          {
+            type: 'url',
+            url: 'https://example.com/reference.png',
+            mediaType: 'image/png',
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/start.png' },
+          role: 'reference_image',
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/reference.png' },
+          role: 'reference_image',
+        },
+      ]);
+    });
+
     it('should add a reference video from inputReferences with video media type', async () => {
       const model = createBasicModel({
         modelId: 'dreamina-seedance-2-0-260128',
@@ -1145,6 +1185,44 @@ describe('ByteDanceVideoModel', () => {
         {
           type: 'image_url',
           image_url: { url: 'https://example.com/ref3.png' },
+          role: 'reference_image',
+        },
+      ]);
+    });
+
+    it('should treat a start image as a reference image when combining it with referenceImages', async () => {
+      const model = createBasicModel({
+        modelId: 'dreamina-seedance-2-0-260128',
+      });
+
+      await model.doStart({
+        ...defaultOptions,
+        image: {
+          type: 'url',
+          url: 'https://example.com/start.png',
+          mediaType: 'image/png',
+        },
+        providerOptions: {
+          bytedance: {
+            referenceImages: ['https://example.com/reference.png'],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/start.png' },
+          role: 'reference_image',
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/reference.png' },
           role: 'reference_image',
         },
       ]);
