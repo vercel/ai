@@ -1,5 +1,14 @@
 # @ai-sdk/xai
 
+## 3.0.134
+
+### Patch Changes
+
+- 1096a27: feat(xai): add grok 4.7 model ID
+- Updated dependencies [82e18b0]
+  - @ai-sdk/provider-utils@4.0.52
+  - @ai-sdk/openai-compatible@2.0.76
+
 ## 3.0.133
 
 ### Patch Changes
