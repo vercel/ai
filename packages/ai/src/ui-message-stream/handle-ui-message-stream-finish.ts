@@ -147,7 +147,7 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
 
   let finishCalled = false;
 
-  const callOnEnd = async () => {
+  const callOnEnd = async ({ isCancelled }: { isCancelled: boolean }) => {
     if (finishCalled || !resolvedOnEnd) {
       return;
     }
@@ -159,7 +159,9 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
       ? { status: 'failed', error: processingError }
       : declaredOutcome.status === 'unknown' && isAborted
         ? { status: 'aborted' }
-        : declaredOutcome;
+        : declaredOutcome.status === 'unknown' && isCancelled
+          ? { status: 'cancelled' }
+          : declaredOutcome;
 
     await resolvedOnEnd({
       isAborted: isAborted || outcome.status === 'aborted',
@@ -215,11 +217,11 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
       },
       // @ts-expect-error cancel is still new and missing from types https://developer.mozilla.org/en-US/docs/Web/API/TransformStream#browser_compatibility
       async cancel() {
-        await callOnEnd();
+        await callOnEnd({ isCancelled: true });
       },
 
       async flush() {
-        await callOnEnd();
+        await callOnEnd({ isCancelled: false });
       },
     }),
   );

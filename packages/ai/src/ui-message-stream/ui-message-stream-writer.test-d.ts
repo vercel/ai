@@ -4,6 +4,7 @@ import type {
   UIMessageStreamWriter,
   UIMessageStreamWriterWithOutcome,
 } from './ui-message-stream-writer';
+import type { UIMessageStreamOutcome } from './ui-message-stream-outcome';
 
 describe('UIMessageStreamWriter', () => {
   it('keeps existing structural implementations assignable', () => {
@@ -23,5 +24,8 @@ describe('UIMessageStreamWriter', () => {
 
     expectTypeOf<ExecuteWriter>().toMatchTypeOf<UIMessageStreamWriterWithOutcome>();
     expectTypeOf<ExecuteWriter['setOutcome']>().toBeFunction();
+    expectTypeOf<{
+      status: 'cancelled';
+    }>().toMatchTypeOf<UIMessageStreamOutcome>();
   });
 });

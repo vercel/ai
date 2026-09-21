@@ -478,6 +478,30 @@ describe('createUIMessageStream', () => {
     });
   });
 
+  it('should report cancelled when the consumer cancels before an outcome is declared', async () => {
+    const execution = new DelayedPromise<void>();
+    const onEnd = vi.fn();
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        writer.write({ type: 'start' });
+        return execution.promise;
+      },
+      onEnd,
+      generateId: () => 'response-message-id',
+    });
+
+    const reader = stream.getReader();
+    await reader.read();
+    await reader.cancel('client disconnected');
+    execution.resolve(undefined);
+
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    expect(onEnd.mock.calls[0][0]).toMatchObject({
+      isAborted: false,
+      outcome: { status: 'cancelled' },
+    });
+  });
+
   it('should handle onFinish with messages', async () => {
     const recordedOptions: any[] = [];
 

@@ -108,7 +108,7 @@ outcomes and call `setOutcome` once.
               name: 'setOutcome',
               type: '(outcome: UIMessageStreamOutcome) => void',
               description:
-                "Declares the operation-level outcome of the composed stream. The first outcome declared through this method is retained, while fatal execution, merge, error-handling, or downstream processing failures override declarations. Supported statuses are 'completed', 'failed', 'aborted', and 'unknown'. Declaring an outcome does not write a chunk or close the stream.",
+                "Declares the operation-level outcome of the composed stream. The first outcome declared through this method is retained, while fatal execution, merge, error-handling, or downstream processing failures override declarations. Supported statuses are 'completed', 'failed', 'aborted', 'cancelled', and 'unknown'. Declaring an outcome does not write a chunk or close the stream.",
             },
             {
               name: 'onError',
@@ -158,9 +158,9 @@ outcomes and call `setOutcome` once.
             },
             {
               name: 'outcome',
-              type: "UIMessageStreamOutcome = { status: 'completed' } | { status: 'failed'; error?: unknown } | { status: 'aborted' } | { status: 'unknown' }",
+              type: "UIMessageStreamOutcome = { status: 'completed' } | { status: 'failed'; error?: unknown } | { status: 'aborted' } | { status: 'cancelled' } | { status: 'unknown' }",
               description:
-                'The operation-level outcome of the stream. It reflects the stream owner declaration unless a fatal stream-processing failure occurs, and is separate from model finish reasons and individual error chunks.',
+                "The operation-level outcome of the stream. It reflects the stream owner declaration unless a fatal stream-processing failure occurs, and is separate from model finish reasons and individual error chunks. It is 'cancelled' when the consumer cancelled the stream (for example, because the client disconnected) before an outcome was declared.",
             },
             {
               name: 'responseMessage',
