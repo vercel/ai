@@ -1,4 +1,4 @@
-import type { JSONSchema7 } from '@ai-sdk/provider';
+import type { JSONSchema7, JSONValue } from '@ai-sdk/provider';
 import {
   lazySchema,
   zodSchema,
@@ -657,6 +657,37 @@ const anthropicStopDetailsSchema = z.object({
 
 export type AnthropicStopDetails = z.infer<typeof anthropicStopDetailsSchema>;
 
+// Loose at every level: the beta schema is still evolving and consumers
+// (e.g. Claude Code behind a gateway) need the verdicts passed through intact.
+const anthropicSafeguardResultSchema = z.looseObject({
+  type: z.string(),
+  status: z.looseObject({
+    type: z.string(),
+    tool_uses: z
+      .record(
+        z.string(),
+        z.looseObject({
+          type: z.string(),
+          outcome: z.string().nullish(),
+        }),
+      )
+      .nullish(),
+  }),
+});
+
+// Declared by hand (not inferred) so it stays JSON-compatible for provider
+// metadata; the parsed value is cast, which is safe because the loose schema
+// only admits JSON.
+export type AnthropicSafeguardResult = {
+  type: string;
+  status: {
+    type: string;
+    tool_uses?: Record<string, { type: string; outcome?: string | null }>;
+    [key: string]: JSONValue | undefined;
+  };
+  [key: string]: JSONValue | undefined;
+};
+
 const anthropicToolCallCallerSchema = z.union([
   z.object({
     type: z.literal('code_execution_20250825'),
@@ -1004,6 +1035,7 @@ export const anthropicResponseSchema = lazySchema(() =>
       input_transformations: z
         .array(anthropicInputTransformationSchema)
         .nullish(),
+      safeguard_results: z.array(anthropicSafeguardResultSchema).nullish(),
       usage: z.looseObject({
         input_tokens: z.number(),
         output_tokens: z.number(),
@@ -1412,6 +1444,7 @@ export const anthropicChunkSchema = lazySchema(() =>
           stop_reason: z.string().nullish(),
           stop_sequence: z.string().nullish(),
           stop_details: anthropicStopDetailsSchema.nullish(),
+          safeguard_results: z.array(anthropicSafeguardResultSchema).nullish(),
           container: z
             .object({
               expires_at: z.string(),

@@ -1,4 +1,5 @@
 import type { JSONObject } from '@ai-sdk/provider';
+import type { AnthropicSafeguardResult } from './anthropic-api';
 
 /**
  * Represents a single iteration in the usage breakdown.
@@ -61,6 +62,20 @@ export interface AnthropicMessageMetadata {
     path: string;
     reason: string;
   }>;
+
+  /**
+   * Verdicts of the server-side safeguards requested with
+   * `providerOptions.anthropic.safeguards`, one entry per requested safeguard.
+   * For `dangerous_tool_use`, `status.type` is `'available'` when the
+   * classifier ran and `status.tool_uses` maps each tool call id to its
+   * verdict (`type: 'evaluated'` with an `outcome`, `'skipped'`, or
+   * `'unavailable'`).
+   *
+   * Kept in the API's wire shape (snake_case, unknown keys preserved): the
+   * beta schema is still evolving and consumers such as Claude Code read the
+   * verdicts verbatim.
+   */
+  safeguardResults?: AnthropicSafeguardResult[];
 
   /**
    * Details about why the request stopped. Present only when the API returns
