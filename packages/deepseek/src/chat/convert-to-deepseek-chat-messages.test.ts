@@ -720,6 +720,9 @@ describe('convertToDeepSeekChatMessages', () => {
                         url: new URL('https://example.com/image.webp'),
                       },
                       mediaType: 'image/webp',
+                      providerOptions: {
+                        deepseek: { imageDetail: 'low' },
+                      },
                     },
                     {
                       type: 'file',
@@ -762,6 +765,7 @@ describe('convertToDeepSeekChatMessages', () => {
                 type: 'image_url',
                 image_url: {
                   url: 'https://example.com/image.webp',
+                  detail: 'low',
                 },
               },
               {

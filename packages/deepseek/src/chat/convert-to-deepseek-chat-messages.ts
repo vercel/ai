@@ -16,6 +16,7 @@ import {
 import type {
   DeepSeekChatPrompt,
   DeepSeekContentPart,
+  DeepSeekToolMessage,
 } from './deepseek-chat-api-types';
 import { deepseekFilePartProviderOptions } from './deepseek-file-part-options';
 import { deepseekAssistantMessageProviderOptions } from './deepseek-chat-language-model-options';
@@ -372,7 +373,7 @@ export async function convertToDeepSeekChatMessages({
           }
           const output = toolResponse.output;
 
-          let contentValue: string | Array<DeepSeekContentPart>;
+          let contentValue: DeepSeekToolMessage['content'];
           switch (output.type) {
             case 'text':
             case 'error-text':
@@ -422,6 +423,11 @@ export async function convertToDeepSeekChatMessages({
                     continue;
                   }
 
+                  const filePartOptions = await parseProviderOptions({
+                    provider: providerOptionsName,
+                    providerOptions: part.providerOptions,
+                    schema: deepseekFilePartProviderOptions,
+                  });
                   const resolvedMediaType = resolveDeepSeekImageMediaType(part);
                   let url: string;
 
@@ -438,7 +444,12 @@ export async function convertToDeepSeekChatMessages({
 
                   contentValue.push({
                     type: 'image_url',
-                    image_url: { url },
+                    image_url: {
+                      url,
+                      ...(filePartOptions?.imageDetail != null && {
+                        detail: filePartOptions.imageDetail,
+                      }),
+                    },
                   });
                 } else {
                   warnings.push({
