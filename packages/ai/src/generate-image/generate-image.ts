@@ -394,7 +394,7 @@ export function getImageProviderMetadata(
   for (const [providerName, metadata] of Object.entries(providerMetadata)) {
     const value = metadata.images?.[imageIndex];
 
-    if (isJSONObject(value) && !Array.isArray(value)) {
+    if (isJSONObject(value)) {
       (imageMetadata ??= {})[providerName] = value;
     }
   }

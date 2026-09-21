@@ -1,5 +1,16 @@
 import type { JSONArray, JSONObject, JSONValue } from './json-value';
 
+export function isPlainObject(value: unknown): value is JSONObject {
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+  if (Array.isArray(value)) {
+    return false;
+  }
+
+  return Object.getPrototypeOf(value) === Object.prototype;
+}
+
 export function isJSONValue(value: unknown): value is JSONValue {
   if (
     value === null ||
@@ -14,7 +25,7 @@ export function isJSONValue(value: unknown): value is JSONValue {
     return value.every(isJSONValue);
   }
 
-  if (typeof value === 'object') {
+  if (isPlainObject(value)) {
     return Object.entries(value).every(
       ([key, val]) =>
         typeof key === 'string' && (val === undefined || isJSONValue(val)),
@@ -30,8 +41,7 @@ export function isJSONArray(value: unknown): value is JSONArray {
 
 export function isJSONObject(value: unknown): value is JSONObject {
   return (
-    value != null &&
-    typeof value === 'object' &&
+    isPlainObject(value) &&
     Object.entries(value).every(
       ([key, val]) =>
         typeof key === 'string' && (val === undefined || isJSONValue(val)),
