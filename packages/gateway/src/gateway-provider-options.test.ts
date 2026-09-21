@@ -148,6 +148,41 @@ describe('gatewayEvaluationProviderOptionsSchema', () => {
     expect(invalidResult.success).toBe(false);
   });
 
+  it('accepts five condition levels and rejects six', async () => {
+    const direct = { question: 'intent', confidenceBelow: 0.5 };
+    const fiveLevels = {
+      any: [
+        {
+          all: [
+            {
+              atLeast: {
+                count: 1,
+                conditions: [{ any: [direct] }],
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const sixLevels = { any: [fiveLevels] };
+
+    const validResult = await safeValidateTypes({
+      value: {
+        models: [{ model: 'openai/gpt-5.6-sol', when: fiveLevels }],
+      },
+      schema: gatewayEvaluationProviderOptionsSchema,
+    });
+    const invalidResult = await safeValidateTypes({
+      value: {
+        models: [{ model: 'openai/gpt-5.6-sol', when: sixLevels }],
+      },
+      schema: gatewayEvaluationProviderOptionsSchema,
+    });
+
+    expect(validResult.success).toBe(true);
+    expect(invalidResult.success).toBe(false);
+  });
+
   it.each([
     {
       models: [

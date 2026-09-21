@@ -35,7 +35,11 @@ it('types conditional evaluation model fallbacks', () => {
           {
             atLeast: {
               count: 1,
-              conditions: [confidence],
+              conditions: [
+                {
+                  any: [confidence],
+                },
+              ],
             },
           },
         ],
@@ -127,8 +131,12 @@ it('types conditional evaluation model fallbacks', () => {
               count: 1,
               conditions: [
                 {
-                  // @ts-expect-error Conditions cannot exceed four levels.
-                  any: [confidence],
+                  any: [
+                    {
+                      // @ts-expect-error Conditions cannot exceed five levels.
+                      all: [confidence],
+                    },
+                  ],
                 },
               ],
             },

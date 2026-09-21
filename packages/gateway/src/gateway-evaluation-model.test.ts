@@ -64,12 +64,14 @@ const createTestModel = (
 describe('GatewayEvaluationModel', () => {
   function prepareJsonResponse({
     answers = dummyAnswers,
+    model,
     rounding,
     usage,
     warnings,
     headers,
   }: {
     answers?: Record<string, unknown>;
+    model?: string;
     rounding?: { probabilityDecimals?: number; scoreDecimals?: number };
     usage?: { inputTokens?: number; outputTokens?: number };
     warnings?: Array<
@@ -85,6 +87,7 @@ describe('GatewayEvaluationModel', () => {
       headers,
       body: {
         answers,
+        ...(model && { model }),
         ...(rounding && { rounding }),
         ...(usage && { usage }),
         ...(warnings && { warnings }),
@@ -315,6 +318,28 @@ describe('GatewayEvaluationModel', () => {
 
       expect(result.response?.modelId).toBe('typesafe-ai/jev-latest');
       expect(result.response?.headers?.['x-request-id']).toBe('req-123');
+    });
+
+    it('should attribute the response to the returned model after a fallback', async () => {
+      prepareJsonResponse({ model: 'anthropic/claude-sonnet-5' });
+
+      const result = await createTestModel().doEvaluate({
+        state: testState,
+        questions: testQuestions,
+      });
+
+      expect(result.response?.modelId).toBe('anthropic/claude-sonnet-5');
+    });
+
+    it('should attribute the response to the requested model when none is returned', async () => {
+      prepareJsonResponse();
+
+      const result = await createTestModel().doEvaluate({
+        state: testState,
+        questions: testQuestions,
+      });
+
+      expect(result.response?.modelId).toBe('typesafe-ai/jev-latest');
     });
 
     it('should return provider metadata', async () => {

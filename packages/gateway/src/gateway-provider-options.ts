@@ -3,7 +3,7 @@ import type { ZodType } from 'zod/v4';
 import { z } from './zod';
 
 // https://vercel.com/docs/ai-gateway/provider-options
-export const EVALUATION_FALLBACK_MAX_CONDITION_DEPTH = 4;
+export const EVALUATION_FALLBACK_MAX_CONDITION_DEPTH = 5;
 
 export const gatewayEvaluationProviderOptionsSchema = lazySchema(() =>
   zodSchema(
@@ -143,8 +143,14 @@ type EvaluationFallbackConditionList<CONDITION> = readonly [
   ...CONDITION[],
 ];
 
-type EvaluationFallbackConditionAtDepth4<QUESTION_ID extends string> =
+type EvaluationFallbackConditionAtDepth5<QUESTION_ID extends string> =
   EvaluationFallbackDirectCondition<QUESTION_ID>;
+
+type EvaluationFallbackConditionAtDepth4<QUESTION_ID extends string> =
+  | EvaluationFallbackDirectCondition<QUESTION_ID>
+  | EvaluationFallbackConditionGroup<
+      EvaluationFallbackConditionAtDepth5<QUESTION_ID>
+    >;
 
 type EvaluationFallbackConditionAtDepth3<QUESTION_ID extends string> =
   | EvaluationFallbackDirectCondition<QUESTION_ID>

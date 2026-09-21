@@ -97,7 +97,7 @@ export class GatewayEvaluationModel implements EvaluationModelV4 {
         providerMetadata:
           responseBody.providerMetadata as unknown as SharedV4ProviderMetadata,
         response: {
-          modelId: this.modelId,
+          modelId: responseBody.model ?? this.modelId,
           headers: responseHeaders,
           body: rawValue,
         },
@@ -165,6 +165,7 @@ const gatewayEvaluationResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       answers: z.record(z.string(), gatewayEvaluationAnswerSchema),
+      model: z.string().optional(),
       rounding: z
         .object({
           probabilityDecimals: z.number().optional(),
