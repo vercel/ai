@@ -316,7 +316,6 @@ function hasPortableEvidence({
       property: 'name',
     });
     if (programmaticName === invocation.toolName) {
-      hasServerIdentity = true;
       hasToolName = true;
     }
     const deferredToolName = getProperty({
@@ -399,12 +398,6 @@ function resolvePermissionHostTool({
     }
   | undefined {
   if (!isRecord(toolCall.rawInput)) return undefined;
-  if (toolCall.name === toolName) {
-    return {
-      input: toolCall.rawInput,
-      hasRequestIdentity: true,
-    };
-  }
   const deferredToolName = getProperty({
     value: toolCall.rawInput,
     property: 'tool_name',

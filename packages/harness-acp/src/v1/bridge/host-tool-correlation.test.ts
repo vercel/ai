@@ -67,7 +67,7 @@ describe('createHostToolCorrelation', () => {
     expect(raw).toHaveLength(1);
   });
 
-  it('matches MCP-before-ACP by the direct ACP name and input', () => {
+  it('matches MCP-before-ACP by a server-qualified direct ACP name and input', () => {
     const { correlation, semantic, raw } = setup();
     register({
       correlation,
@@ -83,6 +83,7 @@ describe('createHostToolCorrelation', () => {
       title: 'Opaque display',
       status: 'completed',
       rawInput: { city: 'Lima' },
+      _meta: { serverName: 'ai-sdk-harness-tools' },
     } as const;
 
     correlation.update({
@@ -95,6 +96,9 @@ describe('createHostToolCorrelation', () => {
     expect(correlation.getToolCall({ toolCallId: rawUpdate.toolCallId }))
       .toMatchInlineSnapshot(`
       {
+        "_meta": {
+          "serverName": "ai-sdk-harness-tools",
+        },
         "name": "weather",
         "rawInput": {
           "city": "Lima",
@@ -218,7 +222,7 @@ describe('createHostToolCorrelation', () => {
     expect(correlation.claimHostToolPermission({ toolCall })).toBe(true);
   });
 
-  it('claims a host permission from the direct ACP name', () => {
+  it('does not claim a host permission from an unqualified ACP name', () => {
     const { correlation } = setup({
       hostTools: [{ name: 'get_weather' }],
     });
@@ -228,6 +232,28 @@ describe('createHostToolCorrelation', () => {
       status: 'pending',
       rawInput: { city: 'Lima' },
     } as const;
+
+    expect(correlation.claimHostToolPermission({ toolCall })).toBe(false);
+  });
+
+  it('claims a direct ACP name when the candidate is server-qualified', () => {
+    const { correlation } = setup({
+      hostTools: [{ name: 'get_weather' }],
+    });
+    const toolCall = {
+      toolCallId: 'server-qualified-direct-name',
+      name: 'get_weather',
+      status: 'pending',
+      rawInput: { city: 'Lima' },
+      _meta: { serverName: 'ai-sdk-harness-tools' },
+    } as const;
+    correlation.update({
+      message: update({
+        sessionUpdate: 'tool_call',
+        ...toolCall,
+      }),
+      rawUpdate: toolCall,
+    });
 
     expect(correlation.claimHostToolPermission({ toolCall })).toBe(true);
   });
