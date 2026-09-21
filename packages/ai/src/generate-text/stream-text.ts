@@ -1421,6 +1421,7 @@ class DefaultStreamTextResult<
     const initialResponseMessages: Array<ResponseMessage> = [];
     let stepMessagesForNextStep: Array<ModelMessage> | undefined;
     let currentStepMessages: Array<ModelMessage> = [];
+    let isAborted = false;
     let currentStepModel = model;
 
     // provider-assigned text/reasoning part IDs are only unique within a
@@ -1751,6 +1752,10 @@ class DefaultStreamTextResult<
           // aggregate results:
           self._steps.resolve(recordedSteps);
 
+          if (isAborted) {
+            return;
+          }
+
           // call onEnd callback:
           const finalStep = recordedSteps[recordedSteps.length - 1];
           const content = recordedSteps.flatMap(step => step.content);
@@ -1853,6 +1858,8 @@ class DefaultStreamTextResult<
       async pull(controller) {
         // abort handling:
         async function abort() {
+          isAborted = true;
+
           await notify({
             event: {
               callId,
@@ -2668,7 +2675,7 @@ class DefaultStreamTextResult<
               tools: stepExecutionTools as TOOLS,
               stepInputMessages: stepMessages,
               abortSignal,
-              runtimeContext,
+              toolsContext,
             });
 
           // Create child spans under the current step context.
@@ -2762,7 +2769,7 @@ class DefaultStreamTextResult<
           const createStepResponse = () => ({
             id: generateId(),
             timestamp: new Date(),
-            modelId: model.modelId,
+            modelId: stepModel.modelId,
           });
           let stepResponse: {
             id: string;

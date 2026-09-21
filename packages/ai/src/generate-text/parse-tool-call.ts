@@ -23,6 +23,7 @@ export async function parseToolCall<TOOLS extends ToolSet>({
   refineToolInput,
   messages,
   instructions,
+  abortSignal,
 }: {
   toolCall: LanguageModelV4ToolCall;
   tools: TOOLS | undefined;
@@ -30,6 +31,7 @@ export async function parseToolCall<TOOLS extends ToolSet>({
   refineToolInput?: ToolInputRefinement<TOOLS> | undefined;
   instructions: Instructions | undefined;
   messages: ModelMessage[];
+  abortSignal?: AbortSignal;
 }): Promise<TypedToolCall<TOOLS>> {
   try {
     if (tools == null) {
@@ -63,19 +65,25 @@ export async function parseToolCall<TOOLS extends ToolSet>({
       let repairedToolCall: LanguageModelV4ToolCall | null = null;
 
       try {
-        repairedToolCall = await repairToolCall({
-          toolCall,
-          tools,
-          inputSchema: async ({ toolName }) => {
-            const inputSchema = getOwn(tools, toolName)?.inputSchema;
-            return await asSchema(inputSchema).jsonSchema;
-          },
-          instructions,
-          system: instructions,
-          messages,
-          error,
+        abortSignal?.throwIfAborted();
+        repairedToolCall = await waitForPromiseWithAbortSignal({
+          promise: repairToolCall({
+            toolCall,
+            tools,
+            inputSchema: async ({ toolName }) => {
+              const inputSchema = getOwn(tools, toolName)?.inputSchema;
+              return await asSchema(inputSchema).jsonSchema;
+            },
+            instructions,
+            system: instructions,
+            messages,
+            error,
+            abortSignal,
+          }),
+          abortSignal,
         });
       } catch (repairError) {
+        abortSignal?.throwIfAborted();
         throw new ToolCallRepairError({
           cause: repairError,
           originalError: error,
@@ -87,12 +95,18 @@ export async function parseToolCall<TOOLS extends ToolSet>({
         throw error;
       }
 
-      return await refineParsedToolCallInput({
+      const parsedRepairedToolCall = await refineParsedToolCallInput({
         toolCall: await doParseToolCall({ toolCall: repairedToolCall, tools }),
         refineToolInput,
       });
+
+      abortSignal?.throwIfAborted();
+
+      return parsedRepairedToolCall;
     }
   } catch (error) {
+    abortSignal?.throwIfAborted();
+
     // use parsed input when possible
     const parsedInput = await safeParseJSON({ text: toolCall.input });
     const input = parsedInput.success ? parsedInput.value : toolCall.input;
@@ -113,6 +127,44 @@ export async function parseToolCall<TOOLS extends ToolSet>({
       ...(tool?.metadata != null ? { toolMetadata: tool.metadata } : {}),
     };
   }
+}
+
+async function waitForPromiseWithAbortSignal<T>({
+  promise,
+  abortSignal,
+}: {
+  promise: PromiseLike<T>;
+  abortSignal: AbortSignal | undefined;
+}): Promise<T> {
+  if (abortSignal == null) {
+    return await promise;
+  }
+
+  return await new Promise<T>((resolve, reject) => {
+    const cleanup = () => {
+      abortSignal.removeEventListener('abort', onAbort);
+    };
+    const onAbort = () => {
+      cleanup();
+      reject(abortSignal.reason);
+    };
+
+    Promise.resolve(promise)
+      .then(value => {
+        cleanup();
+        resolve(value);
+      })
+      .catch(error => {
+        cleanup();
+        reject(error);
+      });
+
+    abortSignal.addEventListener('abort', onAbort, { once: true });
+
+    if (abortSignal.aborted) {
+      onAbort();
+    }
+  });
 }
 
 async function refineParsedToolCallInput<TOOLS extends ToolSet>({

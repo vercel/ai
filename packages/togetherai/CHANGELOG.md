@@ -1,5 +1,24 @@
 # @ai-sdk/togetherai
 
+## 3.0.54
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+  - @ai-sdk/openai-compatible@3.0.53
+
+## 3.0.53
+
+### Patch Changes
+
+- 6a3790d: fix(togetherai): omit unsupported diffusion options for Gemini image models
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+  - @ai-sdk/openai-compatible@3.0.52
+
 ## 3.0.52
 
 ### Patch Changes

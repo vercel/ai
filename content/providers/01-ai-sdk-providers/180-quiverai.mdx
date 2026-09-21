@@ -5,7 +5,7 @@ description: Learn how to use QuiverAI models with the AI SDK.
 
 # QuiverAI Provider
 
-[QuiverAI](https://quiver.ai/) generates SVG documents directly from text prompts and can also vectorize raster images into clean SVGs. The QuiverAI provider for the AI SDK exposes both operations through `generateImage`.
+[QuiverAI](https://quiver.ai/) generates SVG documents directly from text prompts, vectorizes raster images into clean SVGs, and edits and animates existing SVGs. The QuiverAI provider for the AI SDK exposes these operations through `generateImage`.
 
 ## Setup
 
@@ -85,13 +85,13 @@ QuiverAI returns SVG documents. The generated SVG bytes are available through `r
 
 QuiverAI supports the following Arrow models:
 
-| Model           | Description                                                                      |
-| --------------- | -------------------------------------------------------------------------------- |
-| `arrow-2`       | Arrow 2 balances SVG generation quality and speed. Uses token-based billing.     |
-| `arrow-2-telos` | Higher-fidelity Arrow 2 variant for complex designs. Uses token-based billing.   |
-| `arrow-1`       | Base text-to-SVG model. Accepts up to 4 reference images.                        |
-| `arrow-1.1`     | Improved text-to-SVG model. Accepts up to 4 reference images.                    |
-| `arrow-1.1-max` | Higher quality variant with extended context. Accepts up to 16 reference images. |
+| Model           | Description                                                                                                                       |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `arrow-2`       | Arrow 2 balances SVG generation quality and speed. Supports SVG editing when enabled for the API key. Uses token-based billing.   |
+| `arrow-2-telos` | Higher-fidelity Arrow 2 variant for complex designs. Supports SVG editing when enabled for the API key. Uses token-based billing. |
+| `arrow-1`       | Base text-to-SVG model. Accepts up to 4 reference images.                                                                         |
+| `arrow-1.1`     | Improved text-to-SVG model. Accepts up to 4 reference images.                                                                     |
+| `arrow-1.1-max` | Higher quality variant with extended context. Accepts up to 16 reference images.                                                  |
 
 ### Provider Options
 
@@ -119,17 +119,17 @@ await generateImage({
 
 Supported options:
 
-- **operation** _'generate' | 'vectorize'_
+- **operation** _'generate' | 'vectorize' | 'edit' | 'animate'_
 
-  Choose between text-to-SVG generation (`generate`, default) and image-to-SVG vectorization (`vectorize`).
+  Choose between text-to-SVG generation (`generate`, default), image-to-SVG vectorization (`vectorize`), SVG editing (`edit`), and SVG animation (`animate`).
 
 - **instructions** _string_
 
-  Extra style guidance for prompt-based generation.
+  Extra style guidance for prompt-based generation. This option is not used as the SVG edit instruction; use `prompt.text` for editing.
 
 - **reasoningEffort** _'low' | 'medium' | 'high' | 'xhigh'_
 
-  Reasoning effort for generation or vectorization. When omitted, QuiverAI uses its default.
+  Reasoning effort for generation, vectorization, or editing. When omitted, QuiverAI uses its default.
 
 - **attributes** _object_
 
@@ -150,6 +150,22 @@ Supported options:
 - **maxOutputTokens** _number_
 
   Maximum number of output tokens. Arrow 2 and Arrow 2 Telos accept 1-65536. The provider retains its legacy validation bound of 131072 for other model IDs; the API may enforce a lower model-specific limit.
+
+- **referenceImages** `Array<{ url: string } | { base64: string }>`
+
+  Up to four optional reference images for SVG editing. URL references must use HTTP or HTTPS. Base64 references must decode to PNG, JPEG, WebP, GIF, or SVG data. Use `prepareQuiverAIImageReference` to convert binary, data URL, or URL inputs into this JSON-safe provider option shape.
+
+- **maxReviewSteps** _number_ (0-5)
+
+  Maximum number of edit review and redo steps after the initial edit.
+
+- **orchestratorMaxOutputTokens** _number_ (1-65536)
+
+  Optional provider orchestrator token budget for SVG editing.
+
+- **shallowMaxOutputTokens** _number_ (1-65536)
+
+  Optional provider shallow edit token budget for SVG editing.
 
 - **autoCrop** _boolean_
 
@@ -203,8 +219,104 @@ fs.writeFileSync('logo.svg', image.uint8Array);
 
 Vectorization returns one SVG per API request. To request multiple vectorizations with `n`, also set `maxImagesPerCall: 1` so `generateImage` splits them into separate calls.
 
+### Editing an SVG
+
+Set `operation` to `edit`, put exactly one source SVG in `prompt.images`, and provide the edit instruction in `prompt.text`:
+
+```ts
+import {
+  prepareQuiverAIImageReference,
+  quiverai,
+  type QuiverAIImageModelOptions,
+} from '@ai-sdk/quiverai';
+import { generateImage } from 'ai';
+import fs from 'node:fs/promises';
+
+const { image } = await generateImage({
+  model: quiverai.image('arrow-2'),
+  prompt: {
+    text: 'Make the logo blue and simplify the star points.',
+    images: [await fs.readFile('./logo.svg')],
+  },
+  providerOptions: {
+    quiverai: {
+      operation: 'edit',
+      referenceImages: [
+        prepareQuiverAIImageReference(
+          await fs.readFile('./blue-reference.png'),
+        ),
+        { url: 'https://example.com/second-reference.png' },
+      ],
+      maxReviewSteps: 2,
+      reasoningEffort: 'medium',
+      maxOutputTokens: 4096,
+      orchestratorMaxOutputTokens: 4096,
+      shallowMaxOutputTokens: 2048,
+      temperature: 0.4,
+    } satisfies QuiverAIImageModelOptions,
+  },
+});
+
+await fs.writeFile('./edited-logo.svg', image.uint8Array);
+```
+
+The source SVG can be an HTTP/HTTPS URL, binary data such as a `Buffer` or `Uint8Array`, a base64 string, or an SVG data URL. Binary and base64 sources are validated as complete UTF-8 SVG documents and sent to QuiverAI as base64 SVG sources. Remote source URLs are fetched by QuiverAI and must resolve to an SVG.
+
+Edit reference images are separate from the source SVG. Put them in `providerOptions.quiverai.referenceImages`, not `prompt.images`. Direct provider-option values use `{ url }` or `{ base64 }`; `prepareQuiverAIImageReference` converts an HTTP/HTTPS URL, `URL`, `Uint8Array`, `ArrayBuffer`, base64 string, or supported image data URL to that JSON-safe shape.
+
+SVG editing has these validation constraints:
+
+- The model must be `arrow-2` or `arrow-2-telos`, and the API key's live model catalog must include the `svg_edit` operation.
+- `prompt.images` must contain exactly one source SVG.
+- `prompt.text` is required, must not be blank, and must contain at most 4000 characters.
+- Binary source SVGs must be complete UTF-8 SVG documents no larger than 200000 bytes.
+- At most four reference images are accepted. Inline references can contain up to 12582912 decoded bytes.
+- Editing returns exactly one SVG per API request. To request multiple edits with `n`, set `maxImagesPerCall: 1` so `generateImage` splits them into separate calls.
+- Masks and generation/vectorization-only provider options are rejected for edits.
+- Edit-only provider options are rejected for generation, vectorization, and animation.
+
+The edited SVG is returned as bytes in `result.image.uint8Array`.
+
+### Animating an SVG
+
+Arrow 2 and Arrow 2 Telos can animate an existing SVG. Set `operation` to `animate` and pass exactly one source SVG in `prompt.images`. The text instruction is optional; omit `text` to let QuiverAI choose an animation.
+
+```ts
+import { quiverai, type QuiverAIImageModelOptions } from '@ai-sdk/quiverai';
+import { generateImage } from 'ai';
+import fs from 'fs';
+
+const { image, providerMetadata } = await generateImage({
+  model: quiverai.image('arrow-2'),
+  prompt: {
+    images: [fs.readFileSync('./logo.svg')],
+    text: 'Make the logo pulse gently.',
+  },
+  providerOptions: {
+    quiverai: {
+      operation: 'animate',
+      reasoningEffort: 'medium',
+      maxOutputTokens: 4096,
+    } satisfies QuiverAIImageModelOptions,
+  },
+});
+
+fs.writeFileSync('animated-logo.svg', image.uint8Array);
+
+const timing = providerMetadata.quiverai?.images?.[0];
+console.log(timing?.loopPeriodMs, timing?.openingAnimationMs);
+```
+
+The animation source can be an HTTP or HTTPS URL, SVG bytes, raw base64, or an `image/svg+xml` base64 data URL. Local file inputs are inspected before the request and rejected when they do not contain SVG data. Remote URLs are validated for their scheme and fetched and validated by QuiverAI.
+
+Animation returns an animated SVG as bytes in `image.uint8Array`. When QuiverAI returns timing information, the per-image metadata includes `loopPeriodMs` and `openingAnimationMs`; either timing value can be `null`.
+
+Animation requests must use `arrow-2` or `arrow-2-telos`, contain exactly one source SVG, omit masks, and produce one result per provider request. To request multiple animations with `n`, set `maxImagesPerCall: 1` so `generateImage` splits them into separate calls. Animation supports `temperature`, `reasoningEffort`, and `maxOutputTokens`; generation-only and vectorization-only provider options are rejected.
+
+Source SVGs, text instructions, and remote source URLs are sent to QuiverAI. Animated SVG is active document content. Sanitize it or render it in an isolated context before embedding output from an untrusted source inline in a page.
+
 ### Billing and Usage
 
 Arrow 2 models return measured token counts in `result.usage`. Fixed-credit models may return compatibility token counts of zero; their credit charge is available in `result.providerMetadata?.quiverai?.credits` when supplied by the API.
 
-Model availability and supported operations depend on your organization and API key permissions. Consult QuiverAI's [model catalog](https://docs.quiver.ai/developers/models) for current capabilities and billing. Editing, animation, and the Responses API are not yet exposed by this provider.
+Model availability and supported operations depend on your organization and API key permissions. Consult QuiverAI's [model catalog](https://docs.quiver.ai/developers/models) for current capabilities and billing. The Responses API is not yet exposed by this provider.
