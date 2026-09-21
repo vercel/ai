@@ -1,5 +1,17 @@
 # @ai-sdk/harness-cursor
 
+## 1.0.31
+
+### Patch Changes
+
+- d975097: feat(harness): add `AbortSignal` to `SandboxChannel.connect`, plus a `sleep()` helper function
+- c0e5d1d: feat(harness): allow consumers of bridge backed harnesses to configure `reconnect` timeout
+- Updated dependencies [d975097]
+- Updated dependencies [b2baeba]
+- Updated dependencies [c0e5d1d]
+  - @ai-sdk/harness-acp@1.0.56
+  - @ai-sdk/harness@1.0.118
+
 ## 1.0.30
 
 ### Patch Changes

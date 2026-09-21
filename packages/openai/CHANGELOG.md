@@ -1,5 +1,12 @@
 # @ai-sdk/openai
 
+## 4.0.72
+
+### Patch Changes
+
+- 411b3f2: fix(openai): strip unsupported regex patterns from JSON schemas
+- e13c32f: fix(openai): include speech provider options in requests
+
 ## 4.0.71
 
 ### Patch Changes
