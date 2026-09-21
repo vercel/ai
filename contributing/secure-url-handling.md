@@ -81,8 +81,16 @@ inside an `undici` connector hook, rejects the entire result if any address is
 private/internal, and returns those exact records to the connector. This pins
 the connection to the validated result and prevents DNS rebinding.
 
-An injected or globally replaced custom `fetch` must provide equivalent
-connect-time validation. Other server runtimes should restrict network egress
+Node-compatible `process` objects in Bun, Deno, Cloudflare Workers, and framework
+edge runtimes do not opt into this Node-only transport. Workers process-v2
+[reports a Node release but a `workerd` title](https://github.com/cloudflare/workerd/blob/main/src/node/internal/public_process.ts),
+and its [`dns.lookup` is not implemented](https://developers.cloudflare.com/workers/runtime-apis/nodejs/dns/).
+Deno's Node-compatible process exposes
+[`versions.deno`](https://github.com/denoland/deno/blob/main/ext/node/polyfills/_process/process.ts).
+
+Global `fetch` wrappers do not replace this protected Node.js transport. An
+explicitly injected custom `fetch` must provide equivalent connect-time
+validation. Other server runtimes should restrict network egress
 because the Node DNS and socket hooks are unavailable there. The user-facing
 explanation lives in:
 [Secure URL Fetching](../content/docs/06-advanced/11-secure-url-fetching.mdx).

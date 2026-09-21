@@ -45,12 +45,17 @@ import {
   amazonBedrockLanguageModelChatOptions,
   type AmazonBedrockLanguageModelChatOptions,
   type AmazonBedrockChatModelId,
+  type AmazonBedrockChatModelSettings,
 } from './amazon-bedrock-chat-language-model-options';
 import {
+  isAnthropicModel as detectAnthropicModel,
   supportsNativeStructuredOutput,
   supportsStrictTools,
 } from './amazon-bedrock-anthropic-model-support';
-import { AmazonBedrockErrorSchema } from './amazon-bedrock-error';
+import {
+  amazonBedrockFailedResponseHandler,
+  AmazonBedrockErrorSchema,
+} from './amazon-bedrock-error';
 import { createAmazonBedrockEventStreamResponseHandler } from './amazon-bedrock-event-stream-response-handler';
 import {
   getAmazonBedrockStreamErrorMetadata,
@@ -71,6 +76,7 @@ type AmazonBedrockChatConfig = {
   headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   generateId: () => string;
+  modelFamily?: AmazonBedrockChatModelSettings['modelFamily'];
 };
 
 const anthropicProviderOptions = z.object({
@@ -217,12 +223,11 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       });
     }
 
-    // Application inference profile ARNs do not expose their underlying model.
-    // The Anthropic-only reasoning budget provides the model-family signal.
-    const isAnthropicModel =
-      this.modelId.includes('anthropic') ||
-      (this.modelId.includes(':application-inference-profile/') &&
-        amazonBedrockOptions.reasoningConfig?.budgetTokens != null);
+    const isAnthropicModel = detectAnthropicModel({
+      modelId: this.modelId,
+      modelFamily: this.config.modelFamily,
+      reasoningBudgetTokens: amazonBedrockOptions.reasoningConfig?.budgetTokens,
+    });
     const openAIModelId = /^(?:[^.]+\.)?(openai\..+)$/.exec(this.modelId)?.[1];
     const isOpenAIModel = openAIModelId != null;
     const isOpenAIGptOssModel =
@@ -278,7 +283,9 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
 
     const modelSupportsNativeStructuredOutput =
       supportsNativeStructuredOutput(this.modelId) &&
-      (modelSupportsStructuredOutput || isThinkingEnabled);
+      (modelSupportsStructuredOutput ||
+        isThinkingEnabled ||
+        this.config.modelFamily === 'anthropic');
 
     const useNativeStructuredOutput =
       isAnthropicModel &&
@@ -317,6 +324,9 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
         toolChoice:
           jsonResponseTool != null ? { type: 'required' } : toolChoice,
         modelId: this.modelId,
+        modelFamily: this.config.modelFamily,
+        reasoningBudgetTokens:
+          amazonBedrockOptions.reasoningConfig?.budgetTokens,
         disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
       });
 
@@ -804,10 +814,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       url,
       headers: await this.getHeaders({ headers: options.headers }),
       body: args,
-      failedResponseHandler: createJsonErrorResponseHandler({
-        errorSchema: AmazonBedrockErrorSchema,
-        errorToMessage: error => `${error.type}: ${error.message}`,
-      }),
+      failedResponseHandler: amazonBedrockFailedResponseHandler,
       successfulResponseHandler: createAmazonBedrockEventStreamResponseHandler(
         AmazonBedrockStreamSchema,
       ),

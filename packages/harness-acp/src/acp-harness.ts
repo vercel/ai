@@ -5,6 +5,7 @@ import {
   type HarnessV1MintBridgeTokenCallback,
   type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
+import type { SandboxChannelReconnectOptions } from '@ai-sdk/harness/utils';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { ACPAuthenticationMode, ACPClientApp } from './acp-auth';
@@ -45,6 +46,12 @@ export type ACPHarnessSettings<
    */
   readonly portEndpoint?: HarnessV1PortEndpoint;
   readonly startupTimeoutMs?: number;
+  /**
+   * Configures reconnection attempts after an established bridge connection
+   * drops. Defaults to a 30 second reconnect window with exponential backoff
+   * from 50 milliseconds up to 2 seconds.
+   */
+  readonly reconnect?: SandboxChannelReconnectOptions;
   readonly clientApp?: ACPClientApp;
   readonly version?: ACPV1Settings['version'];
   readonly harnessId: ACPV1Settings['harnessId'];
@@ -192,6 +199,7 @@ export function createACP<
         port: settings.port,
         portEndpoint: settings.portEndpoint,
         startupTimeoutMs: settings.startupTimeoutMs,
+        reconnect: settings.reconnect,
         clientApp,
         lifecycleStateSchema: acpResumeStateSchema satisfies z.ZodType<{
           bridge?: ACPBridgeCoords;

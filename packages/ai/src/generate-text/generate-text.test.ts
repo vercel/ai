@@ -268,6 +268,230 @@ describe('experimental_toolCallers', () => {
     expect(result.toolResults[0]?.output).toEqual(['getInventory']);
   });
 
+  it('announces local caller tools in a message while preserving the caller definition', async () => {
+    let modelTools: LanguageModelV4CallOptions['tools'];
+    let modelPrompt!: LanguageModelV4CallOptions['prompt'];
+
+    const localCaller = experimental_toolCaller(
+      tool({
+        description: 'Stable caller description.',
+        inputSchema: z.object({}),
+        execute: async (): Promise<unknown> => {
+          throw new Error('Caller was not bound.');
+        },
+      }),
+      {
+        type: 'local',
+        bind: tools =>
+          tool({
+            description: `Bound to ${Object.keys(tools).join(', ')}.`,
+            inputSchema: z.object({}),
+            execute: async () => Object.keys(tools),
+          }),
+        prepareModelMessage: tools =>
+          `Available caller tools: ${Object.keys(tools).join(', ')}.`,
+      },
+    );
+
+    const result = await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async options => {
+          modelTools = options.tools;
+          modelPrompt = options.prompt;
+          return {
+            ...dummyResponseValues,
+            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'code_mode',
+                input: '{}',
+              },
+            ],
+          };
+        },
+      }),
+      tools: {
+        code_mode: localCaller,
+        getInventory: tool({
+          inputSchema: z.object({ sku: z.string() }),
+          execute: async ({ sku }) => ({ sku, availableUnits: 42 }),
+        }),
+      },
+      experimental_toolCallers: {
+        getInventory: ['code_mode'],
+      },
+      prompt: 'Check inventory.',
+    });
+
+    expect(modelTools).toMatchObject([
+      {
+        name: 'code_mode',
+        description: 'Stable caller description.',
+      },
+    ]);
+    expect(modelPrompt).toContainEqual({
+      role: 'user',
+      content: [{ type: 'text', text: 'Check inventory.' }],
+    });
+    expect(modelPrompt).toContainEqual({
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'Available caller tools: getInventory.',
+        },
+      ],
+    });
+    expect(result.toolResults[0]?.output).toEqual(['getInventory']);
+  });
+
+  it('does not repeat a caller message already present in model messages', async () => {
+    const localCaller = experimental_toolCaller(
+      tool({
+        inputSchema: z.object({}),
+        execute: async () => undefined,
+      }),
+      {
+        type: 'local',
+        bind: () =>
+          tool({
+            inputSchema: z.object({}),
+            execute: async () => undefined,
+          }),
+        prepareModelMessage: () => 'Current code mode catalog.',
+      },
+    );
+    let modelPrompt!: LanguageModelV4CallOptions['prompt'];
+
+    await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async options => {
+          modelPrompt = options.prompt;
+          return { ...dummyResponseValues, content: [] };
+        },
+      }),
+      tools: {
+        code_mode: localCaller,
+        nested: tool({
+          inputSchema: z.object({}),
+          execute: async () => undefined,
+        }),
+      },
+      experimental_toolCallers: {
+        nested: ['code_mode'],
+      },
+      messages: [
+        { role: 'user', content: 'Prompt.' },
+        { role: 'user', content: 'Current code mode catalog.' },
+      ],
+    });
+
+    expect(
+      modelPrompt?.filter(
+        message =>
+          message.role === 'user' &&
+          message.content.some(
+            part =>
+              part.type === 'text' &&
+              part.text === 'Current code mode catalog.',
+          ),
+      ),
+    ).toHaveLength(1);
+  });
+
+  it('re-announces a caller message when the catalog reverts', async () => {
+    const modelPrompts: LanguageModelV4Prompt[] = [];
+    const localCaller = experimental_toolCaller(
+      tool({
+        inputSchema: z.object({}),
+        execute: async () => undefined,
+      }),
+      {
+        type: 'local',
+        bind: () =>
+          tool({
+            inputSchema: z.object({}),
+            execute: async () => undefined,
+          }),
+        prepareModelMessage: tools =>
+          `Available caller tools: ${Object.keys(tools).join(', ')}.`,
+      },
+    );
+
+    await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async options => {
+          modelPrompts.push(options.prompt);
+          const callNumber = modelPrompts.length;
+
+          if (callNumber < 3) {
+            return {
+              ...dummyResponseValues,
+              finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: `call-${callNumber}`,
+                  toolName: 'code_mode',
+                  input: '{}',
+                },
+              ],
+            };
+          }
+
+          return {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Done.' }],
+          };
+        },
+      }),
+      tools: {
+        code_mode: localCaller,
+        toolA: tool({
+          inputSchema: z.object({}),
+          execute: async () => undefined,
+        }),
+        toolB: tool({
+          inputSchema: z.object({}),
+          execute: async () => undefined,
+        }),
+      },
+      experimental_toolCallers: {
+        toolA: ['code_mode'],
+        toolB: ['code_mode'],
+      },
+      prompt: 'Use the available tool.',
+      stopWhen: isStepCount(3),
+      prepareStep: async ({ stepNumber }) => ({
+        activeTools:
+          stepNumber === 1 ? ['code_mode', 'toolB'] : ['code_mode', 'toolA'],
+      }),
+    });
+
+    expect(
+      modelPrompts.map(prompt =>
+        prompt.filter(message => message.role === 'user').at(-1),
+      ),
+    ).toEqual([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Available caller tools: toolA.' }],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Available caller tools: toolB.' }],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Available caller tools: toolA.' }],
+      },
+    ]);
+  });
+
   it('adds provider caller options while preserving direct access', async () => {
     let modelTools: LanguageModelV4CallOptions['tools'];
 
@@ -7534,6 +7758,42 @@ describe('generateText', () => {
       ]);
     });
 
+    it('should not execute a repaired tool when aborted during input validation', async () => {
+      const abortController = new AbortController();
+      const cancellationReason = new Error('cancelled');
+      const validationStarted = new DelayedPromise<void>();
+      const validationFinished = new DelayedPromise<void>();
+      const execute = vi.fn(async () => 'tool result');
+
+      const result = generateText({
+        model: invalidToolCallModel(),
+        tools: {
+          tool1: tool({
+            inputSchema: z
+              .object({ value: z.string() })
+              .superRefine(async () => {
+                validationStarted.resolve(undefined);
+                await validationFinished.promise;
+              }),
+            execute,
+          }),
+        },
+        prompt: 'test-input',
+        abortSignal: abortController.signal,
+        repairToolCall: async ({ toolCall }) => ({
+          ...toolCall,
+          input: `{ "value": "repaired" }`,
+        }),
+      });
+
+      await validationStarted.promise;
+      abortController.abort(cancellationReason);
+      validationFinished.resolve(undefined);
+
+      await expect(result).rejects.toBe(cancellationReason);
+      expect(execute).not.toHaveBeenCalled();
+    });
+
     it('should support the deprecated experimental_repairToolCall option', async () => {
       const result = await generateText({
         model: invalidToolCallModel(),
@@ -7658,7 +7918,7 @@ describe('generateText', () => {
   });
 
   describe('tool callbacks', () => {
-    it('should invoke callbacks in the correct order', async () => {
+    it('should invoke callbacks in the correct order with the step tool context', async () => {
       const recordedCalls: unknown[] = [];
 
       await generateText({
@@ -7686,6 +7946,7 @@ describe('generateText', () => {
               required: ['value'],
               additionalProperties: false,
             }),
+            contextSchema: z.object({ prefix: z.string() }),
             onInputAvailable: options => {
               recordedCalls.push({ type: 'onInputAvailable', options });
             },
@@ -7697,6 +7958,11 @@ describe('generateText', () => {
             },
           }),
         },
+        runtimeContext: { prefix: 'runtime-context' },
+        toolsContext: { 'test-tool': { prefix: 'initial-tool-context' } },
+        prepareStep: () => ({
+          toolsContext: { 'test-tool': { prefix: 'step-tool-context' } },
+        }),
         toolChoice: 'required',
         prompt: 'test-input',
       });
@@ -7706,7 +7972,9 @@ describe('generateText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "context": {},
+              "context": {
+                "prefix": "step-tool-context",
+              },
               "messages": [
                 {
                   "content": "test-input",
@@ -7720,7 +7988,9 @@ describe('generateText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "context": {},
+              "context": {
+                "prefix": "step-tool-context",
+              },
               "input": {
                 "value": "value",
               },

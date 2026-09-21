@@ -912,8 +912,8 @@ describe('doGenerate', () => {
 
       expect(usage).toEqual({
         inputTokens: {
-          total: 12,
-          noCache: 8,
+          total: 77,
+          noCache: 73,
           cacheRead: 4,
           cacheWrite: undefined,
         },
@@ -2834,6 +2834,36 @@ describe('doGenerate', () => {
     });
     expect(result.response?.id).toBe('blocked-response-id');
   });
+
+  it.each(['', 'BLOCK_REASON_UNSPECIFIED', 'BLOCKED_REASON_UNSPECIFIED'])(
+    'should not classify the default prompt block reason %j as a content filter',
+    async blockReason => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'json-value',
+        body: {
+          candidates: [],
+          promptFeedback: { blockReason },
+          usageMetadata: {
+            promptTokenCount: 9,
+            totalTokenCount: 9,
+          },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toEqual([]);
+      expect(result.finishReason).toEqual({
+        unified: 'other',
+        raw: undefined,
+      });
+      expect(result.providerMetadata?.google.promptFeedback).toEqual({
+        blockReason,
+      });
+    },
+  );
 
   it('should expose grounding metadata in provider metadata', async () => {
     prepareJsonResponse({
@@ -5931,6 +5961,151 @@ describe('doStream', () => {
     });
   });
 
+  it.each(['', 'BLOCK_REASON_UNSPECIFIED', 'BLOCKED_REASON_UNSPECIFIED'])(
+    'should not classify the default prompt block reason %j as a content filter',
+    async blockReason => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            candidates: [],
+            promptFeedback: { blockReason },
+            usageMetadata: {
+              promptTokenCount: 9,
+              totalTokenCount: 9,
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const finishEvent = (await convertReadableStreamToArray(stream)).find(
+        event => event.type === 'finish',
+      );
+
+      expect(finishEvent?.finishReason).toEqual({
+        unified: 'other',
+        raw: undefined,
+      });
+    },
+  );
+
+  it('should preserve prompt feedback and trailing usage from separate chunks', async () => {
+    const promptFeedback = {
+      blockReason: 'BLOCK_REASON_UNSPECIFIED',
+      safetyRatings: [],
+    };
+    const usageMetadata = {
+      promptTokenCount: 10,
+      candidatesTokenCount: 3,
+      totalTokenCount: 13,
+    };
+
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({ promptFeedback })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                role: 'model',
+                parts: [{ text: 'Fixture text.' }],
+              },
+              finishReason: 'STOP',
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({ usageMetadata })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const finishEvent = (await convertReadableStreamToArray(stream)).find(
+      event => event.type === 'finish',
+    );
+
+    expect(finishEvent).toMatchObject({
+      type: 'finish',
+      finishReason: {
+        unified: 'stop',
+        raw: 'STOP',
+      },
+      usage: {
+        outputTokens: {
+          total: 3,
+        },
+      },
+      providerMetadata: {
+        google: {
+          promptFeedback,
+          usageMetadata,
+        },
+      },
+    });
+  });
+
+  it('should keep a confirmed prompt block terminal across later chunks', async () => {
+    const usageMetadata = {
+      promptTokenCount: 10,
+      candidatesTokenCount: 0,
+      totalTokenCount: 10,
+    };
+
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          promptFeedback: { blockReason: 'SAFETY' },
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                role: 'model',
+                parts: [{ text: 'Fixture text.' }],
+              },
+              finishReason: 'STOP',
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          promptFeedback: {
+            blockReason: 'BLOCK_REASON_UNSPECIFIED',
+          },
+          usageMetadata,
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(events.filter(event => event.type === 'text-delta')).toEqual([]);
+    expect(events.find(event => event.type === 'finish')).toMatchObject({
+      type: 'finish',
+      finishReason: {
+        unified: 'content-filter',
+        raw: 'SAFETY',
+      },
+      providerMetadata: {
+        google: {
+          promptFeedback: { blockReason: 'SAFETY' },
+          usageMetadata,
+        },
+      },
+    });
+  });
+
   it('should expose finishMessage in provider metadata on finish', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'stream-chunks',
@@ -6057,8 +6232,8 @@ describe('doStream', () => {
 
     expect(finishEvent?.usage).toEqual({
       inputTokens: {
-        total: 12,
-        noCache: 8,
+        total: 77,
+        noCache: 73,
         cacheRead: 4,
         cacheWrite: undefined,
       },
@@ -6837,7 +7012,11 @@ describe('doStream', () => {
               ],
               "serviceTier": null,
               "urlContextMetadata": null,
-              "usageMetadata": null,
+              "usageMetadata": {
+                "candidatesTokenCount": 233,
+                "promptTokenCount": 294,
+                "totalTokenCount": 527,
+              },
             },
           },
           "type": "finish",

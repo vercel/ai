@@ -465,8 +465,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         'anthropic.memory_20250818': 'memory',
         'anthropic.web_search_20250305': 'web_search',
         'anthropic.web_search_20260209': 'web_search',
+        'anthropic.web_search_20260318': 'web_search',
         'anthropic.web_fetch_20250910': 'web_fetch',
         'anthropic.web_fetch_20260209': 'web_fetch',
+        'anthropic.web_fetch_20260318': 'web_fetch',
         'anthropic.tool_search_regex_20251119': 'tool_search_tool_regex',
         'anthropic.tool_search_bm25_20251119': 'tool_search_tool_bm25',
         'anthropic.advisor_20260301': 'advisor',
@@ -1046,9 +1048,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       ...this.extractCitationDocuments(options.prompt),
     ];
 
-    const markCodeExecutionDynamic = hasWebTool20260209WithoutCodeExecution(
-      args.tools,
-    );
+    const markCodeExecutionDynamic =
+      hasDynamicFilteringWebToolWithoutCodeExecution(args.tools);
 
     const {
       responseHeaders,
@@ -1637,9 +1638,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       ...this.extractCitationDocuments(options.prompt),
     ];
 
-    const markCodeExecutionDynamic = hasWebTool20260209WithoutCodeExecution(
-      body.tools,
-    );
+    const markCodeExecutionDynamic =
+      hasDynamicFilteringWebToolWithoutCodeExecution(body.tools);
 
     const url = this.buildRequestUrl(true);
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -1903,7 +1903,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                     const customToolName =
                       toolNameMapping.toCustomToolName(providerToolName);
 
-                    // Tools like 'web_fetch_20260209' provide input data here.
+                    // Dynamic web tools provide input data here.
                     // Other tools like 'code_execution_20260120' provide input data via deltas.
                     // So we only use this if it's non-empty to avoid conflicts.
                     const finalInput =
@@ -2978,21 +2978,23 @@ export function getModelCapabilities(modelId: string): {
   }
 }
 
-export function hasWebTool20260209WithoutCodeExecution(
+export function hasDynamicFilteringWebToolWithoutCodeExecution(
   tools: AnthropicTool[] | undefined,
 ): boolean {
   if (!tools) {
     return false;
   }
-  let hasWebTool20260209 = false;
+  let hasDynamicFilteringWebTool = false;
   let hasCodeExecutionTool = false;
   for (const tool of tools) {
     if (
       'type' in tool &&
       (tool.type === 'web_fetch_20260209' ||
-        tool.type === 'web_search_20260209')
+        tool.type === 'web_fetch_20260318' ||
+        tool.type === 'web_search_20260209' ||
+        tool.type === 'web_search_20260318')
     ) {
-      hasWebTool20260209 = true;
+      hasDynamicFilteringWebTool = true;
       continue;
     }
     if (
@@ -3005,7 +3007,7 @@ export function hasWebTool20260209WithoutCodeExecution(
       break;
     }
   }
-  return hasWebTool20260209 && !hasCodeExecutionTool;
+  return hasDynamicFilteringWebTool && !hasCodeExecutionTool;
 }
 
 function resolveAnthropicReasoningConfig({

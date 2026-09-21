@@ -65,10 +65,16 @@ export function readUIMessageStream<UI_MESSAGE extends UIMessage>({
 }): AsyncIterableStream<UI_MESSAGE> {
   let controller: ReadableStreamDefaultController<UI_MESSAGE> | undefined;
   let hasErrored = false;
+  let isCancelled = false;
+  const abortController = new AbortController();
 
   const outputStream = new ReadableStream<UI_MESSAGE>({
     start(controllerParam) {
       controller = controllerParam;
+    },
+    cancel() {
+      isCancelled = true;
+      abortController.abort();
     },
   });
 
@@ -98,17 +104,20 @@ export function readUIMessageStream<UI_MESSAGE extends UIMessage>({
         return job({
           state,
           write: () => {
-            controller?.enqueue(createUIMessageSnapshot(state.message));
+            if (!isCancelled) {
+              controller?.enqueue(createUIMessageSnapshot(state.message));
+            }
           },
         });
       },
       onError: handleError,
     }),
     onError: handleError,
+    abortSignal: abortController.signal,
   }).finally(() => {
-    // Only close if no error occurred. Calling close() on an errored controller
-    // throws "Invalid state: Controller is already closed" TypeError.
-    if (!hasErrored) {
+    // Only close if no error or cancellation occurred. Both erroring and
+    // cancelling a stream close its controller.
+    if (!hasErrored && !isCancelled) {
       controller?.close();
     }
   });

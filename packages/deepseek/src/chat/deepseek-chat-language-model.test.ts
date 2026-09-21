@@ -1,4 +1,8 @@
-import type { JSONSchema7, LanguageModelV4Prompt } from '@ai-sdk/provider';
+import {
+  InvalidResponseDataError,
+  type JSONSchema7,
+  type LanguageModelV4Prompt,
+} from '@ai-sdk/provider';
 import { isProviderStreamError } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
@@ -82,6 +86,34 @@ describe('DeepSeekChatLanguageModel', () => {
       };
       return;
     }
+
+    it('should reject a response without choices', async () => {
+      server.urls['https://api.deepseek.com/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-empty',
+          object: 'chat.completion',
+          created: 0,
+          model: 'deepseek-chat',
+          choices: [],
+          usage: {
+            prompt_tokens: 1,
+            completion_tokens: 0,
+            total_tokens: 1,
+          },
+        },
+      };
+
+      await expect(
+        provider.chat('deepseek-chat').doGenerate({
+          prompt: TEST_PROMPT,
+        }),
+      ).rejects.toSatisfy(
+        error =>
+          InvalidResponseDataError.isInstance(error) &&
+          error.message === 'Response did not contain any choices.',
+      );
+    });
 
     describe('text', () => {
       beforeEach(() => {
