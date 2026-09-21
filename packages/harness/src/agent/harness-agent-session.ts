@@ -91,7 +91,6 @@ export class HarnessAgentSession {
 
   private readonly harness: HarnessAgentAdapter;
   private readonly sessionWorkDir: string;
-  private readonly workDirToStrip: string;
   private readonly ownsSandboxLifecycle: boolean;
   private underlyingSession: HarnessAgentAdapterSession | undefined;
   private sandboxSession:
@@ -134,7 +133,6 @@ export class HarnessAgentSession {
     sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
     ownsSandboxLifecycle?: boolean;
     sessionWorkDir: string;
-    stripWorkDir?: boolean;
     toolApproval: HarnessAgentToolApprovalConfiguration | undefined;
     pendingToolApprovals?: readonly HarnessAgentPendingToolApproval[];
     pendingToolResults?: readonly HarnessAgentPendingToolResult[];
@@ -147,8 +145,6 @@ export class HarnessAgentSession {
     this.sandboxSession = options.sandboxSession;
     this.ownsSandboxLifecycle = options.ownsSandboxLifecycle ?? true;
     this.sessionWorkDir = options.sessionWorkDir;
-    this.workDirToStrip =
-      options.stripWorkDir === false ? '' : options.sessionWorkDir;
     this.toolApproval = options.toolApproval;
     for (const approval of options.pendingToolApprovals ?? []) {
       this.pendingToolApprovals.set(approval.approvalId, approval);
@@ -247,7 +243,7 @@ export class HarnessAgentSession {
         toolSpecs: options.toolSpecs,
         builtinToolFiltering: options.builtinToolFiltering,
         sandboxSession: getRestrictedSandboxSession(sandboxSession),
-        sessionWorkDir: this.workDirToStrip,
+        sessionWorkDir: this.sessionWorkDir,
         runtimeContext: options.runtimeContext,
         abortSignal: options.abortSignal,
         responseFormat: options.responseFormat,
@@ -345,7 +341,7 @@ export class HarnessAgentSession {
         toolSpecs: [...turnSettings.persisted.tools],
         builtinToolFiltering: turnSettings.builtinToolFiltering,
         sandboxSession: getRestrictedSandboxSession(sandboxSession),
-        sessionWorkDir: this.workDirToStrip,
+        sessionWorkDir: this.sessionWorkDir,
         runtimeContext: options.runtimeContext,
         abortSignal: options.abortSignal,
         responseFormat: options.responseFormat,

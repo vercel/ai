@@ -359,50 +359,6 @@ function makeLifecycleSession(options: {
 }
 
 describe('HarnessAgent', () => {
-  test('can preserve absolute work-dir paths in consumer-facing stream parts', async () => {
-    const builtinTools = {
-      readFile: tool({
-        inputSchema: z.object({ path: z.string() }),
-      }),
-    };
-    const { harness } = mockHarness({
-      builtinTools,
-      script: () => [
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'readFile',
-          input: JSON.stringify({ path: '/work/repo/src/index.ts' }),
-          providerExecuted: true,
-        },
-        {
-          type: 'tool-result',
-          toolCallId: 'call-1',
-          toolName: 'readFile',
-          result: { path: '/work/repo/src/index.ts' },
-        },
-        ...finishEvents(),
-      ],
-    });
-    const agent = new HarnessAgent({
-      harness,
-      sandbox: makeSandboxProvider(),
-      sandboxConfig: { workDir: 'repo', stripWorkDir: false },
-    });
-    const session = await agent.createSession();
-    const result = await agent.stream({ session, prompt: 'read the file' });
-    const parts = [];
-    for await (const part of result.fullStream) parts.push(part);
-
-    expect(parts.find(part => part.type === 'tool-call')).toMatchObject({
-      input: { path: '/work/repo/src/index.ts' },
-    });
-    expect(parts.find(part => part.type === 'tool-result')).toMatchObject({
-      output: { path: '/work/repo/src/index.ts' },
-    });
-    await session.destroy();
-  });
-
   test('runs lifecycle callbacks in order and merges settings before call callbacks', async () => {
     const builtinTools = {
       bash: tool({
