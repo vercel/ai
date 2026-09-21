@@ -593,6 +593,67 @@ describe('experimental_toolCallers', () => {
     expect(result.toolResults[0]?.output).toEqual(['getInventory']);
   });
 
+  it('rejects direct model calls to caller-governed tools', async () => {
+    let executed = false;
+
+    const localCaller = experimental_toolCaller(
+      tool({
+        inputSchema: z.object({}),
+        execute: async (): Promise<unknown> => {
+          throw new Error('Caller was not bound.');
+        },
+      }),
+      {
+        type: 'local',
+        bind: tools =>
+          tool({
+            inputSchema: z.object({}),
+            execute: async () => Object.keys(tools),
+          }),
+      },
+    );
+
+    const result = await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+          content: [
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'getInventory',
+              input: '{"sku":"sku_123"}',
+            },
+          ],
+        }),
+      }),
+      tools: {
+        code_mode: localCaller,
+        getInventory: tool({
+          inputSchema: z.object({ sku: z.string() }),
+          execute: async () => {
+            executed = true;
+            return { availableUnits: 42 };
+          },
+        }),
+      },
+      experimental_toolCallers: {
+        getInventory: ['code_mode'],
+      },
+      stopWhen: isStepCount(2),
+      prompt: 'Check inventory.',
+    });
+
+    expect(executed).toBe(false);
+    expect(result.toolCalls[0]).toMatchObject({
+      toolName: 'getInventory',
+      invalid: true,
+    });
+    expect(result.toolResults).toEqual([]);
+  });
+
   it('rejects caller names that are not caller-capable tools', async () => {
     await expect(
       generateText({
