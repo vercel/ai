@@ -1,5 +1,16 @@
 # @ai-sdk/vue
 
+## 4.0.108
+
+### Patch Changes
+
+- 73ec701: feat(vue): add configurable useChat message update throttling
+- Updated dependencies [3f6852a]
+- Updated dependencies [6317504]
+- Updated dependencies [3cb2dcd]
+- Updated dependencies [ccf98e7]
+  - ai@7.0.108
+
 ## 4.0.107
 
 ### Patch Changes
