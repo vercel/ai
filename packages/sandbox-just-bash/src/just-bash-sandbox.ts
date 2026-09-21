@@ -37,6 +37,7 @@ const REALPATH_SCRIPT = `#!/usr/bin/env bash
 pending=\${1:?}
 resolved=
 link_count=0
+link_marker=__AI_SDK_REALPATH_LINK_END__
 case "$pending" in
   /*) ;;
   *) pending=$PWD/$pending ;;
@@ -61,7 +62,11 @@ while [ -n "$pending" ]; do
   if [ -L "$candidate" ]; then
     link_count=$((link_count + 1))
     [ "$link_count" -le 64 ] || exit 1
-    target=$(readlink "$candidate") || exit 1
+    link_target_framed=$(readlink "$candidate"; readlink_status=$?; printf '%s' "$link_marker"; exit "$readlink_status")
+    readlink_status=$?
+    [ "$readlink_status" -eq 0 ] || exit 1
+    target=\${link_target_framed%$link_marker}
+    target=\${target%$'\n'}
     case "$target" in
       /*) pending=$target\${pending:+/$pending} ;;
       *) pending=\${candidate%/*}/$target\${pending:+/$pending} ;;

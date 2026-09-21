@@ -69,9 +69,22 @@ interface RunShellResult {
 }
 
 const MAX_GREP_DIAGNOSTIC_BYTES = 8_192;
+const REALPATH_FRAME = '__PI_REALPATH_FRAME__';
 
-function lastOutputLine(output: Buffer): string | undefined {
-  return output.toString('utf8').trim().split('\n').filter(Boolean).at(-1);
+function realpathShellLines(targetVariable: string): string[] {
+  return [
+    `realpath_marker=${shellQuote(REALPATH_FRAME)}`,
+    `realpath_framed=$(realpath "$${targetVariable}" 2>/dev/null; realpath_status=$?; printf '%s' "$realpath_marker"; exit "$realpath_status")`,
+    'realpath_status=$?',
+    'if [ "$realpath_status" -ne 0 ]; then echo "__PI_REALPATH_FAILED__"; exit 3; fi',
+    'resolved=${realpath_framed%$realpath_marker}',
+    "resolved=${resolved%$'\\n'}",
+  ];
+}
+
+function parseFramedPath(output: string): string | undefined {
+  if (!output.endsWith(REALPATH_FRAME)) return undefined;
+  return output.slice(0, -REALPATH_FRAME.length);
 }
 
 export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
@@ -111,9 +124,9 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
     const result = await runShell(
       [
         `target=${shellQuote(remotePath)}`,
-        `resolved=$(realpath "$target" 2>/dev/null) || { echo "__PI_REALPATH_FAILED__"; exit 3; }`,
+        ...realpathShellLines('target'),
         `if [ ! -e "$resolved" ]; then echo "__PI_REALPATH_NOT_FOUND__"; exit 2; fi`,
-        `printf '%s\\n' "$resolved"`,
+        `printf '%s%s' "$resolved" "$realpath_marker"`,
       ].join('; '),
     );
 
@@ -125,7 +138,7 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
       throw new Error(`Unable to resolve path: ${inputPath}`);
     }
 
-    const resolvedPath = lastOutputLine(result.output);
+    const resolvedPath = parseFramedPath(result.stdout);
     if (!resolvedPath) {
       throw new Error(`Unable to resolve path: ${inputPath}`);
     }
@@ -147,13 +160,14 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
     const result = await runShell(
       [
         `target=${shellQuote(remotePath)}`,
-        `if [ -e "$target" ] || [ -L "$target" ]; then resolved=$(realpath "$target" 2>/dev/null) || { echo "__PI_REALPATH_FAILED__"; exit 3; }; printf '%s\\n' "$resolved"; exit 0; fi`,
-        `dir=$(dirname "$target")`,
-        `base=$(basename "$target")`,
+        `if [ -e "$target" ] || [ -L "$target" ]; then ${realpathShellLines('target').join('; ')}; printf '%s%s' "$resolved" "$realpath_marker"; exit 0; fi`,
+        'dir=${target%/*}',
+        'base=${target##*/}',
+        '[ -n "$dir" ] || dir=/',
         `missing="$base"`,
-        `while [ ! -e "$dir" ] && [ ! -L "$dir" ]; do parent=$(dirname "$dir"); if [ "$parent" = "$dir" ]; then echo "__PI_REALPATH_NOT_FOUND__"; exit 2; fi; missing="$(basename "$dir")/$missing"; dir="$parent"; done`,
-        `resolved_dir=$(realpath "$dir" 2>/dev/null) || { echo "__PI_REALPATH_FAILED__"; exit 3; }`,
-        `printf '%s/%s\\n' "$resolved_dir" "$missing"`,
+        'while [ ! -e "$dir" ] && [ ! -L "$dir" ]; do parent=${dir%/*}; [ -n "$parent" ] || parent=/; if [ "$parent" = "$dir" ]; then echo "__PI_REALPATH_NOT_FOUND__"; exit 2; fi; missing=${dir##*/}/$missing; dir=$parent; done',
+        ...realpathShellLines('dir'),
+        `printf '%s/%s%s' "$resolved" "$missing" "$realpath_marker"`,
       ].join('; '),
     );
 
@@ -166,7 +180,7 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
       throw new Error(`Unable to resolve path: ${inputPath}`);
     }
 
-    const resolvedPath = lastOutputLine(result.output);
+    const resolvedPath = parseFramedPath(result.stdout);
     if (!resolvedPath) {
       throw new Error(`Unable to resolve path: ${inputPath}`);
     }

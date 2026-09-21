@@ -1,4 +1,5 @@
 import { Sandbox } from 'just-bash';
+import { shellQuote } from '@ai-sdk/harness/utils';
 import { describe, expect, it } from 'vitest';
 import { createJustBashSandbox } from './just-bash-sandbox';
 
@@ -44,6 +45,30 @@ describe('JustBashSandboxProvider', () => {
       ).resolves.toMatchObject({
         exitCode: 0,
         stdout: 'custom\n',
+      });
+    } finally {
+      await session.destroy();
+    }
+  });
+
+  it('preserves trailing newlines in symlink targets', async () => {
+    const session = await createJustBashSandbox({
+      cwd: '/work',
+    }).createSession();
+
+    try {
+      const target = '/work/target\nfile';
+      await session.writeTextFile({ path: target, content: 'content\n' });
+      const setup = await session.run({
+        command: `ln -s ${shellQuote('target\nfile')} ${shellQuote('/work/link')}`,
+      });
+      expect(setup.exitCode).toBe(0);
+
+      await expect(
+        session.run({ command: 'realpath /work/link' }),
+      ).resolves.toMatchObject({
+        exitCode: 0,
+        stdout: `${target}\n`,
       });
     } finally {
       await session.destroy();

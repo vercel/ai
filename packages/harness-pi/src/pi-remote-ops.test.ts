@@ -4,6 +4,7 @@ import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
+import { shellQuote } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
 import { describe, expect, it, vi } from 'vitest';
@@ -95,7 +96,10 @@ function mockRealpathCommand(
   if (resolvedPath === null) {
     return { stdout: '__PI_REALPATH_NOT_FOUND__\n', exitCode: 2 };
   }
-  return { stdout: `${resolvedPath}\n` };
+  const frame = command.match(/realpath_marker='([^']+)'/)?.[1];
+  return {
+    stdout: frame == null ? `${resolvedPath}\n` : `${resolvedPath}${frame}`,
+  };
 }
 
 const hostWorkDir = '/tmp/pi-test-host';
@@ -239,6 +243,141 @@ describe('createPiRemoteOps with just-bash', () => {
       expect(grepCommands[0]).not.toContain('linked-docs');
     } finally {
       await session.destroy();
+    }
+  });
+
+  it('preserves trailing whitespace in canonical paths', async () => {
+    const { sandboxSession, sandbox, ops } = await makeJustBashOps();
+    const outsideReadPath = '/sandbox/outside/read-secret.txt';
+    const outsideWritePath = '/sandbox/outside/write-target.txt';
+    const insideReadPath = `${sandboxWorkDir}/read-target `;
+    const insideWritePath = `${sandboxWorkDir}/write-target `;
+
+    try {
+      await sandbox.writeTextFile({
+        path: outsideReadPath,
+        content: 'outside read\n',
+      });
+      await sandbox.writeTextFile({
+        path: outsideWritePath,
+        content: 'outside write\n',
+      });
+      await sandbox.writeTextFile({
+        path: insideReadPath,
+        content: 'inside read\n',
+      });
+      await sandbox.writeTextFile({
+        path: insideWritePath,
+        content: 'inside write\n',
+      });
+
+      const setup = await sandbox.run({
+        command: [
+          `ln -s ${shellQuote(outsideReadPath)} ${shellQuote(`${sandboxWorkDir}/read-target`)}`,
+          `ln -s ${shellQuote('read-target ')} ${shellQuote(`${sandboxWorkDir}/read-alias`)}`,
+          `ln -s ${shellQuote(outsideWritePath)} ${shellQuote(`${sandboxWorkDir}/write-target`)}`,
+          `ln -s ${shellQuote('write-target ')} ${shellQuote(`${sandboxWorkDir}/write-alias`)}`,
+        ].join(' && '),
+      });
+      expect(setup.exitCode).toBe(0);
+
+      await expect(ops.readBuffer('read-alias')).resolves.toEqual(
+        Buffer.from('inside read\n'),
+      );
+      await ops.writeFile('write-alias', 'updated inside\n');
+      await expect(
+        sandbox.readTextFile({ path: insideWritePath }),
+      ).resolves.toBe('updated inside\n');
+      await expect(
+        sandbox.readTextFile({ path: outsideWritePath }),
+      ).resolves.toBe('outside write\n');
+    } finally {
+      await sandboxSession.destroy();
+    }
+  });
+
+  it('preserves newlines in canonical paths', async () => {
+    const { sandboxSession, sandbox, ops } = await makeJustBashOps();
+    const insideReadPath = `${sandboxWorkDir}/read\nname`;
+    const insideWritePath = `${sandboxWorkDir}/write\nname`;
+
+    try {
+      await sandbox.writeTextFile({
+        path: insideReadPath,
+        content: 'newline read\n',
+      });
+      await sandbox.writeTextFile({
+        path: insideWritePath,
+        content: 'newline write\n',
+      });
+
+      const setup = await sandbox.run({
+        command: [
+          `ln -s ${shellQuote('read\nname')} ${shellQuote(`${sandboxWorkDir}/newline-read-alias`)}`,
+          `ln -s ${shellQuote('write\nname')} ${shellQuote(`${sandboxWorkDir}/newline-write-alias`)}`,
+        ].join(' && '),
+      });
+      expect(setup.exitCode).toBe(0);
+
+      await expect(ops.readBuffer('newline-read-alias')).resolves.toEqual(
+        Buffer.from('newline read\n'),
+      );
+      await ops.writeFile('newline-write-alias', 'updated newline\n');
+      await expect(
+        sandbox.readTextFile({ path: insideWritePath }),
+      ).resolves.toBe('updated newline\n');
+    } finally {
+      await sandboxSession.destroy();
+    }
+  });
+
+  it('preserves trailing newlines in canonical paths', async () => {
+    const { sandboxSession, sandbox, ops } = await makeJustBashOps();
+    const outsideReadPath = '/sandbox/outside/trailing-read.txt';
+    const outsideWritePath = '/sandbox/outside/trailing-write.txt';
+    const insideReadPath = `${sandboxWorkDir}/trailing-read\n`;
+    const insideWritePath = `${sandboxWorkDir}/trailing-write\n`;
+
+    try {
+      await sandbox.writeTextFile({
+        path: outsideReadPath,
+        content: 'outside trailing read\n',
+      });
+      await sandbox.writeTextFile({
+        path: outsideWritePath,
+        content: 'outside trailing write\n',
+      });
+      await sandbox.writeTextFile({
+        path: insideReadPath,
+        content: 'inside trailing read\n',
+      });
+      await sandbox.writeTextFile({
+        path: insideWritePath,
+        content: 'inside trailing write\n',
+      });
+
+      const setup = await sandbox.run({
+        command: [
+          `ln -s ${shellQuote(outsideReadPath)} ${shellQuote(`${sandboxWorkDir}/trailing-read`)}`,
+          `ln -s ${shellQuote('trailing-read\n')} ${shellQuote(`${sandboxWorkDir}/trailing-read-alias`)}`,
+          `ln -s ${shellQuote(outsideWritePath)} ${shellQuote(`${sandboxWorkDir}/trailing-write`)}`,
+          `ln -s ${shellQuote('trailing-write\n')} ${shellQuote(`${sandboxWorkDir}/trailing-write-alias`)}`,
+        ].join(' && '),
+      });
+      expect(setup.exitCode).toBe(0);
+
+      await expect(ops.readBuffer('trailing-read-alias')).resolves.toEqual(
+        Buffer.from('inside trailing read\n'),
+      );
+      await ops.writeFile('trailing-write-alias', 'updated trailing\n');
+      await expect(
+        sandbox.readTextFile({ path: insideWritePath }),
+      ).resolves.toBe('updated trailing\n');
+      await expect(
+        sandbox.readTextFile({ path: outsideWritePath }),
+      ).resolves.toBe('outside trailing write\n');
+    } finally {
+      await sandboxSession.destroy();
     }
   });
 
