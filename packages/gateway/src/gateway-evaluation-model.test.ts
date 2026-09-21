@@ -166,6 +166,65 @@ describe('GatewayEvaluationModel', () => {
       });
     });
 
+    it('should pass conditional model fallbacks into request body', async () => {
+      prepareJsonResponse();
+
+      const providerOptions = {
+        gateway: {
+          models: [
+            {
+              model: 'openai/gpt-5.6-sol',
+              when: {
+                any: [
+                  { question: 'tone', confidenceBelow: 0.6 },
+                  {
+                    question: 'correct',
+                    probabilityBetween: [0.4, 0.6],
+                  },
+                ],
+              },
+            },
+            'anthropic/claude-sonnet-5',
+          ],
+        },
+      } as const;
+
+      await createTestModel().doEvaluate({
+        state: testState,
+        questions: testQuestions,
+        providerOptions,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        providerOptions,
+      });
+    });
+
+    it('should reject invalid conditional model fallbacks', async () => {
+      prepareJsonResponse();
+
+      await expect(
+        createTestModel().doEvaluate({
+          state: testState,
+          questions: testQuestions,
+          providerOptions: {
+            gateway: {
+              models: [
+                {
+                  model: 'openai/gpt-5.6-sol',
+                  when: {
+                    question: 'correct',
+                    probabilityBetween: [0.7, 0.3],
+                  },
+                },
+              ],
+            },
+          },
+        }),
+      ).rejects.toThrow('invalid gateway provider options');
+      expect(server.calls).toHaveLength(0);
+    });
+
     it('should extract choice, score, and boolean answers', async () => {
       prepareJsonResponse({ answers: dummyAnswers });
 

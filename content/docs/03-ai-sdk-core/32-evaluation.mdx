@@ -266,7 +266,10 @@ For tests, use `Experimental_EvaluationMockModelV4` from `ai/test`.
 Evaluation currently returns one complete result for one shared state. It does
 not stream answers, perform multilabel classification, or batch unrelated
 states. Run separate calls for separate states. Provider support and judgment
-quality depend on the chosen model; the SDK does not choose a model automatically.
+quality depend on the chosen model. Core does not choose another model, but a
+provider can implement routing through its provider options. For example, AI
+Gateway supports conditional evaluation fallbacks under
+`providerOptions.gateway.models`.
 
 Runnable examples are in
 [`examples/ai-functions/src/evaluate`](https://github.com/vercel/ai/tree/main/examples/ai-functions/src/evaluate),
