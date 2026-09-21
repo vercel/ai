@@ -9,4 +9,4 @@
 "@ai-sdk/harness-github-copilot": patch
 ---
 
-feat(harness): allow consumers for bridge backed harnesses to configure `reconnect` timeout
+feat(harness): allow consumers of bridge backed harnesses to configure `reconnect` timeout
