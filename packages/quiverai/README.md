@@ -36,7 +36,7 @@ import { generateImage } from 'ai';
 import fs from 'fs';
 
 const { image } = await generateImage({
-  model: quiverai.image('arrow-1.1'),
+  model: quiverai.image('arrow-2'),
   prompt: 'A logo for the next AI Design startup',
 });
 

@@ -1,5 +1,104 @@
 # @ai-sdk/xai
 
+## 5.0.4
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+
+## 5.0.3
+
+### Patch Changes
+
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+
+## 5.0.2
+
+### Patch Changes
+
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/provider@4.0.17
+
+## 5.0.1
+
+### Patch Changes
+
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
+## 5.0.0
+
+### Major Changes
+
+- 1f20dba: feat(xai)!: remove Chat Completions API
+
+## 4.0.59
+
+### Patch Changes
+
+- 6e405ae: fix(xai): preserve `additionalProperties: false` in tool schemas
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/provider-utils@5.0.41
+
+## 4.0.58
+
+### Patch Changes
+
+- 5ec21a6: fix: reject unsupported batch request types
+- 7469a3b: feat: support image generation requests in batches
+- 0096850: fix(deepseek): preserve reasoning streams across empty tool-call deltas
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
+## 4.0.57
+
+### Patch Changes
+
+- 4b8c4fa: feat(xai): add batch cancellation and listing
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/provider-utils@5.0.39
+
+## 4.0.56
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/provider-utils@5.0.38
+
+## 4.0.55
+
+### Patch Changes
+
+- a4ba394: feat: support per-request models in batch
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+
 ## 4.0.54
 
 ### Patch Changes

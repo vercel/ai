@@ -90,6 +90,7 @@ export async function convertToOpenResponsesInput({
                         : {
                             image_url: `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
                           }),
+                      detail: getImageDetail(part, providerOptionsName),
                     });
                   } else if (part.data.type === 'url') {
                     userContent.push({
@@ -414,6 +415,7 @@ export async function convertToOpenResponsesInput({
                           contentParts.push({
                             type: 'input_image',
                             image_url: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
+                            detail: getImageDetail(item, providerOptionsName),
                           });
                         } else {
                           contentParts.push({
@@ -427,6 +429,7 @@ export async function convertToOpenResponsesInput({
                           contentParts.push({
                             type: 'input_image',
                             image_url: item.data.url.toString(),
+                            detail: getImageDetail(item, providerOptionsName),
                           });
                         } else {
                           contentParts.push({
@@ -588,6 +591,21 @@ function getProviderData(
     !Array.isArray(providerData)
     ? (providerData as Record<string, unknown>)
     : undefined;
+}
+
+function getImageDetail(
+  part: {
+    providerOptions?: Record<string, unknown>;
+  },
+  providerOptionsName: string,
+): InputImageContentParam['detail'] {
+  const imageDetail = getProviderData(part, providerOptionsName)?.imageDetail;
+
+  return imageDetail === 'low' ||
+    imageDetail === 'high' ||
+    imageDetail === 'auto'
+    ? imageDetail
+    : 'auto';
 }
 
 function parseReasoningSummary(

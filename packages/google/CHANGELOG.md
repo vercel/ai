@@ -1,5 +1,146 @@
 # @ai-sdk/google
 
+## 4.0.76
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+
+## 4.0.75
+
+### Patch Changes
+
+- e369c4d: fix(google): advertise the supported Gemini image per-call limit
+- 2b391f8: fix(google): ignore default prompt block reasons in non-streaming responses
+- 1284569: fix(google): include tool-use prompt tokens in input usage
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+
+## 4.0.74
+
+### Patch Changes
+
+- d4d96bf: Add `google.evaluationModel()` for experimental Choice, Score, and Boolean evaluations through Gemini structured output, preserving provider thinking options and validating exact labels and score bounds. Boolean answers contain prompted P(true) estimates validated to be in [0, 1]. Boolean estimates are not guaranteed to be calibrated; application code chooses thresholds.
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/provider@4.0.17
+
+## 4.0.73
+
+### Patch Changes
+
+- a22b5b2: fix(google): preserve prompt feedback and metadata across streaming chunks
+- 2cd80b3: Keep default Node.js downloads protected by DNS validation and connection pinning when frameworks or instrumentation wrap global fetch before or after the SDK loads.
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
+## 4.0.72
+
+### Patch Changes
+
+- 4a994ad: feat(google): realtime session options for Gemini 3.8 Live
+
+  Add `thinkingConfig` (`thinkingLevel`, `thinkingBudget`, `includeThoughts`) and
+  `defaultToolBehavior` to `GoogleRealtimeModelOptions`. `thinkingConfig` is merged
+  into the Live `setup.generationConfig`. Background-reasoning Live models such as
+  `gemini-3.8-live-extended-thinking` require exactly one of `thinkingLevel` or
+  `thinkingBudget`, so the provider sends `thinkingLevel: 'low'` on those models
+  when neither is set. `defaultToolBehavior` stamps `behavior` on every function
+  declaration in the setup.
+
+  Forward the Live `interactionStatus` and `waitingForInput` server messages as
+  custom events so applications can tell when a background-reasoning model is idle,
+  since `turnComplete` alone no longer means that.
+
+## 4.0.71
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/provider-utils@5.0.41
+
+## 4.0.70
+
+### Patch Changes
+
+- 2a32459: fix(google): preserve JSON Schema instead of converting to OpenAPI schema
+- d93e295: fix(google): keep a realtime `functionResponse.response` an object
+
+  Gemini types that field as a `google.protobuf.Struct`, which accepts an object and
+  nothing else. `onToolCall` returns `unknown` and `addToolOutput` takes `unknown`, so a
+  string, number, array or `null` tool result reached the wire unwrapped, Gemini closed
+  the socket with `1007`, and the close code was dropped on the way back so the
+  application saw a plain disconnect. A non-object result is now wrapped under the
+  `output` key the field's own docstring prescribes; an object is passed through
+  unchanged, as before.
+
+  An `output` that is not valid JSON no longer becomes `{}`. That branch told the model
+  the tool had returned an empty object, with nothing thrown and the socket still up, so
+  the answer was wrong with nothing to notice. The text is kept instead.
+
+## 4.0.69
+
+### Patch Changes
+
+- f88c7dc: fix(vertex): download tool result file URLs
+
+## 4.0.68
+
+### Patch Changes
+
+- 5ec21a6: fix: reject unsupported batch request types
+- 7469a3b: feat: support image generation requests in batches
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
+## 4.0.67
+
+### Patch Changes
+
+- ab6e9f9: feat(google): add batch cancellation and listing
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/provider-utils@5.0.39
+
+## 4.0.66
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/provider-utils@5.0.38
+
+## 4.0.65
+
+### Patch Changes
+
+- a4ba394: feat: support per-request models in batch
+- 45099da: Retry unclassified empty image results, preserve retry-attempt accounting, add provider-independent result retryability classification, and mark Google and Google Vertex prompt blocks as terminal.
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+
 ## 4.0.64
 
 ### Patch Changes

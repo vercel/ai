@@ -1,11 +1,12 @@
+import { APICallError, EmptyResponseBodyError } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { describe, expect, it } from 'vitest';
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import {
   HttpChatTransport,
   type HttpChatTransportInitOptions,
 } from './http-chat-transport';
 import type { UIMessage } from './ui-messages';
-import { describe, it, expect } from 'vitest';
 
 class MockHttpChatTransport extends HttpChatTransport<UIMessage> {
   constructor(options: HttpChatTransportInitOptions<UIMessage> = {}) {
@@ -179,27 +180,158 @@ describe('HttpChatTransport', () => {
         'test-value-fn',
       );
     });
+
+    it.each([
+      {
+        name: 'constructor headers',
+        createTransport: () =>
+          new MockHttpChatTransport({
+            api: 'http://localhost/api/chat',
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+            },
+          }),
+        requestHeaders: undefined,
+      },
+      {
+        name: 'per-request headers',
+        createTransport: () =>
+          new MockHttpChatTransport({
+            api: 'http://localhost/api/chat',
+          }),
+        requestHeaders: {
+          'Content-Type': 'application/json; charset=utf-8',
+        },
+      },
+      {
+        name: 'prepared request headers',
+        createTransport: () =>
+          new MockHttpChatTransport({
+            api: 'http://localhost/api/chat',
+            prepareSendMessagesRequest: () => ({
+              body: {},
+              headers: {
+                'Content-Type': 'application/json; charset=utf-8',
+              },
+            }),
+          }),
+        requestHeaders: undefined,
+      },
+    ])('should use custom content type from $name once', async testCase => {
+      server.urls['http://localhost/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [],
+      };
+
+      await testCase.createTransport().sendMessages({
+        chatId: 'c123',
+        messageId: 'm123',
+        trigger: 'submit-message',
+        messages: [],
+        abortSignal: new AbortController().signal,
+        headers: testCase.requestHeaders,
+      });
+
+      expect(server.calls[0].requestHeaders['content-type']).toBe(
+        'application/json; charset=utf-8',
+      );
+    });
   });
 
   describe('error response', () => {
-    it('should use a fallback message when sending messages returns an empty error body', async () => {
+    it('should throw APICallError when sending messages returns a non-OK response', async () => {
       const transport = new MockHttpChatTransport({
         fetch: async () => new Response(null, { status: 502 }),
       });
 
-      await expect(
-        transport.sendMessages({
+      const error = await transport
+        .sendMessages({
           chatId: 'c123',
           messageId: 'm123',
           trigger: 'submit-message',
           messages: [],
           abortSignal: new AbortController().signal,
-        }),
-      ).rejects.toThrow('Failed to fetch the chat response.');
+        })
+        .catch(error => error);
+
+      expect(APICallError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({
+        name: 'AI_APICallError',
+        message: 'Failed to fetch the chat response.',
+        url: '/api/chat',
+        requestBodyValues: undefined,
+        statusCode: 502,
+        responseBody: '',
+        isRetryable: true,
+      });
+    });
+
+    it('should throw EmptyResponseBodyError when sending messages returns no body', async () => {
+      const transport = new MockHttpChatTransport({
+        fetch: async () => new Response(null),
+      });
+
+      const error = await transport
+        .sendMessages({
+          chatId: 'c123',
+          messageId: 'm123',
+          trigger: 'submit-message',
+          messages: [],
+          abortSignal: new AbortController().signal,
+        })
+        .catch(error => error);
+
+      expect(EmptyResponseBodyError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({
+        name: 'AI_EmptyResponseBodyError',
+        message: 'The response body is empty.',
+      });
     });
   });
 
   describe('reconnectToStream', () => {
+    it.each([
+      {
+        api: '/api/chat?mode=demo',
+        expectedApi: '/api/chat/c123/stream?mode=demo',
+      },
+      {
+        api: 'https://example.com/api/chat?mode=demo&locale=en',
+        expectedApi:
+          'https://example.com/api/chat/c123/stream?mode=demo&locale=en',
+      },
+      {
+        api: '/api/chat?mode=a%2Fb',
+        expectedApi: '/api/chat/c123/stream?mode=a%2Fb',
+      },
+      {
+        api: '/api/chat?mode=demo#section',
+        expectedApi: '/api/chat/c123/stream?mode=demo#section',
+      },
+      {
+        api: '/api/chat#section',
+        expectedApi: '/api/chat/c123/stream#section',
+      },
+    ])(
+      'should append the reconnect path before query parameters and fragments for $api',
+      async ({ api, expectedApi }) => {
+        let receivedApi: RequestInfo | URL | undefined;
+        const transport = new MockHttpChatTransport({
+          api,
+          fetch: async input => {
+            receivedApi = input;
+            return new Response(null, { status: 204 });
+          },
+        });
+
+        await transport.reconnectToStream({
+          chatId: 'c123',
+        });
+
+        expect(receivedApi).toBe(expectedApi);
+      },
+    );
+
     it('should pass the abort signal to fetch', async () => {
       const abortController = new AbortController();
       let receivedAbortSignal: AbortSignal | null | undefined;
@@ -220,17 +352,50 @@ describe('HttpChatTransport', () => {
       expect(receivedAbortSignal).toBe(abortController.signal);
     });
 
-    it('should use a fallback message for an empty error body', async () => {
+    it('should throw APICallError for a non-OK response', async () => {
       const transport = new MockHttpChatTransport({
-        fetch: async () => new Response(null, { status: 502 }),
+        fetch: async () =>
+          new Response('Reconnect failed', {
+            status: 409,
+          }),
       });
 
-      await expect(
-        transport.reconnectToStream({
+      const error = await transport
+        .reconnectToStream({
           chatId: 'c123',
           abortSignal: new AbortController().signal,
-        }),
-      ).rejects.toThrow('Failed to fetch the chat response.');
+        })
+        .catch(error => error);
+
+      expect(APICallError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({
+        name: 'AI_APICallError',
+        message: 'Reconnect failed',
+        url: '/api/chat/c123/stream',
+        requestBodyValues: undefined,
+        statusCode: 409,
+        responseBody: 'Reconnect failed',
+        isRetryable: true,
+      });
+    });
+
+    it('should throw EmptyResponseBodyError when reconnecting returns no body', async () => {
+      const transport = new MockHttpChatTransport({
+        fetch: async () => new Response(null),
+      });
+
+      const error = await transport
+        .reconnectToStream({
+          chatId: 'c123',
+          abortSignal: new AbortController().signal,
+        })
+        .catch(error => error);
+
+      expect(EmptyResponseBodyError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({
+        name: 'AI_EmptyResponseBodyError',
+        message: 'The response body is empty.',
+      });
     });
   });
 });

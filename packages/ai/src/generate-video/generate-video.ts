@@ -3,6 +3,7 @@ import type {
   Experimental_VideoModelV4CallOptions,
   Experimental_VideoModelV4File,
   Experimental_VideoModelV4Result,
+  Experimental_VideoModelV4OperationStatusResult,
   Experimental_VideoModelV4OperationWebhook,
   Experimental_VideoModelV4FrameImage,
   Experimental_VideoModelV4FrameType,
@@ -287,7 +288,7 @@ export async function experimental_generateVideo({
     `ai/${VERSION}`,
   );
 
-  const { retry } = prepareRetries({
+  const { maxRetries, retry } = prepareRetries({
     maxRetries: maxRetriesArg,
     abortSignal,
   });
@@ -363,6 +364,7 @@ export async function experimental_generateVideo({
           callOptions,
           poll,
           webhook,
+          maxRetries,
           retry,
         });
       }
@@ -477,19 +479,21 @@ async function executeStartStatusFlow({
   callOptions,
   poll: pollConfig,
   webhook: webhookFactory,
+  maxRetries,
   retry,
 }: {
   model: Experimental_VideoModelV4;
   callOptions: Experimental_VideoModelV4CallOptions;
   poll?: GenerateVideoPollOptions;
   webhook?: GenerateVideoWebhookFactory;
+  maxRetries: number;
   retry: <OUTPUT>(fn: () => PromiseLike<OUTPUT>) => PromiseLike<OUTPUT>;
 }): Promise<Experimental_VideoModelV4Result> {
   // 1. If webhook and provider supports it, set up the webhook
   const earlyWarnings: Experimental_VideoModelV4Result['warnings'] = [];
   let webhookUrl: string | undefined;
   let webhookReceived:
-    | PromiseLike<Experimental_VideoModelV4OperationWebhook>
+    | Promise<Experimental_VideoModelV4OperationWebhook>
     | undefined;
 
   if (webhookFactory != null) {
@@ -497,8 +501,10 @@ async function executeStartStatusFlow({
       const result = await model.handleWebhookOption({
         webhook: webhookFactory,
       });
+      webhookReceived = Promise.resolve(result.received);
+      // Observe early failures without changing the error awaited after doStart.
+      webhookReceived.catch(() => {});
       webhookUrl = result.webhookUrl;
-      webhookReceived = result.received;
     } else {
       earlyWarnings.push({
         type: 'unsupported',
@@ -536,6 +542,9 @@ async function executeStartStatusFlow({
   const timeoutMs = pollConfig?.timeoutMs ?? 600_000;
   const delay = pollConfig?.delay ?? defaultDelay;
   const startTime = Date.now();
+  const pollingTimeoutError = new Error(
+    `Video generation timed out after ${timeoutMs}ms.`,
+  );
 
   if (webhookReceived != null) {
     // 3a. Webhook flow: wait for webhook, then get final status
@@ -552,23 +561,67 @@ async function executeStartStatusFlow({
       // 3b. Polling flow (also used when webhooks are not supported)
       const elapsedMs = Date.now() - startTime;
       if (elapsedMs >= timeoutMs) {
-        throw new Error(`Video generation timed out after ${timeoutMs}ms.`);
+        throw pollingTimeoutError;
       }
       await delay(Math.min(intervalMs, timeoutMs - elapsedMs), {
         abortSignal: callOptions.abortSignal,
       });
       if (Date.now() - startTime >= timeoutMs) {
-        throw new Error(`Video generation timed out after ${timeoutMs}ms.`);
+        throw pollingTimeoutError;
       }
     }
 
-    const statusResult = await retry(() =>
-      model.doStatus!({
-        operation: startResult.operation,
-        abortSignal: callOptions.abortSignal,
-        headers: callOptions.headers,
-      }),
-    );
+    let statusResult: Experimental_VideoModelV4OperationStatusResult;
+    if (webhookReceived != null) {
+      statusResult = await retry(() =>
+        model.doStatus!({
+          operation: startResult.operation,
+          abortSignal: callOptions.abortSignal,
+          headers: callOptions.headers,
+        }),
+      );
+    } else {
+      const statusTimeoutController = new AbortController();
+      const statusAbortSignal = mergeAbortSignals(
+        callOptions.abortSignal,
+        statusTimeoutController.signal,
+      );
+      const statusTimeoutId = setTimeout(
+        () => statusTimeoutController.abort(pollingTimeoutError),
+        timeoutMs - (Date.now() - startTime),
+      );
+      const statusTimeoutPromise = new Promise<never>((_, reject) => {
+        statusTimeoutController.signal.addEventListener(
+          'abort',
+          () => reject(pollingTimeoutError),
+          { once: true },
+        );
+      });
+      const { retry: statusRetry } = prepareRetries({
+        maxRetries,
+        abortSignal: statusAbortSignal,
+      });
+
+      try {
+        statusResult = await Promise.race([
+          statusRetry(() =>
+            model.doStatus!({
+              operation: startResult.operation,
+              abortSignal: statusAbortSignal,
+              headers: callOptions.headers,
+            }),
+          ),
+          statusTimeoutPromise,
+        ]);
+      } catch (error) {
+        if (statusTimeoutController.signal.aborted) {
+          throw pollingTimeoutError;
+        }
+        throw error;
+      } finally {
+        clearTimeout(statusTimeoutId);
+      }
+    }
 
     if (statusResult.status === 'error') {
       throw new Error(statusResult.error);

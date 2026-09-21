@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next';
+import { absoluteUrl } from '@/lib/geistdocs/site-url';
 
 const PRODUCTION_DOMAIN = 'ai-sdk.dev';
 
@@ -15,6 +16,6 @@ export default function robots(): MetadataRoute.Robots {
 
   return {
     rules: { userAgent: '*', allow: '/' },
-    sitemap: `https://${PRODUCTION_DOMAIN}/sitemap.xml`,
+    sitemap: absoluteUrl('/sitemap.xml'),
   };
 }

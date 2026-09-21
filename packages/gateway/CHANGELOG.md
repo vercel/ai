@@ -1,5 +1,129 @@
 # @ai-sdk/gateway
 
+## 4.0.87
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+
+## 4.0.86
+
+### Patch Changes
+
+- 4fdf51e: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+
+## 4.0.85
+
+### Patch Changes
+
+- 6982e9d: Include evaluation models in getAvailableModels() instead of filtering them out as unknown model types.
+- 6982e9d: feat(gateway): add experimental evaluation model support
+
+## 4.0.84
+
+### Patch Changes
+
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/provider@4.0.17
+
+## 4.0.83
+
+### Patch Changes
+
+- 0c9ab5a: chore(provider/gateway): update gateway model settings files
+- 2cce7da: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
+## 4.0.82
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/provider-utils@5.0.41
+
+## 4.0.81
+
+### Patch Changes
+
+- 23a0fff: chore(provider/gateway): update gateway model settings files
+
+## 4.0.80
+
+### Patch Changes
+
+- 7f76d83: fix(gateway): forward server-returned warnings on language model doGenerate
+
+  `generateText(...).warnings` through the gateway provider was always an empty
+  array: `doGenerate` spread the gateway response body and then overwrote the
+  server's `warnings` with a locally constructed empty array. The warnings the
+  gateway relays from the upstream provider (and gateway-originated warnings)
+  are now forwarded, matching the streaming path and every other modality.
+
+## 4.0.79
+
+### Patch Changes
+
+- 5ec21a6: fix: reject unsupported batch request types
+- 7469a3b: feat: support image generation requests in batches
+- dbd83a3: chore(provider/gateway): update gateway model settings files
+- 03f4e59: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
+## 4.0.78
+
+### Patch Changes
+
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/provider-utils@5.0.39
+
+## 4.0.77
+
+### Patch Changes
+
+- aa4cc14: Preserve image-result retryability returned by the AI Gateway.
+- f102e41: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/provider-utils@5.0.38
+
+## 4.0.76
+
+### Patch Changes
+
+- a4ba394: feat: support per-request models in batch
+- e9bf5e3: chore(provider/gateway): update gateway model settings files
+- 56c004c: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+
 ## 4.0.75
 
 ### Patch Changes

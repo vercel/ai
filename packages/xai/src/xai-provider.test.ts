@@ -1,24 +1,18 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { createXai } from './xai-provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
-import { XaiChatLanguageModel } from './xai-chat-language-model';
 import { XaiResponsesLanguageModel } from './responses/xai-responses-language-model';
 import { XaiImageModel } from './xai-image-model';
 import { XaiVideoModel } from './xai-video-model';
 import { XaiSpeechModel } from './xai-speech-model';
 import { XaiTranscriptionModel } from './xai-transcription-model';
 
-const XaiChatLanguageModelMock = XaiChatLanguageModel as unknown as Mock;
 const XaiResponsesLanguageModelMock =
   XaiResponsesLanguageModel as unknown as Mock;
 const XaiImageModelMock = XaiImageModel as unknown as Mock;
 const XaiVideoModelMock = XaiVideoModel as unknown as Mock;
 const XaiSpeechModelMock = XaiSpeechModel as unknown as Mock;
 const XaiTranscriptionModelMock = XaiTranscriptionModel as unknown as Mock;
-
-vi.mock('./xai-chat-language-model', () => ({
-  XaiChatLanguageModel: vi.fn(),
-}));
 
 vi.mock('./responses/xai-responses-language-model', () => ({
   XaiResponsesLanguageModel: vi.fn(),
@@ -102,32 +96,6 @@ describe('xAIProvider', () => {
 
       const model = provider(modelId);
       expect(model).toBeInstanceOf(XaiResponsesLanguageModel);
-    });
-  });
-
-  describe('chatModel', () => {
-    it('should construct a chat model with correct configuration', () => {
-      const provider = createXai();
-      const modelId = 'xai-chat-model';
-
-      const model = provider.chat(modelId);
-
-      expect(model).toBeInstanceOf(XaiChatLanguageModel);
-    });
-
-    it('should pass the includeUsage option to the chat model, to make sure usage is reported while streaming', () => {
-      const provider = createXai();
-      const modelId = 'xai-chat-model';
-
-      const model = provider.chat(modelId);
-
-      expect(model).toBeInstanceOf(XaiChatLanguageModel);
-
-      const constructorCall = XaiChatLanguageModelMock.mock.calls[0];
-
-      expect(constructorCall[0]).toBe(modelId);
-      expect(constructorCall[1].provider).toBe('xai.chat');
-      expect(constructorCall[1].baseURL).toBe('https://api.x.ai/v1');
     });
   });
 

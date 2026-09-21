@@ -3,7 +3,11 @@ import { convertBase64ToUint8Array } from './uint8-utils';
 const imageMediaTypeSignatures = [
   {
     mediaType: 'image/gif' as const,
-    bytesPrefix: [0x47, 0x49, 0x46], // GIF
+    bytesPrefix: [0x47, 0x49, 0x46, 0x38, 0x37, 0x61], // GIF87a
+  },
+  {
+    mediaType: 'image/gif' as const,
+    bytesPrefix: [0x47, 0x49, 0x46, 0x38, 0x39, 0x61], // GIF89a
   },
   {
     mediaType: 'image/png' as const,
@@ -32,7 +36,7 @@ const imageMediaTypeSignatures = [
   },
   {
     mediaType: 'image/bmp' as const,
-    bytesPrefix: [0x42, 0x4d],
+    bytesPrefix: [0x42, 0x4d, null, null, null, null, 0x00, 0x00, 0x00, 0x00],
   },
   {
     mediaType: 'image/tiff' as const,
@@ -45,13 +49,35 @@ const imageMediaTypeSignatures = [
   {
     mediaType: 'image/avif' as const,
     bytesPrefix: [
-      0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70, 0x61, 0x76, 0x69, 0x66,
+      0x00,
+      0x00,
+      0x00,
+      null, // box size (variable)
+      0x66,
+      0x74,
+      0x79,
+      0x70,
+      0x61,
+      0x76,
+      0x69,
+      0x66,
     ],
   },
   {
     mediaType: 'image/heic' as const,
     bytesPrefix: [
-      0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63,
+      0x00,
+      0x00,
+      0x00,
+      null, // box size (variable)
+      0x66,
+      0x74,
+      0x79,
+      0x70,
+      0x68,
+      0x65,
+      0x69,
+      0x63,
     ],
   },
 ] as const;
@@ -64,6 +90,22 @@ const documentMediaTypeSignatures = [
 ] as const;
 
 const audioMediaTypeSignaturesWithoutMp4 = [
+  {
+    mediaType: 'audio/aac' as const,
+    bytesPrefix: [0xff, 0xf0], // MPEG-4 ADTS with CRC
+  },
+  {
+    mediaType: 'audio/aac' as const,
+    bytesPrefix: [0xff, 0xf1], // MPEG-4 ADTS without CRC
+  },
+  {
+    mediaType: 'audio/aac' as const,
+    bytesPrefix: [0xff, 0xf8], // MPEG-2 ADTS with CRC
+  },
+  {
+    mediaType: 'audio/aac' as const,
+    bytesPrefix: [0xff, 0xf9], // MPEG-2 ADTS without CRC
+  },
   {
     mediaType: 'audio/mpeg' as const,
     bytesPrefix: [0xff, 0xfb],

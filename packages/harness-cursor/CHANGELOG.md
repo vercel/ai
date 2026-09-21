@@ -1,5 +1,141 @@
 # @ai-sdk/harness-cursor
 
+## 1.0.30
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+  - @ai-sdk/harness@1.0.117
+  - @ai-sdk/harness-acp@1.0.55
+
+## 1.0.29
+
+### Patch Changes
+
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+  - @ai-sdk/harness@1.0.116
+  - @ai-sdk/harness-acp@1.0.54
+
+## 1.0.28
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.115
+- @ai-sdk/harness-acp@1.0.53
+
+## 1.0.27
+
+### Patch Changes
+
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/harness@1.0.114
+  - @ai-sdk/harness-acp@1.0.52
+
+## 1.0.26
+
+### Patch Changes
+
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/harness@1.0.113
+  - @ai-sdk/harness-acp@1.0.51
+
+## 1.0.25
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.112
+- @ai-sdk/provider-utils@5.0.41
+- @ai-sdk/harness-acp@1.0.50
+
+## 1.0.24
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.111
+- @ai-sdk/harness-acp@1.0.49
+
+## 1.0.23
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.110
+- @ai-sdk/harness-acp@1.0.48
+
+## 1.0.22
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.109
+- @ai-sdk/harness-acp@1.0.47
+
+## 1.0.21
+
+### Patch Changes
+
+- cdc12a1: feat(harness): add support for using adapter-native subscriptions where available
+- Updated dependencies [4d1bf28]
+- Updated dependencies [cdc12a1]
+- Updated dependencies [d70a334]
+- Updated dependencies [81ba84c]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/harness@1.0.108
+  - @ai-sdk/harness-acp@1.0.46
+  - @ai-sdk/provider-utils@5.0.40
+
+## 1.0.20
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.107
+- @ai-sdk/provider-utils@5.0.39
+- @ai-sdk/harness-acp@1.0.45
+
+## 1.0.19
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.106
+- @ai-sdk/provider-utils@5.0.38
+- @ai-sdk/harness-acp@1.0.44
+
+## 1.0.18
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.105
+- @ai-sdk/harness-acp@1.0.43
+
+## 1.0.17
+
+### Patch Changes
+
+- c04ded8: chore(harness): remove formerly deprecated `model` and `modelId` config on harness adapter settings
+- Updated dependencies [c04ded8]
+  - @ai-sdk/harness-acp@1.0.42
+  - @ai-sdk/harness@1.0.104
+
+## 1.0.16
+
+### Patch Changes
+
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider-utils@5.0.37
+  - @ai-sdk/harness@1.0.103
+  - @ai-sdk/harness-acp@1.0.41
+
 ## 1.0.15
 
 ### Patch Changes

@@ -1,5 +1,157 @@
 # @ai-sdk/google-vertex
 
+## 5.0.88
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+  - @ai-sdk/anthropic@4.0.58
+  - @ai-sdk/google@4.0.76
+  - @ai-sdk/openai-compatible@3.0.53
+
+## 5.0.87
+
+### Patch Changes
+
+- e369c4d: fix(google): advertise the supported Gemini image per-call limit
+- Updated dependencies [e369c4d]
+- Updated dependencies [2b391f8]
+- Updated dependencies [1284569]
+- Updated dependencies [0455398]
+  - @ai-sdk/google@4.0.75
+  - @ai-sdk/provider-utils@5.0.44
+  - @ai-sdk/anthropic@4.0.57
+  - @ai-sdk/openai-compatible@3.0.52
+
+## 5.0.86
+
+### Patch Changes
+
+- Updated dependencies [d4d96bf]
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/anthropic@4.0.56
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/google@4.0.74
+  - @ai-sdk/provider@4.0.17
+  - @ai-sdk/openai-compatible@3.0.51
+
+## 5.0.85
+
+### Patch Changes
+
+- Updated dependencies [a22b5b2]
+- Updated dependencies [132bdae]
+- Updated dependencies [11b4c2d]
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/google@4.0.73
+  - @ai-sdk/anthropic@4.0.55
+  - @ai-sdk/openai-compatible@3.0.50
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
+## 5.0.84
+
+### Patch Changes
+
+- c83bc67: feat: add Claude Fable 5.1 model IDs to Bedrock and Vertex providers
+- Updated dependencies [4a994ad]
+  - @ai-sdk/google@4.0.72
+
+## 5.0.83
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/anthropic@4.0.54
+  - @ai-sdk/google@4.0.71
+  - @ai-sdk/openai-compatible@3.0.49
+  - @ai-sdk/provider-utils@5.0.41
+
+## 5.0.82
+
+### Patch Changes
+
+- Updated dependencies [2a32459]
+- Updated dependencies [d93e295]
+  - @ai-sdk/google@4.0.70
+
+## 5.0.81
+
+### Patch Changes
+
+- f88c7dc: fix(vertex): download tool result file URLs
+- Updated dependencies [f88c7dc]
+  - @ai-sdk/google@4.0.69
+
+## 5.0.80
+
+### Patch Changes
+
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [e4292e7]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/anthropic@4.0.53
+  - @ai-sdk/google@4.0.68
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+  - @ai-sdk/openai-compatible@3.0.48
+
+## 5.0.79
+
+### Patch Changes
+
+- Updated dependencies [9942196]
+- Updated dependencies [ab6e9f9]
+- Updated dependencies [5a7e647]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/google@4.0.67
+  - @ai-sdk/anthropic@4.0.52
+  - @ai-sdk/openai-compatible@3.0.47
+  - @ai-sdk/provider-utils@5.0.39
+
+## 5.0.78
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+- Updated dependencies [ccb8952]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/openai-compatible@3.0.46
+  - @ai-sdk/anthropic@4.0.51
+  - @ai-sdk/google@4.0.66
+  - @ai-sdk/provider-utils@5.0.38
+
+## 5.0.77
+
+### Patch Changes
+
+- 45099da: Retry unclassified empty image results, preserve retry-attempt accounting, add provider-independent result retryability classification, and mark Google and Google Vertex prompt blocks as terminal.
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/anthropic@4.0.50
+  - @ai-sdk/google@4.0.65
+  - @ai-sdk/provider-utils@5.0.37
+  - @ai-sdk/openai-compatible@3.0.45
+
 ## 5.0.76
 
 ### Patch Changes
