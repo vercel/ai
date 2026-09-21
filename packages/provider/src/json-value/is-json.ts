@@ -15,7 +15,9 @@ export function isJSONValue(value: unknown): value is JSONValue {
   if (
     value === null ||
     typeof value === 'string' ||
-    typeof value === 'number' ||
+    (typeof value === 'number' &&
+      !Number.isNaN(value) &&
+      Number.isFinite(value)) ||
     typeof value === 'boolean'
   ) {
     return true;
