@@ -631,6 +631,75 @@ describe('OpenResponsesLanguageModel', () => {
       };
     }
 
+    it('should complete schema-less JSON output', async () => {
+      const errorFixture = fs.readFileSync(
+        'src/responses/__fixtures__/openai-schema-less-json-error.1.json',
+        'utf8',
+      );
+      const successFixture = fs
+        .readFileSync(
+          'src/responses/__fixtures__/openai-schema-less-json.1.chunks.txt',
+          'utf8',
+        )
+        .split('\n')
+        .filter(line => line.trim().length > 0)
+        .map(line => `data: ${line}\n\n`)
+        .concat('data: [DONE]\n\n')
+        .join('');
+      let requestBody: {
+        text?: {
+          format?: {
+            type?: string;
+            name?: string;
+            schema?: unknown;
+          };
+        };
+      };
+
+      const model = new OpenResponsesLanguageModel('gpt-4o-mini', {
+        provider: 'openai',
+        providerOptionsName: 'openai',
+        url: URL,
+        headers: () => ({}),
+        generateId: mockId(),
+        fetch: async (_input, init) => {
+          requestBody = JSON.parse(String(init?.body));
+          const format = requestBody.text?.format;
+
+          if (
+            format?.type === 'json_schema' &&
+            (format.name == null || format.schema == null)
+          ) {
+            return new Response(errorFixture, {
+              status: 400,
+              headers: { 'content-type': 'application/json' },
+            });
+          }
+
+          return new Response(successFixture, {
+            status: 200,
+            headers: { 'content-type': 'text/event-stream' },
+          });
+        },
+      });
+
+      const result = await model.doStream({
+        prompt: TEST_PROMPT,
+        responseFormat: { type: 'json' },
+      });
+      const parts = await convertReadableStreamToArray(result.stream);
+
+      expect(
+        parts
+          .filter(part => part.type === 'text-delta')
+          .map(part => part.delta)
+          .join(''),
+      ).toBe('{"ok": true}');
+      expect(requestBody!.text?.format).toStrictEqual({
+        type: 'json_object',
+      });
+    });
+
     describe('basic generation', () => {
       it('should stream content', async () => {
         prepareChunksFixtureResponse('lmstudio-basic.1');
