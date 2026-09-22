@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21124,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/use-object-overlapping-stop.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/use-object-overlapping-stop.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #21124 REPRODUCED: finishing an older useObject request disables stop() and clear() for the newer request"
+  }
+}
