@@ -87,18 +87,17 @@ export function createQuiverAI(
       }),
     ) ?? defaultBaseURL;
 
-  const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'QUIVERAI_API_KEY',
-          description: 'QuiverAI',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk/quiverai/${VERSION}`,
-    );
+  const getHeaders = () => ({
+    Authorization: `Bearer ${loadApiKey({
+      apiKey: options.apiKey,
+      environmentVariableName: 'QUIVERAI_API_KEY',
+      description: 'QuiverAI',
+    })}`,
+    ...options.headers,
+  });
+
+  const getImageHeaders = () =>
+    withUserAgentSuffix(getHeaders(), `ai-sdk/quiverai/${VERSION}`);
 
   const responsesProvider = createOpenResponses({
     name: 'quiverai',
@@ -121,7 +120,7 @@ export function createQuiverAI(
     new QuiverAIImageModel(modelId, {
       provider: 'quiverai.image',
       baseURL,
-      headers: getHeaders,
+      headers: getImageHeaders,
       fetch: options.fetch,
     });
 

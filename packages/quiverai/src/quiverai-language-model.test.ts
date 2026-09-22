@@ -2,6 +2,7 @@ import {
   InvalidArgumentError,
   type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
+import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
@@ -131,6 +132,9 @@ describe('QuiverAI language model', () => {
       'content-type': 'application/json',
     });
     expect(server.calls[0].requestUserAgent).toContain('ai-sdk/quiverai/');
+    expect(
+      server.calls[0].requestUserAgent?.match(/ai-sdk\/quiverai\//g),
+    ).toHaveLength(1);
     expect(await server.calls[0].requestBodyJson).toEqual({
       model: 'arrow-2',
       input: [
@@ -336,6 +340,143 @@ describe('QuiverAI language model', () => {
       },
       providerMetadata: undefined,
     });
+  });
+
+  it('streams complete custom tool calls before execution', async () => {
+    const completedResponse = createResponse({
+      output: [
+        {
+          id: 'ct_1',
+          type: 'custom_tool_call',
+          status: 'completed',
+          call_id: 'call_custom_1',
+          name: 'write_svg',
+          input: '<svg />',
+        },
+      ],
+    });
+    server.urls[URL].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          type: 'response.output_item.added',
+          sequence_number: 0,
+          output_index: 0,
+          item: {
+            id: 'ct_1',
+            type: 'custom_tool_call',
+            status: 'in_progress',
+            call_id: 'call_custom_1',
+            name: 'write_svg',
+            input: '',
+          },
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          type: 'response.custom_tool_call_input.delta',
+          sequence_number: 1,
+          item_id: 'ct_1',
+          output_index: 0,
+          delta: '<svg',
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          type: 'response.custom_tool_call_input.delta',
+          sequence_number: 2,
+          item_id: 'ct_1',
+          output_index: 0,
+          delta: ' />',
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          type: 'response.output_item.done',
+          sequence_number: 3,
+          output_index: 0,
+          item: completedResponse.output[0],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          type: 'response.completed',
+          sequence_number: 4,
+          response: completedResponse,
+        })}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const result = await createQuiverAI({ apiKey: 'test-api-key' })(
+      'arrow-2',
+    ).doStream({ prompt });
+    const parts = await convertReadableStreamToArray(result.stream);
+
+    expect(parts).toContainEqual({
+      type: 'tool-input-start',
+      id: 'call_custom_1',
+      toolName: 'write_svg',
+    });
+    expect(
+      parts.filter(part => part.type === 'tool-input-delta'),
+    ).toStrictEqual([
+      {
+        type: 'tool-input-delta',
+        id: 'call_custom_1',
+        delta: '<svg',
+      },
+      {
+        type: 'tool-input-delta',
+        id: 'call_custom_1',
+        delta: ' />',
+      },
+    ]);
+    expect(parts).toContainEqual({
+      type: 'tool-input-end',
+      id: 'call_custom_1',
+    });
+    expect(parts).toContainEqual({
+      type: 'tool-call',
+      toolCallId: 'call_custom_1',
+      toolName: 'write_svg',
+      input: '"<svg />"',
+      providerMetadata: { quiverai: { itemId: 'ct_1' } },
+    });
+    expect(parts.at(-1)).toMatchObject({
+      type: 'finish',
+      finishReason: { unified: 'tool-calls' },
+    });
+  });
+
+  it('cancels a Responses request with the supplied abort signal', async () => {
+    let requestStarted: () => void;
+    const started = new Promise<void>(resolve => {
+      requestStarted = resolve;
+    });
+    const fetch: FetchFunction = async (_input, init) => {
+      requestStarted();
+
+      return new Promise<Response>((_resolve, reject) => {
+        if (init?.signal == null) {
+          reject(new Error('Expected an abort signal'));
+          return;
+        }
+
+        init.signal.addEventListener(
+          'abort',
+          () => reject(init.signal?.reason),
+          { once: true },
+        );
+      });
+    };
+    const abortController = new AbortController();
+    const abortReason = new DOMException('Request cancelled', 'AbortError');
+
+    const request = createQuiverAI({
+      apiKey: 'test-api-key',
+      fetch,
+    })('arrow-2').doGenerate({
+      prompt,
+      abortSignal: abortController.signal,
+    });
+
+    await started;
+    abortController.abort(abortReason);
+
+    await expect(request).rejects.toBe(abortReason);
   });
 
   it('supports caller-executed custom tools', async () => {
