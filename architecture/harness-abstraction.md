@@ -210,12 +210,16 @@ Resolve credentials on the host when possible, pass only what the runtime needs,
 
 A harness distinguishes between resuming a session and continuing a turn.
 
-**Resume a session** means re-opening an existing harness session before starting the next user turn.
-The previous turn is already complete, so the adapter only needs enough state to restore the runtime's conversation, workspace, and configuration.
+- **Resume a session** means re-opening an existing harness session from `resumeFrom`.
+  The resume state may represent a between-turn handoff or include a nested `continueFrom` for an unfinished turn.
+  When `continueFrom` is present, that turn must be continued before a new user turn can begin (see below).
+- **Continue a turn** means recovering an in-flight turn that was interrupted after work had already started.
+  The adapter must continue from a precise point in the active turn when possible.
+  Bridge-backed adapters may be able to attach to a live runtime and replay buffered events; host-driven adapters may need to persist state and re-drive part of the work.
 
-**Continue a turn** means recovering an in-flight turn that was interrupted after work had already started.
-The adapter must resume from a precise point in the active turn when possible.
-Bridge-backed adapters may be able to attach to a live runtime and replay buffered events; host-driven adapters may need to persist state and re-drive part of the work.
+The harness adapter will return a `continueFrom` payload if a turn that gets interrupted/suspended in-flight. If the session is then also detached from or stopped, it will additionally return `resumeFrom` with the `continueFrom` attached to it.
 
 Adapters should return lifecycle payloads that are small, serializable, and specific to their `harnessId`.
 If the payload has meaningful structure, expose `lifecycleStateSchema` so imported state can be validated before use.
+
+_**Important:** While "resume" and "continue" are usually interchangeable terms, for clarity we must always use "resume a session", but "continue a turn". The verbs must not be used interchangeably in the harness abstraction layer._
