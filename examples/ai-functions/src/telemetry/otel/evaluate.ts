@@ -1,5 +1,5 @@
-import { openai } from '@ai-sdk/openai';
 import { OpenTelemetry } from '@ai-sdk/otel';
+import { typeSafeAi } from '@ai-sdk/typesafe-ai';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
 import { experimental_evaluate, registerTelemetry } from 'ai';
@@ -18,7 +18,7 @@ registerTelemetry(
 run(async () => {
   try {
     const result = await experimental_evaluate({
-      model: openai.evaluationModel('gpt-5.6-luna'),
+      model: typeSafeAi.evaluationModel('jev-latest'),
       state: {
         message:
           'I was charged twice. A refund is pending, so I can keep working.',

@@ -1,4 +1,4 @@
-import { openai } from '@ai-sdk/openai';
+import { typeSafeAi } from '@ai-sdk/typesafe-ai';
 import { tracingChannel } from 'node:diagnostics_channel';
 import {
   AI_SDK_TELEMETRY_TRACING_CHANNEL,
@@ -24,7 +24,7 @@ tracingChannel(AI_SDK_TELEMETRY_TRACING_CHANNEL).subscribe({
 
 run(async () => {
   const result = await experimental_evaluate({
-    model: openai.evaluationModel('gpt-5.6-luna'),
+    model: typeSafeAi.evaluationModel('jev-latest'),
     state: {
       message:
         'I was charged twice. A refund is pending, so I can keep working.',
