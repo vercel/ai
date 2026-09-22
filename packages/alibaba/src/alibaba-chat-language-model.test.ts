@@ -74,6 +74,91 @@ describe('doGenerate', () => {
     });
   });
 
+  describe('response format', () => {
+    const schema = {
+      type: 'object' as const,
+      properties: {
+        city: { type: 'string' as const },
+      },
+      required: ['city'],
+      additionalProperties: false,
+    };
+
+    beforeEach(() => {
+      prepareJsonFixtureResponse('alibaba-text');
+    });
+
+    it('uses JSON Schema mode for supported Qwen models', async () => {
+      const schemaModel = provider.chatModel('qwen3.8-flash');
+
+      const { warnings } = await schemaModel.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: { type: 'json', schema },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        model: 'qwen3.8-flash',
+        messages: TEST_PROMPT,
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'response',
+            schema,
+          },
+        },
+      });
+      expect(warnings).toStrictEqual([]);
+    });
+
+    it('uses JSON Object mode and injects the schema for other models', async () => {
+      const jsonObjectModel = provider.chatModel('deepseek-v4.1-flash');
+
+      const { warnings } = await jsonObjectModel.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: { type: 'json', schema },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        model: 'deepseek-v4.1-flash',
+        messages: [
+          {
+            role: 'system',
+            content:
+              'JSON schema:\n' +
+              JSON.stringify(schema) +
+              '\nYou MUST answer with a JSON object that matches the JSON schema above.',
+          },
+          ...TEST_PROMPT,
+        ],
+        response_format: { type: 'json_object' },
+      });
+      expect(warnings).toStrictEqual([
+        {
+          type: 'unsupported-setting',
+          setting: 'responseFormat',
+          details:
+            'Alibaba does not support JSON Schema output for model deepseek-v4.1-flash. JSON Object mode is used instead. The schema was injected into the system message and will only be validated locally.',
+        },
+      ]);
+    });
+
+    it('injects a JSON instruction for schema-less JSON Object mode', async () => {
+      const { warnings } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: { type: 'json' },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        messages: [
+          { role: 'system', content: 'You MUST answer with JSON.' },
+          ...TEST_PROMPT,
+        ],
+        response_format: { type: 'json_object' },
+      });
+      expect(warnings).toStrictEqual([]);
+    });
+  });
+
   describe('tool call', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('alibaba-tool-call');
