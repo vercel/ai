@@ -1,5 +1,24 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.121
+
+### Patch Changes
+
+- 2adbb77: feat(harness): update underlying harness SDKs to their latest versions
+- Updated dependencies [125f493]
+  - @ai-sdk/harness@1.0.119
+
+## 1.0.120
+
+### Patch Changes
+
+- d975097: feat(harness): add `AbortSignal` to `SandboxChannel.connect`, plus a `sleep()` helper function
+- 01a671a: fix(harness-opencode): allow external directory access with `permissionMode: "allow-all"`
+- 80b969d: feat(harness-opencode): allow consumers to configure bridge reconnect timing
+- Updated dependencies [d975097]
+- Updated dependencies [b2baeba]
+  - @ai-sdk/harness@1.0.118
+
 ## 1.0.119
 
 ### Patch Changes

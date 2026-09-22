@@ -12,27 +12,42 @@ import {
  * names in JSON objects are always strings, so string-based constraints can be
  * left to client-side validation after removing the keyword. This
  * compatibility layer does not rewrite non-string property name schemas.
+ *
+ * OpenAI also does not support regex lookaround in JSON Schema `pattern`
+ * values. Those patterns are removed and left to client-side validation.
  */
 export function normalizeOpenAIJsonSchema(schema: JSONSchema7): {
   schema: JSONSchema7;
   warnings: SharedV4Warning[];
 } {
   let removedPropertyNames = false;
+  let removedLookaroundPattern = false;
 
   const normalizedSchema = normalizeSchema(schema);
 
+  const warnings: SharedV4Warning[] = [];
+
+  if (removedPropertyNames) {
+    warnings.push({
+      type: 'compatibility',
+      feature: 'JSON Schema propertyNames',
+      details:
+        'OpenAI does not support JSON Schema propertyNames. It was removed before sending the schema, so OpenAI will not enforce property-name constraints.',
+    });
+  }
+
+  if (removedLookaroundPattern) {
+    warnings.push({
+      type: 'compatibility',
+      feature: 'JSON Schema pattern with regex lookaround',
+      details:
+        'OpenAI does not support regex lookaround in JSON Schema patterns. The pattern was removed before sending the schema, so OpenAI will not enforce that constraint.',
+    });
+  }
+
   return {
     schema: normalizedSchema,
-    warnings: removedPropertyNames
-      ? [
-          {
-            type: 'compatibility',
-            feature: 'JSON Schema propertyNames',
-            details:
-              'OpenAI does not support JSON Schema propertyNames. It was removed before sending the schema, so OpenAI will not enforce property-name constraints.',
-          },
-        ]
-      : [],
+    warnings,
   };
 
   function normalizeSchema(schema: JSONSchema7): JSONSchema7 {
@@ -54,6 +69,14 @@ export function normalizeOpenAIJsonSchema(schema: JSONSchema7): {
 
     const normalizedSchema = { ...schema };
     delete normalizedSchema.propertyNames;
+
+    if (
+      normalizedSchema.pattern != null &&
+      containsRegexLookaround(normalizedSchema.pattern)
+    ) {
+      delete normalizedSchema.pattern;
+      removedLookaroundPattern = true;
+    }
 
     if (normalizedSchema.properties != null) {
       normalizedSchema.properties = normalizeSchemaRecord(
@@ -158,4 +181,50 @@ export function normalizeOpenAIJsonSchema(schema: JSONSchema7): {
       ? definition
       : normalizeSchema(definition);
   }
+}
+
+function containsRegexLookaround(pattern: string): boolean {
+  let escaped = false;
+  let inCharacterClass = false;
+
+  for (let index = 0; index < pattern.length; index++) {
+    const character = pattern[index];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (character === '\\') {
+      escaped = true;
+      continue;
+    }
+
+    if (character === '[') {
+      inCharacterClass = true;
+      continue;
+    }
+
+    if (character === ']') {
+      inCharacterClass = false;
+      continue;
+    }
+
+    if (!inCharacterClass && character === '(' && pattern[index + 1] === '?') {
+      const lookaroundPrefix = pattern[index + 2];
+
+      if (lookaroundPrefix === '=' || lookaroundPrefix === '!') {
+        return true;
+      }
+
+      if (
+        lookaroundPrefix === '<' &&
+        (pattern[index + 3] === '=' || pattern[index + 3] === '!')
+      ) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }

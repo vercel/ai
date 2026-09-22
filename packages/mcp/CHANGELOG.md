@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 2.0.55
+
+### Patch Changes
+
+- 7fc2bc1: fix(mcp): preserve pre-registered OAuth clients after client authentication errors and require explicit provider provenance before replacing dynamically registered credentials
+
 ## 2.0.54
 
 ### Patch Changes

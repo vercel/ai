@@ -1,5 +1,28 @@
 # ai
 
+## 7.0.109
+
+### Patch Changes
+
+- 0343bb1: fix(ai): keep replacement completion requests loading and cancellable when an earlier request settles
+- 2b105fa: fix(ai): preserve overlapping text blocks in reasoning extraction streams
+- 125f493: fix(harness): forward validated `toolsContext` to host-executed tools in alignment with `ToolLoopAgent`
+
+## 7.0.108
+
+### Patch Changes
+
+- 3f6852a: fix(ai): prevent direct execution of tools governed by tool callers
+- 6317504: fix(ai): stop pending tool-call repairs when generation is cancelled
+- 3cb2dcd: fix(ai): preserve file data when adapting v3 language models
+- ccf98e7: fix(ai): prevent `streamText` from executing tool calls that violate tool choice
+- Updated dependencies [20dd00a]
+- Updated dependencies [7cf7cee]
+- Updated dependencies [c42576a]
+- Updated dependencies [d85dcf5]
+- Updated dependencies [fd9b3f3]
+  - @ai-sdk/gateway@4.0.88
+
 ## 7.0.107
 
 ### Patch Changes
