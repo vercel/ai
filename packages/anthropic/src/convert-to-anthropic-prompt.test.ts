@@ -1491,6 +1491,114 @@ describe('tool messages', () => {
 });
 
 describe('assistant messages', () => {
+  it('should omit empty compaction blocks', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'user content' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: '',
+              providerOptions: { anthropic: { type: 'compaction' } },
+            },
+            { type: 'text', text: 'assistant content' },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toEqual([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'user content' }],
+      },
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'assistant content' }],
+      },
+    ]);
+  });
+
+  it('should omit an assistant message that only contains an empty compaction block', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'first user message' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: '',
+              providerOptions: { anthropic: { type: 'compaction' } },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'second user message' }],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toEqual([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'first user message' }],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'second user message' }],
+      },
+    ]);
+  });
+
+  it('should preserve non-empty compaction blocks', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'Summary of the conversation',
+              providerOptions: { anthropic: { type: 'compaction' } },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'compaction',
+            content: 'Summary of the conversation',
+            cache_control: undefined,
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should preserve citations on assistant text', async () => {
     const result = await convertToAnthropicPrompt({
       prompt: [
