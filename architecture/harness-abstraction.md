@@ -182,8 +182,12 @@ flowchart LR
 Bridge-backed harnesses must bootstrap the sandbox that is passed to them.
 That bootstrap can be declared as a [`HarnessV1Bootstrap`](../packages/harness/src/v1/harness-v1-bootstrap.ts) recipe so `HarnessAgent` and sandbox providers can apply it consistently.
 
-To prewarm or preconfigure a sandbox for specific harnesses, call [`prepareSandboxForHarness()`](../packages/harness/src/agent/prepare-sandbox-for-harness.ts) against the sandbox session, then commit, snapshot, or otherwise persist the modified sandbox image.
-Future `HarnessAgent` sessions compute the same identity from the harness bootstrap plan and pass it to the sandbox provider; snapshot-capable providers can return the persisted image for that identity and avoid their one-time bootstrap hook.
+To prewarm a sandbox provider's reusable template for one harness, call [`prepareHarnessSandboxTemplate()`](../packages/harness/src/agent/prepare-harness-sandbox-template.ts).
+It uses the same bootstrap plan and identity that future `HarnessAgent` sessions pass to the sandbox provider, allowing snapshot-capable providers to reuse the prepared template and avoid their one-time bootstrap hook.
+
+To prepare a caller-owned sandbox for one or more harnesses, call [`prepareSandboxForHarness()`](../packages/harness/src/agent/prepare-sandbox-for-harness.ts) against the sandbox session, then snapshot or otherwise persist it yourself.
+Later, pass a sandbox created from that artifact to `HarnessAgent`; matching per-recipe bootstrap markers prevent already applied recipes from running again.
+The aggregate preparation identity returned by `prepareSandboxForHarness()` is caller metadata and is not the identity that `HarnessAgent` passes to a sandbox provider.
 
 ## Filesystem Boundaries
 
