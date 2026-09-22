@@ -122,12 +122,15 @@ export function convertToLanguageModelMessage({
                 const { data, mediaType } = convertToLanguageModelV2DataContent(
                   part.data,
                 );
+                const originalUrl = getOriginalUrl(part.data, data);
+
                 return {
                   type: 'file',
                   data,
                   filename: part.filename,
                   mediaType: mediaType ?? part.mediaType,
                   providerOptions,
+                  ...(originalUrl != null ? { originalUrl } : {}),
                 };
               }
               case 'reasoning': {
@@ -257,6 +260,17 @@ async function downloadAssets(
   );
 }
 
+function getOriginalUrl(
+  originalData: DataContent | URL,
+  convertedData: Uint8Array | string | URL,
+): string | undefined {
+  return typeof originalData === 'string' &&
+    convertedData instanceof URL &&
+    convertedData.toString() !== originalData
+    ? originalData
+    : undefined;
+}
+
 /**
  * Convert part of a message to a LanguageModelV2Part.
  * @param part The part to convert.
@@ -299,6 +313,7 @@ function convertPartToLanguageModelPart(
 
   let mediaType: string | undefined = convertedMediaType ?? part.mediaType;
   let data: Uint8Array | string | URL = convertedData; // binary | base64 | url
+  let originalUrl = getOriginalUrl(originalData, convertedData);
 
   // If the content is a URL, we check if it was downloaded:
   if (data instanceof URL) {
@@ -306,6 +321,7 @@ function convertPartToLanguageModelPart(
     if (downloadedFile) {
       data = downloadedFile.data;
       mediaType ??= downloadedFile.mediaType;
+      originalUrl = undefined;
     }
   }
 
@@ -328,226 +344,14 @@ function convertPartToLanguageModelPart(
         filename: undefined,
         data,
         providerOptions: part.providerOptions,
+        ...(originalUrl != null ? { originalUrl } : {}),
       };
     }
 
-<<<<<<< HEAD
     case 'file': {
       // We must have a mediaType for files, if not, throw an error.
       if (mediaType == null) {
         throw new Error(`Media type is missing for file part`);
-=======
-  if (
-    data.type === 'data' &&
-    (data.data instanceof Uint8Array || typeof data.data === 'string')
-  ) {
-    const imageMediaType = detectMediaType({
-      data: data.data,
-      topLevelType: 'image',
-    });
-    if (imageMediaType != null) {
-      mediaType = imageMediaType;
-    }
-  }
-
-  if (mediaType == null) {
-    throw new Error(`Media type is missing for file part`);
-  }
-
-  return {
-    type: 'file',
-    mediaType,
-    filename: part.filename,
-    data,
-    providerOptions: part.providerOptions,
-  };
-}
-
-export function mapToolResultOutput({
-  output,
-  // `provider` is only needed here to convert legacy "file-id" and "image-file-id" types to provider references, in case they are using string ID values.
-  // TODO: remove in v8 when "file-id" and "image-file-id" types are removed
-  provider,
-  warnings = [],
-  downloadedAssets,
-}: {
-  output: ToolResultOutput;
-  provider?: string;
-  warnings?: Warning[];
-  downloadedAssets: Record<
-    string,
-    { mediaType: string | undefined; data: Uint8Array }
-  >;
-}): LanguageModelV4ToolResultOutput {
-  if (output.type !== 'content') {
-    return output;
-  }
-
-  return {
-    type: 'content',
-    value: output.value.map(item => {
-      switch (item.type) {
-        case 'file': {
-          const convertedPart = convertPartToLanguageModelPart(
-            item,
-            downloadedAssets,
-          );
-
-          if (convertedPart.type !== 'file') {
-            throw new Error(
-              'Expected tool result file content to convert to file.',
-            );
-          }
-
-          return convertedPart;
-        }
-        case 'file-data': {
-          warnings.push({
-            type: 'deprecated',
-            setting: '"tool-result" content of type "file-data"',
-            message: `The "file-data" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'data', data } instead.`,
-          });
-          return {
-            type: 'file' as const,
-            data: { type: 'data' as const, data: item.data },
-            filename: item.filename,
-            mediaType: item.mediaType,
-            providerOptions: item.providerOptions,
-          };
-        }
-        case 'file-url': {
-          const mediaType = item.mediaType ?? getMediaTypeFromUrl(item.url);
-          const url = new URL(item.url);
-          let message = `The "file-url" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'url', url } instead.`;
-          if (!item.mediaType) {
-            const inferenceSuffix =
-              mediaType === 'application/octet-stream'
-                ? `Unable to infer media type from URL. Defaulting to 'application/octet-stream'.`
-                : `Inferred media type '${mediaType}' from URL.`;
-            message = `The "file-url" tool result content part with URL "${item.url}" is missing a "mediaType". ${inferenceSuffix} ${message}`;
-          }
-          warnings.push({
-            type: 'deprecated',
-            setting: '"tool-result" content of type "file-url"',
-            message,
-          });
-          return {
-            type: 'file' as const,
-            data: {
-              type: 'url' as const,
-              url,
-              ...(url.toString() !== item.url ? { originalUrl: item.url } : {}),
-            },
-            mediaType,
-            providerOptions: item.providerOptions,
-          };
-        }
-        case 'file-id': {
-          warnings.push({
-            type: 'deprecated',
-            setting: '"tool-result" content of type "file-id"',
-            message: `The "file-id" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'reference', reference } instead.`,
-          });
-          return {
-            type: 'file' as const,
-            data: {
-              type: 'reference' as const,
-              reference: convertFileIdToProviderReference({
-                fileId: item.fileId,
-                provider,
-              }),
-            },
-            mediaType: 'application',
-            providerOptions: item.providerOptions,
-          };
-        }
-        case 'file-reference': {
-          warnings.push({
-            type: 'deprecated',
-            setting: '"tool-result" content of type "file-reference"',
-            message: `The "file-reference" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'reference', reference } instead.`,
-          });
-          return {
-            type: 'file' as const,
-            data: {
-              type: 'reference' as const,
-              reference: item.providerReference,
-            },
-            mediaType: 'application',
-            providerOptions: item.providerOptions,
-          };
-        }
-        // The "image-*" types are legacy and deprecated.
-        // TODO: remove migration in v8 in combination with the removal of these types from the provider utils.
-        case 'image-data': {
-          warnings.push({
-            type: 'deprecated',
-            setting: '"tool-result" content of type "image-data"',
-            message: `The "image-data" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'data', data } instead.`,
-          });
-          return {
-            type: 'file' as const,
-            data: { type: 'data' as const, data: item.data },
-            mediaType: item.mediaType,
-            providerOptions: item.providerOptions,
-          };
-        }
-        case 'image-url': {
-          const url = new URL(item.url);
-          warnings.push({
-            type: 'deprecated',
-            setting: '"tool-result" content of type "image-url"',
-            message: `The "image-url" type for tool result content is deprecated. Use the "file" type with mediaType 'image' (or a specific image/* subtype) and { type: 'url', url } instead.`,
-          });
-          return {
-            type: 'file' as const,
-            data: {
-              type: 'url' as const,
-              url,
-              ...(url.toString() !== item.url ? { originalUrl: item.url } : {}),
-            },
-            mediaType: 'image',
-            providerOptions: item.providerOptions,
-          };
-        }
-        case 'image-file-id': {
-          warnings.push({
-            type: 'deprecated',
-            setting: '"tool-result" content of type "image-file-id"',
-            message: `The "image-file-id" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'reference', reference } instead.`,
-          });
-          return {
-            type: 'file' as const,
-            data: {
-              type: 'reference' as const,
-              reference: convertFileIdToProviderReference({
-                fileId: item.fileId,
-                provider,
-              }),
-            },
-            mediaType: 'image',
-            providerOptions: item.providerOptions,
-          };
-        }
-        case 'image-file-reference': {
-          warnings.push({
-            type: 'deprecated',
-            setting: '"tool-result" content of type "image-file-reference"',
-            message: `The "image-file-reference" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'reference', reference } instead.`,
-          });
-          return {
-            type: 'file' as const,
-            data: {
-              type: 'reference' as const,
-              reference: item.providerReference,
-            },
-            mediaType: 'image',
-            providerOptions: item.providerOptions,
-          };
-        }
-        default:
-          return item;
->>>>>>> ffb0e762cf (fix: Google Vertex percent-encoding literal characters in gs:// object names (#21267))
       }
 
       return {
@@ -556,6 +360,7 @@ export function mapToolResultOutput({
         filename: part.filename,
         data,
         providerOptions: part.providerOptions,
+        ...(originalUrl != null ? { originalUrl } : {}),
       };
     }
   }
