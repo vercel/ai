@@ -1,5 +1,13 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.123
+
+### Patch Changes
+
+- 2adbb77: feat(harness): update underlying harness SDKs to their latest versions
+- Updated dependencies [125f493]
+  - @ai-sdk/harness@1.0.119
+
 ## 1.0.122
 
 ### Patch Changes

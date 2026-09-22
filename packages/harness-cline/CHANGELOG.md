@@ -1,5 +1,13 @@
 # @ai-sdk/harness-cline
 
+## 1.0.46
+
+### Patch Changes
+
+- 2adbb77: feat(harness): update underlying harness SDKs to their latest versions
+- Updated dependencies [125f493]
+  - @ai-sdk/harness@1.0.119
+
 ## 1.0.45
 
 ### Patch Changes

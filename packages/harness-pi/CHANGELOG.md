@@ -1,5 +1,14 @@
 # @ai-sdk/harness-pi
 
+## 1.0.121
+
+### Patch Changes
+
+- 9e9f18f: fix(harness-pi): support stateless session restoration and injected credentials
+- 2adbb77: feat(harness): update underlying harness SDKs to their latest versions
+- Updated dependencies [125f493]
+  - @ai-sdk/harness@1.0.119
+
 ## 1.0.120
 
 ### Patch Changes

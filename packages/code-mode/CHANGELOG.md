@@ -1,5 +1,14 @@
 # @ai-sdk/code-mode
 
+## 1.0.66
+
+### Patch Changes
+
+- Updated dependencies [0343bb1]
+- Updated dependencies [2b105fa]
+- Updated dependencies [125f493]
+  - ai@7.0.109
+
 ## 1.0.65
 
 ### Patch Changes
