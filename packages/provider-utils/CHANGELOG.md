@@ -1,5 +1,19 @@
 # @ai-sdk/provider-utils
 
+## 5.0.45
+
+### Patch Changes
+
+- 2973485: fix(provider-utils): detect AVIF and HEIC images with variable ftyp box sizes
+- a4db5ea: fix(provider-utils): detect AAC audio with ADTS headers
+- 2937ea2: fix(provider-utils): follow validated redirects without waiting for response clone cancellation
+
+## 5.0.44
+
+### Patch Changes
+
+- 0455398: fix(provider-utils): make lazy Undici import visible to deployment tracers
+
 ## 5.0.43
 
 ### Patch Changes

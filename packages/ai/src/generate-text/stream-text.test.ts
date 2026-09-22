@@ -1852,6 +1852,7 @@ describe('streamText', () => {
 
       it('should surface an error when a different tool is called instead of the required tool', async () => {
         const onError = vi.fn();
+        const executeTool2 = vi.fn();
 
         const result = streamText({
           model: new MockLanguageModelV4({
@@ -1880,6 +1881,7 @@ describe('streamText', () => {
             }),
             tool2: tool({
               inputSchema: z.object({ value: z.string() }),
+              execute: executeTool2,
             }),
           },
           toolChoice: { type: 'tool', toolName: 'tool1' },
@@ -1906,6 +1908,7 @@ describe('streamText', () => {
           ],
         });
         await expect(result.finishReason).resolves.toBe('error');
+        expect(executeTool2).not.toHaveBeenCalled();
       });
 
       it('should enforce the tool choice returned by prepareStep', async () => {
@@ -9465,10 +9468,15 @@ describe('streamText', () => {
       expect(await result.text).toBe('Hello, world!');
     });
 
-    it('should reflect model changes from prepareStep', async () => {
+    it('should reflect model changes from prepareStep in step events and results', async () => {
       const stepStartEvents: Parameters<
         GenerateTextOnStepStartCallback<any, any>
       >[0][] = [];
+      const stepEndModels: Array<StepResult<any>['model']> = [];
+      const stepEndResponseModelIds: string[] = [];
+      let endModel: StepResult<any>['model'] | undefined;
+      let endStepModels: Array<StepResult<any>['model']> = [];
+      let endResponseModelId: string | undefined;
       let responseCount = 0;
 
       const alternateModel = new MockLanguageModelV4({
@@ -9476,12 +9484,6 @@ describe('streamText', () => {
         modelId: 'alternate-model-id',
         doStream: async () => ({
           stream: convertArrayToReadableStream([
-            {
-              type: 'response-metadata' as const,
-              id: 'id-1',
-              modelId: 'alternate-model-id',
-              timestamp: new Date(1000),
-            },
             { type: 'text-start' as const, id: '1' },
             { type: 'text-delta' as const, id: '1', delta: 'Final answer.' },
             { type: 'text-end' as const, id: '1' },
@@ -9542,15 +9544,49 @@ describe('streamText', () => {
         onStepStart: async event => {
           stepStartEvents.push(event);
         },
+        onStepEnd: async event => {
+          stepEndModels.push(event.model);
+          stepEndResponseModelIds.push(event.response.modelId);
+        },
+        onEnd: async event => {
+          endModel = event.model;
+          endStepModels = event.steps.map(step => step.model);
+          endResponseModelId = event.response.modelId;
+        },
         onError: () => {},
       });
 
       await result.consumeStream();
 
-      expect(stepStartEvents[0].provider).toBe('mock-provider');
-      expect(stepStartEvents[0].modelId).toBe('mock-model-id');
-      expect(stepStartEvents[1].provider).toBe('alternate-provider');
-      expect(stepStartEvents[1].modelId).toBe('alternate-model-id');
+      const expectedModels = [
+        { provider: 'mock-provider', modelId: 'mock-model-id' },
+        {
+          provider: 'alternate-provider',
+          modelId: 'alternate-model-id',
+        },
+      ];
+
+      expect(
+        stepStartEvents.map(({ provider, modelId }) => ({
+          provider,
+          modelId,
+        })),
+      ).toEqual(expectedModels);
+      expect(stepEndModels).toEqual(expectedModels);
+      expect(stepEndResponseModelIds).toEqual([
+        'mock-model-id',
+        'alternate-model-id',
+      ]);
+      expect((await result.steps).map(step => step.model)).toEqual(
+        expectedModels,
+      );
+      expect((await result.steps).map(step => step.response.modelId)).toEqual([
+        'mock-model-id',
+        'alternate-model-id',
+      ]);
+      expect(endStepModels).toEqual(expectedModels);
+      expect(endModel).toEqual(expectedModels[1]);
+      expect(endResponseModelId).toBe('alternate-model-id');
     });
 
     it('should apply prepareStep model call settings only to the current step', async () => {
@@ -19423,7 +19459,7 @@ describe('streamText', () => {
   });
 
   describe('tool callbacks', () => {
-    it('should invoke callbacks in the correct order', async () => {
+    it('should invoke callbacks in the correct order with the step tool context', async () => {
       const recordedCalls: unknown[] = [];
 
       const result = streamText({
@@ -19500,6 +19536,7 @@ describe('streamText', () => {
               required: ['value'],
               additionalProperties: false,
             }),
+            contextSchema: z.object({ prefix: z.string() }),
             onInputAvailable: options => {
               recordedCalls.push({ type: 'onInputAvailable', options });
             },
@@ -19511,6 +19548,11 @@ describe('streamText', () => {
             },
           }),
         },
+        runtimeContext: { prefix: 'runtime-context' },
+        toolsContext: { 'test-tool': { prefix: 'initial-tool-context' } },
+        prepareStep: () => ({
+          toolsContext: { 'test-tool': { prefix: 'step-tool-context' } },
+        }),
         toolChoice: 'required',
         prompt: 'test-input',
         _internal: {
@@ -19525,7 +19567,9 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "context": {},
+              "context": {
+                "prefix": "step-tool-context",
+              },
               "messages": [
                 {
                   "content": "test-input",
@@ -19539,7 +19583,9 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "context": {},
+              "context": {
+                "prefix": "step-tool-context",
+              },
               "inputTextDelta": "{"",
               "messages": [
                 {
@@ -19554,7 +19600,9 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "context": {},
+              "context": {
+                "prefix": "step-tool-context",
+              },
               "inputTextDelta": "value",
               "messages": [
                 {
@@ -19569,7 +19617,9 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "context": {},
+              "context": {
+                "prefix": "step-tool-context",
+              },
               "inputTextDelta": "":"",
               "messages": [
                 {
@@ -19584,7 +19634,9 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "context": {},
+              "context": {
+                "prefix": "step-tool-context",
+              },
               "inputTextDelta": "Spark",
               "messages": [
                 {
@@ -19599,7 +19651,9 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "context": {},
+              "context": {
+                "prefix": "step-tool-context",
+              },
               "inputTextDelta": "le",
               "messages": [
                 {
@@ -19614,7 +19668,9 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "context": {},
+              "context": {
+                "prefix": "step-tool-context",
+              },
               "inputTextDelta": " Day",
               "messages": [
                 {
@@ -19629,7 +19685,9 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "context": {},
+              "context": {
+                "prefix": "step-tool-context",
+              },
               "inputTextDelta": ""}",
               "messages": [
                 {
@@ -19644,7 +19702,9 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "context": {},
+              "context": {
+                "prefix": "step-tool-context",
+              },
               "input": {
                 "value": "Sparkle Day",
               },
@@ -22232,6 +22292,81 @@ describe('streamText', () => {
         ]);
       });
 
+      it('should stream structured output after an earlier tool step emits text', async () => {
+        let responseCount = 0;
+        const result = streamText({
+          model: new MockLanguageModelV4({
+            doStream: async () => {
+              switch (responseCount++) {
+                case 0:
+                  return {
+                    stream: convertArrayToReadableStream([
+                      { type: 'text-start', id: 'intro' },
+                      {
+                        type: 'text-delta',
+                        id: 'intro',
+                        delta: 'Checking the value.',
+                      },
+                      { type: 'text-end', id: 'intro' },
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'call-1',
+                        toolName: 'lookup',
+                        input: '{}',
+                      },
+                      {
+                        type: 'finish',
+                        finishReason: {
+                          unified: 'tool-calls',
+                          raw: 'tool-calls',
+                        },
+                        usage: testUsage,
+                      },
+                    ]),
+                  };
+                case 1:
+                  return {
+                    stream: convertArrayToReadableStream([
+                      { type: 'text-start', id: 'answer' },
+                      {
+                        type: 'text-delta',
+                        id: 'answer',
+                        delta: '{"value":"done"}',
+                      },
+                      { type: 'text-end', id: 'answer' },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'stop', raw: 'stop' },
+                        usage: testUsage,
+                      },
+                    ]),
+                  };
+                default:
+                  throw new Error(
+                    `Unexpected response count: ${responseCount}`,
+                  );
+              }
+            },
+          }),
+          tools: {
+            lookup: tool({
+              inputSchema: z.object({}),
+              execute: async () => 'done',
+            }),
+          },
+          output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
+          prompt: 'Look up the value and return it.',
+          stopWhen: isStepCount(2),
+        });
+
+        await expect(
+          convertAsyncIterableToArray(result.partialOutputStream),
+        ).resolves.toStrictEqual([{ value: 'done' }]);
+        await expect(result.output).resolves.toStrictEqual({ value: 'done' });
+      });
+
       it('should send partial output stream when last chunk contains content', async () => {
         const result = streamText({
           model: createTestModel({
@@ -23000,6 +23135,86 @@ describe('streamText', () => {
         });
       });
 
+      it('should stream array elements after an earlier tool step emits text', async () => {
+        let responseCount = 0;
+        const result = streamText({
+          model: new MockLanguageModelV4({
+            doStream: async () => {
+              switch (responseCount++) {
+                case 0:
+                  return {
+                    stream: convertArrayToReadableStream([
+                      { type: 'text-start', id: 'answer' },
+                      {
+                        type: 'text-delta',
+                        id: 'answer',
+                        delta: 'Checking the value.',
+                      },
+                      { type: 'text-end', id: 'answer' },
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'call-1',
+                        toolName: 'lookup',
+                        input: '{}',
+                      },
+                      {
+                        type: 'finish',
+                        finishReason: {
+                          unified: 'tool-calls',
+                          raw: 'tool-calls',
+                        },
+                        usage: testUsage,
+                      },
+                    ]),
+                  };
+                case 1:
+                  return {
+                    stream: convertArrayToReadableStream([
+                      { type: 'text-start', id: 'answer' },
+                      {
+                        type: 'text-delta',
+                        id: 'answer',
+                        delta: '{"elements":[{"value":"done"}]}',
+                      },
+                      { type: 'text-end', id: 'answer' },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'stop', raw: 'stop' },
+                        usage: testUsage,
+                      },
+                    ]),
+                  };
+                default:
+                  throw new Error(
+                    `Unexpected response count: ${responseCount}`,
+                  );
+              }
+            },
+          }),
+          tools: {
+            lookup: tool({
+              inputSchema: z.object({}),
+              execute: async () => 'done',
+            }),
+          },
+          output: Output.array({
+            element: z.object({ value: z.string() }),
+          }),
+          prompt: 'Look up the value and return it.',
+          stopWhen: isStepCount(2),
+        });
+
+        const [partials, elements, output] = await Promise.all([
+          convertAsyncIterableToArray(result.partialOutputStream),
+          convertAsyncIterableToArray(result.elementStream),
+          result.output,
+        ]);
+
+        expect(partials).toStrictEqual([[{ value: 'done' }]]);
+        expect(elements).toStrictEqual([{ value: 'done' }]);
+        expect(output).toStrictEqual([{ value: 'done' }]);
+      });
+
       it('should error elementStream when the model exceeds maxItems', async () => {
         const result = streamText({
           model: createTestModel({
@@ -23046,6 +23261,38 @@ describe('streamText', () => {
             name: 'AI_TypeValidationError',
           },
         });
+      });
+    });
+
+    describe('json output', () => {
+      it('should stream null and empty string values', async () => {
+        for (const value of [null, ''] as const) {
+          const result = streamText({
+            model: createTestModel({
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                {
+                  type: 'text-delta',
+                  id: '1',
+                  delta: JSON.stringify(value),
+                },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+            output: Output.json(),
+            prompt: 'prompt',
+          });
+
+          expect(
+            await convertAsyncIterableToArray(result.partialOutputStream),
+          ).toStrictEqual([value]);
+          await expect(result.output).resolves.toStrictEqual(value);
+        }
       });
     });
 
@@ -24652,10 +24899,12 @@ describe('streamText', () => {
       let result: StreamTextResult<any, any, never>;
       let onErrorCalls: Array<{ error: unknown }> = [];
       let onAbortCalls: Array<{ steps: StepResult<any, any>[] }> = [];
+      let onEndCalls = 0;
 
       beforeEach(() => {
         onErrorCalls = [];
         onAbortCalls = [];
+        onEndCalls = 0;
 
         const abortController = new AbortController();
         let pullCalls = 0;
@@ -24665,6 +24914,9 @@ describe('streamText', () => {
           abortSignal: abortController.signal,
           onAbort: event => {
             onAbortCalls.push(event);
+          },
+          onEnd: () => {
+            onEndCalls++;
           },
           model: new MockLanguageModelV4({
             doStream: async () => ({
@@ -24874,6 +25126,11 @@ describe('streamText', () => {
             },
           ]
         `);
+      });
+
+      it('should not call onEnd when aborting after a completed step', async () => {
+        await result.consumeStream();
+        expect(onEndCalls).toBe(0);
       });
 
       it('should only stream initial chunks in full stream', async () => {

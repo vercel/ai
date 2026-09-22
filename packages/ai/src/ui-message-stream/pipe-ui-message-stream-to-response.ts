@@ -44,9 +44,7 @@ export function pipeUIMessageStreamToResponse({
     response,
     status,
     statusText,
-    headers: Object.fromEntries(
-      prepareHeaders(headers, UI_MESSAGE_STREAM_HEADERS).entries(),
-    ),
+    headers: prepareHeaders(headers, UI_MESSAGE_STREAM_HEADERS),
     stream: sseStream.pipeThrough(new TextEncoderStream()),
   });
 }

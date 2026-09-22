@@ -1,5 +1,31 @@
 # @ai-sdk/openai
 
+## 4.0.72
+
+### Patch Changes
+
+- 411b3f2: fix(openai): strip unsupported regex patterns from JSON schemas
+- e13c32f: fix(openai): include speech provider options in requests
+
+## 4.0.71
+
+### Patch Changes
+
+- e76a0a3: fix(openai): cancel image edit URL downloads when the request is aborted
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+
+## 4.0.70
+
+### Patch Changes
+
+- fd75cee: fix(openai): preserve provider file references in Responses tool results
+- 1f5bb62: fix(openai): send assistant text as Responses easy input messages
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+
 ## 4.0.69
 
 ### Patch Changes

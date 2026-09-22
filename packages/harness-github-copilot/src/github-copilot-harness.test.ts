@@ -117,10 +117,10 @@ describe('createGitHubCopilot', () => {
     if (source.type !== 'npm-locked') {
       throw new Error('Expected a locked NPM source.');
     }
-    expect(source.packageJson).toContain('"@github/copilot": "1.0.82"');
-    expect(source.pnpmLockYaml).toContain("'@github/copilot@1.0.82':");
+    expect(source.packageJson).toContain('"@github/copilot": "1.0.86"');
+    expect(source.pnpmLockYaml).toContain("'@github/copilot@1.0.86':");
     expect(source.pnpmWorkspaceYaml).toBe(
-      "allowBuilds:\n  '@github/copilot@1.0.82': true\n",
+      "allowBuilds:\n  '@github/copilot@1.0.86': true\n",
     );
   });
 
@@ -315,6 +315,11 @@ describe('createGitHubCopilot', () => {
     const mintBridgeToken = (sandboxId: string) => sandboxId;
     const mcpServers = { docs: { url: 'https://mcp.example' } };
     const portEndpoint = { url: 'wss://sandbox.example/bridge' };
+    const reconnect = {
+      maxElapsedMs: 120_000,
+      initialDelayMs: 100,
+      maxDelayMs: 5_000,
+    };
 
     createGitHubCopilot({
       auth: 'direct',
@@ -324,6 +329,7 @@ describe('createGitHubCopilot', () => {
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
+      reconnect,
       mintBridgeToken,
     });
 
@@ -335,6 +341,7 @@ describe('createGitHubCopilot', () => {
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
+      reconnect,
       mintBridgeToken,
     });
     await settings.credentialForwarding?.({
