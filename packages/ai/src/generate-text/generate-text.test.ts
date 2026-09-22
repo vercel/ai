@@ -1431,40 +1431,47 @@ describe('generateText', () => {
       expect(result.files).toMatchSnapshot();
     });
 
-    it('should download URL-backed files', async () => {
-      const originalFetch = globalThis.fetch;
-      const fetchMock = vi.fn(async () => new Response('Hello World'));
-      globalThis.fetch = fetchMock;
+    it.each(['file', 'reasoning-file'] as const)(
+      'should download URL-backed %s parts once',
+      async type => {
+        const originalFetch = globalThis.fetch;
+        const fetchMock = vi.fn(async () => new Response('Hello World'));
+        globalThis.fetch = fetchMock;
 
-      try {
-        const result = await generateText({
-          model: new MockLanguageModelV4({
-            doGenerate: {
-              ...dummyResponseValues,
-              content: [
-                {
-                  type: 'file',
-                  data: {
-                    type: 'url',
-                    url: new URL('https://example.com/generated.txt'),
+        try {
+          const result = await generateText({
+            model: new MockLanguageModelV4({
+              doGenerate: {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type,
+                    data: {
+                      type: 'url',
+                      url: new URL('https://example.com/generated.txt'),
+                    },
+                    mediaType: 'text/plain',
                   },
-                  mediaType: 'text/plain',
-                },
-              ],
-            },
-          }),
-          prompt: 'prompt',
-        });
+                ],
+              },
+            }),
+            prompt: 'prompt',
+          });
 
-        expect(result.files[0].base64).toBe('SGVsbG8gV29ybGQ=');
-        expect(result.files[0].uint8Array).toEqual(
-          new TextEncoder().encode('Hello World'),
-        );
-        expect(fetchMock).toHaveBeenCalledOnce();
-      } finally {
-        globalThis.fetch = originalFetch;
-      }
-    });
+          const part = result.content.find(part => part.type === type);
+          if (part?.type !== 'file' && part?.type !== 'reasoning-file') {
+            throw new Error('Expected a generated file');
+          }
+          expect(part.file.base64).toBe('SGVsbG8gV29ybGQ=');
+          expect(part.file.uint8Array).toEqual(
+            new TextEncoder().encode('Hello World'),
+          );
+          expect(fetchMock).toHaveBeenCalledOnce();
+        } finally {
+          globalThis.fetch = originalFetch;
+        }
+      },
+    );
 
     it('should contain files from all steps', async () => {
       let responseCount = 0;

@@ -383,7 +383,6 @@ export async function streamLanguageModelCall<
       now,
       callStartTimestampMs,
       onLanguageModelCallEnd,
-      abortSignal,
     }),
   );
 
@@ -412,7 +411,6 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   now,
   callStartTimestampMs,
   onLanguageModelCallEnd,
-  abortSignal,
 }: {
   tools: TOOLS | undefined;
   instructions: Instructions | undefined;
@@ -428,7 +426,6 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   now: () => number;
   callStartTimestampMs: number;
   onLanguageModelCallEnd?: Arrayable<OnLanguageModelCallEndCallback<TOOLS>>;
-  abortSignal?: AbortSignal;
 }) {
   // keep track of parsed tool calls so provider-emitted approval requests can reference them
   // keep track of tool inputs for provider-side tool results

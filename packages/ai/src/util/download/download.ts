@@ -23,12 +23,10 @@ export const download = async ({
   url,
   maxBytes,
   abortSignal,
-  fetch: customFetch,
 }: {
   url: URL;
   maxBytes?: number;
   abortSignal?: AbortSignal;
-  fetch?: typeof globalThis.fetch;
 }) => {
   const urlText = url.toString();
   try {
@@ -42,10 +40,6 @@ export const download = async ({
       url: urlText,
       headers,
       abortSignal,
-      fetch:
-        customFetch == null
-          ? undefined
-          : (input, init) => customFetch(input, init),
     });
 
     if (!response.ok) {

@@ -853,37 +853,48 @@ describe('streamLanguageModelCall', () => {
       `);
     });
 
-    it('should download URL-backed files', async () => {
-      const result = await streamLanguageModelCallResult({
-        streamParts: [
-          {
-            type: 'file',
-            data: {
-              type: 'url',
-              url: new URL('data:text/plain;base64,SGVsbG8gV29ybGQ='),
-            },
-            mediaType: 'text/plain',
-          },
-          {
-            type: 'finish',
-            finishReason: { unified: 'stop', raw: 'stop' },
-            usage: testUsage,
-          },
-        ],
-        tools: undefined,
-      });
+    it.each(['file', 'reasoning-file'] as const)(
+      'should download HTTPS %s parts',
+      async type => {
+        const originalFetch = globalThis.fetch;
+        const fetchMock = vi.fn(async () => new Response('Hello World'));
+        globalThis.fetch = fetchMock;
+        try {
+          const result = await streamLanguageModelCallResult({
+            streamParts: [
+              {
+                type,
+                data: {
+                  type: 'url',
+                  url: new URL('https://example.com/generated.txt'),
+                },
+                mediaType: 'text/plain',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ],
+            tools: undefined,
+          });
 
-      const filePart = result[0];
-      expect(filePart.type).toBe('file');
-      if (filePart.type !== 'file') {
-        throw new Error('Expected a file part.');
-      }
+          const filePart = result[0];
+          expect(filePart.type).toBe(type);
+          if (filePart.type !== 'file' && filePart.type !== 'reasoning-file') {
+            throw new Error('Expected a file part.');
+          }
 
-      expect(filePart.file.base64).toBe('SGVsbG8gV29ybGQ=');
-      expect(filePart.file.uint8Array).toEqual(
-        new TextEncoder().encode('Hello World'),
-      );
-    });
+          expect(filePart.file.base64).toBe('SGVsbG8gV29ybGQ=');
+          expect(filePart.file.uint8Array).toEqual(
+            new TextEncoder().encode('Hello World'),
+          );
+          expect(fetchMock).toHaveBeenCalledOnce();
+        } finally {
+          globalThis.fetch = originalFetch;
+        }
+      },
+    );
 
     it('should use GeneratedFile with providerMetadata', async () => {
       const result = await streamLanguageModelCallResult({
