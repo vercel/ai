@@ -9,7 +9,7 @@ export type TelemetryTracingEventType =
   | 'embed'
   | 'embedMany'
   | 'rerank'
-  | 'evaluate';
+  | 'experimental_evaluate';
 
 export type TelemetryTracingChannelMessage<EVENT = unknown> = {
   readonly type: TelemetryTracingEventType;

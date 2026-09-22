@@ -2855,7 +2855,10 @@ describe('OpenTelemetry integration with evaluate', () => {
       state: { message: 'Please refund me' },
       questions,
       telemetry: {
-        integrations: new OpenTelemetry({ tracer, evaluation: true }),
+        integrations: new OpenTelemetry({
+          tracer,
+          experimental_evaluation: true,
+        }),
       },
     });
 

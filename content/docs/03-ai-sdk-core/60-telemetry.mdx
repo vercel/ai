@@ -384,14 +384,25 @@ export function myIntegration(): Telemetry {
       description: 'Called when an individual reranking model call completes.',
     },
     {
-      name: 'onEvaluateStart',
+      name: 'experimental_onEvaluateStart',
+      type: '(event: Experimental_EvaluateStartEvent) => void | PromiseLike<void>',
+      description: 'Called when an experimental evaluation operation begins.',
+    },
+    {
+      name: 'experimental_onEvaluationModelCallStart',
       type: '(event: Experimental_EvaluationModelCallStartEvent) => void | PromiseLike<void>',
       description: 'Called when an individual evaluation model call begins.',
     },
     {
-      name: 'onEvaluateEnd',
+      name: 'experimental_onEvaluationModelCallEnd',
       type: '(event: Experimental_EvaluationModelCallEndEvent) => void | PromiseLike<void>',
       description: 'Called when an individual evaluation model call completes.',
+    },
+    {
+      name: 'experimental_onEvaluateEnd',
+      type: '(event: Experimental_EvaluateEndEvent) => void | PromiseLike<void>',
+      description:
+        'Called when an experimental evaluation operation completes.',
     },
     {
       name: 'onEnd',
@@ -407,6 +418,9 @@ export function myIntegration(): Telemetry {
     },
   ]}
 />
+
+Experimental evaluation events use the four `experimental_*` callbacks above.
+They are not included in the stable `onStart` and `onEnd` event unions.
 
 The event types for each method are the same as the corresponding [lifecycle callbacks](/docs/ai-sdk-core/lifecycle-callbacks). See the lifecycle callbacks documentation for the full property reference of each event.
 
@@ -554,8 +568,9 @@ routing, scoring, and similar tasks. The integration therefore does not emit a
 `gen_ai.evaluation.result` event.
 
 Evaluation state, questions, and answers also do not have applicable GenAI
-semantic-convention attributes. Enable the `evaluation` supplemental option to
-record them under AI SDK-specific `ai.evaluation.*` attributes.
+semantic-convention attributes. Enable the `experimental_evaluation`
+supplemental option to record them under AI SDK-specific
+`ai.evaluation.*` attributes.
 
 #### GenAI span details
 
@@ -612,7 +627,7 @@ registerTelemetry(
 
 The callback runs when each span is created and receives:
 
-- `spanType`: the type of span being created (`operation`, `step`, `languageModel`, `tool`, `embedding`, `reranking`, or `evaluation`).
+- `spanType`: the type of span being created (`operation`, `step`, `languageModel`, `tool`, `embedding`, `reranking`, or `experimental_evaluation`).
 - `operationId`: the AI SDK operation ID for the current call, such as `ai.generateText` or `ai.streamText`.
 - `callId`: the unique ID for the current AI SDK call.
 - `runtimeContext`: the telemetry-filtered runtime context for text generation, embedding, reranking, and evaluation spans. Text generation spans also reflect updates from `prepareStep`.
@@ -675,7 +690,7 @@ registerTelemetry(
     providerMetadata: true,
     embedding: true,
     reranking: true,
-    evaluation: true,
+    experimental_evaluation: true,
     runtimeContext: true,
     headers: true,
     toolChoice: true,
@@ -690,7 +705,7 @@ The available options are:
 - `providerMetadata`: `ai.response.providerMetadata` on operation, step, and model-call spans.
 - `embedding`: embedding inputs and outputs.
 - `reranking`: rerank input documents and ranking output.
-- `evaluation`: evaluation state, questions, and answers.
+- `experimental_evaluation`: experimental evaluation state, questions, and answers.
 - `runtimeContext`: `ai.settings.context.*`.
 - `headers`: `ai.request.headers.*`.
 - `toolChoice`: `ai.prompt.toolChoice`.

@@ -113,7 +113,7 @@ export async function evaluate<
   };
 
   return await runInTracingChannelSpan({
-    type: 'evaluate',
+    type: 'experimental_evaluate',
     event: startEvent,
     execute: async () => {
       await notify({
@@ -132,7 +132,9 @@ export async function evaluate<
         };
         await notify({
           event: modelCallEvent,
-          callbacks: [telemetryDispatcher.onEvaluateStart],
+          callbacks: [
+            telemetryDispatcher.experimental_onEvaluationModelCallStart,
+          ],
         });
         const result = await retry(async () => {
           abortSignal?.throwIfAborted();
@@ -153,7 +155,9 @@ export async function evaluate<
         });
         await notify({
           event: { ...modelCallEvent, ...result },
-          callbacks: [telemetryDispatcher.onEvaluateEnd],
+          callbacks: [
+            telemetryDispatcher.experimental_onEvaluationModelCallEnd,
+          ],
         });
 
         logWarnings({

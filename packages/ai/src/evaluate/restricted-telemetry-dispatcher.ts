@@ -12,7 +12,13 @@ export function createRestrictedTelemetryDispatcher<
   telemetry,
 }: {
   telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
-}): Omit<TelemetryDispatcher, 'onStart' | 'onEnd'> & {
+}): Omit<
+  TelemetryDispatcher,
+  | 'onStart'
+  | 'onEnd'
+  | 'experimental_onEvaluateStart'
+  | 'experimental_onEvaluateEnd'
+> & {
   onStart: Callback<EvaluateStartEvent<RUNTIME_CONTEXT>>;
   onEnd: Callback<EvaluateEndEvent<RUNTIME_CONTEXT>>;
 } {
@@ -21,7 +27,7 @@ export function createRestrictedTelemetryDispatcher<
   return {
     ...dispatcher,
     onStart: event =>
-      dispatcher.onStart?.({
+      dispatcher.experimental_onEvaluateStart?.({
         ...event,
         runtimeContext: filterIncludedContext({
           context: event.runtimeContext,
@@ -29,7 +35,7 @@ export function createRestrictedTelemetryDispatcher<
         }),
       }),
     onEnd: event =>
-      dispatcher.onEnd?.({
+      dispatcher.experimental_onEvaluateEnd?.({
         ...event,
         runtimeContext: filterIncludedContext({
           context: event.runtimeContext,

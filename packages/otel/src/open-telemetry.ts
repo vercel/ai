@@ -209,8 +209,7 @@ export class OpenTelemetry implements Telemetry {
       | InferTelemetryEvent<GenerateTextStartEvent>
       | InferTelemetryEvent<GenerateObjectStartEvent>
       | InferTelemetryEvent<EmbedStartEvent>
-      | InferTelemetryEvent<RerankStartEvent>
-      | InferTelemetryEvent<EvaluateStartEvent>,
+      | InferTelemetryEvent<RerankStartEvent>,
   ): void {
     if (
       event.operationId === 'ai.embed' ||
@@ -223,13 +222,6 @@ export class OpenTelemetry implements Telemetry {
     if (event.operationId === 'ai.rerank') {
       this.onRerankOperationStart(
         event as InferTelemetryEvent<RerankStartEvent>,
-      );
-      return;
-    }
-
-    if (event.operationId === 'ai.evaluate') {
-      this.onEvaluateOperationStart(
-        event as InferTelemetryEvent<EvaluateStartEvent>,
       );
       return;
     }
@@ -1040,8 +1032,7 @@ export class OpenTelemetry implements Telemetry {
       | GenerateTextEndEvent<ToolSet>
       | GenerateObjectEndEvent<unknown>
       | EmbedEndEvent
-      | RerankEndEvent
-      | EvaluateEndEvent,
+      | RerankEndEvent,
   ): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
@@ -1056,11 +1047,6 @@ export class OpenTelemetry implements Telemetry {
 
     if (state.operationId === 'ai.rerank') {
       this.onRerankOperationEnd(event as RerankEndEvent);
-      return;
-    }
-
-    if (state.operationId === 'ai.evaluate') {
-      this.onEvaluateOperationEnd(event as EvaluateEndEvent);
       return;
     }
 
@@ -1441,7 +1427,7 @@ export class OpenTelemetry implements Telemetry {
       'gen_ai.request.model': event.modelId,
       ...baseSupplementalAttributes,
       ...selectSupplementalAttributes(telemetry, this.supplementalAttributes, {
-        evaluation: {
+        experimental_evaluation: {
           'ai.evaluation.state': {
             input: () => JSON.stringify(event.state),
           },
@@ -1492,7 +1478,19 @@ export class OpenTelemetry implements Telemetry {
     this.cleanupCallState(event.callId);
   }
 
-  onEvaluateStart(event: EvaluationModelCallStartEvent): void {
+  experimental_onEvaluateStart(
+    event: InferTelemetryEvent<EvaluateStartEvent>,
+  ): void {
+    this.onEvaluateOperationStart(event);
+  }
+
+  experimental_onEvaluateEnd(event: EvaluateEndEvent): void {
+    this.onEvaluateOperationEnd(event);
+  }
+
+  experimental_onEvaluationModelCallStart(
+    event: EvaluationModelCallStartEvent,
+  ): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan || !state.rootContext) return;
 
@@ -1505,7 +1503,7 @@ export class OpenTelemetry implements Telemetry {
         state.telemetry,
         this.supplementalAttributes,
         {
-          evaluation: {
+          experimental_evaluation: {
             'ai.evaluation.state': {
               input: () => JSON.stringify(event.state),
             },
@@ -1521,7 +1519,7 @@ export class OpenTelemetry implements Telemetry {
       {
         attributes: this.getSpanAttributes({
           attributes,
-          spanType: 'evaluation',
+          spanType: 'experimental_evaluation',
           operationId: event.operationId,
           callId: event.callId,
           runtimeContext: state.runtimeContext,
@@ -1537,7 +1535,9 @@ export class OpenTelemetry implements Telemetry {
     };
   }
 
-  onEvaluateEnd(event: EvaluationModelCallEndEvent): void {
+  experimental_onEvaluationModelCallEnd(
+    event: EvaluationModelCallEndEvent,
+  ): void {
     const state = this.getCallState(event.callId);
     if (!state?.evaluationSpan) return;
 
@@ -1549,7 +1549,7 @@ export class OpenTelemetry implements Telemetry {
           state.telemetry,
           this.supplementalAttributes,
           {
-            evaluation: {
+            experimental_evaluation: {
               'ai.evaluation.answers': {
                 output: () => JSON.stringify(event.answers),
               },

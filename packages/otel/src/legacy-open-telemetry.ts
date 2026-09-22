@@ -213,8 +213,7 @@ export class LegacyOpenTelemetry implements Telemetry {
       | InferTelemetryEvent<GenerateTextStartEvent>
       | InferTelemetryEvent<GenerateObjectStartEvent>
       | InferTelemetryEvent<EmbedStartEvent>
-      | InferTelemetryEvent<RerankStartEvent>
-      | InferTelemetryEvent<EvaluateStartEvent>,
+      | InferTelemetryEvent<RerankStartEvent>,
   ): void {
     if (
       event.operationId === 'ai.embed' ||
@@ -227,13 +226,6 @@ export class LegacyOpenTelemetry implements Telemetry {
     if (event.operationId === 'ai.rerank') {
       this.onRerankOperationStart(
         event as InferTelemetryEvent<RerankStartEvent>,
-      );
-      return;
-    }
-
-    if (event.operationId === 'ai.evaluate') {
-      this.onEvaluateOperationStart(
-        event as InferTelemetryEvent<EvaluateStartEvent>,
       );
       return;
     }
@@ -801,8 +793,7 @@ export class LegacyOpenTelemetry implements Telemetry {
       | GenerateTextEndEvent<ToolSet>
       | GenerateObjectEndEvent<unknown>
       | EmbedEndEvent
-      | RerankEndEvent
-      | EvaluateEndEvent,
+      | RerankEndEvent,
   ): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
@@ -817,11 +808,6 @@ export class LegacyOpenTelemetry implements Telemetry {
 
     if (state.operationId === 'ai.rerank') {
       this.onRerankOperationEnd(event as RerankEndEvent);
-      return;
-    }
-
-    if (state.operationId === 'ai.evaluate') {
-      this.onEvaluateOperationEnd(event as EvaluateEndEvent);
       return;
     }
 
@@ -1148,7 +1134,9 @@ export class LegacyOpenTelemetry implements Telemetry {
     const attributes = selectAttributes(telemetry, {
       ...assembleOperationName({ operationId: event.operationId, telemetry }),
       ...baseTelemetryAttributes,
-      'ai.evaluation.state': { input: () => JSON.stringify(event.state) },
+      'ai.evaluation.state': {
+        input: () => JSON.stringify(event.state),
+      },
       'ai.evaluation.questions': {
         input: () => JSON.stringify(event.questions),
       },
@@ -1180,7 +1168,19 @@ export class LegacyOpenTelemetry implements Telemetry {
     this.cleanupCallState(event.callId);
   }
 
-  onEvaluateStart(event: EvaluationModelCallStartEvent): void {
+  experimental_onEvaluateStart(
+    event: InferTelemetryEvent<EvaluateStartEvent>,
+  ): void {
+    this.onEvaluateOperationStart(event);
+  }
+
+  experimental_onEvaluateEnd(event: EvaluateEndEvent): void {
+    this.onEvaluateOperationEnd(event);
+  }
+
+  experimental_onEvaluationModelCallStart(
+    event: EvaluationModelCallStartEvent,
+  ): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan || !state.rootContext) return;
 
@@ -1190,7 +1190,9 @@ export class LegacyOpenTelemetry implements Telemetry {
         telemetry: state.telemetry,
       }),
       ...state.baseTelemetryAttributes,
-      'ai.evaluation.state': { input: () => JSON.stringify(event.state) },
+      'ai.evaluation.state': {
+        input: () => JSON.stringify(event.state),
+      },
       'ai.evaluation.questions': {
         input: () => JSON.stringify(event.questions),
       },
@@ -1206,7 +1208,9 @@ export class LegacyOpenTelemetry implements Telemetry {
     };
   }
 
-  onEvaluateEnd(event: EvaluationModelCallEndEvent): void {
+  experimental_onEvaluationModelCallEnd(
+    event: EvaluationModelCallEndEvent,
+  ): void {
     const state = this.getCallState(event.callId);
     if (!state?.evaluationSpan) return;
 

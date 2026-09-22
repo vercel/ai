@@ -668,8 +668,8 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
 
     expect(sequence).toMatchInlineSnapshot(`
       [
-        "bindStart evaluate",
-        "asyncEnd evaluate",
+        "bindStart experimental_evaluate",
+        "asyncEnd experimental_evaluate",
       ]
     `);
   });

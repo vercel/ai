@@ -488,14 +488,20 @@ it('does not return a result after cancellation during a call', async () => {
 describe('telemetry', () => {
   it('emits operation and model-call lifecycle events', async () => {
     const onStart = vi.fn();
-    const onEvaluateStart = vi.fn();
-    const onEvaluateEnd = vi.fn();
     const onEnd = vi.fn();
+    const experimental_onEvaluateStart = vi.fn();
+    const experimental_onEvaluationModelCallStart = vi.fn();
+    const experimental_onEvaluationModelCallEnd = vi.fn();
+    const experimental_onEvaluateEnd = vi.fn();
+    const evaluateOnStart = vi.fn();
+    const evaluateOnEnd = vi.fn();
     const integration: Telemetry = {
       onStart,
-      onEvaluateStart,
-      onEvaluateEnd,
       onEnd,
+      experimental_onEvaluateStart,
+      experimental_onEvaluationModelCallStart,
+      experimental_onEvaluationModelCallEnd,
+      experimental_onEvaluateEnd,
     };
     const state = { message: 'refund' };
 
@@ -514,10 +520,15 @@ describe('telemetry', () => {
         recordOutputs: true,
       },
       runtimeContext: { requestId: 'request-1', secret: 'hidden' },
+      onStart: evaluateOnStart,
+      onEnd: evaluateOnEnd,
       _internal: { generateCallId: () => 'test-call-id' },
     });
 
-    expect(onStart).toHaveBeenCalledWith(
+    expect(onStart).not.toHaveBeenCalled();
+    expect(onEnd).not.toHaveBeenCalled();
+
+    expect(experimental_onEvaluateStart).toHaveBeenCalledWith(
       expect.objectContaining({
         callId: 'test-call-id',
         operationId: 'ai.evaluate',
@@ -532,7 +543,7 @@ describe('telemetry', () => {
         functionId: 'evaluate-test',
       }),
     );
-    expect(onEvaluateStart).toHaveBeenCalledWith(
+    expect(experimental_onEvaluationModelCallStart).toHaveBeenCalledWith(
       expect.objectContaining({
         callId: 'test-call-id',
         operationId: 'ai.evaluate.doEvaluate',
@@ -540,7 +551,7 @@ describe('telemetry', () => {
         questions,
       }),
     );
-    expect(onEvaluateEnd).toHaveBeenCalledWith(
+    expect(experimental_onEvaluationModelCallEnd).toHaveBeenCalledWith(
       expect.objectContaining({
         callId: 'test-call-id',
         operationId: 'ai.evaluate.doEvaluate',
@@ -548,7 +559,7 @@ describe('telemetry', () => {
         usage: { inputTokens: 30, outputTokens: 4 },
       }),
     );
-    expect(onEnd).toHaveBeenCalledWith(
+    expect(experimental_onEvaluateEnd).toHaveBeenCalledWith(
       expect.objectContaining({
         callId: 'test-call-id',
         operationId: 'ai.evaluate',
@@ -557,23 +568,35 @@ describe('telemetry', () => {
         runtimeContext: {},
       }),
     );
+    expect(evaluateOnStart).toHaveBeenCalledWith(
+      expect.objectContaining({
+        operationId: 'ai.evaluate',
+        runtimeContext: { requestId: 'request-1', secret: 'hidden' },
+      }),
+    );
+    expect(evaluateOnEnd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        operationId: 'ai.evaluate',
+        runtimeContext: { requestId: 'request-1', secret: 'hidden' },
+      }),
+    );
   });
 
   it('includes only selected runtime context fields', async () => {
-    const onStart = vi.fn();
+    const experimental_onEvaluateStart = vi.fn();
 
     await evaluate({
       ...setup(),
       state: 'text',
       questions,
       telemetry: {
-        integrations: { onStart },
+        integrations: { experimental_onEvaluateStart },
         includeRuntimeContext: { requestId: true },
       },
       runtimeContext: { requestId: 'request-1', secret: 'hidden' },
     });
 
-    expect(onStart).toHaveBeenCalledWith(
+    expect(experimental_onEvaluateStart).toHaveBeenCalledWith(
       expect.objectContaining({ runtimeContext: { requestId: 'request-1' } }),
     );
   });
