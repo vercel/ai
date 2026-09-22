@@ -1,5 +1,11 @@
 # @ai-sdk/alibaba
 
+## 2.0.52
+
+### Patch Changes
+
+- 411c865: fix(alibaba): use model-specific structured output modes
+
 ## 2.0.51
 
 ### Patch Changes

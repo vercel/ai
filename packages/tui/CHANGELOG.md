@@ -1,5 +1,39 @@
 # @ai-sdk/tui
 
+## 1.0.112
+
+### Patch Changes
+
+- Updated dependencies [31d24ce]
+- Updated dependencies [a65bfd9]
+  - ai@7.0.111
+
+## 1.0.111
+
+### Patch Changes
+
+- ai@7.0.110
+
+## 1.0.110
+
+### Patch Changes
+
+- Updated dependencies [0343bb1]
+- Updated dependencies [2b105fa]
+- Updated dependencies [125f493]
+  - ai@7.0.109
+
+## 1.0.109
+
+### Patch Changes
+
+- abcd1d5: fix(tui): delete complete grapheme clusters when backspacing in prompts
+- Updated dependencies [3f6852a]
+- Updated dependencies [6317504]
+- Updated dependencies [3cb2dcd]
+- Updated dependencies [ccf98e7]
+  - ai@7.0.108
+
 ## 1.0.108
 
 ### Patch Changes

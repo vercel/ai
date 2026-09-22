@@ -1,5 +1,38 @@
 # @ai-sdk/harness-codex
 
+## 1.0.123
+
+### Patch Changes
+
+- 3ea56bc: fix(harness): make bridge asset resolution compatible with Turbopack (and thus Next.js 16)
+- Updated dependencies [3ea56bc]
+  - @ai-sdk/harness@1.0.121
+
+## 1.0.122
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.120
+
+## 1.0.121
+
+### Patch Changes
+
+- 2adbb77: feat(harness): update underlying harness SDKs to their latest versions
+- Updated dependencies [125f493]
+  - @ai-sdk/harness@1.0.119
+
+## 1.0.120
+
+### Patch Changes
+
+- d975097: feat(harness): add `AbortSignal` to `SandboxChannel.connect`, plus a `sleep()` helper function
+- 7040da0: fix(harness-codex): fix empty `query` value for `web_search` tool calls
+- c0e5d1d: feat(harness): allow consumers of bridge backed harnesses to configure `reconnect` timeout
+- Updated dependencies [d975097]
+- Updated dependencies [b2baeba]
+  - @ai-sdk/harness@1.0.118
+
 ## 1.0.119
 
 ### Patch Changes

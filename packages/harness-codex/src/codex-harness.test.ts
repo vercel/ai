@@ -10,7 +10,10 @@ import { createCodex } from './codex-harness';
 const sentMessages: unknown[] = [];
 const channelMocks = vi.hoisted(() => ({
   connectOnOpen: false,
-  connects: [] as Array<() => Promise<unknown>>,
+  connects: [] as Array<
+    (options: { abortSignal: AbortSignal }) => Promise<unknown>
+  >,
+  reconnects: [] as Array<unknown>,
 }));
 const webSocketMocks = vi.hoisted(() => {
   type Listener = (...args: unknown[]) => void;
@@ -58,12 +61,21 @@ vi.mock('ws', () => ({ WebSocket: webSocketMocks.WebSocket }));
 vi.mock('@ai-sdk/harness/utils', async importOriginal => {
   const actual = await importOriginal<typeof HarnessUtils>();
   class FakeSandboxChannel {
-    constructor({ connect }: { connect: () => Promise<unknown> }) {
+    constructor({
+      connect,
+      reconnect,
+    }: {
+      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+      reconnect?: unknown;
+    }) {
       channelMocks.connects.push(connect);
+      channelMocks.reconnects.push(reconnect);
     }
     async open(): Promise<void> {
       if (channelMocks.connectOnOpen) {
-        await channelMocks.connects.at(-1)!();
+        await channelMocks.connects.at(-1)!({
+          abortSignal: new AbortController().signal,
+        });
       }
     }
     on(): () => void {
@@ -194,6 +206,7 @@ describe('createCodex adapter', () => {
     sentMessages.length = 0;
     channelMocks.connectOnOpen = false;
     channelMocks.connects.length = 0;
+    channelMocks.reconnects.length = 0;
     webSocketMocks.calls.length = 0;
   });
 
@@ -736,7 +749,12 @@ describe('createCodex adapter', () => {
     const mintBridgeToken = vi.fn(
       (sandboxId: string) => `token-for-${sandboxId}`,
     );
-    const harness = createCodex({ mintBridgeToken });
+    const reconnect = {
+      maxElapsedMs: 120_000,
+      initialDelayMs: 100,
+      maxDelayMs: 5_000,
+    };
+    const harness = createCodex({ mintBridgeToken, reconnect });
     const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
       bridgePortUrl: 'ws://127.0.0.1:1',
       runs,
@@ -767,6 +785,7 @@ describe('createCodex adapter', () => {
       resumeFrom,
     });
     expect(mintBridgeToken).toHaveBeenCalledTimes(1);
+    expect(channelMocks.reconnects).toEqual([reconnect, reconnect]);
     await attachedSession.doDetach();
   });
 
