@@ -35,7 +35,7 @@ export type ClaudeMessage = {
     };
   };
   message?: {
-    content?: ReadonlyArray<MessageBlock>;
+    content?: string | ReadonlyArray<MessageBlock>;
     usage?: Record<string, unknown>;
   };
   result?: string;
@@ -232,11 +232,12 @@ export function createEmitStreamEvent({
       return;
     }
 
-    if (type === 'assistant' && msg.message?.content) {
-      const usage = toUsageRecord(msg.message.usage);
+    const messageContent = msg.message?.content;
+    if (type === 'assistant' && Array.isArray(messageContent)) {
+      const usage = toUsageRecord(msg.message?.usage);
       const toolUseIds: string[] = [];
       let opensStep = false;
-      for (const block of msg.message.content) {
+      for (const block of messageContent) {
         if (
           block.type === 'tool_use' &&
           typeof block.id === 'string' &&
@@ -287,14 +288,14 @@ export function createEmitStreamEvent({
       return;
     }
 
-    if (type === 'user' && msg.message?.content) {
-      const toolResultBlocks = msg.message.content.filter(
+    if (type === 'user' && Array.isArray(messageContent)) {
+      const toolResultBlocks = messageContent.filter(
         block => block.type === 'tool_result',
       );
       const toolUseResult =
         toolResultBlocks.length === 1 ? msg.tool_use_result : undefined;
 
-      for (const block of msg.message.content) {
+      for (const block of messageContent) {
         if (
           block.type === 'tool_result' &&
           typeof block.tool_use_id === 'string'

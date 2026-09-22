@@ -12,7 +12,10 @@ import { access } from 'node:fs/promises';
 import { VERSION } from './version';
 
 type ProviderConfigInput = Parameters<ModelRegistry['registerProvider']>[1];
-type PiCredentialStore = NonNullable<CreateModelRuntimeOptions['credentials']>;
+/** Persistent credential storage consumed by Pi's model runtime. */
+export type PiCredentialStore = NonNullable<
+  CreateModelRuntimeOptions['credentials']
+>;
 type PiCredential = Exclude<
   Awaited<ReturnType<PiCredentialStore['read']>>,
   undefined
@@ -116,24 +119,27 @@ function scopePiProviderEnvironment({
 
 export async function createPiModelRuntime({
   auth,
+  credentials,
   authPath,
   modelsPath,
 }: {
   auth: PiAuthenticationMode | undefined;
+  credentials?: PiCredentialStore;
   authPath: string;
   modelsPath: string;
 }): Promise<ModelRuntime> {
   if (!isHarnessAuthenticationEnvironment(auth)) {
     return ModelRuntime.create({
-      authPath,
+      ...(credentials ? { credentials } : { authPath }),
       modelsPath,
       allowModelNetwork: false,
     });
   }
 
-  const isolatedCredentials = createIsolatedPiCredentialStore();
+  const isolatedCredentials =
+    credentials == null ? createIsolatedPiCredentialStore() : undefined;
   const modelRuntime = await ModelRuntime.create({
-    credentials: isolatedCredentials.credentials,
+    credentials: credentials ?? isolatedCredentials!.credentials,
     modelsPath: null,
     allowModelNetwork: false,
   });
@@ -164,7 +170,7 @@ export async function createPiModelRuntime({
     modelRuntime,
     authenticationEnvironment: auth,
   });
-  isolatedCredentials.finishInitialization();
+  isolatedCredentials?.finishInitialization();
   await modelRuntime.refresh({ allowNetwork: false });
 
   return modelRuntime;

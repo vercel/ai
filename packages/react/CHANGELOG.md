@@ -1,5 +1,67 @@
 # @ai-sdk/react
 
+## 4.0.114
+
+### Patch Changes
+
+- Updated dependencies [31d24ce]
+- Updated dependencies [a65bfd9]
+  - ai@7.0.111
+
+## 4.0.113
+
+### Patch Changes
+
+- ai@7.0.110
+
+## 4.0.112
+
+### Patch Changes
+
+- 7976437: fix(react): prevent stale throttled completion updates from overwriting a newer request
+- 0343bb1: fix(ai): keep replacement completion requests loading and cancellable when an earlier request settles
+- Updated dependencies [0343bb1]
+- Updated dependencies [2b105fa]
+- Updated dependencies [125f493]
+  - ai@7.0.109
+
+## 4.0.111
+
+### Patch Changes
+
+- Updated dependencies [7fc2bc1]
+- Updated dependencies [3f6852a]
+- Updated dependencies [6317504]
+- Updated dependencies [3cb2dcd]
+- Updated dependencies [ccf98e7]
+  - @ai-sdk/mcp@2.0.55
+  - ai@7.0.108
+
+## 4.0.110
+
+### Patch Changes
+
+- 00da674: fix(react): preserve Headers instances in useCompletion requests
+- e43032f: fix(react): handle rejected asynchronous useObject onFinish callbacks
+- f42a247: fix(react): keep useObject cleared when an initial value is configured
+- 21d4b7d: fix(react): preserve active useObject cancellation state during overlapping requests
+- Updated dependencies [79681c4]
+- Updated dependencies [98c7275]
+- Updated dependencies [2973485]
+- Updated dependencies [a105059]
+- Updated dependencies [31532f3]
+- Updated dependencies [e61cbd8]
+- Updated dependencies [8ade040]
+- Updated dependencies [970a01e]
+- Updated dependencies [85539c5]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+- Updated dependencies [611d301]
+- Updated dependencies [c415657]
+  - ai@7.0.107
+  - @ai-sdk/provider-utils@5.0.45
+  - @ai-sdk/mcp@2.0.54
+
 ## 4.0.109
 
 ### Patch Changes

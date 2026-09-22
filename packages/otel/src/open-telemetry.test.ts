@@ -21,6 +21,7 @@ import { z } from 'zod/v4';
 import {
   embed,
   embedMany,
+  experimental_evaluate,
   generateObject,
   generateText,
   streamObject,
@@ -28,7 +29,11 @@ import {
   type GenerateTextEndEvent,
   type Telemetry,
 } from 'ai';
-import { MockEmbeddingModelV4, MockLanguageModelV4 } from 'ai/test';
+import {
+  Experimental_EvaluationMockModelV4,
+  MockEmbeddingModelV4,
+  MockLanguageModelV4,
+} from 'ai/test';
 import { OpenTelemetry, type EnrichSpan } from './open-telemetry';
 
 type MockSpan = Span & {
@@ -2829,5 +2834,100 @@ describe('OpenTelemetry', () => {
         }
       }
     });
+  });
+});
+
+describe('OpenTelemetry integration with evaluate', () => {
+  it('creates operation and model-call spans', async () => {
+    const tracer = createMockTracer();
+    const questions = {
+      refund: { type: 'boolean', instructions: 'Refund?' },
+    } as const;
+
+    await experimental_evaluate({
+      model: new Experimental_EvaluationMockModelV4({
+        doEvaluate: async () => ({
+          answers: { refund: { type: 'boolean', probability: 0.9 } },
+          usage: { inputTokens: 12, outputTokens: 2 },
+          warnings: [],
+        }),
+      }),
+      state: { message: 'Please refund me' },
+      questions,
+      telemetry: {
+        integrations: new OpenTelemetry({
+          tracer,
+          experimental_evaluation: true,
+        }),
+      },
+    });
+
+    expect(tracer.spans).toHaveLength(2);
+    expect(tracer.spans.map(span => serializeSpan(span, tracer)))
+      .toMatchInlineSnapshot(`
+        [
+          {
+            "ended": true,
+            "initAttributes": {
+              "ai.evaluation.questions": "{\"refund\":{\"type\":\"boolean\",\"instructions\":\"Refund?\"}}",
+              "ai.evaluation.state": "{\"message\":\"Please refund me\"}",
+              "gen_ai.operation.name": "evaluate",
+              "gen_ai.provider.name": "mock-provider",
+              "gen_ai.request.model": "mock-model-id",
+            },
+            "name": "evaluate mock-model-id",
+            "runtimeAttributes": {
+              "ai.evaluation.answers": "{\"refund\":{\"type\":\"boolean\",\"probability\":0.9}}",
+            },
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "ai.evaluation.questions": "{\"refund\":{\"type\":\"boolean\",\"instructions\":\"Refund?\"}}",
+              "ai.evaluation.state": "{\"message\":\"Please refund me\"}",
+              "gen_ai.operation.name": "evaluate",
+              "gen_ai.provider.name": "mock-provider",
+              "gen_ai.request.model": "mock-model-id",
+            },
+            "name": "evaluate mock-model-id",
+            "runtimeAttributes": {
+              "ai.evaluation.answers": "{\"refund\":{\"type\":\"boolean\",\"probability\":0.9}}",
+              "gen_ai.usage.input_tokens": 12,
+              "gen_ai.usage.output_tokens": 2,
+            },
+          },
+        ]
+      `);
+  });
+
+  it('ends both spans with error status when evaluation fails', async () => {
+    const tracer = createMockTracer();
+    const error = new Error('evaluation failed');
+
+    await expect(
+      experimental_evaluate({
+        model: new Experimental_EvaluationMockModelV4({
+          doEvaluate: async () => {
+            throw error;
+          },
+        }),
+        state: 'Please refund me',
+        questions: {
+          refund: { type: 'boolean', instructions: 'Refund?' },
+        },
+        maxRetries: 0,
+        telemetry: { integrations: new OpenTelemetry({ tracer }) },
+      }),
+    ).rejects.toBe(error);
+
+    expect(tracer.spans).toHaveLength(2);
+    for (const span of tracer.spans) {
+      expect(span.ended).toBe(true);
+      expect(span.status).toEqual({
+        code: SpanStatusCode.ERROR,
+        message: 'evaluation failed',
+      });
+      expect(span.exceptions).toHaveLength(1);
+    }
   });
 });

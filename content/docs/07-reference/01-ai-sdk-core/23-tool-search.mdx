@@ -7,8 +7,9 @@ description: Search deferred tools and load their definitions on demand for dire
 
 Creates a tool that searches the surrounding generation's deferred tools by name
 and description. The factory takes no arguments. Use it with `generateText`,
-`streamText`, or `ToolLoopAgent`, either with direct tool calling or with code mode
-configured with `toolDiscovery: 'conversation'`.
+`streamText`, `ToolLoopAgent`, or `WorkflowAgent` from `@ai-sdk/workflow`.
+`WorkflowAgent` supports direct tool calling. The other APIs also support code
+mode configured with `toolDiscovery: 'conversation'`.
 
 ```ts
 import { toolSearch } from 'ai';

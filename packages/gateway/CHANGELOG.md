@@ -1,5 +1,36 @@
 # @ai-sdk/gateway
 
+## 4.0.89
+
+### Patch Changes
+
+- 49295bb: feat(anthropic): add Claude Opus 5.5 support
+
+  - add the `claude-opus-5-5` model ID to `@ai-sdk/anthropic` and `anthropic/claude-opus-5.5` to `@ai-sdk/gateway`
+  - models that always use adaptive thinking (`claude-opus-5-5`, `claude-fable-5`, `claude-fable-5-1`) no longer receive `thinking: { type: 'disabled' }` or budget-based thinking; the provider drops the unsupported setting, maps `reasoning: 'none'` to `effort: 'low'`, and emits a warning
+  - models that reject forced tool use (`claude-opus-5-5`, `claude-fable-5-1`) fall back to `auto` tool choice for `required` and named tool choices, and to native structured outputs when `structuredOutputMode: 'jsonTool'` is requested, each with a warning
+  - add the `computerToolset_20260801` computer use tool (`computer_toolset_20260801`), which is required for computer use on `claude-opus-5-5`
+  - use the documented `mid-conversation-output-config-2026-07-01` beta header for per-message effort
+
+## 4.0.88
+
+### Patch Changes
+
+- 20dd00a: feat(provider/gateway): support `reasoning` and `tool-use` in `has` model filtering
+- 7cf7cee: feat(xai): add grok 4.7 model ID
+- c42576a: feat(gateway): support cancelling batches with `experimental_cancelBatch`
+- d85dcf5: chore(provider/gateway): update gateway model settings files
+- fd9b3f3: chore(provider/gateway): update gateway model settings files
+
+## 4.0.87
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+
 ## 4.0.86
 
 ### Patch Changes
