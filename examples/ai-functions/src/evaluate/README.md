@@ -25,13 +25,13 @@ For a live provider example, add the corresponding API key to
 `examples/ai-functions/.env`. The examples load this file automatically when run
 from `examples/ai-functions`.
 
-| Provider | Environment variable |
-| --- | --- |
-| Vercel AI Gateway | `AI_GATEWAY_API_KEY` |
-| TypeSafe AI | `TYPESAFE_AI_API_KEY` |
-| OpenAI | `OPENAI_API_KEY` |
-| Anthropic | `ANTHROPIC_API_KEY` |
-| Google | `GOOGLE_GENERATIVE_AI_API_KEY` |
+| Provider          | Environment variable           |
+| ----------------- | ------------------------------ |
+| Vercel AI Gateway | `AI_GATEWAY_API_KEY`           |
+| TypeSafe AI       | `TYPESAFE_AI_API_KEY`          |
+| OpenAI            | `OPENAI_API_KEY`               |
+| Anthropic         | `ANTHROPIC_API_KEY`            |
+| Google            | `GOOGLE_GENERATIVE_AI_API_KEY` |
 
 For example, to run Jev through AI Gateway, set `AI_GATEWAY_API_KEY` and run:
 
@@ -44,18 +44,18 @@ pnpm tsx src/evaluate/gateway/basic.ts
 All paths below are relative to this directory. Run any script with
 `pnpm tsx src/evaluate/<path>` from `examples/ai-functions`.
 
-| Example | Demonstrates |
-| --- | --- |
-| [mock/basic.ts](./mock/basic.ts) | Return a fixed boolean probability with a mock evaluation model. |
-| [gateway/basic.ts](./gateway/basic.ts) | Evaluate Choice, Score, and Boolean questions with Jev through AI Gateway. |
-| [typesafe-ai/basic.ts](./typesafe-ai/basic.ts) | Call Jev directly through the TypeSafe AI provider and inspect answers, usage, and provider metadata. |
-| [typesafe-ai/structured-rubrics.ts](./typesafe-ai/structured-rubrics.ts) | Use JSON objects and arrays in state, instructions, and criteria. |
-| [typesafe-ai/registry.ts](./typesafe-ai/registry.ts) | Register a custom model alias and route answers using probability thresholds. |
-| [typesafe-ai/error-handling.ts](./typesafe-ai/error-handling.ts) | Submit oversized state and inspect `APICallError` details if the provider rejects it. |
-| [openai/basic.ts](./openai/basic.ts) | Evaluate all three question types with OpenAI. |
-| [openai/default-provider.ts](./openai/default-provider.ts) | Configure a global default provider and resolve an evaluation model by alias. |
-| [anthropic/basic.ts](./anthropic/basic.ts) | Evaluate all three question types with Anthropic. |
-| [google/basic.ts](./google/basic.ts) | Evaluate all three question types with Google and configure thinking through provider options. |
+| Example                                                                  | Demonstrates                                                                                          |
+| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| [mock/basic.ts](./mock/basic.ts)                                         | Return a fixed boolean probability with a mock evaluation model.                                      |
+| [gateway/basic.ts](./gateway/basic.ts)                                   | Evaluate Choice, Score, and Boolean questions with Jev through AI Gateway.                            |
+| [typesafe-ai/basic.ts](./typesafe-ai/basic.ts)                           | Call Jev directly through the TypeSafe AI provider and inspect answers, usage, and provider metadata. |
+| [typesafe-ai/structured-rubrics.ts](./typesafe-ai/structured-rubrics.ts) | Use JSON objects and arrays in state, instructions, and criteria.                                     |
+| [typesafe-ai/registry.ts](./typesafe-ai/registry.ts)                     | Register a custom model alias and route answers using probability thresholds.                         |
+| [typesafe-ai/error-handling.ts](./typesafe-ai/error-handling.ts)         | Submit oversized state and inspect `APICallError` details if the provider rejects it.                 |
+| [openai/basic.ts](./openai/basic.ts)                                     | Evaluate all three question types with OpenAI.                                                        |
+| [openai/default-provider.ts](./openai/default-provider.ts)               | Configure a global default provider and resolve an evaluation model by alias.                         |
+| [anthropic/basic.ts](./anthropic/basic.ts)                               | Evaluate all three question types with Anthropic.                                                     |
+| [google/basic.ts](./google/basic.ts)                                     | Evaluate all three question types with Google and configure thinking through provider options.        |
 
 ## Interpreting results
 
