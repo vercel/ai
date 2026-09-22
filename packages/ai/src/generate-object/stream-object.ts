@@ -12,6 +12,7 @@ import {
   type InferSchema,
   type FlexibleSchema,
   type ProviderOptions,
+  type ZodSchemaOptions,
 } from '@ai-sdk/provider-utils';
 import type { ServerResponse } from 'http';
 import { logWarnings } from '../logger/log-warnings';
@@ -278,6 +279,12 @@ export function streamObject<
       providerOptions?: ProviderOptions;
 
       /**
+       * Options for converting Zod schemas to JSON Schema.
+       * Merged over process-wide defaults from `setZodSchemaOptions`.
+       */
+      zodSchemaOptions?: ZodSchemaOptions;
+
+      /**
        * Callback that is called when the streamObject operation begins,
        * before the LLM call is made.
        */
@@ -370,6 +377,7 @@ export function streamObject<
     telemetry = experimental_telemetry,
     experimental_download: download,
     providerOptions,
+    zodSchemaOptions,
     onStart,
     experimental_onStart,
     onStepStart,
@@ -409,6 +417,7 @@ export function streamObject<
     output,
     schema: inputSchema,
     enumValues,
+    zodSchemaOptions,
   });
 
   return new DefaultStreamObjectResult({

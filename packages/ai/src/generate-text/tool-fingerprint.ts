@@ -1,4 +1,4 @@
-import { asSchema, type ToolSet } from '@ai-sdk/provider-utils';
+import { asSchema, type ToolSet, type ZodSchemaOptions } from '@ai-sdk/provider-utils';
 import { hashCanonical } from '../util/canonical-hash';
 
 /**
@@ -29,13 +29,17 @@ function tagDescription(description: unknown) {
  */
 export async function fingerprintTools(
   tools: ToolSet,
+  options?: {
+    zodSchemaOptions?: ZodSchemaOptions;
+  },
 ): Promise<Record<string, string>> {
   const entries = await Promise.all(
     Object.keys(tools).map(async name => {
       const tool = tools[name];
       const digest = await hashCanonical({
         description: tagDescription(tool.description),
-        inputSchema: await asSchema(tool.inputSchema).jsonSchema,
+        inputSchema: await asSchema(tool.inputSchema, options?.zodSchemaOptions)
+          .jsonSchema,
         title: tool.title,
       });
       return [name, digest] as const;

@@ -6,6 +6,7 @@ import {
   type InferToolSetContext,
   type ModelMessage,
   type ToolSet,
+  type ZodSchemaOptions,
 } from '@ai-sdk/provider-utils';
 import { InvalidToolApprovalSignatureError } from '../error/invalid-tool-approval-signature-error';
 import { InvalidToolInputError } from '../error/invalid-tool-input-error';
@@ -31,6 +32,7 @@ export async function validateApprovedToolApprovals<
   toolsContext,
   runtimeContext,
   toolApprovalSecret,
+  zodSchemaOptions,
 }: {
   approvedToolApprovals: Array<CollectedToolApprovals<TOOLS>>;
   tools: TOOLS | undefined;
@@ -39,6 +41,7 @@ export async function validateApprovedToolApprovals<
   toolsContext: InferToolSetContext<TOOLS>;
   runtimeContext: RUNTIME_CONTEXT;
   toolApprovalSecret?: string | Uint8Array;
+  zodSchemaOptions?: ZodSchemaOptions;
 }): Promise<{
   approvedToolApprovals: Array<CollectedToolApprovals<TOOLS>>;
   deniedToolApprovals: Array<CollectedToolApprovals<TOOLS>>;
@@ -90,7 +93,7 @@ export async function validateApprovedToolApprovals<
     if (isExecutableTool(tool) && tool.inputSchema != null) {
       const validation = await safeValidateTypes({
         value: toolCall.input,
-        schema: asSchema(tool.inputSchema),
+        schema: asSchema(tool.inputSchema, zodSchemaOptions),
       });
 
       if (!validation.success) {

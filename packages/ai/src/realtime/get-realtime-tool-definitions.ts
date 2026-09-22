@@ -3,15 +3,18 @@ import {
   type InferToolSetContext,
   type Tool,
   type ToolSet,
+  type ZodSchemaOptions,
 } from '@ai-sdk/provider-utils';
 import type { RealtimeToolDefinition } from '../types/realtime-model';
 
 export async function getRealtimeToolDefinitions<TOOLS extends ToolSet>({
   tools,
   toolsContext = {} as InferToolSetContext<TOOLS>,
+  zodSchemaOptions,
 }: {
   tools: TOOLS;
   toolsContext?: InferToolSetContext<TOOLS>;
+  zodSchemaOptions?: ZodSchemaOptions;
 }): Promise<RealtimeToolDefinition[]> {
   const definitions: RealtimeToolDefinition[] = [];
 
@@ -31,7 +34,8 @@ export async function getRealtimeToolDefinitions<TOOLS extends ToolSet>({
           type: 'function',
           name,
           description,
-          parameters: await asSchema(tool.inputSchema).jsonSchema,
+          parameters: await asSchema(tool.inputSchema, zodSchemaOptions)
+            .jsonSchema,
         });
         break;
       }

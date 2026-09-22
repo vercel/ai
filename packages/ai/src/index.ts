@@ -17,6 +17,8 @@ export {
   generateId,
   jsonSchema,
   parseJsonEventStream,
+  setZodSchemaOptions,
+  getZodSchemaOptions,
   tool,
   zodSchema,
   type FlexibleSchema,
@@ -34,6 +36,7 @@ export {
   type ToolExecuteFunction,
   type ToolExecutionOptions,
   type ToolSet,
+  type ZodSchemaOptions,
 } from '@ai-sdk/provider-utils';
 
 // directory exports

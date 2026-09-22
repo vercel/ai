@@ -6,6 +6,7 @@ import {
   type InferToolInput,
   type ModelMessage,
   type ToolSet,
+  type ZodSchemaOptions,
 } from '@ai-sdk/provider-utils';
 import { InvalidToolInputError } from '../error/invalid-tool-input-error';
 import { NoSuchToolError } from '../error/no-such-tool-error';
@@ -24,6 +25,7 @@ export async function parseToolCall<TOOLS extends ToolSet>({
   messages,
   instructions,
   abortSignal,
+  zodSchemaOptions,
 }: {
   toolCall: LanguageModelV4ToolCall;
   tools: TOOLS | undefined;
@@ -32,6 +34,7 @@ export async function parseToolCall<TOOLS extends ToolSet>({
   instructions: Instructions | undefined;
   messages: ModelMessage[];
   abortSignal?: AbortSignal;
+  zodSchemaOptions?: ZodSchemaOptions;
 }): Promise<TypedToolCall<TOOLS>> {
   try {
     if (tools == null) {
@@ -48,7 +51,7 @@ export async function parseToolCall<TOOLS extends ToolSet>({
 
     try {
       return await refineParsedToolCallInput({
-        toolCall: await doParseToolCall({ toolCall, tools }),
+        toolCall: await doParseToolCall({ toolCall, tools, zodSchemaOptions }),
         refineToolInput,
       });
     } catch (error) {
@@ -72,7 +75,7 @@ export async function parseToolCall<TOOLS extends ToolSet>({
             tools,
             inputSchema: async ({ toolName }) => {
               const inputSchema = getOwn(tools, toolName)?.inputSchema;
-              return await asSchema(inputSchema).jsonSchema;
+              return await asSchema(inputSchema, zodSchemaOptions).jsonSchema;
             },
             instructions,
             system: instructions,
@@ -96,7 +99,11 @@ export async function parseToolCall<TOOLS extends ToolSet>({
       }
 
       const parsedRepairedToolCall = await refineParsedToolCallInput({
-        toolCall: await doParseToolCall({ toolCall: repairedToolCall, tools }),
+        toolCall: await doParseToolCall({
+          toolCall: repairedToolCall,
+          tools,
+          zodSchemaOptions,
+        }),
         refineToolInput,
       });
 
@@ -216,9 +223,11 @@ async function parseProviderExecutedDynamicToolCall(
 async function doParseToolCall<TOOLS extends ToolSet>({
   toolCall,
   tools,
+  zodSchemaOptions,
 }: {
   toolCall: LanguageModelV4ToolCall;
   tools: TOOLS;
+  zodSchemaOptions?: ZodSchemaOptions;
 }): Promise<TypedToolCall<TOOLS>> {
   const toolName = toolCall.toolName as keyof TOOLS & string;
 
@@ -236,7 +245,7 @@ async function doParseToolCall<TOOLS extends ToolSet>({
     });
   }
 
-  const schema = asSchema(tool.inputSchema);
+  const schema = asSchema(tool.inputSchema, zodSchemaOptions);
 
   // when the tool call has no arguments, we try passing an empty object to the schema
   // (many LLMs generate empty strings for tool calls with no arguments)

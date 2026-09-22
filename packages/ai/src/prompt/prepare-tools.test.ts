@@ -343,4 +343,33 @@ describe('prepareTools', () => {
       }),
     ]);
   });
+
+  it('applies zodSchemaOptions when converting Zod tool input schemas', async () => {
+    const result = await prepareTools({
+      tools: {
+        lookup: tool({
+          description: 'Lookup by id',
+          inputSchema: z.object({ id: z.uuid() }),
+        }),
+      },
+      zodSchemaOptions: {
+        override({ jsonSchema }) {
+          if (jsonSchema.format === 'uuid') {
+            delete jsonSchema.pattern;
+          }
+        },
+      },
+    });
+
+    const idSchema = result?.[0] && 'inputSchema' in result[0]
+      ? (
+          result[0].inputSchema as {
+            properties?: { id?: { format?: string; pattern?: string } };
+          }
+        ).properties?.id
+      : undefined;
+
+    expect(idSchema?.format).toBe('uuid');
+    expect(idSchema?.pattern).toBeUndefined();
+  });
 });

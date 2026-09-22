@@ -13,6 +13,7 @@ import {
   type FlexibleSchema,
   type Schema,
   type ValidationResult,
+  type ZodSchemaOptions,
 } from '@ai-sdk/provider-utils';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
 import type {
@@ -404,16 +405,18 @@ export function getOutputStrategy<SCHEMA>({
   output,
   schema,
   enumValues,
+  zodSchemaOptions,
 }: {
   output: 'object' | 'array' | 'enum' | 'no-schema';
   schema?: FlexibleSchema<SCHEMA>;
   enumValues?: Array<SCHEMA>;
+  zodSchemaOptions?: ZodSchemaOptions;
 }): OutputStrategy<any, any, any> {
   switch (output) {
     case 'object':
-      return objectOutputStrategy(asSchema(schema!));
+      return objectOutputStrategy(asSchema(schema!, zodSchemaOptions));
     case 'array':
-      return arrayOutputStrategy(asSchema(schema!));
+      return arrayOutputStrategy(asSchema(schema!, zodSchemaOptions));
     case 'enum':
       return enumOutputStrategy(enumValues! as Array<string>);
     case 'no-schema':
