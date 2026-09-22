@@ -3,6 +3,7 @@ import {
   type LanguageModelV2CallWarning,
   type LanguageModelV2Content,
   type LanguageModelV2FinishReason,
+  type LanguageModelV2FunctionTool,
   type LanguageModelV2StreamPart,
   type LanguageModelV2Usage,
   type SharedV2ProviderMetadata,
@@ -34,6 +35,39 @@ type GroqChatConfig = {
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
 };
+
+function getJsonResponseToolName(
+  tools: Parameters<LanguageModelV2['doGenerate']>[0]['tools'],
+): string {
+  const toolNames = new Set(tools?.map(tool => tool.name));
+  let name = 'json';
+  let suffix = 1;
+
+  while (toolNames.has(name)) {
+    name = `json_${suffix++}`;
+  }
+
+  return name;
+}
+
+function getJsonResponseText(input: string): string {
+  try {
+    const parsed = JSON.parse(input);
+
+    if (
+      parsed != null &&
+      typeof parsed === 'object' &&
+      !Array.isArray(parsed) &&
+      'output' in parsed
+    ) {
+      return JSON.stringify(parsed.output);
+    }
+  } catch {
+    // The response will be validated by the output parser.
+  }
+
+  return input;
+}
 
 export class GroqChatLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
@@ -82,6 +116,31 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
     });
 
     const structuredOutputs = groqOptions?.structuredOutputs ?? true;
+    const hasFunctionTools = tools?.some(tool => tool.type === 'function');
+    const hasProviderDefinedTools = tools?.some(
+      tool => tool.type === 'provider-defined',
+    );
+    const jsonResponseToolName = getJsonResponseToolName(tools);
+    const jsonResponseTool: LanguageModelV2FunctionTool | undefined =
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      hasFunctionTools &&
+      !hasProviderDefinedTools
+        ? {
+            type: 'function',
+            name: jsonResponseToolName,
+            description:
+              'Return the final response. The arguments must be an object with exactly one "output" property containing the complete JSON value; never pass the value directly as the arguments.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                output: responseFormat.schema,
+              },
+              required: ['output'],
+              additionalProperties: false,
+            },
+          }
+        : undefined;
 
     if (topK != null) {
       warnings.push({
@@ -93,7 +152,8 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
     if (
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
-      !structuredOutputs
+      !structuredOutputs &&
+      jsonResponseTool == null
     ) {
       warnings.push({
         type: 'unsupported-setting',
@@ -107,7 +167,23 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
       tools: groqTools,
       toolChoice: groqToolChoice,
       toolWarnings,
-    } = prepareTools({ tools, toolChoice, modelId: this.modelId });
+    } = prepareTools({
+      tools:
+        jsonResponseTool == null
+          ? tools
+          : toolChoice?.type === 'none'
+            ? [jsonResponseTool]
+            : [...(tools ?? []), jsonResponseTool],
+      toolChoice:
+        jsonResponseTool != null
+          ? toolChoice?.type === 'tool'
+            ? toolChoice
+            : toolChoice?.type === 'none'
+              ? { type: 'tool', toolName: jsonResponseToolName }
+              : { type: 'required' }
+          : toolChoice,
+      modelId: this.modelId,
+    });
 
     return {
       args: {
@@ -129,7 +205,7 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
 
         // response format:
         response_format:
-          responseFormat?.type === 'json'
+          jsonResponseTool == null && responseFormat?.type === 'json'
             ? structuredOutputs && responseFormat.schema != null
               ? {
                   type: 'json_schema',
@@ -155,13 +231,15 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
         tool_choice: groqToolChoice,
       },
       warnings: [...warnings, ...toolWarnings],
+      jsonResponseToolName:
+        jsonResponseTool != null ? jsonResponseToolName : undefined,
     };
   }
 
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { args, warnings } = await this.getArgs({
+    const { args, warnings, jsonResponseToolName } = await this.getArgs({
       ...options,
       stream: false,
     });
@@ -189,10 +267,12 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
 
     const choice = response.choices[0];
     const content: Array<LanguageModelV2Content> = [];
+    let hasJsonResponseToolCall = false;
+    let hasRegularToolCalls = false;
 
     // text content:
     const text = choice.message.content;
-    if (text != null && text.length > 0) {
+    if (jsonResponseToolName == null && text != null && text.length > 0) {
       content.push({ type: 'text', text: text });
     }
 
@@ -208,18 +288,30 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
     // tool calls:
     if (choice.message.tool_calls != null) {
       for (const toolCall of choice.message.tool_calls) {
-        content.push({
-          type: 'tool-call',
-          toolCallId: toolCall.id ?? generateId(),
-          toolName: toolCall.function.name,
-          input: toolCall.function.arguments!,
-        });
+        if (toolCall.function.name === jsonResponseToolName) {
+          hasJsonResponseToolCall = true;
+          content.push({
+            type: 'text',
+            text: getJsonResponseText(toolCall.function.arguments!),
+          });
+        } else {
+          hasRegularToolCalls = true;
+          content.push({
+            type: 'tool-call',
+            toolCallId: toolCall.id ?? generateId(),
+            toolName: toolCall.function.name,
+            input: toolCall.function.arguments!,
+          });
+        }
       }
     }
 
     return {
       content,
-      finishReason: mapGroqFinishReason(choice.finish_reason),
+      finishReason:
+        hasJsonResponseToolCall && !hasRegularToolCalls
+          ? 'stop'
+          : mapGroqFinishReason(choice.finish_reason),
       usage: {
         inputTokens: response.usage?.prompt_tokens ?? undefined,
         outputTokens: response.usage?.completion_tokens ?? undefined,
@@ -240,7 +332,10 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { args, warnings } = await this.getArgs({ ...options, stream: true });
+    const { args, warnings, jsonResponseToolName } = await this.getArgs({
+      ...options,
+      stream: true,
+    });
 
     const body = JSON.stringify({ ...args, stream: true });
 
@@ -281,6 +376,8 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
     let isFirstChunk = true;
     let isActiveText = false;
     let isActiveReasoning = false;
+    let hasJsonResponseToolCall = false;
+    let hasRegularToolCalls = false;
 
     let providerMetadata: SharedV2ProviderMetadata | undefined;
     return {
@@ -362,7 +459,11 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
               });
             }
 
-            if (delta.content != null && delta.content.length > 0) {
+            if (
+              jsonResponseToolName == null &&
+              delta.content != null &&
+              delta.content.length > 0
+            ) {
               if (!isActiveText) {
                 controller.enqueue({ type: 'text-start', id: 'txt-0' });
                 isActiveText = true;
@@ -401,11 +502,26 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
                     });
                   }
 
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCallDelta.id,
-                    toolName: toolCallDelta.function.name,
-                  });
+                  const isJsonResponseTool =
+                    toolCallDelta.function.name === jsonResponseToolName;
+
+                  if (isJsonResponseTool) {
+                    hasJsonResponseToolCall = true;
+                    if (!isActiveText) {
+                      controller.enqueue({
+                        type: 'text-start',
+                        id: 'txt-0',
+                      });
+                      isActiveText = true;
+                    }
+                  } else {
+                    hasRegularToolCalls = true;
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: toolCallDelta.id,
+                      toolName: toolCallDelta.function.name,
+                    });
+                  }
 
                   toolCalls[index] = {
                     id: toolCallDelta.id,
@@ -424,7 +540,10 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
                     toolCall.function?.arguments != null
                   ) {
                     // send delta if the argument text has already started:
-                    if (toolCall.function.arguments.length > 0) {
+                    if (
+                      !isJsonResponseTool &&
+                      toolCall.function.arguments.length > 0
+                    ) {
                       controller.enqueue({
                         type: 'tool-input-delta',
                         id: toolCall.id,
@@ -435,17 +554,27 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
                     // check if tool call is complete
                     // (some providers send the full tool call in one chunk):
                     if (isParsableJson(toolCall.function.arguments)) {
-                      controller.enqueue({
-                        type: 'tool-input-end',
-                        id: toolCall.id,
-                      });
+                      if (isJsonResponseTool) {
+                        controller.enqueue({
+                          type: 'text-delta',
+                          id: 'txt-0',
+                          delta: getJsonResponseText(
+                            toolCall.function.arguments,
+                          ),
+                        });
+                      } else {
+                        controller.enqueue({
+                          type: 'tool-input-end',
+                          id: toolCall.id,
+                        });
 
-                      controller.enqueue({
-                        type: 'tool-call',
-                        toolCallId: toolCall.id ?? generateId(),
-                        toolName: toolCall.function.name,
-                        input: toolCall.function.arguments,
-                      });
+                        controller.enqueue({
+                          type: 'tool-call',
+                          toolCallId: toolCall.id ?? generateId(),
+                          toolName: toolCall.function.name,
+                          input: toolCall.function.arguments,
+                        });
+                      }
                       toolCall.hasFinished = true;
                     }
                   }
@@ -466,11 +595,15 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
                 }
 
                 // send delta
-                controller.enqueue({
-                  type: 'tool-input-delta',
-                  id: toolCall.id,
-                  delta: toolCallDelta.function.arguments ?? '',
-                });
+                const isJsonResponseTool =
+                  toolCall.function.name === jsonResponseToolName;
+                if (!isJsonResponseTool) {
+                  controller.enqueue({
+                    type: 'tool-input-delta',
+                    id: toolCall.id,
+                    delta: toolCallDelta.function.arguments ?? '',
+                  });
+                }
 
                 // check if tool call is complete
                 if (
@@ -478,17 +611,25 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
                   toolCall.function?.arguments != null &&
                   isParsableJson(toolCall.function.arguments)
                 ) {
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: toolCall.id,
-                  });
+                  if (isJsonResponseTool) {
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: 'txt-0',
+                      delta: getJsonResponseText(toolCall.function.arguments),
+                    });
+                  } else {
+                    controller.enqueue({
+                      type: 'tool-input-end',
+                      id: toolCall.id,
+                    });
 
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId: toolCall.id ?? generateId(),
-                    toolName: toolCall.function.name,
-                    input: toolCall.function.arguments,
-                  });
+                    controller.enqueue({
+                      type: 'tool-call',
+                      toolCallId: toolCall.id ?? generateId(),
+                      toolName: toolCall.function.name,
+                      input: toolCall.function.arguments,
+                    });
+                  }
                   toolCall.hasFinished = true;
                 }
               }
@@ -496,6 +637,10 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
           },
 
           flush(controller) {
+            if (hasJsonResponseToolCall && !hasRegularToolCalls) {
+              finishReason = 'stop';
+            }
+
             if (isActiveReasoning) {
               controller.enqueue({ type: 'reasoning-end', id: 'reasoning-0' });
             }
