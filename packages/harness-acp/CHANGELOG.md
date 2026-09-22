@@ -1,5 +1,13 @@
 # @ai-sdk/harness-acp
 
+## 1.0.59
+
+### Patch Changes
+
+- 3ea56bc: fix(harness): make bridge asset resolution compatible with Turbopack (and thus Next.js 16)
+- Updated dependencies [3ea56bc]
+  - @ai-sdk/harness@1.0.121
+
 ## 1.0.58
 
 ### Patch Changes
