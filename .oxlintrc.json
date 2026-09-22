@@ -165,7 +165,6 @@
     "unicorn/no-this-assignment": "off",
     "unicorn/no-typeof-undefined": "off",
     "unicorn/no-unnecessary-array-splice-count": "off",
-    "unicorn/no-useless-collection-argument": "off",
     "unicorn/no-useless-fallback-in-spread": "off",
     "unicorn/no-useless-promise-resolve-reject": "off",
     "unicorn/no-useless-spread": "off",
