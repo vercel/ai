@@ -19,6 +19,10 @@ export type CodexItem = {
   result?: { content?: unknown; structured_content?: unknown } | unknown;
   error?: { message?: string };
   query?: string;
+  action?: {
+    query?: string;
+    [key: string]: unknown;
+  };
   message?: string;
   changes?: ReadonlyArray<{
     path: string;
@@ -73,6 +77,7 @@ export function createEmitStreamEvent({
 }): (event: CodexEvent) => void {
   const textByItem = new Map<string, string>();
   const reasoningByItem = new Map<string, string>();
+  const emittedWebSearchToolCalls = new Set<string>();
 
   return event => {
     if (
@@ -202,22 +207,32 @@ export function createEmitStreamEvent({
 
     if (item.type === 'web_search') {
       const nativeName = 'web_search';
-      if (event.type === 'item.started') {
-        send({
-          type: 'tool-call',
-          toolCallId: id,
-          toolName: toCommonName(nativeName),
-          nativeName,
-          input: JSON.stringify({ query: item.query ?? '' }),
-          providerExecuted: true,
-        });
+      const query = getWebSearchQuery(item);
+      if (event.type === 'item.started' || event.type === 'item.updated') {
+        if (query !== undefined) {
+          emitWebSearchToolCall({
+            id,
+            query,
+            nativeName,
+            emittedWebSearchToolCalls,
+            send,
+          });
+        }
       } else if (event.type === 'item.completed') {
+        emitWebSearchToolCall({
+          id,
+          query: query ?? '',
+          nativeName,
+          emittedWebSearchToolCalls,
+          send,
+        });
         send({
           type: 'tool-result',
           toolCallId: id,
           toolName: toCommonName(nativeName),
-          result: item.result ?? null,
+          result: item.result ?? item.action ?? null,
         });
+        emittedWebSearchToolCalls.delete(id);
       }
       observeStep();
       return;
@@ -248,6 +263,41 @@ export function createEmitStreamEvent({
       emitWarning({ message });
     }
   };
+}
+
+function getWebSearchQuery(item: CodexItem): string | undefined {
+  if (typeof item.query === 'string' && item.query.length > 0) {
+    return item.query;
+  }
+  if (typeof item.action?.query === 'string' && item.action.query.length > 0) {
+    return item.action.query;
+  }
+  return undefined;
+}
+
+function emitWebSearchToolCall({
+  id,
+  query,
+  nativeName,
+  emittedWebSearchToolCalls,
+  send,
+}: {
+  id: string;
+  query: string;
+  nativeName: string;
+  emittedWebSearchToolCalls: Set<string>;
+  send: Emit;
+}): void {
+  if (emittedWebSearchToolCalls.has(id)) return;
+  emittedWebSearchToolCalls.add(id);
+  send({
+    type: 'tool-call',
+    toolCallId: id,
+    toolName: toCommonName(nativeName),
+    nativeName,
+    input: JSON.stringify({ query }),
+    providerExecuted: true,
+  });
 }
 
 function extractMcpToolCallResult(item: CodexItem): unknown {

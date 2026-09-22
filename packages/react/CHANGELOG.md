@@ -1,5 +1,258 @@
 # @ai-sdk/react
 
+## 4.0.114
+
+### Patch Changes
+
+- Updated dependencies [31d24ce]
+- Updated dependencies [a65bfd9]
+  - ai@7.0.111
+
+## 4.0.113
+
+### Patch Changes
+
+- ai@7.0.110
+
+## 4.0.112
+
+### Patch Changes
+
+- 7976437: fix(react): prevent stale throttled completion updates from overwriting a newer request
+- 0343bb1: fix(ai): keep replacement completion requests loading and cancellable when an earlier request settles
+- Updated dependencies [0343bb1]
+- Updated dependencies [2b105fa]
+- Updated dependencies [125f493]
+  - ai@7.0.109
+
+## 4.0.111
+
+### Patch Changes
+
+- Updated dependencies [7fc2bc1]
+- Updated dependencies [3f6852a]
+- Updated dependencies [6317504]
+- Updated dependencies [3cb2dcd]
+- Updated dependencies [ccf98e7]
+  - @ai-sdk/mcp@2.0.55
+  - ai@7.0.108
+
+## 4.0.110
+
+### Patch Changes
+
+- 00da674: fix(react): preserve Headers instances in useCompletion requests
+- e43032f: fix(react): handle rejected asynchronous useObject onFinish callbacks
+- f42a247: fix(react): keep useObject cleared when an initial value is configured
+- 21d4b7d: fix(react): preserve active useObject cancellation state during overlapping requests
+- Updated dependencies [79681c4]
+- Updated dependencies [98c7275]
+- Updated dependencies [2973485]
+- Updated dependencies [a105059]
+- Updated dependencies [31532f3]
+- Updated dependencies [e61cbd8]
+- Updated dependencies [8ade040]
+- Updated dependencies [970a01e]
+- Updated dependencies [85539c5]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+- Updated dependencies [611d301]
+- Updated dependencies [c415657]
+  - ai@7.0.107
+  - @ai-sdk/provider-utils@5.0.45
+  - @ai-sdk/mcp@2.0.54
+
+## 4.0.109
+
+### Patch Changes
+
+- Updated dependencies [4775577]
+- Updated dependencies [6696728]
+- Updated dependencies [09516a1]
+- Updated dependencies [1aef01e]
+- Updated dependencies [9c1ea74]
+- Updated dependencies [107343a]
+- Updated dependencies [03c3e33]
+- Updated dependencies [4b5cb49]
+- Updated dependencies [5d42ebd]
+- Updated dependencies [4a67783]
+- Updated dependencies [1058ed5]
+- Updated dependencies [84f5d1b]
+- Updated dependencies [2d53a5d]
+- Updated dependencies [2a5ed55]
+- Updated dependencies [0455398]
+  - ai@7.0.106
+  - @ai-sdk/mcp@2.0.53
+  - @ai-sdk/provider-utils@5.0.44
+
+## 4.0.108
+
+### Patch Changes
+
+- Updated dependencies [6982e9d]
+  - ai@7.0.105
+
+## 4.0.107
+
+### Patch Changes
+
+- b0cfd5b: fix(react): allow unused realtime runtime code to be tree-shaken
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [227f3b0]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - ai@7.0.104
+  - @ai-sdk/provider@4.0.17
+  - @ai-sdk/mcp@2.0.52
+
+## 4.0.106
+
+### Patch Changes
+
+- Updated dependencies [91c2128]
+- Updated dependencies [df91a09]
+- Updated dependencies [25a0447]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - ai@7.0.103
+  - @ai-sdk/mcp@2.0.51
+  - @ai-sdk/provider@4.0.16
+
+## 4.0.105
+
+### Patch Changes
+
+- 5c0054d: Add optional browser-direct WebRTC for experimental client-delegated Live conversations alongside the existing WebSocket path. Exchange SDP through an application endpoint with `api.session`, configure server-owned data-channel permissions, and preserve committed React session ownership. Capture follows the selected sender track, borrowed tracks remain caller-owned, and disconnect recovery and finalization stay bounded. Applications continue to handle client delegation and submit context; Live session updates and Responses delegation remain unsupported.
+
+  Serialize microphone sender changes and close the peer if detachment fails, without stopping borrowed tracks. Validate nonempty SDP setup answers with a bounded response body, and document the same-origin broker authentication contract.
+
+- a050aed: Preserve missing-tool-handler diagnostics in `experimental_useRealtime` by leaving an omitted `onToolCall` undefined. Publish handler presence only at commit without reconnecting or exposing handlers from abandoned renders. A defined handler returning undefined continues to support manual tool output.
+- a050aed: Publish realtime session ownership and callbacks only when React commits. Keep control identities stable across renders, route retained controls to the current committed session, and revoke them on unmount. Preserve connected sessions when concurrent renders are abandoned, support StrictMode effect replay and React 18 server rendering, and expose continuous session metadata alongside turn-based messages.
+- a050aed: Add WebSocket relay support to `experimental_useRealtime`, with shared session state, capture controls, bounded playback, graceful close, and application-handled client delegation for Live.
+- 4b306c2: Add the client-delegation-first realtime WebSocket runtime with session lifecycle, exact final duration, bounded event queues and command acknowledgement tracking, transcripts, context append, and reversible capture. Continuous sessions support PCM16 audio-chunk playback over an application relay with a recoverable live-edge buffer policy. Legacy turn-based WebSockets retain queued playback and frontend tool handling.
+
+  Remove the deferred managed Responses coordinator, autoContinueTools option, backend usage state, and Live tool-result aliases. Continuous text and delegation handling belong to the application; sendTextMessage and addToolOutput reject continuous sessions. Server-confirmed provider delegation and turn-based audio-delta on the continuous profile fail explicitly. maxPlaybackBufferSeconds is supported only for continuous PCM sessions.
+
+  Fence callbacks, startup publications, tool results, and teardown by connection attempt. Validate token setup before opening a client-secret socket, require explicit relay transport mode, and include WebSocket URL, protocol values, and runtime timeouts/buffer settings in React session configuration keys.
+
+  Retain immediate local capture for explicit legacy preconnect streams, including owned-track cleanup and capture continuity through asynchronous setup. Signal transport closing before draining accepted terminal events, share reentrant close settlement, and cancel stale readiness and deadlines. Enforce 128 KiB frame and combined buffered-send budgets only for Live continuous sessions, using actual encoded wire bytes; oversized manual operations remain recoverable while startup and automatic audio failures close the session. Legacy startup, text, tool output, and audio retain their pre-Live behavior without these byte caps. Live pending-audio overflow drains accepted terminal usage within the existing one-second drain window. Validate final provider-transformed WebSocket URL syntax without removing native authentication query parameters.
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+- Updated dependencies [8b92ba9]
+- Updated dependencies [4b306c2]
+- Updated dependencies [4b306c2]
+  - @ai-sdk/provider@4.0.15
+  - ai@7.0.102
+  - @ai-sdk/mcp@2.0.50
+  - @ai-sdk/provider-utils@5.0.41
+
+## 4.0.104
+
+### Patch Changes
+
+- Updated dependencies [6aa7c54]
+  - ai@7.0.101
+
+## 4.0.103
+
+### Patch Changes
+
+- Updated dependencies [6431635]
+  - ai@7.0.100
+
+## 4.0.102
+
+### Patch Changes
+
+- Updated dependencies [615ac89]
+  - ai@7.0.99
+
+## 4.0.101
+
+### Patch Changes
+
+- 9d8e5a1: fix(react): abort chats when their `useChat` id changes during a stream
+- Updated dependencies [5ec21a6]
+- Updated dependencies [db59d78]
+- Updated dependencies [7469a3b]
+- Updated dependencies [f87bf07]
+- Updated dependencies [bc5cb7a]
+- Updated dependencies [a5f449a]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - ai@7.0.98
+  - @ai-sdk/provider-utils@5.0.40
+  - @ai-sdk/mcp@2.0.49
+
+## 4.0.100
+
+### Patch Changes
+
+- Updated dependencies [ef3bac4]
+- Updated dependencies [9942196]
+  - ai@7.0.97
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/mcp@2.0.48
+  - @ai-sdk/provider-utils@5.0.39
+
+## 4.0.99
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+- Updated dependencies [c595e6e]
+  - @ai-sdk/provider@4.0.12
+  - ai@7.0.96
+  - @ai-sdk/mcp@2.0.47
+  - @ai-sdk/provider-utils@5.0.38
+
+## 4.0.98
+
+### Patch Changes
+
+- Updated dependencies [27f6d7a]
+  - ai@7.0.95
+
+## 4.0.97
+
+### Patch Changes
+
+- Updated dependencies [a4ba394]
+- Updated dependencies [36b3364]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - ai@7.0.94
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+  - @ai-sdk/mcp@2.0.46
+
+## 4.0.96
+
+### Patch Changes
+
+- Updated dependencies [33ba8fd]
+- Updated dependencies [df6c009]
+- Updated dependencies [6ee74a3]
+- Updated dependencies [f13d371]
+- Updated dependencies [d4485fe]
+- Updated dependencies [4f201cc]
+- Updated dependencies [8cdb2a7]
+- Updated dependencies [3da84fd]
+- Updated dependencies [0f2281e]
+- Updated dependencies [fc8e8ac]
+- Updated dependencies [ee8391e]
+  - @ai-sdk/mcp@2.0.45
+  - ai@7.0.93
+
 ## 4.0.95
 
 ### Patch Changes

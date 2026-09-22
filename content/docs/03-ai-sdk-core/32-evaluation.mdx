@@ -1,0 +1,284 @@
+---
+title: Evaluation
+description: Evaluate Choice, Score, and Boolean questions against shared state.
+---
+
+# Evaluation
+
+`experimental_evaluate` evaluates named questions against one shared state using
+an evaluation model. State can be a string, JSON object, or JSON array. An array
+is one state, not a batch of unrelated inputs.
+
+This API and the evaluation model specification are experimental and may change
+in patch releases. Pass an evaluation model instance, resolve a model through a
+provider registry, or use a string ID. Strings resolve through Vercel AI Gateway
+unless you configure an evaluation-capable default provider.
+
+```ts
+import { experimental_evaluate, type Experimental_EvaluationModel } from 'ai';
+
+async function triage(model: Experimental_EvaluationModel, message: string) {
+  return experimental_evaluate({
+    model,
+    state: { message },
+    questions: {
+      department: {
+        type: 'choice',
+        instructions: 'Which team should handle this?',
+        criteria: {
+          billing: 'Payments and refunds',
+          support: 'Other requests',
+        },
+      },
+      severity: {
+        type: 'score',
+        instructions: 'How severe is the issue?',
+        criteria: ['Cosmetic', 'Workaround exists', 'Blocking; no workaround'],
+      },
+      requestsRefund: {
+        type: 'boolean',
+        instructions: 'Is the customer requesting money back?',
+      },
+    },
+  });
+}
+```
+
+## Provider models
+
+Use a provider's `evaluationModel` factory:
+
+| Provider    | Example model                                            |
+| ----------- | -------------------------------------------------------- |
+| TypeSafe AI | `typeSafeAi.evaluationModel('jev-latest')`               |
+| OpenAI      | `openai.evaluationModel('gpt-5.6-luna')`                 |
+| Anthropic   | `anthropic.evaluationModel('claude-haiku-4-5-20251001')` |
+| Google      | `google.evaluationModel('gemini-3.5-flash-lite')`        |
+
+TypeSafe AI's [Jev](https://vercel.com/i/what-is-jev) supplies native Choice, Score, and Boolean evaluations. OpenAI,
+Anthropic, and Google adapt structured language-model output for all three types.
+Boolean answers contain prompted estimates of P(true), validated to be finite
+and in `[0, 1]`. These estimates are not guaranteed to be calibrated. Choice and
+Score answers do not include probability distributions. Select a model that
+supports the provider's structured-output API; judge quality against your own
+labeled examples before choosing a model for a task.
+
+The language-model adapters evaluate all questions in one prompt. They do not
+provide TypeSafe's native independent-question execution semantics. The example
+model IDs demonstrate API compatibility; they are not benchmark-selected defaults.
+
+Language-model adapters request `reasoning: 'none'` by default. Each provider
+maps this setting to its model's reasoning controls; it does not guarantee that
+every model runs without thinking. To enable reasoning for more demanding
+evaluations, pass the model's supported reasoning settings through
+`providerOptions`, which take precedence over this default. For example, use
+`providerOptions: { openai: { reasoningEffort: 'high' } }` with an OpenAI model
+that supports that effort.
+
+## Model aliases and registries
+
+Use `customProvider` to give models application-specific names, then register
+providers with `createProviderRegistry`:
+
+```ts
+import { typeSafeAi } from '@ai-sdk/typesafe-ai';
+import { openai } from '@ai-sdk/openai';
+import {
+  customProvider,
+  createProviderRegistry,
+  experimental_evaluate,
+} from 'ai';
+
+const registry = createProviderRegistry({
+  triage: customProvider({
+    evaluationModels: {
+      native: typeSafeAi.evaluationModel('jev-latest'),
+      compact: openai.evaluationModel('gpt-5.6-luna'),
+    },
+    fallbackProvider: typeSafeAi,
+  }),
+  openai,
+});
+
+const result = await experimental_evaluate({
+  model: registry.evaluationModel('triage:native'),
+  state: 'I was charged twice.',
+  questions: {
+    department: {
+      type: 'choice',
+      instructions: 'Which team should handle this?',
+      criteria: { billing: 'Charges and refunds', support: 'Other requests' },
+    },
+  },
+});
+
+result.answers.department.choice; // 'billing' | 'support'
+```
+
+Registry IDs use `providerId:modelId`; the `separator` option changes the
+separator. Only the first separator is used, so model IDs can contain it.
+Custom aliases take precedence over a fallback provider. A fallback only resolves
+unknown model IDs; it does not retry failed evaluations or substitute a model
+when a question type is unsupported. Registered providers keep their own
+credentials and settings. Registry language/image middleware does not wrap
+evaluation models.
+
+### Default-provider strings
+
+String IDs use Vercel AI Gateway by default. Configure Gateway authentication
+with `AI_GATEWAY_API_KEY` or Vercel OIDC, then pass a Gateway model ID:
+
+```ts
+import { experimental_evaluate } from 'ai';
+
+const result = await experimental_evaluate({
+  model: 'typesafe-ai/jev-latest',
+  state: 'I was charged twice. Please refund the extra charge.',
+  questions: {
+    refund: {
+      type: 'boolean',
+      instructions: 'Is the customer asking for a refund?',
+    },
+  },
+});
+```
+
+To resolve strings through your own provider or aliases, configure the default
+provider once at application startup:
+
+```ts
+// Using the registry above, expose an alias through a custom provider:
+globalThis.AI_SDK_DEFAULT_PROVIDER = customProvider({
+  evaluationModels: { native: registry.evaluationModel('triage:native') },
+});
+
+const result = await experimental_evaluate({
+  model: 'native',
+  state: 'I was charged twice.',
+  questions: {
+    refund: {
+      type: 'boolean',
+      instructions: 'Is the customer asking for a refund?',
+    },
+  },
+});
+```
+
+A direct provider such as `typeSafeAi` can also be the default; then use its
+unprefixed model ID, such as `'jev-latest'`. String values in `evaluationModels`
+also resolve through this global default. Prefer model instances in aliases to
+avoid resolution cycles. Global configuration affects other AI SDK functions
+too; avoid changing it per request in a shared process.
+
+An explicitly configured default provider must expose an `evaluationModel`
+method; Gateway is used only when no default provider is configured. Missing
+registry providers throw `NoSuchProviderError`; missing models or evaluation
+capabilities throw
+`NoSuchModelError` with `modelType: 'evaluationModel'`. Unsupported model versions
+throw `UnsupportedModelVersionError`, including models returned by registries.
+The stable `ProviderV4` and `ProviderRegistryProvider` interfaces are unchanged;
+keep the inferred registry type, or use `Experimental_EvaluationProviderRegistry`,
+to retain its experimental `evaluationModel` method.
+
+## Question types
+
+| Type      | Criteria                                  | Answer                                                                   |
+| --------- | ----------------------------------------- | ------------------------------------------------------------------------ |
+| `choice`  | A nonempty map of options to descriptions | `choice`, inferred as a union of option keys; optional `probabilities`   |
+| `score`   | At least two ordered level descriptions   | Fractional `score` in `[0, levels.length - 1]`; optional `probabilities` |
+| `boolean` | Optional `true` and `false` descriptions  | Required `probability`, the model-estimated probability of true          |
+
+Instructions and descriptions can be strings, JSON objects, or JSON arrays.
+Descriptions can also be `null`. Core treats structured descriptions as content;
+it does not interpret their keys. Functions, class instances, cycles, undefined
+values, and nonfinite numbers are not JSON-compatible.
+
+Answers retain question IDs and have the same `type` as their question. When a
+Choice distribution is supplied, it includes every option and the selected
+choice has maximal probability. Score distributions use string keys for
+zero-based level indices, and the score equals the probability-weighted mean.
+Without a distribution, a score is the model's estimated position on the rubric.
+
+Distributions must sum to one, and weighted scores must agree with their
+distributions. The default absolute tolerance is `0.000001`. Providers that round
+their output can declare `rounding.probabilityDecimals` and
+`rounding.scoreDecimals` (integers from 0 to 15). Validation then also allows half
+a unit in the last decimal place per rounded probability or score, accumulated
+over the sum or weighted mean. For example, probabilities rounded to two decimal
+places can sum to `0.99` even when their unrounded values sum to one. The result
+includes this `rounding` information. Invalid output is rejected; native values
+are preserved, never silently normalized.
+
+## Probabilities and confidence
+
+Choice and Score distributions are optional. Boolean probability is required:
+`0.98` means a strong yes and `0.02` means a strong no. It is not confidence in
+either outcome. The SDK does not promise calibration across providers. Structured
+language-model adapters prompt the model to estimate P(true); native evaluation providers return
+their API probabilities. Provider-specific confidence statistics belong
+in `providerMetadata`. TypeSafe exposes its separate Choice/Score confidence
+statistic at `result.providerMetadata?.typesafe?.confidence`, keyed by question
+ID. It is not the selected option's probability or a portable confidence measure.
+
+Check for optional distributions before using them. For example, an application
+can route only when a provider supplies a sufficiently high selected-option
+probability:
+
+```ts
+const answer = result.answers.department;
+const selectedProbability = answer.probabilities?.[answer.choice];
+if (selectedProbability != null && selectedProbability >= 0.9) {
+  // Route automatically; otherwise use the application's review path.
+}
+```
+
+Choose Boolean thresholds in application code, using labeled data from the task
+rather than assuming that the same threshold behaves identically across providers:
+
+```ts
+if (result.answers.requestsRefund.probability >= 0.8) {
+  // Route to the refunds queue.
+}
+```
+
+## Errors and cancellation
+
+The model's `supportedQuestionTypes` are checked before calling the provider.
+Any unsupported question fails the entire call with
+`Experimental_EvaluationUnsupportedQuestionTypeError`. Successful calls return
+an answer for every question; there is no partial success or automatic model
+substitution.
+
+Invalid inputs throw `InvalidArgumentError`. Missing answers, mismatched answer
+types, invalid options, scores, or probabilities throw `InvalidResponseDataError`.
+Transient provider failures use the normal retry policy (`maxRetries: 2` by
+default). Use `abortSignal` to cancel evaluation, `headers` for request headers,
+and `providerOptions` for provider-specific settings.
+
+The result includes `usage`, `warnings`, `providerMetadata`, and `response`.
+Unknown token counts stay `undefined`; `totalTokens` is available only when both
+input and output counts are known.
+
+For tests, use `Experimental_EvaluationMockModelV4` from `ai/test`.
+
+## Scope and examples
+
+Evaluation currently returns one complete result for one shared state. It does
+not stream answers, perform multilabel classification, or batch unrelated
+states. Run separate calls for separate states. Provider support and judgment
+quality depend on the chosen model; the SDK does not choose a model automatically.
+
+Runnable examples are in
+[`examples/ai-functions/src/evaluate`](https://github.com/vercel/ai/tree/main/examples/ai-functions/src/evaluate),
+including basic examples for TypeSafe, OpenAI, Anthropic, and Google, model
+registries, custom aliases, default-provider strings, and probability-based routing.
+
+## Related resources
+
+Explore use cases, implementation guides, and a deployable template for using
+Jev from TypeSafe AI with the AI SDK:
+
+- [Jev use cases](https://vercel.com/i/jev-use-cases): Explore ideas for applying evaluation in your application.
+- [Classify, route, and score with Jev and AI SDK](https://vercel.com/kb/guide/typesafe-jev-and-ai-sdk): Learn how to ask typed questions, route answers using probabilities, and test routing logic with a mock evaluation model.
+- [Jev and AI SDK form router guide](https://vercel.com/kb/guide/jev-ai-sdk-form-router): Explore form routing with Jev and the AI SDK.
+- [Jev and AI SDK form router template](https://vercel.com/templates/next.js/jev-and-ai-sdk): Deploy a Next.js application that routes form submissions with Jev and uses a language model fallback for uncertain or failed evaluations.

@@ -13,6 +13,7 @@ import type {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  createToolNameMapping,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
@@ -37,10 +38,11 @@ import {
   convertGoogleUsage,
   type GoogleUsageMetadata,
 } from './convert-google-usage';
-import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import { convertToGoogleMessages } from './convert-to-google-messages';
+import { downloadToolResultFiles } from './download-tool-result-files';
 import { getModelPath } from './get-model-path';
 import { googleFailedResponseHandler } from './google-error';
+import { sanitizeResponseJsonSchema } from './sanitize-response-json-schema';
 import {
   googleLanguageModelOptions,
   type GoogleLanguageModelOptions,
@@ -75,6 +77,13 @@ export type GoogleLanguageModelConfig = {
    * The supported URLs for the model.
    */
   supportedUrls?: () => LanguageModelV4['supportedUrls'];
+
+  /**
+   * Settings for downloading remote files in tool results before conversion.
+   */
+  downloadToolResultFiles?: {
+    maxBytes: number;
+  };
 };
 
 export class GoogleLanguageModel implements LanguageModelV4 {
@@ -113,8 +122,10 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     return this.config.supportedUrls?.() ?? {};
   }
 
-  protected async getArgs(
-    {
+  static async prepareRequest({
+    modelId,
+    config,
+    options: {
       prompt,
       maxOutputTokens,
       temperature,
@@ -129,19 +140,26 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       toolChoice,
       reasoning,
       providerOptions,
-    }: LanguageModelV4CallOptions,
-    { isStreaming = false }: { isStreaming?: boolean } = {},
-  ) {
+      abortSignal,
+    },
+    isStreaming = false,
+  }: {
+    modelId: GoogleModelId;
+    config: GoogleLanguageModelConfig;
+    options: LanguageModelV4CallOptions;
+    isStreaming?: boolean;
+  }) {
     const warnings: SharedV4Warning[] = [];
 
     // Names to look up in providerOptions and to write into providerMetadata.
     // For the Vertex provider we read both the new `googleVertex` key and the
     // legacy `vertex` key (new takes precedence) and write under both for
     // backward compatibility. For other Google providers we use just `google`.
-    const providerOptionsNames: readonly string[] =
-      this.config.provider.includes('vertex')
-        ? (['googleVertex', 'vertex'] as const)
-        : (['google'] as const);
+    const providerOptionsNames: readonly string[] = config.provider.includes(
+      'vertex',
+    )
+      ? (['googleVertex', 'vertex'] as const)
+      : (['google'] as const);
 
     let googleOptions: GoogleLanguageModelOptions | undefined;
     for (const name of providerOptionsNames) {
@@ -164,7 +182,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     }
 
     // Add warning if Vertex rag tools are used with a non-Vertex Google provider
-    const isVertexProvider = this.config.provider.startsWith('google.vertex.');
+    const isVertexProvider = config.provider.startsWith('google.vertex.');
 
     if (
       tools?.some(
@@ -178,7 +196,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         message:
           "The 'vertex_rag_store' tool is only supported with the Google Vertex provider " +
           'and might not be supported or could behave unexpectedly with the current Google provider ' +
-          `(${this.config.provider}).`,
+          `(${config.provider}).`,
       });
     }
 
@@ -188,7 +206,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         message:
           "'streamFunctionCallArguments' is only supported on the Vertex AI API " +
           'and will be ignored with the current Google provider ' +
-          `(${this.config.provider}). See https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling#streaming-fc`,
+          `(${config.provider}). See https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling#streaming-fc`,
       });
     }
 
@@ -209,7 +227,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         type: 'other',
         message:
           "'sharedRequestType' and 'requestType' are Vertex AI options and " +
-          `are ignored with the current Google provider (${this.config.provider}).`,
+          `are ignored with the current Google provider (${config.provider}).`,
       });
     }
 
@@ -253,15 +271,15 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           message:
             `${droppedImageConfigFields.join(', ')} ` +
             `${droppedImageConfigFields.length === 1 ? 'is a Vertex AI option and is' : 'are Vertex AI options and are'} ` +
-            `ignored with the current Google provider (${this.config.provider}).`,
+            `ignored with the current Google provider (${config.provider}).`,
         });
         imageConfig = geminiApiImageConfig;
       }
     }
 
-    const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
+    const isGemmaModel = modelId.toLowerCase().startsWith('gemma-');
     const isGemini25DeveloperApiModel =
-      !isVertexProvider && gemini25ModelPattern.test(this.modelId);
+      !isVertexProvider && gemini25ModelPattern.test(modelId);
 
     if (isGemini25DeveloperApiModel && frequencyPenalty != null) {
       warnings.push({
@@ -276,16 +294,26 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       });
     }
 
-    const { usesGemini3Features } = getGoogleModelCapabilities(this.modelId);
+    const { usesGemini3Features } = getGoogleModelCapabilities(modelId);
 
-    const { contents, systemInstruction } = convertToGoogleMessages(prompt, {
-      isGemmaModel,
-      isGemini3Model: usesGemini3Features,
-      onWarning: warning => warnings.push(warning),
-      providerOptionsNames,
-      supportsFunctionResponseParts: usesGemini3Features,
-      includeFunctionCallIds: !isVertexProvider,
-    });
+    const promptWithDownloadedToolResultFiles = config.downloadToolResultFiles
+      ? await downloadToolResultFiles(prompt, {
+          abortSignal,
+          maxBytes: config.downloadToolResultFiles.maxBytes,
+        })
+      : prompt;
+
+    const { contents, systemInstruction } = convertToGoogleMessages(
+      promptWithDownloadedToolResultFiles,
+      {
+        isGemmaModel,
+        isGemini3Model: usesGemini3Features,
+        onWarning: warning => warnings.push(warning),
+        providerOptionsNames,
+        supportsFunctionResponseParts: usesGemini3Features,
+        includeFunctionCallIds: !isVertexProvider,
+      },
+    );
 
     const {
       tools: googleTools,
@@ -294,13 +322,19 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     } = prepareTools({
       tools,
       toolChoice,
-      modelId: this.modelId,
+      modelId,
       isVertexProvider,
+    });
+    const toolNameMapping = createToolNameMapping({
+      tools,
+      providerToolNames: {
+        'google.code_execution': 'code_execution',
+      },
     });
 
     const resolvedThinking = resolveThinkingConfig({
       reasoning,
-      modelId: this.modelId,
+      modelId,
       warnings,
     });
     const thinkingConfig =
@@ -361,14 +395,14 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           // response format:
           responseMimeType:
             responseFormat?.type === 'json' ? 'application/json' : undefined,
-          responseSchema:
+          responseJsonSchema:
             responseFormat?.type === 'json' &&
             responseFormat.schema != null &&
-            // Google GenAI does not support all OpenAPI Schema features,
-            // so this is needed as an escape hatch:
+            // Google does not support all JSON Schema features in
+            // responseJsonSchema, so this is needed as an escape hatch:
             // TODO convert into provider option
             (googleOptions?.structuredOutputs ?? true)
-              ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
+              ? sanitizeResponseJsonSchema(responseFormat.schema)
               : undefined,
           ...(googleOptions?.audioTimestamp && {
             audioTimestamp: googleOptions.audioTimestamp,
@@ -394,17 +428,34 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       warnings: [...warnings, ...toolWarnings],
       providerOptionsNames,
       extraHeaders: vertexPaygoHeaders,
+      toolNameMapping,
     };
   }
 
-  protected convertGenerateContentResponse({
+  private getArgs(
+    options: LanguageModelV4CallOptions,
+    { isStreaming = false }: { isStreaming?: boolean } = {},
+  ) {
+    return GoogleLanguageModel.prepareRequest({
+      modelId: this.modelId,
+      config: this.config,
+      options,
+      isStreaming,
+    });
+  }
+
+  static convertGenerateContentResponse({
+    config,
     response,
     warnings,
     providerOptionsNames,
+    toolNameMapping,
   }: {
+    config: GoogleLanguageModelConfig;
     response: InferSchema<typeof responseSchema>;
     warnings: SharedV4Warning[];
     providerOptionsNames: readonly string[];
+    toolNameMapping?: ReturnType<typeof createToolNameMapping>;
   }): LanguageModelV4GenerateResult {
     const wrapProviderMetadata = (payload: Record<string, unknown>) =>
       Object.fromEntries(
@@ -412,10 +463,15 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       ) as SharedV4ProviderMetadata;
     const candidate = response.candidates?.[0];
     const promptBlockReason = response.promptFeedback?.blockReason;
+    const confirmedPromptBlockReason = isConfirmedPromptBlockReason(
+      promptBlockReason,
+    )
+      ? promptBlockReason
+      : undefined;
     const isPromptBlocked =
-      candidate?.finishReason == null && promptBlockReason != null;
+      candidate?.finishReason == null && confirmedPromptBlockReason != null;
     const rawFinishReason =
-      candidate?.finishReason ?? promptBlockReason ?? undefined;
+      candidate?.finishReason ?? confirmedPromptBlockReason;
     const content: Array<LanguageModelV4Content> = [];
 
     // map ordered parts to content:
@@ -431,13 +487,15 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     // Build content array from all parts
     for (const part of parts) {
       if ('executableCode' in part && part.executableCode?.code) {
-        const toolCallId = this.config.generateId();
+        const toolCallId = config.generateId();
         lastCodeExecutionToolCallId = toolCallId;
 
         content.push({
           type: 'tool-call',
           toolCallId,
-          toolName: 'code_execution',
+          toolName:
+            toolNameMapping?.toCustomToolName('code_execution') ??
+            'code_execution',
           input: JSON.stringify(part.executableCode),
           providerExecuted: true,
         });
@@ -446,7 +504,9 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           type: 'tool-result',
           // Results correspond to the most recent executable code part.
           toolCallId: lastCodeExecutionToolCallId!,
-          toolName: 'code_execution',
+          toolName:
+            toolNameMapping?.toCustomToolName('code_execution') ??
+            'code_execution',
           result: {
             outcome: part.codeExecutionResult.outcome,
             output: part.codeExecutionResult.output ?? '',
@@ -474,7 +534,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       } else if ('functionCall' in part && part.functionCall.name != null) {
         content.push({
           type: 'tool-call' as const,
-          toolCallId: part.functionCall.id || this.config.generateId(),
+          toolCallId: part.functionCall.id || config.generateId(),
           toolName: part.functionCall.name,
           input: JSON.stringify(part.functionCall.args ?? {}),
           providerMetadata: part.thoughtSignature
@@ -497,7 +557,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
             : undefined,
         });
       } else if ('toolCall' in part && part.toolCall) {
-        const toolCallId = part.toolCall.id || this.config.generateId();
+        const toolCallId = part.toolCall.id || config.generateId();
         lastServerToolCallId = toolCallId;
         content.push({
           type: 'tool-call',
@@ -519,9 +579,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         });
       } else if ('toolResponse' in part && part.toolResponse) {
         const responseToolCallId =
-          lastServerToolCallId ||
-          part.toolResponse.id ||
-          this.config.generateId();
+          lastServerToolCallId || part.toolResponse.id || config.generateId();
         content.push({
           type: 'tool-result',
           toolCallId: responseToolCallId,
@@ -545,7 +603,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     const sources =
       extractSources({
         groundingMetadata: candidate?.groundingMetadata,
-        generateId: this.config.generateId,
+        generateId: config.generateId,
       }) ?? [];
     for (const source of sources) {
       content.push(source);
@@ -586,8 +644,13 @@ export class GoogleLanguageModel implements LanguageModelV4 {
   async doGenerate(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
-    const { args, warnings, providerOptionsNames, extraHeaders } =
-      await this.getArgs(options);
+    const {
+      args,
+      warnings,
+      providerOptionsNames,
+      extraHeaders,
+      toolNameMapping,
+    } = await this.getArgs(options);
 
     const mergedHeaders = combineHeaders(
       this.config.headers ? await resolve(this.config.headers) : undefined,
@@ -611,10 +674,12 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       fetch: this.config.fetch,
     });
 
-    const result = this.convertGenerateContentResponse({
+    const result = GoogleLanguageModel.convertGenerateContentResponse({
+      config: this.config,
       response,
       warnings,
       providerOptionsNames,
+      toolNameMapping,
     });
 
     return {
@@ -631,8 +696,13 @@ export class GoogleLanguageModel implements LanguageModelV4 {
   async doStream(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4StreamResult> {
-    const { args, warnings, providerOptionsNames, extraHeaders } =
-      await this.getArgs(options, { isStreaming: true });
+    const {
+      args,
+      warnings,
+      providerOptionsNames,
+      extraHeaders,
+      toolNameMapping,
+    } = await this.getArgs(options, { isStreaming: true });
     const wrapProviderMetadata = (payload: Record<string, unknown>) =>
       Object.fromEntries(
         providerOptionsNames.map(name => [name, payload]),
@@ -661,9 +731,12 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       raw: undefined,
     };
     let usage: GoogleUsageMetadata | undefined = undefined;
-    let providerMetadata: SharedV4ProviderMetadata | undefined = undefined;
+    let promptFeedback: PromptFeedbackSchema | null = null;
     let lastGroundingMetadata: GroundingMetadataSchema | null = null;
     let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
+    let lastSafetyRatings: SafetyRatingSchema[] | null = null;
+    let lastFinishMessage: string | null = null;
+    let confirmedPromptBlockReason: string | undefined;
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
@@ -760,37 +833,47 @@ export class GoogleLanguageModel implements LanguageModelV4 {
               usage = usageMetadata;
             }
 
-            const candidate = value.candidates?.[0];
+            if (
+              value.promptFeedback != null &&
+              confirmedPromptBlockReason == null
+            ) {
+              promptFeedback = value.promptFeedback;
 
-            // sometimes the API returns an empty candidates array
-            if (candidate == null) {
-              const promptBlockReason = value.promptFeedback?.blockReason;
-              if (promptBlockReason != null) {
+              if (
+                isConfirmedPromptBlockReason(value.promptFeedback.blockReason)
+              ) {
+                confirmedPromptBlockReason = value.promptFeedback.blockReason;
                 finishReason = {
                   unified: 'content-filter',
-                  raw: promptBlockReason,
+                  raw: confirmedPromptBlockReason,
                 };
-                providerMetadata = wrapProviderMetadata({
-                  promptFeedback: value.promptFeedback ?? null,
-                  groundingMetadata: lastGroundingMetadata,
-                  urlContextMetadata: lastUrlContextMetadata,
-                  safetyRatings: null,
-                  usageMetadata: usageMetadata ?? null,
-                  finishMessage: null,
-                  serviceTier: usage?.serviceTier ?? null,
-                } satisfies GoogleProviderMetadata);
               }
+            }
+
+            const candidate = value.candidates?.[0];
+
+            if (candidate != null) {
+              if (candidate.groundingMetadata != null) {
+                lastGroundingMetadata = candidate.groundingMetadata;
+              }
+              if (candidate.urlContextMetadata != null) {
+                lastUrlContextMetadata = candidate.urlContextMetadata;
+              }
+              if (candidate.safetyRatings != null) {
+                lastSafetyRatings = candidate.safetyRatings;
+              }
+              if (candidate.finishMessage != null) {
+                lastFinishMessage = candidate.finishMessage;
+              }
+            }
+
+            // A confirmed prompt block is terminal for generated content, but
+            // later chunks can still contribute usage and provider metadata.
+            if (confirmedPromptBlockReason != null || candidate == null) {
               return;
             }
 
             const content = candidate.content;
-
-            if (candidate.groundingMetadata != null) {
-              lastGroundingMetadata = candidate.groundingMetadata;
-            }
-            if (candidate.urlContextMetadata != null) {
-              lastUrlContextMetadata = candidate.urlContextMetadata;
-            }
 
             const sources = extractSources({
               groundingMetadata: candidate.groundingMetadata,
@@ -820,7 +903,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                   controller.enqueue({
                     type: 'tool-call',
                     toolCallId,
-                    toolName: 'code_execution',
+                    toolName:
+                      toolNameMapping.toCustomToolName('code_execution'),
                     input: JSON.stringify(part.executableCode),
                     providerExecuted: true,
                   });
@@ -835,7 +919,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                     controller.enqueue({
                       type: 'tool-result',
                       toolCallId,
-                      toolName: 'code_execution',
+                      toolName:
+                        toolNameMapping.toCustomToolName('code_execution'),
                       result: {
                         outcome: part.codeExecutionResult.outcome,
                         output: part.codeExecutionResult.output ?? '',
@@ -1155,32 +1240,14 @@ export class GoogleLanguageModel implements LanguageModelV4 {
               }
             }
 
-            const promptBlockReason = value.promptFeedback?.blockReason;
-            const isPromptBlocked =
-              candidate.finishReason == null && promptBlockReason != null;
-            const rawFinishReason =
-              candidate.finishReason ?? promptBlockReason ?? undefined;
-
-            if (rawFinishReason != null) {
+            if (candidate.finishReason != null) {
               finishReason = {
-                unified: isPromptBlocked
-                  ? 'content-filter'
-                  : mapGoogleFinishReason({
-                      finishReason: rawFinishReason,
-                      hasToolCalls,
-                    }),
-                raw: rawFinishReason,
+                unified: mapGoogleFinishReason({
+                  finishReason: candidate.finishReason,
+                  hasToolCalls,
+                }),
+                raw: candidate.finishReason,
               };
-
-              providerMetadata = wrapProviderMetadata({
-                promptFeedback: value.promptFeedback ?? null,
-                groundingMetadata: lastGroundingMetadata,
-                urlContextMetadata: lastUrlContextMetadata,
-                safetyRatings: candidate.safetyRatings ?? null,
-                usageMetadata: usageMetadata ?? null,
-                finishMessage: candidate.finishMessage ?? null,
-                serviceTier: usage?.serviceTier ?? null,
-              } satisfies GoogleProviderMetadata);
             }
           },
 
@@ -1202,7 +1269,15 @@ export class GoogleLanguageModel implements LanguageModelV4 {
               type: 'finish',
               finishReason,
               usage: convertGoogleUsage(usage),
-              providerMetadata,
+              providerMetadata: wrapProviderMetadata({
+                promptFeedback,
+                groundingMetadata: lastGroundingMetadata,
+                urlContextMetadata: lastUrlContextMetadata,
+                safetyRatings: lastSafetyRatings,
+                usageMetadata: usage ?? null,
+                finishMessage: lastFinishMessage,
+                serviceTier: usage?.serviceTier ?? null,
+              } satisfies GoogleProviderMetadata),
             });
           },
         }),
@@ -1727,3 +1802,14 @@ const chunkSchema = lazySchema(() =>
 );
 
 type ChunkSchema = InferSchema<typeof chunkSchema>;
+
+function isConfirmedPromptBlockReason(
+  blockReason: string | null | undefined,
+): blockReason is string {
+  return (
+    blockReason != null &&
+    blockReason !== '' &&
+    blockReason !== 'BLOCK_REASON_UNSPECIFIED' &&
+    blockReason !== 'BLOCKED_REASON_UNSPECIFIED'
+  );
+}

@@ -96,6 +96,13 @@ Settings:
 - `mcpServers`: MCP server definitions keyed by server name.
 - `port`: ACP bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the ACP bridge to start.
+- `reconnect`: reconnect timing after an established bridge WebSocket
+  connection drops. `maxElapsedMs` controls the total retry window, including
+  connection establishment and backoff delays, and defaults to 30 seconds.
+  `initialDelayMs` defaults to 50 milliseconds, and `maxDelayMs` defaults to
+  2 seconds. These retries use exponential backoff and are separate from
+  `startupTimeoutMs`. They cannot recover when the sandbox, bridge process, or
+  bridge endpoint is permanently unavailable.
 - `mintBridgeToken`: synchronous function that receives the sandbox id and
   returns the ACP bridge authentication token. By default, the adapter generates
   a random 32-byte token. Custom implementations must return a suitably secret
@@ -112,6 +119,10 @@ Cursor has two independent authentication layers:
    requires this key for every `auth` mode.
 2. Cursor's account settings determine how Cursor authenticates to the model
    provider. The harness cannot read or change this setting.
+
+If no applicable credential environment variable is set, the adapter attempts
+to resolve a native subscription from the host system unless AI Gateway
+authentication is selected.
 
 For direct routing, configure the model provider in Cursor. For AI Gateway,
 configure Cursor's OpenAI API key with an AI Gateway API key and set
@@ -177,8 +188,15 @@ MCP payload and correlates the call with the host-side tool execution.
 - ACP v1 has no portable built-in tool filtering API. Filtering host tools is
   supported, but filtering Cursor built-ins throws an unsupported-capability
   error.
+- Cursor does not currently support built-in tool approval requests. Use
+  `permissionMode: 'allow-all'` with this adapter. Host-executed AI SDK tool
+  approvals still work.
 - Cursor ACP does not expose a structured-output metadata mapping, so schema-backed
   structured output is unsupported.
+- Custom `headers` are not natively supported and only applied via
+  sandbox-external request transformations. When a sandbox without that
+  capability is provided, custom `headers` therefore cannot be passed and are
+  ignored.
 
 ## Related
 

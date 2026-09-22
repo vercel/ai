@@ -13,18 +13,29 @@ import type {
   Context,
   Experimental_SandboxSession as SandboxSession,
   FlexibleSchema,
+  InferToolSetContext,
   MaybePromiseLike,
+  SystemModelMessage,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type {
   ActiveTools,
   AgentCallParameters,
+  GenerateTextOnEndCallback,
+  GenerateTextOnStartCallback,
+  GenerateTextOnStepEndCallback,
+  GenerateTextOnStepStartCallback,
+  OnLanguageModelCallEndCallback,
+  OnLanguageModelCallStartCallback,
+  OnToolExecutionEndCallback,
+  OnToolExecutionStartCallback,
   OutputInterface as Output,
   Prompt,
   StopCondition,
   TelemetryOptions,
   ToolApprovalStatus,
 } from 'ai';
+import type { ToolsContextSettings } from 'ai/internal';
 import type { HarnessAllTools } from './harness-agent-tool-types';
 
 export type HarnessAgentToolApprovalConfiguration = Readonly<
@@ -78,10 +89,12 @@ type HarnessTools<TOOLS extends ToolSet> = ActiveTools<NoInfer<TOOLS>>;
 /**
  * Construction-time settings for a `HarnessAgent`.
  *
- * Prompt, abortSignal, callbacks, and custom call options belong on the
+ * Prompt, abortSignal, and custom call options belong on the
  * `AgentCallParameters` / `AgentStreamParameters` passed to `generate` /
- * `stream`. `prepareCall` can derive turn-scoped model, skills, instructions,
- * and tools from those custom call options.
+ * `stream`. Lifecycle callbacks can be configured here for every call, while
+ * the callbacks supported by `AgentCallParameters` can also be added per call.
+ * `prepareCall` can derive turn-scoped model, skills, instructions, and tools
+ * from custom call options.
  */
 type HarnessAgentToolFilteringSettings<TOOLS extends ToolSet> =
   | {
@@ -140,6 +153,13 @@ export type HarnessAgentSettings<
   readonly tools?: TUserTools;
 
   /**
+   * Per-tool context passed to host-executed tools. Each entry is validated
+   * against the matching tool's `contextSchema` before execution.
+   * `prepareCall` can replace it for each new turn.
+   */
+  readonly toolsContext?: InferToolSetContext<TUserTools>;
+
+  /**
    * Skills made available to the underlying runtime. Each adapter decides how
    * to surface skills. `prepareCall` can replace them between completed turns.
    */
@@ -149,9 +169,18 @@ export type HarnessAgentSettings<
    * Instructions for the underlying agent runtime. Adapters append these to a
    * native system or developer prompt when supported. Otherwise, they prepend
    * them to the user message. `prepareCall` can replace them between completed
-   * turns.
+   * turns. When a `SystemModelMessage` is provided, only its `content` is
+   * forwarded to the harness adapter.
    */
-  readonly instructions?: string;
+  readonly instructions?: string | SystemModelMessage;
+
+  /**
+   * Additional HTTP headers to be sent with every model request.
+   *
+   * `authorization`, `x-api-key`, `user-agent`, and `x-client-app` are
+   * managed by the harness and are not allowed.
+   */
+  readonly headers?: Record<string, string | undefined>;
 
   /**
    * Schema for validating the custom options passed to each agent call.
@@ -205,7 +234,9 @@ export type HarnessAgentSettings<
           CALL_OPTIONS
         >,
         'model' | 'skills' | 'instructions' | 'tools'
-      >,
+      > & {
+        toolsContext: InferToolSetContext<TUserTools>;
+      },
   ) => MaybePromiseLike<
     Pick<
       HarnessAgentSettings<
@@ -216,8 +247,9 @@ export type HarnessAgentSettings<
         CALL_OPTIONS
       >,
       'model' | 'skills' | 'instructions' | 'tools'
-    > &
-      Omit<Prompt, 'system' | 'instructions' | 'allowSystemInMessages'>
+    > & {
+      toolsContext: InferToolSetContext<TUserTools>;
+    } & Omit<Prompt, 'system' | 'instructions' | 'allowSystemInMessages'>
   >;
 
   /**
@@ -240,6 +272,67 @@ export type HarnessAgentSettings<
       NoInfer<HarnessAllTools<THarness, TUserTools>>,
       RUNTIME_CONTEXT
     >
+  >;
+
+  /**
+   * Called when an agent call begins, before any model steps.
+   */
+  readonly onStart?: GenerateTextOnStartCallback<
+    NoInfer<HarnessAllTools<THarness, TUserTools>>,
+    RUNTIME_CONTEXT,
+    NoInfer<OUTPUT>
+  >;
+
+  /**
+   * Called when a model step begins.
+   */
+  readonly onStepStart?: GenerateTextOnStepStartCallback<
+    NoInfer<HarnessAllTools<THarness, TUserTools>>,
+    NoInfer<RUNTIME_CONTEXT>,
+    NoInfer<OUTPUT>
+  >;
+
+  /**
+   * Called immediately before the harness begins emitting a model response.
+   */
+  readonly onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
+
+  /**
+   * Called after a model response is complete and before its tool execution
+   * lifecycle callbacks are delivered.
+   */
+  readonly onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<
+    NoInfer<HarnessAllTools<THarness, TUserTools>>
+  >;
+
+  /**
+   * Called before each harness or host tool execution is reported.
+   */
+  readonly onToolExecutionStart?: OnToolExecutionStartCallback<
+    NoInfer<HarnessAllTools<THarness, TUserTools>>
+  >;
+
+  /**
+   * Called after each harness or host tool execution is reported.
+   */
+  readonly onToolExecutionEnd?: OnToolExecutionEndCallback<
+    NoInfer<HarnessAllTools<THarness, TUserTools>>
+  >;
+
+  /**
+   * Called after each completed model step.
+   */
+  readonly onStepEnd?: GenerateTextOnStepEndCallback<
+    NoInfer<HarnessAllTools<THarness, TUserTools>>,
+    NoInfer<RUNTIME_CONTEXT>
+  >;
+
+  /**
+   * Called when an agent call completes successfully.
+   */
+  readonly onEnd?: GenerateTextOnEndCallback<
+    NoInfer<HarnessAllTools<THarness, TUserTools>>,
+    NoInfer<RUNTIME_CONTEXT>
   >;
 
   /**
@@ -295,4 +388,5 @@ export type HarnessAgentSettings<
    * stderr default — wire this to capture diagnostics in code.
    */
   readonly onLog?: (event: HarnessDiagnostic) => void;
-} & HarnessAgentToolFilteringSettings<HarnessAllTools<THarness, TUserTools>>;
+} & ToolsContextSettings<TUserTools> &
+  HarnessAgentToolFilteringSettings<HarnessAllTools<THarness, TUserTools>>;

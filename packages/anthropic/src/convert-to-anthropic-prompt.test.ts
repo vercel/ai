@@ -113,7 +113,9 @@ describe('system messages', () => {
     expect(
       result.betas.has('mid-conversation-system-clear-at-2026-08-21'),
     ).toBe(true);
-    expect(result.betas.has('mid-conversation-effort-2026-08-01')).toBe(true);
+    expect(result.betas.has('mid-conversation-output-config-2026-07-01')).toBe(
+      true,
+    );
   });
 
   it('should emit tool change blocks on a mid-conversation system message and add the beta', async () => {
@@ -1489,6 +1491,114 @@ describe('tool messages', () => {
 });
 
 describe('assistant messages', () => {
+  it('should omit empty compaction blocks', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'user content' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: '',
+              providerOptions: { anthropic: { type: 'compaction' } },
+            },
+            { type: 'text', text: 'assistant content' },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toEqual([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'user content' }],
+      },
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'assistant content' }],
+      },
+    ]);
+  });
+
+  it('should omit an assistant message that only contains an empty compaction block', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'first user message' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: '',
+              providerOptions: { anthropic: { type: 'compaction' } },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'second user message' }],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toEqual([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'first user message' }],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'second user message' }],
+      },
+    ]);
+  });
+
+  it('should preserve non-empty compaction blocks', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'Summary of the conversation',
+              providerOptions: { anthropic: { type: 'compaction' } },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'compaction',
+            content: 'Summary of the conversation',
+            cache_control: undefined,
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should preserve citations on assistant text', async () => {
     const result = await convertToAnthropicPrompt({
       prompt: [
@@ -5041,5 +5151,174 @@ describe('citations', () => {
         }
       `);
     });
+  });
+});
+
+describe('toolsets', () => {
+  const toolsetToolNameMapping = createToolNameMapping({
+    tools: [
+      {
+        type: 'provider',
+        id: 'anthropic.computer_toolset_20260801',
+        name: 'computer',
+        args: {},
+      },
+    ],
+    providerToolNames: { 'anthropic.computer_toolset_20260801': 'computer' },
+  });
+
+  it('should serialize toolset tool calls and results with toolset_name', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_click',
+              toolName: 'computer',
+              input: { action: 'left_click', coordinate: [640, 60] },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'toolu_click',
+              toolName: 'computer',
+              output: { type: 'text', value: 'OK' },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: toolsetToolNameMapping,
+      toolsetNames: { computer: 'computer' },
+    });
+
+    expect(result.prompt.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "cache_control": undefined,
+              "id": "toolu_click",
+              "input": {
+                "coordinate": [
+                  640,
+                  60,
+                ],
+              },
+              "name": "left_click",
+              "toolset_name": "computer",
+              "type": "tool_use",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "cache_control": undefined,
+              "content": "OK",
+              "is_error": undefined,
+              "tool_use_id": "toolu_click",
+              "toolset_name": "computer",
+              "type": "tool_result",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
+  it('should detect toolset tool calls through provider metadata when the tool is not passed', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_screenshot',
+              toolName: 'desktop',
+              input: { action: 'screenshot' },
+              providerOptions: { anthropic: { toolsetName: 'computer' } },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'toolu_screenshot',
+              toolName: 'desktop',
+              output: { type: 'text', value: 'OK' },
+              providerOptions: { anthropic: { toolsetName: 'computer' } },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages[0].content).toEqual([
+      {
+        type: 'tool_use',
+        id: 'toolu_screenshot',
+        name: 'screenshot',
+        toolset_name: 'computer',
+        input: {},
+        cache_control: undefined,
+      },
+    ]);
+    expect(result.prompt.messages[1].content).toEqual([
+      {
+        type: 'tool_result',
+        tool_use_id: 'toolu_screenshot',
+        toolset_name: 'computer',
+        content: 'OK',
+        is_error: undefined,
+        cache_control: undefined,
+      },
+    ]);
+  });
+
+  it('should warn and skip toolset tool calls without an action', async () => {
+    const warnings: SharedV4Warning[] = [];
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_bad',
+              toolName: 'computer',
+              input: { coordinate: [1, 2] },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings,
+      toolNameMapping: toolsetToolNameMapping,
+      toolsetNames: { computer: 'computer' },
+    });
+
+    expect(result.prompt.messages[0].content).toEqual([]);
+    expect(warnings).toEqual([
+      {
+        type: 'other',
+        message: 'toolset tool call for tool computer is missing the action',
+      },
+    ]);
   });
 });

@@ -149,6 +149,25 @@ describe('transcribe', () => {
     expect(capturedArgs.mediaType).toMatchInlineSnapshot(`"audio/mp4"`);
   });
 
+  it('should detect ADTS AAC audio', async () => {
+    const aacAudioData = new Uint8Array([0xff, 0xf1, 0x50, 0x40]);
+    let capturedArgs!: Parameters<TranscriptionModelV4['doGenerate']>[0];
+
+    await transcribe({
+      model: new MockTranscriptionModelV4({
+        doGenerate: async args => {
+          capturedArgs = args;
+          return createMockResponse({
+            ...sampleTranscript,
+          });
+        },
+      }),
+      audio: aacAudioData,
+    });
+
+    expect(capturedArgs.mediaType).toBe('audio/aac');
+  });
+
   it('should return warnings', async () => {
     const result = await transcribe({
       model: new MockTranscriptionModelV4({

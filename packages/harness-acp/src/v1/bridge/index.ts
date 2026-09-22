@@ -7,7 +7,6 @@ import {
 import * as acp from '@agentclientprotocol/sdk';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 import { Readable, Writable } from 'node:stream';
 import { argv, env as processEnv } from 'node:process';
 import {
@@ -38,6 +37,7 @@ import {
   type HostToolRelay,
   type HostToolRelayTurn,
 } from './host-tool-relay';
+import { createHostToolMcpServerDefinition } from './host-tool-mcp-definition';
 import {
   promptAndRefreshInitialHostToolCatalog,
   refreshHostToolCatalog,
@@ -593,34 +593,27 @@ async function ensureSession({
     initialization,
   });
   const tools = start.tools ?? [];
+  const mcpTransport = bridgeConfiguration.hostToolMcpTransport ?? 'stdio';
   const catalogPath = `${bridgeStateDir}/host-tools.json`;
-  await writeFile(catalogPath, JSON.stringify(tools), { mode: 0o600 });
+  if (mcpTransport === 'stdio') {
+    await writeFile(catalogPath, JSON.stringify(tools), { mode: 0o600 });
+  }
   hostToolRelay = await startHostToolRelay({
     tools,
     serverName: HOST_TOOL_MCP_SERVER_NAME,
+    mcpTransport,
   });
 
   const mcpServers: acp.McpServer[] = [
     ...externalMcpServers,
-    {
-      name: HOST_TOOL_MCP_SERVER_NAME,
-      command: process.execPath,
-      args: [fileURLToPath(new URL('./host-tool-mcp.mjs', import.meta.url))],
-      env: [
-        {
-          name: 'AI_SDK_ACP_HOST_TOOLS_FILE',
-          value: catalogPath,
-        },
-        {
-          name: 'AI_SDK_ACP_HOST_TOOL_RELAY_URL',
-          value: hostToolRelay.url,
-        },
-        {
-          name: 'AI_SDK_ACP_HOST_TOOL_RELAY_CREDENTIAL',
-          value: hostToolRelay.credential,
-        },
-      ],
-    },
+    createHostToolMcpServerDefinition({
+      mcpTransport,
+      relay: hostToolRelay,
+      serverName: HOST_TOOL_MCP_SERVER_NAME,
+      catalogPath,
+      initialization,
+      harnessId: bridgeType,
+    }),
   ];
   let createdSession: ACPActiveSession;
   if (start.recoveryMode?.type === 'lossy-rerun') {

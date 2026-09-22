@@ -1,8 +1,3 @@
-export type {
-  XaiLanguageModelChatOptions,
-  /** @deprecated Use `XaiLanguageModelChatOptions` instead. */
-  XaiLanguageModelChatOptions as XaiProviderOptions,
-} from './xai-chat-language-model-options';
 export type { XaiErrorData } from './xai-error';
 export type { XaiFilePartProviderOptions } from './xai-file-part-options';
 export type {

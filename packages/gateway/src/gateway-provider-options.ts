@@ -17,12 +17,13 @@ export type GatewayProviderOptions = {
 
   /**
    * Restrict routing to models that have all of the given capabilities.
-   * Currently supports `'implicit-caching'` and `'vision'` (image input).
+   * Currently supports `'implicit-caching'`, `'reasoning'`, `'tool-use'`, and
+   * `'vision'` (image input).
    */
-  has?: Array<'implicit-caching' | 'vision'>;
+  has?: Array<'implicit-caching' | 'reasoning' | 'tool-use' | 'vision'>;
 
   /**
-   * Idempotency key for `experimental_startTextBatch`: retries with the same
+   * Idempotency key for `experimental_startBatch`: retries with the same
    * key replay the original batch instead of creating a duplicate.
    */
   idempotencyKey?: string;

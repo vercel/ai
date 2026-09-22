@@ -146,6 +146,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       providerOptionsName: this.config.providerOptionsName,
       extensionRegistry: this.extensionRegistry,
       providerToolsByName,
+      strictResponseInput: this.config.strictResponseInput,
     });
 
     warnings.push(...inputWarnings);
@@ -255,17 +256,15 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
 
     const textFormat =
       responseFormat?.type === 'json'
-        ? {
-            type: 'json_schema' as const,
-            ...(responseFormat.schema != null
-              ? {
-                  name: responseFormat.name ?? 'response',
-                  description: responseFormat.description,
-                  schema: responseFormat.schema,
-                  strict: true,
-                }
-              : {}),
-          }
+        ? responseFormat.schema != null
+          ? {
+              type: 'json_schema' as const,
+              name: responseFormat.name ?? 'response',
+              description: responseFormat.description,
+              schema: responseFormat.schema,
+              strict: true,
+            }
+          : { type: 'json_object' as const }
         : undefined;
 
     const openResponsesOptions = await parseProviderOptions({

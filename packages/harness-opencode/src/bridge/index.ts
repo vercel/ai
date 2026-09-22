@@ -4,8 +4,10 @@ import {
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
 import { randomUUID } from 'node:crypto';
+import { realpathSync } from 'node:fs';
 import path from 'node:path';
 import { argv, env as procEnv } from 'node:process';
+import { isDeepStrictEqual } from 'node:util';
 import type { StartMessage } from '../opencode-bridge-protocol';
 
 import {
@@ -61,6 +63,7 @@ type RuntimeState = {
   client?: OpenCodeClient;
   sessionId?: string;
   relay?: ToolRelay;
+  openCodeConfig?: Record<string, unknown>;
   toolNames: Set<string>;
   mcpToolPrefixes: Set<string>;
 };
@@ -203,44 +206,68 @@ async function ensureRuntime({
   turn: BridgeTurn;
   emit: Emit;
 }): Promise<void> {
-  if (runtime.client) return;
-
-  if (start.tools && start.tools.length > 0) {
-    runtime.toolNames = new Set(start.tools.map(tool => tool.name));
-    runtime.relay = await startToolRelay({
-      tools: start.tools,
-      emit,
-      requestToolResult: turn.requestToolResult,
-    });
+  if (
+    runtime.client &&
+    isDeepStrictEqual(runtime.openCodeConfig, start.openCodeConfig)
+  ) {
+    return;
   }
 
-  const serverAuthHeaders = configureOpenCodeServerAuth({ env: procEnv });
-  const server = await createOpencodeServer({
-    hostname: '127.0.0.1',
-    port: 0,
-    timeout: 30_000,
-    config: buildOpenCodeConfig({
-      start,
-      relayPort: runtime.relay?.port,
-    }) as never,
-  });
-  runtime.server = server;
-  runtime.client = createOpencodeClient({
-    baseUrl: server.url,
-    directory: workdir,
-    headers: serverAuthHeaders,
-  });
-  const mcpStatus = await runtime.client.mcp.status();
-  const mcpServers = asOpenCodeObject(mcpStatus.data) ?? {};
-  runtime.mcpToolPrefixes = new Set(
-    Object.entries(mcpServers)
-      .filter(
-        ([serverName, status]) =>
-          serverName !== 'harness-tools' &&
-          asOpenCodeObject(status)?.status === 'connected',
-      )
-      .map(([serverName]) => `${sanitizeMcpToolName(serverName)}_`),
-  );
+  closeRuntime();
+
+  try {
+    if (start.tools && start.tools.length > 0) {
+      runtime.toolNames = new Set(start.tools.map(tool => tool.name));
+      runtime.relay = await startToolRelay({
+        tools: start.tools,
+        emit,
+        requestToolResult: turn.requestToolResult,
+      });
+    }
+
+    const serverAuthHeaders = configureOpenCodeServerAuth({ env: procEnv });
+    const server = await createOpencodeServer({
+      hostname: '127.0.0.1',
+      port: 0,
+      timeout: 30_000,
+      config: buildOpenCodeConfig({
+        start,
+        relayPort: runtime.relay?.port,
+      }) as never,
+    });
+    runtime.server = server;
+    runtime.client = createOpencodeClient({
+      baseUrl: server.url,
+      directory: workdir,
+      headers: serverAuthHeaders,
+    });
+    const mcpStatus = await runtime.client.mcp.status();
+    const mcpServers = asOpenCodeObject(mcpStatus.data) ?? {};
+    runtime.mcpToolPrefixes = new Set(
+      Object.entries(mcpServers)
+        .filter(
+          ([serverName, status]) =>
+            serverName !== 'harness-tools' &&
+            asOpenCodeObject(status)?.status === 'connected',
+        )
+        .map(([serverName]) => `${sanitizeMcpToolName(serverName)}_`),
+    );
+    runtime.openCodeConfig = structuredClone(start.openCodeConfig);
+  } catch (error) {
+    closeRuntime();
+    throw error;
+  }
+}
+
+function closeRuntime(): void {
+  runtime.relay?.close();
+  runtime.server?.close();
+  runtime.server = undefined;
+  runtime.client = undefined;
+  runtime.relay = undefined;
+  runtime.openCodeConfig = undefined;
+  runtime.toolNames = new Set();
+  runtime.mcpToolPrefixes = new Set();
 }
 
 function buildOpenCodeConfig({
@@ -342,8 +369,15 @@ function buildProviderConfig(
           apiKey: procEnv.AI_GATEWAY_API_KEY,
           baseURL: toOpenCodeGatewayBaseUrl(procEnv.AI_GATEWAY_BASE_URL),
           ...(HARNESS_CLIENT_APP
-            ? { headers: { 'x-client-app': HARNESS_CLIENT_APP } }
-            : {}),
+            ? {
+                headers: {
+                  ...start.headers,
+                  'x-client-app': HARNESS_CLIENT_APP,
+                },
+              }
+            : start.headers
+              ? { headers: start.headers }
+              : {}),
         },
         ...(modelID
           ? {
@@ -369,6 +403,7 @@ function buildProviderConfig(
           ...(procEnv.OPENAI_BASE_URL
             ? { baseURL: procEnv.OPENAI_BASE_URL }
             : {}),
+          ...(start.headers ? { headers: start.headers } : {}),
           ...parseOpenAIQueryParams(),
         },
         ...(modelID
@@ -400,6 +435,7 @@ function buildProviderConfig(
           ...(procEnv.ANTHROPIC_BASE_URL
             ? { baseURL: procEnv.ANTHROPIC_BASE_URL }
             : {}),
+          ...(start.headers ? { headers: start.headers } : {}),
         },
       },
     };
@@ -422,6 +458,7 @@ function buildProviderConfig(
           ...(procEnv.OPENAI_PROJECT
             ? { project: procEnv.OPENAI_PROJECT }
             : {}),
+          ...(start.headers ? { headers: start.headers } : {}),
           ...parseOpenAIQueryParams(),
         },
       },
@@ -1268,9 +1305,6 @@ async function selectPermissionReply({
   emit: Emit;
 }): Promise<{ reply: 'once' | 'always' | 'reject'; message?: string }> {
   const toolName = toPermissionToolName(action);
-  if (resources.some(resource => isExternalPath(resource))) {
-    return { reply: 'reject', message: 'External directory access rejected.' };
-  }
   if (
     isBuiltinToolInactive({ toolName, toolFiltering: builtinToolFiltering })
   ) {
@@ -1289,6 +1323,9 @@ async function selectPermissionReply({
   }
   if (!permissionMode || permissionMode === 'allow-all') {
     return { reply: 'always' };
+  }
+  if (resources.some(resource => isExternalPath(resource))) {
+    return { reply: 'reject', message: 'External directory access rejected.' };
   }
   const kind = TOOL_KIND[toolName] ?? 'bash';
   const allowed =
@@ -1351,16 +1388,38 @@ function isBuiltinToolInactive(input: {
 
 function isExternalPath(resource: string): boolean {
   if (!path.isAbsolute(resource)) return false;
-  const normalized = path.resolve(resource);
   return (
-    !isPathInsideOrEqual(normalized, workdir) &&
-    (!skillsDir || !isPathInsideOrEqual(normalized, skillsDir))
+    !isPathInsideOrEqual(resource, workdir) &&
+    (!skillsDir || !isPathInsideOrEqual(resource, skillsDir))
   );
 }
 
 function isPathInsideOrEqual(file: string, root: string): boolean {
-  const normalizedRoot = path.resolve(root);
-  return file === normalizedRoot || file.startsWith(`${normalizedRoot}/`);
+  const relative = path.relative(
+    canonicalizeForContainment(root),
+    canonicalizeForContainment(file),
+  );
+  return (
+    relative === '' ||
+    (relative !== '..' &&
+      !relative.startsWith(`..${path.sep}`) &&
+      !path.isAbsolute(relative))
+  );
+}
+
+function canonicalizeForContainment(inputPath: string): string {
+  const normalized = path.resolve(inputPath);
+  try {
+    return realpathSync.native(normalized);
+  } catch {
+    const parent = path.dirname(normalized);
+    return parent === normalized
+      ? normalized
+      : path.join(
+          canonicalizeForContainment(parent),
+          path.basename(normalized),
+        );
+  }
 }
 
 function toWireToolName(nativeName: string): string {

@@ -1,4 +1,7 @@
-import type { EmbeddingModelV4 } from '@ai-sdk/provider';
+import {
+  InvalidResponseDataError,
+  type EmbeddingModelV4,
+} from '@ai-sdk/provider';
 import assert from 'node:assert';
 import {
   afterEach,
@@ -9,6 +12,7 @@ import {
   vi,
   vitest,
 } from 'vitest';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import * as logWarningsModule from '../logger/log-warnings';
 import { NoEmbeddingGeneratedError } from '../error/no-embedding-generated-error';
 import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
@@ -37,6 +41,7 @@ const testValues = [
 ];
 
 describe('error handling', () => {
+<<<<<<< HEAD
   it('should throw NoEmbeddingGeneratedError with diagnostics when a single call returns the wrong number of embeddings', async () => {
     const providerMetadata = {
       testProvider: { requestId: 'request-1' },
@@ -110,6 +115,46 @@ describe('error handling', () => {
     });
 
     expect(result.embeddings).toStrictEqual([]);
+=======
+  it('should reject an embedding count mismatch in a single call', async () => {
+    const result = embedMany({
+      model: new MockEmbeddingModelV4({
+        maxEmbeddingsPerCall: Infinity,
+        doEmbed: async () => ({
+          embeddings: dummyEmbeddings.slice(0, 2),
+          warnings: [],
+        }),
+      }),
+      values: testValues,
+    });
+
+    await expect(result).rejects.toSatisfy(InvalidResponseDataError.isInstance);
+    await expect(result).rejects.toMatchObject({
+      name: 'AI_InvalidResponseDataError',
+      message: 'Expected 3 embeddings, but received 2.',
+      data: dummyEmbeddings.slice(0, 2),
+    });
+  });
+
+  it('should reject an embedding count mismatch in each chunk', async () => {
+    const result = embedMany({
+      model: new MockEmbeddingModelV4({
+        maxEmbeddingsPerCall: 2,
+        doEmbed: async ({ values }) => ({
+          embeddings: values.map(() => dummyEmbeddings[0]).slice(0, -1),
+          warnings: [],
+        }),
+      }),
+      values: testValues,
+    });
+
+    await expect(result).rejects.toSatisfy(InvalidResponseDataError.isInstance);
+    await expect(result).rejects.toMatchObject({
+      name: 'AI_InvalidResponseDataError',
+      message: 'Expected 2 embeddings, but received 1.',
+      data: [dummyEmbeddings[0]],
+    });
+>>>>>>> origin/main
   });
 });
 
@@ -261,6 +306,34 @@ describe('model.supportsParallelCalls', () => {
 
     expect(embeddings).toStrictEqual(dummyEmbeddings);
   });
+
+  it.each([0, -1])(
+    'should throw InvalidArgumentError when maxParallelCalls is %s',
+    async maxParallelCalls => {
+      let error: unknown;
+
+      try {
+        await embedMany({
+          maxParallelCalls,
+          model: new MockEmbeddingModelV4({
+            supportsParallelCalls: true,
+            maxEmbeddingsPerCall: 1,
+          }),
+          values: testValues,
+        });
+      } catch (caughtError) {
+        error = caughtError;
+      }
+
+      expect(InvalidArgumentError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({
+        parameter: 'chunkSize',
+        value: maxParallelCalls,
+        message:
+          'Invalid argument for parameter chunkSize: chunkSize must be greater than 0',
+      });
+    },
+  );
 });
 
 describe('result.embedding', () => {

@@ -4,13 +4,18 @@ import {
   type HarnessV1,
   type HarnessV1BuiltinTool,
   type HarnessV1CredentialForwarding,
+  type HarnessV1MintBridgeTokenCallback,
   type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
-import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
+import {
+  createCredentialRequestTransformation,
+  type SandboxChannelReconnectOptions,
+} from '@ai-sdk/harness/utils';
 import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
+import { resolveGrokBuildSubscriptionEnvironment } from './grok-build-subscription';
 import { grokBuildAskUserQuestions } from './grok-build-question-tool';
 
 declare const __GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON__: string;
@@ -40,13 +45,6 @@ export type GrokBuildHarnessSettings = {
    */
   readonly credentialForwarding?: HarnessV1CredentialForwarding;
   /**
-   * Grok model id selected through Grok Build configuration. Leaving this
-   * unset uses the default model.
-   *
-   * @deprecated Use `model` on `HarnessAgent` instead.
-   */
-  readonly model?: string;
-  /**
    * Reasoning effort for reasoning-capable models. Leaving this unset defers
    * to Grok Build's default.
    */
@@ -72,6 +70,13 @@ export type GrokBuildHarnessSettings = {
    */
   readonly startupTimeoutMs?: number;
   /**
+   * Configures reconnection attempts after an established bridge connection
+   * drops. The reconnect window includes connection establishment and
+   * backoff delays. Defaults to 30 seconds with exponential backoff from 50
+   * milliseconds up to 2 seconds.
+   */
+  readonly reconnect?: SandboxChannelReconnectOptions;
+  /**
    * MCP server definitions keyed by server name. Each definition uses the
    * underlying runtime's native MCP server configuration format.
    */
@@ -80,7 +85,7 @@ export type GrokBuildHarnessSettings = {
    * Creates the authentication token used by the sandbox bridge. Defaults to
    * a random 32-byte hexadecimal token.
    */
-  readonly mintBridgeToken?: (sandboxId: string) => string;
+  readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
 
 /*
@@ -299,11 +304,13 @@ export function createGrokBuild(
   const clientAppVersion = clientAppSegments.pop()!;
   return createACP({
     auth: settings.auth,
+    resolveAuthenticationEnvironment: resolveGrokBuildSubscriptionEnvironment,
+    authentication: { methodId: 'xai.api_key' },
     credentialForwarding: settings.credentialForwarding,
-    modelId: settings.model,
     port: settings.port,
     portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,
+    reconnect: settings.reconnect,
     mcpServers: settings.mcpServers,
     modelMapping: {
       type: 'session-model',
@@ -336,8 +343,13 @@ export function createGrokBuild(
         : ['--reasoning-effort', settings.reasoningEffort]),
       'stdio',
     ],
+    forwardEnv: [
+      'GROK_XAI_API_BASE_URL',
+      'GROK_MODELS_BASE_URL',
+      'GROK_CLI_CHAT_PROXY_BASE_URL',
+    ],
     credentialEnv: ['XAI_API_KEY'],
-    credentialBrokering: ({ env, sandboxEnv }) => {
+    credentialBrokering: ({ env, sandboxEnv, headers }) => {
       if (!env.XAI_API_KEY || !sandboxEnv?.XAI_API_KEY) return [];
       return [
         createCredentialRequestTransformation({
@@ -345,13 +357,19 @@ export function createGrokBuild(
           matchHeaders: {
             Authorization: `Bearer ${sandboxEnv.XAI_API_KEY}`,
           },
-          transformHeaders: { Authorization: `Bearer ${env.XAI_API_KEY}` },
+          transformHeaders: {
+            ...headers,
+            Authorization: `Bearer ${env.XAI_API_KEY}`,
+            ...(env.GROK_CLI_CHAT_PROXY_BASE_URL == null
+              ? {}
+              : { 'X-XAI-Token-Auth': 'xai-grok-cli' }),
+          },
         }),
       ];
     },
     instructionMapping: {
-      type: 'session-meta',
-      path: ['rules'],
+      type: 'filesystem',
+      path: '.grok/AGENTS.md',
     },
     outputSchemaMapping: {
       type: 'session-prompt-meta',

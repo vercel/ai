@@ -1065,66 +1065,46 @@ The following Zod features are known to not work with Google:
   available provider model ID as a string if needed.
 </Note>
 
-### Text Batches
+### Batch
 
 <Note type="warning">
-  Text batch support is experimental and the API may change in patch releases.
+  Batch support is experimental and the API may change in patch releases.
 </Note>
 
-The Google provider supports asynchronous text generation through the
-[Gemini Batch API](https://ai.google.dev/gemini-api/docs/batch-api). Use the
-experimental text batch APIs to start a batch, poll its status, and stream its
-results:
+The Google provider supports asynchronous text generation through the [Gemini
+Batch API](https://ai.google.dev/gemini-api/docs/batch-api). Pass the Google
+provider to the AI SDK's [Batch](/docs/ai-sdk-core/batch)
+API for the complete workflow, including polling, persistence, and result handling.
 
-```ts
-import { google } from '@ai-sdk/google';
-import {
-  experimental_getBatchResults as getBatchResults,
-  experimental_getBatchStatus as getBatchStatus,
-  experimental_startTextBatch as startTextBatch,
-} from 'ai';
-import { setTimeout } from 'node:timers/promises';
-
-const model = google('gemini-3.6-flash');
-
-const batch = await startTextBatch({
-  model,
-  requests: [
-    { id: 'capital-france', prompt: 'What is the capital of France?' },
-    { id: 'capital-germany', prompt: 'What is the capital of Germany?' },
-  ],
-});
-
-let status = batch.status;
-while (status === 'pending') {
-  await setTimeout(60_000);
-  ({ status } = await getBatchStatus({ model, batch }));
-}
-
-for await (const item of getBatchResults({ model, batch })) {
-  if (item.status === 'succeeded') {
-    console.log(item.id, item.text);
-  } else {
-    console.error(item.id, item.error);
-  }
-}
-```
-
-`startTextBatch` returns a serializable batch reference. Persist this reference
-to check the batch status or retrieve its results from another process. Results
-can arrive in a different order from the input requests, so match each result by
-its `id`.
+Each request specifies its `type` and `model`. Google requires every text
+request in a batch to use the same model and throws before submission when the
+models differ.
 
 #### Webhooks
 
 You can pass a `webhookUrl` to receive a notification when the batch reaches a terminal state:
 
 ```ts
-const batch = await startTextBatch({
-  model,
+import { google } from '@ai-sdk/google';
+import { experimental_startBatch as startBatch } from 'ai';
+
+const model = 'gemini-3.6-flash';
+
+const batch = await startBatch({
+  provider: google,
   requests: [
-    { id: 'capital-france', prompt: 'What is the capital of France?' },
-    { id: 'capital-germany', prompt: 'What is the capital of Germany?' },
+    {
+      id: 'capital-france',
+      type: 'text',
+      model,
+      prompt: 'What is the capital of France?',
+    },
+    {
+      id: 'capital-germany',
+      type: 'text',
+      model,
+      prompt: 'What is the capital of Germany?',
+    },
   ],
   webhookUrl: 'https://example.com/api/google-batch-webhook',
 });
@@ -1205,6 +1185,50 @@ echoed instead of producing silence.
 Gemini Live Translation accepts audio input and produces translated audio
 output. Text input, tools, and custom instructions are not supported by this
 model.
+
+### Gemini 3.8 Live
+
+`gemini-3.8-live` and `gemini-3.8-live-extended-thinking` are audio-only
+realtime models: request `outputModalities: ['audio']`, and add
+`outputAudioTranscription: {}` if you want the assistant's transcript as
+`audio-transcript-delta` events. Server-side voice activity detection and
+proactive audio are always on.
+
+`gemini-3.8-live-extended-thinking` reasons in the background while streaming
+audio. Google requires exactly one of `thinkingLevel` (`low`, `medium`, `high`)
+or `thinkingBudget` for it; the provider sends `thinkingLevel: 'low'` when you
+set neither. Override it through `providerOptions.google.thinkingConfig`:
+
+```ts
+import {
+  google,
+  type Experimental_GoogleRealtimeModelOptions as GoogleRealtimeModelOptions,
+} from '@ai-sdk/google';
+
+const token = await google.experimental_realtime.getToken({
+  model: 'gemini-3.8-live-extended-thinking',
+  sessionConfig: {
+    outputModalities: ['audio'],
+    outputAudioTranscription: {},
+    providerOptions: {
+      google: {
+        thinkingConfig: { thinkingLevel: 'high' },
+      } satisfies GoogleRealtimeModelOptions,
+    },
+  },
+});
+```
+
+Tools declared in the session config run asynchronously (`NON_BLOCKING`) by
+default on these models, so the model keeps talking while a tool call is in
+flight. Set `providerOptions.google.defaultToolBehavior: 'BLOCKING'` on
+`gemini-3.8-live` to make it wait for the result instead.
+
+On the extended thinking model, `turnComplete` (the `response-done` event) does
+not mean the model is idle. Watch the `interactionStatus` custom event: its
+`raw.interactionStatus` is `IN_PROGRESS`, `IDLE`, or `WAITING_FOR_INPUT`. A
+`waitingForInput` custom event is emitted when the model has stopped and needs
+user input to continue.
 
 ## Translation Models
 
@@ -2280,3 +2304,54 @@ const result = await generateSpeech({
 | `gemini-2.5-flash-preview-tts` | <Check />     | <Check />              |
 | `gemini-2.5-pro-preview-tts`   | <Check />     | <Check />              |
 | `gemini-3.1-flash-tts-preview` | <Check />     | <Check />              |
+
+## Evaluation Models
+
+Create an experimental evaluation model with `google.evaluationModel(modelId)`.
+It uses Gemini structured output for Choice, Score, and Boolean questions. Choose a model
+that supports structured output, such as `gemini-3.5-flash-lite`.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { experimental_evaluate } from 'ai';
+
+const { answers } = await experimental_evaluate({
+  model: google.evaluationModel('gemini-3.5-flash-lite'),
+  state: 'I was charged twice.',
+  questions: {
+    requestsRefund: {
+      type: 'boolean',
+      instructions: 'Is the customer requesting money back?',
+    },
+    department: {
+      type: 'choice',
+      instructions: 'Which team should handle this?',
+      criteria: { billing: 'Charges and refunds', support: 'Other requests' },
+    },
+  },
+  providerOptions: {
+    google: { thinkingConfig: { thinkingLevel: 'minimal' } },
+  },
+});
+```
+
+The factory respects `createGoogle` settings and forwards `providerOptions.google`,
+including thinking configuration. Thinking controls depend on the selected model;
+use options supported by that model. The existing Gemini implementation sends the
+answer schema as `generationConfig.responseJsonSchema`.
+
+Choice labels are returned exactly, and Scores are finite fractional positions
+within the ordered rubric. The adapter validates complete answers after parsing
+and rejects safety-blocked, truncated, or invalid output. It preserves usage
+(including reasoning tokens), warnings, response data, and provider metadata.
+
+Choice and Score answers do not include probability distributions. Boolean
+answers contain prompted estimates of P(true), validated to be finite and in
+`[0, 1]`. These estimates are not guaranteed to be calibrated. Apply thresholds
+in application code, for example `answers.requestsRefund.probability >= 0.5`. See [Evaluation](/docs/ai-sdk-core/evaluation).
+
+Evaluation models can also be accessed through `customProvider` aliases or
+`createProviderRegistry().evaluationModel('provider:model')`. Direct string IDs
+use Gateway by default, or an explicitly configured default provider with an
+`evaluationModel` method. See
+[model aliases and registries](/docs/ai-sdk-core/evaluation#model-aliases-and-registries).

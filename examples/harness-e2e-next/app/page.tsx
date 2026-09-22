@@ -96,6 +96,20 @@ const HARNESSES = [
     ],
   },
   {
+    slug: 'github-copilot',
+    label: 'GitHub Copilot',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-only',
+      'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
+    ],
+  },
+  {
     slug: 'grok-build',
     label: 'Grok Build',
     variants: [

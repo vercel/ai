@@ -20,6 +20,7 @@ import type {
   ToolUIPart,
   UIMessage,
 } from './ui-messages';
+import { warnIfUIMessageHasDeprecatedRawInput } from './warn-if-ui-message-has-deprecated-raw-input';
 
 const toolMetadataSchema: ZodType<JSONObject> = z.record(
   z.string(),
@@ -117,6 +118,7 @@ const uiMessagesSchema = lazySchema(() =>
                   type: z.literal('dynamic-tool'),
                   toolName: z.string(),
                   toolCallId: z.string(),
+                  title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('input-streaming'),
                   input: z.unknown().optional(),
@@ -130,6 +132,7 @@ const uiMessagesSchema = lazySchema(() =>
                   type: z.literal('dynamic-tool'),
                   toolName: z.string(),
                   toolCallId: z.string(),
+                  title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('input-available'),
                   input: z.unknown(),
@@ -143,6 +146,7 @@ const uiMessagesSchema = lazySchema(() =>
                   type: z.literal('dynamic-tool'),
                   toolName: z.string(),
                   toolCallId: z.string(),
+                  title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('approval-requested'),
                   input: z.unknown(),
@@ -164,6 +168,7 @@ const uiMessagesSchema = lazySchema(() =>
                   type: z.literal('dynamic-tool'),
                   toolName: z.string(),
                   toolCallId: z.string(),
+                  title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('approval-responded'),
                   input: z.unknown(),
@@ -185,6 +190,7 @@ const uiMessagesSchema = lazySchema(() =>
                   type: z.literal('dynamic-tool'),
                   toolName: z.string(),
                   toolCallId: z.string(),
+                  title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('output-available'),
                   input: z.unknown(),
@@ -210,6 +216,7 @@ const uiMessagesSchema = lazySchema(() =>
                   type: z.literal('dynamic-tool'),
                   toolName: z.string(),
                   toolCallId: z.string(),
+                  title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('output-error'),
                   input: z.unknown().optional(),
@@ -235,6 +242,7 @@ const uiMessagesSchema = lazySchema(() =>
                   type: z.literal('dynamic-tool'),
                   toolName: z.string(),
                   toolCallId: z.string(),
+                  title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('output-denied'),
                   input: z.unknown(),
@@ -255,6 +263,7 @@ const uiMessagesSchema = lazySchema(() =>
                 z.object({
                   type: z.string().startsWith('tool-'),
                   toolCallId: z.string(),
+                  title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('input-streaming'),
                   providerExecuted: z.boolean().optional(),
@@ -267,6 +276,7 @@ const uiMessagesSchema = lazySchema(() =>
                 z.object({
                   type: z.string().startsWith('tool-'),
                   toolCallId: z.string(),
+                  title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('input-available'),
                   providerExecuted: z.boolean().optional(),
@@ -279,6 +289,7 @@ const uiMessagesSchema = lazySchema(() =>
                 z.object({
                   type: z.string().startsWith('tool-'),
                   toolCallId: z.string(),
+                  title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('approval-requested'),
                   input: z.unknown(),
@@ -299,6 +310,7 @@ const uiMessagesSchema = lazySchema(() =>
                 z.object({
                   type: z.string().startsWith('tool-'),
                   toolCallId: z.string(),
+                  title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('approval-responded'),
                   input: z.unknown(),
@@ -319,6 +331,7 @@ const uiMessagesSchema = lazySchema(() =>
                 z.object({
                   type: z.string().startsWith('tool-'),
                   toolCallId: z.string(),
+                  title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('output-available'),
                   providerExecuted: z.boolean().optional(),
@@ -343,6 +356,7 @@ const uiMessagesSchema = lazySchema(() =>
                 z.object({
                   type: z.string().startsWith('tool-'),
                   toolCallId: z.string(),
+                  title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('output-error'),
                   providerExecuted: z.boolean().optional(),
@@ -367,6 +381,7 @@ const uiMessagesSchema = lazySchema(() =>
                 z.object({
                   type: z.string().startsWith('tool-'),
                   toolCallId: z.string(),
+                  title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('output-denied'),
                   providerExecuted: z.boolean().optional(),
@@ -424,10 +439,19 @@ type ValidateUIMessagesOptions<UI_MESSAGE extends UIMessage> = {
     >;
   };
   tools?: {
-    [NAME in keyof InferUIMessageTools<UI_MESSAGE> & string]?: Tool<
-      InferUIMessageTools<UI_MESSAGE>[NAME]['input'],
-      InferUIMessageTools<UI_MESSAGE>[NAME]['output']
-    >;
+    [NAME in keyof InferUIMessageTools<UI_MESSAGE> & string]?:
+      | Tool<
+          InferUIMessageTools<UI_MESSAGE>[NAME]['input'],
+          InferUIMessageTools<UI_MESSAGE>[NAME]['output']
+        >
+      | {
+          inputSchema: FlexibleSchema<
+            InferUIMessageTools<UI_MESSAGE>[NAME]['input']
+          >;
+          outputSchema?: FlexibleSchema<
+            InferUIMessageTools<UI_MESSAGE>[NAME]['output']
+          >;
+        };
   };
 };
 
@@ -461,9 +485,11 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
       schema: uiMessagesSchema,
     });
 
+    warnIfUIMessageHasDeprecatedRawInput(validatedMessages);
+
     if (metadataSchema) {
       for (const [msgIdx, message] of validatedMessages.entries()) {
-        await validateTypes({
+        message.metadata = await validateTypes({
           value: message.metadata,
           schema: metadataSchema,
           context: {
@@ -501,7 +527,7 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
               };
             }
 
-            await validateTypes({
+            dataPart.data = await validateTypes({
               value: dataPart.data,
               schema: dataSchema,
               context: {

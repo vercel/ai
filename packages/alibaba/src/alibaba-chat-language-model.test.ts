@@ -73,6 +73,91 @@ describe('doGenerate', () => {
     });
   });
 
+  describe('response format', () => {
+    const schema = {
+      type: 'object' as const,
+      properties: {
+        city: { type: 'string' as const },
+      },
+      required: ['city'],
+      additionalProperties: false,
+    };
+
+    beforeEach(() => {
+      prepareJsonFixtureResponse('alibaba-text');
+    });
+
+    it('uses JSON Schema mode for supported Qwen models', async () => {
+      const schemaModel = provider.chatModel('qwen3.8-flash');
+
+      const { warnings } = await schemaModel.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: { type: 'json', schema },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        model: 'qwen3.8-flash',
+        messages: TEST_PROMPT,
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'response',
+            schema,
+          },
+        },
+      });
+      expect(warnings).toStrictEqual([]);
+    });
+
+    it('uses JSON Object mode and injects the schema for other models', async () => {
+      const jsonObjectModel = provider.chatModel('deepseek-v4.1-flash');
+
+      const { warnings } = await jsonObjectModel.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: { type: 'json', schema },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        model: 'deepseek-v4.1-flash',
+        messages: [
+          {
+            role: 'system',
+            content:
+              'JSON schema:\n' +
+              JSON.stringify(schema) +
+              '\nYou MUST answer with a JSON object that matches the JSON schema above.',
+          },
+          ...TEST_PROMPT,
+        ],
+        response_format: { type: 'json_object' },
+      });
+      expect(warnings).toStrictEqual([
+        {
+          type: 'compatibility',
+          feature: 'responseFormat JSON schema',
+          details:
+            'Alibaba does not support JSON Schema output for model deepseek-v4.1-flash. JSON Object mode is used instead. The schema was injected into the system message and will only be validated locally.',
+        },
+      ]);
+    });
+
+    it('injects a JSON instruction for schema-less JSON Object mode', async () => {
+      const { warnings } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: { type: 'json' },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        messages: [
+          { role: 'system', content: 'You MUST answer with JSON.' },
+          ...TEST_PROMPT,
+        ],
+        response_format: { type: 'json_object' },
+      });
+      expect(warnings).toStrictEqual([]);
+    });
+  });
+
   describe('tool call', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('alibaba-tool-call');
@@ -370,6 +455,228 @@ describe('doGenerate', () => {
       thinking_budget: 2048,
     });
   });
+
+  describe('preserveThinking', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('alibaba-reasoning');
+    });
+
+    it('should send preserve_thinking and replay reasoning as reasoning_content', async () => {
+      await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Think before answering.' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'reasoning', text: 'Hidden reasoning.' },
+              { type: 'text', text: 'Visible answer.' },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Continue.' }],
+          },
+        ],
+        providerOptions: {
+          alibaba: {
+            preserveThinking: true,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.preserve_thinking).toBe(true);
+      expect(body.messages).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Think before answering.' }],
+        },
+        {
+          role: 'assistant',
+          content: 'Visible answer.',
+          reasoning_content: 'Hidden reasoning.',
+          tool_calls: undefined,
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Continue.' }],
+        },
+      ]);
+    });
+
+    it('should omit preserve_thinking when the option is not set', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('preserve_thinking');
+    });
+
+    it('should still map top-level reasoning when only preserveThinking is set', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+        providerOptions: {
+          alibaba: { preserveThinking: true },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        enable_thinking: true,
+        preserve_thinking: true,
+      });
+    });
+
+    it('should default preserve_thinking to true for supported models', async () => {
+      const supportedModel = provider.chatModel('qwen3.7-max');
+
+      await supportedModel.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Think before answering.' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'reasoning', text: 'Hidden reasoning.' },
+              { type: 'text', text: 'Visible answer.' },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Continue.' }],
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.preserve_thinking).toBe(true);
+      expect(body.messages).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Think before answering.' }],
+        },
+        {
+          role: 'assistant',
+          content: 'Visible answer.',
+          reasoning_content: 'Hidden reasoning.',
+          tool_calls: undefined,
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Continue.' }],
+        },
+      ]);
+    });
+
+    it('should let supported models opt out with preserveThinking false', async () => {
+      const supportedModel = provider.chatModel('qwen3.7-max');
+
+      await supportedModel.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Think before answering.' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'reasoning', text: 'Hidden reasoning.' },
+              { type: 'text', text: 'Visible answer.' },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Continue.' }],
+          },
+        ],
+        providerOptions: {
+          alibaba: {
+            preserveThinking: false,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.preserve_thinking).toBe(false);
+      expect(body.messages).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Think before answering.' }],
+        },
+        {
+          role: 'assistant',
+          content: 'Visible answer.',
+          tool_calls: undefined,
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Continue.' }],
+        },
+      ]);
+    });
+
+    it('should keep same-round reasoning with tool calls even when preserveThinking is false', async () => {
+      await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Weather in San Francisco?' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'reasoning', text: 'Need to check the weather.' },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'get_weather',
+                input: { location: 'San Francisco' },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'get_weather',
+                output: { type: 'text', value: 'Sunny, 72F.' },
+              },
+            ],
+          },
+        ],
+        providerOptions: {
+          alibaba: {
+            preserveThinking: false,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.messages).toContainEqual({
+        role: 'assistant',
+        content: null,
+        reasoning_content: 'Need to check the weather.',
+        tool_calls: [
+          {
+            id: 'call-1',
+            type: 'function',
+            function: {
+              name: 'get_weather',
+              arguments: '{"location":"San Francisco"}',
+            },
+          },
+        ],
+      });
+    });
+  });
 });
 
 describe('doStream', () => {
@@ -424,6 +731,44 @@ describe('doStream', () => {
       prepareChunksFixtureResponse('alibaba-reasoning');
     });
 
+    it('should keep reasoning active when deltas include empty tool calls', async () => {
+      server.urls[CHAT_COMPLETIONS_URL].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+            `"choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"Think ","tool_calls":[]},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+            `"choices":[{"index":0,"delta":{"content":"","reasoning_content":"more...","tool_calls":[]},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+            `"choices":[{"index":0,"delta":{"content":"Hello","reasoning_content":"","tool_calls":[]},"finish_reason":"stop"}]}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      expect(
+        events.filter(({ type }) => type.startsWith('reasoning-')),
+      ).toStrictEqual([
+        { type: 'reasoning-start', id: 'test-reasoning-id' },
+        {
+          type: 'reasoning-delta',
+          id: 'test-reasoning-id',
+          delta: 'Think ',
+        },
+        {
+          type: 'reasoning-delta',
+          id: 'test-reasoning-id',
+          delta: 'more...',
+        },
+        { type: 'reasoning-end', id: 'test-reasoning-id' },
+      ]);
+    });
+
     it('should stream reasoning', async () => {
       const result = await model.doStream({
         prompt: TEST_PROMPT,
@@ -432,6 +777,59 @@ describe('doStream', () => {
       expect(
         await convertReadableStreamToArray(result.stream),
       ).toMatchSnapshot();
+    });
+  });
+
+  describe('preserveThinking', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('alibaba-reasoning');
+    });
+
+    it('should send explicit preserve_thinking false and omit historical reasoning', async () => {
+      const result = await model.doStream({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Think before answering.' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'reasoning', text: 'Hidden reasoning.' },
+              { type: 'text', text: 'Visible answer.' },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Continue.' }],
+          },
+        ],
+        providerOptions: {
+          alibaba: {
+            preserveThinking: false,
+          },
+        },
+      });
+
+      await convertReadableStreamToArray(result.stream);
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.preserve_thinking).toBe(false);
+      expect(body.messages).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Think before answering.' }],
+        },
+        {
+          role: 'assistant',
+          content: 'Visible answer.',
+          tool_calls: undefined,
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Continue.' }],
+        },
+      ]);
     });
   });
 });

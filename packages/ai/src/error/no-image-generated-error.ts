@@ -1,7 +1,11 @@
+<<<<<<< HEAD
 import {
   AISDKError,
   type ImageModelV4ProviderMetadata,
 } from '@ai-sdk/provider';
+=======
+import { AISDKError } from '@ai-sdk/provider';
+>>>>>>> origin/main
 import type { GenerateImageCall } from '../generate-image/generate-image-result';
 import type { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
 import type { ImageModelUsage } from '../types/usage';
@@ -18,6 +22,11 @@ const symbol = Symbol.for(marker);
  */
 export class NoImageGeneratedError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
+
+  /**
+   * The results of the underlying image model calls.
+   */
+  readonly calls: Array<GenerateImageCall> | undefined;
 
   /**
    * The response metadata for each call.
@@ -42,13 +51,19 @@ export class NoImageGeneratedError extends AISDKError {
   constructor({
     message = 'No image generated.',
     cause,
+    calls,
     responses,
     calls,
     usage,
     providerMetadata,
   }: {
     message?: string;
+<<<<<<< HEAD
     cause?: unknown;
+=======
+    cause?: Error;
+    calls?: Array<GenerateImageCall>;
+>>>>>>> origin/main
     responses?: Array<ImageModelResponseMetadata>;
     calls?: Array<GenerateImageCall>;
     usage?: ImageModelUsage;
@@ -56,6 +71,7 @@ export class NoImageGeneratedError extends AISDKError {
   }) {
     super({ name, message, cause });
 
+    this.calls = calls;
     this.responses = responses;
     this.calls = calls;
     this.usage = usage;
