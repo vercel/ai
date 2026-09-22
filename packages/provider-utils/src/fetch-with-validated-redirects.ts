@@ -14,6 +14,33 @@ const MAX_DOWNLOAD_REDIRECTS = 10;
 // even when a server attaches a Location header.
 const REDIRECT_STATUS_CODES = new Set([301, 302, 303, 307, 308]);
 
+// These standard GET headers do not carry provider credentials and are useful
+// for downloads that depend on content negotiation, ranges, or validators.
+// Custom headers are intentionally excluded because their semantics are
+// unknown and providers commonly use them for API keys.
+const SAFE_FIRST_HOP_REQUEST_HEADERS = new Set([
+  'accept',
+  'accept-language',
+  'cache-control',
+  'if-match',
+  'if-modified-since',
+  'if-none-match',
+  'if-range',
+  'if-unmodified-since',
+  'range',
+  'user-agent',
+]);
+
+function retainSafeFirstHopHeaders(headers: Headers): Headers {
+  const retainedHeaders = new Headers();
+  for (const [name, value] of headers) {
+    if (SAFE_FIRST_HOP_REQUEST_HEADERS.has(name)) {
+      retainedHeaders.set(name, value);
+    }
+  }
+  return retainedHeaders;
+}
+
 function retainUserAgentHeader(headers: Headers): Headers {
   const userAgent = headers.get('user-agent');
   return new Headers(
@@ -88,10 +115,12 @@ export async function fetchWithValidatedEndpoint({
  * guard.
  *
  * Request headers are also protected: {@link sanitizeRequestHeaders} strips
- * proxy/metadata/cookie/hop-by-hop headers, and caller headers except
- * `User-Agent` are sent on the first hop only when it is same-origin with
- * `credentialedOrigin`. All caller headers except `User-Agent` are also
- * dropped on a cross-origin redirect.
+ * proxy/metadata/cookie/hop-by-hop headers. Credential-bearing and custom
+ * caller headers are sent on the first hop only when it is same-origin with
+ * `credentialedOrigin`; otherwise only standard non-sensitive download
+ * headers such as `Accept`, `Range`, conditional headers, and `User-Agent`
+ * are retained. All caller headers except `User-Agent` are also dropped on a
+ * cross-origin redirect.
  * The fetch spec only strips `Authorization` on cross-origin redirects because
  * in a browser, CORS preflighting protects custom headers; there is no CORS on
  * the server, so provider API keys carried in custom headers (e.g. `x-key`)
@@ -139,8 +168,9 @@ export async function fetchWithValidatedRedirects({
   maxRedirects?: number;
   fetch?: FetchFunction;
   /**
-   * An origin that may receive caller headers on the first hop. When omitted,
-   * or when `url` is not same-origin with it, only `User-Agent` is sent.
+   * An origin that may receive arbitrary caller headers, including credentials
+   * and custom headers, on the first hop. When omitted, or when `url` is not
+   * same-origin with it, only standard non-sensitive download headers are sent.
    */
   credentialedOrigin?: string;
   /**
@@ -150,15 +180,15 @@ export async function fetchWithValidatedRedirects({
   trustedOrigin?: string;
 }): Promise<Response> {
   // Left undefined when no headers are provided (bare request); otherwise
-  // sanitized once and restricted to the user-agent unless the first hop is
-  // explicitly allowed to receive caller headers.
+  // sanitized once and restricted to known-safe download headers unless the
+  // first hop is explicitly allowed to receive arbitrary caller headers.
   let currentHeaders: Headers | undefined;
   if (headers !== undefined) {
     const sanitizedHeaders = sanitizeRequestHeaders(headers);
     currentHeaders =
       credentialedOrigin !== undefined && isSameOrigin(url, credentialedOrigin)
         ? sanitizedHeaders
-        : retainUserAgentHeader(sanitizedHeaders);
+        : retainSafeFirstHopHeaders(sanitizedHeaders);
   }
 
   const perHopInit = (redirect: RequestRedirect): RequestInit => {

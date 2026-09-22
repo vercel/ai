@@ -395,25 +395,34 @@ describe('fetchWithValidatedRedirects', () => {
   it.each([
     ['no credentialed origin', undefined],
     ['a different credentialed origin', 'https://provider.example.com'],
-  ])('withholds caller headers from a first hop with %s', async (_, origin) => {
-    const fetchMock = vi.fn().mockResolvedValueOnce(okResponse());
+  ])(
+    'withholds credential and custom headers but keeps safe download headers from a first hop with %s',
+    async (_, origin) => {
+      const fetchMock = vi.fn().mockResolvedValueOnce(okResponse());
 
-    await fetchWithValidatedRedirects({
-      url: 'https://example.com/file',
-      headers: {
-        authorization: 'Bearer secret',
-        'x-key': 'provider-api-key',
-        'user-agent': 'ai-sdk/test',
-      },
-      credentialedOrigin: origin,
-      fetch: fetchMock,
-    });
+      await fetchWithValidatedRedirects({
+        url: 'https://example.com/file',
+        headers: {
+          accept: 'image/*',
+          authorization: 'Bearer secret',
+          range: 'bytes=0-1023',
+          'x-key': 'provider-api-key',
+          'x-request-id': 'request-id',
+          'user-agent': 'ai-sdk/test',
+        },
+        credentialedOrigin: origin,
+        fetch: fetchMock,
+      });
 
-    const sent = fetchMock.mock.calls[0][1].headers as Headers;
-    expect(sent.get('authorization')).toBeNull();
-    expect(sent.get('x-key')).toBeNull();
-    expect(sent.get('user-agent')).toBe('ai-sdk/test');
-  });
+      const sent = fetchMock.mock.calls[0][1].headers as Headers;
+      expect(sent.get('accept')).toBe('image/*');
+      expect(sent.get('authorization')).toBeNull();
+      expect(sent.get('range')).toBe('bytes=0-1023');
+      expect(sent.get('x-key')).toBeNull();
+      expect(sent.get('x-request-id')).toBeNull();
+      expect(sent.get('user-agent')).toBe('ai-sdk/test');
+    },
+  );
 
   it('sends sanitized caller headers to a matching credentialed origin', async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(okResponse());
@@ -425,6 +434,7 @@ describe('fetchWithValidatedRedirects', () => {
         authorization: 'Bearer secret',
         'metadata-flavor': 'Google',
         'x-forwarded-for': '10.0.0.1',
+        'x-request-id': 'request-id',
         cookie: 'session=abc',
       },
       fetch: fetchMock,
@@ -435,6 +445,7 @@ describe('fetchWithValidatedRedirects', () => {
     expect(sent.get('x-forwarded-for')).toBeNull();
     expect(sent.get('cookie')).toBeNull();
     expect(sent.get('authorization')).toBe('Bearer secret');
+    expect(sent.get('x-request-id')).toBe('request-id');
   });
 
   it('drops all caller headers except user-agent on a cross-origin redirect but keeps them same-origin', async () => {

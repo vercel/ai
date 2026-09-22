@@ -5313,7 +5313,7 @@ describe('toolsets', () => {
       toolsetNames: { computer: 'computer' },
     });
 
-    expect(result.prompt.messages[0].content).toEqual([]);
+    expect(result.prompt.messages).toEqual([]);
     expect(warnings).toEqual([
       {
         type: 'other',

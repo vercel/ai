@@ -74,6 +74,11 @@ await getFromApi({
 });
 ```
 
+Direct `fetchWithValidatedRedirects` callers follow the same rule. Without a
+matching `credentialedOrigin`, the first hop receives only standard
+non-sensitive download headers such as `Accept`, `Range`, conditional headers,
+and `User-Agent`; credential-bearing and custom headers are withheld.
+
 ## DNS validation and deployment hardening
 
 On Node.js, the default validated download fetch resolves all DNS records
