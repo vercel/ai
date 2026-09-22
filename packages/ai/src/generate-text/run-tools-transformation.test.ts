@@ -1,5 +1,5 @@
 import type { LanguageModelV2StreamPart } from '@ai-sdk/provider';
-import { delay } from '@ai-sdk/provider-utils';
+import { delay, tool } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
@@ -19,6 +19,56 @@ const testUsage = {
   cachedInputTokens: undefined,
 };
 describe('runToolsTransformation', () => {
+  it('awaits input callbacks in stream order before input availability', async () => {
+    const events: string[] = [];
+    const transformedStream = runToolsTransformation({
+      tools: {
+        test: tool({
+          inputSchema: z.object({ value: z.string() }),
+          onInputStart: async () => {
+            await Promise.resolve();
+            events.push('start');
+          },
+          onInputDelta: async ({ inputTextDelta }) => {
+            await Promise.resolve();
+            events.push(inputTextDelta);
+          },
+          onInputAvailable: () => {
+            events.push('available');
+          },
+        }),
+      },
+      generatorStream: convertArrayToReadableStream([
+        { type: 'tool-input-start', id: 'call-1', toolName: 'test' },
+        { type: 'tool-input-delta', id: 'call-1', delta: '{"value":' },
+        { type: 'tool-input-delta', id: 'call-1', delta: '"test"}' },
+        { type: 'tool-input-end', id: 'call-1' },
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'test',
+          input: '{"value":"test"}',
+        },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          usage: testUsage,
+        },
+      ]),
+      tracer: new MockTracer(),
+      telemetry: undefined,
+      messages: [],
+      system: undefined,
+      abortSignal: undefined,
+      repairToolCall: undefined,
+      experimental_context: undefined,
+    });
+
+    await convertReadableStreamToArray(transformedStream);
+
+    expect(events).toEqual(['start', '{"value":', '"test"}', 'available']);
+  });
+
   it('should forward text deltas correctly', async () => {
     const inputStream: ReadableStream<LanguageModelV2StreamPart> =
       convertArrayToReadableStream([
