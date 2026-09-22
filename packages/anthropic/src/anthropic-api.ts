@@ -805,8 +805,12 @@ export const anthropicResponseSchema = lazySchema(() =>
           }),
           z.object({
             type: z.literal('compaction'),
+<<<<<<< HEAD
             content: z.string(),
             signature: z.string().nullish(),
+=======
+            content: z.string().nullish(),
+>>>>>>> origin/main
           }),
           z.object({
             type: z.literal('tool_use'),

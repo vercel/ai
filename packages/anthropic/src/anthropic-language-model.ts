@@ -1284,6 +1284,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           break;
         }
         case 'compaction': {
+          if (!part.content) {
+            break;
+          }
+
           content.push({
             type: 'text',
             text: part.content,

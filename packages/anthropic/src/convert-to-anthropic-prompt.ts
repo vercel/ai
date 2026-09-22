@@ -719,8 +719,13 @@ export async function convertToAnthropicPrompt({
                   | undefined;
 
                 if (textMetadata?.type === 'compaction') {
+<<<<<<< HEAD
                   if (typeof textMetadata.signature === 'string') {
                     betas.add('compact-2026-09-04');
+=======
+                  if (part.text === '') {
+                    break;
+>>>>>>> origin/main
                   }
 
                   anthropicContent.push({
@@ -1397,10 +1402,12 @@ export async function convertToAnthropicPrompt({
           }
         }
 
-        messages.push({
-          role: 'assistant',
-          content: moveToolUseBlocksToEnd(anthropicContent),
-        });
+        if (anthropicContent.length > 0) {
+          messages.push({
+            role: 'assistant',
+            content: moveToolUseBlocksToEnd(anthropicContent),
+          });
+        }
 
         break;
       }
