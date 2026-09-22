@@ -808,6 +808,60 @@ describe('tool messages', () => {
     });
   });
 
+  it('should convert supported tool result URLs into functionResponse file data', async () => {
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'imageGenerator',
+              toolCallId: 'testCallId',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file',
+                    data: {
+                      type: 'url',
+                      url: new URL('gs://example-bucket/renditions/hero.png'),
+                    },
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      {
+        supportedFunctionResponseUrls: {
+          '*': [/^gs:\/\/.*$/],
+        },
+      },
+    );
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        id: 'testCallId',
+        name: 'imageGenerator',
+        response: {
+          name: 'imageGenerator',
+          content: 'Tool executed successfully.',
+        },
+        parts: [
+          {
+            fileData: {
+              mimeType: 'image/png',
+              fileUri: 'gs://example-bucket/renditions/hero.png',
+            },
+          },
+        ],
+      },
+    });
+  });
+
   it('should forward non-data image-url tool result parts as text content', async () => {
     const result = convertToGoogleMessages([
       {

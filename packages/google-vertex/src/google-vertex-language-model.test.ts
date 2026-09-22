@@ -9,12 +9,9 @@ vi.mock('./version', () => ({
 
 const TEST_URL =
   'https://aiplatform.googleapis.com/v1/publishers/google/models/gemini-2.5-flash:generateContent';
-const GEMINI_3_TEST_URL =
-  'https://aiplatform.googleapis.com/v1/publishers/google/models/gemini-3.8-flash:generateContent';
 
 const server = createTestServer({
   [TEST_URL]: {},
-  [GEMINI_3_TEST_URL]: {},
 });
 
 const TEST_PROMPT: LanguageModelV4Prompt = [
@@ -83,90 +80,5 @@ it('should preserve local JSON Schema references in tool requests', async () => 
     $defs: {
       Locale: { type: 'string', enum: ['de', 'en'] },
     },
-  });
-});
-
-it('should forward Vertex-supported gs:// tool result files as function response file data', async () => {
-  server.urls[GEMINI_3_TEST_URL].response = {
-    type: 'json-value',
-    body: {
-      candidates: [
-        {
-          content: { parts: [{ text: 'Done' }], role: 'model' },
-          finishReason: 'STOP',
-          index: 0,
-        },
-      ],
-      usageMetadata: {
-        promptTokenCount: 1,
-        candidatesTokenCount: 1,
-        totalTokenCount: 2,
-      },
-    },
-  };
-
-  const provider = createGoogleVertex({ apiKey: 'test-api-key' });
-
-  await provider('gemini-3.8-flash').doGenerate({
-    prompt: [
-      {
-        role: 'assistant',
-        content: [
-          {
-            type: 'tool-call',
-            toolCallId: 'call_1',
-            toolName: 'view_files',
-            input: { media_ids: ['m1'] },
-          },
-        ],
-      },
-      {
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            toolCallId: 'call_1',
-            toolName: 'view_files',
-            output: {
-              type: 'content',
-              value: [
-                { type: 'text', text: 'hero.png activated' },
-                {
-                  type: 'file',
-                  data: {
-                    type: 'url',
-                    url: new URL('gs://example-bucket/renditions/hero.png'),
-                  },
-                  mediaType: 'image/png',
-                },
-              ],
-            },
-          },
-        ],
-      },
-    ],
-  });
-
-  expect((await server.calls[0].requestBodyJson).contents.at(-1)).toEqual({
-    role: 'user',
-    parts: [
-      {
-        functionResponse: {
-          name: 'view_files',
-          response: {
-            name: 'view_files',
-            content: 'hero.png activated',
-          },
-          parts: [
-            {
-              fileData: {
-                mimeType: 'image/png',
-                fileUri: 'gs://example-bucket/renditions/hero.png',
-              },
-            },
-          ],
-        },
-      },
-    ],
   });
 });

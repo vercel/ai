@@ -116,6 +116,23 @@ describe('downloadToolResultFiles', () => {
     ]);
   });
 
+  it('preserves tool result URLs supported in function responses', async () => {
+    const prompt = createToolResultPrompt([
+      'gs://example-bucket/tool-image.jpg',
+    ]);
+
+    const result = await downloadToolResultFiles(prompt, {
+      abortSignal: undefined,
+      maxBytes: 7 * 1024 * 1024,
+      supportedUrls: {
+        '*': [/^gs:\/\/.*$/],
+      },
+    });
+
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+    expect(result).toEqual(prompt);
+  });
+
   it('limits the size of each download', async () => {
     vi.mocked(globalThis.fetch).mockResolvedValue(
       new Response(new Uint8Array([0xff, 0xd8, 0xff])),

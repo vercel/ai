@@ -699,6 +699,89 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should forward supported Vertex tool result URLs as function response file data', async () => {
+    server.urls[TEST_URL_GEMINI_3_7_FLASH].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [{ text: 'done' }],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+          },
+        ],
+      },
+    };
+
+    const vertexModel = new GoogleLanguageModel('gemini-3.7-flash', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+      downloadToolResultFiles: {
+        maxBytes: 7 * 1024 * 1024,
+        supportedUrls: {
+          '*': [/^gs:\/\/.*$/],
+        },
+      },
+    });
+
+    await vertexModel.doGenerate({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'testCallId',
+              toolName: 'viewFiles',
+              output: {
+                type: 'content',
+                value: [
+                  { type: 'text', text: 'hero.png activated' },
+                  {
+                    type: 'file',
+                    data: {
+                      type: 'url',
+                      url: new URL('gs://example-bucket/renditions/hero.png'),
+                    },
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect((await server.calls[0].requestBodyJson).contents[0]).toEqual({
+      role: 'user',
+      parts: [
+        {
+          functionResponse: {
+            name: 'viewFiles',
+            response: {
+              name: 'viewFiles',
+              content: 'hero.png activated',
+            },
+            parts: [
+              {
+                fileData: {
+                  mimeType: 'image/png',
+                  fileUri: 'gs://example-bucket/renditions/hero.png',
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
+  });
+
   it('should send PDF tool result data as inlineData for Gemini 2.5 legacy tool results', async () => {
     server.urls[TEST_URL_GEMINI_2_5_FLASH_LITE].response = {
       type: 'json-value',
