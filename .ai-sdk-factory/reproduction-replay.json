@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21345,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21345-openai-stream-retry.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-21345-openai-stream-retry.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_21345_REPRODUCED: insufficient_quota was retried 3 times and surfaced RetryError"
+  }
+}
