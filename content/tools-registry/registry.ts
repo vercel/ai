@@ -586,4 +586,39 @@ console.log(result.text);`,
     websiteUrl: 'https://nitrosend.com',
     npmUrl: 'https://www.npmjs.com/package/@nitrosend/ai-sdk',
   },
+  {
+    slug: 'searchapi',
+    name: 'SearchApi',
+    description:
+      'SearchApi returns structured Google results for AI agents: web search, news and Google Scholar, plus the verticals behind most real questions \u2014 Shopping prices, Maps places, Flights fares and Hotels availability. Results are trimmed to the fields a model can act on, and links resolve to destination URLs rather than Google redirects.',
+    packageName: 'searchapi-ai-sdk',
+    tags: ['search', 'web', 'serp', 'news', 'travel', 'shopping', 'maps'],
+    apiKeyEnvName: 'SEARCHAPI_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add searchapi-ai-sdk',
+      npm: 'npm install searchapi-ai-sdk',
+      yarn: 'yarn add searchapi-ai-sdk',
+      bun: 'bun add searchapi-ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { flightSearch, hotelSearch, webSearch } from 'searchapi-ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5.2',
+  prompt:
+    'I am flying from JFK to Lisbon on 10 November for two nights. What are my flight options and where should I stay?',
+  tools: {
+    webSearch: webSearch(),
+    flightSearch: flightSearch(),
+    hotelSearch: hotelSearch(),
+  },
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/4ktLuffy/searchapi-ai-sdk#readme',
+    apiKeyUrl: 'https://www.searchapi.io/',
+    websiteUrl: 'https://www.searchapi.io/',
+    npmUrl: 'https://www.npmjs.com/package/searchapi-ai-sdk',
+  },
 ];
