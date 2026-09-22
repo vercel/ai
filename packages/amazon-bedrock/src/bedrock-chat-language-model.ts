@@ -10,7 +10,10 @@ import type {
   SharedV2ProviderMetadata,
   LanguageModelV2FunctionTool,
 } from '@ai-sdk/provider';
-import { sanitizeJsonSchema } from '@ai-sdk/anthropic/internal';
+import {
+  getModelCapabilities,
+  sanitizeJsonSchema,
+} from '@ai-sdk/anthropic/internal';
 import {
   type FetchFunction,
   type ParseResult,
@@ -18,6 +21,7 @@ import {
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  injectJsonInstructionIntoMessages,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -160,29 +164,11 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     const isOpenAIModel = openAIModelId != null;
     const isOpenAIGptOssModel =
       openAIModelId?.startsWith('openai.gpt-oss-') ?? false;
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
     const isThinkingRequested =
       bedrockOptions.reasoningConfig?.type === 'enabled' ||
       bedrockOptions.reasoningConfig?.type === 'adaptive';
-=======
 
-    amazonBedrockOptions = resolveAmazonBedrockReasoningConfig({
-      reasoning,
-      amazonBedrockOptions,
-      warnings,
-      isAnthropicModel,
-      modelId: this.modelId,
-    });
-
-    const isThinkingEnabled =
-      amazonBedrockOptions.reasoningConfig?.type === 'enabled' ||
-      amazonBedrockOptions.reasoningConfig?.type === 'adaptive';
-
-    const {
-      supportsStructuredOutput: modelSupportsStructuredOutput,
-      rejectsForcedToolUse,
-    } = getModelCapabilities(this.modelId);
->>>>>>> 4b75a77c51 (fix: Amazon Bedrock Claude Opus 5.5 structured output forces unsupported tool use (#21297)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
+    const { rejectsForcedToolUse } = getModelCapabilities(this.modelId);
 
     const structuredOutputMode =
       bedrockOptions.structuredOutputMode ??
@@ -227,29 +213,18 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
         (structuredOutputMode === 'auto' &&
           modelSupportsNativeStructuredOutput));
 
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
-    const jsonResponseTool: LanguageModelV2FunctionTool | undefined =
-      responseFormat?.type === 'json' &&
-      responseFormat.schema != null &&
-      !useNativeStructuredOutput
-=======
     const useJsonInstructionForStructuredOutput =
       !useNativeStructuredOutput &&
       isAnthropicModel &&
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
-      (rejectsForcedToolUse ||
-        (structuredOutputMode !== 'jsonTool' &&
-          !supportsStrictTools(this.modelId) &&
-          tools != null &&
-          tools.length > 0));
+      rejectsForcedToolUse;
 
-    const jsonResponseTool: LanguageModelV4FunctionTool | undefined =
+    const jsonResponseTool: LanguageModelV2FunctionTool | undefined =
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
       !useNativeStructuredOutput &&
       !useJsonInstructionForStructuredOutput
->>>>>>> 4b75a77c51 (fix: Amazon Bedrock Claude Opus 5.5 structured output forces unsupported tool use (#21297)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
         ? {
             type: 'function',
             name: 'json',
@@ -474,6 +449,15 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
             'Tool calls and results removed from conversation because Bedrock does not support tool content without active tools.',
         });
       }
+    }
+
+    if (useJsonInstructionForStructuredOutput) {
+      filteredPrompt = injectJsonInstructionIntoMessages({
+        messages: filteredPrompt,
+        schema: responseFormat!.schema,
+        schemaSuffix:
+          'You MUST answer with only a JSON object that matches the JSON schema above. Do not wrap it in markdown fences or include any other text.',
+      });
     }
 
     const { system, messages } =
