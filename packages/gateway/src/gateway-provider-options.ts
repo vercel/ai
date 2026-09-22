@@ -43,10 +43,17 @@ export type GatewayProviderOptions<QUESTION_ID extends string = string> = {
 
   /**
    * Restrict routing to models that have all of the given capabilities.
-   * Currently supports `'implicit-caching'`, `'reasoning'`, `'tool-use'`, and
-   * `'vision'` (image input).
+   * Currently supports `'implicit-caching'`, `'reasoning'`, `'tool-use'`,
+   * `'vision'` (image input), and `'structured-output'` (schema-constrained
+   * output).
    */
-  has?: Array<'implicit-caching' | 'reasoning' | 'tool-use' | 'vision'>;
+  has?: Array<
+    | 'implicit-caching'
+    | 'reasoning'
+    | 'structured-output'
+    | 'tool-use'
+    | 'vision'
+  >;
 
   /**
    * Idempotency key for `experimental_startBatch`: retries with the same
