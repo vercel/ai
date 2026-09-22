@@ -1191,6 +1191,57 @@ describe('runToolsTransformation', () => {
   });
 
   describe('Tool.onInputAvailable', () => {
+    it('awaits input callbacks in stream order before input availability', async () => {
+      const events: string[] = [];
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: {
+          test: tool({
+            inputSchema: z.object({ value: z.string() }),
+            onInputStart: async () => {
+              await Promise.resolve();
+              events.push('start');
+            },
+            onInputDelta: async ({ inputTextDelta }) => {
+              await Promise.resolve();
+              events.push(inputTextDelta);
+            },
+            onInputAvailable: () => {
+              events.push('available');
+            },
+          }),
+        },
+        generatorStream: convertArrayToReadableStream([
+          { type: 'tool-input-start', id: 'call-1', toolName: 'test' },
+          { type: 'tool-input-delta', id: 'call-1', delta: '{"value":' },
+          { type: 'tool-input-delta', id: 'call-1', delta: '"test"}' },
+          { type: 'tool-input-end', id: 'call-1' },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'test',
+            input: '{"value":"test"}',
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ]),
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      await convertReadableStreamToArray(transformedStream);
+
+      expect(events).toEqual(['start', '{"value":', '"test"}', 'available']);
+    });
+
     it('should call onInputAvailable before the tool call is executed', async () => {
       const output: unknown[] = [];
       const inputStream: ReadableStream<LanguageModelV3StreamPart> =
