@@ -41,7 +41,7 @@ You can create The Grid AI models using the provider instance. The first argumen
 const model = thegrid('text-standard');
 ```
 
-The Grid AI's model IDs are market instruments rather than fixed models. You choose a task type (`text`, `code`, or `agent`) and a quality tier (`standard`, `prime`, or `max`) — such as `text-standard`, `code-prime`, or `agent-max` — and the request is filled by a qualifying supplier at the current market price. Lab-scoped instruments such as `claude-opus-latest` and `gemini-pro-latest` stay within one model family. Because of this, the `model` field of a response names the model that actually served the request, which will differ from the instrument you requested.
+The Grid AI's model IDs are market instruments rather than fixed models. You choose a task type (`text`, `code`, or `agent`) and a quality tier (`standard`, `prime`, or `max`), such as `text-standard`, `code-prime`, or `agent-max`, and the request is filled by a qualifying supplier at the current market price. Lab-scoped instruments such as `claude-opus-latest` and `gemini-pro-latest` stay within one model family. Because of this, the `model` field of a response names the model that actually served the request, which will differ from the instrument you requested.
 
 ### Example
 
