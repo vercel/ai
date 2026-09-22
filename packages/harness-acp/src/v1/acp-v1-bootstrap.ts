@@ -14,15 +14,11 @@ import {
  * Keep every asset URL literal so bundlers can emit each file separately.
  * Dynamic new URL() paths can collapse multiple assets into one resolution.
  */
-const bridgeAssetUrls: Record<string, URL> = {
+const readBridgeAsset = createReadBridgeAsset({
   'package.json': new URL('./bridge/package.json', import.meta.url),
   'pnpm-lock.yaml': new URL('./bridge/pnpm-lock.yaml', import.meta.url),
   'index.mjs': new URL('./bridge/index.mjs', import.meta.url),
   'host-tool-mcp.mjs': new URL('./bridge/host-tool-mcp.mjs', import.meta.url),
-};
-
-const readBridgeAsset = createReadBridgeAsset({
-  resolveAssetUrl: name => bridgeAssetUrls[name],
 });
 
 export function createACPBootstrap({
