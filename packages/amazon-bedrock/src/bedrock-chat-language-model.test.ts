@@ -342,7 +342,7 @@ const opus5AnthropicModel = new BedrockChatLanguageModel(
   },
 );
 
-const opus55AnthropicModel = new AmazonBedrockChatLanguageModel(
+const opus55AnthropicModel = new BedrockChatLanguageModel(
   opus55AnthropicModelId,
   {
     baseUrl: () => baseUrl,
