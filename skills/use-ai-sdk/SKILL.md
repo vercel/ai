@@ -5,7 +5,7 @@ description: 'Answer questions about the AI SDK and help build AI-powered featur
 
 ## Prerequisites
 
-Before searching docs, check if `node_modules/ai/docs/` exists. If not, install **only** the `ai` package using the project's package manager (e.g., `pnpm add ai`).
+Before searching docs, check `node_modules/ai/docs/` or locate the workspace package in a monorepo that depends on `ai` (e.g., `apps/<name>/node_modules/ai/docs/`). If `ai` is not installed anywhere in the project, install **only** the `ai` package into the target package using the project's package manager (e.g., `pnpm add ai --filter <pkg>` or run `npm install ai` from the target package).
 
 Do not install other packages at this stage. Provider packages (e.g., `@ai-sdk/openai`) and client packages (e.g., `@ai-sdk/react`) should be installed later when needed based on user requirements.
 
@@ -16,7 +16,7 @@ Everything you know about the AI SDK is outdated or wrong. Your training data co
 **When working with the AI SDK:**
 
 1. Ensure `ai` package is installed (see Prerequisites)
-2. Search `node_modules/ai/docs/` and `node_modules/ai/src/` for current APIs
+2. Search `node_modules/ai/docs/` and `node_modules/ai/src/` (or the equivalent paths under the workspace package) for current APIs
 3. If not found locally, search ai-sdk.dev documentation (instructions below)
 4. Never rely on memory - always verify against source code or docs
 5. **`useChat` has changed significantly** - check [Common Errors](references/common-errors.md) before writing client code
@@ -27,24 +27,16 @@ Everything you know about the AI SDK is outdated or wrong. Your training data co
 
 If you cannot find documentation to support your answer, state that explicitly.
 
-<<<<<<< HEAD
 ## Finding Documentation
-=======
-1. Ensure `ai` is installed. Check `node_modules/ai/` or locate the workspace package in a monorepo that depends on `ai` (e.g. `apps/<name>/node_modules/ai/`). If `ai` is not installed anywhere in the project, install **only** the `ai` package into the target package using the project's package manager (e.g. `pnpm add ai --filter <pkg>` or `npm install ai`). Install provider packages (e.g. `@ai-sdk/openai`) and framework packages (e.g. `@ai-sdk/react`) later, when the task requires them.
-2. Read and grep the bundled docs at `node_modules/ai/docs/` (or `<package>/node_modules/ai/docs/`) and the source at `node_modules/ai/src/`.
-3. Provider and framework packages bundle their own docs at `node_modules/@ai-sdk/<name>/docs/` (or `<package>/node_modules/@ai-sdk/<name>/docs/`).
-4. If something isn't in the bundled docs, search https://ai-sdk.dev/docs. You can append `.md` to any docs page URL to get its markdown, and search via `https://ai-sdk.dev/api/search-docs?q=your_query`.
-5. If you cannot find support for an answer in the docs or source, say so explicitly — do not guess.
->>>>>>> c739d37140 (docs(skill): clarify ai package resolution in monorepo workspaces (#21270))
 
 ### ai@6.0.34+
 
-Search bundled docs and source in `node_modules/ai/`:
+Search bundled docs and source in `node_modules/ai/` or `<package>/node_modules/ai/`:
 
-- **Docs**: `grep "query" node_modules/ai/docs/`
-- **Source**: `grep "query" node_modules/ai/src/`
+- **Docs**: `grep "query" node_modules/ai/docs/` (or `<package>/node_modules/ai/docs/`)
+- **Source**: `grep "query" node_modules/ai/src/` (or `<package>/node_modules/ai/src/`)
 
-Provider packages include docs at `node_modules/@ai-sdk/<provider>/docs/`.
+Provider packages include docs at `node_modules/@ai-sdk/<provider>/docs/` (or `<package>/node_modules/@ai-sdk/<provider>/docs/`).
 
 ### Earlier versions
 
@@ -57,14 +49,14 @@ Provider packages include docs at `node_modules/@ai-sdk/<provider>/docs/`.
 
 If not found in common-errors.md:
 
-1. Search `node_modules/ai/src/` and `node_modules/ai/docs/`
+1. Search `node_modules/ai/src/` and `node_modules/ai/docs/` (or the equivalent paths under the workspace package)
 2. Search ai-sdk.dev (for earlier versions or if not found locally)
 
 ## Building and Consuming Agents
 
 ### Creating Agents
 
-Always use the `ToolLoopAgent` pattern. Search `node_modules/ai/docs/` for current agent creation APIs.
+Always use the `ToolLoopAgent` pattern. Search `node_modules/ai/docs/` (or `<package>/node_modules/ai/docs/`) for current agent creation APIs.
 
 **File conventions**: See [type-safe-agents.md](references/type-safe-agents.md) for where to save agents and tools.
 
