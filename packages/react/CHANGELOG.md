@@ -1,5 +1,11 @@
 # @ai-sdk/react
 
+## 2.0.266
+
+### Patch Changes
+
+- ai@5.0.263
+
 ## 2.0.265
 
 ### Patch Changes
