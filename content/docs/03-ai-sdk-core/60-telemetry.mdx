@@ -391,12 +391,14 @@ export function myIntegration(): Telemetry {
     {
       name: 'experimental_onEvaluationModelCallStart',
       type: '(event: Experimental_EvaluationModelCallStartEvent) => void | PromiseLike<void>',
-      description: 'Called when an individual evaluation model call begins.',
+      description:
+        'Called when the logical evaluation model call begins. The call includes any provider retries.',
     },
     {
       name: 'experimental_onEvaluationModelCallEnd',
       type: '(event: Experimental_EvaluationModelCallEndEvent) => void | PromiseLike<void>',
-      description: 'Called when an individual evaluation model call completes.',
+      description:
+        'Called when the logical evaluation model call, including any retries, completes.',
     },
     {
       name: 'experimental_onEvaluateEnd',
@@ -555,7 +557,8 @@ kind: an **`evaluate {modelId}`** root span for the whole operation and one
 **`evaluate {modelId}`** child span for evaluation model work, including
 retries. Both include the provider and requested model with
 `gen_ai.operation.name: "evaluate"`. Token
-usage is recorded on the child span.
+usage is recorded on the child span. When evaluation attributes are enabled,
+answers are recorded on both spans so the operation span contains its output.
 
 `evaluate` is an AI SDK-defined custom operation name, not a well-known
 OpenTelemetry GenAI operation. OpenTelemetry permits custom operation names

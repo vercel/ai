@@ -229,12 +229,18 @@ export interface Telemetry {
     InferTelemetryEvent<EvaluateStartEvent>
   >;
 
-  /** Called immediately before an experimental evaluation model call begins. */
+  /**
+   * Called immediately before an experimental evaluation model call begins.
+   * The logical model call includes any provider retries.
+   */
   experimental_onEvaluationModelCallStart?: Callback<
     InferTelemetryEvent<EvaluationModelCallStartEvent>
   >;
 
-  /** Called after an experimental evaluation model response has been validated. */
+  /**
+   * Called after an experimental evaluation model response has been validated.
+   * The logical model call includes any provider retries.
+   */
   experimental_onEvaluationModelCallEnd?: Callback<
     InferTelemetryEvent<EvaluationModelCallEndEvent>
   >;

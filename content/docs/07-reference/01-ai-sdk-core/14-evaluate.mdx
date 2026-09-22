@@ -28,6 +28,9 @@ state. See [Evaluation](/docs/ai-sdk-core/evaluation) for examples and semantics
 | `onStart`         | `(event: Experimental_EvaluateStartEvent) => void` | Called when the evaluation operation begins.                                                                                                |
 | `onEnd`           | `(event: Experimental_EvaluateEndEvent) => void`   | Called when the evaluation operation completes successfully.                                                                                |
 
+See [Lifecycle Callbacks](/docs/ai-sdk-core/lifecycle-callbacks#experimental_evaluate)
+for the complete `onStart` and `onEnd` event fields.
+
 ## Result
 
 Returns `Promise<Experimental_EvaluationResult<QUESTIONS>>`:

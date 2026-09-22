@@ -11,7 +11,6 @@ sdk.start();
 registerTelemetry(
   new OpenTelemetry({
     experimental_evaluation: true,
-    usage: true,
   }),
 );
 

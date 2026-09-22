@@ -2876,7 +2876,9 @@ describe('OpenTelemetry integration with evaluate', () => {
               "gen_ai.request.model": "mock-model-id",
             },
             "name": "evaluate mock-model-id",
-            "runtimeAttributes": {},
+            "runtimeAttributes": {
+              "ai.evaluation.answers": "{\"refund\":{\"type\":\"boolean\",\"probability\":0.9}}",
+            },
           },
           {
             "ended": true,

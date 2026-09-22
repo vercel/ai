@@ -1164,6 +1164,13 @@ export class LegacyOpenTelemetry implements Telemetry {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
 
+    state.rootSpan.setAttributes(
+      selectAttributes(state.telemetry, {
+        'ai.evaluation.answers': {
+          output: () => JSON.stringify(event.answers),
+        },
+      }),
+    );
     state.rootSpan.end();
     this.cleanupCallState(event.callId);
   }

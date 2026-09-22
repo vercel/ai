@@ -421,6 +421,8 @@ describe('response validation', () => {
 
 it('retries transient errors with the configured retry limit', async () => {
   const { model, doEvaluate } = setup();
+  const experimental_onEvaluationModelCallStart = vi.fn();
+  const experimental_onEvaluationModelCallEnd = vi.fn();
   doEvaluate.mockRejectedValueOnce(
     new APICallError({
       message: 'Rate limited',
@@ -431,9 +433,22 @@ it('retries transient errors with the configured retry limit', async () => {
     }),
   );
   await expect(
-    evaluate({ model, state: 'text', questions, maxRetries: 1 }),
+    evaluate({
+      model,
+      state: 'text',
+      questions,
+      maxRetries: 1,
+      telemetry: {
+        integrations: {
+          experimental_onEvaluationModelCallStart,
+          experimental_onEvaluationModelCallEnd,
+        },
+      },
+    }),
   ).resolves.toBeDefined();
   expect(doEvaluate).toHaveBeenCalledTimes(2);
+  expect(experimental_onEvaluationModelCallStart).toHaveBeenCalledOnce();
+  expect(experimental_onEvaluationModelCallEnd).toHaveBeenCalledOnce();
 });
 
 it('honors maxRetries: 0', async () => {

@@ -1474,6 +1474,19 @@ export class OpenTelemetry implements Telemetry {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
 
+    state.rootSpan.setAttributes(
+      selectSupplementalAttributes(
+        state.telemetry,
+        this.supplementalAttributes,
+        {
+          experimental_evaluation: {
+            'ai.evaluation.answers': {
+              output: () => JSON.stringify(event.answers),
+            },
+          },
+        },
+      ),
+    );
     state.rootSpan.end();
     this.cleanupCallState(event.callId);
   }
