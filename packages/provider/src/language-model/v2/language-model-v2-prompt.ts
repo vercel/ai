@@ -104,6 +104,14 @@ File data. Can be a Uint8Array, base64 encoded data as a string or a URL.
   data: LanguageModelV2DataContent;
 
   /**
+   * The original URL string before it was parsed into a `URL`.
+   *
+   * This is available when parsing would change the string and a provider
+   * needs to preserve an opaque non-HTTP URI exactly.
+   */
+  originalUrl?: string;
+
+  /**
 IANA media type of the file.
 
 Can support wildcards, e.g. `image/*` (in which case the provider needs to take appropriate action).
