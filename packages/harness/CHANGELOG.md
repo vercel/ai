@@ -1,5 +1,15 @@
 # @ai-sdk/harness
 
+## 1.0.119
+
+### Patch Changes
+
+- 125f493: fix(harness): forward validated `toolsContext` to host-executed tools in alignment with `ToolLoopAgent`
+- Updated dependencies [0343bb1]
+- Updated dependencies [2b105fa]
+- Updated dependencies [125f493]
+  - ai@7.0.109
+
 ## 1.0.118
 
 ### Patch Changes

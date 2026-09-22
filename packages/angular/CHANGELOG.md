@@ -1,5 +1,15 @@
 # @ai-sdk/angular
 
+## 3.0.109
+
+### Patch Changes
+
+- 0343bb1: fix(ai): keep replacement completion requests loading and cancellable when an earlier request settles
+- Updated dependencies [0343bb1]
+- Updated dependencies [2b105fa]
+- Updated dependencies [125f493]
+  - ai@7.0.109
+
 ## 3.0.108
 
 ### Patch Changes

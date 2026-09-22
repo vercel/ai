@@ -1,5 +1,15 @@
 # @ai-sdk/harness-github-copilot
 
+## 1.0.14
+
+### Patch Changes
+
+- 2adbb77: feat(harness): update underlying harness SDKs to their latest versions
+- Updated dependencies [2adbb77]
+- Updated dependencies [125f493]
+  - @ai-sdk/harness-acp@1.0.57
+  - @ai-sdk/harness@1.0.119
+
 ## 1.0.13
 
 ### Patch Changes

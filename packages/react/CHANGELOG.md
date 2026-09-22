@@ -1,5 +1,16 @@
 # @ai-sdk/react
 
+## 4.0.112
+
+### Patch Changes
+
+- 7976437: fix(react): prevent stale throttled completion updates from overwriting a newer request
+- 0343bb1: fix(ai): keep replacement completion requests loading and cancellable when an earlier request settles
+- Updated dependencies [0343bb1]
+- Updated dependencies [2b105fa]
+- Updated dependencies [125f493]
+  - ai@7.0.109
+
 ## 4.0.111
 
 ### Patch Changes
