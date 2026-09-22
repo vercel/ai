@@ -268,6 +268,65 @@ describe('experimental_toolCallers', () => {
     expect(result.toolResults[0]?.output).toEqual(['getInventory']);
   });
 
+  it('does not execute local-only callees emitted as direct model calls', async () => {
+    const execute = vi.fn();
+
+    const localCaller = experimental_toolCaller(
+      tool({
+        inputSchema: z.object({}),
+        execute: async (): Promise<unknown> => {
+          throw new Error('Caller was not bound.');
+        },
+      }),
+      {
+        type: 'local',
+        bind: tools =>
+          tool({
+            inputSchema: z.object({}),
+            execute: async () => Object.keys(tools),
+          }),
+      },
+    );
+
+    const result = await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+          content: [
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'getInventory',
+              input: '{"sku":"sku-1"}',
+            },
+          ],
+        }),
+      }),
+      tools: {
+        code_mode: localCaller,
+        getInventory: tool({
+          inputSchema: z.object({ sku: z.string() }),
+          execute,
+        }),
+      },
+      experimental_toolCallers: {
+        getInventory: ['code_mode'],
+      },
+      prompt: 'Check inventory.',
+    });
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(result.toolResults).toEqual([]);
+    expect(result.toolCalls).toMatchObject([
+      {
+        toolName: 'getInventory',
+        invalid: true,
+      },
+    ]);
+  });
+
   it('announces local caller tools in a message while preserving the caller definition', async () => {
     let modelTools: LanguageModelV4CallOptions['tools'];
     let modelPrompt!: LanguageModelV4CallOptions['prompt'];
@@ -1371,6 +1430,48 @@ describe('generateText', () => {
 
       expect(result.files).toMatchSnapshot();
     });
+
+    it.each(['file', 'reasoning-file'] as const)(
+      'should download URL-backed %s parts once',
+      async type => {
+        const originalFetch = globalThis.fetch;
+        const fetchMock = vi.fn(async () => new Response('Hello World'));
+        globalThis.fetch = fetchMock;
+
+        try {
+          const result = await generateText({
+            model: new MockLanguageModelV4({
+              doGenerate: {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type,
+                    data: {
+                      type: 'url',
+                      url: new URL('https://example.com/generated.txt'),
+                    },
+                    mediaType: 'text/plain',
+                  },
+                ],
+              },
+            }),
+            prompt: 'prompt',
+          });
+
+          const part = result.content.find(part => part.type === type);
+          if (part?.type !== 'file' && part?.type !== 'reasoning-file') {
+            throw new Error('Expected a generated file');
+          }
+          expect(part.file.base64).toBe('SGVsbG8gV29ybGQ=');
+          expect(part.file.uint8Array).toEqual(
+            new TextEncoder().encode('Hello World'),
+          );
+          expect(fetchMock).toHaveBeenCalledOnce();
+        } finally {
+          globalThis.fetch = originalFetch;
+        }
+      },
+    );
 
     it('should contain files from all steps', async () => {
       let responseCount = 0;

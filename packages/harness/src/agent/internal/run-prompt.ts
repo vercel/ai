@@ -32,7 +32,11 @@ import {
   type LanguageModelV4ToolCall,
   type LanguageModelV4Usage,
 } from '@ai-sdk/provider';
-import { asLanguageModelUsage, parseToolCall } from 'ai/internal';
+import {
+  asLanguageModelUsage,
+  parseToolCall,
+  validateToolContext,
+} from 'ai/internal';
 import type {
   ContentPart,
   OutputInterface as Output,
@@ -47,6 +51,7 @@ import type {
 } from 'ai';
 import type { HarnessAgentToolApprovalConfiguration } from '../harness-agent-settings';
 import { HarnessStreamTextResult } from './harness-stream-text-result';
+import { getOwn } from './get-own';
 import { translateStreamPart } from './translate-stream-part';
 import { createToolInputWorkDirStripper, stripWorkDir } from './strip-work-dir';
 import {
@@ -112,6 +117,7 @@ export function runPrompt<
   skills?: ReadonlyArray<HarnessV1Skill>;
   instructions: string | undefined;
   tools: TOOLS;
+  toolsContext?: InferToolSetContext<TOOLS>;
   activeTools?: ToolSet;
   toolSpecs: HarnessV1ToolSpec[];
   builtinToolFiltering?: HarnessV1BuiltinToolFiltering | undefined;
@@ -147,7 +153,7 @@ export function runPrompt<
   done: Promise<void>;
 } {
   const callId = generateId();
-  const toolsContext = {} as InferToolSetContext<TOOLS>;
+  const toolsContext = input.toolsContext ?? ({} as InferToolSetContext<TOOLS>);
   const result = new HarnessStreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
     tools: input.tools,
     runtimeContext: input.runtimeContext,
@@ -701,6 +707,7 @@ export function runPrompt<
       const execution = await maybeExecuteHostTool({
         event: rawToolCall,
         tools: activeTools,
+        toolsContext,
         wrappedExecuteTool: lifecycle.executeTool,
         sandboxSession: input.sandboxSession,
         abortSignal: input.abortSignal,
@@ -1260,6 +1267,7 @@ export function runPrompt<
               const execution = await maybeExecuteHostTool({
                 event: toolCall,
                 tools: activeTools,
+                toolsContext,
                 wrappedExecuteTool: lifecycle.executeTool,
                 sandboxSession: input.sandboxSession,
                 abortSignal: input.abortSignal,
@@ -1426,6 +1434,7 @@ function hasTool(input: { tools: ToolSet; toolName: string }): boolean {
 async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
   event: { toolCallId: string; toolName: string; input: string };
   tools: TOOLS;
+  toolsContext: InferToolSetContext<TOOLS>;
   wrappedExecuteTool: TurnLifecycle<ToolSet, Context>['executeTool'];
   sandboxSession: SandboxSession;
   abortSignal: AbortSignal | undefined;
@@ -1443,6 +1452,25 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
 
   const parsed = await safeParseJSON({ text: input.event.input });
   const args = parsed.success ? parsed.value : input.event.input;
+
+  let context: unknown;
+  try {
+    context = await validateToolContext({
+      toolName: input.event.toolName,
+      context: getOwn(input.toolsContext, input.event.toolName),
+      contextSchema: tool.contextSchema,
+    });
+  } catch (err) {
+    // Context is host-only and can contain credentials. Keep the detailed
+    // validation error in the host-facing outcome, but never send its value or
+    // schema diagnostics back to the runtime/model.
+    await input.submitToolResult({
+      toolCallId: input.event.toolCallId,
+      output: { error: 'Tool context validation failed.' },
+      isError: true,
+    });
+    return { executed: true, outcome: { ok: false, error: err } };
+  }
 
   try {
     /*
@@ -1466,7 +1494,7 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
             toolCallId: input.event.toolCallId,
             messages: [],
             abortSignal: input.abortSignal,
-            context: undefined as never,
+            context: context as never,
             experimental_sandbox: input.sandboxSession,
           },
         });
