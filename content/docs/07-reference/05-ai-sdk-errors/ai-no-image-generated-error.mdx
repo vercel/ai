@@ -14,7 +14,6 @@ It can arise due to the following reasons:
 ## Properties
 
 - `message`: The error message (optional, defaults to `'No image generated.'`).
-- `calls`: Results from the underlying image model calls, including generated images, provider metadata, response metadata, warnings, and usage (optional).
 - `responses`: Metadata about the image model responses, including timestamp, model, and headers (optional).
 - `calls`: Per-call response metadata, provider metadata, warnings, usage, and returned images (optional).
 - `usage`: Combined token usage across the underlying calls (optional).
@@ -35,18 +34,15 @@ try {
     console.log('NoImageGeneratedError');
     console.log('Cause:', error.cause);
     console.log('Responses:', error.responses);
-<<<<<<< HEAD
     console.log('Calls:', error.calls);
     console.log('Usage:', error.usage);
     console.log('Provider metadata:', error.providerMetadata);
-=======
 
     for (const call of error.calls ?? []) {
-      console.log('Provider metadata:', call.providerMetadata);
-      console.log('Warnings:', call.warnings);
-      console.log('Usage:', call.usage);
+      console.log('Call provider metadata:', call.providerMetadata);
+      console.log('Call warnings:', call.warnings);
+      console.log('Call usage:', call.usage);
     }
->>>>>>> origin/main
   }
 }
 ```

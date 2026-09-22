@@ -1,4 +1,3 @@
-import { InvalidResponseDataError } from '@ai-sdk/provider';
 import {
   createIdGenerator,
   type Context,
@@ -278,7 +277,6 @@ export async function embedMany<RUNTIME_CONTEXT extends Context = Context>({
               };
             });
 
-<<<<<<< HEAD
           if (embeddings.length !== values.length) {
             throw new NoEmbeddingGeneratedError({
               values,
@@ -288,9 +286,6 @@ export async function embedMany<RUNTIME_CONTEXT extends Context = Context>({
               providerMetadata,
             });
           }
-=======
-          validateEmbeddingCount({ embeddings, values });
->>>>>>> origin/main
 
           logWarnings({
             warnings,
@@ -403,7 +398,6 @@ export async function embedMany<RUNTIME_CONTEXT extends Context = Context>({
                 };
               });
 
-<<<<<<< HEAD
               if (result.embeddings.length !== chunk.length) {
                 throw new NoEmbeddingGeneratedError({
                   values: chunk,
@@ -413,12 +407,6 @@ export async function embedMany<RUNTIME_CONTEXT extends Context = Context>({
                   providerMetadata: result.providerMetadata,
                 });
               }
-=======
-              validateEmbeddingCount({
-                embeddings: result.embeddings,
-                values: chunk,
-              });
->>>>>>> origin/main
 
               return result;
             }),
@@ -493,21 +481,6 @@ export async function embedMany<RUNTIME_CONTEXT extends Context = Context>({
       }
     },
   });
-}
-
-function validateEmbeddingCount({
-  embeddings,
-  values,
-}: {
-  embeddings: Array<Embedding>;
-  values: Array<string>;
-}) {
-  if (embeddings.length !== values.length) {
-    throw new InvalidResponseDataError({
-      data: embeddings,
-      message: `Expected ${values.length} embeddings, but received ${embeddings.length}.`,
-    });
-  }
 }
 
 const textEncoder = new TextEncoder();

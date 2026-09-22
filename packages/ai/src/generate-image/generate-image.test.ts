@@ -21,7 +21,6 @@ import {
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockImageModelV4 } from '../test/mock-image-model-v4';
 import type { Warning } from '../types/warning';
-import type { ImageModelUsage } from '../types/usage';
 import { generateImage } from './generate-image';
 
 const prompt = 'sunny day at the beach';
@@ -46,12 +45,8 @@ const createMockResponse = (options: {
   modelId?: string;
   providerMetaData?: ImageModelV4ProviderMetadata;
   headers?: Record<string, string>;
-<<<<<<< HEAD
-  usage?: ImageModelUsage;
-=======
   usage?: ImageModelV4Usage;
   isRetryable?: ImageModelV4Result['isRetryable'];
->>>>>>> origin/main
 }) => ({
   images: options.images,
   isRetryable: options.isRetryable,

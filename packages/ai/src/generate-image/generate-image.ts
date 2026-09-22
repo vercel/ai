@@ -336,16 +336,12 @@ export async function generateImage({
   logWarnings({ warnings, provider: model.provider, model: model.modelId });
 
   if (!images.length) {
-<<<<<<< HEAD
     throw new NoImageGeneratedError({
       responses,
       calls,
       usage: totalUsage,
       providerMetadata,
     });
-=======
-    throw new NoImageGeneratedError({ calls, responses });
->>>>>>> origin/main
   }
 
   return new DefaultGenerateImageResult({

@@ -557,15 +557,20 @@ async function executeStartStatusFlow({
 
   if (webhookReceived != null) {
     // 3a. Webhook flow: wait for webhook, then get final status
+    const webhookTimeoutError = new Error(
+      `Video generation timed out after ${timeoutMs}ms.`,
+    );
+
     try {
       await waitForWebhook({
         received: webhookReceived,
         timeoutMs,
+        timeoutError: webhookTimeoutError,
         abortSignal: callOptions.abortSignal,
         delay,
       });
     } catch (error) {
-      if (callOptions.abortSignal?.aborted) {
+      if (callOptions.abortSignal?.aborted || error !== webhookTimeoutError) {
         throw error;
       }
 
@@ -586,29 +591,23 @@ async function executeStartStatusFlow({
       // 3b. Polling flow (also used when webhooks are not supported)
       const elapsedMs = Date.now() - startTime;
       if (elapsedMs >= timeoutMs) {
-<<<<<<< HEAD
         throw new NoVideoGeneratedError({
-          message: `Video generation timed out after ${timeoutMs}ms.`,
+          message: pollingTimeoutError.message,
+          cause: pollingTimeoutError,
           responses,
           providerMetadata: operationProviderMetadata,
         });
-=======
-        throw pollingTimeoutError;
->>>>>>> origin/main
       }
       await delay(Math.min(intervalMs, timeoutMs - elapsedMs), {
         abortSignal: callOptions.abortSignal,
       });
       if (Date.now() - startTime >= timeoutMs) {
-<<<<<<< HEAD
         throw new NoVideoGeneratedError({
-          message: `Video generation timed out after ${timeoutMs}ms.`,
+          message: pollingTimeoutError.message,
+          cause: pollingTimeoutError,
           responses,
           providerMetadata: operationProviderMetadata,
         });
-=======
-        throw pollingTimeoutError;
->>>>>>> origin/main
       }
     }
 
@@ -656,7 +655,12 @@ async function executeStartStatusFlow({
         ]);
       } catch (error) {
         if (statusTimeoutController.signal.aborted) {
-          throw pollingTimeoutError;
+          throw new NoVideoGeneratedError({
+            message: pollingTimeoutError.message,
+            cause: pollingTimeoutError,
+            responses,
+            providerMetadata: operationProviderMetadata,
+          });
         }
         throw error;
       } finally {
@@ -712,11 +716,13 @@ async function executeStartStatusFlow({
 async function waitForWebhook({
   received,
   timeoutMs,
+  timeoutError,
   abortSignal,
   delay,
 }: {
   received: PromiseLike<Experimental_VideoModelV4OperationWebhook>;
   timeoutMs: number;
+  timeoutError: Error;
   abortSignal?: AbortSignal;
   delay: (
     delayInMs: number,
@@ -738,7 +744,7 @@ async function waitForWebhook({
             ? abortSignal
             : mergeAbortSignals(abortSignal, timeoutController.signal),
       }).then(() => {
-        throw new Error(`Video generation timed out after ${timeoutMs}ms.`);
+        throw timeoutError;
       }),
     ]);
   } finally {
