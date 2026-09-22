@@ -1,21 +1,21 @@
 ---
-title: The Grid
-description: Use The Grid OpenAI compatible API with the AI SDK.
+title: The Grid AI
+description: Use The Grid AI OpenAI compatible API with the AI SDK.
 ---
 
-# The Grid Provider
+# The Grid AI Provider
 
-[The Grid](https://thegrid.ai) is a spot market for AI inference that provides access to models from competing suppliers through an OpenAI-compatible API. You can use its Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
+[The Grid AI](https://thegrid.ai) is a spot market for AI inference that provides access to models from competing suppliers through an OpenAI-compatible API. You can use its Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
 
 ## Setup
 
-The Grid provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API. You can install it with:
+The Grid AI provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API. You can install it with:
 
 <InstallPackages packages="@ai-sdk/openai-compatible" />
 
 ## Provider Instance
 
-To use The Grid, create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+To use The Grid AI, create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
 
 ```ts
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
@@ -28,24 +28,24 @@ const thegrid = createOpenAICompatible({
 ```
 
 <Note>
-  Follow the [The Grid quickstart](https://thegrid.ai/docs/start-here/quickstart)
+  Follow the [The Grid AI quickstart](https://thegrid.ai/docs/start-here/quickstart)
   to create an API key. Make sure to set the `THEGRID_API_KEY` environment
   variable with your API key.
 </Note>
 
 ## Language Models
 
-You can create The Grid models using the provider instance. The first argument is a model ID from the [instrument catalog](https://thegrid.ai/docs/instrument-specifications/current-instruments), for example `text-standard`.
+You can create The Grid AI models using the provider instance. The first argument is a model ID from the [instrument catalog](https://thegrid.ai/docs/instrument-specifications/current-instruments), for example `text-standard`.
 
 ```ts
 const model = thegrid('text-standard');
 ```
 
-The Grid's model IDs are market instruments rather than fixed models. You choose a task type (`text`, `code`, or `agent`) and a quality tier (`standard`, `prime`, or `max`) — such as `text-standard`, `code-prime`, or `agent-max` — and the request is filled by a qualifying supplier at the current market price. Lab-scoped instruments such as `claude-opus-latest` and `gemini-pro-latest` stay within one model family. Because of this, the `model` field of a response names the model that actually served the request, which will differ from the instrument you requested.
+The Grid AI's model IDs are market instruments rather than fixed models. You choose a task type (`text`, `code`, or `agent`) and a quality tier (`standard`, `prime`, or `max`) — such as `text-standard`, `code-prime`, or `agent-max` — and the request is filled by a qualifying supplier at the current market price. Lab-scoped instruments such as `claude-opus-latest` and `gemini-pro-latest` stay within one model family. Because of this, the `model` field of a response names the model that actually served the request, which will differ from the instrument you requested.
 
 ### Example
 
-You can use The Grid language models to generate text with the `generateText` function:
+You can use The Grid AI language models to generate text with the `generateText` function:
 
 ```ts
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
@@ -65,7 +65,7 @@ const { text } = await generateText({
 console.log(text);
 ```
 
-The Grid language models can also generate text in a streaming fashion with the `streamText` function:
+The Grid AI language models can also generate text in a streaming fashion with the `streamText` function:
 
 ```ts
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
@@ -88,7 +88,7 @@ for await (const textPart of result.textStream) {
 ```
 
 <Note>
-  The Grid answers inference requests with a `307` redirect to its routing
+  The Grid AI answers inference requests with a `307` redirect to its routing
   layer on the same host. The AI SDK's default `fetch` follows this
   transparently, so no configuration is needed. If you pass a custom `fetch`,
   make sure it forwards its `init` argument to a redirect-following
@@ -97,4 +97,4 @@ for await (const textPart of result.textStream) {
   redirects](https://thegrid.ai/docs/api-reference/request-routing-and-redirects).
 </Note>
 
-See [The Grid documentation](https://thegrid.ai/docs) for endpoint details and instrument-specific capabilities.
+See [The Grid AI documentation](https://thegrid.ai/docs) for endpoint details and instrument-specific capabilities.
