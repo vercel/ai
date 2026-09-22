@@ -9,6 +9,12 @@ export type BedrockChatModelId =
   | 'anthropic.claude-instant-v1'
   | 'anthropic.claude-sonnet-5'
   | 'anthropic.claude-fable-5'
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-options.ts
+=======
+  | 'anthropic.claude-fable-5-1'
+  | 'anthropic.claude-opus-5'
+  | 'anthropic.claude-opus-5-5'
+>>>>>>> 4b75a77c51 (fix: Amazon Bedrock Claude Opus 5.5 structured output forces unsupported tool use (#21297)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model-options.ts
   | 'anthropic.claude-opus-4-8'
   | 'anthropic.claude-opus-4-7'
   | 'anthropic.claude-opus-4-6-v1'
@@ -60,6 +66,12 @@ export type BedrockChatModelId =
   | 'us.anthropic.claude-3-7-sonnet-20250219-v1:0'
   | 'us.anthropic.claude-sonnet-5'
   | 'us.anthropic.claude-fable-5'
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-options.ts
+=======
+  | 'us.anthropic.claude-fable-5-1'
+  | 'us.anthropic.claude-opus-5'
+  | 'us.anthropic.claude-opus-5-5'
+>>>>>>> 4b75a77c51 (fix: Amazon Bedrock Claude Opus 5.5 structured output forces unsupported tool use (#21297)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model-options.ts
   | 'us.anthropic.claude-opus-4-8'
   | 'us.anthropic.claude-opus-4-7'
   | 'us.anthropic.claude-opus-4-6-v1'

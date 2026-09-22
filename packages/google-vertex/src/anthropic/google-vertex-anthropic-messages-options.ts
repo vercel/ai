@@ -2,6 +2,12 @@
 export type GoogleVertexAnthropicMessagesModelId =
   | 'claude-sonnet-5'
   | 'claude-fable-5'
+<<<<<<< HEAD:packages/google-vertex/src/anthropic/google-vertex-anthropic-messages-options.ts
+=======
+  | 'claude-fable-5-1'
+  | 'claude-opus-5'
+  | 'claude-opus-5-5'
+>>>>>>> 4b75a77c51 (fix: Amazon Bedrock Claude Opus 5.5 structured output forces unsupported tool use (#21297)):packages/google-vertex/src/anthropic/google-vertex-anthropic-options.ts
   | 'claude-opus-4-8'
   | 'claude-opus-4-7'
   | 'claude-opus-4-6'

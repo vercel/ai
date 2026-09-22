@@ -138,6 +138,45 @@ const customOpenaiSubstringGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   customOpenaiSubstringModelId,
 )}/converse`;
 
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.test.ts
+=======
+const newerAnthropicModelId = 'anthropic.claude-sonnet-4-6-v1';
+const newerAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  newerAnthropicModelId,
+)}/converse`;
+
+const haiku45AnthropicModelId = 'us.anthropic.claude-haiku-4-5-20251001-v1:0';
+const haiku45AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  haiku45AnthropicModelId,
+)}/converse`;
+
+const nativeStructuredOutputAnthropicModelId =
+  'anthropic.claude-sonnet-4-5-20250929-v1:0';
+const nativeStructuredOutputAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  nativeStructuredOutputAnthropicModelId,
+)}/converse`;
+
+const opusAnthropicModelId = 'us.anthropic.claude-opus-4-8';
+const opusAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  opusAnthropicModelId,
+)}/converse`;
+
+const opus5AnthropicModelId = 'us.anthropic.claude-opus-5';
+const opus5AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  opus5AnthropicModelId,
+)}/converse`;
+
+const opus55AnthropicModelId = 'us.anthropic.claude-opus-5-5';
+const opus55AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  opus55AnthropicModelId,
+)}/converse`;
+
+const sonnet5AnthropicModelId = 'us.anthropic.claude-sonnet-5';
+const sonnet5AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  sonnet5AnthropicModelId,
+)}/converse`;
+
+>>>>>>> 4b75a77c51 (fix: Amazon Bedrock Claude Opus 5.5 structured output forces unsupported tool use (#21297)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.test.ts
 const server = createTestServer({
   [generateUrl]: {},
   [streamUrl]: {
@@ -159,6 +198,16 @@ const server = createTestServer({
   [usOpenaiGenerateUrl]: {},
   [globalOpenaiGenerateUrl]: {},
   [customOpenaiSubstringGenerateUrl]: {},
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.test.ts
+=======
+  [newerAnthropicGenerateUrl]: {},
+  [haiku45AnthropicGenerateUrl]: {},
+  [nativeStructuredOutputAnthropicGenerateUrl]: {},
+  [opusAnthropicGenerateUrl]: {},
+  [opus5AnthropicGenerateUrl]: {},
+  [opus55AnthropicGenerateUrl]: {},
+  [sonnet5AnthropicGenerateUrl]: {},
+>>>>>>> 4b75a77c51 (fix: Amazon Bedrock Claude Opus 5.5 structured output forces unsupported tool use (#21297)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.test.ts
 });
 
 describe('supportedUrls', () => {
@@ -275,11 +324,145 @@ const adaptiveStructuredOutputModel = new BedrockChatLanguageModel(
   },
 );
 
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.test.ts
 const sonnet46Model = new BedrockChatLanguageModel(sonnet46ModelId, {
   baseUrl: () => baseUrl,
   headers: {},
   fetch: fakeFetchWithAuth,
   generateId: () => 'test-id',
+=======
+const nativeStructuredOutputAnthropicModel = new AmazonBedrockChatLanguageModel(
+  nativeStructuredOutputAnthropicModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
+const opusAnthropicModel = new AmazonBedrockChatLanguageModel(
+  opusAnthropicModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
+const opus5AnthropicModel = new AmazonBedrockChatLanguageModel(
+  opus5AnthropicModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
+const opus55AnthropicModel = new AmazonBedrockChatLanguageModel(
+  opus55AnthropicModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
+describe('application inference profile reasoning', () => {
+  it('returns reasoning for an Anthropic application inference profile ARN when budgetTokens is configured', async () => {
+    const applicationProfileArn =
+      'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/custom-profile';
+    let requestBody:
+      | {
+          additionalModelRequestFields?: {
+            thinking?: unknown;
+          };
+        }
+      | undefined;
+    const applicationProfileModel = new AmazonBedrockChatLanguageModel(
+      applicationProfileArn,
+      {
+        baseUrl: () => baseUrl,
+        headers: {},
+        generateId: () => 'test-id',
+        fetch: async (_input, init) => {
+          requestBody = JSON.parse(String(init?.body));
+          return new Response(
+            JSON.stringify({
+              output: {
+                message: {
+                  role: 'assistant',
+                  content:
+                    requestBody?.additionalModelRequestFields?.thinking == null
+                      ? [{ text: 'OK' }]
+                      : [
+                          {
+                            reasoningContent: {
+                              reasoningText: {
+                                text: 'The response should be OK.',
+                                signature: 'test-signature',
+                              },
+                            },
+                          },
+                          { text: 'OK' },
+                        ],
+                },
+              },
+              stopReason: 'end_turn',
+              usage: {
+                inputTokens: 1,
+                outputTokens: 1,
+                totalTokens: 2,
+              },
+            }),
+            {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            },
+          );
+        },
+      },
+    );
+
+    const result = await applicationProfileModel.doGenerate({
+      prompt: TEST_PROMPT,
+      maxOutputTokens: 1100,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            budgetTokens: 1024,
+          },
+        },
+      },
+    });
+
+    expect(result.content).toContainEqual(
+      expect.objectContaining({
+        type: 'reasoning',
+        text: 'The response should be OK.',
+        providerMetadata: expect.objectContaining({
+          amazonBedrock: {
+            signature: 'test-signature',
+          },
+        }),
+      }),
+    );
+    expect(requestBody?.additionalModelRequestFields?.thinking).toEqual({
+      type: 'enabled',
+      budget_tokens: 1024,
+    });
+    expect(result.warnings).not.toContainEqual(
+      expect.objectContaining({
+        type: 'unsupported',
+        feature: 'budgetTokens',
+      }),
+    );
+  });
+>>>>>>> 4b75a77c51 (fix: Amazon Bedrock Claude Opus 5.5 structured output forces unsupported tool use (#21297)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.test.ts
 });
 
 const haiku45Model = new BedrockChatLanguageModel(haiku45ModelId, {
@@ -4422,6 +4605,812 @@ describe('doGenerate', () => {
     });
   });
 
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.test.ts
+=======
+  it('should use native output_config.format instead of json tool when thinking is enabled with structured output', async () => {
+    prepareJsonFixtureResponse('amazon-bedrock-text');
+
+    await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a recipe' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            recipe: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                ingredients: { type: 'array', items: { type: 'string' } },
+              },
+              required: ['name', 'ingredients'],
+            },
+          },
+          required: ['recipe'],
+        },
+      },
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            budgetTokens: 2000,
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeUndefined();
+
+    expect(requestBody.additionalModelRequestFields?.output_config).toEqual({
+      format: {
+        type: 'json_schema',
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            recipe: {
+              type: 'object',
+              additionalProperties: false,
+              properties: {
+                name: { type: 'string' },
+                ingredients: { type: 'array', items: { type: 'string' } },
+              },
+              required: ['name', 'ingredients'],
+            },
+          },
+          required: ['recipe'],
+        },
+      },
+    });
+
+    expect(requestBody.additionalModelRequestFields?.thinking).toBeDefined();
+  });
+
+  it('should merge output_config.effort and output_config.format when thinking with maxReasoningEffort and structured output', async () => {
+    prepareJsonFixtureResponse('amazon-bedrock-text');
+
+    await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a recipe' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      },
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            budgetTokens: 2000,
+            maxReasoningEffort: 'medium',
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeUndefined();
+
+    expect(requestBody.additionalModelRequestFields?.output_config).toEqual({
+      effort: 'medium',
+      format: {
+        type: 'json_schema',
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      },
+    });
+  });
+
+  it('should still use json tool fallback for structured output without thinking enabled', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'json-tool-id',
+                  name: 'json',
+                  input: { name: 'Test' },
+                },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'tool_use',
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a name' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeDefined();
+    expect(requestBody.toolConfig.tools).toHaveLength(1);
+    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('json');
+    expect(requestBody.toolConfig.toolChoice).toEqual({ any: {} });
+
+    expect(
+      requestBody.additionalModelRequestFields?.output_config?.format,
+    ).toBeUndefined();
+
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "{"name":"Test"}",
+          "type": "text",
+        },
+      ]
+    `);
+    expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
+  });
+
+  it('should use the json tool fallback for claude-opus-5 (Bedrock rejects output_config.format)', async () => {
+    server.urls[opus5AnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'json-tool-id',
+                  name: 'json',
+                  input: { name: 'Test' },
+                },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'tool_use',
+      },
+    };
+
+    await opus5AnthropicModel.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a name' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('json');
+    expect(
+      requestBody.additionalModelRequestFields?.output_config,
+    ).toBeUndefined();
+  });
+
+  it.each([undefined, 'jsonTool'] as const)(
+    'should use JSON instructions instead of forced tool use for claude-opus-5-5 with structuredOutputMode %s',
+    async structuredOutputMode => {
+      server.urls[opus55AnthropicGenerateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: {
+              role: 'assistant',
+              content: [{ text: '{"answer":"OK"}' }],
+            },
+          },
+          usage: { inputTokens: 4, outputTokens: 5, totalTokens: 9 },
+          stopReason: 'end_turn',
+        },
+      };
+
+      const result = await opus55AnthropicModel.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Return an answer of OK.' }],
+          },
+        ],
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              answer: { type: 'string' },
+            },
+            required: ['answer'],
+          },
+        },
+        ...(structuredOutputMode != null && {
+          providerOptions: {
+            amazonBedrock: { structuredOutputMode },
+          },
+        }),
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+
+      expect(requestBody.toolConfig).toBeUndefined();
+      expect(
+        requestBody.additionalModelRequestFields?.output_config,
+      ).toBeUndefined();
+      expect(requestBody.system).toEqual([
+        {
+          text:
+            'JSON schema:\n' +
+            '{"type":"object","properties":{"answer":{"type":"string"}},"required":["answer"]}\n' +
+            'You MUST answer with only a JSON object that matches the JSON schema above. Do not wrap it in markdown fences or include any other text.',
+        },
+      ]);
+      expect(result.content).toEqual([
+        { type: 'text', text: '{"answer":"OK"}' },
+      ]);
+      expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(
+        undefined,
+      );
+    },
+  );
+
+  it.each([
+    {
+      modelId: newerAnthropicModelId,
+      model: newerAnthropicModel,
+      generateUrl: newerAnthropicGenerateUrl,
+    },
+    {
+      modelId: haiku45AnthropicModelId,
+      model: haiku45AnthropicModel,
+      generateUrl: haiku45AnthropicGenerateUrl,
+    },
+  ])(
+    'should default to the json tool for $modelId',
+    async ({ model, generateUrl }) => {
+      server.urls[generateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  toolUse: {
+                    toolUseId: 'json-tool-id',
+                    name: 'json',
+                    input: { name: 'Test' },
+                  },
+                },
+              ],
+            },
+          },
+          usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+          stopReason: 'tool_use',
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { name: { type: 'string' } },
+            required: ['name'],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+
+      expect(requestBody.toolConfig.tools).toHaveLength(1);
+      expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('json');
+      expect(requestBody.toolConfig.toolChoice).toEqual({ any: {} });
+      expect(
+        requestBody.additionalModelRequestFields?.output_config?.format,
+      ).toBeUndefined();
+      expect(result.content).toEqual([
+        { type: 'text', text: '{"name":"Test"}' },
+      ]);
+      expect(result.finishReason.unified).toBe('stop');
+      expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(
+        true,
+      );
+    },
+  );
+
+  it.each([
+    {
+      providerOptionsName: 'amazonBedrock',
+      providerOptions: {
+        amazonBedrock: { structuredOutputMode: 'jsonTool' },
+      } as SharedV4ProviderOptions,
+    },
+    {
+      providerOptionsName: 'legacy bedrock',
+      providerOptions: {
+        bedrock: { structuredOutputMode: 'jsonTool' },
+      } as SharedV4ProviderOptions,
+    },
+    {
+      providerOptionsName: 'anthropic',
+      providerOptions: {
+        anthropic: { structuredOutputMode: 'jsonTool' },
+      } as SharedV4ProviderOptions,
+    },
+  ] satisfies Array<{
+    providerOptionsName: string;
+    providerOptions: SharedV4ProviderOptions;
+  }>)(
+    'should force the json tool wire format with $providerOptionsName provider options',
+    async ({ providerOptions }) => {
+      server.urls[newerAnthropicGenerateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  toolUse: {
+                    toolUseId: 'json-tool-id',
+                    name: 'json',
+                    input: { name: 'Test' },
+                  },
+                },
+              ],
+            },
+          },
+          usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+          stopReason: 'tool_use',
+        },
+      };
+
+      const result = await newerAnthropicModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+            },
+            required: ['name'],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+
+      expect(requestBody.toolConfig.tools).toHaveLength(1);
+      expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('json');
+      expect(requestBody.toolConfig.toolChoice).toEqual({ any: {} });
+      expect(requestBody.structuredOutputMode).toBeUndefined();
+      expect(
+        requestBody.additionalModelRequestFields?.output_config?.format,
+      ).toBeUndefined();
+      expect(result.content).toEqual([
+        { type: 'text', text: '{"name":"Test"}' },
+      ]);
+      expect(result.finishReason.unified).toBe('stop');
+      expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(
+        true,
+      );
+    },
+  );
+
+  it('should remove a manually supplied output_config.format in jsonTool mode while preserving sibling fields', async () => {
+    server.urls[newerAnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'json-tool-id',
+                  name: 'json',
+                  input: { name: 'Test' },
+                },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'tool_use',
+      },
+    };
+
+    await newerAnthropicModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        amazonBedrock: {
+          structuredOutputMode: 'jsonTool',
+          additionalModelRequestFields: {
+            output_config: {
+              effort: 'medium',
+              format: { type: 'manually-supplied-format' },
+            },
+          },
+        },
+      },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+          required: ['name'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.additionalModelRequestFields?.output_config).toEqual({
+      effort: 'medium',
+    });
+  });
+
+  it('should force output_config.format for models that auto mode routes to the json tool', async () => {
+    server.urls[opus5AnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ text: '{"name":"Test"}' }],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'end_turn',
+      },
+    };
+
+    await opus5AnthropicModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        amazonBedrock: { structuredOutputMode: 'outputFormat' },
+      },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+          required: ['name'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeUndefined();
+    expect(
+      requestBody.additionalModelRequestFields?.output_config?.format,
+    ).toEqual({
+      type: 'json_schema',
+      schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: { name: { type: 'string' } },
+        required: ['name'],
+      },
+    });
+  });
+
+  it('should prefer amazonBedrock structuredOutputMode over anthropic structuredOutputMode', async () => {
+    server.urls[newerAnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'json-tool-id',
+                  name: 'json',
+                  input: { name: 'Test' },
+                },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'tool_use',
+      },
+    };
+
+    await newerAnthropicModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        amazonBedrock: { structuredOutputMode: 'jsonTool' },
+        anthropic: { structuredOutputMode: 'outputFormat' },
+      },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+          required: ['name'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig.toolChoice).toEqual({ any: {} });
+    expect(
+      requestBody.additionalModelRequestFields?.output_config?.format,
+    ).toBeUndefined();
+  });
+
+  it('should use native output_config.format for models with structured output support even without thinking enabled', async () => {
+    server.urls[nativeStructuredOutputAnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            content: [{ text: '{"name":"Test"}' }],
+            role: 'assistant',
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'end_turn',
+      },
+    };
+
+    await nativeStructuredOutputAnthropicModel.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a name' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeUndefined();
+
+    expect(requestBody.additionalModelRequestFields?.output_config)
+      .toMatchInlineSnapshot(`
+      {
+        "format": {
+          "schema": {
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string",
+              },
+            },
+            "required": [
+              "name",
+            ],
+            "type": "object",
+          },
+          "type": "json_schema",
+        },
+      }
+    `);
+  });
+
+  it('should sanitize unsupported JSON schema keywords for native structured output', async () => {
+    server.urls[nativeStructuredOutputAnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            content: [{ text: '{"labels":["Spring","Summer","Autumn"]}' }],
+            role: 'assistant',
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'end_turn',
+      },
+    };
+
+    await nativeStructuredOutputAnthropicModel.doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            labels: {
+              type: 'array',
+              maxItems: 3,
+              items: { type: 'string' },
+            },
+          },
+          required: ['labels'],
+          additionalProperties: false,
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.additionalModelRequestFields.output_config.format.schema)
+      .toMatchInlineSnapshot(`
+      {
+        "additionalProperties": false,
+        "properties": {
+          "labels": {
+            "description": "max items: 3.",
+            "items": {
+              "type": "string",
+            },
+            "type": "array",
+          },
+        },
+        "required": [
+          "labels",
+        ],
+        "type": "object",
+      }
+    `);
+  });
+
+  it.each([
+    [opusAnthropicModelId, opusAnthropicGenerateUrl],
+    [sonnet5AnthropicModelId, sonnet5AnthropicGenerateUrl],
+  ])(
+    'should use JSON instructions instead of a response tool when structured output is combined with tools on %s',
+    async (modelId, modelGenerateUrl) => {
+      server.urls[modelGenerateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: {
+              content: [{ text: '```json\n{"name":"Test"}\n```.' }],
+              role: 'assistant',
+            },
+          },
+          usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+          stopReason: 'end_turn',
+        },
+      };
+
+      const unsupportedModel = new AmazonBedrockChatLanguageModel(modelId, {
+        baseUrl: () => baseUrl,
+        headers: {},
+        fetch: fakeFetchWithAuth,
+        generateId: () => 'test-id',
+      });
+
+      const result = await unsupportedModel.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Look up and generate a name' }],
+          },
+        ],
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+            },
+            required: ['name'],
+          },
+        },
+        tools: [
+          {
+            type: 'function',
+            name: 'lookupName',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+
+      expect(requestBody.toolConfig).toMatchInlineSnapshot(`
+      {
+        "tools": [
+          {
+            "toolSpec": {
+              "inputSchema": {
+                "json": {
+                  "properties": {},
+                  "type": "object",
+                },
+              },
+              "name": "lookupName",
+            },
+          },
+        ],
+      }
+    `);
+      expect(
+        requestBody.additionalModelRequestFields?.output_config,
+      ).toMatchInlineSnapshot(`undefined`);
+      expect(requestBody.system).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "JSON schema:
+      {"type":"object","properties":{"name":{"type":"string"}},"required":["name"]}
+      You MUST answer with only a JSON object that matches the JSON schema above. Do not wrap it in markdown fences or include any other text.",
+        },
+      ]
+    `);
+      expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "{"name":"Test"}",
+          "type": "text",
+        },
+      ]
+    `);
+    },
+  );
+
+>>>>>>> 4b75a77c51 (fix: Amazon Bedrock Claude Opus 5.5 structured output forces unsupported tool use (#21297)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.test.ts
   it('should extract reasoning text with signature', async () => {
     const reasoningText = 'I need to think about this problem carefully...';
     const signature = 'abc123signature';
