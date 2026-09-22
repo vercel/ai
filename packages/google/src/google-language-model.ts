@@ -66,6 +66,14 @@ const configurableSafetySettingCategories = [
 
 const gemini25ModelPattern = /(^|\/)gemini-2\.5(?:[.-]|$)/i;
 
+const googleCloudStorageFunctionResponseUrls = {
+  'image/png': [/^gs:\/\/.*$/],
+  'image/jpeg': [/^gs:\/\/.*$/],
+  'image/webp': [/^gs:\/\/.*$/],
+  'application/pdf': [/^gs:\/\/.*$/],
+  'text/plain': [/^gs:\/\/.*$/],
+} satisfies Record<string, RegExp[]>;
+
 export type GoogleLanguageModelConfig = {
   provider: string;
   baseURL: string;
@@ -83,7 +91,7 @@ export type GoogleLanguageModelConfig = {
    */
   downloadToolResultFiles?: {
     maxBytes: number;
-    supportedUrls?: Record<string, RegExp[]>;
+    supportsGoogleCloudStorageUrls?: boolean;
   };
 };
 
@@ -296,9 +304,11 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     }
 
     const { usesGemini3Features } = getGoogleModelCapabilities(modelId);
-    const supportedFunctionResponseUrls = usesGemini3Features
-      ? config.downloadToolResultFiles?.supportedUrls
-      : undefined;
+    const supportedFunctionResponseUrls =
+      usesGemini3Features &&
+      config.downloadToolResultFiles?.supportsGoogleCloudStorageUrls
+        ? googleCloudStorageFunctionResponseUrls
+        : undefined;
 
     const promptWithDownloadedToolResultFiles = config.downloadToolResultFiles
       ? await downloadToolResultFiles(prompt, {

@@ -4,6 +4,10 @@ import {
   type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import {
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
+} from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import {
   GoogleLanguageModel,
@@ -551,6 +555,8 @@ describe('doGenerate', () => {
   const TEST_URL_GEMINI_2_5_FLASH_LITE =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
 
+  const TEST_TOOL_RESULT_FILE_URL = 'https://example.com/tool-result-image.jpg';
+
   const server = createTestServer({
     [TEST_URL_GEMINI_PRO]: {},
     [TEST_URL_GEMINI_2_0_PRO]: {},
@@ -564,6 +570,7 @@ describe('doGenerate', () => {
     [TEST_URL_GEMINI_2_5_PRO]: {},
     [TEST_URL_GEMINI_2_5_FLASH_LITE]: {},
     [TEST_URL_GEMINI_2_5_FLASH]: {},
+    [TEST_TOOL_RESULT_FILE_URL]: {},
   });
 
   function prepareJsonFixtureResponse(
@@ -723,9 +730,7 @@ describe('doGenerate', () => {
       generateId: () => 'test-id',
       downloadToolResultFiles: {
         maxBytes: 7 * 1024 * 1024,
-        supportedUrls: {
-          '*': [/^gs:\/\/.*$/],
-        },
+        supportsGoogleCloudStorageUrls: true,
       },
     });
 
@@ -777,6 +782,239 @@ describe('doGenerate', () => {
               },
             ],
           },
+        },
+      ],
+    });
+  });
+
+  it.each([
+    'image/png',
+    'image/jpeg',
+    'image/webp',
+    'application/pdf',
+    'text/plain',
+  ])(
+    'should forward supported Vertex %s tool result URLs as function response file data',
+    async mediaType => {
+      server.urls[TEST_URL_GEMINI_3_7_FLASH].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'done' }],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+            },
+          ],
+        },
+      };
+
+      const vertexModel = new GoogleLanguageModel('gemini-3.7-flash', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+        downloadToolResultFiles: {
+          maxBytes: 7 * 1024 * 1024,
+          supportsGoogleCloudStorageUrls: true,
+        },
+      });
+
+      await vertexModel.doGenerate({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'testCallId',
+                toolName: 'viewFiles',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('gs://example-bucket/result'),
+                      },
+                      mediaType,
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.contents[0].parts[0].functionResponse.parts).toEqual([
+        {
+          fileData: {
+            mimeType: mediaType,
+            fileUri: 'gs://example-bucket/result',
+          },
+        },
+      ]);
+    },
+  );
+
+  it('should not forward unsupported Vertex tool result media types as function response file data', async () => {
+    const vertexModel = new GoogleLanguageModel('gemini-3.7-flash', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+      downloadToolResultFiles: {
+        maxBytes: 7 * 1024 * 1024,
+        supportsGoogleCloudStorageUrls: true,
+      },
+    });
+
+    await expect(
+      vertexModel.doGenerate({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'testCallId',
+                toolName: 'viewFiles',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('gs://example-bucket/video.mp4'),
+                      },
+                      mediaType: 'video/mp4',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    ).rejects.toThrow('URL scheme must be http, https, or data, got gs:');
+
+    expect(server.calls).toHaveLength(0);
+  });
+
+  it('should preserve Vertex tool result URL handling across workflow serialization', async () => {
+    server.urls[TEST_TOOL_RESULT_FILE_URL].response = {
+      type: 'binary',
+      headers: { 'content-type': 'image/jpeg' },
+      body: Buffer.from([0xff, 0xd8, 0xff]),
+    };
+    server.urls[TEST_URL_GEMINI_3_7_FLASH].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [{ text: 'done' }],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+          },
+        ],
+      },
+    };
+
+    const originalModel = new GoogleLanguageModel('gemini-3.7-flash', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+      downloadToolResultFiles: {
+        maxBytes: 7 * 1024 * 1024,
+        supportsGoogleCloudStorageUrls: true,
+      },
+    });
+
+    const serialized = GoogleLanguageModel[WORKFLOW_SERIALIZE](originalModel);
+
+    expect(serialized.config.downloadToolResultFiles).toEqual({
+      maxBytes: 7 * 1024 * 1024,
+      supportsGoogleCloudStorageUrls: true,
+    });
+
+    const restoredModel = GoogleLanguageModel[WORKFLOW_DESERIALIZE](
+      serialized as never,
+    );
+
+    await restoredModel.doGenerate({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'testCallId',
+              toolName: 'viewFiles',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file',
+                    data: {
+                      type: 'url',
+                      url: new URL('gs://example-bucket/result.png'),
+                    },
+                    mediaType: 'image/png',
+                  },
+                  {
+                    type: 'file',
+                    data: {
+                      type: 'url',
+                      url: new URL(TEST_TOOL_RESULT_FILE_URL),
+                    },
+                    mediaType: 'image/jpeg',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(server.calls.map(call => call.requestUrl)).toEqual([
+      TEST_TOOL_RESULT_FILE_URL,
+      TEST_URL_GEMINI_3_7_FLASH,
+    ]);
+    expect(await server.calls[1].requestBodyJson).toMatchObject({
+      contents: [
+        {
+          parts: [
+            {
+              functionResponse: {
+                parts: [
+                  {
+                    fileData: {
+                      mimeType: 'image/png',
+                      fileUri: 'gs://example-bucket/result.png',
+                    },
+                  },
+                  {
+                    inlineData: {
+                      mimeType: 'image/jpeg',
+                      data: '/9j/',
+                    },
+                  },
+                ],
+              },
+            },
+          ],
         },
       ],
     });

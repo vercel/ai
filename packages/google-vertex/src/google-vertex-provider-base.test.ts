@@ -114,9 +114,7 @@ describe('google-vertex-provider-base', () => {
       expect.objectContaining({
         downloadToolResultFiles: {
           maxBytes: 20 * 1024 * 1024,
-          supportedUrls: {
-            '*': [/^gs:\/\/.*$/],
-          },
+          supportsGoogleCloudStorageUrls: true,
         },
       }),
     );
@@ -539,11 +537,7 @@ describe('google-vertex-provider-base', () => {
           "baseURL": "https://aiplatform.us.rep.googleapis.com/v1beta1/projects/test-project/locations/us/publishers/google",
           "downloadToolResultFiles": {
             "maxBytes": 7340032,
-            "supportedUrls": {
-              "*": [
-                /\\^gs:\\\\/\\\\/\\.\\*\\$/,
-              ],
-            },
+            "supportsGoogleCloudStorageUrls": true,
           },
           "fetch": undefined,
           "generateId": [MockFunction],
@@ -567,11 +561,7 @@ describe('google-vertex-provider-base', () => {
           "baseURL": "https://aiplatform.eu.rep.googleapis.com/v1beta1/projects/test-project/locations/eu/publishers/google",
           "downloadToolResultFiles": {
             "maxBytes": 7340032,
-            "supportedUrls": {
-              "*": [
-                /\\^gs:\\\\/\\\\/\\.\\*\\$/,
-              ],
-            },
+            "supportsGoogleCloudStorageUrls": true,
           },
           "fetch": undefined,
           "generateId": [MockFunction],
