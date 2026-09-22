@@ -10,7 +10,10 @@ import type {
   SharedV2ProviderMetadata,
   LanguageModelV2FunctionTool,
 } from '@ai-sdk/provider';
-import { sanitizeJsonSchema } from '@ai-sdk/anthropic/internal';
+import {
+  getModelCapabilities,
+  sanitizeJsonSchema,
+} from '@ai-sdk/anthropic/internal';
 import {
   type FetchFunction,
   type ParseResult,
@@ -18,6 +21,7 @@ import {
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  injectJsonInstructionIntoMessages,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -164,6 +168,8 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       bedrockOptions.reasoningConfig?.type === 'enabled' ||
       bedrockOptions.reasoningConfig?.type === 'adaptive';
 
+    const { rejectsForcedToolUse } = getModelCapabilities(this.modelId);
+
     const structuredOutputMode =
       bedrockOptions.structuredOutputMode ??
       anthropicOptions?.structuredOutputMode ??
@@ -207,10 +213,18 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
         (structuredOutputMode === 'auto' &&
           modelSupportsNativeStructuredOutput));
 
+    const useJsonInstructionForStructuredOutput =
+      !useNativeStructuredOutput &&
+      isAnthropicModel &&
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      rejectsForcedToolUse;
+
     const jsonResponseTool: LanguageModelV2FunctionTool | undefined =
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
-      !useNativeStructuredOutput
+      !useNativeStructuredOutput &&
+      !useJsonInstructionForStructuredOutput
         ? {
             type: 'function',
             name: 'json',
@@ -435,6 +449,15 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
             'Tool calls and results removed from conversation because Bedrock does not support tool content without active tools.',
         });
       }
+    }
+
+    if (useJsonInstructionForStructuredOutput) {
+      filteredPrompt = injectJsonInstructionIntoMessages({
+        messages: filteredPrompt,
+        schema: responseFormat!.schema,
+        schemaSuffix:
+          'You MUST answer with only a JSON object that matches the JSON schema above. Do not wrap it in markdown fences or include any other text.',
+      });
     }
 
     const { system, messages } =
