@@ -64,18 +64,18 @@ You can use the following optional settings to customize the Anthropic provider 
 ## Language Models
 
 You can create models that call the [Anthropic Messages API](https://docs.anthropic.com/claude/reference/messages_post) using the provider instance.
-The first argument is the model id, e.g. `claude-3-haiku-20240307`.
+The first argument is the model id, e.g. `claude-opus-5`.
 Some models have multi-modal capabilities.
 
 ```ts
-const model = anthropic('claude-3-haiku-20240307');
+const model = anthropic('claude-opus-5');
 ```
 
 You can also use the following aliases for model creation:
 
-- `anthropic.languageModel('claude-3-haiku-20240307')` - Creates a language model
-- `anthropic.chat('claude-3-haiku-20240307')` - Alias for `languageModel`
-- `anthropic.messages('claude-3-haiku-20240307')` - Alias for `languageModel`
+- `anthropic.languageModel('claude-opus-5')` - Creates a language model
+- `anthropic.chat('claude-opus-5')` - Alias for `languageModel`
+- `anthropic.messages('claude-opus-5')` - Alias for `languageModel`
 
 You can use Anthropic language models to generate text with the `generateText` function:
 
@@ -84,7 +84,7 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: anthropic('claude-3-haiku-20240307'),
+  model: anthropic('claude-opus-5'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -1934,9 +1934,6 @@ and the `mediaType` should be set to `'application/pdf'`.
 | `claude-opus-4-5`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   |            |
 | `claude-haiku-4-5`  | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  |             |            |
 | `claude-sonnet-4-5` | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   |            |
-| `claude-opus-4-1`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  |             |            |
-| `claude-opus-4-0`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  |             |            |
-| `claude-sonnet-4-0` | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  |             |            |
 
 <Note>
   The table above lists popular models. Please see the [Anthropic
