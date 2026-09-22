@@ -561,6 +561,7 @@ export type IncompleteDetails = {
 export type ResponseError = {
   code: string;
   message: string;
+  status_code?: number;
 };
 
 /**

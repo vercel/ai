@@ -62,6 +62,12 @@ You can use the following optional settings to customize the Open Responses prov
   Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
   Defaults to the global `fetch` function.
 
+- **failedResponseHandler** _ResponseHandler&lt;APICallError&gt;_
+
+  Custom handler for non-successful HTTP responses. Use this when an endpoint
+  returns an error envelope that differs from the default OpenAI-compatible
+  `{ error: { message, type, param, code } }` shape.
+
 - **strictResponseInput** _boolean_
 
   Serializes assistant history using strict OpenAI Responses input schemas.

@@ -1,4 +1,5 @@
-import type { FetchFunction } from '@ai-sdk/provider-utils';
+import type { APICallError } from '@ai-sdk/provider';
+import type { FetchFunction, ResponseHandler } from '@ai-sdk/provider-utils';
 import type { OpenResponsesExtensionRegistry } from '../open-responses-extension';
 
 export type OpenResponsesConfig = {
@@ -7,6 +8,7 @@ export type OpenResponsesConfig = {
   url: string;
   headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
+  failedResponseHandler?: ResponseHandler<APICallError>;
   generateId: () => string;
   extensionRegistry?: OpenResponsesExtensionRegistry;
   strictResponseInput?: boolean;

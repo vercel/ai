@@ -1,4 +1,5 @@
 import {
+  APICallError,
   InvalidArgumentError,
   type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
@@ -50,25 +51,74 @@ function createResponse({
 }
 
 describe('QuiverAI language model', () => {
-  it('preserves QuiverAI HTTP error messages with nullable fields', async () => {
+  it('preserves flat QuiverAI HTTP error details', async () => {
     server.urls[URL].response = {
       type: 'error',
-      status: 400,
+      status: 503,
       body: JSON.stringify({
-        error: {
-          message: 'store must be false',
-          type: 'invalid_request_error',
-          param: null,
-          code: 'invalid_request',
-        },
+        status: 503,
+        code: 'service_unavailable',
+        message: 'Model capacity is temporarily unavailable.',
+        request_id: 'req_1',
       }),
     };
 
-    await expect(
-      createQuiverAI({ apiKey: 'test-api-key' })('arrow-2').doGenerate({
+    let error: unknown;
+    try {
+      await createQuiverAI({ apiKey: 'test-api-key' })('arrow-2').doGenerate({
         prompt,
-      }),
-    ).rejects.toThrow('store must be false');
+      });
+    } catch (caughtError) {
+      error = caughtError;
+    }
+
+    expect(error).toBeInstanceOf(APICallError);
+    expect(error).toMatchObject({
+      message: 'Model capacity is temporarily unavailable.',
+      statusCode: 503,
+      isRetryable: true,
+      data: {
+        status: 503,
+        code: 'service_unavailable',
+        message: 'Model capacity is temporarily unavailable.',
+        request_id: 'req_1',
+      },
+    });
+  });
+
+  it('uses response error status codes for retry classification', async () => {
+    server.urls[URL].response = {
+      type: 'json-value',
+      body: {
+        ...createResponse({ output: [], status: 'failed' }),
+        error: {
+          code: 'service_unavailable',
+          message: 'Try again later.',
+          status_code: 503,
+        },
+      },
+    };
+
+    let error: unknown;
+    try {
+      await createQuiverAI({ apiKey: 'test-api-key' })('arrow-2').doGenerate({
+        prompt,
+      });
+    } catch (caughtError) {
+      error = caughtError;
+    }
+
+    expect(error).toBeInstanceOf(APICallError);
+    expect(error).toMatchObject({
+      message: 'Try again later.',
+      statusCode: 503,
+      isRetryable: true,
+      data: {
+        code: 'service_unavailable',
+        message: 'Try again later.',
+        status_code: 503,
+      },
+    });
   });
 
   it('generates text through the stateless Responses endpoint', async () => {

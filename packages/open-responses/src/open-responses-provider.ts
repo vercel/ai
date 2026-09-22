@@ -1,4 +1,5 @@
 import {
+  type APICallError,
   NoSuchModelError,
   type LanguageModelV4,
   type ProviderV4,
@@ -7,6 +8,7 @@ import {
   generateId,
   withUserAgentSuffix,
   type FetchFunction,
+  type ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import {
   createOpenResponsesExtensionRegistry,
@@ -48,6 +50,11 @@ export interface OpenResponsesProviderSettings {
    * or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+
+  /**
+   * Custom handler for non-successful HTTP responses.
+   */
+  failedResponseHandler?: ResponseHandler<APICallError>;
 
   /**
    * Whether to serialize assistant history using the strict OpenAI Responses
@@ -136,6 +143,7 @@ export function createOpenResponses(
       headers: getHeaders,
       url: options.url,
       fetch: options.fetch,
+      failedResponseHandler: options.failedResponseHandler,
       generateId: () => generateId(),
       extensionRegistry,
       strictResponseInput: options.strictResponseInput,

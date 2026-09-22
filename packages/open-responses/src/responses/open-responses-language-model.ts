@@ -55,6 +55,11 @@ import { mapOpenResponsesFinishReason } from './map-open-responses-finish-reason
 import type { OpenResponsesConfig } from './open-responses-config';
 import { openResponsesLanguageModelOptions } from './open-responses-language-model-options';
 
+const defaultFailedResponseHandler = createJsonErrorResponseHandler({
+  errorSchema: openResponsesErrorSchema,
+  errorToMessage: error => error.error.message,
+});
+
 export class OpenResponsesLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -430,10 +435,8 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       url: this.config.url,
       headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
-      failedResponseHandler: createJsonErrorResponseHandler({
-        errorSchema: openResponsesErrorSchema,
-        errorToMessage: error => error.error.message,
-      }),
+      failedResponseHandler:
+        this.config.failedResponseHandler ?? defaultFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         // do not validate the response body, only apply types to the response body
         jsonSchema<OpenResponsesResponseBody>(() => {
@@ -449,10 +452,10 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
         message: response.error.message,
         url: this.config.url,
         requestBodyValues: body,
-        statusCode: 400,
+        statusCode: response.error.status_code ?? 400,
         responseHeaders,
         responseBody: rawResponse as string,
-        isRetryable: false,
+        data: response.error,
       });
     }
 
@@ -629,10 +632,8 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
         ...body,
         stream: true,
       } satisfies OpenResponsesRequestBody,
-      failedResponseHandler: createJsonErrorResponseHandler({
-        errorSchema: openResponsesErrorSchema,
-        errorToMessage: error => error.error.message,
-      }),
+      failedResponseHandler:
+        this.config.failedResponseHandler ?? defaultFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(z.any()),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,

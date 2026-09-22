@@ -1,4 +1,4 @@
-import type { LanguageModelV4Content } from '@ai-sdk/provider';
+import { APICallError, type LanguageModelV4Content } from '@ai-sdk/provider';
 import { describe, expectTypeOf, it } from 'vitest';
 import {
   createOpenResponses,
@@ -33,6 +33,14 @@ describe('OpenResponsesExtension', () => {
       name: 'acme',
       url: 'https://example.com/v1/responses',
       experimental_extensions: [extension],
+      failedResponseHandler: async ({ url, requestBodyValues, response }) => ({
+        value: new APICallError({
+          message: response.statusText,
+          url,
+          requestBodyValues,
+          statusCode: response.status,
+        }),
+      }),
     } satisfies OpenResponsesProviderSettings;
 
     expectTypeOf(settings).toMatchTypeOf<OpenResponsesProviderSettings>();

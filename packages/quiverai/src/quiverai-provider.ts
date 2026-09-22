@@ -12,6 +12,7 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
+import { quiveraiFailedResponseHandler } from './quiverai-error';
 import { QuiverAIImageModel } from './quiverai-image-model';
 import type { QuiverAIImageModelId } from './quiverai-image-settings';
 import type { QuiverAILanguageModelId } from './quiverai-language-model-settings';
@@ -104,6 +105,7 @@ export function createQuiverAI(
     url: `${baseURL}/responses`,
     headers: getHeaders,
     fetch: options.fetch,
+    failedResponseHandler: quiveraiFailedResponseHandler,
     strictResponseInput: true,
     customToolId: 'quiverai.custom',
     reasoningReplay: 'id-and-summary',
