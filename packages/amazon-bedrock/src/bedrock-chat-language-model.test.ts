@@ -79,6 +79,7 @@ const modelId = 'anthropic.claude-3-haiku-20240307-v1:0';
 const anthropicModelId = 'anthropic.claude-3-5-sonnet-20240620-v1:0'; // Define at top level
 const structuredOutputModelId = 'anthropic.claude-opus-4-5-20251101-v1:0';
 const adaptiveStructuredOutputModelId = 'anthropic.claude-opus-4-6-v1';
+const opus55ModelId = 'us.anthropic.claude-opus-5-5';
 const sonnet46ModelId = 'anthropic.claude-sonnet-4-6-v1';
 const haiku45ModelId = 'us.anthropic.claude-haiku-4-5-20251001-v1:0';
 const unsupportedStructuredOutputModelId =
@@ -3858,6 +3859,62 @@ describe('doGenerate', () => {
         },
       },
     });
+  });
+
+  it('returns structured output for Claude Opus 5.5 without forcing tool use', async () => {
+    const forcedToolError = JSON.parse(
+      fs.readFileSync(
+        'src/__fixtures__/bedrock-opus-5-5-forced-tool-error.json',
+        'utf8',
+      ),
+    );
+    const jsonTextResponse = JSON.parse(
+      fs.readFileSync(
+        'src/__fixtures__/bedrock-opus-5-5-json-text.json',
+        'utf8',
+      ),
+    );
+    let requestBody: any;
+
+    const opus55Model = new BedrockChatLanguageModel(opus55ModelId, {
+      baseUrl: () => baseUrl,
+      headers: {},
+      generateId: () => 'test-id',
+      fetch: async (_input, init) => {
+        requestBody = JSON.parse(init?.body as string);
+
+        if (requestBody.toolConfig?.toolChoice?.any != null) {
+          return new Response(JSON.stringify(forcedToolError), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+
+        return new Response(JSON.stringify(jsonTextResponse), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      },
+    });
+
+    const result = await opus55Model.doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { answer: { type: 'string', const: 'OK' } },
+          required: ['answer'],
+          additionalProperties: false,
+        },
+      },
+    });
+
+    expect(result.content).toEqual([{ type: 'text', text: '{"answer":"OK"}' }]);
+    expect(requestBody.toolConfig).toBeUndefined();
+    expect(
+      requestBody.additionalModelRequestFields?.output_config?.format,
+    ).toBeUndefined();
   });
 
   it.each([

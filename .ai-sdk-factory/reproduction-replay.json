@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "issueId": 21290,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21290-bedrock-opus-5-5-structured-output.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-21290-bedrock-opus-5-5-structured-output.ts",
+    "packages/amazon-bedrock/src/bedrock-chat-language-model.test.ts",
+    "packages/amazon-bedrock/src/__fixtures__/bedrock-opus-5-5-forced-tool-error.json",
+    "packages/amazon-bedrock/src/__fixtures__/bedrock-opus-5-5-json-text.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_21290_REPRODUCED: Bedrock rejected Opus 5.5 structured output because AI SDK forced the synthetic JSON tool."
+  }
+}
