@@ -1,13 +1,15 @@
 {
   "version": 2,
-  "issueId": 20766,
+  "issueId": 21289,
   "expectationRevision": 1,
-  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/harness-pi-reattach-settings.ts",
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/openai-chat-audio-transcript.ts",
   "artifactPaths": [
-    "examples/ai-functions/src/reproduction/harness-pi-reattach-settings.ts"
+    "examples/ai-functions/src/reproduction/openai-chat-audio-transcript.ts",
+    "packages/openai/src/chat/__fixtures__/openai-audio-gpt-audio-1.5.json",
+    "packages/openai/src/chat/openai-chat-language-model.test.ts"
   ],
   "expectedFailure": {
     "exitCode": 1,
-    "signal": "ISSUE 20766 REPRODUCED: same-process reattach ignored request 2 credentials"
+    "signal": "Issue #21289 reproduced: OpenAI audio transcript was not exposed as text content."
   }
 }

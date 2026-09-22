@@ -1,0 +1,44 @@
+{
+  "id": "chatcmpl-EQyKCQV5njJvPnES1QbQozj1zU161",
+  "object": "chat.completion",
+  "created": 1790097124,
+  "model": "gpt-audio-1.5",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "refusal": null,
+        "audio": {
+          "id": "audio_6ab2b6e533f4819188e964a46bc02404",
+          "data": "[base64 audio omitted: 99260 chars]",
+          "expires_at": 1790100725,
+          "transcript": "Fix the login bug"
+        },
+        "annotations": []
+      },
+      "finish_reason": "length"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 14,
+    "completion_tokens": 40,
+    "total_tokens": 54,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 0,
+      "text_tokens": 14,
+      "image_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 31,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0,
+      "text_tokens": 9
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": "fp_488690cf14"
+}
