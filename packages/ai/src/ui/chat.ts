@@ -387,23 +387,15 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       const consumesPendingApproval =
         messageId != null && messageId === this.pendingApprovalMessageId;
-      if (consumesPendingApproval) {
-        this.pendingApprovalMessageId = undefined;
-      }
+      const pendingApprovalMessageIndex = consumesPendingApproval
+        ? this.state.messages.findIndex(message => message.id === messageId)
+        : -1;
 
-      await this.makeRequest({
-        trigger: 'submit-message',
+      await this.makeRequestForToolApproval({
         messageId,
+        messageIndex: pendingApprovalMessageIndex,
         ...options,
       });
-
-      if (
-        consumesPendingApproval &&
-        this.status === 'error' &&
-        this.pendingApprovalMessageId == null
-      ) {
-        this.pendingApprovalMessageId = messageId;
-      }
       return;
     }
 
@@ -603,13 +595,9 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
                 ? this.lastMessage?.id
                 : messages[messageIndex].id;
 
-            if (this.pendingApprovalMessageId === messageId) {
-              this.pendingApprovalMessageId = undefined;
-            }
-
-            this.makeRequest({
-              trigger: 'submit-message',
+            this.makeRequestForToolApproval({
               messageId,
+              messageIndex,
               ...options,
             });
           }
@@ -693,6 +681,36 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
 
     return result as boolean;
+  }
+
+  private async makeRequestForToolApproval({
+    messageId,
+    messageIndex,
+    ...options
+  }: {
+    messageId?: string;
+    messageIndex: number;
+  } & ChatRequestOptions) {
+    const consumesPendingApproval =
+      messageId != null && messageId === this.pendingApprovalMessageId;
+    if (consumesPendingApproval) {
+      this.pendingApprovalMessageId = undefined;
+    }
+
+    await this.makeRequest({
+      trigger: 'submit-message',
+      messageId,
+      ...options,
+    });
+
+    if (
+      consumesPendingApproval &&
+      this.status === 'error' &&
+      this.pendingApprovalMessageId == null
+    ) {
+      this.pendingApprovalMessageId =
+        this.state.messages[messageIndex]?.id ?? messageId;
+    }
   }
 
   private async makeRequest({
