@@ -39,6 +39,7 @@ import {
   waitForBridgeReady,
   withBridgeToken,
   writeSkills,
+  type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
 import {
   type Experimental_SandboxProcess,
@@ -130,6 +131,13 @@ export type CodexHarnessSettings = {
   readonly portEndpoint?: HarnessV1PortEndpoint;
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
+  /**
+   * Configures reconnection attempts after an established bridge connection
+   * drops. The reconnect window includes connection establishment and
+   * backoff delays. Defaults to 30 seconds with exponential backoff from 50
+   * milliseconds up to 2 seconds.
+   */
+  readonly reconnect?: SandboxChannelReconnectOptions;
   /**
    * Creates the authentication token used by the sandbox bridge. Defaults to
    * a random 32-byte hexadecimal token.
@@ -370,11 +378,13 @@ export function createCodex(
             token: coords.token,
           });
           const attachChannel: CodexChannel = new SandboxChannel({
-            connect: () => openWebSocket(attachEndpoint),
+            connect: ({ abortSignal }) =>
+              openWebSocket({ ...attachEndpoint, abortSignal }),
             outboundSchema: outboundMessageSchema,
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
             onBridgeError,
+            reconnect: settings.reconnect,
           });
           await attachChannel.open(isContinue ? { resume: true } : undefined);
           return createSession({
@@ -526,10 +536,12 @@ export function createCodex(
       const bridgeEndpoint = withBridgeToken({ endpoint, token });
 
       const channel: CodexChannel = new SandboxChannel({
-        connect: () => openWebSocket(bridgeEndpoint),
+        connect: ({ abortSignal }) =>
+          openWebSocket({ ...bridgeEndpoint, abortSignal }),
         outboundSchema: outboundMessageSchema,
         onDiagnostic,
         onBridgeError,
+        reconnect: settings.reconnect,
         // In replay mode the respawned bridge reloaded the finished turn from
         // disk; seed the cursor and resume so it streams the tail (incl.
         // `finish`).
@@ -638,21 +650,57 @@ async function resolveBridgeEndpoint({
 function openWebSocket({
   url,
   headers,
-}: HarnessV1PortEndpoint): Promise<WebSocket> {
+  abortSignal,
+}: HarnessV1PortEndpoint & { abortSignal: AbortSignal }): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
+    if (abortSignal.aborted) {
+      reject(abortSignal.reason ?? new Error('WebSocket connection aborted'));
+      return;
+    }
+
     const ws = new WebSocket(url, {
       headers: headers == null ? undefined : { ...headers },
     });
-    const onOpen = () => {
+
+    let settled = false;
+    const cleanup = () => {
+      abortSignal.removeEventListener('abort', onAbort);
+      ws.off('open', onOpen);
       ws.off('error', onError);
+    };
+    const rejectWithCleanup = (error: unknown) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      ws.once('error', () => {});
+      try {
+        ws.terminate();
+      } catch {
+        try {
+          ws.close();
+        } catch {
+          // best-effort
+        }
+      }
+      reject(error);
+    };
+    const onOpen = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
       resolve(ws);
     };
     const onError = (err: Error) => {
-      ws.off('open', onOpen);
-      reject(err);
+      rejectWithCleanup(err);
     };
+    const onAbort = () =>
+      rejectWithCleanup(
+        abortSignal.reason ?? new Error('WebSocket connection aborted'),
+      );
+
     ws.once('open', onOpen);
     ws.once('error', onError);
+    abortSignal.addEventListener('abort', onAbort, { once: true });
   });
 }
 

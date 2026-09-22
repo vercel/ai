@@ -96,6 +96,13 @@ Settings:
 - `mcpServers`: MCP server definitions keyed by server name.
 - `port`: ACP bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the ACP bridge to start.
+- `reconnect`: reconnect timing after an established bridge WebSocket
+  connection drops. `maxElapsedMs` controls the total retry window, including
+  connection establishment and backoff delays, and defaults to 30 seconds.
+  `initialDelayMs` defaults to 50 milliseconds, and `maxDelayMs` defaults to
+  2 seconds. These retries use exponential backoff and are separate from
+  `startupTimeoutMs`. They cannot recover when the sandbox, bridge process, or
+  bridge endpoint is permanently unavailable.
 - `mintBridgeToken`: synchronous function that receives the sandbox id and
   returns the ACP bridge authentication token. By default, the adapter generates
   a random 32-byte token. Custom implementations must return a suitably secret

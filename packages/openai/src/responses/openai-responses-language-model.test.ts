@@ -1316,6 +1316,22 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it.each(['gpt-6-sol', 'gpt-6-luna'])(
+        'should preserve disabled reasoning for %s',
+        async modelId => {
+          const { warnings } = await createModel(modelId).doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: { openai: { reasoningEffort: 'none' } },
+          });
+
+          expect(await server.calls[0].requestBodyJson).toMatchObject({
+            model: modelId,
+            reasoning: { effort: 'none' },
+          });
+          expect(warnings).toStrictEqual([]);
+        },
+      );
+
       it.each(['none', 'minimal'])(
         'should omit unsupported GPT-6 reasoning effort %s',
         async reasoningEffort => {

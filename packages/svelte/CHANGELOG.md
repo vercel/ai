@@ -1,5 +1,39 @@
 # @ai-sdk/svelte
 
+## 5.0.111
+
+### Patch Changes
+
+- Updated dependencies [31d24ce]
+- Updated dependencies [a65bfd9]
+  - ai@7.0.111
+
+## 5.0.110
+
+### Patch Changes
+
+- ai@7.0.110
+
+## 5.0.109
+
+### Patch Changes
+
+- 0343bb1: fix(ai): keep replacement completion requests loading and cancellable when an earlier request settles
+- Updated dependencies [0343bb1]
+- Updated dependencies [2b105fa]
+- Updated dependencies [125f493]
+  - ai@7.0.109
+
+## 5.0.108
+
+### Patch Changes
+
+- Updated dependencies [3f6852a]
+- Updated dependencies [6317504]
+- Updated dependencies [3cb2dcd]
+- Updated dependencies [ccf98e7]
+  - ai@7.0.108
+
 ## 5.0.107
 
 ### Patch Changes
