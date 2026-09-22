@@ -2067,7 +2067,6 @@ function takeBufferedQuestionResult({
       return buffered;
     }
   }
-  return undefined;
 }
 
 function isPermissionModeMappingValue({

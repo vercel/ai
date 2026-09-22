@@ -631,8 +631,6 @@ export function getMessageId(msg: unknown): string | undefined {
       return kwargs.id;
     }
   }
-
-  return undefined;
 }
 
 /**
@@ -875,8 +873,6 @@ export function extractReasoningId(msg: unknown): string | undefined {
       }
     }
   }
-
-  return undefined;
 }
 
 /**
@@ -946,8 +942,6 @@ export function extractReasoningFromContentBlocks(
       return reasoningParts.join('');
     }
   }
-
-  return undefined;
 }
 
 /**
@@ -1016,8 +1010,6 @@ export function extractReasoningFromValuesMessage(
       return reasoningParts.join('');
     }
   }
-
-  return undefined;
 }
 
 export function isCitationContentBlock(
@@ -1354,7 +1346,6 @@ function findMessageCurrentStepNamespace(
       return namespace;
     }
   }
-  return undefined;
 }
 
 /**

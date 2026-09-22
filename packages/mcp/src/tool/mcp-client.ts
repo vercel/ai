@@ -100,8 +100,6 @@ function getErrorStatusCode(error: unknown): number | undefined {
   ) {
     return error.statusCode;
   }
-
-  return undefined;
 }
 
 function getStringErrorCode(error: unknown): string | undefined {
@@ -113,8 +111,6 @@ function getStringErrorCode(error: unknown): string | undefined {
   ) {
     return error.code;
   }
-
-  return undefined;
 }
 
 function isRetryableMCPToolCallError(error: unknown): boolean {
