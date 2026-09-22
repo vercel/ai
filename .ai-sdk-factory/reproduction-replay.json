@@ -1,13 +1,13 @@
 {
   "version": 2,
-  "issueId": 20951,
-  "expectationRevision": 2,
-  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20951-generated-file-url.ts",
+  "issueId": 21301,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21301-untrusted-first-hop-credentials.ts",
   "artifactPaths": [
-    "examples/ai-functions/src/reproduction/issue-20951-generated-file-url.ts"
+    "examples/ai-functions/src/reproduction/issue-21301-untrusted-first-hop-credentials.ts"
   ],
   "expectedFailure": {
     "exitCode": 1,
-    "signal": "ISSUE_20951: generated file URL outputs are not usable"
+    "signal": "BUG REPRODUCED: untrusted first hop received credential headers: authorization, x-key"
   }
 }
