@@ -5640,7 +5640,6 @@ describe('doGenerate', () => {
     ).toBeUndefined();
   });
 
-<<<<<<< HEAD
   it('should generate structured output for claude-opus-5-5 without forced tool use', async () => {
     let requestBody: any;
     const opus55Model = new BedrockChatLanguageModel(
@@ -5697,7 +5696,7 @@ describe('doGenerate', () => {
     ).toBeUndefined();
     expect(result.content).toEqual([{ type: 'text', text: '{"answer":"OK"}' }]);
   });
-=======
+
   it.each([undefined, 'jsonTool'] as const)(
     'should use JSON instructions instead of forced tool use for claude-opus-5-5 with structuredOutputMode %s',
     async structuredOutputMode => {
@@ -5761,7 +5760,6 @@ describe('doGenerate', () => {
       );
     },
   );
->>>>>>> origin/release-v6.0
 
   it.each([
     {
