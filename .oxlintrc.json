@@ -163,7 +163,6 @@
     "unicorn/no-object-as-default-parameter": "off",
     "unicorn/no-this-assignment": "off",
     "unicorn/no-typeof-undefined": "off",
-    "unicorn/no-unnecessary-array-splice-count": "off",
     "unicorn/no-useless-spread": "off",
     "unicorn/no-useless-switch-case": "off",
     "unicorn/no-useless-undefined": "off",
