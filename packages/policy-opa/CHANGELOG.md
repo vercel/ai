@@ -1,5 +1,19 @@
 # @ai-sdk/policy
 
+## 1.0.111
+
+### Patch Changes
+
+- Updated dependencies [31d24ce]
+- Updated dependencies [a65bfd9]
+  - ai@7.0.111
+
+## 1.0.110
+
+### Patch Changes
+
+- ai@7.0.110
+
 ## 1.0.109
 
 ### Patch Changes
