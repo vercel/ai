@@ -14,6 +14,7 @@ import {
   createJsonResponseHandler,
   createLanguageModelResponseMetadata as getResponseMetadata,
   generateId,
+  injectJsonInstructionIntoMessages,
   isCustomReasoning,
   mapReasoningToProviderBudget,
   parseProviderOptions,
@@ -37,6 +38,7 @@ import { convertAlibabaUsage } from './convert-alibaba-usage';
 import { convertToAlibabaChatMessages } from './convert-to-alibaba-chat-messages';
 import { CacheControlValidator } from './get-cache-control';
 import { mapAlibabaFinishReason } from './map-alibaba-finish-reason';
+import { supportsJsonSchemaOutput } from './supports-json-schema-output';
 import { supportsPreservedThinking } from './supports-preserved-thinking';
 
 /**
@@ -123,6 +125,39 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
       alibabaOptions?.preserveThinking ??
       (supportsPreservedThinking(this.modelId) ? true : undefined);
 
+    const useJsonSchema =
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      supportsJsonSchemaOutput(this.modelId);
+
+    const useJsonObject = responseFormat?.type === 'json' && !useJsonSchema;
+
+    if (useJsonObject && responseFormat.schema != null) {
+      warnings.push({
+        type: 'compatibility',
+        feature: 'responseFormat JSON schema',
+        details:
+          `Alibaba does not support JSON Schema output for model ${this.modelId}. ` +
+          'JSON Object mode is used instead, and the schema will only be validated locally.',
+      });
+    }
+
+    if (useJsonObject) {
+      warnings.push({
+        type: 'compatibility',
+        feature: 'responseFormat JSON object',
+        details:
+          'Alibaba JSON Object mode requires the prompt to mention JSON. A JSON instruction was injected into the system message.',
+      });
+    }
+
+    const resolvedPrompt = useJsonObject
+      ? injectJsonInstructionIntoMessages({
+          messages: prompt,
+          schema: responseFormat.schema,
+        })
+      : prompt;
+
     // Build base request arguments
     const baseArgs = {
       model: this.modelId,
@@ -135,7 +170,7 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
       seed,
       response_format:
         responseFormat?.type === 'json'
-          ? responseFormat.schema != null
+          ? useJsonSchema
             ? {
                 type: 'json_schema',
                 json_schema: {
@@ -159,7 +194,7 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
 
       // Convert messages with cache control support
       messages: convertToAlibabaChatMessages({
-        prompt,
+        prompt: resolvedPrompt,
         cacheControlValidator,
         preserveThinking: preserveThinking ?? false,
       }),
