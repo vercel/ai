@@ -1621,6 +1621,7 @@ function createSession({
       'tool-approval-request',
       'tool-result',
       'finish-step',
+      'compaction',
       'raw',
     ] as const;
     for (const type of eventTypes) {

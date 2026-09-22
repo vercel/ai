@@ -172,11 +172,14 @@ async function awaitWebSocketConnection({
 /**
  * Host-side typed wrapper around the bridge WebSocket connection.
  *
- * Buffers inbound messages in arrival order until listeners for their types
- * are registered, so callers that subscribe asynchronously do not miss or
- * reorder early frames. Inbound dispatch is serialised through a promise chain
- * so a `close` event that arrives on the same microtask as the final `finish`
- * message does not fire close handlers until the message has been dispatched.
+ * Buffers inbound messages in arrival order while listeners attach, so callers
+ * do not miss or reorder early frames. Listener registration drains the ordered
+ * prefix synchronously. If an event type remains unhandled after the current
+ * attachment turn, it is retained independently so it cannot block subscribed
+ * event types indefinitely. Inbound dispatch is serialised through a promise
+ * chain so a `close` event that arrives on the same microtask as the final
+ * `finish` message does not fire close handlers until the message has been
+ * dispatched.
  *
  * Survives transient disconnects. The bridge keeps running and
  * accumulates events in an in-memory log keyed by a monotonic `seq`; on an
@@ -194,8 +197,10 @@ export class SandboxChannel<
     Set<Listener<TOut, EventTypeOf<TOut>>>
   >();
   private readonly buffered: TOut[] = [];
+  private readonly bufferedByType = new Map<EventTypeOf<TOut>, TOut[]>();
   private bufferedOffset = 0;
   private flushingBuffered = false;
+  private bufferedFlushScheduled = false;
   private readonly onCloseHandlers = new Set<
     (code: number, reason: string) => void
   >();
@@ -311,7 +316,9 @@ export class SandboxChannel<
     }
     set.add(listener as unknown as Listener<TOut, EventTypeOf<TOut>>);
 
+    this.flushBufferedType(type);
     this.flushBuffered();
+    this.scheduleSelectiveBufferedFlush();
 
     return () => {
       set!.delete(listener as unknown as Listener<TOut, EventTypeOf<TOut>>);
@@ -644,6 +651,7 @@ export class SandboxChannel<
     if (this.bufferedOffset < this.buffered.length || !set || set.size === 0) {
       this.buffered.push(message);
       this.flushBuffered();
+      this.scheduleSelectiveBufferedFlush();
       return;
     }
     for (const listener of set) {
@@ -651,7 +659,9 @@ export class SandboxChannel<
     }
   }
 
-  private flushBuffered(): void {
+  private flushBuffered({
+    selective = false,
+  }: { selective?: boolean } = {}): void {
     if (this.flushingBuffered) return;
     this.flushingBuffered = true;
     try {
@@ -659,7 +669,17 @@ export class SandboxChannel<
         const message = this.buffered[this.bufferedOffset];
         const type = message.type as EventTypeOf<TOut>;
         const set = this.listeners.get(type);
-        if (!set || set.size === 0) return;
+        if (!set || set.size === 0) {
+          if (!selective) return;
+          this.bufferedOffset++;
+          const buffered = this.bufferedByType.get(type);
+          if (buffered) {
+            buffered.push(message);
+          } else {
+            this.bufferedByType.set(type, [message]);
+          }
+          continue;
+        }
 
         this.bufferedOffset++;
         for (const listener of set) {
@@ -673,6 +693,53 @@ export class SandboxChannel<
       }
       this.flushingBuffered = false;
     }
+  }
+
+  private flushBufferedType(type: EventTypeOf<TOut>): void {
+    const buffered = this.bufferedByType.get(type);
+    if (!buffered) return;
+
+    let offset = 0;
+    try {
+      while (offset < buffered.length) {
+        const set = this.listeners.get(type);
+        if (!set || set.size === 0) return;
+
+        const message = buffered[offset++];
+        for (const listener of set) {
+          listener(message as Extract<TOut, { type: EventTypeOf<TOut> }>);
+        }
+      }
+    } finally {
+      if (offset === buffered.length) {
+        this.bufferedByType.delete(type);
+      } else if (offset > 0) {
+        buffered.splice(0, offset);
+      }
+    }
+  }
+
+  private scheduleSelectiveBufferedFlush(): void {
+    if (
+      this.bufferedFlushScheduled ||
+      this.bufferedOffset >= this.buffered.length ||
+      !this.hasListeners()
+    ) {
+      return;
+    }
+
+    this.bufferedFlushScheduled = true;
+    queueMicrotask(() => {
+      this.bufferedFlushScheduled = false;
+      this.flushBuffered({ selective: true });
+    });
+  }
+
+  private hasListeners(): boolean {
+    for (const listeners of this.listeners.values()) {
+      if (listeners.size > 0) return true;
+    }
+    return false;
   }
 
   private attachEventCheckpoint(options: {
