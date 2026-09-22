@@ -83,6 +83,7 @@ export type GoogleLanguageModelConfig = {
    */
   downloadToolResultFiles?: {
     maxBytes: number;
+    supportedUrls?: Record<string, RegExp[]>;
   };
 };
 
@@ -295,11 +296,15 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     }
 
     const { usesGemini3Features } = getGoogleModelCapabilities(modelId);
+    const supportedFunctionResponseUrls = usesGemini3Features
+      ? config.downloadToolResultFiles?.supportedUrls
+      : undefined;
 
     const promptWithDownloadedToolResultFiles = config.downloadToolResultFiles
       ? await downloadToolResultFiles(prompt, {
           abortSignal,
           maxBytes: config.downloadToolResultFiles.maxBytes,
+          supportedUrls: supportedFunctionResponseUrls,
         })
       : prompt;
 
@@ -312,6 +317,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         providerOptionsNames,
         supportsFunctionResponseParts: usesGemini3Features,
         includeFunctionCallIds: !isVertexProvider,
+        supportedFunctionResponseUrls,
       },
     );
 
