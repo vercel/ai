@@ -1,5 +1,28 @@
 # @ai-sdk/mcp
 
+## 2.0.55
+
+### Patch Changes
+
+- 7fc2bc1: fix(mcp): preserve pre-registered OAuth clients after client authentication errors and require explicit provider provenance before replacing dynamically registered credentials
+
+## 2.0.54
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+
+## 2.0.53
+
+### Patch Changes
+
+- 4b5cb49: fix(mcp): avoid duplicate legacy SSE OAuth refreshes for stale 401 responses
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+
 ## 2.0.52
 
 ### Patch Changes

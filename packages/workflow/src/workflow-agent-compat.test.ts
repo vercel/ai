@@ -10,9 +10,11 @@
  *   instead of ToolLoopAgent's `prompt` string
  * - WorkflowAgent returns WorkflowAgentStreamResult (not StreamTextResult with consumeStream())
  */
+import type { LanguageModelV4StreamPart } from '@ai-sdk/provider';
 import {
   dynamicTool,
   tool,
+  toolSearch,
   type Experimental_LanguageModelStreamPart,
   type ToolSet,
   type UIMessageChunk,
@@ -1018,6 +1020,112 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
   });
 
   describe('completed step tool results', () => {
+    it('discovers and executes deferred tools', async () => {
+      let call = 0;
+      const model = new MockLanguageModelV4({
+        doStream: async () => {
+          call++;
+          let chunks: LanguageModelV4StreamPart[];
+          if (call === 1) {
+            chunks = [
+              { type: 'stream-start' as const, warnings: [] },
+              {
+                type: 'tool-call' as const,
+                toolCallId: 'search-call',
+                toolName: 'search',
+                input: '{"query":"weather forecast"}',
+              },
+              {
+                ...dummyStreamFinish,
+                finishReason: {
+                  unified: 'tool-calls' as const,
+                  raw: 'tool-calls',
+                },
+              },
+            ];
+          } else if (call === 2) {
+            chunks = [
+              { type: 'stream-start' as const, warnings: [] },
+              {
+                type: 'tool-call' as const,
+                toolCallId: 'weather-call',
+                toolName: 'weather',
+                input: '{"city":"London"}',
+              },
+              {
+                ...dummyStreamFinish,
+                finishReason: {
+                  unified: 'tool-calls' as const,
+                  raw: 'tool-calls',
+                },
+              },
+            ];
+          } else {
+            chunks = [
+              { type: 'stream-start' as const, warnings: [] },
+              { type: 'text-start' as const, id: 'text' },
+              {
+                type: 'text-delta' as const,
+                id: 'text',
+                delta: 'done',
+              },
+              { type: 'text-end' as const, id: 'text' },
+              dummyStreamFinish,
+            ];
+          }
+
+          return {
+            stream: convertArrayToReadableStream(chunks),
+          };
+        },
+      });
+      const agent = new WorkflowAgent({
+        model,
+        tools: {
+          search: toolSearch(),
+          weather: tool({
+            deferLoading: true,
+            description: 'Get the weather forecast for a city.',
+            inputSchema: z.object({ city: z.string() }),
+            execute: async ({ city }) => ({ city, forecast: 'rain' }),
+          }),
+        },
+      });
+
+      const { writable } = createMockWritable();
+      const result = await agent.stream({
+        messages: [{ role: 'user', content: 'Will it rain?' }],
+        writable,
+      });
+
+      expect(
+        model.doStreamCalls.map(call => call.tools?.map(tool => tool.name)),
+      ).toEqual([['search'], ['search', 'weather'], ['search', 'weather']]);
+      expect(result.steps[0]?.toolResults).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-result',
+          toolCallId: 'search-call',
+          toolName: 'search',
+          output: {
+            tools: [
+              {
+                name: 'weather',
+                description: 'Get the weather forecast for a city.',
+              },
+            ],
+          },
+        }),
+      );
+      expect(result.steps[1]?.toolResults).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-result',
+          toolCallId: 'weather-call',
+          toolName: 'weather',
+          output: { city: 'London', forecast: 'rain' },
+        }),
+      );
+    });
+
     it('exposes static tool results to step consumers', async () => {
       const prepareStepResults: unknown[] = [];
       const onStepEndResults: unknown[] = [];

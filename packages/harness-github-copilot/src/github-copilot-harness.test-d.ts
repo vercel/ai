@@ -1,9 +1,25 @@
+import type { SandboxChannelReconnectOptions } from '@ai-sdk/harness/utils';
 import type { InferToolInput } from '@ai-sdk/provider-utils';
 import { expectTypeOf, test } from 'vitest';
 import {
   createGitHubCopilot,
   type GitHubCopilotBuiltinTools,
+  type GitHubCopilotHarnessSettings,
 } from './github-copilot-harness';
+
+test('accepts sandbox bridge reconnect settings', () => {
+  const settings: GitHubCopilotHarnessSettings = {
+    reconnect: {
+      maxElapsedMs: 120_000,
+      initialDelayMs: 100,
+      maxDelayMs: 5_000,
+    },
+  };
+  createGitHubCopilot(settings);
+  expectTypeOf(settings.reconnect).toEqualTypeOf<
+    SandboxChannelReconnectOptions | undefined
+  >();
+});
 
 test('preserves GitHub Copilot built-in tool types', () => {
   const harness = createGitHubCopilot({
