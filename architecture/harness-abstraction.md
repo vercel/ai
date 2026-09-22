@@ -1,9 +1,9 @@
-# Harness Abstraction Architecture
+# Harness abstraction architecture
 
 This document explains how the harness specification, sandbox providers, and harness adapter implementations connect in the AI SDK.
 It starts with a high-level view and then describes the main decisions involved in adding a new harness adapter.
 
-## High-Level Architecture
+## High-level architecture
 
 - **Harness agent**: user-facing agent runtime wrapper (`HarnessAgent`)
 - **Harness specification**: `HarnessV1`
@@ -42,7 +42,7 @@ classDiagram
 
 `HarnessAgent` either creates or resumes a sandbox session through the configured `HarnessV1SandboxProvider`, or uses the sandbox session passed to `createSession()`.
 It then creates the per-session work directory and calls `HarnessV1.doStart()` with both the `sandboxSession` and `sessionWorkDir`.
-Sandbox provisioning and lifecycle behavior are described in [Sandbox Ownership and Lifecycle](#sandbox-ownership-and-lifecycle).
+Sandbox provisioning and lifecycle behavior are described in [Sandbox ownership and lifecycle](#sandbox-ownership-and-lifecycle).
 
 The adapter must operate on that provided sandbox.
 
@@ -51,7 +51,7 @@ If an underlying runtime cannot be made to work against the sandbox supplied by 
 The adapter is the translation boundary between the native coding-agent runtime and the harness protocol.
 It should expose native runtime output, tool calls, approvals, completion, and usage through the harness stream and control surfaces without leaking runtime-specific protocol details into `HarnessAgent`.
 
-## Harness Interfaces
+## Harness interfaces
 
 - `HarnessV1` - [`packages/harness/src/v1/harness-v1.ts`](../packages/harness/src/v1/harness-v1.ts)
   - Describes one harness adapter.
@@ -64,7 +64,7 @@ It should expose native runtime output, tool calls, approvals, completion, and u
 
 A harness implementer consumes the `sandboxSession` that `HarnessAgent` passes to `doStart()`; they do not implement the sandbox provider or sandbox session interfaces.
 
-## Sandbox Ownership and Lifecycle
+## Sandbox ownership and lifecycle
 
 `HarnessAgent` supports three ways to provide a sandbox session:
 
@@ -77,13 +77,13 @@ A harness implementer consumes the `sandboxSession` that `HarnessAgent` passes t
 Passing `sandboxSession` directly always leaves its lifecycle with the caller, regardless of which sandbox session interface it implements.
 `HarnessAgent` does not stop or destroy a caller-provided sandbox.
 
-### With a Framework-Managed Sandbox
+### With a framework-managed sandbox
 
 - `session.detach()`: Calls adapter `doDetach()`, or `doSuspendTurn()` for an unfinished turn; leaves the sandbox unchanged.
 - `session.stop()`: Calls adapter `doStop()`, or `doSuspendTurn()` for an unfinished turn; calls `sandboxSession.stop()`.
 - `session.destroy()`: Calls adapter `doDestroy()`; calls `sandboxSession.destroy()`.
 
-### With a Caller-Provided Sandbox
+### With a caller-provided sandbox
 
 - `session.detach()`: Calls adapter `doDetach()`, or `doSuspendTurn()` for an unfinished turn; leaves the sandbox unchanged.
 - `session.stop()`: Calls adapter `doStop()`, or `doSuspendTurn()` for an unfinished turn; leaves the sandbox unchanged.
@@ -114,11 +114,11 @@ flowchart TD
     style Setup stroke:#f9f,stroke-width:3px
 ```
 
-## Adapter Runtime Placement
+## Adapter runtime placement
 
 A harness adapter can be implemented in two broad shapes.
 
-### Host-Driven Runtime
+### Host-driven runtime
 
 The preferred shape is a host-resident adapter that runs in the host Node.js process and uses the sandbox only as the workspace, filesystem, and shell target.
 A host-driven harness implementation follows this approach:
@@ -131,7 +131,7 @@ A host-driven harness implementation follows this approach:
 If a harness adapter can be implemented so that it runs on the host and only operates on the sandbox, that is the preferable setup.
 It keeps the sandbox smaller, avoids long-lived bridge transport, avoids port requirements, and makes credentials easier to keep on the host.
 
-### Bridge-Backed Runtime
+### Bridge-backed runtime
 
 Some runtimes need to execute inside the sandbox because their SDK or CLI assumes local access to the working directory, local process state, or a runtime-specific home directory.
 This is only necessary when those assumptions cannot be adapted at the host boundary.
@@ -152,7 +152,7 @@ A bridge-backed adapter can alternatively use a regular `Experimental_SandboxSes
 In that configuration, the caller is responsible for ensuring that `portEndpoint` routes to the bridge's in-sandbox `port`.
 This setup is less preferable because the connection details live outside the sandbox session contract, but it supports environments that cannot provide a full `HarnessV1NetworkSandboxSession`.
 
-## Harness and Sandbox Interaction
+## Harness and sandbox interaction
 
 Ideally, the harness runtime runs in the host environment and operates exclusively on the sandbox session passed to it by `HarnessAgent`.
 
@@ -183,13 +183,14 @@ Bridge-backed harnesses must bootstrap the sandbox that is passed to them.
 That bootstrap can be declared as a [`HarnessV1Bootstrap`](../packages/harness/src/v1/harness-v1-bootstrap.ts) recipe so `HarnessAgent` and sandbox providers can apply it consistently.
 
 To prewarm a sandbox provider's reusable template for one harness, call [`prepareHarnessSandboxTemplate()`](../packages/harness/src/agent/prepare-harness-sandbox-template.ts).
-It uses the same bootstrap plan and identity that future `HarnessAgent` sessions pass to the sandbox provider, allowing snapshot-capable providers to reuse the prepared template and avoid their one-time bootstrap hook.
+Pass the same `sandboxConfig` bootstrap settings to `prepareHarnessSandboxTemplate()` and `HarnessAgent`.
+Matching settings produce the same bootstrap plan and identity, allowing snapshot-capable providers to reuse the prepared template and avoid their one-time bootstrap hook.
 
 To prepare a caller-owned sandbox for one or more harnesses, call [`prepareSandboxForHarness()`](../packages/harness/src/agent/prepare-sandbox-for-harness.ts) against the sandbox session, then snapshot or otherwise persist it yourself.
 Later, pass a sandbox created from that artifact to `HarnessAgent`; matching per-recipe bootstrap markers prevent already applied recipes from running again.
 The aggregate preparation identity returned by `prepareSandboxForHarness()` is caller metadata and is not the identity that `HarnessAgent` passes to a sandbox provider.
 
-## Filesystem Boundaries
+## Filesystem boundaries
 
 Treat `sessionWorkDir` as the user's session workspace.
 Files that the user or runtime is expected to inspect, edit, or preserve as part of the working tree belong there.
@@ -210,20 +211,20 @@ Prefer auth that can work with explicit adapter settings, host environment varia
 OIDC-backed auth is especially useful because it avoids long-lived static secrets.
 
 Some adapters can resolve credentials from the runtime's native subscription on the host.
-These adapters use native subscription credentials only when no applicable API key is available, whether for AI Gateway or direct provider authentication. The `ai-gateway` mode and an explicit authentication environment do not read native subscriptions.
+These adapters use native subscription credentials only when no applicable Gateway or direct credential is available. The `ai-gateway` mode and an `auth` environment object do not read native subscriptions.
 
-### Credential Handling
+### Credential handling
 
 Model and provider credentials must not enter the sandbox.
 
-- Host-driven adapters keep them on the host. This is the simple scenario and, as mentioned before, generally preferred.
+- Host-driven adapters keep model and provider credentials on the host. Prefer this setup when the runtime can run on the host.
 - Bridge-backed adapters should use credential brokering so the sandbox process receives only non-secret placeholders.
 
 The exception is per-session bridge authentication tokens, which bridge-backed adapters need inside the sandbox.
 
 Credential brokering requires a `HarnessV1NetworkSandboxSession` implementation with `addRequestTransformations()` and is strongly recommended. The adapter installs outbound HTTPS request transformations that match the placeholder and destination, then inject the real credential after the request leaves the sandbox security boundary.
 
-When `addRequestTransformations()` is unavailable, adapters fall back to forwarding credentials into the sandbox process. This is the only supported exception in which real model or provider credentials may enter the sandbox. A warning is emitted when forwarding credentials is the only choice.
+When `addRequestTransformations()` is unavailable, adapters fall back to forwarding authentication values into the sandbox process. This is the only supported case in which real model or provider credentials may enter the sandbox. The adapter warns if a real credential remains in the forwarded environment. It does not warn if `credentialForwarding` replaces every real credential with a caller-managed value.
 
 The optional `credentialForwarding` adapter setting provides advanced control over each value before it enters the sandbox. It receives a non-secret placeholder when credential brokering is available and the real credential otherwise; its return value is what the sandbox process receives. It does not restrict which credentials the adapter can discover or access on the host.
 
@@ -234,7 +235,7 @@ You can use the `credentialForwarding` setting if you handle credential brokerin
 
 Never persist secrets in `sessionWorkDir`. Lifecycle state can contain bridge tokens or forwarded credentials, so callers must treat it as sensitive data and store and transmit it securely.
 
-## Lifecycle and Resume
+## Lifecycle and resume
 
 A harness distinguishes between resuming a session and continuing a turn.
 
@@ -245,9 +246,9 @@ A harness distinguishes between resuming a session and continuing a turn.
   The adapter must continue from a precise point in the active turn when possible.
   Bridge-backed adapters may be able to attach to a live runtime and replay buffered events; host-driven adapters may need to persist state and re-drive part of the work.
 
-The harness adapter will return a `continueFrom` payload if a turn that gets interrupted/suspended in-flight. If the session is then also detached from or stopped, it will additionally return `resumeFrom` with the `continueFrom` attached to it.
+The adapter's `doSuspendTurn()` returns `continueFrom`, which `session.suspendTurn()` exposes directly. When `session.detach()` or `session.stop()` ends an in-flight turn, `HarnessAgent` constructs and returns `resumeFrom` containing that `continueFrom` state.
 
 Adapters should return lifecycle payloads that are small, serializable, and specific to their `harnessId`.
 If the payload has meaningful structure, expose `lifecycleStateSchema` so imported state can be validated before use.
 
-_**Important:** While "resume" and "continue" are usually interchangeable terms, for clarity we must always use "resume a session", but "continue a turn". The verbs must not be used interchangeably in the harness abstraction layer._
+In the harness abstraction layer, use `resume` only for sessions and `continue` only for turns.
