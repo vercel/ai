@@ -194,9 +194,9 @@ The following provider options are available:
   Reasoning effort for reasoning models. Defaults to `medium`. If you use `providerOptions` to set the `reasoningEffort` option, this model setting will be ignored.
 
 <Note>
-  Supported reasoning efforts vary by model. GPT-5.6 supports `'none'`, `'low'`,
-  `'medium'`, `'high'`, `'xhigh'`, and `'max'`. GPT-6 and later models support
-  `'low'`, `'medium'`, `'high'`, `'xhigh'`, and `'max'`.
+  Supported reasoning efforts vary by model. GPT-5.6 and GPT-6 support `'none'`,
+  `'low'`, `'medium'`, `'high'`, `'xhigh'`, and `'max'`. GPT-6 Astra does not
+  support `'none'`.
 </Note>
 
 <Note type="warning">
@@ -1489,6 +1489,8 @@ The following optional provider options are available for OpenAI completion mode
 | Model                 | Image Input         | Audio Input         | Object Generation   | Tool Usage          |
 | --------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `gpt-6-astra`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-6-luna`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-6-sol`           | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5.6`             | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5.6-luna`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5.6-sol`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
