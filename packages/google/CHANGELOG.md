@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.77
+
+### Patch Changes
+
+- 8dbe0be: fix(google): preserve image candidate finish reasons in provider metadata
+
 ## 4.0.76
 
 ### Patch Changes
