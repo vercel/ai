@@ -134,6 +134,7 @@ It keeps the sandbox smaller, avoids long-lived bridge transport, avoids port re
 ### Bridge-Backed Runtime
 
 Some runtimes need to execute inside the sandbox because their SDK or CLI assumes local access to the working directory, local process state, or a runtime-specific home directory.
+This is only necessary when those assumptions cannot be adapted at the host boundary.
 A bridge-backed harness implementation follows this approach:
 
 - the adapter declares or applies bootstrap files for an in-sandbox bridge,
