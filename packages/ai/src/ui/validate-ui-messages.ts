@@ -399,8 +399,13 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
     }
 
     if (metadataSchema) {
+<<<<<<< HEAD
       for (const message of validatedMessages) {
         await validateTypes({
+=======
+      for (const [msgIdx, message] of validatedMessages.entries()) {
+        message.metadata = await validateTypes({
+>>>>>>> fde0d66025 (fix: preserve schema defaults and transformations in validated UI messages (#21128))
           value: message.metadata,
           schema: metadataSchema,
         });
@@ -417,6 +422,7 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
           const dataName = dataPart.type.slice(5);
           const dataSchema = dataSchemas[dataName];
 
+<<<<<<< HEAD
           if (!dataSchema) {
             return {
               success: false,
@@ -425,6 +431,32 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
                 cause: `No data schema found for data part ${dataName}`,
               }),
             };
+=======
+            if (!dataSchema) {
+              return {
+                success: false,
+                error: new TypeValidationError({
+                  value: dataPart.data,
+                  cause: `No data schema found for data part ${dataName}`,
+                  context: {
+                    field: `messages[${msgIdx}].parts[${partIdx}].data`,
+                    entityName: dataName,
+                    entityId: dataPart.id,
+                  },
+                }),
+              };
+            }
+
+            dataPart.data = await validateTypes({
+              value: dataPart.data,
+              schema: dataSchema,
+              context: {
+                field: `messages[${msgIdx}].parts[${partIdx}].data`,
+                entityName: dataName,
+                entityId: dataPart.id,
+              },
+            });
+>>>>>>> fde0d66025 (fix: preserve schema defaults and transformations in validated UI messages (#21128))
           }
 
           await validateTypes({
