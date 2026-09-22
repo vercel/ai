@@ -172,11 +172,11 @@ async function awaitWebSocketConnection({
 /**
  * Host-side typed wrapper around the bridge WebSocket connection.
  *
- * Buffers inbound messages until a listener for their type is registered, so
- * callers that subscribe asynchronously do not miss early frames. Inbound
- * dispatch is serialised through a promise chain so a `close` event that
- * arrives on the same microtask as the final `finish` message does not fire
- * close handlers until the message has been dispatched.
+ * Buffers inbound messages in arrival order until listeners for their types
+ * are registered, so callers that subscribe asynchronously do not miss or
+ * reorder early frames. Inbound dispatch is serialised through a promise chain
+ * so a `close` event that arrives on the same microtask as the final `finish`
+ * message does not fire close handlers until the message has been dispatched.
  *
  * Survives transient disconnects. The bridge keeps running and
  * accumulates events in an in-memory log keyed by a monotonic `seq`; on an
@@ -193,7 +193,9 @@ export class SandboxChannel<
     EventTypeOf<TOut>,
     Set<Listener<TOut, EventTypeOf<TOut>>>
   >();
-  private readonly buffered = new Map<EventTypeOf<TOut>, TOut[]>();
+  private readonly buffered: TOut[] = [];
+  private bufferedOffset = 0;
+  private flushingBuffered = false;
   private readonly onCloseHandlers = new Set<
     (code: number, reason: string) => void
   >();
@@ -309,13 +311,7 @@ export class SandboxChannel<
     }
     set.add(listener as unknown as Listener<TOut, EventTypeOf<TOut>>);
 
-    const buffered = this.buffered.get(type);
-    if (buffered) {
-      this.buffered.delete(type);
-      for (const event of buffered) {
-        listener(event as Extract<TOut, { type: T }>);
-      }
-    }
+    this.flushBuffered();
 
     return () => {
       set!.delete(listener as unknown as Listener<TOut, EventTypeOf<TOut>>);
@@ -645,17 +641,37 @@ export class SandboxChannel<
     }
     const type = message.type as EventTypeOf<TOut>;
     const set = this.listeners.get(type);
-    if (!set || set.size === 0) {
-      let bucket = this.buffered.get(type);
-      if (!bucket) {
-        bucket = [];
-        this.buffered.set(type, bucket);
-      }
-      bucket.push(message);
+    if (this.bufferedOffset < this.buffered.length || !set || set.size === 0) {
+      this.buffered.push(message);
+      this.flushBuffered();
       return;
     }
     for (const listener of set) {
       listener(message as Extract<TOut, { type: EventTypeOf<TOut> }>);
+    }
+  }
+
+  private flushBuffered(): void {
+    if (this.flushingBuffered) return;
+    this.flushingBuffered = true;
+    try {
+      while (this.bufferedOffset < this.buffered.length) {
+        const message = this.buffered[this.bufferedOffset];
+        const type = message.type as EventTypeOf<TOut>;
+        const set = this.listeners.get(type);
+        if (!set || set.size === 0) return;
+
+        this.bufferedOffset++;
+        for (const listener of set) {
+          listener(message as Extract<TOut, { type: EventTypeOf<TOut> }>);
+        }
+      }
+    } finally {
+      if (this.bufferedOffset > 0) {
+        this.buffered.splice(0, this.bufferedOffset);
+        this.bufferedOffset = 0;
+      }
+      this.flushingBuffered = false;
     }
   }
 
