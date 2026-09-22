@@ -508,6 +508,14 @@ describe('Anthropic batch', () => {
 
   it.each([
     {
+      feature: 'providerOptions.anthropic.compaction',
+      options: {
+        compaction: { type: 'summarize' },
+      } satisfies AnthropicLanguageModelOptions,
+      message:
+        'Anthropic Message Batches do not support on-demand compaction (request "request-1").',
+    },
+    {
       feature: 'providerOptions.anthropic.speed',
       options: { speed: 'fast' } satisfies AnthropicLanguageModelOptions,
       message:
@@ -993,6 +1001,67 @@ describe('Anthropic batch', () => {
     expect(result.result.providerMetadata).toEqual({
       anthropic: expect.objectContaining({ safeguardResults }),
     });
+  });
+
+  it('preserves signed compaction blocks in batch results', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse(),
+    };
+    server.urls[urls.results].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          custom_id: 'compaction',
+          result: {
+            type: 'succeeded',
+            message: {
+              ...messageResultBody(''),
+              content: [
+                {
+                  type: 'compaction',
+                  content: 'Summary of the conversation.',
+                  signature: 'compaction-signature',
+                },
+              ],
+              stop_reason: 'compaction',
+            },
+          },
+        }),
+      ],
+    };
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+
+    const stream = await model.doGetBatchResults({
+      batchId: 'msgbatch_123',
+    });
+
+    await expect(convertReadableStreamToArray(stream)).resolves.toMatchObject([
+      {
+        id: 'compaction',
+        status: 'succeeded',
+        result: {
+          content: [
+            {
+              type: 'text',
+              text: 'Summary of the conversation.',
+              providerMetadata: {
+                anthropic: {
+                  type: 'compaction',
+                  signature: 'compaction-signature',
+                },
+              },
+            },
+          ],
+          finishReason: {
+            unified: 'other',
+            raw: 'compaction',
+          },
+        },
+      },
+    ]);
   });
 
   it('preserves client and provider-executed tool content', async () => {

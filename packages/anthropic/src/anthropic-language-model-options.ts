@@ -374,6 +374,19 @@ export const anthropicLanguageModelOptions = z.object({
     )
     .optional(),
 
+  /**
+   * Requests an on-demand summary of the supplied conversation.
+   *
+   * The required `compact-2026-09-04` beta is added automatically.
+   * Cannot be combined with `contextManagement`.
+   */
+  compaction: z
+    .object({
+      type: z.literal('summarize'),
+      instructions: z.string().optional(),
+    })
+    .optional(),
+
   contextManagement: z
     .object({
       edits: z.array(

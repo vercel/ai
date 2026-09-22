@@ -696,13 +696,24 @@ export async function convertToAnthropicPrompt({
               case 'text': {
                 // Check if this is a compaction block (via providerMetadata)
                 const textMetadata = part.providerOptions?.anthropic as
-                  | { type?: string; citations?: Citation[] }
+                  | {
+                      type?: string;
+                      citations?: Citation[];
+                      signature?: string;
+                    }
                   | undefined;
 
                 if (textMetadata?.type === 'compaction') {
+                  if (typeof textMetadata.signature === 'string') {
+                    betas.add('compact-2026-09-04');
+                  }
+
                   anthropicContent.push({
                     type: 'compaction',
                     content: part.text,
+                    ...(typeof textMetadata.signature === 'string' && {
+                      signature: textMetadata.signature,
+                    }),
                     cache_control: cacheControl,
                   });
                 } else {

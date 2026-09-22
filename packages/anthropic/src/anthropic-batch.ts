@@ -539,6 +539,15 @@ function validateAnthropicBatchBody({
   body: Record<string, unknown>;
   requestId: string;
 }) {
+  if (body.compaction != null) {
+    throw new UnsupportedFunctionalityError({
+      functionality: 'providerOptions.anthropic.compaction',
+      message:
+        `Anthropic Message Batches do not support on-demand compaction ` +
+        `(request "${requestId}").`,
+    });
+  }
+
   if (body.speed != null) {
     throw new UnsupportedFunctionalityError({
       functionality: 'providerOptions.anthropic.speed',
@@ -802,7 +811,12 @@ function convertAnthropicBatchResponse(
         content.push({
           type: 'text',
           text: part.content,
-          providerMetadata: { anthropic: { type: 'compaction' } },
+          providerMetadata: {
+            anthropic: {
+              type: 'compaction',
+              ...(part.signature != null && { signature: part.signature }),
+            },
+          },
         });
         break;
       case 'tool_use':
