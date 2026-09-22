@@ -3267,6 +3267,120 @@ describe('Chat', () => {
   });
 
   describe('addToolApprovalResponse', () => {
+    describe('approval in an earlier assistant message', () => {
+      function createChat({
+        withLaterReply,
+        alreadyApproved = false,
+      }: {
+        withLaterReply: boolean;
+        alreadyApproved?: boolean;
+      }) {
+        const messages: UIMessage[] = [
+          {
+            id: 'user-1',
+            role: 'user',
+            parts: [{ type: 'text', text: 'Check the weather in Tokyo.' }],
+          },
+          {
+            id: 'proposal',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-weather',
+                toolCallId: 'call-1',
+                input: { city: 'Tokyo' },
+                ...(alreadyApproved
+                  ? {
+                      state: 'approval-responded' as const,
+                      approval: { id: 'approval-1', approved: true },
+                    }
+                  : {
+                      state: 'approval-requested' as const,
+                      approval: { id: 'approval-1' },
+                    }),
+              },
+            ],
+          },
+        ];
+
+        if (withLaterReply) {
+          messages.push(
+            {
+              id: 'user-2',
+              role: 'user',
+              parts: [
+                { type: 'text', text: 'Leave that pending. What is 2 + 2?' },
+              ],
+            },
+            {
+              id: 'later-reply',
+              role: 'assistant',
+              parts: [{ type: 'text', text: '4.' }],
+            },
+          );
+        }
+
+        return new TestChat({
+          id: 'historical-approval',
+          messages,
+          transport: new DefaultChatTransport({
+            api: 'http://localhost:3000/api/chat',
+          }),
+        });
+      }
+
+      // These expected failures document historical approval behavior without
+      // choosing a new API for selecting the message a reply should resume.
+      it.fails.each([true, false])(
+        'records approved=%s on the owning message after a later reply',
+        async approved => {
+          const chat = createChat({ withLaterReply: true });
+          const laterMessages = structuredClone(chat.messages.slice(2));
+
+          await chat.addToolApprovalResponse({ id: 'approval-1', approved });
+
+          expect(chat.messages.slice(2)).toEqual(laterMessages);
+          expect(chat.messages[1].parts[0]).toMatchObject({
+            state: 'approval-responded',
+            approval: { id: 'approval-1', approved },
+          });
+        },
+      );
+
+      async function resumeApprovedCall(withLaterReply: boolean) {
+        // Seed a recorded approval to isolate result processing from the
+        // separate addToolApprovalResponse failure above.
+        const chat = createChat({ withLaterReply, alreadyApproved: true });
+        server.urls['http://localhost:3000/api/chat'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            formatChunk({ type: 'start', messageId: 'resumed-reply' }),
+            formatChunk({
+              type: 'tool-output-available',
+              toolCallId: 'call-1',
+              output: { temperature: 72, weather: 'sunny' },
+            }),
+            formatChunk({ type: 'finish', finishReason: 'stop' }),
+          ],
+        };
+
+        await chat.sendMessage();
+        return chat;
+      }
+
+      it('consumes the result when the approved invocation is in the latest reply', async () => {
+        const chat = await resumeApprovedCall(false);
+        expect(chat.error).toBeUndefined();
+        expect(chat.status).toBe('ready');
+      });
+
+      it.fails('consumes the result when the approved invocation is in an earlier reply', async () => {
+        const chat = await resumeApprovedCall(true);
+        expect(chat.error).toBeUndefined();
+        expect(chat.status).toBe('ready');
+      });
+    });
+
     it('should preserve signed approval metadata when recording the response', async () => {
       const chat = new TestChat({
         id: '123',
