@@ -283,6 +283,13 @@ export type TextResponseFormat = {
 };
 
 /**
+ * JSON object response format.
+ */
+export type JsonObjectResponseFormatParam = {
+  type: 'json_object';
+};
+
+/**
  * JSON schema response format.
  */
 export type JsonSchemaResponseFormatParam = {
@@ -297,7 +304,10 @@ export type JsonSchemaResponseFormatParam = {
  * Configuration options for text output.
  */
 export type TextParam = {
-  format?: TextResponseFormat | JsonSchemaResponseFormatParam;
+  format?:
+    | TextResponseFormat
+    | JsonObjectResponseFormatParam
+    | JsonSchemaResponseFormatParam;
   verbosity?: VerbosityEnum;
 };
 
