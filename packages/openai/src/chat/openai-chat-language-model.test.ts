@@ -187,6 +187,46 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should expose an audio transcript as text while preserving tool calls', async () => {
+    const body = JSON.parse(
+      fs.readFileSync(
+        'src/chat/__fixtures__/openai-audio-gpt-audio-1.5.json',
+        'utf8',
+      ),
+    );
+    body.choices[0].message.tool_calls = [
+      {
+        id: 'call_1',
+        type: 'function',
+        function: {
+          name: 'update_issue',
+          arguments: '{"title":"Fix the login bug"}',
+        },
+      },
+    ];
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body,
+    };
+
+    const result = await provider.chat('gpt-audio-1.5').doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toEqual([
+      {
+        type: 'text',
+        text: body.choices[0].message.audio.transcript,
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'call_1',
+        toolName: 'update_issue',
+        input: '{"title":"Fix the login bug"}',
+      },
+    ]);
+  });
+
   it('should reject a response without choices', async () => {
     server.urls['https://api.openai.com/v1/chat/completions'].response = {
       type: 'json-value',
