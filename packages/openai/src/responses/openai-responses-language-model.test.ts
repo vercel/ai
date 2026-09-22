@@ -8543,7 +8543,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('errors', () => {
-      it('should throw an api error when the stream errors before output starts', async () => {
+      it('should throw a non-retryable api error when the stream reports insufficient quota before output starts', async () => {
         prepareChunksFixtureResponse('openai-error.1');
 
         await expect(
@@ -8555,7 +8555,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           message:
             'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.',
           statusCode: 429,
-          isRetryable: true,
+          isRetryable: false,
         });
       });
 
