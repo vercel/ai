@@ -1,13 +1,14 @@
 {
   "version": 2,
-  "issueId": 20766,
+  "issueId": 21275,
   "expectationRevision": 1,
-  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/harness-pi-reattach-settings.ts",
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/google-vertex-gs-tool-result.ts",
   "artifactPaths": [
-    "examples/ai-functions/src/reproduction/harness-pi-reattach-settings.ts"
+    "examples/ai-functions/src/reproduction/google-vertex-gs-tool-result.ts",
+    "packages/google-vertex/src/google-vertex-language-model.test.ts"
   ],
   "expectedFailure": {
     "exitCode": 1,
-    "signal": "ISSUE 20766 REPRODUCED: same-process reattach ignored request 2 credentials"
+    "signal": "ISSUE #21275 REPRODUCED: provider-supported gs:// tool-result URL throws AI_DownloadError before Vertex request dispatch"
   }
 }
