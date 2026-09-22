@@ -671,6 +671,16 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       system: messagesPrompt.system,
       messages: messagesPrompt.messages,
 
+      ...(anthropicOptions?.safeguards &&
+        anthropicOptions.safeguards.length > 0 && {
+          safeguards: anthropicOptions.safeguards.map(safeguard => ({
+            type: safeguard.type,
+            ...(safeguard.classifierContext !== undefined && {
+              classifier_context: safeguard.classifierContext,
+            }),
+          })),
+        }),
+
       ...(contextManagement && {
         context_management: {
           edits: contextManagement.edits
@@ -808,6 +818,13 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       anthropicOptions.mcpServers.length > 0
     ) {
       betas.add('mcp-client-2025-04-04');
+    }
+
+    if (
+      anthropicOptions?.safeguards &&
+      anthropicOptions.safeguards.length > 0
+    ) {
+      betas.add('dangerous-tool-use-2026-09-03');
     }
 
     if (contextManagement) {
@@ -1560,6 +1577,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           ...(response.input_transformations != null
             ? { inputTransformations: response.input_transformations }
             : {}),
+          ...(response.safeguard_results != null
+            ? { safeguardResults: response.safeguard_results }
+            : {}),
 
           iterations: response.usage.iterations
             ? response.usage.iterations.map(
@@ -1697,6 +1717,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     let stopSequence: string | null = null;
     let stopDetails: AnthropicMessageMetadata['stopDetails'] = undefined;
     let inputTransformations: AnthropicMessageMetadata['inputTransformations'];
+    let safeguardResults: AnthropicMessageMetadata['safeguardResults'];
     let container: AnthropicMessageMetadata['container'] | null = null;
     let isJsonResponseFromTool = false;
     let isMessageOpen = false;
@@ -2701,6 +2722,12 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 inputTransformations = value.input_transformations;
               }
 
+              // Earlier deltas may carry null while the classifier is still
+              // running; the last non-null value is the final verdict.
+              if (value.delta.safeguard_results != null) {
+                safeguardResults = value.delta.safeguard_results;
+              }
+
               rawUsage = {
                 ...rawUsage,
                 ...(value.usage as JSONObject),
@@ -2720,6 +2747,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 ...(inputTransformations != null
                   ? { inputTransformations }
                   : {}),
+                ...(safeguardResults != null ? { safeguardResults } : {}),
                 iterations: usage.iterations
                   ? usage.iterations.map(
                       iter =>

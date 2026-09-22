@@ -1,5 +1,11 @@
 # @ai-sdk/deepseek
 
+## 3.0.50
+
+### Patch Changes
+
+- 7bed0ef: fix(deepseek): send tool-result images as image content parts
+
 ## 3.0.49
 
 ### Patch Changes

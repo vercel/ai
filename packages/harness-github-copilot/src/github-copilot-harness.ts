@@ -62,8 +62,9 @@ export type GitHubCopilotHarnessSettings = {
   readonly startupTimeoutMs?: number;
   /**
    * Configures reconnection attempts after an established bridge connection
-   * drops. Defaults to a 30 second reconnect window with exponential backoff
-   * from 50 milliseconds up to 2 seconds.
+   * drops. The reconnect window includes connection establishment and
+   * backoff delays. Defaults to 30 seconds with exponential backoff from 50
+   * milliseconds up to 2 seconds.
    */
   readonly reconnect?: SandboxChannelReconnectOptions;
   readonly mintBridgeToken?: (sandboxId: string) => string;
@@ -71,7 +72,7 @@ export type GitHubCopilotHarnessSettings = {
 
 /*
  * This catalog reflects the stable, non-MCP tool surface emitted by GitHub
- * Copilot CLI 1.0.82. Loose object schemas preserve compatibility when the
+ * Copilot CLI >=1.0.82. Loose object schemas preserve compatibility when the
  * CLI adds fields without changing the established inputs.
  */
 const GITHUB_COPILOT_BUILTIN_TOOLS = {
