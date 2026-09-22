@@ -24,6 +24,7 @@ export type AnthropicMessagesModelId =
   | 'claude-opus-4-7'
   | 'claude-opus-4-8'
   | 'claude-opus-5'
+  | 'claude-opus-5-5'
   | 'claude-fable-5'
   | 'claude-fable-5-1'
   | 'claude-sonnet-5'
@@ -79,7 +80,7 @@ export const anthropicSystemMessageProviderOptions = z.object({
 
   /**
    * Overrides the effort for the turn following this mid-conversation system
-   * message. The required `mid-conversation-effort-2026-08-01` beta is added
+   * message. The required `mid-conversation-output-config-2026-07-01` beta is added
    * automatically.
    */
   effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
@@ -140,7 +141,7 @@ export const anthropicProviderOptions = z.object({
    *
    * - `outputFormat`: Use the `output_format` parameter to specify the structured output format.
    * - `jsonTool`: Use a special JSON response tool to specify the structured output format (default for most models).
-   * - `auto`: Use 'outputFormat' when supported, otherwise use 'jsonTool' (default for Fable 5.1).
+   * - `auto`: Use 'outputFormat' when supported, otherwise use 'jsonTool' (default for Opus 5.5 and Fable 5.1).
    */
   structuredOutputMode: z.enum(['outputFormat', 'jsonTool', 'auto']).optional(),
 
@@ -149,6 +150,11 @@ export const anthropicProviderOptions = z.object({
    *
    * When enabled, responses include thinking content blocks showing Claude's thinking process before the final answer.
    * Requires a minimum budget of 1,024 tokens and counts towards the `max_tokens` limit.
+   *
+   * Models that always use adaptive thinking (e.g. `claude-opus-5-5`,
+   * `claude-fable-5-1`) reject `enabled` and `disabled`. For those models the
+   * provider drops the unsupported setting, emits a warning, and sends an
+   * adaptive thinking request. Use `effort` to control how much they think.
    */
   thinking: z
     .union([
